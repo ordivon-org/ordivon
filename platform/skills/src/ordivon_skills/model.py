@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from enum import StrEnum
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 _SOURCE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 
@@ -77,8 +77,20 @@ class SkillSource:
         if self.project_root is not None:
             object.__setattr__(self, "project_root", Path(self.project_root))
         for prefix in (*self.implicit_deny_prefixes, *self.explicit_deny_prefixes):
-            if not prefix or prefix.startswith("/") or ".." in Path(prefix).parts:
-                raise ValueError(f"unsafe source policy prefix: {prefix!r}")
+            # Policy and SkillCatalog's source-relative paths use POSIX separators.
+            # Accept only one canonical spelling; otherwise a requested DENY
+            # silently degrades to ALLOW during raw-prefix comparison.
+            if (
+                not isinstance(prefix, str)
+                or not prefix
+                or prefix.startswith("/")
+                or "\\" in prefix
+                or PurePosixPath(prefix).as_posix() == "."
+                or any(ord(char) < 32 or ord(char) == 127 for char in prefix)
+                or ".." in PurePosixPath(prefix).parts
+                or PurePosixPath(prefix).as_posix() != prefix.rstrip("/")
+            ):
+                raise ValueError(f"source policy prefix must be canonical and relative: {prefix!r}")
         if self.eligibility_adapter not in {None, "openclaw-metadata"}:
             raise ValueError(f"unsupported eligibility adapter: {self.eligibility_adapter}")
         if self.validation_mode not in {"strict", "lenient"}:

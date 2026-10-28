@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import tomllib
 from collections import deque
@@ -13,11 +14,17 @@ from pathlib import Path
 import affected_owners
 
 DEPENDENCY_PATH = Path(__file__).with_name("dependency_contracts.toml")
+ROOT_TASKS_PATH = Path(__file__).resolve().parents[2] / "mise.toml"
 
 
 def _git(*args: str) -> str:
     proc = subprocess.run(
-        ["git", *args],
+        # Pin SourceCut/tree identity to Git objects, not locally configured
+        # replacement refs which could spoof a selected task's provenance.
+        ["git", "--no-replace-objects", *args],
+        # Preserve the same graft-free immutable Git SourceCut used by the
+        # native affected-owner delta selector.
+        env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
         check=True,
         text=True,
         capture_output=True,
@@ -126,6 +133,93 @@ def _is_cross_cutting(paths: Iterable[str]) -> bool:
     )
 
 
+def validate_queue_task_selection(
+    selected_owners: list[str],
+    requested_tasks: list[str],
+    changed_paths: list[str] | tuple[str, ...] = (),
+) -> None:
+    """Fail closed on the *real* queue consumer's owner and source-task contract.
+
+    The only source-only verification task is the existing formal:verify. It
+    is never a fake Owner or a substitute for another Owner's queue gate.
+    """
+    canonical = {
+        owner.name: owner.queue_task for owner in affected_owners.OWNERS
+    }
+    # The queue consumes the already projected source impact, not merely the
+    # producer's asserted Owner list. Otherwise a consistently empty/partial
+    # (verificationOwners, queueVerifyTasks) pair would pass and silently
+    # skip a real Runtime consumer or a cross-cutting Owner verification.
+    #
+    # This compares the caller's changedPaths to the existing native
+    # dependency/consumer closure. It DOES NOT prove changedPaths matches Git
+    # bytes, installed effects, complete dynamic consumers or formal proof.
+    if changed_paths:
+        impact = build_plan(changed_files=changed_paths)
+        if selected_owners != impact["verificationOwners"]:
+            raise ValueError(
+                "queue source impact must include the exact canonical "
+                "changed-source verification consumer closure"
+            )
+        if requested_tasks != impact["queueVerifyTasks"]:
+            raise ValueError(
+                "queue source impact must include the exact canonical "
+                "changed-source task closure"
+            )
+    if len(selected_owners) != len(set(selected_owners)):
+        raise ValueError("selected verification owner identities are duplicated")
+    if any(owner not in canonical for owner in selected_owners):
+        raise ValueError("selected verification owner identity is unknown")
+    formal_source_changed = affected_owners.requires_core_formal_verification(
+        changed_paths
+    )
+    expected = [canonical[owner] for owner in selected_owners]
+    if formal_source_changed:
+        expected.append("formal:verify")
+    if requested_tasks != expected:
+        raise ValueError(
+            "queue task selection must match canonical owner tasks plus "
+            "the scoped Formal-source verification task"
+        )
+
+    # The queue invokes these exact task names through mise run.
+    # Name/Owner agreement alone is not a runnable contract: the root task
+    # can be removed or renamed independently of the source selector.
+    # Validate the current native manifest, without interpreting task
+    # shell text as mathematical behavior or running effects.
+    if requested_tasks:
+        try:
+            declared = tomllib.loads(ROOT_TASKS_PATH.read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError) as exc:
+            raise ValueError("selected queue tasks require readable root mise.toml") from exc
+        root_tasks = declared.get("tasks")
+        if not isinstance(root_tasks, dict):
+            raise ValueError("selected queue tasks require a root mise task table")
+        for name in requested_tasks:
+            task = root_tasks.get(name)
+            if isinstance(task, str):
+                callable_task = bool(task.strip())
+            elif isinstance(task, dict):
+                callable_task = bool(task.get("run") or task.get("depends"))
+            else:
+                callable_task = False
+            if not callable_task:
+                raise ValueError(f"selected queue task has no root mise runner: {name}")
+        # A nonempty TOML value cannot prove the actual runner can parse a
+        # command or resolve its task dependencies. Reuse the already installed
+        # native mise validator instead of reimplementing its task language.
+        # Validation does not execute the task or establish its effects.
+        try:
+            native = subprocess.run(
+                ["mise", "--cd", str(ROOT_TASKS_PATH.parent), "tasks", "validate"],
+                capture_output=True, text=True, timeout=30, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise ValueError("selected queue tasks require native mise task validation") from exc
+        if native.returncode != 0:
+            raise ValueError("selected queue tasks fail native mise task validation")
+
+
 def build_plan(
     *,
     base: str | None = None,
@@ -181,8 +275,21 @@ def build_plan(
         queue_class = "REPOSITORY_ONLY"
 
     by_name = {owner.name: owner for owner in owners}
-    verify_tasks = tuple(by_name[name].task for name in verification_names)
-    queue_verify_tasks = tuple(by_name[name].queue_task for name in verification_names)
+    # Formal proofs live in the existing repository Tool source region, not an
+    # invented domain Owner. A changed proof/checker source must still route to
+    # the already declared root mise formal:verify consumer task.
+    formal_source_changed = affected_owners.requires_core_formal_verification(
+        paths
+    )
+    formal_tasks = ("formal:verify",) if formal_source_changed else ()
+    verify_tasks = (
+        *(by_name[name].task for name in verification_names),
+        *formal_tasks,
+    )
+    queue_verify_tasks = (
+        *(by_name[name].queue_task for name in verification_names),
+        *formal_tasks,
+    )
     declared_edges = sorted(
         {
             tuple(sorted((left, right)))
@@ -216,6 +323,149 @@ def build_plan(
     }
 
 
+def explain_source_impacts(
+    plan: dict[str, object], *, source_cut: str, repo: Path | None = None,
+) -> dict[str, object]:
+    """Compose EXISTING SourceCut, ProblemRefs, AST hints and real queue tasks.
+
+    This is a bounded, on-demand agent-facing *read* interface, not a new
+    authority, a full call graph or permission to skip/expand verification.
+    """
+    import exhaustive_coverage as source_tools
+
+    if repo is None:
+        repo = Path(__file__).resolve().parents[2]
+    declared_head = plan.get("headRevision")
+    if declared_head is not None and source_cut != declared_head:
+        raise ValueError("SourceCut mismatch with change plan headRevision")
+    changed = plan.get("changedPaths")
+    if not isinstance(changed, list) or len(changed) > 32:
+        raise ValueError("bounded source impact requires at most 32 changed paths")
+    paths = [affected_owners._normalize(path) for path in changed]
+    if len(paths) != len(set(paths)):
+        raise ValueError("duplicate changed source path")
+    verify_owners = plan.get("verificationOwners")
+    queue_tasks = plan.get("queueVerifyTasks")
+    if not isinstance(verify_owners, list) or not isinstance(queue_tasks, list):
+        raise ValueError("missing verification-owner/task contract")
+    validate_queue_task_selection(verify_owners, queue_tasks, paths)
+    # Queue allowlisting alone proves each *provided* task is legitimate,
+    # not that every affected consumer was selected. Recompute the complete
+    # existing native impact plan rather than trusting a caller's subset.
+    canonical = build_plan(changed_files=paths)
+    for name in (
+        "queueClass", "directOwners", "verificationOwners", "verifyTasks",
+        "queueVerifyTasks", "scopeIds", "crossCutting",
+        "taskLocalTestConsumers", "dependencyStanding",
+        "ownerManifestDigest", "dependencyContractDigest",
+    ):
+        if plan.get(name) != canonical[name]:
+            raise ValueError("noncanonical source impact: changed-path verification selection")
+    cut = source_tools.exact_commit(repo, source_cut)
+    if cut != _git("rev-parse", "HEAD"):
+        raise ValueError("SourceCut mismatch with active native verification contract")
+    # Queue tasks come from working-tree TOML, while AST hints come from Git.
+    # Reject the projection if either native verification policy has drifted
+    # from the SAME exact Git cut, rather than mixing unrelated authorities.
+    for contract in (
+        affected_owners.MANIFEST_PATH,
+        DEPENDENCY_PATH,
+        repo / "mise.toml",
+    ):
+        try:
+            relative = contract.relative_to(repo).as_posix()
+        except ValueError as exc:
+            raise ValueError("verification contract outside active Git repository") from exc
+        if contract.read_bytes() != source_tools.git(repo, "show", f"{cut}:{relative}"):
+            raise ValueError("verification contract differs from exact Git SourceCut")
+    # Source evidence and task selection are *executed* by these concrete
+    # native Python producers. Bind their on-disk bytes to the same Git cut;
+    # checking only policy TOML would permit a mutable implementation to
+    # issue statements about a different committed implementation.
+    for relative in (
+        "tools/repo/convergence_plan.py",
+        "tools/repo/affected_owners.py",
+        "tools/repo/exhaustive_coverage.py",
+    ):
+        producer = repo / relative
+        if producer.is_symlink() or not producer.is_file():
+            raise ValueError("executed producer source is not a regular Git file")
+        if producer.read_bytes() != source_tools.git(repo, "show", f"{cut}:{relative}"):
+            raise ValueError("executed producer source differs from exact Git SourceCut")
+    inventory = source_tools.classification(repo, cut)
+    problems = source_tools.derived_problem_legos(inventory, repo=repo)
+    imports = source_tools.static_python_import_frontier(repo, cut)
+    relations = source_tools.source_problem_relation_projection(problems, imports)
+    indexed = {row["path"]: row for row in inventory["sourcePaths"]}
+    by_provider: dict[str, list[dict[str, object]]] = {}
+    for edge in relations["staticPythonImportCandidates"]:
+        by_provider.setdefault(edge["providerPath"], []).append({
+            "relation": edge["relation"],
+            "consumerPath": edge["consumerPath"],
+            "consumerCellRef": edge["consumerCellRef"],
+            "consumerProblemRef": edge["consumerProblemRef"],
+            "line": edge["line"],
+            "syntax": edge["syntax"],
+            "runtimeCallStanding": "UNKNOWN",
+        })
+    issue_by_cell = {
+        row["sourceCellRef"]: row["problemRef"]
+        for row in problems["problemLegos"]
+        if row["kind"] == "RECURSIVE_SOURCE_CELL_ISSUE"
+    }
+    source_items: list[dict[str, object]] = []
+    missing: list[str] = []
+    for path in paths:
+        item = indexed.get(path)
+        if item is None:
+            missing.append(path)
+        ref = problems["sourcePathCellIndex"].get(path)
+        if item is not None and ref is None:
+            raise ValueError("exact Git source lacks physical source cell identity")
+        source_items.append({
+            "path": path,
+            "sourceStanding": (
+                "EXACT_GIT_SOURCE_PRESENT" if item is not None
+                else "NOT_IN_SOURCE_CUT_OR_DELETED"
+            ),
+            "gitSourceIdentity": item["sourceIdentity"] if item else None,
+            "sourceCellRef": ref,
+            "sourceProblemRef": issue_by_cell.get(ref),
+            "candidateConsumers": by_provider.get(path, []),
+            "consumerQualification": "STATIC_PYTHON_IMPORT_HINTS_NOT_RUNTIME_CALLS",
+            "installedStanding": "UNKNOWN",
+            "formalRefinementStanding": "UNKNOWN",
+        })
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.self-bootstrap-source-impact-explanation",
+        "sourceCut": cut,
+        "sourceTree": inventory["sourceTree"],
+        "sourcePathDigest": inventory["sourcePathDigest"],
+        "queueClass": plan["queueClass"],
+        "directOwners": plan["directOwners"],
+        "verificationOwners": verify_owners,
+        "queueVerifyTasks": queue_tasks,
+        "verificationStanding": "REQUIRED_NOT_EXECUTED_BY_PROJECTION",
+        "changedSourceInputs": source_items,
+        "unindexedChangedPaths": missing,
+        "staticPythonCandidateCount": sum(
+            len(row["candidateConsumers"]) for row in source_items
+        ),
+        "nonPythonConsumerStanding": "NOT_ANALYZED",
+        "runtimeCallStanding": "UNKNOWN",
+        "installedEffectStanding": "UNKNOWN",
+        "proofReuseAdmissible": False,
+        "impactClosureAdmissible": False,
+        "truthBoundary": (
+            "Exact Git source and canonical existing verification task selection; "
+            "Python AST imports only suggest candidate consumers. No running "
+            "invocation, model-to-implementation refinement, installed effect, "
+            "or reusable proof is established by this read-only projection."
+        ),
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Project one Git candidate into conservative Ordivon convergence scopes."
@@ -223,6 +473,13 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--base")
     parser.add_argument("--head")
     parser.add_argument("--changed-file", action="append", default=[])
+    parser.add_argument(
+        "--explain-impacts", action="store_true",
+        help="compose exact-Git source/ProblemRef and conservative verification tasks",
+    )
+    parser.add_argument(
+        "--source-cut", help="exact 40-hex Git commit for read-only impact evidence"
+    )
     parser.add_argument(
         "--format", choices=("json", "tasks", "queue-tasks", "scopes"), default="json"
     )
@@ -235,6 +492,18 @@ def main() -> int:
         plan = build_plan(base=args.base, head=args.head, changed_files=args.changed_file)
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
+    if args.explain_impacts:
+        if args.format != "json":
+            raise SystemExit("--explain-impacts requires --format json")
+        cut = args.source_cut or plan["headRevision"] or _git("rev-parse", "HEAD")
+        try:
+            evidence = explain_source_impacts(plan, source_cut=cut)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        print(json.dumps(evidence, sort_keys=True))
+        return 0
+    if args.source_cut is not None:
+        raise SystemExit("--source-cut requires --explain-impacts")
     if args.format == "tasks":
         for task in plan["verifyTasks"]:
             print(task)

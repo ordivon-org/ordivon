@@ -40,7 +40,31 @@
         "Retired document currentness, one-off first-contact evaluators and historical live-view tools are not source-of-truth; existing architecture checker remains and a negative CDC rejects their reintroduction.",
         "ROOT_UNOWNED means no matching path in the protected SourceCut Owner manifest, not an inferred root Owner. For those paths the graph partitions exact local/remote tip presence into BOTH_PRESENT, LOCAL_ONLY, REMOTE_ONLY and BOTH_ABSENT; none establishes consumer equivalence or branch-retirement permission."
       ],
-      "nextAction": "Per-Owner Consumer-Driven Contract qualification of surviving divergent histories; no redundant Git scanner."
+      "nextAction": "Per-Owner Consumer-Driven Contract qualification of surviving divergent histories; no redundant Git scanner.",
+      "consumerBindings": [
+        "tools/repo/test_source_history_legos.py::source_history_legos.history",
+        "tools/repo/test_architecture_docs.py::test_git01_graph_projection_has_exact_repository_owner_lego_registration"
+      ],
+      "behavioralContract": [
+        "source_history_legos.history consumes two explicit Git source revisions and returns a read-only repository-history projection; it MUST NOT mutate refs or authorize branch retirement.",
+        "Source-cut and owner assignments are derived from native Git objects and the existing owners.toml; path/blob equality is NOT consumer behavior equivalence."
+      ],
+      "inputs": [
+        "exact left/right Git commit revisions resolved from caller-specified refs; Git source worktree and canonical Owner manifest",
+        "optional owner-scope or source impact prefix; no ambient installed-state assumption"
+      ],
+      "outputs": [
+        "source-history Git DAG/commit/mode/blob identity projection and scoped Owner view",
+        "bounded source-membership delta; all proof reuse and external-effect qualifications remain UNKNOWN"
+      ],
+      "formalObligations": [
+        "∀ commit ∈ reported_history, commit belongs to the selected immutable left/right Git-source traversal; owner-scoped projection preserves exactly its qualifying commits, excluding fabricated owners.",
+        "SourceMembershipDelta unchanged can establish only exact SourceScopeUnchanged, not ContextualEquivalence, ConsumerClosure, InstalledCurrentness or proof reuse.",
+        "No Git patch/blob/mode equivalence or DAG identity is sufficient to authorize retirement, merge or physical external effects without a separately proven affected-consumer and recovery closure."
+      ],
+      "formalVerificationStanding": "DECLARED_UNPROVED_REQUIRES_INDEPENDENT_FORMAL_CHECK",
+      "installedCurrentness": "UNKNOWN",
+      "deletionAuthorized": false
     },
     {
       "id": "RG2_OWNER",
@@ -73,7 +97,31 @@
         "Every BLOCKED_ON prerequisite is currently unresolved; a partly completed blocker set is invalid even when another predecessor remains open.",
         "The existing Git SourceCut planning graph delta treats any changed registered planning-carrier bytes as a conservative requalification seed for every declared node on that carrier, including acceptance-only edits invisible in vertex/edge projection; real consumer/currentness proof remains separate."
       ],
-      "nextAction": "Reuse existing native source-bound validator; no duplicate graph, custom DSL, or new proof runtime."
+      "nextAction": "Reuse existing native source-bound validator; no duplicate graph, custom DSL, or new proof runtime.",
+      "consumerBindings": [
+        "tools/repo/test_architecture_docs.py::validate_formal_issue_census",
+        "tools/repo/test_lego_graph_laws.py::test_plan_contract_only_change_rechecks_all_declared_lego"
+      ],
+      "behavioralContract": [
+        "check_architecture_docs.validate_formal_issue_census rejects undeclared or spoofed natural Owner names and owner-local source impersonation within a pinned Git SourceCut.",
+        "The repository source graph delta conservatively invalidates dependent node qualifications when tracked plan-carrier bytes change; this does NOT prove deployed runtime or actual external consumers."
+      ],
+      "inputs": [
+        "one exact Git SourceCut and canonical tools/repo/owners.toml plus owner-local plan declarations",
+        "source-bound issue/contract observations validated by the existing architecture checker"
+      ],
+      "outputs": [
+        "native source/owner/plan admissibility verdict with explicit error on spoofed, stale, cyclic or ambiguous declarations",
+        "unproven actual consumer, installed environment and domain-effect obligations retained as UNKNOWN"
+      ],
+      "formalObligations": [
+        "Within one immutable SourceCut, a qualified Owner reference must resolve to exactly one declared canonical Owner path boundary; symlink-escaped or spoofed plan inputs fail closed.",
+        "Any changed registered plan or dependency carrier triggers requalification of every dependent declaration; well-founded prerequisites exclude self-cycles and mutual blockers.",
+        "Source-bound validation success never implies actual physical execution permission, installed-source refinement, true consumer/effect equivalence or formal proof reuse."
+      ],
+      "formalVerificationStanding": "DECLARED_UNPROVED_REQUIRES_INDEPENDENT_FORMAL_CHECK",
+      "installedCurrentness": "UNKNOWN",
+      "deletionAuthorized": false
     }
   ],
   "slices": [

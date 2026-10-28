@@ -41,6 +41,26 @@ class AffectedOwnersTests(unittest.TestCase):
             ["runtime", "host", "game"],
         )
 
+    def test_root_mise_formal_task_contract_change_requires_formal_verifier(self) -> None:
+        # Root mise.toml defines formal:verify itself. A change to the task
+        # wiring invalidates the proof-invocation contract even if proof
+        # source files have not changed.
+        self.assertTrue(MODULE.requires_core_formal_verification(["mise.toml"]))
+        self.assertFalse(MODULE.requires_core_formal_verification(["docs/mise.toml"]))
+
+    def test_core_formal_source_requires_real_proof_task_without_new_owner(self) -> None:
+        verify = MODULE.requires_core_formal_verification
+        self.assertTrue(verify(("tools/formal/Proof.rs",)))
+        self.assertTrue(verify(("tools/formal/RecursiveLegoRefinement.lean",)))
+        self.assertTrue(verify(("apps/web/README.md", "tools/formal/verify.py")))
+        self.assertFalse(verify(("tools/formalized/Proof.rs",)))
+        self.assertFalse(verify(("tools/repo/check_architecture_docs.py",)))
+        with self.assertRaisesRegex(ValueError, "noncanonical"):
+            verify(("tools/formal/../other.py",))
+        self.assertEqual(
+            self.queue_tasks("tools/formal/RecursiveLegoRefinement.lean"), []
+        )
+
     def test_next_queue_verification_defaults_to_full_verify(self) -> None:
         self.assertEqual(self.tasks("meta/next/README.md"), ["next:verify"])
         self.assertEqual(self.queue_tasks("meta/next/README.md"), ["next:verify"])

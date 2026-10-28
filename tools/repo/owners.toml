@@ -94,3 +94,13 @@ verify_task = "capital:verify"
 name = "web"
 root = "apps/web/"
 verify_task = "web:verify"
+
+# Mechanical source navigation only; not a semantic Owner or proof authority.
+[[source_regions]]
+name = "formal-verification-source"
+paths = ["tools/formal/"]
+
+# Existing repo:ci/migration consumers; source navigation, not Owner authority.
+[[source_regions]]
+name = "repository-mechanics-source"
+paths = ["tools/repo/"]

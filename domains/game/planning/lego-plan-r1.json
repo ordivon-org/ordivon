@@ -38,6 +38,11 @@
         "game product",
         "generic engine",
         "human enjoyment authority"
+      ],
+      "consumerEvidence": [
+        "scripts/external-knowledge-query.ts",
+        "test/game-external-knowledge-query.test.ts",
+        "test/game-external-knowledge-base.test.ts"
       ]
     },
     {
@@ -67,6 +72,11 @@
         "game product",
         "generic engine",
         "human enjoyment authority"
+      ],
+      "consumerEvidence": [
+        "scripts/mechanism-experience-query.ts",
+        "test/game-lego-catalog.test.ts",
+        "test/game-mechanism-experience-library.test.ts"
       ]
     },
     {
@@ -96,6 +106,11 @@
         "game product",
         "generic engine",
         "human enjoyment authority"
+      ],
+      "consumerEvidence": [
+        "scripts/build-mechanism-relationship-graph.ts",
+        "test/game-mechanism-relationship-graph.test.ts",
+        "package.json"
       ]
     },
     {
@@ -125,6 +140,11 @@
         "game product",
         "generic engine",
         "human enjoyment authority"
+      ],
+      "consumerEvidence": [
+        "scripts/design-counterexample-query.ts",
+        "test/game-design-counterexample-memory.test.ts",
+        "package.json"
       ]
     },
     {
@@ -156,6 +176,13 @@
         "game product",
         "generic engine",
         "human enjoyment authority"
+      ],
+      "consumerEvidence": [
+        "package.json",
+        "test/game-external-knowledge-query.test.ts",
+        "test/game-lego-catalog.test.ts",
+        "scripts/mechanism-relationship-query.ts",
+        "scripts/counterexample-synthesis-query.ts"
       ]
     },
     {
@@ -192,6 +219,11 @@
         "game engine",
         "mod platform",
         "source of human enjoyment authority"
+      ],
+      "consumerEvidence": [
+        "mise.toml",
+        "test/fixtures/native-godot-assembly/assert.gd",
+        "test/fixtures/native-godot-assembly/main.tscn"
       ]
     }
   ],

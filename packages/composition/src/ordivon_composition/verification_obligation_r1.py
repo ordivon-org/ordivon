@@ -21,7 +21,10 @@ from typing import Any
 
 from .cognitive_circuit_r1 import (
     CircuitContractError,
+    _finite_json_float,
     _load_json,
+    _reject_non_json_constant,
+    _single_valued_json_object,
     _validate_schema,
     canonical_digest,
     compile_manifest,
@@ -31,6 +34,23 @@ ROOT = Path(__file__).resolve().parent
 OBLIGATION_SET_SCHEMA = ROOT / "schemas" / "verification-obligation-set-v1.schema.json"
 BINDING_SET_SCHEMA = ROOT / "schemas" / "verifier-binding-set-v1.schema.json"
 RESOLUTION_SCHEMA = ROOT / "schemas" / "verifier-resolution-v1.schema.json"
+
+
+def _load_task_local_json_list(path: Path) -> list[Any]:
+    """Reject ambiguous proof/unknown-ref input before impact selection.
+
+    This reuses the existing Composition JSON admission primitives; caller
+    reports remain untrusted and acquire no execution or proof authority.
+    """
+    value = json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=_single_valued_json_object,
+        parse_constant=_reject_non_json_constant,
+        parse_float=_finite_json_float,
+    )
+    if not isinstance(value, list):
+        raise CircuitContractError("task-local proof input must be a JSON array")
+    return value
 
 
 def _immutable_git_manifest(
@@ -46,7 +66,7 @@ def _immutable_git_manifest(
         path.is_absolute()
         or not relative
         or any(part in ("", ".", "..") for part in relative.split("/"))
-        or "\\x00" in relative
+        or chr(0) in relative
     ):
         raise CircuitContractError(
             "source-bound impact needs an exact Git cut and canonical relative path"
@@ -1133,8 +1153,76 @@ def main() -> int:
                 owner_tool = (
                     Path(__file__).resolve().parents[4] / "tools/repo/source_history_legos.py"
                 )
-                if not owner_tool.is_file():
+                if not owner_tool.is_file() or owner_tool.is_symlink():
                     raise ValueError("Git owner query entrypoint unavailable")
+
+                def require_qualified_owner_tool() -> None:
+                    # This process asks the existing Git Owner query for exact
+                    # evidence. Do not execute a mutable checkout implementation
+                    # while presenting that answer as source-qualified.
+                    # Native source-history directly imports affected_owners.
+                    # Exact byte provenance must include both actually executed
+                    # local Python producers, not only the entrypoint script.
+                    # This is finite SOURCE qualification, not a dynamic import
+                    # closure or a proof of installed Python interpreter bytes.
+                    for relative in (
+                        "tools/repo/source_history_legos.py",
+                        "tools/repo/affected_owners.py",
+                    ):
+                        producer = owner_tool.parents[2] / relative
+                        tree_entry = subprocess.run(
+                            [
+                                "git",
+                                "--no-replace-objects",
+                                "-C",
+                                str(owner_tool.parents[2]),
+                                "ls-tree",
+                                "-z",
+                                "--full-tree",
+                                "HEAD",
+                                "--",
+                                relative,
+                            ],
+                            capture_output=True,
+                            check=False,
+                        )
+                        expected = (
+                            rb"(100644|100755) blob [0-9a-f]{40,64}\t"
+                            + re.escape(relative.encode("utf-8"))
+                            + rb"\x00"
+                        )
+                        if (
+                            tree_entry.returncode != 0
+                            or re.fullmatch(expected, tree_entry.stdout) is None
+                        ):
+                            raise CircuitContractError(
+                                "native Git query producer Git tree mode is not regular: "
+                                + relative
+                            )
+                        committed = subprocess.run(
+                            [
+                                "git",
+                                "--no-replace-objects",
+                                "-C",
+                                str(owner_tool.parents[2]),
+                                "show",
+                                "HEAD:" + relative,
+                            ],
+                            capture_output=True,
+                            check=False,
+                        )
+                        if (
+                            committed.returncode != 0
+                            or not producer.is_file()
+                            or producer.is_symlink()
+                            or committed.stdout != producer.read_bytes()
+                        ):
+                            raise CircuitContractError(
+                                "native Git query producer differs from its Git SourceCut: "
+                                + relative
+                            )
+
+                require_qualified_owner_tool()
                 native_query = subprocess.run(
                     [
                         sys.executable,
@@ -1152,9 +1240,12 @@ def main() -> int:
                     capture_output=True,
                     check=False,
                 )
+                require_qualified_owner_tool()
                 if native_query.returncode != 0:
                     raise ValueError("native Git source query failed")
                 qualified = json.loads(native_query.stdout)
+            except CircuitContractError:
+                raise
             except (ValueError, OSError, TypeError) as exc:
                 raise CircuitContractError(
                     "select-impact requires independently recomputable native Git scope"
@@ -1173,12 +1264,8 @@ def main() -> int:
                 raise CircuitContractError(
                     "Git impact changed refs must belong to same scoped authority set"
                 )
-            obligations = json.loads(args.obligations.read_text(encoding="utf-8"))
-            unknown = (
-                json.loads(args.unknown_refs.read_text(encoding="utf-8"))
-                if args.unknown_refs
-                else None
-            )
+            obligations = _load_task_local_json_list(args.obligations)
+            unknown = _load_task_local_json_list(args.unknown_refs) if args.unknown_refs else None
             if not isinstance(obligations, list) or (
                 unknown is not None and not isinstance(unknown, list)
             ):

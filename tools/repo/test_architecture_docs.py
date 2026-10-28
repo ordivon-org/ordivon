@@ -1254,6 +1254,64 @@ def test_git01_graph_projection_has_exact_repository_owner_lego_registration() -
     module.validate_formal_issue_census(census, plans)
 
 
+def test_repository_mechanics_contract_consumer_bindings_are_real_and_formal_remains_unproved() -> None:
+    """Close declaration gaps only at already exercised source/test readsets."""
+    from tools.repo.exhaustive_coverage import FIELDS, declared_values
+
+    plan_path = ROOT / "tools/repo/planning/lego-plan-r1.json"
+    plan = json.loads(plan_path.read_text())
+    nodes = {n["id"]: n for n in plan["nodes"]}
+    expected = {
+        "RG1_SOURCE": {
+            "tools/repo/test_source_history_legos.py::source_history_legos.history",
+            "tools/repo/test_architecture_docs.py::test_git01_graph_projection_has_exact_repository_owner_lego_registration",
+        },
+        "RG2_OWNER": {
+            "tools/repo/test_architecture_docs.py::validate_formal_issue_census",
+            "tools/repo/test_lego_graph_laws.py::test_plan_contract_only_change_rechecks_all_declared_lego",
+        },
+    }
+    assert set(nodes) == set(expected)
+    import ast
+    for node_id, bindings in expected.items():
+        node = nodes[node_id]
+        assert set(node["consumerBindings"]) == bindings
+        assert declared_values(node, FIELDS["CONSUMER"]) == ["consumerBindings"]
+        assert declared_values(node, FIELDS["CONTRACT"]) == ["behavioralContract"]
+        # A formal obligation is now explicitly declared, but NOT proved.
+        assert declared_values(node, FIELDS["FORMAL"]) == ["formalObligations"]
+        assert len(node["formalObligations"]) == 3
+        assert node["formalVerificationStanding"] == (
+            "DECLARED_UNPROVED_REQUIRES_INDEPENDENT_FORMAL_CHECK"
+        )
+        assert node["installedCurrentness"] == "UNKNOWN"
+        assert node["deletionAuthorized"] is False
+        assert all(isinstance(c, str) and c.strip() for c in node["behavioralContract"])
+        for binding in node["consumerBindings"]:
+            path, marker = binding.split("::", 1)
+            test_file = ROOT / path
+            assert test_file.is_file()
+            parsed = ast.parse(test_file.read_text(encoding="utf-8"))
+            assert any(isinstance(n, ast.Name) and n.id == marker for n in ast.walk(parsed)) or (
+                marker in test_file.read_text(encoding="utf-8")
+            )
+        changed = dict(node)
+        changed.pop("consumerBindings")
+        assert not declared_values(changed, FIELDS["CONSUMER"])
+        changed = dict(node)
+        changed.pop("behavioralContract")
+        assert not declared_values(changed, FIELDS["CONTRACT"])
+        changed = dict(node)
+        changed.pop("formalObligations")
+        assert not declared_values(changed, FIELDS["FORMAL"])
+        assert declared_values(changed, FIELDS["CONSUMER"])
+        assert declared_values(changed, FIELDS["CONTRACT"])
+
+    from tools.repo import source_history_legos
+    assert callable(source_history_legos.history)
+    assert callable(module.validate_formal_issue_census)
+
+
 def test_git02_unadmitted_historical_finance_and_network_consumers_remain_source_bound() -> None:
     """Historical CDC success must not invent current consumers or authorize deletion."""
     census, plans = formal_issue_inputs()

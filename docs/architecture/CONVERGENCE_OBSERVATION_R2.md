@@ -1,7 +1,7 @@
 # Convergence Observation R2
 
 Date: 2026-09-23
-Status: IMPLEMENTED IN ISOLATED WORKSPACE / CONTROL FEATURES REMAIN EVIDENCE-GATED
+Status: DATED ISOLATED EXPERIMENT; CURRENT OBSERVATION TOOLS SOURCE-ONLY / CONTROLS EVIDENCE-GATED
 
 ## Boundary
 
@@ -34,16 +34,16 @@ CQ-P31/P32 currently have one durable cross-cutting cost episode:
 `docs/architecture/evidence/CONVERGENCE_OWNER_COST_F2EC_R1.json`.
 That episode is evidence, not enough history to admit generalized long-tail optimization.
 
-CQ-M80 now reuses the existing Experimental Episode analytical substrate instead of
+CQ-M80 reused the existing Experimental Episode analytical substrate during the dated September 2026 isolation experiment instead of
 creating a Queue-specific database:
 
-- adapter: `meta/next/scripts/experimental_episode_convergence_r1.py`;
+- historical adapter: `meta/next/scripts/experimental_episode_convergence_r1.py` (source retired from current HEAD after no first-party runtime/task/CLI consumer was identified; remains in the dated Git SourceCut);
 - queue profile: `convergence-queue-observation-v1`;
 - CI profile: `convergence-ci-observation-v1`;
 - shared contract: `meta/next/schemas/experimental-episode-binding-r1.schema.json`;
 - PostgreSQL consumer: `meta/next/experimental/episode-store-r1`.
 
-The adapter emits stable Episode identities plus exact projection digests and binds only
+In the dated isolated replay, the adapter emitted stable Episode identities plus exact projection digests and binds only
 bounded owner references, evidence-set digests, scalar dimensions and numeric measures.
 It does not create a Queue schema, store raw provider payloads, or transfer GitHub authority
 into PostgreSQL. An isolated PostgreSQL 18.6 acceptance run ingested 13 Queue Episodes and
@@ -122,7 +122,7 @@ The following remain blocked by evidence:
 - cancellation controller;
 - predictive cost scheduling.
 
-CQ-M80 persistence is now implemented through the existing Experimental Episode consumer.
+The historical CQ-M80 data was ingested into an ephemeral PostgreSQL Episode Store during the dated acceptance test. The one-off adapter has since been retired from current Git source because no admitted first-party downstream consumer was found. The generic Episode Store, schemas and historic acceptance record remain separate; neither that prior run nor this document proves an installed live CQ-M80 pipeline.
 The next evidence step is accumulation of comparable owner-cost episodes and explicit CI
 economic annotations; control experiments remain blocked until the corresponding pressure
 gate becomes `PROVEN`.

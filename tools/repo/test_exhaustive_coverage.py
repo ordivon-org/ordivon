@@ -23,6 +23,57 @@ class FullCoverageTests(unittest.TestCase):
         self.assertEqual(now["standing"], "CLASSIFIED")
         self.assertEqual(now["classification"], "ROOT:runtime")
 
+    def test_formal_source_region_has_real_task_but_no_owner_authority(self):
+        # The existing root formal:verify task consumes tools/formal, yet this
+        # path was mechanically unclassified. The region is navigation only.
+        import tomllib
+        policy = tomllib.loads(
+            (ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        classified = M.source_partition("tools/formal/verify.py", policy)
+        self.assertEqual(classified["classification"],
+                         "REGION:formal-verification-source")
+        self.assertEqual(classified["standing"], "CLASSIFIED")
+        self.assertTrue(
+            all(not o["root"].startswith("tools/formal/")
+                for o in policy["owners"]))
+        root_tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+        formal_tasks = tomllib.loads(
+            (ROOT / "tools/formal/mise.toml").read_text())["tasks"]
+        self.assertEqual(root_tasks["formal:verify"]["run"],
+                         "cd tools/formal && mise run verify")
+        # Accept an isolated KANI_HOME shell prologue (Formal toolchain PR)
+        # without confusing source task routing with an exact shell string.
+        verify_run = formal_tasks["verify"]["run"]
+        executable_lines = [
+            line.strip() for line in verify_run.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        self.assertTrue(executable_lines)
+        self.assertEqual(executable_lines[-1], "python3 verify.py")
+        self.assertEqual(executable_lines.count("python3 verify.py"), 1)
+        self.assertEqual(M.source_partition("tools/unknown_script.py", policy)
+                         ["standing"], "UNASSIGNED")
+
+    def test_repository_mechanics_source_region_has_real_cli_consumers(self):
+        import tomllib
+        policy = tomllib.loads(
+            (ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        assert M.source_partition(
+            "tools/repo/exhaustive_coverage.py", policy)["classification"] == (
+                "REGION:repository-mechanics-source")
+        assert M.source_partition(
+            "tools/repo/migration/test-integrate-main.sh", policy)["classification"] == (
+                "REGION:repository-mechanics-source")
+        assert not any(o["root"].startswith("tools/repo/")
+                       for o in policy["owners"])
+        tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+        ci = tasks["repo:ci"]["run"]
+        assert "tools/repo/test_affected_owners.py" in ci
+        assert "tools/repo/migration/test-integrate-main.sh" in ci
+        assert "tools/repo/check_owner_boundaries.py" in ci
+        assert M.source_partition("tools/nonexistent.py", policy)["standing"] == (
+            "UNASSIGNED")
+
     def test_unknown_never_disappears(self):
         self.assertEqual(M.source_partition("unforeseen/place.rs", {"owners": []})["standing"], "UNASSIGNED")
 
@@ -491,6 +542,50 @@ class DerivedProblemLegoFrontierTests(unittest.TestCase):
         self.assertIn("installation", self.result["truthBoundary"])
         self.assertTrue(self.result["summary"]["missingInstalledAndDynamicCallClosure"])
 
+    def test_each_declared_gap_has_one_typed_problem_question(self) -> None:
+        rows = self.result["declarationFieldQuestions"]
+        expected = {(node["nodeRef"], tag) for node in self.inventory["semanticPlans"]["nodes"]
+                    for tag in node["problems"]}
+        actual = {(q["nodeRef"], q["missingDeclarationTag"]) for q in rows}
+        self.assertEqual(actual, expected)
+        self.assertEqual(len(rows), len(expected))
+        self.assertEqual(len(rows), self.result["summary"]["declarationFieldQuestions"])
+        parents = {q["problemRef"] for q in self.result["problemLegos"]}
+        self.assertTrue(all(q["parentProblemRef"] in parents for q in rows))
+        self.assertTrue(all(q["relation"] == "DECLARED_FIELD_NOT_FOUND_NOT_RUNTIME_ABSENCE"
+                            for q in rows))
+        self.assertTrue(all(q["actualConsumerStanding"] == "UNKNOWN" for q in rows))
+
+    def test_structure_mapping_review_covers_every_declared_unrealized_path(self) -> None:
+        rows = self.result["mappingDeclarationReviews"]
+        self.assertEqual(len(rows), self.result["summary"]["mappingDeclarationReviews"])
+        self.assertEqual(len({r["reviewRef"] for r in rows}), len(rows))
+        counts = __import__("collections").Counter()
+        for item in rows:
+            counts[item["problemTag"]] += item["matchedPathCount"]
+            self.assertTrue(item["sourceMembersDigest"].startswith("sha256:"))
+            self.assertTrue(item["sourceCellRefs"])
+            self.assertEqual(item["consumerStanding"], "UNKNOWN")
+            self.assertEqual(item["installedStanding"], "UNKNOWN")
+            self.assertEqual(item["relation"],
+                             "STRUCTURE_DECLARATION_TO_SOURCE_NOT_REALIZED_MOVE")
+        expected = self.inventory["summary"]["sourceProblemCounts"]
+        self.assertEqual(counts["DECLARED_MOVE_CONSUMER_QUALIFICATION_REQUIRED"],
+                         expected["PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER"])
+        self.assertEqual(counts["DECLARED_SPLIT_CONSUMER_QUALIFICATION_REQUIRED"],
+                         expected["STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS"])
+
+    def test_cross_plan_repeated_short_ids_are_not_identified_as_same_lego(self) -> None:
+        rows = self.result["crossPlanIdentityScopeReviews"]
+        src = self.inventory["semanticPlans"]["sameLocalIdAcrossPlans"]
+        self.assertEqual({q["localId"] for q in rows}, set(src))
+        self.assertEqual(len(rows), self.result["summary"]["crossPlanIdentityScopeReviews"])
+        self.assertEqual(len({q["reviewRef"] for q in rows}), len(rows))
+        for row in rows:
+            self.assertEqual(row["scopedNodeRefs"], src[row["localId"]])
+            self.assertEqual(row["collisionStanding"],
+                             "REVIEW_REQUIRED_NOT_PROVEN_CONFLICT")
+
     def test_deterministic_and_proposal_is_explicit_not_installed(self) -> None:
         a = self.result
         b = M.derived_problem_legos(self.inventory, repo=ROOT)
@@ -501,6 +596,26 @@ class DerivedProblemLegoFrontierTests(unittest.TestCase):
             M.derived_problem_legos(self.inventory, repo=ROOT, use_proposal=True)
         with self.assertRaises(ValueError):
             M.derived_problem_legos(self.inventory, repo=ROOT, max_depth=13)
+
+    def test_recursive_view_identity_includes_decomposition_policy(self) -> None:
+        # Same exact Git source objects can be grouped differently without
+        # introducing a new semantic LEGO, owner or verified consumer.
+        current = self.result
+        finer = M.derived_problem_legos(
+            self.inventory, repo=ROOT, max_files=18, max_depth=6)
+        assert current["sourceCut"] == finer["sourceCut"]
+        assert current["sourceTree"] == finer["sourceTree"]
+        assert current["sourcePathDigest"] == finer["sourcePathDigest"]
+        assert current["sourceCellDecomposition"] == {
+            "maxCellFiles": 24,
+            "maxCellDepth": 6,
+            "identityStanding": "VIEW_PARAMETERS_NOT_SEMANTIC_LEGO_IDENTITY"}
+        assert finer["sourceCellDecomposition"]["maxCellFiles"] == 18
+        assert finer["sourceCellDecomposition"]["maxCellDepth"] == 6
+        assert set(current["sourcePathCellIndex"]) == set(
+            finer["sourcePathCellIndex"])
+        assert not current["proofReuseAdmissible"]
+        assert not finer["proofReuseAdmissible"]
 
     def test_cli_summary_has_no_hidden_static_snapshot_or_unproved_edges(self) -> None:
         data = subprocess.check_output([
@@ -513,6 +628,9 @@ class DerivedProblemLegoFrontierTests(unittest.TestCase):
         self.assertNotIn("sourceCells", output)
         self.assertNotIn("problemLegos", output)
         self.assertNotIn("sourcePathCellIndex", output)
+        self.assertNotIn("declarationFieldQuestions", output)
+        self.assertNotIn("mappingDeclarationReviews", output)
+        self.assertNotIn("crossPlanIdentityScopeReviews", output)
 
 
 
@@ -578,6 +696,79 @@ class ExplicitIndependentScopeTests(unittest.TestCase):
                     non_git_data=[f"research-example={pathlib.Path(tmp)}"],
                 )
 
+
+    def test_self_and_linked_worktree_never_count_as_independent_git(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            subject = pathlib.Path(tmp).resolve() / "subject"
+            subject.mkdir()
+            subprocess.run(["git", "init", "-q", str(subject)], check=True)
+            (subject / "unit.py").write_text("stable = True\n")
+            subprocess.run(["git", "-C", str(subject), "add", "unit.py"], check=True)
+            subprocess.run([
+                "git", "-C", str(subject), "-c", "user.name=Phase1",
+                "-c", "user.email=phase1@example.invalid",
+                "commit", "-qm", "fixture",
+            ], check=True)
+            sha = subprocess.check_output(
+                ["git", "-C", str(subject), "rev-parse", "HEAD"], text=True,
+            ).strip()
+            linked = pathlib.Path(tmp).resolve() / "linked"
+            subprocess.run(["git", "-C", str(subject), "worktree",
+                            "add", "--detach", "-q", str(linked), sha], check=True)
+            for other in (subject, linked):
+                with self.subTest(other=other), self.assertRaisesRegex(
+                        ValueError, "not independent|same Git repository"):
+                    M.independent_scope_frontier(
+                        subject, sha, external_git=[f"false-external={other}@{sha}"],
+                        non_git_data=[],
+                    )
+
+    def test_duplicate_git_repository_and_data_locator_do_not_double_count(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            subject = pathlib.Path(tmp).resolve() / "subject"
+            external = pathlib.Path(tmp).resolve() / "external"
+            corpus = pathlib.Path(tmp).resolve() / "corpus"
+            for root in (subject, external):
+                root.mkdir()
+                subprocess.run(["git", "init", "-q", str(root)], check=True)
+                (root / "a.txt").write_text("content")
+                subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+                subprocess.run([
+                    "git", "-C", str(root), "-c", "user.name=Phase1",
+                    "-c", "user.email=phase1@example.invalid",
+                    "commit", "-qm", "fixture",
+                ], check=True)
+            corpus.mkdir()
+            subject_cut = subprocess.check_output([
+                "git", "-C", str(subject), "rev-parse", "HEAD",
+            ], text=True).strip()
+            other_cut = subprocess.check_output([
+                "git", "-C", str(external), "rev-parse", "HEAD",
+            ], text=True).strip()
+            valid = M.independent_scope_frontier(
+                subject, subject_cut,
+                external_git=[f"other={external}@{other_cut}"],
+                non_git_data=[f"data={corpus}"],
+            )
+            self.assertEqual(valid["summary"]["externalGitRoots"], 1)
+            self.assertEqual(valid["summary"]["nonGitDirectoryLocators"], 1)
+            with self.assertRaisesRegex(ValueError, "duplicate|same Git repository"):
+                M.independent_scope_frontier(
+                    subject, subject_cut,
+                    external_git=[
+                        f"first={external}@{other_cut}",
+                        f"second={external}@{other_cut}",
+                    ],
+                    non_git_data=[],
+                )
+            with self.assertRaisesRegex(ValueError, "duplicate|same directory"):
+                M.independent_scope_frontier(
+                    subject, subject_cut, external_git=[],
+                    non_git_data=[f"first={corpus}", f"second={corpus}"],
+                )
+
     def test_non_git_directory_never_gets_fake_content_digest(self) -> None:
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
@@ -609,6 +800,65 @@ class ExplicitIndependentScopeTests(unittest.TestCase):
                 M.independent_scope_frontier(
                     ROOT, primary, external_git=[],
                     non_git_data=[f"alias={symlink}"])
+
+    def test_opt_in_checkout_observations_distinguish_commit_index_worktrees(self) -> None:
+        import tempfile
+        import shutil
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp).resolve() / "independent"
+            root.mkdir()
+            def run(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(root), *args], text=True,
+                    stderr=subprocess.DEVNULL).strip()
+            run("init", "-q")
+            run("config", "user.name", "Fixture")
+            run("config", "user.email", "fixture@example.test")
+            (root / "source.py").write_text("x = 1\n")
+            run("add", "source.py")
+            run("commit", "-qm", "source")
+            pinned = run("rev-parse", "HEAD")
+            orphan = pathlib.Path(tmp).resolve() / "missing-after-worktree"
+            run("worktree", "add", "-q", "-b", "fixture-other", str(orphan), pinned)
+            shutil.rmtree(orphan)
+            # Index is not the Git commit tree. It can be zero even while the
+            # pinned commit contains a real source blob; never classify empty.
+            run("rm", "--cached", "-q", "source.py")
+            main_cut = subprocess.check_output(
+                ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+            args = dict(external_git=[f"fixture={root}@{pinned}"], non_git_data=[])
+            default = M.independent_scope_frontier(ROOT, main_cut, **args)
+            self.assertNotIn("checkoutObservation", default["observedScopes"][0])
+            observed = M.independent_scope_frontier(
+                ROOT, main_cut, git_checkout_observations=True, **args)
+            scope = observed["observedScopes"][0]
+            state = scope["checkoutObservation"]
+            self.assertEqual(scope["trackedPaths"], 1)
+            self.assertEqual(state["pinnedCommitTreePaths"], 1)
+            self.assertEqual(state["indexTrackedPaths"], 0)
+            self.assertEqual(state["indexToCommitCountStanding"],
+                             "COUNT_MISMATCH_NO_SEMANTIC_CONCLUSION")
+            self.assertEqual(state["checkedOutHead"], pinned)
+            self.assertTrue(state["checkedOutHeadMatchesSourceCut"])
+            self.assertEqual(state["prunableWorktreeRecords"], 1)
+            self.assertEqual(state["prunableLocationMissingCount"], 1)
+            self.assertEqual(state["safeCleanupStanding"], "NOT_ESTABLISHED")
+            kinds = {x["kind"] for x in observed["pendingScopeProblems"]}
+            self.assertIn("INDEX_AND_COMMIT_TREE_COUNTS_DIFFER", kinds)
+            self.assertIn("PRUNABLE_WORKTREE_METADATA_REQUIRES_CONSUMER_REVIEW", kinds)
+            self.assertTrue(all(x["consumerStanding"] == "UNKNOWN"
+                                for x in observed["pendingScopeProblems"]))
+            self.assertEqual(observed["summary"]["installedSourcesBoundToGit"], 0)
+            self.assertEqual(observed["summary"]["crossScopeCallsVerified"], 0)
+
+    def test_checkout_observation_cli_requires_explicit_scope_mode(self) -> None:
+        cut = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+        cmd = ["python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+               "--source-cut", cut, "--repo", str(ROOT), "--scope-git-worktrees"]
+        bad = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertNotEqual(bad.returncode, 0)
+        self.assertIn("require --scope-census", bad.stderr)
 
     def test_missing_explicit_namespace_and_invalid_mode_fail_closed(self) -> None:
         sha = subprocess.check_output(
@@ -766,13 +1016,62 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
         assert not valid["observationJoin"]["unscopedShortIdQuestions"][0][
             "bareIdIsAnActualCollision"]
 
-    def test_duplicate_and_fake_evidence_status_rejected(self):
+    def test_distinct_temporal_observations_preserve_identity_and_provenance(self):
+        first = self.observation(
+            observationRevision="a"*40, observedAt="2026-10-28T06:48:00Z",
+            observedFacts={"trackedPaths": 200})
+        second = self.observation(
+            observationRevision="b"*40, observedAt="2026-10-28T06:49:00Z",
+            witnessRef="job-87654321", observedFacts={"trackedPaths": 201})
+        joined = M.join_observed_authorities(
+            self.frontier, self.envelope([second, first])
+        )["observationJoin"]
+        reverse = M.join_observed_authorities(
+            self.frontier, self.envelope([first, second])
+        )["observationJoin"]
+        assert joined == reverse
+        records = joined["observedSubjects"]
+        assert len(records) == 2
+        assert len({record["subjectRef"] for record in records}) == 1
+        assert len({record["authoritySubjectRef"] for record in records}) == 1
+        assert len({record["observationRef"] for record in records}) == 2
+        assert joined["summary"]["distinctObservedSubjects"] == 1
+        assert joined["summary"]["reportedObservationSubjects"] == 2
+        assert len(joined["candidateAssociations"]) == 2
+        assert all(record["semanticConsumerStanding"] == "UNKNOWN" for record in records)
+        assert not joined["proofReuseAdmissible"]
+        assert not joined["deletionAuthorized"]
+
+    def test_two_observation_kinds_keep_authority_subject_alias_without_physical_proof(self):
+        first = self.observation(candidateProblemRef=None)
+        second = self.observation(
+            observationKind="ENVIRONMENT_EFFECT_OBSERVED",
+            observationRevision="runtime-v2",
+            candidateProblemRef=None,
+        )
+        joined = M.join_observed_authorities(
+            self.frontier, self.envelope([first, second])
+        )["observationJoin"]
+        records = joined["observedSubjects"]
+        assert len({r["subjectRef"] for r in records}) == 2
+        assert len({r["authoritySubjectRef"] for r in records}) == 1
+        assert all(r["authoritySubjectStanding"] ==
+                   "CALLER_SCOPED_ALIAS_NOT_VERIFIED" for r in records)
+
+    def test_duplicate_and_conflicting_observations_are_rejected(self):
+        original = self.observation()
         with self.assertRaisesRegex(ValueError, "duplicate"):
+            M.join_observed_authorities(
+                self.frontier, self.envelope([original, original]))
+        with self.assertRaisesRegex(ValueError, "conflicting"):
             M.join_observed_authorities(self.frontier, self.envelope([
-                self.observation(), self.observation(observationRevision="b"*40)]))
+                original, self.observation(
+                    witnessRef="job-87654321",
+                    observedFacts={"trackedPaths": 999}),
+            ]))
         with self.assertRaisesRegex(ValueError, "exact scoped"):
             M.join_observed_authorities(self.frontier, self.envelope([
-                {**self.observation(), "proofStatus": "PASS"}]))
+                {**original, "proofStatus": "PASS"}]))
 
     def test_bounds_and_invalid_authority_provenance_fail_closed(self):
         with self.assertRaisesRegex(ValueError, "bounded list"):
@@ -787,6 +1086,92 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "bounded scalar"):
             M.join_observed_authorities(self.frontier, self.envelope([
                 self.observation(observedFacts={"secret": {"nested": "not bounded"}})]))
+
+    def test_external_observation_rejects_nonfinite_json_numbers(self):
+        import math
+        for value in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=repr(value)):
+                with self.assertRaisesRegex(ValueError, "finite bounded scalar"):
+                    M.join_observed_authorities(self.frontier, self.envelope([
+                        self.observation(observedFacts={"metric": value})
+                    ]))
+        accepted = M.join_observed_authorities(self.frontier, self.envelope([
+            self.observation(observedFacts={"zero": 0, "finite": -1.25,
+                                           "flag": False, "empty": None})
+        ]))
+        # This is genuinely strict JSON (no non-standard NaN/Infinity literals).
+        import json
+        json.loads(json.dumps(accepted, allow_nan=False),
+                   parse_constant=lambda literal: self.fail(literal))
+
+    def test_external_observation_requires_real_canonical_utc_instant(self):
+        for instant in (
+            "2026-19-39T29:59:59Z",
+            "2026-02-29T12:00:00Z",
+            "2026-10-28T08:61:00Z",
+            "2026-10-28T08:20:60Z",
+            "2026-10-28T08:20:00+00:00",
+            "2026-10-28T8:20:00Z",
+        ):
+            with self.subTest(instant=instant):
+                with self.assertRaisesRegex(ValueError, "UTC|timestamp"):
+                    M.join_observed_authorities(self.frontier, self.envelope([
+                        self.observation(observedAt=instant)
+                    ]))
+        valid = M.join_observed_authorities(self.frontier, self.envelope([
+            self.observation(observedAt="2024-02-29T23:59:59Z")
+        ]))
+        self.assertEqual(valid["observationJoin"]["observedSubjects"][0]["observedAt"],
+                         "2024-02-29T23:59:59Z")
+
+    def test_cli_rejects_duplicate_json_keys_and_nonstandard_constants(self):
+        import json
+        import tempfile
+        original = json.dumps(self.envelope([self.observation()]))
+        cut_field = '"subjectSourceCut": "' + self.cut + '"'
+        assert original.count(cut_field) == 1
+        duplicate_cut = original.replace(
+            cut_field,
+            '"subjectSourceCut": "' + "0" * 40 + '", ' + cut_field, 1,
+        )
+        assert original.count('"trackedPaths": 200') == 1
+        duplicate_fact = original.replace(
+            '"trackedPaths": 200',
+            '"trackedPaths": 0, "trackedPaths": 200', 1,
+        )
+        # The unknown root field is intentionally ignored by the join today;
+        # raw ingress still cannot admit an invalid JSON number outside it.
+        nonstandard_unknown = original.replace(
+            '"kind": ', '"unknownMetadata": NaN, "kind": ', 1,
+        )
+        # Python's JSON parser treats this valid JSON numeric syntax as inf.
+        # The existing parse_constant hook never sees overflowing exponents.
+        overflow_unknown = original.replace(
+            '"kind": ', '"unknownMetadata": 1e309, "kind": ', 1,
+        )
+        with tempfile.TemporaryDirectory() as td:
+            path = pathlib.Path(td) / "reported.json"
+            cmd = [
+                "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+                "--source-cut", self.cut, "--problem-legos", "--summary",
+                "--authority-observations", str(path),
+            ]
+            for label, payload in (
+                ("duplicate_source_cut", duplicate_cut),
+                ("duplicate_nested_fact", duplicate_fact),
+                ("nonstandard_ignored_constant", nonstandard_unknown),
+                ("overflowing_ignored_float", overflow_unknown),
+            ):
+                with self.subTest(label=label):
+                    path.write_text(payload, encoding="utf-8")
+                    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True,
+                                          text=True, timeout=30)
+                    self.assertNotEqual(proc.returncode, 0, proc.stdout)
+                    self.assertRegex(proc.stderr, "duplicate|non-standard|constant")
+            path.write_text(original, encoding="utf-8")
+            accepted = subprocess.run(cmd, cwd=ROOT, capture_output=True,
+                                      text=True, timeout=30)
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
 
     def test_cli_opt_in_and_summary(self):
         import json
@@ -935,3 +1320,239 @@ class CrossScopeLexicalHintsTests(unittest.TestCase):
             p = subprocess.run(cmd + ["--scope-witness-limit", "0"],
                                text=True, capture_output=True)
             self.assertNotEqual(p.returncode, 0)
+
+
+class StableSourceProblemQuestionTests(unittest.TestCase):
+    """Stable navigation question identity != member version or semantic LEGO."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.old_cut = "4e76f8bd6ebcc65b201ff9253314c2b5a82f08ab"
+        cls.new_cut = "d0c87351ac36ce157bbd7b0ca195ec19aae16b78"
+        cls.old = M.derived_problem_legos(
+            M.classification(ROOT, cls.old_cut), repo=ROOT
+        )
+        cls.new = M.derived_problem_legos(
+            M.classification(ROOT, cls.new_cut), repo=ROOT
+        )
+
+    @staticmethod
+    def source_issues(frontier):
+        rows = [x for x in frontier["problemLegos"]
+                if x["kind"] == "RECURSIVE_SOURCE_CELL_ISSUE"]
+        return {(x["sourceZone"], x["physicalPrefix"]): x for x in rows}
+
+    def test_known_source_change_keeps_question_but_invalidates_member_evidence(self):
+        before = self.source_issues(self.old)
+        after = self.source_issues(self.new)
+        changed = [
+            (before[k], after[k]) for k in before.keys() & after.keys()
+            if before[k]["sourceCellRef"] != after[k]["sourceCellRef"]
+            and set(before[k]["issueTags"]) & set(after[k]["issueTags"])
+        ]
+        assert len(changed) >= 5
+        assert any(a["physicalPrefix"] == "tools/repo/" for a, _ in changed)
+        for old, new in changed:
+            assert old["sourceScopeQuestionRef"] == new["sourceScopeQuestionRef"]
+            assert old["problemRef"] != new["problemRef"]
+            assert old["sourceCellRef"] != new["sourceCellRef"]
+            assert old["sourceScopeIdentityStanding"] == (
+                "PHYSICAL_LOCATION_QUESTION_NOT_SEMANTIC_LEGO"
+            )
+        assert not self.old["proofReuseAdmissible"]
+        assert not self.new["proofReuseAdmissible"]
+
+    def test_problem_question_id_is_unique_within_exact_git_cut(self):
+        for frontier in (self.old, self.new):
+            issues = self.source_issues(frontier)
+            refs = [r["sourceScopeQuestionRef"] for r in issues.values()]
+            assert len(refs) == len(set(refs))
+            assert all(r.startswith("problem:source-scope:") for r in refs)
+            assert all(x["sourceCellRef"].startswith("source-cell:sha256:")
+                       for x in issues.values())
+
+    def test_scoped_question_is_accepted_but_resolves_to_current_versioned_problem(self):
+        import copy
+        row = self.source_issues(self.new)[("UNASSIGNED", "tools/repo/")]
+        obs = {
+            "authorityRef": "git:main-candidate",
+            "subjectRef": "source/tools/repo",
+            "observationKind": "STATIC_DYNAMIC_CONSUMER_CANDIDATE",
+            "observationRevision": self.new_cut,
+            "witnessRef": "job-12345678",
+            "observedAt": "2026-10-28T08:00:00Z",
+            "candidateProblemRef": row["sourceScopeQuestionRef"],
+            "observedFacts": {"sourceCut": self.new_cut},
+        }
+        base = {
+            "kind": "ordivon.external-authority-observations-r1",
+            "subjectSourceCut": self.new_cut,
+            "observations": [obs],
+        }
+        result = M.join_observed_authorities(self.new, base)
+        link = result["observationJoin"]["candidateAssociations"][0]
+        assert link["toProblemRef"] == row["problemRef"]
+        assert link["sourceScopeQuestionRef"] == row["sourceScopeQuestionRef"]
+        assert link["proofStanding"] == "NOT_ESTABLISHED"
+        assert result["observationJoin"]["installedCurrentnessEstablished"] is False
+        legacy = copy.deepcopy(base)
+        legacy["observations"][0]["candidateProblemRef"] = row["problemRef"]
+        old_link = M.join_observed_authorities(
+            self.new, legacy
+        )["observationJoin"]["candidateAssociations"][0]
+        assert old_link["toProblemRef"] == row["problemRef"]
+        assert old_link["sourceScopeQuestionRef"] is None
+
+    def test_cross_cut_observation_or_unknown_question_never_gets_rebound(self):
+        issue = self.source_issues(self.new)[("UNASSIGNED", "tools/repo/")]
+        entry = {
+            "authorityRef": "git:main-candidate",
+            "subjectRef": "source/tools/repo",
+            "observationKind": "STATIC_DYNAMIC_CONSUMER_CANDIDATE",
+            "observationRevision": self.new_cut,
+            "witnessRef": "job-12345678",
+            "observedAt": "2026-10-28T08:00:00Z",
+            "candidateProblemRef": issue["sourceScopeQuestionRef"],
+            "observedFacts": {},
+        }
+        base = {"kind": "ordivon.external-authority-observations-r1",
+                "subjectSourceCut": self.old_cut, "observations": [entry]}
+        with self.assertRaisesRegex(ValueError, "SourceCut mismatch"):
+            M.join_observed_authorities(self.new, base)
+        base["subjectSourceCut"] = self.new_cut
+        entry["candidateProblemRef"] = "problem:source-scope:" + "0" * 64
+        with self.assertRaisesRegex(ValueError, "unscoped or unrecognized"):
+            M.join_observed_authorities(self.new, base)
+
+
+class TypedProblemRelationProjectionTests(unittest.TestCase):
+    """Relation witnesses are exact-source candidates, never certified calls."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cut = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+        ).strip()
+        cls.frontier = M.derived_problem_legos(M.classification(ROOT, cls.cut), repo=ROOT)
+        cls.imports = M.static_python_import_frontier(ROOT, cls.cut)
+        cls.view = M.source_problem_relation_projection(cls.frontier, cls.imports)
+
+    def test_exact_index_and_source_evidence_are_lossless(self):
+        v = self.view
+        expected = self.imports["summary"]
+        assert v["sourceCut"] == self.cut
+        assert v["sourcePathCellIndex"] == self.frontier["sourcePathCellIndex"]
+        assert v["summary"]["indexedSourcePaths"] == (
+            self.frontier["summary"]["trackedPaths"]
+        )
+        assert v["summary"]["staticImportCandidateEdges"] == (
+            expected["allStaticCandidateEdges"]
+        )
+        assert v["summary"]["dynamicSyntaxSites"] == (
+            expected["allDynamicSyntaxSites"]
+        )
+        assert v["summary"]["unresolvedImportStatements"] == (
+            expected["allUnresolvedImportStatements"]
+        )
+        assert v["summary"]["declaredPlanEdgesNotActualCalls"] == (
+            self.frontier["summary"]["declaredPlanEdges"]
+        )
+
+    def test_every_import_edge_has_real_source_cells_without_claiming_calls(self):
+        known = {row["sourceCellRef"] for row in self.frontier["sourceCells"]}
+        for e in self.view["staticPythonImportCandidates"]:
+            assert e["consumerCellRef"] in known
+            assert e["providerCellRef"] in known
+            assert e["consumerPath"] in self.view["sourcePathCellIndex"]
+            assert e["providerPath"] in self.view["sourcePathCellIndex"]
+            assert e["relation"] == "STATIC_PYTHON_IMPORT_CANDIDATE_NOT_RUNTIME_CALL"
+            assert e["runtimeCallStanding"] == "UNKNOWN"
+            assert e["effectStanding"] == "UNKNOWN"
+            assert e["installedConsumerStanding"] == "UNKNOWN"
+        assert self.view["semanticCallClosureEstablished"] is False
+        assert self.view["impactClosureAdmissible"] is False
+        assert self.view["deletionAuthorized"] is False
+        assert self.view["proofReuseAdmissible"] is False
+
+    def test_unresolved_imports_are_grouped_and_dynamic_providers_unresolved(self):
+        v = self.view
+        assert sum(x["count"] for x in v["unresolvedImportFacets"]) == (
+            len(self.imports["unresolvedImportStatements"])
+        )
+        assert all(len(x["boundedWitnesses"]) <= 4 for x in v["unresolvedImportFacets"])
+        assert all(x["standing"] == "UNRESOLVED_SYNTAX_NOT_A_MISSING_PROVIDER_PROOF"
+                   for x in v["unresolvedImportFacets"])
+        for row in v["dynamicSyntaxUnresolvedProviders"]:
+            assert row["providerRef"] is None
+            assert row["runtimeCallStanding"] == "UNKNOWN"
+        assert v["summary"]["dynamicSyntaxSitesInProblemCells"] > 0
+
+    def test_cross_plan_and_declarations_remain_noncall(self):
+        v = self.view
+        assert v["summary"]["unscopedPlanIdReuseQuestions"] == len(
+            self.frontier["sameLocalIdAcrossPlansObservation"])
+        assert all(e["runtimeCallStanding"] == "NOT_ESTABLISHED" for e in
+                   v["declaredPlanRelationsNotRuntimeCalls"])
+        assert len(v["reportedExternalCandidateAssociations"]) == 0
+
+    def test_cross_cut_or_partial_ast_is_rejected(self):
+        import copy
+        ast = copy.deepcopy(self.imports)
+        ast["sourceCut"] = "f" * 40
+        with self.assertRaisesRegex(ValueError, "SourceCut mismatch"):
+            M.source_problem_relation_projection(self.frontier, ast)
+        ast = copy.deepcopy(self.imports)
+        ast["focusPrefix"] = "services/"
+        with self.assertRaisesRegex(ValueError, "unfiltered AST"):
+            M.source_problem_relation_projection(self.frontier, ast)
+
+    def test_unknown_consumer_git_path_fails_closed(self):
+        import copy
+        ast = copy.deepcopy(self.imports)
+        assert ast["staticCandidateEdges"]
+        ast["staticCandidateEdges"][0]["providerPath"] = "not/in/current/Git.py"
+        with self.assertRaisesRegex(ValueError, "outside exact Git"):
+            M.source_problem_relation_projection(self.frontier, ast)
+
+    def test_false_plan_or_external_relation_promotion_is_rejected(self):
+        import copy
+        modified = copy.deepcopy(self.frontier)
+        modified["declaredPlanEdgesNotActualCalls"][0]["runtimeCallStanding"] = "PASS"
+        with self.assertRaisesRegex(ValueError, "claim runtime calls"):
+            M.source_problem_relation_projection(modified, self.imports)
+        modified = copy.deepcopy(self.frontier)
+        modified["observationJoin"] = {"candidateAssociations": [{
+            "relation": "EXECUTED_CALL",
+            "proofStanding": "PROVEN",
+        }]}
+        with self.assertRaisesRegex(ValueError, "promoted to proof"):
+            M.source_problem_relation_projection(modified, self.imports)
+
+    def test_command_line_distinct_mode_and_summary(self):
+        import json
+        args = [
+            "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+            "--source-cut", self.cut,
+        ]
+        good = subprocess.run(
+            args + ["--problem-legos", "--relation-evidence", "--summary"],
+            cwd=ROOT, capture_output=True, text=True, timeout=35
+        )
+        assert good.returncode == 0, good.stderr
+        v = json.loads(good.stdout)
+        assert v["summary"]["staticImportCandidateEdges"] == len(
+            self.imports["staticCandidateEdges"])
+        assert "staticPythonImportCandidates" not in v
+        for bad in (["--relation-evidence"], [
+            "--problem-legos", "--relation-evidence", "--scope-census"
+        ], [
+            "--problem-legos", "--relation-evidence", "--use-proposal-cells"
+        ]):
+            p = subprocess.run(args + bad, cwd=ROOT,
+                               capture_output=True, text=True, timeout=35)
+            assert p.returncode != 0, bad
+
+    def test_repeat_without_external_changes_is_deterministic(self):
+        assert self.view == M.source_problem_relation_projection(
+            self.frontier, self.imports
+        )
