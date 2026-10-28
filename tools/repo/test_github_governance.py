@@ -95,6 +95,105 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertLess(names.index("Repository mechanics"), names.index("Select affected owners"))
         self.assertLess(names.index("Select affected owners"), names.index("Verify affected owners"))
 
+    def test_selected_formal_has_one_isolated_real_invocation_and_owner_failures_propagate(self) -> None:
+        """Execute the real GitHub queue shell and dedicated Formal step."""
+        import os
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = {step["name"]: step for step in workflow["jobs"]["root-verification"]["steps"]}
+        selected = steps["Verify affected owners"]["run"]
+        formal_step = steps["Verify changed core Formal source"]
+        self.assertEqual(formal_step["if"], "steps.affected.outputs.formal == 'true'")
+        self.assertIn("KANI_HOME", formal_step["env"])
+        self.assertIn("mise run formal:verify", formal_step["run"])
+        interpolation = "$" + "{{ steps.affected.outputs.formal }}"
+        self.assertIn(interpolation, selected)
+
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            (folder / "bin").mkdir()
+            fake = folder / "bin/mise"
+            fake.write_text(
+                '#!/usr/bin/env bash\n'
+                'printf "%s\\n" "$*" >> "$MISE_RECORD"\n'
+                'if [[ "$1" == run && "$2" == runtime:verify && '
+                '"$' + '{MOCK_FAIL_RUNTIME:-0}" == 1 ]]; then exit 37; fi\n'
+                'if [[ "$1" == run && "$2" == formal:verify && '
+                '"$' + '{MOCK_FAIL_FORMAL:-0}" == 1 ]]; then exit 41; fi\n',
+                encoding="utf-8",
+            )
+            fake.chmod(0o755)
+            tasks = folder / "ordivon-affected-tasks.txt"
+            log = folder / "mise.log"
+            env = os.environ.copy()
+            env.update({
+                "RUNNER_TEMP": str(folder),
+                "MISE_RECORD": str(log),
+                "PATH": str(folder / "bin") + os.pathsep + env.get("PATH", ""),
+            })
+
+            def actual_queue(
+                items: list[str], *, formal: str, failed_owner: bool = False
+            ) -> subprocess.CompletedProcess[str]:
+                tasks.write_text("\n".join(items) + "\n", encoding="utf-8")
+                log.write_text("", encoding="utf-8")
+                run_env = dict(env)
+                run_env["MOCK_FAIL_RUNTIME"] = "1" if failed_owner else "0"
+                return subprocess.run(
+                    ["/usr/bin/bash", "-c", selected.replace(interpolation, formal)],
+                    cwd=ROOT, env=run_env, capture_output=True, text=True,
+                    timeout=14, check=False,
+                )
+
+            ok = actual_queue(
+                ["runtime:verify", "formal:verify", "host:queue"], formal="true",
+            )
+            self.assertEqual(ok.returncode, 0, ok.stderr)
+            self.assertEqual(
+                log.read_text().splitlines(), ["run runtime:verify", "run host:queue"]
+            )
+            dedicated = subprocess.run(
+                ["/usr/bin/bash", "-c", formal_step["run"]],
+                cwd=ROOT, env=env, capture_output=True, text=True,
+                timeout=14, check=False,
+            )
+            self.assertEqual(dedicated.returncode, 0, dedicated.stderr)
+            self.assertEqual(
+                log.read_text().splitlines(),
+                ["run runtime:verify", "run host:queue",
+                 "install", "run formal:verify"],
+            )
+
+            # A true mathematical verifier failure must remain a failing
+            # GitHub required step, not an accepted projected task name.
+            log.write_text("", encoding="utf-8")
+            proof_failure_env = dict(env)
+            proof_failure_env["MOCK_FAIL_FORMAL"] = "1"
+            failed_proof = subprocess.run(
+                ["/usr/bin/bash", "-c", formal_step["run"]],
+                cwd=ROOT, env=proof_failure_env, capture_output=True,
+                text=True, timeout=14, check=False,
+            )
+            self.assertEqual(failed_proof.returncode, 41)
+            self.assertEqual(
+                log.read_text().splitlines(),
+                ["install", "run formal:verify"],
+            )
+
+            mismatch = actual_queue(["formal:verify"], formal="false")
+            self.assertNotEqual(mismatch.returncode, 0)
+            self.assertNotIn("run formal:verify", log.read_text())
+            failure = actual_queue(
+                ["runtime:verify", "formal:verify", "host:queue"],
+                formal="true", failed_owner=True,
+            )
+            self.assertEqual(failure.returncode, 37)
+            self.assertEqual(log.read_text().splitlines(), ["run runtime:verify"])
+            no_formal = actual_queue(["host:queue"], formal="false")
+            self.assertEqual(no_formal.returncode, 0)
+            self.assertEqual(log.read_text().splitlines(), ["run host:queue"])
+
     def test_capital_current_native_verify_replaces_unreachable_nested_ci(self) -> None:
         """A nested historic workflow is not GitHub Actions for this monorepo.
 
