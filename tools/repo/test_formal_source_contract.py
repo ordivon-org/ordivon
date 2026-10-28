@@ -123,6 +123,23 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         self.assertIn("KANI_HOME:", workflow)
         self.assertIn("mise install", workflow)
 
+    def test_selected_formal_verus_rustup_toolchain_is_provisioned(self) -> None:
+        """Cold Linux CI must establish Verus's pinned rustup toolchain."""
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        step = workflow.split(
+            "      - name: Verify changed core Formal source\n", 1
+        )[1].split(
+            "      - name: Runtime supply-chain policy\n", 1
+        )[0]
+        runtime = tomllib.loads(
+            (ROOT / "services/runtime/mise.toml").read_text(encoding="utf-8")
+        )
+        version = runtime["tools"]["rust"]["version"]
+        admission = f"rustup toolchain install {version} --profile minimal"
+        self.assertIn(admission, step)
+        self.assertLess(step.index(admission), step.index("mise run formal:verify"))
+        self.assertIn("KANI_HOME:", step)
+
     def test_exact_git_source_readset_is_qualified(self) -> None:
         current = formal.qualified_source_cut()
         self.assertEqual(
