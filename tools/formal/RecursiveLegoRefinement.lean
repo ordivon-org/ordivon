@@ -892,8 +892,12 @@ def asIOContract {I O S : Type} (lego : StrictLego21 I O S) :
     lego.eff x.1 x.2 y.1 y.2 ∧
     lego.accept x.1 x.2 y.1 y.2
 
+-- The old consumer's independently accepted inputs must never be
+-- defined through the candidate implementation's invariant: doing so would
+-- make a new, narrower candidate silently narrow the OLD acceptance domain
+-- and allow an invalid refinement to prove itself.
 def oldConsumerContract : IOContract (Nat × Option Nat) (Nat × Nat) where
-  assume := fun x => strictTimeout.inv x.1 ∧ admitted x.1 x.2
+  assume := fun x => (0 < x.1 ∧ x.1 ≤ 900000) ∧ admitted x.1 x.2
   guarantee := fun x y => 0 < y.1 ∧ y.1 ≤ x.1 ∧ y.2 = x.1
 
 -- The mathematical implementation transition is explicitly deterministic.
@@ -912,6 +916,39 @@ theorem strictTimeout_refines_existing_consumer :
     rcases hNew with ⟨_hPost, hEff, hAccept⟩
     rcases hAccept with ⟨_hExact, _hState, hPositive, hBounded⟩
     exact ⟨hPositive, hBounded, hEff⟩
+
+-- Independent old-owner acceptance still includes other valid grants.
+-- This deliberately witnesses an OLD input not equal to the candidate's
+-- positive example grant 10000.
+theorem old_consumer_admits_independent_grant :
+    oldConsumerContract.assume (300000, none) := by
+  change (0 < (300000 : Nat) ∧ 300000 ≤ 900000) ∧
+    0 < (300000 : Nat)
+  exact ⟨⟨by decide, by decide⟩, by decide⟩
+
+-- A narrower candidate is non-vacuous but NOT substitutable. The negative
+-- theorem protects against circular old/new assumptions even when the
+-- narrower candidate has at least one admissible implementation step.
+def narrowedTimeout : StrictLego21 (Option Nat) Nat Nat :=
+  { strictTimeout with inv := fun grant => grant = 10000 }
+
+theorem narrowed_timeout_has_admitted_input :
+    ∃ (grant : Nat) (requested : Option Nat),
+      narrowedTimeout.inv grant ∧ narrowedTimeout.pre grant requested := by
+  refine ⟨10000, none, ?_, ?_⟩
+  · rfl
+  · change 0 < (10000 : Nat)
+    exact by decide
+
+theorem narrowed_timeout_not_old_consumer_refinement :
+    ¬ Refines (asIOContract narrowedTimeout) oldConsumerContract := by
+  intro hRef
+  have hOld : oldConsumerContract.assume (300000, none) :=
+    old_consumer_admits_independent_grant
+  have hNew : (asIOContract narrowedTimeout).assume (300000, none) :=
+    hRef.1 (300000, none) hOld
+  have hNarrow : (300000 : Nat) = 10000 := hNew.1
+  exact (by decide : (300000 : Nat) ≠ 10000) hNarrow
 
 theorem modeledBehavior_implements_strictTimeout :
     Implements (asIOContract strictTimeout) modeledBehavior := by
@@ -989,6 +1026,9 @@ theorem unbounded_default_not_a_refinement :
 end OrdivonR21.TimeoutConnection
 
 #print axioms OrdivonR21.TimeoutConnection.modeledBehavior_implements_strictTimeout
+#print axioms OrdivonR21.TimeoutConnection.old_consumer_admits_independent_grant
+#print axioms OrdivonR21.TimeoutConnection.narrowed_timeout_has_admitted_input
+#print axioms OrdivonR21.TimeoutConnection.narrowed_timeout_not_old_consumer_refinement
 #print axioms OrdivonR21.TimeoutConnection.strictTimeout_refines_existing_consumer
 #print axioms OrdivonR21.TimeoutConnection.modeledBehavior_preserves_old_consumer
 #print axioms OrdivonR21.TimeoutConnection.strictTimeout_has_admitted_input
