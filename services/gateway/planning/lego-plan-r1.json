@@ -54,6 +54,14 @@
         "Host Work/Social/Attention continuity truth",
         "Security IAM/identity source",
         "Provider outcome or domain completion"
+      ],
+      "formalObligations": [
+        {
+          "predicate": "GatewayError(receipt) never implies owner task effect, and owner-domain errors stay typed instead of an MCP success receipt.",
+          "witness": "tests/test_gateway_service.py::test_gateway_public_mcp_preserves_host_domain_failure_as_typed_error",
+          "standing": "TEST_WITNESSED_REFINEMENT_PROOF_UNKNOWN",
+          "installedStanding": "UNKNOWN"
+        }
       ]
     },
     {
@@ -91,6 +99,14 @@
       "mustNotOwn": [
         "capability admission authorization",
         "owner deployment health"
+      ],
+      "formalObligations": [
+        {
+          "predicate": "Capability routing is keyed by exact declared identity: routes={} yields the empty advertised set; mismatched key and route identity fails closed before owner dispatch.",
+          "witness": "tests/test_gateway_service.py::test_gateway_rejects_mismatched_route_and_capability_identity",
+          "standing": "TEST_WITNESSED_REFINEMENT_PROOF_UNKNOWN",
+          "installedStanding": "UNKNOWN"
+        }
       ]
     },
     {
@@ -130,6 +146,14 @@
       "mustNotOwn": [
         "long-lived owner status cache",
         "installed service or formal currentness"
+      ],
+      "formalObligations": [
+        {
+          "predicate": "A timed-out or failed owner observation has status UNKNOWN and must not hide independently healthy owner observations or fabricate runtime availability.",
+          "witness": "tests/test_projection_concurrency.py::test_slow_owner_becomes_unknown_without_hiding_healthy_owner",
+          "standing": "TEST_WITNESSED_REFINEMENT_PROOF_UNKNOWN",
+          "installedStanding": "UNKNOWN"
+        }
       ]
     },
     {
@@ -170,6 +194,14 @@
         "Runtime Job/Attempt authority",
         "dispatch/replay truth",
         "Windows privilege decisions"
+      ],
+      "formalObligations": [
+        {
+          "predicate": "Cancel/get use the exact owner-bound operation reference, and a different native Job ID is not an accepted terminal receipt.",
+          "witness": "tests/test_gateway_service.py::test_execution_cancel_rejects_mismatched_runtime_job_identity",
+          "standing": "TEST_WITNESSED_REFINEMENT_PROOF_UNKNOWN",
+          "installedStanding": "UNKNOWN"
+        }
       ]
     },
     {
@@ -210,6 +242,14 @@
         "Artifact bytes authority",
         "external.pull artifact policy",
         "release/domain acceptance"
+      ],
+      "formalObligations": [
+        {
+          "predicate": "Artifact read dispatch is bound to the native execution owner in the operation reference; no inferred or fabricated artifact owner may substitute.",
+          "witness": "tests/test_gateway_service.py::test_artifact_read_is_bound_to_execution_owner",
+          "standing": "TEST_WITNESSED_REFINEMENT_PROOF_UNKNOWN",
+          "installedStanding": "UNKNOWN"
+        }
       ]
     },
     {
@@ -248,6 +288,14 @@
       "mustNotOwn": [
         "Host Work/Space/Message authoritative write",
         "duplicated Host checkpoint state"
+      ],
+      "formalObligations": [
+        {
+          "predicate": "Host domain failure retains its typed error at Gateway MCP boundary; Gateway cannot mint a replacement Host ledger from owner unavailability.",
+          "witness": "tests/test_gateway_service.py::test_gateway_public_mcp_preserves_host_domain_failure_as_typed_error",
+          "standing": "TEST_WITNESSED_REFINEMENT_PROOF_UNKNOWN",
+          "installedStanding": "UNKNOWN"
+        }
       ]
     },
     {
@@ -289,6 +337,14 @@
         "identity provider source truth",
         "generic IAM decision engine",
         "authorization of every method by assumption"
+      ],
+      "formalObligations": [
+        {
+          "predicate": "Malformed or external Runtime artifact target is rejected before authorizer and before owner call, regardless of caller-controlled MCP arguments.",
+          "witness": "tests/test_capability_authz_middleware.py::test_malformed_or_external_artifact_target_fails_closed_before_authorizer",
+          "standing": "TEST_WITNESSED_REFINEMENT_PROOF_UNKNOWN",
+          "installedStanding": "UNKNOWN"
+        }
       ]
     },
     {
@@ -327,6 +383,14 @@
         "external identity provider",
         "Security policy decision",
         "Runtime operator privilege"
+      ],
+      "formalObligations": [
+        {
+          "predicate": "Ingress principal is granted only after signature, issuer, audience, expiry and subject validation; object-level authorization remains separately required.",
+          "witness": "tests/test_access_auth.py::test_verifier_requires_signature_issuer_audience_expiry_and_subject",
+          "standing": "TEST_WITNESSED_REFINEMENT_PROOF_UNKNOWN",
+          "installedStanding": "UNKNOWN"
+        }
       ]
     },
     {

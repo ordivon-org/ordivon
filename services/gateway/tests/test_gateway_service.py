@@ -754,3 +754,36 @@ def test_gateway_rejects_mismatched_route_and_capability_identity() -> None:
     route = default_routes()["execution.linux"]
     with pytest.raises(GatewayError, match="route identity"):
         GatewayService(FakeOwnerCaller(), routes={"execution.windows": route})
+
+
+def test_existing_gateway_lego_formal_obligations_link_real_native_consumers() -> None:
+    """Source contract regression, not a proof of installed semantics.
+
+    A plan-node declaration is useful only when its executable witness exists.
+    No test here promotes test validation to formal refinement or service health.
+    """
+    import ast
+    import json
+    from pathlib import Path
+
+    owner_root = Path(__file__).resolve().parents[1]
+    plan = json.loads((owner_root / "planning/lego-plan-r1.json").read_text())
+    nodes = {node["id"]: node for node in plan["nodes"]}
+    assert all(node["formalObligations"] for node in nodes.values())
+    for id_ in (f"G{i:02d}" for i in range(8)):
+        node = nodes[id_]
+        assert node["behavioralContract"] and node["consumerEvidence"]
+        for obligation in node["formalObligations"]:
+            assert obligation["standing"] == "TEST_WITNESSED_REFINEMENT_PROOF_UNKNOWN"
+            assert obligation["installedStanding"] == "UNKNOWN"
+            assert obligation["predicate"]
+            path, sep, test_name = obligation["witness"].partition("::")
+            assert sep and test_name.startswith("test_")
+            source = owner_root / path
+            assert source.is_file(), obligation["witness"]
+            syntax = ast.parse(source.read_text(encoding="utf-8"))
+            assert test_name in {
+                node.name
+                for node in ast.walk(syntax)
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            }
