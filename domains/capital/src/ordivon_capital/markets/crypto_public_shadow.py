@@ -10,6 +10,7 @@ from typing import Any
 from ordivon_capital.markets.market_sensors import qualified_public_bbo
 
 PRICE_KEYS = ("okx_btc", "okx_eth", "binance_books")
+OKX_INSTRUMENTS = {"okx_btc": "BTC-USDT", "okx_eth": "ETH-USDT"}
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -32,6 +33,9 @@ def _okx_quote(capture: dict[str, Any], key: str) -> dict[str, Any]:
     if len(rows) != 1:
         raise RuntimeError(f"{key}: expected one OKX ticker row")
     row = rows[0]
+    expected_instrument = OKX_INSTRUMENTS.get(key)
+    if expected_instrument is None or row.get("instId") != expected_instrument:
+        raise RuntimeError(f"{key}: OKX quote instrument identity mismatch")
     if not row.get("bidPx") or not row.get("askPx") or not row.get("ts"):
         raise RuntimeError(f"{key}: incomplete OKX quote")
     bid, ask = qualified_public_bbo(row["bidPx"], row["askPx"], source=key)
