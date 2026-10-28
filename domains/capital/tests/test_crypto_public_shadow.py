@@ -23,8 +23,8 @@ class CryptoPublicShadowTests(unittest.TestCase):
             "credentialsUsed": False, "privateAccountDataUsed": False,
             "externalFinancialWritesAttempted": False,
             "requests": {
-                "okx_btc": req(0, 900, {"data": [{"bidPx": "100", "askPx": "101", "ts": "1000"}]}),
-                "okx_eth": req(10, 910, {"data": [{"bidPx": "10", "askPx": "11", "ts": "1010"}]}),
+                "okx_btc": req(0, 900, {"data": [{"instId": "BTC-USDT", "bidPx": "100", "askPx": "101", "ts": "1000"}]}),
+                "okx_eth": req(10, 910, {"data": [{"instId": "ETH-USDT", "bidPx": "10", "askPx": "11", "ts": "1010"}]}),
                 "binance_books": req(20, 920, [
                     {"symbol": "BTCUSDT", "bidPrice": "99", "askPrice": "100"},
                     {"symbol": "ETHUSDT", "bidPrice": "9", "askPrice": "10"}]),
@@ -87,8 +87,8 @@ class CryptoPublicShadowTests(unittest.TestCase):
             "privateAccountDataUsed": False,
             "externalFinancialWritesAttempted": False,
             "requests": {
-                "okx_btc": req(0, 900, {"data": [{"bidPx":"100", "askPx":"101", "ts":"1000"}]}),
-                "okx_eth": req(10, 910, {"data": [{"bidPx":"10", "askPx":"11", "ts":"1010"}]}),
+                "okx_btc": req(0, 900, {"data": [{"instId":"BTC-USDT", "bidPx":"100", "askPx":"101", "ts":"1000"}]}),
+                "okx_eth": req(10, 910, {"data": [{"instId":"ETH-USDT", "bidPx":"10", "askPx":"11", "ts":"1010"}]}),
                 "binance_books": req(20, 920, [
                     {"symbol":"BTCUSDT", "bidPrice":"99", "askPrice":"100"},
                     {"symbol":"ETHUSDT", "bidPrice":"9", "askPrice":"10"},
@@ -115,6 +115,26 @@ class CryptoPublicShadowTests(unittest.TestCase):
             c=Path(td)/"capture.json"; d=Path(td)/"network-v2-binding.json"
             c.write_text(json.dumps(capture)); d.write_text(json.dumps(discovery))
             out=analyze(c,d)
+            # An otherwise perfectly valid numeric BBO from another symbol
+            # must never be relabeled BTC/ETH for cross-venue comparison.
+            for request, foreign in (
+                ("okx_btc", "ETH-USDT"),
+                ("okx_btc", "FAKE-USDT"),
+                ("okx_btc", None),
+                ("okx_eth", "BTC-USDT"),
+                ("okx_eth", "FAKE-USDT"),
+                ("okx_eth", None),
+            ):
+                with self.subTest(request=request, instrument=foreign):
+                    forged = json.loads(json.dumps(capture))
+                    quote = forged["requests"][request]["payload"]["data"][0]
+                    if foreign is None:
+                        del quote["instId"]
+                    else:
+                        quote["instId"] = foreign
+                    c.write_text(json.dumps(forged))
+                    with self.assertRaisesRegex(RuntimeError, "instrument identity mismatch"):
+                        analyze(c,d)
         self.assertTrue(out["capture"]["boundedContemporaneousComparisonAllowed"])
         self.assertFalse(out["clockQuality"]["hostClockWithinPrivateExecutionGate1000Ms"])
         self.assertEqual(out["standing"], "PASS_BOUNDED_DUAL_VENUE_PUBLIC_SHADOW_HOST_CLOCK_WARN")
