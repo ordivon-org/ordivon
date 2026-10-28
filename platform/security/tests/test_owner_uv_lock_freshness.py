@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -23,6 +24,34 @@ class OwnerUvLockFreshness(unittest.TestCase):
         self.assertNotIn("uv lock --check", script)
         self.assertNotIn("uv sync --frozen", script)
         self.assertLess(script.index(sync), script.index("ruff check"))
+
+    def test_s03_plan_binds_real_lock_consumer_without_formal_or_installed_promotion(self) -> None:
+        plan = json.loads(
+            (ROOT / "planning" / "lego-plan-r1.json").read_text(encoding="utf-8")
+        )
+        s03 = next(n for n in plan["nodes"] if n["id"] == "S03")
+        task = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))[
+            "tasks"
+        ]["verify"]["run"]
+        bindings = s03["consumerBindings"]
+        assert any(
+            b["path"] == "mise.toml"
+            and b["symbol"] == "tasks.verify.run"
+            and b["operation"].split(" before ")[0] in task
+            and b["standing"] == "SOURCE_DECLARED_NATIVE_TASK_NOT_INSTALLED"
+            for b in bindings
+        )
+        assert any(
+            b["path"] == "tests/test_owner_uv_lock_freshness.py"
+            and b["symbol"] == "OwnerUvLockFreshness"
+            and b["standing"] == "SOURCE_EXECUTABLE_TEST_CONSUMER"
+            for b in bindings
+        )
+        self.assertIn("uv sync --locked --python 3.15.1", s03["behavioralContract"])
+        self.assertIn("uv.lock", s03["inputs"][0])
+        self.assertTrue(s03["formalObligations"])
+        self.assertTrue(all(x.startswith("OPEN:") for x in s03["formalObligations"]))
+        self.assertIn("no installed or policy admission authority", s03["outputs"][0])
 
     def test_frozen_sync_alone_accepts_stale_lock(self) -> None:
         original = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
