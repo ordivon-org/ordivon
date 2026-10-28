@@ -715,6 +715,8 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
     Natural authorities remain the only actual fact providers. A reference
     to their Job is a reported witness, NOT proof that the report is genuine.
     """
+    import datetime
+    import math
     import re
 
     if evidence.get("kind") != "ordivon.external-authority-observations-r1":
@@ -762,17 +764,25 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
                 not re.fullmatch(r"(job-[A-Za-z0-9-]{8,96}|sha256:[0-9a-f]{64})",
                                  item["witnessRef"])):
             raise ValueError("observation lacks bounded witness reference")
-        if not isinstance(item["observedAt"], str) or not re.fullmatch(
+        observed_at = item["observedAt"]
+        if not isinstance(observed_at, str) or not re.fullmatch(
                 r"20[0-9]{2}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z",
-                item["observedAt"]):
+                observed_at):
             raise ValueError("observation timestamp is not UTC ISO seconds")
+        try:
+            parsed_at = datetime.datetime.strptime(observed_at, "%Y-%m-%dT%H:%M:%SZ")
+        except ValueError as exc:
+            raise ValueError("observation timestamp is not a real UTC instant") from exc
+        if parsed_at.strftime("%Y-%m-%dT%H:%M:%SZ") != observed_at:
+            raise ValueError("observation timestamp must be canonical UTC seconds")
         facts = item["observedFacts"]
         if (not isinstance(facts, dict) or len(facts) > 32 or
                 any(not isinstance(k, str) or len(k) > 80 or
                     not (v is None or type(v) in (str, int, float, bool)) or
+                    isinstance(v, float) and not math.isfinite(v) or
                     isinstance(v, str) and len(v) > 320
                     for k, v in facts.items())):
-            raise ValueError("observation fact payload must be bounded scalar metadata")
+            raise ValueError("observation fact payload must be finite bounded scalar metadata")
         candidate = item["candidateProblemRef"]
         if candidate is not None and (not isinstance(candidate, str)
                                       or candidate not in known):
@@ -790,7 +800,7 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
             json.dumps(key, separators=(",", ":")).encode()).hexdigest()
         payload_digest = "sha256:" + hashlib.sha256(
             json.dumps(item, sort_keys=True, ensure_ascii=True,
-                       separators=(",", ":")).encode()).hexdigest()
+                       separators=(",", ":"), allow_nan=False).encode()).hexdigest()
         joined.append({
             "subjectRef": ref,
             "authorityRef": a,
