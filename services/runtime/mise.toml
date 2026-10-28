@@ -15,11 +15,37 @@ version = "0.9.149"
 linux-x64 = { url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.149/cargo-nextest-0.9.149-x86_64-unknown-linux-gnu.tar.gz", checksum = "sha256:32d1d8c0567b7a80bee2bad8bb09125c846da96bc009b2de11ec08557290c770", size = 12121096 }
 
 [tasks."formal:kani:verify"]
-description = "Check PostgreSQL Attempt terminal transitions against real Rust code with upstream Kani"
+description = "Verify actual Rust PostgreSQL terminal and Attempt lifecycle properties with upstream Kani"
 run = """
 set -euo pipefail
-cargo kani setup
+# mise resolves the newest upstream kani-verifier for this optional task.
+# KANI_HOME MUST be established before any Kani command: even --version
+# initializes the installer and would otherwise touch the shared ~/.kani.
+export KANI_HOME="${KANI_HOME:-$HOME/.cache/ordivon/kani}"
+mkdir -p "$KANI_HOME"
+
+# Respect the existing VPN/egress selection supplied by Network, not a new
+# independent proxy daemon or changed system routing.
+if [[ -z "${HTTPS_PROXY:-}${https_proxy:-}${ALL_PROXY:-}${all_proxy:-}" && -n "${ORDIVON_VPN_HTTP_PROXY:-}" ]]; then
+  export HTTPS_PROXY="$ORDIVON_VPN_HTTP_PROXY" HTTP_PROXY="$ORDIVON_VPN_HTTP_PROXY"
+fi
+
+# Serialize setup across Agents and delete only demonstrably incomplete
+# official compression archives; next setup fetches the current release.
+(
+  flock -x 9
+  shopt -s nullglob
+  for archive in "$KANI_HOME"/kani-*.tar.gz; do
+    if ! gzip -t "$archive" 2>/dev/null; then
+      rm -- "$archive"
+    fi
+  done
+  cargo kani setup
+) 9>"$KANI_HOME/.setup.lock"
+cargo kani --version
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features postgres-registry-admission --harness proof_pg_terminal_transition_matches_contract --default-unwind 32
+cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_actual_attempt_terminal_absorbing_and_resolution_equivalence --default-unwind 32
+cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_actual_attempt_cancel_is_transition_or_stopping_replay --default-unwind 32
 """
 
 # Kani is opt-in so regular Rust checks do not download a large verifier.
