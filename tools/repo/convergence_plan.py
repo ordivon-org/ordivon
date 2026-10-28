@@ -126,6 +126,20 @@ def _is_cross_cutting(paths: Iterable[str]) -> bool:
     )
 
 
+def _requires_formal_source_verification(paths: Iterable[str]) -> bool:
+    """Existing Formal task changes require proof revalidation, not a new Owner.
+
+    The root mise task definition is an exact consumed input of the proof route;
+    its modification must not silently leave all Formal verifiers out of the
+    convergence queue even when no tools/formal/* file changed.
+    """
+    for path in paths:
+        normalized = affected_owners._normalize(path)
+        if normalized == "mise.toml" or normalized.startswith("tools/formal/"):
+            return True
+    return False
+
+
 def validate_queue_task_selection(
     selected_owners: list[str],
     requested_tasks: list[str],
@@ -143,10 +157,7 @@ def validate_queue_task_selection(
         raise ValueError("selected verification owner identities are duplicated")
     if any(owner not in canonical for owner in selected_owners):
         raise ValueError("selected verification owner identity is unknown")
-    formal_source_changed = any(
-        affected_owners._normalize(path).startswith("tools/formal/")
-        for path in changed_paths
-    )
+    formal_source_changed = _requires_formal_source_verification(changed_paths)
     expected = [canonical[owner] for owner in selected_owners]
     if formal_source_changed:
         expected.append("formal:verify")
@@ -215,10 +226,7 @@ def build_plan(
     # Formal proofs live in the existing repository Tool source region, not an
     # invented domain Owner. A changed proof/checker source must still route to
     # the already declared root mise formal:verify consumer task.
-    formal_source_changed = any(
-        affected_owners._normalize(path).startswith("tools/formal/")
-        for path in paths
-    )
+    formal_source_changed = _requires_formal_source_verification(paths)
     formal_tasks = ("formal:verify",) if formal_source_changed else ()
     verify_tasks = (
         *(by_name[name].task for name in verification_names),

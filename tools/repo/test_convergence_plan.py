@@ -87,6 +87,39 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["verificationOwners"], [])
         self.assertEqual(plan["scopeIds"], [])
 
+    def test_root_mise_formal_task_change_requires_formal_verification(self) -> None:
+        """The root task definition is a real consumed proof entrypoint input."""
+        plan = MODULE.build_plan(changed_files=["mise.toml"])
+        self.assertEqual(plan["queueClass"], "CROSS_CUTTING")
+        self.assertEqual(plan["scopeIds"], ["owner-component:ALL"])
+        self.assertEqual(plan["queueVerifyTasks"].count("formal:verify"), 1)
+        self.assertEqual(plan["queueVerifyTasks"][-1], "formal:verify")
+        self.assertEqual(plan["verifyTasks"][-1], "formal:verify")
+        MODULE.validate_queue_task_selection(
+            plan["verificationOwners"], plan["queueVerifyTasks"], ["mise.toml"],
+        )
+        with self.assertRaisesRegex(ValueError, "Formal-source|Formal"):
+            MODULE.validate_queue_task_selection(
+                plan["verificationOwners"], plan["queueVerifyTasks"][:-1],
+                ["mise.toml"],
+            )
+        with self.assertRaises(ValueError):
+            MODULE.validate_queue_task_selection(
+                plan["verificationOwners"],
+                [*plan["queueVerifyTasks"], "formal:verify"], ["mise.toml"],
+            )
+        output = subprocess.check_output([
+            sys.executable, str(MODULE_PATH),
+            "--changed-file", "mise.toml", "--format", "queue-tasks",
+        ], text=True)
+        self.assertEqual(output.splitlines().count("formal:verify"), 1)
+
+    def test_root_formal_entrypoint_path_is_exact_and_does_not_invent_domain_owner(self) -> None:
+        """Changing similarly named files must not silently invent proof obligations."""
+        for path in ("docs/architecture/formal-verification.md", "mise.toml.backup"):
+            plan = MODULE.build_plan(changed_files=[path])
+            self.assertNotIn("formal:verify", plan["queueVerifyTasks"])
+
     def test_formal_source_change_queues_existing_formal_verifier_without_owner(self) -> None:
         """Mathematical source changes need the real formal task, not just REPOSITORY_ONLY."""
         for path in (
@@ -173,7 +206,12 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertNotIn(
             "Selected verification owners and executable tasks disagree", workflow
         )
+        all_owners = sorted(MODULE.affected_owners.OWNERS, key=lambda owner: owner.name)
+        all_names = [owner.name for owner in all_owners]
+        all_queue_tasks = [owner.queue_task for owner in all_owners]
         examples = (
+            (all_names, [*all_queue_tasks, "formal:verify"], ["mise.toml"], True),
+            (all_names, all_queue_tasks, ["mise.toml"], False),
             ([], ["formal:verify"], ["tools/formal/Proof.qnt"], True),
             (["runtime"], ["runtime:verify"],
              ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"], True),
