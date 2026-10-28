@@ -273,6 +273,51 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             invalid_receipts["duplicate-JSON-kind"] = (
                 '{"kind":"incorrect",' + json.dumps(full_report)[1:]
             )
+            for index in range(len(full_report["probes"])):
+                missing = copy.deepcopy(full_report)
+                del missing["probes"][index]
+                missing["count"] = len(missing["probes"])
+                invalid_receipts[f"required-probe-omitted-{index}"] = json.dumps(missing)
+            for relative in full_report["sourceBlobs"]:
+                incomplete = copy.deepcopy(full_report)
+                del incomplete["sourceBlobs"][relative]
+                invalid_receipts[f"source-blob-omitted-{relative}"] = json.dumps(incomplete)
+            for name in full_report["toolBinaries"]:
+                incomplete = copy.deepcopy(full_report)
+                del incomplete["toolBinaries"][name]
+                invalid_receipts[f"tool-binary-omitted-{name}"] = json.dumps(incomplete)
+            for item in full_report["probes"]:
+                if "rejects" in item["probe"]:
+                    invalid = copy.deepcopy(full_report)
+                    target = next(
+                        x for x in invalid["probes"]
+                        if x["probe"] == item["probe"]
+                    )
+                    target["rc"] = 0
+                    invalid_receipts[f"negative-oracle-accepted-{item['probe']}"] = json.dumps(invalid)
+            unexpected = copy.deepcopy(full_report)
+            unexpected["probes"][0]["probe"] = "unrecognized proof obligation"
+            invalid_receipts["unknown-probe-identity"] = json.dumps(unexpected)
+            boolean_rc = copy.deepcopy(full_report)
+            boolean_rc["probes"][0]["rc"] = True
+            invalid_receipts["bool-accepted-as-integer-return-code"] = json.dumps(boolean_rc)
+            wrong_tool_hash = copy.deepcopy(full_report)
+            wrong_tool_hash["toolBinaries"]["lean"]["sha256"] = "Z" * 64
+            invalid_receipts["tool-digest-not-hex"] = json.dumps(wrong_tool_hash)
+            no_version = copy.deepcopy(full_report)
+            no_version["toolBinaries"]["lean"]["version"] = ""
+            invalid_receipts["tool-version-missing"] = json.dumps(no_version)
+            stale_cut = copy.deepcopy(full_report)
+            stale_cut["sourceCut"] = "0" * len(stale_cut["sourceCut"])
+            invalid_receipts["stale-source-cut"] = json.dumps(stale_cut)
+            failed_receipt = copy.deepcopy(full_report)
+            failed_receipt["status"] = "FAIL"
+            invalid_receipts["explicit-failure"] = json.dumps(failed_receipt)
+            wrong_count = copy.deepcopy(full_report)
+            wrong_count["count"] += 1
+            invalid_receipts["forged-count"] = json.dumps(wrong_count)
+            self.assertEqual(len(invalid_receipts), 54)
+
             try:
                 for label, payload in invalid_receipts.items():
                     with self.subTest(receipt=label):
