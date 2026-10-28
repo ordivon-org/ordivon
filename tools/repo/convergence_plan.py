@@ -310,6 +310,20 @@ def explain_source_impacts(
             raise ValueError("verification contract outside active Git repository") from exc
         if contract.read_bytes() != source_tools.git(repo, "show", f"{cut}:{relative}"):
             raise ValueError("verification contract differs from exact Git SourceCut")
+    # Source evidence and task selection are *executed* by these concrete
+    # native Python producers. Bind their on-disk bytes to the same Git cut;
+    # checking only policy TOML would permit a mutable implementation to
+    # issue statements about a different committed implementation.
+    for relative in (
+        "tools/repo/convergence_plan.py",
+        "tools/repo/affected_owners.py",
+        "tools/repo/exhaustive_coverage.py",
+    ):
+        producer = repo / relative
+        if producer.is_symlink() or not producer.is_file():
+            raise ValueError("executed producer source is not a regular Git file")
+        if producer.read_bytes() != source_tools.git(repo, "show", f"{cut}:{relative}"):
+            raise ValueError("executed producer source differs from exact Git SourceCut")
     inventory = source_tools.classification(repo, cut)
     problems = source_tools.derived_problem_legos(inventory, repo=repo)
     imports = source_tools.static_python_import_frontier(repo, cut)

@@ -96,6 +96,26 @@ class ConvergencePlanTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "noncanonical source impact"):
                     MODULE.explain_source_impacts(forged, source_cut=cut)
 
+    def test_self_hosted_impact_rejects_uncommitted_executed_producer_bytes(self) -> None:
+        """A source-bound explanation must not hide mutable producer code drift."""
+        plan = MODULE.build_plan(changed_files=["tools/formal/verify.py"])
+        cut = MODULE._git("rev-parse", "HEAD")
+        root = MODULE_PATH.parents[2]
+        for relative in (
+            "tools/repo/convergence_plan.py",
+            "tools/repo/affected_owners.py",
+            "tools/repo/exhaustive_coverage.py",
+        ):
+            with self.subTest(producer=relative):
+                file = root / relative
+                exact = file.read_bytes()
+                try:
+                    file.write_bytes(exact + b"\n# drift injected only for source-qualification test\n")
+                    with self.assertRaisesRegex(ValueError, "executed producer source"):
+                        MODULE.explain_source_impacts(plan, source_cut=cut)
+                finally:
+                    file.write_bytes(exact)
+
     def test_self_hosted_impact_refuses_stale_native_contract_and_old_cut(self) -> None:
         cut = MODULE._git("rev-parse", "HEAD")
         plan = MODULE.build_plan(changed_files=["tools/formal/verify.py"])
