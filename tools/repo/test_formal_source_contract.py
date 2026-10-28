@@ -198,6 +198,46 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         self.assertLess(step.index(admission), step.index("mise run formal:verify"))
         self.assertIn("KANI_HOME:", step)
 
+    def test_timeout_source_fragment_refinement_rejects_changed_python_semantics(self) -> None:
+        """Source-bound certificate rejects a changed producer or transport."""
+        qualified = formal.qualified_timeout_adapter_fragment()
+        self.assertIs(qualified["codeFragmentRefined"], True)
+        self.assertIs(qualified["runtimeRustRefined"], False)
+        target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        source = target.read_text(encoding="utf-8")
+        originals = {
+            "default": (
+                "self.gateway_grant.max_timeout_ms if timeout is None else timeout"
+                if "self.gateway_grant.max_timeout_ms if timeout is None else timeout" in source
+                else "return grant if requested is None else requested"
+            ),
+            "projection": 'gateway_args["timeoutMs"] = execution["timeoutMs"]',
+            "guard": "timeout > self.gateway_grant.max_timeout_ms",
+        }
+        revisions = {
+            "default": (
+                "None if timeout is None else timeout"
+                if originals["default"].startswith("self.gateway_grant")
+                else "return None if requested is None else requested"
+            ),
+            "projection": 'gateway_args["timeoutMs"] = None',
+            "guard": "timeout > 900_000",
+        }
+        real_read = Path.read_text
+        for name, original in originals.items():
+            with self.subTest(semantic_mutation=name):
+                self.assertIn(original, source)
+                changed = source.replace(original, revisions[name], 1)
+
+                def simulated_source_read(path, *args, **kwargs):
+                    if path == target:
+                        return changed
+                    return real_read(path, *args, **kwargs)
+
+                with patch.object(Path, "read_text", simulated_source_read):
+                    with self.assertRaisesRegex(ValueError, "timeout|admission"):
+                        formal.qualified_timeout_adapter_fragment()
+
     def test_exact_git_source_readset_is_qualified(self) -> None:
         current = formal.qualified_source_cut()
         self.assertEqual(
@@ -208,7 +248,9 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
             ).strip(),
         )
         self.assertEqual(set(current["sourceBlobs"]), set(formal.SOURCE_FILES))
-        self.assertEqual(len(current["sourceBlobs"]), 10)
+        # The source-scoped Formal proof now binds the actual Harness
+        # execution adapter as well as ten existing proof/toolchain inputs.
+        self.assertEqual(len(current["sourceBlobs"]), 11)
         for relative, oid in current["sourceBlobs"].items():
             self.assertEqual(
                 oid,

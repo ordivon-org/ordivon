@@ -1,6 +1,7 @@
 """Opt-in native formal tools smoke and negative oracles, not a new verifier."""
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import os
@@ -27,6 +28,7 @@ SOURCE_FILES = (
     "tools/formal/ProofKani.rs",
     "tools/formal/Proof.qnt",
     "tools/formal/Proof.als",
+    "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
 )
 
 
@@ -91,6 +93,125 @@ def qualified_tool_binaries() -> dict[str, dict[str, str]]:
     return result
 
 
+def qualified_timeout_adapter_fragment() -> dict[str, object]:
+    """Source-bound proof witness for ONE restricted Python connection.
+
+    Only the exact syntax admitted here is related to the Lean Option Nat
+    model. No arbitrary Python verifier, Rust refinement, installed effect,
+    or complete consumer closure is inferred.
+    """
+    path = "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+    tree = ast.parse((REPO / path).read_text(encoding="utf-8"), filename=path)
+
+    def method(owner: str, name: str) -> ast.FunctionDef:
+        cls = [x for x in tree.body if isinstance(x, ast.ClassDef) and x.name == owner]
+        if len(cls) != 1:
+            raise ValueError("unqualified timeout producer class")
+        methods = [x for x in cls[0].body if isinstance(x, ast.FunctionDef) and x.name == name]
+        if len(methods) != 1:
+            raise ValueError("unqualified timeout producer method")
+        return methods[0]
+
+    def canonical(expr: ast.AST) -> str:
+        # Assignment targets have Store context, while parser expressions
+        # have Load context. Target identity ignores only this AST context.
+        return ast.dump(expr, include_attributes=False).replace(
+            ", ctx=Store()", ""
+        )
+
+    def expr(source: str) -> str:
+        return canonical(ast.parse(source, mode="eval").body)
+
+    def assign(statement: ast.stmt, target: str, value: str) -> bool:
+        return (isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and canonical(statement.targets[0]) == expr(target)
+                and canonical(statement.value) == expr(value))
+
+    lower = method("PluginGatewayExecutionBridge", "_lower_runtime_tool_call")
+    model_input = [i for i, x in enumerate(lower.body)
+                   if assign(x, "timeout", 'call.arguments.get("timeoutMs")')]
+    if len(model_input) != 1:
+        raise ValueError("timeout model input binding changed")
+
+    guard = expr('timeout is not None and (type(timeout) is not int or timeout < 1 or timeout > self.gateway_grant.max_timeout_ms)')
+    guards = [(i, x) for i, x in enumerate(lower.body)
+              if isinstance(x, ast.If) and canonical(x.test) == guard]
+    if (len(guards) != 1 or guards[0][0] <= model_input[0]
+            or len(guards[0][1].body) != 1
+            or not isinstance(guards[0][1].body[0], ast.Raise)
+            or guards[0][1].orelse):
+        raise ValueError("actual Python admission is not the modeled fail-closed precondition")
+
+    # The producer can be the original inline expression or the existing
+    # Harness formal-owner extraction confirmed by CrossHair/Z3. These are
+    # TWO exact qualified implementations of the SAME Lean Option Nat rule.
+    direct = "self.gateway_grant.max_timeout_ms if timeout is None else timeout"
+    verified_helper = "_forward_granted_timeout(self.gateway_grant.max_timeout_ms, timeout)"
+    inline = [i for i, x in enumerate(lower.body)
+              if assign(x, 'execution["timeoutMs"]', direct)]
+    extracted = [i for i, x in enumerate(lower.body)
+                 if assign(x, 'execution["timeoutMs"]', verified_helper)]
+    if len(inline) + len(extracted) != 1:
+        raise ValueError("actual Python timeout normalization does not match Lean model")
+    producer_index = (inline + extracted)[0]
+    if producer_index <= guards[0][0]:
+        raise ValueError("actual timeout projection is not guarded")
+    if extracted:
+        helpers = [x for x in tree.body if isinstance(x, ast.FunctionDef)
+                   and x.name == "_forward_granted_timeout"]
+        if len(helpers) != 1 or len(helpers[0].body) != 2:
+            raise ValueError("verified timeout helper body changed")
+        helper = helpers[0]
+        if not isinstance(helper.body[-1], ast.Return) or not (
+            canonical(helper.body[-1].value) == expr(
+                "grant if requested is None else requested"
+            )
+        ):
+            raise ValueError("verified timeout helper changed its exact model")
+        doc = ast.get_docstring(helper) or ""
+        required = (
+            "pre: 1 <= grant <= 900000",
+            "pre: requested is None or (1 <= requested <= grant)",
+            "post: __return__ == (grant if requested is None else requested)",
+            "post: 1 <= __return__ <= grant",
+        )
+        if any(part not in doc for part in required):
+            raise ValueError("verified timeout helper lost formal assumptions")
+
+    # The real Gateway adapter must project exactly the materialized value.
+    submit = method("GatewayMcpRuntimeAdapter", "_submit")
+    expected = ast.parse('if "timeoutMs" in execution:\n    gateway_args["timeoutMs"] = execution["timeoutMs"]\n').body[0]
+    projections = [(i, x) for i, x in enumerate(submit.body)
+                   if isinstance(x, ast.If) and canonical(x.test) == expr('"timeoutMs" in execution')]
+    if len(projections) != 1 or canonical(projections[0][1]) != canonical(expected):
+        raise ValueError("Gateway timeout propagation differs from the modeled identity")
+
+    # Refuse an extra write to the modeled output after either projection.
+    for statements, start in ((lower.body, producer_index), (submit.body, projections[0][0])):
+        for statement in statements[start + 1:]:
+            for node in ast.walk(statement):
+                if isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign, ast.Delete)):
+                    touched = [node.target] if isinstance(node, (ast.AugAssign, ast.AnnAssign)) else (
+                        node.targets if isinstance(node, ast.Assign) else node.targets)
+                    if any(
+                        canonical(target) in (
+                            expr("timeout"), expr('execution["timeoutMs"]'),
+                            expr('gateway_args["timeoutMs"]'))
+                        for target in touched
+                    ):
+                        raise ValueError("modeled timeout value is overwritten after projection")
+
+    return {
+        "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
+        "producerPath": path,
+        "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
+        "codeFragmentRefined": True,
+        "runtimeRustRefined": False,
+        "installedCurrentness": "UNKNOWN",
+    }
+
+
 def run(label: str, args: list[str], *, input_text: str | None = None,
         expected_rc: int = 0, must_contain: str | None = None,
         timeout: int = 95, env_overlay: dict[str, str] | None = None) -> dict[str, object]:
@@ -110,6 +231,7 @@ def run(label: str, args: list[str], *, input_text: str | None = None,
 
 def main() -> None:
     source_before = qualified_source_cut()
+    fragment = qualified_timeout_adapter_fragment()
     tools_before = qualified_tool_binaries()
 
     def executable(name: str) -> str:
@@ -222,6 +344,7 @@ def main() -> None:
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "toolBinaries": tools_before,
         "proofReuseAdmissible": False,
+        "sourceFragmentRefinement": fragment,
         "implementationRefinement": "UNKNOWN",
         "installedCurrentness": "UNKNOWN",
         "limitations": [
