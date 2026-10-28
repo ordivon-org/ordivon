@@ -6,9 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote, unquote, urlsplit
 
-import yaml
-
 from .model import SkillRecord
+from .parser import SkillParseError, _load_yaml_mapping
 
 MAX_SKILL_RESOURCES = 512
 MAX_SKILL_BYTES = 16 * 1024 * 1024
@@ -101,9 +100,9 @@ def parse_standard_frontmatter(skill_root: Path) -> dict[str, object]:
     except OSError as exc:
         raise AgentSkillsConformanceError("cannot read SKILL.md") from exc
     try:
-        value = yaml.safe_load(_frontmatter_bytes(body))
-    except yaml.YAMLError as exc:
-        raise AgentSkillsConformanceError("frontmatter is not valid YAML") from exc
+        value = _load_yaml_mapping(_frontmatter_bytes(body).decode("utf-8"))
+    except SkillParseError as exc:
+        raise AgentSkillsConformanceError(str(exc)) from exc
     if not isinstance(value, dict):
         raise AgentSkillsConformanceError("frontmatter must be a YAML mapping")
     if any(not isinstance(key, str) for key in value):

@@ -41,10 +41,33 @@ def _load_yaml_mapping(frontmatter: str) -> dict:
         import yaml
     except ModuleNotFoundError as exc:
         raise SkillParseError("PyYAML is required by the Skills MCP bridge runtime") from exc
+    class _UniqueKeySafeLoader(yaml.SafeLoader):
+        def construct_mapping(self, node, deep=False):
+            if not isinstance(node, yaml.MappingNode):
+                return super().construct_mapping(node, deep=deep)
+            self.flatten_mapping(node)
+            mapping = {}
+            for key_node, value_node in node.value:
+                key = self.construct_object(key_node, deep=deep)
+                try:
+                    duplicate = key in mapping
+                except TypeError as exc:
+                    raise yaml.constructor.ConstructorError(
+                        None, None, "unhashable YAML mapping key", key_node.start_mark
+                    ) from exc
+                if duplicate:
+                    raise yaml.constructor.ConstructorError(
+                        None, None, "duplicate YAML mapping key", key_node.start_mark
+                    )
+                mapping[key] = self.construct_object(value_node, deep=deep)
+            return mapping
+
     try:
-        value = yaml.safe_load(frontmatter)
+        value = yaml.load(frontmatter, Loader=_UniqueKeySafeLoader)
     except yaml.YAMLError as exc:
-        raise SkillParseError("SKILL.md frontmatter is not valid YAML") from exc
+        raise SkillParseError(
+            f"SKILL.md frontmatter is not valid YAML: {getattr(exc, 'problem', 'YAML reader error')}"
+        ) from exc
     if not isinstance(value, dict):
         raise SkillParseError("SKILL.md frontmatter must be a YAML mapping")
     return value
