@@ -459,19 +459,19 @@ end OrdivonR21
 -- inv=all admitted reply-only edges descend in ordinal, graph is acyclic;
 -- eff=one directed reply relation append or none, not external IO authority;
 -- c=one integer comparison model; concrete DB cost UNKNOWN;
--- epsilon=0 exact Nat order, prov=this kernel term/Host sourcecut;
+-- epsilon=0 exact signed-Int order, prov=this kernel term/Host sourcecut;
 -- unfold=existing Host message + relation API and PostgreSQL ordinal owner;
 -- acceptance=kernel checked path descent/no cycle and unchecked countermodel.
 -- This is a mathematical model, NOT automatic implementation refinement of
 -- Python/psycopg or a claim that PostgreSQL commits by sequence order.
 namespace OrdivonR21.CausalReply
 
-def Qualified {Ref : Type} (ordinal : Ref → Nat)
+def Qualified {Ref : Type} (ordinal : Ref → Int)
     (reply : Ref → Ref → Prop) : Prop :=
   ∀ source target, reply source target → ordinal target < ordinal source
 
 theorem causal_chain_descends {Ref : Type}
-    (ordinal : Ref → Nat) (reply : Ref → Ref → Prop)
+    (ordinal : Ref → Int) (reply : Ref → Ref → Prop)
     (hQualified : Qualified ordinal reply)
     {source target : Ref} (hPath : Relation.TransGen reply source target) :
     ordinal target < ordinal source := by
@@ -479,19 +479,19 @@ theorem causal_chain_descends {Ref : Type}
   | single hEdge =>
       exact hQualified _ _ hEdge
   | tail hPrefix hFinal ih =>
-      exact Nat.lt_trans (hQualified _ _ hFinal) ih
+      exact Int.lt_trans (hQualified _ _ hFinal) ih
 
 theorem qualified_reply_graph_acyclic {Ref : Type}
-    (ordinal : Ref → Nat) (reply : Ref → Ref → Prop)
+    (ordinal : Ref → Int) (reply : Ref → Ref → Prop)
     (hQualified : Qualified ordinal reply) (source : Ref) :
     ¬ Relation.TransGen reply source source := by
   intro hCycle
   have hDescending : ordinal source < ordinal source :=
     causal_chain_descends ordinal reply hQualified hCycle
-  exact (Nat.lt_irrefl _ hDescending)
+  exact (Int.lt_irrefl _ hDescending)
 
 theorem guarded_append_preserves_qualification {Ref : Type}
-    (ordinal : Ref → Nat) (reply : Ref → Ref → Prop)
+    (ordinal : Ref → Int) (reply : Ref → Ref → Prop)
     (hQualified : Qualified ordinal reply)
     (source target : Ref) (hEarlier : ordinal target < ordinal source) :
     Qualified ordinal
@@ -511,15 +511,15 @@ theorem unguarded_self_reply_is_cyclic :
 -- Pure decision: Python checks target_sequence >= source_sequence
 -- and raises ConflictError. This proves order semantics for Nat only;
 -- SQL decoding and real Python control flow remain separate obligations.
-def decision (sourceOrdinal targetOrdinal : Nat) : Bool :=
+def decision (sourceOrdinal targetOrdinal : Int) : Bool :=
   decide (targetOrdinal < sourceOrdinal)
 
-def decisionContract : OrdivonR21.IOContract (Nat × Nat) Bool where
+def decisionContract : OrdivonR21.IOContract (Int × Int) Bool where
   assume := fun _ => True
   guarantee := fun input output =>
     output = decision input.1 input.2
 
-def decisionBehavior (input : Nat × Nat) (output : Bool) : Prop :=
+def decisionBehavior (input : Int × Int) (output : Bool) : Prop :=
   output = decision input.1 input.2
 
 theorem decision_implements_model :
@@ -531,13 +531,13 @@ theorem decision_implements_model :
     exact ⟨decision input.1 input.2, rfl⟩
 
 theorem python_rejection_predicate_iff_model_not_permitted
-    (sourceOrdinal targetOrdinal : Nat) :
+    (sourceOrdinal targetOrdinal : Int) :
     (sourceOrdinal ≤ targetOrdinal) ↔
       decision sourceOrdinal targetOrdinal = false := by
   simp [decision, decide_eq_false_iff_not]
 
 theorem reversed_message_pair_rejected :
-    ¬ (1 < (0 : Nat)) := by
+    ¬ (1 < (0 : Int)) := by
   decide
 
 end OrdivonR21.CausalReply

@@ -19,6 +19,9 @@ dev = [
   "ruff>=0.15,<1",
   "testcontainers[postgres]>=4,<5",
 ]
+formal = [
+    "crosshair-tool==0.0.112",
+]
 
 [project.scripts]
 ordivon-host-v2-mcp = "ordivon_host_v2.mcp_server:main"

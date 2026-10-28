@@ -42,6 +42,17 @@ class MessageNotFound(RuntimeError):
     pass
 
 
+def _reply_target_precedes_source(source_sequence: int, target_sequence: int) -> bool:
+    """Strictly earlier reply target, using exact PostgreSQL signed bigint order.
+
+    pre: -(2**63) <= source_sequence <= 2**63 - 1
+    pre: -(2**63) <= target_sequence <= 2**63 - 1
+    post: __return__ == (target_sequence < source_sequence)
+    post: __return__ == (not (target_sequence >= source_sequence))
+    """
+    return not (target_sequence >= source_sequence)
+
+
 class SocialStore:
     """Durable Social Graph records without IAM, scheduling, ranking, or effect authority."""
 
@@ -1208,7 +1219,9 @@ class SocialStore:
                 raise ConflictError("reply_to cannot cross topics")
             if (
                 value.relation == MessageRelationKind.REPLY_TO
-                and target["sequence"] >= source["sequence"]
+                and not _reply_target_precedes_source(
+                    source["sequence"], target["sequence"]
+                )
             ):
                 # Immutable identity ordinals form a strict descending rank
                 # for every reply edge, so its transitive closure is acyclic.
