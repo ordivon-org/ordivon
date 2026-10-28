@@ -169,6 +169,51 @@ class ConvergencePlanTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     MODULE.validate_queue_task_selection(owners, requested, changed)
 
+    def test_selected_queue_tasks_must_resolve_in_current_root_mise_source(self) -> None:
+        """An allowlisted queue task name is not enough if its runner disappears."""
+        import unittest.mock
+        import tomllib
+        root = MODULE_PATH.parents[2]
+        original = tomllib.loads((root / "mise.toml").read_text(encoding="utf-8"))
+        declared = original["tasks"]
+        expected = {o.queue_task for o in MODULE.affected_owners.OWNERS}
+        expected.add("formal:verify")
+        self.assertTrue(expected.issubset(declared.keys()))
+        for name in expected:
+            with self.subTest(working=name):
+                self.assertTrue(declared[name].get("run") or declared[name].get("depends"))
+
+        with tempfile.TemporaryDirectory() as directory:
+            mock_file = Path(directory) / "mise.toml"
+            for missing, owners, selected, changed in (
+                ("runtime:verify", ["runtime"], ["runtime:verify"],
+                 ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]),
+                ("formal:verify", [], ["formal:verify"],
+                 ["tools/formal/RecursiveLegoRefinement.lean"]),
+            ):
+                with self.subTest(missing=missing):
+                    mock_file.write_text(
+                        "[tasks.\"unrelated:verify\"]\nrun = 'true'\n",
+                        encoding="utf-8",
+                    )
+                    with unittest.mock.patch.object(MODULE, "ROOT_TASKS_PATH", mock_file, create=True):
+                        with self.assertRaisesRegex(ValueError, "mise|task|runner"):
+                            MODULE.validate_queue_task_selection(
+                                owners, selected, changed
+                            )
+            mock_file.write_text(
+                "[tasks.\"runtime:verify\"]\nrun = 'echo works'\n"
+                "[tasks.\"formal:verify\"]\nrun = 'echo formal works'\n",
+                encoding="utf-8",
+            )
+            with unittest.mock.patch.object(MODULE, "ROOT_TASKS_PATH", mock_file, create=True):
+                MODULE.validate_queue_task_selection(
+                    ["runtime"], ["runtime:verify"], ["services/runtime/test.rs"]
+                )
+                MODULE.validate_queue_task_selection(
+                    [], ["formal:verify"], ["tools/formal/Proof.qnt"]
+                )
+
     def test_github_queue_uses_same_strict_formal_source_task_validation(self) -> None:
         workflow = (MODULE_PATH.parents[2] / ".github/workflows/ci.yml").read_text()
         self.assertIn("convergence_plan.validate_queue_task_selection(", workflow)

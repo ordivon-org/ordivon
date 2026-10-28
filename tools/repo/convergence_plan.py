@@ -13,6 +13,7 @@ from pathlib import Path
 import affected_owners
 
 DEPENDENCY_PATH = Path(__file__).with_name("dependency_contracts.toml")
+ROOT_TASKS_PATH = Path(__file__).resolve().parents[2] / "mise.toml"
 
 
 def _git(*args: str) -> str:
@@ -154,6 +155,30 @@ def validate_queue_task_selection(
             "queue task selection must match canonical owner tasks plus "
             "the scoped Formal-source verification task"
         )
+
+    # The queue invokes these exact task names through mise run.
+    # Name/Owner agreement alone is not a runnable contract: the root task
+    # can be removed or renamed independently of the source selector.
+    # Validate the current native manifest, without interpreting task
+    # shell text as mathematical behavior or running effects.
+    if requested_tasks:
+        try:
+            declared = tomllib.loads(ROOT_TASKS_PATH.read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError) as exc:
+            raise ValueError("selected queue tasks require readable root mise.toml") from exc
+        root_tasks = declared.get("tasks")
+        if not isinstance(root_tasks, dict):
+            raise ValueError("selected queue tasks require a root mise task table")
+        for name in requested_tasks:
+            task = root_tasks.get(name)
+            if isinstance(task, str):
+                callable_task = bool(task.strip())
+            elif isinstance(task, dict):
+                callable_task = bool(task.get("run") or task.get("depends"))
+            else:
+                callable_task = False
+            if not callable_task:
+                raise ValueError(f"selected queue task has no root mise runner: {name}")
 
 
 def build_plan(
