@@ -1,3 +1,5 @@
+use sha2::Digest;
+
 impl Runtime {
     pub fn authorize_job_principal(&self, job_id: &str, principal: &str) -> RuntimeResult<()> {
         let job = self.registry.get_job(job_id)?;
@@ -263,9 +265,7 @@ impl Runtime {
                 false,
             ));
         }
-        if sha256_file(&canonical).map_err(map_universal_error)? != artifact.digest
-            || metadata.len() != artifact.byte_length
-        {
+        if metadata.len() != artifact.byte_length {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::ArtifactIdentityConflict,
                 "Artifact digest or byte length changed",
@@ -276,6 +276,79 @@ impl Runtime {
         Ok((artifact, canonical))
     }
 
+    // Verify the entire stored Artifact through one open handle, retaining
+    // only the requested window. Two opens (hash, then read) cannot establish
+    // that the returned bytes belong to the same recorded digest.
+    fn read_verified_artifact_window(
+        artifact: &RuntimeArtifactRecord,
+        canonical: &Path,
+        offset: u64,
+        max_bytes: u64,
+    ) -> RuntimeResult<Vec<u8>> {
+        let mut options = OpenOptions::new();
+        options.read(true);
+        #[cfg(unix)]
+        options.custom_flags(libc::O_NOFOLLOW);
+        let mut file = options
+            .open(canonical)
+            .map_err(|error| io_error("open Artifact", error))?;
+        if !file
+            .metadata()
+            .map_err(|error| io_error("inspect Artifact", error))?
+            .is_file()
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ArtifactIdentityConflict,
+                "Artifact is not a regular file",
+                Some("artifactId"),
+                false,
+            ));
+        }
+        let end = offset.saturating_add(max_bytes).min(artifact.byte_length);
+        let mut captured = Vec::new();
+        let mut hasher = sha2::Sha256::new();
+        let mut position = 0u64;
+        let mut buffer = [0u8; 65_536];
+        loop {
+            let count = file
+                .read(&mut buffer)
+                .map_err(|error| io_error("read Artifact", error))?;
+            if count == 0 {
+                break;
+            }
+            let next = position.saturating_add(count as u64);
+            if next > artifact.byte_length {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::ArtifactIdentityConflict,
+                    "Artifact grew beyond recorded byte length",
+                    Some("artifactId"),
+                    false,
+                ));
+            }
+            hasher.update(&buffer[..count]);
+            let left = offset.max(position).min(next);
+            let right = end.max(position).min(next);
+            if right > left {
+                captured.extend_from_slice(&buffer[
+                    usize::try_from(left - position).unwrap()
+                        ..usize::try_from(right - position).unwrap()
+                ]);
+            }
+            position = next;
+        }
+        if position != artifact.byte_length
+            || format!("sha256:{}", hex::encode(hasher.finalize())) != artifact.digest
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ArtifactIdentityConflict,
+                "Artifact bytes changed while projecting content",
+                Some("artifactId"),
+                false,
+            ));
+        }
+        Ok(captured)
+    }
+
     pub fn read_artifact(
         &self,
         request: &ArtifactReadRequest,
@@ -283,17 +356,24 @@ impl Runtime {
         ArtifactStateContract::validate_read_request(request)?;
         let (artifact, canonical) =
             self.verified_artifact_path(&request.job_id, &request.artifact_id)?;
-        let range = read_utf8_range(
-            &canonical,
+        if request.offset > artifact.byte_length {
+            return Err(RuntimeError::invalid(
+                format!("offset exceeds retained byte length {}", artifact.byte_length),
+                "offset",
+            ));
+        }
+        let verified_bytes = Self::read_verified_artifact_window(
+            &artifact, &canonical, request.offset, request.max_bytes,
+        )?;
+        let range = decode_utf8_range_bytes(
+            verified_bytes,
             request.offset,
-            request.max_bytes,
             artifact.byte_length,
             true,
             RangeFields {
                 offset: "offset",
                 max_bytes: "maxBytes",
             },
-            "Artifact",
         )?;
         Ok(ArtifactReadResult {
             job_id: request.job_id.clone(),
@@ -324,17 +404,9 @@ impl Runtime {
                 false,
             ));
         }
-        let bytes = fs::read(&canonical).map_err(|error| io_error("read Artifact", error))?;
-        if u64::try_from(bytes.len()).unwrap_or(u64::MAX) != artifact.byte_length
-            || sha256_bytes(&bytes) != artifact.digest
-        {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::ArtifactIdentityConflict,
-                "Artifact bytes changed while projecting content",
-                Some("artifactId"),
-                false,
-            ));
-        }
+        let bytes = Self::read_verified_artifact_window(
+            &artifact, &canonical, 0, artifact.byte_length,
+        )?;
         Ok(ArtifactContentReadResult {
             metadata: ArtifactContentMetadata {
                 job_id: request.job_id.clone(),
@@ -1804,5 +1876,131 @@ mod stage_b0_artifact_descriptor_tests {
 
         assert_eq!(descriptor.artifact_id, "opaque-artifact");
         assert_eq!(descriptor.attempt_id, "attempt-owner-lineage");
+    }
+
+    #[test]
+    fn artifact_snapshot_binds_returned_bytes_to_registered_digest() {
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-artifact-snapshot-{}-{}",
+            std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        fs::create_dir(&root).unwrap();
+        let path = root.join("stdout.log");
+        let original = "🙂OK".as_bytes();
+        fs::write(&path, original).unwrap();
+        let record = RuntimeArtifactRecord {
+            artifact_id: "stdout".to_string(),
+            job_id: "job-test".to_string(),
+            attempt_id: "attempt-test".to_string(),
+            kind: "stdout".to_string(),
+            relative_path: "stdout.log".to_string(),
+            digest: sha256_bytes(original),
+            media_type: "text/plain".to_string(),
+            byte_length: original.len() as u64,
+            truncated: false,
+            created_at_ms: 1,
+        };
+
+        let verified = Runtime::read_verified_artifact_window(&record, &path, 0, record.byte_length).unwrap();
+        assert_eq!(
+            Runtime::read_verified_artifact_window(&record, &path, 4, 2).unwrap(),
+            b"OK"
+        );
+        // This is the exact historical two-open counterexample: a fresh path
+        // read after the digest check admits different same-length bytes.
+        fs::write(&path, "123456").unwrap();
+        let raw_path_range = read_utf8_range(
+            &path,
+            0,
+            6,
+            6,
+            true,
+            RangeFields { offset: "offset", max_bytes: "maxBytes" },
+            "Artifact",
+        ).unwrap();
+        assert_eq!(raw_path_range.content, "123456");
+        assert_ne!(sha256_bytes(raw_path_range.content.as_bytes()), record.digest);
+
+        // A byte snapshot already qualified for this Artifact stays stable
+        // even after the mutable pathname is replaced.
+        let first = decode_utf8_range_bytes(
+            verified[..4].to_vec(), 0, record.byte_length, true,
+            RangeFields { offset: "offset", max_bytes: "maxBytes" },
+        ).unwrap();
+        assert_eq!(first.content, "🙂");
+        assert_eq!(first.next_offset, 4);
+        let second = decode_utf8_range_bytes(
+            verified[4..].to_vec(), 4, record.byte_length, true,
+            RangeFields { offset: "offset", max_bytes: "maxBytes" },
+        ).unwrap();
+        assert_eq!(second.content, "OK");
+        assert_eq!(second.next_offset, 6);
+
+        let stale = Runtime::read_verified_artifact_window(&record, &path, 0, record.byte_length).unwrap_err();
+        assert_eq!(stale.code, RuntimeErrorCode::ArtifactIdentityConflict);
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn artifact_stream_window_crosses_chunk_boundaries_without_full_capture() {
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-artifact-window-{}-{}",
+            std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        fs::create_dir(&root).unwrap();
+        let path = root.join("stdout.log");
+        let mut original = vec![b'A'; 65_534];
+        original.extend_from_slice("🙂".as_bytes());
+        original.extend(std::iter::repeat_n(b'Z', 80_000));
+        fs::write(&path, &original).unwrap();
+        let record = RuntimeArtifactRecord {
+            artifact_id: "stdout".to_string(),
+            job_id: "job-window".to_string(),
+            attempt_id: "attempt-window".to_string(),
+            kind: "stdout".to_string(),
+            relative_path: "stdout.log".to_string(),
+            digest: sha256_bytes(&original),
+            media_type: "text/plain".to_string(),
+            byte_length: original.len() as u64,
+            truncated: false,
+            created_at_ms: 1,
+        };
+        let emoji = Runtime::read_verified_artifact_window(&record, &path, 65_534, 4).unwrap();
+        assert_eq!(emoji, "🙂".as_bytes());
+        let decoded = decode_utf8_range_bytes(
+            emoji, 65_534, record.byte_length, true,
+            RangeFields { offset: "offset", max_bytes: "maxBytes" },
+        ).unwrap();
+        assert_eq!(decoded.next_offset, 65_538);
+        let continuation = Runtime::read_verified_artifact_window(&record, &path, 65_535, 4).unwrap();
+        assert_eq!(
+            decode_utf8_range_bytes(
+                continuation, 65_535, record.byte_length, true,
+                RangeFields { offset: "offset", max_bytes: "maxBytes" },
+            ).unwrap_err().field.as_deref(),
+            Some("offset")
+        );
+        let eof = Runtime::read_verified_artifact_window(
+            &record, &path, record.byte_length, 1,
+        ).unwrap();
+        assert!(eof.is_empty());
+
+        original[0] = b'X';
+        fs::write(&path, &original).unwrap();
+        assert_eq!(
+            Runtime::read_verified_artifact_window(&record, &path, 65_534, 4)
+                .unwrap_err().code,
+            RuntimeErrorCode::ArtifactIdentityConflict
+        );
+        original.push(b'Q');
+        fs::write(&path, &original).unwrap();
+        assert_eq!(
+            Runtime::read_verified_artifact_window(&record, &path, 65_534, 4)
+                .unwrap_err().code,
+            RuntimeErrorCode::ArtifactIdentityConflict
+        );
+        fs::remove_dir_all(&root).unwrap();
     }
 }

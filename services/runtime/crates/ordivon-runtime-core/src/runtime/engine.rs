@@ -493,6 +493,25 @@ fn read_utf8_range(
     fields: RangeFields<'_>,
     context: &str,
 ) -> RuntimeResult<TextRange> {
+    let mut file =
+        File::open(path).map_err(|error| io_error(&format!("open {context} range"), error))?;
+    read_utf8_range_from_reader(
+        &mut file, offset, max_bytes, available, terminal, fields, context,
+    )
+}
+
+// Use this same UTF-8 boundary contract for regular output files and for a
+// digest-verified Artifact byte snapshot. A fresh pathname open after hashing
+// is not a valid Artifact identity bridge.
+fn read_utf8_range_from_reader<R: Read + Seek>(
+    reader: &mut R,
+    offset: u64,
+    max_bytes: u64,
+    available: u64,
+    terminal: bool,
+    fields: RangeFields<'_>,
+    context: &str,
+) -> RuntimeResult<TextRange> {
     if offset > available {
         return Err(RuntimeError::invalid(
             format!("{} exceeds retained byte length {available}", fields.offset),
@@ -506,15 +525,24 @@ fn read_utf8_range(
         });
     }
     let read_limit = max_bytes.min(available.saturating_sub(offset));
-    let mut file =
-        File::open(path).map_err(|error| io_error(&format!("open {context} range"), error))?;
-    file.seek(SeekFrom::Start(offset))
+    reader
+        .seek(SeekFrom::Start(offset))
         .map_err(|error| io_error(&format!("seek {context} range"), error))?;
     let mut bytes = vec![0_u8; usize::try_from(read_limit).unwrap_or(usize::MAX)];
-    let read = file
+    let read = reader
         .read(&mut bytes)
         .map_err(|error| io_error(&format!("read {context} range"), error))?;
     bytes.truncate(read);
+    decode_utf8_range_bytes(bytes, offset, available, terminal, fields)
+}
+
+fn decode_utf8_range_bytes(
+    mut bytes: Vec<u8>,
+    offset: u64,
+    available: u64,
+    terminal: bool,
+    fields: RangeFields<'_>,
+) -> RuntimeResult<TextRange> {
     if offset > 0 && bytes.first().is_some_and(|byte| byte & 0xc0 == 0x80) {
         return Err(RuntimeError::invalid(
             format!("{} must point to a UTF-8 character boundary", fields.offset),
