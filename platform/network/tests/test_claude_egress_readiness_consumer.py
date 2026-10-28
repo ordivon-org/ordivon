@@ -52,6 +52,12 @@ if [[ "$joined" == *"https://example.com/"* ]];then
     unknown_proxy_auth_failure)
       printf '000|407'
       exit 56;;
+    unknown_trailing_delimiter)
+      printf '000|403|'
+      exit 56;;
+    unknown_multiline_receipt)
+      printf '000|403\n000|000'
+      exit 56;;
     unknown_tls_handshake_failure)
       # Independently observed live probe: CONNECT=200, TLS handshake failed
       # (curl exit35). Transport failure does not authenticate policy reject.
@@ -188,6 +194,8 @@ def test_real_consumer_readiness_fails_closed_for_upstream_faults(tmp_path, faul
     (
         "unknown_transport_failure",
         "unknown_proxy_auth_failure",
+        "unknown_trailing_delimiter",
+        "unknown_multiline_receipt",
         "unknown_tls_handshake_failure",
         "unknown_origin_forbidden",
         "unknown_http_forbidden",
@@ -260,5 +268,5 @@ def test_n08_source_consumer_contract_matches_install_and_proxy_policy() -> None
     assert "CONNECT=407" in n08["behavioralContract"][0]
     assert "CONNECT=200" in n08["behavioralContract"][0]
     assert "%{http_code}|%{http_connect}" in readiness
-    assert '"$deny_connect" != 403' in readiness
+    assert '[[ ! "$deny_receipt" =~ ^(000|403)\\|403$ ]]' in readiness
     assert all("live" not in x.lower() for x in n08["consumers"])

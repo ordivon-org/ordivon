@@ -95,9 +95,10 @@ deny_receipt=$(ip netns exec nv2-claude-client curl -q -4 -x "$client_proxy" \
   --noproxy '' -I -sS --connect-timeout 3 --max-time "$max_time" \
   -o /dev/null -w '%{http_code}|%{http_connect}' https://example.com/ \
   2>/dev/null) || deny_receipt="${deny_receipt:-}"
-IFS='|' read -r deny_code deny_connect deny_extra <<< "$deny_receipt"
-if [[ ! "$deny_code" =~ ^(000|403)$ || "$deny_connect" != 403 || -n "$deny_extra" ]]; then
-  echo "ERROR: unknown Claude destination lacks explicit CONNECT denial (http=${deny_code:-000} CONNECT=${deny_connect:-000})" >&2
+# The whole curl receipt must match the two-field protocol: a successful
+# first-line parse must not discard a trailing field or a second line.
+if [[ ! "$deny_receipt" =~ ^(000|403)\|403$ ]]; then
+  echo "ERROR: unknown Claude destination lacks exact two-field CONNECT denial receipt" >&2
   exit 41
 fi
 
