@@ -91,6 +91,8 @@ def _qualified_formal_test_receipt(
         "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "proofReuseAdmissible": False,
+        "implementationRefinement": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
         "sourceBlobs": sources,
         "toolBinaries": fixture_binaries,
         "count": len(_FORMAL_PROBE_ORACLES),
@@ -276,6 +278,21 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             no_tools = copy.deepcopy(full_report)
             no_tools.pop("toolBinaries")
             invalid_receipts["no-eight-tool-witnesses"] = json.dumps(no_tools)
+            # The Formal mathematical model cannot grant implementation
+            # refinement or actual installed effect acceptance. A checker that
+            # claims PASS for either must fail this consumer's admission, even
+            # if all 16 real mathematical probes pass.
+            for field in ("implementationRefinement", "installedCurrentness"):
+                unearned = copy.deepcopy(full_report)
+                unearned[field] = "PASS"
+                invalid_receipts[f"unearned-{field}-PASS"] = json.dumps(unearned)
+                missing_grade = copy.deepcopy(full_report)
+                del missing_grade[field]
+                invalid_receipts[f"missing-{field}"] = json.dumps(missing_grade)
+            both_promoted = copy.deepcopy(full_report)
+            both_promoted["implementationRefinement"] = "PASS"
+            both_promoted["installedCurrentness"] = "PASS"
+            invalid_receipts["both-grades-unearned"] = json.dumps(both_promoted)
             forged_blob = copy.deepcopy(full_report)
             forged_blob["sourceBlobs"]["tools/formal/Proof.qnt"] = "0" * 40
             invalid_receipts["fake-proof-source-blob"] = json.dumps(forged_blob)
@@ -330,7 +347,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             wrong_count = copy.deepcopy(full_report)
             wrong_count["count"] += 1
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
-            self.assertEqual(len(invalid_receipts), 55)
+            self.assertEqual(len(invalid_receipts), 60)
 
             try:
                 for label, payload in invalid_receipts.items():

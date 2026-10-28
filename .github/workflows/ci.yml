@@ -387,6 +387,12 @@ jobs:
                   and report.get("toolQualification")
                       == "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST"
                   and report.get("proofReuseAdmissible") is False
+                  # Mathematical model proofs cannot silently promote their
+                  # implementation or installed-effect standing to PASS.
+                  # A stronger grade requires its own independently admitted
+                  # proof/consumer contract before this gate can accept it.
+                  and report.get("implementationRefinement") == "UNKNOWN"
+                  and report.get("installedCurrentness") == "UNKNOWN"
                   and type(report.get("count")) is int
                   and report["count"] == len(EXPECTED_PROBES)
                   and isinstance(probes, list) and len(probes) == len(EXPECTED_PROBES)
