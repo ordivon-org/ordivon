@@ -133,7 +133,41 @@
         "Attempt generation and terminalization preserve current ambiguity/lost/orphaned behavior.",
         "Physical provider code depends on Job/Attempt contracts rather than engine internals."
       ],
-      "nextAction": "R03 is closed at the planned A1/A2 seam and R04 ReservationContract is integrated on the verified candidate; proceed to R05 ArtifactAndReleaseStateModule without reopening Job/Attempt ownership."
+      "nextAction": "R03 is closed at the planned A1/A2 seam and R04 ReservationContract is integrated on the verified candidate; proceed to R05 ArtifactAndReleaseStateModule without reopening Job/Attempt ownership.",
+      "behavioralContract": {
+        "boundedSubject": "PgAdmissionStore::commit_terminal_no_artifacts / terminal_transition only; NOT whole Runtime Job/Attempt lifecycle",
+        "preconditions": [
+          "The source from is one of the declared PostgreSQL Attempt lifecycle strings, and to is evaluated against the current finite state alphabet."
+        ],
+        "postconditions": [
+          "accepted can terminate only as failed, cancelled, lost or orphaned; starting/running/stopping/recovering can terminate only into succeeded, failed, timed_out, cancelled, lost or orphaned; other source states cannot terminate."
+        ],
+        "negativeCases": [
+          "No accepted-to-succeeded or accepted-to-timed_out promotion; no terminal-to-terminal retry is admitted by terminal_transition."
+        ],
+        "notEstablished": [
+          "Complete PostgreSQL transaction atomicity",
+          "deployed Runtime version parity",
+          "Linux/Windows provider lifecycle equivalence",
+          "all non-PostgreSQL Job/Attempt transitions"
+        ]
+      },
+      "consumerBindings": [
+        "crates/ordivon-runtime-core/src/pg_admission.rs::PgAdmissionStore::commit_terminal_no_artifacts",
+        "crates/ordivon-runtime-core/src/pg_admission.rs::terminal_transition"
+      ],
+      "formalObligations": [
+        {
+          "scope": "Twelve-state PostgreSQL terminal-transition alphabet: 144 possible from/to pairs",
+          "statement": "The actual Rust terminal_transition function returns exactly the independent table encoded by proof_pg_terminal_transition_matches_contract for all finite symbolic from_id/to_id pairs 0..11.",
+          "implementationRef": "crates/ordivon-runtime-core/src/pg_admission.rs::terminal_transition",
+          "proofRef": "crates/ordivon-runtime-core/src/pg_admission.rs::proof_pg_terminal_transition_matches_contract",
+          "verificationCommand": "mise run formal:kani:verify",
+          "verificationStanding": "NATIVE_KANI_0_68_HARNESS_SUCCESS_1_OF_1_29_CHECKS_20261028",
+          "otherRuntimeFormalObligations": "UNKNOWN_NOT_PROVEN_BY_THIS_HARNESS"
+        }
+      ],
+      "formalVerificationStanding": "BOUNDED_PG_TERMINAL_TRANSITION_ONLY_OTHER_R03_OBLIGATIONS_UNKNOWN"
     },
     {
       "id": "R04",

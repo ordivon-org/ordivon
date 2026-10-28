@@ -2366,3 +2366,47 @@ def test_host_parent_refinement_fails_on_lost_consumption_or_false_proof(
                                             'return await _host("work.removed",')
     with pytest.raises(AssertionError):
         _host_core_parent_consumer_contract(plan, host_text, gateway_text)
+
+
+def test_runtime_r03_pg_terminal_transition_actual_kani_code_witness() -> None:
+    """Qualify one narrow Rust implementation predicate, never all Runtime effects."""
+    from tools.repo import exhaustive_coverage
+
+    plan = json.loads((ROOT / "services/runtime/planning/lego-plan-r1.json").read_text())
+    r03 = next(n for n in plan["nodes"] if n["id"] == "R03")
+    assert exhaustive_coverage.declared_values(r03, exhaustive_coverage.FIELDS["CONSUMER"])
+    assert exhaustive_coverage.declared_values(r03, exhaustive_coverage.FIELDS["CONTRACT"])
+    assert exhaustive_coverage.declared_values(r03, exhaustive_coverage.FIELDS["FORMAL"])
+    assert "OTHER_R03_OBLIGATIONS_UNKNOWN" in r03["formalVerificationStanding"]
+    assert "NOT whole Runtime Job/Attempt lifecycle" in r03["behavioralContract"]["boundedSubject"]
+    witness = r03["formalObligations"]
+    assert len(witness) == 1
+    proof = witness[0]
+    assert proof["scope"].startswith("Twelve-state PostgreSQL")
+    assert proof["otherRuntimeFormalObligations"] == "UNKNOWN_NOT_PROVEN_BY_THIS_HARNESS"
+    assert proof["verificationCommand"] == "mise run formal:kani:verify"
+    assert proof["proofRef"] == (
+        "crates/ordivon-runtime-core/src/pg_admission.rs::"
+        "proof_pg_terminal_transition_matches_contract"
+    )
+    source = (ROOT / "services/runtime/crates/ordivon-runtime-core/src/pg_admission.rs").read_text()
+    assert "fn terminal_transition(from: &str, to: &str) -> bool" in source
+    assert "pub fn commit_terminal_no_artifacts(" in source
+    assert "|| !terminal_transition(&previous, &i.terminal_state)" in source
+    assert "#[kani::proof]" in source
+    assert "fn proof_pg_terminal_transition_matches_contract()" in source
+    assert "assert_eq!(terminal_transition(state(from_id), state(to_id)), expected);" in source
+    task = (ROOT / "services/runtime/mise.toml").read_text()
+    assert "--harness proof_pg_terminal_transition_matches_contract" in task
+    assert "cargo kani -p ordivon-runtime-core" in task
+
+    for removed_key, facet in (
+        ("consumerBindings", "CONSUMER"),
+        ("behavioralContract", "CONTRACT"),
+        ("formalObligations", "FORMAL"),
+    ):
+        mutation = dict(r03)
+        mutation.pop(removed_key)
+        assert not exhaustive_coverage.declared_values(
+            mutation, exhaustive_coverage.FIELDS[facet]
+        )
