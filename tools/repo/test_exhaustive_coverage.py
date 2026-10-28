@@ -23,6 +23,28 @@ class FullCoverageTests(unittest.TestCase):
         self.assertEqual(now["standing"], "CLASSIFIED")
         self.assertEqual(now["classification"], "ROOT:runtime")
 
+    def test_formal_source_region_has_real_task_but_no_owner_authority(self):
+        # The existing root formal:verify task consumes tools/formal, yet this
+        # path was mechanically unclassified. The region is navigation only.
+        import tomllib
+        policy = tomllib.loads(
+            (ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        classified = M.source_partition("tools/formal/verify.py", policy)
+        self.assertEqual(classified["classification"],
+                         "REGION:formal-verification-source")
+        self.assertEqual(classified["standing"], "CLASSIFIED")
+        self.assertTrue(
+            all(not o["root"].startswith("tools/formal/")
+                for o in policy["owners"]))
+        root_tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+        formal_tasks = tomllib.loads(
+            (ROOT / "tools/formal/mise.toml").read_text())["tasks"]
+        self.assertEqual(root_tasks["formal:verify"]["run"],
+                         "cd tools/formal && mise run verify")
+        self.assertEqual(formal_tasks["verify"]["run"], "python3 verify.py")
+        self.assertEqual(M.source_partition("tools/unknown_script.py", policy)
+                         ["standing"], "UNASSIGNED")
+
     def test_unknown_never_disappears(self):
         self.assertEqual(M.source_partition("unforeseen/place.rs", {"owners": []})["standing"], "UNASSIGNED")
 
