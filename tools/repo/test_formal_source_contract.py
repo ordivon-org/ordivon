@@ -91,6 +91,62 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         _verify_formal_task_behavior("python3 verify.py")
         _verify_formal_task_behavior(peer_task)
 
+    def test_formal_child_contract_has_nonvacuous_execution_receipts(self) -> None:
+        """R2.1 bounded executable A/G seam; lexical admission is not execution."""
+        import os
+
+        commands = (
+            "python3 verify.py",
+            '# Prepare only the native optional Kani cache\n'
+            'export KANI_HOME="${KANI_HOME:-${HOME}/.cache/ordivon/kani}"\n'
+            'python3 verify.py',
+        )
+        with tempfile.TemporaryDirectory(prefix="ordivon-formal-behavior-") as tmp:
+            root = Path(tmp).resolve()
+            (root / "verify.py").write_text(
+                "import os, pathlib, sys\n"
+                "with pathlib.Path(os.environ['FORMAL_RECEIPT']).open('a') as receipt:\n"
+                "    receipt.write(os.environ['KANI_HOME'] + '\\n')\n"
+                "raise SystemExit(int(os.environ['FORMAL_TEST_EXIT']))\n",
+                encoding="utf-8",
+            )
+            receipt = root / "execution-receipt.txt"
+            fixed_cache = root / "caller-selected-kani"
+            environment = {
+                **os.environ,
+                "KANI_HOME": str(fixed_cache),
+                "FORMAL_RECEIPT": str(receipt),
+            }
+            for command in commands:
+                _verify_formal_task_behavior(command)
+                for exit_code in (0, 37):
+                    with self.subTest(command=command, exit_code=exit_code):
+                        receipt.unlink(missing_ok=True)
+                        result = subprocess.run(
+                            ["bash", "-euo", "pipefail", "-c", command],
+                            cwd=root,
+                            env={**environment, "FORMAL_TEST_EXIT": str(exit_code)},
+                            capture_output=True,
+                            text=True,
+                            timeout=8,
+                        )
+                        self.assertEqual(result.returncode, exit_code, result.stderr)
+                        self.assertTrue(receipt.exists(), "zero executed verifiers")
+                        self.assertEqual(
+                            receipt.read_text(encoding="utf-8").splitlines(),
+                            [str(fixed_cache)],
+                            "zero/multiple executions or caller environment changed",
+                        )
+
+        for false_positive in (
+            "exit 0\npython3 verify.py",
+            "python3 verify.py\npython3 verify.py",
+            "python3 verify.py || true",
+        ):
+            with self.subTest(false_positive=false_positive):
+                with self.assertRaises(ValueError):
+                    _verify_formal_task_behavior(false_positive)
+
     def test_formal_consumer_rejects_skip_duplicate_or_extra_effects(self) -> None:
         malformed = (
             "",
