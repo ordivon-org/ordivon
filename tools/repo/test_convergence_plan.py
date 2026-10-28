@@ -87,6 +87,97 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["verificationOwners"], [])
         self.assertEqual(plan["scopeIds"], [])
 
+    def test_phase2_bootstrap_reuses_actual_c04_to_c06_source_consumer(self) -> None:
+        """Exact Git import -> candidate consumer -> existing Composition verify."""
+        import json
+
+        cut = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True
+        ).strip()
+        provider = (
+            "packages/composition/src/ordivon_composition/"
+            "verification_obligation_r1.py"
+        )
+        consumer = (
+            "packages/composition/src/ordivon_composition/"
+            "effect_reconciliation_r1.py"
+        )
+        plan = MODULE.build_plan(changed_files=[provider])
+        projection = MODULE.explain_source_impact(
+            source_cut=cut, changed_paths=plan["changedPaths"], base_plan=plan
+        )
+        self.assertEqual(projection["sourceCut"], cut)
+        matches = [link for link in projection["directStaticImportCandidates"]
+                   if link["consumerPath"] == consumer
+                   and link["providerPath"] == provider]
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(
+            matches[0]["relation"], "STATIC_PYTHON_IMPORT_CANDIDATE_NOT_RUNTIME_CALL"
+        )
+        self.assertIn("composition:verify", projection["candidateVerifyTasks"])
+        self.assertEqual(projection["runtimeCallStanding"], "UNKNOWN")
+        self.assertFalse(projection["proofReuseAdmissible"])
+        self.assertFalse(projection["impactClosureEstablished"])
+        self.assertFalse(projection["deletionAuthorized"])
+        self.assertEqual(projection["changedSourceUnindexedPaths"], [])
+        self.assertNotIn("formal:verify", projection["candidateVerifyTasks"])
+
+        cli = subprocess.run([
+            sys.executable, str(MODULE_PATH),
+            "--changed-file", provider, "--source-cut", cut,
+            "--explain-source-impact"
+        ], capture_output=True, text=True, timeout=40)
+        self.assertEqual(cli.returncode, 0, cli.stderr)
+        from_cli = json.loads(cli.stdout)
+        self.assertEqual(
+            from_cli["sourceImpact"]["directStaticImportCandidates"],
+            projection["directStaticImportCandidates"]
+        )
+        self.assertEqual(from_cli["queueVerifyTasks"], plan["queueVerifyTasks"])
+        self.assertIn("composition:verify", from_cli["queueVerifyTasks"])
+        self.assertEqual(
+            from_cli["sourceImpact"]["mandatoryQueueVerifyTasks"],
+            plan["queueVerifyTasks"],
+        )
+
+    def test_phase2_bootstrap_does_not_silently_close_unknown_languages(self) -> None:
+        cut = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True
+        ).strip()
+        path = "services/runtime/crates/ordivon-runtime-core/src/lib.rs"
+        plan = MODULE.build_plan(changed_files=[path])
+        projection = MODULE.explain_source_impact(
+            source_cut=cut, changed_paths=[path], base_plan=plan
+        )
+        self.assertEqual(projection["analysisStanding"], "STATIC_PYTHON_ONLY")
+        self.assertEqual(projection["nonPythonCallCoverage"], "NOT_ANALYZED")
+        self.assertIn("runtime:verify", projection["candidateVerifyTasks"])
+        self.assertIn("composition:verify", projection["candidateVerifyTasks"])
+        self.assertFalse(projection["proofReuseAdmissible"])
+
+    def test_phase2_bootstrap_formal_source_keeps_mathematical_verifier(self) -> None:
+        cut = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True
+        ).strip()
+        path = "tools/formal/RecursiveLegoRefinement.lean"
+        plan = MODULE.build_plan(changed_files=[path])
+        projection = MODULE.explain_source_impact(
+            source_cut=cut, changed_paths=[path], base_plan=plan
+        )
+        self.assertEqual(projection["mandatoryQueueVerifyTasks"], ["formal:verify"])
+        self.assertEqual(projection["candidateVerifyTasks"], ["formal:verify"])
+        self.assertEqual(projection["directStaticImportCandidates"], [])
+        self.assertEqual(projection["nonPythonCallCoverage"], "NOT_ANALYZED")
+        self.assertFalse(projection["impactClosureEstablished"])
+
+    def test_phase2_bootstrap_rejects_wrong_source_cut(self) -> None:
+        path = "packages/composition/src/ordivon_composition/verification_obligation_r1.py"
+        plan = MODULE.build_plan(changed_files=[path])
+        with self.assertRaisesRegex(ValueError, "exact.*SourceCut|source cut"):
+            MODULE.explain_source_impact(
+                source_cut="0" * 40, changed_paths=[path], base_plan=plan
+            )
+
     def test_formal_source_change_queues_existing_formal_verifier_without_owner(self) -> None:
         """Mathematical source changes need the real formal task, not just REPOSITORY_ONLY."""
         for path in (

@@ -261,6 +261,95 @@ def build_plan(
     }
 
 
+
+def explain_source_impact(
+    *,
+    source_cut: str,
+    changed_paths: Iterable[str],
+    base_plan: dict[str, object],
+    repo: Path = Path.cwd(),
+) -> dict[str, object]:
+    """Phase2 narrow bootstrap: exact-Git source candidates -> existing task policy.
+
+    Reuses the canonical ProblemRef, source-cell and Python AST relation projection;
+    no second registry, importer execution, proof reuse, or installed-effect claims.
+    Potential caller tasks are an *additional conservative suggestion*, not a
+    substitute for the mandatory queueVerifyTasks in the original plan.
+    """
+    import exhaustive_coverage as source  # Existing native Repo LEGO
+
+    paths = tuple(affected_owners._normalize(path) for path in changed_paths)
+    if len(paths) > 32:
+        raise ValueError("bootstrap source impact requires at most 32 changed paths")
+    if list(paths) != base_plan.get("changedPaths"):
+        raise ValueError("bootstrap source impact requires identical plan source paths")
+    try:
+        source.exact_commit(repo, source_cut)
+    except ValueError as exc:
+        raise ValueError("source impact requires an exact available Git SourceCut") from exc
+    if base_plan.get("headRevision") is not None and source_cut != base_plan["headRevision"]:
+        raise ValueError("bootstrap SourceCut must equal the plan's exact Git head")
+    frontier = source.derived_problem_legos(
+        source.classification(repo, source_cut), repo=repo
+    )
+    relations = source.source_problem_relation_projection(
+        frontier, source.static_python_import_frontier(repo, source_cut)
+    )
+    changed = set(paths)
+    matched = [
+        row for row in relations["staticPythonImportCandidates"]
+        if row["providerPath"] in changed
+    ]
+    if len(matched) > 256:
+        raise ValueError("bootstrap impact has more than 256 direct static witnesses")
+    consumers = sorted({row["consumerPath"] for row in matched})
+    # Preserve real mandatory queue semantics; do not claim an AST candidate
+    # proves an additional owner must run or that other owners can be skipped.
+    candidate_paths = tuple(sorted(changed | set(consumers)))
+    extra_qualification_unknown = False
+    try:
+        candidate_plan = build_plan(changed_files=candidate_paths)
+        candidate_tasks = candidate_plan["queueVerifyTasks"]
+    except ValueError:
+        # The caller's location is unqualified. Suppressing the new candidate
+        # entirely would make a misleading complete-impact claim.
+        extra_qualification_unknown = True
+        candidate_tasks = base_plan["queueVerifyTasks"]
+    base_tasks = base_plan["queueVerifyTasks"]
+    return {
+        "kind": "ordivon.phase2.source-change-static-impact-and-verifier-hints",
+        "sourceCut": frontier["sourceCut"],
+        "sourceTree": frontier["sourceTree"],
+        "changedPaths": list(paths),
+        "changedSourceUnindexedPaths": sorted(changed - set(frontier["sourcePathCellIndex"])),
+        "sourceCellRefs": {
+            path: frontier["sourcePathCellIndex"].get(path) for path in paths
+        },
+        "directStaticImportCandidates": matched,
+        "directStaticCandidateConsumerPaths": consumers,
+        "mandatoryQueueVerifyTasks": base_tasks,
+        "candidateVerifyTasks": candidate_tasks,
+        "additionalCandidateTasksNotMandatory": [
+            task for task in candidate_tasks if task not in base_tasks
+        ],
+        "candidateTaskQualificationIncomplete": extra_qualification_unknown,
+        "taskPolicySourceStanding": "CURRENT_CHECKOUT_POLICY_NOT_PINNED_BY_SOURCECUT",
+        "analysisStanding": "STATIC_PYTHON_ONLY",
+        "nonPythonCallCoverage": "NOT_ANALYZED",
+        "dynamicConsumerClosure": "UNKNOWN",
+        "runtimeCallStanding": "UNKNOWN",
+        "impactClosureEstablished": False,
+        "installedCurrentnessEstablished": False,
+        "proofReuseAdmissible": False,
+        "deletionAuthorized": False,
+        "truthBoundary": (
+            "Exact-Git source and Python AST import candidates plus current "
+            "repository task-selection policy; no observed runtime invocation, "
+            "transitive call graph, formal refinement, safe proof reuse or deployment"
+        ),
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Project one Git candidate into conservative Ordivon convergence scopes."
@@ -268,6 +357,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--base")
     parser.add_argument("--head")
     parser.add_argument("--changed-file", action="append", default=[])
+    parser.add_argument("--source-cut", help="exact immutable Git HEAD for source-impact evidence")
+    parser.add_argument(
+        "--explain-source-impact", action="store_true",
+        help="optional Phase2 exact-Git static import and scoped verifier hints",
+    )
     parser.add_argument(
         "--format", choices=("json", "tasks", "queue-tasks", "scopes"), default="json"
     )
@@ -278,6 +372,19 @@ def main() -> int:
     args = _parser().parse_args()
     try:
         plan = build_plan(base=args.base, head=args.head, changed_files=args.changed_file)
+        if args.explain_source_impact:
+            if args.format != "json":
+                raise ValueError("source-impact explanation requires JSON output")
+            source_cut = args.source_cut or plan["headRevision"]
+            if source_cut is None:
+                raise ValueError("source-impact explanation requires exact --source-cut")
+            plan["sourceImpact"] = explain_source_impact(
+                source_cut=source_cut,
+                changed_paths=plan["changedPaths"],
+                base_plan=plan,
+            )
+        elif args.source_cut:
+            raise ValueError("--source-cut requires --explain-source-impact")
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
     if args.format == "tasks":
