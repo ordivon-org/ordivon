@@ -723,6 +723,29 @@ def derived_problem_legos(
 
 
 
+def _load_strict_authority_observation_json(path: Path) -> object:
+    """Reject ambiguous raw JSON before evidence identity or source-cut checks.
+
+    stdlib json.loads otherwise silently overwrites duplicate object members and
+    admits nonstandard NaN/Infinity constants, even in ignored envelope fields.
+    """
+    def reject_constant(value: str) -> object:
+        raise ValueError(f"non-standard JSON constant in authority observation: {value}")
+
+    def unique_members(pairs: list[tuple[str, object]]) -> dict:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate authority observation JSON field: {key}")
+            result[key] = value
+        return result
+
+    return json.loads(
+        path.read_text(encoding="utf-8"),
+        parse_constant=reject_constant, object_pairs_hook=unique_members,
+    )
+
+
 def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
     """Join caller-supplied *observations* without promoting them to truth.
 
@@ -1786,7 +1809,7 @@ def main() -> int:
             # this join never probes/impersonates the named natural authority.
             if args.authority_observations.stat().st_size > 262144:
                 raise ValueError("authority observation file exceeds 256KiB")
-            evidence = json.loads(args.authority_observations.read_text(encoding="utf-8"))
+            evidence = _load_strict_authority_observation_json(args.authority_observations)
             result = join_observed_authorities(result, evidence)
         if args.summary:
             if "observationJoin" in result:
