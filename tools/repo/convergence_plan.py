@@ -303,7 +303,11 @@ def explain_source_impacts(
     # Queue tasks come from working-tree TOML, while AST hints come from Git.
     # Reject the projection if either native verification policy has drifted
     # from the SAME exact Git cut, rather than mixing unrelated authorities.
-    for contract in (affected_owners.MANIFEST_PATH, DEPENDENCY_PATH):
+    for contract in (
+        affected_owners.MANIFEST_PATH,
+        DEPENDENCY_PATH,
+        repo / "mise.toml",
+    ):
         try:
             relative = contract.relative_to(repo).as_posix()
         except ValueError as exc:

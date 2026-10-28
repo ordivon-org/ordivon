@@ -116,6 +116,23 @@ class ConvergencePlanTests(unittest.TestCase):
                 finally:
                     file.write_bytes(exact)
 
+    def test_self_hosted_impact_rejects_uncommitted_root_task_manifest(self) -> None:
+        """Chosen task commands are consumed from root mise, not just Owner names."""
+        plan = MODULE.build_plan(
+            changed_files=["tools/formal/RecursiveLegoRefinement.lean"]
+        )
+        cut = MODULE._git("rev-parse", "HEAD")
+        root_task = MODULE_PATH.parents[2] / "mise.toml"
+        exact = root_task.read_bytes()
+        try:
+            root_task.write_bytes(
+                exact + b"\n# injected uncommitted task source drift\n"
+            )
+            with self.assertRaisesRegex(ValueError, "verification contract differs"):
+                MODULE.explain_source_impacts(plan, source_cut=cut)
+        finally:
+            root_task.write_bytes(exact)
+
     def test_self_hosted_impact_refuses_stale_native_contract_and_old_cut(self) -> None:
         cut = MODULE._git("rev-parse", "HEAD")
         plan = MODULE.build_plan(changed_files=["tools/formal/verify.py"])
