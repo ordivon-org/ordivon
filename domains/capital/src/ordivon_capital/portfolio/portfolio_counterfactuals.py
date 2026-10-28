@@ -37,16 +37,6 @@ def _fmt_machine(value: Decimal) -> str:
     return rendered if Decimal(rendered) == value else format(value, "f")
 
 
-def _q6(value: Any, label: str) -> Decimal:
-    """Quantize only displayed ratio/percentage deltas, never source machine values."""
-    return _d(value, label).quantize(Decimal("0.000001"))
-
-
-def _visible_delta(after: Decimal, before: Decimal) -> str:
-    """A reported delta equals the difference of the two visible six-place endpoints."""
-    return format(_q6(after, "delta.after") - _q6(before, "delta.before"), ".6f")
-
-
 def _canonical_factor_loadings(raw: Mapping[str, Any], label: str) -> dict[str, Decimal]:
     """Injective factor identity with the same key trimming as the risk ledger."""
     if not isinstance(raw, Mapping):
@@ -124,8 +114,8 @@ def _recompute(
                 "instrumentId": inst,
                 "signedNotionalUsd": _fmt_machine(signed),
                 "absoluteNotionalUsd": _fmt_machine(abs(signed)),
-                "grossShare": _fmt(abs(signed) / gross) if gross > 0 else "0.000000",
-                "equityMultiple": _fmt(abs(signed) / equity),
+                "grossShare": _fmt_machine(abs(signed) / gross) if gross > 0 else "0.000000",
+                "equityMultiple": _fmt_machine(abs(signed) / equity),
                 "factorLoadings": rendered_loadings,
             }
         )
@@ -337,10 +327,10 @@ def build_action_counterfactual(
         after_loss = after_notional / equity * shock_pct
         shock_projection = {
             "instrumentId": shock_inst,
-            "magnitudePct": _fmt(shock_pct),
-            "beforeEquityLossPctFirstOrder": _fmt(before_loss),
-            "afterEquityLossPctFirstOrder": _fmt(after_loss),
-            "deltaEquityLossPctFirstOrder": _visible_delta(after_loss, before_loss),
+            "magnitudePct": _fmt_machine(shock_pct),
+            "beforeEquityLossPctFirstOrder": _fmt_machine(before_loss),
+            "afterEquityLossPctFirstOrder": _fmt_machine(after_loss),
+            "deltaEquityLossPctFirstOrder": _fmt_machine(after_loss - before_loss),
             "notVaR": True,
             "notLiquidationProbability": True,
         }
@@ -380,16 +370,16 @@ def build_action_counterfactual(
         "baseline": {
             "grossNotionalUsd": _fmt_machine(baseline["grossNotionalUsd"]),
             "netNotionalUsd": _fmt_machine(baseline["netNotionalUsd"]),
-            "grossToEquity": _fmt(baseline["grossToEquity"]),
-            "netToEquity": _fmt(baseline["netToEquity"]),
-            "largestPositionGrossShare": _fmt(baseline["largestPositionGrossShare"]),
+            "grossToEquity": _fmt_machine(baseline["grossToEquity"]),
+            "netToEquity": _fmt_machine(baseline["netToEquity"]),
+            "largestPositionGrossShare": _fmt_machine(baseline["largestPositionGrossShare"]),
         },
         "projected": {
             "grossNotionalUsd": _fmt_machine(projected["grossNotionalUsd"]),
             "netNotionalUsd": _fmt_machine(projected["netNotionalUsd"]),
-            "grossToEquity": _fmt(projected["grossToEquity"]),
-            "netToEquity": _fmt(projected["netToEquity"]),
-            "largestPositionGrossShare": _fmt(projected["largestPositionGrossShare"]),
+            "grossToEquity": _fmt_machine(projected["grossToEquity"]),
+            "netToEquity": _fmt_machine(projected["netToEquity"]),
+            "largestPositionGrossShare": _fmt_machine(projected["largestPositionGrossShare"]),
             "positions": projected["positions"],
         },
         "deltas": {
@@ -399,17 +389,17 @@ def build_action_counterfactual(
             "netNotionalUsd": _fmt_machine(
                 projected["netNotionalUsd"] - baseline["netNotionalUsd"]
             ),
-            "grossToEquity": _visible_delta(projected["grossToEquity"], baseline["grossToEquity"]),
-            "netToEquity": _visible_delta(projected["netToEquity"], baseline["netToEquity"]),
-            "largestPositionGrossShare": _visible_delta(
-                projected["largestPositionGrossShare"], baseline["largestPositionGrossShare"]
+            "grossToEquity": _fmt_machine(projected["grossToEquity"] - baseline["grossToEquity"]),
+            "netToEquity": _fmt_machine(projected["netToEquity"] - baseline["netToEquity"]),
+            "largestPositionGrossShare": _fmt_machine(
+                projected["largestPositionGrossShare"] - baseline["largestPositionGrossShare"]
             ),
             "factorExposure": factor_delta,
         },
         "shockProjection": shock_projection,
         "hedgeMechanics": hedge_mechanics,
         "changedInstruments": sorted(changed_instruments),
-        "availableEquityUsdObservedBefore": _fmt(available),
+        "availableEquityUsdObservedBefore": _fmt_machine(available),
         "projectedAvailableEquityUsd": None,
         "exactMarginDeltaMeasured": False,
     }
