@@ -3,6 +3,26 @@ powershell = "7.6.8"
 python = "3.15.1"
 uv = "0.13.5"
 
+# Existing Harness source is the actual consumer of the R2.1 StrictLego21
+# optional-timeout expression. CrossHair performs solver-backed source-path
+# checking under the explicit preconditions, not a deployed Runtime proof.
+[tasks."formal:source-refinement"]
+run = """
+set -euo pipefail
+uv lock --check
+receipt=$(mktemp -t ordivon-harness-crosshair-XXXXXX)
+trap 'rm -f "$receipt"' EXIT
+uv run --locked --group formal crosshair check \
+  ordivon_harness.plugin_gateway_effect._forward_granted_timeout \
+  --analysis_kind=PEP316 --per_condition_timeout=20 --report_all > "$receipt"
+cat "$receipt"
+# CrossHair can return exit 0 for timed-out/incomplete exploration. Only
+# accept BOTH independently checked postconditions if it reports them
+# explicitly; a later contract edit must update the bounded obligation.
+test "$(grep -Fc 'info: Confirmed over all paths.' "$receipt")" -eq 2
+test "$(wc -l < "$receipt")" -eq 2
+"""
+
 [tasks.verify]
 run = """
 set -euo pipefail
@@ -12,6 +32,7 @@ test -x /usr/bin/rg
 uv sync --locked
 uv run python scripts/check_runtime_search_profile.py
 uv lock --check
+mise run formal:source-refinement
 uv run python -m compileall -q src tests scripts evals
 uv run --locked ruff check src tests scripts
 mise run formal:verify
@@ -46,6 +67,7 @@ run = """
 set -euo pipefail
 uv sync --locked
 uv lock --check
+mise run formal:source-refinement
 uv run python -m compileall -q src tests scripts evals
 uv run --locked ruff check src tests scripts
 mise run formal:verify
