@@ -402,6 +402,67 @@ def explain_source_impacts(
     }
 
 
+
+
+def build_qualified_temporal_impact(
+    *, base: str, head: str, prefixes: list[str],
+) -> dict[str, object]:
+    """Compose existing exact Git source delta with canonical verifier policy.
+
+    Only SOURCE/membership truth and TASK_SELECTION are asserted. It is not an
+    implementation proof, runtime call graph, installed-effect certification,
+    or permission to reuse stale proofs.
+    """
+    from source_history_legos import compact_source_impact, source_membership_delta
+    import exhaustive_coverage as source
+
+    if not prefixes or len(prefixes) > 8 or len(set(prefixes)) != len(prefixes):
+        raise ValueError("temporal impact requires 1..8 distinct scoped Git prefixes")
+    repo = Path(__file__).resolve().parents[2]
+    current = source.exact_commit(repo, _git("rev-parse", "HEAD"))
+    if head != current:
+        raise ValueError("temporal impact requires exact current HEAD SourceCut")
+    # Each selector has a distinct input contract; no caller-provided changed
+    # path overrides these immutable Git membership observations.
+    slices = []
+    changed: set[str] = set()
+    for prefix in prefixes:
+        delta = source_membership_delta(repo, base, head, prefix)
+        slices.append(compact_source_impact(delta))
+        changed.update(delta["addedPaths"])
+        changed.update(delta["removedPaths"])
+        changed.update(delta["changedValuePaths"])
+    if len(changed) > 32:
+        raise ValueError("temporal impact exceeds bounded canonical source frontier")
+    paths = sorted(changed)
+    plan = build_plan(changed_files=paths) if paths else None
+    if plan is not None:
+        validate_queue_task_selection(
+            plan["verificationOwners"], plan["queueVerifyTasks"], paths
+        )
+        # Important: the trusted canonical producer itself verifies that all
+        # executable analysis and policy readsets match this exact source cut.
+        explained = explain_source_impacts(plan, source_cut=head, repo=repo)
+    else:
+        explained = None
+    return {
+        "kind": "ordivon.phase2.temporal-source-verified-consumer-selection",
+        "sourceCuts": {"previous": base, "current": head},
+        "observedPrefixes": list(prefixes),
+        "sourceSlices": slices,
+        "selectedChangedPaths": paths,
+        "plan": plan,
+        "sourceConsumerEvidence": explained,
+        "queueVerifyTasks": (plan["queueVerifyTasks"] if plan else []),
+        "verifyTasks": (plan["verifyTasks"] if plan else []),
+        "verificationStanding": "SELECTED_NOT_EXECUTED",
+        "proofReuseAdmissible": False,
+        "runtimeCallStanding": "UNKNOWN",
+        "installedEffectStanding": "UNKNOWN",
+        "completeness": "ONLY_DECLARED_PREFIXES_AND_STATIC_PYTHON_CANDIDATES",
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Project one Git candidate into conservative Ordivon convergence scopes."
@@ -409,6 +470,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--base")
     parser.add_argument("--head")
     parser.add_argument("--changed-file", action="append", default=[])
+    parser.add_argument("--impact-prefix", action="append", default=[],
+                        help="opt-in immutable two-SourceCut membership frontier; no execution")
     parser.add_argument(
         "--explain-impacts", action="store_true",
         help="compose exact-Git source/ProblemRef and conservative verification tasks",
@@ -425,6 +488,22 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _parser().parse_args()
     try:
+        if args.impact_prefix:
+            if (args.changed_file or args.explain_impacts or args.source_cut
+                    or not args.base or not args.head):
+                raise ValueError("temporal impact requires --base/--head and no competing change/explanation flags")
+            receipt = build_qualified_temporal_impact(
+                base=args.base, head=args.head, prefixes=args.impact_prefix
+            )
+            if args.format == "json":
+                print(json.dumps(receipt, sort_keys=True))
+            elif args.format in ("tasks", "queue-tasks"):
+                for task in receipt["verifyTasks" if args.format == "tasks" else "queueVerifyTasks"]:
+                    print(task)
+            else:
+                for scope in receipt["plan"]["scopeIds"] if receipt["plan"] else []:
+                    print(scope)
+            return 0
         plan = build_plan(base=args.base, head=args.head, changed_files=args.changed_file)
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc

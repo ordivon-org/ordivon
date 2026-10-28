@@ -20,6 +20,65 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ConvergencePlanTests(unittest.TestCase):
+    def test_phase2_temporal_git_frontier_composes_with_canonical_consumers(self) -> None:
+        """Two Git cuts -> exact changed members -> mandatory native verifier.
+
+        Source & task-selection contract only, NOT runtime effect or theorem.
+        """
+        root = MODULE_PATH.parents[2]
+        def git(*args: str) -> str:
+            return subprocess.check_output(
+                ["git", "-C", str(root), "--no-replace-objects", *args],
+                text=True, stderr=subprocess.PIPE
+            ).strip()
+        head = git("rev-parse", "HEAD")
+        latest_formal = git(
+            "log", "-1", "--format=%H", "HEAD", "--", "tools/formal/mise.toml"
+        )
+        base = git("rev-parse", latest_formal + "^")
+        receipt = MODULE.build_qualified_temporal_impact(
+            base=base, head=head, prefixes=["tools/formal/"]
+        )
+        self.assertEqual(receipt["sourceCuts"]["current"], head)
+        self.assertIn("tools/formal/mise.toml", receipt["selectedChangedPaths"])
+        self.assertEqual(receipt["queueVerifyTasks"], ["formal:verify"])
+        self.assertFalse(receipt["proofReuseAdmissible"])
+        self.assertEqual(receipt["verificationStanding"], "SELECTED_NOT_EXECUTED")
+        self.assertEqual(receipt["runtimeCallStanding"], "UNKNOWN")
+        self.assertEqual(receipt["installedEffectStanding"], "UNKNOWN")
+        self.assertEqual(receipt["sourceConsumerEvidence"]["queueVerifyTasks"], ["formal:verify"])
+        self.assertFalse(receipt["sourceConsumerEvidence"]["impactClosureAdmissible"])
+        self.assertEqual(receipt["sourceConsumerEvidence"]["sourceCut"], head)
+        args = [
+            sys.executable, str(MODULE_PATH), "--base", base, "--head", head,
+            "--impact-prefix", "tools/formal/"
+        ]
+        actual = __import__("json").loads(subprocess.check_output(args, text=True))
+        self.assertEqual(actual["selectedChangedPaths"], receipt["selectedChangedPaths"])
+        self.assertEqual(
+            subprocess.check_output([*args, "--format", "queue-tasks"], text=True).strip(),
+            "formal:verify"
+        )
+        empty = MODULE.build_qualified_temporal_impact(
+            base=base, head=head, prefixes=["tools/formal/not-a-real-subtree/"]
+        )
+        self.assertEqual(empty["queueVerifyTasks"], [])
+        self.assertIsNone(empty["sourceConsumerEvidence"])
+        self.assertFalse(empty["proofReuseAdmissible"])
+        for wrong in (
+            dict(base=base, head=base, prefixes=["tools/formal/"]),
+            dict(base=base, head=head, prefixes=["tools/formal/", "tools/formal/"]),
+            dict(base=base, head=head, prefixes=["../unbounded/"]),
+        ):
+            with self.assertRaises(ValueError):
+                MODULE.build_qualified_temporal_impact(**wrong)
+        forged = subprocess.run(
+            [*args, "--changed-file", "docs/README.md"],
+            text=True, capture_output=True, check=False
+        )
+        self.assertNotEqual(forged.returncode, 0)
+        self.assertIn("no competing", forged.stderr)
+
     def test_self_hosted_impact_explanation_binds_real_source_and_verification(self) -> None:
         source = "tools/repo/affected_owners.py"
         plan = MODULE.build_plan(changed_files=[source])
