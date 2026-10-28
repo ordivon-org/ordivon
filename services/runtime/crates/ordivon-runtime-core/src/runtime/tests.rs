@@ -5091,6 +5091,62 @@ fn terminal_commit_is_atomic_idempotent_and_releases_capacity() {
         projection
     );
 
+    // The result digest is not a digest of every independently registered
+    // Artifact effect. Try each independently consumed registration facet and
+    // exact cardinality, without changing the already qualified result.
+    let mut candidates = Vec::new();
+    let mut changed = terminal.clone();
+    changed.artifacts[0].artifact_id = "artifact:replaced".to_string();
+    candidates.push(("artifact_id", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts[0].digest = digest(b"different-output");
+    candidates.push(("digest", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts[0].kind = "stderr".to_string();
+    candidates.push(("kind", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts[0].relative_path = "different.log".to_string();
+    candidates.push(("relative_path", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts[0].media_type = "application/json".to_string();
+    candidates.push(("media_type", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts[0].byte_length += 1;
+    candidates.push(("byte_length", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts[0].truncated = true;
+    candidates.push(("truncated", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts.clear();
+    candidates.push(("missing", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts.push(changed.artifacts[0].clone());
+    changed.artifacts[1].artifact_id = "artifact:extra".to_string();
+    candidates.push(("extra", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts.push(changed.artifacts[0].clone());
+    candidates.push(("duplicate", changed));
+    for (facet, changed) in candidates {
+        let error = sandbox.registry.commit_terminal(&changed).unwrap_err();
+        assert_eq!(
+            error.code,
+            RuntimeErrorCode::ArtifactIdentityConflict,
+            "{facet}"
+        );
+    }
+    assert_eq!(
+        sandbox.registry.commit_terminal(&terminal).unwrap(),
+        projection
+    );
+    assert_eq!(
+        sandbox
+            .registry
+            .list_artifacts(&created.job.job_id)
+            .unwrap()
+            .len(),
+        1
+    );
+
     let mut conflict = terminal;
     conflict.result_digest = digest(b"different-result");
     let error = sandbox.registry.commit_terminal(&conflict).unwrap_err();

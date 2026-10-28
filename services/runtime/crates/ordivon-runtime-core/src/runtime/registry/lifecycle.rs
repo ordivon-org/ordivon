@@ -1,3 +1,4 @@
+use crate::runtime::ArtifactRegistration;
 impl Registry {
     pub(super) fn mark_bundle_ready(
         &self,
@@ -659,6 +660,36 @@ impl Registry {
             if attempt.result_digest.as_deref() == Some(request.result_digest.as_str())
                 && attempt.state == request.state
             {
+                // The result identity alone does not certify the separate
+                // consumer-visible Artifact registration effect. Compare the
+                // exact persisted set inside this SAME transaction.
+                let mut statement = transaction.prepare(
+                    "SELECT artifact_id,kind,relative_path,digest,media_type,byte_length,truncated FROM artifacts WHERE attempt_id=?1 ORDER BY artifact_id",
+                ).map_err(|error| RuntimeError::from_sql(error, "prepare terminal Artifact replay readback"))?;
+                let rows = statement.query_map([&request.attempt_id], |row| {
+                    Ok(ArtifactRegistration {
+                        artifact_id: row.get(0)?,
+                        kind: row.get(1)?,
+                        relative_path: row.get(2)?,
+                        digest: row.get(3)?,
+                        media_type: row.get(4)?,
+                        byte_length: row.get(5)?,
+                        truncated: row.get::<_, i64>(6)? != 0,
+                    })
+                }).map_err(|error| RuntimeError::from_sql(error, "query terminal Artifact replay readback"))?;
+                let recorded = rows.collect::<rusqlite::Result<Vec<_>>>()
+                    .map_err(|error| RuntimeError::from_sql(error, "decode terminal Artifact replay readback"))?;
+                drop(statement);
+                let mut requested = request.artifacts.clone();
+                requested.sort_by(|left, right| left.artifact_id.cmp(&right.artifact_id));
+                if recorded != requested {
+                    return Err(RuntimeError::new(
+                        RuntimeErrorCode::ArtifactIdentityConflict,
+                        "terminal replay Artifact registration differs from the committed transaction",
+                        Some("artifacts"),
+                        false,
+                    ));
+                }
                 transaction.commit().map_err(|error| {
                     RuntimeError::from_sql(error, "cannot close terminal replay")
                 })?;
