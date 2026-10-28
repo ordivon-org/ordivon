@@ -217,11 +217,26 @@ acceptance); these are engineering descriptors, not six mathematical axioms.
 | c, epsilon | measured cost / explicitly defined approximation bounds | neither is a universal truth or compatibility metric |
 | prov, acceptance | source-bound evidence and requirement-specific acceptance | metadata and test outcomes are not component semantics |
 
-The historical tuple
+The R2.1 formal admission tuple
+
 `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`
-remains an optional view of an existing responsibility. It is not a mandatory
-record, new runtime object, or independent mathematical definition of a module.
-Keep existing names and owner APIs; select only the views needed by the obligation.
+
+is **mandatory, in full, for every responsibility promoted to a FORMAL/VERIFIED LEGO**.
+Its six practical identity/responsibility/interface/contract/acceptance roles
+remain mandatory too. Do not omit a coordinate because it is awkward; give it
+an exact typed interpretation and a relevant checked obligation. For genuinely
+stateless, effect-free or exact components use `S=Unit`, empty effects or
+`epsilon=0` **only with a justified semantic argument**. `c` needs a named
+unit and scope; `prov` binds the exact implementation/model and evidence;
+`unfold` identifies the actual connected/hidden children (possibly an
+explicitly justified atomic leaf). If any coordinate, behavior universe,
+assumption or implementation refinement remains unknown, the candidate
+remains DISCOVERED/UNKNOWN or MODEL_PROVED, **never FORMAL/VERIFIED at that
+stronger implementation/installation level**. The tuple is a formal proof
+obligation profile, not a new runtime object, metadata registry, invented
+universal calculus or proof that every existing repository file is a LEGO.
+Keep existing names and natural consumer APIs; check each applicable coordinate
+in the existing mature Lean/Pacti/TLA+/SMT/implementation proof carrier.
 
 ### Behavioral assume–guarantee profile
 

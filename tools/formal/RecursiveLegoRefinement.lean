@@ -893,3 +893,176 @@ end OrdivonR21.NumericRepresentation
 #print axioms OrdivonR21.NumericRepresentation.qualified_same_encoding_implies_same_exact_value
 #print axioms OrdivonR21.NumericRepresentation.different_source_same_encoding_requires_refusal
 #print axioms OrdivonR21.NumericRepresentation.unchecked_numeric_alias_is_possible
+
+-- R2.1 K1/Cross-Agent evidence message LEGO, one scoped responsibility.
+-- ell_M = (I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold):
+-- I=(ref,digest) of an already authenticated, open-topic message;
+-- O=(success status, unchanged or appended ledger); S=ref→(digest,seq), nextSeq;
+-- pre=ref and digest nonempty; authorized writer/open topic/transactional
+--      admission are externally required preconditions, not proven by Lean;
+-- post=matching replay returns existing, conflicting digest refuses mutation,
+--      unseen ref appends exactly once, no other ref is changed;
+-- inv=previously committed digest and order never silently change;
+-- eff=one append or none (not downstream execution);
+-- c=one abstract atomic insertion; epsilon=0 in this exact finite-step model;
+-- prov=Host v2 social_store.post_message ON CONFLICT/transaction sourcecut;
+-- unfold=(Gateway.message_post, Host.post_message, Host.topic_resume).
+-- These are mandatory *for this instantiated LEGO*; this namespace is NOT a
+-- universal metadata registry. SQL isolation, network authentication, the
+-- actual Python implementation, installed revision, and result-currentness
+-- are independent K2 refinement obligations, NOT claimed here.
+namespace OrdivonR21.MessageEvidence
+
+structure Ledger where
+  messages : String → Option (String × Nat)
+  nextSeq : Nat
+
+inductive Admission where
+  | committed
+  | existing
+  | conflict
+  deriving DecidableEq
+
+def append (s : Ledger) (ref digest : String) : Ledger :=
+  { messages := fun k =>
+      if k = ref then some (digest, s.nextSeq) else s.messages k
+    nextSeq := s.nextSeq + 1 }
+
+def deliver (s : Ledger) (ref digest : String) : Ledger × Admission :=
+  match s.messages ref with
+  | none => (append s ref digest, .committed)
+  | some (oldDigest, _) =>
+      if oldDigest = digest then (s, .existing) else (s, .conflict)
+
+-- Positive and negative results follow by full case analysis, with no
+-- axioms for delivery or external verifier success.
+theorem same_ref_digest_replay_is_state_preserving
+    (s : Ledger) (ref digest : String) (seq : Nat)
+    (h : s.messages ref = some (digest, seq)) :
+    deliver s ref digest = (s, .existing) := by
+  simp [deliver, h]
+
+theorem different_digest_conflict_is_state_preserving
+    (s : Ledger) (ref stored incoming : String) (seq : Nat)
+    (h : s.messages ref = some (stored, seq))
+    (hDifferent : stored ≠ incoming) :
+    deliver s ref incoming = (s, .conflict) := by
+  simp [deliver, h, hDifferent]
+
+theorem fresh_ref_appends_once
+    (s : Ledger) (ref digest : String)
+    (h : s.messages ref = none) :
+    (deliver s ref digest).2 = .committed ∧
+    (deliver s ref digest).1.messages ref =
+      some (digest, s.nextSeq) ∧
+    (deliver s ref digest).1.nextSeq = s.nextSeq + 1 := by
+  simp [deliver, h, append]
+
+theorem fresh_ref_does_not_mutate_other_messages
+    (s : Ledger) (ref digest other : String)
+    (h : s.messages ref = none) (hOther : other ≠ ref) :
+    (deliver s ref digest).1.messages other = s.messages other := by
+  simp [deliver, h, append, hOther]
+
+-- State-transition semantics: the first delivery commits, any identical
+-- repeated delivery returns the SAME state. No second sequence allocation.
+theorem fresh_then_replay_is_idempotent
+    (s : Ledger) (ref digest : String)
+    (h : s.messages ref = none) :
+    deliver (deliver s ref digest).1 ref digest =
+      ((deliver s ref digest).1, .existing) := by
+  have hInserted :
+      (deliver s ref digest).1.messages ref =
+        some (digest, s.nextSeq) := (fresh_ref_appends_once s ref digest h).2.1
+  exact same_ref_digest_replay_is_state_preserving
+    (deliver s ref digest).1 ref digest s.nextSeq hInserted
+
+-- A non-constant abstract specification is deliberately independent of the
+-- algorithm: it constrains every previously present message and all new
+-- references, including unrelated references.
+def Guarantees (input : Ledger × String × String)
+    (output : Ledger × Admission) : Prop :=
+  let s := input.1
+  let ref := input.2.1
+  let digest := input.2.2
+  let next := output.1
+  let status := output.2
+  (∀ old seq, s.messages ref = some (old, seq) →
+      next = s ∧ (if old = digest then status = .existing
+                  else status = .conflict)) ∧
+  (s.messages ref = none →
+      status = .committed ∧
+      next.messages ref = some (digest, s.nextSeq) ∧
+      next.nextSeq = s.nextSeq + 1 ∧
+      ∀ other, other ≠ ref → next.messages other = s.messages other)
+
+def protocol : IOContract (Ledger × String × String) (Ledger × Admission) :=
+  { assume := fun i => i.2.1 ≠ "" ∧ i.2.2 ≠ ""
+    guarantee := Guarantees }
+
+def executableModel (input : Ledger × String × String)
+    (output : Ledger × Admission) : Prop :=
+  output = deliver input.1 input.2.1 input.2.2
+
+-- Admitted problem instances demonstrably exist; model satisfaction is not
+-- achieved by assuming an impossible or empty input domain.
+theorem protocol_assumptions_are_nonvacuous :
+    ∃ (input : Ledger × String × String), protocol.assume input := by
+  refine ⟨({ messages := fun _ => none, nextSeq := 1 }, "ref", "digest"), ?_⟩
+  simp [protocol]
+
+-- Strict model-level refinement to the INDEPENDENT behavioral postcondition,
+-- with totality for every admitted input. This does NOT certify Host Python
+-- or Postgres as an implementation of executableModel.
+theorem executable_model_refines_protocol :
+    Implements protocol executableModel := by
+  constructor
+  · intro ⟨s, ref, digest⟩ output _ hExec
+    subst output
+    change Guarantees (s, ref, digest) (deliver s ref digest)
+    unfold Guarantees
+    constructor
+    · intro old seq hOld
+      change s.messages ref = some (old, seq) at hOld
+      by_cases hd : old = digest
+      · subst old
+        simp [deliver, hOld]
+      · simp [deliver, hOld, hd]
+    · intro hFresh
+      change s.messages ref = none at hFresh
+      constructor
+      · simp [deliver, hFresh]
+      constructor
+      · simp [deliver, hFresh, append]
+      constructor
+      · simp [deliver, hFresh, append]
+      · intro other hOther
+        change other ≠ ref at hOther
+        simp [deliver, hFresh, append, hOther]
+  · intro ⟨s, ref, digest⟩ _
+    exact ⟨deliver s ref digest, rfl⟩
+
+-- Counterexample when the assumed uniqueness/atomicity contract is removed:
+-- overwriting a previously committed digest cannot satisfy this protocol.
+theorem overwrite_breaks_existing_immutability :
+    ∃ (s : Ledger) (ref old incoming : String) (seq : Nat),
+      old ≠ incoming ∧
+      s.messages ref = some (old, seq) ∧
+      ¬ Guarantees (s, ref, incoming)
+        (append s ref incoming, .committed) := by
+  let s : Ledger := { messages := fun _ => some ("old", 0), nextSeq := 1 }
+  refine ⟨s, "message", "old", "new", 0, by decide, rfl, ?_⟩
+  intro h
+  have hConflict := (h.1 "old" 0 rfl).2
+  simp at hConflict
+
+end OrdivonR21.MessageEvidence
+
+#print axioms OrdivonR21.MessageEvidence.same_ref_digest_replay_is_state_preserving
+#print axioms OrdivonR21.MessageEvidence.different_digest_conflict_is_state_preserving
+#print axioms OrdivonR21.MessageEvidence.fresh_ref_appends_once
+#print axioms OrdivonR21.MessageEvidence.fresh_ref_does_not_mutate_other_messages
+#print axioms OrdivonR21.MessageEvidence.fresh_then_replay_is_idempotent
+#print axioms OrdivonR21.MessageEvidence.protocol_assumptions_are_nonvacuous
+#print axioms OrdivonR21.MessageEvidence.executable_model_refines_protocol
+#print axioms OrdivonR21.MessageEvidence.overwrite_breaks_existing_immutability

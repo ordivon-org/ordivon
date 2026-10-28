@@ -9,7 +9,7 @@ metadata:
 
 # Recursive LEGO Calculus
 
-Useful when an Agent is deciding whether a capability should exist, be deleted, reused, decomposed or composed. For hard cross-layer proof and optimization, the formal reference is optional.
+Useful when an Agent is deciding whether a capability should exist, be deleted, reused, decomposed or composed. For every LEGO admitted as FORMAL/VERIFIED, the R2.1 formal reference and complete tuple below are mandatory; raw discovery, ordinary deletion, or an unproved candidate is not a formally admitted LEGO.
 
 ## Adopt mature semantics
 
@@ -58,12 +58,12 @@ Use whichever of these questions changes the current decision. They are **not** 
 
 1. **Goal.** Name the Human/domain outcome, exact current source, real consumer and natural owner. If the goal itself is doubtful, investigate before building.
 2. **Zero-base.** Pretend the existing file, service, Skill and LEGO do not exist. Trace every consumer through to a real outcome; consumers that exist only to keep each other alive do not justify retention. Prefer deleting the whole chain or using a mature existing provider.
-3. **LEGO.** For a responsibility that remains necessary, name the six decision-relevant roles: **identity, one responsibility, inputs, outputs, behavioral contract, acceptance**. Add state, authority, effects, provenance, cost or children only when they change the decision. LEGO is the responsibility, not its file, class, Agent, Skill or Tool.
+3. **LEGO.** For a responsibility that remains necessary, name the six decision-relevant roles: **identity, one responsibility, inputs, outputs, behavioral contract, acceptance**. A claim of FORMAL/VERIFIED LEGO additionally **MUST instantiate every coordinate** of `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` with typed semantics, no omitted fields. An actually stateless or effect-free unit may use a justified Unit/empty effect; an unproved or unknown coordinate remains UNKNOWN and blocks FORMAL/VERIFIED. LEGO is the responsibility, not its file, class, Agent, Skill or Tool.
 4. **Compose.** Connect compatible inputs/outputs, assumptions/guarantees, identities and effect boundaries. Reuse a real owner interface; do not duplicate truth or assume a successful subcomponent implies a successful whole. Split or share only if replaceability and consumer outcomes improve.
 5. **Act.** Agents freely choose, compete, cooperate and adapt relevant Skills and Tools; no global minimality guarantee is assumed. Execute only through actual owner-authorized boundaries; no permanent role, mandatory workflow, or new LEGO execution service.
 6. **Select.** Observe changed consumer behavior and the scoped native verification evidence. Report PASS, FAIL or UNKNOWN honestly. Keep, replace, merge or delete based on evidence; stop when further decomposition adds glue instead of value.
 
-For a simple case the entire working note can fit in a sentence and six short fields. Reuse an existing API and its tests; do not create a separate LEGO specification file merely to restate the API.
+For discovery and non-formal decisions, six short fields may suffice but the unit remains CANDIDATE/UNKNOWN, not formally admitted. For FORMAL/VERIFIED admission, all eleven R2.1 coordinates are required and **must be grounded in the existing natural contract and a checked mathematical obligation**. This is a strict admission rule, not permission to create a separate registry, Schema, verifier or eleven new files per LEGO. Never fabricate effects, cost, zero approximation or evidence to fill a field. Reuse the existing source/API/proof carrier.
 
 ### Optional functional LEGO roles — not a type system
 
