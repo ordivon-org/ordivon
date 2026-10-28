@@ -53,7 +53,31 @@
       "behavioralContract": "Host-local revision and content identities are preserved; ActorRef is a reference, not authenticated identity; no execution or domain acceptance is granted.",
       "children": [
         "O09"
-      ]
+      ],
+      "consumers": [
+        "social_work_mcp:work.create",
+        "social_work_mcp:work.get",
+        "social_work_mcp:work.snapshot.commit",
+        "Gateway Host adapter:work.get"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_social_work_fabric_work_graph.py::test_host_work_cas_revision_is_exact_positive_integer_before_db",
+        "tests/test_social_work_fabric_postgres.py::test_work_snapshot_cas_race_has_one_winner",
+        "services/gateway/src/ordivon_gateway/mcp_server.py"
+      ],
+      "formalObligations": [
+        "Work snapshot revision compare-and-swap has at most one winner at each expected revision.",
+        "Work read validates committed snapshot content identity before presenting a result.",
+        "ActorRef remains a reference; a stored Work or Gateway route grants neither user authority nor execution acceptance."
+      ],
+      "evidenceScope": {
+        "qualification": "SOURCE_CONSUMER_BOUND_ONLY",
+        "formalProof": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "sourceCutQualification": "MUST_BIND_EXACT_GIT_CUT_AT_VERIFICATION",
+        "replacementOrDeletionAuthorized": false
+      }
     },
     {
       "id": "O02",
@@ -88,7 +112,31 @@
       "children": [
         "O10",
         "O11"
-      ]
+      ],
+      "consumers": [
+        "social_work_mcp:space.create",
+        "social_work_mcp:message.post",
+        "social_work_mcp:topic.resume",
+        "Gateway Host adapter:topic.resume"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_social_work_fabric_postgres.py::test_space_can_link_multiple_works_without_becoming_work_container",
+        "tests/test_social_work_fabric_postgres.py::test_topic_message_reply_and_mention_are_structured",
+        "services/gateway/src/ordivon_gateway/mcp_server.py"
+      ],
+      "formalObligations": [
+        "A Space can reference several Works without acquiring Work state authority.",
+        "Topic message reply and mention relations preserve exact source/target identity; a message claim does not grant authorization.",
+        "Message retrieval must fail closed on corrupted committed content and keep bounded topic paging."
+      ],
+      "evidenceScope": {
+        "qualification": "SOURCE_CONSUMER_BOUND_ONLY",
+        "formalProof": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "sourceCutQualification": "MUST_BIND_EXACT_GIT_CUT_AT_VERIFICATION",
+        "replacementOrDeletionAuthorized": false
+      }
     },
     {
       "id": "O03",
@@ -123,7 +171,31 @@
       "behavioralContract": "Attention change sequence and topic message sequence are distinct coordinates; projection neither ranks nor schedules.",
       "children": [
         "O12"
-      ]
+      ],
+      "consumers": [
+        "social_work_mcp:attention.delta",
+        "social_work_mcp:attention.reentry",
+        "Gateway Host adapter:attention.delta"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_host_v2/social_work_mcp.py",
+        "tests/test_social_work_fabric_attention.py::test_attention_cursor_is_monotonic_and_horizon_bounded",
+        "tests/test_social_work_fabric_postgres.py::test_attention_first_ack_concurrency_cannot_regress_cursor",
+        "tests/test_social_work_fabric_postgres.py::test_r2_attention_nonfinal_page_never_jumps_over_relevant_event",
+        "services/gateway/src/ordivon_gateway/mcp_server.py"
+      ],
+      "formalObligations": [
+        "Attention acknowledgements never regress under concurrent requests.",
+        "Non-final attention pages cannot jump past an eligible committed change.",
+        "Attention change clock and topic message sequence are distinct coordinates; navigation grants no scheduling authority."
+      ],
+      "evidenceScope": {
+        "qualification": "SOURCE_CONSUMER_BOUND_ONLY",
+        "formalProof": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "sourceCutQualification": "MUST_BIND_EXACT_GIT_CUT_AT_VERIFICATION",
+        "replacementOrDeletionAuthorized": false
+      }
     },
     {
       "id": "O04",
@@ -155,7 +227,33 @@
         "Committed rows and receipts; schema/integrity status"
       ],
       "behavioralContract": "Alembic owns migration; service startup requires schema 10; Host stores cannot substitute for Runtime ledger or foreign truth.",
-      "children": []
+      "children": [],
+      "consumers": [
+        "HostService schema gate",
+        "WorkStore PostgreSQL transaction consumer",
+        "SocialStore PostgreSQL transaction consumer",
+        "AttentionStore PostgreSQL transaction consumer"
+      ],
+      "consumerEvidence": [
+        "src/ordivon_host_v2/service.py",
+        "src/ordivon_host_v2/work_store.py",
+        "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_attention.py",
+        "tests/test_social_work_fabric_postgres.py::test_r2_schema_indexes_and_cursor_table_exist",
+        "tests/test_social_work_fabric_postgres.py::test_attention_change_clock_serializes_commit_order_and_rollback_has_no_hole"
+      ],
+      "formalObligations": [
+        "Host service operations require the declared PostgreSQL schema revision before exposing state.",
+        "Host transaction rollback cannot publish a committed attention clock advance or partial Work/Message update.",
+        "Canonical JSON identity must be checked against committed bytes on read; a client-supplied digest is not authentication."
+      ],
+      "evidenceScope": {
+        "qualification": "SOURCE_CONSUMER_BOUND_ONLY",
+        "formalProof": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "sourceCutQualification": "MUST_BIND_EXACT_GIT_CUT_AT_VERIFICATION",
+        "replacementOrDeletionAuthorized": false
+      }
     },
     {
       "id": "O09",

@@ -41,65 +41,30 @@
         "ROOT_UNOWNED means no matching path in the protected SourceCut Owner manifest, not an inferred root Owner. For those paths the graph partitions exact local/remote tip presence into BOTH_PRESENT, LOCAL_ONLY, REMOTE_ONLY and BOTH_ABSENT; none establishes consumer equivalence or branch-retirement permission."
       ],
       "nextAction": "Per-Owner Consumer-Driven Contract qualification of surviving divergent histories; no redundant Git scanner.",
+      "consumerBindings": [
+        "tools/repo/test_source_history_legos.py::source_history_legos.history",
+        "tools/repo/test_architecture_docs.py::test_git01_graph_projection_has_exact_repository_owner_lego_registration"
+      ],
+      "behavioralContract": [
+        "source_history_legos.history consumes two explicit Git source revisions and returns a read-only repository-history projection; it MUST NOT mutate refs or authorize branch retirement.",
+        "Source-cut and owner assignments are derived from native Git objects and the existing owners.toml; path/blob equality is NOT consumer behavior equivalence."
+      ],
       "inputs": [
-        {
-          "name": "leftSourceCut",
-          "type": "git-ref-or-full-commit",
-          "binding": "source_history_legos.py --left; resolved by native Git"
-        },
-        {
-          "name": "rightSourceCut",
-          "type": "git-ref-or-full-commit",
-          "binding": "source_history_legos.py --right; resolved by native Git"
-        },
-        {
-          "name": "sourceRoot",
-          "type": "git-worktree-directory",
-          "binding": "source_history_legos.py --repo"
-        },
-        {
-          "name": "optionalOwnerOrImpactPrefix",
-          "type": "canonical-owner-or-relative-source-prefix",
-          "binding": "--owner / --impact-prefix; optional"
-        }
+        "exact left/right Git commit revisions resolved from caller-specified refs; Git source worktree and canonical Owner manifest",
+        "optional owner-scope or source impact prefix; no ambient installed-state assumption"
       ],
       "outputs": [
-        {
-          "name": "sourceHistoryProjection",
-          "type": "read-only-JSON-source-graph",
-          "binding": "history(left,right) and owner_slice()"
-        },
-        {
-          "name": "sourceMembershipImpact",
-          "type": "source-cut-bound-JSON-delta",
-          "binding": "source_membership_delta() / --compact-impact"
-        }
-      ],
-      "behavioralContract": {
-        "preconditions": [
-          "Git resolves both source references; every represented object comes from its immutable resolved Git source.",
-          "Owner restriction accepts only canonical declared owner identities; never interpret ROOT_UNOWNED as a new natural Owner."
-        ],
-        "postconditions": [
-          "Every reported commit/path/digest is tied to its exact left/right source cut, and merge-parent deltas are not silently dropped.",
-          "Identical Git patch/blob observations remain source equivalence only; consumerQualification is UNKNOWN until independently demonstrated.",
-          "Source-only impact must never set proofReuseAdmissible=true or authorize a branch deletion, merge, installation or external effect."
-        ],
-        "effects": "READ_ONLY_GIT_OBSERVATION; optional requested output is not a deployment or consumer change",
-        "failure": "Reject unresolved/ambiguous history, forged owner scope and inconsistent DAG cardinality."
-      },
-      "consumerEvidence": [
-        "tools/repo/test_source_history_legos.py",
-        "tools/repo/test_lego_graph_laws.py",
-        "tools/repo/check_architecture_docs.py"
+        "source-history Git DAG/commit/mode/blob identity projection and scoped Owner view",
+        "bounded source-membership delta; all proof reuse and external-effect qualifications remain UNKNOWN"
       ],
       "formalObligations": [
-        "For a source-cut-qualified projection, every reported member OID must belong to the specified Git tree and the owner-scoped view must retain all qualifying commit records.",
-        "SourceMembershipDelta(unchanged) implies only SourceScopeUnchanged, never ProofReuseAdmissible or semantic consumer closure.",
-        "For all histories, branch retirement authorization is FALSE unless a separately verified consumer/installed/recovery closure is supplied."
+        "∀ commit ∈ reported_history, commit belongs to the selected immutable left/right Git-source traversal; owner-scoped projection preserves exactly its qualifying commits, excluding fabricated owners.",
+        "SourceMembershipDelta unchanged can establish only exact SourceScopeUnchanged, not ContextualEquivalence, ConsumerClosure, InstalledCurrentness or proof reuse.",
+        "No Git patch/blob/mode equivalence or DAG identity is sufficient to authorize retirement, merge or physical external effects without a separately proven affected-consumer and recovery closure."
       ],
-      "formalVerificationStanding": "DECLARED_OBLIGATIONS_NOT_MATHEMATICALLY_PROVED",
-      "consumerQualificationStanding": "TEST_AND_NATIVE_VERIFIER_REFERENCES_ONLY_EXTERNAL_CONSUMERS_UNKNOWN"
+      "formalVerificationStanding": "DECLARED_UNPROVED_REQUIRES_INDEPENDENT_FORMAL_CHECK",
+      "installedCurrentness": "UNKNOWN",
+      "deletionAuthorized": false
     },
     {
       "id": "RG2_OWNER",
@@ -133,61 +98,30 @@
         "The existing Git SourceCut planning graph delta treats any changed registered planning-carrier bytes as a conservative requalification seed for every declared node on that carrier, including acceptance-only edits invisible in vertex/edge projection; real consumer/currentness proof remains separate."
       ],
       "nextAction": "Reuse existing native source-bound validator; no duplicate graph, custom DSL, or new proof runtime.",
+      "consumerBindings": [
+        "tools/repo/test_architecture_docs.py::validate_formal_issue_census",
+        "tools/repo/test_lego_graph_laws.py::test_plan_contract_only_change_rechecks_all_declared_lego"
+      ],
+      "behavioralContract": [
+        "check_architecture_docs.validate_formal_issue_census rejects undeclared or spoofed natural Owner names and owner-local source impersonation within a pinned Git SourceCut.",
+        "The repository source graph delta conservatively invalidates dependent node qualifications when tracked plan-carrier bytes change; this does NOT prove deployed runtime or actual external consumers."
+      ],
       "inputs": [
-        {
-          "name": "canonicalOwnerSource",
-          "type": "source-cut-qualified-owners.toml",
-          "binding": "tools/repo/owners.toml"
-        },
-        {
-          "name": "ownerPlanningCarriers",
-          "type": "exact-Git-source-bound-planning-JSON",
-          "binding": "tools/repo/planning/lego-plan-r1.json and registered plans"
-        },
-        {
-          "name": "issueAndContractEvidence",
-          "type": "source-cut-qualified-records",
-          "binding": "check_architecture_docs.py native read-only admission checks"
-        }
+        "one exact Git SourceCut and canonical tools/repo/owners.toml plus owner-local plan declarations",
+        "source-bound issue/contract observations validated by the existing architecture checker"
       ],
       "outputs": [
-        {
-          "name": "qualifiedSourceBindingVerdict",
-          "type": "pass-or-explicit-validator-error",
-          "binding": "check_architecture_docs.py"
-        },
-        {
-          "name": "ownerSourceEvidenceChecks",
-          "type": "native-verify-task-results",
-          "binding": "check_owner_boundaries.py + native repository tests"
-        }
-      ],
-      "behavioralContract": {
-        "preconditions": [
-          "Owner identity must be present in the exact verified native owners.toml and plan paths must remain within the trusted source cut.",
-          "Declared LEGO prerequisite edges must resolve correctly and must not create cycles or fabricate completion of blocked prerequisites."
-        ],
-        "postconditions": [
-          "Unknown owner names, symlink-redirected plans, forged issue registrations and malformed source binding fail closed.",
-          "Static source/plan admission produces no semantic equivalence, actual consumer-call claim, installed upgrade or proof of external effect."
-        ],
-        "effects": "READ_ONLY_SOURCE_POLICY_VERIFICATION; never mutate protected main or installed services",
-        "failure": "Reject invalid native owner/plan/source graph with nonzero validation or explicit exception."
-      },
-      "consumerEvidence": [
-        "tools/repo/check_architecture_docs.py",
-        "tools/repo/test_architecture_docs.py",
-        "tools/repo/test_issue_owner_registration.py",
-        "tools/repo/test_lego_graph_laws.py",
-        "mise.toml"
+        "native source/owner/plan admissibility verdict with explicit error on spoofed, stale, cyclic or ambiguous declarations",
+        "unproven actual consumer, installed environment and domain-effect obligations retained as UNKNOWN"
       ],
       "formalObligations": [
-        "For each declared source/Owner identity, exactly one verified policy scope may authorize the source binding, never a filename-only alias.",
-        "For any source-cut or plan-contract change, every potentially impacted dependent obligation remains UNKNOWN until its explicit requalification; self and mutual dependency cycles are invalid.",
-        "A passing source-bound plan check never entails execution permission, current installed-byte equivalence, actual consumer closure or proof reuse."
+        "Within one immutable SourceCut, a qualified Owner reference must resolve to exactly one declared canonical Owner path boundary; symlink-escaped or spoofed plan inputs fail closed.",
+        "Any changed registered plan or dependency carrier triggers requalification of every dependent declaration; well-founded prerequisites exclude self-cycles and mutual blockers.",
+        "Source-bound validation success never implies actual physical execution permission, installed-source refinement, true consumer/effect equivalence or formal proof reuse."
       ],
-      "formalVerificationStanding": "DECLARED_OBLIGATIONS_NOT_MATHEMATICALLY_PROVED",
-      "consumerQualificationStanding": "TEST_AND_NATIVE_VERIFIER_REFERENCES_ONLY_EXTERNAL_CONSUMERS_UNKNOWN"
+      "formalVerificationStanding": "DECLARED_UNPROVED_REQUIRES_INDEPENDENT_FORMAL_CHECK",
+      "installedCurrentness": "UNKNOWN",
+      "deletionAuthorized": false
     }
   ],
   "slices": [
