@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import os
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -22,12 +23,21 @@ else:
 HEADER = "__ORDIVON_HISTORY_RECORD__"
 
 
+def _source_git_env() -> dict[str, str]:
+    # .git/info/grafts alters Git ancestry even with --no-replace-objects.
+    # Bind source-history reads to the literal commit DAG, never this local overlay.
+    env = os.environ.copy()
+    env["GIT_GRAFT_FILE"] = os.devnull
+    return env
+
+
 def git(repo: Path, *args: str) -> str:
     return subprocess.check_output(
         ["git", "-C", str(repo), *args],
         text=True,
         errors="surrogateescape",
         stderr=subprocess.PIPE,
+        env=_source_git_env(),
     )
 
 
@@ -47,7 +57,8 @@ def owners(repo: Path, canonical_revision: str) -> list[tuple[str, str]]:
 
 def current_tree(repo: Path, revision: str) -> dict[str, str]:
     raw = subprocess.check_output(
-        ["git", "--no-replace-objects", "-C", str(repo), "ls-tree", "-rz", "--full-tree", revision]
+        ["git", "--no-replace-objects", "-C", str(repo), "ls-tree", "-rz", "--full-tree", revision],
+        env=_source_git_env(),
     )
     result = {}
     for entry in raw.split(b"\x00"):
@@ -165,6 +176,7 @@ def require_ancestral_source_cuts(repo: Path, previous_cut: str, current_cut: st
     relation = subprocess.run(
         ["git", "--no-replace-objects", "-C", str(repo), "merge-base", "--is-ancestor", previous_cut, current_cut],
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False,
+        env=_source_git_env(),
     )
     if relation.returncode != 0:
         raise ValueError("sourceCut ancestry not established for proof-impact evolution")
@@ -200,6 +212,7 @@ def source_membership_delta(
     raw_common = subprocess.check_output(
         ["git", "-C", str(repo), "rev-parse", "--path-format=absolute", "--git-common-dir"],
         stderr=subprocess.PIPE,
+        env=_source_git_env(),
     )
     if not raw_common.endswith(b"\n"):
         raise ValueError("Git common repository path is not newline-delimited")
@@ -386,6 +399,7 @@ def history(repo: Path, left: str, right: str) -> dict:
             spec,
         ],
         stderr=subprocess.PIPE,
+        env=_source_git_env(),
     )
     if raw_paths and (
         not raw_paths.startswith(b"\x00") or not raw_paths.endswith(b"\x00")
@@ -454,6 +468,7 @@ def history(repo: Path, left: str, right: str) -> dict:
                 record["commit"],
             ],
             stderr=subprocess.PIPE,
+            env=_source_git_env(),
         )
         record["changedPaths"] = sorted(
             {
@@ -482,6 +497,7 @@ def history(repo: Path, left: str, right: str) -> dict:
                     record["commit"],
                 ],
                 stderr=subprocess.PIPE,
+                env=_source_git_env(),
             )
             distinct_from_all.intersection_update(
                 path.decode("utf-8", errors="surrogateescape")
