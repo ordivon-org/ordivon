@@ -354,75 +354,6 @@ theorem relation_label_alone_cannot_certify_external_identity :
   intro h
   exact self_owned_external_anchor_is_inconsistent true (h true true)
 
--- Source-graph completeness is an explicit R2.1 proof premise.
--- A shallow Git view can omit real parent edges while retaining the commit
--- objects. Its positive ancestry witnesses transfer to a faithful full
--- graph; its NEGATIVE ancestry answer does not establish full disconnection.
--- This describes abstract graph reachability only, NOT a Python/Git
--- refinement theorem or a qualification of installed provenance.
-inductive HistoryReach {Revision : Type}
-    (parentEdge : Revision → Revision → Prop) :
-    Revision → Revision → Prop where
-  | reflexive (revision : Revision) : HistoryReach parentEdge revision revision
-  | prepend {earlier middle later : Revision}
-      (edge : parentEdge earlier middle)
-      (rest : HistoryReach parentEdge middle later) :
-      HistoryReach parentEdge earlier later
-
-theorem history_ancestry_monotone_under_known_edges
-    {Revision : Type}
-    (partialGraph fullGraph : Revision → Revision → Prop)
-    (knownEdgesSound : ∀ fromRevision toRevision, partialGraph fromRevision toRevision → fullGraph fromRevision toRevision)
-    {earlier later : Revision}
-    (observedPath : HistoryReach partialGraph earlier later) :
-    HistoryReach fullGraph earlier later := by
-  induction observedPath with
-  | reflexive revision =>
-      exact HistoryReach.reflexive revision
-  | prepend edge rest ih =>
-      exact HistoryReach.prepend (knownEdgesSound _ _ edge) ih
-
--- A COMPLETE fullGraph-graph negative result can be projected toRevision a sound partialGraph
--- view. The converse is not derivable unless completeness is independently
--- qualified; a shallow-clone negative must remain UNKNOWN for the fullGraph DAG.
-theorem full_graph_disconnection_implies_partial_disconnection
-    {Revision : Type}
-    (partialGraph fullGraph : Revision → Revision → Prop)
-    (knownEdgesSound : ∀ fromRevision toRevision, partialGraph fromRevision toRevision → fullGraph fromRevision toRevision)
-    {earlier later : Revision}
-    (qualifiedFullNegative : ¬ HistoryReach fullGraph earlier later) :
-    ¬ HistoryReach partialGraph earlier later := by
-  intro path
-  exact qualifiedFullNegative
-    (history_ancestry_monotone_under_known_edges
-      partialGraph fullGraph knownEdgesSound path)
-
--- Non-vacuous finite countermodel: removing one true historical parent
--- produces a false negative. The SAME old and new revision identities are
--- used on both sides, so this is not a forged or renamed Git OID.
-theorem shallow_negative_cannot_certify_full_nonancestor :
-    ∃ (partialGraph fullGraph : Bool → Bool → Prop),
-      (∀ a b, partialGraph a b → fullGraph a b) ∧
-      ¬ HistoryReach partialGraph false true ∧
-      HistoryReach fullGraph false true := by
-  let partialGraph : Bool → Bool → Prop := fun _ _ => False
-  let fullGraph : Bool → Bool → Prop :=
-    fun a b => a = false ∧ b = true
-  refine ⟨partialGraph, fullGraph, ?_, ?_, ?_⟩
-  · intro _ _ impossible
-    exact False.elim impossible
-  · intro path
-    have onlySelf :
-        ∀ {a b : Bool}, HistoryReach partialGraph a b → a = b := by
-      intro a b p
-      induction p with
-      | reflexive revision => rfl
-      | prepend edge rest ih => exact False.elim edge
-    have impossible : (false : Bool) = true := onlySelf path
-    cases impossible
-  · exact HistoryReach.prepend ⟨rfl, rfl⟩
-      (HistoryReach.reflexive true)
-
 end OrdivonR21
 
 #print axioms OrdivonR21.scoped_git_complete_iff_no_unobserved
@@ -434,7 +365,3 @@ end OrdivonR21
 #print axioms OrdivonR21.declared_external_anchor_cannot_be_self_owned
 #print axioms OrdivonR21.self_owned_external_anchor_is_inconsistent
 #print axioms OrdivonR21.relation_label_alone_cannot_certify_external_identity
-
-#print axioms OrdivonR21.history_ancestry_monotone_under_known_edges
-#print axioms OrdivonR21.full_graph_disconnection_implies_partial_disconnection
-#print axioms OrdivonR21.shallow_negative_cannot_certify_full_nonancestor
