@@ -52,6 +52,11 @@ if [[ "$joined" == *"https://example.com/"* ]];then
     unknown_proxy_auth_failure)
       printf '000|407'
       exit 56;;
+    unknown_tls_handshake_failure)
+      # Independently observed live probe: CONNECT=200, TLS handshake failed
+      # (curl exit35). Transport failure does not authenticate policy reject.
+      printf '000|200'
+      exit 35;;
     unknown_origin_forbidden|unknown_http_forbidden)
       # The origin replied 403 through an ACCEPTED CONNECT tunnel.
       printf '403|200'
@@ -183,6 +188,7 @@ def test_real_consumer_readiness_fails_closed_for_upstream_faults(tmp_path, faul
     (
         "unknown_transport_failure",
         "unknown_proxy_auth_failure",
+        "unknown_tls_handshake_failure",
         "unknown_origin_forbidden",
         "unknown_http_forbidden",
         "unknown_malformed",

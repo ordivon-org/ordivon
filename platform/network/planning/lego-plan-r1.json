@@ -247,7 +247,7 @@
         "A source-local readiness verdict; nonzero/UNKNOWN when necessary observation is missing, failed or expired."
       ],
       "behavioralContract": [
-        "All declared consumers share one readiness deadline. Allowed-origin probes must report the expected status, CONNECT=200 and positive TLS completion. Supply-Chain and Claude unknown-destination probes require an explicit HTTPS CONNECT=403 denial from the selected proxy: DNS/transport failure (CONNECT=000), proxy auth (CONNECT=407), an origin HTTP 403 after CONNECT=200, malformed receipts, and expired budgets never establish policy denial. Chat-ingress rejection and live provider reachability remain separately qualified.",
+        "All declared consumers share one readiness deadline. Allowed-origin probes must report the expected status, CONNECT=200 and positive TLS completion. Supply-Chain and Claude unknown-destination probes require an explicit HTTPS CONNECT=403 denial from the selected proxy: DNS/transport failure (CONNECT=000), proxy auth (CONNECT=407), a failed TLS handshake after CONNECT=200, an origin HTTP 403 after CONNECT=200, malformed receipts, and expired budgets never establish policy denial. Chat-ingress rejection and live provider reachability remain separately qualified.",
         "A conservative CONNECT403 signature can yield false-negative readiness for some actual sing-box reject policies; live provider/domain success is not entailed."
       ],
       "sharedRefs": [],
