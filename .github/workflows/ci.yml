@@ -65,6 +65,11 @@ jobs:
           # Pin the *actual executable task source* to this checkout's Git tree,
           # not only the already-selected task names. This is a pre-run witness,
           # not a claim of immutable task bytes during child execution.
+          if [[ -n "${GITHUB_SHA:-}" ]] &&
+             [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
+            echo "ERROR: root task checkout differs from provider GITHUB_SHA" >&2
+            exit 43
+          fi
           if [[ ! -f mise.toml || -L mise.toml ]] ||
              ! git --no-replace-objects ls-tree HEAD -- mise.toml | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]mise\.toml$' ||
              ! git --no-replace-objects show HEAD:mise.toml | cmp -s - mise.toml; then
@@ -243,6 +248,11 @@ jobs:
             # Pin the *actual executable task source* to this checkout's Git tree,
             # not only the already-selected task names. This is a pre-run witness,
             # not a claim of immutable task bytes during child execution.
+            if [[ -n "${GITHUB_SHA:-}" ]] &&
+               [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
+              echo "ERROR: root task checkout differs from provider GITHUB_SHA" >&2
+              exit 43
+            fi
             if [[ ! -f mise.toml || -L mise.toml ]] ||
                ! git --no-replace-objects ls-tree HEAD -- mise.toml | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]mise\.toml$' ||
                ! git --no-replace-objects show HEAD:mise.toml | cmp -s - mise.toml; then

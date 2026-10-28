@@ -358,6 +358,13 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                     manifest.write_bytes(exact)
             self.assertEqual(manifest.read_bytes(), exact)
 
+            env["GITHUB_SHA"] = "0" * len(source_cut)
+            refused = invoke(queue_script)
+            self.assertEqual(refused.returncode, 43)
+            self.assertIn("root task checkout differs from provider GITHUB_SHA", refused.stderr)
+            self.assertEqual(record.read_text(), "")
+            env.pop("GITHUB_SHA", None)
+
             for relative in ("tools/formal/mise.toml", "tools/formal/verify.py"):
                 target = repo / relative
                 exact_target = target.read_bytes()
