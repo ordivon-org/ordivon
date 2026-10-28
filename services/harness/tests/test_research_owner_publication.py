@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import subprocess
 import unittest
 from pathlib import Path
 
@@ -53,10 +52,16 @@ class ResearchOwnerPublicationTests(unittest.TestCase):
         self.assertEqual(source["corpusRoot"], "research")
         self.assertEqual(source["authorityBranch"], "refs/heads/main")
         self.assertRegex(source["sourceRevision"], re.compile(r"^[0-9a-f]{40}$"))
-        subprocess.run(
-            ["git", "merge-base", "--is-ancestor", source["sourceRevision"], "HEAD"],
-            cwd=ROOT,
-            check=True,
+        # Source is a DIFFERENT original Git repository from this monorepo.
+        # Historical publication identity is immutable; it is not evidence
+        # that its source commit is an ancestor of the current project HEAD.
+        self.assertEqual(
+            source["repository"],
+            "git@github.com:zycxfyh/ordivon-harness.git",
+        )
+        self.assertEqual(
+            source["sourceRevision"],
+            "e41a32621ad1a8fb918aa98f22f40367cb5b7e71",
         )
 
         closeout = publication["closeouts"][0]
@@ -74,17 +79,15 @@ class ResearchOwnerPublicationTests(unittest.TestCase):
             for item in publication["statements"]
         }
         self.assertEqual(statements[(OWNER, "CANONICAL_NAME")], "Ordivon Harness")
-        self.assertEqual(
-            statements[(OWNER, "CANONICAL_REFERENT")], "Agent Operational Mediation"
-        )
-        self.assertTrue(
-            statements[("result:harness:haf62-not-admitted", "STANDING:NOT_ADMITTED")]
-        )
+        self.assertEqual(statements[(OWNER, "CANONICAL_REFERENT")], "Agent Operational Mediation")
+        self.assertTrue(statements[("result:harness:haf62-not-admitted", "STANDING:NOT_ADMITTED")])
         self.assertTrue(
             statements[("result:harness:campaign7-not-selected", "STANDING:NOT_SELECTED")]
         )
         self.assertTrue(
-            statements[("result:harness:post-httpx-evidence-currentness-repair", "STANDING:CURRENT")]
+            statements[
+                ("result:harness:post-httpx-evidence-currentness-repair", "STANDING:CURRENT")
+            ]
         )
 
     def test_research_root_declares_publication_as_projection_not_second_authority(self) -> None:
@@ -103,7 +106,10 @@ class ResearchOwnerPublicationTests(unittest.TestCase):
         self.assertIn("after remote freshness has been explicitly observed", authority)
         self.assertIn("`origin/main`", authority)
         self.assertIn("does not by itself prove source-integration currentness", authority)
-        self.assertIn("`research/authority/CURRENT.json` selects the current owner-research publication", authority)
+        self.assertIn(
+            "`research/authority/CURRENT.json` selects the current owner-research publication",
+            authority,
+        )
         self.assertIn("None of those identities silently substitutes for another", authority)
 
 
