@@ -8,8 +8,10 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from ordivon_harness.agent_tool_observation import HarnessToolObservation
 from ordivon_harness.ordivon.control import CancellationToken, ExecutionControl, RunDeadline
 from ordivon_harness.ordivon.model import AgentToolCall
+from ordivon_harness.ordivon.run_recovery import _search_evidence
 from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
 from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError
@@ -107,6 +109,110 @@ class CrashOnceBatchRuntime(BatchRuntime):
 
 
 class SearchWorkspaceBatchTests(unittest.TestCase):
+    def test_single_search_empty_result_keeps_execution_outcome_as_agent_evidence(self) -> None:
+        # The same real Tool request has two different physical outcomes.
+        # No-hit (rg exit 1) must not masquerade as an I/O error (rg exit 2)
+        # when the Agent loop decides whether it has observed new evidence.
+        call = AgentToolCall(
+            tool_call_id="tool-call:single-evidence-outcome",
+            name="search_workspace",
+            arguments={"query": "missing-needle", "relativePath": "src"},
+        )
+
+        def actual_bridge_observation(exit_code: int):
+            return SQLiteHarnessRuntimeBridge._observation_from_payload(
+                tool_call_id=call.tool_call_id,
+                tool_name=call.name,
+                payload={
+                    "status": "failed",
+                    "executionDisposition": "failed",
+                    "exitCode": exit_code,
+                    "stdoutTail": "",
+                    "stderrTail": "no matches" if exit_code == 1 else "rg: unreadable",
+                },
+                query="missing-needle",
+                relative_path="src",
+                reconciled=False,
+            )
+
+        no_hits = _search_evidence(call, actual_bridge_observation(1))
+        hard_error = _search_evidence(call, actual_bridge_observation(2))
+        repeated_no_hits = _search_evidence(call, actual_bridge_observation(1))
+
+        self.assertEqual(no_hits[0][0], ("missing-needle", "src"))
+        self.assertEqual(no_hits, repeated_no_hits)
+        self.assertTrue(no_hits[0][1], "A completed no-hit search is observable evidence")
+        self.assertTrue(hard_error[0][1], "A failed search is observable evidence")
+        self.assertNotEqual(no_hits, hard_error, "Failed search must not equal no hits")
+        self.assertFalse(hard_error[0][1].issubset(no_hits[0][1]))
+
+    def test_single_partial_search_error_cannot_reuse_successful_match_evidence(self) -> None:
+        call = AgentToolCall(
+            tool_call_id="tool-call:single-partial-search",
+            name="search_workspace",
+            arguments={"query": "ToolProgram", "relativePath": "src"},
+        )
+
+        def observation(exit_code: int):
+            return SQLiteHarnessRuntimeBridge._observation_from_payload(
+                tool_call_id=call.tool_call_id,
+                tool_name=call.name,
+                payload={
+                    "status": "succeeded" if exit_code == 0 else "failed",
+                    "executionDisposition": "succeeded" if exit_code == 0 else "failed",
+                    "exitCode": exit_code,
+                    "stdoutTail": match_event() + "\n",
+                },
+                query="ToolProgram",
+                relative_path="src",
+                reconciled=False,
+            )
+
+        success = _search_evidence(call, observation(0))
+        partial_error = _search_evidence(call, observation(2))
+        self.assertNotEqual(success, partial_error)
+        self.assertFalse(partial_error[0][1].issubset(success[0][1]))
+
+    def test_single_and_batch_no_hit_share_outcome_identity(self) -> None:
+        single = AgentToolCall(
+            tool_call_id="tool-call:search-single-parity",
+            name="search_workspace",
+            arguments={"query": "needle", "relativePath": "src"},
+        )
+        singular = SQLiteHarnessRuntimeBridge._observation_from_payload(
+            tool_call_id=single.tool_call_id,
+            tool_name=single.name,
+            payload={
+                "status": "failed",
+                "executionDisposition": "failed",
+                "exitCode": 1,
+                "stdoutTail": "",
+            },
+            query="needle",
+            relative_path="src",
+            reconciled=False,
+        )
+        batched = AgentToolCall(
+            tool_call_id="tool-call:search-batch-parity",
+            name="search_workspace",
+            arguments={"queries": ["needle"], "relativePath": "src"},
+        )
+        batch_observation = HarnessToolObservation(
+            tool_call_id=batched.tool_call_id,
+            tool_name=batched.name,
+            status="observed",
+            structured_content={
+                "queryResults": [
+                    {"query": "needle", "status": "no_hits", "exitCode": 1, "matches": []}
+                ]
+            },
+        )
+        self.assertEqual(
+            _search_evidence(single, singular),
+            _search_evidence(batched, batch_observation),
+            "A shared query/outcome must retain the same evidence under batching",
+        )
+
     def initialize(self, root: Path, suffix: str, runtime: FakeRuntime):
         run_contract = contract(suffix)
         store = SQLiteHarnessStore.initialize(root)
