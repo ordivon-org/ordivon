@@ -124,12 +124,34 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 encoding="utf-8",
             )
             fake.chmod(0o755)
+            with fake.open("a", encoding="utf-8") as script:
+                script.write(
+                    'if [[ "$1" == run && "$2" == formal:verify ]]; then '
+                    'cat "$FORMAL_MOCK_RECEIPT"; fi\n'
+                )
+            report_path = folder / "formal-fixture.json"
+            report_path.write_text(json.dumps({
+                "kind": "source-scoped-native-formal-toolchain-check",
+                "status": "PASS",
+                "sourceCut": subprocess.check_output(
+                    ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+                ).strip(),
+                "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
+                "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
+                "proofReuseAdmissible": False,
+                "count": 2,
+                "probes": [
+                    {"probe": "mock positive", "result": "PASS", "rc": 0},
+                    {"probe": "expected negative", "result": "PASS", "rc": 1},
+                ],
+            }), encoding="utf-8")
             tasks = folder / "ordivon-affected-tasks.txt"
             log = folder / "mise.log"
             env = os.environ.copy()
             env.update({
                 "RUNNER_TEMP": str(folder),
                 "MISE_RECORD": str(log),
+                "FORMAL_MOCK_RECEIPT": str(report_path),
                 "PATH": str(folder / "bin") + os.pathsep + env.get("PATH", ""),
             })
 
@@ -193,6 +215,250 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             no_formal = actual_queue(["host:queue"], formal="false")
             self.assertEqual(no_formal.returncode, 0)
             self.assertEqual(log.read_text().splitlines(), ["run host:queue"])
+
+    def test_real_queue_rejects_modified_root_task_script_before_exec(self) -> None:
+        """Native GH bash consumers must not run task code outside Git HEAD."""
+        import os
+        import yaml
+
+        root = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = {
+            step["name"]: step
+            for step in root["jobs"]["root-verification"]["steps"]
+        }
+        queue_script = steps["Verify affected owners"]["run"].replace(
+            "$" + "{{ steps.affected.outputs.formal }}", "true"
+        )
+        formal_script = steps["Verify changed core Formal source"]["run"]
+        mechanics = steps["Repository mechanics"]["run"]
+        for script in (queue_script, mechanics):
+            self.assertIn("root task source differs from exact Git HEAD", script)
+            self.assertIn("git --no-replace-objects show HEAD:mise.toml", script)
+        self.assertIn("Formal executable source differs from exact Git HEAD", formal_script)
+        for required in ("mise.toml", "tools/formal/mise.toml", "tools/formal/verify.py"):
+            self.assertIn(required, formal_script)
+        self.assertIn("Formal execution lacks a valid scoped PASS receipt", formal_script)
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-root-mise-runner-") as temp:
+            work = Path(temp)
+            repo = work / "git"
+            repo.mkdir()
+            (repo / "tools/formal").mkdir(parents=True)
+            manifest = repo / "mise.toml"
+            exact = b'[tasks."formal:verify"]\nrun = "echo harmless"\n'
+            manifest.write_bytes(exact)
+            (repo / "tools/formal/mise.toml").write_text(
+                '[tasks.verify]\nrun = "python3 verify.py"\n', encoding="utf-8"
+            )
+            (repo / "tools/formal/verify.py").write_text(
+                'print("mock")\n', encoding="utf-8"
+            )
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "config", "user.name", "Fixture"],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(repo), "config", "user.email", "fixture@local"],
+                check=True,
+            )
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-qm", "source-cut"],
+                check=True,
+            )
+            binary = work / "bin"
+            binary.mkdir()
+            mock = binary / "mise"
+            mock.write_text(
+                '#!/usr/bin/env bash\nprintf "%s\n" "$*" >> "$MISE_RECORD"\n',
+                encoding="utf-8",
+            )
+            mock.chmod(0o755)
+            with mock.open("a", encoding="utf-8") as script:
+                script.write(
+                    'if [[ "$1" == run && "$2" == formal:verify ]]; then '
+                    'cat "$FORMAL_MOCK_RECEIPT"; fi\n'
+                )
+            source_cut = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+            report = work / "formal-fixture.json"
+            report.write_text(json.dumps({
+                "kind": "source-scoped-native-formal-toolchain-check",
+                "status": "PASS",
+                "sourceCut": source_cut,
+                "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
+                "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
+                "proofReuseAdmissible": False,
+                "count": 2,
+                "probes": [
+                    {"probe": "fixture positive", "result": "PASS", "rc": 0},
+                    {"probe": "fixture expected-negative", "result": "PASS", "rc": 4},
+                ],
+            }), encoding="utf-8")
+            tasks = work / "ordivon-affected-tasks.txt"
+            tasks.write_text("runtime:verify\n", encoding="utf-8")
+            record = work / "mise-record.txt"
+            env = os.environ.copy()
+            env["RUNNER_TEMP"] = str(work)
+            env["MISE_RECORD"] = str(record)
+            env["FORMAL_MOCK_RECEIPT"] = str(report)
+            env.pop("GITHUB_SHA", None)
+            env["PATH"] = str(binary) + os.pathsep + env.get("PATH", "")
+
+            def invoke(script: str) -> subprocess.CompletedProcess[str]:
+                record.write_text("", encoding="utf-8")
+                return subprocess.run(
+                    ["/usr/bin/bash", "-c", script],
+                    cwd=repo, env=env, capture_output=True, text=True,
+                    timeout=15, check=False,
+                )
+
+            for script, calls in (
+                (queue_script, ["run runtime:verify"]),
+                (formal_script, ["install", "run formal:verify"]),
+            ):
+                accepted = invoke(script)
+                self.assertEqual(accepted.returncode, 0, accepted.stderr)
+                self.assertEqual(record.read_text().splitlines(), calls)
+
+            for mutation in ("different_bytes", "symlink_same_bytes"):
+                with self.subTest(mutation=mutation):
+                    if mutation == "different_bytes":
+                        manifest.write_bytes(exact + b"# changed after selection\n")
+                    else:
+                        alternative = repo / "same-bytes.toml"
+                        alternative.write_bytes(exact)
+                        manifest.unlink()
+                        manifest.symlink_to(alternative)
+                    for script in (queue_script, formal_script):
+                        rejected = invoke(script)
+                        self.assertEqual(rejected.returncode, 43, rejected.stderr)
+                        self.assertIn(
+                            ("Formal executable source differs from exact Git HEAD"
+                             if script == formal_script else
+                             "root task source differs from exact Git HEAD"),
+                            rejected.stderr,
+                        )
+                        self.assertNotIn(
+                            "run ", record.read_text(),
+                            "mutable task source reached the executor",
+                        )
+                    if manifest.is_symlink():
+                        manifest.unlink()
+                    manifest.write_bytes(exact)
+            self.assertEqual(manifest.read_bytes(), exact)
+
+            for relative in ("tools/formal/mise.toml", "tools/formal/verify.py"):
+                target = repo / relative
+                exact_target = target.read_bytes()
+                try:
+                    target.write_bytes(exact_target + b"# uncommitted checker drift\n")
+                    denied = invoke(formal_script)
+                    self.assertEqual(denied.returncode, 43, denied.stderr)
+                    self.assertEqual(record.read_text(), "")
+                finally:
+                    target.write_bytes(exact_target)
+
+            before = report.read_bytes()
+            try:
+                for invalid in (
+                    b"not-json",
+                    json.dumps({
+                        "kind": "source-scoped-native-formal-toolchain-check",
+                        "status": "PASS",
+                        "sourceCut": source_cut,
+                        "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
+                        "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
+                        "proofReuseAdmissible": True,
+                        "count": 0,
+                        "probes": [],
+                    }).encode(),
+                ):
+                    report.write_bytes(invalid)
+                    denied = invoke(formal_script)
+                    self.assertNotEqual(denied.returncode, 0, denied.stderr)
+                    self.assertIn(
+                        "Formal execution lacks a valid scoped PASS receipt",
+                        denied.stderr,
+                    )
+            finally:
+                report.write_bytes(before)
+
+    def test_actual_github_selector_qualifies_all_known_local_source_inputs(self) -> None:
+        """Real GitHub selection script rejects any dirty direct producer or policy."""
+        import os
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        script = next(
+            step["run"] for step in workflow["jobs"]["root-verification"]["steps"]
+            if step["name"] == "Select affected owners"
+        )
+        selected_readset = (
+            ".github/workflows/ci.yml",
+            "tools/repo/convergence_plan.py",
+            "tools/repo/affected_owners.py",
+            "tools/repo/owners.toml",
+            "tools/repo/dependency_contracts.toml",
+            "mise.toml",
+        )
+        for path in selected_readset:
+            self.assertIn(path, script)
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-selector-consumer-") as temp:
+            root = Path(temp)
+            clone = root / "checkout"
+            subprocess.run(
+                ["git", "clone", "-q", "--shared", str(ROOT), str(clone)],
+                check=True, capture_output=True, text=True, timeout=35,
+            )
+            cut = subprocess.check_output(
+                ["git", "-C", str(clone), "rev-parse", "HEAD"], text=True
+            ).strip()
+            env = os.environ.copy()
+            env.update({
+                "EVENT_NAME": "workflow_dispatch",
+                "GITHUB_SHA": cut,
+                "RUNNER_TEMP": str(root),
+                "GITHUB_OUTPUT": str(root / "outputs"),
+                "GITHUB_STEP_SUMMARY": str(root / "summary"),
+            })
+
+            def invoke() -> subprocess.CompletedProcess[str]:
+                (root / "outputs").write_text("", encoding="utf-8")
+                (root / "summary").write_text("", encoding="utf-8")
+                return subprocess.run(
+                    ["/usr/bin/bash", "-c", script],
+                    cwd=clone, env=env, text=True, capture_output=True,
+                    timeout=35, check=False,
+                )
+
+            clean = invoke()
+            self.assertEqual(clean.returncode, 0, clean.stderr)
+            self.assertIn("formal=true", (root / "outputs").read_text())
+
+            for relative in selected_readset:
+                with self.subTest(source=relative):
+                    source = clone / relative
+                    original = source.read_bytes()
+                    try:
+                        source.write_bytes(original + b"\n# changed by other caller\n")
+                        altered = invoke()
+                        self.assertEqual(altered.returncode, 43, altered.stderr)
+                        self.assertIn(
+                            "source selection producer differs from exact Git checkout",
+                            altered.stderr,
+                        )
+                    finally:
+                        source.write_bytes(original)
+
+            env["GITHUB_SHA"] = "0" * len(cut)
+            mismatched_provider = invoke()
+            self.assertEqual(mismatched_provider.returncode, 43)
+            env["GITHUB_SHA"] = cut
+            self.assertEqual(invoke().returncode, 0)
 
     def test_capital_current_native_verify_replaces_unreachable_nested_ci(self) -> None:
         """A nested historic workflow is not GitHub Actions for this monorepo.
