@@ -788,6 +788,43 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
             M.join_observed_authorities(self.frontier, self.envelope([
                 self.observation(observedFacts={"secret": {"nested": "not bounded"}})]))
 
+    def test_external_observation_rejects_nonfinite_json_numbers(self):
+        import math
+        for value in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=repr(value)):
+                with self.assertRaisesRegex(ValueError, "finite bounded scalar"):
+                    M.join_observed_authorities(self.frontier, self.envelope([
+                        self.observation(observedFacts={"metric": value})
+                    ]))
+        accepted = M.join_observed_authorities(self.frontier, self.envelope([
+            self.observation(observedFacts={"zero": 0, "finite": -1.25,
+                                           "flag": False, "empty": None})
+        ]))
+        # This is genuinely strict JSON (no non-standard NaN/Infinity literals).
+        import json
+        json.loads(json.dumps(accepted, allow_nan=False),
+                   parse_constant=lambda literal: self.fail(literal))
+
+    def test_external_observation_requires_real_canonical_utc_instant(self):
+        for instant in (
+            "2026-19-39T29:59:59Z",
+            "2026-02-29T12:00:00Z",
+            "2026-10-28T08:61:00Z",
+            "2026-10-28T08:20:60Z",
+            "2026-10-28T08:20:00+00:00",
+            "2026-10-28T8:20:00Z",
+        ):
+            with self.subTest(instant=instant):
+                with self.assertRaisesRegex(ValueError, "UTC|timestamp"):
+                    M.join_observed_authorities(self.frontier, self.envelope([
+                        self.observation(observedAt=instant)
+                    ]))
+        valid = M.join_observed_authorities(self.frontier, self.envelope([
+            self.observation(observedAt="2024-02-29T23:59:59Z")
+        ]))
+        self.assertEqual(valid["observationJoin"]["observedSubjects"][0]["observedAt"],
+                         "2024-02-29T23:59:59Z")
+
     def test_cli_opt_in_and_summary(self):
         import json
         import tempfile
