@@ -31,6 +31,83 @@ def Refines {α β : Type}
   (∀ x, old.assume x → new.assume x) ∧
   (∀ x y, old.assume x → new.guarantee x y → old.guarantee x y)
 
+-- R2.1 behavioral contract semantics adopted from standard saturated
+-- assume/guarantee algebra. The pair (x,y) denotes one *consumer-observable*
+-- input/output behavior. Restricted to the SAME α and β: no port adapter,
+-- effect projection or installed equivalence follows from type alignment.
+def SaturatedGuarantee {α β : Type}
+    (C : IOContract α β) (x : α) (y : β) : Prop :=
+  ¬ C.assume x ∨ C.guarantee x y
+
+-- Safety satisfaction and admissible-input totality are distinct R2.1
+-- obligations. Saturation cannot make an output-free implementation total.
+theorem safety_satisfaction_iff_saturated {α β : Type}
+    (C : IOContract α β) (behavior : α → β → Prop)
+    (decidableAssume : ∀ x, Decidable (C.assume x)) :
+    (∀ x y, C.assume x → behavior x y → C.guarantee x y) ↔
+    (∀ x y, behavior x y → SaturatedGuarantee C x y) := by
+  constructor
+  · intro h x y hBehavior
+    letI : Decidable (C.assume x) := decidableAssume x
+    by_cases hA : C.assume x
+    · exact Or.inr (h x y hA hBehavior)
+    · exact Or.inl hA
+  · intro h x y hA hBehavior
+    rcases h x y hBehavior with hNot | hG
+    · exact False.elim (hNot hA)
+    · exact hG
+
+-- R2.1 Refines is precisely the same-port saturated contract preorder.
+-- This theorem connects the existing executable formal carrier to the
+-- project's canonical contract algebra, not to any external real consumer.
+theorem refinement_iff_saturated_guarantee {α β : Type}
+    (new old : IOContract α β)
+    (decidableOldAssume : ∀ x, Decidable (old.assume x)) :
+    Refines new old ↔
+      (∀ x, old.assume x → new.assume x) ∧
+      (∀ x y, SaturatedGuarantee new x y →
+        SaturatedGuarantee old x y) := by
+  constructor
+  · intro h
+    constructor
+    · exact h.1
+    · intro x y hSat
+      letI : Decidable (old.assume x) := decidableOldAssume x
+      by_cases hOld : old.assume x
+      · rcases hSat with hNotNew | hGNew
+        · exact False.elim (hNotNew (h.1 x hOld))
+        · exact Or.inr (h.2 x y hOld hGNew)
+      · exact Or.inl hOld
+  · intro h
+    constructor
+    · exact h.1
+    · intro x y hOld hGNew
+      rcases h.2 x y (Or.inr hGNew) with hNotOld | hGOld
+      · exact False.elim (hNotOld hOld)
+      · exact hGOld
+
+-- Negative finite witness: the new component accepts only true whereas
+-- the old consumer may send false. Equal output guarantees cannot rescue
+-- an implementation that excludes a previously admitted input.
+theorem narrowed_assumptions_cannot_substitute :
+    ∃ (old new : IOContract Bool Unit),
+      (∀ x y, new.guarantee x y ↔ old.guarantee x y) ∧
+      ¬ Refines new old := by
+  let old : IOContract Bool Unit := {
+    assume := fun _ => True
+    guarantee := fun _ _ => True
+  }
+  let new : IOContract Bool Unit := {
+    assume := fun value => value = true
+    guarantee := fun _ _ => True
+  }
+  refine ⟨old, new, ?_, ?_⟩
+  · intro _ _
+    exact Iff.rfl
+  · intro hRef
+    have hNarrow : (false : Bool) = true := hRef.1 false True.intro
+    cases hNarrow
+
 theorem refinement_preserves_implementation {α β : Type}
     (new old : IOContract α β) (behavior : α → β → Prop)
     (hImpl : Implements new behavior) (hRef : Refines new old) :
@@ -718,3 +795,8 @@ end OrdivonR21.PriorityClosure
 #print axioms OrdivonR21.PriorityClosure.unknown_only_iff_typed_impact_standing
 #print axioms OrdivonR21.PriorityClosure.reuse_candidate_iff_typed_impact_standing
 #print axioms OrdivonR21.PriorityClosure.missing_changed_seed_calibration_breaks_recheck_bridge
+
+-- Audit the new canonical R2.1 saturated-contract bridge for extra axioms.
+#print axioms OrdivonR21.safety_satisfaction_iff_saturated
+#print axioms OrdivonR21.refinement_iff_saturated_guarantee
+#print axioms OrdivonR21.narrowed_assumptions_cannot_substitute
