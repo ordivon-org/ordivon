@@ -6,6 +6,7 @@ This checks Git SourceCut and CLI wiring, NOT external theorem prover verdicts.
 from __future__ import annotations
 
 import importlib.util
+import os
 import subprocess
 import tempfile
 import tomllib
@@ -24,6 +25,30 @@ formal = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(formal)
 
 
+def _validate_native_formal_task(run: str) -> None:
+    """Check a bounded executable interface, not a frozen mise implementation."""
+    commands = [
+        line.strip() for line in run.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    if not commands or commands[-1] != "python3 verify.py":
+        raise ValueError("Formal task must invoke the existing verify.py entrypoint")
+    setup = commands[:-1]
+    if len(setup) > 1:
+        raise ValueError("Formal task has unexpected setup commands")
+    if setup:
+        step = setup[0]
+        if not step.startswith("export KANI_HOME="):
+            raise ValueError("Formal task may only prepare the Kani cache")
+        # Shell command injection and unrelated side effects are not part of
+        # this narrow task interface. Dynamic tests below check the value
+        # passed to the real shell, not the exact export syntax.
+        if any(token in step for token in (";", "&&", "||", "|", "`", "$(")):
+            raise ValueError("Formal Kani cache setup contains shell side effects")
+    if commands.count("python3 verify.py") != 1:
+        raise ValueError("Formal task invokes verifier more than once")
+
+
 class FormalSourceConsumerContractTests(unittest.TestCase):
     def test_native_formal_cli_is_reachable_from_root_mise(self) -> None:
         root = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))
@@ -34,9 +59,45 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
             root["tasks"]["formal:verify"]["run"],
             "cd tools/formal && mise run verify",
         )
-        self.assertEqual(
-            formal_tasks["tasks"]["verify"]["run"], "python3 verify.py"
-        )
+        task_run = formal_tasks["tasks"]["verify"]["run"]
+        _validate_native_formal_task(task_run)
+        # Executable composition check: use a PATH-shadowed python3 recorder
+        # to test only routing and environment, never pretend the full
+        # Lean/SMT/Kani proof suite ran.
+        with tempfile.TemporaryDirectory(prefix="formal-cli-contract-") as td:
+            folder = Path(td)
+            shim = folder / "python3"
+            shim.write_text(
+                '#!/bin/sh\n'
+                'printf "%s\\n" "$#" "$1" "${KANI_HOME-UNSET}" >> "$FORMAL_TASK_LOG"\n',
+                encoding="utf-8",
+            )
+            shim.chmod(0o755)
+            out = folder / "observed"
+            for override in (None, str(folder / "caller-owned-kani")):
+                out.write_text("", encoding="utf-8")
+                env = dict(os.environ)
+                env.update({
+                    "HOME": str(folder),
+                    "FORMAL_TASK_LOG": str(out),
+                    "PATH": str(folder) + os.pathsep + os.environ.get("PATH", ""),
+                })
+                env.pop("KANI_HOME", None)
+                if override is not None:
+                    env["KANI_HOME"] = override
+                subprocess.run(
+                    ["bash", "-e", "-c", task_run], cwd=FORMAL, env=env,
+                    check=True, capture_output=True, text=True, timeout=12,
+                )
+                fields = out.read_text(encoding="utf-8").splitlines()
+                self.assertEqual(fields[:2], ["1", "verify.py"])
+                self.assertEqual(len(fields), 3, "verifier executed more than once")
+                if override is not None:
+                    self.assertEqual(fields[2], override)
+                elif "export KANI_HOME=" in task_run:
+                    self.assertEqual(fields[2], str(folder / ".cache/ordivon/kani"))
+                else:
+                    self.assertEqual(fields[2], "UNSET")
         ci_script = root["tasks"]["repo:ci"]["run"]
         self.assertIn(
             "python3 -m unittest tools/repo/test_formal_source_contract.py",
@@ -45,6 +106,16 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         # Repo CI performs a bounded source admission, not the entire
         # opt-in toolchain: never fake Lean/Z3/Kani proof success.
         self.assertNotIn("mise run formal:verify", ci_script)
+
+    def test_formal_task_rejects_incorrect_or_side_effecting_wrappers(self) -> None:
+        for script in (
+            "python3 random_verifier.py",
+            "python3 verify.py\npython3 verify.py",
+            "export KANI_HOME=/tmp/x; rm -rf /tmp/y\npython3 verify.py",
+            "export PATH=/tmp/untrusted\npython3 verify.py",
+        ):
+            with self.subTest(script=script), self.assertRaises(ValueError):
+                _validate_native_formal_task(script)
 
     def test_root_protected_ci_runs_formal_task_for_changed_proof_sources(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
