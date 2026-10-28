@@ -310,6 +310,35 @@ class ConvergencePlanTests(unittest.TestCase):
             (["runtime"], ["runtime:verify", "unexpected-task"],
              ["tools/formal/Proof.qnt"], False),
         )
+        # Validate the *actual* GitHub inline consumer as well as the Python
+        # producer for every tracked 18-Owner one-/two-owner source cohort.
+        # This is still only a bounded source task contract, not runtime proof.
+        git_paths = subprocess.check_output(
+            ["git", "--no-replace-objects", "ls-tree", "-r", "--name-only", "HEAD"],
+            cwd=root, text=True,
+        ).splitlines()
+        samples = {}
+        for owner in MODULE.affected_owners.OWNERS:
+            paths = [path for path in git_paths if path.startswith(owner.root)]
+            self.assertTrue(paths)
+            code_paths = [
+                path for path in paths
+                if path.endswith((".rs", ".py", ".ts", ".go", ".json"))
+                and "/test" not in path
+            ]
+            samples[owner.name] = (code_paths or paths)[0]
+        self.assertEqual(len(samples), 18)
+        cohorts = [(name,) for name in samples] + list(combinations(samples, 2))
+        self.assertEqual(len(cohorts), 171)
+        original_cases = len(examples)
+        for group in cohorts:
+            changed = [samples[name] for name in group]
+            selected = MODULE.build_plan(changed_files=changed)
+            examples += (
+                (selected["verificationOwners"], selected["queueVerifyTasks"], changed, True),
+                ([], [], changed, False),
+            )
+        self.assertEqual(len(examples) - original_cases, 342)
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             owners_path = folder / "owners.txt"
