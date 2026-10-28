@@ -367,7 +367,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             wrong_count = copy.deepcopy(full_report)
             wrong_count["count"] += 1
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
-            self.assertEqual(len(invalid_receipts), 60)
+            # Two new forged/missing fragment receipts and one extra
+            # source-blob omission case extend the negative corpus.
+            self.assertEqual(len(invalid_receipts), 63)
 
             try:
                 for label, payload in invalid_receipts.items():
