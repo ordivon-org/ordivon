@@ -62,6 +62,17 @@ def validate_successor_contract(value: dict[str, Any]) -> None:
     }
     candidate_owned_anchor_ids = anchor_ids - external_anchor_ids
 
+    # Necessary R2.1 separation, not proof of independently controlled
+    # evidence: a candidate cannot be named as its OWN supposedly external
+    # evaluator. The distinct-ID case remains a caller declaration and does
+    # not certify owner authenticity, hidden control or domain improvement.
+    candidate_id = value["candidateRef"]["id"]
+    for anchor in anchors.values():
+        if anchor["relation"] == "EXTERNAL_TO_CANDIDATE" and anchor["ownerId"] == candidate_id:
+            raise CircuitContractError(
+                f"external evaluation anchor owned by candidate: {anchor['id']}"
+            )
+
     for gate_id, gate in gates.items():
         missing = sorted(set(gate["anchorRefIds"]) - anchor_ids)
         if missing:

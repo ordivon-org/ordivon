@@ -90,6 +90,108 @@ class ConvergencePlanTests(unittest.TestCase):
             [owner.queue_task for owner in native_owners],
         )
 
+    def test_exact_git_replace_cannot_erase_formal_source_queue_or_spoof_tree(self) -> None:
+        """LEGO 2.1 source identity must not follow mutable Git replacement refs.
+
+        Run the actual native CLI with a disposable, independently constructed
+        Git commit DAG. Do not touch the worktree's shared Git replacement refs.
+        """
+        with tempfile.TemporaryDirectory(prefix="ordivon-queue-git-replace-") as temp:
+            repo = Path(temp)
+
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args],
+                    text=True, stderr=subprocess.PIPE,
+                ).strip()
+
+            git("init", "-q")
+            git("config", "user.email", "formal-cut-fixture@example.invalid")
+            git("config", "user.name", "Ordivon source-cut fixture")
+            (repo / "tools/formal").mkdir(parents=True)
+            (repo / "docs").mkdir()
+            (repo / "tools/formal/Proof.qnt").write_text("version 1\\n")
+            (repo / "docs/note.md").write_text("version 1\\n")
+            git("add", ".")
+            git("commit", "-qm", "base")
+            base = git("rev-parse", "HEAD")
+
+            (repo / "tools/formal/Proof.qnt").write_text("version 2\\n")
+            git("add", ".")
+            git("commit", "-qm", "real formal proof change")
+            real = git("rev-parse", "HEAD")
+            real_tree = git("--no-replace-objects", "rev-parse", real + "^{tree}")
+
+            git("checkout", "--detach", "-q", base)
+            (repo / "docs/note.md").write_text("version 2\\n")
+            git("add", ".")
+            git("commit", "-qm", "docs-only decoy")
+            decoy = git("rev-parse", "HEAD")
+            git("checkout", "--detach", "-q", real)
+            git("replace", real, decoy)
+
+            output = subprocess.check_output(
+                [
+                    sys.executable, str(MODULE_PATH),
+                    "--base", base, "--head", real, "--format", "json",
+                ],
+                cwd=repo, text=True, stderr=subprocess.PIPE, timeout=30,
+            )
+            plan = __import__("json").loads(output)
+            self.assertEqual(plan["headRevision"], real)
+            self.assertEqual(plan["headTree"], real_tree)
+            self.assertEqual(plan["changedPaths"], ["tools/formal/Proof.qnt"])
+            self.assertEqual(plan["queueVerifyTasks"], ["formal:verify"])
+
+    def test_git_graft_cannot_hide_required_formal_task_from_real_queue(self) -> None:
+        """Exact Git SourceCut ancestors cannot be rewritten by local grafts."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-queue-git-graft-") as temp:
+            repo = Path(temp)
+
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args],
+                    text=True, stderr=subprocess.PIPE,
+                ).strip()
+
+            git("init", "-q")
+            git("config", "user.email", "formal-cut-fixture@example.invalid")
+            git("config", "user.name", "Ordivon source-cut fixture")
+            (repo / "tools/formal").mkdir(parents=True)
+            (repo / "tools/formal/Proof.qnt").write_text("before\n")
+            git("add", ".")
+            git("commit", "-qm", "base")
+            base = git("rev-parse", "HEAD")
+
+            (repo / "tools/formal/Proof.qnt").write_text("after\n")
+            git("add", ".")
+            git("commit", "-qm", "real formal proof source delta")
+            head = git("rev-parse", "HEAD")
+            real_tree = git("--no-replace-objects", "rev-parse", head + "^{tree}")
+
+            # Construct a different root with exactly the new head's tree.
+            # Forging a common ancestor can make a three-dot Git diff empty
+            # even with --no-replace-objects unless grafts are also disabled.
+            graft_parent = git("commit-tree", real_tree, "-m", "false common ancestor")
+            grafts = repo / ".git/info/grafts"
+            grafts.write_text(
+                base + " " + graft_parent + "\n"
+                + head + " " + graft_parent + "\n"
+            )
+
+            output = subprocess.check_output(
+                [
+                    sys.executable, str(MODULE_PATH),
+                    "--base", base, "--head", head, "--format", "json",
+                ],
+                cwd=repo, text=True, stderr=subprocess.PIPE, timeout=30,
+            )
+            plan = __import__("json").loads(output)
+            self.assertEqual(plan["headRevision"], head)
+            self.assertEqual(plan["headTree"], real_tree)
+            self.assertEqual(plan["changedPaths"], ["tools/formal/Proof.qnt"])
+            self.assertEqual(plan["queueVerifyTasks"], ["formal:verify"])
+
     def test_self_hosted_impact_explanation_binds_real_source_and_verification(self) -> None:
         source = "tools/repo/affected_owners.py"
         plan = MODULE.build_plan(changed_files=[source])
@@ -511,6 +613,100 @@ class ConvergencePlanTests(unittest.TestCase):
             with self.subTest(owners=owners, requested=requested, changed=changed):
                 with self.assertRaises(ValueError):
                     MODULE.validate_queue_task_selection(owners, requested, changed)
+
+    def test_selected_queue_tasks_must_resolve_in_current_root_mise_source(self) -> None:
+        """An allowlisted queue task name is not enough if its runner disappears."""
+        import unittest.mock
+        import tomllib
+        root = MODULE_PATH.parents[2]
+        original = tomllib.loads((root / "mise.toml").read_text(encoding="utf-8"))
+        declared = original["tasks"]
+        expected = {o.queue_task for o in MODULE.affected_owners.OWNERS}
+        expected.add("formal:verify")
+        self.assertTrue(expected.issubset(declared.keys()))
+        for name in expected:
+            with self.subTest(working=name):
+                self.assertTrue(declared[name].get("run") or declared[name].get("depends"))
+
+        runtime_source = "services/runtime/crates/ordivon-runtime-core/src/lib.rs"
+        formal_source = "tools/formal/RecursiveLegoRefinement.lean"
+
+        def declared_task_manifest(task_names: list[str]) -> str:
+            return "[tasks]\n" + "".join(
+                f'[tasks."{task_name}"]\\nrun = "echo native task"\\n'
+                for task_name in task_names
+            ).replace("\\n", "\n")
+
+        with tempfile.TemporaryDirectory() as directory:
+            mock_file = Path(directory) / "mise.toml"
+            for missing, changed in (
+                ("runtime:verify", [runtime_source]),
+                ("formal:verify", [formal_source]),
+            ):
+                plan = MODULE.build_plan(changed_files=changed)
+                self.assertIn(missing, plan["queueVerifyTasks"])
+                with self.subTest(missing=missing):
+                    # Preserve every other CURRENT canonical consumer task,
+                    # so a failure must be caused by the missing root runner.
+                    still_available = [
+                        task for task in plan["queueVerifyTasks"] if task != missing
+                    ]
+                    mock_file.write_text(
+                        declared_task_manifest(still_available), encoding="utf-8"
+                    )
+                    with unittest.mock.patch.object(
+                        MODULE, "ROOT_TASKS_PATH", mock_file, create=True
+                    ):
+                        with self.assertRaisesRegex(ValueError, "root mise runner"):
+                            MODULE.validate_queue_task_selection(
+                                plan["verificationOwners"],
+                                plan["queueVerifyTasks"],
+                                changed,
+                            )
+            for changed in ([runtime_source], [formal_source]):
+                plan = MODULE.build_plan(changed_files=changed)
+                mock_file.write_text(
+                    declared_task_manifest(plan["queueVerifyTasks"]),
+                    encoding="utf-8",
+                )
+                with unittest.mock.patch.object(
+                    MODULE, "ROOT_TASKS_PATH", mock_file, create=True
+                ):
+                    MODULE.validate_queue_task_selection(
+                        plan["verificationOwners"], plan["queueVerifyTasks"], changed
+                    )
+
+    def test_selected_queue_task_matches_native_mise_admission(self) -> None:
+        """A truthy TOML field is not an executable task contract in real mise."""
+        import unittest.mock
+
+        changed = ["tools/formal/Proof.qnt"]
+        cases = {
+            "invalid-boolean-run": 'run = true\n',
+            "invalid-integer-run": 'run = 42\n',
+            "unknown-dependency": 'depends = ["missing:task"]\n',
+            "empty-dependency": 'depends = [""]\n',
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            task_path = root / "mise.toml"
+            for name, body in cases.items():
+                with self.subTest(name=name):
+                    task_path.write_text(
+                        '[tasks."formal:verify"]\n' + body, encoding="utf-8"
+                    )
+                    native = subprocess.run(
+                        ["mise", "--cd", str(root), "tasks", "validate"],
+                        capture_output=True, text=True, timeout=20,
+                    )
+                    self.assertNotEqual(native.returncode, 0)
+                    with unittest.mock.patch.object(MODULE, "ROOT_TASKS_PATH", task_path):
+                        with self.assertRaisesRegex(
+                            ValueError, "native mise task validation"
+                        ):
+                            MODULE.validate_queue_task_selection(
+                                [], ["formal:verify"], changed,
+                            )
 
     def test_github_queue_uses_same_strict_formal_source_task_validation(self) -> None:
         workflow = (MODULE_PATH.parents[2] / ".github/workflows/ci.yml").read_text()
