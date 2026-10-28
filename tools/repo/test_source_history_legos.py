@@ -1,6 +1,7 @@
 """Native source graph LEGO: two-sided exact patch classes and no false consumer claims."""
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -100,6 +101,71 @@ class AgentCompactSourceImpactTests(unittest.TestCase):
         )
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("--compact-impact requires --impact-prefix", proc.stderr)
+
+
+class SourceHistoryGraphCompletenessTests(unittest.TestCase):
+    def test_shallow_repository_negative_ancestry_is_not_full_graph_disconnection(self):
+        """Actual Git consumer CDC for an omitted shallow boundary, not a mock.
+
+        Complete Git objects still exist. A shallow declaration deliberately
+        masks a real parent, making an exact ancestry query return false.
+        Removing only that declaration changes the result without modifying
+        any source commit or object bytes. The production source-cut checker
+        must not promote a shallow false negative into proved disconnection.
+        """
+        with tempfile.TemporaryDirectory(prefix="ordivon-r21-shallow-graph-") as temp:
+            repo = Path(temp)
+            git(repo, "init", "-q", "-b", "main")
+            git(repo, "config", "user.name", "R2.1 Graph CDC")
+            git(repo, "config", "user.email", "graph@example.invalid")
+            path = repo / "source"
+            for i in range(3):
+                path.write_text(f"revision={i}\n")
+                git(repo, "add", "source")
+                git(repo, "commit", "-qm", f"revision {i}")
+                if i == 0:
+                    oldest = git(repo, "rev-parse", "HEAD")
+                if i == 1:
+                    cutoff = git(repo, "rev-parse", "HEAD")
+            newest = git(repo, "rev-parse", "HEAD")
+            self.assertEqual(git(repo, "rev-parse", "--is-shallow-repository"), "false")
+            self.assertEqual(
+                subprocess.run(
+                    ["git", "-C", str(repo), "merge-base", "--is-ancestor", oldest, newest],
+                    check=False,
+                ).returncode,
+                0,
+            )
+            # This is a synthetic test-only Git shallow boundary, not a
+            # persistent repository rewrite or source object replacement.
+            (repo / ".git" / "shallow").write_text(cutoff + "\n", encoding="ascii")
+            self.assertEqual(git(repo, "rev-parse", "--is-shallow-repository"), "true")
+            self.assertEqual(git(repo, "cat-file", "-t", oldest), "commit")
+            self.assertEqual(
+                subprocess.run(
+                    ["git", "-C", str(repo), "merge-base", "--is-ancestor", oldest, newest],
+                    check=False,
+                ).returncode,
+                1,
+            )
+            with self.assertRaisesRegex(ValueError, "ancestry not established"):
+                source_history_legos.require_ancestral_source_cuts(repo, oldest, newest)
+            # Explicitly qualify a COMPLETE graph view for the controlled
+            # fixture only; NEVER use this override to bypass production
+            # missing-parent qualification.
+            full = {**os.environ, "GIT_SHALLOW_FILE": "/dev/null", "GIT_NO_LAZY_FETCH": "1"}
+            self.assertEqual(
+                subprocess.run(
+                    [
+                        "git", "--no-replace-objects", "-C", str(repo),
+                        "merge-base", "--is-ancestor", oldest, newest,
+                    ],
+                    env=full,
+                    check=False,
+                ).returncode,
+                0,
+            )
+            self.assertEqual(git(repo, "rev-parse", "HEAD"), newest)
 
 
 class SourceHistoryLegosTests(unittest.TestCase):
