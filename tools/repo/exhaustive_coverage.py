@@ -1762,7 +1762,33 @@ def main() -> int:
             # this join never probes/impersonates the named natural authority.
             if args.authority_observations.stat().st_size > 262144:
                 raise ValueError("authority observation file exceeds 256KiB")
-            evidence = json.loads(args.authority_observations.read_text(encoding="utf-8"))
+            # Evidence bytes must be unambiguous *strict* JSON before any
+            # caller-reported observation is interpreted or digested.
+            import math
+
+            def reject_constant(token: str) -> None:
+                raise ValueError(f"nonfinite JSON constant in authority evidence: {token}")
+
+            def reject_nonfinite_float(token: str) -> float:
+                value = float(token)
+                if not math.isfinite(value):
+                    raise ValueError("nonfinite JSON number in authority evidence")
+                return value
+
+            def reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
+                obj = {}
+                for key, value in pairs:
+                    if key in obj:
+                        raise ValueError(f"duplicate JSON object key in authority evidence: {key}")
+                    obj[key] = value
+                return obj
+
+            evidence = json.loads(
+                args.authority_observations.read_text(encoding="utf-8"),
+                parse_constant=reject_constant,
+                parse_float=reject_nonfinite_float,
+                object_pairs_hook=reject_duplicate_keys,
+            )
             result = join_observed_authorities(result, evidence)
         if args.summary:
             if "observationJoin" in result:

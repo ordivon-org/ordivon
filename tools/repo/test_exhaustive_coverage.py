@@ -1027,6 +1027,50 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
             ], cwd=ROOT, capture_output=True, text=True, timeout=12)
             assert invalid.returncode != 0
 
+    def test_authority_observation_cli_rejects_ambiguous_raw_json(self):
+        """Only unambiguous strict JSON bytes can enter evidence digests."""
+        import json
+        import tempfile
+
+        valid = json.dumps(self.envelope([self.observation()]))
+        bad_inputs = {
+            "root_nan_literal": valid.replace(
+                '"subjectSourceCut":', '"unusedMetadata": NaN, "subjectSourceCut":', 1),
+            "nested_duplicate_key": valid.replace(
+                '"witnessRef": "job-12345678"',
+                '"witnessRef": "job-87654321", "witnessRef": "job-12345678"', 1),
+            "duplicate_subject_cut": valid.replace(
+                '"subjectSourceCut":',
+                '"subjectSourceCut": "0000000000000000000000000000000000000000", '
+                '"subjectSourceCut":', 1),
+            "overflowing_unused_number": valid.replace(
+                '"subjectSourceCut":', '"unusedMetadata": 1e309, "subjectSourceCut":', 1),
+        }
+        with tempfile.TemporaryDirectory() as td:
+            source = pathlib.Path(td) / "external-authority.json"
+            for label, raw in bad_inputs.items():
+                with self.subTest(label=label):
+                    source.write_text(raw, encoding="utf-8")
+                    process = subprocess.run([
+                        "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+                        "--repo", str(ROOT), "--source-cut", self.cut,
+                        "--problem-legos", "--summary",
+                        "--authority-observations", str(source)
+                    ], cwd=ROOT, capture_output=True, text=True, timeout=45)
+                    assert process.returncode != 0, label
+                    assert "JSON" in process.stderr or "nonfinite" in process.stderr, (
+                        label, process.stderr)
+            source.write_text(valid, encoding="utf-8")
+            accepted = subprocess.run([
+                "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+                "--repo", str(ROOT), "--source-cut", self.cut,
+                "--problem-legos", "--summary",
+                "--authority-observations", str(source),
+            ], cwd=ROOT, capture_output=True, text=True, timeout=45)
+            assert accepted.returncode == 0, accepted.stderr
+            report = json.loads(accepted.stdout)
+            assert report["observationJoin"]["summary"]["reportedObservationSubjects"] == 1
+
     def test_scope_census_and_observations_are_separate_surfaces(self):
         import json
         import tempfile
