@@ -289,6 +289,13 @@
         "identity provider source truth",
         "generic IAM decision engine",
         "authorization of every method by assumption"
+      ],
+      "consumerBindings": [
+        {
+          "path": "src/ordivon_gateway/mcp_server.py",
+          "operation": "build_server installs GatewayCapabilityAuthorizationMiddleware only when a trusted CapabilityAuthorizer is injected for protected Tool requests",
+          "standing": "SOURCE_MCP_MIDDLEWARE_CONSUMER_OPTIONAL_AUTHORIZER_NOT_INSTALLED; AUTHZ_OWNER_EFFECT_UNKNOWN"
+        }
       ]
     },
     {
@@ -327,6 +334,13 @@
         "external identity provider",
         "Security policy decision",
         "Runtime operator privilege"
+      ],
+      "consumerBindings": [
+        {
+          "path": "src/ordivon_gateway/capability_authz.py",
+          "operation": "GatewayCapabilityAuthorizationMiddleware consumes ingress-verified request state principal and issuer; malformed/absent identity fails before Security/owner forwarding",
+          "standing": "SOURCE_REQUEST_STATE_CONSUMER_NATIVE_TESTED_NOT_INSTALLED; DYNAMIC_AUTHORITY_AND_FORMAL_REFINEMENT_UNKNOWN"
+        }
       ]
     },
     {

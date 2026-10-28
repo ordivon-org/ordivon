@@ -680,6 +680,11 @@ def derived_problem_legos(
         "sourcePathDigest": inventory["sourcePathDigest"],
         "proposalCut": frontier["proposalCut"],
         "projection": frontier["projection"],
+        "sourceCellDecomposition": {
+            "maxCellFiles": frontier["summary"]["maxCellFiles"],
+            "maxCellDepth": frontier["summary"]["maxCellDepth"],
+            "identityStanding": "VIEW_PARAMETERS_NOT_SEMANTIC_LEGO_IDENTITY",
+        },
         "truthBoundary": (
             "physical source and declared Plan structure only; real calls, "
             "external repos, consumers, installation, effect and formal proof UNKNOWN"
@@ -716,6 +721,29 @@ def derived_problem_legos(
     }
 
 
+
+
+def _load_strict_authority_observation_json(path: Path) -> object:
+    """Reject ambiguous raw JSON before evidence identity or source-cut checks.
+
+    stdlib json.loads otherwise silently overwrites duplicate object members and
+    admits nonstandard NaN/Infinity constants, even in ignored envelope fields.
+    """
+    def reject_constant(value: str) -> object:
+        raise ValueError(f"non-standard JSON constant in authority observation: {value}")
+
+    def unique_members(pairs: list[tuple[str, object]]) -> dict:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate authority observation JSON field: {key}")
+            result[key] = value
+        return result
+
+    return json.loads(
+        path.read_text(encoding="utf-8"),
+        parse_constant=reject_constant, object_pairs_hook=unique_members,
+    )
 
 
 def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
@@ -762,7 +790,7 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
     }
     joined = []
     links = []
-    keys = set()
+    epoch_digests: dict[tuple[str, str, str, str, str], str] = {}
     allowed = {"authorityRef", "subjectRef", "observationKind",
                "observationRevision", "witnessRef", "observedAt",
                "candidateProblemRef", "observedFacts"}
@@ -811,19 +839,30 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
         if candidate is not None and candidate.startswith("problem:unscoped-plan-id:"):
             if kind != "UNSCOPED_PLAN_LOOKUP_CANDIDATE":
                 raise ValueError("bare-ID question requires actual scoped syntax witness")
+        # A natural object may be observed at multiple epochs and under more
+        # than one evidence kind. Keep these three identities disjoint:
+        # caller-scoped authority/subject alias, typed observation subject,
+        # and immutable report. The alias is NOT a verified physical identity
+        # (e.g. a PID may be reused after process restart).
         key = (a, s, kind)
-        if key in keys:
-            raise ValueError("duplicate authority/subject/kind observation")
-        keys.add(key)
-        # Revision and witness are deliberately excluded from stable *subject*
-        # identity. Observation digest captures both. Neither implies currentness.
+        epoch = (a, s, kind, revision, item["observedAt"])
         ref = "observed-subject:sha256:" + hashlib.sha256(
             json.dumps(key, separators=(",", ":")).encode()).hexdigest()
+        authority_subject_ref = "authority-subject-alias:sha256:" + hashlib.sha256(
+            json.dumps((a, s), separators=(",", ":")).encode()).hexdigest()
         payload_digest = "sha256:" + hashlib.sha256(
             json.dumps(item, sort_keys=True, ensure_ascii=True,
                        separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        if epoch in epoch_digests:
+            if epoch_digests[epoch] == payload_digest:
+                raise ValueError("duplicate identical observation report")
+            raise ValueError("conflicting observation reports for same subject epoch")
+        epoch_digests[epoch] = payload_digest
         joined.append({
             "subjectRef": ref,
+            "authoritySubjectRef": authority_subject_ref,
+            "authoritySubjectStanding": "CALLER_SCOPED_ALIAS_NOT_VERIFIED",
+            "observationRef": "reported-observation:" + payload_digest,
             "authorityRef": a,
             "authorityLocalRef": s,
             "observationKind": kind,
@@ -840,6 +879,7 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
         if candidate is not None:
             links.append({
                 "fromSubjectRef": ref,
+                "fromObservationRef": "reported-observation:" + payload_digest,
                 "toProblemRef": location_questions.get(candidate, candidate),
                 "sourceScopeQuestionRef": candidate if candidate in location_questions else None,
                 "relation": "EXPLICIT_CANDIDATE_ASSOCIATION_NOT_AN_INVOKED_EDGE",
@@ -850,12 +890,19 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
     output["observationJoin"] = {
         "kind": "ordivon.phase1.caller-supplied-cross-authority-evidence-join",
         "sourceCut": problem_frontier["sourceCut"],
-        "observedSubjects": sorted(joined, key=lambda r: r["subjectRef"]),
+        "observedSubjects": sorted(joined, key=lambda r: (
+            r["subjectRef"], r["observedAt"], r["observationRevision"],
+            r["observationRef"])),
         "candidateAssociations": sorted(links, key=lambda r: (
-            r["toProblemRef"], r["fromSubjectRef"])),
+            r["toProblemRef"], r["fromSubjectRef"], r["fromObservationRef"])),
         "unscopedShortIdQuestions": short_questions,
         "summary": {
+            # Compatibility: reportedObservationSubjects counts reports, not
+            # distinct natural subjects. Expose explicit identity counts too.
             "reportedObservationSubjects": len(joined),
+            "distinctObservedSubjects": len({r["subjectRef"] for r in joined}),
+            "distinctAuthoritySubjectAliases": len({
+                r["authoritySubjectRef"] for r in joined}),
             "explicitCandidateAssociations": len(links),
             "unassociatedExternalSubjects": len(joined) - len(links),
             "unscopedIdAmbiguityQuestionsNotCollisions": len(short_questions),
@@ -868,6 +915,164 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
         "deletionAuthorized": False,
     }
     return output
+
+
+
+
+def source_problem_relation_projection(problem_frontier: dict, imports: dict) -> dict:
+    """Typed source-evidence relations; never infer runtime invocation or proof.
+
+    Uses the existing exact-Git Problem LEGO path->cell index and the existing
+    Python AST candidate readout. Unresolved imports remain bounded counters,
+    not made-up edges or automatically separate semantic LEGO identities.
+    """
+    if (imports.get("sourceCut") != problem_frontier["sourceCut"]
+            or imports.get("sourceTree") != problem_frontier["sourceTree"]):
+        raise ValueError("consumer candidate / Problem LEGO SourceCut mismatch")
+    if imports.get("focusPrefix") is not None:
+        raise ValueError("full source relation projection needs unfiltered AST input")
+    paths = problem_frontier["sourcePathCellIndex"]
+    cells = {c["sourceCellRef"] for c in problem_frontier["sourceCells"]}
+    issue_by_cell = {
+        x["sourceCellRef"]: x["problemRef"]
+        for x in problem_frontier["problemLegos"]
+        if x["kind"] == "RECURSIVE_SOURCE_CELL_ISSUE"
+    }
+    def cell(path: str) -> str:
+        ref = paths.get(path)
+        if ref is None or ref not in cells:
+            raise ValueError("consumer witness path outside exact Git problem index")
+        return ref
+
+    relations = []
+    # Caller/importer -> potential provider. Matches are source syntax only;
+    # no installed module resolution, call, side effect or entrypoint inference.
+    for row in imports["staticCandidateEdges"]:
+        consumer, provider = cell(row["consumerPath"]), cell(row["providerPath"])
+        relations.append({
+            "relation": "STATIC_PYTHON_IMPORT_CANDIDATE_NOT_RUNTIME_CALL",
+            "consumerPath": row["consumerPath"],
+            "providerPath": row["providerPath"],
+            "consumerCellRef": consumer,
+            "providerCellRef": provider,
+            "consumerProblemRef": issue_by_cell.get(consumer),
+            "providerProblemRef": issue_by_cell.get(provider),
+            "line": row["line"],
+            "syntax": row["syntax"],
+            "moduleExpression": row["moduleExpression"],
+            "withinSameSourceCell": consumer == provider,
+            "runtimeCallStanding": "UNKNOWN",
+            "installedConsumerStanding": "UNKNOWN",
+            "effectStanding": "UNKNOWN",
+        })
+    relations.sort(key=lambda x: (x["consumerPath"], x["line"],
+                                  x["providerPath"], x["syntax"]))
+    # Dynamic syntax gives a consumer-side locus, *not* a resolved provider.
+    dynamic = []
+    for row in imports["dynamicSyntaxSites"]:
+        cref = cell(row["consumerPath"])
+        dynamic.append({
+            "relation": "DYNAMIC_SOURCE_SYNTAX_WITHOUT_RESOLVED_PROVIDER",
+            "consumerPath": row["consumerPath"],
+            "consumerCellRef": cref,
+            "consumerProblemRef": issue_by_cell.get(cref),
+            "line": row["line"],
+            "providerRef": None,
+            "runtimeCallStanding": "UNKNOWN",
+            "possibleExternalProvider": "UNKNOWN",
+        })
+    dynamic.sort(key=lambda x: (x["consumerPath"], x["line"]))
+
+    # stdlib/external candidates often produce high counts and are NOT proof
+    # of missing internal consumers. Preserve exact evidence count + digest.
+    unresolved: dict[str, dict] = {}
+    for row in imports["unresolvedImportStatements"]:
+        ref = cell(row["consumerPath"])
+        bucket = unresolved.setdefault(ref, {
+            "consumerCellRef": ref, "consumerProblemRef": issue_by_cell.get(ref),
+            "count": 0, "boundedWitnesses": [],
+            "standing": "UNRESOLVED_SYNTAX_NOT_A_MISSING_PROVIDER_PROOF",
+        })
+        bucket["count"] += 1
+        if len(bucket["boundedWitnesses"]) < 4:
+            bucket["boundedWitnesses"].append({
+                "path": row["consumerPath"], "line": row["line"],
+                "expression": row["expression"][:180],
+            })
+    counts = collections.Counter()
+    for e in relations:
+        for side in ("consumerProblemRef", "providerProblemRef"):
+            if e[side] is not None:
+                counts[e[side]] += 1
+    dynamic_issue_refs = {d["consumerProblemRef"] for d in dynamic
+                          if d["consumerProblemRef"] is not None}
+    declared = problem_frontier["declaredPlanEdgesNotActualCalls"]
+    if any(e["runtimeCallStanding"] != "NOT_ESTABLISHED" for e in declared):
+        raise ValueError("declared Plan relations unexpectedly claim runtime calls")
+    for link in (problem_frontier.get("observationJoin", {})
+                 .get("candidateAssociations", [])):
+        if (link["relation"] != "EXPLICIT_CANDIDATE_ASSOCIATION_NOT_AN_INVOKED_EDGE"
+                or link["proofStanding"] != "NOT_ESTABLISHED"):
+            raise ValueError("reported external candidate was promoted to proof")
+    return {
+        "kind": "ordivon.phase1.exact-source-typed-relation-candidates",
+        "sourceCut": problem_frontier["sourceCut"],
+        "sourceTree": problem_frontier["sourceTree"],
+        "truthBoundary": (
+            "Exact-Git static Python AST, physical source cells and declared Plan "
+            "edges only; consumers, dynamic providers, installed calls and effects "
+            "remain UNKNOWN without independent execution evidence"
+        ),
+        "sourcePathCellIndex": paths,
+        "staticPythonImportCandidates": relations,
+        "dynamicSyntaxUnresolvedProviders": dynamic,
+        "unresolvedImportFacets": sorted(unresolved.values(),
+                                         key=lambda x: x["consumerCellRef"]),
+        "declaredPlanRelationsNotRuntimeCalls": declared,
+        "crossPlanLocalIdReuseNotNecessarilyCollision": (
+            problem_frontier["sameLocalIdAcrossPlansObservation"]
+        ),
+        "reportedExternalCandidateAssociations": (
+            problem_frontier.get("observationJoin", {})
+            .get("candidateAssociations", [])
+        ),
+        "summary": {
+            "indexedSourcePaths": len(paths),
+            "sourceCells": len(cells),
+            "pythonSourcePaths": sum(p.endswith(".py") for p in paths),
+            "rustSourcePathsNotCallAnalyzed": sum(p.endswith(".rs") for p in paths),
+            "typescriptJavascriptSourcePathsNotCallAnalyzed": sum(
+                p.endswith((".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"))
+                for p in paths
+            ),
+            "ProblemLegoRecords": len(problem_frontier["problemLegos"]),
+            "staticImportCandidateEdges": len(relations),
+            "crossCellStaticCandidates": sum(
+                not e["withinSameSourceCell"] for e in relations),
+            "staticImportCandidatesTouchingSourceProblems": sum(
+                e["consumerProblemRef"] is not None or e["providerProblemRef"] is not None
+                for e in relations),
+            "uniqueSourceProblemsInStaticCandidates": len(counts),
+            "dynamicSyntaxSites": len(dynamic),
+            "dynamicSyntaxSitesInProblemCells": sum(
+                e["consumerProblemRef"] is not None for e in dynamic),
+            "unresolvedImportStatements": sum(x["count"] for x in unresolved.values()),
+            "unresolvedImportAffectedCells": len(unresolved),
+            "problemCellsWithDynamicUnknown": len(dynamic_issue_refs),
+            "declaredPlanEdgesNotActualCalls": len(declared),
+            "callerReportedExternalAssociations": len(
+                problem_frontier.get("observationJoin", {})
+                .get("candidateAssociations", [])),
+            "unscopedPlanIdReuseQuestions": len(
+                problem_frontier["sameLocalIdAcrossPlansObservation"]),
+        },
+        "semanticCallClosureEstablished": False,
+        "nonPythonCallCoverage": "NOT_ANALYZED",
+        "installedCurrentnessEstablished": False,
+        "proofReuseAdmissible": False,
+        "impactClosureAdmissible": False,
+        "deletionAuthorized": False,
+    }
 
 
 def lookup_source_paths(inventory: dict, *, repo: Path,
@@ -1652,6 +1857,8 @@ def main() -> int:
     parser.add_argument("--only-problems", action="store_true")
     parser.add_argument("--authority-observations", type=Path,
                         help="optional bounded caller-supplied evidence join; requires --problem-legos")
+    parser.add_argument("--relation-evidence", action="store_true",
+                        help="typed AST/Plan/source candidate relations, not actual calls")
     parser.add_argument("--problem-legos", action="store_true",
                         help="derived full source+Plan problem LEGO map; never a registry")
     parser.add_argument("--scope-census", action="store_true",
@@ -1687,7 +1894,8 @@ def main() -> int:
                 or args.static_python_consumers or args.live_cells or args.proposal_cut
                 or args.use_proposal_cells or args.only_problems or args.imports_prefix
                 or args.reference_limit != 48
-                or args.authority_observations is not None):
+                or args.authority_observations is not None
+                or args.relation_evidence):
             parser.error("scope census is separate from source/call/problem projections")
         result = independent_scope_frontier(
             args.repo, args.source_cut, external_git=args.external_git_cut,
@@ -1715,6 +1923,10 @@ def main() -> int:
 
     if args.authority_observations is not None and not args.problem_legos:
         parser.error("--authority-observations requires --problem-legos")
+    if args.relation_evidence and not args.problem_legos:
+        parser.error("--relation-evidence requires --problem-legos")
+    if args.relation_evidence and (args.proposal_cut or args.use_proposal_cells):
+        parser.error("source relation evidence must use current native source cells")
     if args.reference_path:
         if (args.lookup_path or args.static_python_consumers or args.live_cells
                 or args.proposal_cut or args.use_proposal_cells or args.only_problems
@@ -1762,9 +1974,21 @@ def main() -> int:
             # this join never probes/impersonates the named natural authority.
             if args.authority_observations.stat().st_size > 262144:
                 raise ValueError("authority observation file exceeds 256KiB")
-            evidence = json.loads(args.authority_observations.read_text(encoding="utf-8"))
+            evidence = _load_strict_authority_observation_json(args.authority_observations)
             result = join_observed_authorities(result, evidence)
-        if args.summary:
+        if args.relation_evidence:
+            result = source_problem_relation_projection(
+                result, static_python_import_frontier(args.repo, args.source_cut)
+            )
+        if args.summary and args.relation_evidence:
+            result = {k: v for k, v in result.items() if k not in (
+                "sourcePathCellIndex", "staticPythonImportCandidates",
+                "dynamicSyntaxUnresolvedProviders", "unresolvedImportFacets",
+                "declaredPlanRelationsNotRuntimeCalls",
+                "crossPlanLocalIdReuseNotNecessarilyCollision",
+                "reportedExternalCandidateAssociations",
+            )}
+        elif args.summary:
             if "observationJoin" in result:
                 result["observationJoin"] = {
                     k: v for k, v in result["observationJoin"].items()
