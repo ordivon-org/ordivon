@@ -1,6 +1,8 @@
 import importlib.util
+import subprocess
 import unittest
 from pathlib import Path
+from unittest import mock
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
@@ -92,6 +94,30 @@ class BrowserSecurityR5Tests(unittest.TestCase):
         self.assertIn("Xvfb", command)
         self.assertNotIn("chatgpt.com", command.lower())
         self.assertNotIn("cloudflare.com", command.lower())
+
+    def test_podman_exists_distinguishes_absent_from_unknown(self) -> None:
+        name = "ordivon-test-only-container"
+        for code, expected in ((0, True), (1, False)):
+            with self.subTest(exit_code=code):
+                result = subprocess.CompletedProcess(args=[], returncode=code)
+                with mock.patch.object(
+                    r5.subprocess, "run", return_value=result
+                ) as run:
+                    self.assertIs(r5.podman_container_exists(name), expected)
+                run.assert_called_once()
+        for invalid in (2, 125):
+            with self.subTest(indeterminate_code=invalid):
+                result = subprocess.CompletedProcess(args=[], returncode=invalid)
+                with mock.patch.object(r5.subprocess, "run", return_value=result):
+                    with self.assertRaisesRegex(RuntimeError, "indeterminate Podman"):
+                        r5.podman_container_exists(name)
+        with mock.patch.object(
+            r5.subprocess,
+            "run",
+            side_effect=subprocess.TimeoutExpired(["/usr/bin/podman"], 5),
+        ):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                r5.podman_container_exists(name)
 
     def test_port_probe_tolerates_time_wait_semantics(self) -> None:
         source = MODULE_PATH.read_text(encoding="utf-8")
