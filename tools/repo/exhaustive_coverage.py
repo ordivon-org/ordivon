@@ -1175,6 +1175,22 @@ def independent_scope_frontier(
     labels: set[str] = set()
     scopes = []
 
+    def shared_git_repository_id(root: Path) -> Path:
+        # A linked worktree and its primary checkout have different physical
+        # directories but the SAME Git object/refs authority. The pinned cut
+        # cannot be counted as an external independent repository in this case.
+        common = git(root, "rev-parse", "--path-format=absolute",
+                     "--git-common-dir").decode().strip()
+        directory = Path(common).resolve(strict=True)
+        if not directory.is_dir():
+            raise ValueError("Git common directory is not a directory")
+        return directory
+
+    # The subject may itself be a linked Runtime workspace. Physical checkout
+    # paths, branch names, or HEAD object IDs do not establish independence.
+    git_authorities = {shared_git_repository_id(repo)}
+    observed_locator_roots: set[Path] = set()
+
     def qualified_label(label: str) -> str:
         if not label_pattern.fullmatch(label) or label in labels:
             raise ValueError("scope label must be unique canonical ASCII identifier")
@@ -1201,6 +1217,11 @@ def independent_scope_frontier(
         top = git(root, "rev-parse", "--show-toplevel").decode().strip()
         if Path(top).resolve() != root:
             raise ValueError("external Git scope must be a repository root")
+        identity = shared_git_repository_id(root)
+        if identity in git_authorities:
+            raise ValueError("external scope is not independent: same Git repository")
+        git_authorities.add(identity)
+        observed_locator_roots.add(root)
         exact_commit(root, cut)
         paths = tree(root, cut)
         top_levels = collections.Counter(
@@ -1227,6 +1248,9 @@ def independent_scope_frontier(
             raise ValueError("non-Git source requires label=absolute_directory")
         qualified_label(label)
         root = absolute_locator(path)
+        if root in observed_locator_roots:
+            raise ValueError("duplicate observation of the same directory")
+        observed_locator_roots.add(root)
         # Avoid promoting a Git repository to an unbound dataset carrier.
         git_probe = subprocess.run(
             ["git", "--no-replace-objects", "-C", str(root),

@@ -578,6 +578,79 @@ class ExplicitIndependentScopeTests(unittest.TestCase):
                     non_git_data=[f"research-example={pathlib.Path(tmp)}"],
                 )
 
+
+    def test_self_and_linked_worktree_never_count_as_independent_git(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            subject = pathlib.Path(tmp).resolve() / "subject"
+            subject.mkdir()
+            subprocess.run(["git", "init", "-q", str(subject)], check=True)
+            (subject / "unit.py").write_text("stable = True\n")
+            subprocess.run(["git", "-C", str(subject), "add", "unit.py"], check=True)
+            subprocess.run([
+                "git", "-C", str(subject), "-c", "user.name=Phase1",
+                "-c", "user.email=phase1@example.invalid",
+                "commit", "-qm", "fixture",
+            ], check=True)
+            sha = subprocess.check_output(
+                ["git", "-C", str(subject), "rev-parse", "HEAD"], text=True,
+            ).strip()
+            linked = pathlib.Path(tmp).resolve() / "linked"
+            subprocess.run(["git", "-C", str(subject), "worktree",
+                            "add", "--detach", "-q", str(linked), sha], check=True)
+            for other in (subject, linked):
+                with self.subTest(other=other), self.assertRaisesRegex(
+                        ValueError, "not independent|same Git repository"):
+                    M.independent_scope_frontier(
+                        subject, sha, external_git=[f"false-external={other}@{sha}"],
+                        non_git_data=[],
+                    )
+
+    def test_duplicate_git_repository_and_data_locator_do_not_double_count(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            subject = pathlib.Path(tmp).resolve() / "subject"
+            external = pathlib.Path(tmp).resolve() / "external"
+            corpus = pathlib.Path(tmp).resolve() / "corpus"
+            for root in (subject, external):
+                root.mkdir()
+                subprocess.run(["git", "init", "-q", str(root)], check=True)
+                (root / "a.txt").write_text("content")
+                subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+                subprocess.run([
+                    "git", "-C", str(root), "-c", "user.name=Phase1",
+                    "-c", "user.email=phase1@example.invalid",
+                    "commit", "-qm", "fixture",
+                ], check=True)
+            corpus.mkdir()
+            subject_cut = subprocess.check_output([
+                "git", "-C", str(subject), "rev-parse", "HEAD",
+            ], text=True).strip()
+            other_cut = subprocess.check_output([
+                "git", "-C", str(external), "rev-parse", "HEAD",
+            ], text=True).strip()
+            valid = M.independent_scope_frontier(
+                subject, subject_cut,
+                external_git=[f"other={external}@{other_cut}"],
+                non_git_data=[f"data={corpus}"],
+            )
+            self.assertEqual(valid["summary"]["externalGitRoots"], 1)
+            self.assertEqual(valid["summary"]["nonGitDirectoryLocators"], 1)
+            with self.assertRaisesRegex(ValueError, "duplicate|same Git repository"):
+                M.independent_scope_frontier(
+                    subject, subject_cut,
+                    external_git=[
+                        f"first={external}@{other_cut}",
+                        f"second={external}@{other_cut}",
+                    ],
+                    non_git_data=[],
+                )
+            with self.assertRaisesRegex(ValueError, "duplicate|same directory"):
+                M.independent_scope_frontier(
+                    subject, subject_cut, external_git=[],
+                    non_git_data=[f"first={corpus}", f"second={corpus}"],
+                )
+
     def test_non_git_directory_never_gets_fake_content_digest(self) -> None:
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
