@@ -345,6 +345,30 @@ def _invalidating_paths(
     return sorted(changed)
 
 
+def _revision_after_monorepo_import(revision: str) -> bool:
+    """Require explicit implementation namespace, not mere reachable Git SHA.
+
+    A full-history CI checkout may include original standalone commits in the
+    monorepo DAG. Being an ancestor of HEAD does NOT make a pre-import commit
+    an implementation revision of this owner. This predicate only separates
+    source ancestry domains; it does not certify a deployed artifact.
+    """
+    # A synthetic or standalone Git owner has no imported Harness evidence
+    # index and must retain its own ordinary ancestry semantics. The
+    # historical-import boundary applies only to the indexed archive that
+    # declares the old independent revision labels. It is NOT a global
+    # restriction on unrelated repositories or test-created owner scopes.
+    if not (EVIDENCE / "index.json").is_file():
+        return True
+    process = subprocess.run(
+        ["git", "--no-replace-objects", "merge-base", "--is-ancestor",
+         _HARNESS_HISTORICAL_IMPORT, revision],
+        cwd=ROOT, check=False,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    return process.returncode == 0
+
+
 def _verified_revision_is_current(
     revision: str,
     implementation_paths: tuple[str, ...] | None = None,
@@ -355,7 +379,7 @@ def _verified_revision_is_current(
         cwd=ROOT,
         check=False,
     )
-    if ancestor.returncode != 0:
+    if ancestor.returncode != 0 or not _revision_after_monorepo_import(revision):
         # A pre-import standalone Harness revision may exist as a Git object,
         # but it is NOT an ancestor of the integrated monorepo. Never present
         # an empty change list as proof of unchanged implementation.
