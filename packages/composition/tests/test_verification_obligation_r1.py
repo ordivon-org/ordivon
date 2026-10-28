@@ -2271,6 +2271,76 @@ def test_manifest_impact_verifier_identity_unaffected_by_other_gate_manifest_dig
     }
 
 
+@pytest.mark.parametrize(
+    "malformed",
+    [None, False, True, 0, 1, 2.5, "proof:not-a-list", {"id": "proof:x"}, (None,)],
+)
+def test_shared_c04_untrusted_obligation_collection_fail_closed(malformed):
+    """All C04 callers share one typed boundary, not their own try/except.
+
+    This is input qualification, not implementation refinement or an
+    installed-effects certificate. The existing 4096-graph finite witness
+    separately checks the three-valued propagation contract.
+    """
+    with pytest.raises(CircuitContractError, match="obligations must be a JSON array"):
+        select_impacted_obligations(
+            authority_refs=["source:a"],
+            obligations=malformed,
+            changed_refs=["source:a"],
+        )
+
+
+@pytest.mark.parametrize("invalid", [None, False, 17, 1.5, "bad", {"id": "proof:x"}])
+def test_shared_c04_gateway_cli_rejects_invalid_proof_graph_without_traceback(tmp_path, invalid):
+    """Actual C06 CLI consumer may not leak Python iteration errors."""
+    import json
+    import subprocess
+    import sys
+
+    op = "ordivon-exec:v1:external.pull:operation-one"
+    obs = {
+        "kind": "ordivon.gateway-execution-observation",
+        "schema_version": 1,
+        "owner_id": "external.pull",
+        "native_id": "operation-one",
+        "operation_ref": op,
+        "capability": "muse.shell.echo",
+        "state": "reconcile_required",
+        "terminal": False,
+        "recovery_required": True,
+        "delivery_disposition": "unknown",
+    }
+    observed = tmp_path / "observation.json"
+    graph = tmp_path / "graph.json"
+    observed.write_text(json.dumps(obs), encoding="utf8")
+    graph.write_text(
+        json.dumps(
+            {
+                "authorityRefs": ["effect:" + op],
+                "obligations": invalid,
+            }
+        ),
+        encoding="utf8",
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.effect_reconciliation_r1",
+            str(observed),
+            str(graph),
+            "--expected-operation-ref",
+            op,
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "effect reconciliation refused: obligations must be a JSON array" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert not result.stdout
+
+
 def test_recursive_proof_cycle_change_propagates_without_blocking_independent_branch():
     graph = [
         {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},

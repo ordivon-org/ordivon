@@ -671,6 +671,11 @@ def select_impacted_obligations(
     roots = require_refs(authority_refs, "authorityRefs")
     changed = require_refs(changed_refs, "changedRefs")
     unknown = require_refs(unknown_refs if unknown_refs is not None else [], "unknownRefs")
+    # Shared R2.1 proof-graph ingress for C06, environment and Git-impact
+    # consumers. A malformed JSON top-level obligation collection must never
+    # escape as an unhandled Python TypeError or mimic an empty proof graph.
+    if not isinstance(obligations, list):
+        raise CircuitContractError("obligations must be a JSON array")
     claims: dict[str, dict[str, Any]] = {}
     for item in obligations:
         validate_impact_claim(item, "obligation")
