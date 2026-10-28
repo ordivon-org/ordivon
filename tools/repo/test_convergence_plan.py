@@ -155,6 +155,30 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertIn("composition:verify", projection["candidateVerifyTasks"])
         self.assertFalse(projection["proofReuseAdmissible"])
 
+    def test_phase2_bootstrap_rejects_forged_mandatory_verification_subset(self) -> None:
+        """Caller-supplied plan cannot hide actual mandatory verifier tasks."""
+        cut = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True
+        ).strip()
+        changed = ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
+        plan = MODULE.build_plan(changed_files=changed)
+        self.assertEqual(
+            plan["queueVerifyTasks"], ["composition:verify", "runtime:verify"]
+        )
+        for fake_owners, fake_tasks in (([], []), (["runtime"], ["runtime:verify"])):
+            with self.subTest(fake_owners=fake_owners):
+                tampered = {
+                    **plan, "verificationOwners": fake_owners,
+                    "queueVerifyTasks": fake_tasks,
+                }
+                with self.assertRaisesRegex(ValueError, "verification plan"):
+                    MODULE.explain_source_impact(
+                        source_cut=cut, changed_paths=changed, base_plan=tampered
+                    )
+        MODULE.explain_source_impact(
+            source_cut=cut, changed_paths=changed, base_plan=plan
+        )
+
     def test_phase2_bootstrap_formal_source_keeps_mathematical_verifier(self) -> None:
         cut = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], text=True

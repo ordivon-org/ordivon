@@ -283,6 +283,24 @@ def explain_source_impact(
         raise ValueError("bootstrap source impact requires at most 32 changed paths")
     if list(paths) != base_plan.get("changedPaths"):
         raise ValueError("bootstrap source impact requires identical plan source paths")
+    # The plan can arrive from an Agent, not just the current CLI. A forged
+    # or incomplete upstream plan must never be echoed as mandatory tasks.
+    # Recompute from the one existing native verification policy; this also
+    # composes with the independently hardened protected queue validator.
+    native_plan = build_plan(changed_files=paths)
+    for field in (
+        "verificationOwners", "queueVerifyTasks", "verifyTasks",
+        "directOwners", "queueClass", "scopeIds", "crossCutting",
+    ):
+        if base_plan.get(field) != native_plan[field]:
+            raise ValueError(
+                "bootstrap verification plan differs from native required " + field
+            )
+    validate_queue_task_selection(
+        native_plan["verificationOwners"],
+        native_plan["queueVerifyTasks"],
+        list(paths),
+    )
     try:
         source.exact_commit(repo, source_cut)
     except ValueError as exc:
