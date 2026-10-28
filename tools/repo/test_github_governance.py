@@ -91,6 +91,8 @@ def _qualified_formal_test_receipt(
         "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "proofReuseAdmissible": False,
+        "implementationRefinement": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
         "sourceBlobs": sources,
         "toolBinaries": fixture_binaries,
         "count": len(_FORMAL_PROBE_ORACLES),
@@ -181,6 +183,8 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             fake = folder / "bin/mise"
             fake.write_text(
                 '#!/usr/bin/env bash\n'
+                'if [[ "$1" == --cd && "$3" == config && "$4" == ls ]]; then '
+                'exec "$MISE_NATIVE_FOR_CONFIG" "$@"; fi\n'
                 'printf "%s\\n" "$*" >> "$MISE_RECORD"\n'
                 'if [[ "$1" == run && "$2" == runtime:verify && '
                 '"$' + '{MOCK_FAIL_RUNTIME:-0}" == 1 ]]; then exit 37; fi\n'
@@ -208,6 +212,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             tasks = folder / "ordivon-affected-tasks.txt"
             log = folder / "mise.log"
             env = os.environ.copy()
+            import shutil
+            env["MISE_NATIVE_FOR_CONFIG"] = shutil.which("mise") or "/usr/bin/mise"
+            env["MISE_TRUSTED_CONFIG_PATHS"] = str(ROOT)
             env.update({
                 "RUNNER_TEMP": str(folder),
                 "MISE_RECORD": str(log),
@@ -276,6 +283,21 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             no_tools = copy.deepcopy(full_report)
             no_tools.pop("toolBinaries")
             invalid_receipts["no-eight-tool-witnesses"] = json.dumps(no_tools)
+            # The Formal mathematical model cannot grant implementation
+            # refinement or actual installed effect acceptance. A checker that
+            # claims PASS for either must fail this consumer's admission, even
+            # if all 16 real mathematical probes pass.
+            for field in ("implementationRefinement", "installedCurrentness"):
+                unearned = copy.deepcopy(full_report)
+                unearned[field] = "PASS"
+                invalid_receipts[f"unearned-{field}-PASS"] = json.dumps(unearned)
+                missing_grade = copy.deepcopy(full_report)
+                del missing_grade[field]
+                invalid_receipts[f"missing-{field}"] = json.dumps(missing_grade)
+            both_promoted = copy.deepcopy(full_report)
+            both_promoted["implementationRefinement"] = "PASS"
+            both_promoted["installedCurrentness"] = "PASS"
+            invalid_receipts["both-grades-unearned"] = json.dumps(both_promoted)
             forged_blob = copy.deepcopy(full_report)
             forged_blob["sourceBlobs"]["tools/formal/Proof.qnt"] = "0" * 40
             invalid_receipts["fake-proof-source-blob"] = json.dumps(forged_blob)
@@ -330,7 +352,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             wrong_count = copy.deepcopy(full_report)
             wrong_count["count"] += 1
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
-            self.assertEqual(len(invalid_receipts), 55)
+            self.assertEqual(len(invalid_receipts), 60)
 
             try:
                 for label, payload in invalid_receipts.items():
@@ -417,6 +439,14 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             (repo / "tools/formal/verify.py").write_text(
                 'print("mock")\n', encoding="utf-8"
             )
+            # One actual nested Mise source is sufficient to falsify the
+            # Owner runner if it only checks the root task manifest.
+            (repo / "domains/game").mkdir(parents=True)
+            nested_game = repo / "domains/game/mise.toml"
+            nested_game.write_text(
+                '[tasks.verify]\nrun = "echo harmless nested task"\n',
+                encoding="utf-8",
+            )
             # The real verifier consumes 10 exact source inputs; the disposable
             # Git fixture must contain the same declared source universe.
             for rel in _FORMAL_SOURCE_FILES:
@@ -442,7 +472,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             binary.mkdir()
             mock = binary / "mise"
             mock.write_text(
-                '#!/usr/bin/env bash\nprintf "%s\n" "$*" >> "$MISE_RECORD"\n',
+                '#!/usr/bin/env bash\n'
+                'if [[ "$1" == --cd && "$3" == config && "$4" == ls ]]; then exec "$MISE_NATIVE_FOR_CONFIG" "$@"; fi\n'
+                'printf "%s\\n" "$*" >> "$MISE_RECORD"\n',
                 encoding="utf-8",
             )
             mock.chmod(0o755)
@@ -470,6 +502,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             env["RUNNER_TEMP"] = str(work)
             env["MISE_RECORD"] = str(record)
             env["FORMAL_MOCK_RECEIPT"] = str(report)
+            import shutil
+            env["MISE_NATIVE_FOR_CONFIG"] = shutil.which("mise") or "/usr/bin/mise"
+            env["MISE_TRUSTED_CONFIG_PATHS"] = str(repo)
             env.pop("GITHUB_SHA", None)
             env["PATH"] = str(binary) + os.pathsep + env.get("PATH", "")
 
@@ -523,6 +558,55 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             self.assertEqual(record.read_text(), "")
             env.pop("GITHUB_SHA", None)
 
+            # Source-qualify nested Owner task manifests as well as root.
+            nested_bytes = nested_game.read_bytes()
+            try:
+                nested_game.write_bytes(nested_bytes + b"\n# changed nested source\n")
+                denied_nested = invoke(queue_script)
+                self.assertEqual(denied_nested.returncode, 43, denied_nested.stderr)
+                self.assertIn(
+                    "nested Mise task source differs from exact Git HEAD",
+                    denied_nested.stderr,
+                )
+                self.assertEqual(record.read_text(), "")
+            finally:
+                nested_game.write_bytes(nested_bytes)
+
+            # Git blob byte-equivalence is not sufficient if the actual
+            # executed nested task path becomes a symbolic link or vanishes.
+            identical_bytes = work / "same-nested-task.toml"
+            identical_bytes.write_bytes(nested_bytes)
+            for mutation in ("symlink", "missing"):
+                with self.subTest(nested_task_mutation=mutation):
+                    nested_game.unlink()
+                    if mutation == "symlink":
+                        nested_game.symlink_to(identical_bytes)
+                    try:
+                        rejected = invoke(queue_script)
+                        self.assertEqual(rejected.returncode, 43, rejected.stderr)
+                        self.assertEqual(record.read_text(), "")
+                    finally:
+                        if nested_game.is_symlink():
+                            nested_game.unlink()
+                        nested_game.write_bytes(nested_bytes)
+
+            # Native Mise discovers higher-precedence local task overrides:
+            # an UNTRACKED config must never count as Git-qualified execution.
+            untracked = nested_game.with_name("mise.local.toml")
+            self.assertFalse(untracked.exists())
+            try:
+                untracked.write_text(
+                    '[tasks.verify]\nrun = "echo untracked override"\n',
+                    encoding="utf-8",
+                )
+                denied_override = invoke(queue_script)
+                self.assertEqual(denied_override.returncode, 43, denied_override.stderr)
+                self.assertIn("nested Mise task source differs from exact Git HEAD",
+                              denied_override.stderr)
+                self.assertEqual(record.read_text(), "")
+            finally:
+                untracked.unlink(missing_ok=True)
+
             for relative in ("tools/formal/mise.toml", "tools/formal/verify.py"):
                 target = repo / relative
                 exact_target = target.read_bytes()
@@ -533,6 +617,26 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                     self.assertEqual(record.read_text(), "")
                 finally:
                     target.write_bytes(exact_target)
+
+            # The dedicated Formal runner also consumes native effective Mise
+            # inputs, not only the Git-tracked child manifest and verify.py.
+            formal_override = repo / "tools/formal/mise.local.toml"
+            self.assertFalse(formal_override.exists())
+            try:
+                formal_override.write_text(
+                    '[tasks.verify]\nrun = "echo fake proof"\n',
+                    encoding="utf-8",
+                )
+                denied_local_formal = invoke(formal_script)
+                self.assertEqual(denied_local_formal.returncode, 43,
+                                 denied_local_formal.stderr)
+                self.assertIn(
+                    "effective Formal Mise config differs from Git HEAD",
+                    denied_local_formal.stderr,
+                )
+                self.assertEqual(record.read_text(), "")
+            finally:
+                formal_override.unlink(missing_ok=True)
 
             before = report.read_bytes()
             try:

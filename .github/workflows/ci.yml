@@ -259,6 +259,95 @@ jobs:
               echo "ERROR: root task source differs from exact Git HEAD" >&2
               exit 43
             fi
+          # A native Owner task can recursively invoke a second Mise task.
+          # On this source cut, 19 Git-tracked Mise manifests are possible
+          # consumers, including cross-Owner and extra experimental paths.
+          # Qualify the finite Git-tree superset, not a hand-maintained
+          # Owner-root-only list that silently misses nested task scripts.
+          # This protects stable source drift; it does not prove the full
+          # executed shell/import readset or exclude transient mutations.
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          def git_bytes(*args):
+              return subprocess.check_output(
+                  ["git", "--no-replace-objects", *args], stderr=subprocess.PIPE
+              )
+
+          try:
+              repo = Path.cwd().resolve()
+              tree = git_bytes("ls-tree", "-r", "-z", "--full-tree", "HEAD")
+              entries = {}
+              for entry in tree.split(b"\0"):
+                  if not entry:
+                      continue
+                  metadata, name = entry.split(b"\t", 1)
+                  entries[os.fsdecode(name)] = metadata
+
+              def qualified(relative):
+                  # No mutable index or local override may supply an executed config.
+                  record = entries.get(relative)
+                  fields = record.split() if record is not None else []
+                  if (
+                      len(fields) != 3
+                      or fields[0] not in (b"100644", b"100755")
+                      or fields[1] != b"blob"
+                      or re.fullmatch(rb"[0-9a-f]{40}|[0-9a-f]{64}", fields[2]) is None
+                  ):
+                      raise ValueError("untracked or nonregular native Mise config: " + relative)
+                  path = repo / relative
+                  if not path.is_file() or path.is_symlink():
+                      raise ValueError("nonregular actual native Mise config: " + relative)
+                  if path.read_bytes() != git_bytes("show", "HEAD:" + relative):
+                      raise ValueError("native Mise config differs from Git HEAD: " + relative)
+
+              # The Git tree supplies known task-directory roots. Mise itself supplies
+              # the currently effective config readset; e.g. an UNTRACKED higher
+              # precedence mise.local.toml must not silently override a tracked task.
+              roots = sorted(
+                  name for name in entries
+                  if name == "mise.toml" or name.endswith("/mise.toml")
+              )
+              if not roots:
+                  raise ValueError("no native Mise task manifests in Git HEAD")
+              for name in roots:
+                  qualified(name)
+              for name in roots:
+                  directory = (repo / name).parent
+                  native = subprocess.run(
+                      ["mise", "--cd", str(directory), "config", "ls", "--json"],
+                      capture_output=True, text=True, check=False, timeout=15,
+                  )
+                  if native.returncode != 0:
+                      raise ValueError("native Mise config resolver failed for " + name)
+                  loaded = json.loads(native.stdout)
+                  if not isinstance(loaded, list):
+                      raise ValueError("invalid native Mise config result")
+                  for item in loaded:
+                      if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+                          raise ValueError("invalid native Mise config entry")
+                      path = Path(item["path"])
+                      if not path.is_absolute():
+                          raise ValueError("native Mise reported nonabsolute config")
+                      try:
+                          relative = path.relative_to(repo)
+                      except ValueError:
+                          # External global toolchain config remains an explicit
+                          # environment assumption, NOT Git SourceCut proof.
+                          continue
+                      if path.is_symlink() or not path.resolve().is_relative_to(repo):
+                          raise ValueError("unqualified native Mise config link")
+                      qualified(relative.as_posix())
+          except (OSError, ValueError, subprocess.SubprocessError) as exc:
+              print("ERROR: nested Mise task source differs from exact Git HEAD: "
+                    + str(exc), file=sys.stderr)
+              raise SystemExit(43) from exc
+          PY
             # The selected task must not consume the following queue entries.
             mise run "$task" </dev/null
             echo "::endgroup::"
@@ -288,6 +377,64 @@ jobs:
               [[ "${entry##*$'\t'}" == "$rel" ]] || return 1
               git --no-replace-objects show "HEAD:$rel" | cmp -s - "$rel" || return 1
             done
+            # Native Mise may load a higher-priority untracked local override.
+            # Qualify the EFFECTIVE in-repo readset as well as the three known
+            # executable files; external global config remains an assumption.
+            python3 - <<'PYMISE'
+          import json
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          repo = Path.cwd().resolve()
+          try:
+              observed = subprocess.run(
+                  ["mise", "--cd", str(repo / "tools/formal"),
+                   "config", "ls", "--json"],
+                  check=True, capture_output=True, text=True, timeout=20,
+              )
+              configs = json.loads(observed.stdout)
+              if not isinstance(configs, list) or not configs:
+                  raise ValueError("no native Formal Mise configs")
+              in_repo = set()
+              for item in configs:
+                  if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+                      raise ValueError("invalid native Formal Mise config entry")
+                  path = Path(item["path"])
+                  if not path.is_absolute():
+                      raise ValueError("nonabsolute native Formal Mise config path")
+                  try:
+                      rel = path.relative_to(repo).as_posix()
+                  except ValueError:
+                      # Global/home configuration is not qualified by this source cut.
+                      continue
+                  if (path.is_symlink() or not path.resolve().is_relative_to(repo)
+                          or not path.is_file()):
+                      raise ValueError("nonregular native Formal Mise config: " + rel)
+                  entry = subprocess.check_output(
+                      ["git", "--no-replace-objects", "ls-tree", "HEAD", "--", rel],
+                      text=True, stderr=subprocess.PIPE,
+                  ).strip()
+                  if re.fullmatch(
+                      r"(100644|100755) blob ([0-9a-f]{40}|[0-9a-f]{64})\t"
+                      + re.escape(rel), entry,
+                  ) is None:
+                      raise ValueError("untracked native Formal Mise config: " + rel)
+                  committed = subprocess.check_output(
+                      ["git", "--no-replace-objects", "show", "HEAD:" + rel],
+                      stderr=subprocess.PIPE,
+                  )
+                  if path.read_bytes() != committed:
+                      raise ValueError("dirty native Formal Mise config: " + rel)
+                  in_repo.add(rel)
+              if not {"mise.toml", "tools/formal/mise.toml"} <= in_repo:
+                  raise ValueError("required Formal Mise configs not actually loaded")
+          except (OSError, ValueError, subprocess.SubprocessError) as exc:
+              print("ERROR: effective Formal Mise config differs from Git HEAD: "
+                    + str(exc), file=sys.stderr)
+              raise SystemExit(43) from exc
+          PYMISE
           }
           qualify_formal_prefix || {
             echo "ERROR: Formal executable source differs from exact Git HEAD" >&2
@@ -387,6 +534,12 @@ jobs:
                   and report.get("toolQualification")
                       == "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST"
                   and report.get("proofReuseAdmissible") is False
+                  # Mathematical model proofs cannot silently promote their
+                  # implementation or installed-effect standing to PASS.
+                  # A stronger grade requires its own independently admitted
+                  # proof/consumer contract before this gate can accept it.
+                  and report.get("implementationRefinement") == "UNKNOWN"
+                  and report.get("installedCurrentness") == "UNKNOWN"
                   and type(report.get("count")) is int
                   and report["count"] == len(EXPECTED_PROBES)
                   and isinstance(probes, list) and len(probes) == len(EXPECTED_PROBES)
