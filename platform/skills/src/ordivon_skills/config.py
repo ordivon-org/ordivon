@@ -91,8 +91,21 @@ def _source_from_row(
     )
 
 
+def _single_valued_policy_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """A trust/deny JSON policy is a function: ambiguous keys fail closed."""
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key in Skills policy: {key}")
+        result[key] = value
+    return result
+
+
 def load_skills_mcp_config(path: Path) -> SkillsMcpConfig:
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw = json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=_single_valued_policy_object,
+    )
     if not isinstance(raw, dict) or raw.get("schemaVersion") != 2:
         raise ValueError("Skills MCP config schemaVersion must be 2")
     unknown = set(raw) - {
