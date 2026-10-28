@@ -1,0 +1,9 @@
+[package]
+name = "ordivon-room-action-kit"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Terminal-playable Bevy ECS room action vertical slice"
+
+[dependencies]
+bevy = { version = "0.20.0", default-features = false }
