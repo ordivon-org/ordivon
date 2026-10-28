@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from hashlib import sha256
@@ -466,8 +467,8 @@ def validate_collection(value: Mapping[str, object]) -> dict[str, object]:
             if source_path in seen_paths:
                 raise ValueError("sourceObjects paths must be unique within one member")
             seen_paths.add(source_path)
-            if not source_digest.startswith("sha256:") or len(source_digest) != 71:
-                raise ValueError("sourceObjects.digest must be one exact sha256 digest")
+            if re.fullmatch(r"sha256:[0-9a-f]{64}", source_digest) is None:
+                raise ValueError("sourceObjects.digest must be one canonical lowercase sha256 digest")
             normalized_objects.append({"path": source_path, "digest": source_digest})
         note = raw.get("note")
         if note is not None:
