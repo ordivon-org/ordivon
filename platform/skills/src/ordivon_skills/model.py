@@ -72,6 +72,8 @@ class SkillSource:
             raise ValueError(f"unsupported scope: {self.scope}")
         if type(self.priority) is not int:
             raise ValueError("priority must be an integer")
+        if type(self.enabled) is not bool:
+            raise ValueError("source enabled must be a boolean")
         root = Path(self.root)
         object.__setattr__(self, "root", root)
         if self.project_root is not None:
