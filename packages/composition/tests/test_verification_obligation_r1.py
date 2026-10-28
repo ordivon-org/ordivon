@@ -1369,6 +1369,44 @@ def test_phase2_exact_git_impact_cli_rejects_ambiguous_proof_input(tmp_path) -> 
     finally:
         owner_tool.write_bytes(before_bytes)
 
+    # Native query imports affected_owners.load_owners. The interpreter may
+    # consume uncommitted imported module bytes even when the entrypoint is
+    # identical to its Git SourceCut.
+    # Static sibling-import frontier is bounded here. A future producer
+    # import must expand the exact readset or this consumer's CI fails.
+    import ast
+
+    producer_dir = source_repo / "tools/repo"
+    sibling_modules = {path.stem for path in producer_dir.glob("*.py")}
+    imports = {}
+    for entry in ("source_history_legos", "affected_owners"):
+        tree = ast.parse((producer_dir / (entry + ".py")).read_text())
+        used = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module in sibling_modules:
+                used.add(node.module)
+            elif isinstance(node, ast.Import):
+                used.update(alias.name for alias in node.names if alias.name in sibling_modules)
+        imports[entry] = used
+    assert imports == {
+        "source_history_legos": {"affected_owners"},
+        "affected_owners": set(),
+    }, "new local import requires expanding the Git source-cut producer readset"
+
+    imported_producer = source_repo / "tools/repo/affected_owners.py"
+    before_import = imported_producer.read_bytes()
+    try:
+        imported_producer.write_bytes(
+            before_import + b"\n# uncommitted imported executable source drift\n"
+        )
+        imported_drift = select()
+        assert imported_drift.returncode != 0, (
+            "native Composition accepted source query with an unbound imported provider"
+        )
+        assert "native Git query producer differs from its Git SourceCut" in imported_drift.stderr
+    finally:
+        imported_producer.write_bytes(before_import)
+
     for ambiguous in (
         f'[{{"id":"proof:skipped","id":"proof:changed",'
         f'"dependsOn":["{ref}"],"dependenciesComplete":true}}]',
