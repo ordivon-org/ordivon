@@ -742,6 +742,50 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
         assert first["evidenceDigest"] != second["evidenceDigest"]
         assert second["installedSourceEquivalence"] == "UNKNOWN"
 
+    def test_observation_timestamp_rejects_impossible_calendar_instants(self):
+        for timestamp in (
+            "2026-19-39T29:48:00Z",
+            "2025-02-29T06:48:00Z",
+            "2026-10-28T24:48:00Z",
+        ):
+            with self.subTest(timestamp=timestamp):
+                with self.assertRaisesRegex(ValueError, "valid UTC instant"):
+                    M.join_observed_authorities(
+                        self.frontier, self.envelope([
+                            self.observation(observedAt=timestamp)
+                        ]),
+                    )
+        valid = M.join_observed_authorities(
+            self.frontier, self.envelope([
+                self.observation(observedAt="2024-02-29T06:48:00Z")
+            ]),
+        )
+        self.assertEqual(
+            valid["observationJoin"]["observedSubjects"][0]["observedAt"],
+            "2024-02-29T06:48:00Z",
+        )
+
+    def test_observation_facts_reject_nonfinite_and_keep_finite_numbers(self):
+        for invalid in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(nonfinite=str(invalid)):
+                with self.assertRaisesRegex(ValueError, "bounded scalar metadata"):
+                    M.join_observed_authorities(
+                        self.frontier, self.envelope([
+                            self.observation(observedFacts={"metric": invalid})
+                        ]),
+                    )
+        import json
+        valid = M.join_observed_authorities(
+            self.frontier, self.envelope([
+                self.observation(observedFacts={"metric": 0.125})
+            ]),
+        )
+        json.dumps(valid, allow_nan=False)
+        self.assertEqual(
+            valid["observationJoin"]["observedSubjects"][0]["observedFacts"],
+            {"metric": 0.125},
+        )
+
     def test_stale_source_cut_is_refused(self):
         with self.assertRaisesRegex(ValueError, "SourceCut mismatch"):
             M.join_observed_authorities(self.frontier, self.envelope(
