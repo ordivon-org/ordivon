@@ -20,6 +20,75 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ConvergencePlanTests(unittest.TestCase):
+    def test_all_native_owner_combinations_preserve_mandatory_queue_closure(self) -> None:
+        """A finite consumer CDC bridge for existing R2.1 monotone-impact laws.
+
+        The Lean ImpactReach/demand_monotone laws apply to qualified roots and
+        edges, not arbitrary Python. Protect the actual CI-facing queue against
+        omissions for every currently declared natural Owner and ordered pair.
+        Future Owners extend this finite fixture without new registry metadata.
+        This is source/selected-task evidence, never implementation refinement
+        or installed effect acceptance.
+        """
+        repo = MODULE_PATH.parents[2]
+        native_owners = MODULE.affected_owners.OWNERS
+        self.assertTrue(native_owners)
+        actual_paths: dict[str, str] = {}
+        plans: dict[str, dict[str, object]] = {}
+        for owner in native_owners:
+            git_paths = subprocess.check_output(
+                ["git", "ls-files", "-z", "--", owner.root],
+                cwd=repo, timeout=20,
+            ).split(b"\\0")
+            candidates = [os.fsdecode(path) for path in git_paths if path]
+            self.assertTrue(candidates, f"no real tracked source for {owner.name}")
+            source = candidates[0]
+            actual_paths[owner.name] = source
+            plan = MODULE.build_plan(changed_files=[source])
+            plans[owner.name] = plan
+            self.assertIn(owner.name, plan["verificationOwners"])
+            self.assertIn(owner.queue_task, plan["queueVerifyTasks"])
+            with self.assertRaisesRegex(ValueError, "queue source impact"):
+                MODULE.validate_queue_task_selection([], [], [source])
+            MODULE.validate_queue_task_selection(
+                plan["verificationOwners"], plan["queueVerifyTasks"], [source]
+            )
+
+        # All ordered two-Owner source changes preserve both closures.
+        for left in native_owners:
+            for right in native_owners:
+                paths = [actual_paths[left.name], actual_paths[right.name]]
+                plan = MODULE.build_plan(changed_files=paths)
+                expected = (
+                    set(plans[left.name]["queueVerifyTasks"])
+                    | set(plans[right.name]["queueVerifyTasks"])
+                )
+                self.assertLessEqual(expected, set(plan["queueVerifyTasks"]))
+                MODULE.validate_queue_task_selection(
+                    plan["verificationOwners"], plan["queueVerifyTasks"], paths
+                )
+
+        # The separately real Formal task must survive any Owner change.
+        for owner in native_owners:
+            paths = [actual_paths[owner.name], "tools/formal/Proof.qnt"]
+            plan = MODULE.build_plan(changed_files=paths)
+            self.assertEqual(plan["queueVerifyTasks"].count("formal:verify"), 1)
+            MODULE.validate_queue_task_selection(
+                plan["verificationOwners"], plan["queueVerifyTasks"], paths
+            )
+
+        cross_cutting = ["tools/repo/owners.toml"]
+        plan = MODULE.build_plan(changed_files=cross_cutting)
+        self.assertEqual(set(plan["verificationOwners"]),
+                         {owner.name for owner in native_owners})
+        with self.assertRaisesRegex(ValueError, "queue source impact"):
+            MODULE.validate_queue_task_selection([], [], cross_cutting)
+        # Manual/scheduled complete verification has no scoped source delta.
+        MODULE.validate_queue_task_selection(
+            [owner.name for owner in native_owners],
+            [owner.queue_task for owner in native_owners],
+        )
+
     def test_self_hosted_impact_explanation_binds_real_source_and_verification(self) -> None:
         source = "tools/repo/affected_owners.py"
         plan = MODULE.build_plan(changed_files=[source])
@@ -62,7 +131,7 @@ class ConvergencePlanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "SourceCut mismatch"):
             MODULE.explain_source_impacts(pinned, source_cut="0" * 40)
         forged = {**plan, "queueVerifyTasks": []}
-        with self.assertRaisesRegex(ValueError, "queue task selection"):
+        with self.assertRaisesRegex(ValueError, "queue source impact"):
             MODULE.explain_source_impacts(forged, source_cut=cut)
 
     def test_self_hosted_root_task_change_composes_formal_and_owner_tasks(self) -> None:
@@ -93,7 +162,7 @@ class ConvergencePlanTests(unittest.TestCase):
         ):
             with self.subTest(owners=owners, tasks=tasks):
                 forged = {**plan, "verificationOwners": owners, "queueVerifyTasks": tasks}
-                with self.assertRaisesRegex(ValueError, "noncanonical source impact"):
+                with self.assertRaisesRegex(ValueError, "queue source impact"):
                     MODULE.explain_source_impacts(forged, source_cut=cut)
 
     def test_self_hosted_impact_rejects_uncommitted_executed_producer_bytes(self) -> None:
