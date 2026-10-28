@@ -1151,8 +1151,35 @@ def main() -> int:
                 owner_tool = (
                     Path(__file__).resolve().parents[4] / "tools/repo/source_history_legos.py"
                 )
-                if not owner_tool.is_file():
+                if not owner_tool.is_file() or owner_tool.is_symlink():
                     raise ValueError("Git owner query entrypoint unavailable")
+
+                def require_qualified_owner_tool() -> None:
+                    # This process asks the existing Git Owner query for exact
+                    # evidence. Do not execute a mutable checkout implementation
+                    # while presenting that answer as source-qualified.
+                    committed = subprocess.run(
+                        [
+                            "git",
+                            "--no-replace-objects",
+                            "-C",
+                            str(owner_tool.parents[2]),
+                            "show",
+                            "HEAD:tools/repo/source_history_legos.py",
+                        ],
+                        capture_output=True,
+                        check=False,
+                    )
+                    if (
+                        committed.returncode != 0
+                        or owner_tool.is_symlink()
+                        or committed.stdout != owner_tool.read_bytes()
+                    ):
+                        raise CircuitContractError(
+                            "native Git query producer differs from its Git SourceCut"
+                        )
+
+                require_qualified_owner_tool()
                 native_query = subprocess.run(
                     [
                         sys.executable,
@@ -1170,9 +1197,12 @@ def main() -> int:
                     capture_output=True,
                     check=False,
                 )
+                require_qualified_owner_tool()
                 if native_query.returncode != 0:
                     raise ValueError("native Git source query failed")
                 qualified = json.loads(native_query.stdout)
+            except CircuitContractError:
+                raise
             except (ValueError, OSError, TypeError) as exc:
                 raise CircuitContractError(
                     "select-impact requires independently recomputable native Git scope"
