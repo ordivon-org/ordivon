@@ -2229,3 +2229,79 @@ def test_one_lego_inspection_preserves_all_existing_consumer_claim_carriers() ->
         "consumerEvidence": None, "actualConsumers": None, "consumerBindings": None,
     }
     assert root["consumerClosureStanding"] == "UNKNOWN"
+
+
+def test_repository_lego_rg1_rg2_close_real_declaration_gaps_without_false_proof() -> None:
+    """Existing Repo source ports declare actual native consumers, not effect authority."""
+    import json
+    from pathlib import Path
+    from tools.repo import exhaustive_coverage
+
+    root = Path(__file__).resolve().parents[2]
+    carrier = 'tools/repo/planning/lego-plan-r1.json'
+    plan = json.loads((root / carrier).read_text(encoding='utf-8'))
+    nodes = {node['id']: node for node in plan['nodes']}
+    assert set(nodes) == {'RG1_SOURCE', 'RG2_OWNER'}
+    expected = {
+        'RG1_SOURCE': {
+            'tools/repo/source_history_legos.py',
+            'tools/repo/test_source_history_legos.py',
+        },
+        'RG2_OWNER': {
+            'tools/repo/check_architecture_docs.py',
+            'tools/repo/test_architecture_docs.py',
+        },
+    }
+    for name, node in nodes.items():
+        assert node['inputs'] and node['outputs']
+        assert {'preconditions', 'postconditions', 'effects', 'failure'} <= set(
+            node['behavioralContract']
+        )
+        assert len(node['formalObligations']) >= 3
+        assert node['formalVerificationStanding'] == (
+            'DECLARED_OBLIGATIONS_NOT_MATHEMATICALLY_PROVED'
+        )
+        assert node['consumerQualificationStanding'] == (
+            'TEST_AND_NATIVE_VERIFIER_REFERENCES_ONLY_EXTERNAL_CONSUMERS_UNKNOWN'
+        )
+        assert all((root / ref).is_file() for ref in node['consumerEvidence'])
+        assert all((root / ref).is_file() for ref in expected[name])
+        assert all(
+            exhaustive_coverage.declared_values(node, aliases)
+            for aliases in exhaustive_coverage.FIELDS.values()
+        )
+        # Neither a consumer link nor a stated formal obligation proves
+        # actual external consumption, a deployed environment, or reuse.
+        assert 'UNKNOWN' in node['consumerQualificationStanding']
+        assert 'NOT_MATHEMATICALLY_PROVED' in node['formalVerificationStanding']
+
+
+def test_repository_lego_declared_consumer_contract_formal_cannot_be_silently_removed() -> None:
+    """CEGAR: each absent declaration reopens exactly the corresponding issue."""
+    import copy
+    import json
+    from pathlib import Path
+    from tools.repo import exhaustive_coverage
+
+    root = Path(__file__).resolve().parents[2]
+    plan = json.loads(
+        (root / 'tools/repo/planning/lego-plan-r1.json').read_text(encoding='utf-8')
+    )
+    names = {
+        'CONSUMER': 'consumerEvidence',
+        'CONTRACT': 'behavioralContract',
+        'FORMAL': 'formalObligations',
+    }
+    for node in plan['nodes']:
+        for kind, field in names.items():
+            weakened = copy.deepcopy(node)
+            weakened.pop(field)
+            assert not exhaustive_coverage.declared_values(
+                weakened, exhaustive_coverage.FIELDS[kind]
+            ), (node['id'], kind)
+            # The other two declarations are independent, not a proxy proof.
+            for other in names:
+                if other != kind:
+                    assert exhaustive_coverage.declared_values(
+                        weakened, exhaustive_coverage.FIELDS[other]
+                    )
