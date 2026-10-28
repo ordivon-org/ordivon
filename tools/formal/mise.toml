@@ -9,4 +9,10 @@
 "cargo:kani-verifier" = "0.68.0"
 
 [tasks.verify]
-run = "python3 verify.py"
+run = """
+# Kani's first invocation may install a bundle. Keep that mutable cache out
+# of the legacy shared ~/.kani directory, where a truncated archive blocks
+# otherwise valid Lean/SMT/Kani proofs. Respect an explicit caller override.
+export KANI_HOME="${KANI_HOME:-${HOME}/.cache/ordivon/kani}"
+python3 verify.py
+"""
