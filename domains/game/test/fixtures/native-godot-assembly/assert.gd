@@ -1,5 +1,21 @@
 extends SceneTree
 
+# A mod-supplied Resource may self-claim is_valid without implementing
+# the actual gameplay input ports. Contract admission must reject it.
+class MalformedConfig extends Resource:
+    func is_valid() -> bool:
+        return true
+
+# A user variant that *does* refine the actual native Resource type is allowed.
+class DerivedConfig extends "res://config.gd":
+    pass
+
+# Subclasses are legitimate consumers, but cannot be their own certificate
+# of the base behavior/parameter invariant.
+class ForgedDerivedConfig extends "res://config.gd":
+    func is_valid() -> bool:
+        return true
+
 var failures: Array[String] = []
 var assertions: int = 0
 
@@ -51,6 +67,70 @@ func run_acceptance() -> void:
     invalid.goal_x = 100
     expect(not rules.reset_game(invalid), "invalid replacement is rejected")
     expect(rules.snapshot() == before, "invalid replacement leaves running state unchanged")
+
+    # The behavioral contract is observable: rejection must be atomic, with
+    # unchanged state and no false native Signal/UI notification.
+    var observed_changes: Array[Dictionary] = []
+    rules.state_changed.connect(func(next_state: Dictionary) -> void:
+        observed_changes.append(next_state)
+    )
+    var before_malformed: Dictionary = rules.snapshot()
+    var old_board: String = view.get_node("Board").text
+    var old_status: String = view.get_node("Status").text
+    for bad_resource in [MalformedConfig.new(), Resource.new()]:
+        var before_signals: int = observed_changes.size()
+        expect(not rules.reset_game(bad_resource), "resource lacking native typed gameplay ports is rejected")
+        expect(rules.snapshot() == before_malformed, "untyped replacement leaves gameplay state unchanged")
+        expect(observed_changes.size() == before_signals, "untyped replacement does not emit a false state signal")
+        expect(view.get_node("Board").text == old_board, "untyped replacement leaves board presentation unchanged")
+        expect(view.get_node("Status").text == old_status, "untyped replacement leaves status presentation unchanged")
+
+    # Enumerate each boundary of the actual numeric input parameters.
+    var invalid_boundaries: Array[Array] = [
+        ["board_width", 1], ["board_width", 65],
+        ["goal_x", 0], ["goal_x", 5],
+        ["starting_energy", -1], ["starting_energy", 129],
+        ["step_cost", 0], ["step_cost", 129],
+        ["turn_limit", 0], ["turn_limit", 65],
+    ]
+    for fault in invalid_boundaries:
+        var out_of_contract = load("res://configs/base.tres").duplicate(true)
+        out_of_contract.set(fault[0], fault[1])
+        var prior_state: Dictionary = rules.snapshot()
+        var prior_events: int = observed_changes.size()
+        expect(not rules.reset_game(out_of_contract), "invalid native port rejected: %s=%s" % [fault[0], fault[1]])
+        expect(rules.snapshot() == prior_state, "invalid numeric input preserves gameplay state")
+        expect(observed_changes.size() == prior_events, "invalid numeric input emits no signal")
+
+    var malicious_derived = ForgedDerivedConfig.new()
+    malicious_derived.board_width = 1
+    malicious_derived.goal_x = 0
+    malicious_derived.turn_limit = 0
+    expect(malicious_derived.is_valid(), "a subclass can falsely self-attest its validity")
+    var pre_forgery: Dictionary = rules.snapshot()
+    var signals_pre_forgery: int = observed_changes.size()
+    expect(not rules.reset_game(malicious_derived), "derived Resource cannot bypass base gameplay invariant")
+    expect(rules.snapshot() == pre_forgery, "invalid derived Resource leaves state unchanged")
+    expect(observed_changes.size() == signals_pre_forgery, "invalid derived Resource emits no signal")
+
+    var derived: Resource = DerivedConfig.new()
+    derived.goal_x = 1
+    expect(rules.reset_game(derived), "real native Resource subclass satisfies typed LEGO input")
+    expect(rules.move(1), "subclass configuration is consumed by real gameplay transition")
+    expect(rules.snapshot()["phase"] == "won", "subclass retains game-defined winning semantics")
+    expect(view.get_node("Status").text.contains("won"), "subclass gameplay outcome reaches native UI via Signal")
+
+    # A validated Godot Resource is mutable. The current ruleset must not
+    # silently acquire changes to caller-owned input after explicit reset.
+    var externally_owned = load("res://configs/player_variant.tres").duplicate(true)
+    expect(rules.reset_game(externally_owned), "valid external typed configuration is admitted")
+    var captured: Dictionary = rules.snapshot()
+    externally_owned.board_width = 1
+    externally_owned.goal_x = 0
+    externally_owned.step_cost = 0
+    expect(rules.snapshot() == captured, "later caller mutation cannot rewrite active rule contract")
+    expect(rules.move(1), "captured configuration still supports a real valid action")
+    expect(rules.snapshot()["x"] == 1, "caller mutation cannot corrupt the action update")
 
     # A second composition uses the exact same rules and native scene scripts
     # while selecting another presentation PackedScene before entering the tree.
