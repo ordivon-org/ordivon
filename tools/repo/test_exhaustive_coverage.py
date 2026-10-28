@@ -1041,3 +1041,106 @@ class CrossScopeLexicalHintsTests(unittest.TestCase):
             p = subprocess.run(cmd + ["--scope-witness-limit", "0"],
                                text=True, capture_output=True)
             self.assertNotEqual(p.returncode, 0)
+
+
+class StableSourceProblemQuestionTests(unittest.TestCase):
+    """Stable navigation question identity != member version or semantic LEGO."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.old_cut = "4e76f8bd6ebcc65b201ff9253314c2b5a82f08ab"
+        cls.new_cut = "d0c87351ac36ce157bbd7b0ca195ec19aae16b78"
+        cls.old = M.derived_problem_legos(
+            M.classification(ROOT, cls.old_cut), repo=ROOT
+        )
+        cls.new = M.derived_problem_legos(
+            M.classification(ROOT, cls.new_cut), repo=ROOT
+        )
+
+    @staticmethod
+    def source_issues(frontier):
+        rows = [x for x in frontier["problemLegos"]
+                if x["kind"] == "RECURSIVE_SOURCE_CELL_ISSUE"]
+        return {(x["sourceZone"], x["physicalPrefix"]): x for x in rows}
+
+    def test_known_source_change_keeps_question_but_invalidates_member_evidence(self):
+        before = self.source_issues(self.old)
+        after = self.source_issues(self.new)
+        changed = [
+            (before[k], after[k]) for k in before.keys() & after.keys()
+            if before[k]["sourceCellRef"] != after[k]["sourceCellRef"]
+            and set(before[k]["issueTags"]) & set(after[k]["issueTags"])
+        ]
+        assert len(changed) >= 5
+        assert any(a["physicalPrefix"] == "tools/repo/" for a, _ in changed)
+        for old, new in changed:
+            assert old["sourceScopeQuestionRef"] == new["sourceScopeQuestionRef"]
+            assert old["problemRef"] != new["problemRef"]
+            assert old["sourceCellRef"] != new["sourceCellRef"]
+            assert old["sourceScopeIdentityStanding"] == (
+                "PHYSICAL_LOCATION_QUESTION_NOT_SEMANTIC_LEGO"
+            )
+        assert not self.old["proofReuseAdmissible"]
+        assert not self.new["proofReuseAdmissible"]
+
+    def test_problem_question_id_is_unique_within_exact_git_cut(self):
+        for frontier in (self.old, self.new):
+            issues = self.source_issues(frontier)
+            refs = [r["sourceScopeQuestionRef"] for r in issues.values()]
+            assert len(refs) == len(set(refs))
+            assert all(r.startswith("problem:source-scope:") for r in refs)
+            assert all(x["sourceCellRef"].startswith("source-cell:sha256:")
+                       for x in issues.values())
+
+    def test_scoped_question_is_accepted_but_resolves_to_current_versioned_problem(self):
+        import copy
+        row = self.source_issues(self.new)[("UNASSIGNED", "tools/repo/")]
+        obs = {
+            "authorityRef": "git:main-candidate",
+            "subjectRef": "source/tools/repo",
+            "observationKind": "STATIC_DYNAMIC_CONSUMER_CANDIDATE",
+            "observationRevision": self.new_cut,
+            "witnessRef": "job-12345678",
+            "observedAt": "2026-10-28T08:00:00Z",
+            "candidateProblemRef": row["sourceScopeQuestionRef"],
+            "observedFacts": {"sourceCut": self.new_cut},
+        }
+        base = {
+            "kind": "ordivon.external-authority-observations-r1",
+            "subjectSourceCut": self.new_cut,
+            "observations": [obs],
+        }
+        result = M.join_observed_authorities(self.new, base)
+        link = result["observationJoin"]["candidateAssociations"][0]
+        assert link["toProblemRef"] == row["problemRef"]
+        assert link["sourceScopeQuestionRef"] == row["sourceScopeQuestionRef"]
+        assert link["proofStanding"] == "NOT_ESTABLISHED"
+        assert result["observationJoin"]["installedCurrentnessEstablished"] is False
+        legacy = copy.deepcopy(base)
+        legacy["observations"][0]["candidateProblemRef"] = row["problemRef"]
+        old_link = M.join_observed_authorities(
+            self.new, legacy
+        )["observationJoin"]["candidateAssociations"][0]
+        assert old_link["toProblemRef"] == row["problemRef"]
+        assert old_link["sourceScopeQuestionRef"] is None
+
+    def test_cross_cut_observation_or_unknown_question_never_gets_rebound(self):
+        issue = self.source_issues(self.new)[("UNASSIGNED", "tools/repo/")]
+        entry = {
+            "authorityRef": "git:main-candidate",
+            "subjectRef": "source/tools/repo",
+            "observationKind": "STATIC_DYNAMIC_CONSUMER_CANDIDATE",
+            "observationRevision": self.new_cut,
+            "witnessRef": "job-12345678",
+            "observedAt": "2026-10-28T08:00:00Z",
+            "candidateProblemRef": issue["sourceScopeQuestionRef"],
+            "observedFacts": {},
+        }
+        base = {"kind": "ordivon.external-authority-observations-r1",
+                "subjectSourceCut": self.old_cut, "observations": [entry]}
+        with self.assertRaisesRegex(ValueError, "SourceCut mismatch"):
+            M.join_observed_authorities(self.new, base)
+        base["subjectSourceCut"] = self.new_cut
+        entry["candidateProblemRef"] = "problem:source-scope:" + "0" * 64
+        with self.assertRaisesRegex(ValueError, "unscoped or unrecognized"):
+            M.join_observed_authorities(self.new, base)
