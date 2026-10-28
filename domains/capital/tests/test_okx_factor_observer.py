@@ -82,7 +82,7 @@ class OkxFactorCompositionTests(unittest.TestCase):
     def _payload(phase: float, *, missing_day: int | None = None):
         day = 86_400_000
         rows = []
-        for i in range(104, -1, -1):
+        for i in range(99, -1, -1):
             if i == missing_day:
                 continue
             close = 100 * math.exp(0.01 * math.sin(i / 7 + phase) + i * 0.0001)
@@ -99,12 +99,39 @@ class OkxFactorCompositionTests(unittest.TestCase):
                 base_instrument_id="BASE",
                 factor_proxies=[{"factor": "sector", "instrumentId": "PROXY"}],
                 proxy="http://127.0.0.1:8080",
-                limit=105,
+                limit=100,
                 include_validation=True,
                 validation_splits=5,
                 include_monitoring=True,
                 monitoring_holdout=30,
             )
+
+    def test_provider_history_limit_rejected_before_network(self):
+        """OKX historical candles maximum is 100 bars per one request."""
+        for invalid in (101, 180, 300, True, "100", 0):
+            with self.subTest(limit=invalid):
+                with patch(
+                    "ordivon_capital.research.okx_factor_observer._request",
+                    side_effect=AssertionError("network should not be attempted"),
+                ) as request:
+                    with self.assertRaisesRegex(
+                        OkxFactorObserverError, "integer in \\[20, 100\\]"
+                    ):
+                        capture_okx_factor_observatory(
+                            base_instrument_id="BASE",
+                            factor_proxies=[],
+                            proxy="http://127.0.0.1:8080",
+                            limit=invalid,
+                        )
+                    request.assert_not_called()
+
+    def test_single_request_default_is_provider_admissible(self):
+        import inspect
+
+        self.assertEqual(
+            inspect.signature(capture_okx_factor_observatory).parameters["limit"].default,
+            100,
+        )
 
     def test_factor_observer_composition_requires_genuine_daily_return_horizon(self):
         valid = {"BASE": self._payload(0.0), "PROXY": self._payload(0.3)}

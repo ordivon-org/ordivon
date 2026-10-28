@@ -117,7 +117,7 @@ def capture_okx_factor_observatory(
     base_instrument_id: str,
     factor_proxies: Sequence[Mapping[str, str]],
     proxy: str,
-    limit: int = 180,
+    limit: int = 100,
     include_validation: bool = False,
     validation_splits: int = 5,
     include_monitoring: bool = False,
@@ -127,8 +127,11 @@ def capture_okx_factor_observatory(
         raise OkxFactorObserverError("base_instrument_id is required")
     if not proxy.startswith("http://127.0.0.1:"):
         raise OkxFactorObserverError("proxy must be a loopback Network v2 HTTP proxy")
-    if not isinstance(limit, int) or limit < 20 or limit > 300:
-        raise OkxFactorObserverError("limit must be in [20, 300]")
+    # OKX history-candles permits at most 100 rows per request. This
+    # capability makes ONE public request; do not silently truncate an
+    # agent's 180-day horizon or label a short capture as full history.
+    if type(limit) is not int or not 20 <= limit <= 100:
+        raise OkxFactorObserverError("limit must be an integer in [20, 100]")
 
     instruments = [base_instrument_id]
     specs: list[tuple[str, str]] = []
@@ -262,7 +265,7 @@ def main() -> int:
     ap.add_argument("--base", required=True)
     ap.add_argument("--proxy", required=True)
     ap.add_argument("--factor", action="append", default=[], help="FACTOR=INSTRUMENT")
-    ap.add_argument("--limit", type=int, default=180)
+    ap.add_argument("--limit", type=int, default=100)
     ap.add_argument("--include-validation", action="store_true")
     ap.add_argument("--validation-splits", type=int, default=5)
     ap.add_argument("--include-monitoring", action="store_true")
