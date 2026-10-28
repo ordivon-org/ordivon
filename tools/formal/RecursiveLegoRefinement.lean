@@ -821,7 +821,7 @@ theorem qualified_same_encoding_implies_same_exact_value
     _ = decodeCanonical encodedB := congrArg decodeCanonical sameEncoding
     _ = b := acceptB.symm
 
--- If two exact source values differ, the same encoded output cannot admit
+-- If two exact source values differ, the same encoded output cannot ACCEPT
 -- BOTH lexemes. At least one must be refused instead of reusing its digest.
 theorem different_source_same_encoding_requires_refusal
     {Exact : Type u} {Encoded : Type v}
