@@ -24,6 +24,11 @@ _SCOPED_VERIFIED_IMPLEMENTATION_PATHS = (
 )
 _RUNTIME_DEPENDENCY_CLOSURE_KIND = "ordivon.harness-runtime-dependency-closure"
 _RUNTIME_DEPENDENCY_INVALIDATOR = "@runtime-dependency-closure"
+_SOURCE_HISTORY_BOUNDARY_INVALIDATOR = "@source-revision-outside-current-repository"
+# Exact first monorepo introduction of the legacy Harness evidence files.
+# This anchors RETENTION of archived bytes; it does not certify the original
+# standalone repo, current implementation, or any live environment effect.
+_HARNESS_HISTORICAL_IMPORT = "a548b7884bd8981548ff63e8976e484501ee0c52"
 _INDEX_REVISION_HINT_FIELDS = (
     "implementationSourceRevision",
     "implementationRevision",
@@ -172,10 +177,8 @@ def _git_scope_entries(revision: str, scope: str) -> dict[str, str]:
         metadata, path = line.split("\t", 1)
         if owner_base:
             if not path.startswith(owner_base):
-                raise ValueError(
-                    f"Git path escaped owner prefix: prefix={owner_base} path={path}"
-                )
-            path = path[len(owner_base):]
+                raise ValueError(f"Git path escaped owner prefix: prefix={owner_base} path={path}")
+            path = path[len(owner_base) :]
         entries[path] = metadata
     return entries
 
@@ -353,24 +356,29 @@ def _verified_revision_is_current(
         check=False,
     )
     if ancestor.returncode != 0:
-        return False, []
+        # A pre-import standalone Harness revision may exist as a Git object,
+        # but it is NOT an ancestor of the integrated monorepo. Never present
+        # an empty change list as proof of unchanged implementation.
+        return False, [_SOURCE_HISTORY_BOUNDARY_INVALIDATOR]
     invalidating = _invalidating_paths(revision, "HEAD", implementation_paths)
     if implementation_paths is None:
         if runtime_dependency_closure_digest is not None:
             raise ValueError("unscoped currentness cannot bind a scoped runtime dependency digest")
     else:
         if not _valid_sha256_digest(runtime_dependency_closure_digest):
-            raise ValueError("scoped currentness requires a valid runtime dependency closure digest")
+            raise ValueError(
+                "scoped currentness requires a valid runtime dependency closure digest"
+            )
         historical = _runtime_dependency_closure_digest(revision)
         if historical != runtime_dependency_closure_digest:
             raise ValueError(
                 "scoped runtime dependency digest differs from its implementation revision"
             )
-        if (
-            _runtime_dependency_closure_digest("HEAD") != runtime_dependency_closure_digest
-            or _runtime_python_compatibility_projection(revision)
-            != _runtime_python_compatibility_projection("HEAD")
-        ):
+        if _runtime_dependency_closure_digest(
+            "HEAD"
+        ) != runtime_dependency_closure_digest or _runtime_python_compatibility_projection(
+            revision
+        ) != _runtime_python_compatibility_projection("HEAD"):
             invalidating.append(_RUNTIME_DEPENDENCY_INVALIDATOR)
     return not invalidating, invalidating
 
@@ -378,8 +386,15 @@ def _verified_revision_is_current(
 def _validate_index_creation_lineage_binding(
     filename: str,
     revision: str,
+    *,
+    historical: bool = False,
 ) -> list[str]:
-    """Validate external revision binding for one immutable evidence projection."""
+    """Validate current in-repo lineage, or bounded historical-import retention.
+
+    Historical-only retention proves the copied byte identity after the exact
+    monorepo import; it DOES NOT prove original standalone Git ancestry and
+    cannot be used to grant VERIFIED or CURRENT evidence standing.
+    """
 
     errors: list[str] = []
     path = EVIDENCE / filename
@@ -400,17 +415,38 @@ def _validate_index_creation_lineage_binding(
         check=False,
     )
     if ancestor.returncode != 0:
-        errors.append(
-            f"index-bound revision is not an ancestor of evidence creation for {filename}: "
-            f"revision={revision} creation={creation_revision}"
+        # The 2026 Harness monorepo import starts a DIFFERENT Git DAG from
+        # the original standalone repository. Historical receipts must not
+        # require or invent a cross-repository ancestor relationship.
+        imported_historical = (
+            historical
+            and _git_owner_prefix() == "services/harness/"
+            and creation_revision == _HARNESS_HISTORICAL_IMPORT
+            and len(revision) == 40
+            and all(c in "0123456789abcdef" for c in revision)
         )
-        return errors
-    invalidating = _invalidating_paths(revision, creation_revision)
-    if invalidating:
-        errors.append(
-            f"implementation changed before index-bound evidence creation for {filename}: "
-            f"invalidating={invalidating}"
-        )
+        # Reject an unrelated same-repository descendant pretending to be
+        # older historical source, even if the imported receipt bytes match.
+        if imported_historical:
+            same_repo_ancestor = subprocess.run(
+                ["git", "merge-base", "--is-ancestor", revision, "HEAD"],
+                cwd=ROOT,
+                check=False,
+            )
+            imported_historical = same_repo_ancestor.returncode != 0
+        if not imported_historical:
+            errors.append(
+                f"index-bound revision is not an ancestor of evidence creation for {filename}: "
+                f"revision={revision} creation={creation_revision}"
+            )
+            return errors
+    else:
+        invalidating = _invalidating_paths(revision, creation_revision)
+        if invalidating:
+            errors.append(
+                f"implementation changed before index-bound evidence creation for {filename}: "
+                f"invalidating={invalidating}"
+            )
     try:
         created_bytes = _git_file_bytes(creation_revision, relative_path)
         current_bytes = path.read_bytes()
@@ -509,7 +545,13 @@ def main() -> int:
             else:
                 try:
                     historical_dependency_digest = _runtime_dependency_closure_digest(revision)
-                except (OSError, subprocess.CalledProcessError, UnicodeDecodeError, ValueError, tomllib.TOMLDecodeError) as error:
+                except (
+                    OSError,
+                    subprocess.CalledProcessError,
+                    UnicodeDecodeError,
+                    ValueError,
+                    tomllib.TOMLDecodeError,
+                ) as error:
                     errors.append(
                         f"cannot resolve historical runtime dependency closure for {claim_id}: {error}"
                     )
@@ -531,7 +573,11 @@ def main() -> int:
         if revision_binding == "embedded":
             errors.extend(_validate_embedded_revision_binding(filename, receipt, revision))
         elif revision_binding == "index-creation-lineage":
-            errors.extend(_validate_index_creation_lineage_binding(filename, revision))
+            errors.extend(
+                _validate_index_creation_lineage_binding(
+                    filename, revision, historical=(status == "historical")
+                )
+            )
             for field, observed in _recognized_revision_hints(receipt).items():
                 if field in {"prebindingRevision", "repairCommit"} and observed != revision:
                     errors.append(
@@ -613,7 +659,13 @@ def main() -> int:
                         else None
                     ),
                 )
-            except (OSError, subprocess.CalledProcessError, UnicodeDecodeError, ValueError, tomllib.TOMLDecodeError) as error:
+            except (
+                OSError,
+                subprocess.CalledProcessError,
+                UnicodeDecodeError,
+                ValueError,
+                tomllib.TOMLDecodeError,
+            ) as error:
                 errors.append(f"cannot evaluate verified currentness for {claim_id}: {error}")
                 continue
             if not current:

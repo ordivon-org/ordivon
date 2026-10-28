@@ -135,150 +135,38 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         errors = validator(filename, receipt, "0" * 40)
         self.assertTrue(any("revision mismatch" in error for error in errors))
 
-    def test_verified_currentness_still_rejects_stale_implementation(self) -> None:
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "a57963c476d366aea0d73d96cddd223f3bd5dbaf"
-        )
-        self.assertFalse(current)
-        self.assertTrue(invalidating)
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "8925fdba026cdef4f9d8969fae244ee3e5e46730"
-        )
-        self.assertFalse(current)
-        self.assertTrue(invalidating)
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "792cd48cc9fbdddb7431462876d8e57d8f003643"
-        )
-        self.assertFalse(current)
-        # This revision predates the Finance observe bridge. After that bridge is retired,
-        # endpoint diffing no longer lists the transient path because it is absent at both
-        # endpoints; currentness must still fail on the remaining verified source changes.
-        self.assertTrue(any(path.startswith("src/") for path in invalidating), invalidating)
-        self.assertNotIn(
-            "src/ordivon_harness/ordivon/finance_observe_runtime_bridge.py",
-            invalidating,
-        )
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "0cfed2338a28be428c11816668651463cd9ccb8b"
-        )
-        self.assertFalse(current)
-        # This revision also predates the Finance research bridge. Retirement removes the
-        # transient path from the endpoint diff, but the historical implementation remains
-        # stale because later verified source changed. A revision where the bridge already
-        # existed is checked immediately below and must still name the deletion explicitly.
-        self.assertTrue(any(path.startswith("src/") for path in invalidating), invalidating)
-        self.assertNotIn(
-            "src/ordivon_harness/ordivon/finance_research_runtime_bridge.py",
-            invalidating,
-        )
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "00edab4e4f6aeac395c9de3ab6a300162e56f6c1"
-        )
-        self.assertFalse(current)
-        self.assertIn(
-            "src/ordivon_harness/ordivon/finance_research_runtime_bridge.py", invalidating
-        )
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "f4b05bb38ef7bff10f889df69611de6aaff3a40c"
-        )
-        self.assertFalse(current)
-        self.assertIn(
-            "src/ordivon_harness/ordivon/finance_observe_runtime_bridge.py",
-            invalidating,
-        )
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "233bb6354f81eff070996cef898b91726857ca8e"
-        )
-        self.assertFalse(current)
-        self.assertIn("src/ordivon_harness/capability_catalog.py", invalidating)
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "e983c79f5582160b37ac56c1898efa80e486880d"
-        )
-        self.assertFalse(current)
-        self.assertIn("pyproject.toml", invalidating)
-        self.assertIn("uv.lock", invalidating)
-        self.assertTrue(
-            any(path.startswith("src/") for path in invalidating),
-            invalidating,
-        )
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "830dd160b1025928521204f4713cbe0e1bbbf589"
-        )
-        self.assertFalse(current)
-        self.assertIn("src/ordivon_harness/capability_discovery.py", invalidating)
-        self.assertIn("src/ordivon_harness/interaction_context.py", invalidating)
-        self.assertTrue(any(path.startswith("src/") for path in invalidating), invalidating)
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "17e8943edb16c0f586d5a8d022c63590755a7d6b"
-        )
-        self.assertFalse(current)
-        self.assertIn("pyproject.toml", invalidating)
-        self.assertIn("uv.lock", invalidating)
-        self.assertIn("src/ordivon_harness/ordivon/deepseek.py", invalidating)
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "46030ae7d5725cffcad4686707d391ba29fd7f01"
-        )
-        self.assertFalse(current)
-        required_invalidating = {
-            "src/ordivon_harness/ordivon/loop.py",
-            "src/ordivon_harness/ordivon/run_recovery.py",
-            "src/ordivon_harness/ordivon/runtime_lowering.py",
-            "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
-        }
-        self.assertTrue(required_invalidating <= set(invalidating), invalidating)
-        self.assertIn("pyproject.toml", invalidating)
-        self.assertIn("uv.lock", invalidating)
-        self.assertTrue(
-            all(
-                path.startswith("src/")
-                or path
-                in {
-                    "pyproject.toml",
-                    "uv.lock",
-                    "scripts/harness_p0_scale_acceptance.py",
-                }
-                for path in invalidating
-            ),
-            invalidating,
-        )
+    def test_foreign_git_history_never_certifies_current_implementation(self) -> None:
+        # After independent-repository import, the old Git objects are NOT
+        # ancestors of monorepo HEAD. Their original source files may remain
+        # archived, but they cannot certify current installation or behavior.
+        revisions = {item[2] for item in EXPECTED.values()}
+        revisions.add("a57963c476d366aea0d73d96cddd223f3bd5dbaf")
+        for revision in sorted(revisions):
+            with self.subTest(revision=revision):
+                current, invalidating = check_evidence._verified_revision_is_current(revision)
+                self.assertFalse(current)
+                self.assertEqual(
+                    invalidating,
+                    [check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR],
+                )
 
-    def test_scoped_verified_currentness_detects_runtime_dependency_closure_change(self) -> None:
-        adaptive_scope = (
-            "src/anc_canonical/",
-            "src/ordivon_harness/adaptive_edit.py",
-            "src/ordivon_harness/execution_binding.py",
-            "src/ordivon_harness/runtime_port.py",
-            "src/ordivon_harness/ordivon/",
-        )
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "9d936e98d8c02772aa2becc924ba9006c71aa989",
-            adaptive_scope,
-            runtime_dependency_closure_digest="sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
-        )
-        self.assertFalse(current)
-        # A valid new consumer change may add an invalidating path. Do not
-        # freeze the full historical diff: preserve the actual obligations.
-        self.assertIn(
-            "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
-            invalidating,
-        )
-        self.assertIn(
-            "src/ordivon_harness/ordivon/adaptive_edit_bridge.py",
-            invalidating,
-        )
-        self.assertEqual(invalidating[-1], "@runtime-dependency-closure")
-
-        lsp_scope = ("src/ordivon_harness/lsp_workspace_edit.py",)
-        current, invalidating = check_evidence._verified_revision_is_current(
-            "9d936e98d8c02772aa2becc924ba9006c71aa989",
-            lsp_scope,
-            runtime_dependency_closure_digest="sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
-        )
-        self.assertFalse(current)
-        self.assertEqual(
-            invalidating,
-            ["src/ordivon_harness/lsp_workspace_edit.py", "@runtime-dependency-closure"],
-        )
+    def test_scoped_foreign_git_history_is_not_implementation_diff(self) -> None:
+        source = "9d936e98d8c02772aa2becc924ba9006c71aa989"
+        digest = "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
+        for scope in (
+            ("src/ordivon_harness/adaptive_edit.py",),
+            ("src/ordivon_harness/lsp_workspace_edit.py",),
+        ):
+            current, invalidating = check_evidence._verified_revision_is_current(
+                source,
+                scope,
+                runtime_dependency_closure_digest=digest,
+            )
+            self.assertFalse(current)
+            self.assertEqual(
+                invalidating,
+                [check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR],
+            )
 
     def test_scoped_implementation_paths_are_validated_conservatively(self) -> None:
         normalize = check_evidence._normalize_implementation_paths
@@ -304,52 +192,53 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 normalize(invalid)
 
-    def test_scoped_historical_evidence_preserves_old_runtime_dependency_closure(self) -> None:
+    def test_scoped_historical_evidence_retains_digest_but_does_not_promote(self) -> None:
         entries = self._entries()
+        old_digest = "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
         scoped = [
             entry
             for entry in entries.values()
             if "implementationPaths" in entry
-            and entry.get("runtimeDependencyClosureDigest")
-            == "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
+            and entry.get("runtimeDependencyClosureDigest") == old_digest
         ]
         self.assertEqual(len(scoped), 9)
         for entry in scoped:
             self.assertEqual(entry.get("status"), "historical", entry.get("claimId"))
             self.assertNotIn("pyproject.toml", entry["implementationPaths"])
             self.assertNotIn("uv.lock", entry["implementationPaths"])
-            self.assertEqual(
-                check_evidence._runtime_dependency_closure_digest(
-                    str(entry["implementationRevision"])
-                ),
-                "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
-            )
             current, invalidating = check_evidence._verified_revision_is_current(
                 str(entry["implementationRevision"]),
                 tuple(entry["implementationPaths"]),
                 runtime_dependency_closure_digest=str(entry["runtimeDependencyClosureDigest"]),
             )
             self.assertFalse(current, entry.get("claimId"))
-            self.assertIn("@runtime-dependency-closure", invalidating, entry.get("claimId"))
-        # The current digest is derived from the actual committed owner lock;
-        # only historical receipts retain a fixed, provenance-bound digest.
+            self.assertEqual(
+                invalidating,
+                [check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR],
+                entry.get("claimId"),
+            )
         current_digest = check_evidence._runtime_dependency_closure_digest("HEAD")
         self.assertRegex(current_digest, r"\Asha256:[0-9a-f]{64}\Z")
-        self.assertNotEqual(current_digest, scoped[0]["runtimeDependencyClosureDigest"])
+        self.assertNotEqual(current_digest, old_digest)
 
-    def test_scoped_runtime_dependency_digest_fails_closed_on_wrong_revision_binding(self) -> None:
+    def test_scoped_runtime_dependency_digest_fails_closed_on_same_repo_revision(self) -> None:
         scope = ("src/ordivon_harness/adaptive_edit.py",)
         with self.assertRaisesRegex(ValueError, "differs from its implementation revision"):
             check_evidence._verified_revision_is_current(
-                "9d936e98d8c02772aa2becc924ba9006c71aa989",
+                "HEAD",
                 scope,
                 runtime_dependency_closure_digest="sha256:" + "0" * 64,
             )
 
     def test_index_creation_lineage_binding_accepts_exact_and_rejects_nonancestor(self) -> None:
         validator = check_evidence._validate_index_creation_lineage_binding
-        for filename, _status, revision, _digest in EXPECTED.values():
-            self.assertEqual(validator(filename, revision), [])
+        for filename, status, revision, _digest in EXPECTED.values():
+            self.assertEqual(status, "historical")
+            self.assertEqual(validator(filename, revision, historical=True), [])
+            self.assertTrue(
+                validator(filename, revision, historical=False),
+                "the same historical revision must NOT be admitted as current",
+            )
         current_head = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             cwd=ROOT,
@@ -357,33 +246,66 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             stdout=subprocess.PIPE,
             text=True,
         ).stdout.strip()
-        errors = validator(
-            "harness-campaign3-rich-effect-owner-v1-capture.json",
-            current_head,
-        )
+        filename = "harness-campaign3-rich-effect-owner-v1-capture.json"
+        errors = validator(filename, current_head, historical=True)
         self.assertTrue(any("ancestor" in error for error in errors))
+        from unittest.mock import patch
+
+        # Only this one exact monorepo importer allows HISTORICAL retention.
+        with patch.object(check_evidence, "_HARNESS_HISTORICAL_IMPORT", "0" * 40):
+            self.assertTrue(
+                validator(
+                    filename,
+                    EXPECTED["harness.research.campaign3-rich-effect-owner-capture-v1"][2],
+                    historical=True,
+                )
+            )
+        # Byte substitution must fail, even though historical retention has no
+        # right to certify the original independent repository ancestry.
+        with patch.object(check_evidence, "_git_file_bytes", return_value=b"tampered"):
+            self.assertTrue(
+                any(
+                    "bytes changed" in error
+                    for error in validator(
+                        filename,
+                        EXPECTED["harness.research.campaign3-rich-effect-owner-capture-v1"][2],
+                        historical=True,
+                    )
+                )
+            )
 
     def test_environment_and_h1_profiles_are_historical_after_plugin_h2(self) -> None:
         entries = self._entries()
+        foreign = check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR
 
-        old = entries["harness.environment.python-3.14.7-upgrade"]
-        self.assertEqual(old["status"], "historical")
-        old_current, invalidating = check_evidence._verified_revision_is_current(
-            str(old["implementationRevision"])
-        )
-        self.assertFalse(old_current)
-        self.assertIn("pyproject.toml", invalidating)
+        def assert_historical(entry: dict, expected_paths: tuple[str, ...]) -> None:
+            self.assertEqual(entry["status"], "historical")
+            scoped = entry.get("implementationPaths")
+            digest = entry.get("runtimeDependencyClosureDigest")
+            current, invalidating = check_evidence._verified_revision_is_current(
+                str(entry["implementationRevision"]),
+                tuple(scoped) if isinstance(scoped, list) else None,
+                runtime_dependency_closure_digest=digest if isinstance(digest, str) else None,
+            )
+            self.assertFalse(current)
+            if foreign in invalidating:
+                # Original standalone Git history is NOT monorepo ancestry.
+                # Never fabricate an old->new implementation diff.
+                self.assertEqual(invalidating, [foreign])
+            else:
+                for path in expected_paths:
+                    self.assertIn(path, invalidating)
 
-        post_skills = entries["harness.environment.post-skills-extraction-python-3.14.7"]
-        self.assertEqual(post_skills["status"], "historical")
-        post_current, post_invalidating = check_evidence._verified_revision_is_current(
-            str(post_skills["implementationRevision"])
+        assert_historical(
+            entries["harness.environment.python-3.14.7-upgrade"],
+            ("pyproject.toml",),
         )
-        self.assertFalse(post_current)
-        self.assertIn("src/ordivon_harness/agent_plugin.py", post_invalidating)
+        assert_historical(
+            entries["harness.environment.post-skills-extraction-python-3.14.7"],
+            ("src/ordivon_harness/agent_plugin.py",),
+        )
 
         h1 = entries["harness.composition.agent-plugin-h1"]
-        self.assertEqual(h1["status"], "historical")
         h1_receipt = json.loads(
             (ROOT / "evidence" / "harness-agent-plugin-h1-acceptance-20260922.json").read_text(
                 encoding="utf-8"
@@ -391,15 +313,12 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         )
         self.assertEqual(h1_receipt["composition"]["pluginStandard"], "Agent Plugins v1")
         self.assertFalse(h1_receipt["composition"]["effectfulToolsAdmitted"])
-        h1_current, h1_invalidating = check_evidence._verified_revision_is_current(
-            str(h1["implementationRevision"])
+        assert_historical(
+            h1,
+            ("src/ordivon_harness/agent_run.py", "src/ordivon_harness/plugin_gateway_effect.py"),
         )
-        self.assertFalse(h1_current)
-        self.assertIn("src/ordivon_harness/agent_run.py", h1_invalidating)
-        self.assertIn("src/ordivon_harness/plugin_gateway_effect.py", h1_invalidating)
 
         h2 = entries["harness.composition.agent-plugin-h2-durable-gateway-effects"]
-        self.assertEqual(h2["status"], "historical")
         h2_receipt = json.loads(
             (
                 ROOT / "evidence" / "harness-agent-plugin-h2-durable-gateway-effects-20260922.json"
@@ -407,21 +326,18 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         )
         self.assertTrue(h2_receipt["composition"]["durablePreDispatchIntent"])
         self.assertFalse(h2_receipt["composition"]["blindEffectRedispatchOnResponseLoss"])
-        h2_current, h2_invalidating = check_evidence._verified_revision_is_current(
-            str(h2["implementationRevision"])
+        assert_historical(
+            h2,
+            (
+                "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+                "src/ordivon_harness/plugin_gateway_effect.py",
+            ),
         )
-        self.assertFalse(h2_current)
-        self.assertIn(
-            "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
-            h2_invalidating,
-        )
-        self.assertIn("src/ordivon_harness/plugin_gateway_effect.py", h2_invalidating)
 
-        current = entries["harness.composition.agent-plugin-h2b-cooperative-cancellation"]
-        self.assertEqual(current["status"], "historical")
-        self.assertIn("NOT current Harness qualification", current["scope"])
+        h2b = entries["harness.composition.agent-plugin-h2b-cooperative-cancellation"]
+        self.assertIn("NOT current Harness qualification", h2b["scope"])
         self.assertEqual(
-            current["implementationRevision"],
+            h2b["implementationRevision"],
             "5c70231dcf118a338bc851c2a47eeee4e93b9f0e",
         )
         receipt = json.loads(
@@ -440,30 +356,19 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",
         )
         self.assertEqual(
-            current["implementationPaths"],
+            h2b["implementationPaths"],
             [
                 "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
                 "src/ordivon_harness/plugin_gateway_effect.py",
             ],
         )
         self.assertEqual(
-            current["runtimeDependencyClosureDigest"],
+            h2b["runtimeDependencyClosureDigest"],
             receipt["runtimeDependencyClosureDigest"],
         )
-        current_ok, current_invalidating = check_evidence._verified_revision_is_current(
-            str(current["implementationRevision"]),
-            tuple(current["implementationPaths"]),
-            runtime_dependency_closure_digest=str(
-                current["runtimeDependencyClosureDigest"]
-            ),
-        )
-        self.assertFalse(current_ok)
-        self.assertIn("@runtime-dependency-closure", current_invalidating)
-        self.assertEqual(
-            check_evidence._runtime_dependency_closure_digest(
-                str(current["implementationRevision"])
-            ),
-            current["runtimeDependencyClosureDigest"],
+        assert_historical(
+            h2b,
+            ("@runtime-dependency-closure",),
         )
 
     def test_owner_relative_git_paths_survive_identity_preserving_monorepo_import(self) -> None:
