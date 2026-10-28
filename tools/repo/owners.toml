@@ -99,3 +99,8 @@ verify_task = "web:verify"
 [[source_regions]]
 name = "formal-verification-source"
 paths = ["tools/formal/"]
+
+# Existing repo:ci/migration consumers; source navigation, not Owner authority.
+[[source_regions]]
+name = "repository-mechanics-source"
+paths = ["tools/repo/"]
