@@ -561,6 +561,92 @@ def derived_problem_legos(
             "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
         })
 
+    # A missing declaration is a question about a specific Plan-scoped node,
+    # not a proof that a real consumer/contract/formal artifact is absent.
+    field_questions = []
+    for node in graph["nodes"]:
+        for gap in node["problems"]:
+            field_questions.append({
+                "problemRef": "problem:declared-field:" + node["nodeRef"] + ":" + gap,
+                "parentProblemRef": "problem:declared-node:" + node["nodeRef"],
+                "nodeRef": node["nodeRef"],
+                "missingDeclarationTag": gap,
+                "relation": "DECLARED_FIELD_NOT_FOUND_NOT_RUNTIME_ABSENCE",
+                "actualConsumerStanding": "UNKNOWN",
+                "actualContractStanding": "UNKNOWN",
+                "actualFormalStanding": "UNKNOWN",
+                "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+            })
+
+    # The source's existing Structure R2 plan is a declaration carrier only.
+    # Reuse the same most-specific-prefix rule as classification() instead of
+    # creating competing mapping authority or implying physical migration.
+    structure_path = "docs/architecture/structure-r2-transition-r1.json"
+    structure = read_json(repo, inventory["sourceCut"], structure_path)
+    maps = structure.get("mappings", [])
+    if len({m.get("id") for m in maps}) != len(maps):
+        raise ValueError("structure mapping IDs must be scoped uniquely")
+    mapping_witnesses: dict[tuple[str, str], list[dict]] = collections.defaultdict(list)
+    for path in inventory["sourcePaths"]:
+        matches = [(len(rule), item, rule) for item in maps
+                   for rule in item.get("sourcePaths", []) if is_match(path["path"], rule)]
+        longest = max((x[0] for x in matches), default=0)
+        selected = [(item, rule) for length, item, rule in matches if length == longest]
+        for m, rule in selected:
+            if (m.get("mode") == "move"
+                    and "PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER" in path["problems"]):
+                tag = "DECLARED_MOVE_CONSUMER_QUALIFICATION_REQUIRED"
+            elif (len(m.get("targetPaths", [])) != 1
+                  and "STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS" in path["problems"]):
+                tag = "DECLARED_SPLIT_CONSUMER_QUALIFICATION_REQUIRED"
+            else:
+                continue
+            mapping_witnesses[(tag, m["id"])].append(path)
+
+    mapping_by_id = {m["id"]: m for m in maps}
+    mapping_reviews = []
+    for (tag, map_id), rows in sorted(mapping_witnesses.items()):
+        rows.sort(key=lambda x: x["path"])
+        fingerprints = [[p["path"], p["sourceIdentity"]] for p in rows]
+        identity = hashlib.sha256(json.dumps(
+            fingerprints, ensure_ascii=True, sort_keys=True,
+            separators=(",", ":")).encode()).hexdigest()
+        declaration = mapping_by_id[map_id]
+        mapping_reviews.append({
+            "reviewRef": "problem:structure-mapping:" + tag + ":" + map_id,
+            "declarationRef": structure_path + "#" + map_id,
+            "problemTag": tag,
+            "sourcePaths": declaration.get("sourcePaths", []),
+            "targetPaths": declaration.get("targetPaths", []),
+            "declaredMode": declaration.get("mode"),
+            "matchedPathCount": len(rows),
+            "sourceMembersDigest": "sha256:" + identity,
+            "sourceCellRefs": sorted({
+                "source-cell:" + members[row["path"]] for row in rows
+            }),
+            "relation": "STRUCTURE_DECLARATION_TO_SOURCE_NOT_REALIZED_MOVE",
+            "consumerStanding": "UNKNOWN",
+            "installedStanding": "UNKNOWN",
+            "callSemanticsStanding": "NOT_YET_QUALIFIED",
+            "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+        })
+    identity_scope_reviews = [
+        {
+            "reviewRef": "problem:plan-local-id-scope:" + local,
+            "localId": local,
+            "scopedNodeRefs": scoped,
+            "relation": "SHARED_LOCAL_NAME_NOT_SHARED_SEMANTIC_IDENTITY",
+            "collisionStanding": "REVIEW_REQUIRED_NOT_PROVEN_CONFLICT",
+            "consumerStanding": "UNKNOWN",
+            "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+        }
+        for local, scoped in sorted(graph["sameLocalIdAcrossPlans"].items())
+    ]
+    if len({x["problemRef"] for x in field_questions}) != len(field_questions):
+        raise ValueError("duplicate declaration-field identity")
+    if len({x["reviewRef"] for x in mapping_reviews}) != len(mapping_reviews):
+        raise ValueError("duplicate structure review identity")
+
     declared_edges = []
     for e in graph["edges"]:
         qualified = e["standing"] == "LOCAL_ENDPOINTS_IDENTIFIED"
@@ -601,7 +687,13 @@ def derived_problem_legos(
             "crossPlanLocalIdReuse": len(graph["sameLocalIdAcrossPlans"]),
             "crossPlanReuseIsError": False,
             "missingInstalledAndDynamicCallClosure": True,
+            "declarationFieldQuestions": len(field_questions),
+            "mappingDeclarationReviews": len(mapping_reviews),
+            "crossPlanIdentityScopeReviews": len(identity_scope_reviews),
         },
+        "declarationFieldQuestions": field_questions,
+        "mappingDeclarationReviews": mapping_reviews,
+        "crossPlanIdentityScopeReviews": identity_scope_reviews,
         "sourceCells": all_cells,
         "sourcePathCellIndex": {
             path: "source-cell:" + digest for path, digest in members.items()
@@ -1159,6 +1251,7 @@ def exact_git_reference_hints(
 def independent_scope_frontier(
     repo: Path, source: str, *, external_git: list[str],
     non_git_data: list[str], max_entries: int = 512,
+    git_checkout_observations: bool = False,
 ) -> dict:
     """Read-only scopes beside one exact Git subject. No membership inference.
 
@@ -1205,7 +1298,7 @@ def independent_scope_frontier(
         paths = tree(root, cut)
         top_levels = collections.Counter(
             x["path"].split("/", 1)[0] for x in paths)
-        scopes.append({
+        scope = {
             "scopeRef": "git-scope:" + label + "@" + cut,
             "label": label,
             "labelStanding": "CALLER_SCOPED_ALIAS_NOT_GLOBAL_IDENTITY",
@@ -1220,7 +1313,52 @@ def independent_scope_frontier(
             "ordivonAffiliationStanding": "UNKNOWN",
             "crossScopeConsumerStanding": "UNKNOWN",
             "installedStanding": "UNKNOWN",
-        })
+        }
+        if git_checkout_observations:
+            # Index, worktree metadata and pinned commit tree are separate
+            # objects. Observe them explicitly, without conflating content
+            # equality, invocation or safe deletion.
+            checkout_sha = git(root, "rev-parse", "--verify", "HEAD").decode().strip()
+            index_paths = [x for x in git(root, "ls-files", "-z").split(bytes([0])) if x]
+            records = git(root, "worktree", "list", "--porcelain").decode(
+                "utf-8", "surrogateescape").split("\n\n")
+            worktrees = []
+            for block in records:
+                lines = block.splitlines()
+                paths_here = [line[len("worktree "):] for line in lines
+                              if line.startswith("worktree ")]
+                if not paths_here:
+                    continue
+                if len(paths_here) != 1:
+                    raise ValueError("ambiguous worktree metadata locator")
+                location = paths_here[0]
+                prunable = any(line.startswith("prunable ") or line == "prunable"
+                               for line in lines)
+                worktrees.append({
+                    "locator": location,
+                    "prunable": prunable,
+                    "pathPresent": os.path.exists(location),
+                })
+            prunable = [w for w in worktrees if w["prunable"]]
+            scope["checkoutObservation"] = {
+                "checkedOutHead": checkout_sha,
+                "checkedOutHeadMatchesSourceCut": checkout_sha == cut,
+                "indexTrackedPaths": len(index_paths),
+                "pinnedCommitTreePaths": len(paths),
+                "indexToCommitCountStanding": (
+                    "COUNTS_EQUAL_CONTENT_NOT_PROVEN" if len(index_paths) == len(paths)
+                    else "COUNT_MISMATCH_NO_SEMANTIC_CONCLUSION"),
+                "linkedWorktreeMetadataRecords": len(worktrees),
+                "prunableWorktreeRecords": len(prunable),
+                "prunableLocationMissingCount": sum(
+                    not w["pathPresent"] for w in prunable),
+                "prunableWorktreeObservations": prunable[:64],
+                "prunableObservationsTruncated": len(prunable) > 64,
+                "indexIdentityStanding": "INDEX_PATH_COUNT_ONLY",
+                "safeCleanupStanding": "NOT_ESTABLISHED",
+                "runtimeConsumerStanding": "UNKNOWN",
+            }
+        scopes.append(scope)
     for raw in non_git_data:
         label, sep, path = raw.partition("=")
         if not sep:
@@ -1279,6 +1417,30 @@ def independent_scope_frontier(
         }
         for row in scopes
     ]
+    if git_checkout_observations:
+        for scope in scopes:
+            state = scope.get("checkoutObservation")
+            if state is None:
+                continue
+            issue_kinds = []
+            if not state["checkedOutHeadMatchesSourceCut"]:
+                issue_kinds.append("CHECKOUT_HEAD_DIFFERS_FROM_PINNED_CUT")
+            if state["indexTrackedPaths"] != state["pinnedCommitTreePaths"]:
+                issue_kinds.append("INDEX_AND_COMMIT_TREE_COUNTS_DIFFER")
+            if state["prunableWorktreeRecords"]:
+                issue_kinds.append("PRUNABLE_WORKTREE_METADATA_REQUIRES_CONSUMER_REVIEW")
+            for kind in issue_kinds:
+                scope_problems.append({
+                    "problemRef": "problem:cross-plane-checkout:" + scope["scopeRef"] + ":" + kind,
+                    "scopeRef": scope["scopeRef"],
+                    "kind": kind,
+                    "issueTags": ["NO_EMPTY_REPO_OR_CLEANUP_CONCLUSION_ALLOWED"],
+                    "consumerStanding": "UNKNOWN",
+                    "installedStanding": "UNKNOWN",
+                    "runtimeCallStanding": "NOT_ESTABLISHED",
+                    "remediationStanding": "DEFER_UNTIL_JOINT_CALL_SEMANTICS",
+                })
+
     return {
         "kind": "ordivon.phase1.cross-plane-source-scope-observations",
         "sourceCut": source,
@@ -1297,6 +1459,13 @@ def independent_scope_frontier(
             "crossScopeCallsVerified": 0,
             "installedSourcesBoundToGit": 0,
             "missingDynamicConsumerClosure": True,
+            "gitCheckoutObservationRequested": git_checkout_observations,
+            "checkoutCountMismatchScopes": sum(
+                x.get("checkoutObservation", {}).get("indexToCommitCountStanding") ==
+                "COUNT_MISMATCH_NO_SEMANTIC_CONCLUSION" for x in scopes),
+            "prunableWorktreeMetadataRecords": sum(
+                x.get("checkoutObservation", {}).get("prunableWorktreeRecords", 0)
+                for x in scopes),
         },
         "relatedNativeQueries": [
             "--problem-legos (main Git source and Plan only)",
@@ -1431,6 +1600,8 @@ def main() -> int:
                         help="derived full source+Plan problem LEGO map; never a registry")
     parser.add_argument("--scope-census", action="store_true",
                         help="observe explicit independent Git and non-Git source scopes")
+    parser.add_argument("--scope-git-worktrees", action="store_true",
+                        help="read-only Git checkout/index/prunable-worktree observations for explicit Git scopes")
     parser.add_argument("--scope-locator-hints", action="store_true",
                         help="Git blob lexical references between pinned roots; NOT runtime calls")
     parser.add_argument("--scope-witness-limit", type=int, default=12)
@@ -1464,7 +1635,8 @@ def main() -> int:
             parser.error("scope census is separate from source/call/problem projections")
         result = independent_scope_frontier(
             args.repo, args.source_cut, external_git=args.external_git_cut,
-            non_git_data=args.non_git_root)
+            non_git_data=args.non_git_root,
+            git_checkout_observations=args.scope_git_worktrees)
         if args.scope_locator_hints:
             result["lexicalSourceHints"] = cross_scope_exact_locator_hints(
                 args.repo, result, max_witnesses=args.scope_witness_limit)
@@ -1479,8 +1651,9 @@ def main() -> int:
             result.pop("pendingScopeProblems")
         print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
         return 0
-    if args.external_git_cut or args.non_git_root or args.scope_locator_hints:
-        parser.error("external scope and lexical hints require --scope-census")
+    if (args.external_git_cut or args.non_git_root or
+            args.scope_git_worktrees or args.scope_locator_hints):
+        parser.error("external scope, Git checkout and lexical hints require --scope-census")
     if args.scope_witness_limit != 12:
         parser.error("scope-witness-limit requires scope-census and locator hints")
 
@@ -1546,7 +1719,10 @@ def main() -> int:
                       if k not in ("sourceCells", "sourcePathCellIndex",
                                    "sourceContainment", "problemLegos",
                                    "declaredPlanEdgesNotActualCalls",
-                                   "sameLocalIdAcrossPlansObservation")}
+                                   "sameLocalIdAcrossPlansObservation",
+                                   "declarationFieldQuestions",
+                                   "mappingDeclarationReviews",
+                                   "crossPlanIdentityScopeReviews")}
     elif args.lookup_path:
         result = lookup_source_paths(
             result, repo=args.repo, paths=args.lookup_path,
