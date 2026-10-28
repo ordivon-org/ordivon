@@ -53,6 +53,10 @@
       "behavioralContract": "Host-local revision and content identities are preserved; ActorRef is a reference, not authenticated identity; no execution or domain acceptance is granted.",
       "children": [
         "O09"
+      ],
+      "consumers": [
+        "social_work_mcp work.create/work.get/work.snapshot.commit -> WorkStore",
+        "HostV2.status summary/history -> Work snapshot counters and integrity readings"
       ]
     },
     {
@@ -88,6 +92,10 @@
       "children": [
         "O10",
         "O11"
+      ],
+      "consumers": [
+        "social_work_mcp message.post/message.get/message.search/topic.resume -> SocialStore",
+        "HostV2.status summary/integrity -> message, topic, and relation projections"
       ]
     },
     {
@@ -123,6 +131,10 @@
       "behavioralContract": "Attention change sequence and topic message sequence are distinct coordinates; projection neither ranks nor schedules.",
       "children": [
         "O12"
+      ],
+      "consumers": [
+        "social_work_mcp attention.get/attention.delta/attention.ack -> AttentionStore",
+        "social_work_mcp topic.resume/topic.cursor.get/topic.cursor.ack -> actor reentry"
       ]
     },
     {
@@ -155,7 +167,11 @@
         "Committed rows and receipts; schema/integrity status"
       ],
       "behavioralContract": "Alembic owns migration; service startup requires schema 10; Host stores cannot substitute for Runtime ledger or foreign truth.",
-      "children": []
+      "children": [],
+      "consumers": [
+        "HostV2.initialize/status -> psycopg PostgreSQL schema and transaction reads",
+        "social_work_mcp register_social_work_tools -> WorkStore/SocialStore/AttentionStore PostgreSQL DSN"
+      ]
     },
     {
       "id": "O09",

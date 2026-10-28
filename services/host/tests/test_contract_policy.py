@@ -287,3 +287,70 @@ def test_readme_current_fabric_contract_does_not_promote_schema_nine_history() -
     assert "`docs/SOCIAL_WORK_FABRIC_R2_SPEC.md`" in doc
     assert "`docs/SOCIAL_WORK_FABRIC_R1.md`" in doc
     assert "current schema-9" not in doc
+
+
+def test_host_original_o01_o04_plan_consumers_resolve_to_native_mcp_and_pg_source() -> None:
+    """Close four missing *source* consumer declarations, not installed/formal proof.
+
+    The MCP handler names and exact PostgreSQL Store construction remain
+    independently checkable; an imaginary consumer cannot pass this test.
+    """
+    import ast
+    import json
+
+    host = Path(__file__).parents[1]
+    plan = json.loads((host / "planning" / "lego-plan-r1.json").read_text())
+    by_id = {node["id"]: node for node in plan["nodes"]}
+    expected = {
+        "O01": {"work.create", "work.get", "work.snapshot.commit"},
+        "O02": {"message.post", "message.get", "message.search", "topic.resume"},
+        "O03": {"attention.get", "attention.delta", "attention.ack",
+                "topic.cursor.get", "topic.cursor.ack"},
+        "O04": set(),
+    }
+    mcp_source = (
+        host / "src" / "ordivon_host_v2" / "social_work_mcp.py"
+    ).read_text()
+    module = ast.parse(mcp_source)
+    registered: set[str] = set()
+    for func in ast.walk(module):
+        if not isinstance(func, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decoration in func.decorator_list:
+            if (
+                isinstance(decoration, ast.Call)
+                and isinstance(decoration.func, ast.Attribute)
+                and decoration.func.attr == "tool"
+            ):
+                for keyword in decoration.keywords:
+                    if (
+                        keyword.arg == "name"
+                        and isinstance(keyword.value, ast.Constant)
+                        and isinstance(keyword.value.value, str)
+                    ):
+                        registered.add(keyword.value.value)
+    assert registered
+    assert set(expected) <= by_id.keys()
+    for node_id, tools in expected.items():
+        node = by_id[node_id]
+        consumers = node.get("consumers")
+        assert isinstance(consumers, list) and len(consumers) == 2
+        assert all(isinstance(x, str) and x for x in consumers)
+        assert all(tool in "/".join(consumers) for tool in tools)
+        assert tools <= registered, (node_id, tools - registered)
+        assert "formalObligations" not in node, (
+            "Do not invent proof obligations to make an incomplete proof look complete"
+        )
+
+    for required in ("WorkStore(dsn)", "SocialStore(dsn)", "AttentionStore(dsn)"):
+        assert required in mcp_source
+    o04 = "/".join(by_id["O04"]["consumers"])
+    assert "HostV2.initialize/status" in o04
+    service = (
+        host / "src" / "ordivon_host_v2" / "service.py"
+    ).read_text()
+    assert "class HostV2:" in service
+    assert "psycopg.connect(self.dsn" in service
+    assert "REQUIRED_SCHEMA_VERSION = 10" in service
+    # These are source-level consumer references, not real deployment,
+    # PostgreSQL cutover or proof reuse acceptance.
