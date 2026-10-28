@@ -5046,15 +5046,26 @@ fn terminal_commit_is_atomic_idempotent_and_releases_capacity() {
         exit_code: Some(0),
         infrastructure_error_digest: None,
         finished_at_ms: 13,
-        artifacts: vec![ArtifactRegistration {
-            artifact_id: "artifact:stdout".to_string(),
-            kind: "stdout".to_string(),
-            relative_path: "stdout.log".to_string(),
-            digest: digest(b"output"),
-            media_type: "text/plain".to_string(),
-            byte_length: 6,
-            truncated: false,
-        }],
+        artifacts: vec![
+            ArtifactRegistration {
+                artifact_id: "artifact:stdout".to_string(),
+                kind: "stdout".to_string(),
+                relative_path: "stdout.log".to_string(),
+                digest: digest(b"output"),
+                media_type: "text/plain".to_string(),
+                byte_length: 6,
+                truncated: false,
+            },
+            ArtifactRegistration {
+                artifact_id: "artifact:stderr".to_string(),
+                kind: "stderr".to_string(),
+                relative_path: "stderr.log".to_string(),
+                digest: digest(b"error"),
+                media_type: "text/plain".to_string(),
+                byte_length: 5,
+                truncated: false,
+            },
+        ],
         reason_code: "PROCESS_EXIT_ZERO".to_string(),
     };
     let projection = sandbox.registry.commit_terminal(&terminal).unwrap();
@@ -5084,10 +5095,17 @@ fn terminal_commit_is_atomic_idempotent_and_releases_capacity() {
             .list_artifacts(&created.job.job_id)
             .unwrap()
             .len(),
-        1
+        2
     );
     assert_eq!(
         sandbox.registry.commit_terminal(&terminal).unwrap(),
+        projection
+    );
+    // Artifact registration order is not part of set-valued effect identity.
+    let mut reordered = terminal.clone();
+    reordered.artifacts.reverse();
+    assert_eq!(
+        sandbox.registry.commit_terminal(&reordered).unwrap(),
         projection
     );
 
@@ -5144,7 +5162,7 @@ fn terminal_commit_is_atomic_idempotent_and_releases_capacity() {
             .list_artifacts(&created.job.job_id)
             .unwrap()
             .len(),
-        1
+        2
     );
 
     let mut conflict = terminal;
