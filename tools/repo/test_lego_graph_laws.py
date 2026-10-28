@@ -2229,3 +2229,140 @@ def test_one_lego_inspection_preserves_all_existing_consumer_claim_carriers() ->
         "consumerEvidence": None, "actualConsumers": None, "consumerBindings": None,
     }
     assert root["consumerClosureStanding"] == "UNKNOWN"
+
+
+def _mcp_decorated_route_functions(
+    file: Path, receiver: str, *, source_override: str | None = None
+) -> dict[str, object]:
+    """Find actual registered MCP functions, not names mentioned in a document."""
+    import ast
+    source = ast.parse(file.read_text(encoding="utf-8")
+                       if source_override is None else source_override)
+    found = {}
+    for node in ast.walk(source):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decorator in node.decorator_list:
+            if not isinstance(decorator, ast.Call):
+                continue
+            fun = decorator.func
+            if (not isinstance(fun, ast.Attribute) or fun.attr != "tool"
+                    or not isinstance(fun.value, ast.Name) or fun.value.id != receiver):
+                continue
+            route = next((kw.value.value for kw in decorator.keywords
+                          if kw.arg == "name" and isinstance(kw.value, ast.Constant)
+                          and isinstance(kw.value.value, str)), None)
+            if route:
+                assert route not in found, f"duplicate MCP route {route}"
+                found[route] = node
+    return found
+
+
+def _host_core_parent_consumer_contract(plan: dict, host_text: str,
+                                        gateway_text: str) -> None:
+    import ast
+    nodes = {n["id"]: n for n in plan["nodes"]}
+    parents = {"O01", "O02", "O03", "O04"}
+    actual_host = _mcp_decorated_route_functions(
+        ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py", "mcp")
+    actual_gateway = _mcp_decorated_route_functions(
+        ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py", "server",
+        source_override=gateway_text)
+    dispatches = {
+        "work.create": ("work", "create_work"),
+        "work.get": ("work", "get_work"),
+        "work.snapshot.commit": ("work", "commit_snapshot"),
+        "space.create": ("social", "create_space"),
+        "message.post": ("social", "post_message"),
+        "topic.resume": ("social", "resume_topic"),
+        "attention.delta": ("attention", "delta"),
+        "attention.reentry": ("attention", "reentry"),
+    }
+    expected = {
+        "O01": {"work.create", "work.get", "work.snapshot.commit"},
+        "O02": {"space.create", "message.post", "topic.resume"},
+        "O03": {"attention.delta", "attention.reentry"},
+    }
+    for identity in parents:
+        node = nodes[identity]
+        assert node["consumers"] and node["formalObligations"]
+        assert node["consumerEvidence"]
+        assert node["evidenceScope"]["formalProof"] == "UNKNOWN"
+        assert node["evidenceScope"]["installedCurrentness"] == "UNKNOWN"
+        assert node["evidenceScope"]["replacementOrDeletionAuthorized"] is False
+        assert node["evidenceScope"]["qualification"] == "SOURCE_CONSUMER_BOUND_ONLY"
+        for witness in node["consumerEvidence"]:
+            rel, sep, symbol = witness.partition("::")
+            file = ROOT / (rel if rel.startswith("services/") else "services/host/" + rel)
+            assert file.is_file(), f"missing current source consumer {identity} {rel}"
+            if sep:
+                tree = ast.parse(file.read_text(encoding="utf-8"))
+                definitions = {entry.name for entry in ast.walk(tree)
+                               if isinstance(entry, (ast.FunctionDef, ast.AsyncFunctionDef))}
+                assert symbol in definitions, f"missing current test {identity} {witness}"
+    for identity, routes in expected.items():
+        declared = {x.split(":", 1)[1] for x in nodes[identity]["consumers"]
+                    if x.startswith("social_work_mcp:")}
+        assert declared == routes
+        for route in routes:
+            assert route in actual_host
+            node = actual_host[route]
+            obj, method = dispatches[route]
+            # The advertised route must call the expected real Host Store.
+            assert any(isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute)
+                       and c.func.attr == method and isinstance(c.func.value, ast.Name)
+                       and c.func.value.id == obj for c in ast.walk(node)), route
+        for remote in nodes[identity]["consumers"]:
+            if remote.startswith("Gateway Host adapter:"):
+                route = remote.split(":", 1)[1]
+                assert route in actual_gateway
+                node = actual_gateway[route]
+                assert any(isinstance(c, ast.Call) and isinstance(c.func, ast.Name)
+                           and c.func.id == "_host"
+                           and c.args and isinstance(c.args[0], ast.Constant)
+                           and c.args[0].value == route for c in ast.walk(node)), route
+
+    # The persistence parent is not a fictitious MCP endpoint. It is consumed
+    # as a service schema fence and DB dependency of all three stores.
+    assert {"HostService schema gate", "WorkStore PostgreSQL transaction consumer",
+            "SocialStore PostgreSQL transaction consumer",
+            "AttentionStore PostgreSQL transaction consumer"} <= set(nodes["O04"]["consumers"])
+    assert "REQUIRED_SCHEMA_VERSION = 10" in host_text
+    assert "schema_version" in host_text
+
+
+def test_host_core_parent_lego_consumer_refinement_is_bound_to_real_calls() -> None:
+    plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
+    host_text = (ROOT / "services/host/src/ordivon_host_v2/service.py").read_text()
+    gateway_text = (ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py").read_text()
+    _host_core_parent_consumer_contract(plan, host_text, gateway_text)
+    # These are formerly unqualified *declarations*, not a formal proof or
+    # evidence that current installed Windows/Linux binaries match Git.
+    from tools.repo import exhaustive_coverage
+    for n in plan["nodes"]:
+        if n["id"] in {"O01", "O02", "O03", "O04"}:
+            assert exhaustive_coverage.declared_values(
+                n, exhaustive_coverage.FIELDS["CONSUMER"])
+            assert exhaustive_coverage.declared_values(
+                n, exhaustive_coverage.FIELDS["FORMAL"])
+
+
+@pytest.mark.parametrize("mutation", ["consumer", "formal", "proof", "gateway"])
+def test_host_parent_refinement_fails_on_lost_consumption_or_false_proof(
+    mutation: str,
+) -> None:
+    plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
+    host_text = (ROOT / "services/host/src/ordivon_host_v2/service.py").read_text()
+    gateway_text = (ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py").read_text()
+    if mutation == "consumer":
+        next(n for n in plan["nodes"] if n["id"] == "O01")["consumers"] = [
+            "social_work_mcp:work.does_not_exist"]
+    elif mutation == "formal":
+        next(n for n in plan["nodes"] if n["id"] == "O02")["formalObligations"] = []
+    elif mutation == "proof":
+        next(n for n in plan["nodes"] if n["id"] == "O03")["evidenceScope"]["formalProof"] = "VERIFIED"
+    else:
+        gateway_text = gateway_text.replace('return await _host("work.get",',
+                                            'return await _host("work.removed",')
+    with pytest.raises(AssertionError):
+        _host_core_parent_consumer_contract(plan, host_text, gateway_text)

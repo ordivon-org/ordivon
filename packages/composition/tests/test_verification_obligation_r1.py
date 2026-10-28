@@ -2658,3 +2658,38 @@ def test_recursive_proof_detection_scales_to_long_acyclic_and_cyclic_chains() ->
     assert _cyclic_proof_members([{"id": "proof:self", "dependsOn": ["proof:self"]}]) == {
         "proof:self"
     }
+
+
+def test_immutable_git_manifest_source_path_nul_vs_literal_backslash_x00(tmp_path) -> None:
+    """An invalid NUL must fail closed; a literal Git filename is not a NUL."""
+    import subprocess
+    from pathlib import Path
+
+    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(tmp_path), *args],
+            text=True,
+        ).strip()
+
+    git("init", "-q")
+    literal_name = "manifest\\x00.json"
+    (tmp_path / literal_name).write_text('{"schemaVersion": 1}\n', encoding="utf-8")
+    git("add", "--", literal_name)
+    git(
+        "-c",
+        "user.name=SourceCutTest",
+        "-c",
+        "user.email=test@example.invalid",
+        "commit",
+        "-qm",
+        "immutable path fixture",
+    )
+    commit = git("rev-parse", "HEAD")
+
+    doc, witness = _immutable_git_manifest(tmp_path, commit, Path(literal_name))
+    assert doc == {"schemaVersion": 1}
+    assert witness["path"] == literal_name
+    with pytest.raises(CircuitContractError, match="canonical relative path"):
+        _immutable_git_manifest(tmp_path, commit, Path("manifest\x00.json"))
