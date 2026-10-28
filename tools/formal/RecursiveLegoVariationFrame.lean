@@ -282,8 +282,42 @@ theorem missing_consumer_edge_invalidates_graph_reuse :
     | true => exact False.elim (noVariation (Or.inl rfl))
   · decide
 
+-- R2.1 successor-evaluation *necessary* source identity condition.
+-- An external-to-candidate label cannot coexist with an anchor whose
+-- declared controlling owner is the very candidate under evaluation.
+-- This predicate does NOT establish authenticated external independence:
+-- a second distinct string can still be a forged or candidate-controlled
+-- identity; owner attestation and domain semantics remain UNKNOWN.
+def ExternalAnchorIdentityConsistent {Identity : Type}
+    (candidate owner : Identity) (claimedExternal : Prop) : Prop :=
+  claimedExternal → owner ≠ candidate
+
+theorem declared_external_anchor_cannot_be_self_owned {Identity : Type}
+    (candidate owner : Identity)
+    (hConsistent : ExternalAnchorIdentityConsistent candidate owner True) :
+    owner ≠ candidate :=
+  hConsistent True.intro
+
+theorem self_owned_external_anchor_is_inconsistent {Identity : Type}
+    (candidate : Identity) :
+    ¬ ExternalAnchorIdentityConsistent candidate candidate True := by
+  intro hQualified
+  exact (hQualified True.intro) rfl
+
+-- Independent negative witness: accepting the external relation label alone
+-- for every identity is false. At least one owner/candidate alias makes it
+-- logically impossible to claim independence on that exact identity basis.
+theorem relation_label_alone_cannot_certify_external_identity :
+    ¬ (∀ (candidate owner : Bool), ExternalAnchorIdentityConsistent candidate owner True) := by
+  intro h
+  exact self_owned_external_anchor_is_inconsistent true (h true true)
+
 end OrdivonR21
 
 #print axioms OrdivonR21.graph_reuse_candidate_excludes_direct_readset_change
 #print axioms OrdivonR21.graph_reuse_preserves_property_if_qualified
 #print axioms OrdivonR21.missing_consumer_edge_invalidates_graph_reuse
+
+#print axioms OrdivonR21.declared_external_anchor_cannot_be_self_owned
+#print axioms OrdivonR21.self_owned_external_anchor_is_inconsistent
+#print axioms OrdivonR21.relation_label_alone_cannot_certify_external_identity
