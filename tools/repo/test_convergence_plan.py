@@ -65,6 +65,22 @@ class ConvergencePlanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "queue task selection"):
             MODULE.explain_source_impacts(forged, source_cut=cut)
 
+    def test_self_hosted_root_task_change_composes_formal_and_owner_tasks(self) -> None:
+        """Peer Formal root-entrypoint rule and source evidence compose in one call."""
+        plan = MODULE.build_plan(changed_files=["mise.toml"])
+        evidence = MODULE.explain_source_impacts(
+            plan, source_cut=MODULE._git("rev-parse", "HEAD")
+        )
+        self.assertEqual(len(evidence["verificationOwners"]), 18)
+        self.assertEqual(len(evidence["queueVerifyTasks"]), 19)
+        self.assertEqual(evidence["queueVerifyTasks"].count("formal:verify"), 1)
+        self.assertEqual(evidence["queueVerifyTasks"], plan["queueVerifyTasks"])
+        self.assertEqual(
+            evidence["changedSourceInputs"][0]["sourceStanding"],
+            "EXACT_GIT_SOURCE_PRESENT",
+        )
+        self.assertFalse(evidence["proofReuseAdmissible"])
+
     def test_self_hosted_impact_refuses_stale_native_contract_and_old_cut(self) -> None:
         cut = MODULE._git("rev-parse", "HEAD")
         plan = MODULE.build_plan(changed_files=["tools/formal/verify.py"])
