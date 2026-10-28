@@ -262,7 +262,8 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         ]
         external_legacy_creation = "b5cc105a0edddc740c16528a3c68e53e0505e691"
         with patch.object(
-            check_evidence, "_git_creation_revisions",
+            check_evidence,
+            "_git_creation_revisions",
             return_value=[external_legacy_creation],
         ) as creation:
             self.assertEqual(
@@ -279,9 +280,7 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
                     filename, legacy_revision, historical=False
                 )
             )
-        with patch.object(
-            check_evidence, "_git_file_bytes", return_value=b"tampered"
-        ):
+        with patch.object(check_evidence, "_git_file_bytes", return_value=b"tampered"):
             errors = check_evidence._validate_index_creation_lineage_binding(
                 filename, legacy_revision, historical=True
             )
@@ -393,17 +392,12 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         self.assertTrue(any("ancestor" in error or "pre-import" in error for error in errors))
         from unittest.mock import patch
 
-        # When a shallow boundary hides the actual old receipt creation,
-        # retention is qualified by the exact monorepo importer. With the
-        # complete original graph, the original creation Git commit is the
-        # stronger identity, independent of the import anchor.
+        # Imported archive qualification must bind the exact canonical
+        # monorepo import in BOTH Git graph views; the original source's
+        # native creation commit never substitutes for the imported bytes.
         original_revision = EXPECTED["harness.research.campaign3-rich-effect-owner-capture-v1"][2]
-        import_is_creation = check_evidence._git_creation_revisions(f"evidence/{filename}") == [
-            check_evidence._HARNESS_HISTORICAL_IMPORT
-        ]
         with patch.object(check_evidence, "_HARNESS_HISTORICAL_IMPORT", "0" * 40):
-            errors = validator(filename, original_revision, historical=True)
-            self.assertEqual(bool(errors), import_is_creation)
+            self.assertTrue(validator(filename, original_revision, historical=True))
         # Byte substitution must fail, even though historical retention has no
         # right to certify the original independent repository ancestry.
         with patch.object(check_evidence, "_git_file_bytes", return_value=b"tampered"):
