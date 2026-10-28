@@ -26,6 +26,7 @@ class RepositoryBoundaryTests(unittest.TestCase):
             project.get("dependency-groups"),
             {
                 "dev": ["ruff==0.17.2"],
+                "formal": ["crosshair-tool==0.0.112"],
                 "test": [
                     "mcp==2.3.0",
                     "uvicorn==0.52.1",
