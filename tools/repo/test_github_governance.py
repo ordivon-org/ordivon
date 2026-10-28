@@ -124,6 +124,11 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 encoding="utf-8",
             )
             fake.chmod(0o755)
+            # The real CI installs pinned Verus rustup tooling. Tests must
+            # not mutate the host toolchain or download from the network.
+            fake_rustup = folder / "bin/rustup"
+            fake_rustup.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+            fake_rustup.chmod(0o755)
             with fake.open("a", encoding="utf-8") as script:
                 script.write(
                     'if [[ "$1" == run && "$2" == formal:verify ]]; then '
@@ -275,6 +280,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 encoding="utf-8",
             )
             mock.chmod(0o755)
+            fake_rustup = binary / "rustup"
+            fake_rustup.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+            fake_rustup.chmod(0o755)
             with mock.open("a", encoding="utf-8") as script:
                 script.write(
                     'if [[ "$1" == run && "$2" == formal:verify ]]; then '

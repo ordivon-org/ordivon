@@ -290,6 +290,11 @@ jobs:
             echo "ERROR: Formal executable source differs from exact Git HEAD" >&2
             exit 43
           }
+          # Verus invokes rustup's pinned compiler, not just the mise-resolved
+          # verifier executable. Fresh GitHub runners lack this exact toolchain
+          # even when the Formal mise install has succeeded. Preserve the
+          # native proof gate and install its prerequisite instead of skipping.
+          rustup toolchain install 1.99.1 --profile minimal
           receipt="$RUNNER_TEMP/ordivon-core-formal-report.json"
           mise run formal:verify > "$receipt"
           qualify_formal_prefix || {
@@ -337,6 +342,7 @@ jobs:
               raise SystemExit("ERROR: Formal execution lacks a valid scoped PASS receipt")
           print("Native Formal scoped verifier PASS; proof reuse remains unadmitted")
           PY
+
 
       - name: Runtime supply-chain policy
         if: steps.affected.outputs.runtime == 'true'
