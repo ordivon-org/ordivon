@@ -1352,6 +1352,23 @@ def test_phase2_exact_git_impact_cli_rejects_ambiguous_proof_input(tmp_path) -> 
     }
     assert result["proofReuseAdmissible"] is False
 
+    # Native Git source is immutable, but the producer CLI was previously
+    # invoked from mutable checkout bytes without any source qualification.
+    # A changed running producer must not claim exact provenance via the same
+    # committed source-cut pair.
+    owner_tool = source_repo / "tools/repo/source_history_legos.py"
+    before_bytes = owner_tool.read_bytes()
+    try:
+        owner_tool.write_bytes(
+            before_bytes + b"\n# deliberately uncommitted owner producer drift\n"
+        )
+        drift = select()
+        assert drift.returncode != 0
+        assert "native Git query producer differs from its Git SourceCut" in drift.stderr
+        assert "Traceback" not in drift.stderr
+    finally:
+        owner_tool.write_bytes(before_bytes)
+
     for ambiguous in (
         f'[{{"id":"proof:skipped","id":"proof:changed",'
         f'"dependsOn":["{ref}"],"dependenciesComplete":true}}]',
