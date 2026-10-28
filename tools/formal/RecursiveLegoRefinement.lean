@@ -801,6 +801,207 @@ end OrdivonR21.PriorityClosure
 #print axioms OrdivonR21.refinement_iff_saturated_guarantee
 #print axioms OrdivonR21.narrowed_assumptions_cannot_substitute
 
+-- K1 bounded Harness -> Gateway -> Runtime timeout connection, as a
+-- mathematical input adapter ONLY. Gateway/Python/Rust implementation
+-- refinement and installed Runtime defaults are separate proof obligations.
+-- The absent optional Agent timeout must not erase the caller's grant.
+namespace OrdivonR21.TimeoutConnection
+
+def forwarded (grant : Nat) (requested : Option Nat) : Nat :=
+  requested.getD grant
+
+def admitted (grant : Nat) : Option Nat → Prop
+  | none => 0 < grant
+  | some timeout => 0 < timeout ∧ timeout ≤ grant
+
+theorem accepted_request_preserves_grant
+    (grant : Nat) (requested : Option Nat)
+    (h : admitted grant requested) :
+    0 < forwarded grant requested ∧ forwarded grant requested ≤ grant := by
+  cases requested with
+  | none =>
+      exact ⟨h, Nat.le_refl grant⟩
+  | some timeout =>
+      exact h
+
+theorem absent_request_uses_caller_grant (grant : Nat) :
+    forwarded grant none = grant := rfl
+
+theorem explicit_request_preserves_admitted_value
+    (grant timeout : Nat)
+    (_h : admitted grant (some timeout)) :
+    forwarded grant (some timeout) = timeout := rfl
+
+-- Nonvacuous model counterexample: delegating absent timeout to a
+-- wider downstream default loses the upstream authorized bound.
+theorem runtime_default_can_exceed_caller_grant :
+    ∃ (grant runtimeDefault : Nat),
+      0 < grant ∧ grant < runtimeDefault ∧
+      forwarded grant none ≤ grant ∧ ¬ runtimeDefault ≤ grant := by
+  exact ⟨10000, 86400000, by decide, by decide, by decide, by decide⟩
+
+-- Strict, task-local R2.1 LEGO profile demanded for this admitted K1
+-- responsibility. I/O/S are ACTUAL Lean types, not untyped JSON labels.
+-- Extra identity, responsibility, and acceptance retain the six practical
+-- roles; each of the eleven historical coordinates is mandatory HERE.
+-- This structure is a formal model, not a new registry/runtime or proof
+-- that an arbitrary Python/Rust binary implements it.
+structure StrictLego21 (I O S : Type) where
+  identity : String
+  responsibility : String
+  pre : S → I → Prop
+  post : S → I → O → S → Prop
+  inv : S → Prop
+  eff : S → I → O → S → Prop
+  c : S → I → Nat
+  epsilon : Nat
+  prov : String
+  unfold : List String
+  accept : S → I → O → S → Prop
+
+-- Coordinates, in order:
+-- I = Option Nat (the optional Agent timeout),
+-- O = Nat (explicit forwarded timeout), S = Nat (the caller grant).
+-- pre = admitted, post = exact forwarding and preserved grant,
+-- inv = positive and bounded grant, eff = this adapter has no state change,
+-- c = one ABSTRACT projection step, epsilon = zero numeric approximation,
+-- prov = source-level traceability (NOT installed currentness),
+-- unfold = one existing Harness adapter responsibility.
+def strictTimeout : StrictLego21 (Option Nat) Nat Nat where
+  identity := "harness.gateway.execution.timeout-bound-r21"
+  responsibility := "preserve caller timeout grant across optional Agent port"
+  pre := fun grant requested => admitted grant requested
+  post := fun grant requested outgoing next =>
+    outgoing = forwarded grant requested ∧ next = grant
+  inv := fun grant => 0 < grant ∧ grant ≤ 900000
+  eff := fun grant _ _ next => next = grant
+  c := fun _ _ => 1
+  epsilon := 0
+  prov := "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+  unfold := ["PluginGatewayExecutionGrant", "GatewayMcpRuntimeAdapter"]
+  accept := fun grant requested outgoing next =>
+    outgoing = forwarded grant requested ∧
+    next = grant ∧
+    0 < outgoing ∧ outgoing ≤ grant
+
+def asIOContract {I O S : Type} (lego : StrictLego21 I O S) :
+    IOContract (S × I) (O × S) where
+  assume := fun x => lego.inv x.1 ∧ lego.pre x.1 x.2
+  guarantee := fun x y =>
+    lego.post x.1 x.2 y.1 y.2 ∧
+    lego.eff x.1 x.2 y.1 y.2 ∧
+    lego.accept x.1 x.2 y.1 y.2
+
+def oldConsumerContract : IOContract (Nat × Option Nat) (Nat × Nat) where
+  assume := fun x => strictTimeout.inv x.1 ∧ admitted x.1 x.2
+  guarantee := fun x y => 0 < y.1 ∧ y.1 ≤ x.1 ∧ y.2 = x.1
+
+-- The mathematical implementation transition is explicitly deterministic.
+-- Its equality with the native Python branch still requires an independent
+-- trusted program/source-to-model bridge; this statement cannot mint one.
+def modeledBehavior :
+    (Nat × Option Nat) → (Nat × Nat) → Prop :=
+  fun x y => y = (forwarded x.1 x.2, x.1)
+
+theorem strictTimeout_refines_existing_consumer :
+    Refines (asIOContract strictTimeout) oldConsumerContract := by
+  constructor
+  · intro x hOld
+    exact hOld
+  · intro x y hOld hNew
+    rcases hNew with ⟨_hPost, hEff, hAccept⟩
+    rcases hAccept with ⟨_hExact, _hState, hPositive, hBounded⟩
+    exact ⟨hPositive, hBounded, hEff⟩
+
+theorem modeledBehavior_implements_strictTimeout :
+    Implements (asIOContract strictTimeout) modeledBehavior := by
+  constructor
+  · intro x y hAssume hBehavior
+    subst y
+    dsimp [asIOContract, strictTimeout, modeledBehavior] at *
+    refine ⟨⟨rfl, rfl⟩, rfl, ⟨rfl, rfl, ?_⟩⟩
+    exact accepted_request_preserves_grant x.1 x.2 hAssume.2
+  · intro x _
+    exact ⟨(forwarded x.1 x.2, x.1), rfl⟩
+
+theorem modeledBehavior_preserves_old_consumer :
+    Implements oldConsumerContract modeledBehavior :=
+  refinement_preserves_implementation
+    (asIOContract strictTimeout) oldConsumerContract modeledBehavior
+    modeledBehavior_implements_strictTimeout
+    strictTimeout_refines_existing_consumer
+
+-- This obligation is stronger than mere invariant satisfiability:
+-- every accepted modeled step preserves its state invariant.
+theorem strictTimeout_preserves_invariant
+    (grant : Nat) (requested : Option Nat)
+    (outgoing next : Nat)
+    (hInv : strictTimeout.inv grant)
+    (hPost : strictTimeout.post grant requested outgoing next) :
+    strictTimeout.inv next := by
+  rw [hPost.2]
+  exact hInv
+
+-- The cost/approximation coordinates are intentionally abstract: a single
+-- projection step, with no mathematical approximation of the timeout value.
+-- They are not latency, monetary cost, installed effects or proof reliability.
+theorem strictTimeout_abstract_cost_and_epsilon
+    (grant : Nat) (requested : Option Nat) :
+    strictTimeout.c grant requested = 1 ∧ strictTimeout.epsilon = 0 :=
+  ⟨rfl, rfl⟩
+
+-- The admitted mathematical realization exactly matches the declared
+-- effect/acceptance relation, not just the old bounded consumer guarantee.
+theorem strictTimeout_transition_meets_acceptance
+    (grant : Nat) (requested : Option Nat)
+    (hInv : strictTimeout.inv grant)
+    (hPre : strictTimeout.pre grant requested) :
+    strictTimeout.post grant requested
+      (forwarded grant requested) grant ∧
+    strictTimeout.eff grant requested
+      (forwarded grant requested) grant ∧
+    strictTimeout.accept grant requested
+      (forwarded grant requested) grant := by
+  have hBound := accepted_request_preserves_grant grant requested hPre
+  exact ⟨⟨rfl, rfl⟩, rfl, ⟨rfl, rfl, hBound⟩⟩
+
+-- Exact, non-vacuous admitted source input, so success cannot be obtained
+-- merely because the input assumptions are contradictory.
+theorem strictTimeout_has_admitted_input :
+    ∃ (grant : Nat) (requested : Option Nat),
+      strictTimeout.inv grant ∧ strictTimeout.pre grant requested := by
+  refine ⟨10000, none, ?_, ?_⟩
+  · change 0 < 10000 ∧ 10000 ≤ 900000
+    exact ⟨by decide, by decide⟩
+  · change admitted 10000 none
+    exact (by decide : 0 < 10000)
+
+-- An uncontrolled downstream default violates the old consumer guarantee.
+-- The countermodel is concrete and cannot be disguised as a compatible
+-- refinement merely by supplying an arbitrary evidence reference.
+theorem unbounded_default_not_a_refinement :
+    ¬ oldConsumerContract.guarantee
+      (10000, none) (86400000, 10000) := by
+  intro h
+  have hBad : 86400000 ≤ 10000 := h.2.1
+  exact (by decide : ¬ (86400000 ≤ 10000)) hBad
+
+end OrdivonR21.TimeoutConnection
+
+#print axioms OrdivonR21.TimeoutConnection.modeledBehavior_implements_strictTimeout
+#print axioms OrdivonR21.TimeoutConnection.strictTimeout_refines_existing_consumer
+#print axioms OrdivonR21.TimeoutConnection.modeledBehavior_preserves_old_consumer
+#print axioms OrdivonR21.TimeoutConnection.strictTimeout_has_admitted_input
+#print axioms OrdivonR21.TimeoutConnection.unbounded_default_not_a_refinement
+#print axioms OrdivonR21.TimeoutConnection.strictTimeout_preserves_invariant
+#print axioms OrdivonR21.TimeoutConnection.strictTimeout_abstract_cost_and_epsilon
+#print axioms OrdivonR21.TimeoutConnection.strictTimeout_transition_meets_acceptance
+
+#print axioms OrdivonR21.TimeoutConnection.accepted_request_preserves_grant
+#print axioms OrdivonR21.TimeoutConnection.absent_request_uses_caller_grant
+#print axioms OrdivonR21.TimeoutConnection.explicit_request_preserves_admitted_value
+#print axioms OrdivonR21.TimeoutConnection.runtime_default_can_exceed_caller_grant
+
 -- R2.1 Representation-first / Equivalence-first: an evidence identity is
 -- stable only if source numeric meaning is preserved by the chosen encoding.
 -- This is the MODEL contract for the Composition JSON Decimal/Float boundary.
