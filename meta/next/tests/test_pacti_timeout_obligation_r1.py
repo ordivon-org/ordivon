@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
@@ -203,3 +205,171 @@ def test_pacti_algebra_mismatch_requires_actual_provider_exception_type(
     # The error may not be admitted as a SATISFIED Composition Gate either.
     with pytest.raises(ForeignError, match="unrelated bogus verifier failure"):
         verifier.run(spec)
+
+
+def test_agent_cli_observes_actual_owner_contract_via_native_pacti(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("pacti", reason="the owner CLI needs the real algebra provider")
+    grant = tmp_path / "owner-grant.json"
+    runtime = tmp_path / "runtime-status.json"
+    grant.write_text(
+        json.dumps(
+            {
+                "schemaVersion": 1,
+                "kind": "ordivon.plugin-gateway-execution-grant",
+                "maxTimeoutMs": 300000,
+            }
+        ),
+        encoding="utf-8",
+    )
+    runtime.write_text(
+        json.dumps({"config": {"maxRuntimeMs": 86400000}}), encoding="utf-8"
+    )
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(NEXT_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
+            "--owner-grant",
+            str(grant),
+            "--runtime-status",
+            str(runtime),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    result = json.loads(completed.stdout)
+    assert result["kind"] == "ordivon.pacti-observed-owner-timeout-projection"
+    assert result["modelStanding"] == "COMPATIBLE"
+    assert result["pactiVersion"] == "0.3.1"
+    assert result["grantMaxMs"] == 300000
+    assert result["runtimeMaxMs"] == 86400000
+    assert "freshness" in result["nonClaims"][0]
+
+
+@pytest.mark.parametrize(
+    ("max_ms", "standing"),
+    [(60_000, "INCOMPATIBLE"), (300_000, "COMPATIBLE")],
+)
+def test_agent_cli_reports_real_pacti_incompatibility_and_boundary(
+    tmp_path: Path,
+    max_ms: int,
+    standing: str,
+) -> None:
+    pytest.importorskip("pacti", reason="real Pacti algebra required")
+    grant = tmp_path / "grant.json"
+    status = tmp_path / "status.json"
+    grant.write_text(
+        json.dumps(
+            {
+                "schemaVersion": 1,
+                "kind": "ordivon.plugin-gateway-execution-grant",
+                "maxTimeoutMs": 300_000,
+            }
+        ),
+        encoding="utf-8",
+    )
+    status.write_text(
+        json.dumps({"config": {"maxRuntimeMs": max_ms}}), encoding="utf-8"
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(NEXT_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
+            "--owner-grant",
+            str(grant),
+            "--runtime-status",
+            str(status),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    body = json.loads(result.stdout)
+    assert body["modelStanding"] == standing
+    assert "never grants" in body["nonClaims"][-1]
+    assert body["grantMaxMs"] == 300_000
+
+
+@pytest.mark.parametrize(
+    "runtime_status", [{}, {"config": {}}, {"config": {"maxRuntimeMs": True}}]
+)
+def test_agent_cli_refuses_unknown_owner_runtime_input(
+    tmp_path: Path,
+    runtime_status: dict,
+) -> None:
+    grant = tmp_path / "grant.json"
+    status = tmp_path / "status.json"
+    grant.write_text(
+        json.dumps(
+            {
+                "schemaVersion": 1,
+                "kind": "ordivon.plugin-gateway-execution-grant",
+                "maxTimeoutMs": 300_000,
+            }
+        ),
+        encoding="utf-8",
+    )
+    status.write_text(json.dumps(runtime_status), encoding="utf-8")
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(NEXT_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
+            "--owner-grant",
+            str(grant),
+            "--runtime-status",
+            str(status),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "missing or invalid runtime.config.maxRuntimeMs" in result.stderr
+    assert not result.stdout.strip()
+
+
+def test_agent_cli_keeps_existing_frozen_spec_entrypoint() -> None:
+    pytest.importorskip("pacti", reason="real Pacti algebra required")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(NEXT_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
+            str(SPEC),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert (
+        json.loads(completed.stdout)["kind"]
+        == "ordivon.verification-obligation-pacti-shadow-r2"
+    )
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--owner-grant", "foo.json"],
+        ["--runtime-status", "foo.json"],
+        ["--owner-grant", "foo.json", "--runtime-status", "bar.json", "spec.json"],
+    ],
+)
+def test_agent_cli_rejects_partial_or_mixed_authority_inputs(args: list[str]) -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(NEXT_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
+            *args,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 2
+    assert "without spec" in completed.stderr
+    assert completed.stdout == ""
