@@ -517,6 +517,32 @@ class DerivedProblemLegoFrontierTests(unittest.TestCase):
 
 
 class ExplicitIndependentScopeTests(unittest.TestCase):
+    def test_subject_repo_must_not_be_reported_as_independent_git(self) -> None:
+        subject = ROOT.resolve()
+        exact_cut = subprocess.check_output(
+            ["git", "-C", str(subject), "rev-parse", "HEAD"],
+            text=True,
+        ).strip()
+        with self.assertRaisesRegex(ValueError, "subject repository"):
+            M.independent_scope_frontier(
+                subject, exact_cut,
+                external_git=[f"self={subject}@{exact_cut}"],
+                non_git_data=[],
+            )
+        with self.assertRaisesRegex(ValueError, "subject repository"):
+            M.independent_scope_frontier(
+                subject / "tools/repo", exact_cut,
+                external_git=[f"self={subject}@{exact_cut}"],
+                non_git_data=[],
+            )
+        cli = subprocess.run([
+            "python3", str(subject / "tools/repo/exhaustive_coverage.py"),
+            "--repo", str(subject), "--source-cut", exact_cut,
+            "--scope-census", "--external-git-cut", f"self={subject}@{exact_cut}",
+        ], capture_output=True, text=True, timeout=15)
+        self.assertNotEqual(cli.returncode, 0)
+        self.assertIn("subject repository", cli.stderr)
+
     def test_exact_independent_git_cut_not_mixed_into_subject_repo(self) -> None:
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
