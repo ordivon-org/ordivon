@@ -312,9 +312,11 @@ jobs:
             exit 43
           }
           python3 - "$receipt" <<'PY'
+          import hashlib
           import json
           import os
           import re
+          import stat
           import subprocess
           import sys
           from pathlib import Path
@@ -427,6 +429,17 @@ jobs:
                       return False
                   if re.fullmatch("[0-9a-f]{64}", record["sha256"]) is None:
                       return False
+                  # A well-formed digest string does not identify an installed binary.
+                  # Rehash the *actual recorded executable*, not just its claimed SHA.
+                  executable = Path(record["path"])
+                  if (not executable.is_absolute() or executable.is_symlink()
+                          or not executable.is_file()
+                          or not stat.S_ISREG(executable.stat().st_mode)
+                          or not os.access(executable, os.X_OK)):
+                      return False
+                  with executable.open("rb") as stream:
+                      if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
+                          return False
               return True
 
           try:

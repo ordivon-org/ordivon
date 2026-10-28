@@ -62,8 +62,21 @@ _FORMAL_PROBE_ORACLES = (
 )
 _FORMAL_TOOLS = ("lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy")
 
-def _qualified_formal_test_receipt(checkout: Path, source_cut: str) -> dict:
+def _qualified_formal_test_receipt(
+    checkout: Path, source_cut: str, fake_bin_dir: Path
+) -> dict:
     """Positive fake-checker protocol fixture; never a proof or trusted result."""
+    import hashlib
+    fake_bin_dir.mkdir(parents=True, exist_ok=True)
+    fixture_binaries = {}
+    for name in _FORMAL_TOOLS:
+        executable = fake_bin_dir / name
+        executable.write_bytes(("fixture executable: " + name).encode("utf-8"))
+        executable.chmod(0o700)
+        fixture_binaries[name] = {
+            "path": str(executable), "version": "fixture",
+            "sha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
+        }
     sources = {
         rel: subprocess.check_output(
             ["git", "--no-replace-objects", "-C", str(checkout), "rev-parse",
@@ -79,11 +92,7 @@ def _qualified_formal_test_receipt(checkout: Path, source_cut: str) -> dict:
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "proofReuseAdmissible": False,
         "sourceBlobs": sources,
-        "toolBinaries": {
-            name: {"path": "/fixture/" + name, "version": "fixture",
-                   "sha256": "a" * 64}
-            for name in _FORMAL_TOOLS
-        },
+        "toolBinaries": fixture_binaries,
         "count": len(_FORMAL_PROBE_ORACLES),
         "probes": [
             {"probe": label, "result": "PASS", "rc": rc}
@@ -194,7 +203,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             report_path.write_text(json.dumps(_qualified_formal_test_receipt(
                 ROOT, subprocess.check_output(
                     ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
-                ).strip(),
+                ).strip(), folder / "fake-formal-tool-binaries",
             )), encoding="utf-8")
             tasks = folder / "ordivon-affected-tasks.txt"
             log = folder / "mise.log"
@@ -304,6 +313,11 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             wrong_tool_hash = copy.deepcopy(full_report)
             wrong_tool_hash["toolBinaries"]["lean"]["sha256"] = "Z" * 64
             invalid_receipts["tool-digest-not-hex"] = json.dumps(wrong_tool_hash)
+            valid_hex_wrong_digest = copy.deepcopy(full_report)
+            valid_hex_wrong_digest["toolBinaries"]["lean"]["sha256"] = "0" * 64
+            invalid_receipts["tool-digest-valid-hex-but-wrong-bytes"] = json.dumps(
+                valid_hex_wrong_digest
+            )
             no_version = copy.deepcopy(full_report)
             no_version["toolBinaries"]["lean"]["version"] = ""
             invalid_receipts["tool-version-missing"] = json.dumps(no_version)
@@ -316,7 +330,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             wrong_count = copy.deepcopy(full_report)
             wrong_count["count"] += 1
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
-            self.assertEqual(len(invalid_receipts), 54)
+            self.assertEqual(len(invalid_receipts), 55)
 
             try:
                 for label, payload in invalid_receipts.items():
@@ -445,7 +459,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             ).strip()
             report = work / "formal-fixture.json"
             report.write_text(json.dumps(
-                _qualified_formal_test_receipt(repo, source_cut)
+                _qualified_formal_test_receipt(
+                    repo, source_cut, work / "fake-formal-tool-binaries",
+                )
             ), encoding="utf-8")
             tasks = work / "ordivon-affected-tasks.txt"
             tasks.write_text("runtime:verify\n", encoding="utf-8")
