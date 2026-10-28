@@ -138,6 +138,38 @@ class ConvergencePlanTests(unittest.TestCase):
              "tools/formal/Proof.qnt"],
         )
 
+    def test_queue_consumer_rejects_omitted_actual_change_impact(self) -> None:
+        """Real queue validator must enforce changed-source impact, not just list consistency."""
+        runtime = "services/runtime/crates/ordivon-runtime-core/src/lib.rs"
+        changes = (
+            ([runtime], [], []),
+            ([runtime], ["runtime"], ["runtime:verify"]),
+            (["tools/repo/owners.toml"], [], []),
+            (["tools/repo/owners.toml"], ["runtime"], ["runtime:verify"]),
+        )
+        for paths, selected, tasks in changes:
+            with self.subTest(paths=paths, selected=selected):
+                with self.assertRaisesRegex(ValueError, "source impact"):
+                    MODULE.validate_queue_task_selection(selected, tasks, paths)
+
+        for paths in (
+            [runtime],
+            ["tools/repo/owners.toml"],
+            ["tools/formal/Proof.qnt"],
+            ["tools/formal/Proof.qnt", runtime],
+            ["docs/architecture/EXAMPLE.md"],
+        ):
+            with self.subTest(accepted=paths):
+                plan = MODULE.build_plan(changed_files=paths)
+                MODULE.validate_queue_task_selection(
+                    plan["verificationOwners"], plan["queueVerifyTasks"], paths
+                )
+        # Manual/schedule with no planned change remain governed by complete
+        # canonical Owner->task consistency, not an invented empty source delta.
+        all_owners = [item.name for item in MODULE.affected_owners.OWNERS]
+        all_tasks = [item.queue_task for item in MODULE.affected_owners.OWNERS]
+        MODULE.validate_queue_task_selection(all_owners, all_tasks)
+
     def test_formal_source_task_queue_validation_denies_missing_or_forged_tasks(self) -> None:
         for owners, requested, changed in (
             ([], [], ["tools/formal/Proof.qnt"]),
@@ -175,8 +207,12 @@ class ConvergencePlanTests(unittest.TestCase):
         )
         examples = (
             ([], ["formal:verify"], ["tools/formal/Proof.qnt"], True),
-            (["runtime"], ["runtime:verify"],
+            (["composition", "runtime"], ["composition:verify", "runtime:verify"],
              ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"], True),
+            ([], [], ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"], False),
+            (["runtime"], ["runtime:verify"],
+             ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"], False),
+            ([], [], ["tools/repo/owners.toml"], False),
             (["composition", "runtime"],
              ["composition:verify", "runtime:verify", "formal:verify"],
              ["services/runtime/crates/ordivon-runtime-core/src/lib.rs",

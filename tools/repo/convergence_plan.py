@@ -139,6 +139,26 @@ def validate_queue_task_selection(
     canonical = {
         owner.name: owner.queue_task for owner in affected_owners.OWNERS
     }
+    # The queue consumes the already projected source impact, not merely the
+    # producer's asserted Owner list. Otherwise a consistently empty/partial
+    # (verificationOwners, queueVerifyTasks) pair would pass and silently
+    # skip a real Runtime consumer or a cross-cutting Owner verification.
+    #
+    # This compares the caller's changedPaths to the existing native
+    # dependency/consumer closure. It DOES NOT prove changedPaths matches Git
+    # bytes, installed effects, complete dynamic consumers or formal proof.
+    if changed_paths:
+        impact = build_plan(changed_files=changed_paths)
+        if selected_owners != impact["verificationOwners"]:
+            raise ValueError(
+                "queue source impact must include the exact canonical "
+                "changed-source verification consumer closure"
+            )
+        if requested_tasks != impact["queueVerifyTasks"]:
+            raise ValueError(
+                "queue source impact must include the exact canonical "
+                "changed-source task closure"
+            )
     if len(selected_owners) != len(set(selected_owners)):
         raise ValueError("selected verification owner identities are duplicated")
     if any(owner not in canonical for owner in selected_owners):
