@@ -582,8 +582,12 @@ class PluginGatewayExecutionBridge(SQLiteHarnessRuntimeBridge):
         }
         if env is not None:
             execution["env"] = dict(env)
-        if timeout is not None:
-            execution["timeoutMs"] = timeout
+        # Runtime's omitted-timeout default is owned by Runtime and may be
+        # wider than this Harness caller's grant. Preserve the explicit
+        # capability bound even when the model leaves timeoutMs unspecified.
+        execution["timeoutMs"] = (
+            self.gateway_grant.max_timeout_ms if timeout is None else timeout
+        )
         return (
             "workspace.exec",
             {

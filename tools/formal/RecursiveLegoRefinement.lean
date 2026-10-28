@@ -801,6 +801,52 @@ end OrdivonR21.PriorityClosure
 #print axioms OrdivonR21.refinement_iff_saturated_guarantee
 #print axioms OrdivonR21.narrowed_assumptions_cannot_substitute
 
+-- K1 bounded Harness -> Gateway -> Runtime timeout connection, as a
+-- mathematical input adapter ONLY. Gateway/Python/Rust implementation
+-- refinement and installed Runtime defaults are separate proof obligations.
+-- The absent optional Agent timeout must not erase the caller's grant.
+namespace OrdivonR21.TimeoutConnection
+
+def forwarded (grant : Nat) (requested : Option Nat) : Nat :=
+  requested.getD grant
+
+def admitted (grant : Nat) : Option Nat → Prop
+  | none => 0 < grant
+  | some timeout => 0 < timeout ∧ timeout ≤ grant
+
+theorem accepted_request_preserves_grant
+    (grant : Nat) (requested : Option Nat)
+    (h : admitted grant requested) :
+    0 < forwarded grant requested ∧ forwarded grant requested ≤ grant := by
+  cases requested with
+  | none =>
+      exact ⟨h, Nat.le_refl grant⟩
+  | some timeout =>
+      exact h
+
+theorem absent_request_uses_caller_grant (grant : Nat) :
+    forwarded grant none = grant := rfl
+
+theorem explicit_request_preserves_admitted_value
+    (grant timeout : Nat)
+    (_h : admitted grant (some timeout)) :
+    forwarded grant (some timeout) = timeout := rfl
+
+-- Nonvacuous model counterexample: delegating absent timeout to a
+-- wider downstream default loses the upstream authorized bound.
+theorem runtime_default_can_exceed_caller_grant :
+    ∃ (grant runtimeDefault : Nat),
+      0 < grant ∧ grant < runtimeDefault ∧
+      forwarded grant none ≤ grant ∧ ¬ runtimeDefault ≤ grant := by
+  exact ⟨10000, 86400000, by decide, by decide, by decide, by decide⟩
+
+end OrdivonR21.TimeoutConnection
+
+#print axioms OrdivonR21.TimeoutConnection.accepted_request_preserves_grant
+#print axioms OrdivonR21.TimeoutConnection.absent_request_uses_caller_grant
+#print axioms OrdivonR21.TimeoutConnection.explicit_request_preserves_admitted_value
+#print axioms OrdivonR21.TimeoutConnection.runtime_default_can_exceed_caller_grant
+
 -- R2.1 Representation-first / Equivalence-first: an evidence identity is
 -- stable only if source numeric meaning is preserved by the chosen encoding.
 -- This is the MODEL contract for the Composition JSON Decimal/Float boundary.
