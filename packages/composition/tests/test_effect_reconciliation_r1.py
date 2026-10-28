@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import ast
 import json
 import subprocess
 import sys
 from itertools import product
+from pathlib import Path
 
 import pytest
 
@@ -72,6 +74,48 @@ def qualify(obs=None, *, indexed=True):
 
 def standings(value):
     return {r["id"]: r["standing"] for r in value["selection"]["standingByObligation"]}
+
+
+def test_c04_to_c06_plan_consumer_binding_matches_real_import_and_call():
+    """Close one actual first-party SOURCE consumer seam, not deployed behavior.
+
+    A planning claim alone is not a runtime consumer. Require the exact C06
+    Python source to import AND call the C04 selector, and to preserve the
+    explicit unknown-effects safety contract and native test evidence.
+    """
+    root = Path(__file__).resolve().parents[1]
+    plan = json.loads((root / "planning/lego-plan-r1.json").read_text())
+    c04 = next(node for node in plan["nodes"] if node["id"] == "C04")
+    c06 = next(node for node in plan["nodes"] if node["id"] == "C06")
+    assert "C04" in c06["dependencies"]
+    path = "packages/composition/src/ordivon_composition/effect_reconciliation_r1.py"
+    bindings = [row for row in c04["consumerBindings"] if row["path"] == path]
+    assert len(bindings) == 1
+    assert "SOURCE_AST_DIRECT_IMPORT_AND_CALL" in bindings[0]["standing"]
+    assert "INSTALLED_AND_DOMAIN_EFFECT_UNKNOWN" in bindings[0]["standing"]
+    tree = ast.parse((root / "src/ordivon_composition/effect_reconciliation_r1.py").read_text())
+    imports = [node for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]
+    assert any(
+        node.level == 1
+        and node.module == "verification_obligation_r1"
+        and any(alias.name == "select_impacted_obligations" for alias in node.names)
+        for node in imports
+    )
+    target = next(
+        node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == "qualify_execution_effect_frontier"
+    )
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "select_impacted_obligations"
+        for node in ast.walk(target)
+    )
+    assert "formal/EffectReplayFence.tla" in c06["evidence"]
+    assert "tests/test_effect_reconciliation_r1.py" in c06["evidence"]
+    assert "MODEL" in c06["qualification"] and "INSTALLED_EFFECT_UNKNOWN" in c06["qualification"]
 
 
 def test_expired_started_attempt_reconciles_exact_operation_and_fences_replay():
