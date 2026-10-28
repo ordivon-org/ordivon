@@ -452,7 +452,13 @@ def build_qualified_temporal_impact(
         # executable analysis and policy readsets match this exact source cut.
         explained = explain_source_impacts(plan, source_cut=head, repo=repo)
     else:
-        explained = None
+        # Zero observed changes are still a consumer of the current selector
+        # and task policy. Without this branch, a dirty policy or executable
+        # producer could emit a falsely empty complete queue while declaring
+        # itself equivalent to the immutable Git SourceCut.
+        explained = explain_source_impacts(
+            build_plan(base=head, head=head), source_cut=head, repo=repo
+        )
     return {
         "kind": "ordivon.phase2.temporal-source-verified-consumer-selection",
         "sourceCuts": {"previous": base, "current": head},

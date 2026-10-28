@@ -78,7 +78,9 @@ class ConvergencePlanTests(unittest.TestCase):
             base=base, head=head, prefixes=["tools/formal/not-a-real-subtree/"]
         )
         self.assertEqual(empty["queueVerifyTasks"], [])
-        self.assertIsNone(empty["sourceConsumerEvidence"])
+        self.assertEqual(empty["sourceConsumerEvidence"]["changedSourceInputs"], [])
+        self.assertEqual(empty["sourceConsumerEvidence"]["sourceCut"], head)
+        self.assertFalse(empty["sourceConsumerEvidence"]["proofReuseAdmissible"])
         self.assertFalse(empty["proofReuseAdmissible"])
         self.assertEqual(empty["gitDeltaCoverage"]["observedChangedPathCount"], 0)
         self.assertGreater(empty["gitDeltaCoverage"]["unobservedChangedPathCount"], 0)
@@ -90,7 +92,8 @@ class ConvergencePlanTests(unittest.TestCase):
         )
         self.assertTrue(unchanged["gitDeltaCoverage"]["allTrackedGitChangesObserved"])
         self.assertEqual(unchanged["gitDeltaCoverage"]["exactChangedPathCount"], 0)
-        self.assertIsNone(unchanged["sourceConsumerEvidence"])
+        self.assertEqual(unchanged["sourceConsumerEvidence"]["changedSourceInputs"], [])
+        self.assertEqual(unchanged["sourceConsumerEvidence"]["sourceCut"], head)
         self.assertFalse(unchanged["proofReuseAdmissible"])
         for wrong in (
             dict(base=base, head=base, prefixes=["tools/formal/"]),
@@ -105,6 +108,25 @@ class ConvergencePlanTests(unittest.TestCase):
         )
         self.assertNotEqual(forged.returncode, 0)
         self.assertIn("no competing", forged.stderr)
+
+    def test_empty_temporal_change_still_rejects_dirty_producer_and_policy(self) -> None:
+        """No Git delta never certifies a drifted live verification contract."""
+        head = MODULE._git("rev-parse", "HEAD")
+        root = MODULE_PATH.parents[2]
+        for relative, expected_error in (
+            ("tools/repo/owners.toml", "verification contract differs"),
+            ("tools/repo/convergence_plan.py", "executed producer source differs"),
+        ):
+            source = root / relative
+            original = source.read_bytes()
+            try:
+                source.write_bytes(original + b"\\n# synthetic sourcecut drift fixture\\n")
+                with self.assertRaisesRegex(ValueError, expected_error):
+                    MODULE.build_qualified_temporal_impact(
+                        base=head, head=head, prefixes=["tools/repo/"]
+                    )
+            finally:
+                source.write_bytes(original)
 
     def test_self_hosted_impact_explanation_binds_real_source_and_verification(self) -> None:
         source = "tools/repo/affected_owners.py"
