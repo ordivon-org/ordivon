@@ -258,6 +258,14 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             (repo / "tools/formal/verify.py").write_text(
                 'print("mock")\n', encoding="utf-8"
             )
+            # One actual nested Mise source is sufficient to falsify the
+            # Owner runner if it only checks the root task manifest.
+            (repo / "domains/game").mkdir(parents=True)
+            nested_game = repo / "domains/game/mise.toml"
+            nested_game.write_text(
+                '[tasks.verify]\nrun = "echo harmless nested task"\n',
+                encoding="utf-8",
+            )
             subprocess.run(["git", "init", "-q", str(repo)], check=True)
             subprocess.run(
                 ["git", "-C", str(repo), "config", "user.name", "Fixture"],
@@ -364,6 +372,38 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             self.assertIn("root task checkout differs from provider GITHUB_SHA", refused.stderr)
             self.assertEqual(record.read_text(), "")
             env.pop("GITHUB_SHA", None)
+
+            # Source-qualify nested Owner task manifests as well as root.
+            nested_bytes = nested_game.read_bytes()
+            try:
+                nested_game.write_bytes(nested_bytes + b"\n# changed nested source\n")
+                denied_nested = invoke(queue_script)
+                self.assertEqual(denied_nested.returncode, 43, denied_nested.stderr)
+                self.assertIn(
+                    "nested Mise task source differs from exact Git HEAD",
+                    denied_nested.stderr,
+                )
+                self.assertEqual(record.read_text(), "")
+            finally:
+                nested_game.write_bytes(nested_bytes)
+
+            # Git blob byte-equivalence is not sufficient if the actual
+            # executed nested task path becomes a symbolic link or vanishes.
+            identical_bytes = work / "same-nested-task.toml"
+            identical_bytes.write_bytes(nested_bytes)
+            for mutation in ("symlink", "missing"):
+                with self.subTest(nested_task_mutation=mutation):
+                    nested_game.unlink()
+                    if mutation == "symlink":
+                        nested_game.symlink_to(identical_bytes)
+                    try:
+                        rejected = invoke(queue_script)
+                        self.assertEqual(rejected.returncode, 43, rejected.stderr)
+                        self.assertEqual(record.read_text(), "")
+                    finally:
+                        if nested_game.is_symlink():
+                            nested_game.unlink()
+                        nested_game.write_bytes(nested_bytes)
 
             for relative in ("tools/formal/mise.toml", "tools/formal/verify.py"):
                 target = repo / relative

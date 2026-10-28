@@ -259,6 +259,58 @@ jobs:
               echo "ERROR: root task source differs from exact Git HEAD" >&2
               exit 43
             fi
+          # A native Owner task can recursively invoke a second Mise task.
+          # On this source cut, 19 Git-tracked Mise manifests are possible
+          # consumers, including cross-Owner and extra experimental paths.
+          # Qualify the finite Git-tree superset, not a hand-maintained
+          # Owner-root-only list that silently misses nested task scripts.
+          # This protects stable source drift; it does not prove the full
+          # executed shell/import readset or exclude transient mutations.
+          python3 - <<'PY'
+          import os
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          try:
+              tree = subprocess.check_output(
+                  ["git", "--no-replace-objects", "ls-tree",
+                   "-r", "-z", "--full-tree", "HEAD"],
+                  stderr=subprocess.PIPE,
+              )
+              manifests = 0
+              for entry in tree.split(b"\0"):
+                  if not entry:
+                      continue
+                  metadata, name = entry.split(b"\t", 1)
+                  if name != b"mise.toml" and not name.endswith(b"/mise.toml"):
+                      continue
+                  mode, kind, oid = metadata.split()
+                  if (
+                      mode not in (b"100644", b"100755")
+                      or kind != b"blob"
+                      or re.fullmatch(rb"[0-9a-f]{40}|[0-9a-f]{64}", oid) is None
+                  ):
+                      raise ValueError("nonregular Git Mise task source")
+                  relative = os.fsdecode(name)
+                  path = Path(relative)
+                  if not path.is_file() or path.is_symlink():
+                      raise ValueError("nonregular working Mise task source")
+                  committed = subprocess.check_output(
+                      ["git", "--no-replace-objects", "show", "HEAD:" + relative],
+                      stderr=subprocess.PIPE,
+                  )
+                  if path.read_bytes() != committed:
+                      raise ValueError("Mise task source differs from exact Git HEAD")
+                  manifests += 1
+              if not manifests:
+                  raise ValueError("no qualified native Mise task source")
+          except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+              print("ERROR: nested Mise task source differs from exact Git HEAD: "
+                    + str(exc), file=sys.stderr)
+              raise SystemExit(43) from exc
+          PY
             # The selected task must not consume the following queue entries.
             mise run "$task" </dev/null
             echo "::endgroup::"

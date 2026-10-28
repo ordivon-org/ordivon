@@ -787,7 +787,10 @@ class OwnerVerificationExecutionTests(unittest.TestCase):
             encoding="utf-8"
         )
         section = workflow.split("      - name: Verify affected owners\n", 1)[1]
-        section = section.split("      - name: Runtime supply-chain policy\n", 1)[0]
+        # This consumer runs only the Owner step. Including the following
+        # Formal YAML step changes textwrap's indentation and makes nested
+        # Bash heredocs appear malformed even though Actions parses them.
+        section = section.split("      - name: Verify changed core Formal source\n", 1)[0]
         return textwrap.dedent(section.split("        run: |\n", 1)[1]).rstrip()
 
     @staticmethod
