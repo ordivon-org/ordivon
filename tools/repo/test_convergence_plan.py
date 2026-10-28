@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+from itertools import combinations
 import os
 import subprocess
 import sys
@@ -169,6 +170,93 @@ class ConvergencePlanTests(unittest.TestCase):
         all_owners = [item.name for item in MODULE.affected_owners.OWNERS]
         all_tasks = [item.queue_task for item in MODULE.affected_owners.OWNERS]
         MODULE.validate_queue_task_selection(all_owners, all_tasks)
+
+    def test_every_real_single_and_pair_owner_source_change_rejects_queue_omissions(self) -> None:
+        """R2.1 finite source-consumer closure: all 18 owner roots, every pair.
+
+        This is a test of the actual native policy and tracked Git inputs,
+        not a proof that unknown dynamic/installed consumers are complete.
+        Extending the Owner universe deliberately requires requalifying this
+        explicitly bounded one-/two-owner consumer closure.
+        """
+        root = MODULE_PATH.parents[2]
+        tracked = subprocess.check_output(
+            ["git", "--no-replace-objects", "ls-tree", "-r", "--name-only", "HEAD"],
+            cwd=root, text=True,
+        ).splitlines()
+        samples = {}
+        for owner in MODULE.affected_owners.OWNERS:
+            real_paths = [path for path in tracked if path.startswith(owner.root)]
+            self.assertTrue(real_paths, f"unmaterialized owner source: {owner.name}")
+            code_paths = [
+                path for path in real_paths
+                if path.endswith((".rs", ".py", ".ts", ".go", ".json"))
+                and "/test" not in path
+            ]
+            samples[owner.name] = (code_paths or real_paths)[0]
+        self.assertEqual(len(samples), 18)
+        self.assertEqual(len(samples), len(set(samples.values())))
+        groups = [(name,) for name in samples] + list(combinations(samples, 2))
+        self.assertEqual(len(groups), 18 + 153)
+        checks = 0
+        for group in groups:
+            changed = [samples[name] for name in group]
+            plan = MODULE.build_plan(changed_files=changed)
+            owners = plan["verificationOwners"]
+            tasks = plan["queueVerifyTasks"]
+            self.assertTrue(tasks, f"no native task selected for real consumer {group}")
+            with self.subTest(owner_group=group, case="exact-required"):
+                MODULE.validate_queue_task_selection(owners, tasks, changed)
+            checks += 1
+            invalid = {
+                "omit-first-task": (owners, tasks[1:]),
+                "omit-all-consumers": ([], []),
+                "add-unknown-task": (owners, tasks + ["forged:verify"]),
+                "duplicate-task": (owners, tasks + [tasks[0]]),
+                "omit-first-owner": (owners[1:], tasks),
+            }
+            if len(tasks) > 1:
+                invalid["reorder"] = (owners, list(reversed(tasks)))
+            for case, (selected, requested) in invalid.items():
+                with self.subTest(owner_group=group, case=case):
+                    with self.assertRaises(ValueError):
+                        MODULE.validate_queue_task_selection(
+                            selected, requested, changed
+                        )
+                checks += 1
+        # 171 real source cohorts, 1191 exact positive/negative obligations
+        # at the present 18-Owner source cut; no global coverage inference.
+        self.assertEqual(checks, 1191)
+
+    def test_root_and_formal_selection_reject_each_individual_missing_task(self) -> None:
+        root_path = ["mise.toml"]
+        root_plan = MODULE.build_plan(changed_files=root_path)
+        all_tasks = root_plan["queueVerifyTasks"]
+        # Current root policy can gain scoped Formal selection independently
+        # of the 18-owner population. Derive the optional source obligation
+        # instead of freezing a command-count implementation detail.
+        formal_root = MODULE.affected_owners.requires_core_formal_verification(root_path)
+        self.assertEqual(
+            len(all_tasks), len(MODULE.affected_owners.OWNERS) + int(formal_root)
+        )
+        self.assertEqual(all_tasks.count("formal:verify"), int(formal_root))
+        MODULE.validate_queue_task_selection(
+            root_plan["verificationOwners"], all_tasks, root_path
+        )
+        for index in range(len(all_tasks)):
+            with self.subTest(omitted_task=all_tasks[index]):
+                with self.assertRaises(ValueError):
+                    MODULE.validate_queue_task_selection(
+                        root_plan["verificationOwners"],
+                        all_tasks[:index] + all_tasks[index+1:],
+                        root_path,
+                    )
+        changed = ["tools/formal/Proof.qnt"]
+        formal = MODULE.build_plan(changed_files=changed)
+        self.assertEqual(formal["queueVerifyTasks"], ["formal:verify"])
+        MODULE.validate_queue_task_selection([], ["formal:verify"], changed)
+        with self.assertRaises(ValueError):
+            MODULE.validate_queue_task_selection([], [], changed)
 
     def test_formal_source_task_queue_validation_denies_missing_or_forged_tasks(self) -> None:
         for owners, requested, changed in (
