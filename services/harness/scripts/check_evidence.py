@@ -355,20 +355,53 @@ def _invalidating_paths(
     return sorted(changed)
 
 
+def _is_original_harness_source_revision(revision: str) -> bool:
+    """Detect old source-root identity independent of Git history depth.
+
+    In complete CI Git history an old standalone source revision can be an
+    ancestor of monorepo HEAD, yet its source-root namespace is different.
+    """
+    if len(revision) != 40 or any(c not in "0123456789abcdef" for c in revision):
+        return False
+    old_tree = subprocess.run(
+        ["git", "--no-replace-objects", "cat-file", "-e", f"{revision}:src/ordivon_harness"],
+        cwd=ROOT,
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    imported_tree = subprocess.run(
+        [
+            "git",
+            "--no-replace-objects",
+            "cat-file",
+            "-e",
+            f"{revision}:services/harness/src/ordivon_harness",
+        ],
+        cwd=ROOT,
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return old_tree.returncode == 0 and imported_tree.returncode != 0
+
+
 def _verified_revision_is_current(
     revision: str,
     implementation_paths: tuple[str, ...] | None = None,
     runtime_dependency_closure_digest: str | None = None,
 ) -> tuple[bool, list[str]]:
+    if _is_original_harness_source_revision(revision):
+        # Original source namespace is not current after monorepo import,
+        # even if complete Git history makes this commit an ancestor.
+        return False, [_SOURCE_HISTORY_BOUNDARY_INVALIDATOR]
     ancestor = subprocess.run(
         ["git", "merge-base", "--is-ancestor", revision, "HEAD"],
         cwd=ROOT,
         check=False,
     )
     if ancestor.returncode != 0:
-        # A pre-import standalone Harness revision may exist as a Git object,
-        # but it is NOT an ancestor of the integrated monorepo. Never present
-        # an empty change list as proof of unchanged implementation.
+        # Missing/unqualified history never proves current implementation.
         return False, [_SOURCE_HISTORY_BOUNDARY_INVALIDATOR]
     invalidating = _invalidating_paths(revision, "HEAD", implementation_paths)
     if implementation_paths is None:
@@ -391,6 +424,27 @@ def _verified_revision_is_current(
         ) != _runtime_python_compatibility_projection("HEAD"):
             invalidating.append(_RUNTIME_DEPENDENCY_INVALIDATOR)
     return not invalidating, invalidating
+
+
+def _original_source_git_environment() -> dict[str, str]:
+    """Keep an independent source repository free of caller Git-graph overrides."""
+    disallowed = {
+        "GIT_SHALLOW_FILE",
+        "GIT_NO_LAZY_FETCH",
+        "GIT_DIR",
+        "GIT_WORK_TREE",
+        "GIT_COMMON_DIR",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_INDEX_FILE",
+        "GIT_GRAFT_FILE",
+        "GIT_REPLACE_REF_BASE",
+    }
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if key not in disallowed and not key.startswith("GIT_CONFIG_")
+    }
 
 
 @lru_cache(maxsize=1)
@@ -438,7 +492,7 @@ def _validate_original_historical_source(filename: str, revision: str, current: 
     errors: list[str] = []
     try:
         repository = _historical_source_checkout()
-        environment = {**os.environ, "GIT_GRAFT_FILE": os.devnull}
+        environment = _original_source_git_environment()
         path = f"evidence/{filename}"
         creations = subprocess.check_output(
             [
@@ -496,16 +550,33 @@ def _validate_index_creation_lineage_binding(
     *,
     historical: bool = False,
 ) -> list[str]:
-    """Validate current in-repo lineage, or bounded historical-import retention.
+    """Verify archive origin or same-repository current provenance.
 
-    Historical-only retention proves the copied byte identity after the exact
-    monorepo import; it DOES NOT prove original standalone Git ancestry and
-    cannot be used to grant VERIFIED or CURRENT evidence standing.
+    Historical old-root evidence requires exact imported bytes and the pinned
+    original-repository source/creation chain. No cross-root ancestor shortcut
+    is used, so shallow and complete history must yield identical standing.
     """
-
     errors: list[str] = []
     path = EVIDENCE / filename
     relative_path = path.relative_to(ROOT).as_posix()
+    old_source_root = _is_original_harness_source_revision(revision)
+    if old_source_root:
+        if not historical or _git_owner_prefix() != "services/harness/":
+            return [
+                f"original Harness Git source cannot certify current/verified evidence for {filename}"
+            ]
+        try:
+            imported_bytes = _git_file_bytes(_HARNESS_HISTORICAL_IMPORT, relative_path)
+            current_bytes = path.read_bytes()
+        except (subprocess.CalledProcessError, OSError, ValueError) as error:
+            return [f"cannot verify pinned Harness monorepo import bytes for {filename}: {error}"]
+        if imported_bytes != current_bytes:
+            return [
+                f"index-bound evidence bytes changed after pinned import for {filename}: "
+                f"import={_HARNESS_HISTORICAL_IMPORT}"
+            ]
+        return _validate_original_historical_source(filename, revision, current_bytes)
+
     try:
         creation_revisions = _git_creation_revisions(relative_path)
     except (subprocess.CalledProcessError, ValueError) as error:
@@ -522,38 +593,17 @@ def _validate_index_creation_lineage_binding(
         check=False,
     )
     if ancestor.returncode != 0:
-        # The 2026 Harness monorepo import starts a DIFFERENT Git DAG from
-        # the original standalone repository. Historical receipts must not
-        # require or invent a cross-repository ancestor relationship.
-        imported_historical = (
-            historical
-            and _git_owner_prefix() == "services/harness/"
-            and creation_revision == _HARNESS_HISTORICAL_IMPORT
-            and len(revision) == 40
-            and all(c in "0123456789abcdef" for c in revision)
+        errors.append(
+            f"index-bound revision is not an ancestor of evidence creation for {filename}: "
+            f"revision={revision} creation={creation_revision}"
         )
-        # Reject an unrelated same-repository descendant pretending to be
-        # older historical source, even if the imported receipt bytes match.
-        if imported_historical:
-            same_repo_ancestor = subprocess.run(
-                ["git", "merge-base", "--is-ancestor", revision, "HEAD"],
-                cwd=ROOT,
-                check=False,
-            )
-            imported_historical = same_repo_ancestor.returncode != 0
-        if not imported_historical:
-            errors.append(
-                f"index-bound revision is not an ancestor of evidence creation for {filename}: "
-                f"revision={revision} creation={creation_revision}"
-            )
-            return errors
-    else:
-        invalidating = _invalidating_paths(revision, creation_revision)
-        if invalidating:
-            errors.append(
-                f"implementation changed before index-bound evidence creation for {filename}: "
-                f"invalidating={invalidating}"
-            )
+        return errors
+    invalidating = _invalidating_paths(revision, creation_revision)
+    if invalidating:
+        errors.append(
+            f"implementation changed before index-bound evidence creation for {filename}: "
+            f"invalidating={invalidating}"
+        )
     try:
         created_bytes = _git_file_bytes(creation_revision, relative_path)
         current_bytes = path.read_bytes()
@@ -565,11 +615,6 @@ def _validate_index_creation_lineage_binding(
                 f"index-bound evidence bytes changed after creation for {filename}: "
                 f"creation={creation_revision}"
             )
-        elif ancestor.returncode != 0 and imported_historical:
-            # Independent identity, original ancestry, and original bytes are
-            # required in addition to the pinned monorepo import. No network
-            # and no original Git objects => explicit FAIL, never a fake proof.
-            errors.extend(_validate_original_historical_source(filename, revision, current_bytes))
     return errors
 
 

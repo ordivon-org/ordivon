@@ -135,6 +135,26 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         errors = validator(filename, receipt, "0" * 40)
         self.assertTrue(any("revision mismatch" in error for error in errors))
 
+    def test_legacy_source_identity_stable_when_git_history_depth_changes(self) -> None:
+        # The original source tree exists under src/ordivon_harness, not the
+        # integrated services/harness/src/ordivon_harness path. Its standing
+        # must not change if the same checkout exposes its earlier parents.
+        import os
+        from unittest.mock import patch
+
+        source = "786d64a7cfb21d52e9e541331c3db67a9edd4f29"
+        self.assertTrue(check_evidence._is_original_harness_source_revision(source))
+        for name, override in (
+            ("caller-history", {}),
+            ("complete-history", {"GIT_SHALLOW_FILE": "/dev/null", "GIT_NO_LAZY_FETCH": "1"}),
+        ):
+            with self.subTest(graph=name), patch.dict(os.environ, override):
+                self.assertTrue(check_evidence._is_original_harness_source_revision(source))
+                current, evidence = check_evidence._verified_revision_is_current(source)
+                self.assertFalse(current)
+                self.assertEqual(evidence, [check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR])
+        self.assertFalse(check_evidence._is_original_harness_source_revision("HEAD"))
+
     def test_foreign_git_history_never_certifies_current_implementation(self) -> None:
         # After independent-repository import, the old Git objects are NOT
         # ancestors of monorepo HEAD. Their original source files may remain
@@ -275,10 +295,17 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             )
         # Source identity is NOT just a forty-character string. The original
         # independent Git DAG must certify the referenced creation ancestry.
+        self.assertTrue(validator(filename, "0" * 40, historical=True))
+        # A syntactically valid REAL old-source commit from AFTER this receipt
+        # was created still cannot impersonate its implementation predecessor.
         self.assertTrue(
             any(
                 "original-repository ancestor" in error
-                for error in validator(filename, "0" * 40, historical=True)
+                for error in validator(
+                    filename,
+                    check_evidence._HARNESS_ORIGINAL_SOURCE_CUT,
+                    historical=True,
+                )
             )
         )
         with patch.object(
