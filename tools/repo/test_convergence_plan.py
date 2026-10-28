@@ -425,6 +425,100 @@ class ConvergencePlanTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     MODULE.validate_queue_task_selection(owners, requested, changed)
 
+    def test_selected_queue_tasks_must_resolve_in_current_root_mise_source(self) -> None:
+        """An allowlisted queue task name is not enough if its runner disappears."""
+        import unittest.mock
+        import tomllib
+        root = MODULE_PATH.parents[2]
+        original = tomllib.loads((root / "mise.toml").read_text(encoding="utf-8"))
+        declared = original["tasks"]
+        expected = {o.queue_task for o in MODULE.affected_owners.OWNERS}
+        expected.add("formal:verify")
+        self.assertTrue(expected.issubset(declared.keys()))
+        for name in expected:
+            with self.subTest(working=name):
+                self.assertTrue(declared[name].get("run") or declared[name].get("depends"))
+
+        runtime_source = "services/runtime/crates/ordivon-runtime-core/src/lib.rs"
+        formal_source = "tools/formal/RecursiveLegoRefinement.lean"
+
+        def declared_task_manifest(task_names: list[str]) -> str:
+            return "[tasks]\n" + "".join(
+                f'[tasks."{task_name}"]\\nrun = "echo native task"\\n'
+                for task_name in task_names
+            ).replace("\\n", "\n")
+
+        with tempfile.TemporaryDirectory() as directory:
+            mock_file = Path(directory) / "mise.toml"
+            for missing, changed in (
+                ("runtime:verify", [runtime_source]),
+                ("formal:verify", [formal_source]),
+            ):
+                plan = MODULE.build_plan(changed_files=changed)
+                self.assertIn(missing, plan["queueVerifyTasks"])
+                with self.subTest(missing=missing):
+                    # Preserve every other CURRENT canonical consumer task,
+                    # so a failure must be caused by the missing root runner.
+                    still_available = [
+                        task for task in plan["queueVerifyTasks"] if task != missing
+                    ]
+                    mock_file.write_text(
+                        declared_task_manifest(still_available), encoding="utf-8"
+                    )
+                    with unittest.mock.patch.object(
+                        MODULE, "ROOT_TASKS_PATH", mock_file, create=True
+                    ):
+                        with self.assertRaisesRegex(ValueError, "root mise runner"):
+                            MODULE.validate_queue_task_selection(
+                                plan["verificationOwners"],
+                                plan["queueVerifyTasks"],
+                                changed,
+                            )
+            for changed in ([runtime_source], [formal_source]):
+                plan = MODULE.build_plan(changed_files=changed)
+                mock_file.write_text(
+                    declared_task_manifest(plan["queueVerifyTasks"]),
+                    encoding="utf-8",
+                )
+                with unittest.mock.patch.object(
+                    MODULE, "ROOT_TASKS_PATH", mock_file, create=True
+                ):
+                    MODULE.validate_queue_task_selection(
+                        plan["verificationOwners"], plan["queueVerifyTasks"], changed
+                    )
+
+    def test_selected_queue_task_matches_native_mise_admission(self) -> None:
+        """A truthy TOML field is not an executable task contract in real mise."""
+        import unittest.mock
+
+        changed = ["tools/formal/Proof.qnt"]
+        cases = {
+            "invalid-boolean-run": 'run = true\n',
+            "invalid-integer-run": 'run = 42\n',
+            "unknown-dependency": 'depends = ["missing:task"]\n',
+            "empty-dependency": 'depends = [""]\n',
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            task_path = root / "mise.toml"
+            for name, body in cases.items():
+                with self.subTest(name=name):
+                    task_path.write_text(
+                        '[tasks."formal:verify"]\n' + body, encoding="utf-8"
+                    )
+                    native = subprocess.run(
+                        ["mise", "--cd", str(root), "tasks", "validate"],
+                        capture_output=True, text=True, timeout=20,
+                    )
+                    self.assertNotEqual(native.returncode, 0)
+                    with unittest.mock.patch.object(MODULE, "ROOT_TASKS_PATH", task_path):
+                        with self.assertRaisesRegex(
+                            ValueError, "native mise task validation"
+                        ):
+                            MODULE.validate_queue_task_selection(
+                                [], ["formal:verify"], changed,
+                            )
+
     def test_github_queue_uses_same_strict_formal_source_task_validation(self) -> None:
         workflow = (MODULE_PATH.parents[2] / ".github/workflows/ci.yml").read_text()
         self.assertIn("convergence_plan.validate_queue_task_selection(", workflow)
