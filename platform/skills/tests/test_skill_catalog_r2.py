@@ -564,6 +564,76 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
                 "skill-installer",
             )
 
+    def test_caller_fresh_hashes_cannot_override_the_admitted_scan(self) -> None:
+        """A caller-supplied expected revision is not new scan/approval evidence."""
+        import hashlib
+
+        from ordivon_skills.catalog import _package_revision
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "skills"
+            instruction = write_skill(root, "alpha", "alpha", "Approved skill")
+            resource = root / "alpha" / "guide.md"
+            resource.write_text("v1", encoding="utf-8")
+            catalog = SkillCatalog.scan(
+                [SkillSource("s", root, "user", 1, TrustState.APPROVED)]
+            )
+            admitted = catalog.by_skill_id("s/alpha")
+            self.assertEqual(
+                catalog.read_text(
+                    "s/alpha",
+                    relative_path="guide.md",
+                    expected_instruction_digest=admitted.instruction_digest,
+                    expected_package_revision=admitted.package_revision,
+                ).content,
+                "v1",
+            )
+
+            # Both current bytes and the caller's fresh digest differ from the
+            # package whose admission and scanner verdict are still cached.
+            resource.write_text("mutated without rescan", encoding="utf-8")
+            forged_current_package = _package_revision(instruction.parent)
+            self.assertNotEqual(forged_current_package, admitted.package_revision)
+            with self.assertRaises(SkillCatalogError) as captured:
+                catalog.read_text(
+                    "s/alpha",
+                    relative_path="guide.md",
+                    expected_package_revision=forged_current_package,
+                )
+            self.assertEqual(captured.exception.code, "PACKAGE_CHANGED")
+
+            instruction.write_text(
+                "---\nname: alpha\ndescription: Unscanned replacement\n---\n# changed\n",
+                encoding="utf-8",
+            )
+            forged_current_instruction = (
+                "sha256:" + hashlib.sha256(instruction.read_bytes()).hexdigest()
+            )
+            forged_current_package = _package_revision(instruction.parent)
+            self.assertNotEqual(forged_current_instruction, admitted.instruction_digest)
+            with self.assertRaises(SkillCatalogError) as captured:
+                catalog.read_text(
+                    "s/alpha",
+                    expected_instruction_digest=forged_current_instruction,
+                    expected_package_revision=forged_current_package,
+                )
+            self.assertEqual(captured.exception.code, "DIGEST_MISMATCH")
+
+            # A real independent rescan establishes a new admitted package.
+            refreshed = SkillCatalog.scan(
+                [SkillSource("s", root, "user", 1, TrustState.APPROVED)]
+            )
+            fresh_record = refreshed.by_skill_id("s/alpha")
+            self.assertEqual(fresh_record.package_revision, forged_current_package)
+            self.assertIn(
+                "Unscanned replacement",
+                refreshed.read_text(
+                    "s/alpha",
+                    expected_instruction_digest=fresh_record.instruction_digest,
+                    expected_package_revision=fresh_record.package_revision,
+                ).content,
+            )
+
     def test_supporting_resource_mutation_trips_package_revision_fence(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "skills"

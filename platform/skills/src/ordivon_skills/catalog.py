@@ -671,13 +671,21 @@ class SkillCatalog:
 
         current_instruction = record.main_resource.read_bytes()
         current_instruction_digest = _sha256(current_instruction)
-        instruction_fence = expected_instruction_digest or record.instruction_digest
-        if current_instruction_digest != instruction_fence:
+        # A caller's expected revision is an additional consistency constraint,
+        # never an alternative to the package whose scan/trust verdict admitted
+        # this Skill. Re-admission requires a fresh catalog scan.
+        if current_instruction_digest != record.instruction_digest or (
+            expected_instruction_digest is not None
+            and expected_instruction_digest != record.instruction_digest
+        ):
             raise SkillCatalogError("DIGEST_MISMATCH", f"SKILL.md changed for {skill_id}")
 
         current_package_revision = _package_revision(record.skill_root)
-        package_fence = expected_package_revision or record.package_revision
-        if current_package_revision != package_fence:
+        package_fence = record.package_revision
+        if current_package_revision != package_fence or (
+            expected_package_revision is not None
+            and expected_package_revision != package_fence
+        ):
             raise SkillCatalogError("PACKAGE_CHANGED", f"Skill package changed for {skill_id}")
 
         raw_data = resolved.read_bytes()
