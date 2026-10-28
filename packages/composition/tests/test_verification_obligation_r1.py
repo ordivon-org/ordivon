@@ -1369,6 +1369,42 @@ def test_phase2_exact_git_impact_cli_rejects_ambiguous_proof_input(tmp_path) -> 
     finally:
         owner_tool.write_bytes(before_bytes)
 
+    # Native owner query imports this local Python source for actual path
+    # semantics; source identity must bind imported code as well as entrypoint.
+    # This finite static-import frontier test forces re-qualification when
+    # either native producer adds another local import.
+    import ast
+
+    local_producer_dir = source_repo / "tools/repo"
+    sibling_modules = {path.stem for path in local_producer_dir.glob("*.py")}
+    static_imports = {}
+    for entry in ("source_history_legos", "affected_owners"):
+        tree = ast.parse((local_producer_dir / (entry + ".py")).read_text())
+        used = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module in sibling_modules:
+                used.add(node.module)
+            elif isinstance(node, ast.Import):
+                used.update(alias.name for alias in node.names if alias.name in sibling_modules)
+        static_imports[entry] = used
+    assert static_imports == {
+        "source_history_legos": {"affected_owners"},
+        "affected_owners": set(),
+    }, "native query acquired a local Python import outside qualified readset"
+
+    imported_producer = source_repo / "tools/repo/affected_owners.py"
+    original_imported = imported_producer.read_bytes()
+    try:
+        imported_producer.write_bytes(
+            original_imported + b"\n# uncommitted direct imported producer drift\n"
+        )
+        denied = select()
+        assert denied.returncode != 0
+        assert "native Git query producer differs from its Git SourceCut" in denied.stderr
+        assert "Traceback" not in denied.stderr
+    finally:
+        imported_producer.write_bytes(original_imported)
+
     for ambiguous in (
         f'[{{"id":"proof:skipped","id":"proof:changed",'
         f'"dependsOn":["{ref}"],"dependenciesComplete":true}}]',

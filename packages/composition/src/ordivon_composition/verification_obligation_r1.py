@@ -1158,54 +1158,67 @@ def main() -> int:
                     # This process asks the existing Git Owner query for exact
                     # evidence. Do not execute a mutable checkout implementation
                     # while presenting that answer as source-qualified.
-                    tree_entry = subprocess.run(
-                        [
-                            "git",
-                            "--no-replace-objects",
-                            "-C",
-                            str(owner_tool.parents[2]),
-                            "ls-tree",
-                            "-z",
-                            "--full-tree",
-                            "HEAD",
-                            "--",
-                            "tools/repo/source_history_legos.py",
-                        ],
-                        capture_output=True,
-                        check=False,
-                    )
-                    if (
-                        tree_entry.returncode != 0
-                        or re.fullmatch(
-                            rb"(100644|100755) blob [0-9a-f]{40,64}"
-                            rb"\ttools/repo/source_history_legos\.py\x00",
-                            tree_entry.stdout,
-                        )
-                        is None
+                    # Native source-history directly imports affected_owners.
+                    # Exact byte provenance must include both actually executed
+                    # local Python producers, not only the entrypoint script.
+                    # This is finite SOURCE qualification, not a dynamic import
+                    # closure or a proof of installed Python interpreter bytes.
+                    for relative in (
+                        "tools/repo/source_history_legos.py",
+                        "tools/repo/affected_owners.py",
                     ):
-                        raise CircuitContractError(
-                            "native Git query producer Git tree mode is not regular"
+                        producer = owner_tool.parents[2] / relative
+                        tree_entry = subprocess.run(
+                            [
+                                "git",
+                                "--no-replace-objects",
+                                "-C",
+                                str(owner_tool.parents[2]),
+                                "ls-tree",
+                                "-z",
+                                "--full-tree",
+                                "HEAD",
+                                "--",
+                                relative,
+                            ],
+                            capture_output=True,
+                            check=False,
                         )
-                    committed = subprocess.run(
-                        [
-                            "git",
-                            "--no-replace-objects",
-                            "-C",
-                            str(owner_tool.parents[2]),
-                            "show",
-                            "HEAD:tools/repo/source_history_legos.py",
-                        ],
-                        capture_output=True,
-                        check=False,
-                    )
-                    if (
-                        committed.returncode != 0
-                        or owner_tool.is_symlink()
-                        or committed.stdout != owner_tool.read_bytes()
-                    ):
-                        raise CircuitContractError(
-                            "native Git query producer differs from its Git SourceCut"
+                        expected = (
+                            rb"(100644|100755) blob [0-9a-f]{40,64}\t"
+                            + re.escape(relative.encode("utf-8"))
+                            + rb"\x00"
                         )
+                        if (
+                            tree_entry.returncode != 0
+                            or re.fullmatch(expected, tree_entry.stdout) is None
+                        ):
+                            raise CircuitContractError(
+                                "native Git query producer Git tree mode is not regular: "
+                                + relative
+                            )
+                        committed = subprocess.run(
+                            [
+                                "git",
+                                "--no-replace-objects",
+                                "-C",
+                                str(owner_tool.parents[2]),
+                                "show",
+                                "HEAD:" + relative,
+                            ],
+                            capture_output=True,
+                            check=False,
+                        )
+                        if (
+                            committed.returncode != 0
+                            or not producer.is_file()
+                            or producer.is_symlink()
+                            or committed.stdout != producer.read_bytes()
+                        ):
+                            raise CircuitContractError(
+                                "native Git query producer differs from its Git SourceCut: "
+                                + relative
+                            )
 
                 require_qualified_owner_tool()
                 native_query = subprocess.run(
