@@ -150,6 +150,54 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
                     [check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR],
                 )
 
+    def test_full_history_git_ancestry_cannot_promote_preimport_archived_proof(self) -> None:
+        """A reachable old SHA is not a current Ordivon Harness SourceCut.
+
+        Force the exact CI counterexample: a complete Git checkout reports
+        original external revision as an ancestor of HEAD and import commit,
+        even though the source revision precedes the canonical archive import.
+        """
+        from unittest.mock import patch
+
+        filename, _status, revision, _digest = EXPECTED[
+            "harness.research.campaign3-rich-effect-owner-capture-v1"
+        ]
+        original_run = subprocess.run
+        observed = []
+
+        def full_history_ancestor(arguments, *args, **kwargs):
+            tokens = [
+                token for token in arguments if token != "--no-replace-objects"
+            ]
+            if (
+                tokens[:3] == ["git", "merge-base", "--is-ancestor"]
+                and tokens[3] == revision
+                and tokens[4] in {"HEAD", check_evidence._HARNESS_HISTORICAL_IMPORT}
+            ):
+                observed.append(tokens[4])
+                return subprocess.CompletedProcess(arguments, 0)
+            return original_run(arguments, *args, **kwargs)
+
+        with patch.object(check_evidence.subprocess, "run", side_effect=full_history_ancestor):
+            current, invalidators = check_evidence._verified_revision_is_current(revision)
+            self.assertFalse(current)
+            self.assertEqual(
+                invalidators,
+                [check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR],
+            )
+            self.assertEqual(
+                check_evidence._validate_index_creation_lineage_binding(
+                    filename, revision, historical=True
+                ), [],
+            )
+            self.assertTrue(
+                check_evidence._validate_index_creation_lineage_binding(
+                    filename, revision, historical=False
+                )
+            )
+        self.assertIn("HEAD", observed)
+        self.assertIn(check_evidence._HARNESS_HISTORICAL_IMPORT, observed)
+
     def test_scoped_foreign_git_history_is_not_implementation_diff(self) -> None:
         source = "9d936e98d8c02772aa2becc924ba9006c71aa989"
         digest = "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"

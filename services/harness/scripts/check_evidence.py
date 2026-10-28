@@ -345,6 +345,30 @@ def _invalidating_paths(
     return sorted(changed)
 
 
+def _revision_after_monorepo_import(revision: str) -> bool:
+    """Require explicit implementation namespace, not mere reachable Git SHA.
+
+    A full-history CI checkout may include original standalone commits in the
+    monorepo DAG. Being an ancestor of HEAD does NOT make a pre-import commit
+    an implementation revision of this owner. This predicate only separates
+    source ancestry domains; it does not certify a deployed artifact.
+    """
+    # A synthetic or standalone Git owner has no imported Harness evidence
+    # index and must retain its own ordinary ancestry semantics. The
+    # historical-import boundary applies only to the indexed archive that
+    # declares the old independent revision labels. It is NOT a global
+    # restriction on unrelated repositories or test-created owner scopes.
+    if not (EVIDENCE / "index.json").is_file():
+        return True
+    process = subprocess.run(
+        ["git", "--no-replace-objects", "merge-base", "--is-ancestor",
+         _HARNESS_HISTORICAL_IMPORT, revision],
+        cwd=ROOT, check=False,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    return process.returncode == 0
+
+
 def _verified_revision_is_current(
     revision: str,
     implementation_paths: tuple[str, ...] | None = None,
@@ -355,7 +379,7 @@ def _verified_revision_is_current(
         cwd=ROOT,
         check=False,
     )
-    if ancestor.returncode != 0:
+    if ancestor.returncode != 0 or not _revision_after_monorepo_import(revision):
         # A pre-import standalone Harness revision may exist as a Git object,
         # but it is NOT an ancestor of the integrated monorepo. Never present
         # an empty change list as proof of unchanged implementation.
@@ -410,37 +434,31 @@ def _validate_index_creation_lineage_binding(
         ]
     creation_revision = creation_revisions[0]
     ancestor = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", revision, creation_revision],
+        ["git", "--no-replace-objects", "merge-base", "--is-ancestor",
+         revision, creation_revision],
         cwd=ROOT,
         check=False,
     )
-    if ancestor.returncode != 0:
-        # The 2026 Harness monorepo import starts a DIFFERENT Git DAG from
-        # the original standalone repository. Historical receipts must not
-        # require or invent a cross-repository ancestor relationship.
-        imported_historical = (
-            historical
-            and _git_owner_prefix() == "services/harness/"
-            and creation_revision == _HARNESS_HISTORICAL_IMPORT
-            and len(revision) == 40
-            and all(c in "0123456789abcdef" for c in revision)
-        )
-        # Reject an unrelated same-repository descendant pretending to be
-        # older historical source, even if the imported receipt bytes match.
-        if imported_historical:
-            same_repo_ancestor = subprocess.run(
-                ["git", "merge-base", "--is-ancestor", revision, "HEAD"],
-                cwd=ROOT,
-                check=False,
-            )
-            imported_historical = same_repo_ancestor.returncode != 0
-        if not imported_historical:
+    # A GitHub full-history checkout may make a standalone source SHA
+    # reachable through the monorepo's DAG. This does NOT make it a current
+    # monorepo implementation. The import cut is the source-domain boundary,
+    # independent of the presence/absence of old Git objects.
+    is_monorepo_source = _revision_after_monorepo_import(revision)
+    imported_historical = (
+        historical
+        and not is_monorepo_source
+        and _git_owner_prefix() == "services/harness/"
+        and creation_revision == _HARNESS_HISTORICAL_IMPORT
+        and len(revision) == 40
+        and all(c in "0123456789abcdef" for c in revision)
+    )
+    if not imported_historical:
+        if ancestor.returncode != 0 or not is_monorepo_source:
             errors.append(
-                f"index-bound revision is not an ancestor of evidence creation for {filename}: "
-                f"revision={revision} creation={creation_revision}"
+                f"index-bound revision is not a qualified monorepo ancestor of evidence creation "
+                f"for {filename}: revision={revision} creation={creation_revision}"
             )
             return errors
-    else:
         invalidating = _invalidating_paths(revision, creation_revision)
         if invalidating:
             errors.append(
