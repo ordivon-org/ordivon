@@ -1004,6 +1004,49 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
         self.assertEqual(valid["observationJoin"]["observedSubjects"][0]["observedAt"],
                          "2024-02-29T23:59:59Z")
 
+    def test_cli_rejects_duplicate_json_keys_and_nonstandard_constants(self):
+        import json
+        import tempfile
+        original = json.dumps(self.envelope([self.observation()]))
+        cut_field = '"subjectSourceCut": "' + self.cut + '"'
+        assert original.count(cut_field) == 1
+        duplicate_cut = original.replace(
+            cut_field,
+            '"subjectSourceCut": "' + "0" * 40 + '", ' + cut_field, 1,
+        )
+        assert original.count('"trackedPaths": 200') == 1
+        duplicate_fact = original.replace(
+            '"trackedPaths": 200',
+            '"trackedPaths": 0, "trackedPaths": 200', 1,
+        )
+        # The unknown root field is intentionally ignored by the join today;
+        # raw ingress still cannot admit an invalid JSON number outside it.
+        nonstandard_unknown = original.replace(
+            '"kind": ', '"unknownMetadata": NaN, "kind": ', 1,
+        )
+        with tempfile.TemporaryDirectory() as td:
+            path = pathlib.Path(td) / "reported.json"
+            cmd = [
+                "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+                "--source-cut", self.cut, "--problem-legos", "--summary",
+                "--authority-observations", str(path),
+            ]
+            for label, payload in (
+                ("duplicate_source_cut", duplicate_cut),
+                ("duplicate_nested_fact", duplicate_fact),
+                ("nonstandard_ignored_constant", nonstandard_unknown),
+            ):
+                with self.subTest(label=label):
+                    path.write_text(payload, encoding="utf-8")
+                    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True,
+                                          text=True, timeout=30)
+                    self.assertNotEqual(proc.returncode, 0, proc.stdout)
+                    self.assertRegex(proc.stderr, "duplicate|non-standard|constant")
+            path.write_text(original, encoding="utf-8")
+            accepted = subprocess.run(cmd, cwd=ROOT, capture_output=True,
+                                      text=True, timeout=30)
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
     def test_cli_opt_in_and_summary(self):
         import json
         import tempfile
