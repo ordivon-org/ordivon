@@ -36,8 +36,12 @@ class FullCoverageTests(unittest.TestCase):
         self.assertTrue(
             all(not o["root"].startswith("tools/formal/")
                 for o in policy["owners"]))
-        self.assertIn("formal:verify", (ROOT / "mise.toml").read_text())
-        self.assertIn("verify", (ROOT / "tools/formal/mise.toml").read_text())
+        root_tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+        formal_tasks = tomllib.loads(
+            (ROOT / "tools/formal/mise.toml").read_text())["tasks"]
+        self.assertEqual(root_tasks["formal:verify"]["run"],
+                         "cd tools/formal && mise run verify")
+        self.assertEqual(formal_tasks["verify"]["run"], "python3 verify.py")
         self.assertEqual(M.source_partition("tools/unknown_script.py", policy)
                          ["standing"], "UNASSIGNED")
 
