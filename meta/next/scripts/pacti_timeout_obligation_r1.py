@@ -404,10 +404,30 @@ def run(spec: dict[str, Any]) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("spec", type=Path)
+    parser.add_argument("spec", type=Path, nargs="?")
+    parser.add_argument("--owner-grant", type=Path)
+    parser.add_argument("--runtime-status", type=Path)
     args = parser.parse_args()
+    observed = args.owner_grant is not None or args.runtime_status is not None
+    if observed:
+        if (
+            args.spec is not None
+            or args.owner_grant is None
+            or args.runtime_status is None
+        ):
+            parser.error(
+                "owner observation requires both --owner-grant and --runtime-status, without spec"
+            )
+    elif args.spec is None:
+        parser.error("spec or both owner observation files are required")
     try:
-        result = run(_load(args.spec))
+        if observed:
+            result = evaluate_owner_timeout_envelope(
+                _load(args.owner_grant),
+                _load(args.runtime_status),
+            )
+        else:
+            result = run(_load(args.spec))
     except (OSError, json.JSONDecodeError, CircuitContractError) as exc:
         raise SystemExit(f"Pacti timeout obligation R2 failed: {exc}") from exc
     print(json.dumps(result, indent=2, sort_keys=True))
