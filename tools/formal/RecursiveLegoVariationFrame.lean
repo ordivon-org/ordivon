@@ -132,6 +132,48 @@ theorem omitted_changed_source_invalidates_no_hit :
     | true => cases isChanged
   · decide
 
+-- R2.1 scoped changed-source completeness is a set obligation, independent
+-- of queue task selection. Observed source paths are a subset of real Git
+-- changes; when source membership is decidable, no missing source is exactly
+-- the condition needed to call the scope complete. This theorem does NOT
+-- qualify whether the Python/Git producer discovered the *actual* paths.
+theorem scoped_git_complete_iff_no_unobserved
+    {Path : Type} (changed observed : Path → Prop)
+    (observedIsChanged : ∀ path, observed path → changed path)
+    (decObserved : ∀ path, Decidable (observed path)) :
+    (∀ path, changed path ↔ observed path) ↔
+      ¬ ∃ path, changed path ∧ ¬ observed path := by
+  constructor
+  · intro complete ⟨path, isChanged, isMissing⟩
+    exact isMissing ((complete path).mp isChanged)
+  · intro noMissing path
+    constructor
+    · intro isChanged
+      letI := decObserved path
+      by_cases isObserved : observed path
+      · exact isObserved
+      · exact False.elim (noMissing ⟨path, isChanged, isObserved⟩)
+    · exact observedIsChanged path
+
+-- Two genuinely changed paths may map to the SAME mandatory task. The
+-- selected task image can therefore be identical even if an entire changed
+-- source path has been omitted. Comparing task lists is NOT a lawful bridge
+-- from task-set equality to SourceCut membership completeness.
+theorem equal_task_images_can_hide_unobserved_git_source :
+    ∃ (changed observed : Bool → Prop) (task : Bool → Bool),
+      (∀ path, observed path → changed path) ∧
+      (∀ t : Bool,
+        (∃ path, changed path ∧ task path = t) ↔
+        (∃ path, observed path ∧ task path = t)) ∧
+      (∃ path, changed path ∧ ¬ observed path) := by
+  refine ⟨(fun _ => True), (fun path => path = false),
+    (fun _ => true), ?_, ?_, ?_⟩
+  · intro path _
+    trivial
+  · decide
+  · refine ⟨true, True.intro, ?_⟩
+    decide
+
 -- The admitted assumptions are not vacuous: disjoint source mutation
 -- plus a complete property-specific readset permits reusing the *model*
 -- consumer property without inspecting the mutated unrelated source.
@@ -284,6 +326,8 @@ theorem missing_consumer_edge_invalidates_graph_reuse :
 
 end OrdivonR21
 
+#print axioms OrdivonR21.scoped_git_complete_iff_no_unobserved
+#print axioms OrdivonR21.equal_task_images_can_hide_unobserved_git_source
 #print axioms OrdivonR21.graph_reuse_candidate_excludes_direct_readset_change
 #print axioms OrdivonR21.graph_reuse_preserves_property_if_qualified
 #print axioms OrdivonR21.missing_consumer_edge_invalidates_graph_reuse
