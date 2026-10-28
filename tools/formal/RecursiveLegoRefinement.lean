@@ -800,3 +800,50 @@ end OrdivonR21.PriorityClosure
 #print axioms OrdivonR21.safety_satisfaction_iff_saturated
 #print axioms OrdivonR21.refinement_iff_saturated_guarantee
 #print axioms OrdivonR21.narrowed_assumptions_cannot_substitute
+
+-- R2.1 Representation-first / Equivalence-first: an evidence identity is
+-- stable only if source numeric meaning is preserved by the chosen encoding.
+-- This is the MODEL contract for the Composition JSON Decimal/Float boundary.
+-- The real Python Decimal/float admission check remains a separate
+-- implementation refinement obligation; it is not established by this proof.
+namespace OrdivonR21.NumericRepresentation
+
+universe u v
+theorem qualified_same_encoding_implies_same_exact_value
+    {Exact : Type u} {Encoded : Type v}
+    (decodeCanonical : Encoded → Exact)
+    {a b : Exact} {encodedA encodedB : Encoded}
+    (acceptA : a = decodeCanonical encodedA)
+    (acceptB : b = decodeCanonical encodedB)
+    (sameEncoding : encodedA = encodedB) : a = b := by
+  calc
+    a = decodeCanonical encodedA := acceptA
+    _ = decodeCanonical encodedB := congrArg decodeCanonical sameEncoding
+    _ = b := acceptB.symm
+
+-- If two exact source values differ, the same encoded output cannot admit
+-- BOTH lexemes. At least one must be refused instead of reusing its digest.
+theorem different_source_same_encoding_requires_refusal
+    {Exact : Type u} {Encoded : Type v}
+    (decodeCanonical : Encoded → Exact)
+    {a b : Exact} {encodedA encodedB : Encoded}
+    (differentSource : a ≠ b)
+    (sameEncoding : encodedA = encodedB) :
+    ¬ (a = decodeCanonical encodedA ∧ b = decodeCanonical encodedB) := by
+  intro bothAccepted
+  exact differentSource
+    (qualified_same_encoding_implies_same_exact_value decodeCanonical
+      bothAccepted.1 bothAccepted.2 sameEncoding)
+
+-- Non-vacuity: a many-to-one representation without the admission predicate
+-- DOES have distinct source values sharing the same encoded identity.
+theorem unchecked_numeric_alias_is_possible :
+    ∃ (encode : Bool → Nat) (a b : Bool),
+      a ≠ b ∧ encode a = encode b := by
+  exact ⟨(fun _ => 0), false, true, by decide, rfl⟩
+
+end OrdivonR21.NumericRepresentation
+
+#print axioms OrdivonR21.NumericRepresentation.qualified_same_encoding_implies_same_exact_value
+#print axioms OrdivonR21.NumericRepresentation.different_source_same_encoding_requires_refusal
+#print axioms OrdivonR21.NumericRepresentation.unchecked_numeric_alias_is_possible
