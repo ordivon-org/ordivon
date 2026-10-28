@@ -181,8 +181,22 @@ def build_plan(
         queue_class = "REPOSITORY_ONLY"
 
     by_name = {owner.name: owner for owner in owners}
-    verify_tasks = tuple(by_name[name].task for name in verification_names)
-    queue_verify_tasks = tuple(by_name[name].queue_task for name in verification_names)
+    # Formal proofs live in the existing repository Tool source region, not an
+    # invented domain Owner. A changed proof/checker source must still route to
+    # the already declared root mise formal:verify consumer task.
+    formal_source_changed = any(
+        affected_owners._normalize(path).startswith("tools/formal/")
+        for path in paths
+    )
+    formal_tasks = ("formal:verify",) if formal_source_changed else ()
+    verify_tasks = (
+        *(by_name[name].task for name in verification_names),
+        *formal_tasks,
+    )
+    queue_verify_tasks = (
+        *(by_name[name].queue_task for name in verification_names),
+        *formal_tasks,
+    )
     declared_edges = sorted(
         {
             tuple(sorted((left, right)))

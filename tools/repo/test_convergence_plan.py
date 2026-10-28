@@ -87,6 +87,45 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["verificationOwners"], [])
         self.assertEqual(plan["scopeIds"], [])
 
+    def test_formal_source_change_queues_existing_formal_verifier_without_owner(self) -> None:
+        """Mathematical source changes need the real formal task, not just REPOSITORY_ONLY."""
+        for path in (
+            "tools/formal/RecursiveLegoRefinement.lean",
+            "tools/formal/Proof.qnt",
+            "tools/formal/verify.py",
+        ):
+            plan = MODULE.build_plan(changed_files=[path])
+            self.assertEqual(plan["queueClass"], "REPOSITORY_ONLY")
+            self.assertEqual(plan["directOwners"], [])
+            self.assertEqual(plan["verificationOwners"], [])
+            self.assertEqual(plan["verifyTasks"], ["formal:verify"])
+            self.assertEqual(plan["queueVerifyTasks"], ["formal:verify"])
+
+        output = subprocess.check_output([
+            sys.executable, str(MODULE_PATH),
+            "--changed-file", "tools/formal/RecursiveLegoRefinement.lean",
+            "--format", "queue-tasks",
+        ], text=True)
+        self.assertEqual(output.strip(), "formal:verify")
+
+    def test_formal_source_change_composes_with_real_owner_verification(self) -> None:
+        plan = MODULE.build_plan(changed_files=[
+            "tools/formal/RecursiveLegoRefinement.lean",
+            "services/runtime/crates/ordivon-runtime-core/src/lib.rs",
+        ])
+        self.assertEqual(plan["queueClass"], "SCOPED")
+        self.assertEqual(plan["verificationOwners"], ["composition", "runtime"])
+        self.assertEqual(
+            plan["queueVerifyTasks"],
+            ["composition:verify", "runtime:verify", "formal:verify"],
+        )
+        self.assertEqual(plan["scopeIds"], ["owner-component:runtime"])
+
+    def test_repository_docs_do_not_enqueue_formal_tools(self) -> None:
+        plan = MODULE.build_plan(changed_files=["docs/architecture/EXAMPLE.md"])
+        self.assertEqual(plan["queueVerifyTasks"], [])
+        self.assertEqual(plan["verifyTasks"], [])
+
     def test_explicit_owner_universe_is_used_for_direct_selection(self) -> None:
         # Scoped owner sets must not leak global owner identities into plans.
         scoped_owner = MODULE.affected_owners.Owner(
