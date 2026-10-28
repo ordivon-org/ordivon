@@ -179,6 +179,19 @@ def validate_queue_task_selection(
                 callable_task = False
             if not callable_task:
                 raise ValueError(f"selected queue task has no root mise runner: {name}")
+        # A nonempty TOML value cannot prove the actual runner can parse a
+        # command or resolve its task dependencies. Reuse the already installed
+        # native mise validator instead of reimplementing its task language.
+        # Validation does not execute the task or establish its effects.
+        try:
+            native = subprocess.run(
+                ["mise", "--cd", str(ROOT_TASKS_PATH.parent), "tasks", "validate"],
+                capture_output=True, text=True, timeout=30, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise ValueError("selected queue tasks require native mise task validation") from exc
+        if native.returncode != 0:
+            raise ValueError("selected queue tasks fail native mise task validation")
 
 
 def build_plan(

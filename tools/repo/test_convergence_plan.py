@@ -385,6 +385,38 @@ class ConvergencePlanTests(unittest.TestCase):
                         plan["verificationOwners"], plan["queueVerifyTasks"], changed
                     )
 
+    def test_selected_queue_task_matches_native_mise_admission(self) -> None:
+        """A truthy TOML field is not an executable task contract in real mise."""
+        import unittest.mock
+
+        changed = ["tools/formal/Proof.qnt"]
+        cases = {
+            "invalid-boolean-run": 'run = true\n',
+            "invalid-integer-run": 'run = 42\n',
+            "unknown-dependency": 'depends = ["missing:task"]\n',
+            "empty-dependency": 'depends = [""]\n',
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            task_path = root / "mise.toml"
+            for name, body in cases.items():
+                with self.subTest(name=name):
+                    task_path.write_text(
+                        '[tasks."formal:verify"]\n' + body, encoding="utf-8"
+                    )
+                    native = subprocess.run(
+                        ["mise", "--cd", str(root), "tasks", "validate"],
+                        capture_output=True, text=True, timeout=20,
+                    )
+                    self.assertNotEqual(native.returncode, 0)
+                    with unittest.mock.patch.object(MODULE, "ROOT_TASKS_PATH", task_path):
+                        with self.assertRaisesRegex(
+                            ValueError, "native mise task validation"
+                        ):
+                            MODULE.validate_queue_task_selection(
+                                [], ["formal:verify"], changed,
+                            )
+
     def test_github_queue_uses_same_strict_formal_source_task_validation(self) -> None:
         workflow = (MODULE_PATH.parents[2] / ".github/workflows/ci.yml").read_text()
         self.assertIn("convergence_plan.validate_queue_task_selection(", workflow)
