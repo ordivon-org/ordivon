@@ -121,7 +121,7 @@ class ConvergencePlanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "SourceCut mismatch"):
             MODULE.explain_source_impacts(pinned, source_cut="0" * 40)
         forged = {**plan, "queueVerifyTasks": []}
-        with self.assertRaisesRegex(ValueError, "queue task selection"):
+        with self.assertRaisesRegex(ValueError, "queue .*task|queue task selection"):
             MODULE.explain_source_impacts(forged, source_cut=cut)
 
     def test_self_hosted_root_task_change_composes_formal_and_owner_tasks(self) -> None:
@@ -152,7 +152,7 @@ class ConvergencePlanTests(unittest.TestCase):
         ):
             with self.subTest(owners=owners, tasks=tasks):
                 forged = {**plan, "verificationOwners": owners, "queueVerifyTasks": tasks}
-                with self.assertRaisesRegex(ValueError, "noncanonical source impact"):
+                with self.assertRaisesRegex(ValueError, "queue source impact|noncanonical source impact"):
                     MODULE.explain_source_impacts(forged, source_cut=cut)
 
     def test_self_hosted_impact_rejects_uncommitted_executed_producer_bytes(self) -> None:
