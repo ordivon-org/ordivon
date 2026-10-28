@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import copy
+import json
+import subprocess
+import sys
 
 import pytest
 
@@ -305,3 +308,30 @@ def test_self_referential_candidate_owned_anchor_remains_valid_but_not_external(
     result = compile_successor_contract(contract)
     assert result["externallyGrounded"] is False
     assert result["evaluationGroundingMode"] == "SELF_REFERENTIAL"
+
+
+@pytest.mark.parametrize("command", ["compile", "verify-gates"])
+def test_native_successor_cli_refuses_selfowned_external_claim(tmp_path, command: str) -> None:
+    """Both real consumer entrypoints must reject the same forged source claim."""
+    contract = valid_contract()
+    # A pre-existing gate receipt cannot authorize a now-contradictory source.
+    previous_gate = gate_result(contract) if command == "verify-gates" else None
+    contract["evaluationGrounding"]["anchors"][0]["ownerId"] = contract["candidateRef"]["id"]
+    contract_file = tmp_path / "successor.json"
+    contract_file.write_text(json.dumps(contract), encoding="utf-8")
+    args = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.successor_contract_r1",
+        command,
+        str(contract_file),
+    ]
+    if command == "verify-gates":
+        result_file = tmp_path / "gate.json"
+        result_file.write_text(json.dumps(previous_gate), encoding="utf-8")
+        args.append(str(result_file))
+    result = subprocess.run(args, text=True, capture_output=True, check=False)
+    assert result.returncode != 0
+    assert "external evaluation anchor owned by candidate" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert result.stdout == ""
