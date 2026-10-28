@@ -112,6 +112,20 @@ def _tool_digest(raw: dict[str, JsonValue]) -> str:
     return canonical_digest(value)
 
 
+def _forward_granted_timeout(grant: int, requested: int | None) -> int:
+    """Native R2.1 StrictLego21 timeout projection, admitted under caller grant.
+
+    pre: 1 <= grant <= 900000
+    pre: requested is None or (1 <= requested <= grant)
+    post: __return__ == (grant if requested is None else requested)
+    post: 1 <= __return__ <= grant
+
+    Source symbolic checking covers this pure projection. Authority admission,
+    Gateway forwarding, Runtime effects and installed currentness are separate.
+    """
+    return grant if requested is None else requested
+
+
 def _required_text(value: object, label: str) -> str:
     if not isinstance(value, str) or not value:
         raise HarnessRuntimeClientError(f"Gateway {label} is missing")
@@ -585,8 +599,8 @@ class PluginGatewayExecutionBridge(SQLiteHarnessRuntimeBridge):
         # Runtime's omitted-timeout default is owned by Runtime and may be
         # wider than this Harness caller's grant. Preserve the explicit
         # capability bound even when the model leaves timeoutMs unspecified.
-        execution["timeoutMs"] = (
-            self.gateway_grant.max_timeout_ms if timeout is None else timeout
+        execution["timeoutMs"] = _forward_granted_timeout(
+            self.gateway_grant.max_timeout_ms, timeout
         )
         return (
             "workspace.exec",
