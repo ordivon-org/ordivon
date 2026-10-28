@@ -1167,6 +1167,9 @@ def independent_scope_frontier(
     Installed binary and runtime consumer effects are not observed here.
     """
     exact_commit(repo, source)
+    subject_root = Path(
+        git(repo, "rev-parse", "--show-toplevel").decode().strip()
+    ).resolve()
     if not external_git and not non_git_data:
         raise ValueError("external scopes require an explicitly named source")
     if len(external_git) + len(non_git_data) > 16 or not 1 <= max_entries <= 512:
@@ -1201,6 +1204,8 @@ def independent_scope_frontier(
         top = git(root, "rev-parse", "--show-toplevel").decode().strip()
         if Path(top).resolve() != root:
             raise ValueError("external Git scope must be a repository root")
+        if root == subject_root:
+            raise ValueError("external Git scope must not alias the subject repository")
         exact_commit(root, cut)
         paths = tree(root, cut)
         top_levels = collections.Counter(
