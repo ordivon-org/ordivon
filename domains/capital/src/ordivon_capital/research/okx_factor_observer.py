@@ -26,6 +26,7 @@ from .model_monitoring import (
 
 BASE_URL = "https://openapi.okx.com"
 HISTORY_CANDLES = "/api/v5/market/history-candles"
+_COMPLETED_1D_INTERVAL_MS = 86_400_000
 
 
 class OkxFactorObserverError(RuntimeError):
@@ -57,6 +58,15 @@ def parse_completed_daily_returns(
         observations.append({"observedAtMs": ts, "close": row[4]})
 
     observations.sort(key=lambda x: x["observedAtMs"])
+    # An unavailable/intermediate unconfirmed 1D candle cannot silently
+    # turn a multi-day compounded return into a single-day factor/tail-risk
+    # observation. Preserve the stated return horizon rather than filling
+    # unknown prices, interpolating, or relabeling source data as complete.
+    for previous, current in zip(observations, observations[1:]):
+        if current["observedAtMs"] - previous["observedAtMs"] != _COMPLETED_1D_INTERVAL_MS:
+            raise OkxFactorObserverError(
+                f"{instrument_id}: nonconsecutive completed 1D candles"
+            )
     try:
         return completed_log_returns(observations, instrument_id=instrument_id)
     except PortfolioRiskError as exc:
@@ -207,7 +217,7 @@ def capture_okx_factor_observatory(
                 "dataQuality": assess_paired_return_data_quality(
                     base_returns=returns[base_instrument_id],
                     proxy_returns=returns[inst],
-                    expected_interval_ms=86_400_000,
+                    expected_interval_ms=_COMPLETED_1D_INTERVAL_MS,
                 ),
                 "outcomes": monitor_dependence_outcomes(
                     base_instrument_id=base_instrument_id,
