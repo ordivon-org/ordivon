@@ -285,6 +285,18 @@ def explain_source_impacts(
     if not isinstance(verify_owners, list) or not isinstance(queue_tasks, list):
         raise ValueError("missing verification-owner/task contract")
     validate_queue_task_selection(verify_owners, queue_tasks, paths)
+    # Queue allowlisting alone proves each *provided* task is legitimate,
+    # not that every affected consumer was selected. Recompute the complete
+    # existing native impact plan rather than trusting a caller's subset.
+    canonical = build_plan(changed_files=paths)
+    for name in (
+        "queueClass", "directOwners", "verificationOwners", "verifyTasks",
+        "queueVerifyTasks", "scopeIds", "crossCutting",
+        "taskLocalTestConsumers", "dependencyStanding",
+        "ownerManifestDigest", "dependencyContractDigest",
+    ):
+        if plan.get(name) != canonical[name]:
+            raise ValueError("noncanonical source impact: changed-path verification selection")
     cut = source_tools.exact_commit(repo, source_cut)
     if cut != _git("rev-parse", "HEAD"):
         raise ValueError("SourceCut mismatch with active native verification contract")

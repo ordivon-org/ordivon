@@ -81,6 +81,21 @@ class ConvergencePlanTests(unittest.TestCase):
         )
         self.assertFalse(evidence["proofReuseAdmissible"])
 
+    def test_self_hosted_impact_rejects_forged_owner_selection_even_with_valid_tasks(self) -> None:
+        """Never accept a caller-manufactured reduced queue as canonical impact."""
+        source = "services/runtime/crates/ordivon-runtime-core/src/lib.rs"
+        plan = MODULE.build_plan(changed_files=[source])
+        self.assertEqual(plan["verificationOwners"], ["composition", "runtime"])
+        cut = MODULE._git("rev-parse", "HEAD")
+        for owners, tasks in (
+            ([], []),
+            (["runtime"], ["runtime:verify"]),
+        ):
+            with self.subTest(owners=owners, tasks=tasks):
+                forged = {**plan, "verificationOwners": owners, "queueVerifyTasks": tasks}
+                with self.assertRaisesRegex(ValueError, "noncanonical source impact"):
+                    MODULE.explain_source_impacts(forged, source_cut=cut)
+
     def test_self_hosted_impact_refuses_stale_native_contract_and_old_cut(self) -> None:
         cut = MODULE._git("rev-parse", "HEAD")
         plan = MODULE.build_plan(changed_files=["tools/formal/verify.py"])
