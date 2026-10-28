@@ -1158,6 +1158,34 @@ def main() -> int:
                     # This process asks the existing Git Owner query for exact
                     # evidence. Do not execute a mutable checkout implementation
                     # while presenting that answer as source-qualified.
+                    tree_entry = subprocess.run(
+                        [
+                            "git",
+                            "--no-replace-objects",
+                            "-C",
+                            str(owner_tool.parents[2]),
+                            "ls-tree",
+                            "-z",
+                            "--full-tree",
+                            "HEAD",
+                            "--",
+                            "tools/repo/source_history_legos.py",
+                        ],
+                        capture_output=True,
+                        check=False,
+                    )
+                    if (
+                        tree_entry.returncode != 0
+                        or re.fullmatch(
+                            rb"(100644|100755) blob [0-9a-f]{40,64}"
+                            rb"\ttools/repo/source_history_legos\.py\x00",
+                            tree_entry.stdout,
+                        )
+                        is None
+                    ):
+                        raise CircuitContractError(
+                            "native Git query producer Git tree mode is not regular"
+                        )
                     committed = subprocess.run(
                         [
                             "git",
