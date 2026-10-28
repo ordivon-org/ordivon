@@ -18,6 +18,45 @@ OWNER_GRAPH_PLANS = (
 )
 
 
+def test_repo_sourcecut_two_declared_legos_are_consumer_bound_with_open_proof_obligations() -> None:
+    """Canonical R2.1 source law witnesses cannot be silently replaced by filler.
+
+    This tests the *declaration-to-executable-test* join, not semantic proof or
+    installed consumer qualification. A missing/renamed native test fails it.
+    """
+    import ast
+
+    plan = json.loads((ROOT / "tools/repo/planning/lego-plan-r1.json").read_text())
+    nodes = {n["id"]: n for n in plan["nodes"]}
+    assert set(nodes) == {"RG1_SOURCE", "RG2_OWNER"}
+    for node in nodes.values():
+        assert len(node["behavioralContract"]) >= 3
+        assert len(node["consumerEvidence"]) >= 2
+        assert len(node["formalObligations"]) >= 2
+        assert any(c["consumerKind"] == "NATIVE_VERIFICATION_TASK"
+                   and c["witness"] == "mise.toml::repo:ci"
+                   for c in node["consumerEvidence"])
+        assert all(ob["standing"] == "TEST_WITNESS_PRESENT_FORMAL_PROOF_UNKNOWN"
+                   and ob["predicate"] for ob in node["formalObligations"])
+        witnessed = [
+            x["witness"] for x in node["consumerEvidence"]
+            if x["consumerKind"] == "EXECUTABLE_REPOSITORY_TEST"
+        ] + [x["witness"] for x in node["formalObligations"]]
+        assert witnessed
+        for witness in witnessed:
+            path, sep, method = witness.partition("::")
+            assert sep and method.startswith("test_")
+            relative = ROOT / path
+            assert relative.is_file(), witness
+            source = ast.parse(relative.read_text(encoding="utf-8"))
+            declared = {
+                x.name for x in ast.walk(source)
+                if isinstance(x, (ast.FunctionDef, ast.AsyncFunctionDef))
+            }
+            assert method in declared, witness
+    assert "repo:ci" in (ROOT / "mise.toml").read_text(encoding="utf-8")
+
+
 def test_host_legacy_agent_service_cursor_proposal_is_retired() -> None:
     """An old proposed LEGO is not an owner merely because its R1 row survived."""
     legacy = json.loads((ROOT / OWNER_GRAPH_PLANS[1]).read_text(encoding="utf-8"))

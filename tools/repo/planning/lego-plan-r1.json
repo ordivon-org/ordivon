@@ -40,7 +40,46 @@
         "Retired document currentness, one-off first-contact evaluators and historical live-view tools are not source-of-truth; existing architecture checker remains and a negative CDC rejects their reintroduction.",
         "ROOT_UNOWNED means no matching path in the protected SourceCut Owner manifest, not an inferred root Owner. For those paths the graph partitions exact local/remote tip presence into BOTH_PRESENT, LOCAL_ONLY, REMOTE_ONLY and BOTH_ABSENT; none establishes consumer equivalence or branch-retirement permission."
       ],
-      "nextAction": "Per-Owner Consumer-Driven Contract qualification of surviving divergent histories; no redundant Git scanner."
+      "nextAction": "Per-Owner Consumer-Driven Contract qualification of surviving divergent histories; no redundant Git scanner.",
+      "behavioralContract": [
+        "For any pinned exact Git SourceCut, tracked membership and blob/mode identity are determined by the immutable Git tree, not the mutable working directory, index display format or replacement refs.",
+        "Merge result changes cannot be inferred solely from first-parent patches; ambiguity in ancestry/common-base or absent paths is represented as UNKNOWN or fail-closed, not automatic equivalence.",
+        "Unique cross-path identical Git bytes are a source-object equality witness only; they do not authorize consumer equivalence, path migration, branch retirement or release promotion."
+      ],
+      "consumerEvidence": [
+        {
+          "consumerKind": "EXECUTABLE_REPOSITORY_TEST",
+          "witness": "tools/repo/test_source_history_legos.py::test_same_git_common_authority_has_stable_refs_across_worktrees",
+          "standing": "TEST_CONSUMER_ONLY_NOT_INSTALLED"
+        },
+        {
+          "consumerKind": "EXECUTABLE_REPOSITORY_TEST",
+          "witness": "tools/repo/test_source_history_legos.py::test_merge_conflict_resolution_has_real_owner_and_nonpatch_effect",
+          "standing": "TEST_CONSUMER_ONLY_NOT_INSTALLED"
+        },
+        {
+          "consumerKind": "NATIVE_VERIFICATION_TASK",
+          "witness": "mise.toml::repo:ci",
+          "standing": "SOURCE_CONFIG_CONSUMER_NOT_PRODUCTION"
+        }
+      ],
+      "formalObligations": [
+        {
+          "predicate": "SameCut(S,p) => membership(S,p) and blobMode(S,p) are invariant under changes outside the immutable tree(S).",
+          "witness": "tools/repo/test_source_history_legos.py::test_source_cut_ignores_git_replace",
+          "standing": "TEST_WITNESS_PRESENT_FORMAL_PROOF_UNKNOWN"
+        },
+        {
+          "predicate": "IdenticalBlobMode(p,q) does not imply ConsumerEquivalent(p,q); a rename or retirement decision requires independent consumer qualification.",
+          "witness": "tools/repo/test_source_history_legos.py::test_unique_cross_path_bytes_are_not_consumer_or_rename_proofs",
+          "standing": "TEST_WITNESS_PRESENT_FORMAL_PROOF_UNKNOWN"
+        },
+        {
+          "predicate": "Ancestral(S0,S1) must be established before source-delta proof reuse is considered; nonancestral relation fails closed.",
+          "witness": "tools/repo/test_source_history_legos.py::test_source_membership_delta_requires_ancestral_order_for_proof_evolution",
+          "standing": "TEST_WITNESS_PRESENT_FORMAL_PROOF_UNKNOWN"
+        }
+      ]
     },
     {
       "id": "RG2_OWNER",
@@ -73,7 +112,46 @@
         "Every BLOCKED_ON prerequisite is currently unresolved; a partly completed blocker set is invalid even when another predecessor remains open.",
         "The existing Git SourceCut planning graph delta treats any changed registered planning-carrier bytes as a conservative requalification seed for every declared node on that carrier, including acceptance-only edits invisible in vertex/edge projection; real consumer/currentness proof remains separate."
       ],
-      "nextAction": "Reuse existing native source-bound validator; no duplicate graph, custom DSL, or new proof runtime."
+      "nextAction": "Reuse existing native source-bound validator; no duplicate graph, custom DSL, or new proof runtime.",
+      "behavioralContract": [
+        "Exact source-gated verification rejects undeclared or prefix-spoofed CI path-owner names and symlink-redirected source manifests; observed SourceCut never grants domain outcome authority.",
+        "A typed blocked prerequisite relation is acyclic and all prerequisites remain unresolved; feedback/nondependency edges may exist but must not impersonate blockers.",
+        "Changes to planning-carrier bytes invalidate the relevant source-level qualification even if the projected node/edge list appears identical; real installed/consumer effect remains UNKNOWN."
+      ],
+      "consumerEvidence": [
+        {
+          "consumerKind": "EXECUTABLE_REPOSITORY_TEST",
+          "witness": "tools/repo/test_architecture_docs.py::test_formal_issue_census_rejects_undeclared_natural_owner",
+          "standing": "TEST_CONSUMER_ONLY_NOT_INSTALLED"
+        },
+        {
+          "consumerKind": "EXECUTABLE_REPOSITORY_TEST",
+          "witness": "tools/repo/test_lego_graph_laws.py::test_blocked_slice_dependency_cycle_is_rejected",
+          "standing": "TEST_CONSUMER_ONLY_NOT_INSTALLED"
+        },
+        {
+          "consumerKind": "NATIVE_VERIFICATION_TASK",
+          "witness": "mise.toml::repo:ci",
+          "standing": "SOURCE_CONFIG_CONSUMER_NOT_PRODUCTION"
+        }
+      ],
+      "formalObligations": [
+        {
+          "predicate": "For every accepted source plan P, OwnerName(P) belongs to canonical declared source path-owner universe; forged or redirected manifest identities are rejected.",
+          "witness": "tools/repo/test_architecture_docs.py::test_formal_issue_census_rejects_undeclared_natural_owner",
+          "standing": "TEST_WITNESS_PRESENT_FORMAL_PROOF_UNKNOWN"
+        },
+        {
+          "predicate": "BLOCKED_ON edges must admit a topological order and point only to unresolved prerequisites; cyclic or complete predecessor blockers are invalid.",
+          "witness": "tools/repo/test_lego_graph_laws.py::test_blocked_slice_dependency_cycle_is_rejected",
+          "standing": "TEST_WITNESS_PRESENT_FORMAL_PROOF_UNKNOWN"
+        },
+        {
+          "predicate": "Change(PlanCarrierBytes) implies RECHECK_REQUIRED for declared plan nodes regardless of equality in its syntactic node/edge projection.",
+          "witness": "tools/repo/test_lego_graph_laws.py::test_plan_contract_only_change_rechecks_all_declared_lego",
+          "standing": "TEST_WITNESS_PRESENT_FORMAL_PROOF_UNKNOWN"
+        }
+      ]
     }
   ],
   "slices": [
