@@ -198,6 +198,40 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         self.assertIn("HEAD", observed)
         self.assertIn(check_evidence._HARNESS_HISTORICAL_IMPORT, observed)
 
+    def test_full_git_log_legacy_creation_does_not_replace_canonical_import(self) -> None:
+        """Imported archive bytes are tied to import cut in any Git history."""
+        from unittest.mock import patch
+
+        filename, _status, legacy_revision, _digest = EXPECTED[
+            "harness.research.campaign3-rich-effect-owner-capture-v1"
+        ]
+        external_legacy_creation = "b5cc105a0edddc740c16528a3c68e53e0505e691"
+        with patch.object(
+            check_evidence, "_git_creation_revisions",
+            return_value=[external_legacy_creation],
+        ) as creation:
+            self.assertEqual(
+                check_evidence._validate_index_creation_lineage_binding(
+                    filename, legacy_revision, historical=True
+                ),
+                [],
+            )
+            # For an explicitly indexed, pre-import archived source the
+            # changing "git log --diff-filter=A" result is NOT the authority.
+            creation.assert_not_called()
+            self.assertTrue(
+                check_evidence._validate_index_creation_lineage_binding(
+                    filename, legacy_revision, historical=False
+                )
+            )
+        with patch.object(
+            check_evidence, "_git_file_bytes", return_value=b"tampered"
+        ):
+            errors = check_evidence._validate_index_creation_lineage_binding(
+                filename, legacy_revision, historical=True
+            )
+            self.assertTrue(any("bytes changed" in item for item in errors))
+
     def test_scoped_foreign_git_history_is_not_implementation_diff(self) -> None:
         source = "9d936e98d8c02772aa2becc924ba9006c71aa989"
         digest = "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
