@@ -21,10 +21,8 @@ from typing import Any
 
 from .cognitive_circuit_r1 import (
     CircuitContractError,
-    _finite_json_float,
     _load_json,
-    _reject_non_json_constant,
-    _single_valued_json_object,
+    _load_json_value,
     _validate_schema,
     canonical_digest,
     compile_manifest,
@@ -42,12 +40,7 @@ def _load_task_local_json_list(path: Path) -> list[Any]:
     This reuses the existing Composition JSON admission primitives; caller
     reports remain untrusted and acquire no execution or proof authority.
     """
-    value = json.loads(
-        path.read_text(encoding="utf-8"),
-        object_pairs_hook=_single_valued_json_object,
-        parse_constant=_reject_non_json_constant,
-        parse_float=_finite_json_float,
-    )
+    value = _load_json_value(path)
     if not isinstance(value, list):
         raise CircuitContractError("task-local proof input must be a JSON array")
     return value

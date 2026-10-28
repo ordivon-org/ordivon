@@ -142,3 +142,114 @@ def test_native_consumers_refuse_lossy_evidence_before_hash_or_proof(
     assert "lossy JSON numeric evidence" in result.stderr
     assert "Traceback" not in result.stderr
     assert result.stdout == ""
+
+
+@pytest.mark.parametrize("load", (circuit_load, interface_load, successor_load, obligation_load))
+@pytest.mark.parametrize("integer", ("9" * 4301, "-" + "9" * 4301))
+def test_shared_object_reader_rejects_unbounded_integer_evidence(
+    tmp_path: Path, load, integer: str
+) -> None:
+    source = tmp_path / "identity.json"
+    source.write_text('{"proof":{"value":' + integer + "}}", encoding="utf-8")
+    with pytest.raises(CircuitContractError, match="JSON integer exceeds evidence digit bound"):
+        load(source)
+
+
+@pytest.mark.parametrize("integer", ("9" * 4301, "-" + "9" * 4301))
+def test_shared_proof_array_rejects_unbounded_integer_evidence(
+    tmp_path: Path, integer: str
+) -> None:
+    source = tmp_path / "identity.json"
+    source.write_text('[{"proof":' + integer + "}]")
+    with pytest.raises(CircuitContractError, match="JSON integer exceeds evidence digit bound"):
+        _load_task_local_json_list(source)
+
+
+@pytest.mark.parametrize(
+    "read,wrapper",
+    [
+        (circuit_load, '{"k":%s}'),
+        (interface_load, '{"k":%s}'),
+        (successor_load, '{"k":%s}'),
+        (obligation_load, '{"k":%s}'),
+        (_load_task_local_json_list, '[{"k":%s}]'),
+    ],
+)
+@pytest.mark.parametrize("surrogate", (r'"\ud800"', r'"\udfff"'))
+def test_all_shared_evidence_inputs_reject_unpaired_unicode_scalars(
+    tmp_path: Path, read, wrapper: str, surrogate: str
+) -> None:
+    source = tmp_path / "unicode.json"
+    source.write_text(wrapper % surrogate, encoding="utf-8")
+    with pytest.raises(CircuitContractError, match="invalid Unicode scalar"):
+        read(source)
+
+
+@pytest.mark.parametrize(
+    "read,wrapper",
+    [
+        (circuit_load, b'{"k":"\xff"}'),
+        (interface_load, b'{"k":"\xff"}'),
+        (successor_load, b'{"k":"\xff"}'),
+        (obligation_load, b'{"k":"\xff"}'),
+        (_load_task_local_json_list, b'[{"k":"\xff"}]'),
+    ],
+)
+def test_all_shared_evidence_inputs_reject_non_utf8_bytes(
+    tmp_path: Path, read, wrapper: bytes
+) -> None:
+    source = tmp_path / "bytes.json"
+    source.write_bytes(wrapper)
+    with pytest.raises(CircuitContractError, match="invalid UTF-8"):
+        read(source)
+
+
+@pytest.mark.parametrize("load", (circuit_load, interface_load, successor_load, obligation_load))
+def test_shared_integer_bound_keeps_normal_semantics_and_exact_git_bytes(
+    tmp_path: Path, load
+) -> None:
+    from ordivon_composition.cognitive_circuit_r1 import _load_json as immutable_load
+
+    source = tmp_path / "integer.json"
+    source.write_text('{"integer":' + "9" * 4300 + ',"emoji":"\\ud83e\\udde9"}', encoding="utf-8")
+    value = load(source)
+    assert len(str(value["integer"])) == 4300
+    assert value["emoji"] == "🧩"
+    # The immutable blob reader uses exactly the same input qualification.
+    assert immutable_load(source, source_bytes=source.read_bytes()) == value
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        b'{"proof":{"value":' + b"9" * 4301 + b"}}",
+        b'{"proof":{"value":"\\ud800"}}',
+        b'{"proof":{"value":"\xff"}}',
+    ],
+)
+@pytest.mark.parametrize(
+    "module,args",
+    [
+        ("ordivon_composition.verification_obligation_r1", ["compile-obligations"]),
+        ("ordivon_composition.cognitive_circuit_r1", ["compile"]),
+    ],
+)
+def test_native_ledger_consumers_refuse_invalid_json_repr_without_traceback(
+    tmp_path: Path, payload: bytes, module: str, args: list[str]
+) -> None:
+    import subprocess
+    import sys
+
+    source = tmp_path / "untrusted.json"
+    source.write_bytes(payload)
+    result = subprocess.run(
+        [sys.executable, "-m", module, *args, str(source)],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=18,
+    )
+    assert result.returncode != 0
+    assert "failed:" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert result.stdout == ""

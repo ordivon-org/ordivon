@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -142,6 +144,50 @@ class AffectedOwnersTests(unittest.TestCase):
             self.names("tools/repo/affected_owners.py"),
             [owner.name for owner in MODULE.OWNERS],
         )
+
+    def test_executed_shared_producer_selects_exact_known_owner_consumer(self) -> None:
+        # The root repo:ci always checks the repository source tools.
+        # Composition additionally *executes* the source-history producer.
+        source = "tools/repo/source_history_legos.py"
+        self.assertEqual(self.names(source), ["composition"])
+        self.assertEqual(self.queue_tasks(source), ["composition:verify"])
+        self.assertEqual(
+            self.names("docs/architecture/EXAMPLE.md", source), ["composition"],
+        )
+        # An independent actual owner source composes without duplicates.
+        self.assertEqual(
+            self.names(source, "services/runtime/crates/ordivon-runtime-core/src/lib.rs"),
+            ["composition", "runtime"],
+        )
+
+    def test_source_history_inherits_full_transitive_composition_queue(self) -> None:
+        # Assert the real CLI's TRANSITIVE consumers, not a fixed six-task
+        # snapshot. New legitimate Composition dependents extend both sides.
+        cli = MODULE_PATH.with_name("convergence_plan.py")
+
+        def selected(path: str) -> dict:
+            result = subprocess.run(
+                [sys.executable, str(cli), "--changed-file", path],
+                check=True, capture_output=True, text=True,
+            )
+            return json.loads(result.stdout)
+
+        history = selected("tools/repo/source_history_legos.py")
+        composition = selected(
+            "packages/composition/src/ordivon_composition/verification_obligation_r1.py"
+        )
+        self.assertEqual(history["queueVerifyTasks"], composition["queueVerifyTasks"])
+        self.assertEqual(history["verificationOwners"], composition["verificationOwners"])
+        self.assertIn("composition:verify", history["queueVerifyTasks"])
+        self.assertNotIn("formal:verify", history["queueVerifyTasks"])
+
+    def test_repo_inventory_producer_is_covered_by_unconditional_root_ci(self) -> None:
+        # convergence_plan imports this module; the canonical root suite
+        # already runs test_convergence_plan before affected-owner selection.
+        self.assertEqual(self.names("tools/repo/exhaustive_coverage.py"), [])
+        self.assertEqual(self.queue_tasks("tools/repo/exhaustive_coverage.py"), [])
+        self.assertEqual(self.names("tools/repo/README.md"), [])
+        self.assertEqual(self.names("tools/repo/test_source_history_legos.py"), [])
 
     def test_dependency_policy_change_is_cross_cutting(self) -> None:
         self.assertEqual(
