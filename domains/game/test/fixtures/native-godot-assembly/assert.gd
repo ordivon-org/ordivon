@@ -16,6 +16,10 @@ class ForgedDerivedConfig extends "res://config.gd":
     func is_valid() -> bool:
         return true
 
+class RequiredInitConfig extends "res://config.gd":
+    func _init(required_value: int) -> void:
+        starting_energy = required_value
+
 var failures: Array[String] = []
 var assertions: int = 0
 
@@ -119,6 +123,11 @@ func run_acceptance() -> void:
     expect(rules.move(1), "subclass configuration is consumed by real gameplay transition")
     expect(rules.snapshot()["phase"] == "won", "subclass retains game-defined winning semantics")
     expect(view.get_node("Status").text.contains("won"), "subclass gameplay outcome reaches native UI via Signal")
+
+    var required_constructor_variant = RequiredInitConfig.new(5)
+    expect(rules.reset_game(required_constructor_variant), "typed derived with required constructor is accepted")
+    expect(rules.move(1), "required-constructor subtype supports native gameplay")
+    expect(rules.snapshot()["x"] == 1, "derived input is copied into executable base state")
 
     # A validated Godot Resource is mutable. The current ruleset must not
     # silently acquire changes to caller-owned input after explicit reset.

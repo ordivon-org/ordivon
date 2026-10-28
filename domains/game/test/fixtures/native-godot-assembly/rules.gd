@@ -20,10 +20,19 @@ func reset_game(replacement: Resource = null) -> bool:
     # does not supply board/energy/cost/turn fields and must not be installed.
     if not chosen is ConfigType or not ConfigType.accepts_parameters(chosen):
         return false
-    # Godot Resource instances are mutable. Admit a deep copy so a player,
-    # scene or mod cannot rewrite the active verified input through an alias
-    # without explicitly calling reset_game again.
-    configuration = chosen.duplicate(true)
+    # A valid derived Resource may require constructor arguments and cannot
+    # necessarily be duplicated by Godot. This game's actual contract consumes
+    # five base numeric ports, not the provider's subtype or constructor.
+    # Snapshot them into a fresh, native base Resource before changing state.
+    var admitted: Resource = ConfigType.new()
+    admitted.board_width = chosen.board_width
+    admitted.goal_x = chosen.goal_x
+    admitted.starting_energy = chosen.starting_energy
+    admitted.step_cost = chosen.step_cost
+    admitted.turn_limit = chosen.turn_limit
+    if not ConfigType.accepts_parameters(admitted):
+        return false
+    configuration = admitted
     x = 0
     energy = configuration.starting_energy
     turn = 0
