@@ -193,6 +193,17 @@ jobs:
           set -euo pipefail
           while IFS= read -r task || [[ -n "$task" ]]; do
             [[ -z "$task" ]] && continue
+            if [[ "$task" == "formal:verify" ]]; then
+              # Keep the native verification obligation in queue selection and
+              # its fail-closed admission; the dedicated isolated KANI_HOME
+              # Formal step is the ONE actual executor of that selected task.
+              # Do not run the same proof first with an unprepared environment.
+              if [[ "${{ steps.affected.outputs.formal }}" != "true" ]]; then
+                echo "ERROR: selected Formal task lacks its isolated execution gate" >&2
+                exit 42
+              fi
+              continue
+            fi
             echo "::group::mise run $task"
             # The selected task must not consume the following queue entries.
             mise run "$task" </dev/null
