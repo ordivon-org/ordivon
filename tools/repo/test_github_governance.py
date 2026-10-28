@@ -424,6 +424,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 "RUNNER_TEMP": str(root),
                 "GITHUB_OUTPUT": str(root / "outputs"),
                 "GITHUB_STEP_SUMMARY": str(root / "summary"),
+                # The clone is a disposable test-only Git checkout, not a
+                # globally approved config. Trust only this one native source.
+                "MISE_TRUSTED_CONFIG_PATHS": str(clone),
             })
 
             def invoke() -> subprocess.CompletedProcess[str]:
