@@ -1388,3 +1388,136 @@ class StableSourceProblemQuestionTests(unittest.TestCase):
         entry["candidateProblemRef"] = "problem:source-scope:" + "0" * 64
         with self.assertRaisesRegex(ValueError, "unscoped or unrecognized"):
             M.join_observed_authorities(self.new, base)
+
+
+class TypedProblemRelationProjectionTests(unittest.TestCase):
+    """Relation witnesses are exact-source candidates, never certified calls."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cut = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+        ).strip()
+        cls.frontier = M.derived_problem_legos(M.classification(ROOT, cls.cut), repo=ROOT)
+        cls.imports = M.static_python_import_frontier(ROOT, cls.cut)
+        cls.view = M.source_problem_relation_projection(cls.frontier, cls.imports)
+
+    def test_exact_index_and_source_evidence_are_lossless(self):
+        v = self.view
+        expected = self.imports["summary"]
+        assert v["sourceCut"] == self.cut
+        assert v["sourcePathCellIndex"] == self.frontier["sourcePathCellIndex"]
+        assert v["summary"]["indexedSourcePaths"] == (
+            self.frontier["summary"]["trackedPaths"]
+        )
+        assert v["summary"]["staticImportCandidateEdges"] == (
+            expected["allStaticCandidateEdges"]
+        )
+        assert v["summary"]["dynamicSyntaxSites"] == (
+            expected["allDynamicSyntaxSites"]
+        )
+        assert v["summary"]["unresolvedImportStatements"] == (
+            expected["allUnresolvedImportStatements"]
+        )
+        assert v["summary"]["declaredPlanEdgesNotActualCalls"] == (
+            self.frontier["summary"]["declaredPlanEdges"]
+        )
+
+    def test_every_import_edge_has_real_source_cells_without_claiming_calls(self):
+        known = {row["sourceCellRef"] for row in self.frontier["sourceCells"]}
+        for e in self.view["staticPythonImportCandidates"]:
+            assert e["consumerCellRef"] in known
+            assert e["providerCellRef"] in known
+            assert e["consumerPath"] in self.view["sourcePathCellIndex"]
+            assert e["providerPath"] in self.view["sourcePathCellIndex"]
+            assert e["relation"] == "STATIC_PYTHON_IMPORT_CANDIDATE_NOT_RUNTIME_CALL"
+            assert e["runtimeCallStanding"] == "UNKNOWN"
+            assert e["effectStanding"] == "UNKNOWN"
+            assert e["installedConsumerStanding"] == "UNKNOWN"
+        assert self.view["semanticCallClosureEstablished"] is False
+        assert self.view["impactClosureAdmissible"] is False
+        assert self.view["deletionAuthorized"] is False
+        assert self.view["proofReuseAdmissible"] is False
+
+    def test_unresolved_imports_are_grouped_and_dynamic_providers_unresolved(self):
+        v = self.view
+        assert sum(x["count"] for x in v["unresolvedImportFacets"]) == (
+            len(self.imports["unresolvedImportStatements"])
+        )
+        assert all(len(x["boundedWitnesses"]) <= 4 for x in v["unresolvedImportFacets"])
+        assert all(x["standing"] == "UNRESOLVED_SYNTAX_NOT_A_MISSING_PROVIDER_PROOF"
+                   for x in v["unresolvedImportFacets"])
+        for row in v["dynamicSyntaxUnresolvedProviders"]:
+            assert row["providerRef"] is None
+            assert row["runtimeCallStanding"] == "UNKNOWN"
+        assert v["summary"]["dynamicSyntaxSitesInProblemCells"] > 0
+
+    def test_cross_plan_and_declarations_remain_noncall(self):
+        v = self.view
+        assert v["summary"]["unscopedPlanIdReuseQuestions"] == len(
+            self.frontier["sameLocalIdAcrossPlansObservation"])
+        assert all(e["runtimeCallStanding"] == "NOT_ESTABLISHED" for e in
+                   v["declaredPlanRelationsNotRuntimeCalls"])
+        assert len(v["reportedExternalCandidateAssociations"]) == 0
+
+    def test_cross_cut_or_partial_ast_is_rejected(self):
+        import copy
+        ast = copy.deepcopy(self.imports)
+        ast["sourceCut"] = "f" * 40
+        with self.assertRaisesRegex(ValueError, "SourceCut mismatch"):
+            M.source_problem_relation_projection(self.frontier, ast)
+        ast = copy.deepcopy(self.imports)
+        ast["focusPrefix"] = "services/"
+        with self.assertRaisesRegex(ValueError, "unfiltered AST"):
+            M.source_problem_relation_projection(self.frontier, ast)
+
+    def test_unknown_consumer_git_path_fails_closed(self):
+        import copy
+        ast = copy.deepcopy(self.imports)
+        assert ast["staticCandidateEdges"]
+        ast["staticCandidateEdges"][0]["providerPath"] = "not/in/current/Git.py"
+        with self.assertRaisesRegex(ValueError, "outside exact Git"):
+            M.source_problem_relation_projection(self.frontier, ast)
+
+    def test_false_plan_or_external_relation_promotion_is_rejected(self):
+        import copy
+        modified = copy.deepcopy(self.frontier)
+        modified["declaredPlanEdgesNotActualCalls"][0]["runtimeCallStanding"] = "PASS"
+        with self.assertRaisesRegex(ValueError, "claim runtime calls"):
+            M.source_problem_relation_projection(modified, self.imports)
+        modified = copy.deepcopy(self.frontier)
+        modified["observationJoin"] = {"candidateAssociations": [{
+            "relation": "EXECUTED_CALL",
+            "proofStanding": "PROVEN",
+        }]}
+        with self.assertRaisesRegex(ValueError, "promoted to proof"):
+            M.source_problem_relation_projection(modified, self.imports)
+
+    def test_command_line_distinct_mode_and_summary(self):
+        import json
+        args = [
+            "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+            "--source-cut", self.cut,
+        ]
+        good = subprocess.run(
+            args + ["--problem-legos", "--relation-evidence", "--summary"],
+            cwd=ROOT, capture_output=True, text=True, timeout=35
+        )
+        assert good.returncode == 0, good.stderr
+        v = json.loads(good.stdout)
+        assert v["summary"]["staticImportCandidateEdges"] == len(
+            self.imports["staticCandidateEdges"])
+        assert "staticPythonImportCandidates" not in v
+        for bad in (["--relation-evidence"], [
+            "--problem-legos", "--relation-evidence", "--scope-census"
+        ], [
+            "--problem-legos", "--relation-evidence", "--use-proposal-cells"
+        ]):
+            p = subprocess.run(args + bad, cwd=ROOT,
+                               capture_output=True, text=True, timeout=35)
+            assert p.returncode != 0, bad
+
+    def test_repeat_without_external_changes_is_deterministic(self):
+        assert self.view == M.source_problem_relation_projection(
+            self.frontier, self.imports
+        )
