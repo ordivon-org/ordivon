@@ -7,7 +7,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from ordivon_capital.markets.public_bbo import qualified_public_bbo
+from ordivon_capital.markets.market_sensors import qualified_public_bbo
 
 PRICE_KEYS = ("okx_btc", "okx_eth", "binance_books")
 

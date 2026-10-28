@@ -20,6 +20,22 @@ def _d(value: Any, label: str) -> Decimal:
     return result
 
 
+def qualified_public_bbo(bid: Any, ask: Any, *, source: str) -> tuple[Decimal, Decimal]:
+    """One reusable public market quote contract: finite 0 < bid <= ask.
+
+    This qualifies only the observed price pair, not venue reliability, trade
+    execution, arbitrage, timestamp agreement or economic profitability.
+    """
+    try:
+        best_bid = _d(bid, f"{source}.bid")
+        best_ask = _d(ask, f"{source}.ask")
+    except MarketSensorError as exc:
+        raise MarketSensorError(f"{source}: public BBO requires finite decimal prices") from exc
+    if best_bid <= 0 or best_ask <= 0 or best_bid > best_ask:
+        raise MarketSensorError(f"{source}: public BBO must satisfy 0 < bid <= ask")
+    return best_bid, best_ask
+
+
 def _fmt(value: Decimal, places: str = "0.000001") -> str:
     return format(value.quantize(Decimal(places)), "f")
 
