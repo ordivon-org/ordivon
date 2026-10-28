@@ -1004,6 +1004,51 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
         self.assertEqual(valid["observationJoin"]["observedSubjects"][0]["observedAt"],
                          "2024-02-29T23:59:59Z")
 
+    def test_cli_rejects_ambiguous_or_nonstandard_observation_json(self):
+        """Actual CLI ingress must not silently normalize invalid JSON evidence."""
+        import json
+        import tempfile
+
+        payload = json.dumps(
+            self.envelope([self.observation()]),
+            ensure_ascii=True, separators=(",", ":"), allow_nan=False,
+        )
+        variants = {
+            "valid": payload,
+            "nonstandard_nan_ignored_top_level": payload[:-1] + ',"opaque":NaN}',
+            "nonstandard_infinity_ignored_top_level": payload[:-1] + ',"opaque":Infinity}',
+            "numeric_overflow_ignored_top_level": payload[:-1] + ',"opaque":1e999}',
+            "duplicate_kind_last_wins": payload.replace(
+                '{"kind":', '{"kind":"wrong","kind":', 1,
+            ),
+            "duplicate_source_cut_last_wins": payload.replace(
+                '"subjectSourceCut":',
+                '"subjectSourceCut":"WRONG","subjectSourceCut":', 1,
+            ),
+            "duplicate_nested_fact_last_wins": payload.replace(
+                '"trackedPaths":200', '"trackedPaths":0,"trackedPaths":200', 1,
+            ),
+            "unicode_escaped_duplicate_fact": payload.replace(
+                '"trackedPaths":200', '"\\u0074rackedPaths":0,"trackedPaths":200', 1,
+            ),
+        }
+        with tempfile.TemporaryDirectory() as td:
+            file = pathlib.Path(td) / "observations.json"
+            for name, raw in variants.items():
+                with self.subTest(name=name):
+                    file.write_text(raw, encoding="utf-8")
+                    proc = subprocess.run([
+                        "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+                        "--repo", str(ROOT), "--source-cut", self.cut,
+                        "--problem-legos", "--authority-observations", str(file),
+                        "--summary",
+                    ], cwd=ROOT, capture_output=True, text=True, timeout=40)
+                    if name == "valid":
+                        self.assertEqual(proc.returncode, 0, proc.stderr)
+                    else:
+                        self.assertNotEqual(proc.returncode, 0, name)
+                        self.assertRegex(proc.stderr, "duplicate|non-standard")
+
     def test_cli_opt_in_and_summary(self):
         import json
         import tempfile

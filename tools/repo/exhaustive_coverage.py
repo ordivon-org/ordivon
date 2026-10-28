@@ -718,6 +718,37 @@ def derived_problem_legos(
 
 
 
+def parse_strict_authority_observation_json(raw: str) -> dict:
+    """Reject ambiguous JSON syntax before joining caller-reported evidence.
+
+    This is the existing opt-in observation CLI's parser boundary, not a
+    validator or registry for Git-owned source documents.
+    """
+    import math
+
+    def non_standard_constant(token: str):
+        raise ValueError(f"non-standard JSON constant in authority observations: {token}")
+
+    def finite_number(token: str) -> float:
+        value = float(token)
+        if not math.isfinite(value):
+            raise ValueError("non-standard nonfinite JSON number in authority observations")
+        return value
+
+    def unique_object(pairs: list[tuple[str, object]]) -> dict:
+        output = {}
+        for key, value in pairs:
+            if key in output:
+                raise ValueError(f"duplicate JSON key in authority observations: {key!r}")
+            output[key] = value
+        return output
+
+    return json.loads(
+        raw, parse_constant=non_standard_constant,
+        parse_float=finite_number, object_pairs_hook=unique_object,
+    )
+
+
 def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
     """Join caller-supplied *observations* without promoting them to truth.
 
@@ -1762,7 +1793,9 @@ def main() -> int:
             # this join never probes/impersonates the named natural authority.
             if args.authority_observations.stat().st_size > 262144:
                 raise ValueError("authority observation file exceeds 256KiB")
-            evidence = json.loads(args.authority_observations.read_text(encoding="utf-8"))
+            evidence = parse_strict_authority_observation_json(
+                args.authority_observations.read_text(encoding="utf-8")
+            )
             result = join_observed_authorities(result, evidence)
         if args.summary:
             if "observationJoin" in result:
