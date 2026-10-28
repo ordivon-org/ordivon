@@ -39,6 +39,8 @@ def _canonical_bytes(value: Any) -> bytes:
             ensure_ascii=False,
             allow_nan=False,
         ).encode("utf-8")
+    except UnicodeError as exc:
+        raise CircuitContractError("non-Unicode scalar in LEGO evidence digest") from exc
     except ValueError as exc:
         raise CircuitContractError("non-JSON numeric value in LEGO evidence digest") from exc
 
@@ -80,15 +82,60 @@ def _finite_json_float(value: str) -> float:
     return parsed
 
 
+# Limit is explicit even if the host disables CPython's default 4300-digit
+# conversion fence. This is a bounded JSON evidence admission contract.
+MAX_JSON_INTEGER_DIGITS = 4300
+
+
+def _bounded_json_integer(value: str) -> int:
+    if len(value) - int(value.startswith("-")) > MAX_JSON_INTEGER_DIGITS:
+        raise CircuitContractError("JSON integer exceeds evidence digit bound")
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise CircuitContractError("JSON integer cannot be represented") from exc
+
+
+def _require_unicode_scalars(value: Any) -> None:
+    # Python's JSON decoder accepts lone escaped UTF-16 surrogates that cannot
+    # be encoded to UTF-8 for our canonical digest. One iterative check works
+    # for keys, nested string values, object roots and proof-array roots.
+    pending = [value]
+    while pending:
+        item = pending.pop()
+        if isinstance(item, str):
+            try:
+                item.encode("utf-8")
+            except UnicodeError as exc:
+                raise CircuitContractError("invalid Unicode scalar in JSON evidence") from exc
+        elif isinstance(item, dict):
+            pending.extend(item.keys())
+            pending.extend(item.values())
+        elif isinstance(item, list):
+            pending.extend(item)
+
+
+def _load_json_value(path: Path, *, source_bytes: bytes | None = None) -> Any:
+    """One source/evidence admission boundary shared by all Composition CLIs."""
+    try:
+        raw = source_bytes if source_bytes is not None else path.read_bytes()
+        value = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=_single_valued_json_object,
+            parse_constant=_reject_non_json_constant,
+            parse_float=_finite_json_float,
+            parse_int=_bounded_json_integer,
+        )
+        _require_unicode_scalars(value)
+    except CircuitContractError:
+        raise
+    except (UnicodeError, RecursionError) as exc:
+        raise CircuitContractError("invalid UTF-8 or nesting in JSON evidence") from exc
+    return value
+
+
 def _load_json(path: Path, *, source_bytes: bytes | None = None) -> dict[str, Any]:
-    value = json.loads(
-        source_bytes.decode("utf-8")
-        if source_bytes is not None
-        else path.read_text(encoding="utf-8"),
-        object_pairs_hook=_single_valued_json_object,
-        parse_constant=_reject_non_json_constant,
-        parse_float=_finite_json_float,
-    )
+    value = _load_json_value(path, source_bytes=source_bytes)
     if not isinstance(value, dict):
         raise CircuitContractError(f"{path}: root must be an object")
     return value

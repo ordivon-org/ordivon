@@ -401,40 +401,138 @@ jobs:
             exit 43
           }
           python3 - "$receipt" <<'PY'
+          import hashlib
           import json
           import os
+          import re
+          import stat
           import subprocess
           import sys
           from pathlib import Path
 
-          try:
-              report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          # Consumer-owned finite proof obligations. Exit 0 and a subset are not enough.
+          EXPECTED_PROBES = {
+              "Lean kernel R2.1 relational composition": 0,
+              "Lean kernel qualified variation frame and countermodels": 0,
+              "Lean rejects false theorem": 1,
+              "Z3: sat": 0,
+              "Z3: unsat": 0,
+              "cvc5: sat": 0,
+              "cvc5: unsat": 0,
+              "Verus Rust proof": 0,
+              "Verus rejects false postcondition": 1,
+              "Dafny method proof": 0,
+              "Dafny rejects false postcondition": 4,
+              "Kani native Rust bounded proof": 0,
+              "Kani rejects reachable assertion failure": "NONZERO",
+              "Quint typed state machine": 0,
+              "Quint rejects type error": "NONZERO",
+              "Alloy finite SAT model": 0,
+          }
+          REQUIRED_SOURCE_FILES = {
+              "mise.toml",
+              "tools/formal/mise.toml",
+              "tools/formal/verify.py",
+              "tools/formal/RecursiveLegoRefinement.lean",
+              "tools/formal/RecursiveLegoVariationFrame.lean",
+              "tools/formal/Proof.rs",
+              "tools/formal/Proof.dfy",
+              "tools/formal/ProofKani.rs",
+              "tools/formal/Proof.qnt",
+              "tools/formal/Proof.als",
+          }
+          REQUIRED_TOOLS = {"lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy"}
+
+          def reject_duplicate_keys(pairs):
+              value = {}
+              for name, item in pairs:
+                  if name in value:
+                      raise ValueError("duplicate Formal receipt JSON field")
+                  value[name] = item
+              return value
+
+          def qualified_report():
+              report = json.loads(
+                  Path(sys.argv[1]).read_text(encoding="utf-8"),
+                  object_pairs_hook=reject_duplicate_keys,
+              )
+              if not isinstance(report, dict):
+                  return False
               expected = subprocess.check_output(
                   ["git", "--no-replace-objects", "rev-parse", "HEAD"], text=True
               ).strip()
-              probes = report["probes"]
-              valid = (
-                  isinstance(report, dict)
-                  and report.get("kind") == "source-scoped-native-formal-toolchain-check"
+              probes = report.get("probes")
+              sources = report.get("sourceBlobs")
+              tools = report.get("toolBinaries")
+              oid_len = {"sha1": 40, "sha256": 64}.get(report.get("gitObjectFormat"))
+              if not (
+                  report.get("kind") == "source-scoped-native-formal-toolchain-check"
                   and report.get("status") == "PASS"
                   and report.get("sourceCut") == expected
                   and (not os.environ.get("GITHUB_SHA")
-                       or report.get("sourceCut") == os.environ["GITHUB_SHA"])
+                       or expected == os.environ["GITHUB_SHA"])
                   and report.get("sourceQualification")
                       == "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST"
                   and report.get("toolQualification")
                       == "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST"
                   and report.get("proofReuseAdmissible") is False
-                  and isinstance(probes, list) and len(probes) > 0
-                  and report.get("count") == len(probes)
-                  # Negative probes must fail in the underlying solver:
-                  # the qualified verifier's PASS is the acceptance signal,
-                  # while a nonzero rc can be an EXPECTED counterexample.
-                  and all(isinstance(item, dict)
-                          and item.get("result") == "PASS"
-                          and isinstance(item.get("rc"), int)
-                          for item in probes)
-              )
+                  and type(report.get("count")) is int
+                  and report["count"] == len(EXPECTED_PROBES)
+                  and isinstance(probes, list) and len(probes) == len(EXPECTED_PROBES)
+                  and isinstance(sources, dict) and set(sources) == REQUIRED_SOURCE_FILES
+                  and isinstance(tools, dict) and set(tools) == REQUIRED_TOOLS
+                  and oid_len == len(expected)
+              ):
+                  return False
+              witnessed = {}
+              for item in probes:
+                  if not isinstance(item, dict) or set(item) != {"probe", "result", "rc"}:
+                      return False
+                  name = item["probe"]
+                  if not isinstance(name, str) or name not in EXPECTED_PROBES or name in witnessed:
+                      return False
+                  if item["result"] != "PASS" or type(item["rc"]) is not int:
+                      return False
+                  required_rc = EXPECTED_PROBES[name]
+                  if (item["rc"] == 0 if required_rc == "NONZERO"
+                          else item["rc"] != required_rc):
+                      return False
+                  witnessed[name] = item["rc"]
+              if set(witnessed) != set(EXPECTED_PROBES):
+                  return False
+              for rel, blob in sources.items():
+                  if (not isinstance(blob, str)
+                          or re.fullmatch("[0-9a-f]{" + str(oid_len) + "}", blob) is None):
+                      return False
+                  actual = subprocess.check_output(
+                      ["git", "--no-replace-objects", "rev-parse", "HEAD:" + rel],
+                      text=True, stderr=subprocess.PIPE,
+                  ).strip()
+                  if blob != actual:
+                      return False
+              for record in tools.values():
+                  if not isinstance(record, dict) or set(record) != {"path", "version", "sha256"}:
+                      return False
+                  if not all(isinstance(record[x], str) and record[x]
+                             for x in ("path", "version", "sha256")):
+                      return False
+                  if re.fullmatch("[0-9a-f]{64}", record["sha256"]) is None:
+                      return False
+                  # A well-formed digest string does not identify an installed binary.
+                  # Rehash the *actual recorded executable*, not just its claimed SHA.
+                  executable = Path(record["path"])
+                  if (not executable.is_absolute() or executable.is_symlink()
+                          or not executable.is_file()
+                          or not stat.S_ISREG(executable.stat().st_mode)
+                          or not os.access(executable, os.X_OK)):
+                      return False
+                  with executable.open("rb") as stream:
+                      if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
+                          return False
+              return True
+
+          try:
+              valid = qualified_report()
           except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError):
               valid = False
           if not valid:

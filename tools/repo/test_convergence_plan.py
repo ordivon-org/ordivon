@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+from itertools import combinations
 import os
 import subprocess
 import sys
@@ -190,6 +191,113 @@ class ConvergencePlanTests(unittest.TestCase):
             self.assertEqual(plan["headTree"], real_tree)
             self.assertEqual(plan["changedPaths"], ["tools/formal/Proof.qnt"])
             self.assertEqual(plan["queueVerifyTasks"], ["formal:verify"])
+    def test_phase2_temporal_git_frontier_composes_with_canonical_consumers(self) -> None:
+        """Two Git cuts -> exact changed members -> mandatory native verifier.
+
+        Source & task-selection contract only, NOT runtime effect or theorem.
+        """
+        root = MODULE_PATH.parents[2]
+        def git(*args: str) -> str:
+            return subprocess.check_output(
+                ["git", "-C", str(root), "--no-replace-objects", *args],
+                text=True, stderr=subprocess.PIPE
+            ).strip()
+        head = git("rev-parse", "HEAD")
+        latest_formal = git(
+            "log", "-1", "--format=%H", "HEAD", "--", "tools/formal/mise.toml"
+        )
+        base = git("rev-parse", latest_formal + "^")
+        receipt = MODULE.build_qualified_temporal_impact(
+            base=base, head=head, prefixes=["tools/formal/"]
+        )
+        self.assertEqual(receipt["sourceCuts"]["current"], head)
+        self.assertIn("tools/formal/mise.toml", receipt["selectedChangedPaths"])
+        self.assertEqual(receipt["queueVerifyTasks"], ["formal:verify"])
+        self.assertFalse(receipt["proofReuseAdmissible"])
+        self.assertEqual(
+            receipt["verificationStanding"],
+            "SCOPE_INCOMPLETE_NO_COMPLETE_QUEUE_ADMISSION",
+        )
+        coverage = receipt["gitDeltaCoverage"]
+        self.assertFalse(coverage["allTrackedGitChangesObserved"])
+        self.assertEqual(
+            coverage["observedChangedPathCount"] +
+            coverage["unobservedChangedPathCount"],
+            coverage["exactChangedPathCount"],
+        )
+        self.assertGreater(coverage["unobservedChangedPathCount"], 0)
+        self.assertLessEqual(len(coverage["unobservedChangedPathWitness"]), 8)
+        self.assertEqual(receipt["runtimeCallStanding"], "UNKNOWN")
+        self.assertEqual(receipt["installedEffectStanding"], "UNKNOWN")
+        self.assertEqual(receipt["sourceConsumerEvidence"]["queueVerifyTasks"], ["formal:verify"])
+        self.assertFalse(receipt["sourceConsumerEvidence"]["impactClosureAdmissible"])
+        self.assertEqual(receipt["sourceConsumerEvidence"]["sourceCut"], head)
+        args = [
+            sys.executable, str(MODULE_PATH), "--base", base, "--head", head,
+            "--impact-prefix", "tools/formal/"
+        ]
+        actual = __import__("json").loads(subprocess.check_output(args, text=True))
+        self.assertEqual(actual["selectedChangedPaths"], receipt["selectedChangedPaths"])
+        partial_queue = subprocess.run(
+            [*args, "--format", "queue-tasks"],
+            text=True, capture_output=True, check=False,
+        )
+        self.assertNotEqual(partial_queue.returncode, 0)
+        self.assertEqual(partial_queue.stdout, "")
+        self.assertIn("unobserved Git source changes", partial_queue.stderr)
+        empty = MODULE.build_qualified_temporal_impact(
+            base=base, head=head, prefixes=["tools/formal/not-a-real-subtree/"]
+        )
+        self.assertEqual(empty["queueVerifyTasks"], [])
+        self.assertEqual(empty["sourceConsumerEvidence"]["changedSourceInputs"], [])
+        self.assertEqual(empty["sourceConsumerEvidence"]["sourceCut"], head)
+        self.assertFalse(empty["sourceConsumerEvidence"]["proofReuseAdmissible"])
+        self.assertFalse(empty["proofReuseAdmissible"])
+        self.assertEqual(empty["gitDeltaCoverage"]["observedChangedPathCount"], 0)
+        self.assertGreater(empty["gitDeltaCoverage"]["unobservedChangedPathCount"], 0)
+        self.assertFalse(empty["gitDeltaCoverage"]["allTrackedGitChangesObserved"])
+        # Exact no-change interval is complete in Git SOURCE space only.
+        # It is not evidence that current code/installation is correct.
+        unchanged = MODULE.build_qualified_temporal_impact(
+            base=head, head=head, prefixes=["tools/repo/"]
+        )
+        self.assertTrue(unchanged["gitDeltaCoverage"]["allTrackedGitChangesObserved"])
+        self.assertEqual(unchanged["gitDeltaCoverage"]["exactChangedPathCount"], 0)
+        self.assertEqual(unchanged["sourceConsumerEvidence"]["changedSourceInputs"], [])
+        self.assertEqual(unchanged["sourceConsumerEvidence"]["sourceCut"], head)
+        self.assertFalse(unchanged["proofReuseAdmissible"])
+        for wrong in (
+            dict(base=base, head=base, prefixes=["tools/formal/"]),
+            dict(base=base, head=head, prefixes=["tools/formal/", "tools/formal/"]),
+            dict(base=base, head=head, prefixes=["../unbounded/"]),
+        ):
+            with self.assertRaises(ValueError):
+                MODULE.build_qualified_temporal_impact(**wrong)
+        forged = subprocess.run(
+            [*args, "--changed-file", "docs/README.md"],
+            text=True, capture_output=True, check=False
+        )
+        self.assertNotEqual(forged.returncode, 0)
+        self.assertIn("no competing", forged.stderr)
+
+    def test_empty_temporal_change_still_rejects_dirty_producer_and_policy(self) -> None:
+        """No Git delta never certifies a drifted live verification contract."""
+        head = MODULE._git("rev-parse", "HEAD")
+        root = MODULE_PATH.parents[2]
+        for relative, expected_error in (
+            ("tools/repo/owners.toml", "verification contract differs"),
+            ("tools/repo/convergence_plan.py", "executed producer source differs"),
+        ):
+            source = root / relative
+            original = source.read_bytes()
+            try:
+                source.write_bytes(original + b"\\n# synthetic sourcecut drift fixture\\n")
+                with self.assertRaisesRegex(ValueError, expected_error):
+                    MODULE.build_qualified_temporal_impact(
+                        base=head, head=head, prefixes=["tools/repo/"]
+                    )
+            finally:
+                source.write_bytes(original)
 
     def test_self_hosted_impact_explanation_binds_real_source_and_verification(self) -> None:
         source = "tools/repo/affected_owners.py"
@@ -233,7 +341,7 @@ class ConvergencePlanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "SourceCut mismatch"):
             MODULE.explain_source_impacts(pinned, source_cut="0" * 40)
         forged = {**plan, "queueVerifyTasks": []}
-        with self.assertRaisesRegex(ValueError, "queue source impact"):
+        with self.assertRaisesRegex(ValueError, "queue source impact|queue .*task|queue task selection"):
             MODULE.explain_source_impacts(forged, source_cut=cut)
 
     def test_self_hosted_root_task_change_composes_formal_and_owner_tasks(self) -> None:
@@ -264,7 +372,7 @@ class ConvergencePlanTests(unittest.TestCase):
         ):
             with self.subTest(owners=owners, tasks=tasks):
                 forged = {**plan, "verificationOwners": owners, "queueVerifyTasks": tasks}
-                with self.assertRaisesRegex(ValueError, "queue source impact"):
+                with self.assertRaisesRegex(ValueError, "queue source impact|noncanonical source impact"):
                     MODULE.explain_source_impacts(forged, source_cut=cut)
 
     def test_self_hosted_impact_rejects_uncommitted_executed_producer_bytes(self) -> None:
@@ -512,6 +620,93 @@ class ConvergencePlanTests(unittest.TestCase):
         all_tasks = [item.queue_task for item in MODULE.affected_owners.OWNERS]
         MODULE.validate_queue_task_selection(all_owners, all_tasks)
 
+    def test_every_real_single_and_pair_owner_source_change_rejects_queue_omissions(self) -> None:
+        """R2.1 finite source-consumer closure: all 18 owner roots, every pair.
+
+        This is a test of the actual native policy and tracked Git inputs,
+        not a proof that unknown dynamic/installed consumers are complete.
+        Extending the Owner universe deliberately requires requalifying this
+        explicitly bounded one-/two-owner consumer closure.
+        """
+        root = MODULE_PATH.parents[2]
+        tracked = subprocess.check_output(
+            ["git", "--no-replace-objects", "ls-tree", "-r", "--name-only", "HEAD"],
+            cwd=root, text=True,
+        ).splitlines()
+        samples = {}
+        for owner in MODULE.affected_owners.OWNERS:
+            real_paths = [path for path in tracked if path.startswith(owner.root)]
+            self.assertTrue(real_paths, f"unmaterialized owner source: {owner.name}")
+            code_paths = [
+                path for path in real_paths
+                if path.endswith((".rs", ".py", ".ts", ".go", ".json"))
+                and "/test" not in path
+            ]
+            samples[owner.name] = (code_paths or real_paths)[0]
+        self.assertEqual(len(samples), 18)
+        self.assertEqual(len(samples), len(set(samples.values())))
+        groups = [(name,) for name in samples] + list(combinations(samples, 2))
+        self.assertEqual(len(groups), 18 + 153)
+        checks = 0
+        for group in groups:
+            changed = [samples[name] for name in group]
+            plan = MODULE.build_plan(changed_files=changed)
+            owners = plan["verificationOwners"]
+            tasks = plan["queueVerifyTasks"]
+            self.assertTrue(tasks, f"no native task selected for real consumer {group}")
+            with self.subTest(owner_group=group, case="exact-required"):
+                MODULE.validate_queue_task_selection(owners, tasks, changed)
+            checks += 1
+            invalid = {
+                "omit-first-task": (owners, tasks[1:]),
+                "omit-all-consumers": ([], []),
+                "add-unknown-task": (owners, tasks + ["forged:verify"]),
+                "duplicate-task": (owners, tasks + [tasks[0]]),
+                "omit-first-owner": (owners[1:], tasks),
+            }
+            if len(tasks) > 1:
+                invalid["reorder"] = (owners, list(reversed(tasks)))
+            for case, (selected, requested) in invalid.items():
+                with self.subTest(owner_group=group, case=case):
+                    with self.assertRaises(ValueError):
+                        MODULE.validate_queue_task_selection(
+                            selected, requested, changed
+                        )
+                checks += 1
+        # 171 real source cohorts, 1191 exact positive/negative obligations
+        # at the present 18-Owner source cut; no global coverage inference.
+        self.assertEqual(checks, 1191)
+
+    def test_root_and_formal_selection_reject_each_individual_missing_task(self) -> None:
+        root_path = ["mise.toml"]
+        root_plan = MODULE.build_plan(changed_files=root_path)
+        all_tasks = root_plan["queueVerifyTasks"]
+        # Current root policy can gain scoped Formal selection independently
+        # of the 18-owner population. Derive the optional source obligation
+        # instead of freezing a command-count implementation detail.
+        formal_root = MODULE.affected_owners.requires_core_formal_verification(root_path)
+        self.assertEqual(
+            len(all_tasks), len(MODULE.affected_owners.OWNERS) + int(formal_root)
+        )
+        self.assertEqual(all_tasks.count("formal:verify"), int(formal_root))
+        MODULE.validate_queue_task_selection(
+            root_plan["verificationOwners"], all_tasks, root_path
+        )
+        for index in range(len(all_tasks)):
+            with self.subTest(omitted_task=all_tasks[index]):
+                with self.assertRaises(ValueError):
+                    MODULE.validate_queue_task_selection(
+                        root_plan["verificationOwners"],
+                        all_tasks[:index] + all_tasks[index+1:],
+                        root_path,
+                    )
+        changed = ["tools/formal/Proof.qnt"]
+        formal = MODULE.build_plan(changed_files=changed)
+        self.assertEqual(formal["queueVerifyTasks"], ["formal:verify"])
+        MODULE.validate_queue_task_selection([], ["formal:verify"], changed)
+        with self.assertRaises(ValueError):
+            MODULE.validate_queue_task_selection([], [], changed)
+
     def test_formal_source_task_queue_validation_denies_missing_or_forged_tasks(self) -> None:
         for owners, requested, changed in (
             ([], [], ["tools/formal/Proof.qnt"]),
@@ -658,6 +853,35 @@ class ConvergencePlanTests(unittest.TestCase):
             (["runtime"], ["runtime:verify", "unexpected-task"],
              ["tools/formal/Proof.qnt"], False),
         )
+        # Validate the *actual* GitHub inline consumer as well as the Python
+        # producer for every tracked 18-Owner one-/two-owner source cohort.
+        # This is still only a bounded source task contract, not runtime proof.
+        git_paths = subprocess.check_output(
+            ["git", "--no-replace-objects", "ls-tree", "-r", "--name-only", "HEAD"],
+            cwd=root, text=True,
+        ).splitlines()
+        samples = {}
+        for owner in MODULE.affected_owners.OWNERS:
+            paths = [path for path in git_paths if path.startswith(owner.root)]
+            self.assertTrue(paths)
+            code_paths = [
+                path for path in paths
+                if path.endswith((".rs", ".py", ".ts", ".go", ".json"))
+                and "/test" not in path
+            ]
+            samples[owner.name] = (code_paths or paths)[0]
+        self.assertEqual(len(samples), 18)
+        cohorts = [(name,) for name in samples] + list(combinations(samples, 2))
+        self.assertEqual(len(cohorts), 171)
+        original_cases = len(examples)
+        for group in cohorts:
+            changed = [samples[name] for name in group]
+            selected = MODULE.build_plan(changed_files=changed)
+            examples += (
+                (selected["verificationOwners"], selected["queueVerifyTasks"], changed, True),
+                ([], [], changed, False),
+            )
+        self.assertEqual(len(examples) - original_cases, 342)
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             owners_path = folder / "owners.txt"

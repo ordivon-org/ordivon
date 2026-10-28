@@ -36,6 +36,71 @@ raise SystemExit(module.main())
 """
 
 
+# Exact finite Formal receipt acceptance fixture for the existing GitHub consumer.
+# This models the expected checker output, not a real mathematical proof.
+_FORMAL_SOURCE_FILES = (
+    "mise.toml", "tools/formal/mise.toml", "tools/formal/verify.py",
+    "tools/formal/RecursiveLegoRefinement.lean",
+    "tools/formal/RecursiveLegoVariationFrame.lean",
+    "tools/formal/Proof.rs", "tools/formal/Proof.dfy",
+    "tools/formal/ProofKani.rs", "tools/formal/Proof.qnt",
+    "tools/formal/Proof.als",
+)
+_FORMAL_PROBE_ORACLES = (
+    ("Lean kernel R2.1 relational composition", 0),
+    ("Lean kernel qualified variation frame and countermodels", 0),
+    ("Lean rejects false theorem", 1),
+    ("Z3: sat", 0), ("Z3: unsat", 0),
+    ("cvc5: sat", 0), ("cvc5: unsat", 0),
+    ("Verus Rust proof", 0), ("Verus rejects false postcondition", 1),
+    ("Dafny method proof", 0), ("Dafny rejects false postcondition", 4),
+    ("Kani native Rust bounded proof", 0),
+    ("Kani rejects reachable assertion failure", 1),
+    ("Quint typed state machine", 0),
+    ("Quint rejects type error", 1),
+    ("Alloy finite SAT model", 0),
+)
+_FORMAL_TOOLS = ("lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy")
+
+def _qualified_formal_test_receipt(
+    checkout: Path, source_cut: str, fake_bin_dir: Path
+) -> dict:
+    """Positive fake-checker protocol fixture; never a proof or trusted result."""
+    import hashlib
+    fake_bin_dir.mkdir(parents=True, exist_ok=True)
+    fixture_binaries = {}
+    for name in _FORMAL_TOOLS:
+        executable = fake_bin_dir / name
+        executable.write_bytes(("fixture executable: " + name).encode("utf-8"))
+        executable.chmod(0o700)
+        fixture_binaries[name] = {
+            "path": str(executable), "version": "fixture",
+            "sha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
+        }
+    sources = {
+        rel: subprocess.check_output(
+            ["git", "--no-replace-objects", "-C", str(checkout), "rev-parse",
+             "HEAD:" + rel], text=True,
+        ).strip()
+        for rel in _FORMAL_SOURCE_FILES
+    }
+    return {
+        "kind": "source-scoped-native-formal-toolchain-check",
+        "status": "PASS", "sourceCut": source_cut,
+        "gitObjectFormat": "sha1",
+        "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
+        "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
+        "proofReuseAdmissible": False,
+        "sourceBlobs": sources,
+        "toolBinaries": fixture_binaries,
+        "count": len(_FORMAL_PROBE_ORACLES),
+        "probes": [
+            {"probe": label, "result": "PASS", "rc": rc}
+            for label, rc in _FORMAL_PROBE_ORACLES
+        ],
+    }
+
+
 class GovernanceAcceptanceTests(unittest.TestCase):
     def run_contract(
         self,
@@ -137,21 +202,11 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                     'cat "$FORMAL_MOCK_RECEIPT"; fi\n'
                 )
             report_path = folder / "formal-fixture.json"
-            report_path.write_text(json.dumps({
-                "kind": "source-scoped-native-formal-toolchain-check",
-                "status": "PASS",
-                "sourceCut": subprocess.check_output(
-                    ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
-                ).strip(),
-                "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
-                "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
-                "proofReuseAdmissible": False,
-                "count": 2,
-                "probes": [
-                    {"probe": "mock positive", "result": "PASS", "rc": 0},
-                    {"probe": "expected negative", "result": "PASS", "rc": 1},
-                ],
-            }), encoding="utf-8")
+            report_path.write_text(json.dumps(_qualified_formal_test_receipt(
+                ROOT, subprocess.check_output(
+                    ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+                ).strip(), folder / "fake-formal-tool-binaries",
+            )), encoding="utf-8")
             tasks = folder / "ordivon-affected-tasks.txt"
             log = folder / "mise.log"
             env = os.environ.copy()
@@ -196,6 +251,110 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 ["run runtime:verify", "run host:queue",
                  "install", "run formal:verify"],
             )
+
+            # A plausible subset, duplicate probe, or fabricated membership
+            # is NOT a successful complete Formal verification receipt.
+            full_report = json.loads(report_path.read_text(encoding="utf-8"))
+            import copy
+            invalid_receipts = {}
+            partial = copy.deepcopy(full_report)
+            partial["probes"] = partial["probes"][:1]
+            partial["count"] = 1
+            invalid_receipts["one-pass-subset"] = json.dumps(partial)
+            duplicate = copy.deepcopy(full_report)
+            duplicate["probes"][1] = copy.deepcopy(duplicate["probes"][0])
+            invalid_receipts["duplicate-probe-identity"] = json.dumps(duplicate)
+            missing_negative = copy.deepcopy(full_report)
+            missing_negative["probes"] = [
+                x for x in missing_negative["probes"]
+                if "rejects" not in x["probe"]
+            ]
+            missing_negative["count"] = len(missing_negative["probes"])
+            invalid_receipts["no-negative-oracles"] = json.dumps(missing_negative)
+            wrong_rc = copy.deepcopy(full_report)
+            next(x for x in wrong_rc["probes"]
+                 if x["probe"] == "Lean rejects false theorem")["rc"] = 0
+            invalid_receipts["falsifier-incorrect-return"] = json.dumps(wrong_rc)
+            no_sources = copy.deepcopy(full_report)
+            no_sources.pop("sourceBlobs")
+            invalid_receipts["no-source-blob-membership"] = json.dumps(no_sources)
+            no_tools = copy.deepcopy(full_report)
+            no_tools.pop("toolBinaries")
+            invalid_receipts["no-eight-tool-witnesses"] = json.dumps(no_tools)
+            forged_blob = copy.deepcopy(full_report)
+            forged_blob["sourceBlobs"]["tools/formal/Proof.qnt"] = "0" * 40
+            invalid_receipts["fake-proof-source-blob"] = json.dumps(forged_blob)
+            invalid_receipts["duplicate-JSON-kind"] = (
+                '{"kind":"incorrect",' + json.dumps(full_report)[1:]
+            )
+            for index in range(len(full_report["probes"])):
+                missing = copy.deepcopy(full_report)
+                del missing["probes"][index]
+                missing["count"] = len(missing["probes"])
+                invalid_receipts[f"required-probe-omitted-{index}"] = json.dumps(missing)
+            for relative in full_report["sourceBlobs"]:
+                incomplete = copy.deepcopy(full_report)
+                del incomplete["sourceBlobs"][relative]
+                invalid_receipts[f"source-blob-omitted-{relative}"] = json.dumps(incomplete)
+            for name in full_report["toolBinaries"]:
+                incomplete = copy.deepcopy(full_report)
+                del incomplete["toolBinaries"][name]
+                invalid_receipts[f"tool-binary-omitted-{name}"] = json.dumps(incomplete)
+            for item in full_report["probes"]:
+                if "rejects" in item["probe"]:
+                    invalid = copy.deepcopy(full_report)
+                    target = next(
+                        x for x in invalid["probes"]
+                        if x["probe"] == item["probe"]
+                    )
+                    target["rc"] = 0
+                    invalid_receipts[f"negative-oracle-accepted-{item['probe']}"] = json.dumps(invalid)
+            unexpected = copy.deepcopy(full_report)
+            unexpected["probes"][0]["probe"] = "unrecognized proof obligation"
+            invalid_receipts["unknown-probe-identity"] = json.dumps(unexpected)
+            boolean_rc = copy.deepcopy(full_report)
+            boolean_rc["probes"][0]["rc"] = True
+            invalid_receipts["bool-accepted-as-integer-return-code"] = json.dumps(boolean_rc)
+            wrong_tool_hash = copy.deepcopy(full_report)
+            wrong_tool_hash["toolBinaries"]["lean"]["sha256"] = "Z" * 64
+            invalid_receipts["tool-digest-not-hex"] = json.dumps(wrong_tool_hash)
+            valid_hex_wrong_digest = copy.deepcopy(full_report)
+            valid_hex_wrong_digest["toolBinaries"]["lean"]["sha256"] = "0" * 64
+            invalid_receipts["tool-digest-valid-hex-but-wrong-bytes"] = json.dumps(
+                valid_hex_wrong_digest
+            )
+            no_version = copy.deepcopy(full_report)
+            no_version["toolBinaries"]["lean"]["version"] = ""
+            invalid_receipts["tool-version-missing"] = json.dumps(no_version)
+            stale_cut = copy.deepcopy(full_report)
+            stale_cut["sourceCut"] = "0" * len(stale_cut["sourceCut"])
+            invalid_receipts["stale-source-cut"] = json.dumps(stale_cut)
+            failed_receipt = copy.deepcopy(full_report)
+            failed_receipt["status"] = "FAIL"
+            invalid_receipts["explicit-failure"] = json.dumps(failed_receipt)
+            wrong_count = copy.deepcopy(full_report)
+            wrong_count["count"] += 1
+            invalid_receipts["forged-count"] = json.dumps(wrong_count)
+            self.assertEqual(len(invalid_receipts), 55)
+
+            try:
+                for label, payload in invalid_receipts.items():
+                    with self.subTest(receipt=label):
+                        report_path.write_text(payload, encoding="utf-8")
+                        failed = subprocess.run(
+                            ["/usr/bin/bash", "-c", formal_step["run"]],
+                            cwd=ROOT, env=env, text=True, capture_output=True,
+                            timeout=14, check=False,
+                        )
+                        self.assertNotEqual(failed.returncode, 0, label)
+                        self.assertIn(
+                            "Formal execution lacks a valid scoped PASS receipt",
+                            failed.stderr, label,
+                        )
+            finally:
+                report_path.write_text(
+                    json.dumps(full_report), encoding="utf-8",
+                )
 
             # A true mathematical verifier failure must remain a failing
             # GitHub required step, not an accepted projected task name.
@@ -271,6 +430,13 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 '[tasks.verify]\nrun = "echo harmless nested task"\n',
                 encoding="utf-8",
             )
+            # The real verifier consumes 10 exact source inputs; the disposable
+            # Git fixture must contain the same declared source universe.
+            for rel in _FORMAL_SOURCE_FILES:
+                file = repo / rel
+                if not file.exists():
+                    file.parent.mkdir(parents=True, exist_ok=True)
+                    file.write_text("source fixture\\n", encoding="utf-8")
             subprocess.run(["git", "init", "-q", str(repo)], check=True)
             subprocess.run(
                 ["git", "-C", str(repo), "config", "user.name", "Fixture"],
@@ -307,19 +473,11 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
             ).strip()
             report = work / "formal-fixture.json"
-            report.write_text(json.dumps({
-                "kind": "source-scoped-native-formal-toolchain-check",
-                "status": "PASS",
-                "sourceCut": source_cut,
-                "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
-                "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
-                "proofReuseAdmissible": False,
-                "count": 2,
-                "probes": [
-                    {"probe": "fixture positive", "result": "PASS", "rc": 0},
-                    {"probe": "fixture expected-negative", "result": "PASS", "rc": 4},
-                ],
-            }), encoding="utf-8")
+            report.write_text(json.dumps(
+                _qualified_formal_test_receipt(
+                    repo, source_cut, work / "fake-formal-tool-binaries",
+                )
+            ), encoding="utf-8")
             tasks = work / "ordivon-affected-tasks.txt"
             tasks.write_text("runtime:verify\n", encoding="utf-8")
             record = work / "mise-record.txt"
