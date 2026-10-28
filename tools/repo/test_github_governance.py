@@ -116,6 +116,8 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             fake = folder / "bin/mise"
             fake.write_text(
                 '#!/usr/bin/env bash\n'
+                'if [[ "$1" == --cd && "$3" == config && "$4" == ls ]]; then '
+                'exec "$MISE_NATIVE_FOR_CONFIG" "$@"; fi\n'
                 'printf "%s\\n" "$*" >> "$MISE_RECORD"\n'
                 'if [[ "$1" == run && "$2" == runtime:verify && '
                 '"$' + '{MOCK_FAIL_RUNTIME:-0}" == 1 ]]; then exit 37; fi\n'
@@ -153,6 +155,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             tasks = folder / "ordivon-affected-tasks.txt"
             log = folder / "mise.log"
             env = os.environ.copy()
+            import shutil
+            env["MISE_NATIVE_FOR_CONFIG"] = shutil.which("mise") or "/usr/bin/mise"
+            env["MISE_TRUSTED_CONFIG_PATHS"] = str(ROOT)
             env.update({
                 "RUNNER_TEMP": str(folder),
                 "MISE_RECORD": str(log),
@@ -284,7 +289,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             binary.mkdir()
             mock = binary / "mise"
             mock.write_text(
-                '#!/usr/bin/env bash\nprintf "%s\n" "$*" >> "$MISE_RECORD"\n',
+                '#!/usr/bin/env bash\n'
+                'if [[ "$1" == --cd && "$3" == config && "$4" == ls ]]; then exec "$MISE_NATIVE_FOR_CONFIG" "$@"; fi\n'
+                'printf "%s\\n" "$*" >> "$MISE_RECORD"\n',
                 encoding="utf-8",
             )
             mock.chmod(0o755)
@@ -320,6 +327,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             env["RUNNER_TEMP"] = str(work)
             env["MISE_RECORD"] = str(record)
             env["FORMAL_MOCK_RECEIPT"] = str(report)
+            import shutil
+            env["MISE_NATIVE_FOR_CONFIG"] = shutil.which("mise") or "/usr/bin/mise"
+            env["MISE_TRUSTED_CONFIG_PATHS"] = str(repo)
             env.pop("GITHUB_SHA", None)
             env["PATH"] = str(binary) + os.pathsep + env.get("PATH", "")
 
@@ -404,6 +414,23 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                         if nested_game.is_symlink():
                             nested_game.unlink()
                         nested_game.write_bytes(nested_bytes)
+
+            # Native Mise discovers higher-precedence local task overrides:
+            # an UNTRACKED config must never count as Git-qualified execution.
+            untracked = nested_game.with_name("mise.local.toml")
+            self.assertFalse(untracked.exists())
+            try:
+                untracked.write_text(
+                    '[tasks.verify]\nrun = "echo untracked override"\n',
+                    encoding="utf-8",
+                )
+                denied_override = invoke(queue_script)
+                self.assertEqual(denied_override.returncode, 43, denied_override.stderr)
+                self.assertIn("nested Mise task source differs from exact Git HEAD",
+                              denied_override.stderr)
+                self.assertEqual(record.read_text(), "")
+            finally:
+                untracked.unlink(missing_ok=True)
 
             for relative in ("tools/formal/mise.toml", "tools/formal/verify.py"):
                 target = repo / relative

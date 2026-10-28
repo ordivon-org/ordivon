@@ -801,6 +801,7 @@ class OwnerVerificationExecutionTests(unittest.TestCase):
             fake = root / "mise"
             fake.write_text(
                 '#!/bin/sh\n'
+                'if [ "$1" = "--cd" ] && [ "$3" = "config" ]; then echo "[]"; exit 0; fi\n'
                 'printf "%s\\n" "$2" >> "$RUNNER_TEMP/called"\n'
                 'cat >/dev/null\n'
                 'if [ "$2" = "fail:verify" ]; then exit 29; fi\n',
