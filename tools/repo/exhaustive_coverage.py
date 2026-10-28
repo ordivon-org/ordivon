@@ -506,8 +506,18 @@ def derived_problem_legos(
     issues: list[dict] = []
     for cell in cells:
         if cell["problems"]:
+            # Reuse the existing canonical problem record. Its legacy ID is
+            # versioned by membership; this separate location-scoped question
+            # remains addressable across evidence changes without admitting
+            # proof reuse, semantic identity, or a physically moved source.
+            source_question = "problem:source-scope:" + hashlib.sha256(
+                json.dumps([cell["sourceZone"], cell["physicalPrefix"]],
+                           separators=(",", ":"), ensure_ascii=True).encode()
+            ).hexdigest()
             issues.append({
                 "problemRef": "problem:cell:" + cell["memberGitObjectDigest"],
+                "sourceScopeQuestionRef": source_question,
+                "sourceScopeIdentityStanding": "PHYSICAL_LOCATION_QUESTION_NOT_SEMANTIC_LEGO",
                 "kind": "RECURSIVE_SOURCE_CELL_ISSUE",
                 "sourceCellRef": cell_ref(cell),
                 "physicalPrefix": cell["physicalPrefix"],
@@ -728,6 +738,15 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
         raise ValueError("external observations must be a bounded list")
 
     issues = {r["problemRef"] for r in problem_frontier["problemLegos"]}
+    location_questions = {
+        r["sourceScopeQuestionRef"]: r["problemRef"]
+        for r in problem_frontier["problemLegos"]
+        if r["kind"] == "RECURSIVE_SOURCE_CELL_ISSUE"
+    }
+    if len(location_questions) != sum(
+            r["kind"] == "RECURSIVE_SOURCE_CELL_ISSUE"
+            for r in problem_frontier["problemLegos"]):
+        raise ValueError("ambiguous source-scope question identity")
     reused = problem_frontier["sameLocalIdAcrossPlansObservation"]
     short_questions = [
         {"problemRef": "problem:unscoped-plan-id:" + short_id,
@@ -738,7 +757,9 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
          "realConsumerStanding": "UNKNOWN"}
         for short_id, paths in sorted(reused.items())
     ]
-    known = issues | {q["problemRef"] for q in short_questions}
+    known = issues | set(location_questions) | {
+        q["problemRef"] for q in short_questions
+    }
     joined = []
     links = []
     keys = set()
@@ -819,7 +840,8 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
         if candidate is not None:
             links.append({
                 "fromSubjectRef": ref,
-                "toProblemRef": candidate,
+                "toProblemRef": location_questions.get(candidate, candidate),
+                "sourceScopeQuestionRef": candidate if candidate in location_questions else None,
                 "relation": "EXPLICIT_CANDIDATE_ASSOCIATION_NOT_AN_INVOKED_EDGE",
                 "consumerStanding": "UNKNOWN",
                 "proofStanding": "NOT_ESTABLISHED",
