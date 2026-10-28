@@ -206,12 +206,20 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
         source = target.read_text(encoding="utf-8")
         originals = {
-            "default": "self.gateway_grant.max_timeout_ms if timeout is None else timeout",
+            "default": (
+                "self.gateway_grant.max_timeout_ms if timeout is None else timeout"
+                if "self.gateway_grant.max_timeout_ms if timeout is None else timeout" in source
+                else "return grant if requested is None else requested"
+            ),
             "projection": 'gateway_args["timeoutMs"] = execution["timeoutMs"]',
             "guard": "timeout > self.gateway_grant.max_timeout_ms",
         }
         revisions = {
-            "default": "None if timeout is None else timeout",
+            "default": (
+                "None if timeout is None else timeout"
+                if originals["default"].startswith("self.gateway_grant")
+                else "return None if requested is None else requested"
+            ),
             "projection": 'gateway_args["timeoutMs"] = None',
             "guard": "timeout > 900_000",
         }

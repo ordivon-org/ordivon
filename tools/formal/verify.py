@@ -143,11 +143,41 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
             or guards[0][1].orelse):
         raise ValueError("actual Python admission is not the modeled fail-closed precondition")
 
-    producers = [i for i, x in enumerate(lower.body)
-                 if assign(x, 'execution["timeoutMs"]',
-                           "self.gateway_grant.max_timeout_ms if timeout is None else timeout")]
-    if len(producers) != 1 or producers[0] <= guards[0][0]:
+    # The producer can be the original inline expression or the existing
+    # Harness formal-owner extraction confirmed by CrossHair/Z3. These are
+    # TWO exact qualified implementations of the SAME Lean Option Nat rule.
+    direct = "self.gateway_grant.max_timeout_ms if timeout is None else timeout"
+    verified_helper = "_forward_granted_timeout(self.gateway_grant.max_timeout_ms, timeout)"
+    inline = [i for i, x in enumerate(lower.body)
+              if assign(x, 'execution["timeoutMs"]', direct)]
+    extracted = [i for i, x in enumerate(lower.body)
+                 if assign(x, 'execution["timeoutMs"]', verified_helper)]
+    if len(inline) + len(extracted) != 1:
         raise ValueError("actual Python timeout normalization does not match Lean model")
+    producer_index = (inline + extracted)[0]
+    if producer_index <= guards[0][0]:
+        raise ValueError("actual timeout projection is not guarded")
+    if extracted:
+        helpers = [x for x in tree.body if isinstance(x, ast.FunctionDef)
+                   and x.name == "_forward_granted_timeout"]
+        if len(helpers) != 1 or len(helpers[0].body) != 2:
+            raise ValueError("verified timeout helper body changed")
+        helper = helpers[0]
+        if not isinstance(helper.body[-1], ast.Return) or not (
+            canonical(helper.body[-1].value) == expr(
+                "grant if requested is None else requested"
+            )
+        ):
+            raise ValueError("verified timeout helper changed its exact model")
+        doc = ast.get_docstring(helper) or ""
+        required = (
+            "pre: 1 <= grant <= 900000",
+            "pre: requested is None or (1 <= requested <= grant)",
+            "post: __return__ == (grant if requested is None else requested)",
+            "post: 1 <= __return__ <= grant",
+        )
+        if any(part not in doc for part in required):
+            raise ValueError("verified timeout helper lost formal assumptions")
 
     # The real Gateway adapter must project exactly the materialized value.
     submit = method("GatewayMcpRuntimeAdapter", "_submit")
@@ -158,7 +188,7 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
         raise ValueError("Gateway timeout propagation differs from the modeled identity")
 
     # Refuse an extra write to the modeled output after either projection.
-    for statements, start in ((lower.body, producers[0]), (submit.body, projections[0][0])):
+    for statements, start in ((lower.body, producer_index), (submit.body, projections[0][0])):
         for statement in statements[start + 1:]:
             for node in ast.walk(statement):
                 if isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign, ast.Delete)):
