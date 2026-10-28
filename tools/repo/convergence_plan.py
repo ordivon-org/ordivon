@@ -143,9 +143,8 @@ def validate_queue_task_selection(
         raise ValueError("selected verification owner identities are duplicated")
     if any(owner not in canonical for owner in selected_owners):
         raise ValueError("selected verification owner identity is unknown")
-    formal_source_changed = any(
-        affected_owners._normalize(path).startswith("tools/formal/")
-        for path in changed_paths
+    formal_source_changed = affected_owners.requires_core_formal_verification(
+        changed_paths
     )
     expected = [canonical[owner] for owner in selected_owners]
     if formal_source_changed:
@@ -215,9 +214,8 @@ def build_plan(
     # Formal proofs live in the existing repository Tool source region, not an
     # invented domain Owner. A changed proof/checker source must still route to
     # the already declared root mise formal:verify consumer task.
-    formal_source_changed = any(
-        affected_owners._normalize(path).startswith("tools/formal/")
-        for path in paths
+    formal_source_changed = affected_owners.requires_core_formal_verification(
+        paths
     )
     formal_tasks = ("formal:verify",) if formal_source_changed else ()
     verify_tasks = (

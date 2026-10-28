@@ -87,6 +87,23 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["verificationOwners"], [])
         self.assertEqual(plan["scopeIds"], [])
 
+    def test_formal_task_definition_change_rechecks_native_verifier(self) -> None:
+        plan = MODULE.build_plan(changed_files=["mise.toml"])
+        self.assertIn("formal:verify", plan["verifyTasks"])
+        self.assertEqual(plan["queueVerifyTasks"][-1], "formal:verify")
+        MODULE.validate_queue_task_selection(
+            list(plan["verificationOwners"]),
+            list(plan["queueVerifyTasks"]),
+            list(plan["changedPaths"]),
+        )
+        # This is the real command-line queue contract, not a invented
+        # substitute for the native formal toolchain.
+        result = subprocess.check_output([
+            sys.executable, str(MODULE_PATH), "--changed-file", "mise.toml",
+            "--format", "queue-tasks",
+        ], text=True)
+        self.assertEqual(result.splitlines()[-1], "formal:verify")
+
     def test_formal_source_change_queues_existing_formal_verifier_without_owner(self) -> None:
         """Mathematical source changes need the real formal task, not just REPOSITORY_ONLY."""
         for path in (
