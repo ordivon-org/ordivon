@@ -51,6 +51,58 @@ def _load_task_local_json_list(path: Path) -> list[Any]:
     return value
 
 
+def _require_exact_native_git_producer(owner_tool: Path) -> None:
+    """Fail closed if the *executed* Git owner query is not its committed blob.
+
+    This only qualifies the one native producer read by select-impact. It is
+    not a provenance proof for Python, its imports, the subject repository,
+    installed state, or a verifier's mathematical result. No new registry.
+    """
+    relative = "tools/repo/source_history_legos.py"
+    if owner_tool.is_symlink() or owner_tool.as_posix().split("/")[-3:] != [
+        "tools",
+        "repo",
+        "source_history_legos.py",
+    ]:
+        raise CircuitContractError("native Git source query has no canonical producer path")
+    source_repo = owner_tool.parents[2]
+    try:
+
+        def git(*args: str) -> bytes:
+            return subprocess.check_output(
+                ["git", "--no-replace-objects", "-C", str(source_repo), *args],
+                stderr=subprocess.PIPE,
+            )
+
+        root = git("rev-parse", "--show-toplevel").strip()
+        if Path(root.decode("utf-8", "surrogateescape")).resolve() != source_repo.resolve():
+            raise CircuitContractError("native Git source producer is outside its checkout")
+        head = git("rev-parse", "HEAD").strip().decode("ascii")
+        if git("cat-file", "-t", head).strip() != b"commit":
+            raise CircuitContractError("native Git producer source is not a commit")
+        entries = [
+            row
+            for row in git("ls-tree", "-z", "--full-tree", head, "--", relative).split(b"\x00")
+            if row
+        ]
+        if len(entries) != 1 or b"\t" not in entries[0]:
+            raise CircuitContractError("native Git producer absent from its source cut")
+        metadata, path = entries[0].split(b"\t", 1)
+        mode, kind, _ = metadata.split()
+        if (
+            path != relative.encode("ascii")
+            or kind != b"blob"
+            or mode not in (b"100644", b"100755")
+        ):
+            raise CircuitContractError("native Git producer must be a regular Git file")
+        if owner_tool.read_bytes() != git("cat-file", "blob", head + ":" + relative):
+            raise CircuitContractError("executed native Git producer differs from exact Git HEAD")
+    except CircuitContractError:
+        raise
+    except (OSError, subprocess.CalledProcessError, UnicodeError, ValueError) as exc:
+        raise CircuitContractError("native Git producer cannot be source-qualified") from exc
+
+
 def _immutable_git_manifest(
     repo: Path, commit: str, path: Path
 ) -> tuple[dict[str, Any], dict[str, str]]:
@@ -1153,6 +1205,7 @@ def main() -> int:
                 )
                 if not owner_tool.is_file():
                     raise ValueError("Git owner query entrypoint unavailable")
+                _require_exact_native_git_producer(owner_tool)
                 native_query = subprocess.run(
                     [
                         sys.executable,

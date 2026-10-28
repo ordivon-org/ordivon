@@ -16,6 +16,49 @@ from ordivon_composition.verification_obligation_r1 import (
 )
 
 
+def test_native_git_owner_query_sourcecut_is_exact_before_composition(tmp_path) -> None:
+    """An uncommitted executed producer cannot certify an immutable subject cut."""
+    import subprocess
+
+    from ordivon_composition.verification_obligation_r1 import (
+        _require_exact_native_git_producer,
+    )
+
+    script = tmp_path / "tools/repo/source_history_legos.py"
+    script.parent.mkdir(parents=True)
+    script.write_text("print('source-impact-v1')\\n".replace("\\n", "\n"))
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "add", "."], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(tmp_path),
+            "-c",
+            "user.name=fixture",
+            "-c",
+            "user.email=fixture@invalid.example",
+            "commit",
+            "-qm",
+            "source",
+        ],
+        check=True,
+    )
+    _require_exact_native_git_producer(script)
+    baseline = script.read_bytes()
+    script.write_bytes(baseline + b"\\n# uncommitted producer change")
+    with pytest.raises(CircuitContractError, match="differs from exact Git HEAD"):
+        _require_exact_native_git_producer(script)
+    script.write_bytes(baseline)
+    _require_exact_native_git_producer(script)
+
+    # Replacing the file with a symlink is never source qualification.
+    script.unlink()
+    script.symlink_to(tmp_path / "README.md")
+    with pytest.raises(CircuitContractError, match="canonical producer path"):
+        _require_exact_native_git_producer(script)
+
+
 def _digest(label: str) -> str:
     return canonical_digest({"fixture": label})
 
