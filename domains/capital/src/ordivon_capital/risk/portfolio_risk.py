@@ -65,6 +65,17 @@ def _fmt(value: Decimal | None, places: str = "0.000001") -> str | None:
     return format(value.quantize(Decimal(places)), "f")
 
 
+def _fmt_lossless(value: Decimal) -> str:
+    """Keep the legacy six-place presentation only when it preserves the input.
+
+    Position and factor values feed other LEGO calculations. A displayed
+    rounded value is not interchangeable with the source numeric value.
+    """
+    displayed = _fmt(value)
+    assert displayed is not None
+    return displayed if Decimal(displayed) == value else format(value, "f")
+
+
 def _float(value: Any, label: str) -> float:
     out = float(_d(value, label))
     if not math.isfinite(out):
@@ -114,31 +125,39 @@ def build_exposure_ledger(
         gross += abs(signed)
         net += signed
 
-        factor_loadings_raw = row.get("factorLoadings") or {}
+        factor_loadings_raw = row.get("factorLoadings")
+        if factor_loadings_raw is None:
+            factor_loadings_raw = {}
         if not isinstance(factor_loadings_raw, Mapping):
             raise PortfolioRiskError(f"positions[{i}].factorLoadings must be an object")
         factor_loadings: dict[str, str] = {}
         for factor, loading_raw in factor_loadings_raw.items():
-            factor_name = str(factor).strip()
+            if not isinstance(factor, str):
+                raise PortfolioRiskError(f"positions[{i}].factorLoadings keys must be strings")
+            factor_name = factor.strip()
             if not factor_name:
                 raise PortfolioRiskError("factor name cannot be blank")
+            if factor_name in factor_loadings:
+                raise PortfolioRiskError(
+                    f"positions[{i}].factorLoadings duplicate canonical factor: {factor_name}"
+                )
             loading = _d(loading_raw, f"positions[{i}].factorLoadings.{factor_name}")
-            factor_loadings[factor_name] = _fmt(loading) or "0.000000"
+            factor_loadings[factor_name] = _fmt_lossless(loading)
             factor_exposure[factor_name] = factor_exposure.get(factor_name, Decimal("0")) + signed * loading
 
         normalized.append({
             "instrumentId": inst,
-            "signedNotionalUsd": _fmt(signed),
-            "absoluteNotionalUsd": _fmt(abs(signed)),
+            "signedNotionalUsd": _fmt_lossless(signed),
+            "absoluteNotionalUsd": _fmt_lossless(abs(signed)),
             "direction": "LONG" if signed > 0 else "SHORT" if signed < 0 else "FLAT",
             "grossShare": None,
-            "equityMultiple": _fmt(abs(signed) / equity),
+            "equityMultiple": _fmt_lossless(abs(signed) / equity),
             "factorLoadings": factor_loadings,
         })
 
     if gross > 0:
         for row in normalized:
-            row["grossShare"] = _fmt(_d(row["absoluteNotionalUsd"], "absoluteNotionalUsd") / gross)
+            row["grossShare"] = _fmt_lossless(_d(row["absoluteNotionalUsd"], "absoluteNotionalUsd") / gross)
     else:
         for row in normalized:
             row["grossShare"] = "0.000000"
@@ -151,8 +170,8 @@ def build_exposure_ledger(
     factor_rows = [
         {
             "factor": factor,
-            "signedExposureUsd": _fmt(exposure),
-            "absoluteExposureToGross": _fmt(abs(exposure) / gross) if gross > 0 else "0.000000",
+            "signedExposureUsd": _fmt_lossless(exposure),
+            "absoluteExposureToGross": _fmt_lossless(abs(exposure) / gross) if gross > 0 else "0.000000",
             "note": "factor exposures may overlap and are not additive risk contributions",
         }
         for factor, exposure in sorted(factor_exposure.items())
@@ -162,18 +181,18 @@ def build_exposure_ledger(
         "schemaVersion": 2,
         "kind": "ordivon.capital.risk.exposure-ledger",
         "componentId": "exposure-ledger",
-        "equityUsd": _fmt(equity),
-        "availableEquityUsd": _fmt(available),
-        "availableEquityRatio": _fmt(available_ratio),
-        "initialMarginUsd": _fmt(imr),
-        "initialMarginToEquity": _fmt(imr / equity) if imr is not None else None,
-        "maintenanceMarginUsd": _fmt(mmr),
-        "maintenanceMarginToEquity": _fmt(mmr / equity) if mmr is not None else None,
-        "grossNotionalUsd": _fmt(gross),
-        "netNotionalUsd": _fmt(net),
-        "grossToEquity": _fmt(gross_to_equity),
-        "netToEquity": _fmt(net_to_equity),
-        "largestPositionGrossShare": _fmt(largest / gross) if gross > 0 else "0.000000",
+        "equityUsd": _fmt_lossless(equity),
+        "availableEquityUsd": _fmt_lossless(available),
+        "availableEquityRatio": _fmt_lossless(available_ratio),
+        "initialMarginUsd": _fmt_lossless(imr) if imr is not None else None,
+        "initialMarginToEquity": _fmt_lossless(imr / equity) if imr is not None else None,
+        "maintenanceMarginUsd": _fmt_lossless(mmr) if mmr is not None else None,
+        "maintenanceMarginToEquity": _fmt_lossless(mmr / equity) if mmr is not None else None,
+        "grossNotionalUsd": _fmt_lossless(gross),
+        "netNotionalUsd": _fmt_lossless(net),
+        "grossToEquity": _fmt_lossless(gross_to_equity),
+        "netToEquity": _fmt_lossless(net_to_equity),
+        "largestPositionGrossShare": _fmt_lossless(largest / gross) if gross > 0 else "0.000000",
         "positionCount": len(normalized),
         "positions": normalized,
         "factorExposure": factor_rows,

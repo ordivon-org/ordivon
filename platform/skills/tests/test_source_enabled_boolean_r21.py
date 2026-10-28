@@ -97,3 +97,27 @@ def test_boolean_source_enabled_controls_real_mcp_discovery(tmp_path: Path, valu
     assert [row["skillId"] for row in listed.structured_content["skills"]] == (
         ["scope/hidden"] if value else []
     )
+    searched = asyncio.run(tools["skills.search"].fn(query="read project notes"))
+    assert [row["skillId"] for row in searched.structured_content["skills"]] == (
+        ["scope/hidden"] if value else []
+    )
+    resolved = asyncio.run(
+        tools["skills.resolve"].fn(ref="scope/hidden", invocationMode="explicit")
+    )
+    assert resolved.is_error is (not value)
+    if value:
+        assert resolved.structured_content["resolved"]["skillId"] == "scope/hidden"
+        read = asyncio.run(
+            tools["skills.read"].fn(
+                skillId="scope/hidden",
+                expectedInstructionDigest=resolved.structured_content["resolved"][
+                    "instructionDigest"
+                ],
+                expectedPackageRevision=resolved.structured_content["resolved"]["packageRevision"],
+            )
+        )
+        assert not read.is_error
+        assert "# hidden" in read.structured_content["content"]
+    else:
+        read = asyncio.run(tools["skills.read"].fn(skillId="scope/hidden"))
+        assert read.is_error

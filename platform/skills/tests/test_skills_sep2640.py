@@ -194,6 +194,89 @@ class Sep2640SkillsTests(unittest.TestCase):
         self.assertEqual(parsed["metadata"], {"author": "example-org", "version": "1.0"})
         self.assertEqual(parsed["allowed-tools"], "Read Bash(git:*)")
 
+    def test_disabled_skill_source_denies_all_standard_mcp_consumers(self) -> None:
+        """Actual SEP-2640 list/get/read obeys the same typed policy.
+
+        Uses a valid URI obtained from an enabled catalog, so disabled
+        get/read cannot pass merely by rejecting malformed resource names.
+        This tests fresh source configuration; TTL revocation is separate.
+        """
+        td, base, initial_provider, token_file = self.make_fixture()
+        self.addCleanup(td.cleanup)
+        record = initial_provider.get(force_refresh=True).by_skill_id(
+            "user/alpha", invocation_mode="explicit"
+        )
+        valid_uri = skill_entry(record).uri
+        config_file = base / "skills.json"
+        original = json.loads(config_file.read_text(encoding="utf-8"))
+        meta = {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+        }
+
+        async def exercise(app, enabled: bool) -> None:
+            async with app.app.router.lifespan_context(app.app):
+                transport = httpx.ASGITransport(app=app)
+                async with httpx.AsyncClient(
+                    transport=transport, base_url="http://127.0.0.1:8895"
+                ) as client:
+                    async def call(method: str, params: dict, request_id: int):
+                        response = await client.post(
+                            "/mcp",
+                            headers={
+                                "Authorization": "Bearer " + "x" * 64,
+                                "MCP-Protocol-Version": "2026-07-28",
+                                "Mcp-Method": method,
+                                **(
+                                    {"Mcp-Name": params["uri"]}
+                                    if method == "resources/read"
+                                    else {}
+                                ),
+                                "Accept": "application/json",
+                            },
+                            json={
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "method": method,
+                                "params": {**params, "_meta": meta},
+                            },
+                        )
+                        self.assertIn(response.status_code, (200, 400), response.text)
+                        payload = response.json()
+                        if response.status_code == 400:
+                            self.assertIn("error", payload, payload)
+                        return payload
+
+                    listed = await call("skills/list", {}, 1)
+                    self.assertNotIn("error", listed, listed)
+                    names = [
+                        row["frontmatter"]["name"]
+                        for row in listed["result"]["skills"]
+                    ]
+                    self.assertEqual("alpha" in names, enabled)
+                    for request_id, method in enumerate(
+                        ("skills/get", "resources/read"), 2
+                    ):
+                        response = await call(method, {"uri": valid_uri}, request_id)
+                        if enabled:
+                            self.assertNotIn("error", response, response)
+                            self.assertIn("result", response)
+                        else:
+                            self.assertIn("error", response, response)
+                            self.assertNotIn("result", response)
+
+        for enabled in (True, False):
+            with self.subTest(enabled=enabled):
+                config = json.loads(json.dumps(original))
+                config["compatibilitySources"][0]["enabled"] = enabled
+                config_file.write_text(json.dumps(config), encoding="utf-8")
+                app = build_app(
+                    McpSettings(config_file, token_file=token_file),
+                    CatalogProvider(config_file),
+                    "x" * 64,
+                )
+                asyncio.run(exercise(app, enabled))
+
     def test_http_sep2640_list_get_and_resources_read_are_digest_consistent(self) -> None:
         td, base, provider, token_file = self.make_fixture()
         self.addCleanup(td.cleanup)
