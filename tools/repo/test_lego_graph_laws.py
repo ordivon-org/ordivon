@@ -2229,3 +2229,56 @@ def test_one_lego_inspection_preserves_all_existing_consumer_claim_carriers() ->
         "consumerEvidence": None, "actualConsumers": None, "consumerBindings": None,
     }
     assert root["consumerClosureStanding"] == "UNKNOWN"
+
+
+
+def test_repo_mechanics_two_declared_problem_legos_have_source_bound_consumers() -> None:
+    """Real Repo CI consumers constrain R2.1 declarations, not Formal truth.
+
+    The user-facing gap metric must only shrink because the existing native
+    consumer chain is explicit; neither Plan metadata nor a passing test can
+    grant real installed/semantic consumer closure or theorem status.
+    """
+    import subprocess
+
+    plan_path = "tools/repo/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / plan_path).read_text(encoding="utf-8"))
+    nodes = {node["id"]: node for node in plan["nodes"]}
+    expected = {
+        "RG1_SOURCE": ("tools/repo/source_history_legos.py",
+                       "tools/repo/test_source_history_legos.py"),
+        "RG2_OWNER": ("tools/repo/check_architecture_docs.py",
+                      "tools/repo/test_architecture_docs.py"),
+    }
+    mise = (ROOT / "mise.toml").read_text(encoding="utf-8")
+    for identity, (implementation, native_consumer) in expected.items():
+        node = nodes[identity]
+        for field in ("inputs", "outputs", "behavioralContract",
+                      "consumerEvidence", "formalObligations"):
+            assert isinstance(node[field], list) and node[field], (identity, field)
+        assert node["formalProofStanding"] == "OBLIGATIONS_DECLARED_NOT_FORMALLY_DISCHARGED"
+        assert (ROOT / implementation).is_file()
+        assert (ROOT / native_consumer).is_file()
+        assert native_consumer in mise
+        assert any(native_consumer in claim for claim in node["consumerEvidence"])
+        assert "repo:ci" in mise
+        assert "proofReuseAdmissible" not in node  # No authority field from Plan.
+
+    cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    for identity in expected:
+        contract = module.inspect_owner_lego_contract(
+            source_revision=cut, node_ref=f"{plan_path}#{identity}", root=ROOT,
+        )
+        assert contract["missingRoles"] == []
+        assert contract["declaredFormalObligations"]
+        assert contract["declaredConsumerEvidence"]
+        assert contract["consumerClosureStanding"] == "UNKNOWN"
+        assert contract["consumerClaimQualification"] == (
+            "SOURCE_PLAN_DECLARATION_ONLY_NOT_VERIFIED_CONSUMPTION"
+        )
+        assert contract["proofReuseAdmissible"] is False
+        assert contract["sourceCoverageStanding"] == (
+            "DECLARED_SOURCE_MEMBERSHIP_PARTIAL"
+        )

@@ -40,7 +40,27 @@
         "Retired document currentness, one-off first-contact evaluators and historical live-view tools are not source-of-truth; existing architecture checker remains and a negative CDC rejects their reintroduction.",
         "ROOT_UNOWNED means no matching path in the protected SourceCut Owner manifest, not an inferred root Owner. For those paths the graph partitions exact local/remote tip presence into BOTH_PRESENT, LOCAL_ONLY, REMOTE_ONLY and BOTH_ABSENT; none establishes consumer equivalence or branch-retirement permission."
       ],
-      "nextAction": "Per-Owner Consumer-Driven Contract qualification of surviving divergent histories; no redundant Git scanner."
+      "nextAction": "Per-Owner Consumer-Driven Contract qualification of surviving divergent histories; no redundant Git scanner.",
+      "inputs": [
+        "Exact immutable 40-hex local Git source cuts and canonical path-prefix selection; any remote OID must be independently qualified."
+      ],
+      "outputs": [
+        "Source-qualified Git Blob/mode/path membership and bounded source-impact records; unknown consumer/proof status is retained."
+      ],
+      "behavioralContract": [
+        "A source path is identified by its exact Git tree entry (canonical path, file mode, object ID) at one pinned SourceCut; no worktree or cached-ref content silently substitutes for that immutable tree.",
+        "A missing or changed Git source path is a bounded source membership observation, never a proven absence of dynamically constructed consumers or permission to retire history.",
+        "For identical Git source cuts and input prefix the source membership query must deterministically return the same path set and digest while proofReuseAdmissible remains false absent independent consumer/assumption evidence."
+      ],
+      "consumerEvidence": [
+        "tools/repo/test_source_history_legos.py: direct imports and tests of source_history_legos.py",
+        "mise.toml [tasks.\"repo:ci\"]: executes tools/repo/test_source_history_legos.py"
+      ],
+      "formalObligations": [
+        "Finite SourceCut obligation P1 (unproved in general): for every canonical path p in GitTree(S), exactly one (mode, object-id) Git entry represents p, or construction rejects duplicates.",
+        "Finite SourceCut obligation P2 (bounded native counterexample tests only): no identical Git subtree digest or path absence alone entails consumer behavioral equivalence, deployed effect equality, or permission to delete."
+      ],
+      "formalProofStanding": "OBLIGATIONS_DECLARED_NOT_FORMALLY_DISCHARGED"
     },
     {
       "id": "RG2_OWNER",
@@ -73,7 +93,29 @@
         "Every BLOCKED_ON prerequisite is currently unresolved; a partly completed blocker set is invalid even when another predecessor remains open.",
         "The existing Git SourceCut planning graph delta treats any changed registered planning-carrier bytes as a conservative requalification seed for every declared node on that carrier, including acceptance-only edits invisible in vertex/edge projection; real consumer/currentness proof remains separate."
       ],
-      "nextAction": "Reuse existing native source-bound validator; no duplicate graph, custom DSL, or new proof runtime."
+      "nextAction": "Reuse existing native source-bound validator; no duplicate graph, custom DSL, or new proof runtime.",
+      "inputs": [
+        "Exact Git SourceCut tree, current source-bound owners.toml, active Owner LEGO planning metadata and declared dependency contracts."
+      ],
+      "outputs": [
+        "Accepted source-bound validation result or explicit rejection of undeclared, ambiguous, redirected, or cyclic source declarations."
+      ],
+      "behavioralContract": [
+        "Every registered physical verification root must be distinct and nonoverlapping; a path matching zero roots is explicitly unclassified rather than inferred to have a semantic Owner.",
+        "A path matching more than one registered verification root, or a plan redirecting outside its pinned source tree, must be rejected before admission.",
+        "Planning prerequisite BLOCKED_ON edges must form an acyclic finite DAG; the Repo partition only validates source/structure and cannot certify Runtime or domain consumer behavior."
+      ],
+      "consumerEvidence": [
+        "tools/repo/test_architecture_docs.py: negative source/owner/plan checks",
+        "tools/repo/test_lego_graph_laws.py: real node and blocked prerequisite graph negative checks",
+        "mise.toml [tasks.\"repo:ci\"]: executes check_architecture_docs.py and native graph tests",
+        ".github/workflows/ci.yml: invokes tools/repo/affected_owners.py for source-path verification task selection"
+      ],
+      "formalObligations": [
+        "Finite plan admission obligation Q1 (unproved in general): forall distinct registered roots r1,r2, neither root is a prefix of the other; if violated, reject the manifest, not the ambiguous source.",
+        "Finite planning graph obligation Q2: topological prerequisite sort exists iff BLOCKED_ON relation is acyclic; cycle witnesses must be rejected, without extending the assertion to actual execution traces."
+      ],
+      "formalProofStanding": "OBLIGATIONS_DECLARED_NOT_FORMALLY_DISCHARGED"
     }
   ],
   "slices": [
