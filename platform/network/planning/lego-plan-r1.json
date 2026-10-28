@@ -289,6 +289,11 @@
         "consumers/browserless/systemd/network-v2-browserless-dns.service",
         "acceptance/dns/upstream-resilience.sh"
       ],
+      "consumerEvidence": [
+        "Taskfile.yml",
+        "systemd/network-v2-singbox.service",
+        "acceptance/dns/upstream-resilience.sh"
+      ],
       "dependencies": [],
       "mustNotOwn": [
         "HTTP/SOCKS proxy policy or full-IP tunnel effects",
@@ -328,6 +333,11 @@
         "acceptance/full-ip/tun-quic.sh",
         "acceptance/topology/netns.sh",
         "acceptance/connectivity/direct-chain.sh"
+      ],
+      "consumerEvidence": [
+        "Taskfile.yml",
+        "systemd/network-v2-r0.target",
+        "acceptance/full-ip/tun-quic.sh"
       ],
       "dependencies": [
         "N09"
