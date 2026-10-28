@@ -45,6 +45,26 @@ class FullCoverageTests(unittest.TestCase):
         self.assertEqual(M.source_partition("tools/unknown_script.py", policy)
                          ["standing"], "UNASSIGNED")
 
+    def test_repository_mechanics_source_region_has_real_cli_consumers(self):
+        import tomllib
+        policy = tomllib.loads(
+            (ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        assert M.source_partition(
+            "tools/repo/exhaustive_coverage.py", policy)["classification"] == (
+                "REGION:repository-mechanics-source")
+        assert M.source_partition(
+            "tools/repo/migration/test-integrate-main.sh", policy)["classification"] == (
+                "REGION:repository-mechanics-source")
+        assert not any(o["root"].startswith("tools/repo/")
+                       for o in policy["owners"])
+        tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+        ci = tasks["repo:ci"]["run"]
+        assert "tools/repo/test_affected_owners.py" in ci
+        assert "tools/repo/migration/test-integrate-main.sh" in ci
+        assert "tools/repo/check_owner_boundaries.py" in ci
+        assert M.source_partition("tools/nonexistent.py", policy)["standing"] == (
+            "UNASSIGNED")
+
     def test_unknown_never_disappears(self):
         self.assertEqual(M.source_partition("unforeseen/place.rs", {"owners": []})["standing"], "UNASSIGNED")
 
