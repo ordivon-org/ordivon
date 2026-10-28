@@ -2366,3 +2366,190 @@ def test_host_parent_refinement_fails_on_lost_consumption_or_false_proof(
                                             'return await _host("work.removed",')
     with pytest.raises(AssertionError):
         _host_core_parent_consumer_contract(plan, host_text, gateway_text)
+
+
+def _assert_runtime_core_r03_r04_closed(
+    plan: dict, *, rust_source_override: dict[str, str] | None = None,
+) -> None:
+    """Source-only typed closure for two IMPLEMENTED Runtime cores, not proof."""
+    import re
+
+    rust_root = ROOT / "services/runtime"
+    replacements = rust_source_override or {}
+    specs = {
+        "R03": {
+            "crates/ordivon-runtime-core/src/runtime/registry/admission.rs": (
+                "JobIdentityContract::from_submit",
+                "JobIdentityContract::exact_replay_matches",
+                "AttemptLifecycleContract::initial_state",
+            ),
+            "crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs": (
+                "AttemptLifecycleContract::can_transition",
+            ),
+            "crates/ordivon-runtime-core/src/runtime/registry/recovery.rs": (
+                "AttemptLifecycleContract::require_terminal_resolution",
+            ),
+            "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs": (
+                "pub(crate) struct JobIdentityContract",
+                "pub(crate) struct AttemptLifecycleContract",
+                "fn state_transition_matrix_preserves_terminal_absorption_and_recovery_paths",
+                "fn terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt",
+            ),
+        },
+        "R04": {
+            "crates/ordivon-runtime-core/src/runtime/registry/admission.rs": (
+                "ReservationContract::initial_state",
+                "ReservationContract::capacity_exhausted",
+            ),
+            "crates/ordivon-runtime-core/src/runtime/registry.rs": (
+                "ReservationContract::terminal_target_with_evidence",
+            ),
+            "crates/ordivon-runtime-core/src/runtime/reservation_state.rs": (
+                "pub(crate) struct ReservationContract",
+                "fn hold_and_release_transitions_preserve_replay_without_reopening_released_capacity",
+                "fn terminal_capacity_target_requires_complete_job_and_attempt_evidence",
+            ),
+        },
+    }
+    plan_nodes = {n["id"]: n for n in plan["nodes"]}
+    assert {"R03", "R04"} <= plan_nodes.keys()
+    assert plan.get("truthRole") == "planning-projection-not-project-truth"
+    for ident, witnesses in specs.items():
+        node = plan_nodes[ident]
+        assert node["state"] == "IMPLEMENTED"
+        assert node.get("consumers") and len(node["consumers"]) == (
+            5 if ident == "R03" else 3)
+        assert node.get("inputs") and node.get("outputs")
+        assert len(node.get("behavioralContract", "")) >= 70
+        assert node.get("formalObligations") and len(node["formalObligations"]) >= 3
+        assert node["evidenceScope"]["qualification"] == "SOURCE_CONSUMER_BOUND_ONLY"
+        assert node["evidenceScope"]["formalProof"] == "UNKNOWN"
+        assert node["evidenceScope"]["installedCurrentness"] == "UNKNOWN"
+        assert node["evidenceScope"]["replacementOrDeletionAuthorized"] is False
+        assert set(witnesses).issubset(node["consumerEvidence"])
+        for relative in node["consumerEvidence"]:
+            assert (rust_root / relative).is_file(), relative
+        for relative, anchors in witnesses.items():
+            text = replacements.get(relative)
+            if text is None:
+                text = (rust_root / relative).read_text(encoding="utf-8")
+            for anchor in anchors:
+                assert re.search(r"\b" + re.escape(anchor) + r"\b", text), (
+                    ident, relative, anchor)
+        declarations = "\n".join(node["consumers"])
+        for anchor in witnesses["crates/ordivon-runtime-core/src/runtime/registry/admission.rs"]:
+            assert anchor in declarations
+    # Runtime core source may qualify itself as a consumed planning obligation
+    # but neither source text nor the Rust test suite proves the installed
+    # Windows/Linux service binary, production effects or full formal proof.
+
+
+def test_runtime_core_r03_r04_declared_consumers_are_backed_by_rust_calls() -> None:
+    from tools.repo import exhaustive_coverage
+
+    plan = json.loads(
+        (ROOT / "services/runtime/planning/lego-plan-r1.json").read_text(encoding="utf-8"))
+    _assert_runtime_core_r03_r04_closed(plan)
+    for ident in ("R03", "R04"):
+        node = next(n for n in plan["nodes"] if n["id"] == ident)
+        assert exhaustive_coverage.declared_values(
+            node, exhaustive_coverage.FIELDS["CONSUMER"])
+        assert exhaustive_coverage.declared_values(
+            node, exhaustive_coverage.FIELDS["FORMAL"])
+
+
+@pytest.mark.parametrize("bad", ["consumer", "formal", "contract", "proof", "call"])
+def test_runtime_core_r03_r04_mutant_cannot_claim_consumer_closure(bad: str) -> None:
+    plan = json.loads(
+        (ROOT / "services/runtime/planning/lego-plan-r1.json").read_text(encoding="utf-8"))
+    mapping = {x["id"]: x for x in plan["nodes"]}
+    override = None
+    if bad == "consumer":
+        mapping["R03"]["consumers"] = []
+    elif bad == "formal":
+        mapping["R04"]["formalObligations"] = []
+    elif bad == "contract":
+        mapping["R04"]["behavioralContract"] = ""
+    elif bad == "proof":
+        mapping["R03"]["evidenceScope"]["formalProof"] = "VERIFIED"
+    else:
+        relative = "crates/ordivon-runtime-core/src/runtime/registry/admission.rs"
+        contents = (ROOT / "services/runtime" / relative).read_text(encoding="utf-8")
+        assert "ReservationContract::capacity_exhausted" in contents
+        override = {relative: contents.replace(
+            "ReservationContract::capacity_exhausted", "DeletedContract::capacity_exhausted")}
+    with pytest.raises(AssertionError):
+        _assert_runtime_core_r03_r04_closed(plan, rust_source_override=override)
+
+
+def _assert_runtime_core_r07_authority_consumers(
+    plan: dict, *, operation_circuit_source: str | None = None,
+) -> None:
+    import re
+
+    node = next(n for n in plan["nodes"] if n["id"] == "R07")
+    assert node["state"] == "IMPLEMENTED"
+    assert node.get("inputs") and node.get("outputs")
+    assert len(node.get("behavioralContract", "")) >= 70
+    assert len(node.get("formalObligations", [])) >= 3
+    assert node["evidenceScope"]["qualification"] == "SOURCE_CONSUMER_BOUND_ONLY"
+    assert node["evidenceScope"]["formalProof"] == "UNKNOWN"
+    assert node["evidenceScope"]["installedCurrentness"] == "UNKNOWN"
+    assert node["evidenceScope"]["replacementOrDeletionAuthorized"] is False
+    owner = ROOT / "services/runtime"
+    assert all((owner / path).is_file() for path in node["consumerEvidence"])
+    source_path = owner / "crates/ordivon-runtime-core/src/runtime/operation_circuit.rs"
+    source = source_path.read_text(encoding="utf-8") if operation_circuit_source is None else operation_circuit_source
+    authority = (
+        owner / "crates/ordivon-runtime-core/src/runtime/authority_contract.rs"
+    ).read_text(encoding="utf-8")
+    required = (
+        "AuthorityContract::ordinary",
+        "AuthorityContract::immutable_inputs",
+        "AuthorityContract::credential_bound_trusted",
+        "validate_ordinary_realization",
+    )
+    declared = "\n".join(node["consumers"])
+    for symbol in required:
+        assert symbol in source
+        assert symbol in declared
+    for symbol in (
+        "validate_ordinary_realization",
+        "validate_immutable_input_reduced_realization",
+        "validate_credential_bound_trusted_realization",
+        "ordinary_trusted_linux_records_host_dependency_authority",
+        "immutable_windows_rejects_active_user_context",
+        "credential_bound_records_authority_names_without_granting_them",
+    ):
+        assert re.search(r"\b" + re.escape(symbol) + r"\b", authority)
+    assert "OperationCircuitCompiler" in declared
+    # Existing Job replay remains a different already-committed operation
+    # identity; no source-only observation authorizes an installed assertion.
+
+
+def test_runtime_core_r07_authority_consumers_have_real_circuit_calls() -> None:
+    plan = json.loads(
+        (ROOT / "services/runtime/planning/lego-plan-r1.json").read_text(encoding="utf-8"))
+    _assert_runtime_core_r07_authority_consumers(plan)
+
+
+@pytest.mark.parametrize("mutation", ["missing_consumer", "missing_contract", "proof_overclaim", "call_removed"])
+def test_runtime_core_r07_authority_false_closure_is_rejected(mutation: str) -> None:
+    plan = json.loads(
+        (ROOT / "services/runtime/planning/lego-plan-r1.json").read_text(encoding="utf-8"))
+    node = next(n for n in plan["nodes"] if n["id"] == "R07")
+    override = None
+    if mutation == "missing_consumer":
+        node["consumers"] = ["OperationCircuitCompiler:AuthorityContract::ordinary"]
+    elif mutation == "missing_contract":
+        node["behavioralContract"] = ""
+    elif mutation == "proof_overclaim":
+        node["evidenceScope"]["formalProof"] = "VERIFIED"
+    else:
+        path = ROOT / "services/runtime/crates/ordivon-runtime-core/src/runtime/operation_circuit.rs"
+        source = path.read_text(encoding="utf-8")
+        assert "AuthorityContract::immutable_inputs" in source
+        override = source.replace("AuthorityContract::immutable_inputs", "UnboundAuthority::immutable_inputs")
+    with pytest.raises(AssertionError):
+        _assert_runtime_core_r07_authority_consumers(
+            plan, operation_circuit_source=override)
