@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -157,6 +159,27 @@ class AffectedOwnersTests(unittest.TestCase):
             self.names(source, "services/runtime/crates/ordivon-runtime-core/src/lib.rs"),
             ["composition", "runtime"],
         )
+
+    def test_source_history_inherits_full_transitive_composition_queue(self) -> None:
+        # Assert the real CLI's TRANSITIVE consumers, not a fixed six-task
+        # snapshot. New legitimate Composition dependents extend both sides.
+        cli = MODULE_PATH.with_name("convergence_plan.py")
+
+        def selected(path: str) -> dict:
+            result = subprocess.run(
+                [sys.executable, str(cli), "--changed-file", path],
+                check=True, capture_output=True, text=True,
+            )
+            return json.loads(result.stdout)
+
+        history = selected("tools/repo/source_history_legos.py")
+        composition = selected(
+            "packages/composition/src/ordivon_composition/verification_obligation_r1.py"
+        )
+        self.assertEqual(history["queueVerifyTasks"], composition["queueVerifyTasks"])
+        self.assertEqual(history["verificationOwners"], composition["verificationOwners"])
+        self.assertIn("composition:verify", history["queueVerifyTasks"])
+        self.assertNotIn("formal:verify", history["queueVerifyTasks"])
 
     def test_repo_inventory_producer_is_covered_by_unconditional_root_ci(self) -> None:
         # convergence_plan imports this module; the canonical root suite
