@@ -288,7 +288,13 @@ def explain_source_impacts(
     # Queue allowlisting alone proves each *provided* task is legitimate,
     # not that every affected consumer was selected. Recompute the complete
     # existing native impact plan rather than trusting a caller's subset.
-    canonical = build_plan(changed_files=paths)
+    # The empty set is an actual SourceCut change frontier, not an excuse
+    # to omit producer/policy readset qualification. Reuse the same canonical
+    # plan at the identical immutable cut instead of rejecting empty input.
+    canonical = (
+        build_plan(changed_files=paths) if paths
+        else build_plan(base=source_cut, head=source_cut)
+    )
     for name in (
         "queueClass", "directOwners", "verificationOwners", "verifyTasks",
         "queueVerifyTasks", "scopeIds", "crossCutting",
