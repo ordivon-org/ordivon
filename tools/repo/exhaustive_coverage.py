@@ -767,7 +767,7 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
     }
     joined = []
     links = []
-    keys = set()
+    epoch_digests: dict[tuple[str, str, str, str, str], str] = {}
     allowed = {"authorityRef", "subjectRef", "observationKind",
                "observationRevision", "witnessRef", "observedAt",
                "candidateProblemRef", "observedFacts"}
@@ -816,19 +816,30 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
         if candidate is not None and candidate.startswith("problem:unscoped-plan-id:"):
             if kind != "UNSCOPED_PLAN_LOOKUP_CANDIDATE":
                 raise ValueError("bare-ID question requires actual scoped syntax witness")
+        # A natural object may be observed at multiple epochs and under more
+        # than one evidence kind. Keep these three identities disjoint:
+        # caller-scoped authority/subject alias, typed observation subject,
+        # and immutable report. The alias is NOT a verified physical identity
+        # (e.g. a PID may be reused after process restart).
         key = (a, s, kind)
-        if key in keys:
-            raise ValueError("duplicate authority/subject/kind observation")
-        keys.add(key)
-        # Revision and witness are deliberately excluded from stable *subject*
-        # identity. Observation digest captures both. Neither implies currentness.
+        epoch = (a, s, kind, revision, item["observedAt"])
         ref = "observed-subject:sha256:" + hashlib.sha256(
             json.dumps(key, separators=(",", ":")).encode()).hexdigest()
+        authority_subject_ref = "authority-subject-alias:sha256:" + hashlib.sha256(
+            json.dumps((a, s), separators=(",", ":")).encode()).hexdigest()
         payload_digest = "sha256:" + hashlib.sha256(
             json.dumps(item, sort_keys=True, ensure_ascii=True,
                        separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        if epoch in epoch_digests:
+            if epoch_digests[epoch] == payload_digest:
+                raise ValueError("duplicate identical observation report")
+            raise ValueError("conflicting observation reports for same subject epoch")
+        epoch_digests[epoch] = payload_digest
         joined.append({
             "subjectRef": ref,
+            "authoritySubjectRef": authority_subject_ref,
+            "authoritySubjectStanding": "CALLER_SCOPED_ALIAS_NOT_VERIFIED",
+            "observationRef": "reported-observation:" + payload_digest,
             "authorityRef": a,
             "authorityLocalRef": s,
             "observationKind": kind,
@@ -845,6 +856,7 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
         if candidate is not None:
             links.append({
                 "fromSubjectRef": ref,
+                "fromObservationRef": "reported-observation:" + payload_digest,
                 "toProblemRef": location_questions.get(candidate, candidate),
                 "sourceScopeQuestionRef": candidate if candidate in location_questions else None,
                 "relation": "EXPLICIT_CANDIDATE_ASSOCIATION_NOT_AN_INVOKED_EDGE",
@@ -855,12 +867,19 @@ def join_observed_authorities(problem_frontier: dict, evidence: dict) -> dict:
     output["observationJoin"] = {
         "kind": "ordivon.phase1.caller-supplied-cross-authority-evidence-join",
         "sourceCut": problem_frontier["sourceCut"],
-        "observedSubjects": sorted(joined, key=lambda r: r["subjectRef"]),
+        "observedSubjects": sorted(joined, key=lambda r: (
+            r["subjectRef"], r["observedAt"], r["observationRevision"],
+            r["observationRef"])),
         "candidateAssociations": sorted(links, key=lambda r: (
-            r["toProblemRef"], r["fromSubjectRef"])),
+            r["toProblemRef"], r["fromSubjectRef"], r["fromObservationRef"])),
         "unscopedShortIdQuestions": short_questions,
         "summary": {
+            # Compatibility: reportedObservationSubjects counts reports, not
+            # distinct natural subjects. Expose explicit identity counts too.
             "reportedObservationSubjects": len(joined),
+            "distinctObservedSubjects": len({r["subjectRef"] for r in joined}),
+            "distinctAuthoritySubjectAliases": len({
+                r["authoritySubjectRef"] for r in joined}),
             "explicitCandidateAssociations": len(links),
             "unassociatedExternalSubjects": len(joined) - len(links),
             "unscopedIdAmbiguityQuestionsNotCollisions": len(short_questions),
