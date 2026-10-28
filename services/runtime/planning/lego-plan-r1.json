@@ -133,7 +133,42 @@
         "Attempt generation and terminalization preserve current ambiguity/lost/orphaned behavior.",
         "Physical provider code depends on Job/Attempt contracts rather than engine internals."
       ],
-      "nextAction": "R03 is closed at the planned A1/A2 seam and R04 ReservationContract is integrated on the verified candidate; proceed to R05 ArtifactAndReleaseStateModule without reopening Job/Attempt ownership."
+      "nextAction": "R03 is closed at the planned A1/A2 seam and R04 ReservationContract is integrated on the verified candidate; proceed to R05 ArtifactAndReleaseStateModule without reopening Job/Attempt ownership.",
+      "consumers": [
+        "Registry admission:JobIdentityContract::from_submit",
+        "Registry admission:JobIdentityContract::exact_replay_matches",
+        "Registry admission:AttemptLifecycleContract::initial_state",
+        "Registry lifecycle:AttemptLifecycleContract::can_transition",
+        "Registry recovery:AttemptLifecycleContract::require_terminal_resolution"
+      ],
+      "consumerEvidence": [
+        "crates/ordivon-runtime-core/src/runtime/registry/admission.rs",
+        "crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs",
+        "crates/ordivon-runtime-core/src/runtime/registry/recovery.rs",
+        "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs"
+      ],
+      "formalObligations": [
+        "Exact clientRequestId replay returns the existing logical Job only when committed request identity matches; incompatible payloads conflict without re-dispatch.",
+        "Attempt lifecycle transitions remain state-machine legal; terminal Attempt states cannot reopen, and Attempt resolution requires a terminal state.",
+        "Only complete, identity-bound terminal evidence permits a Job resolution; a lost response or orphaned physical Attempt does not imply safe retry."
+      ],
+      "evidenceScope": {
+        "qualification": "SOURCE_CONSUMER_BOUND_ONLY",
+        "formalProof": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "sourceCutQualification": "MUST_BIND_EXACT_GIT_CUT_AT_VERIFICATION",
+        "replacementOrDeletionAuthorized": false
+      },
+      "inputs": [
+        "SubmitRequest with clientRequestId, exact request identity, execution plan and provider binding",
+        "Attempt state, termination intent, current Attempt identity and durable Job/Attempt evidence"
+      ],
+      "outputs": [
+        "Versioned request/operation digests and replay equality/conflict classification",
+        "Legal Attempt transition and terminal Job resolution or typed ReconciliationRequired error"
+      ],
+      "behavioralContract": "Exact replay is keyed by committed request identity and cannot replay a different request as the same Job; Attempt state-machine transitions are terminal-absorbing, terminal resolution is admissible only with complete Job/Attempt evidence, and ambiguous physical effects require reconciliation rather than blind retry."
     },
     {
       "id": "R04",
@@ -165,7 +200,39 @@
         "Rejected admission remains commitState=not_started.",
         "No queue, priority scheduler, or second in-memory capacity truth is introduced."
       ],
-      "nextAction": "R04 is closed. Proceed to R05 ArtifactAndReleaseStateModule; keep queue, priority, scheduling, and launch-evidence reconciliation outside ReservationContract."
+      "nextAction": "R04 is closed. Proceed to R05 ArtifactAndReleaseStateModule; keep queue, priority, scheduling, and launch-evidence reconciliation outside ReservationContract.",
+      "consumers": [
+        "Registry admission:ReservationContract::initial_state",
+        "Registry admission:ReservationContract::capacity_exhausted",
+        "Registry terminal evidence:ReservationContract::terminal_target_with_evidence"
+      ],
+      "consumerEvidence": [
+        "crates/ordivon-runtime-core/src/runtime/registry/admission.rs",
+        "crates/ordivon-runtime-core/src/runtime/registry.rs",
+        "crates/ordivon-runtime-core/src/runtime/reservation_state.rs",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs"
+      ],
+      "formalObligations": [
+        "Admission preserves the durable global and per-Workspace concurrency bounds; rejected work cannot silently acquire execution capacity.",
+        "Held-orphaned Attempt reservations continue to hold capacity; a Released reservation cannot be reopened by a replay.",
+        "Terminal capacity release is conditioned on complete matching Job/Attempt evidence; ambiguous terminal evidence requires reconciliation rather than assumed release."
+      ],
+      "evidenceScope": {
+        "qualification": "SOURCE_CONSUMER_BOUND_ONLY",
+        "formalProof": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "sourceCutQualification": "MUST_BIND_EXACT_GIT_CUT_AT_VERIFICATION",
+        "replacementOrDeletionAuthorized": false
+      },
+      "inputs": [
+        "Active reservations per Workspace and globally, configured execution limits",
+        "Terminal Attempt state, completion/result evidence and current Attempt/Job resolution"
+      ],
+      "outputs": [
+        "Active/HeldOrphaned/Released reservation state with strict capacity decision",
+        "Evidence-qualified release/hold target or typed ReconciliationRequired error"
+      ],
+      "behavioralContract": "Admission rejects capacity when active >= limit; Active and HeldOrphaned hold capacity, Released never reopens on replay; orphaned terminal outcomes retain their capacity and any terminal release requires complete, matching Job and Attempt evidence rather than inferred success."
     },
     {
       "id": "R05",
@@ -264,7 +331,39 @@
         "Runtime consumes and enforces authority; it does not invent provider/domain permission.",
         "Replay resolves existing Jobs before current authority/policy reinterpretation exactly as today."
       ],
-      "nextAction": "R07 is closed. Proceed to R08 OperationCircuitCompiler with one existing execution family first; prove exact parity and fail-closed behavior before migrating the remaining families."
+      "nextAction": "R07 is closed. Proceed to R08 OperationCircuitCompiler with one existing execution family first; prove exact parity and fail-closed behavior before migrating the remaining families.",
+      "consumers": [
+        "OperationCircuitCompiler:AuthorityContract::ordinary",
+        "OperationCircuitCompiler:AuthorityContract::immutable_inputs",
+        "OperationCircuitCompiler:AuthorityContract::credential_bound_trusted",
+        "OperationCircuitCompiler:AuthorityContract::validate_ordinary_realization"
+      ],
+      "consumerEvidence": [
+        "crates/ordivon-runtime-core/src/runtime/operation_circuit.rs",
+        "crates/ordivon-runtime-core/src/runtime/authority_contract.rs",
+        "crates/ordivon-runtime-core/src/runtime/engine.rs"
+      ],
+      "formalObligations": [
+        "An internal AuthorityContract cannot widen the principal, execution target/profile, executable set, input binding, credential binding, or Host Dependencies beyond its declared typed request.",
+        "Reduced immutable-input execution cannot silently switch to writable input access or an unapproved Windows execution context.",
+        "A credential-bound execution family records named authority references but does not issue IAM permission, forge credentials or reinterpret an existing Job on replay."
+      ],
+      "evidenceScope": {
+        "qualification": "SOURCE_CONSUMER_BOUND_ONLY",
+        "formalProof": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "sourceCutQualification": "MUST_BIND_EXACT_GIT_CUT_AT_VERIFICATION",
+        "replacementOrDeletionAuthorized": false
+      },
+      "inputs": [
+        "Typed execution proposal family, principal, target/profile and Windows context",
+        "Declared executable, immutable-input, credential and Host Dependency bindings"
+      ],
+      "outputs": [
+        "Internal AuthorityContract and realization-drift validation outcome",
+        "Typed rejection of mismatched authority and unauthorized elevation or input-access widening"
+      ],
+      "behavioralContract": "A typed AuthorityContract captures only authority references declared by the execution proposal and rejects realization drift, writable reduced immutable-input access, undeclared Host Dependencies or unauthorized Windows elevation; it is not a credential grant, Security policy decision, provider permission, or reinterpretation of an existing Job replay."
     },
     {
       "id": "R08",
