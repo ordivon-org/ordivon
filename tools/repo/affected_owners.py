@@ -159,7 +159,10 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
     # similarity detection to hide the source owner from verification.
     proc = subprocess.run(
         [
-            "git", "diff", "--name-only", "--no-renames", "-z",
+            # SourceCut membership must be the actual immutable Git DAG, not
+            # a locally installed refs/replace overlay. A replacement commit
+            # could otherwise omit a changed Formal verifier source.
+            "git", "--no-replace-objects", "diff", "--name-only", "--no-renames", "-z",
             "--diff-filter=ACDMRTUXB", f"{base}...{head}",
         ],
         check=True,

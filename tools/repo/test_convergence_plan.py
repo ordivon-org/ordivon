@@ -20,6 +20,59 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ConvergencePlanTests(unittest.TestCase):
+    def test_exact_git_replace_cannot_erase_formal_source_queue_or_spoof_tree(self) -> None:
+        """LEGO 2.1 source identity must not follow mutable Git replacement refs.
+
+        Run the actual native CLI with a disposable, independently constructed
+        Git commit DAG. Do not touch the worktree's shared Git replacement refs.
+        """
+        with tempfile.TemporaryDirectory(prefix="ordivon-queue-git-replace-") as temp:
+            repo = Path(temp)
+
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args],
+                    text=True, stderr=subprocess.PIPE,
+                ).strip()
+
+            git("init", "-q")
+            git("config", "user.email", "formal-cut-fixture@example.invalid")
+            git("config", "user.name", "Ordivon source-cut fixture")
+            (repo / "tools/formal").mkdir(parents=True)
+            (repo / "docs").mkdir()
+            (repo / "tools/formal/Proof.qnt").write_text("version 1\\n")
+            (repo / "docs/note.md").write_text("version 1\\n")
+            git("add", ".")
+            git("commit", "-qm", "base")
+            base = git("rev-parse", "HEAD")
+
+            (repo / "tools/formal/Proof.qnt").write_text("version 2\\n")
+            git("add", ".")
+            git("commit", "-qm", "real formal proof change")
+            real = git("rev-parse", "HEAD")
+            real_tree = git("--no-replace-objects", "rev-parse", real + "^{tree}")
+
+            git("checkout", "--detach", "-q", base)
+            (repo / "docs/note.md").write_text("version 2\\n")
+            git("add", ".")
+            git("commit", "-qm", "docs-only decoy")
+            decoy = git("rev-parse", "HEAD")
+            git("checkout", "--detach", "-q", real)
+            git("replace", real, decoy)
+
+            output = subprocess.check_output(
+                [
+                    sys.executable, str(MODULE_PATH),
+                    "--base", base, "--head", real, "--format", "json",
+                ],
+                cwd=repo, text=True, stderr=subprocess.PIPE, timeout=30,
+            )
+            plan = __import__("json").loads(output)
+            self.assertEqual(plan["headRevision"], real)
+            self.assertEqual(plan["headTree"], real_tree)
+            self.assertEqual(plan["changedPaths"], ["tools/formal/Proof.qnt"])
+            self.assertEqual(plan["queueVerifyTasks"], ["formal:verify"])
+
     def test_self_hosted_impact_explanation_binds_real_source_and_verification(self) -> None:
         source = "tools/repo/affected_owners.py"
         plan = MODULE.build_plan(changed_files=[source])
