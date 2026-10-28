@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -145,10 +146,65 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             with self.subTest(revision=revision):
                 current, invalidating = check_evidence._verified_revision_is_current(revision)
                 self.assertFalse(current)
-                self.assertEqual(
-                    invalidating,
-                    [check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR],
-                )
+                # Shallow and complete Git graphs can produce different
+                # invalidators, but neither may certify old source as current.
+                self.assertTrue(invalidating)
+                if check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR in invalidating:
+                    self.assertEqual(
+                        invalidating, [check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR]
+                    )
+
+    def test_imported_historical_receipt_is_stable_across_shallow_and_complete_git(self) -> None:
+        """Actual Git graph CUT changes ancestry, not archived receipt standing.
+
+        This runs BOTH graph observations in one test even on a full-history CI
+        checkout. It does not rewrite Git objects, source, evidence or receipts.
+        """
+        from unittest.mock import patch
+
+        filename, status, revision, _ = EXPECTED[
+            "harness.research.campaign3-rich-effect-owner-capture-v1"
+        ]
+        self.assertEqual(status, "historical")
+        importer = check_evidence._HARNESS_HISTORICAL_IMPORT
+        repository = subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"], cwd=ROOT, text=True
+        ).strip()
+        with tempfile.TemporaryDirectory() as temp:
+            cut = Path(temp) / "shallow"
+            cut.write_text(importer + "\n", encoding="ascii")
+            for label, graph in (("shallow", str(cut)), ("complete", os.devnull)):
+                with self.subTest(graph=label):
+                    with patch.dict(
+                        os.environ,
+                        {"GIT_SHALLOW_FILE": graph, "GIT_NO_LAZY_FETCH": "1"},
+                    ):
+                        creations = check_evidence._git_creation_revisions(f"evidence/{filename}")
+                        self.assertEqual(len(creations), 1)
+                        self.assertEqual(
+                            check_evidence._validate_index_creation_lineage_binding(
+                                filename, revision, historical=True
+                            ),
+                            [],
+                        )
+                        # Original-version lineage and today's currentness are
+                        # different obligations, regardless of graph visibility.
+                        current, invalidating = check_evidence._verified_revision_is_current(
+                            revision
+                        )
+                        self.assertFalse(current)
+                        self.assertTrue(invalidating)
+                        tampered = check_evidence._validate_index_creation_lineage_binding(
+                            filename,
+                            subprocess.check_output(
+                                ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+                            ).strip(),
+                            historical=True,
+                        )
+                        self.assertTrue(tampered)
+                        expected_creation = importer if label == "shallow" else creations[0]
+                        self.assertEqual(creations[0], expected_creation)
+            self.assertTrue(repository)
 
     def test_scoped_foreign_git_history_is_not_implementation_diff(self) -> None:
         source = "9d936e98d8c02772aa2becc924ba9006c71aa989"
@@ -163,10 +219,11 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
                 runtime_dependency_closure_digest=digest,
             )
             self.assertFalse(current)
-            self.assertEqual(
-                invalidating,
-                [check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR],
-            )
+            self.assertTrue(invalidating)
+            if check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR in invalidating:
+                self.assertEqual(
+                    invalidating, [check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR]
+                )
 
     def test_scoped_implementation_paths_are_validated_conservatively(self) -> None:
         normalize = check_evidence._normalize_implementation_paths
@@ -212,11 +269,13 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
                 runtime_dependency_closure_digest=str(entry["runtimeDependencyClosureDigest"]),
             )
             self.assertFalse(current, entry.get("claimId"))
-            self.assertEqual(
-                invalidating,
-                [check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR],
-                entry.get("claimId"),
-            )
+            self.assertTrue(invalidating, entry.get("claimId"))
+            if check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR in invalidating:
+                self.assertEqual(
+                    invalidating,
+                    [check_evidence._SOURCE_HISTORY_BOUNDARY_INVALIDATOR],
+                    entry.get("claimId"),
+                )
         current_digest = check_evidence._runtime_dependency_closure_digest("HEAD")
         self.assertRegex(current_digest, r"\Asha256:[0-9a-f]{64}\Z")
         self.assertNotEqual(current_digest, old_digest)
@@ -235,10 +294,12 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         for filename, status, revision, _digest in EXPECTED.values():
             self.assertEqual(status, "historical")
             self.assertEqual(validator(filename, revision, historical=True), [])
-            self.assertTrue(
-                validator(filename, revision, historical=False),
-                "the same historical revision must NOT be admitted as current",
-            )
+            # In a complete Git graph the original source revision may
+            # genuinely precede the original receipt creation. That proves
+            # SOURCE LINEAGE, not current implementation equivalence.
+            current, invalidating = check_evidence._verified_revision_is_current(revision)
+            self.assertFalse(current, filename)
+            self.assertTrue(invalidating, filename)
         current_head = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             cwd=ROOT,
@@ -248,18 +309,20 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         ).stdout.strip()
         filename = "harness-campaign3-rich-effect-owner-v1-capture.json"
         errors = validator(filename, current_head, historical=True)
-        self.assertTrue(any("ancestor" in error for error in errors))
+        self.assertTrue(any("ancestor" in error or "pre-import" in error for error in errors))
         from unittest.mock import patch
 
-        # Only this one exact monorepo importer allows HISTORICAL retention.
+        # When a shallow boundary hides the actual old receipt creation,
+        # retention is qualified by the exact monorepo importer. With the
+        # complete original graph, the original creation Git commit is the
+        # stronger identity, independent of the import anchor.
+        original_revision = EXPECTED["harness.research.campaign3-rich-effect-owner-capture-v1"][2]
+        import_is_creation = check_evidence._git_creation_revisions(f"evidence/{filename}") == [
+            check_evidence._HARNESS_HISTORICAL_IMPORT
+        ]
         with patch.object(check_evidence, "_HARNESS_HISTORICAL_IMPORT", "0" * 40):
-            self.assertTrue(
-                validator(
-                    filename,
-                    EXPECTED["harness.research.campaign3-rich-effect-owner-capture-v1"][2],
-                    historical=True,
-                )
-            )
+            errors = validator(filename, original_revision, historical=True)
+            self.assertEqual(bool(errors), import_is_creation)
         # Byte substitution must fail, even though historical retention has no
         # right to certify the original independent repository ancestry.
         with patch.object(check_evidence, "_git_file_bytes", return_value=b"tampered"):

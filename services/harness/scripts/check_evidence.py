@@ -409,38 +409,43 @@ def _validate_index_creation_lineage_binding(
             f"found={creation_revisions}"
         ]
     creation_revision = creation_revisions[0]
-    ancestor = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", revision, creation_revision],
-        cwd=ROOT,
-        check=False,
+    # The imported historical record certifies the immutable copied bytes,
+    # NOT the independent source version's equivalence to current code.
+    # Git's shallow boundary must never change this status contract.
+    imported_source = (
+        _git_owner_prefix() == "services/harness/"
+        and creation_revision == _HARNESS_HISTORICAL_IMPORT
+        and len(revision) == 40
+        and all(c in "0123456789abcdef" for c in revision)
     )
-    if ancestor.returncode != 0:
-        # The 2026 Harness monorepo import starts a DIFFERENT Git DAG from
-        # the original standalone repository. Historical receipts must not
-        # require or invent a cross-repository ancestor relationship.
-        imported_historical = (
-            historical
-            and _git_owner_prefix() == "services/harness/"
-            and creation_revision == _HARNESS_HISTORICAL_IMPORT
-            and len(revision) == 40
-            and all(c in "0123456789abcdef" for c in revision)
+    if imported_source:
+        # A post-import revision is not a valid pre-import source claim, even
+        # if the receipt's imported file bytes still match. Both graph modes
+        # can establish this forward relation from the actual import commit.
+        post_import = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", creation_revision, revision],
+            cwd=ROOT,
+            check=False,
         )
-        # Reject an unrelated same-repository descendant pretending to be
-        # older historical source, even if the imported receipt bytes match.
-        if imported_historical:
-            same_repo_ancestor = subprocess.run(
-                ["git", "merge-base", "--is-ancestor", revision, "HEAD"],
-                cwd=ROOT,
-                check=False,
-            )
-            imported_historical = same_repo_ancestor.returncode != 0
-        if not imported_historical:
-            errors.append(
+        if post_import.returncode == 0 or not historical:
+            return [
+                f"index-bound imported archive requires pre-import historical standing for {filename}: "
+                f"revision={revision} creation={creation_revision}"
+            ]
+        # A HISTORY-ONLY byte archive is not a claim that implementation
+        # was unchanged from an old revision through the monorepo import.
+        # Even a fully fetched Git DAG can show subsequent source changes.
+    else:
+        ancestor = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", revision, creation_revision],
+            cwd=ROOT,
+            check=False,
+        )
+        if ancestor.returncode != 0:
+            return [
                 f"index-bound revision is not an ancestor of evidence creation for {filename}: "
                 f"revision={revision} creation={creation_revision}"
-            )
-            return errors
-    else:
+            ]
         invalidating = _invalidating_paths(revision, creation_revision)
         if invalidating:
             errors.append(
