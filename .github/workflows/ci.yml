@@ -175,6 +175,20 @@ jobs:
             echo "::endgroup::"
           done < "$RUNNER_TEMP/ordivon-affected-tasks.txt"
 
+      - name: Verify changed core Formal source
+        if: steps.affected.outputs.formal == 'true'
+        shell: bash
+        env:
+          # Isolate Kani's release bundle to this job; a truncated shared
+          # ~/.kani cache must not masquerade as a mathematical proof result.
+          KANI_HOME: ${{ runner.temp }}/ordivon-core-formal-kani
+        run: |
+          set -euo pipefail
+          cd tools/formal
+          mise install
+          cd ../..
+          mise run formal:verify
+
       - name: Runtime supply-chain policy
         if: steps.affected.outputs.runtime == 'true'
         uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2

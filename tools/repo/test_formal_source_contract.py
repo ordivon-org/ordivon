@@ -46,6 +46,19 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         # opt-in toolchain: never fake Lean/Z3/Kani proof success.
         self.assertNotIn("mise run formal:verify", ci_script)
 
+    def test_root_protected_ci_runs_formal_task_for_changed_proof_sources(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "from affected_owners import requires_core_formal_verification",
+            workflow,
+        )
+        self.assertIn("formal=%s", workflow)
+        self.assertIn("\"$GITHUB_OUTPUT\"", workflow)
+        self.assertIn("if: steps.affected.outputs.formal == 'true'", workflow)
+        self.assertIn("mise run formal:verify", workflow)
+        self.assertIn("KANI_HOME:", workflow)
+        self.assertIn("mise install", workflow)
+
     def test_exact_git_source_readset_is_qualified(self) -> None:
         current = formal.qualified_source_cut()
         self.assertEqual(

@@ -41,6 +41,19 @@ class AffectedOwnersTests(unittest.TestCase):
             ["runtime", "host", "game"],
         )
 
+    def test_core_formal_source_requires_real_proof_task_without_new_owner(self) -> None:
+        verify = MODULE.requires_core_formal_verification
+        self.assertTrue(verify(("tools/formal/Proof.rs",)))
+        self.assertTrue(verify(("tools/formal/RecursiveLegoRefinement.lean",)))
+        self.assertTrue(verify(("apps/web/README.md", "tools/formal/verify.py")))
+        self.assertFalse(verify(("tools/formalized/Proof.rs",)))
+        self.assertFalse(verify(("tools/repo/check_architecture_docs.py",)))
+        with self.assertRaisesRegex(ValueError, "noncanonical"):
+            verify(("tools/formal/../other.py",))
+        self.assertEqual(
+            self.queue_tasks("tools/formal/RecursiveLegoRefinement.lean"), []
+        )
+
     def test_next_queue_verification_defaults_to_full_verify(self) -> None:
         self.assertEqual(self.tasks("meta/next/README.md"), ["next:verify"])
         self.assertEqual(self.queue_tasks("meta/next/README.md"), ["next:verify"])
