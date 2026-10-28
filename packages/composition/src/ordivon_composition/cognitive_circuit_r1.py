@@ -17,6 +17,7 @@ from heapq import heapify, heappop, heappush
 from pathlib import Path
 from typing import Any
 
+import rfc8785
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parent
@@ -29,15 +30,10 @@ class CircuitContractError(ValueError):
 
 
 def _canonical_bytes(value: Any) -> bytes:
+    """Reuse the installed RFC 8785 JCS provider for cross-owner digest semantics."""
     try:
-        return json.dumps(
-            value,
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=False,
-            allow_nan=False,
-        ).encode("utf-8")
-    except ValueError as exc:
+        return rfc8785.dumps(value)
+    except (rfc8785.CanonicalizationError, ValueError) as exc:
         raise CircuitContractError("non-JSON numeric value in LEGO evidence digest") from exc
 
 
