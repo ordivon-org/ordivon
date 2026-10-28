@@ -146,6 +146,43 @@ def main() -> None:
                     raise AssertionError((name, expected, p.stdout, p.stderr))
                 probes.append({"probe": f"{name}: {expected}", "result": "PASS",
                                "rc": p.returncode})
+        # Native Repo source partition theorem, NOT Python implementation proof.
+        # If two strings are both prefixes of a common path they must be
+        # comparable by prefix. Hence pairwise prefix-incomparable roots
+        # cannot both match the same source path. Check the existential
+        # countermodel in TWO mature SMT String theories.
+        prefix_counterexample = "\n".join([
+            "(set-logic QF_S)",
+            "(declare-const rootA String)",
+            "(declare-const rootB String)",
+            "(declare-const path String)",
+            "(assert (str.prefixof rootA path))",
+            "(assert (str.prefixof rootB path))",
+            "(assert (not (str.prefixof rootA rootB)))",
+            "(assert (not (str.prefixof rootB rootA)))",
+            "(check-sat)", "",
+        ])
+        # Falsify the tempting stronger (false) theorem that any two
+        # arbitrary registered roots are automatically disjoint.
+        overlapping_roots_witness = "\n".join([
+            "(set-logic QF_S)",
+            '(assert (str.prefixof "services/" "services/runtime/job.rs"))',
+            '(assert (str.prefixof "services/runtime/" "services/runtime/job.rs"))',
+            "(check-sat)", "",
+        ])
+        for name, cmd in (("Z3", [executable("z3"), "-in"]),
+                          ("cvc5", [executable("cvc5"), "--lang", "smt2", "--incremental"])):
+            for label, formula, expected in (
+                ("prefix-incomparability-excludes-double-match",
+                 prefix_counterexample, "unsat"),
+                ("overlapping-prefix-counterexample", overlapping_roots_witness, "sat"),
+            ):
+                p = subprocess.run(cmd, check=False, input=formula, text=True,
+                                   capture_output=True, timeout=30)
+                if p.returncode or p.stdout.strip() != expected:
+                    raise AssertionError((name, label, expected, p.stdout, p.stderr))
+                probes.append({"probe": f"{name}: Repo {label}",
+                               "result": "PASS", "rc": p.returncode})
         probes.append(run("Verus Rust proof", [executable("verus"), str(ROOT / "Proof.rs")],
                           must_contain="1 verified, 0 errors"))
         bad_verus = tmp / "Invalid.rs"
@@ -228,7 +265,8 @@ def main() -> None:
             "Lean terms are mathematical model proofs, not implementation refinement",
             "Quint typecheck is not Apalache/TLC model verification",
             "No tool PASS is an installed or domain acceptance witness",
-            "SMT answers are cross-solver results for the stated QF_LIA formula only",
+            "SMT cross-solver answers cover the stated QF_LIA and QF_S string-prefix models only",
+            "Repo prefix-freeness proof requires native owners.toml admission and Python startswith refinement; no implementation proof is claimed",
             "Git pre/post snapshots cannot exclude transient mutate-and-restore",
             "mise executable SHA-256 binds entrypoints, not their dynamic libraries or plugins",
         ],
