@@ -17,7 +17,7 @@ from ordivon_gateway.external_worker import (
     WorkerAuthError,
     WorkerConflict,
 )
-from ordivon_gateway.service import GatewayService
+from ordivon_gateway.service import GatewayError, GatewayService
 
 
 class NoOwnerCaller:
@@ -74,6 +74,50 @@ def sign(
         "X-Ordivon-Nonce": nonce,
         "X-Ordivon-Signature": signature,
     }
+
+
+def test_gateway_resolves_persisted_external_operation_after_worker_revocation(tmp_path) -> None:
+    """Persisted request identity survives live capability discovery withdrawal."""
+    clock = Clock()
+    transport = ExternalPullWorkerTransport(tmp_path / "worker-history.sqlite3", clock_ms=clock)
+    _, public_key = keypair()
+    transport.enroll(
+        worker_id="worker-historical",
+        provider_id="muse",
+        generation=1,
+        public_key_b64=public_key,
+        capabilities=["execution.partner"],
+    )
+    service = GatewayService(NoOwnerCaller(), external_workers=transport)
+    receipt = asyncio.run(
+        service.execution_submit(
+            capability="execution.partner",
+            request_id="req-historical",
+            workspace_id="ws-historical",
+            executable="/bin/echo",
+            args=["before-revocation"],
+        )
+    )
+    assert receipt.owner_id == "external.pull"
+    transport.revoke("worker-historical")
+    assert "execution.partner" not in transport.capability_projection()
+
+    historical = asyncio.run(
+        service.execution_resolve(
+            capability="execution.partner",
+            request_id="req-historical",
+        )
+    )
+    assert historical.resolution == "found"
+    assert historical.operation_ref == receipt.operation_ref
+    assert historical.workspace_id == "ws-historical"
+    with pytest.raises(GatewayError, match="unknown capability"):
+        asyncio.run(
+            service.execution_resolve(
+                capability="execution.unknown",
+                request_id="req-never-admitted",
+            )
+        )
 
 
 def test_external_pull_execution_round_trip_and_artifact(tmp_path) -> None:

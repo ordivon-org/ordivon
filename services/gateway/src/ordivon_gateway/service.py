@@ -825,10 +825,17 @@ class GatewayService:
         )
 
     async def execution_resolve(self, *, capability: str, request_id: str) -> ExecutionResolution:
+        if not request_id:
+            raise GatewayError("requestId is required")
         route = self._routes.get(capability)
         if route is None and self._external_workers is not None:
             operation = self._external_workers.resolve(capability, request_id)
             if operation is None:
+                # A historical operation stays resolvable after its worker
+                # expires. Only a genuinely absent and *unadvertised* identity
+                # is unknown rather than a known capability's missing request.
+                if capability not in self._external_workers.capability_projection():
+                    raise GatewayError(f"unknown capability: {capability}")
                 return ExecutionResolution(
                     request_id=request_id,
                     capability=capability,
@@ -848,8 +855,6 @@ class GatewayService:
             raise GatewayError(f"unknown capability: {capability}")
         if route.category != "execution" or route.owner_tool != "workspace.exec":
             raise GatewayError(f"capability is not executable: {capability}")
-        if not request_id:
-            raise GatewayError("requestId is required")
 
         page = await self._caller.call_tool(
             route.owner_id,
