@@ -183,36 +183,53 @@ class ConvergencePlanTests(unittest.TestCase):
             with self.subTest(working=name):
                 self.assertTrue(declared[name].get("run") or declared[name].get("depends"))
 
+        runtime_source = "services/runtime/crates/ordivon-runtime-core/src/lib.rs"
+        formal_source = "tools/formal/RecursiveLegoRefinement.lean"
+
+        def declared_task_manifest(task_names: list[str]) -> str:
+            return "[tasks]\n" + "".join(
+                f'[tasks."{task_name}"]\\nrun = "echo native task"\\n'
+                for task_name in task_names
+            ).replace("\\n", "\n")
+
         with tempfile.TemporaryDirectory() as directory:
             mock_file = Path(directory) / "mise.toml"
-            for missing, owners, selected, changed in (
-                ("runtime:verify", ["runtime"], ["runtime:verify"],
-                 ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]),
-                ("formal:verify", [], ["formal:verify"],
-                 ["tools/formal/RecursiveLegoRefinement.lean"]),
+            for missing, changed in (
+                ("runtime:verify", [runtime_source]),
+                ("formal:verify", [formal_source]),
             ):
+                plan = MODULE.build_plan(changed_files=changed)
+                self.assertIn(missing, plan["queueVerifyTasks"])
                 with self.subTest(missing=missing):
+                    # Preserve every other CURRENT canonical consumer task,
+                    # so a failure must be caused by the missing root runner.
+                    still_available = [
+                        task for task in plan["queueVerifyTasks"] if task != missing
+                    ]
                     mock_file.write_text(
-                        "[tasks.\"unrelated:verify\"]\nrun = 'true'\n",
-                        encoding="utf-8",
+                        declared_task_manifest(still_available), encoding="utf-8"
                     )
-                    with unittest.mock.patch.object(MODULE, "ROOT_TASKS_PATH", mock_file, create=True):
-                        with self.assertRaisesRegex(ValueError, "mise|task|runner"):
+                    with unittest.mock.patch.object(
+                        MODULE, "ROOT_TASKS_PATH", mock_file, create=True
+                    ):
+                        with self.assertRaisesRegex(ValueError, "root mise runner"):
                             MODULE.validate_queue_task_selection(
-                                owners, selected, changed
+                                plan["verificationOwners"],
+                                plan["queueVerifyTasks"],
+                                changed,
                             )
-            mock_file.write_text(
-                "[tasks.\"runtime:verify\"]\nrun = 'echo works'\n"
-                "[tasks.\"formal:verify\"]\nrun = 'echo formal works'\n",
-                encoding="utf-8",
-            )
-            with unittest.mock.patch.object(MODULE, "ROOT_TASKS_PATH", mock_file, create=True):
-                MODULE.validate_queue_task_selection(
-                    ["runtime"], ["runtime:verify"], ["services/runtime/test.rs"]
+            for changed in ([runtime_source], [formal_source]):
+                plan = MODULE.build_plan(changed_files=changed)
+                mock_file.write_text(
+                    declared_task_manifest(plan["queueVerifyTasks"]),
+                    encoding="utf-8",
                 )
-                MODULE.validate_queue_task_selection(
-                    [], ["formal:verify"], ["tools/formal/Proof.qnt"]
-                )
+                with unittest.mock.patch.object(
+                    MODULE, "ROOT_TASKS_PATH", mock_file, create=True
+                ):
+                    MODULE.validate_queue_task_selection(
+                        plan["verificationOwners"], plan["queueVerifyTasks"], changed
+                    )
 
     def test_github_queue_uses_same_strict_formal_source_task_validation(self) -> None:
         workflow = (MODULE_PATH.parents[2] / ".github/workflows/ci.yml").read_text()
