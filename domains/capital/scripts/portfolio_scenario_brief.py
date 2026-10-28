@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import sys
 from collections.abc import Mapping
+from decimal import Decimal
 from typing import Any
 
 from ordivon_capital.portfolio.portfolio_counterfactuals import (
@@ -48,6 +49,37 @@ def _reject_nonfinite(value: str) -> None:
     raise ValueError(f"non-finite JSON value: {value}")
 
 
+def _require_consistent_source_outputs(
+    ledger: Mapping[str, Any], scenario_set: Mapping[str, Any]
+) -> None:
+    """Reject conflicting *existing* source claims; never recalculate factor math.
+
+    The producer and scenario source implementations remain their natural
+    owners. This is only the actual Agent consumer's admission condition.
+    """
+    factors = {row["factor"]: Decimal(row["signedExposureUsd"]) for row in ledger["factorExposure"]}
+    for scenario in scenario_set["scenarios"]:
+        for field in (
+            "grossNotionalUsd",
+            "netNotionalUsd",
+            "grossToEquity",
+            "netToEquity",
+            "largestPositionGrossShare",
+        ):
+            if Decimal(scenario["baseline"][field]) != Decimal(ledger[field]):
+                raise ValueError(
+                    f"portfolio scenario {scenario['scenarioId']} source {field} disagrees with risk ledger"
+                )
+        before = {
+            row["factor"]: Decimal(row["beforeUsd"]) for row in scenario["deltas"]["factorExposure"]
+        }
+        for factor in factors.keys() | before.keys():
+            if factors.get(factor, Decimal(0)) != before.get(factor, Decimal(0)):
+                raise ValueError(
+                    f"portfolio scenario {scenario['scenarioId']} factor {factor} disagrees with risk ledger"
+                )
+
+
 def build_agent_scenario_brief(input_data: Mapping[str, Any]) -> dict[str, Any]:
     """Materialize a read-only high-order LEGO from existing native consumers.
 
@@ -81,6 +113,7 @@ def build_agent_scenario_brief(input_data: Mapping[str, Any]) -> dict[str, Any]:
     )
     risk = build_portfolio_risk_report(exposure_ledger=ledger)
     scenario_set = build_counterfactual_set(exposure_ledger=ledger, scenarios=scenarios)
+    _require_consistent_source_outputs(ledger, scenario_set)
     budget = risk["nodes"]["riskLimitEvaluation"]
     gates = build_counterfactual_gate_set(
         counterfactual_set=scenario_set,

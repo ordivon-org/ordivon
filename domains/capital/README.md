@@ -182,6 +182,10 @@ Run: scripts/run-portfolio-scenario-brief < examples/portfolio_scenario_brief_r1
 
 The CLI reads only stdin, emits JSON only on successful materialization, and
 does not fetch account data, choose a winning trade, or authorize an order.
+If native Risk and Counterfactual source outputs disagree on baseline exposure
+or shared factor identity (including small loading/precision drift), the
+consumer rejects the entire brief with no partial JSON. Fix the native LEGO,
+not the summary or rounding, before re-admitting those inputs.
 Missing risk limits and missing liquidity/dependence evidence remain
 READ_ONLY_EVIDENCE_INCOMPLETE; a future evidence-gate PASS remains non-executable.
 The existing Capital suite includes the real consumer regression and 16

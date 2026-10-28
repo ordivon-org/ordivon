@@ -132,3 +132,41 @@ def test_bounded_derisk_algebra_is_a_consumed_mechanical_invariant(
     assert out["gateSet"]["gates"][0]["standing"] == "INCOMPLETE"
     assert out["executionAuthorized"] is False
     assert out["rankingProduced"] is False
+
+
+@pytest.mark.parametrize(
+    ("notional", "loading"),
+    (("100", "0.123456789"), ("10000000", "0.0000001")),
+    ids=("fractional-drift", "small-factor-erased"),
+)
+def test_cross_lego_factor_baseline_cannot_succeed_with_contradictory_output(
+    notional: str, loading: str
+) -> None:
+    """The Agent consumer must never materialize conflicting source facts.
+
+    This test admits a future consistent upstream repair instead of freezing
+    the current precision bug as a permanent negative expectation.
+    """
+    from decimal import Decimal
+
+    doc = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    doc["positions"][0]["signedNotionalUsd"] = notional
+    doc["positions"][0]["factorLoadings"] = {"sector": loading}
+    doc["scenarios"] = [{"scenarioId": "hold", "action": "HOLD"}]
+    result = _run(json.dumps(doc))
+    if result.returncode:
+        assert result.stdout == ""
+        assert "factor" in result.stderr.lower()
+        return
+    output = json.loads(result.stdout)
+    ledger = {
+        row["factor"]: Decimal(row["signedExposureUsd"])
+        for row in output["exposureLedger"]["factorExposure"]
+    }
+    baseline = {
+        row["factor"]: Decimal(row["beforeUsd"])
+        for row in output["counterfactualSet"]["scenarios"][0]["deltas"]["factorExposure"]
+    }
+    assert baseline == ledger, (
+        "public Agent brief must not contain two conflicting factor baselines"
+    )
