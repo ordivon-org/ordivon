@@ -145,6 +145,30 @@ jobs:
             [[ "$selected" == "runtime" ]] && runtime=true
           done
           printf 'runtime=%s\n' "$runtime" >> "$GITHUB_OUTPUT"
+          # Core Formal proof sources have an executable verifier even though
+          # they do not belong to any permanent domain Owner.
+          formal=false
+          if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
+            formal=true
+          elif [[ ! -f "$RUNNER_TEMP/ordivon-convergence-plan.json" ]]; then
+            formal=true
+          elif python3 - "$RUNNER_TEMP/ordivon-convergence-plan.json" <<'PY'
+          import json
+          import sys
+
+          sys.path.insert(0, "tools/repo")
+          from affected_owners import requires_core_formal_verification
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              change_plan = json.load(handle)
+          raise SystemExit(
+              0 if requires_core_formal_verification(change_plan["changedPaths"]) else 1
+          )
+          PY
+          then
+            formal=true
+          fi
+          printf 'formal=%s\n' "$formal" >> "$GITHUB_OUTPUT"
           {
             echo "### Affected owners"
             if (("${#owners[@]}" == 0)); then
