@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from graphlib import CycleError, TopologicalSorter
 from heapq import heapify, heappop, heappush
 from pathlib import Path
@@ -59,6 +60,14 @@ def _reject_non_json_constant(value: str) -> None:
     raise CircuitContractError(f"invalid JSON constant: {value}")
 
 
+def _finite_json_float(value: str) -> float:
+    """Reject overflow to Infinity at the source boundary, before any proof use."""
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise CircuitContractError(f"non-finite JSON number: {value}")
+    return parsed
+
+
 def _load_json(path: Path, *, source_bytes: bytes | None = None) -> dict[str, Any]:
     value = json.loads(
         source_bytes.decode("utf-8")
@@ -66,6 +75,7 @@ def _load_json(path: Path, *, source_bytes: bytes | None = None) -> dict[str, An
         else path.read_text(encoding="utf-8"),
         object_pairs_hook=_single_valued_json_object,
         parse_constant=_reject_non_json_constant,
+        parse_float=_finite_json_float,
     )
     if not isinstance(value, dict):
         raise CircuitContractError(f"{path}: root must be an object")

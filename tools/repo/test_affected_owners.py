@@ -41,6 +41,13 @@ class AffectedOwnersTests(unittest.TestCase):
             ["runtime", "host", "game"],
         )
 
+    def test_root_mise_formal_task_contract_change_requires_formal_verifier(self) -> None:
+        # Root mise.toml defines formal:verify itself. A change to the task
+        # wiring invalidates the proof-invocation contract even if proof
+        # source files have not changed.
+        self.assertTrue(MODULE.requires_core_formal_verification(["mise.toml"]))
+        self.assertFalse(MODULE.requires_core_formal_verification(["docs/mise.toml"]))
+
     def test_core_formal_source_requires_real_proof_task_without_new_owner(self) -> None:
         verify = MODULE.requires_core_formal_verification
         self.assertTrue(verify(("tools/formal/Proof.rs",)))

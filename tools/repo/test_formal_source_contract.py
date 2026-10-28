@@ -6,6 +6,7 @@ This checks Git SourceCut and CLI wiring, NOT external theorem prover verdicts.
 from __future__ import annotations
 
 import importlib.util
+import shlex
 import subprocess
 import tempfile
 import tomllib
@@ -24,6 +25,42 @@ formal = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(formal)
 
 
+def _verify_formal_task_behavior(run: str) -> None:
+    """Accept bounded shell setup, but require one real final verifier call.
+
+    A source contract is the invoked verifier and absence of unexpected
+    side-effects, not equality of the entire implementation's shell string.
+    This is a source-level admission check, not proof of deployed semantics.
+    """
+    if not isinstance(run, str):
+        raise ValueError("Formal task must be a shell string")
+    commands = [
+        line.strip() for line in run.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    if not commands or commands[-1] != "python3 verify.py":
+        raise ValueError("Formal task must end with the native verifier call")
+    if commands.count("python3 verify.py") != 1:
+        raise ValueError("Formal task must invoke the verifier exactly once")
+    for line in commands[:-1]:
+        # A shell status or appended action is not an equivalent environment
+        # setup. Only explicit Kani-home initialization and strict shell flags
+        # are admitted without a separate consumer requalification.
+        if any(token in line for token in (";", "&", "|", "`", "$(", ">", "<", "\\")):
+            raise ValueError("Formal task setup contains a shell control effect")
+        try:
+            tokens = shlex.split(line)
+        except ValueError as exc:
+            raise ValueError("Formal task setup shell syntax is invalid") from exc
+        if tokens == ["set", "-euo", "pipefail"]:
+            continue
+        if (len(tokens) == 2 and tokens[0] == "export"
+                and tokens[1].startswith("KANI_HOME=")
+                and tokens[1] != "KANI_HOME="):
+            continue
+        raise ValueError("Unexpected executable or environment change before verifier")
+
+
 class FormalSourceConsumerContractTests(unittest.TestCase):
     def test_native_formal_cli_is_reachable_from_root_mise(self) -> None:
         root = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))
@@ -34,9 +71,7 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
             root["tasks"]["formal:verify"]["run"],
             "cd tools/formal && mise run verify",
         )
-        self.assertEqual(
-            formal_tasks["tasks"]["verify"]["run"], "python3 verify.py"
-        )
+        _verify_formal_task_behavior(formal_tasks["tasks"]["verify"]["run"])
         ci_script = root["tasks"]["repo:ci"]["run"]
         self.assertIn(
             "python3 -m unittest tools/repo/test_formal_source_contract.py",
@@ -45,6 +80,93 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         # Repo CI performs a bounded source admission, not the entire
         # opt-in toolchain: never fake Lean/Z3/Kani proof success.
         self.assertNotIn("mise run formal:verify", ci_script)
+
+    def test_formal_consumer_allows_real_kani_cache_prelude_without_skipping_proof(self) -> None:
+        """A KANI_HOME setup is not a different proof interface."""
+        peer_task = (
+            "# Isolate Kani's potentially broken shared cache\n"
+            'export KANI_HOME="${KANI_HOME:-${HOME}/.cache/ordivon/kani}"\n'
+            "python3 verify.py\n"
+        )
+        _verify_formal_task_behavior("python3 verify.py")
+        _verify_formal_task_behavior(peer_task)
+
+    def test_formal_child_contract_has_nonvacuous_execution_receipts(self) -> None:
+        """R2.1 bounded executable A/G seam; lexical admission is not execution."""
+        import os
+
+        commands = (
+            tomllib.loads((FORMAL / "mise.toml").read_text(encoding="utf-8"))[
+                "tasks"
+            ]["verify"]["run"],
+            '# Prepare only the native optional Kani cache\n'
+            'export KANI_HOME="${KANI_HOME:-${HOME}/.cache/ordivon/kani}"\n'
+            'python3 verify.py',
+        )
+        with tempfile.TemporaryDirectory(prefix="ordivon-formal-behavior-") as tmp:
+            root = Path(tmp).resolve()
+            (root / "verify.py").write_text(
+                "import os, pathlib, sys\n"
+                "with pathlib.Path(os.environ['FORMAL_RECEIPT']).open('a') as receipt:\n"
+                "    receipt.write(os.environ['KANI_HOME'] + '\\n')\n"
+                "raise SystemExit(int(os.environ['FORMAL_TEST_EXIT']))\n",
+                encoding="utf-8",
+            )
+            receipt = root / "execution-receipt.txt"
+            fixed_cache = root / "caller-selected-kani"
+            environment = {
+                **os.environ,
+                "KANI_HOME": str(fixed_cache),
+                "FORMAL_RECEIPT": str(receipt),
+            }
+            for command in commands:
+                _verify_formal_task_behavior(command)
+                for exit_code in (0, 37):
+                    with self.subTest(command=command, exit_code=exit_code):
+                        receipt.unlink(missing_ok=True)
+                        result = subprocess.run(
+                            ["bash", "-euo", "pipefail", "-c", command],
+                            cwd=root,
+                            env={**environment, "FORMAL_TEST_EXIT": str(exit_code)},
+                            capture_output=True,
+                            text=True,
+                            timeout=8,
+                        )
+                        self.assertEqual(result.returncode, exit_code, result.stderr)
+                        self.assertTrue(receipt.exists(), "zero executed verifiers")
+                        self.assertEqual(
+                            receipt.read_text(encoding="utf-8").splitlines(),
+                            [str(fixed_cache)],
+                            "zero/multiple executions or caller environment changed",
+                        )
+
+        for false_positive in (
+            "exit 0\npython3 verify.py",
+            "python3 verify.py\npython3 verify.py",
+            "python3 verify.py || true",
+        ):
+            with self.subTest(false_positive=false_positive):
+                with self.assertRaises(ValueError):
+                    _verify_formal_task_behavior(false_positive)
+
+    def test_formal_consumer_rejects_skip_duplicate_or_extra_effects(self) -> None:
+        malformed = (
+            "",
+            "export KANI_HOME=/tmp/safe",
+            "python3 -c 'print(1)'",
+            "python3 verify.py\npython3 verify.py",
+            "python3 verify.py\necho done",
+            "echo launch\npython3 verify.py",
+            "export FORMAL_SKIP_PROOFS=1\npython3 verify.py",
+            "export KANI_HOME=/tmp/safe; true\npython3 verify.py",
+            "export KANI_HOME=$(echo bad)\npython3 verify.py",
+            "set -euo pipefail\npython3 verify.py | cat",
+            "export KANI_HOME=/tmp/safe && false\npython3 verify.py",
+        )
+        for candidate in malformed:
+            with self.subTest(candidate=candidate):
+                with self.assertRaises(ValueError):
+                    _verify_formal_task_behavior(candidate)
 
     def test_root_protected_ci_runs_formal_task_for_changed_proof_sources(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

@@ -1260,6 +1260,140 @@ def test_gate_source_delta_retains_independent_local_source_when_parallel_gate_a
     assert delta["proofReuseAdmissible"] is False
 
 
+def test_phase2_exact_git_impact_cli_rejects_ambiguous_proof_input(tmp_path) -> None:
+    """Native Git change -> existing Composition CLI -> exact obligations.
+
+    Invalid caller JSON must fail before a last-key-wins rewrite can cause a
+    skipped proof; unchanged independent proofs remain reuse *candidates*.
+    """
+    import json
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    subject = tmp_path / "source"
+    subject.mkdir()
+    source_repo = Path(__file__).resolve().parents[3]
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(subject), *args], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Ordivon Test")
+    git("config", "user.email", "orchestrator@example.invalid")
+    (subject / "a").mkdir()
+    (subject / "a/source.txt").write_text("version one\\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "before")
+    previous = git("rev-parse", "HEAD")
+    (subject / "a/source.txt").write_text("version two\\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "after")
+    current = git("rev-parse", "HEAD")
+
+    delta_output = subprocess.check_output(
+        [
+            sys.executable,
+            str(source_repo / "tools/repo/source_history_legos.py"),
+            "--repo",
+            str(subject),
+            "--left",
+            previous,
+            "--right",
+            current,
+            "--impact-prefix",
+            "a/",
+        ],
+        text=True,
+    )
+    delta = json.loads(delta_output)
+    assert delta["gitSourceQueryComplete"] is True
+    assert len(delta["changedRefs"]) == 1
+    ref = delta["changedRefs"][0]
+    unchanged = next(item for item in delta["authorityRefs"] if item != ref)
+    source_delta = tmp_path / "delta.json"
+    source_delta.write_text(delta_output, encoding="utf-8")
+    obligations = tmp_path / "obligations.json"
+    unknown = tmp_path / "unknown.json"
+    args = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.verification_obligation_r1",
+        "select-impact",
+        str(source_delta),
+        str(obligations),
+        "--repo",
+        str(subject),
+    ]
+
+    def select(*, unknown_file: bool = False) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            args + (["--unknown-refs", str(unknown)] if unknown_file else []),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+    obligations.write_text(
+        json.dumps(
+            [
+                {"id": "proof:changed", "dependsOn": [ref], "dependenciesComplete": True},
+                {"id": "proof:independent", "dependsOn": [unchanged], "dependenciesComplete": True},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    positive = select()
+    assert positive.returncode == 0, positive.stderr
+    result = json.loads(positive.stdout)
+    assert {row["id"]: row["standing"] for row in result["standingByObligation"]} == {
+        "proof:changed": "RECHECK_REQUIRED",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+    assert result["proofReuseAdmissible"] is False
+
+    # Native Git source is immutable, but the producer CLI was previously
+    # invoked from mutable checkout bytes without any source qualification.
+    # A changed running producer must not claim exact provenance via the same
+    # committed source-cut pair.
+    owner_tool = source_repo / "tools/repo/source_history_legos.py"
+    before_bytes = owner_tool.read_bytes()
+    try:
+        owner_tool.write_bytes(
+            before_bytes + b"\n# deliberately uncommitted owner producer drift\n"
+        )
+        drift = select()
+        assert drift.returncode != 0
+        assert "native Git query producer differs from its Git SourceCut" in drift.stderr
+        assert "Traceback" not in drift.stderr
+    finally:
+        owner_tool.write_bytes(before_bytes)
+
+    for ambiguous in (
+        f'[{{"id":"proof:skipped","id":"proof:changed",'
+        f'"dependsOn":["{ref}"],"dependenciesComplete":true}}]',
+        f'[{{"id":"proof:changed","dependsOn":[],'
+        f'"dependsOn":["{ref}"],"dependenciesComplete":true}}]',
+        f'[{{"id":"proof:changed","dependsOn":["{ref}"],'
+        f'"dependenciesComplete":true,"evidence":{{"a":1,"a":2}}}}]',
+    ):
+        obligations.write_text(ambiguous, encoding="utf-8")
+        denied = select()
+        assert denied.returncode != 0
+        assert "duplicate JSON key" in denied.stderr
+        assert "Traceback" not in denied.stderr
+
+    obligations.write_text(
+        json.dumps([{"id": "proof:changed", "dependsOn": [ref], "dependenciesComplete": True}]),
+        encoding="utf-8",
+    )
+    unknown.write_text('["source:unknown", NaN]', encoding="utf-8")
+    denied = select(unknown_file=True)
+    assert denied.returncode != 0
+    assert "invalid JSON constant" in denied.stderr
+    assert "Traceback" not in denied.stderr
+
+
 def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, monkeypatch):
     """Real Git and existing Composition selector: red CAS != model-source delta.
 

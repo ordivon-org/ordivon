@@ -83,6 +83,63 @@ def test_external_pull_capability_cannot_shadow_native_gateway_route_projection(
     asyncio.run(scenario())
 
 
+def test_external_execution_resolution_preserves_known_absent_vs_unknown_capabilities() -> None:
+    """Gateway must not invent a live external owner for an unknown capability."""
+
+    class ExternalWorker:
+        def capability_projection(self) -> dict[str, list[str]]:
+            return {"execution.partner": ["worker-1"]}
+
+        def resolve(self, capability: str, request_id: str) -> None:
+            return None
+
+    service = GatewayService(FakeOwnerCaller(), external_workers=ExternalWorker())
+
+    async def scenario() -> None:
+        known = await service.execution_resolve(
+            capability="execution.partner", request_id="req-known-absent"
+        )
+        assert known.owner_id == "external.pull"
+        assert known.resolution == "absent"
+
+        with pytest.raises(GatewayError, match="requestId is required"):
+            await service.execution_resolve(capability="execution.partner", request_id="")
+
+        with pytest.raises(GatewayError, match="unknown capability"):
+            await service.execution_resolve(
+                capability="execution.unregistered", request_id="req-unknown"
+            )
+
+    asyncio.run(scenario())
+
+
+def test_external_historical_operation_survives_worker_discovery_expiration() -> None:
+    """Existing operation identity must survive the worker going offline."""
+
+    class HistoricalWorker:
+        def capability_projection(self) -> dict[str, list[str]]:
+            return {}
+
+        def resolve(self, capability: str, request_id: str) -> Any:
+            if (capability, request_id) != ("execution.retired", "req-historical"):
+                return None
+            from types import SimpleNamespace
+
+            return SimpleNamespace(
+                operation_id="xop-historical",
+                workspace_id="ws-historical",
+            )
+
+    service = GatewayService(FakeOwnerCaller(), external_workers=HistoricalWorker())
+    result = asyncio.run(
+        service.execution_resolve(capability="execution.retired", request_id="req-historical")
+    )
+    assert result.resolution == "found"
+    assert result.owner_id == "external.pull"
+    assert result.workspace_id == "ws-historical"
+    assert result.operation_ref == "ordivon-exec:v1:external.pull:xop-historical"
+
+
 def test_current_mcp_sdk_accepts_runtime_tool_outcome_union_schema() -> None:
     schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
