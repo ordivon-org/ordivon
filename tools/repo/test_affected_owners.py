@@ -143,6 +143,32 @@ class AffectedOwnersTests(unittest.TestCase):
             [owner.name for owner in MODULE.OWNERS],
         )
 
+    def test_executed_core_source_producers_close_known_consumer_gates(self) -> None:
+        # The source-history provider is executed by Composition select-impact
+        # and repo architecture consumers, even though it has no owner root.
+        # The source inventory is imported by the canonical convergence CLI.
+        # Until a qualified per-consumer invocation graph exists, these exact
+        # shared producers must conservatively select existing owner gates.
+        required = [owner.name for owner in MODULE.OWNERS]
+        for producer in (
+            "tools/repo/source_history_legos.py",
+            "tools/repo/exhaustive_coverage.py",
+        ):
+            with self.subTest(producer=producer):
+                self.assertEqual(self.names(producer), required)
+                self.assertEqual(
+                    self.queue_tasks(producer),
+                    [owner.queue_task for owner in MODULE.OWNERS],
+                )
+                # Adding an unrelated documentation file cannot erase impact.
+                self.assertEqual(
+                    self.names("docs/architecture/EXAMPLE.md", producer), required,
+                )
+
+    def test_unrelated_repo_document_and_test_do_not_expand_global_queue(self) -> None:
+        self.assertEqual(self.names("tools/repo/README.md"), [])
+        self.assertEqual(self.names("tools/repo/test_source_history_legos.py"), [])
+
     def test_dependency_policy_change_is_cross_cutting(self) -> None:
         self.assertEqual(
             self.names("tools/repo/dependency_contracts.toml"),

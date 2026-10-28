@@ -82,6 +82,11 @@ CROSS_CUTTING_PATHS = frozenset(
         "tools/repo/test_affected_owners.py",
         "tools/repo/convergence_plan.py",
         "tools/repo/test_convergence_plan.py",
+        # Existing repo/Composition consumers execute these shared producers:
+        # a changed source-history or inventory engine must not silently skip
+        # owner verification merely because tools/repo/ has no owner root.
+        "tools/repo/source_history_legos.py",
+        "tools/repo/exhaustive_coverage.py",
         "tools/repo/check_github_governance.py",
         "tools/repo/dependency_contracts.toml",
         "tools/repo/check_owner_boundaries.py",
