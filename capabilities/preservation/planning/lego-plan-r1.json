@@ -55,7 +55,17 @@
         "independent offsite failure domain",
         "new preservation runtime"
       ],
-      "sharedRefs": []
+      "sharedRefs": [],
+      "formalQualification": "DECLARED_SOURCE_ONLY_TESTED_NOT_MATHEMATICALLY_PROVED",
+      "formalObligations": [
+        {
+          "id": "PV00:LOCAL_PROFILE_BOUNDARY",
+          "predicate": "If Preservation local profile source is admitted, Ordivon owns only source profiles and provider composition; installed/archive/fixity effect remains UNKNOWN.",
+          "scope": "ORIGINAL_GIT_SOURCE_ONLY",
+          "nativeWitness": "SourceBoundaryContractTests.test_accepted_source_manifest_in_normal_and_optimized_python",
+          "proofStanding": "FINITE_NATIVE_TEST_NOT_FORMAL_PROOF"
+        }
+      ]
     },
     {
       "id": "PV01",
@@ -92,7 +102,24 @@
       "mustNotOwn": [
         "External Archivematica or Artefactual Fixity semantics"
       ],
-      "sharedRefs": []
+      "sharedRefs": [],
+      "formalQualification": "DECLARED_SOURCE_ONLY_TESTED_NOT_MATHEMATICALLY_PROVED",
+      "formalObligations": [
+        {
+          "id": "PV01:TRACKED_SOURCE_SAFETY",
+          "predicate": "forall tracked Preservation source files f: source_gate_accept => f is a control source or matches an approved explicit includedPath; no undeclared planning carrier escapes admission.",
+          "scope": "ORIGINAL_GIT_SOURCE_ONLY",
+          "nativeWitness": "SourceBoundaryContractTests.test_owner_local_lego_plan_requires_explicit_manifest_admission",
+          "proofStanding": "FINITE_NATIVE_TEST_NOT_FORMAL_PROOF"
+        },
+        {
+          "id": "PV01:SOURCE_PATTERN_BOUNDARY",
+          "predicate": "forall admitted patterns p and paths f: a single-segment source glob cannot match a nested path or an out-of-owner path.",
+          "scope": "ORIGINAL_GIT_SOURCE_ONLY",
+          "nativeWitness": "SourceBoundaryContractTests.test_patterns_do_not_match_across_directory_boundaries",
+          "proofStanding": "FINITE_NATIVE_TEST_NOT_FORMAL_PROOF"
+        }
+      ]
     },
     {
       "id": "PV02",
@@ -131,7 +158,17 @@
         "Docker Compose scheduler authority",
         "production Archivematica support claim"
       ],
-      "sharedRefs": []
+      "sharedRefs": [],
+      "formalQualification": "DECLARED_SOURCE_ONLY_TESTED_NOT_MATHEMATICALLY_PROVED",
+      "formalObligations": [
+        {
+          "id": "PV02:LOOPBACK_ONLY_STORAGE",
+          "predicate": "forall admitted local Compose profiles: required Archivematica Storage Service exists with exactly 127.0.0.1:62081:8000 exposure; public, absent or mismatched bindings reject.",
+          "scope": "ORIGINAL_GIT_SOURCE_ONLY",
+          "nativeWitness": "SourceBoundaryContractTests.test_host_fixity_port_binding_rejects_absence_exposure_and_mismatch",
+          "proofStanding": "FINITE_NATIVE_TEST_NOT_FORMAL_PROOF"
+        }
+      ]
     },
     {
       "id": "PV03",
@@ -175,7 +212,24 @@
         "live scheduler/runtime state",
         "AIP authenticity or external disaster recovery"
       ],
-      "sharedRefs": []
+      "sharedRefs": [],
+      "formalQualification": "DECLARED_SOURCE_ONLY_TESTED_NOT_MATHEMATICALLY_PROVED",
+      "formalObligations": [
+        {
+          "id": "PV03:FIXITY_TIMER_PROVIDER_BINDING",
+          "predicate": "forall accepted local fixity systemd carriers: Timer.Unit targets the named one-shot Service, credential guard equals EnvironmentFile, a schedule exists, and ExecStart invokes the pinned local fixity scanall --force-local client.",
+          "scope": "ORIGINAL_GIT_SOURCE_ONLY",
+          "nativeWitness": "FixityConsumerSourceContractTests.test_wrong_timer_environment_provider_or_schedule_fail_closed",
+          "proofStanding": "FINITE_NATIVE_TEST_NOT_FORMAL_PROOF"
+        },
+        {
+          "id": "PV03:TESTED_LOCAL_CARRIER_NOT_EFFECT",
+          "predicate": "Source acceptance of exact Service/Timer carriers does not imply that Archivematica, systemd or a remote replica actually performed a successful AIP fixity scan.",
+          "scope": "ORIGINAL_GIT_SOURCE_ONLY",
+          "nativeWitness": "FixityConsumerSourceContractTests.test_exact_source_bound_consumer_is_admitted_without_provider_calls",
+          "proofStanding": "FINITE_NATIVE_TEST_NOT_FORMAL_PROOF"
+        }
+      ]
     }
   ],
   "edges": [

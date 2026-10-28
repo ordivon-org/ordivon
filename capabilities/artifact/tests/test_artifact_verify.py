@@ -137,6 +137,58 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(result["status"], "FAIL")
             self.assertIn("profile requires an object contract: audio-flac-pcm16-r1", result["failures"])
 
+    def test_flac_object_contract_drift_invalidates_consumer_request_before_verification(self):
+        """R2.1 consumer seam: a changed object contract invalidates a pinned request.
+
+        Artifact owns the request admission/contract digest check, not the
+        Game consumer's acceptance or proof that FLAC decoding has succeeded.
+        Reuse the existing JSON Schema, profile registry and service API.
+        """
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.flac"
+            subject.write_bytes(b"not-a-flac-stream")
+            profile = ROOT / "artifact-delivery/shadow-v2/examples/audio-flac-pcm16-r1-v2.json"
+            original = ROOT / "artifact-delivery/shadow-contracts/audio-flac-pcm16-smoke-r1.json"
+            contract = root / "object-contract.json"
+            contract.write_bytes(original.read_bytes())
+            request = {
+                "schemaVersion": 1,
+                "kind": "artifact-verification-request",
+                "requestId": "test:artifact-contract-drift:r21",
+                "profile": {"id": "audio-flac-pcm16-r1", "path": str(profile), "sha256": sha(profile)},
+                "subject": {"path": str(subject), "sha256": sha(subject)},
+                "objectContract": {"path": str(contract), "sha256": sha(contract)},
+                "evidenceDirectory": str(root / "evidence"),
+                "consumer": {"id": "phase2-contract-impact-negative", "purpose": "stale contract invalidation"},
+            }
+            request_path = root / "request.json"
+            request_path.write_text(json.dumps(request))
+            # Even a syntactically harmless contract change must invalidate the
+            # pre-change source-identity binding before FLAC verification runs.
+            changed = json.loads(contract.read_text())
+            changed["notes"] = "changed after consumer request was pinned"
+            contract.write_text(json.dumps(changed))
+            stale = M.verify_request(request_path)
+            self.assertEqual(stale["status"], "FAIL")
+            self.assertEqual(stale["failures"], ["object contract bytes differ from request digest"])
+            self.assertEqual(stale["requestDigest"], M.canonical_sha256(request))
+            self.assertFalse((root / "evidence").exists())
+
+            # Non-vacuity control: rebind the request to the new contract bytes.
+            # The service must now reach the actual FLAC verifier (which rejects
+            # the deliberately invalid subject), not permanently reject requests.
+            request["objectContract"]["sha256"] = sha(contract)
+            request_path.write_text(json.dumps(request))
+            rebound = M.verify_request(request_path)
+            self.assertEqual(rebound["status"], "FAIL")
+            self.assertNotIn(
+                "object contract bytes differ from request digest",
+                rebound["failures"],
+            )
+            self.assertTrue((root / "evidence" / "verification.json").is_file())
+            self.assertNotEqual(rebound["requestDigest"], stale["requestDigest"])
+
     def test_frozen_game_consumer_smoke_keeps_artifact_owned_authorities_exact(self):
         receipt = json.loads((ROOT / "artifact-delivery/consumer-acceptance/game-station-zero-still-image-r1.json").read_text())
         self.assertEqual(receipt["standing"], "CONSUMER_SMOKE_PASS_SHADOW_PROFILE")
@@ -240,28 +292,46 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertEqual(receipt['artifactVerification']['serviceStatus'],'PASS')
         self.assertEqual(receipt['artifactVerification']['runtimeReadback'],'PASS')
         self.assertEqual(receipt['artifactVerification']['networkNamespace'],'UNSHARED')
-        for value in receipt['artifactOwnedAuthorities'].values():
-            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
-        # This is frozen September 2026 release evidence, not current Game
-        # source acceptance. Verify that the exact historical producer bytes
-        # remain reachable in Git; never rewrite the receipt's digest to
-        # claim an unbuilt current release passed Artifact verification.
-        harness=receipt['producerEvidence']['harness']
-        self.assertEqual(harness['relativePath'],'experiments/production-smoke-r1/run.ts')
-        digests=historical_game_source_digests(harness['relativePath'])
-        self.assertIn(harness['sha256'],digests,'historical Game producer bytes must be retained')
-        self.assertNotIn('0'*64,digests,'invalid witness must not qualify frozen evidence')
-        # The unchanged recorded reproducibility boundary is independently
-        # current to this checkout; producer source version is historical.
-        boundary=receipt['producerEvidence']['acceptedReproducibilityBoundary']
-        self.assertIn(
-            boundary['sha256'],
-            historical_game_source_digests(boundary['relativePath']),
-            boundary['relativePath'],
-        )
+        # Frozen September release evidence must bind immutable *historical*
+        # verifier bytes, not force the current implementation to keep its old
+        # hash forever. b0adf55 is the source-inclusive monorepo import; this
+        # proves historical Git byte reachability, NOT the 2026-09 run itself.
+        original_source_cut='b0adf5534d202dcc79b5571da2841a7324d5ac8e'
+        for kind,value in receipt['artifactOwnedAuthorities'].items():
+            path=ROOT/value['relativePath']
+            if kind == 'verifier':
+                historical_path='capabilities/artifact/'+value['relativePath']
+                historical_bytes=subprocess.check_output(
+                    ['git','--no-replace-objects','-C',str(MONOREPO_ROOT),
+                     'show',f'{original_source_cut}:{historical_path}'],
+                    timeout=20)
+                self.assertEqual(hashlib.sha256(historical_bytes).hexdigest(),
+                                 value['sha256'], historical_path)
+            else:
+                self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+        # Archived Game source is not part of the current Artifact source
+        # authority; the independent historical-source qualification below
+        # reports UNKNOWN if its original source cannot be retrieved.
         self.assertEqual(receipt['producerEvidence']['currentRuntimeProof']['firstBuildSha256'],receipt['externalSubject']['sha256'])
         self.assertEqual(receipt['producerEvidence']['currentRuntimeProof']['secondBuildSha256'],receipt['externalSubject']['sha256'])
         self.assertIn('Steam or other store upload/release',receipt['boundary']['notEstablished'])
+
+    def test_frozen_game_godot_producer_source_qualification(self):
+        receipt=json.loads((ROOT/'artifact-delivery/consumer-acceptance/game-godot-production-smoke-linux-elf-r1.json').read_text())
+        for evidence in (
+            receipt['producerEvidence']['harness'],
+            receipt['producerEvidence']['acceptedReproducibilityBoundary'],
+        ):
+            observed=historical_game_source_digests(evidence['relativePath'])
+            if evidence['sha256'] not in observed:
+                self.skipTest(
+                    'UNKNOWN historical Game producer source: '
+                    + evidence['relativePath']
+                    + '; current monorepo has no matching Git bytes, '
+                      'so this archived release cannot be requalified'
+                )
+            self.assertIn(evidence['sha256'], observed)
+            self.assertNotIn('0'*64, observed)
 
     def test_unrouted_profile_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:

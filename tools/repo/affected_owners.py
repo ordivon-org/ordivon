@@ -131,11 +131,35 @@ def owners_for_paths(
     normalized = tuple(_normalize(path) for path in paths if path.strip())
     if any(path in CROSS_CUTTING_PATHS for path in normalized):
         return owners
+    # Repo mechanics (repo:ci) runs unconditionally before owner-task
+    # selection. Only source-history also has an observed native Owner
+    # consumer: Composition select-impact executes this exact producer.
+    # Do not expand unrelated repo producer edits to all 18 domain queues.
+    history_consumer_changed = "tools/repo/source_history_legos.py" in normalized
     selected: list[Owner] = []
     for owner in owners:
-        if any(path.startswith(owner.root) for path in normalized):
+        if (
+            any(path.startswith(owner.root) for path in normalized)
+            or (history_consumer_changed and owner.name == "composition")
+        ):
             selected.append(owner)
     return tuple(selected)
+
+
+def requires_core_formal_verification(paths: Iterable[str]) -> bool:
+    """Route proof-source edits to the *existing* Formal task, not a new Owner.
+
+    The affected-owner queue alone can legitimately be empty for tools/formal/.
+    A separate source-bound check is required so those edits never skip
+    verification in the protected root GitHub workflow.
+    """
+    # The root task definition consumes the Formal verifier too:
+    # editing the task wiring can change effects without changing proof files.
+    return any(
+        (normalized := _normalize(path)) == "mise.toml"
+        or normalized.startswith("tools/formal/")
+        for path in paths
+    )
 
 
 def changed_paths(base: str, head: str) -> tuple[str, ...]:
@@ -143,9 +167,16 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
     # similarity detection to hide the source owner from verification.
     proc = subprocess.run(
         [
-            "git", "diff", "--name-only", "--no-renames", "-z",
+            # SourceCut membership must be the actual immutable Git DAG, not
+            # a locally installed refs/replace overlay. A replacement commit
+            # could otherwise omit a changed Formal verifier source.
+            "git", "--no-replace-objects", "diff", "--name-only", "--no-renames", "-z",
             "--diff-filter=ACDMRTUXB", f"{base}...{head}",
         ],
+        # Object replacement and the separate legacy graft file can each
+        # rewrite ancestry without changing the requested commit IDs. Both
+        # are excluded from exact SourceCut delta/verification selection.
+        env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
         check=True,
         stdout=subprocess.PIPE,
     )

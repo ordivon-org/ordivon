@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import ast
 import json
 import subprocess
 import sys
 from itertools import product
+from pathlib import Path
 
 import pytest
 
@@ -74,6 +76,48 @@ def standings(value):
     return {r["id"]: r["standing"] for r in value["selection"]["standingByObligation"]}
 
 
+def test_c04_to_c06_plan_consumer_binding_matches_real_import_and_call():
+    """Close one actual first-party SOURCE consumer seam, not deployed behavior.
+
+    A planning claim alone is not a runtime consumer. Require the exact C06
+    Python source to import AND call the C04 selector, and to preserve the
+    explicit unknown-effects safety contract and native test evidence.
+    """
+    root = Path(__file__).resolve().parents[1]
+    plan = json.loads((root / "planning/lego-plan-r1.json").read_text())
+    c04 = next(node for node in plan["nodes"] if node["id"] == "C04")
+    c06 = next(node for node in plan["nodes"] if node["id"] == "C06")
+    assert "C04" in c06["dependencies"]
+    path = "packages/composition/src/ordivon_composition/effect_reconciliation_r1.py"
+    bindings = [row for row in c04["consumerBindings"] if row["path"] == path]
+    assert len(bindings) == 1
+    assert "SOURCE_AST_DIRECT_IMPORT_AND_CALL" in bindings[0]["standing"]
+    assert "INSTALLED_AND_DOMAIN_EFFECT_UNKNOWN" in bindings[0]["standing"]
+    tree = ast.parse((root / "src/ordivon_composition/effect_reconciliation_r1.py").read_text())
+    imports = [node for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]
+    assert any(
+        node.level == 1
+        and node.module == "verification_obligation_r1"
+        and any(alias.name == "select_impacted_obligations" for alias in node.names)
+        for node in imports
+    )
+    target = next(
+        node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == "qualify_execution_effect_frontier"
+    )
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "select_impacted_obligations"
+        for node in ast.walk(target)
+    )
+    assert "formal/EffectReplayFence.tla" in c06["evidence"]
+    assert "tests/test_effect_reconciliation_r1.py" in c06["evidence"]
+    assert "MODEL" in c06["qualification"] and "INSTALLED_EFFECT_UNKNOWN" in c06["qualification"]
+
+
 def test_expired_started_attempt_reconciles_exact_operation_and_fences_replay():
     result = qualify()
     assert result["recommendedNextRead"] == "RECONCILE_ORIGINAL_OPERATION"
@@ -129,6 +173,68 @@ def test_forged_identity_and_boolean_fields_refused(change):
     bad.update(change)
     with pytest.raises(CircuitContractError):
         qualify(bad)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("owner_id", ["external.pull"]),
+        ("owner_id", {"id": "external.pull"}),
+        ("owner_id", True),
+        ("owner_id", 1),
+        ("delivery_disposition", ["unknown"]),
+        ("delivery_disposition", {"state": "unknown"}),
+        ("delivery_disposition", False),
+        ("delivery_disposition", 0),
+    ],
+)
+def test_untrusted_gateway_json_types_fail_closed_under_r21_contract(field, value):
+    """A gateway-shaped untrusted JSON input must never trigger a host TypeError."""
+    obs = gateway_observation()
+    obs[field] = value
+    with pytest.raises(
+        CircuitContractError,
+        match=(
+            "Gateway observation identity mismatch"
+            if field == "owner_id"
+            else "Gateway delivery disposition is unqualified"
+        ),
+    ):
+        qualify(obs)
+
+
+def test_native_cli_rejects_unhashable_gateway_fields_without_traceback(tmp_path):
+    """Real subprocess consumer: invalid JSON is a bounded typed refusal."""
+    observation_path = tmp_path / "gateway.json"
+    proof_graph_path = tmp_path / "graph.json"
+    proof_graph_path.write_text(json.dumps(graph()), encoding="utf8")
+    for field, value in (
+        ("owner_id", ["external.pull"]),
+        ("owner_id", {"id": "external.pull"}),
+        ("delivery_disposition", ["unknown"]),
+        ("delivery_disposition", {"value": "unknown"}),
+    ):
+        obs = gateway_observation()
+        obs[field] = value
+        observation_path.write_text(json.dumps(obs), encoding="utf8")
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.effect_reconciliation_r1",
+                str(observation_path),
+                str(proof_graph_path),
+                "--expected-operation-ref",
+                OP,
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode != 0
+        assert "effect reconciliation refused" in result.stderr
+        assert "Traceback" not in result.stderr
+        assert result.stdout == ""
 
 
 def test_existing_cli_rejects_wrong_operation_and_emits_bounded_impact(tmp_path):

@@ -32,6 +32,114 @@ class FakeOwnerCaller:
         return response
 
 
+def test_external_pull_capability_cannot_shadow_native_gateway_route_projection() -> None:
+    """One public capability ID must identify the same owner as dispatch."""
+
+    class UnconfiguredCaller(FakeOwnerCaller):
+        def is_configured(self, owner_id: str) -> bool:
+            return False
+
+    class ExternalProjection:
+        def capability_projection(self) -> dict[str, list[str]]:
+            return {
+                "execution.linux": ["external-worker-shadow"],
+                "execution.partner": ["external-worker-legitimate"],
+            }
+
+    caller = UnconfiguredCaller()
+    caller.responses[("runtime.linux", "job.list")] = {"jobs": []}
+    service = GatewayService(caller, external_workers=ExternalProjection())
+
+    async def scenario() -> None:
+        all_capabilities = await service.capability_describe()
+        identity = [(c.capability, c.owner_id) for c in all_capabilities.capabilities]
+        assert len(identity) == len({name for name, _ in identity})
+        assert ("execution.linux", "runtime.linux") in identity
+        assert ("execution.linux", "external.pull") not in identity
+        assert ("execution.partner", "external.pull") in identity
+
+        selected = await service.capability_describe("execution.linux")
+        assert [(c.capability, c.owner_id) for c in selected.capabilities] == [
+            ("execution.linux", "runtime.linux")
+        ]
+        found = await service.capability_search(query="execution.linux")
+        assert [(c.capability.capability, c.capability.owner_id) for c in found.matches] == [
+            ("execution.linux", "runtime.linux")
+        ]
+        # The same public identity must select the native Runtime consumer,
+        # never a misleading external worker advertised with that name.
+        resolved = await service.execution_resolve(
+            capability="execution.linux", request_id="collision-probe"
+        )
+        assert resolved.owner_id == "runtime.linux"
+        assert resolved.resolution == "absent"
+        assert caller.calls[-1][:2] == ("runtime.linux", "job.list")
+
+        partner = await service.capability_describe("execution.partner")
+        assert [(c.capability, c.owner_id) for c in partner.capabilities] == [
+            ("execution.partner", "external.pull")
+        ]
+
+    asyncio.run(scenario())
+
+
+def test_external_execution_resolution_preserves_known_absent_vs_unknown_capabilities() -> None:
+    """Gateway must not invent a live external owner for an unknown capability."""
+
+    class ExternalWorker:
+        def capability_projection(self) -> dict[str, list[str]]:
+            return {"execution.partner": ["worker-1"]}
+
+        def resolve(self, capability: str, request_id: str) -> None:
+            return None
+
+    service = GatewayService(FakeOwnerCaller(), external_workers=ExternalWorker())
+
+    async def scenario() -> None:
+        known = await service.execution_resolve(
+            capability="execution.partner", request_id="req-known-absent"
+        )
+        assert known.owner_id == "external.pull"
+        assert known.resolution == "absent"
+
+        with pytest.raises(GatewayError, match="requestId is required"):
+            await service.execution_resolve(capability="execution.partner", request_id="")
+
+        with pytest.raises(GatewayError, match="unknown capability"):
+            await service.execution_resolve(
+                capability="execution.unregistered", request_id="req-unknown"
+            )
+
+    asyncio.run(scenario())
+
+
+def test_external_historical_operation_survives_worker_discovery_expiration() -> None:
+    """Existing operation identity must survive the worker going offline."""
+
+    class HistoricalWorker:
+        def capability_projection(self) -> dict[str, list[str]]:
+            return {}
+
+        def resolve(self, capability: str, request_id: str) -> Any:
+            if (capability, request_id) != ("execution.retired", "req-historical"):
+                return None
+            from types import SimpleNamespace
+
+            return SimpleNamespace(
+                operation_id="xop-historical",
+                workspace_id="ws-historical",
+            )
+
+    service = GatewayService(FakeOwnerCaller(), external_workers=HistoricalWorker())
+    result = asyncio.run(
+        service.execution_resolve(capability="execution.retired", request_id="req-historical")
+    )
+    assert result.resolution == "found"
+    assert result.owner_id == "external.pull"
+    assert result.workspace_id == "ws-historical"
+    assert result.operation_ref == "ordivon-exec:v1:external.pull:xop-historical"
+
+
 def test_current_mcp_sdk_accepts_runtime_tool_outcome_union_schema() -> None:
     schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -631,6 +739,46 @@ def test_gateway_mcp_preserves_runtime_recovery_error_as_structured_tool_error()
             }
             assert result.structured_content["gatewayOwnerId"] == "runtime.linux"
             assert result.structured_content["gatewayOwnerTool"] == "workspace.exec"
+
+    asyncio.run(scenario())
+
+
+def test_gateway_public_mcp_preserves_host_domain_failure_as_typed_error() -> None:
+    """A Host rejection must stay a failure through the exposed Gateway MCP tool."""
+
+    host_error = {
+        "code": "NOT_FOUND",
+        "kind": "ordivon.host-domain-error",
+        "resourceKind": "work",
+        "resourceRef": "work:absent",
+        "retryable": False,
+        "schemaVersion": 1,
+    }
+
+    class HostFailureCaller(StructuredFailureCaller):
+        async def call_tool(
+            self, owner_id: str, tool_name: str, arguments: dict[str, Any]
+        ) -> dict[str, Any]:
+            assert (owner_id, tool_name) == ("host", "work.get")
+            assert arguments == {"workRef": "work:absent", "revision": None}
+            raise OwnerCallError(
+                "owner tool returned error: host/work.get",
+                owner_id=owner_id,
+                tool_name=tool_name,
+                error=host_error,
+            )
+
+    async def scenario() -> None:
+        async with Client(
+            build_server(GatewayService(HostFailureCaller())),
+            raise_exceptions=False,
+        ) as client:
+            result = await client.call_tool("work.get", {"workRef": "work:absent"})
+            assert result.is_error is True
+            assert result.structured_content is not None
+            assert result.structured_content["error"] == host_error
+            assert result.structured_content["gatewayOwnerId"] == "host"
+            assert result.structured_content["gatewayOwnerTool"] == "work.get"
 
     asyncio.run(scenario())
 

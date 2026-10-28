@@ -140,3 +140,84 @@ def test_deployed_move_rejects_missing_target_path() -> None:
     mapping["targetPaths"] = ["extensions/missing-control-plugin/"]
     with pytest.raises(module.StructureR2Error, match="deployed move target missing"):
         module.validate_plan(value, repo_root=ROOT)
+
+
+def test_exhaustive_source_cut_has_distinct_semantic_truth_boundary() -> None:
+    """Existing Structure R2 CI consumer: source placement != LEGO proof."""
+    import subprocess
+    spec = importlib.util.spec_from_file_location(
+        "ordivon_exhaustive_coverage",
+        ROOT / "tools" / "repo" / "exhaustive_coverage.py",
+    )
+    assert spec is not None and spec.loader is not None
+    coverage = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(coverage)
+    source_cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+    ).strip()
+    result = coverage.classification(ROOT, source_cut)
+    assert result["summary"]["trackedPaths"] == result["summary"]["accountedForPaths"]
+    assert result["summary"]["nodes"] == len(result["semanticPlans"]["nodes"])
+    assert result["summary"]["edges"] == len(result["semanticPlans"]["edges"])
+    assert result["proofReuseAdmissible"] is False
+    assert all(n["formalQualification"] == "UNKNOWN" for n in result["semanticPlans"]["nodes"])
+    assert len({p["path"] for p in result["sourcePaths"]}) == result["summary"]["trackedPaths"]
+
+
+def test_exhaustive_coverage_overlapping_roots_fail_closed() -> None:
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "ordivon_exhaustive_coverage",
+        ROOT / "tools" / "repo" / "exhaustive_coverage.py",
+    )
+    assert spec is not None and spec.loader is not None
+    coverage = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(coverage)
+    with pytest.raises(ValueError, match="overlapping"):
+        coverage.source_partition("services/runtime/main.py", {
+            "owners": [
+                {"name": "all", "root": "services/"},
+                {"name": "runtime", "root": "services/runtime/"},
+            ],
+        })
+
+
+def test_phase1_content_scan_exact_source_complete_and_non_authoritative():
+    import subprocess
+    import importlib.util
+    module_path = ROOT / "tools" / "repo" / "source_content_facets.py"
+    spec = importlib.util.spec_from_file_location("phase1_source_content", module_path)
+    assert spec is not None and spec.loader is not None
+    scanner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scanner)
+    cut = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+    ).strip()
+    result = scanner.compile_projection(ROOT, cut)
+    assert result["summary"]["tracked"] == result["summary"]["accountedFor"]
+    assert len(result["paths"]) == len({x["path"] for x in result["paths"]})
+    assert result["summary"]["sourcePathMoves"] == 0
+    assert result["summary"]["allFunctionalIdentitiesQualified"] == 0
+    # Source regions are materialized only when they contain tracked files.
+    # Eliminating a genuinely obsolete source-only area must not force an
+    # empty synthetic region back into the live source namespace.
+    zones = result["summary"]["allZones"]
+    assert zones and all(count > 0 for count in zones.values())
+    assert sum(zones.values()) == result["summary"]["tracked"]
+    assert len([name for name in zones if name.startswith("zone/")]) == 18
+    assert len(result["summary"]["dense60"]) == 60
+    assert len(result["summary"]["specific26"]) == 26
+    assert all(x["mayPhysicallyRename"] is False and x["consumerStanding"]=="UNKNOWN"
+               for x in result["summary"]["specific26"])
+    assert len(result["summary"]["contentObservedCounterexamples12"]) == 12
+    assert all(x["physicalRenameAllowed"] is False
+               and x["consumerStanding"]=="UNKNOWN"
+               and x["witnessStatus"] in {
+                   "WITNESS_NOT_IN_GIT_CUT",
+                   "WITNESS_BLOB_CHANGED",
+                   "WITNESS_CONTENT_NOT_READ",
+                   "WITNESS_GIT_BLOB_AND_LITERAL_MATCH",
+                   "WITNESS_MARKER_MISSING"
+               }
+               for x in result["summary"]["contentObservedCounterexamples12"])
+    assert all(x["actualConsumers"] == "UNKNOWN" for x in result["paths"])

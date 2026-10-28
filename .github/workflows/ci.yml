@@ -62,6 +62,20 @@ jobs:
 
       - name: Repository mechanics
         run: |
+          # Pin the *actual executable task source* to this checkout's Git tree,
+          # not only the already-selected task names. This is a pre-run witness,
+          # not a claim of immutable task bytes during child execution.
+          if [[ -n "${GITHUB_SHA:-}" ]] &&
+             [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
+            echo "ERROR: root task checkout differs from provider GITHUB_SHA" >&2
+            exit 43
+          fi
+          if [[ ! -f mise.toml || -L mise.toml ]] ||
+             ! git --no-replace-objects ls-tree HEAD -- mise.toml | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]mise\.toml$' ||
+             ! git --no-replace-objects show HEAD:mise.toml | cmp -s - mise.toml; then
+            echo "ERROR: root task source differs from exact Git HEAD" >&2
+            exit 43
+          fi
           "$RUNNER_TEMP/ordivon-bash-5.3.20/bin/bash" -c 'set -euo pipefail; mise run repo:ci'
 
       - name: Select affected owners
@@ -77,6 +91,27 @@ jobs:
           EVENT_HEAD: ${{ github.sha }}
         run: |
           set -euo pipefail
+          # Source selection is executable code: bind its entire known direct
+          # producer/contract readset to THIS checked-out Git provider cut.
+          # Subject PR_BASE...PR_HEAD is a separate change range, not HEAD.
+          qualify_selector_source() {
+            local rel entry
+            if [[ -n "${GITHUB_SHA:-}" ]] &&
+               [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
+              return 1
+            fi
+            for rel in .github/workflows/ci.yml tools/repo/convergence_plan.py tools/repo/affected_owners.py tools/repo/owners.toml tools/repo/dependency_contracts.toml mise.toml; do
+              [[ -f "$rel" && ! -L "$rel" ]] || return 1
+              entry="$(git --no-replace-objects ls-tree HEAD -- "$rel")" || return 1
+              [[ "$entry" =~ ^100(644|755)\ blob\ [[:xdigit:]]{40,64}[[:space:]] ]] || return 1
+              [[ "${entry##*$'\t'}" == "$rel" ]] || return 1
+              git --no-replace-objects show "HEAD:$rel" | cmp -s - "$rel" || return 1
+            done
+          }
+          qualify_selector_source || {
+            echo "ERROR: source selection producer differs from exact Git checkout" >&2
+            exit 43
+          }
           owners_file="$RUNNER_TEMP/ordivon-affected-owners.txt"
           tasks_file="$RUNNER_TEMP/ordivon-affected-tasks.txt"
           if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
@@ -109,19 +144,17 @@ jobs:
           # Only a truly empty scope may contain no executable tasks.
           if (( ${#owners[@]} == 1 )) && [[ -z "${owners[0]}" ]]; then owners=(); fi
           if (( ${#tasks[@]} == 1 )) && [[ -z "${tasks[0]}" ]]; then tasks=(); fi
-          if (( ${#owners[@]} != ${#tasks[@]} )); then
-            echo "Selected verification owners and executable tasks disagree." >&2
-            exit 2
-          fi
-          # Consumer-selected tasks must match the provider-owned canonical
-          # queue contract exactly. A same-namespace task can still skip the
-          # queue's intended checks and cannot silently replace it.
-          python3 - "$owners_file" "$tasks_file" <<'PY'
+          # Owner tasks keep their canonical one-to-one queue contract. The
+          # existing Formal checker is a source-only task, not a fake Owner:
+          # only an exact tools/formal/ change can append formal:verify.
+          # Reuse the same native validator as the repository regression tests.
+          python3 - "$owners_file" "$tasks_file" "$RUNNER_TEMP/ordivon-convergence-plan.json" <<'PY'
+          import json
           import sys
           from pathlib import Path
 
           sys.path.insert(0, "tools/repo")
-          from affected_owners import OWNERS
+          import convergence_plan
 
           def read_selection(path):
               lines = Path(path).read_text(encoding="utf-8").splitlines()
@@ -129,15 +162,17 @@ jobs:
 
           selected = read_selection(sys.argv[1])
           requested = read_selection(sys.argv[2])
-          canonical = {owner.name: owner.queue_task for owner in OWNERS}
-          if len(selected) != len(requested) or len(selected) != len(set(selected)):
-              raise SystemExit("Selected owner/task identities are inconsistent")
-          for owner, task in zip(selected, requested):
-              if canonical.get(owner) != task:
-                  raise SystemExit(
-                      f"Selected task {task!r} violates consumer queue contract "
-                      f"for {owner!r}: {canonical.get(owner)!r}"
-                  )
+          plan_path = Path(sys.argv[3])
+          changed_paths = (
+              json.loads(plan_path.read_text(encoding="utf-8"))["changedPaths"]
+              if plan_path.is_file() else []
+          )
+          try:
+              convergence_plan.validate_queue_task_selection(
+                  selected, requested, changed_paths
+              )
+          except ValueError as exc:
+              raise SystemExit(str(exc)) from exc
           PY
           printf 'owners=%s\n' "$(IFS=,; echo "${owners[*]-}")" >> "$GITHUB_OUTPUT"
           runtime=false
@@ -145,6 +180,30 @@ jobs:
             [[ "$selected" == "runtime" ]] && runtime=true
           done
           printf 'runtime=%s\n' "$runtime" >> "$GITHUB_OUTPUT"
+          # Core Formal proof sources have an executable verifier even though
+          # they do not belong to any permanent domain Owner.
+          formal=false
+          if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
+            formal=true
+          elif [[ ! -f "$RUNNER_TEMP/ordivon-convergence-plan.json" ]]; then
+            formal=true
+          elif python3 - "$RUNNER_TEMP/ordivon-convergence-plan.json" <<'PY'
+          import json
+          import sys
+
+          sys.path.insert(0, "tools/repo")
+          from affected_owners import requires_core_formal_verification
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              change_plan = json.load(handle)
+          raise SystemExit(
+              0 if requires_core_formal_verification(change_plan["changedPaths"]) else 1
+          )
+          PY
+          then
+            formal=true
+          fi
+          printf 'formal=%s\n' "$formal" >> "$GITHUB_OUTPUT"
           {
             echo "### Affected owners"
             if (("${#owners[@]}" == 0)); then
@@ -153,6 +212,10 @@ jobs:
               printf -- '- %s\n' "${owners[@]}"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+          qualify_selector_source || {
+            echo "ERROR: source selection producer changed during projection" >&2
+            exit 43
+          }
           if [[ -f "$RUNNER_TEMP/ordivon-convergence-plan.json" ]]; then
             {
               echo
@@ -169,11 +232,378 @@ jobs:
           set -euo pipefail
           while IFS= read -r task || [[ -n "$task" ]]; do
             [[ -z "$task" ]] && continue
+            if [[ "$task" == "formal:verify" ]]; then
+              # Keep the native verification obligation in queue selection and
+              # its fail-closed admission; the dedicated isolated KANI_HOME
+              # Formal step is the ONE actual executor of that selected task.
+              # Do not run the same proof first with an unprepared environment.
+              if [[ "${{ steps.affected.outputs.formal }}" != "true" ]]; then
+                echo "ERROR: selected Formal task lacks its isolated execution gate" >&2
+                exit 42
+              fi
+              continue
+            fi
             echo "::group::mise run $task"
+            # Each selected task is an actual mutable-root-mise consumer.
+            # Pin the *actual executable task source* to this checkout's Git tree,
+            # not only the already-selected task names. This is a pre-run witness,
+            # not a claim of immutable task bytes during child execution.
+            if [[ -n "${GITHUB_SHA:-}" ]] &&
+               [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
+              echo "ERROR: root task checkout differs from provider GITHUB_SHA" >&2
+              exit 43
+            fi
+            if [[ ! -f mise.toml || -L mise.toml ]] ||
+               ! git --no-replace-objects ls-tree HEAD -- mise.toml | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]mise\.toml$' ||
+               ! git --no-replace-objects show HEAD:mise.toml | cmp -s - mise.toml; then
+              echo "ERROR: root task source differs from exact Git HEAD" >&2
+              exit 43
+            fi
+          # A native Owner task can recursively invoke a second Mise task.
+          # On this source cut, 19 Git-tracked Mise manifests are possible
+          # consumers, including cross-Owner and extra experimental paths.
+          # Qualify the finite Git-tree superset, not a hand-maintained
+          # Owner-root-only list that silently misses nested task scripts.
+          # This protects stable source drift; it does not prove the full
+          # executed shell/import readset or exclude transient mutations.
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          def git_bytes(*args):
+              return subprocess.check_output(
+                  ["git", "--no-replace-objects", *args], stderr=subprocess.PIPE
+              )
+
+          try:
+              repo = Path.cwd().resolve()
+              tree = git_bytes("ls-tree", "-r", "-z", "--full-tree", "HEAD")
+              entries = {}
+              for entry in tree.split(b"\0"):
+                  if not entry:
+                      continue
+                  metadata, name = entry.split(b"\t", 1)
+                  entries[os.fsdecode(name)] = metadata
+
+              def qualified(relative):
+                  # No mutable index or local override may supply an executed config.
+                  record = entries.get(relative)
+                  fields = record.split() if record is not None else []
+                  if (
+                      len(fields) != 3
+                      or fields[0] not in (b"100644", b"100755")
+                      or fields[1] != b"blob"
+                      or re.fullmatch(rb"[0-9a-f]{40}|[0-9a-f]{64}", fields[2]) is None
+                  ):
+                      raise ValueError("untracked or nonregular native Mise config: " + relative)
+                  path = repo / relative
+                  if not path.is_file() or path.is_symlink():
+                      raise ValueError("nonregular actual native Mise config: " + relative)
+                  if path.read_bytes() != git_bytes("show", "HEAD:" + relative):
+                      raise ValueError("native Mise config differs from Git HEAD: " + relative)
+
+              # The Git tree supplies known task-directory roots. Mise itself supplies
+              # the currently effective config readset; e.g. an UNTRACKED higher
+              # precedence mise.local.toml must not silently override a tracked task.
+              roots = sorted(
+                  name for name in entries
+                  if name == "mise.toml" or name.endswith("/mise.toml")
+              )
+              if not roots:
+                  raise ValueError("no native Mise task manifests in Git HEAD")
+              for name in roots:
+                  qualified(name)
+              for name in roots:
+                  directory = (repo / name).parent
+                  native = subprocess.run(
+                      ["mise", "--cd", str(directory), "config", "ls", "--json"],
+                      capture_output=True, text=True, check=False, timeout=15,
+                  )
+                  if native.returncode != 0:
+                      raise ValueError("native Mise config resolver failed for " + name)
+                  loaded = json.loads(native.stdout)
+                  if not isinstance(loaded, list):
+                      raise ValueError("invalid native Mise config result")
+                  for item in loaded:
+                      if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+                          raise ValueError("invalid native Mise config entry")
+                      path = Path(item["path"])
+                      if not path.is_absolute():
+                          raise ValueError("native Mise reported nonabsolute config")
+                      try:
+                          relative = path.relative_to(repo)
+                      except ValueError:
+                          # External global toolchain config remains an explicit
+                          # environment assumption, NOT Git SourceCut proof.
+                          continue
+                      if path.is_symlink() or not path.resolve().is_relative_to(repo):
+                          raise ValueError("unqualified native Mise config link")
+                      qualified(relative.as_posix())
+          except (OSError, ValueError, subprocess.SubprocessError) as exc:
+              print("ERROR: nested Mise task source differs from exact Git HEAD: "
+                    + str(exc), file=sys.stderr)
+              raise SystemExit(43) from exc
+          PY
             # The selected task must not consume the following queue entries.
             mise run "$task" </dev/null
             echo "::endgroup::"
           done < "$RUNNER_TEMP/ordivon-affected-tasks.txt"
+
+      - name: Verify changed core Formal source
+        if: steps.affected.outputs.formal == 'true'
+        shell: bash
+        env:
+          # Isolate Kani's release bundle to this job; a truncated shared
+          # ~/.kani cache must not masquerade as a mathematical proof result.
+          KANI_HOME: ${{ runner.temp }}/ordivon-core-formal-kani
+        run: |
+          set -euo pipefail
+          # The actual Formal executable prefix is ROOT Mise → nested Mise →
+          # verify.py. A successful root task name alone proves none of it.
+          qualify_formal_prefix() {
+            local rel entry
+            if [[ -n "${GITHUB_SHA:-}" ]] &&
+               [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
+              return 1
+            fi
+            for rel in mise.toml tools/formal/mise.toml tools/formal/verify.py; do
+              [[ -f "$rel" && ! -L "$rel" ]] || return 1
+              entry="$(git --no-replace-objects ls-tree HEAD -- "$rel")" || return 1
+              [[ "$entry" =~ ^100(644|755)\ blob\ [[:xdigit:]]{40,64}[[:space:]] ]] || return 1
+              [[ "${entry##*$'\t'}" == "$rel" ]] || return 1
+              git --no-replace-objects show "HEAD:$rel" | cmp -s - "$rel" || return 1
+            done
+            # Native Mise may load a higher-priority untracked local override.
+            # Qualify the EFFECTIVE in-repo readset as well as the three known
+            # executable files; external global config remains an assumption.
+            python3 - <<'PYMISE'
+          import json
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          repo = Path.cwd().resolve()
+          try:
+              observed = subprocess.run(
+                  ["mise", "--cd", str(repo / "tools/formal"),
+                   "config", "ls", "--json"],
+                  check=True, capture_output=True, text=True, timeout=20,
+              )
+              configs = json.loads(observed.stdout)
+              if not isinstance(configs, list) or not configs:
+                  raise ValueError("no native Formal Mise configs")
+              in_repo = set()
+              for item in configs:
+                  if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+                      raise ValueError("invalid native Formal Mise config entry")
+                  path = Path(item["path"])
+                  if not path.is_absolute():
+                      raise ValueError("nonabsolute native Formal Mise config path")
+                  try:
+                      rel = path.relative_to(repo).as_posix()
+                  except ValueError:
+                      # Global/home configuration is not qualified by this source cut.
+                      continue
+                  if (path.is_symlink() or not path.resolve().is_relative_to(repo)
+                          or not path.is_file()):
+                      raise ValueError("nonregular native Formal Mise config: " + rel)
+                  entry = subprocess.check_output(
+                      ["git", "--no-replace-objects", "ls-tree", "HEAD", "--", rel],
+                      text=True, stderr=subprocess.PIPE,
+                  ).strip()
+                  if re.fullmatch(
+                      r"(100644|100755) blob ([0-9a-f]{40}|[0-9a-f]{64})\t"
+                      + re.escape(rel), entry,
+                  ) is None:
+                      raise ValueError("untracked native Formal Mise config: " + rel)
+                  committed = subprocess.check_output(
+                      ["git", "--no-replace-objects", "show", "HEAD:" + rel],
+                      stderr=subprocess.PIPE,
+                  )
+                  if path.read_bytes() != committed:
+                      raise ValueError("dirty native Formal Mise config: " + rel)
+                  in_repo.add(rel)
+              if not {"mise.toml", "tools/formal/mise.toml"} <= in_repo:
+                  raise ValueError("required Formal Mise configs not actually loaded")
+          except (OSError, ValueError, subprocess.SubprocessError) as exc:
+              print("ERROR: effective Formal Mise config differs from Git HEAD: "
+                    + str(exc), file=sys.stderr)
+              raise SystemExit(43) from exc
+          PYMISE
+          }
+          qualify_formal_prefix || {
+            echo "ERROR: Formal executable source differs from exact Git HEAD" >&2
+            exit 43
+          }
+          cd tools/formal
+          mise install
+          cd ../..
+          qualify_formal_prefix || {
+            echo "ERROR: Formal executable source differs from exact Git HEAD" >&2
+            exit 43
+          }
+          # Verus invokes rustup's pinned compiler, not just the mise-resolved
+          # verifier executable. Fresh GitHub runners lack this exact toolchain
+          # even when the Formal mise install has succeeded. Preserve the
+          # native proof gate and install its prerequisite instead of skipping.
+          rustup toolchain install 1.99.1 --profile minimal
+          receipt="$RUNNER_TEMP/ordivon-core-formal-report.json"
+          mise run formal:verify > "$receipt"
+          qualify_formal_prefix || {
+            echo "ERROR: Formal executable source changed after invocation" >&2
+            exit 43
+          }
+          python3 - "$receipt" <<'PY'
+          import hashlib
+          import json
+          import os
+          import re
+          import stat
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          # Consumer-owned finite proof obligations. Exit 0 and a subset are not enough.
+          EXPECTED_PROBES = {
+              "Lean kernel R2.1 relational composition": 0,
+              "Lean kernel qualified variation frame and countermodels": 0,
+              "Lean rejects false theorem": 1,
+              "Z3: sat": 0,
+              "Z3: unsat": 0,
+              "cvc5: sat": 0,
+              "cvc5: unsat": 0,
+              "Verus Rust proof": 0,
+              "Verus rejects false postcondition": 1,
+              "Dafny method proof": 0,
+              "Dafny rejects false postcondition": 4,
+              "Kani native Rust bounded proof": 0,
+              "Kani rejects reachable assertion failure": "NONZERO",
+              "Quint typed state machine": 0,
+              "Quint rejects type error": "NONZERO",
+              "Alloy finite SAT model": 0,
+          }
+          REQUIRED_SOURCE_FILES = {
+              "mise.toml",
+              "tools/formal/mise.toml",
+              "tools/formal/verify.py",
+              "tools/formal/RecursiveLegoRefinement.lean",
+              "tools/formal/RecursiveLegoVariationFrame.lean",
+              "tools/formal/Proof.rs",
+              "tools/formal/Proof.dfy",
+              "tools/formal/ProofKani.rs",
+              "tools/formal/Proof.qnt",
+              "tools/formal/Proof.als",
+          }
+          REQUIRED_TOOLS = {"lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy"}
+
+          def reject_duplicate_keys(pairs):
+              value = {}
+              for name, item in pairs:
+                  if name in value:
+                      raise ValueError("duplicate Formal receipt JSON field")
+                  value[name] = item
+              return value
+
+          def qualified_report():
+              report = json.loads(
+                  Path(sys.argv[1]).read_text(encoding="utf-8"),
+                  object_pairs_hook=reject_duplicate_keys,
+              )
+              if not isinstance(report, dict):
+                  return False
+              expected = subprocess.check_output(
+                  ["git", "--no-replace-objects", "rev-parse", "HEAD"], text=True
+              ).strip()
+              probes = report.get("probes")
+              sources = report.get("sourceBlobs")
+              tools = report.get("toolBinaries")
+              oid_len = {"sha1": 40, "sha256": 64}.get(report.get("gitObjectFormat"))
+              if not (
+                  report.get("kind") == "source-scoped-native-formal-toolchain-check"
+                  and report.get("status") == "PASS"
+                  and report.get("sourceCut") == expected
+                  and (not os.environ.get("GITHUB_SHA")
+                       or expected == os.environ["GITHUB_SHA"])
+                  and report.get("sourceQualification")
+                      == "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST"
+                  and report.get("toolQualification")
+                      == "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST"
+                  and report.get("proofReuseAdmissible") is False
+                  # Mathematical model proofs cannot silently promote their
+                  # implementation or installed-effect standing to PASS.
+                  # A stronger grade requires its own independently admitted
+                  # proof/consumer contract before this gate can accept it.
+                  and report.get("implementationRefinement") == "UNKNOWN"
+                  and report.get("installedCurrentness") == "UNKNOWN"
+                  and type(report.get("count")) is int
+                  and report["count"] == len(EXPECTED_PROBES)
+                  and isinstance(probes, list) and len(probes) == len(EXPECTED_PROBES)
+                  and isinstance(sources, dict) and set(sources) == REQUIRED_SOURCE_FILES
+                  and isinstance(tools, dict) and set(tools) == REQUIRED_TOOLS
+                  and oid_len == len(expected)
+              ):
+                  return False
+              witnessed = {}
+              for item in probes:
+                  if not isinstance(item, dict) or set(item) != {"probe", "result", "rc"}:
+                      return False
+                  name = item["probe"]
+                  if not isinstance(name, str) or name not in EXPECTED_PROBES or name in witnessed:
+                      return False
+                  if item["result"] != "PASS" or type(item["rc"]) is not int:
+                      return False
+                  required_rc = EXPECTED_PROBES[name]
+                  if (item["rc"] == 0 if required_rc == "NONZERO"
+                          else item["rc"] != required_rc):
+                      return False
+                  witnessed[name] = item["rc"]
+              if set(witnessed) != set(EXPECTED_PROBES):
+                  return False
+              for rel, blob in sources.items():
+                  if (not isinstance(blob, str)
+                          or re.fullmatch("[0-9a-f]{" + str(oid_len) + "}", blob) is None):
+                      return False
+                  actual = subprocess.check_output(
+                      ["git", "--no-replace-objects", "rev-parse", "HEAD:" + rel],
+                      text=True, stderr=subprocess.PIPE,
+                  ).strip()
+                  if blob != actual:
+                      return False
+              for record in tools.values():
+                  if not isinstance(record, dict) or set(record) != {"path", "version", "sha256"}:
+                      return False
+                  if not all(isinstance(record[x], str) and record[x]
+                             for x in ("path", "version", "sha256")):
+                      return False
+                  if re.fullmatch("[0-9a-f]{64}", record["sha256"]) is None:
+                      return False
+                  # A well-formed digest string does not identify an installed binary.
+                  # Rehash the *actual recorded executable*, not just its claimed SHA.
+                  executable = Path(record["path"])
+                  if (not executable.is_absolute() or executable.is_symlink()
+                          or not executable.is_file()
+                          or not stat.S_ISREG(executable.stat().st_mode)
+                          or not os.access(executable, os.X_OK)):
+                      return False
+                  with executable.open("rb") as stream:
+                      if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
+                          return False
+              return True
+
+          try:
+              valid = qualified_report()
+          except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError):
+              valid = False
+          if not valid:
+              raise SystemExit("ERROR: Formal execution lacks a valid scoped PASS receipt")
+          print("Native Formal scoped verifier PASS; proof reuse remains unadmitted")
+          PY
+
 
       - name: Runtime supply-chain policy
         if: steps.affected.outputs.runtime == 'true'

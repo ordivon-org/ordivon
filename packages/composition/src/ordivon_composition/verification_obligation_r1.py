@@ -22,6 +22,7 @@ from typing import Any
 from .cognitive_circuit_r1 import (
     CircuitContractError,
     _load_json,
+    _load_json_value,
     _validate_schema,
     canonical_digest,
     compile_manifest,
@@ -31,6 +32,18 @@ ROOT = Path(__file__).resolve().parent
 OBLIGATION_SET_SCHEMA = ROOT / "schemas" / "verification-obligation-set-v1.schema.json"
 BINDING_SET_SCHEMA = ROOT / "schemas" / "verifier-binding-set-v1.schema.json"
 RESOLUTION_SCHEMA = ROOT / "schemas" / "verifier-resolution-v1.schema.json"
+
+
+def _load_task_local_json_list(path: Path) -> list[Any]:
+    """Reject ambiguous proof/unknown-ref input before impact selection.
+
+    This reuses the existing Composition JSON admission primitives; caller
+    reports remain untrusted and acquire no execution or proof authority.
+    """
+    value = _load_json_value(path)
+    if not isinstance(value, list):
+        raise CircuitContractError("task-local proof input must be a JSON array")
+    return value
 
 
 def _immutable_git_manifest(
@@ -46,7 +59,7 @@ def _immutable_git_manifest(
         path.is_absolute()
         or not relative
         or any(part in ("", ".", "..") for part in relative.split("/"))
-        or "\\x00" in relative
+        or chr(0) in relative
     ):
         raise CircuitContractError(
             "source-bound impact needs an exact Git cut and canonical relative path"
@@ -399,34 +412,63 @@ def compare_gate_source_scopes(
 
 
 def _cyclic_proof_members(rows: list[dict[str, Any]]) -> set[str]:
-    """Validate a bounded dependency relation and find cycle members.
+    """Find exactly the recursive proof members in O(nodes + edges).
 
-    Proof prerequisites may be recursive even when execution Stage order is a
-    DAG. Use exact finite reachability rather than pretending cycles are
-    discharged by caller-asserted dependency completeness. No new graph owner.
+    Kosaraju's iterative strongly-connected-component traversal avoids the
+    prior per-node reachability scan and Python recursion depth. Recursive
+    proof assumptions remain UNKNOWN, including self-loops; their downstream
+    consumers are handled by the existing impact worklist.
     """
     graph = {row["id"]: set(row["dependsOn"]) for row in rows}
     if len(graph) != len(rows):
         raise CircuitContractError("duplicate proof graph identity")
+    identities = set(graph)  # Materialize once, not once per dependency row.
+    reverse: dict[str, set[str]] = {identity: set() for identity in graph}
     for identity, deps in graph.items():
-        missing = deps - graph.keys()
+        missing = deps - identities
         if missing:
             raise CircuitContractError(
                 f"proof {identity} depends on unknown references: {sorted(missing)}"
             )
+        for dependency in deps:
+            reverse[dependency].add(identity)
+
+    # First DFS pass: postorder in the declared dependency direction.
+    visited: set[str] = set()
+    finish: list[str] = []
+    for root in graph:
+        if root in visited:
+            continue
+        visited.add(root)
+        stack = [(root, iter(graph[root]))]
+        while stack:
+            node, neighbors = stack[-1]
+            dependency = next(neighbors, None)
+            if dependency is None:
+                finish.append(node)
+                stack.pop()
+            elif dependency not in visited:
+                visited.add(dependency)
+                stack.append((dependency, iter(graph[dependency])))
+
+    # Second pass over reversed edges: every component is maximal.
+    assigned: set[str] = set()
     cyclic: set[str] = set()
-    for identity in sorted(graph):
-        seen: set[str] = set()
-        frontier = list(graph[identity])
-        while frontier:
-            current = frontier.pop()
-            if current == identity:
-                cyclic.add(identity)
-                break
-            if current in seen:
-                continue
-            seen.add(current)
-            frontier.extend(graph[current] - seen)
+    for root in reversed(finish):
+        if root in assigned:
+            continue
+        component: set[str] = {root}
+        assigned.add(root)
+        pending = [root]
+        while pending:
+            node = pending.pop()
+            for consumer in reverse[node]:
+                if consumer not in assigned:
+                    assigned.add(consumer)
+                    component.add(consumer)
+                    pending.append(consumer)
+        if len(component) > 1 or root in graph[root]:
+            cyclic.update(component)
     return cyclic
 
 
@@ -622,6 +664,11 @@ def select_impacted_obligations(
     roots = require_refs(authority_refs, "authorityRefs")
     changed = require_refs(changed_refs, "changedRefs")
     unknown = require_refs(unknown_refs if unknown_refs is not None else [], "unknownRefs")
+    # Shared R2.1 proof-graph ingress for C06, environment and Git-impact
+    # consumers. A malformed JSON top-level obligation collection must never
+    # escape as an unhandled Python TypeError or mimic an empty proof graph.
+    if not isinstance(obligations, list):
+        raise CircuitContractError("obligations must be a JSON array")
     claims: dict[str, dict[str, Any]] = {}
     for item in obligations:
         validate_impact_claim(item, "obligation")
@@ -1104,8 +1151,76 @@ def main() -> int:
                 owner_tool = (
                     Path(__file__).resolve().parents[4] / "tools/repo/source_history_legos.py"
                 )
-                if not owner_tool.is_file():
+                if not owner_tool.is_file() or owner_tool.is_symlink():
                     raise ValueError("Git owner query entrypoint unavailable")
+
+                def require_qualified_owner_tool() -> None:
+                    # This process asks the existing Git Owner query for exact
+                    # evidence. Do not execute a mutable checkout implementation
+                    # while presenting that answer as source-qualified.
+                    # Native source-history directly imports affected_owners.
+                    # Exact byte provenance must include both actually executed
+                    # local Python producers, not only the entrypoint script.
+                    # This is finite SOURCE qualification, not a dynamic import
+                    # closure or a proof of installed Python interpreter bytes.
+                    for relative in (
+                        "tools/repo/source_history_legos.py",
+                        "tools/repo/affected_owners.py",
+                    ):
+                        producer = owner_tool.parents[2] / relative
+                        tree_entry = subprocess.run(
+                            [
+                                "git",
+                                "--no-replace-objects",
+                                "-C",
+                                str(owner_tool.parents[2]),
+                                "ls-tree",
+                                "-z",
+                                "--full-tree",
+                                "HEAD",
+                                "--",
+                                relative,
+                            ],
+                            capture_output=True,
+                            check=False,
+                        )
+                        expected = (
+                            rb"(100644|100755) blob [0-9a-f]{40,64}\t"
+                            + re.escape(relative.encode("utf-8"))
+                            + rb"\x00"
+                        )
+                        if (
+                            tree_entry.returncode != 0
+                            or re.fullmatch(expected, tree_entry.stdout) is None
+                        ):
+                            raise CircuitContractError(
+                                "native Git query producer Git tree mode is not regular: "
+                                + relative
+                            )
+                        committed = subprocess.run(
+                            [
+                                "git",
+                                "--no-replace-objects",
+                                "-C",
+                                str(owner_tool.parents[2]),
+                                "show",
+                                "HEAD:" + relative,
+                            ],
+                            capture_output=True,
+                            check=False,
+                        )
+                        if (
+                            committed.returncode != 0
+                            or not producer.is_file()
+                            or producer.is_symlink()
+                            or committed.stdout != producer.read_bytes()
+                        ):
+                            raise CircuitContractError(
+                                "native Git query producer differs from its Git SourceCut: "
+                                + relative
+                            )
+
+                require_qualified_owner_tool()
                 native_query = subprocess.run(
                     [
                         sys.executable,
@@ -1123,9 +1238,12 @@ def main() -> int:
                     capture_output=True,
                     check=False,
                 )
+                require_qualified_owner_tool()
                 if native_query.returncode != 0:
                     raise ValueError("native Git source query failed")
                 qualified = json.loads(native_query.stdout)
+            except CircuitContractError:
+                raise
             except (ValueError, OSError, TypeError) as exc:
                 raise CircuitContractError(
                     "select-impact requires independently recomputable native Git scope"
@@ -1144,12 +1262,8 @@ def main() -> int:
                 raise CircuitContractError(
                     "Git impact changed refs must belong to same scoped authority set"
                 )
-            obligations = json.loads(args.obligations.read_text(encoding="utf-8"))
-            unknown = (
-                json.loads(args.unknown_refs.read_text(encoding="utf-8"))
-                if args.unknown_refs
-                else None
-            )
+            obligations = _load_task_local_json_list(args.obligations)
+            unknown = _load_task_local_json_list(args.unknown_refs) if args.unknown_refs else None
             if not isinstance(obligations, list) or (
                 unknown is not None and not isinstance(unknown, list)
             ):

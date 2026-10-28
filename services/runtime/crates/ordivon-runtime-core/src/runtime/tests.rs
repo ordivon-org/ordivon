@@ -203,7 +203,7 @@ fn runtime_config(sandbox: &Sandbox) -> RuntimeConfig {
             workspace_root: None,
             workspace_uid: None,
             workspace_gid: None,
-            runner_path: Some(PathBuf::from("/usr/bin/true")),
+            runner_path: Some(fs::canonicalize("/usr/bin/true").unwrap()),
             allowed_executable_roots: vec![PathBuf::from("/")],
             max_runtime_ms: 60_000,
             max_output_bytes: 1_048_576,
@@ -10058,7 +10058,7 @@ fn runtime_capabilities_project_current_affordances_without_input_authority_path
     );
     assert_eq!(
         linux.execution_provider.as_ref().unwrap().executable_digest,
-        file_digest(Path::new("/usr/bin/true"))
+        file_digest(&fs::canonicalize("/usr/bin/true").unwrap())
     );
 
     assert!(capabilities

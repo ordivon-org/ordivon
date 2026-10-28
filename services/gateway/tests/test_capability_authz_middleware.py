@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import json
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+from ordivon_gateway.access_auth import CloudflareAccessMiddleware
 from ordivon_gateway.capability_authz import (
     GatewayCapabilityAuthorizationMiddleware,
     resolve_authorization_target,
@@ -221,6 +224,121 @@ def test_unprotected_tools_bypass_capability_authorizer() -> None:
     )
     assert result["structuredContent"]["ok"] is True
     assert authorizer.calls == []
+
+
+def test_verified_ingress_to_authorization_real_request_state_contract(tmp_path) -> None:
+    """One actual G07->G06 consumption, not merely a Plan or a forged Tool arg.
+
+    The loopback bearer authenticates ONLY through the G07 ingress middleware.
+    G06 reads the resulting request state, and a Security decision still gates
+    the protected owner call. Neither an unverified principal nor an explicit
+    DENY can reach the next handler.
+    """
+    plan_path = Path(__file__).resolve().parents[1] / "planning/lego-plan-r1.json"
+    plan = json.loads(plan_path.read_text())
+    nodes = {item["id"]: item for item in plan["nodes"]}
+    assert "G07" in nodes["G06"]["dependencies"]
+    assert any(
+        item["path"] == "src/ordivon_gateway/capability_authz.py"
+        and "SOURCE_REQUEST_STATE_CONSUMER" in item["standing"]
+        for item in nodes["G07"]["consumerBindings"]
+    )
+    assert any(
+        item["path"] == "src/ordivon_gateway/mcp_server.py"
+        and "SOURCE_MCP_MIDDLEWARE_CONSUMER" in item["standing"]
+        for item in nodes["G06"]["consumerBindings"]
+    )
+
+    private_bearer = tmp_path / "local-bearer"
+    private_bearer.write_text("a" * 64)
+    private_bearer.chmod(0o600)
+
+    class MustNotVerifyCloudflare:
+        def verify_identity(self, token: str):
+            raise AssertionError("local service bearer must not invoke Cloudflare verifier")
+
+    async def scenario(token: str, authorizer: FakeAuthorizer, *, client_host: str = "127.0.0.1"):
+        effects = []
+        messages = []
+        pep = GatewayCapabilityAuthorizationMiddleware(authorizer)
+
+        async def downstream(scope, receive, send):
+            ctx = _ctx(
+                state=scope["state"],
+                arguments={
+                    "operationRef": "ordivon-exec:v1:runtime.linux:job-1",
+                    "artifactId": "artifact-1",
+                    "ordivon_access_principal": "principal:forged",
+                },
+            )
+
+            async def owner_handler(_context):
+                effects.append("owner_invoked")
+                return await _next(_context)
+
+            outcome = await pep(ctx, owner_handler)
+            effects.append(outcome)
+            await send({"type": "http.response.start", "status": 204, "headers": []})
+            await send({"type": "http.response.body", "body": b""})
+
+        ingress = CloudflareAccessMiddleware(
+            downstream,
+            MustNotVerifyCloudflare(),
+            local_bearer_token_file=str(private_bearer),
+        )
+
+        async def receive():
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        async def send(message):
+            messages.append(message)
+
+        await ingress(
+            {
+                "type": "http",
+                "path": "/mcp",
+                "method": "POST",
+                "client": (client_host, 23456),
+                "headers": [(b"authorization", f"Bearer {token}".encode())],
+                "state": {},
+            },
+            receive,
+            send,
+        )
+        return (
+            next(m["status"] for m in messages if m["type"] == "http.response.start"),
+            effects,
+            authorizer.calls,
+        )
+
+    allowed = FakeAuthorizer()
+    status, effects, calls = asyncio.run(scenario("a" * 64, allowed))
+    assert status == 204
+    assert effects[0] == "owner_invoked"
+    assert effects[1]["structuredContent"]["ok"] is True
+    assert calls[0]["principal_id"] == "principal:local-service:harness"
+    assert calls[0]["issuer"] == "ordivon-local-service"
+    assert calls[0]["arguments"]["ordivon_access_principal"] == "principal:forged"
+
+    invalid = FakeAuthorizer()
+    status, effects, calls = asyncio.run(scenario("not-the-secret", invalid))
+    assert status == 403
+    assert effects == []
+    assert calls == []
+
+    remote = FakeAuthorizer()
+    status, effects, calls = asyncio.run(scenario("a" * 64, remote, client_host="203.0.113.7"))
+    assert status == 403  # Loopback credential is not accepted remotely.
+    assert effects == []
+    assert calls == []
+
+    rejected = FakeAuthorizer(_decision(outcome="DENY"))
+    status, effects, calls = asyncio.run(scenario("a" * 64, rejected))
+    assert status == 204  # HTTP middleware passed; protected MCP Tool returned DENY.
+    assert len(effects) == 1
+    assert effects[0].is_error is True
+    assert effects[0].structured_content["error"]["code"] == "CAPABILITY_AUTHZ_DENIED"
+    assert len(calls) == 1
 
 
 def test_build_server_adds_pep_only_when_trusted_authorizer_is_injected() -> None:

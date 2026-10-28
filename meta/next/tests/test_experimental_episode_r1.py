@@ -143,6 +143,20 @@ def test_sensitive_runtime_payloads_do_not_escape_projection() -> None:
     assert "launch_token_digest" not in serialized
 
 
+def test_unconsumed_recovery_reason_stays_source_digest_only() -> None:
+    # R5C keeps the exact sourceRecordDigest, but does not publish free-form
+    # recovery detail in a non-authoritative analytical Episode projection.
+    before = project_r5c_record(record())
+    altered = record()
+    altered["run"]["recovery_reason_code"] = "SIMULATED_PRIVATE_RECOVERY_R20"
+    after = project_r5c_record(altered)
+    assert "SIMULATED_PRIVATE_RECOVERY_R20" not in repr(after)
+    assert "recoveryReasonCode" not in after["executionObservation"]
+    assert (
+        before["anchor"]["sourceRecordDigest"] != after["anchor"]["sourceRecordDigest"]
+    )
+
+
 def test_raw_source_payload_still_changes_source_record_digest() -> None:
     before = project_r5c_record(record())
     changed = record()

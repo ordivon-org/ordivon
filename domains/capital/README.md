@@ -40,8 +40,8 @@ into an isolated configuration and requires rejection under ordinary and optimiz
 Python, then mise run verify checks the owner suite. This does not authorize
 private account access, trading or external financial effects.
 
-**Crypto Public Shadow Product Acceptance LEGO** (`capital.market.crypto-public-shadow-consumer`):
-The natural owner is `scripts/consume_crypto_public_shadow_product_r1.py`.
+**Crypto Public Shadow read-only consumer gate** (`capital.public-data.crypto-shadow-consumer-gate`):
+Exact consumer entrypoint: `scripts/consume_crypto_public_shadow_product_r1.py`.
 Input: frozen ODPS product, SHA-256-bound public observation and ODRL rights policy.
 Output: read-only decision/feedback receipt plus OpenLineage events, **only after**
 all twelve source, privacy, execution, timing and rights conditions hold.
@@ -51,6 +51,18 @@ The existing consumer acceptance test
 falsifies source-digest, broker-credential, private-account, financial-write and
 rights-policy mutations in an isolated temp fixture. The gate never grants
 execution authority, trading rights, redistribution or financial effects.
+
+**Source-bound contract identity:** `capital.data-product.odps-1.1-consumed-legacy`.
+The existing `data-products/crypto-public-shadow-r2/odps.json` is an ODPS
+1.1.0 object. Its top-level `version` is a *product* revision, while its
+`apiVersion` and `outputPorts` are consumed by existing scripts and tests.
+This is not the latest upstream ODPS schema. ODPS 4.2 (2026-10-26,
+https://opendataproducts.org/v4.2/schema/odps.json) instead requires
+`schema`, `version` (specification version), and `product` at the root.
+Legacy `type=consumerAligned` and `status=active` are outside ODPS 4.2
+enumerations. Do not relabel or blindly rewrite the live product: preserve
+ID/output-port consumer behavior, validate against the official schema, and
+replay admission and no-financial-effect tests before changing contracts.
 
 Crypto Public Shadow R2 now passes repeated persistent public streaming through exact Network v2 WS authorities using the mature `websockets` client proxy support. OKX `bbo-tbt` plus Binance market-data-only `@ticker` produced one warm-up and three measured coherent snapshots; all measured source/receive spans remained below the frozen 1200 ms limits. Provider selection is owned by Network v2 `provider-auto`, not by an application-level node/protocol matrix.
 

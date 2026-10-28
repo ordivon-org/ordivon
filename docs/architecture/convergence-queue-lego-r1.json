@@ -324,9 +324,11 @@
       "predictive cost scheduling"
     ],
     "analyticalPersistence": {
-      "standing": "PASS_EXISTING_EXPERIMENTAL_EPISODE_STORE_REUSE",
+      "standing": "HISTORICAL_ISOLATED_REPLAY_CURRENT_SOURCE_ADAPTER_RETIRED",
       "lego": "CQ-M80",
-      "adapter": "meta/next/scripts/experimental_episode_convergence_r1.py",
+      "historicalAdapterSource": "meta/next/scripts/experimental_episode_convergence_r1.py",
+      "currentAdapter": null,
+      "currentConsumerQualification": "UNKNOWN_NO_REGISTERED_FIRST_PARTY_CONSUMER",
       "profiles": [
         "convergence-queue-observation-v1",
         "convergence-ci-observation-v1"

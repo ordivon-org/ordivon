@@ -149,6 +149,75 @@ def make_pptx(path: Path, text: str = "正式内容", font: str = "Microsoft YaH
 
 
 class ArtifactDeliveryTests(unittest.TestCase):
+    def test_contract_json_rejects_duplicate_keys_at_all_nesting_levels(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            schema = root / "schema.json"
+            schema.write_text('{"type":"object"}', encoding="utf-8")
+            source = root / "source.json"
+            for payload in (
+                '{"kind":"shadow","kind":"presentation-source"}',
+                '{"kind":"presentation-source","profile":{"id":"old","id":"new"}}',
+            ):
+                with self.subTest(payload=payload):
+                    source.write_text(payload, encoding="utf-8")
+                    result = validate_json_document(source, schema, "presentation-source")
+                    self.assertEqual(result["status"], "FAIL", result)
+                    self.assertEqual(result["jsonSchema"]["status"], "FAIL", result)
+                    self.assertTrue(
+                        any("duplicate JSON key" in failure for failure in result["failures"]),
+                        result,
+                    )
+
+            source.write_text('{"kind":"presentation-source"}', encoding="utf-8")
+            schema.write_text('{"type":"object","type":"array"}', encoding="utf-8")
+            result = validate_json_document(source, schema, "presentation-source")
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertTrue(
+                any("JSON Schema parse failed: duplicate JSON key" in item for item in result["failures"]),
+                result,
+            )
+
+    def test_vsa_policy_reuses_unambiguous_core_json_contract(self) -> None:
+        # Trust policy admission must not revive a second last-key-wins validator.
+        self.assertIs(trust_vsa.validate_json_document, validate_json_document)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "policy.json"
+            path.write_text(
+                '{"policyVersion":0,"policyVersion":1,"id":"shadow","signers":[]}',
+                encoding="utf-8",
+            )
+            result = trust_vsa.validate_vsa_trust_policy(path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertTrue(
+                any("duplicate JSON key: policyVersion" in item for item in result["failures"]),
+                result,
+            )
+
+    def test_presentation_consumer_rejects_ambiguous_source_kind(self) -> None:
+        from artifact_capabilities.presentation.admission import admit_presentation_source
+
+        source_fixture = ROOT / "artifact-delivery/examples/presentation-native-smoke-source-r1.json"
+        original = source_fixture.read_text(encoding="utf-8")
+        self.assertIn('"kind": "presentation-source"', original)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "source.json"
+            path.write_text(
+                original.replace(
+                    '"kind": "presentation-source"',
+                    '"kind": "untrusted-shadow", "kind": "presentation-source"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            result, materials, failures = admit_presentation_source(
+                path, validate_json_document=validate_json_document
+            )
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertEqual(materials, [])
+            self.assertIn("presentation source did not PASS validation", failures)
+            self.assertTrue(any("duplicate JSON key: kind" in item for item in result["failures"]))
+
     def test_profile_declares_no_universal_document_model(self) -> None:
         profile = json.loads((ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json").read_text())
         self.assertEqual(profile["artifactClass"], "presentation")
@@ -2005,3 +2074,52 @@ print(json.dumps(ast))
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+@pytest.mark.parametrize("edge", ("profile", "source", "material"))
+def test_delivery_admission_rejects_inconsistent_final_file_fact_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, edge: str
+) -> None:
+    """The public Provider must never PASS when its source-bound receipt disagrees."""
+    import hashlib
+
+    from artifact_operations.providers import direct_python
+
+    examples = ROOT / "artifact-delivery" / "examples"
+    original_request = json.loads(
+        (examples / "presentation-native-smoke-request-r1.json").read_text()
+    )
+    for ref in ("profile", "source"):
+        original_request[ref]["path"] = str(
+            (examples / original_request[ref]["path"]).resolve()
+        )
+    material = tmp_path / "material.txt"
+    material.write_bytes(b"phase2-consumer-digest-negative")
+    original_request["materials"] = [{
+        "path": str(material), "sha256": hashlib.sha256(material.read_bytes()).hexdigest()
+    }]
+    request = tmp_path / "request.json"
+    write_json(request, original_request)
+
+    provider = DirectPythonOperationProvider()
+    baseline = provider.validate_delivery_request(request)
+    assert baseline["status"] == "PASS", baseline
+
+    target_paths = {
+        "profile": Path(original_request["profile"]["path"]).resolve(),
+        "source": Path(original_request["source"]["path"]).resolve(),
+        "material": material.resolve(),
+    }
+    genuine_file_fact = direct_python.file_fact
+
+    def diverging_file_fact(path: Path) -> dict[str, object]:
+        fact = genuine_file_fact(path)
+        if path.resolve() == target_paths[edge]:
+            fact["digest"]["sha256"] = "0" * 64
+        return fact
+
+    monkeypatch.setattr(direct_python, "file_fact", diverging_file_fact)
+    result = provider.validate_delivery_request(request)
+    assert result["status"] == "FAIL", result
+    assert any(edge in reason and "digest" in reason for reason in result["failures"]), result

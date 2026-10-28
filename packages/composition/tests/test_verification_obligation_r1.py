@@ -1260,6 +1260,288 @@ def test_gate_source_delta_retains_independent_local_source_when_parallel_gate_a
     assert delta["proofReuseAdmissible"] is False
 
 
+def test_phase2_exact_git_impact_cli_rejects_ambiguous_proof_input(tmp_path) -> None:
+    """Native Git change -> existing Composition CLI -> exact obligations.
+
+    Invalid caller JSON must fail before a last-key-wins rewrite can cause a
+    skipped proof; unchanged independent proofs remain reuse *candidates*.
+    """
+    import json
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    subject = tmp_path / "source"
+    subject.mkdir()
+    source_repo = Path(__file__).resolve().parents[3]
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(subject), *args], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Ordivon Test")
+    git("config", "user.email", "orchestrator@example.invalid")
+    (subject / "a").mkdir()
+    (subject / "a/source.txt").write_text("version one\\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "before")
+    previous = git("rev-parse", "HEAD")
+    (subject / "a/source.txt").write_text("version two\\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "after")
+    current = git("rev-parse", "HEAD")
+
+    delta_output = subprocess.check_output(
+        [
+            sys.executable,
+            str(source_repo / "tools/repo/source_history_legos.py"),
+            "--repo",
+            str(subject),
+            "--left",
+            previous,
+            "--right",
+            current,
+            "--impact-prefix",
+            "a/",
+        ],
+        text=True,
+    )
+    delta = json.loads(delta_output)
+    assert delta["gitSourceQueryComplete"] is True
+    assert len(delta["changedRefs"]) == 1
+    ref = delta["changedRefs"][0]
+    unchanged = next(item for item in delta["authorityRefs"] if item != ref)
+    source_delta = tmp_path / "delta.json"
+    source_delta.write_text(delta_output, encoding="utf-8")
+    obligations = tmp_path / "obligations.json"
+    unknown = tmp_path / "unknown.json"
+    args = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.verification_obligation_r1",
+        "select-impact",
+        str(source_delta),
+        str(obligations),
+        "--repo",
+        str(subject),
+    ]
+
+    def select(*, unknown_file: bool = False) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            args + (["--unknown-refs", str(unknown)] if unknown_file else []),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+    obligations.write_text(
+        json.dumps(
+            [
+                {"id": "proof:changed", "dependsOn": [ref], "dependenciesComplete": True},
+                {"id": "proof:independent", "dependsOn": [unchanged], "dependenciesComplete": True},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    positive = select()
+    assert positive.returncode == 0, positive.stderr
+    result = json.loads(positive.stdout)
+    assert {row["id"]: row["standing"] for row in result["standingByObligation"]} == {
+        "proof:changed": "RECHECK_REQUIRED",
+        "proof:independent": "REUSE_CANDIDATE",
+    }
+    assert result["proofReuseAdmissible"] is False
+
+    # Native Git source is immutable, but the producer CLI was previously
+    # invoked from mutable checkout bytes without any source qualification.
+    # A changed running producer must not claim exact provenance via the same
+    # committed source-cut pair.
+    owner_tool = source_repo / "tools/repo/source_history_legos.py"
+    before_bytes = owner_tool.read_bytes()
+    try:
+        owner_tool.write_bytes(
+            before_bytes + b"\n# deliberately uncommitted owner producer drift\n"
+        )
+        drift = select()
+        assert drift.returncode != 0
+        assert "native Git query producer differs from its Git SourceCut" in drift.stderr
+        assert "Traceback" not in drift.stderr
+    finally:
+        owner_tool.write_bytes(before_bytes)
+
+    # Native owner query imports this local Python source for actual path
+    # semantics; source identity must bind imported code as well as entrypoint.
+    # This finite static-import frontier test forces re-qualification when
+    # either native producer adds another local import.
+    import ast
+
+    local_producer_dir = source_repo / "tools/repo"
+    sibling_modules = {path.stem for path in local_producer_dir.glob("*.py")}
+    static_imports = {}
+    for entry in ("source_history_legos", "affected_owners"):
+        tree = ast.parse((local_producer_dir / (entry + ".py")).read_text())
+        used = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module in sibling_modules:
+                used.add(node.module)
+            elif isinstance(node, ast.Import):
+                used.update(alias.name for alias in node.names if alias.name in sibling_modules)
+        static_imports[entry] = used
+    assert static_imports == {
+        "source_history_legos": {"affected_owners"},
+        "affected_owners": set(),
+    }, "native query acquired a local Python import outside qualified readset"
+
+    imported_producer = source_repo / "tools/repo/affected_owners.py"
+    original_imported = imported_producer.read_bytes()
+    try:
+        imported_producer.write_bytes(
+            original_imported + b"\n# uncommitted direct imported producer drift\n"
+        )
+        denied = select()
+        assert denied.returncode != 0
+        assert "native Git query producer differs from its Git SourceCut" in denied.stderr
+        assert "Traceback" not in denied.stderr
+    finally:
+        imported_producer.write_bytes(original_imported)
+
+    for ambiguous in (
+        f'[{{"id":"proof:skipped","id":"proof:changed",'
+        f'"dependsOn":["{ref}"],"dependenciesComplete":true}}]',
+        f'[{{"id":"proof:changed","dependsOn":[],'
+        f'"dependsOn":["{ref}"],"dependenciesComplete":true}}]',
+        f'[{{"id":"proof:changed","dependsOn":["{ref}"],'
+        f'"dependenciesComplete":true,"evidence":{{"a":1,"a":2}}}}]',
+    ):
+        obligations.write_text(ambiguous, encoding="utf-8")
+        denied = select()
+        assert denied.returncode != 0
+        assert "duplicate JSON key" in denied.stderr
+        assert "Traceback" not in denied.stderr
+
+    obligations.write_text(
+        json.dumps([{"id": "proof:changed", "dependsOn": [ref], "dependenciesComplete": True}]),
+        encoding="utf-8",
+    )
+    unknown.write_text('["source:unknown", NaN]', encoding="utf-8")
+    denied = select(unknown_file=True)
+    assert denied.returncode != 0
+    assert "invalid JSON constant" in denied.stderr
+    assert "Traceback" not in denied.stderr
+
+
+def test_phase2_git_owner_tree_mode_must_be_regular_before_impact_admission(tmp_path) -> None:
+    """An exact Git SYMLINK blob is not an executable native query source.
+
+    Exercise the actual package CLI from a separate source checkout: a 120000
+    object can contain the same bytes as a regular worktree Python script.
+    Byte equality alone was a false ACCEPT on the existing two-Git-cut seam.
+    """
+    import json
+    import os
+    import shutil
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    source_repo = Path(__file__).resolve().parents[3]
+    subject = tmp_path / "subject"
+    subject.mkdir()
+
+    def git(root, *argv):
+        return subprocess.check_output(["git", "-C", str(root), *argv], text=True).strip()
+
+    git(subject, "init", "-q")
+    git(subject, "config", "user.name", "Contract Test")
+    git(subject, "config", "user.email", "contract@invalid.example")
+    (subject / "src").mkdir()
+    (subject / "src/checked.txt").write_text("before", encoding="utf-8")
+    git(subject, "add", ".")
+    git(subject, "commit", "-qm", "before")
+    previous = git(subject, "rev-parse", "HEAD")
+    (subject / "src/checked.txt").write_text("after", encoding="utf-8")
+    git(subject, "add", ".")
+    git(subject, "commit", "-qm", "after")
+    current = git(subject, "rev-parse", "HEAD")
+    delta = subprocess.check_output(
+        [
+            sys.executable,
+            str(source_repo / "tools/repo/source_history_legos.py"),
+            "--repo",
+            str(subject),
+            "--left",
+            previous,
+            "--right",
+            current,
+            "--impact-prefix",
+            "src/",
+        ],
+        text=True,
+    ).strip()
+    (subject / "delta.json").write_text(delta, encoding="utf-8")
+    changed_ref = json.loads(delta)["changedRefs"][0]
+    (subject / "proofs.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "proof:changed",
+                    "dependsOn": [changed_ref],
+                    "dependenciesComplete": True,
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    owner = tmp_path / "owner"
+    owner.mkdir()
+    git(owner, "init", "-q")
+    git(owner, "config", "user.name", "Contract Test")
+    git(owner, "config", "user.email", "contract@invalid.example")
+    shutil.copytree(
+        source_repo / "packages/composition/src/ordivon_composition",
+        owner / "packages/composition/src/ordivon_composition",
+        ignore=shutil.ignore_patterns("__pycache__"),
+    )
+    producer = owner / "tools/repo/source_history_legos.py"
+    producer.parent.mkdir(parents=True)
+    # The symlink's Git blob bytes themselves form a legitimate Python
+    # program once replaced with a regular worktree file.
+    executable_text = "print(" + repr(delta) + ")"
+    producer.symlink_to(executable_text)
+    git(owner, "add", "tools/repo/source_history_legos.py")
+    git(owner, "commit", "-qm", "symlink-only producer")
+    assert git(owner, "ls-tree", "HEAD", "tools/repo/source_history_legos.py").startswith(
+        "120000 blob "
+    )
+    producer.unlink()
+    producer.write_text(executable_text, encoding="utf-8")
+    assert not producer.is_symlink()
+    assert producer.read_text(encoding="utf-8") == git(
+        owner, "show", "HEAD:tools/repo/source_history_legos.py"
+    )
+    env = dict(os.environ, PYTHONPATH=str(owner / "packages/composition/src"))
+    selection = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "select-impact",
+            str(subject / "delta.json"),
+            str(subject / "proofs.json"),
+            "--repo",
+            str(subject),
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert selection.returncode != 0
+    assert "native Git query producer Git tree mode is not regular" in selection.stderr
+    assert "Traceback" not in selection.stderr
+
+
 def test_native_git_source_delta_selects_cas_without_rechecking_tla(tmp_path, monkeypatch):
     """Real Git and existing Composition selector: red CAS != model-source delta.
 
@@ -2137,6 +2419,76 @@ def test_manifest_impact_verifier_identity_unaffected_by_other_gate_manifest_dig
     }
 
 
+@pytest.mark.parametrize(
+    "malformed",
+    [None, False, True, 0, 1, 2.5, "proof:not-a-list", {"id": "proof:x"}, (None,)],
+)
+def test_shared_c04_untrusted_obligation_collection_fail_closed(malformed):
+    """All C04 callers share one typed boundary, not their own try/except.
+
+    This is input qualification, not implementation refinement or an
+    installed-effects certificate. The existing 4096-graph finite witness
+    separately checks the three-valued propagation contract.
+    """
+    with pytest.raises(CircuitContractError, match="obligations must be a JSON array"):
+        select_impacted_obligations(
+            authority_refs=["source:a"],
+            obligations=malformed,
+            changed_refs=["source:a"],
+        )
+
+
+@pytest.mark.parametrize("invalid", [None, False, 17, 1.5, "bad", {"id": "proof:x"}])
+def test_shared_c04_gateway_cli_rejects_invalid_proof_graph_without_traceback(tmp_path, invalid):
+    """Actual C06 CLI consumer may not leak Python iteration errors."""
+    import json
+    import subprocess
+    import sys
+
+    op = "ordivon-exec:v1:external.pull:operation-one"
+    obs = {
+        "kind": "ordivon.gateway-execution-observation",
+        "schema_version": 1,
+        "owner_id": "external.pull",
+        "native_id": "operation-one",
+        "operation_ref": op,
+        "capability": "muse.shell.echo",
+        "state": "reconcile_required",
+        "terminal": False,
+        "recovery_required": True,
+        "delivery_disposition": "unknown",
+    }
+    observed = tmp_path / "observation.json"
+    graph = tmp_path / "graph.json"
+    observed.write_text(json.dumps(obs), encoding="utf8")
+    graph.write_text(
+        json.dumps(
+            {
+                "authorityRefs": ["effect:" + op],
+                "obligations": invalid,
+            }
+        ),
+        encoding="utf8",
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.effect_reconciliation_r1",
+            str(observed),
+            str(graph),
+            "--expected-operation-ref",
+            op,
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "effect reconciliation refused: obligations must be a JSON array" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert not result.stdout
+
+
 def test_recursive_proof_cycle_change_propagates_without_blocking_independent_branch():
     graph = [
         {"id": "proof:a", "dependsOn": ["proof:b"], "dependenciesComplete": True},
@@ -2567,3 +2919,129 @@ def test_agent_cli_impact_observations_reuses_native_selector_without_new_regist
     bad = subprocess.run(cmd, text=True, capture_output=True, check=False)
     assert bad.returncode != 0
     assert "task-local authorityRefs and obligations" in bad.stderr
+
+
+def test_selector_three_level_priority_matches_independent_bounded_path_oracle() -> None:
+    """Finite falsifier for the Lean least-closed-demand semantics.
+
+    This exhausts 4,608 bounded directed acyclic consumer graphs/input masks;
+    it is NOT a proof that the dynamic implementation has a complete readset.
+    The oracle uses topological path evaluation, NOT the selector's worklist.
+    """
+    from itertools import product
+
+    roots = ["source:network", "installed:postgres"]
+    proofs = ["proof:gateway", "proof:runtime", "proof:consumer"]
+    optional_edges = [(0, 1), (0, 2), (1, 2)]
+    standing = ("REUSE_CANDIDATE", "UNKNOWN", "RECHECK_REQUIRED")
+    cases = 0
+
+    for arc_bits in range(1 << len(optional_edges)):
+        edges = [
+            (low, high)
+            for index, (low, high) in enumerate(optional_edges)
+            if arc_bits & (1 << index)
+        ]
+        for source_binding in product(range(2), repeat=3):
+            for root_priority in product(range(3), repeat=2):
+                old_changed = [roots[i] for i, rank in enumerate(root_priority) if rank == 2]
+                old_unknown = [roots[i] for i, rank in enumerate(root_priority) if rank == 1]
+                for completeness_bits in range(8):
+                    rows = []
+                    oracle = {root: root_priority[index] for index, root in enumerate(roots)}
+                    for index, name in enumerate(proofs):
+                        is_complete = not bool(completeness_bits & (1 << index))
+                        incoming = [proofs[low] for low, high in edges if high == index]
+                        dependencies = [roots[source_binding[index]], *incoming]
+                        rows.append(
+                            {
+                                "id": name,
+                                "dependsOn": dependencies,
+                                "dependenciesComplete": is_complete,
+                            }
+                        )
+                        oracle[name] = max(
+                            [0 if is_complete else 1] + [oracle[d] for d in dependencies]
+                        )
+                    selected = select_impacted_obligations(
+                        authority_refs=roots,
+                        obligations=rows,
+                        changed_refs=old_changed,
+                        unknown_refs=old_unknown,
+                    )
+                    observed = {
+                        row["id"]: row["standing"] for row in selected["standingByObligation"]
+                    }
+                    assert observed == {name: standing[oracle[name]] for name in proofs}, (
+                        edges,
+                        source_binding,
+                        root_priority,
+                        completeness_bits,
+                        observed,
+                        oracle,
+                    )
+                    assert selected["proofReuseAdmissible"] is False
+                    assert selected["proofAcceptanceEstablished"] is False
+                    cases += 1
+
+    assert cases == 4608
+
+
+def test_recursive_proof_detection_scales_to_long_acyclic_and_cyclic_chains() -> None:
+    """A large task-local graph must not require recursive or quadratic walks."""
+    from ordivon_composition.verification_obligation_r1 import _cyclic_proof_members
+
+    count = 6000
+    chain = [
+        {
+            "id": f"proof:chain:{index}",
+            "dependsOn": [] if index == 0 else [f"proof:chain:{index - 1}"],
+        }
+        for index in range(count)
+    ]
+    assert _cyclic_proof_members(chain) == set()
+
+    # The back-edge closes exactly the chain segment [1500..5999].
+    # The earlier prefix is a prerequisite, not part of the cycle.
+    chain[1500]["dependsOn"].append(f"proof:chain:{count - 1}")
+    expected = {f"proof:chain:{index}" for index in range(1500, count)}
+    assert _cyclic_proof_members(chain) == expected
+    # A self-loop is recursive even without a second member.
+    assert _cyclic_proof_members([{"id": "proof:self", "dependsOn": ["proof:self"]}]) == {
+        "proof:self"
+    }
+
+
+def test_immutable_git_manifest_source_path_nul_vs_literal_backslash_x00(tmp_path) -> None:
+    """An invalid NUL must fail closed; a literal Git filename is not a NUL."""
+    import subprocess
+    from pathlib import Path
+
+    from ordivon_composition.verification_obligation_r1 import _immutable_git_manifest
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(tmp_path), *args],
+            text=True,
+        ).strip()
+
+    git("init", "-q")
+    literal_name = "manifest\\x00.json"
+    (tmp_path / literal_name).write_text('{"schemaVersion": 1}\n', encoding="utf-8")
+    git("add", "--", literal_name)
+    git(
+        "-c",
+        "user.name=SourceCutTest",
+        "-c",
+        "user.email=test@example.invalid",
+        "commit",
+        "-qm",
+        "immutable path fixture",
+    )
+    commit = git("rev-parse", "HEAD")
+
+    doc, witness = _immutable_git_manifest(tmp_path, commit, Path(literal_name))
+    assert doc == {"schemaVersion": 1}
+    assert witness["path"] == literal_name
+    with pytest.raises(CircuitContractError, match="canonical relative path"):
+        _immutable_git_manifest(tmp_path, commit, Path("manifest\x00.json"))
