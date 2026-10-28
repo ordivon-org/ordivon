@@ -45,6 +45,7 @@ _FORMAL_SOURCE_FILES = (
     "tools/formal/Proof.rs", "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs", "tools/formal/Proof.qnt",
     "tools/formal/Proof.als",
+    "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
 )
 _FORMAL_PROBE_ORACLES = (
     ("Lean kernel R2.1 relational composition", 0),
@@ -91,6 +92,14 @@ def _qualified_formal_test_receipt(
         "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "proofReuseAdmissible": False,
+        "sourceFragmentRefinement": {
+            "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
+            "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
+            "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
+            "codeFragmentRefined": True,
+            "runtimeRustRefined": False,
+            "installedCurrentness": "UNKNOWN",
+        },
         "implementationRefinement": "UNKNOWN",
         "installedCurrentness": "UNKNOWN",
         "sourceBlobs": sources,
@@ -280,6 +289,12 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             no_sources = copy.deepcopy(full_report)
             no_sources.pop("sourceBlobs")
             invalid_receipts["no-source-blob-membership"] = json.dumps(no_sources)
+            no_fragment = copy.deepcopy(full_report)
+            no_fragment.pop("sourceFragmentRefinement")
+            invalid_receipts["missing-executable-fragment-evidence"] = json.dumps(no_fragment)
+            forged_fragment = copy.deepcopy(full_report)
+            forged_fragment["sourceFragmentRefinement"]["runtimeRustRefined"] = True
+            invalid_receipts["forged-rust-refinement-claim"] = json.dumps(forged_fragment)
             no_tools = copy.deepcopy(full_report)
             no_tools.pop("toolBinaries")
             invalid_receipts["no-eight-tool-witnesses"] = json.dumps(no_tools)
