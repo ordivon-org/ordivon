@@ -184,11 +184,18 @@ class GatewayService:
         )
 
     async def capability_describe(self, capability: str | None = None) -> CapabilityProjection:
-        external_projection = (
-            self._external_workers.capability_projection()
-            if self._external_workers is not None
-            else {}
-        )
+        # The native route wins execution_submit/execution_resolve dispatch.
+        # Discovery must expose that same natural owner exactly once, even
+        # when a pull worker advertises an overlapping capability name.
+        external_projection = {
+            name: nodes
+            for name, nodes in (
+                self._external_workers.capability_projection().items()
+                if self._external_workers is not None
+                else ()
+            )
+            if name not in self._routes
+        }
         if capability is not None:
             route = self._routes.get(capability)
             if route is None and capability not in external_projection:
