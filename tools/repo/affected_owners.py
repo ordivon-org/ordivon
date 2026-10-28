@@ -145,7 +145,13 @@ def requires_core_formal_verification(paths: Iterable[str]) -> bool:
     A separate source-bound check is required so those edits never skip
     verification in the protected root GitHub workflow.
     """
-    return any(_normalize(path).startswith("tools/formal/") for path in paths)
+    # The root task definition consumes the Formal verifier too:
+    # editing the task wiring can change effects without changing proof files.
+    return any(
+        (normalized := _normalize(path)) == "mise.toml"
+        or normalized.startswith("tools/formal/")
+        for path in paths
+    )
 
 
 def changed_paths(base: str, head: str) -> tuple[str, ...]:
