@@ -242,3 +242,66 @@ def test_self_referential_contract_is_descriptive_not_externally_grounded() -> N
     compiled = compile_successor_contract(contract)
     assert compiled["evaluationGroundingMode"] == "SELF_REFERENTIAL"
     assert compiled["externallyGrounded"] is False
+
+
+@pytest.mark.parametrize("mode", ["EXTERNALLY_ANCHORED", "MIXED"])
+def test_external_anchor_owner_cannot_be_the_candidate_being_evaluated(mode: str) -> None:
+    """R2.1 independent evaluator: explicit self ownership contradicts external tag.
+
+    This is only a necessary consistency condition on caller-supplied source,
+    not a proof that another declared owner is genuinely independent.
+    """
+    contract = valid_contract()
+    external = contract["evaluationGrounding"]["anchors"][0]
+    external["ownerId"] = contract["candidateRef"]["id"]
+    contract["evaluationGrounding"]["mode"] = mode
+    if mode == "MIXED":
+        contract["evaluationGrounding"]["anchors"].append(
+            {
+                "id": "anchor:candidate-owned",
+                "ownerId": contract["candidateRef"]["id"],
+                "ref": "report:candidate-own-judge",
+                "digest": _digest("candidate-own-judge"),
+                "relation": "CANDIDATE_OWNED",
+            }
+        )
+    with pytest.raises(CircuitContractError, match="external evaluation anchor owned by candidate"):
+        compile_successor_contract(contract)
+
+
+def test_candidate_owned_anchor_and_distinct_external_anchor_still_admit_mixed_mode() -> None:
+    """Avoid overconstraining R2.1 valid mixed/source-only evaluation models."""
+    contract = valid_contract()
+    contract["evaluationGrounding"]["mode"] = "MIXED"
+    contract["evaluationGrounding"]["anchors"].append(
+        {
+            "id": "anchor:candidate-owned",
+            "ownerId": contract["candidateRef"]["id"],
+            "ref": "report:candidate-own-judge",
+            "digest": _digest("candidate-own-judge"),
+            "relation": "CANDIDATE_OWNED",
+        }
+    )
+    result = compile_successor_contract(contract)
+    assert result["externallyGrounded"] is True
+    assert result["evaluationGroundingMode"] == "MIXED"
+
+
+def test_self_referential_candidate_owned_anchor_remains_valid_but_not_external() -> None:
+    contract = valid_contract()
+    contract["evaluationGrounding"] = {
+        "mode": "SELF_REFERENTIAL",
+        "anchors": [
+            {
+                "id": "anchor:owned",
+                "ownerId": contract["candidateRef"]["id"],
+                "ref": "report:candidate-own-judge",
+                "digest": _digest("self-judge"),
+                "relation": "CANDIDATE_OWNED",
+            }
+        ],
+    }
+    contract["gateRequirements"][0]["anchorRefIds"] = ["anchor:owned"]
+    result = compile_successor_contract(contract)
+    assert result["externallyGrounded"] is False
+    assert result["evaluationGroundingMode"] == "SELF_REFERENTIAL"
