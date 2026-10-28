@@ -53,6 +53,10 @@
       "behavioralContract": "Host-local revision and content identities are preserved; ActorRef is a reference, not authenticated identity; no execution or domain acceptance is granted.",
       "children": [
         "O09"
+      ],
+      "consumerBindings": [
+        "services/host/tests/test_social_work_fabric_work_graph.py::test_host_work_cas_revision_is_exact_positive_integer_before_db",
+        "services/host/tests/test_social_work_fabric_postgres.py::test_work_snapshot_cas_race_has_one_winner"
       ]
     },
     {
@@ -88,6 +92,10 @@
       "children": [
         "O10",
         "O11"
+      ],
+      "consumerBindings": [
+        "services/host/tests/test_social_work_fabric_social_store.py::test_reply_relation_is_same_topic_only",
+        "services/host/tests/test_social_work_fabric_social_store.py::test_topic_resume_is_bounded_and_cursor_based"
       ]
     },
     {
@@ -123,6 +131,10 @@
       "behavioralContract": "Attention change sequence and topic message sequence are distinct coordinates; projection neither ranks nor schedules.",
       "children": [
         "O12"
+      ],
+      "consumerBindings": [
+        "services/host/tests/test_social_work_fabric_attention.py::test_attention_cursor_is_monotonic_and_horizon_bounded",
+        "services/host/tests/test_social_work_fabric_attention.py::test_attention_is_actor_scoped_and_subscription_bounded"
       ]
     },
     {
@@ -155,7 +167,11 @@
         "Committed rows and receipts; schema/integrity status"
       ],
       "behavioralContract": "Alembic owns migration; service startup requires schema 10; Host stores cannot substitute for Runtime ledger or foreign truth.",
-      "children": []
+      "children": [],
+      "consumerBindings": [
+        "services/host/tests/test_schema_diagnostic.py::test_schema_mismatch_diagnostic_tracks_required_schema_version",
+        "services/host/tests/test_social_work_fabric_postgres.py::test_r2_schema_indexes_and_cursor_table_exist"
+      ]
     },
     {
       "id": "O09",

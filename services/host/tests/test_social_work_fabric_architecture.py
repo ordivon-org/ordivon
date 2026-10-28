@@ -93,3 +93,46 @@ def test_swf99_kills_legacy_core_and_control_plane_creep() -> None:
         "SocialScheduler",
         "SocialLockLease",
     } <= killed
+
+
+def test_host_core_first_four_lego_consumer_readsets_are_exercised_not_formal_proofs() -> None:
+    """Plan declarations refer to actual, named Host tests, not guessed consumers."""
+    import ast
+
+    plan = json.loads((ROOT / "planning" / "lego-plan-r1.json").read_text())
+    nodes = {n["id"]: n for n in plan["nodes"]}
+    expected = {
+        "O01": {"test_host_work_cas_revision_is_exact_positive_integer_before_db",
+                "test_work_snapshot_cas_race_has_one_winner"},
+        "O02": {"test_reply_relation_is_same_topic_only",
+                "test_topic_resume_is_bounded_and_cursor_based"},
+        "O03": {"test_attention_cursor_is_monotonic_and_horizon_bounded",
+                "test_attention_is_actor_scoped_and_subscription_bounded"},
+        "O04": {"test_schema_mismatch_diagnostic_tracks_required_schema_version",
+                "test_r2_schema_indexes_and_cursor_table_exist"},
+    }
+    assert set(expected) <= set(nodes)
+    for node_id, tests in expected.items():
+        node = nodes[node_id]
+        assert node["behavioralContract"]
+        bindings = node["consumerBindings"]
+        assert len(bindings) == len(tests)
+        assert {line.split("::")[1] for line in bindings} == tests
+        assert "formalEvidence" not in node
+        assert "formalObligations" not in node
+        for locator in bindings:
+            source_path, symbol = locator.split("::")
+            assert source_path.startswith("services/host/tests/test_")
+            test_path = ROOT.parents[1] / source_path
+            assert test_path.is_file()
+            tree = ast.parse(test_path.read_text())
+            assert symbol in {
+                item.name for item in ast.walk(tree)
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+            }
+        invalid = dict(node)
+        invalid.pop("consumerBindings")
+        assert not any(invalid.get(k) for k in (
+            "consumerBindings", "consumerEvidence", "consumerRefs",
+            "actualConsumers", "consumers",
+        ))
