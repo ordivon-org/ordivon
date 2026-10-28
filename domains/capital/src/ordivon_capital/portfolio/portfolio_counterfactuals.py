@@ -29,7 +29,42 @@ def _fmt(value: Decimal | None, places: str = "0.000001") -> str | None:
     return format(value.quantize(Decimal(places)), "f")
 
 
-def _ledger_state(exposure_ledger: Mapping[str, Any]) -> tuple[Decimal, Decimal, dict[str, dict[str, Any]]]:
+def _fmt_machine(value: Decimal) -> str:
+    """Keep full machine Decimal truth; use six-place form only when lossless."""
+    rendered = _fmt(value)
+    if rendered is None:
+        raise PortfolioCounterfactualError("machine decimal unexpectedly missing")
+    return rendered if Decimal(rendered) == value else format(value, "f")
+
+
+def _q6(value: Any, label: str) -> Decimal:
+    """Quantize only displayed ratio/percentage deltas, never source machine values."""
+    return _d(value, label).quantize(Decimal("0.000001"))
+
+
+def _visible_delta(after: Decimal, before: Decimal) -> str:
+    """A reported delta equals the difference of the two visible six-place endpoints."""
+    return format(_q6(after, "delta.after") - _q6(before, "delta.before"), ".6f")
+
+
+def _canonical_factor_loadings(raw: Mapping[str, Any], label: str) -> dict[str, Decimal]:
+    """Injective factor identity with the same key trimming as the risk ledger."""
+    if not isinstance(raw, Mapping):
+        raise PortfolioCounterfactualError(f"{label} must be an object")
+    output: dict[str, Decimal] = {}
+    for key, value in raw.items():
+        factor = str(key).strip()
+        if not factor:
+            raise PortfolioCounterfactualError(f"{label} factor name cannot be blank")
+        if factor in output:
+            raise PortfolioCounterfactualError(f"{label} duplicate normalized factor: {factor}")
+        output[factor] = _d(value, f"{label}.{factor}")
+    return output
+
+
+def _ledger_state(
+    exposure_ledger: Mapping[str, Any],
+) -> tuple[Decimal, Decimal, dict[str, dict[str, Any]]]:
     equity = _d(exposure_ledger.get("equityUsd"), "ledger.equityUsd")
     if equity <= 0:
         raise PortfolioCounterfactualError("ledger equity must be positive")
@@ -50,15 +85,10 @@ def _ledger_state(exposure_ledger: Mapping[str, Any]) -> tuple[Decimal, Decimal,
         if inst in by_inst:
             raise PortfolioCounterfactualError(f"duplicate ledger instrument: {inst}")
         signed = _d(row.get("signedNotionalUsd"), f"ledger.positions[{i}].signedNotionalUsd")
-        factor_loadings = row.get("factorLoadings") or {}
-        if not isinstance(factor_loadings, Mapping):
-            raise PortfolioCounterfactualError("ledger factorLoadings must be an object")
+        factor_loadings = row.get("factorLoadings", {})
         by_inst[inst] = {
             "signedNotionalUsd": signed,
-            "factorLoadings": {
-                str(k): _d(v, f"{inst}.factorLoadings.{k}")
-                for k, v in factor_loadings.items()
-            },
+            "factorLoadings": _canonical_factor_loadings(factor_loadings, f"{inst}.factorLoadings"),
         }
     return equity, available, by_inst
 
@@ -68,31 +98,37 @@ def _recompute(
     equity: Decimal,
     positions: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
-    gross = sum((abs(_d(row["signedNotionalUsd"], "signedNotionalUsd")) for row in positions.values()), Decimal("0"))
-    net = sum((_d(row["signedNotionalUsd"], "signedNotionalUsd") for row in positions.values()), Decimal("0"))
-    largest = max(
-        (abs(_d(row["signedNotionalUsd"], "signedNotionalUsd")) for row in positions.values()),
-        default=Decimal("0"),
-    )
+    # Machine exposure/position ports must remain lossless; six decimal
+    # presentation is never permitted to erase a small real factor effect.
+    signed_by_inst = {
+        inst: _d(row["signedNotionalUsd"], f"{inst}.signedNotionalUsd")
+        for inst, row in positions.items()
+    }
+    gross = sum((abs(value) for value in signed_by_inst.values()), Decimal("0"))
+    net = sum(signed_by_inst.values(), Decimal("0"))
+    largest = max((abs(value) for value in signed_by_inst.values()), default=Decimal("0"))
     factor_exposure: dict[str, Decimal] = {}
     normalized = []
     for inst in sorted(positions):
         row = positions[inst]
-        signed = _d(row["signedNotionalUsd"], f"{inst}.signedNotionalUsd")
-        loadings = row.get("factorLoadings") or {}
+        signed = signed_by_inst[inst]
+        loadings = _canonical_factor_loadings(
+            row.get("factorLoadings", {}), f"{inst}.factorLoadings"
+        )
         rendered_loadings = {}
-        for factor, value in loadings.items():
-            loading = _d(value, f"{inst}.factorLoadings.{factor}")
-            rendered_loadings[str(factor)] = _fmt(loading)
-            factor_exposure[str(factor)] = factor_exposure.get(str(factor), Decimal("0")) + signed * loading
-        normalized.append({
-            "instrumentId": inst,
-            "signedNotionalUsd": _fmt(signed),
-            "absoluteNotionalUsd": _fmt(abs(signed)),
-            "grossShare": _fmt(abs(signed) / gross) if gross > 0 else "0.000000",
-            "equityMultiple": _fmt(abs(signed) / equity),
-            "factorLoadings": rendered_loadings,
-        })
+        for factor, loading in loadings.items():
+            rendered_loadings[factor] = _fmt_machine(loading)
+            factor_exposure[factor] = factor_exposure.get(factor, Decimal("0")) + signed * loading
+        normalized.append(
+            {
+                "instrumentId": inst,
+                "signedNotionalUsd": _fmt_machine(signed),
+                "absoluteNotionalUsd": _fmt_machine(abs(signed)),
+                "grossShare": _fmt(abs(signed) / gross) if gross > 0 else "0.000000",
+                "equityMultiple": _fmt(abs(signed) / equity),
+                "factorLoadings": rendered_loadings,
+            }
+        )
     return {
         "grossNotionalUsd": gross,
         "netNotionalUsd": net,
@@ -119,24 +155,22 @@ def _apply_delta_position(
             factor_loadings = {}
         positions[instrument_id] = {
             "signedNotionalUsd": signed_delta_usd,
-            "factorLoadings": {
-                str(k): _d(v, f"{instrument_id}.factorLoadings.{k}")
-                for k, v in factor_loadings.items()
-            },
+            "factorLoadings": _canonical_factor_loadings(
+                factor_loadings, f"{instrument_id}.factorLoadings"
+            ),
         }
         return
 
     existing_loadings = existing.get("factorLoadings") or {}
     if factor_loadings is not None:
-        candidate = {
-            str(k): _d(v, f"{instrument_id}.factorLoadings.{k}")
-            for k, v in factor_loadings.items()
-        }
+        candidate = _canonical_factor_loadings(factor_loadings, f"{instrument_id}.factorLoadings")
         if candidate != existing_loadings:
             raise PortfolioCounterfactualError(
                 f"factor loadings for existing instrument {instrument_id} disagree with ledger"
             )
-    existing["signedNotionalUsd"] = _d(existing["signedNotionalUsd"], "existing signed notional") + signed_delta_usd
+    existing["signedNotionalUsd"] = (
+        _d(existing["signedNotionalUsd"], "existing signed notional") + signed_delta_usd
+    )
     if existing["signedNotionalUsd"] == 0:
         del positions[instrument_id]
 
@@ -168,12 +202,16 @@ def build_action_counterfactual(
     changed_instruments: set[str] = set()
     sizing_basis = str(scenario.get("sizingBasis") or "EXPLICIT_CALLER_COUNTERFACTUAL").strip()
     if sizing_basis != "EXPLICIT_CALLER_COUNTERFACTUAL":
-        raise PortfolioCounterfactualError("scenario analysis accepts only EXPLICIT_CALLER_COUNTERFACTUAL sizing")
+        raise PortfolioCounterfactualError(
+            "scenario analysis accepts only EXPLICIT_CALLER_COUNTERFACTUAL sizing"
+        )
 
     if action == "DE_RISK":
         inst = str(scenario.get("instrumentId") or "").strip()
         if inst not in projected_positions:
-            raise PortfolioCounterfactualError("DE_RISK instrument must exist in the exposure ledger")
+            raise PortfolioCounterfactualError(
+                "DE_RISK instrument must exist in the exposure ledger"
+            )
         reduction_fraction = _d(scenario.get("reductionFraction"), "scenario.reductionFraction")
         if reduction_fraction <= 0 or reduction_fraction > 1:
             raise PortfolioCounterfactualError("reductionFraction must be in (0, 1]")
@@ -209,10 +247,14 @@ def build_action_counterfactual(
             raise PortfolioCounterfactualError("DIVERSIFY source and destination must differ")
         if source not in projected_positions:
             raise PortfolioCounterfactualError("DIVERSIFY source instrument must exist in ledger")
-        reallocation_fraction = _d(scenario.get("reallocationFraction"), "scenario.reallocationFraction")
+        reallocation_fraction = _d(
+            scenario.get("reallocationFraction"), "scenario.reallocationFraction"
+        )
         if reallocation_fraction <= 0 or reallocation_fraction > 1:
             raise PortfolioCounterfactualError("reallocationFraction must be in (0, 1]")
-        source_current = _d(projected_positions[source]["signedNotionalUsd"], "source current notional")
+        source_current = _d(
+            projected_positions[source]["signedNotionalUsd"], "source current notional"
+        )
         if source_current == 0:
             raise PortfolioCounterfactualError("DIVERSIFY source notional cannot be zero")
         source_reduction = source_current * reallocation_fraction
@@ -249,7 +291,9 @@ def build_action_counterfactual(
                 "reallocationFraction",
             )
         ):
-            raise PortfolioCounterfactualError(f"{action} scenario cannot contain position-changing fields")
+            raise PortfolioCounterfactualError(
+                f"{action} scenario cannot contain position-changing fields"
+            )
 
     projected = _recompute(equity=equity, positions=projected_positions)
 
@@ -257,9 +301,9 @@ def build_action_counterfactual(
     factor_delta = [
         {
             "factor": factor,
-            "beforeUsd": _fmt(baseline["factorExposure"].get(factor, Decimal("0"))),
-            "afterUsd": _fmt(projected["factorExposure"].get(factor, Decimal("0"))),
-            "deltaUsd": _fmt(
+            "beforeUsd": _fmt_machine(baseline["factorExposure"].get(factor, Decimal("0"))),
+            "afterUsd": _fmt_machine(projected["factorExposure"].get(factor, Decimal("0"))),
+            "deltaUsd": _fmt_machine(
                 projected["factorExposure"].get(factor, Decimal("0"))
                 - baseline["factorExposure"].get(factor, Decimal("0"))
             ),
@@ -278,10 +322,16 @@ def build_action_counterfactual(
         if shock_pct <= 0 or shock_pct > 100:
             raise PortfolioCounterfactualError("shock magnitudePct must be in (0, 100]")
         before_notional = abs(
-            _d(baseline_positions.get(shock_inst, {}).get("signedNotionalUsd", 0), "shock before notional")
+            _d(
+                baseline_positions.get(shock_inst, {}).get("signedNotionalUsd", 0),
+                "shock before notional",
+            )
         )
         after_notional = abs(
-            _d(projected_positions.get(shock_inst, {}).get("signedNotionalUsd", 0), "shock after notional")
+            _d(
+                projected_positions.get(shock_inst, {}).get("signedNotionalUsd", 0),
+                "shock after notional",
+            )
         )
         before_loss = before_notional / equity * shock_pct
         after_loss = after_notional / equity * shock_pct
@@ -290,13 +340,10 @@ def build_action_counterfactual(
             "magnitudePct": _fmt(shock_pct),
             "beforeEquityLossPctFirstOrder": _fmt(before_loss),
             "afterEquityLossPctFirstOrder": _fmt(after_loss),
-            "deltaEquityLossPctFirstOrder": _fmt(after_loss - before_loss),
+            "deltaEquityLossPctFirstOrder": _visible_delta(after_loss, before_loss),
             "notVaR": True,
             "notLiquidationProbability": True,
         }
-
-    gross_delta = projected["grossNotionalUsd"] - baseline["grossNotionalUsd"]
-    net_delta = projected["netNotionalUsd"] - baseline["netNotionalUsd"]
 
     hedge_mechanics = None
     if action == "HEDGE":
@@ -313,8 +360,12 @@ def build_action_counterfactual(
             hedge_standing = "TARGET_FACTOR_ABSOLUTE_EXPOSURE_INCREASED"
         hedge_mechanics = {
             "targetFactor": target_factor,
-            "beforeSignedExposureUsd": _fmt(before_factor) if before_factor is not None else None,
-            "afterSignedExposureUsd": _fmt(after_factor) if after_factor is not None else None,
+            "beforeSignedExposureUsd": (
+                _fmt_machine(before_factor) if before_factor is not None else None
+            ),
+            "afterSignedExposureUsd": (
+                _fmt_machine(after_factor) if after_factor is not None else None
+            ),
             "standing": hedge_standing,
         }
 
@@ -327,27 +378,31 @@ def build_action_counterfactual(
         "sizingBasis": sizing_basis,
         "scenarioPurpose": str(scenario.get("purpose") or "").strip() or None,
         "baseline": {
-            "grossNotionalUsd": _fmt(baseline["grossNotionalUsd"]),
-            "netNotionalUsd": _fmt(baseline["netNotionalUsd"]),
+            "grossNotionalUsd": _fmt_machine(baseline["grossNotionalUsd"]),
+            "netNotionalUsd": _fmt_machine(baseline["netNotionalUsd"]),
             "grossToEquity": _fmt(baseline["grossToEquity"]),
             "netToEquity": _fmt(baseline["netToEquity"]),
             "largestPositionGrossShare": _fmt(baseline["largestPositionGrossShare"]),
         },
         "projected": {
-            "grossNotionalUsd": _fmt(projected["grossNotionalUsd"]),
-            "netNotionalUsd": _fmt(projected["netNotionalUsd"]),
+            "grossNotionalUsd": _fmt_machine(projected["grossNotionalUsd"]),
+            "netNotionalUsd": _fmt_machine(projected["netNotionalUsd"]),
             "grossToEquity": _fmt(projected["grossToEquity"]),
             "netToEquity": _fmt(projected["netToEquity"]),
             "largestPositionGrossShare": _fmt(projected["largestPositionGrossShare"]),
             "positions": projected["positions"],
         },
         "deltas": {
-            "grossNotionalUsd": _fmt(gross_delta),
-            "netNotionalUsd": _fmt(net_delta),
-            "grossToEquity": _fmt(projected["grossToEquity"] - baseline["grossToEquity"]),
-            "netToEquity": _fmt(projected["netToEquity"] - baseline["netToEquity"]),
-            "largestPositionGrossShare": _fmt(
-                projected["largestPositionGrossShare"] - baseline["largestPositionGrossShare"]
+            "grossNotionalUsd": _fmt_machine(
+                projected["grossNotionalUsd"] - baseline["grossNotionalUsd"]
+            ),
+            "netNotionalUsd": _fmt_machine(
+                projected["netNotionalUsd"] - baseline["netNotionalUsd"]
+            ),
+            "grossToEquity": _visible_delta(projected["grossToEquity"], baseline["grossToEquity"]),
+            "netToEquity": _visible_delta(projected["netToEquity"], baseline["netToEquity"]),
+            "largestPositionGrossShare": _visible_delta(
+                projected["largestPositionGrossShare"], baseline["largestPositionGrossShare"]
             ),
             "factorExposure": factor_delta,
         },
@@ -399,7 +454,9 @@ def evaluate_constraint_gate(
             repo=repo,
             config_path=repo / "config/execution_policy.json",
             counterfactual=dict(counterfactual),
-            risk_budget_evaluation=(dict(risk_budget_evaluation) if risk_budget_evaluation is not None else None),
+            risk_budget_evaluation=(
+                dict(risk_budget_evaluation) if risk_budget_evaluation is not None else None
+            ),
             evidence=(dict(evidence) if evidence is not None else None),
         )
     except PolicyDecisionError as exc:
