@@ -151,6 +151,21 @@ def _recover_tool_batch(
         active_call=active_call,
     )
 
+def _search_outcome_evidence(exit_code: JsonValue, status: JsonValue) -> str:
+    # rg exit 0 = matched, 1 = no_hits, >= 2 = execution error.
+    # The key already carries the query and path: keep this token independent
+    # of those fields so a narrower search can be subsumed by a broader one.
+    if type(exit_code) is int and exit_code >= 0:
+        meaning = (
+            "matched" if exit_code == 0 else "no_hits" if exit_code == 1 else "error"
+        )
+    else:
+        meaning = status if isinstance(status, str) else "unqualified"
+    return canonical_digest(
+        {"kind": "search-execution-outcome", "meaning": meaning, "exitCode": exit_code}
+    )
+
+
 def _search_evidence(
     call: AgentToolCall,
     observation: HarnessToolObservation,
@@ -171,6 +186,15 @@ def _search_evidence(
             if isinstance(raw_matches, list)
             else {_observation_evidence_signature(observation)}
         )
+        if isinstance(raw_matches, list):
+            # Both content and execution outcome are evidence: an rg failure
+            # may emit the same partial matches as a successful search.
+            matches.add(
+                _search_outcome_evidence(
+                    observation.structured_content.get("exitCode"),
+                    observation.structured_content.get("executionDisposition"),
+                )
+            )
         return (((query, relative_path), matches),)
     if (
         isinstance(raw_queries, list)
@@ -193,18 +217,14 @@ def _search_evidence(
                     if isinstance(raw_matches, list)
                     else {_observation_evidence_signature(observation)}
                 )
-                # Query status/exit code is evidence even when there are zero matches.
-                if not matches:
-                    matches = {
-                        canonical_digest(
-                            {
-                                "query": expected_query,
-                                "relativePath": relative_path,
-                                "status": result.get("status"),
-                                "exitCode": result.get("exitCode"),
-                            }
-                        )
-                    }
+                # Same outcome identity as a single search; failures with
+                # partial matches must not collapse into successful matches.
+                matches.add(
+                    _search_outcome_evidence(
+                        result.get("exitCode"),
+                        result.get("status"),
+                    )
+                )
                 units.append(((expected_query, relative_path), matches))
             if len(units) == len(raw_queries):
                 return tuple(units)
