@@ -377,6 +377,64 @@ jobs:
               [[ "${entry##*$'\t'}" == "$rel" ]] || return 1
               git --no-replace-objects show "HEAD:$rel" | cmp -s - "$rel" || return 1
             done
+            # Native Mise may load a higher-priority untracked local override.
+            # Qualify the EFFECTIVE in-repo readset as well as the three known
+            # executable files; external global config remains an assumption.
+            python3 - <<'PYMISE'
+          import json
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          repo = Path.cwd().resolve()
+          try:
+              observed = subprocess.run(
+                  ["mise", "--cd", str(repo / "tools/formal"),
+                   "config", "ls", "--json"],
+                  check=True, capture_output=True, text=True, timeout=20,
+              )
+              configs = json.loads(observed.stdout)
+              if not isinstance(configs, list) or not configs:
+                  raise ValueError("no native Formal Mise configs")
+              in_repo = set()
+              for item in configs:
+                  if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+                      raise ValueError("invalid native Formal Mise config entry")
+                  path = Path(item["path"])
+                  if not path.is_absolute():
+                      raise ValueError("nonabsolute native Formal Mise config path")
+                  try:
+                      rel = path.relative_to(repo).as_posix()
+                  except ValueError:
+                      # Global/home configuration is not qualified by this source cut.
+                      continue
+                  if (path.is_symlink() or not path.resolve().is_relative_to(repo)
+                          or not path.is_file()):
+                      raise ValueError("nonregular native Formal Mise config: " + rel)
+                  entry = subprocess.check_output(
+                      ["git", "--no-replace-objects", "ls-tree", "HEAD", "--", rel],
+                      text=True, stderr=subprocess.PIPE,
+                  ).strip()
+                  if re.fullmatch(
+                      r"(100644|100755) blob ([0-9a-f]{40}|[0-9a-f]{64})\t"
+                      + re.escape(rel), entry,
+                  ) is None:
+                      raise ValueError("untracked native Formal Mise config: " + rel)
+                  committed = subprocess.check_output(
+                      ["git", "--no-replace-objects", "show", "HEAD:" + rel],
+                      stderr=subprocess.PIPE,
+                  )
+                  if path.read_bytes() != committed:
+                      raise ValueError("dirty native Formal Mise config: " + rel)
+                  in_repo.add(rel)
+              if not {"mise.toml", "tools/formal/mise.toml"} <= in_repo:
+                  raise ValueError("required Formal Mise configs not actually loaded")
+          except (OSError, ValueError, subprocess.SubprocessError) as exc:
+              print("ERROR: effective Formal Mise config differs from Git HEAD: "
+                    + str(exc), file=sys.stderr)
+              raise SystemExit(43) from exc
+          PYMISE
           }
           qualify_formal_prefix || {
             echo "ERROR: Formal executable source differs from exact Git HEAD" >&2

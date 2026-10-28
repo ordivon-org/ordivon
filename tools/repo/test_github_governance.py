@@ -601,6 +601,26 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 finally:
                     target.write_bytes(exact_target)
 
+            # The dedicated Formal runner also consumes native effective Mise
+            # inputs, not only the Git-tracked child manifest and verify.py.
+            formal_override = repo / "tools/formal/mise.local.toml"
+            self.assertFalse(formal_override.exists())
+            try:
+                formal_override.write_text(
+                    '[tasks.verify]\nrun = "echo fake proof"\n',
+                    encoding="utf-8",
+                )
+                denied_local_formal = invoke(formal_script)
+                self.assertEqual(denied_local_formal.returncode, 43,
+                                 denied_local_formal.stderr)
+                self.assertIn(
+                    "effective Formal Mise config differs from Git HEAD",
+                    denied_local_formal.stderr,
+                )
+                self.assertEqual(record.read_text(), "")
+            finally:
+                formal_override.unlink(missing_ok=True)
+
             before = report.read_bytes()
             try:
                 for invalid in (
