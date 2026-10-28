@@ -143,29 +143,26 @@ class AffectedOwnersTests(unittest.TestCase):
             [owner.name for owner in MODULE.OWNERS],
         )
 
-    def test_executed_core_source_producers_close_known_consumer_gates(self) -> None:
-        # The source-history provider is executed by Composition select-impact
-        # and repo architecture consumers, even though it has no owner root.
-        # The source inventory is imported by the canonical convergence CLI.
-        # Until a qualified per-consumer invocation graph exists, these exact
-        # shared producers must conservatively select existing owner gates.
-        required = [owner.name for owner in MODULE.OWNERS]
-        for producer in (
-            "tools/repo/source_history_legos.py",
-            "tools/repo/exhaustive_coverage.py",
-        ):
-            with self.subTest(producer=producer):
-                self.assertEqual(self.names(producer), required)
-                self.assertEqual(
-                    self.queue_tasks(producer),
-                    [owner.queue_task for owner in MODULE.OWNERS],
-                )
-                # Adding an unrelated documentation file cannot erase impact.
-                self.assertEqual(
-                    self.names("docs/architecture/EXAMPLE.md", producer), required,
-                )
+    def test_executed_shared_producer_selects_exact_known_owner_consumer(self) -> None:
+        # The root repo:ci always checks the repository source tools.
+        # Composition additionally *executes* the source-history producer.
+        source = "tools/repo/source_history_legos.py"
+        self.assertEqual(self.names(source), ["composition"])
+        self.assertEqual(self.queue_tasks(source), ["composition:verify"])
+        self.assertEqual(
+            self.names("docs/architecture/EXAMPLE.md", source), ["composition"],
+        )
+        # An independent actual owner source composes without duplicates.
+        self.assertEqual(
+            self.names(source, "services/runtime/crates/ordivon-runtime-core/src/lib.rs"),
+            ["composition", "runtime"],
+        )
 
-    def test_unrelated_repo_document_and_test_do_not_expand_global_queue(self) -> None:
+    def test_repo_inventory_producer_is_covered_by_unconditional_root_ci(self) -> None:
+        # convergence_plan imports this module; the canonical root suite
+        # already runs test_convergence_plan before affected-owner selection.
+        self.assertEqual(self.names("tools/repo/exhaustive_coverage.py"), [])
+        self.assertEqual(self.queue_tasks("tools/repo/exhaustive_coverage.py"), [])
         self.assertEqual(self.names("tools/repo/README.md"), [])
         self.assertEqual(self.names("tools/repo/test_source_history_legos.py"), [])
 

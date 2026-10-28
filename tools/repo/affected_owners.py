@@ -82,11 +82,6 @@ CROSS_CUTTING_PATHS = frozenset(
         "tools/repo/test_affected_owners.py",
         "tools/repo/convergence_plan.py",
         "tools/repo/test_convergence_plan.py",
-        # Existing repo/Composition consumers execute these shared producers:
-        # a changed source-history or inventory engine must not silently skip
-        # owner verification merely because tools/repo/ has no owner root.
-        "tools/repo/source_history_legos.py",
-        "tools/repo/exhaustive_coverage.py",
         "tools/repo/check_github_governance.py",
         "tools/repo/dependency_contracts.toml",
         "tools/repo/check_owner_boundaries.py",
@@ -136,9 +131,17 @@ def owners_for_paths(
     normalized = tuple(_normalize(path) for path in paths if path.strip())
     if any(path in CROSS_CUTTING_PATHS for path in normalized):
         return owners
+    # Repo mechanics (repo:ci) runs unconditionally before owner-task
+    # selection. Only source-history also has an observed native Owner
+    # consumer: Composition select-impact executes this exact producer.
+    # Do not expand unrelated repo producer edits to all 18 domain queues.
+    history_consumer_changed = "tools/repo/source_history_legos.py" in normalized
     selected: list[Owner] = []
     for owner in owners:
-        if any(path.startswith(owner.root) for path in normalized):
+        if (
+            any(path.startswith(owner.root) for path in normalized)
+            or (history_consumer_changed and owner.name == "composition")
+        ):
             selected.append(owner)
     return tuple(selected)
 
