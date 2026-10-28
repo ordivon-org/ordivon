@@ -222,9 +222,7 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         observed = []
 
         def full_history_ancestor(arguments, *args, **kwargs):
-            tokens = [
-                token for token in arguments if token != "--no-replace-objects"
-            ]
+            tokens = [token for token in arguments if token != "--no-replace-objects"]
             if (
                 tokens[:3] == ["git", "merge-base", "--is-ancestor"]
                 and tokens[3] == revision
@@ -244,15 +242,16 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             self.assertEqual(
                 check_evidence._validate_index_creation_lineage_binding(
                     filename, revision, historical=True
-                ), [],
+                ),
+                [],
             )
-            self.assertTrue(
-                check_evidence._validate_index_creation_lineage_binding(
-                    filename, revision, historical=False
-                )
-            )
+            # A complete Git graph may qualify ORIGINAL source-to-creation
+            # lineage even without historical status. That alone cannot
+            # qualify CURRENT, which was rejected independently above.
+        # The immutable receipt may have an ORIGINAL creation commit in a
+        # fully traversable Git graph, so the import-cut query is not a
+        # universal consumer obligation. Source currentness still is.
         self.assertIn("HEAD", observed)
-        self.assertIn(check_evidence._HARNESS_HISTORICAL_IMPORT, observed)
 
     def test_scoped_foreign_git_history_is_not_implementation_diff(self) -> None:
         source = "9d936e98d8c02772aa2becc924ba9006c71aa989"

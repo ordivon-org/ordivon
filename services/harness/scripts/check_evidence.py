@@ -361,10 +361,18 @@ def _revision_after_monorepo_import(revision: str) -> bool:
     if not (EVIDENCE / "index.json").is_file():
         return True
     process = subprocess.run(
-        ["git", "--no-replace-objects", "merge-base", "--is-ancestor",
-         _HARNESS_HISTORICAL_IMPORT, revision],
-        cwd=ROOT, check=False,
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        [
+            "git",
+            "--no-replace-objects",
+            "merge-base",
+            "--is-ancestor",
+            _HARNESS_HISTORICAL_IMPORT,
+            revision,
+        ],
+        cwd=ROOT,
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
     return process.returncode == 0
 
