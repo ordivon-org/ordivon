@@ -176,6 +176,64 @@ class SourceBoundaryContractTests(unittest.TestCase):
                 )
 
 
+
+
+class FormalLegoDeclarationTests(unittest.TestCase):
+    """The four consumed Preservation LEGO seams need explicit proof obligations.
+
+    These are source-test witnesses, not a model-checker PASS or installed Fixity.
+    """
+
+    def test_pv_contracts_have_scoped_unproven_formal_obligations(self) -> None:
+        import importlib.util
+
+        # Reuse the canonical phase-1 declaration predicate, not another schema.
+        native_path = BOUNDARY.parent.parents[1] / "tools/repo/exhaustive_coverage.py"
+        spec = importlib.util.spec_from_file_location("native_coverage", native_path)
+        assert spec is not None and spec.loader is not None
+        native = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(native)
+
+        plan = json.loads(
+            (BOUNDARY.parent / "planning/lego-plan-r1.json").read_text(encoding="utf-8")
+        )
+        nodes = {node["id"]: node for node in plan["nodes"]}
+        self.assertEqual(set(nodes), {"PV00", "PV01", "PV02", "PV03"})
+        for name, node in nodes.items():
+            with self.subTest(node=name):
+                self.assertEqual(
+                    node.get("formalQualification"),
+                    "DECLARED_SOURCE_ONLY_TESTED_NOT_MATHEMATICALLY_PROVED",
+                )
+                obligations = node.get("formalObligations")
+                self.assertIsInstance(obligations, list)
+                self.assertTrue(obligations)
+                for item in obligations:
+                    self.assertEqual(
+                        set(item),
+                        {"id", "predicate", "scope", "nativeWitness", "proofStanding"},
+                    )
+                    self.assertTrue(item["id"].startswith(name + ":"))
+                    self.assertTrue(item["predicate"].strip())
+                    self.assertEqual(item["scope"], "ORIGINAL_GIT_SOURCE_ONLY")
+                    self.assertEqual(item["proofStanding"], "FINITE_NATIVE_TEST_NOT_FORMAL_PROOF")
+                    class_name, test_name = item["nativeWitness"].split(".", 1)
+                    cls = globals()[class_name]
+                    self.assertTrue(callable(getattr(cls, test_name, None)))
+                # An omitted obligation cannot remain a qualified declaration
+                # merely because the owner has acceptance or source evidence.
+                self.assertTrue(
+                    native.declared_values(node, native.FIELDS["FORMAL"])
+                )
+                stripped = {
+                    key: value
+                    for key, value in node.items()
+                    if key not in ("formalObligations", "formalQualification")
+                }
+                self.assertFalse(
+                    native.declared_values(stripped, native.FIELDS["FORMAL"])
+                )
+
 # Source-only negative controls: no Docker/Systemd mutation and no reading
 # of private credential environment bytes. Under -O the same verifier must
 # reject a timer silently redirected to a different service.
