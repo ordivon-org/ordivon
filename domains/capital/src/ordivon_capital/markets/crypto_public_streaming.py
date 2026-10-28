@@ -11,6 +11,7 @@ from typing import Any
 
 from websockets.asyncio.client import connect
 
+from ordivon_capital.markets.public_bbo import qualified_public_bbo
 from ordivon_capital.markets.websocket_proxy_lifecycle import (
     NetworkV2ProxyClientConnection,
 )
@@ -30,10 +31,6 @@ SOURCE_SPAN_MAX_MS = 1200
 RECEIVE_SPAN_MAX_MS = 1200
 
 
-def _d(v: Any) -> Decimal:
-    return Decimal(str(v))
-
-
 def _bps(num: Decimal, den: Decimal) -> str:
     return format((num / den) * Decimal(10_000), ".6f")
 
@@ -47,6 +44,16 @@ def evaluate_snapshot(
     missing = [k for k in KEYS if k not in latest]
     if missing:
         return {"qualified": False, "reason": "MISSING_STREAMS", "missing": missing}
+    # The live stream is not a financial signal until ALL four public BBOs
+    # are usable. One invalid venue/asset blocks every cross-venue comparison.
+    prices: dict[str, tuple[Decimal, Decimal]] = {}
+    for key in KEYS:
+        try:
+            prices[key] = qualified_public_bbo(
+                latest[key].get("bid"), latest[key].get("ask"), source=key
+            )
+        except ValueError:
+            return {"qualified": False, "reason": "INVALID_BBO", "invalid": [key]}
     if previous is not None:
         stale = [k for k in KEYS if int(latest[k]["sourceTimeMs"]) <= int(previous[k]["sourceTimeMs"])]
         if stale:
@@ -62,8 +69,10 @@ def evaluate_snapshot(
     for asset in ("BTC", "ETH"):
         oq = latest[f"OKX:{asset}"]
         bq = latest[f"BINANCE:{asset}"]
-        omid = (_d(oq["bid"]) + _d(oq["ask"])) / Decimal(2)
-        bmid = (_d(bq["bid"]) + _d(bq["ask"])) / Decimal(2)
+        obid, oask = prices[f"OKX:{asset}"]
+        bbid, bask = prices[f"BINANCE:{asset}"]
+        omid = (obid + oask) / Decimal(2)
+        bmid = (bbid + bask) / Decimal(2)
         comparisons[asset] = {
             "okxBid": str(oq["bid"]),
             "okxAsk": str(oq["ask"]),
@@ -72,8 +81,8 @@ def evaluate_snapshot(
             "sourceTimeDeltaMs": abs(int(oq["sourceTimeMs"]) - int(bq["sourceTimeMs"])),
             "receiveTimeDeltaMs": abs(int(oq["recvMonoNs"]) - int(bq["recvMonoNs"])) / 1_000_000,
             "midDifferenceBpsOkxMinusBinance": _bps(omid - bmid, bmid),
-            "crossBuyBinanceSellOkxGrossBps": _bps(_d(oq["bid"]) - _d(bq["ask"]), _d(bq["ask"])),
-            "crossBuyOkxSellBinanceGrossBps": _bps(_d(bq["bid"]) - _d(oq["ask"]), _d(oq["ask"])),
+            "crossBuyBinanceSellOkxGrossBps": _bps(obid - bask, bask),
+            "crossBuyOkxSellBinanceGrossBps": _bps(bbid - oask, oask),
             "claimBoundary": "observation only; not an arbitrage, fill, fee, transfer, latency-to-venue, or execution claim",
         }
 

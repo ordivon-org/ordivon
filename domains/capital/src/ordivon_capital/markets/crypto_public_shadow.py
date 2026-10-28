@@ -7,6 +7,8 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+from ordivon_capital.markets.public_bbo import qualified_public_bbo
+
 PRICE_KEYS = ("okx_btc", "okx_eth", "binance_books")
 
 
@@ -25,10 +27,6 @@ def _ms(ns: Decimal) -> Decimal:
     return ns / Decimal(1_000_000)
 
 
-def _d(value: Any) -> Decimal:
-    return Decimal(str(value))
-
-
 def _okx_quote(capture: dict[str, Any], key: str) -> dict[str, Any]:
     rows = capture["requests"][key]["payload"].get("data", [])
     if len(rows) != 1:
@@ -36,11 +34,8 @@ def _okx_quote(capture: dict[str, Any], key: str) -> dict[str, Any]:
     row = rows[0]
     if not row.get("bidPx") or not row.get("askPx") or not row.get("ts"):
         raise RuntimeError(f"{key}: incomplete OKX quote")
-    return {
-        "bid": _d(row["bidPx"]),
-        "ask": _d(row["askPx"]),
-        "sourceTimeMs": int(row["ts"]),
-    }
+    bid, ask = qualified_public_bbo(row["bidPx"], row["askPx"], source=key)
+    return {"bid": bid, "ask": ask, "sourceTimeMs": int(row["ts"])}
 
 
 def _binance_quotes(capture: dict[str, Any]) -> dict[str, dict[str, Decimal]]:
@@ -51,7 +46,12 @@ def _binance_quotes(capture: dict[str, Any]) -> dict[str, dict[str, Decimal]]:
     for row in rows:
         symbol = row.get("symbol")
         if symbol in {"BTCUSDT", "ETHUSDT"}:
-            result[symbol] = {"bid": _d(row["bidPrice"]), "ask": _d(row["askPrice"])}
+            bid, ask = qualified_public_bbo(
+                row["bidPrice"], row["askPrice"], source="binance_books:" + symbol
+            )
+            if symbol in result:
+                raise RuntimeError(f"binance_books: duplicate {symbol} quote")
+            result[symbol] = {"bid": bid, "ask": ask}
     if set(result) != {"BTCUSDT", "ETHUSDT"}:
         raise RuntimeError("binance_books: BTCUSDT/ETHUSDT missing")
     return result
