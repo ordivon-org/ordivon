@@ -175,6 +175,68 @@ def test_forged_identity_and_boolean_fields_refused(change):
         qualify(bad)
 
 
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("owner_id", ["external.pull"]),
+        ("owner_id", {"id": "external.pull"}),
+        ("owner_id", True),
+        ("owner_id", 1),
+        ("delivery_disposition", ["unknown"]),
+        ("delivery_disposition", {"state": "unknown"}),
+        ("delivery_disposition", False),
+        ("delivery_disposition", 0),
+    ],
+)
+def test_untrusted_gateway_json_types_fail_closed_under_r21_contract(field, value):
+    """A gateway-shaped untrusted JSON input must never trigger a host TypeError."""
+    obs = gateway_observation()
+    obs[field] = value
+    with pytest.raises(
+        CircuitContractError,
+        match=(
+            "Gateway observation identity mismatch"
+            if field == "owner_id"
+            else "Gateway delivery disposition is unqualified"
+        ),
+    ):
+        qualify(obs)
+
+
+def test_native_cli_rejects_unhashable_gateway_fields_without_traceback(tmp_path):
+    """Real subprocess consumer: invalid JSON is a bounded typed refusal."""
+    observation_path = tmp_path / "gateway.json"
+    proof_graph_path = tmp_path / "graph.json"
+    proof_graph_path.write_text(json.dumps(graph()), encoding="utf8")
+    for field, value in (
+        ("owner_id", ["external.pull"]),
+        ("owner_id", {"id": "external.pull"}),
+        ("delivery_disposition", ["unknown"]),
+        ("delivery_disposition", {"value": "unknown"}),
+    ):
+        obs = gateway_observation()
+        obs[field] = value
+        observation_path.write_text(json.dumps(obs), encoding="utf8")
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.effect_reconciliation_r1",
+                str(observation_path),
+                str(proof_graph_path),
+                "--expected-operation-ref",
+                OP,
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode != 0
+        assert "effect reconciliation refused" in result.stderr
+        assert "Traceback" not in result.stderr
+        assert result.stdout == ""
+
+
 def test_existing_cli_rejects_wrong_operation_and_emits_bounded_impact(tmp_path):
     observation_path = tmp_path / "gateway.json"
     proof_graph_path = tmp_path / "graph.json"

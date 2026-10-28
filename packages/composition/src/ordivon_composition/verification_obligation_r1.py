@@ -21,6 +21,7 @@ from typing import Any
 
 from .cognitive_circuit_r1 import (
     CircuitContractError,
+    _finite_json_float,
     _load_json,
     _reject_non_json_constant,
     _single_valued_json_object,
@@ -45,6 +46,7 @@ def _load_task_local_json_list(path: Path) -> list[Any]:
         path.read_text(encoding="utf-8"),
         object_pairs_hook=_single_valued_json_object,
         parse_constant=_reject_non_json_constant,
+        parse_float=_finite_json_float,
     )
     if not isinstance(value, list):
         raise CircuitContractError("task-local proof input must be a JSON array")
@@ -1151,8 +1153,35 @@ def main() -> int:
                 owner_tool = (
                     Path(__file__).resolve().parents[4] / "tools/repo/source_history_legos.py"
                 )
-                if not owner_tool.is_file():
+                if not owner_tool.is_file() or owner_tool.is_symlink():
                     raise ValueError("Git owner query entrypoint unavailable")
+
+                def require_qualified_owner_tool() -> None:
+                    # This process asks the existing Git Owner query for exact
+                    # evidence. Do not execute a mutable checkout implementation
+                    # while presenting that answer as source-qualified.
+                    committed = subprocess.run(
+                        [
+                            "git",
+                            "--no-replace-objects",
+                            "-C",
+                            str(owner_tool.parents[2]),
+                            "show",
+                            "HEAD:tools/repo/source_history_legos.py",
+                        ],
+                        capture_output=True,
+                        check=False,
+                    )
+                    if (
+                        committed.returncode != 0
+                        or owner_tool.is_symlink()
+                        or committed.stdout != owner_tool.read_bytes()
+                    ):
+                        raise CircuitContractError(
+                            "native Git query producer differs from its Git SourceCut"
+                        )
+
+                require_qualified_owner_tool()
                 native_query = subprocess.run(
                     [
                         sys.executable,
@@ -1170,9 +1199,12 @@ def main() -> int:
                     capture_output=True,
                     check=False,
                 )
+                require_qualified_owner_tool()
                 if native_query.returncode != 0:
                     raise ValueError("native Git source query failed")
                 qualified = json.loads(native_query.stdout)
+            except CircuitContractError:
+                raise
             except (ValueError, OSError, TypeError) as exc:
                 raise CircuitContractError(
                     "select-impact requires independently recomputable native Git scope"

@@ -96,7 +96,9 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         import os
 
         commands = (
-            "python3 verify.py",
+            tomllib.loads((FORMAL / "mise.toml").read_text(encoding="utf-8"))[
+                "tasks"
+            ]["verify"]["run"],
             '# Prepare only the native optional Kani cache\n'
             'export KANI_HOME="${KANI_HOME:-${HOME}/.cache/ordivon/kani}"\n'
             'python3 verify.py',

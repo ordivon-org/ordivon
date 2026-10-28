@@ -1072,6 +1072,49 @@ class SourceHistoryLegosTests(unittest.TestCase):
                     root, second, first
                 )
 
+    def test_ancestry_rejects_legacy_info_grafts_not_just_replace_refs(self):
+        # Two disjoint physical commits must never become a valid temporal
+        # SourceCut solely because the local checkout grafts a fake parent.
+        with tempfile.TemporaryDirectory(prefix="ordivon-legacy-graft-") as td:
+            repo = Path(td)
+            git(repo, "init", "-q", "-b", "main")
+            git(repo, "config", "user.name", "SourceCut Test")
+            git(repo, "config", "user.email", "cdc@example.invalid")
+            first = repo / "scope" / "first.rs"
+            first.parent.mkdir(parents=True)
+            first.write_text("pub fn first() {}\n")
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "first unrelated root")
+            previous = git(repo, "rev-parse", "HEAD")
+            git(repo, "checkout", "-q", "--orphan", "different")
+            git(repo, "rm", "-q", "-rf", "--cached", ".")
+            first.unlink()
+            (repo / "scope" / "other.rs").write_text("pub fn other() {}\n")
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "second unrelated root")
+            current = git(repo, "rev-parse", "HEAD")
+            with self.assertRaisesRegex(ValueError, "ancestry not established"):
+                source_history_legos.require_ancestral_source_cuts(
+                    repo, previous, current
+                )
+            graft = repo / ".git" / "info" / "grafts"
+            graft.parent.mkdir(parents=True, exist_ok=True)
+            graft.write_text(current + " " + previous + "\n")
+            # Native Git, even with --no-replace-objects, is fooled by grafts.
+            self.assertEqual(subprocess.run(
+                ["git", "--no-replace-objects", "-C", str(repo),
+                 "merge-base", "--is-ancestor", previous, current],
+                capture_output=True, check=False,
+            ).returncode, 0)
+            with self.assertRaisesRegex(ValueError, "ancestry not established"):
+                source_history_legos.require_ancestral_source_cuts(
+                    repo, previous, current
+                )
+            with self.assertRaisesRegex(ValueError, "ancestry not established"):
+                source_history_legos.source_membership_delta(
+                    repo, previous, current, "scope/"
+                )
+
     def test_history_merge_and_coverage_ignores_git_replace_grafts(self):
         """Every DAG-count and merge-parent read must share exact Git semantics."""
         with tempfile.TemporaryDirectory(prefix="ordivon-history-graft-") as td:
@@ -1106,6 +1149,12 @@ class SourceHistoryLegosTests(unittest.TestCase):
             initial = source_history_legos.history(repo, left, merged)
             self.assertTrue(any(c["kind"] == "merge-provenance" for c in initial["commits"]))
             git(repo, "replace", "--graft", merged, base)
+            self.assertEqual(source_history_legos.history(repo, left, merged), initial)
+            # Legacy .git/info/grafts is a SEPARATE local Git history
+            # overlay: --no-replace-objects by itself does not disable it.
+            graft_file = repo / ".git" / "info" / "grafts"
+            graft_file.parent.mkdir(parents=True, exist_ok=True)
+            graft_file.write_text(merged + " " + base + "\n")
             self.assertEqual(source_history_legos.history(repo, left, merged), initial)
 
     def test_history_two_cut_projection_ignores_local_git_replace_refs(self):
