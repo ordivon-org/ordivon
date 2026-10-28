@@ -43,7 +43,19 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertIn("tools/formal/mise.toml", receipt["selectedChangedPaths"])
         self.assertEqual(receipt["queueVerifyTasks"], ["formal:verify"])
         self.assertFalse(receipt["proofReuseAdmissible"])
-        self.assertEqual(receipt["verificationStanding"], "SELECTED_NOT_EXECUTED")
+        self.assertEqual(
+            receipt["verificationStanding"],
+            "SCOPE_INCOMPLETE_NO_COMPLETE_QUEUE_ADMISSION",
+        )
+        coverage = receipt["gitDeltaCoverage"]
+        self.assertFalse(coverage["allTrackedGitChangesObserved"])
+        self.assertEqual(
+            coverage["observedChangedPathCount"] +
+            coverage["unobservedChangedPathCount"],
+            coverage["exactChangedPathCount"],
+        )
+        self.assertGreater(coverage["unobservedChangedPathCount"], 0)
+        self.assertLessEqual(len(coverage["unobservedChangedPathWitness"]), 8)
         self.assertEqual(receipt["runtimeCallStanding"], "UNKNOWN")
         self.assertEqual(receipt["installedEffectStanding"], "UNKNOWN")
         self.assertEqual(receipt["sourceConsumerEvidence"]["queueVerifyTasks"], ["formal:verify"])
@@ -55,16 +67,31 @@ class ConvergencePlanTests(unittest.TestCase):
         ]
         actual = __import__("json").loads(subprocess.check_output(args, text=True))
         self.assertEqual(actual["selectedChangedPaths"], receipt["selectedChangedPaths"])
-        self.assertEqual(
-            subprocess.check_output([*args, "--format", "queue-tasks"], text=True).strip(),
-            "formal:verify"
+        partial_queue = subprocess.run(
+            [*args, "--format", "queue-tasks"],
+            text=True, capture_output=True, check=False,
         )
+        self.assertNotEqual(partial_queue.returncode, 0)
+        self.assertEqual(partial_queue.stdout, "")
+        self.assertIn("unobserved Git source changes", partial_queue.stderr)
         empty = MODULE.build_qualified_temporal_impact(
             base=base, head=head, prefixes=["tools/formal/not-a-real-subtree/"]
         )
         self.assertEqual(empty["queueVerifyTasks"], [])
         self.assertIsNone(empty["sourceConsumerEvidence"])
         self.assertFalse(empty["proofReuseAdmissible"])
+        self.assertEqual(empty["gitDeltaCoverage"]["observedChangedPathCount"], 0)
+        self.assertGreater(empty["gitDeltaCoverage"]["unobservedChangedPathCount"], 0)
+        self.assertFalse(empty["gitDeltaCoverage"]["allTrackedGitChangesObserved"])
+        # Exact no-change interval is complete in Git SOURCE space only.
+        # It is not evidence that current code/installation is correct.
+        unchanged = MODULE.build_qualified_temporal_impact(
+            base=head, head=head, prefixes=["tools/repo/"]
+        )
+        self.assertTrue(unchanged["gitDeltaCoverage"]["allTrackedGitChangesObserved"])
+        self.assertEqual(unchanged["gitDeltaCoverage"]["exactChangedPathCount"], 0)
+        self.assertIsNone(unchanged["sourceConsumerEvidence"])
+        self.assertFalse(unchanged["proofReuseAdmissible"])
         for wrong in (
             dict(base=base, head=base, prefixes=["tools/formal/"]),
             dict(base=base, head=head, prefixes=["tools/formal/", "tools/formal/"]),

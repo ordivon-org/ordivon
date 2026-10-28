@@ -434,6 +434,14 @@ def build_qualified_temporal_impact(
         changed.update(delta["changedValuePaths"])
     if len(changed) > 32:
         raise ValueError("temporal impact exceeds bounded canonical source frontier")
+    # R2.1 scoped-operator contract: a subset of immutable source changes
+    # cannot be mistaken for a complete consumer verification obligation.
+    # Reuse the already qualified native no-renames Git delta; this is a
+    # bounded two-SourceCut read, NOT a repository-wide LEGO census.
+    full_cut_paths = set(affected_owners.changed_paths(base, head))
+    if not changed.issubset(full_cut_paths):
+        raise ValueError("scoped source delta contradicts canonical exact Git changed paths")
+    unseen_paths = sorted(full_cut_paths - changed)
     paths = sorted(changed)
     plan = build_plan(changed_files=paths) if paths else None
     if plan is not None:
@@ -455,7 +463,21 @@ def build_qualified_temporal_impact(
         "sourceConsumerEvidence": explained,
         "queueVerifyTasks": (plan["queueVerifyTasks"] if plan else []),
         "verifyTasks": (plan["verifyTasks"] if plan else []),
-        "verificationStanding": "SELECTED_NOT_EXECUTED",
+        "verificationStanding": (
+            "SCOPE_INCOMPLETE_NO_COMPLETE_QUEUE_ADMISSION"
+            if unseen_paths else "SELECTED_NOT_EXECUTED"
+        ),
+        "gitDeltaCoverage": {
+            "observedChangedPathCount": len(paths),
+            "exactChangedPathCount": len(full_cut_paths),
+            "unobservedChangedPathCount": len(unseen_paths),
+            "unobservedChangedPathWitness": unseen_paths[:8],
+            "allTrackedGitChangesObserved": not unseen_paths,
+            "standing": (
+                "ONLY_NAMED_PREFIXES_UNOBSERVED_SOURCE_CHANGES"
+                if unseen_paths else "EXACT_TRACKED_GIT_DELTA_OBSERVED"
+            ),
+        },
         "proofReuseAdmissible": False,
         "runtimeCallStanding": "UNKNOWN",
         "installedEffectStanding": "UNKNOWN",
@@ -495,6 +517,12 @@ def main() -> int:
             receipt = build_qualified_temporal_impact(
                 base=args.base, head=args.head, prefixes=args.impact_prefix
             )
+            # Machine-readable scoped proposals remain available in JSON,
+            # but never print a partial task list as the complete queue.
+            if args.format != "json" and not receipt["gitDeltaCoverage"]["allTrackedGitChangesObserved"]:
+                raise ValueError(
+                    "unobserved Git source changes block complete queue task selection"
+                )
             if args.format == "json":
                 print(json.dumps(receipt, sort_keys=True))
             elif args.format in ("tasks", "queue-tasks"):
