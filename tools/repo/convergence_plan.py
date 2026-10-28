@@ -373,7 +373,11 @@ def build_scoped_source_impact_plan(*, base: str, head: str,
         raise ValueError("self-bootstrap requires --head to match current Git HEAD")
     # This CLI consumes the checked-out repository policy: don't read an
     # unqualified dirty Owner or dependency manifest against an older cut.
-    for relative in ("tools/repo/owners.toml", "tools/repo/dependency_contracts.toml"):
+    for relative in (
+        "mise.toml",  # Root native queue tasks are executable consumer policy.
+        "tools/repo/owners.toml",
+        "tools/repo/dependency_contracts.toml",
+    ):
         expected = subprocess.check_output(
             ["git", "--no-replace-objects", "-C", str(repo),
              "rev-parse", f"{head}:{relative}"],

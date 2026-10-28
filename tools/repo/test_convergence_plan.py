@@ -226,6 +226,36 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertNotEqual(forged.returncode, 0)
         self.assertIn("no --changed-file", forged.stderr)
 
+    def test_scoped_source_plan_rejects_uncommitted_root_mise_task_bytes(self) -> None:
+        """The actual queue task script is a source input, not just a name."""
+        from unittest.mock import patch
+
+        repo = MODULE_PATH.parents[2]
+        head = subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"],
+            text=True,
+        ).strip()
+        base = subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD^"],
+            text=True,
+        ).strip()
+        original_check = subprocess.check_output
+
+        def changed_script_bytes(argv, *args, **kwargs):
+            if (isinstance(argv, list) and "hash-object" in argv
+                    and argv[-1] == "mise.toml"):
+                # Simulates uncommitted 'artifact:queue=echo fake success'
+                # with all task names and TOML syntax still present.
+                return "0" * 40 + "\n"
+            return original_check(argv, *args, **kwargs)
+
+        with patch.object(MODULE.subprocess, "check_output",
+                          side_effect=changed_script_bytes):
+            with self.assertRaisesRegex(ValueError, "policy differs from current SourceCut"):
+                MODULE.build_scoped_source_impact_plan(
+                    base=base, head=head, prefixes=["tools/repo/"],
+                )
+
     def test_next_queue_projection_uses_full_portable_verification(self) -> None:
         plan = MODULE.build_plan(changed_files=["meta/next/README.md"])
         self.assertIn("next:verify", plan["verifyTasks"])
