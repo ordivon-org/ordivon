@@ -677,7 +677,7 @@ impl Registry {
                         truncated: row.get::<_, i64>(6)? != 0,
                     })
                 }).map_err(|error| RuntimeError::from_sql(error, "query terminal Artifact replay readback"))?;
-                let recorded = rows.collect::<rusqlite::Result<Vec<_>>>()
+                let recorded = rows.collect::<Result<Vec<_>, _>>()
                     .map_err(|error| RuntimeError::from_sql(error, "decode terminal Artifact replay readback"))?;
                 drop(statement);
                 let mut requested = request.artifacts.clone();
