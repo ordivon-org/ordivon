@@ -350,6 +350,81 @@ def explain_source_impact(
     }
 
 
+
+
+def build_scoped_source_impact_plan(*, base: str, head: str,
+                                    prefixes: list[str]) -> dict[str, object]:
+    """Phase2 self-host: exact ancestral Git deltas feed existing verifier plan.
+
+    Complements explain_source_impact's static consumer hints. Both interfaces
+    share the same task policy, never certify full transitive impact or reuse.
+    """
+    from source_history_legos import compact_source_impact, source_membership_delta
+
+    if not prefixes or len(prefixes) > 8 or len(set(prefixes)) != len(prefixes):
+        raise ValueError("self-bootstrap requires 1..8 distinct exact source prefixes")
+    repo = Path(__file__).resolve().parents[2]
+    current = subprocess.check_output(
+        ["git", "--no-replace-objects", "-C", str(repo),
+         "rev-parse", "--verify", "HEAD^{commit}"],
+        text=True, stderr=subprocess.PIPE,
+    ).strip()
+    if head != current:
+        raise ValueError("self-bootstrap requires --head to match current Git HEAD")
+    # This CLI consumes the checked-out repository policy: don't read an
+    # unqualified dirty Owner or dependency manifest against an older cut.
+    for relative in ("tools/repo/owners.toml", "tools/repo/dependency_contracts.toml"):
+        expected = subprocess.check_output(
+            ["git", "--no-replace-objects", "-C", str(repo),
+             "rev-parse", f"{head}:{relative}"],
+            text=True, stderr=subprocess.PIPE,
+        ).strip()
+        observed = subprocess.check_output(
+            ["git", "--no-replace-objects", "-C", str(repo),
+             "hash-object", "--no-filters", "--", relative],
+            text=True, stderr=subprocess.PIPE,
+        ).strip()
+        if observed != expected:
+            raise ValueError("self-bootstrap consumer policy differs from current SourceCut")
+    impacts = []
+    changed: set[str] = set()
+    for prefix in prefixes:
+        delta = source_membership_delta(repo, base, head, prefix)
+        impacts.append(compact_source_impact(delta))
+        changed.update(delta["addedPaths"])
+        changed.update(delta["removedPaths"])
+        changed.update(delta["changedValuePaths"])
+    paths = sorted(changed)
+    plan = build_plan(changed_files=paths) if paths else None
+    if plan is not None:
+        validate_queue_task_selection(
+            plan["verificationOwners"], plan["queueVerifyTasks"], paths
+        )
+    static_candidates = (explain_source_impact(
+        source_cut=head, changed_paths=paths, base_plan=plan, repo=repo
+    ) if plan is not None else None)
+    return {
+        "kind": "ordivon.phase2.self-bootstrap-source-verification-selection",
+        "sourceCuts": {"previous": base, "current": head},
+        "observedPrefixes": list(prefixes),
+        "sourceImpacts": impacts,
+        "selectedChangedPaths": paths,
+        "verificationPlan": plan,
+        "staticConsumerImpact": static_candidates,
+        "verifyTasks": plan["verifyTasks"] if plan else [],
+        "queueVerifyTasks": plan["queueVerifyTasks"] if plan else [],
+        "verificationStanding": "TASK_SELECTION_ONLY_ACTUAL_RUN_PENDING",
+        "proofReuseAdmissible": False,
+        "uninspectedSourceAndDynamicConsumers": "UNKNOWN",
+        "nonClaims": [
+            "Only explicitly named Git prefixes are compared, not all Ordivon sources.",
+            "Static Python imports are only candidate consumer evidence, never CALLS.",
+            "Change absence does not qualify unrelated consumers, installed effects or proof reuse.",
+            "Selected tasks have not been executed by this read-only CLI.",
+        ],
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Project one Git candidate into conservative Ordivon convergence scopes."
@@ -357,6 +432,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--base")
     parser.add_argument("--head")
     parser.add_argument("--changed-file", action="append", default=[])
+    parser.add_argument("--impact-prefix", action="append", default=[],
+                        help="an exact immutable Git subtree delta to feed the existing verifier selector")
     parser.add_argument("--source-cut", help="exact immutable Git HEAD for source-impact evidence")
     parser.add_argument(
         "--explain-source-impact", action="store_true",
@@ -371,7 +448,15 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _parser().parse_args()
     try:
-        plan = build_plan(base=args.base, head=args.head, changed_files=args.changed_file)
+        if args.impact_prefix:
+            if (args.changed_file or args.explain_source_impact or args.source_cut or
+                    not args.base or not args.head):
+                raise ValueError("--impact-prefix requires --base and --head but no --changed-file or source-explanation flags")
+            plan = build_scoped_source_impact_plan(
+                base=args.base, head=args.head, prefixes=args.impact_prefix
+            )
+        else:
+            plan = build_plan(base=args.base, head=args.head, changed_files=args.changed_file)
         if args.explain_source_impact:
             if args.format != "json":
                 raise ValueError("source-impact explanation requires JSON output")
@@ -394,7 +479,10 @@ def main() -> int:
         for task in plan["queueVerifyTasks"]:
             print(task)
     elif args.format == "scopes":
-        for scope in plan["scopeIds"]:
+        scopes = (plan["verificationPlan"]["scopeIds"]
+                  if args.impact_prefix and plan["verificationPlan"] else
+                  [] if args.impact_prefix else plan["scopeIds"])
+        for scope in scopes:
             print(scope)
     else:
         print(json.dumps(plan, sort_keys=True))

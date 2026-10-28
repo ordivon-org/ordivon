@@ -37,6 +37,195 @@ class ConvergencePlanTests(unittest.TestCase):
             "NOT_ESTABLISHED_BY_THIS_PROJECTION",
         )
 
+
+    def test_self_bootstrap_source_delta_selects_exact_real_verification_consumers(self) -> None:
+        """Phase1→Phase2: source delta LEGO composes with native task selector.
+
+        Two immutable Git cuts → exact changed source refs → bounded consumer
+        tasks. A task recommendation is NOT proof execution or admission.
+        """
+        import source_history_legos
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-self-bootstrap-") as temp:
+            repo = Path(temp)
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-c", "maintenance.auto=false", "-C", str(repo), *args],
+                    text=True, stderr=subprocess.PIPE,
+                ).strip()
+            git("init", "-q", "-b", "main")
+            git("config", "user.name", "Ordivon Self Bootstrap Fixture")
+            git("config", "user.email", "test@invalid.example")
+            formal = repo / "tools/formal/Proof.qnt"
+            runtime = repo / "services/runtime/crates/runtime.rs"
+            docs = repo / "docs/README.md"
+            for path, data in (
+                (formal, "module Proof { val invariant = true }\\n"),
+                (runtime, "fn invariant() -> bool { true }\\n"),
+                (docs, "example\\n"),
+            ):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(data)
+            git("add", ".")
+            git("commit", "-qm", "baseline source consumers")
+            before = git("rev-parse", "HEAD")
+
+            formal.write_text("module Proof { val invariant = false }\\n")
+            runtime.write_text("fn invariant() -> bool { false }\\n")
+            git("add", ".")
+            git("commit", "-qm", "change proof and its Runtime implementation")
+            after = git("rev-parse", "HEAD")
+
+            formal_delta = source_history_legos.source_membership_delta(
+                repo, before, after, "tools/formal/"
+            )
+            runtime_delta = source_history_legos.source_membership_delta(
+                repo, before, after, "services/runtime/"
+            )
+            self.assertEqual(formal_delta["changedValuePaths"], ["tools/formal/Proof.qnt"])
+            self.assertEqual(runtime_delta["changedValuePaths"], [
+                "services/runtime/crates/runtime.rs"
+            ])
+            self.assertFalse(formal_delta["proofReuseAdmissible"])
+            self.assertFalse(runtime_delta["proofReuseAdmissible"])
+            changed = sorted(set(
+                formal_delta["changedValuePaths"] + runtime_delta["changedValuePaths"]
+            ))
+            plan = MODULE.build_plan(changed_files=changed)
+            self.assertEqual(plan["directOwners"], ["runtime"])
+            self.assertEqual(plan["queueVerifyTasks"], [
+                "composition:verify", "runtime:verify", "formal:verify"
+            ])
+            MODULE.validate_queue_task_selection(
+                plan["verificationOwners"], plan["queueVerifyTasks"], changed
+            )
+            with self.assertRaisesRegex(ValueError, "canonical owner tasks"):
+                MODULE.validate_queue_task_selection(
+                    plan["verificationOwners"], plan["queueVerifyTasks"][:-1], changed
+                )
+            with self.assertRaisesRegex(ValueError, "unknown"):
+                MODULE.validate_queue_task_selection(
+                    ["fictional"], plan["queueVerifyTasks"], changed
+                )
+
+            docs.write_text("example changed, no Runtime or Formal source delta\\n")
+            git("add", ".")
+            git("commit", "-qm", "unrelated docs")
+            latest = git("rev-parse", "HEAD")
+            undisturbed = source_history_legos.compact_source_impact(
+                source_history_legos.source_membership_delta(
+                    repo, after, latest, "tools/formal/"
+                )
+            )
+            self.assertEqual(undisturbed["sourceDisposition"], "SOURCE_SCOPE_UNCHANGED")
+            self.assertFalse(undisturbed["proofReuseAdmissible"])
+            self.assertIn(
+                "formal_evidence_and_proof_checker_assumptions",
+                undisturbed["missingQualification"],
+            )
+            docs_plan = MODULE.build_plan(changed_files=["docs/README.md"])
+            self.assertEqual(docs_plan["queueVerifyTasks"], [])
+
+            new_proof = repo / "tools/formal/NewInvariant.lean"
+            new_proof.write_text("theorem safe : True := True.intro\\n")
+            git("add", ".")
+            git("commit", "-qm", "new proof namespace member")
+            with_member = git("rev-parse", "HEAD")
+            member_delta = source_history_legos.source_membership_delta(
+                repo, latest, with_member, "tools/formal/"
+            )
+            self.assertEqual(member_delta["addedPaths"], [
+                "tools/formal/NewInvariant.lean"
+            ])
+            self.assertTrue(member_delta["membershipChanged"])
+            self.assertIn(member_delta["membershipRef"], member_delta["changedRefs"])
+            self.assertEqual(
+                MODULE.build_plan(changed_files=member_delta["addedPaths"])[
+                    "queueVerifyTasks"
+                ],
+                ["formal:verify"],
+            )
+
+
+    def test_first_party_scoped_git_source_to_verification_cli_real_main(self) -> None:
+        """One callable Phase2 circuit: native source history -> selected tasks.
+
+        The current HEAD may evolve, but the most recent committed Formal
+        source edit gives an immutable ancestor witness in this same Git DAG.
+        """
+        repo = Path(__file__).resolve().parents[2]
+        def git(*args: str) -> str:
+            return subprocess.check_output(
+                ["git", "--no-replace-objects", "-C", str(repo), *args],
+                text=True, stderr=subprocess.PIPE,
+            ).strip()
+        head = git("rev-parse", "HEAD")
+        latest_formal = git("log", "-1", "--format=%H", "HEAD", "--",
+                            "tools/formal/mise.toml")
+        self.assertTrue(latest_formal)
+        before = git("rev-parse", latest_formal + "^")
+        plan = MODULE.build_scoped_source_impact_plan(
+            base=before, head=head, prefixes=["tools/formal/"]
+        )
+        self.assertEqual(plan["kind"],
+                         "ordivon.phase2.self-bootstrap-source-verification-selection")
+        self.assertEqual(plan["observedPrefixes"], ["tools/formal/"])
+        self.assertEqual(plan["sourceCuts"]["current"], head)
+        self.assertIn("tools/formal/mise.toml", plan["selectedChangedPaths"])
+        self.assertEqual(plan["queueVerifyTasks"], ["formal:verify"])
+        self.assertEqual(plan["verifyTasks"], ["formal:verify"])
+        self.assertEqual(plan["verificationPlan"]["directOwners"], [])
+        self.assertEqual(plan["verificationStanding"],
+                         "TASK_SELECTION_ONLY_ACTUAL_RUN_PENDING")
+        self.assertFalse(plan["proofReuseAdmissible"])
+        self.assertEqual(plan["uninspectedSourceAndDynamicConsumers"], "UNKNOWN")
+        static = plan["staticConsumerImpact"]
+        self.assertIsNotNone(static)
+        self.assertEqual(static["mandatoryQueueVerifyTasks"], ["formal:verify"])
+        self.assertEqual(static["candidateVerifyTasks"], ["formal:verify"])
+        self.assertEqual(static["runtimeCallStanding"], "UNKNOWN")
+        self.assertFalse(static["impactClosureEstablished"])
+        self.assertFalse(static["deletionAuthorized"])
+        cli = [sys.executable, str(MODULE_PATH), "--base", before,
+               "--head", head, "--impact-prefix", "tools/formal/"]
+        self.assertEqual(
+            subprocess.check_output([*cli, "--format", "queue-tasks"], text=True).strip(),
+            "formal:verify",
+        )
+        self.assertEqual(
+            subprocess.check_output([*cli, "--format", "scopes"], text=True).strip(),
+            "",
+        )
+        projected = __import__("json").loads(subprocess.check_output(cli, text=True))
+        self.assertEqual(projected["queueVerifyTasks"], ["formal:verify"])
+
+        # A namespace without observed changes must not silently request a
+        # full-repository plan or pretend that its neighbors were unchanged.
+        unchanged = MODULE.build_scoped_source_impact_plan(
+            base=before, head=head, prefixes=["tools/formal/not-an-existing-subtree/"]
+        )
+        self.assertIsNone(unchanged["verificationPlan"])
+        self.assertEqual(unchanged["queueVerifyTasks"], [])
+        self.assertFalse(unchanged["proofReuseAdmissible"])
+
+        for kwargs, match in (
+            ({"base": before, "head": before, "prefixes": ["tools/formal/"]},
+             "current Git HEAD"),
+            ({"base": before, "head": head,
+              "prefixes": ["tools/formal/", "tools/formal/"]},
+             "distinct exact"),
+            ({"base": before, "head": head, "prefixes": ["../unscoped/"]},
+             "canonical"),
+        ):
+            with self.assertRaisesRegex(ValueError, match):
+                MODULE.build_scoped_source_impact_plan(**kwargs)
+        forged = subprocess.run(
+            [*cli, "--changed-file", "docs/architecture/EXAMPLE.md"],
+            text=True, capture_output=True, check=False,
+        )
+        self.assertNotEqual(forged.returncode, 0)
+        self.assertIn("no --changed-file", forged.stderr)
+
     def test_next_queue_projection_uses_full_portable_verification(self) -> None:
         plan = MODULE.build_plan(changed_files=["meta/next/README.md"])
         self.assertIn("next:verify", plan["verifyTasks"])
