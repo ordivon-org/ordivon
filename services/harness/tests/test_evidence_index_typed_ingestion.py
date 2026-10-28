@@ -273,6 +273,35 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
                     )
                 )
             )
+        # Source identity is NOT just a forty-character string. The original
+        # independent Git DAG must certify the referenced creation ancestry.
+        self.assertTrue(
+            any(
+                "original-repository ancestor" in error
+                for error in validator(filename, "0" * 40, historical=True)
+            )
+        )
+        with patch.object(
+            check_evidence, "_historical_source_checkout", side_effect=OSError("source unavailable")
+        ):
+            self.assertTrue(
+                any(
+                    "cannot qualify pinned original independent Harness source" in error
+                    for error in validator(
+                        filename,
+                        EXPECTED["harness.research.campaign3-rich-effect-owner-capture-v1"][2],
+                        historical=True,
+                    )
+                )
+            )
+        with patch.object(check_evidence, "_HARNESS_ORIGINAL_SOURCE_CUT", "0" * 40):
+            self.assertTrue(
+                validator(
+                    filename,
+                    EXPECTED["harness.research.campaign3-rich-effect-owner-capture-v1"][2],
+                    historical=True,
+                )
+            )
 
     def test_environment_and_h1_profiles_are_historical_after_plugin_h2(self) -> None:
         entries = self._entries()

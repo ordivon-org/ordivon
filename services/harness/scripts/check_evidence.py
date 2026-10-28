@@ -3,10 +3,15 @@
 
 from __future__ import annotations
 
+import atexit
+from functools import lru_cache
 import hashlib
 import json
+import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 import tomllib
 
@@ -29,6 +34,11 @@ _SOURCE_HISTORY_BOUNDARY_INVALIDATOR = "@source-revision-outside-current-reposit
 # This anchors RETENTION of archived bytes; it does not certify the original
 # standalone repo, current implementation, or any live environment effect.
 _HARNESS_HISTORICAL_IMPORT = "a548b7884bd8981548ff63e8976e484501ee0c52"
+# Pinned native Git witness from the ORIGINAL independent Harness repository.
+# The old source tree is not a monorepo ancestor; never fetch mutable HEAD as
+# an authority substitute, and never use this historical proof as CURRENT.
+_HARNESS_ORIGINAL_SOURCE_REPO = "https://github.com/ordivon-org/ordivon-harness.git"
+_HARNESS_ORIGINAL_SOURCE_CUT = "62ebeb00728ea0b16bbf644734b8928438ff7cd1"
 _INDEX_REVISION_HINT_FIELDS = (
     "implementationSourceRevision",
     "implementationRevision",
@@ -383,6 +393,103 @@ def _verified_revision_is_current(
     return not invalidating, invalidating
 
 
+@lru_cache(maxsize=1)
+def _historical_source_checkout() -> Path:
+    """Read-only native Git snapshot. Missing original source is NOT a PASS."""
+    directory = Path(tempfile.mkdtemp(prefix="ordivon-harness-historical-git-"))
+    try:
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "protocol.version=2",
+                "clone",
+                "--filter=blob:none",
+                "--single-branch",
+                "--no-checkout",
+                _HARNESS_ORIGINAL_SOURCE_REPO,
+                str(directory),
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=110,
+        )
+        observed = subprocess.check_output(
+            ["git", "--no-replace-objects", "rev-parse", "HEAD"],
+            cwd=directory,
+            text=True,
+            timeout=15,
+        ).strip()
+        if observed != _HARNESS_ORIGINAL_SOURCE_CUT:
+            raise ValueError(
+                "original Harness source HEAD does not match pinned source cut: "
+                f"observed={observed} expected={_HARNESS_ORIGINAL_SOURCE_CUT}"
+            )
+    except OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError:
+        shutil.rmtree(directory, ignore_errors=True)
+        raise
+    atexit.register(shutil.rmtree, directory, ignore_errors=True)
+    return directory
+
+
+def _validate_original_historical_source(filename: str, revision: str, current: bytes) -> list[str]:
+    """Validate old-source provenance separately from imported-byte retention."""
+    errors: list[str] = []
+    try:
+        repository = _historical_source_checkout()
+        environment = {**os.environ, "GIT_GRAFT_FILE": os.devnull}
+        path = f"evidence/{filename}"
+        creations = subprocess.check_output(
+            [
+                "git",
+                "--no-replace-objects",
+                "log",
+                "--full-history",
+                "--diff-filter=A",
+                "--format=%H",
+                _HARNESS_ORIGINAL_SOURCE_CUT,
+                "--",
+                path,
+            ],
+            cwd=repository,
+            env=environment,
+            text=True,
+            timeout=22,
+        ).splitlines()
+        if len(creations) != 1:
+            return [
+                f"original independent Harness source must have exactly one evidence "
+                f"creation for {filename}: found={creations}"
+            ]
+        predecessor = subprocess.run(
+            ["git", "--no-replace-objects", "merge-base", "--is-ancestor", revision, creations[0]],
+            cwd=repository,
+            env=environment,
+            check=False,
+            timeout=20,
+        )
+        if predecessor.returncode != 0:
+            errors.append(
+                f"historical implementation revision is not an original-repository "
+                f"ancestor of evidence creation for {filename}: revision={revision} "
+                f"creation={creations[0]}"
+            )
+        source = subprocess.check_output(
+            ["git", "--no-replace-objects", "show", f"{_HARNESS_ORIGINAL_SOURCE_CUT}:{path}"],
+            cwd=repository,
+            env=environment,
+            timeout=28,
+        )
+        if source != current:
+            errors.append(f"original independent Harness source evidence bytes differ: {filename}")
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError) as error:
+        errors.append(
+            f"cannot qualify pinned original independent Harness source for {filename}: {error}"
+        )
+    return errors
+
+
 def _validate_index_creation_lineage_binding(
     filename: str,
     revision: str,
@@ -458,6 +565,11 @@ def _validate_index_creation_lineage_binding(
                 f"index-bound evidence bytes changed after creation for {filename}: "
                 f"creation={creation_revision}"
             )
+        elif ancestor.returncode != 0 and imported_historical:
+            # Independent identity, original ancestry, and original bytes are
+            # required in addition to the pinned monorepo import. No network
+            # and no original Git objects => explicit FAIL, never a fake proof.
+            errors.extend(_validate_original_historical_source(filename, revision, current_bytes))
     return errors
 
 
