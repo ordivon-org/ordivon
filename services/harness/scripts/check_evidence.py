@@ -431,6 +431,35 @@ def _validate_index_creation_lineage_binding(
     errors: list[str] = []
     path = EVIDENCE / filename
     relative_path = path.relative_to(ROOT).as_posix()
+
+    # Strict R2.1 archive-retention claim: historical evidence imported from
+    # an independent Git source is pinned to the EXACT monorepo import's
+    # bytes, not to whichever "first creation" Git finds in a shallow versus
+    # full-history checkout. Full Git histories can legitimately expose an
+    # older original repository's creation commit; that does not redefine
+    # the canonical monorepo import SourceCut or certify original provenance.
+    indexed_import_archive = (
+        historical
+        and (EVIDENCE / "index.json").is_file()
+        and _git_owner_prefix() == "services/harness/"
+        and len(revision) == 40
+        and all(ch in "0123456789abcdef" for ch in revision)
+        and not _revision_after_monorepo_import(revision)
+    )
+    if indexed_import_archive:
+        try:
+            imported_bytes = _git_file_bytes(
+                _HARNESS_HISTORICAL_IMPORT, relative_path
+            )
+            current_bytes = path.read_bytes()
+        except (ValueError, subprocess.CalledProcessError, OSError) as error:
+            return [f"cannot qualify exact historical archive import for {filename}: {error}"]
+        if imported_bytes != current_bytes:
+            return [
+                f"index-bound evidence bytes changed after canonical monorepo import for {filename}"
+            ]
+        return []
+
     try:
         creation_revisions = _git_creation_revisions(relative_path)
     except (subprocess.CalledProcessError, ValueError) as error:
