@@ -1178,6 +1178,14 @@ class RepoVerificationPrefixFiniteWitnessTests(unittest.TestCase):
             ["git", "--no-replace-objects", "-C", str(repo),
              "rev-parse", "--verify", "HEAD^{commit}"], text=True,
         ).strip()
+        # Couple the finite source-tree instance to the ACTUAL manifest and
+        # validator bytes, not an uncommitted checkout masquerading as HEAD.
+        for relative in ("tools/repo/owners.toml", "tools/repo/affected_owners.py"):
+            committed_bytes = subprocess.check_output(
+                ["git", "--no-replace-objects", "-C", str(repo),
+                 "show", f"{cut}:{relative}"],
+            )
+            self.assertEqual((repo / relative).read_bytes(), committed_bytes)
         tree_paths = subprocess.check_output(
             ["git", "--no-replace-objects", "-C", str(repo),
              "ls-tree", "-r", "-z", "--name-only", cut],
