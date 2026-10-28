@@ -2366,3 +2366,38 @@ def test_host_parent_refinement_fails_on_lost_consumption_or_false_proof(
                                             'return await _host("work.removed",')
     with pytest.raises(AssertionError):
         _host_core_parent_consumer_contract(plan, host_text, gateway_text)
+
+def test_repository_formal_gaps_close_without_forging_consumer_currentness() -> None:
+    """Reuse main's existing consumer/contract evidence; only formal gap is new."""
+    from tools.repo import exhaustive_coverage
+    plan = json.loads((ROOT / "tools/repo/planning/lego-plan-r1.json").read_text())
+    assert {n["id"] for n in plan["nodes"]} == {"RG1_SOURCE", "RG2_OWNER"}
+    for n in plan["nodes"]:
+        assert n["consumerBindings"] and n["behavioralContract"]
+        assert len(n["formalObligations"]) == 3
+        assert n["inputs"] and n["outputs"]
+        assert n["formalVerificationStanding"] == (
+            "DECLARED_UNPROVED_REQUIRES_INDEPENDENT_FORMAL_CHECK"
+        )
+        assert n["installedCurrentness"] == "UNKNOWN"
+        assert n["deletionAuthorized"] is False
+        assert all(exhaustive_coverage.declared_values(n, aliases)
+                   for aliases in exhaustive_coverage.FIELDS.values())
+
+
+def test_repository_formal_declaration_removed_reopens_only_formal_gap() -> None:
+    """Removing the obligation does not remove main's actual consumers/contracts."""
+    from tools.repo import exhaustive_coverage
+    plan = json.loads((ROOT / "tools/repo/planning/lego-plan-r1.json").read_text())
+    for n in plan["nodes"]:
+        copy = dict(n)
+        copy.pop("formalObligations")
+        assert exhaustive_coverage.declared_values(
+            copy, exhaustive_coverage.FIELDS["CONSUMER"]
+        )
+        assert exhaustive_coverage.declared_values(
+            copy, exhaustive_coverage.FIELDS["CONTRACT"]
+        )
+        assert not exhaustive_coverage.declared_values(
+            copy, exhaustive_coverage.FIELDS["FORMAL"]
+        )

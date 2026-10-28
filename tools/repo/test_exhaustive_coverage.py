@@ -23,6 +23,57 @@ class FullCoverageTests(unittest.TestCase):
         self.assertEqual(now["standing"], "CLASSIFIED")
         self.assertEqual(now["classification"], "ROOT:runtime")
 
+    def test_formal_source_region_has_real_task_but_no_owner_authority(self):
+        # The existing root formal:verify task consumes tools/formal, yet this
+        # path was mechanically unclassified. The region is navigation only.
+        import tomllib
+        policy = tomllib.loads(
+            (ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        classified = M.source_partition("tools/formal/verify.py", policy)
+        self.assertEqual(classified["classification"],
+                         "REGION:formal-verification-source")
+        self.assertEqual(classified["standing"], "CLASSIFIED")
+        self.assertTrue(
+            all(not o["root"].startswith("tools/formal/")
+                for o in policy["owners"]))
+        root_tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+        formal_tasks = tomllib.loads(
+            (ROOT / "tools/formal/mise.toml").read_text())["tasks"]
+        self.assertEqual(root_tasks["formal:verify"]["run"],
+                         "cd tools/formal && mise run verify")
+        # Accept an isolated KANI_HOME shell prologue (Formal toolchain PR)
+        # without confusing source task routing with an exact shell string.
+        verify_run = formal_tasks["verify"]["run"]
+        executable_lines = [
+            line.strip() for line in verify_run.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        self.assertTrue(executable_lines)
+        self.assertEqual(executable_lines[-1], "python3 verify.py")
+        self.assertEqual(executable_lines.count("python3 verify.py"), 1)
+        self.assertEqual(M.source_partition("tools/unknown_script.py", policy)
+                         ["standing"], "UNASSIGNED")
+
+    def test_repository_mechanics_source_region_has_real_cli_consumers(self):
+        import tomllib
+        policy = tomllib.loads(
+            (ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        assert M.source_partition(
+            "tools/repo/exhaustive_coverage.py", policy)["classification"] == (
+                "REGION:repository-mechanics-source")
+        assert M.source_partition(
+            "tools/repo/migration/test-integrate-main.sh", policy)["classification"] == (
+                "REGION:repository-mechanics-source")
+        assert not any(o["root"].startswith("tools/repo/")
+                       for o in policy["owners"])
+        tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+        ci = tasks["repo:ci"]["run"]
+        assert "tools/repo/test_affected_owners.py" in ci
+        assert "tools/repo/migration/test-integrate-main.sh" in ci
+        assert "tools/repo/check_owner_boundaries.py" in ci
+        assert M.source_partition("tools/nonexistent.py", policy)["standing"] == (
+            "UNASSIGNED")
+
     def test_unknown_never_disappears(self):
         self.assertEqual(M.source_partition("unforeseen/place.rs", {"owners": []})["standing"], "UNASSIGNED")
 
@@ -546,6 +597,26 @@ class DerivedProblemLegoFrontierTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             M.derived_problem_legos(self.inventory, repo=ROOT, max_depth=13)
 
+    def test_recursive_view_identity_includes_decomposition_policy(self) -> None:
+        # Same exact Git source objects can be grouped differently without
+        # introducing a new semantic LEGO, owner or verified consumer.
+        current = self.result
+        finer = M.derived_problem_legos(
+            self.inventory, repo=ROOT, max_files=18, max_depth=6)
+        assert current["sourceCut"] == finer["sourceCut"]
+        assert current["sourceTree"] == finer["sourceTree"]
+        assert current["sourcePathDigest"] == finer["sourcePathDigest"]
+        assert current["sourceCellDecomposition"] == {
+            "maxCellFiles": 24,
+            "maxCellDepth": 6,
+            "identityStanding": "VIEW_PARAMETERS_NOT_SEMANTIC_LEGO_IDENTITY"}
+        assert finer["sourceCellDecomposition"]["maxCellFiles"] == 18
+        assert finer["sourceCellDecomposition"]["maxCellDepth"] == 6
+        assert set(current["sourcePathCellIndex"]) == set(
+            finer["sourcePathCellIndex"])
+        assert not current["proofReuseAdmissible"]
+        assert not finer["proofReuseAdmissible"]
+
     def test_cli_summary_has_no_hidden_static_snapshot_or_unproved_edges(self) -> None:
         data = subprocess.check_output([
             "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
@@ -945,13 +1016,62 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
         assert not valid["observationJoin"]["unscopedShortIdQuestions"][0][
             "bareIdIsAnActualCollision"]
 
-    def test_duplicate_and_fake_evidence_status_rejected(self):
+    def test_distinct_temporal_observations_preserve_identity_and_provenance(self):
+        first = self.observation(
+            observationRevision="a"*40, observedAt="2026-10-28T06:48:00Z",
+            observedFacts={"trackedPaths": 200})
+        second = self.observation(
+            observationRevision="b"*40, observedAt="2026-10-28T06:49:00Z",
+            witnessRef="job-87654321", observedFacts={"trackedPaths": 201})
+        joined = M.join_observed_authorities(
+            self.frontier, self.envelope([second, first])
+        )["observationJoin"]
+        reverse = M.join_observed_authorities(
+            self.frontier, self.envelope([first, second])
+        )["observationJoin"]
+        assert joined == reverse
+        records = joined["observedSubjects"]
+        assert len(records) == 2
+        assert len({record["subjectRef"] for record in records}) == 1
+        assert len({record["authoritySubjectRef"] for record in records}) == 1
+        assert len({record["observationRef"] for record in records}) == 2
+        assert joined["summary"]["distinctObservedSubjects"] == 1
+        assert joined["summary"]["reportedObservationSubjects"] == 2
+        assert len(joined["candidateAssociations"]) == 2
+        assert all(record["semanticConsumerStanding"] == "UNKNOWN" for record in records)
+        assert not joined["proofReuseAdmissible"]
+        assert not joined["deletionAuthorized"]
+
+    def test_two_observation_kinds_keep_authority_subject_alias_without_physical_proof(self):
+        first = self.observation(candidateProblemRef=None)
+        second = self.observation(
+            observationKind="ENVIRONMENT_EFFECT_OBSERVED",
+            observationRevision="runtime-v2",
+            candidateProblemRef=None,
+        )
+        joined = M.join_observed_authorities(
+            self.frontier, self.envelope([first, second])
+        )["observationJoin"]
+        records = joined["observedSubjects"]
+        assert len({r["subjectRef"] for r in records}) == 2
+        assert len({r["authoritySubjectRef"] for r in records}) == 1
+        assert all(r["authoritySubjectStanding"] ==
+                   "CALLER_SCOPED_ALIAS_NOT_VERIFIED" for r in records)
+
+    def test_duplicate_and_conflicting_observations_are_rejected(self):
+        original = self.observation()
         with self.assertRaisesRegex(ValueError, "duplicate"):
+            M.join_observed_authorities(
+                self.frontier, self.envelope([original, original]))
+        with self.assertRaisesRegex(ValueError, "conflicting"):
             M.join_observed_authorities(self.frontier, self.envelope([
-                self.observation(), self.observation(observationRevision="b"*40)]))
+                original, self.observation(
+                    witnessRef="job-87654321",
+                    observedFacts={"trackedPaths": 999}),
+            ]))
         with self.assertRaisesRegex(ValueError, "exact scoped"):
             M.join_observed_authorities(self.frontier, self.envelope([
-                {**self.observation(), "proofStatus": "PASS"}]))
+                {**original, "proofStatus": "PASS"}]))
 
     def test_bounds_and_invalid_authority_provenance_fail_closed(self):
         with self.assertRaisesRegex(ValueError, "bounded list"):
@@ -1003,6 +1123,55 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
         ]))
         self.assertEqual(valid["observationJoin"]["observedSubjects"][0]["observedAt"],
                          "2024-02-29T23:59:59Z")
+
+    def test_cli_rejects_duplicate_json_keys_and_nonstandard_constants(self):
+        import json
+        import tempfile
+        original = json.dumps(self.envelope([self.observation()]))
+        cut_field = '"subjectSourceCut": "' + self.cut + '"'
+        assert original.count(cut_field) == 1
+        duplicate_cut = original.replace(
+            cut_field,
+            '"subjectSourceCut": "' + "0" * 40 + '", ' + cut_field, 1,
+        )
+        assert original.count('"trackedPaths": 200') == 1
+        duplicate_fact = original.replace(
+            '"trackedPaths": 200',
+            '"trackedPaths": 0, "trackedPaths": 200', 1,
+        )
+        # The unknown root field is intentionally ignored by the join today;
+        # raw ingress still cannot admit an invalid JSON number outside it.
+        nonstandard_unknown = original.replace(
+            '"kind": ', '"unknownMetadata": NaN, "kind": ', 1,
+        )
+        # Python's JSON parser treats this valid JSON numeric syntax as inf.
+        # The existing parse_constant hook never sees overflowing exponents.
+        overflow_unknown = original.replace(
+            '"kind": ', '"unknownMetadata": 1e309, "kind": ', 1,
+        )
+        with tempfile.TemporaryDirectory() as td:
+            path = pathlib.Path(td) / "reported.json"
+            cmd = [
+                "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+                "--source-cut", self.cut, "--problem-legos", "--summary",
+                "--authority-observations", str(path),
+            ]
+            for label, payload in (
+                ("duplicate_source_cut", duplicate_cut),
+                ("duplicate_nested_fact", duplicate_fact),
+                ("nonstandard_ignored_constant", nonstandard_unknown),
+                ("overflowing_ignored_float", overflow_unknown),
+            ):
+                with self.subTest(label=label):
+                    path.write_text(payload, encoding="utf-8")
+                    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True,
+                                          text=True, timeout=30)
+                    self.assertNotEqual(proc.returncode, 0, proc.stdout)
+                    self.assertRegex(proc.stderr, "duplicate|non-standard|constant")
+            path.write_text(original, encoding="utf-8")
+            accepted = subprocess.run(cmd, cwd=ROOT, capture_output=True,
+                                      text=True, timeout=30)
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
 
     def test_cli_opt_in_and_summary(self):
         import json
@@ -1254,3 +1423,136 @@ class StableSourceProblemQuestionTests(unittest.TestCase):
         entry["candidateProblemRef"] = "problem:source-scope:" + "0" * 64
         with self.assertRaisesRegex(ValueError, "unscoped or unrecognized"):
             M.join_observed_authorities(self.new, base)
+
+
+class TypedProblemRelationProjectionTests(unittest.TestCase):
+    """Relation witnesses are exact-source candidates, never certified calls."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cut = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+        ).strip()
+        cls.frontier = M.derived_problem_legos(M.classification(ROOT, cls.cut), repo=ROOT)
+        cls.imports = M.static_python_import_frontier(ROOT, cls.cut)
+        cls.view = M.source_problem_relation_projection(cls.frontier, cls.imports)
+
+    def test_exact_index_and_source_evidence_are_lossless(self):
+        v = self.view
+        expected = self.imports["summary"]
+        assert v["sourceCut"] == self.cut
+        assert v["sourcePathCellIndex"] == self.frontier["sourcePathCellIndex"]
+        assert v["summary"]["indexedSourcePaths"] == (
+            self.frontier["summary"]["trackedPaths"]
+        )
+        assert v["summary"]["staticImportCandidateEdges"] == (
+            expected["allStaticCandidateEdges"]
+        )
+        assert v["summary"]["dynamicSyntaxSites"] == (
+            expected["allDynamicSyntaxSites"]
+        )
+        assert v["summary"]["unresolvedImportStatements"] == (
+            expected["allUnresolvedImportStatements"]
+        )
+        assert v["summary"]["declaredPlanEdgesNotActualCalls"] == (
+            self.frontier["summary"]["declaredPlanEdges"]
+        )
+
+    def test_every_import_edge_has_real_source_cells_without_claiming_calls(self):
+        known = {row["sourceCellRef"] for row in self.frontier["sourceCells"]}
+        for e in self.view["staticPythonImportCandidates"]:
+            assert e["consumerCellRef"] in known
+            assert e["providerCellRef"] in known
+            assert e["consumerPath"] in self.view["sourcePathCellIndex"]
+            assert e["providerPath"] in self.view["sourcePathCellIndex"]
+            assert e["relation"] == "STATIC_PYTHON_IMPORT_CANDIDATE_NOT_RUNTIME_CALL"
+            assert e["runtimeCallStanding"] == "UNKNOWN"
+            assert e["effectStanding"] == "UNKNOWN"
+            assert e["installedConsumerStanding"] == "UNKNOWN"
+        assert self.view["semanticCallClosureEstablished"] is False
+        assert self.view["impactClosureAdmissible"] is False
+        assert self.view["deletionAuthorized"] is False
+        assert self.view["proofReuseAdmissible"] is False
+
+    def test_unresolved_imports_are_grouped_and_dynamic_providers_unresolved(self):
+        v = self.view
+        assert sum(x["count"] for x in v["unresolvedImportFacets"]) == (
+            len(self.imports["unresolvedImportStatements"])
+        )
+        assert all(len(x["boundedWitnesses"]) <= 4 for x in v["unresolvedImportFacets"])
+        assert all(x["standing"] == "UNRESOLVED_SYNTAX_NOT_A_MISSING_PROVIDER_PROOF"
+                   for x in v["unresolvedImportFacets"])
+        for row in v["dynamicSyntaxUnresolvedProviders"]:
+            assert row["providerRef"] is None
+            assert row["runtimeCallStanding"] == "UNKNOWN"
+        assert v["summary"]["dynamicSyntaxSitesInProblemCells"] > 0
+
+    def test_cross_plan_and_declarations_remain_noncall(self):
+        v = self.view
+        assert v["summary"]["unscopedPlanIdReuseQuestions"] == len(
+            self.frontier["sameLocalIdAcrossPlansObservation"])
+        assert all(e["runtimeCallStanding"] == "NOT_ESTABLISHED" for e in
+                   v["declaredPlanRelationsNotRuntimeCalls"])
+        assert len(v["reportedExternalCandidateAssociations"]) == 0
+
+    def test_cross_cut_or_partial_ast_is_rejected(self):
+        import copy
+        ast = copy.deepcopy(self.imports)
+        ast["sourceCut"] = "f" * 40
+        with self.assertRaisesRegex(ValueError, "SourceCut mismatch"):
+            M.source_problem_relation_projection(self.frontier, ast)
+        ast = copy.deepcopy(self.imports)
+        ast["focusPrefix"] = "services/"
+        with self.assertRaisesRegex(ValueError, "unfiltered AST"):
+            M.source_problem_relation_projection(self.frontier, ast)
+
+    def test_unknown_consumer_git_path_fails_closed(self):
+        import copy
+        ast = copy.deepcopy(self.imports)
+        assert ast["staticCandidateEdges"]
+        ast["staticCandidateEdges"][0]["providerPath"] = "not/in/current/Git.py"
+        with self.assertRaisesRegex(ValueError, "outside exact Git"):
+            M.source_problem_relation_projection(self.frontier, ast)
+
+    def test_false_plan_or_external_relation_promotion_is_rejected(self):
+        import copy
+        modified = copy.deepcopy(self.frontier)
+        modified["declaredPlanEdgesNotActualCalls"][0]["runtimeCallStanding"] = "PASS"
+        with self.assertRaisesRegex(ValueError, "claim runtime calls"):
+            M.source_problem_relation_projection(modified, self.imports)
+        modified = copy.deepcopy(self.frontier)
+        modified["observationJoin"] = {"candidateAssociations": [{
+            "relation": "EXECUTED_CALL",
+            "proofStanding": "PROVEN",
+        }]}
+        with self.assertRaisesRegex(ValueError, "promoted to proof"):
+            M.source_problem_relation_projection(modified, self.imports)
+
+    def test_command_line_distinct_mode_and_summary(self):
+        import json
+        args = [
+            "python3", str(ROOT / "tools/repo/exhaustive_coverage.py"),
+            "--source-cut", self.cut,
+        ]
+        good = subprocess.run(
+            args + ["--problem-legos", "--relation-evidence", "--summary"],
+            cwd=ROOT, capture_output=True, text=True, timeout=35
+        )
+        assert good.returncode == 0, good.stderr
+        v = json.loads(good.stdout)
+        assert v["summary"]["staticImportCandidateEdges"] == len(
+            self.imports["staticCandidateEdges"])
+        assert "staticPythonImportCandidates" not in v
+        for bad in (["--relation-evidence"], [
+            "--problem-legos", "--relation-evidence", "--scope-census"
+        ], [
+            "--problem-legos", "--relation-evidence", "--use-proposal-cells"
+        ]):
+            p = subprocess.run(args + bad, cwd=ROOT,
+                               capture_output=True, text=True, timeout=35)
+            assert p.returncode != 0, bad
+
+    def test_repeat_without_external_changes_is_deterministic(self):
+        assert self.view == M.source_problem_relation_projection(
+            self.frontier, self.imports
+        )

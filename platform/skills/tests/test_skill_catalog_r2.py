@@ -52,6 +52,43 @@ class SkillParserTests(unittest.TestCase):
         with self.assertRaisesRegex(SkillParseError, "description"):
             parse_skill_frontmatter("---\nname: tdd\n---\n")
 
+    def test_repeated_yaml_keys_never_select_an_arbitrary_skill_identity(self) -> None:
+        fixtures = (
+            "---\\nname: wrong\\nname: sample\\ndescription: safe\\n---\\n",
+            "---\\nname: sample\\ndescription: wrong\\ndescription: safe\\n---\\n",
+            "---\\nname: sample\\ndescription: safe\\nmetadata:\\n  owner: a\\n  owner: b\\n---\\n",
+        )
+        for validation_mode in ("strict", "lenient"):
+            for skill_md in fixtures:
+                with self.subTest(mode=validation_mode, skill_md=skill_md):
+                    with self.assertRaisesRegex(SkillParseError, "duplicate YAML mapping key"):
+                        parse_skill_frontmatter(
+                            skill_md.replace("\\n", "\n"),
+                            validation_mode=validation_mode,
+                            expected_directory_name="sample",
+                        )
+
+    def test_catalog_drops_ambiguous_skill_without_hiding_healthy_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "skills"
+            write_skill(root, "healthy", "healthy", "Valid source")
+            ambiguous = write_skill(root, "ambiguous", "ambiguous", "Duplicated identity")
+            ambiguous.write_text(
+                "---\\nname: wrong\\nname: ambiguous\\ndescription: ambiguous\\n---\\n".replace("\\n", "\n"),
+                encoding="utf-8",
+            )
+            catalog = SkillCatalog.scan(
+                [SkillSource("s", root, "user", 1, TrustState.APPROVED,
+                             validation_mode="lenient")]
+            )
+            self.assertEqual([record.skill_id for record in catalog.inventory], ["s/healthy"])
+            [status] = catalog.source_statuses
+            self.assertEqual(status.health, SourceHealth.DEGRADED)
+            self.assertEqual(status.discovered, 2)
+            self.assertEqual(status.valid, 1)
+            self.assertEqual(status.invalid, 1)
+            self.assertIn("duplicate YAML mapping key", " ".join(status.diagnostics))
+
     def test_lenient_parser_still_rejects_path_unsafe_names(self) -> None:
         for name in ("bad/name", "bad\\name"):
             with self.subTest(name=repr(name)), self.assertRaisesRegex(

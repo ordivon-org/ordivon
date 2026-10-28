@@ -191,7 +191,16 @@
       "acceptance": [
         "Native sing-box loopback upstream spy forwards declared destination/port only; forbidden/wrong-port target has no upstream effect; mutation removing terminal reject produces a failing negative witness.",
         "Source-backed tests are not deployed egress verification."
-      ]
+      ],
+      "formalObligations": [
+        "For source-pinned egress rules and bounded destination/port, a forbidden or wrong-port request must not reach the upstream spy, including on policy reject mutation.",
+        "Allowlisted requests may forward only through the selected provider carrier; a successful local proxy response alone does not establish loaded remote policy.",
+        "Installed route identity, DNS/proxy side effects and actual consumer reachability remain UNKNOWN until a source-matched native deployment readback and negative probe."
+      ],
+      "formalVerificationStanding": "DECLARED_NOT_MATHEMATICALLY_PROVED",
+      "consumerQualificationStanding": "EXISTING_NATIVE_CONSUMER_REFERENCES_INSTALLED_UNKNOWN",
+      "proofReuseAdmissible": false,
+      "deletionAuthorized": false
     },
     {
       "id": "N07",
@@ -231,7 +240,16 @@
       "acceptance": [
         "Existing native tests check normalized aliases, exact private exceptions, non-login invocation, rejection of global/public NO_PROXY bypass, and no child execution on failed admission.",
         "Current installed profile bytes and each downstream CLI consumer identity remain separate CURRENTNESS obligations."
-      ]
+      ],
+      "formalObligations": [
+        "For all accepted shell environment aliases, normalized proxy/case aliases and private exclusion predicates must be idempotent across supported invocation modes.",
+        "For any public CIDR/wildcard bypass or incompatible managed Runtime EnvironmentFile, deny child launch before downstream execution effects.",
+        "A qualified source profile never proves running process imported that environment, live VPN routing, resolver behavior, or downstream API reachability."
+      ],
+      "formalVerificationStanding": "DECLARED_NOT_MATHEMATICALLY_PROVED",
+      "consumerQualificationStanding": "EXISTING_NATIVE_CONSUMER_REFERENCES_INSTALLED_UNKNOWN",
+      "proofReuseAdmissible": false,
+      "deletionAuthorized": false
     },
     {
       "id": "N08",
@@ -275,6 +293,15 @@
         "Native isolated Bash fake-time test demonstrates a common failure consumes one shared deadline and cannot yield READY.",
         "Existing consumer tests reject malformed or failed allowed-origin observations. Supply-Chain and Claude fake-provider tests distinguish CONNECT=403 from transport/proxy-auth failure and from origin HTTP 403 after a permitted CONNECT tunnel; the exact Claude source contract is consumed by Taskfile materialization and tests. This is a source-bounded negative/positive witness, not evidence that a running proxy loaded the policy."
       ],
+      "formalObligations": [
+        "For a finite shared readiness deadline, any required failing consumer probe must prevent a READY verdict after its shared budget is exhausted.",
+        "Allowed-origin readiness cannot be established from missing, malformed or failed observations; supply-chain unknown-destination policy rejection requires the explicit expected proxy signature.",
+        "Claude unknown-destination nonzero curl status is not in general equivalent to a policy-denial proof; installed readiness and provider-side effects remain UNKNOWN."
+      ],
+      "formalVerificationStanding": "DECLARED_NOT_MATHEMATICALLY_PROVED",
+      "consumerQualificationStanding": "EXISTING_NATIVE_CONSUMER_REFERENCES_INSTALLED_UNKNOWN",
+      "proofReuseAdmissible": false,
+      "deletionAuthorized": false,
       "consumers": [
         "Taskfile.yml consumer:claude:materialize installs consumers/claude/ready.sh as /usr/local/libexec/network-v2/claude-ready",
         "tests/test_claude_egress_readiness_consumer.py executes the existing Claude readiness Bash under isolated provider mocks"
@@ -291,6 +318,11 @@
       "evidence": [
         "systemd/network-v2-dnsproxy.service",
         "consumers/browserless/systemd/network-v2-browserless-dns.service",
+        "acceptance/dns/upstream-resilience.sh"
+      ],
+      "consumerEvidence": [
+        "Taskfile.yml",
+        "systemd/network-v2-singbox.service",
         "acceptance/dns/upstream-resilience.sh"
       ],
       "dependencies": [],
@@ -332,6 +364,11 @@
         "acceptance/full-ip/tun-quic.sh",
         "acceptance/topology/netns.sh",
         "acceptance/connectivity/direct-chain.sh"
+      ],
+      "consumerEvidence": [
+        "Taskfile.yml",
+        "systemd/network-v2-r0.target",
+        "acceptance/full-ip/tun-quic.sh"
       ],
       "dependencies": [
         "N09"

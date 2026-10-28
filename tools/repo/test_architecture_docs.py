@@ -1254,7 +1254,7 @@ def test_git01_graph_projection_has_exact_repository_owner_lego_registration() -
     module.validate_formal_issue_census(census, plans)
 
 
-def test_repository_mechanics_contract_consumer_bindings_are_real_and_formal_is_unknown() -> None:
+def test_repository_mechanics_contract_consumer_bindings_are_real_and_formal_remains_unproved() -> None:
     """Close declaration gaps only at already exercised source/test readsets."""
     from tools.repo.exhaustive_coverage import FIELDS, declared_values
 
@@ -1278,7 +1278,14 @@ def test_repository_mechanics_contract_consumer_bindings_are_real_and_formal_is_
         assert set(node["consumerBindings"]) == bindings
         assert declared_values(node, FIELDS["CONSUMER"]) == ["consumerBindings"]
         assert declared_values(node, FIELDS["CONTRACT"]) == ["behavioralContract"]
-        assert not declared_values(node, FIELDS["FORMAL"])
+        # A formal obligation is now explicitly declared, but NOT proved.
+        assert declared_values(node, FIELDS["FORMAL"]) == ["formalObligations"]
+        assert len(node["formalObligations"]) == 3
+        assert node["formalVerificationStanding"] == (
+            "DECLARED_UNPROVED_REQUIRES_INDEPENDENT_FORMAL_CHECK"
+        )
+        assert node["installedCurrentness"] == "UNKNOWN"
+        assert node["deletionAuthorized"] is False
         assert all(isinstance(c, str) and c.strip() for c in node["behavioralContract"])
         for binding in node["consumerBindings"]:
             path, marker = binding.split("::", 1)
@@ -1294,6 +1301,11 @@ def test_repository_mechanics_contract_consumer_bindings_are_real_and_formal_is_
         changed = dict(node)
         changed.pop("behavioralContract")
         assert not declared_values(changed, FIELDS["CONTRACT"])
+        changed = dict(node)
+        changed.pop("formalObligations")
+        assert not declared_values(changed, FIELDS["FORMAL"])
+        assert declared_values(changed, FIELDS["CONSUMER"])
+        assert declared_values(changed, FIELDS["CONTRACT"])
 
     from tools.repo import source_history_legos
     assert callable(source_history_legos.history)

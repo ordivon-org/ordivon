@@ -115,6 +115,22 @@ class Sep2640SkillsTests(unittest.TestCase):
         with self.assertRaises(AgentSkillsConformanceError):
             parse_standard_frontmatter(mismatch)
 
+    def test_standard_public_skill_frontmatter_rejects_duplicate_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            sample = Path(temporary) / "sample"
+            sample.mkdir()
+            for text in (
+                "---\\nname: other\\nname: sample\\ndescription: good\\n---\\n",
+                "---\\nname: sample\\ndescription: other\\ndescription: good\\n---\\n",
+                "---\\nname: sample\\ndescription: good\\nmetadata:\\n  owner: first\\n  owner: second\\n---\\n",
+            ):
+                (sample / "SKILL.md").write_text(text.replace("\\n", "\n"), encoding="utf-8")
+                with self.subTest(text=text):
+                    with self.assertRaisesRegex(
+                        AgentSkillsConformanceError, "duplicate YAML mapping key"
+                    ):
+                        parse_standard_frontmatter(sample)
+
     def test_unicode_name_round_trip_and_exact_parent_match_follow_agent_skills_spec(self) -> None:
         td = tempfile.TemporaryDirectory()
         self.addCleanup(td.cleanup)

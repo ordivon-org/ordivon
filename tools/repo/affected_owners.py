@@ -138,6 +138,22 @@ def owners_for_paths(
     return tuple(selected)
 
 
+def requires_core_formal_verification(paths: Iterable[str]) -> bool:
+    """Route proof-source edits to the *existing* Formal task, not a new Owner.
+
+    The affected-owner queue alone can legitimately be empty for tools/formal/.
+    A separate source-bound check is required so those edits never skip
+    verification in the protected root GitHub workflow.
+    """
+    # The root task definition consumes the Formal verifier too:
+    # editing the task wiring can change effects without changing proof files.
+    return any(
+        (normalized := _normalize(path)) == "mise.toml"
+        or normalized.startswith("tools/formal/")
+        for path in paths
+    )
+
+
 def changed_paths(base: str, head: str) -> tuple[str, ...]:
     # Preserve both sides of a cross-owner move, rather than allowing Git's
     # similarity detection to hide the source owner from verification.

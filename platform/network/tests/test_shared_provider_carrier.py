@@ -245,3 +245,44 @@ def test_browserless_shared_provider_requires_real_tunnel_and_origin_evidence(
     assert "api.openai.com" in calls
     assert "--noproxy" in calls and "-q" in calls
     assert "%{http_connect}" in calls
+
+
+def test_dns_and_tunnel_carriers_have_exact_native_consumer_bindings():
+    plan = json.loads((ROOT / "planning" / "lego-plan-r1.json").read_text())
+    nodes = {node["id"]: node for node in plan["nodes"]}
+    dns, tunnel = nodes["N09"], nodes["N10"]
+    assert dns["state"] == tunnel["state"] == "IMPLEMENTED"
+    assert dns["behavioralContract"] and tunnel["behavioralContract"]
+    assert dns["consumerEvidence"] == [
+        "Taskfile.yml",
+        "systemd/network-v2-singbox.service",
+        "acceptance/dns/upstream-resilience.sh",
+    ]
+    assert tunnel["consumerEvidence"] == [
+        "Taskfile.yml",
+        "systemd/network-v2-r0.target",
+        "acceptance/full-ip/tun-quic.sh",
+    ]
+
+    # Check real source consumers, not merely field presence in a declaration.
+    for node in (dns, tunnel):
+        for relative in node["consumerEvidence"]:
+            assert (ROOT / relative).is_file(), relative
+    task = (ROOT / "Taskfile.yml").read_text()
+    dns_unit = (ROOT / "systemd" / "network-v2-dnsproxy.service").read_text()
+    tunnel_unit = (ROOT / "systemd" / "network-v2-singbox.service").read_text()
+    target = (ROOT / "systemd" / "network-v2-r0.target").read_text()
+    assert "Requires=network-v2-dnsproxy.service" in tunnel_unit
+    assert "After=network-v2-dnsproxy.service" in tunnel_unit
+    assert "ExecStart=/usr/bin/dnsproxy " in dns_unit
+    assert "ExecStart=/usr/bin/sing-box run " in tunnel_unit
+    assert "Wants=network-v2-dnsproxy.service network-v2-singbox.service" in target
+    assert "systemd-analyze verify systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service" in task
+    assert "accept:dns-resilience:" in task
+    assert "- ./acceptance/dns/upstream-resilience.sh" in task
+    assert "accept:full-ip:" in task
+    assert "- ./acceptance/full-ip/tun-quic.sh" in task
+
+    # Source declaration is not an installed/provider/runtime witness.
+    assert "UNKNOWN" in str(dns.get("environment"))
+    assert "UNKNOWN" in str(tunnel.get("environment"))

@@ -32,6 +32,57 @@ class FakeOwnerCaller:
         return response
 
 
+def test_external_pull_capability_cannot_shadow_native_gateway_route_projection() -> None:
+    """One public capability ID must identify the same owner as dispatch."""
+
+    class UnconfiguredCaller(FakeOwnerCaller):
+        def is_configured(self, owner_id: str) -> bool:
+            return False
+
+    class ExternalProjection:
+        def capability_projection(self) -> dict[str, list[str]]:
+            return {
+                "execution.linux": ["external-worker-shadow"],
+                "execution.partner": ["external-worker-legitimate"],
+            }
+
+    caller = UnconfiguredCaller()
+    caller.responses[("runtime.linux", "job.list")] = {"jobs": []}
+    service = GatewayService(caller, external_workers=ExternalProjection())
+
+    async def scenario() -> None:
+        all_capabilities = await service.capability_describe()
+        identity = [(c.capability, c.owner_id) for c in all_capabilities.capabilities]
+        assert len(identity) == len({name for name, _ in identity})
+        assert ("execution.linux", "runtime.linux") in identity
+        assert ("execution.linux", "external.pull") not in identity
+        assert ("execution.partner", "external.pull") in identity
+
+        selected = await service.capability_describe("execution.linux")
+        assert [(c.capability, c.owner_id) for c in selected.capabilities] == [
+            ("execution.linux", "runtime.linux")
+        ]
+        found = await service.capability_search(query="execution.linux")
+        assert [(c.capability.capability, c.capability.owner_id) for c in found.matches] == [
+            ("execution.linux", "runtime.linux")
+        ]
+        # The same public identity must select the native Runtime consumer,
+        # never a misleading external worker advertised with that name.
+        resolved = await service.execution_resolve(
+            capability="execution.linux", request_id="collision-probe"
+        )
+        assert resolved.owner_id == "runtime.linux"
+        assert resolved.resolution == "absent"
+        assert caller.calls[-1][:2] == ("runtime.linux", "job.list")
+
+        partner = await service.capability_describe("execution.partner")
+        assert [(c.capability, c.owner_id) for c in partner.capabilities] == [
+            ("execution.partner", "external.pull")
+        ]
+
+    asyncio.run(scenario())
+
+
 def test_current_mcp_sdk_accepts_runtime_tool_outcome_union_schema() -> None:
     schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
