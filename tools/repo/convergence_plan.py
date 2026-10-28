@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import tomllib
 from collections import deque
@@ -13,11 +14,17 @@ from pathlib import Path
 import affected_owners
 
 DEPENDENCY_PATH = Path(__file__).with_name("dependency_contracts.toml")
+ROOT_TASKS_PATH = Path(__file__).resolve().parents[2] / "mise.toml"
 
 
 def _git(*args: str) -> str:
     proc = subprocess.run(
-        ["git", *args],
+        # Pin SourceCut/tree identity to Git objects, not locally configured
+        # replacement refs which could spoof a selected task's provenance.
+        ["git", "--no-replace-objects", *args],
+        # Preserve the same graft-free immutable Git SourceCut used by the
+        # native affected-owner delta selector.
+        env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
         check=True,
         text=True,
         capture_output=True,
@@ -174,6 +181,43 @@ def validate_queue_task_selection(
             "queue task selection must match canonical owner tasks plus "
             "the scoped Formal-source verification task"
         )
+
+    # The queue invokes these exact task names through mise run.
+    # Name/Owner agreement alone is not a runnable contract: the root task
+    # can be removed or renamed independently of the source selector.
+    # Validate the current native manifest, without interpreting task
+    # shell text as mathematical behavior or running effects.
+    if requested_tasks:
+        try:
+            declared = tomllib.loads(ROOT_TASKS_PATH.read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError) as exc:
+            raise ValueError("selected queue tasks require readable root mise.toml") from exc
+        root_tasks = declared.get("tasks")
+        if not isinstance(root_tasks, dict):
+            raise ValueError("selected queue tasks require a root mise task table")
+        for name in requested_tasks:
+            task = root_tasks.get(name)
+            if isinstance(task, str):
+                callable_task = bool(task.strip())
+            elif isinstance(task, dict):
+                callable_task = bool(task.get("run") or task.get("depends"))
+            else:
+                callable_task = False
+            if not callable_task:
+                raise ValueError(f"selected queue task has no root mise runner: {name}")
+        # A nonempty TOML value cannot prove the actual runner can parse a
+        # command or resolve its task dependencies. Reuse the already installed
+        # native mise validator instead of reimplementing its task language.
+        # Validation does not execute the task or establish its effects.
+        try:
+            native = subprocess.run(
+                ["mise", "--cd", str(ROOT_TASKS_PATH.parent), "tasks", "validate"],
+                capture_output=True, text=True, timeout=30, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise ValueError("selected queue tasks require native mise task validation") from exc
+        if native.returncode != 0:
+            raise ValueError("selected queue tasks fail native mise task validation")
 
 
 def build_plan(
