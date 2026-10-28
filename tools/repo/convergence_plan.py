@@ -382,7 +382,12 @@ def explain_source_impacts(
         "directOwners": plan["directOwners"],
         "verificationOwners": verify_owners,
         "queueVerifyTasks": queue_tasks,
-        "verificationStanding": "REQUIRED_NOT_EXECUTED_BY_PROJECTION",
+        # R2.1 nonvacuity: an empty scoped task set is not a required
+        # unexecuted task. It still cannot certify globally absent consumers.
+        "verificationStanding": (
+            "REQUIRED_NOT_EXECUTED_BY_PROJECTION" if queue_tasks
+            else "NO_NATIVE_QUEUE_TASK_SELECTED_IN_SCOPE"
+        ),
         "changedSourceInputs": source_items,
         "unindexedChangedPaths": missing,
         "staticPythonCandidateCount": sum(

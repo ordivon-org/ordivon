@@ -44,12 +44,38 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertFalse(explanation["impactClosureAdmissible"])
         self.assertFalse(explanation["proofReuseAdmissible"])
 
+    def test_self_hosted_empty_queue_is_not_a_required_unexecuted_task(self) -> None:
+        """R2.1 nonvacuity: no scoped task is not an unexecuted required one."""
+        cut = MODULE._git("rev-parse", "HEAD")
+        source = "docs/architecture/ORDIVON_COMPOSITION_ARCHITECTURE_R1.md"
+        plan = MODULE.build_plan(changed_files=[source])
+        self.assertEqual(plan["queueVerifyTasks"], [])
+        result = MODULE.explain_source_impacts(plan, source_cut=cut)
+        self.assertEqual(result["queueVerifyTasks"], [])
+        self.assertEqual(result["verificationOwners"], [])
+        self.assertEqual(
+            result["verificationStanding"], "NO_NATIVE_QUEUE_TASK_SELECTED_IN_SCOPE"
+        )
+        self.assertFalse(result["proofReuseAdmissible"])
+        self.assertFalse(result["impactClosureAdmissible"])
+        self.assertEqual(result["runtimeCallStanding"], "UNKNOWN")
+        cli = subprocess.check_output(
+            [sys.executable, str(MODULE_PATH),
+             "--changed-file", source, "--explain-impacts"],
+            cwd=MODULE_PATH.parents[2], text=True, timeout=45,
+        )
+        result_cli = __import__("json").loads(cli)
+        self.assertEqual(result_cli["verificationStanding"],
+                         result["verificationStanding"])
+
     def test_self_hosted_formal_source_impact_preserves_existing_real_task(self) -> None:
         plan = MODULE.build_plan(changed_files=["tools/formal/RecursiveLegoRefinement.lean"])
         explanation = MODULE.explain_source_impacts(
             plan, source_cut=MODULE._git("rev-parse", "HEAD")
         )
         self.assertEqual(explanation["queueVerifyTasks"], ["formal:verify"])
+        self.assertEqual(explanation["verificationStanding"],
+                         "REQUIRED_NOT_EXECUTED_BY_PROJECTION")
         self.assertEqual(explanation["verificationOwners"], [])
         self.assertEqual(explanation["unindexedChangedPaths"], [])
         self.assertEqual(explanation["changedSourceInputs"][0]["candidateConsumers"], [])
