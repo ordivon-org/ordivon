@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 import math
+from decimal import Decimal, InvalidOperation
 from graphlib import CycleError, TopologicalSorter
 from heapq import heapify, heappop, heappush
 from pathlib import Path
@@ -65,6 +66,17 @@ def _finite_json_float(value: str) -> float:
     parsed = float(value)
     if not math.isfinite(parsed):
         raise CircuitContractError(f"non-finite JSON number: {value}")
+    # R2.1 representation/equivalence boundary: a finite binary float can
+    # silently collapse DISTINCT decimal evidence values before their
+    # semantic digest is computed (e.g. 1e-324 vs 0.0, or 2**53+1 vs 2**53).
+    # Preserve the existing float API, but admit only numeric lexemes whose
+    # exact decimal value equals its emitted canonical float representation.
+    # This check is NOT a proof of the consumer's implementation refinement.
+    try:
+        if Decimal(value) != Decimal(str(parsed)):
+            raise CircuitContractError(f"lossy JSON numeric evidence: {value}")
+    except InvalidOperation as exc:
+        raise CircuitContractError("invalid JSON numeric evidence") from exc
     return parsed
 
 
