@@ -41,7 +41,12 @@ class FullCoverageTests(unittest.TestCase):
             (ROOT / "tools/formal/mise.toml").read_text())["tasks"]
         self.assertEqual(root_tasks["formal:verify"]["run"],
                          "cd tools/formal && mise run verify")
-        self.assertEqual(formal_tasks["verify"]["run"], "python3 verify.py")
+        from tools.repo.test_formal_source_contract import (
+            assert_verify_task_executes_exact_formal_entrypoint,
+        )
+        assert_verify_task_executes_exact_formal_entrypoint(
+            formal_tasks["verify"]["run"]
+        )
         self.assertEqual(M.source_partition("tools/unknown_script.py", policy)
                          ["standing"], "UNASSIGNED")
 
