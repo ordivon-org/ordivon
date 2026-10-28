@@ -8,7 +8,11 @@ from .cognitive_circuit_r1 import (
     validate_gate_result,
     validate_manifest,
 )
-from .interface_contract_r2 import currentness_standing, evaluate_interface
+from .interface_contract_r2 import (
+    currentness_standing,
+    evaluate_interface,
+    inspect_lego_declaration,
+)
 from .successor_contract_r1 import (
     compile_successor_contract,
     evaluate_successor_gates,
@@ -30,6 +34,7 @@ __all__ = [
     "currentness_standing",
     "evaluate_gate_results",
     "evaluate_interface",
+    "inspect_lego_declaration",
     "evaluate_successor_gates",
     "resolve_verifier_bindings",
     "validate_gate_result",

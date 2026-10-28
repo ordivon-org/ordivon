@@ -156,22 +156,151 @@ def evaluate_interface(
     return result
 
 
+# This is a strict R2.1 *declaration* admission boundary, not a proof checker.
+# Keep historical interface compatibility and structural circuit projections
+# unchanged: their callers have not asserted formal LEGO qualification.
+R21_COORDINATES = ("I", "O", "S", "pre", "post", "inv", "eff", "c", "epsilon", "prov", "unfold")
+R21_CONTEXT = (
+    "id",
+    "responsibility",
+    "goal",
+    "consumerRef",
+    "semanticProfile",
+    "behavioralContract",
+    "representation",
+    "observationBoundary",
+    "acceptance",
+)
+
+
+def _meaningful_text(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value != "UNKNOWN"
+
+
+def _semantic_coordinate_valid(key: str, value: Any) -> bool:
+    if key == "unfold":
+        return isinstance(value, list) and all(_meaningful_text(item) for item in value)
+    if not isinstance(value, dict) or not value:
+        return False
+    if key in {"I", "O", "S"}:
+        return _meaningful_text(value.get("type")) and _meaningful_text(value.get("meaning"))
+    if key in {"pre", "post", "inv"}:
+        return _meaningful_text(value.get("predicate"))
+    if key == "eff":
+        return _meaningful_text(value.get("kind")) and _meaningful_text(value.get("assumption"))
+    if key == "c":
+        return (
+            value.get("standing") in {"UNKNOWN", "MEASURED", "BOUNDED"}
+            and _meaningful_text(value.get("metric"))
+            and (
+                value["standing"] == "UNKNOWN"
+                or isinstance(value.get("value"), (str, int, float))
+                and not isinstance(value.get("value"), bool)
+            )
+        )
+    if key == "epsilon":
+        if not _meaningful_text(value.get("standing")):
+            return False
+        if value["standing"] == "EXACT_DECLARED":
+            return isinstance(value.get("value"), str) and bool(value["value"].strip())
+        return value["standing"] == "UNMEASURED" and _meaningful_text(value.get("reason"))
+    if key == "prov":
+        return _meaningful_text(value.get("sourceCut")) and _meaningful_text(value.get("specRef"))
+    return False
+
+
+def inspect_lego_declaration(declaration: dict[str, Any]) -> dict[str, Any]:
+    """Classify one mandatory full R2.1 tuple; never self-issue Formal PASS.
+
+    This validates *declared shape* only. The selected behavioral semantics,
+    type soundness, nonvacuity and implementation relation require independent
+    qualified verification at the natural owner. Untrusted proof fields cannot
+    promote a declaration to a checked theorem.
+    """
+    if not isinstance(declaration, dict):
+        raise CircuitContractError("R2.1 declaration must be an object")
+
+    required = (*R21_CONTEXT, *R21_COORDINATES)
+    missing = [key for key in required if key not in declaration]
+    invalid = []
+    for key in required:
+        if key not in declaration:
+            continue
+        value = declaration[key]
+        if key == "acceptance":
+            valid = isinstance(value, dict) and _meaningful_text(value.get("criterion"))
+        elif key == "behavioralContract":
+            valid = isinstance(value, dict) and all(
+                isinstance(value.get(name), dict) and _meaningful_text(value[name].get("predicate"))
+                for name in ("assumption", "guarantee", "totality")
+            )
+        elif key == "representation":
+            valid = isinstance(value, dict) and all(
+                _meaningful_text(value.get(name)) for name in ("relation", "concreteWitness")
+            )
+        elif key == "observationBoundary":
+            valid = (
+                isinstance(value, dict)
+                and _meaningful_text(value.get("scope"))
+                and isinstance(value.get("outputs"), list)
+                and bool(value["outputs"])
+                and all(_meaningful_text(item) for item in value["outputs"])
+                and isinstance(value.get("effects"), list)
+                and all(_meaningful_text(item) for item in value["effects"])
+            )
+        elif key in R21_CONTEXT:
+            valid = _meaningful_text(value)
+        else:
+            valid = _semantic_coordinate_valid(key, value)
+        if not valid:
+            invalid.append(key)
+
+    result: dict[str, Any] = {
+        "schemaVersion": 1,
+        "kind": "ordivon.r21-lego-declaration-inspection",
+        "declarationDigest": canonical_digest(declaration),
+        "declarationStanding": (
+            "DECLARATION_COMPLETE_UNPROVED"
+            if not missing and not invalid
+            else "CANDIDATE_UNQUALIFIED"
+        ),
+        "missingCoordinates": missing,
+        "invalidCoordinates": invalid,
+        "modelProofStanding": "UNKNOWN",
+        "implementationRefinement": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "promotionAdmissible": False,
+        "truthBoundary": (
+            "Complete declaration is not nonvacuous semantics, contract "
+            "composition, a checker-issued mathematical proof, implementation "
+            "refinement, owner authenticity, or installed currentness."
+        ),
+    }
+    result["resultDigest"] = canonical_digest(result)
+    return result
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
     evaluate = sub.add_parser("evaluate")
     evaluate.add_argument("observation", type=Path)
     evaluate.add_argument("expectation", type=Path)
+    inspect = sub.add_parser("inspect-lego")
+    inspect.add_argument("declaration", type=Path)
     return parser
 
 
 def main() -> int:
     args = _parser().parse_args()
     try:
-        result = evaluate_interface(
-            _load_json(args.observation),
-            _load_json(args.expectation),
-        )
+        if args.command == "inspect-lego":
+            result = inspect_lego_declaration(_load_json(args.declaration))
+        else:
+            result = evaluate_interface(
+                _load_json(args.observation),
+                _load_json(args.expectation),
+            )
     except (OSError, json.JSONDecodeError, CircuitContractError) as exc:
         raise SystemExit(f"interface contract R2 failed: {exc}") from exc
     print(json.dumps(result, indent=2, sort_keys=True))
