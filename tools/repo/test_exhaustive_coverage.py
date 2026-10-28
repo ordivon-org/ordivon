@@ -766,13 +766,62 @@ class ExternalAuthorityObservationJoinTests(unittest.TestCase):
         assert not valid["observationJoin"]["unscopedShortIdQuestions"][0][
             "bareIdIsAnActualCollision"]
 
-    def test_duplicate_and_fake_evidence_status_rejected(self):
+    def test_distinct_temporal_observations_preserve_identity_and_provenance(self):
+        first = self.observation(
+            observationRevision="a"*40, observedAt="2026-10-28T06:48:00Z",
+            observedFacts={"trackedPaths": 200})
+        second = self.observation(
+            observationRevision="b"*40, observedAt="2026-10-28T06:49:00Z",
+            witnessRef="job-87654321", observedFacts={"trackedPaths": 201})
+        joined = M.join_observed_authorities(
+            self.frontier, self.envelope([second, first])
+        )["observationJoin"]
+        reverse = M.join_observed_authorities(
+            self.frontier, self.envelope([first, second])
+        )["observationJoin"]
+        assert joined == reverse
+        records = joined["observedSubjects"]
+        assert len(records) == 2
+        assert len({record["subjectRef"] for record in records}) == 1
+        assert len({record["authoritySubjectRef"] for record in records}) == 1
+        assert len({record["observationRef"] for record in records}) == 2
+        assert joined["summary"]["distinctObservedSubjects"] == 1
+        assert joined["summary"]["reportedObservationSubjects"] == 2
+        assert len(joined["candidateAssociations"]) == 2
+        assert all(record["semanticConsumerStanding"] == "UNKNOWN" for record in records)
+        assert not joined["proofReuseAdmissible"]
+        assert not joined["deletionAuthorized"]
+
+    def test_two_observation_kinds_keep_authority_subject_alias_without_physical_proof(self):
+        first = self.observation(candidateProblemRef=None)
+        second = self.observation(
+            observationKind="ENVIRONMENT_EFFECT_OBSERVED",
+            observationRevision="runtime-v2",
+            candidateProblemRef=None,
+        )
+        joined = M.join_observed_authorities(
+            self.frontier, self.envelope([first, second])
+        )["observationJoin"]
+        records = joined["observedSubjects"]
+        assert len({r["subjectRef"] for r in records}) == 2
+        assert len({r["authoritySubjectRef"] for r in records}) == 1
+        assert all(r["authoritySubjectStanding"] ==
+                   "CALLER_SCOPED_ALIAS_NOT_VERIFIED" for r in records)
+
+    def test_duplicate_and_conflicting_observations_are_rejected(self):
+        original = self.observation()
         with self.assertRaisesRegex(ValueError, "duplicate"):
+            M.join_observed_authorities(
+                self.frontier, self.envelope([original, original]))
+        with self.assertRaisesRegex(ValueError, "conflicting"):
             M.join_observed_authorities(self.frontier, self.envelope([
-                self.observation(), self.observation(observationRevision="b"*40)]))
+                original, self.observation(
+                    witnessRef="job-87654321",
+                    observedFacts={"trackedPaths": 999}),
+            ]))
         with self.assertRaisesRegex(ValueError, "exact scoped"):
             M.join_observed_authorities(self.frontier, self.envelope([
-                {**self.observation(), "proofStatus": "PASS"}]))
+                {**original, "proofStatus": "PASS"}]))
 
     def test_bounds_and_invalid_authority_provenance_fail_closed(self):
         with self.assertRaisesRegex(ValueError, "bounded list"):
