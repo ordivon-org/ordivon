@@ -1068,6 +1068,11 @@ end OrdivonR21.NumericRepresentation
 -- are independent K2 refinement obligations, NOT claimed here.
 namespace OrdivonR21.MessageEvidence
 
+-- This ledger is a LOGICAL successful-commit projection: nextSeq is
+-- an abstract ordinal, NOT PostgreSQL nextval(), which may have gaps.
+-- The physical wire sequence, request-receipt table and allocator are
+-- outside this modeled observation universe. K2 must separately prove an
+-- order-preserving realization to wire sequences. Equality is NOT assumed.
 structure Ledger where
   messages : String → Option (String × Nat)
   nextSeq : Nat
@@ -1211,7 +1216,165 @@ theorem overwrite_breaks_existing_immutability :
   have hConflict := (h.1 "old" 0 rfl).2
   simp at hConflict
 
+-- Instantiate the EXISTING R2.1 typed 11-coordinate component carrier
+-- from TimeoutConnection. This models one real collaboration responsibility;
+-- it does not create another transport, registry, framework or evaluator.
+def LedgerInvariant (s : Ledger) : Prop :=
+  0 < s.nextSeq ∧
+    ∀ ref digest seq, s.messages ref = some (digest, seq) →
+      seq < s.nextSeq
+
+theorem append_preserves_ledger_invariant (s : Ledger) (ref digest : String)
+    (hInv : LedgerInvariant s) :
+    LedgerInvariant (append s ref digest) := by
+  constructor
+  · exact Nat.zero_lt_succ s.nextSeq
+  · intro key stored seq hStored
+    change (if key = ref then some (digest, s.nextSeq) else s.messages key) =
+      some (stored, seq) at hStored
+    change seq < s.nextSeq + 1
+    by_cases hKey : key = ref
+    · rw [if_pos hKey] at hStored
+      cases hStored
+      exact Nat.lt_succ_self s.nextSeq
+    · rw [if_neg hKey] at hStored
+      exact Nat.lt_trans (hInv.2 key stored seq hStored)
+        (Nat.lt_succ_self s.nextSeq)
+
+theorem deliver_preserves_ledger_invariant (s : Ledger) (ref digest : String)
+    (hInv : LedgerInvariant s) :
+    LedgerInvariant (deliver s ref digest).1 := by
+  unfold deliver
+  cases h : s.messages ref with
+  | none =>
+      simpa [h] using append_preserves_ledger_invariant s ref digest hInv
+  | some old =>
+      by_cases same : old.1 = digest
+      · simpa [h, same] using hInv
+      · simpa [h, same] using hInv
+
+def strictMessage :
+    OrdivonR21.TimeoutConnection.StrictLego21
+      (String × String) Admission Ledger where
+  identity := "host.space.message.post-and-replay-r21"
+  responsibility := "atomic durable message admission with immutable identity"
+  pre := fun _ request => request.1 ≠ "" ∧ request.2 ≠ ""
+  post := fun s request admission next =>
+    deliver s request.1 request.2 = (next, admission)
+  inv := LedgerInvariant
+  eff := fun s _ admission next =>
+    (admission = .committed → next.nextSeq = s.nextSeq + 1) ∧
+    (admission ≠ .committed → next = s)
+  c := fun _ _ => 1
+  epsilon := 0
+  prov := "services/host/src/ordivon_host_v2/social_store.py:post_message"
+  unfold := ["Gateway.message_post", "Host.social_store.post_message",
+             "Host.topic_resume"]
+  accept := fun s request admission next =>
+    Guarantees (s, request.1, request.2) (next, admission)
+
+def oldMessageConsumer : IOContract
+    (Ledger × String × String) (Admission × Ledger) where
+  assume := fun x => LedgerInvariant x.1 ∧
+    x.2.1 ≠ "" ∧ x.2.2 ≠ ""
+  guarantee := fun x y =>
+    Guarantees (x.1, x.2.1, x.2.2) (y.2, y.1)
+
+def strictMessageBehavior (x : Ledger × String × String)
+    (y : Admission × Ledger) : Prop :=
+  deliver x.1 x.2.1 x.2.2 = (y.2, y.1)
+
+-- Exact effect discipline follows from the three independent cases of the
+-- durable-message model (fresh, same digest, conflicting digest).
+theorem admitted_delivery_effect (s : Ledger) (ref digest : String) :
+    let result := deliver s ref digest
+    (result.2 = .committed → result.1.nextSeq = s.nextSeq + 1) ∧
+    (result.2 ≠ .committed → result.1 = s) := by
+  cases h : s.messages ref with
+  | none =>
+      simp [deliver, h, append]
+  | some entry =>
+      by_cases same : entry.1 = digest
+      · simp [deliver, h, same]
+      · simp [deliver, h, same]
+
+theorem strict_message_model_implements_contract :
+    Implements
+      (OrdivonR21.TimeoutConnection.asIOContract strictMessage)
+      strictMessageBehavior := by
+  constructor
+  · intro ⟨s, ref, digest⟩ ⟨admission, next⟩ hAssume hBehavior
+    change deliver s ref digest = (next, admission) at hBehavior
+    change LedgerInvariant s ∧
+      (ref ≠ "" ∧ digest ≠ "") at hAssume
+    change
+      (deliver s ref digest = (next, admission)) ∧
+      ((admission = .committed → next.nextSeq = s.nextSeq + 1) ∧
+       (admission ≠ .committed → next = s)) ∧
+      Guarantees (s, ref, digest) (next, admission)
+    constructor
+    · exact hBehavior
+    constructor
+    · have hEffect := admitted_delivery_effect s ref digest
+      rw [hBehavior] at hEffect
+      exact hEffect
+    · have hOld : protocol.assume (s, ref, digest) := hAssume.2
+      have hModel : executableModel (s, ref, digest) (next, admission) :=
+        hBehavior.symm
+      exact executable_model_refines_protocol.1
+        (s, ref, digest) (next, admission) hOld hModel
+  · intro ⟨s, ref, digest⟩ _
+    exact ⟨((deliver s ref digest).2, (deliver s ref digest).1), rfl⟩
+
+theorem strict_message_refines_existing_consumer :
+    Refines
+      (OrdivonR21.TimeoutConnection.asIOContract strictMessage)
+      oldMessageConsumer := by
+  constructor
+  · intro x hOld
+    exact hOld
+  · intro x y _ hNew
+    exact hNew.2.2
+
+theorem strict_message_preserves_existing_consumers :
+    Implements oldMessageConsumer strictMessageBehavior :=
+  refinement_preserves_implementation
+    (OrdivonR21.TimeoutConnection.asIOContract strictMessage)
+    oldMessageConsumer strictMessageBehavior
+    strict_message_model_implements_contract
+    strict_message_refines_existing_consumer
+
+theorem strict_message_model_preserves_invariant
+    (s : Ledger) (ref digest : String)
+    (hInv : strictMessage.inv s) :
+    strictMessage.inv (deliver s ref digest).1 :=
+  deliver_preserves_ledger_invariant s ref digest hInv
+
+-- Nonvacuity of the full typed invariant and admission precondition.
+theorem strict_message_has_admitted_state_and_request :
+    ∃ (s : Ledger) (ref digest : String),
+      strictMessage.inv s ∧ strictMessage.pre s (ref, digest) := by
+  refine ⟨{ messages := fun _ => none, nextSeq := 1 }, "ref", "digest", ?_, ?_⟩
+  · constructor
+    · exact (by decide : 0 < (1 : Nat))
+    · intro ref digest seq h
+      cases h
+  · exact ⟨by decide, by decide⟩
+
+theorem strict_message_abstract_cost_and_zero_error
+    (s : Ledger) (request : String × String) :
+    strictMessage.c s request = 1 ∧ strictMessage.epsilon = 0 :=
+  ⟨rfl, rfl⟩
+
 end OrdivonR21.MessageEvidence
+
+#print axioms OrdivonR21.MessageEvidence.admitted_delivery_effect
+#print axioms OrdivonR21.MessageEvidence.strict_message_model_implements_contract
+#print axioms OrdivonR21.MessageEvidence.strict_message_refines_existing_consumer
+#print axioms OrdivonR21.MessageEvidence.strict_message_preserves_existing_consumers
+#print axioms OrdivonR21.MessageEvidence.strict_message_model_preserves_invariant
+#print axioms OrdivonR21.MessageEvidence.strict_message_abstract_cost_and_zero_error
+#print axioms OrdivonR21.MessageEvidence.strict_message_has_admitted_state_and_request
 
 #print axioms OrdivonR21.MessageEvidence.same_ref_digest_replay_is_state_preserving
 #print axioms OrdivonR21.MessageEvidence.different_digest_conflict_is_state_preserving
