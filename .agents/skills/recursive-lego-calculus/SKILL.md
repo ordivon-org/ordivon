@@ -66,6 +66,31 @@ Use whichever of these questions changes the current decision. They are **not** 
 
 For raw discovery and INCOMPLETE_CANDIDATE notes, six navigation fields may suffice; they are not independently admitted LEGOs. Every formally DECLARED or ADMITTED independent LEGO needs a complete typed eleven-coordinate contract before any property proof. The declaration is not itself a checked mathematical obligation; proof, source refinement, installed state and user acceptance have independent evidence grades. A version-qualified InstanceOf(archetype, parameters, environment, state, effects) may resolve the full effective contract without duplicating eleven declarations per Run or message. This is a strict admission rule, not permission to create a separate registry, Schema, verifier or eleven new files per LEGO. Never fabricate effects, cost, zero approximation or evidence to fill a field. Reuse the existing source/API/proof carrier.
 
+### Agent public contract view and actual capability invocation
+
+Discovery is a projection of the **same full effective R2.1 contract**, not a
+second incomplete LEGO or registry. L0 previews the goal/role/version and
+flags known external effects, required authority, failures/timeouts, and
+unknown proof/currentness. L1 provides typed I/O, pre/post/invariants,
+errors, progress/time bounds, effects, authority and scoped c/epsilon values
+(or explicit UNKNOWN). L2 adds proofs, provenance, source cuts and change
+readsets. L3 unfolds internals only when the Agent needs them. Hide irrelevant
+implementation, never decision-critical effects or assumptions.
+
+Information disclosure is NOT execution authorization: the actual MCP/CLI/
+Gateway/Runtime owner must check current principal, grant, scope, inputs and
+expiry/revocation at action time. A once-safe public preview is not a license
+for later effectful invocation. UNKNOWN demands READ_MORE/UNFOLD or refusal.
+
+Goal-relative required capability coverage, core LEGO transformative leverage
+and ordinary terminal product value are independent: an ordinary output can be
+required and commercially central. True consumer evidence must reach a named
+observed domain or scoped architectural acceptance; mutual references and
+test-only cycles do not prove domain use. Any claim of measured improvement
+names a baseline source/version, observer, predicate/metric, instrument and
+guardrails, or states UNKNOWN. Prioritize consumer bottlenecks and qualified
+alternatives, not raw dependency fan-out.
+
 ### Optional functional LEGO roles — not a type system
 
 At the broadest level, Ordivon distinguishes **能力型 LEGO (capability: executable
