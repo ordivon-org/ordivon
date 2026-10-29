@@ -922,6 +922,24 @@ class SocialStore:
         if before_sequence is not None and (type(before_sequence) is not int or before_sequence < 1):
             raise ValueError("before_sequence must be positive")
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
+        # PostgreSQL 'simple' FTS does not segment Chinese words. Match a
+        # single unspaced CJK phrase literally so it can occur within a
+        # longer Chinese token; preserve historical FTS for other queries.
+        # The predicate is fixed SQL and query bytes stay parameter-bound.
+        cjk_literal = (
+            any("\u3400" <= char <= "\u9fff" for char in query)
+            and not any(char.isspace() for char in query.strip())
+        )
+        search_predicate = (
+            "strpos(body,%s)>0"
+            if cjk_literal
+            else "to_tsvector('simple',body) @@ websearch_to_tsquery('simple',%s)"
+        )
+        search_boundary = (
+            "PostgreSQL CJK literal substring locator"
+            if cjk_literal
+            else "PostgreSQL full-text locator"
+        )
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             if space_ref is not None:
@@ -932,7 +950,7 @@ class SocialStore:
                     raise ConflictError("topic does not belong to supplied space")
             rows = conn.execute(
                 "SELECT sequence,message_ref,space_ref,topic_ref,author_actor_ref,message_kind,body,message_digest,recorded_at_ms,created_at "
-                "FROM messages WHERE to_tsvector('simple',body) @@ websearch_to_tsquery('simple',%s) "
+                "FROM messages WHERE " + search_predicate + " "
                 "AND (%s::text IS NULL OR space_ref=%s) AND (%s::text IS NULL OR topic_ref=%s) "
                 "AND (%s::bigint IS NULL OR sequence<%s) ORDER BY sequence DESC LIMIT %s",
                 (query, space_ref, space_ref, topic_ref, topic_ref, before_sequence, before_sequence, limit + 1),
@@ -966,7 +984,7 @@ class SocialStore:
                     "nextBeforeSequence": None if not page else int(page[-1]["sequence"]),
                     "rankingApplied": False,
                     "ordering": "sequence_desc",
-                    "truthBoundary": "PostgreSQL full-text locator ordered by message sequence, not relevance/priority; message claims require owner-native verification",
+                    "truthBoundary": search_boundary + " ordered by message sequence, not relevance/priority; message claims require owner-native verification",
                 }
 
             page, byte_more = bounded_prefix(
@@ -985,7 +1003,7 @@ class SocialStore:
                 "nextBeforeSequence": int(page[-1]["sequence"]) if has_more and page else None,
                 "rankingApplied": False,
                 "ordering": "sequence_desc",
-                "truthBoundary": "PostgreSQL full-text locator ordered by message sequence, not relevance/priority; message claims require owner-native verification",
+                "truthBoundary": search_boundary + " ordered by message sequence, not relevance/priority; message claims require owner-native verification",
             }
 
     def resume_topic(
