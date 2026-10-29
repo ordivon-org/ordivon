@@ -96,7 +96,9 @@ def _qualified_formal_test_receipt(
             "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
             "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
             "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
-            "codeFragmentRefined": True,
+            "shapeAnchorsObserved": True,
+            "codeFragmentRefined": False,
+            "sourceBehaviorRefinement": "UNKNOWN",
             "runtimeRustRefined": False,
             "installedCurrentness": "UNKNOWN",
         },
@@ -309,6 +311,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 missing_grade = copy.deepcopy(full_report)
                 del missing_grade[field]
                 invalid_receipts[f"missing-{field}"] = json.dumps(missing_grade)
+            source_promoted = copy.deepcopy(full_report)
+            source_promoted["sourceFragmentRefinement"]["codeFragmentRefined"] = True
+            invalid_receipts["unearned-source-code-refinement"] = json.dumps(source_promoted)
             both_promoted = copy.deepcopy(full_report)
             both_promoted["implementationRefinement"] = "PASS"
             both_promoted["installedCurrentness"] = "PASS"
@@ -367,9 +372,8 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             wrong_count = copy.deepcopy(full_report)
             wrong_count["count"] += 1
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
-            # Two new forged/missing fragment receipts and one extra
-            # source-blob omission case extend the negative corpus.
-            self.assertEqual(len(invalid_receipts), 63)
+            # Include the explicit unearned Python code-refinement claim.
+            self.assertEqual(len(invalid_receipts), 64)
 
             try:
                 for label, payload in invalid_receipts.items():

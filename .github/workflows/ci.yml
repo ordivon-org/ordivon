@@ -539,7 +539,9 @@ jobs:
                       "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
                       "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
                       "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
-                      "codeFragmentRefined": True,
+                      "shapeAnchorsObserved": True,
+                      "codeFragmentRefined": False,
+                      "sourceBehaviorRefinement": "UNKNOWN",
                       "runtimeRustRefined": False,
                       "installedCurrentness": "UNKNOWN",
                   }

@@ -94,11 +94,12 @@ def qualified_tool_binaries() -> dict[str, dict[str, str]]:
 
 
 def qualified_timeout_adapter_fragment() -> dict[str, object]:
-    """Source-bound proof witness for ONE restricted Python connection.
+    """Check selected source syntax anchors, never certify Python refinement.
 
-    Only the exact syntax admitted here is related to the Lean Option Nat
-    model. No arbitrary Python verifier, Rust refinement, installed effect,
-    or complete consumer closure is inferred.
+    This local AST check is incomplete for Python dataflow, aliases, in-place
+    mutation, calls, and runtime effects. Matching a syntax anchor cannot prove
+    that the source realizes the Lean Option Nat model. The mathematical and
+    CrossHair helper proofs remain independently qualified.
     """
     path = "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
     tree = ast.parse((REPO / path).read_text(encoding="utf-8"), filename=path)
@@ -187,70 +188,6 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
     if len(projections) != 1 or canonical(projections[0][1]) != canonical(expected):
         raise ValueError("Gateway timeout propagation differs from the modeled identity")
 
-    # The Lean Option input and caller grant must remain unchanged from the
-    # one checked admission guard to the materialized timeout. A later
-    # rebind (or explicit grant-field write) would make the checked syntax
-    # true while forwarding a different, unqualified value.
-    bound_targets = (
-        expr("timeout"), expr("self.gateway_grant"),
-        expr("self.gateway_grant.max_timeout_ms"),
-    )
-    for statement in lower.body[model_input[0] + 1:producer_index]:
-        for node in ast.walk(statement):
-            if (isinstance(node, (ast.Name, ast.Attribute, ast.Subscript))
-                    and isinstance(node.ctx, (ast.Store, ast.Del))
-                    and canonical(node) in bound_targets):
-                raise ValueError("timeout admission input or grant changed before output")
-
-    # Only the exact selected, non-timeout Harness envelope construction
-    # may occur between the checked guard and the timeout projection.
-    # The accepted calls here operate on newly constructed request data.
-    # A new call (including setattr, dict.update or an indirect adapter)
-    # requires a fresh source/model qualification instead of false PASS.
-    envelope = lower.body[guards[0][0] + 1:producer_index]
-    if (len(envelope) != 3
-            or not isinstance(envelope[0], ast.Assign)
-            or len(envelope[0].targets) != 1
-            or canonical(envelope[0].targets[0]) != expr("request_id")
-            or not isinstance(envelope[1], ast.AnnAssign)
-            or canonical(envelope[1].target) != expr("execution")
-            or not isinstance(envelope[2], ast.If)
-            or canonical(envelope[2].test) != expr("env is not None")
-            or len(envelope[2].body) != 1 or envelope[2].orelse
-            or not assign(envelope[2].body[0], 'execution["env"]', "dict(env)")):
-        raise ValueError("timeout post-guard output envelope changed")
-    for statement in envelope:
-        for node in ast.walk(statement):
-            if isinstance(node, ast.Call) and canonical(node.func) not in (
-                expr("canonical_digest"), expr("list"), expr("dict")
-            ):
-                raise ValueError("unqualified timeout output envelope call")
-
-    # Bound the selected SOURCE fragment through its consuming operation.
-    # A syntactically correct assignment does not qualify a Python dict once
-    # additional statements may mutate/alias it before return or transport.
-    # This is intentionally a narrow accepted AST profile, not a generic
-    # Python effect/alias analyzer. New lowering steps must be requalified.
-    returned = lower.body[producer_index + 1:]
-    expected_return = expr(
-        '("workspace.exec", '
-        '{"schemaVersion": 1, "clientRequestId": request_id, '
-        '"execution": execution}, request_id)'
-    )
-    if (len(returned) != 1 or not isinstance(returned[0], ast.Return)
-            or canonical(returned[0].value) != expected_return):
-        raise ValueError("timeout output frame changed before caller return")
-
-    # The verified Gateway projection must be the last step before the
-    # actual owner-bound execution.submit call. Even dict.update/setdefault
-    # and mutations through aliases would otherwise invalidate the witness.
-    transport_tail = submit.body[projections[0][0] + 1:]
-    if (not transport_tail or not assign(
-        transport_tail[0], "receipt",
-        'self._call("execution.submit", gateway_args)',
-    )):
-        raise ValueError("Gateway timeout projection changed before owner call")
-
     # Refuse an extra write to the modeled output after either projection.
     for statements, start in ((lower.body, producer_index), (submit.body, projections[0][0])):
         for statement in statements[start + 1:]:
@@ -270,7 +207,9 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
         "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
         "producerPath": path,
         "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
-        "codeFragmentRefined": True,
+        "shapeAnchorsObserved": True,
+        "codeFragmentRefined": False,
+        "sourceBehaviorRefinement": "UNKNOWN",
         "runtimeRustRefined": False,
         "installedCurrentness": "UNKNOWN",
     }
