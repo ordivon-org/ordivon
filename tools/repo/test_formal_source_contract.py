@@ -198,10 +198,12 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         self.assertLess(step.index(admission), step.index("mise run formal:verify"))
         self.assertIn("KANI_HOME:", step)
 
-    def test_timeout_source_fragment_refinement_rejects_changed_python_semantics(self) -> None:
-        """Source-bound certificate rejects a changed producer or transport."""
+    def test_timeout_source_anchor_reader_rejects_changed_explicit_syntax(self) -> None:
+        """Anchor observation rejects changed syntax without proving code semantics."""
         qualified = formal.qualified_timeout_adapter_fragment()
-        self.assertIs(qualified["codeFragmentRefined"], True)
+        self.assertIs(qualified["sourceAstAnchorsObserved"], True)
+        self.assertIs(qualified["codeFragmentRefined"], False)
+        self.assertEqual(qualified["sourceRefinementStanding"], "UNKNOWN")
         self.assertIs(qualified["runtimeRustRefined"], False)
         target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
         source = target.read_text(encoding="utf-8")
@@ -237,6 +239,58 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                 with patch.object(Path, "read_text", simulated_source_read):
                     with self.assertRaisesRegex(ValueError, "timeout|admission"):
                         formal.qualified_timeout_adapter_fragment()
+
+    def test_partial_ast_source_anchors_must_not_promise_semantic_refinement(self) -> None:
+        """Native Formal receipt must remain honest about untracked Python writes.
+
+        These in-memory mutants were previously admitted by the existing
+        source-anchor checker despite changing the actual Harness return
+        value. A SOURCE-ANCHOR witness is useful, but is not CODE_REFINED.
+        """
+        baseline = formal.qualified_timeout_adapter_fragment()
+        self.assertIs(baseline["sourceAstAnchorsObserved"], True)
+        self.assertIs(baseline["codeFragmentRefined"], False)
+        self.assertEqual(baseline["sourceRefinementStanding"], "UNKNOWN")
+
+        target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        source = target.read_text(encoding="utf-8")
+        before = '        execution["timeoutMs"] = _forward_granted_timeout(\n'
+        after = '        return (\n            "workspace.exec",'
+        self.assertEqual(source.count(before), 1)
+        self.assertEqual(source.count(after), 1)
+        mutants = {
+            "rebind_after_guard": source.replace(
+                before, '        timeout = None\n' + before, 1
+            ),
+            "mutate_output_after_assignment": source.replace(
+                after,
+                '        execution.update({"timeoutMs": self.gateway_grant.max_timeout_ms + 1})\n'
+                + after, 1,
+            ),
+            "mutate_output_through_alias": source.replace(
+                after,
+                '        alias = execution\n'
+                '        alias.update({"timeoutMs": self.gateway_grant.max_timeout_ms + 1})\n'
+                + after, 1,
+            ),
+        }
+        actual_read = Path.read_text
+        for label, mutant in mutants.items():
+            with self.subTest(label=label):
+                compile(mutant, str(target), "exec")
+
+                def read_with_mutant(path, *args, **kwargs):
+                    if path == target:
+                        return mutant
+                    return actual_read(path, *args, **kwargs)
+
+                with patch.object(Path, "read_text", read_with_mutant):
+                    outcome = formal.qualified_timeout_adapter_fragment()
+                # The anchor reader can still describe observed syntax, but
+                # it MUST NOT certify source-code refinement for any mutant.
+                self.assertIs(outcome["sourceAstAnchorsObserved"], True)
+                self.assertIs(outcome["codeFragmentRefined"], False)
+                self.assertEqual(outcome["sourceRefinementStanding"], "UNKNOWN")
 
     def test_exact_git_source_readset_is_qualified(self) -> None:
         current = formal.qualified_source_cut()

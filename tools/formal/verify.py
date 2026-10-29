@@ -94,11 +94,21 @@ def qualified_tool_binaries() -> dict[str, dict[str, str]]:
 
 
 def qualified_timeout_adapter_fragment() -> dict[str, object]:
-    """Source-bound proof witness for ONE restricted Python connection.
+    """Source-bound AST *anchor* observation for ONE Python timeout seam.
 
-    Only the exact syntax admitted here is related to the Lean Option Nat
-    model. No arbitrary Python verifier, Rust refinement, installed effect,
-    or complete consumer closure is inferred.
+    R2.1 responsibility: identify model-relevant source anchors, without
+    granting an unproved semantic source-to-Lean refinement.
+    I = exact Python source & one Option Nat model profile;
+    O = anchor observation, unknown code-refinement standing;
+    S = task-local inspected source snapshot (no retained mutable state);
+    pre = parseable source with matching named methods and anchors;
+    post = anchor matches, never a proof of all accepted Python executions;
+    inv = caller rebinds, alias mutations and effects are not inferred away;
+    eff = read-only source observation; c = AST traversal, bound UNKNOWN;
+    epsilon = semantic-model correspondence UNKNOWN;
+    prov = exact Git source check by qualified_source_cut, external to this call;
+    unfold = existing Lean TimeoutConnection and actual Harness/Gateway methods.
+    Acceptance: in-memory semantic mutants must never get CODE_REFINED.
     """
     path = "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
     tree = ast.parse((REPO / path).read_text(encoding="utf-8"), filename=path)
@@ -206,7 +216,12 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
         "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
         "producerPath": path,
         "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
-        "codeFragmentRefined": True,
+        "sourceAstAnchorsObserved": True,
+        # Anchor/order matching misses Python rebindings, alias mutations,
+        # nested calls, and unbounded control-flow paths. It is not a
+        # sound source-to-Lean refinement theorem (see negative oracle).
+        "codeFragmentRefined": False,
+        "sourceRefinementStanding": "UNKNOWN",
         "runtimeRustRefined": False,
         "installedCurrentness": "UNKNOWN",
     }
