@@ -125,11 +125,25 @@ def _strict_r21_lego() -> dict:
         "post": {"predicate": "y = (2*x) mod 16"},
         "inv": {"predicate": "external effects are absent"},
         "eff": {"kind": "none", "assumption": "pure model; code not verified"},
-        "c": {"standing": "UNKNOWN", "metric": "elapsed milliseconds"},
+        "c": {
+            "standing": "UNKNOWN",
+            "metric": "elapsed milliseconds",
+            "reason": "no runtime measurement has been made",
+        },
         "epsilon": {"standing": "EXACT_DECLARED", "value": "0"},
         "prov": {"sourceCut": "source:immutable", "specRef": "spec:even-adapter"},
         "unfold": [],
-        "acceptance": {"criterion": "checker-backed valid connection, wrong type rejected"},
+        "acceptance": {
+            "criterion": "checker-backed valid connection, wrong type rejected",
+            "observer": "consumer:even-consumer",
+            "method": "finite UInt4 checker with explicit failure observation",
+            "target": "all 16 legal valuations satisfy the declared postcondition",
+            "baseline": {"standing": "SPECIFICATION", "ref": "spec:even-adapter"},
+            "evidence": {
+                "standing": "NOT_OBSERVED",
+                "reason": "checker receipt not provided",
+            },
+        },
     }
 
 
@@ -240,3 +254,64 @@ def test_placeholder_assume_guarantee_is_not_a_complete_declaration() -> None:
     result = inspect_lego_declaration(lego)
     assert result["declarationStanding"] == "CANDIDATE_UNQUALIFIED"
     assert "behavioralContract" in result["invalidCoordinates"]
+
+
+# Consumer-driven R2.1 admission: having a free-form acceptance criterion is
+# insufficient to tell an Agent how/whether the declared goal will be checked.
+@pytest.mark.parametrize(
+    "acceptance",
+    [
+        {"criterion": "must return an acceptable result"},
+        {
+            "criterion": "must return an acceptable result",
+            "observer": "client",
+            "method": "run a finite test",
+            "target": "true",
+            "baseline": {"standing": "UNKNOWN"},
+            "evidence": {"standing": "NOT_OBSERVED"},
+        },
+        {
+            "criterion": "must return an acceptable result",
+            "observer": "client",
+            "method": "run a finite test",
+            "target": "true",
+            "baseline": {"standing": "SPECIFICATION"},
+            "evidence": {"standing": "NOT_OBSERVED", "reason": "not executed"},
+        },
+    ],
+)
+def test_declared_acceptance_requires_measurement_and_honest_baseline(
+    acceptance: dict,
+) -> None:
+    lego = _strict_r21_lego()
+    lego["acceptance"] = acceptance
+    result = inspect_lego_declaration(lego)
+    assert result["declarationStanding"] == "CANDIDATE_UNQUALIFIED"
+    assert "acceptance" in result["invalidCoordinates"]
+    assert result["promotionAdmissible"] is False
+
+
+def test_unknown_cost_requires_explicit_reason_for_agent_decision() -> None:
+    lego = _strict_r21_lego()
+    lego["c"] = {"standing": "UNKNOWN", "metric": "elapsed milliseconds"}
+    result = inspect_lego_declaration(lego)
+    assert result["declarationStanding"] == "CANDIDATE_UNQUALIFIED"
+    assert "c" in result["invalidCoordinates"]
+    assert result["modelProofStanding"] == "UNKNOWN"
+
+
+def test_unknown_external_evidence_is_not_claimed_as_accepted() -> None:
+    lego = _strict_r21_lego()
+    lego["acceptance"] = {
+        "criterion": "finite property checked on all UInt4 inputs",
+        "observer": "consumer:finite-checker",
+        "method": "checked finite enumeration",
+        "target": "all 16 legal input valuations satisfy guarantee",
+        "baseline": {"standing": "SPECIFICATION", "ref": "contract:even-adapter-v1"},
+        "evidence": {"standing": "NOT_OBSERVED", "reason": "checker not yet run"},
+    }
+    lego["c"]["reason"] = "no measured runtime bound"
+    result = inspect_lego_declaration(lego)
+    assert result["declarationStanding"] == "DECLARATION_COMPLETE_UNPROVED"
+    assert result["modelProofStanding"] == "UNKNOWN"
+    assert result["promotionAdmissible"] is False

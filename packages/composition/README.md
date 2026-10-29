@@ -10,6 +10,7 @@ capability discovery, seam-specific verification, workflow state, or domain trut
 - Generic verifier-owned Composition Gate result validation/evaluation.
 - Interface compatibility, currentness, and evidence-admissibility evaluation.
 - Strict R2.1 full-tuple declaration inspection via ordivon-interface-contract inspect-lego FILE; DECLARATION_COMPLETE_UNPROVED never implies checked model proof, implementation refinement, installation, or authority.
+  It requires an observer, measurement method, goal predicate, explicitly evidenced or unknown baseline and observation standing; declared acceptance is never independently witnessed acceptance.
 - Deterministic Composition Gate → verification-obligation projection.
 - Exact task-local verifier-binding validation without discovery or ranking.
 - Successor Contract predecessor/candidate binding and verifier-owned succession-gate

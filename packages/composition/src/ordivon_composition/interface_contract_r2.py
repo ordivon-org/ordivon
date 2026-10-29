@@ -193,9 +193,13 @@ def _semantic_coordinate_valid(key: str, value: Any) -> bool:
             value.get("standing") in {"UNKNOWN", "MEASURED", "BOUNDED"}
             and _meaningful_text(value.get("metric"))
             and (
-                value["standing"] == "UNKNOWN"
-                or isinstance(value.get("value"), (str, int, float))
-                and not isinstance(value.get("value"), bool)
+                (value["standing"] == "UNKNOWN" and _meaningful_text(value.get("reason")))
+                or (
+                    value["standing"] != "UNKNOWN"
+                    and isinstance(value.get("value"), (str, int, float))
+                    and not isinstance(value.get("value"), bool)
+                    and (not isinstance(value["value"], str) or bool(value["value"].strip()))
+                )
             )
         )
     if key == "epsilon":
@@ -207,6 +211,33 @@ def _semantic_coordinate_valid(key: str, value: Any) -> bool:
     if key == "prov":
         return _meaningful_text(value.get("sourceCut")) and _meaningful_text(value.get("specRef"))
     return False
+
+
+def _acceptance_measurement_declared(value: Any) -> bool:
+    """Check declared observer/oracle/baseline, never attest observed acceptance."""
+    if not isinstance(value, dict) or not all(
+        _meaningful_text(value.get(key)) for key in ("criterion", "observer", "method", "target")
+    ):
+        return False
+    baseline = value.get("baseline")
+    evidence = value.get("evidence")
+    if not isinstance(baseline, dict) or not isinstance(evidence, dict):
+        return False
+    baseline_standing = baseline.get("standing")
+    if baseline_standing == "UNKNOWN":
+        baseline_valid = _meaningful_text(baseline.get("reason"))
+    elif baseline_standing in {"SPECIFICATION", "MEASURED"}:
+        baseline_valid = _meaningful_text(baseline.get("ref"))
+    else:
+        baseline_valid = False
+    evidence_standing = evidence.get("standing")
+    if evidence_standing == "NOT_OBSERVED":
+        evidence_valid = _meaningful_text(evidence.get("reason"))
+    elif evidence_standing == "CALLER_DECLARED":
+        evidence_valid = _meaningful_text(evidence.get("ref"))
+    else:
+        evidence_valid = False
+    return baseline_valid and evidence_valid
 
 
 def inspect_lego_declaration(declaration: dict[str, Any]) -> dict[str, Any]:
@@ -228,7 +259,7 @@ def inspect_lego_declaration(declaration: dict[str, Any]) -> dict[str, Any]:
             continue
         value = declaration[key]
         if key == "acceptance":
-            valid = isinstance(value, dict) and _meaningful_text(value.get("criterion"))
+            valid = _acceptance_measurement_declared(value)
         elif key == "behavioralContract":
             valid = isinstance(value, dict) and all(
                 isinstance(value.get(name), dict) and _meaningful_text(value[name].get("predicate"))
