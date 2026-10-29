@@ -445,3 +445,106 @@ end OrdivonR21
 #print axioms OrdivonR21.declared_external_anchor_cannot_be_self_owned
 #print axioms OrdivonR21.self_owned_external_anchor_is_inconsistent
 #print axioms OrdivonR21.relation_label_alone_cannot_certify_external_identity
+
+
+-- Restricted communication core LEGO: every "reply_to" edge must point to
+-- an already committed, earlier Host Message sequence.  It does not constrain
+-- "references", "about", or other graph relations.
+-- Full R2.1 ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold):
+-- id=host.message.reply-chronology; responsibility=acyclic causal reply graph;
+-- I=(sourceRef,targetRef,sourceOrdinal,targetOrdinal), O=admitted/rejected;
+-- S=immutable-message ordinal map plus reply-only edge relation;
+-- pre=both message refs exist, same topic, and ordinals are immutable;
+-- post=permit edge iff targetOrdinal < sourceOrdinal;
+-- inv=all admitted reply-only edges descend in ordinal, graph is acyclic;
+-- eff=one directed reply relation append or none, not external IO authority;
+-- c=one integer comparison model; concrete DB cost UNKNOWN;
+-- epsilon=0 exact signed-Int order, prov=this kernel term/Host sourcecut;
+-- unfold=existing Host message + relation API and PostgreSQL ordinal owner;
+-- acceptance=kernel checked path descent/no cycle and unchecked countermodel.
+-- This is a mathematical model, NOT automatic implementation refinement of
+-- Python/psycopg or a claim that PostgreSQL commits by sequence order.
+namespace OrdivonR21.CausalReply
+
+def Qualified {Ref : Type} (ordinal : Ref → Int)
+    (reply : Ref → Ref → Prop) : Prop :=
+  ∀ source target, reply source target → ordinal target < ordinal source
+
+theorem causal_chain_descends {Ref : Type}
+    (ordinal : Ref → Int) (reply : Ref → Ref → Prop)
+    (hQualified : Qualified ordinal reply)
+    {source target : Ref} (hPath : Relation.TransGen reply source target) :
+    ordinal target < ordinal source := by
+  induction hPath with
+  | single hEdge =>
+      exact hQualified _ _ hEdge
+  | tail hPrefix hFinal ih =>
+      exact Int.lt_trans (hQualified _ _ hFinal) ih
+
+theorem qualified_reply_graph_acyclic {Ref : Type}
+    (ordinal : Ref → Int) (reply : Ref → Ref → Prop)
+    (hQualified : Qualified ordinal reply) (source : Ref) :
+    ¬ Relation.TransGen reply source source := by
+  intro hCycle
+  have hDescending : ordinal source < ordinal source :=
+    causal_chain_descends ordinal reply hQualified hCycle
+  exact (Int.lt_irrefl _ hDescending)
+
+theorem guarded_append_preserves_qualification {Ref : Type}
+    (ordinal : Ref → Int) (reply : Ref → Ref → Prop)
+    (hQualified : Qualified ordinal reply)
+    (source target : Ref) (hEarlier : ordinal target < ordinal source) :
+    Qualified ordinal
+      (fun a b => reply a b ∨ (a = source ∧ b = target)) := by
+  intro a b edge
+  rcases edge with hOld | ⟨ha, hb⟩
+  · exact hQualified _ _ hOld
+  · subst a
+    subst b
+    exact hEarlier
+
+theorem unguarded_self_reply_is_cyclic :
+    ∃ (reply : Bool → Bool → Prop),
+      Relation.TransGen reply true true := by
+  exact ⟨(fun a b => a = b), Relation.TransGen.single rfl⟩
+
+-- Pure decision: Python checks target_sequence >= source_sequence
+-- and raises ConflictError. This proves order semantics for Nat only;
+-- SQL decoding and real Python control flow remain separate obligations.
+def decision (sourceOrdinal targetOrdinal : Int) : Bool :=
+  decide (targetOrdinal < sourceOrdinal)
+
+def decisionContract : OrdivonR21.IOContract (Int × Int) Bool where
+  assume := fun _ => True
+  guarantee := fun input output =>
+    output = decision input.1 input.2
+
+def decisionBehavior (input : Int × Int) (output : Bool) : Prop :=
+  output = decision input.1 input.2
+
+theorem decision_implements_model :
+    OrdivonR21.Implements decisionContract decisionBehavior := by
+  constructor
+  · intro input output _ h
+    exact h
+  · intro input _
+    exact ⟨decision input.1 input.2, rfl⟩
+
+theorem python_rejection_predicate_iff_model_not_permitted
+    (sourceOrdinal targetOrdinal : Int) :
+    (sourceOrdinal ≤ targetOrdinal) ↔
+      decision sourceOrdinal targetOrdinal = false := by
+  simp [decision, decide_eq_false_iff_not]
+
+theorem reversed_message_pair_rejected :
+    ¬ (1 < (0 : Int)) := by
+  decide
+
+end OrdivonR21.CausalReply
+
+#print axioms OrdivonR21.CausalReply.causal_chain_descends
+#print axioms OrdivonR21.CausalReply.qualified_reply_graph_acyclic
+#print axioms OrdivonR21.CausalReply.guarded_append_preserves_qualification
+#print axioms OrdivonR21.CausalReply.unguarded_self_reply_is_cyclic
+#print axioms OrdivonR21.CausalReply.decision_implements_model
+#print axioms OrdivonR21.CausalReply.python_rejection_predicate_iff_model_not_permitted
