@@ -238,6 +238,62 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "timeout|admission"):
                         formal.qualified_timeout_adapter_fragment()
 
+    def test_timeout_source_fragment_rejects_indirect_postprojection_effects(self) -> None:
+        """A matched assignment is not a source-to-model output-frame proof."""
+        target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        original = target.read_text(encoding="utf-8")
+        producer_return = '        return (\n            "workspace.exec",'
+        submit_call = '        receipt = self._call("execution.submit", gateway_args)'
+        self.assertEqual(original.count(producer_return), 1)
+        self.assertEqual(original.count(submit_call), 1)
+        mutations = {
+            "timeout_rebound_after_guard": (
+                '        request_id = (',
+                '        timeout = 1\n        request_id = (',
+            ),
+            "grant_setattr_after_guard": (
+                '        request_id = (',
+                '        setattr(self.gateway_grant, "max_timeout_ms", 900000)\n'
+                '        request_id = (',
+            ),
+            "grant_modified_after_guard": (
+                '        request_id = (',
+                '        self.gateway_grant.max_timeout_ms = 900000\n'
+                '        request_id = (',
+            ),
+            "producer_update": (
+                producer_return,
+                '        execution.update({"timeoutMs": 900000})\n' + producer_return,
+            ),
+            "producer_alias_update": (
+                producer_return,
+                '        alias = execution\n'
+                '        alias.update({"timeoutMs": 900000})\n' + producer_return,
+            ),
+            "gateway_update": (
+                submit_call,
+                '        gateway_args.update({"timeoutMs": 900000})\n' + submit_call,
+            ),
+            "gateway_alias_update": (
+                submit_call,
+                '        alias = gateway_args\n'
+                '        alias.update({"timeoutMs": 900000})\n' + submit_call,
+            ),
+        }
+        real_read = Path.read_text
+        for name, (before, after) in mutations.items():
+            with self.subTest(mutant=name):
+                altered = original.replace(before, after, 1)
+
+                def simulated_read(path, *args, **kwargs):
+                    if path == target:
+                        return altered
+                    return real_read(path, *args, **kwargs)
+
+                with patch.object(Path, "read_text", simulated_read):
+                    with self.assertRaisesRegex(ValueError, "timeout|projection|output"):
+                        formal.qualified_timeout_adapter_fragment()
+
     def test_exact_git_source_readset_is_qualified(self) -> None:
         current = formal.qualified_source_cut()
         self.assertEqual(
