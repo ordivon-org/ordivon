@@ -89,3 +89,17 @@ def test_postgresql_corrupt_message_timestamp_fails_closed_in_topic_and_get() ->
         social.get_message(original.message_ref)
     with pytest.raises(RuntimeError, match="message content digest"):
         social.resume_topic(original.topic_ref)
+
+
+def test_postgresql_search_cjk_substring_reaches_original_message() -> None:
+    """An actual Agent's Chinese search finds an embedded phrase, not only a whole lexeme."""
+    social, original = _new_message()
+    inserted = original.model_copy(update={
+        "message_ref": f"{original.message_ref}:cjk",
+        "client_request_id": f"post:{original.message_ref}:cjk",
+        "body": "已有真实终端消费链及独立验收证据",
+    })
+    assert social.post_message(inserted)["admission"] == "committed"
+    found = social.search_messages("终端消费", topic_ref=original.topic_ref)
+    assert [row["messageRef"] for row in found["messages"]] == [inserted.message_ref]
+    assert social.search_messages("完全无关词", topic_ref=original.topic_ref)["messages"] == []
