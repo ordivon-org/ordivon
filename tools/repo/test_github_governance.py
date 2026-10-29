@@ -96,7 +96,9 @@ def _qualified_formal_test_receipt(
             "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
             "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
             "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
-            "codeFragmentRefined": True,
+            "sourceAstAnchorsObserved": True,
+            "codeFragmentRefined": False,
+            "sourceRefinementStanding": "UNKNOWN",
             "runtimeRustRefined": False,
             "installedCurrentness": "UNKNOWN",
         },
@@ -295,6 +297,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             forged_fragment = copy.deepcopy(full_report)
             forged_fragment["sourceFragmentRefinement"]["runtimeRustRefined"] = True
             invalid_receipts["forged-rust-refinement-claim"] = json.dumps(forged_fragment)
+            forged_code_grade = copy.deepcopy(full_report)
+            forged_code_grade["sourceFragmentRefinement"]["codeFragmentRefined"] = True
+            invalid_receipts["unearned-python-code-refinement"] = json.dumps(forged_code_grade)
             no_tools = copy.deepcopy(full_report)
             no_tools.pop("toolBinaries")
             invalid_receipts["no-eight-tool-witnesses"] = json.dumps(no_tools)
@@ -369,7 +374,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
             # Two new forged/missing fragment receipts and one extra
             # source-blob omission case extend the negative corpus.
-            self.assertEqual(len(invalid_receipts), 63)
+            self.assertEqual(len(invalid_receipts), 64)
 
             try:
                 for label, payload in invalid_receipts.items():
@@ -507,11 +512,16 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
             ).strip()
             report = work / "formal-fixture.json"
-            report.write_text(json.dumps(
-                _qualified_formal_test_receipt(
-                    repo, source_cut, work / "fake-formal-tool-binaries",
-                )
-            ), encoding="utf-8")
+            example_receipt = _qualified_formal_test_receipt(
+                repo, source_cut, work / "fake-formal-tool-binaries",
+            )
+            # A structurally valid positive fake receipt must NEVER
+            # promote source AST anchors to real Python code refinement.
+            self.assertIs(
+                example_receipt["sourceFragmentRefinement"]["codeFragmentRefined"],
+                False,
+            )
+            report.write_text(json.dumps(example_receipt), encoding="utf-8")
             tasks = work / "ordivon-affected-tasks.txt"
             tasks.write_text("runtime:verify\n", encoding="utf-8")
             record = work / "mise-record.txt"
