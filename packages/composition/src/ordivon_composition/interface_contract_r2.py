@@ -276,6 +276,37 @@ def inspect_lego_declaration(declaration: dict[str, Any]) -> dict[str, Any]:
             "refinement, owner authenticity, or installed currentness."
         ),
     }
+    # A compact decision view of a caller-authored declaration, not an
+    # authorization, proof certificate, or second source of truth. Do not
+    # expose private unfold or unrecognized implementation fields.
+    result["agentPublicContract"] = (
+        {
+            "standing": "DECLARED_UNVERIFIED",
+            "identity": declaration["id"],
+            "responsibility": declaration["responsibility"],
+            "goal": declaration["goal"],
+            "consumerRef": declaration["consumerRef"],
+            "semanticProfile": declaration["semanticProfile"],
+            "input": declaration["I"],
+            "output": declaration["O"],
+            "pre": declaration["pre"],
+            "post": declaration["post"],
+            "invariant": declaration["inv"],
+            "behavioralContract": declaration["behavioralContract"],
+            "effects": declaration["eff"],
+            "observationBoundary": declaration["observationBoundary"],
+            "cost": declaration["c"],
+            "approximation": declaration["epsilon"],
+            "sourceCutClaim": declaration["prov"]["sourceCut"],
+            "sourceCurrentness": "UNKNOWN",
+            "authorityStanding": "UNKNOWN",
+            "errorSemanticsStanding": "UNKNOWN",
+            "modelProofStanding": "UNKNOWN",
+            "invocationAdmissible": False,
+        }
+        if not missing and not invalid
+        else None
+    )
     result["resultDigest"] = canonical_digest(result)
     return result
 

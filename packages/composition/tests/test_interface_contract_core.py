@@ -240,3 +240,30 @@ def test_placeholder_assume_guarantee_is_not_a_complete_declaration() -> None:
     result = inspect_lego_declaration(lego)
     assert result["declarationStanding"] == "CANDIDATE_UNQUALIFIED"
     assert "behavioralContract" in result["invalidCoordinates"]
+
+
+def test_agent_contract_view_discloses_effects_and_unknown_without_private_unfold() -> None:
+    declaration = _strict_r21_lego()
+    declaration["secretInternalAlgorithm"] = "never expose arbitrary internal text"
+    result = inspect_lego_declaration(declaration)
+    view = result["agentPublicContract"]
+    assert view["standing"] == "DECLARED_UNVERIFIED"
+    assert view["identity"] == "lego:core:even-adapter"
+    assert view["input"] == declaration["I"]
+    assert view["output"] == declaration["O"]
+    assert view["pre"] == declaration["pre"]
+    assert view["effects"] == declaration["eff"]
+    assert view["authorityStanding"] == "UNKNOWN"
+    assert view["errorSemanticsStanding"] == "UNKNOWN"
+    assert view["sourceCurrentness"] == "UNKNOWN"
+    assert view["invocationAdmissible"] is False
+    assert "secretInternalAlgorithm" not in str(view)
+    assert "unfold" not in view
+
+
+def test_unqualified_declaration_has_no_agent_contract_view() -> None:
+    declaration = _strict_r21_lego()
+    del declaration["eff"]
+    result = inspect_lego_declaration(declaration)
+    assert result["declarationStanding"] == "CANDIDATE_UNQUALIFIED"
+    assert result["agentPublicContract"] is None
