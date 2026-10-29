@@ -187,26 +187,35 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
     if len(projections) != 1 or canonical(projections[0][1]) != canonical(expected):
         raise ValueError("Gateway timeout propagation differs from the modeled identity")
 
-    # Refuse an extra write to the modeled output after either projection.
-    for statements, start in ((lower.body, producer_index), (submit.body, projections[0][0])):
-        for statement in statements[start + 1:]:
-            for node in ast.walk(statement):
-                if isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign, ast.Delete)):
-                    touched = [node.target] if isinstance(node, (ast.AugAssign, ast.AnnAssign)) else (
-                        node.targets if isinstance(node, ast.Assign) else node.targets)
-                    if any(
-                        canonical(target) in (
-                            expr("timeout"), expr('execution["timeoutMs"]'),
-                            expr('gateway_args["timeoutMs"]'))
-                        for target in touched
-                    ):
-                        raise ValueError("modeled timeout value is overwritten after projection")
+    # Explicitly close the selected producer-to-consumer frame. Arbitrary
+    # Python calls can write dictionaries through aliases (including update,
+    # pop and reflective mutation); scanning only Assign/Delete nodes is
+    # unsound. Admit ONLY the existing exact return from the producer and the
+    # exact next Gateway dispatch statement. Any other effect or intermediate
+    # call needs its own source-to-model proof, rather than optimistic PASS.
+    expected_return = ast.parse(
+        'return ("workspace.exec", {"schemaVersion": 1, '
+        '"clientRequestId": request_id, "execution": execution}, request_id)'
+    ).body[0]
+    after_producer = lower.body[producer_index + 1:]
+    if (len(after_producer) != 1
+            or canonical(after_producer[0]) != canonical(expected_return)):
+        raise ValueError("timeout caller effect frame is not qualified before return")
+
+    expected_dispatch = ast.parse(
+        'receipt = self._call("execution.submit", gateway_args)'
+    ).body[0]
+    after_projection = submit.body[projections[0][0] + 1:]
+    if (not after_projection
+            or canonical(after_projection[0]) != canonical(expected_dispatch)):
+        raise ValueError("timeout Gateway effect frame changed before dispatch")
 
     return {
         "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
         "producerPath": path,
         "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
         "codeFragmentRefined": True,
+        "effectFrame": "closed_post_projection_caller_return_and_immediate_gateway_dispatch",
         "runtimeRustRefined": False,
         "installedCurrentness": "UNKNOWN",
     }

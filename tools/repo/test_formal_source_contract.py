@@ -238,6 +238,53 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "timeout|admission"):
                         formal.qualified_timeout_adapter_fragment()
 
+    def test_timeout_source_refinement_rejects_post_projection_mutating_calls(self) -> None:
+        """The published caller/Gateway effect frame must reject actual dict mutation.
+
+        This uses REAL merged Python caller bytes; only one task-local read is
+        changed in memory. It is not a stubbed or invented producer.
+        """
+        target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        original = target.read_text(encoding="utf-8")
+        variants = (
+            (
+                "caller-update",
+                '        return (\n            "workspace.exec",',
+                '        execution.update({"timeoutMs": 900000})\n'
+                '        return (\n            "workspace.exec",',
+            ),
+            (
+                "caller-alias",
+                '        return (\n            "workspace.exec",',
+                '        alias = execution\n'
+                '        alias["timeoutMs"] = 900000\n'
+                '        return (\n            "workspace.exec",',
+            ),
+            (
+                "gateway-update",
+                '        receipt = self._call("execution.submit", gateway_args)',
+                '        gateway_args.update({"timeoutMs": 900000})\n'
+                '        receipt = self._call("execution.submit", gateway_args)',
+            ),
+            (
+                "gateway-alias",
+                '        receipt = self._call("execution.submit", gateway_args)',
+                '        alias = gateway_args\n'
+                '        alias["timeoutMs"] = 900000\n'
+                '        receipt = self._call("execution.submit", gateway_args)',
+            ),
+        )
+        real_read = Path.read_text
+        for name, old, new in variants:
+            with self.subTest(name=name):
+                self.assertIn(old, original)
+                modified = original.replace(old, new, 1)
+                def selected_read(path, *args, **kwargs):
+                    return modified if path == target else real_read(path, *args, **kwargs)
+                with patch.object(Path, "read_text", selected_read):
+                    with self.assertRaisesRegex(ValueError, "timeout|frame|effect|projection"):
+                        formal.qualified_timeout_adapter_fragment()
+
     def test_exact_git_source_readset_is_qualified(self) -> None:
         current = formal.qualified_source_cut()
         self.assertEqual(
