@@ -33,6 +33,24 @@ class AffectedOwnersTests(unittest.TestCase):
             ["skills"],
         )
 
+    def test_project_agent_skill_changes_select_existing_skills_consumer(self) -> None:
+        # Real Skills test reads this canonical project Skill, not just platform/skills source.
+        source = ".agents/skills/recursive-lego-calculus/SKILL.md"
+        self.assertEqual(self.names(source), ["skills"])
+        self.assertEqual(self.queue_tasks(source), ["skills:verify"])
+        self.assertEqual(
+            self.names(".agents/skills/recursive-lego-calculus/references/formal-model.md"),
+            ["skills"],
+        )
+        self.assertEqual(self.names("docs/agent-skills-example.md"), [])
+
+    def test_runtime_release_workflow_selects_actual_runtime_verifier(self) -> None:
+        # Tagged release workflow builds Runtime binary, SBOM and attestations.
+        source = ".github/workflows/runtime-release.yml"
+        self.assertEqual(self.names(source), ["runtime"])
+        self.assertEqual(self.queue_tasks(source), ["runtime:verify"])
+        self.assertEqual(self.names(".github/workflows/release-notes-example.yml"), [])
+
     def test_multiple_existing_owner_changes_preserve_relative_order(self) -> None:
         self.assertEqual(
             self.names(

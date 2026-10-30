@@ -90,6 +90,32 @@ class ConvergencePlanTests(unittest.TestCase):
             [owner.queue_task for owner in native_owners],
         )
 
+    def test_real_project_skill_change_retains_skills_verification_consumer(self) -> None:
+        # platform/skills/tests/test_recursive_lego_math_discovery.py reads this source.
+        path = ".agents/skills/recursive-lego-calculus/SKILL.md"
+        plan = MODULE.build_plan(changed_files=[path])
+        self.assertIn("skills", plan["verificationOwners"])
+        self.assertIn("skills:verify", plan["queueVerifyTasks"])
+        with self.assertRaisesRegex(ValueError, "queue source impact"):
+            MODULE.validate_queue_task_selection([], [], [path])
+        MODULE.validate_queue_task_selection(
+            plan["verificationOwners"], plan["queueVerifyTasks"], [path]
+        )
+        self.assertEqual(
+            MODULE.build_plan(changed_files=["docs/agent-skills-example.md"])[
+                "queueVerifyTasks"
+            ],
+            [],
+        )
+
+    def test_runtime_release_workflow_retains_actual_runtime_gate(self) -> None:
+        path = ".github/workflows/runtime-release.yml"
+        plan = MODULE.build_plan(changed_files=[path])
+        self.assertIn("runtime", plan["verificationOwners"])
+        self.assertIn("runtime:verify", plan["queueVerifyTasks"])
+        with self.assertRaisesRegex(ValueError, "queue source impact"):
+            MODULE.validate_queue_task_selection([], [], [path])
+
     def test_exact_git_replace_cannot_erase_formal_source_queue_or_spoof_tree(self) -> None:
         """LEGO 2.1 source identity must not follow mutable Git replacement refs.
 
