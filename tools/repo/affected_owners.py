@@ -136,11 +136,22 @@ def owners_for_paths(
     # consumer: Composition select-impact executes this exact producer.
     # Do not expand unrelated repo producer edits to all 18 domain queues.
     history_consumer_changed = "tools/repo/source_history_legos.py" in normalized
+    # Existing platform/skills consumers discover and read actual project
+    # Skills under .agents/skills, outside the platform/skills code root.
+    project_skill_consumer_changed = any(
+        path.startswith(".agents/skills/") for path in normalized
+    )
     selected: list[Owner] = []
     for owner in owners:
         if (
             any(path.startswith(owner.root) for path in normalized)
             or (history_consumer_changed and owner.name == "composition")
+            or (project_skill_consumer_changed and owner.name == "skills")
+            # Tagged Runtime release builds and attests Runtime artifacts.
+            or (
+                owner.name == "runtime"
+                and ".github/workflows/runtime-release.yml" in normalized
+            )
         ):
             selected.append(owner)
     return tuple(selected)
