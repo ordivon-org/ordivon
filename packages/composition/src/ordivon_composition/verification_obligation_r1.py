@@ -501,6 +501,7 @@ def select_source_readset_impacts(
         or not isinstance(git_source_delta.get("queryPrefix"), str)
         or not isinstance(git_source_delta.get("authorityRefs"), list)
         or not isinstance(git_source_delta.get("changedRefs"), list)
+        or any(not isinstance(ref, str) for ref in git_source_delta["authorityRefs"])
     ):
         raise CircuitContractError("Git source delta lacks exact authority projection")
 

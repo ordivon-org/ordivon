@@ -117,6 +117,17 @@ def test_source_readset_impact_rejects_nonstring_unhashable_paths(bad_path):
         )
 
 
+@pytest.mark.parametrize("field", ["authorityRefs", "changedRefs"])
+def test_source_readset_impact_rejects_unhashable_git_ref_members(field):
+    delta, evidence = _source_readset_fixture()
+    delta[field] = [{"unexpected": "object"}]
+    with pytest.raises(CircuitContractError):
+        select_source_readset_impacts(
+            git_source_delta=delta,
+            source_readset_evidence=evidence,
+        )
+
+
 def test_source_readset_existing_cli_requalifies_git_and_preserves_unknown_boundary(tmp_path):
     """Real Git delta + owner readset evidence uses existing Composition CLI."""
     import json
