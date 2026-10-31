@@ -123,6 +123,50 @@ class CandidateSourceRedundancyTests(unittest.TestCase):
                             candidate=bad, main=later, repo=repo,
                         )
 
+    def test_historical_head_does_not_certify_full_multicommit_pr_delta(self) -> None:
+        # Last-commit equality cannot establish that earlier PR commits
+        # remained in main: original branch changes may have been reverted.
+        with tempfile.TemporaryDirectory(prefix="ordivon-pr-scope-counterexample-") as tmp:
+            repo = Path(tmp)
+
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True,
+                    stderr=subprocess.PIPE, timeout=20,
+                ).strip()
+
+            git("init", "-q")
+            git("config", "user.email", "historical-pr@example.invalid")
+            git("config", "user.name", "Historical PR oracle")
+            (repo / "early.py").write_text("VALUE = 0\n")
+            (repo / "late.py").write_text("VALUE = 0\n")
+            git("add", ".")
+            git("commit", "-qm", "base")
+            (repo / "early.py").write_text("VALUE = 1\n")
+            git("add", ".")
+            git("commit", "-qm", "earlier branch commit")
+            (repo / "late.py").write_text("VALUE = 1\n")
+            git("add", ".")
+            git("commit", "-qm", "later branch commit")
+            candidate = git("rev-parse", "HEAD")
+            (repo / "early.py").write_text("VALUE = 0\n")
+            git("add", ".")
+            git("commit", "-qm", "post-merge revert of earlier feature")
+            main = git("rev-parse", "HEAD")
+
+            receipt = MODULE.assess_candidate_source_redundancy(
+                candidate=candidate, main=main, repo=repo,
+            )
+            self.assertTrue(receipt["candidateInMainHistory"])
+            self.assertEqual(receipt["candidateChangePaths"], ["late.py"])
+            self.assertEqual(receipt["mainMatchingPaths"], ["late.py"])
+            self.assertFalse(receipt["fullCandidateDeltaQualified"])
+            self.assertEqual(
+                receipt["sourceStanding"],
+                "HISTORICAL_FIRST_PARENT_ONLY_NO_FULL_PR_REDUNDANCY_JUDGMENT",
+            )
+            self.assertFalse(receipt["retirementAdmissible"])
+
     def test_native_cli_on_real_source_cuts_denies_deletion(self) -> None:
         repo = MODULE_PATH.parents[2]
         main = MODULE._git("rev-parse", "HEAD")
