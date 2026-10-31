@@ -81,6 +81,16 @@ class AffectedOwnersTests(unittest.TestCase):
             self.queue_tasks("tools/formal/RecursiveLegoRefinement.lean"), []
         )
 
+    def test_harness_timeout_proof_input_selects_existing_formal_task(self) -> None:
+        # The native Formal source readset consumes this exact Harness adapter.
+        # A Harness-only change must invalidate the proof task as well.
+        source = "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        self.assertEqual(self.names(source), ["harness"])
+        self.assertTrue(MODULE.requires_core_formal_verification((source,)))
+        self.assertFalse(MODULE.requires_core_formal_verification((
+            "services/harness/README.md",
+        )))
+
     def test_next_queue_verification_defaults_to_full_verify(self) -> None:
         self.assertEqual(self.tasks("meta/next/README.md"), ["next:verify"])
         self.assertEqual(self.queue_tasks("meta/next/README.md"), ["next:verify"])
