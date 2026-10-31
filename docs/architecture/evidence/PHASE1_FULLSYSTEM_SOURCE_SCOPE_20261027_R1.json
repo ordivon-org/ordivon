@@ -1,0 +1,4091 @@
+{
+  "alternateCommittedWorktreeSourceScope": {
+    "agentDefaultVisibility": "EXCLUDE_HISTORICAL_ONLY_SOURCE_FROM_ACTIVE_MAIN_QUERIES_UNLESS_EXACT_GIT_COMMIT_REQUESTED",
+    "allCurrentMainPathsSha256CanonicalNulSeparatedUtf8": "a63340fa9527a34aab245b17f5f8fbbf3c2c7f0bdbb0218324b73a8c7999646a",
+    "allOutOfMainPathsSha256CanonicalNulSeparatedUtf8": "25345a5dcba65e605f2cfee05eea5f95af5b14ea73701183139142e41ecbd052",
+    "cannotConclude": "An out-of-main path is unused, safe to erase or not referenced by a production installation.",
+    "changedBlobForPresentMainPaths": 903,
+    "completeCommittedSourceUnion": 8157,
+    "coverageScope": "COMMITTED_BLOB_FILES_IN_OPEN_GIT_WORKTREE_HEADS_ONLY; excludes deleted worktree heads, untracked files, external repositories, installs, Windows and any dynamic consumers.",
+    "currentMainCut": "5e61ef7b27acbf98fce2374b65f35536ebbaaba5",
+    "currentMainTrackedPathCount": 5009,
+    "currentMainTree": "20b6d9d35a2618d80cd96435b3a7cde0fdd42933",
+    "historicalOtherSourceStanding": "CLASSIFIED_BY_EXACT_GIT_TOPLEVEL_PATH_ONLY; dynamic consumer and formal semantic role UNKNOWN",
+    "historicalOtherSourceSubregionCountByPhysicalTopLevel": {
+      "docs": 121,
+      "profiles": 32,
+      "tests": 11,
+      "tools": 3
+    },
+    "kind": "ordivon.phase1-git-worktree-union-and-historical-visibility-observation",
+    "outOfMainDetachedOnlySources": 2153,
+    "outOfMainNamedBranchSources": 995,
+    "pathsNotInCurrentMain": 3148,
+    "proposedHistoricalSourceNavigation": [
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "historical.agent-application",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 28,
+        "outOfMainCommittedPaths": 28,
+        "presentInAnyNamedBranchWorktree": 0,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "785111099f9f72b488b34df3cecdc1cbf4c1724e",
+            "path": "apps/agent/.gitignore"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "d131a465e354afbcf257a38853b9e69a17ffc8e7",
+            "path": "apps/agent/README.md"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "historical.agent-methods",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 40,
+        "outOfMainCommittedPaths": 40,
+        "presentInAnyNamedBranchWorktree": 0,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "3b56c0dac5ea351a589804d3b09f6acf4db876ae",
+            "path": ".agents/skills/capital-observe/SKILL.md"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "b05981f400766cd9125ad6529e16afca0efabf3a",
+            "path": ".agents/skills/capital-reconcile/SKILL.md"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "historical.experiment-and-study-sources",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 580,
+        "outOfMainCommittedPaths": 580,
+        "presentInAnyNamedBranchWorktree": 0,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "374bd23c53baed2c3599b6b20f8bb002ea36c32d",
+            "path": "studies/evaluation-boundary/rw6/structure-r2-binding-r1.json"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "9a0a6b002d1bdf8fb8ce52ad27ce35d881b34723",
+            "path": "studies/evaluation-boundary/rw6/structure-r2-rebind-r1-acceptance.json"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "historical.external-knowledge-authorities",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 586,
+        "outOfMainCommittedPaths": 586,
+        "presentInAnyNamedBranchWorktree": 0,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "dbc453aabaa1a41a8e302e61e0835426d1e39a0a",
+            "path": "catalogs/authorities/README.md"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "586d85266cdf81f78effd1670ea859052a9909f6",
+            "path": "catalogs/authorities/generated/authority-index.json"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "historical.formal-model-sources",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 1,
+        "outOfMainCommittedPaths": 1,
+        "presentInAnyNamedBranchWorktree": 0,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "8d85560ed4d324e23bb819521cd1eb9fe7ed4b41",
+            "gitBlob": "dffc2c5a23823111b5899b7da715336de7f9ed75",
+            "path": "tools/formal/planning/lego-plan-r1.json"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "historical.other-source",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 160,
+        "outOfMainCommittedPaths": 167,
+        "presentInAnyNamedBranchWorktree": 7,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "11dfbbb8a639c00295bbdaa7ba5f0ce1e68f7579",
+            "path": "docs/architecture/AGENT_NATIVE_COGNITIVE_ENVIRONMENT_F7_QUALIFICATION_R1.md"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "a48f03697eb39cff250a70294debcd465d01717a",
+            "path": "docs/architecture/ARCHITECTURE_REANCHOR_R1.md"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "historical.provider-gateway-analysis",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 17,
+        "outOfMainCommittedPaths": 17,
+        "presentInAnyNamedBranchWorktree": 0,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "ac23660881e7a0ebd59b48fbf5bf1667ee612cbb",
+            "path": "analysis/provider-gateway-family-r21/CURRENT_CONVERGENCE_R3.json"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "79509b2dfbc75ba15edac6c8ec69f43496d7e9cb",
+            "path": "analysis/provider-gateway-family-r21/CURRENT_CONVERGENCE_R4.json"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "historical.repository-engineering",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 62,
+        "outOfMainCommittedPaths": 66,
+        "presentInAnyNamedBranchWorktree": 4,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "5a1d10d9d919fcb74038a0af729e825bcca26158",
+            "path": "tools/repo/check_architecture_constitution.py"
+          },
+          {
+            "examplePinnedHead": "47bfd97bda04e60dfc03b9e7d48a565fbda596dc",
+            "gitBlob": "bf01d7d8884d392a4e743e7edbcb80ea95de123b",
+            "path": "tools/repo/classification/README.md"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "historical.skill-mcp-bridge",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 36,
+        "outOfMainCommittedPaths": 36,
+        "presentInAnyNamedBranchWorktree": 0,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "a128d5c0d975a5b333e78950665709c8e2d88597",
+            "path": "extensions/chatgpt-skills-mcp/.python-version"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "7c29fcc4eba86c1162de9fcb2fba193d19aa2313",
+            "path": "extensions/chatgpt-skills-mcp/README.md"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:artifact",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 34,
+        "outOfMainCommittedPaths": 36,
+        "presentInAnyNamedBranchWorktree": 2,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "43a7e651692dd6d1c18ec948cbd66b3347d9b8b1",
+            "path": "capabilities/artifact/artifact-delivery/consumer-acceptance/frozen-authority-snapshots-r1.json"
+          },
+          {
+            "examplePinnedHead": "482bd24ca980a36b8956d8659e4bb414467cdfeb",
+            "gitBlob": "3709748ca27ca6b7ce2fde6d038082e31ed8abb6",
+            "path": "capabilities/artifact/artifact_core/operations.py"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:capital",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 167,
+        "outOfMainCommittedPaths": 168,
+        "presentInAnyNamedBranchWorktree": 1,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "a72b4e4b2e158c8eb6e0e2b3b3beb78a597d6848",
+            "path": "domains/capital/acceptance/capital-circuit-readonly-r1.json"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "7da8d867f5595b48334148bef5a5480e5d598d1d",
+            "path": "domains/capital/acceptance/capital-circuit-readonly-r2.json"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:composition",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 12,
+        "outOfMainCommittedPaths": 12,
+        "presentInAnyNamedBranchWorktree": 0,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "d717c2bcd27d4b2d3befe8ef98915b2c70b2e6aa",
+            "path": "packages/composition/docs/AGENT_RUN_BINDING_R1.md"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "2fbace3f75966410d70dd364a14c1d96779f6c65",
+            "path": "packages/composition/docs/AUTHORITY_OBLIGATION_R1.md"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:distribution",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 1,
+        "outOfMainCommittedPaths": 2,
+        "presentInAnyNamedBranchWorktree": 1,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "97e59c4dcf0c43e964958db987075fed975bba86",
+            "path": "capabilities/distribution/docs/LEGACY-DIFFERENTIAL-R1.md"
+          },
+          {
+            "examplePinnedHead": "2a74bf61296330720a62decdae5d6116abcc28c2",
+            "gitBlob": "ec497c75bfb39bede1a503df09ca352c964277f5",
+            "path": "capabilities/distribution/planning/lego-plan-r1.json"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:game",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 0,
+        "outOfMainCommittedPaths": 973,
+        "presentInAnyNamedBranchWorktree": 973,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "482bd24ca980a36b8956d8659e4bb414467cdfeb",
+            "gitBlob": "63908f80644b27dc20502fb145a11794594016df",
+            "path": "domains/game/.github/workflows/ci.yml"
+          },
+          {
+            "examplePinnedHead": "482bd24ca980a36b8956d8659e4bb414467cdfeb",
+            "gitBlob": "5cdb1b7c18737d6cc96561133ed2b19be26ec825",
+            "path": "domains/game/.github/workflows/codeql.yml"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:gateway",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 3,
+        "outOfMainCommittedPaths": 4,
+        "presentInAnyNamedBranchWorktree": 1,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "482bd24ca980a36b8956d8659e4bb414467cdfeb",
+            "gitBlob": "6579ae55ee635a30aad742c6e7badec6b3309c14",
+            "path": "services/gateway/planning/lego-plan-windows-carrier-r1.json"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "266645ce2bb0e0b586545452214a13ee929dedb1",
+            "path": "services/gateway/systemd/ordivon-gateway.service.d/50-authzen-h2.example.conf"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:harness",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 47,
+        "outOfMainCommittedPaths": 47,
+        "presentInAnyNamedBranchWorktree": 0,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "792129c13f945674ca591f86809a15de107b98b5",
+            "path": "services/harness/config/browser-control-port.json"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "1934bdbbc570c411d71fe9da4149b0d613dd6502",
+            "path": "services/harness/docs/API_SURFACES_R1.md"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:host",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 4,
+        "outOfMainCommittedPaths": 6,
+        "presentInAnyNamedBranchWorktree": 2,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "1c0a2ab51ad914578c0a7bc0d858d939a201d1fb",
+            "path": "services/host/migrations/versions/0011_retire_unproven_optional_legos.py"
+          },
+          {
+            "examplePinnedHead": "482bd24ca980a36b8956d8659e4bb414467cdfeb",
+            "gitBlob": "53dbd6341439b04df768d6a36cc01ef0d5e6e4a5",
+            "path": "services/host/planning/lego-plan-r2.json"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:network",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 111,
+        "outOfMainCommittedPaths": 112,
+        "presentInAnyNamedBranchWorktree": 1,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "ba5069cae695a3cbcb5aaaf2b323cb29c97c721c",
+            "path": "platform/network/capabilities/gluetun/README.md"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "c92fd1f7e41f4370bee1169a2cf84a41dc3dc262",
+            "path": "platform/network/capabilities/gluetun/acceptance/M3B_SERIALIZED_CANARY_RUNBOOK.md"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:next",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 104,
+        "outOfMainCommittedPaths": 105,
+        "presentInAnyNamedBranchWorktree": 1,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "09cccce14ac5c04a412a5d2e575d497dd1f8737f",
+            "path": "meta/next/docs/IMPROVEMENT_CIRCUIT_PROFILE_R1.md"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "25500929d0327ae16cbf2bea61e7b280db656e6f",
+            "path": "meta/next/docs/INCIDENT_CASE_PROFILE_R1.md"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:preservation",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 2,
+        "outOfMainCommittedPaths": 2,
+        "presentInAnyNamedBranchWorktree": 0,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "d6e2ffc46aed06167c9225af8e5b25c7b2b5366e",
+            "path": "capabilities/preservation/config/archivematica-preservation-r11.compose.yml"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "466116b89235d48e81178791e0bb05b8a4cc7734",
+            "path": "capabilities/preservation/scripts/materialize_r11.sh"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:runtime",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 1,
+        "outOfMainCommittedPaths": 3,
+        "presentInAnyNamedBranchWorktree": 2,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "904f9d9b0a3b2595839a16cf3267f6c57c40de33",
+            "gitBlob": "4c094401646de752b89c07069299baf745454cbf",
+            "path": "services/runtime/crates/ordivon-runtime-core/src/pg_artifact_terminal.rs"
+          },
+          {
+            "examplePinnedHead": "904f9d9b0a3b2595839a16cf3267f6c57c40de33",
+            "gitBlob": "af02102fb6e2abcc2abcd57ffe474ec789412df8",
+            "path": "services/runtime/crates/ordivon-runtime-core/src/pg_stage_readback.rs"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:security",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 53,
+        "outOfMainCommittedPaths": 53,
+        "presentInAnyNamedBranchWorktree": 0,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "d1291a07a4665bcc4c9a94a2fe0df63e9611a914",
+            "path": "platform/security/.github/workflows/security.yml"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "38cfbacb3cfb3f96106ef0acf85f908f41d46624",
+            "path": "platform/security/contracts/gateway-capability-authz-v2/README.md"
+          }
+        ]
+      },
+      {
+        "admission": "ALTERNATIVE_COMMITTED_GIT_SOURCE_ONLY_CURRENT_MAIN_ABSENT",
+        "agentSourceNavigationName": "registered-source-historical:workstation",
+        "consumerInstalledAndRetention": "UNKNOWN",
+        "onlyObservedInDetachedWorktreeHeads": 104,
+        "outOfMainCommittedPaths": 104,
+        "presentInAnyNamedBranchWorktree": 0,
+        "sampleExactGitSourceNames": [
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "f2723da49c224e2684229b2a88ea93458efe513e",
+            "path": "platform/workstation/ansible/runtime-lifecycle-service.yml"
+          },
+          {
+            "examplePinnedHead": "eef3c022c2942a789282b62dceceee22db10792f",
+            "gitBlob": "f858f2173b6d424920c62ad505a46a1aded22666",
+            "path": "platform/workstation/claude-private/README.md"
+          }
+        ]
+      }
+    ],
+    "retirementAndAgentVisibilityBoundaries": {
+      "activeMainDefault": "ONLY_TRACKED_PATHS_IN_PINNED_MAIN_SOURCE_CUT",
+      "detachedOnly": "2153 absent-current-main source paths occur only in observed detached worktree heads; REVIEW_FOR_SUBTRACTION but NO_AUTOMATIC_DELETE",
+      "historicalPathDefault": "HIDDEN_FROM_CURRENT_MAIN_SOURCE_NAVIGATION; EXACT_COMMIT_LOOKUP_MAY_SHOW",
+      "namedBranchOnly": "995 absent-current-main source paths do occur in named branch worktrees; DO_NOT_DELETE_WITHOUT_CONSUMER_AND_WORKTREE_CLOSURE",
+      "physicalDeletionLicensed": "NO: no complete consumer, dirty workspace, installed system or recovery/evidence state closure",
+      "sourceProofBoundary": "Exact committed Git source paths only. Files absent from main already need no main-source deletion.",
+      "unknownConsumerInterpretation": "UNOBSERVED does NOT imply NONE"
+    },
+    "retirementSafetyDecision": "ALREADY_ABSENT_FROM_CURRENT_MAIN_SOURCE; NOT_PERMISSION_TO_DELETE_HISTORICAL_COMMIT_OR_DIRTY_WORKSPACE",
+    "schemaVersion": 1,
+    "structureR2DeclaredTargetPresence": {
+      "classification": "PLANNED_DESTINATION_NOT_A_CURRENT_EXECUTION_CONSUMER",
+      "declaredPlanStanding": "partially-deployed",
+      "declaredTruthRole": "repository-placement-plan-not-runtime-or-domain-authority",
+      "falsifier": "A declared target for move/split may have zero matching current-main paths without constituting a missing installed runtime service.",
+      "mappingCount": 25,
+      "mappingRows": [
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "web",
+          "mode": "retain",
+          "targetAllAbsentFromMain": false,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 27,
+              "path": "apps/web/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "gateway",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/gateway/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "runtime",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/runtime/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "host",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/host/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "harness",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/harness/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "security",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/security/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "network",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/network/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "workstation",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "deploy/workstation/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "skills-compat",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "extensions/chatgpt-skills-mcp/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "artifact",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/artifact/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "distribution",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/distribution/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "media",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/media/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "preservation",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/preservation/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "game",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/game/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "capital",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/capital/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "DEPLOYED",
+          "id": "composition-mechanics",
+          "mode": "split",
+          "targetAllAbsentFromMain": false,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 54,
+              "path": "packages/composition/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "DEPLOYED",
+          "id": "canonical-skills",
+          "mode": "move",
+          "targetAllAbsentFromMain": false,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 39,
+              "path": ".agents/skills/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "DEPLOYED",
+          "id": "control-plugin",
+          "mode": "move",
+          "targetAllAbsentFromMain": false,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 2,
+              "path": "extensions/ordivon-control-plane/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "authority-catalog",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "catalogs/authorities/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "capability-catalog",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "catalogs/capabilities/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "knowledge-catalog",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "catalogs/knowledge/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "domain-profiles",
+          "mode": "move",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "profiles/domains/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "composition-policies",
+          "mode": "split",
+          "targetAllAbsentFromMain": true,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 0,
+              "path": "packages/composition/policies/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "next-residual",
+          "mode": "split",
+          "targetAllAbsentFromMain": false,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 54,
+              "path": "packages/composition/"
+            },
+            {
+              "inSourceFileCount": 0,
+              "path": "catalogs/"
+            },
+            {
+              "inSourceFileCount": 3,
+              "path": "profiles/"
+            },
+            {
+              "inSourceFileCount": 2,
+              "path": "extensions/"
+            },
+            {
+              "inSourceFileCount": 233,
+              "path": "docs/"
+            },
+            {
+              "inSourceFileCount": 1,
+              "path": "tests/"
+            }
+          ]
+        },
+        {
+          "declaredStanding": "PLANNED_UNQUALIFIED",
+          "id": "research-meta",
+          "mode": "split",
+          "targetAllAbsentFromMain": false,
+          "targetSourcePrefixes": [
+            {
+              "inSourceFileCount": 3,
+              "path": "profiles/research/"
+            },
+            {
+              "inSourceFileCount": 0,
+              "path": "catalogs/authorities/"
+            },
+            {
+              "inSourceFileCount": 0,
+              "path": "studies/"
+            },
+            {
+              "inSourceFileCount": 1,
+              "path": "tests/"
+            }
+          ]
+        }
+      ],
+      "pinnedSourceBlob": "56e509e32095484e2e47681ee011d9ca8f05d8c1",
+      "source": "docs/architecture/structure-r2-transition-r1.json",
+      "targetAllAbsentCount": 19
+    },
+    "subsequentlyObservedMainScopeDelta": {
+      "alreadyAcceptedIntoMain": "YES_SOURCE_ONLY",
+      "changeQualification": "SOURCE_REDUCTION_IN_NEWER_GIT_MAIN; exact workspace union figures remain pinned to earlier main cut and must not be silently promoted.",
+      "comparedPinnedWorktreeMainCut": "5e61ef7b27acbf98fce2374b65f35536ebbaaba5",
+      "newerMainTrackedFiles": 5007,
+      "newerObservedMainCut": "bf75726c21556304d435f297a89b9f671bd26c4e",
+      "newlyAbsentInCurrentMain": [
+        "docs/architecture/evidence/ORDIVON_PHASE1_CONTENT_AND_CARRIER_INVENTORY_20261027_R4.json",
+        "docs/architecture/evidence/ORDIVON_PHASE1_DENSE_SOURCE_NAMES_20261027_R3.json"
+      ],
+      "newlyAddedInCurrentMain": [],
+      "releaseOrConsumerQualification": "UNKNOWN",
+      "sourceIntegrityCheck": "git diff --name-status 5e61ef7b27acbf98fce2374b65f35536ebbaaba5 bf75726c21556304d435f297a89b9f671bd26c4e"
+    },
+    "topPhysicalLocationCount": {
+      ".agents": 40,
+      "analysis": 17,
+      "apps": 28,
+      "capabilities": 40,
+      "catalogs": 586,
+      "docs": 121,
+      "domains": 1141,
+      "extensions": 36,
+      "meta": 105,
+      "packages": 12,
+      "platform": 269,
+      "profiles": 32,
+      "services": 60,
+      "studies": 580,
+      "tests": 11,
+      "tools": 70
+    },
+    "truthRole": "BOUNDED_PHYSICAL_GIT_WORKTREE_AND_COMMITTED_SOURCE_EVIDENCE",
+    "uniqueWorktreeCommitCuts": 129,
+    "worktreeCommitCuts": [
+      "01a9cb6089698f25cb466401bc5a19fcbfd0f8c3",
+      "01d29835f4d3570cd85e967fef20049e840941fe",
+      "041a1609b726170b3750068130fe55a7281bfc04",
+      "05b976268feaf1a82ff29ed83a999b62318de914",
+      "081169dc2f0da0bf85e08d7e52ca70bc82f4d32d",
+      "088b9f2c41ed36383ed22c124e21be806fcb912b",
+      "0a65dfc666bc2d92bd92c323e0e8e10bbb7735a9",
+      "0f416a01d50f27351c2b1b05ff9f58e3d9d03cc8",
+      "10fc5e244772da792b5c47615f3d08baef0dedb2",
+      "110c22fa99cdc4df11bb74b96186571fc8a276e0",
+      "13005aa3979cdc5f6d00749c65f9442d0901faa5",
+      "1573b88f187387ed4b222bf1cbef19e884ec83cb",
+      "164c87db5bb994ceb783659f30265310cad933a8",
+      "1dd5c98a2b2d81fceffea46a49ded3923662ca1e",
+      "1e50d9aa8d223061109801be42d041daff149e5f",
+      "208654d649ad2fca58120e983a92ca9c8c233443",
+      "212a2218455e67982ac50e255be51cd21d59d567",
+      "23f896207279784472dcb063a862ba922f4af0f4",
+      "2a74bf61296330720a62decdae5d6116abcc28c2",
+      "2b6053c9ee8fb07bf70654a19812e1482b649959",
+      "2bc134f6d664a3efcf9fc255921c16691f38ad4e",
+      "2c37b8ff5ea59d6a48bd6aed7ec1ad58d252b041",
+      "2d395a8b500d4727148d85b3e1d6a3d1906cd150",
+      "3014100680ed8db5027ca40893ec2079bbe15d29",
+      "34bf89f04af6840273e5fb26bdd35a74ae288297",
+      "38524bf464eb87895fdd5a342ee561b48016836d",
+      "39d1cac4589d8dcec55fe1c53d1da59ef1fd9bfc",
+      "3d2382132ab514520c41fd39383082e4847a95b2",
+      "3ed267f580955efee94e782fcfb4d992746895ba",
+      "3fe1958aa9a550d42138cf384d21c57725380d69",
+      "44b3ac29e8eb3a97dd52dcd35511768e5a39337c",
+      "452aae630a07cf0aee28ded31e55a4eb43205ce5",
+      "47bfd97bda04e60dfc03b9e7d48a565fbda596dc",
+      "482bd24ca980a36b8956d8659e4bb414467cdfeb",
+      "4d6529db704d6d9f0d74ec63519a6e0739dae1df",
+      "4f80d57b8080840f4fa367156af31dcf50a2eaaf",
+      "52af1317297f7ebb7e385fb672c6e74fc5f46370",
+      "53ee7c5ccff3d9774259774576ed25f551727efa",
+      "53fbb57ec4859836972df221b8217c9368c0f535",
+      "5448ee432dfd8dddc38f57fafa02c813b1fba08c",
+      "58aa8676a3f68946fb43e2e7704551b6adfb9a2f",
+      "591fbf1db986a2e9f04f0a49ff21047ce00309fe",
+      "592e712892778321bf301838942666597d2e5a2b",
+      "5b300f24f878a9e4e27828a53357fa473bea6baf",
+      "5e5c23a397b8d8cc2e9ff83679b06526edcc2685",
+      "5e61ef7b27acbf98fce2374b65f35536ebbaaba5",
+      "5eb8520ca0eddab07119c0f6f807481ec4c48974",
+      "5fb8f156237dc645eead8acc388f86a95b37b9fd",
+      "6106104391cdfee80cc21bcc50a18d7f9acdc00c",
+      "616f180b8a1673940a77fcb70d340d5315e1e8f9",
+      "61732fe533f67e4f575944181d948ee98058bcc6",
+      "6226095697f79db0fddb8b0079d1634c5ab77aba",
+      "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+      "632c735b01e70cdaf807cbf5ac161c0eea774684",
+      "664ab118646edcb3597f3359ed007a5fcabef657",
+      "68e167b66e49cd60dbdc9c0e3574ad30785923f2",
+      "70afc5297218a36be80855407248029888f709e5",
+      "71741482f8bdd8ab91e45b037fa1f612e49ff771",
+      "72bca509f709f7fd48c924157d0c2e15e861a4c0",
+      "77c28574ddcfa08d0b54ee8ec431a5f3818e3fca",
+      "79466fe53d018374e3cb9143806ebbaefba4b123",
+      "7d9399400d13514526e09519bdebf51f4890bcce",
+      "7ee1b5cff61396ab07d94069df6b2ff1f92c8d69",
+      "7fa78bc997ff7edeeaf96d072e7f097931855100",
+      "80190ef60987e526ce2b819defdd307438406d7d",
+      "805178371e13d1a488b5e6984235d8298e63bc97",
+      "80874bf9f5dce20e863d2dc86b342d846698108e",
+      "8375f606a77dce09576a2e9bfd3bf139d03f5808",
+      "84deefaba55a026fce3e5a2957a70a4e72e37f77",
+      "86c2db7ef82f4e8293e1b6c8e4c1c309b816f8e1",
+      "877de388b5d9024e0eb7c8979ae9f758d8a14b56",
+      "88643486b2d4616b8f967ac5b76fabbab35953fb",
+      "8864c0b5cfa549c85361c0e94caf0b60dac4c8d9",
+      "8d85560ed4d324e23bb819521cd1eb9fe7ed4b41",
+      "8dc5ab45218be03f186c23701b6f6b1b2dd6e0fd",
+      "8ee72450d9b287a2e7d3fc93350a180dea57670c",
+      "904f9d9b0a3b2595839a16cf3267f6c57c40de33",
+      "92269159e6aaac6022060510461061a58121bdd3",
+      "927d9be1f312790bd5e01cbf74556ce579db4a92",
+      "934d9d9330fc1f833568f0835b2939e7c91c4430",
+      "94434f2209f59a6854a3ab9dcd9858b96c1527ea",
+      "949c62de7c98d0de88c1b9f697c46fbf5360ab70",
+      "99d5b9bee122927f53bdd3726a86762b455c619b",
+      "9e01504615d199865fd312772abe040af79ad214",
+      "a20fafe6d883b6d78b2b4272c3949f978cc2334f",
+      "a6fab922df96aa910a50f04092d2f9a38405f1d3",
+      "a72983eb9855e1b2d1cc864f36c6bef2c70540fc",
+      "a9f24cdba54449666abd8b8c2519d1867f99667c",
+      "ac63d90aaaa54d34c89ef535ea1fae3e91682d4e",
+      "b036e532afd893cabe8bd05aa3363e93589ef3fb",
+      "b13adac7db54885957baa2222a9ce1a0adddf04d",
+      "b4fa11e717846d12610b4b6a2f2b80509728d578",
+      "b92cac1ada8bc492df61a9d3ca70d81dd01b1b74",
+      "bb56b8b9664724dd2d826ec55cf9d866d82ba807",
+      "bcdf5f26d410f12a2f0771d2c87a59b37bce835c",
+      "bddbe6ec385d3b58591bb7be94aef8688b061117",
+      "bf68b485da64a8202e8a34223d19ab71e2cd7049",
+      "c524cef7f9e4e8ce179bc469f3235a24b9b37f5a",
+      "c7fd6ae2198ede644cd3a3800c0441ba6ef6ec15",
+      "cbdd02771c7bc7842c38374854ffee703fb666e4",
+      "cbe0ccb41b89cd07feed1c34a3591716925a4f53",
+      "ccd7395b6a6032b2a95a2e1913d90db32a6d3f36",
+      "cd0fcd2314401b7e1b94602825d63e1da77b3fa7",
+      "cdc366c064ad0d6ccd7c6d5057d1c2d7e5e92d0e",
+      "d00cdda49c563b2bcae8006dfdb438bd4ea3ed7e",
+      "d25bc0e05128fb69a43a044ea3f3422efe73a1f4",
+      "d808ff09cf52422ad67ad880d856a8a1bad622b1",
+      "d8c8c28b26c442eb6cfb08f87ef1195b6ad23098",
+      "da5b92a493ff32cbbed2f81ae5fd2675930c49d7",
+      "db43bb50eadf6c3d7f4bfb2fe66fb1c0cea92047",
+      "dbf55237553472b67bc1d81a2aaa34c56e18ba12",
+      "de5bc5cf6ca622c1a81231aefd751246b137be52",
+      "ded52c4479db9a607f0ff87bf580362f8cb78688",
+      "e28e67d8c3b1913c1dcb02cb0b1fad53b5dd20c8",
+      "e3ccf8073cd99171e3e56a38035d8a14d7bf4659",
+      "e53c847c9593ab146b12f398d9cc53b8cab79f89",
+      "ea20c1cfe6de1a8ce220a35b15362fa11135f610",
+      "eef3c022c2942a789282b62dceceee22db10792f",
+      "f0f5d8a7126ff7fa4d482ae672b313ced5008dfc",
+      "f232f470881e5790de0ac1f01220c0e1c5ac7c06",
+      "f8bba589df4c7c3177858df4d27248fcfca6e45b",
+      "f95b9a052ec6484face63d4fac11eeb44e0f3e6e",
+      "f96b38da9fedc322514c66bf11ad5e0d5a114680",
+      "faca8e71611fb03ea0dddc7e2d19b4c86aada60f",
+      "fbbd15790052dbf34e6538ab295008871edad240",
+      "fcb53a103d665776e35b144eedebffab267dc7a8",
+      "fde11c31c8ac7afa068dde5d699a1e426d0aeec2",
+      "fdea098c60a73fa081dd3a6dd73c4f585d98f8ff",
+      "ffe1c76d5d54f62dbf440b378d9dc6444dca0d30"
+    ],
+    "worktreeHeadsDetached": 110,
+    "worktreeHeadsWithExplicitBranch": 50,
+    "worktreeRecordsObserved": 160
+  },
+  "boundedCoverage": {
+    "configuredEnvironment": "UNKNOWN",
+    "firstLayerResponsibility": "DESCRIPTIVE_ONLY; NOT EXHAUSTIVE",
+    "formalImplementationBridge": "UNKNOWN",
+    "fullDynamicConsumer": "UNKNOWN",
+    "installedEnvironment": "UNKNOWN",
+    "repositoryPath": "ALL_GIT_TRACKED_PATHS_UNIQUELY_CLASSIFIED_BY_EXACT_PREFIX",
+    "runtimeExecutionAndExternalEffects": "UNKNOWN",
+    "semanticLEGOQualification": "NOT_STARTED_BY_THIS_CENSUS",
+    "staticConsumer": "SELECTED_EXACT_LITERALS_VERIFIED; NOT COMPLETE"
+  },
+  "crossSystemSurveyAreas": [
+    {
+      "area": "lego-core-method-spec",
+      "ownerOrInstalledAuthority": "NOT_INFERRED_FROM_SOURCE_REGION",
+      "semanticCompleteness": "UNKNOWN",
+      "sourcePaths": null,
+      "sourcePrefix": ".agents/skills/recursive-lego-calculus/",
+      "standing": "EXPLICIT_CROSS_SYSTEM_SURVEY_AREA",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "references",
+          "trackedFiles": 1
+        }
+      ],
+      "trackedFiles": 2
+    },
+    {
+      "area": "agent-methods",
+      "ownerOrInstalledAuthority": "NOT_INFERRED_FROM_SOURCE_REGION",
+      "semanticCompleteness": "UNKNOWN",
+      "sourcePaths": null,
+      "sourcePrefix": ".agents/skills/",
+      "standing": "EXPLICIT_CROSS_SYSTEM_SURVEY_AREA",
+      "topLevelEntries": [
+        {
+          "entry": "artifact-work",
+          "trackedFiles": 9
+        },
+        {
+          "entry": "causal-intervention",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "ck-design",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "compositional-contracts",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "design-structure-matrix",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "enterprise-work",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "evolutionary-search",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "exploration-policy",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "feedback-control",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "fmea-fta",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "information-flow-analysis",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "method-router",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "minimum-sufficient-representation",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "mobile-app-security",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "organizational-cybernetics",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "ppt-master",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "project-kernel-decomposition",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "research-publication-closure",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "research-publication-perceptual-conformance",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "skill-supply-chain-audit",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "stpa",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "systems-engineering",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "web-provider-routing",
+          "trackedFiles": 1
+        }
+      ],
+      "trackedFiles": 37
+    },
+    {
+      "area": "repository-mechanics",
+      "ownerOrInstalledAuthority": "NOT_INFERRED_FROM_SOURCE_REGION",
+      "semanticCompleteness": "UNKNOWN",
+      "sourcePaths": null,
+      "sourcePrefix": "tools/repo/",
+      "standing": "EXPLICIT_CROSS_SYSTEM_SURVEY_AREA",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 39
+        },
+        {
+          "entry": "migration",
+          "trackedFiles": 5
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 1
+        }
+      ],
+      "trackedFiles": 45
+    },
+    {
+      "area": "formal-prover-sources",
+      "ownerOrInstalledAuthority": "NOT_INFERRED_FROM_SOURCE_REGION",
+      "semanticCompleteness": "UNKNOWN",
+      "sourcePaths": null,
+      "sourcePrefix": "tools/formal/",
+      "standing": "EXPLICIT_CROSS_SYSTEM_SURVEY_AREA",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 10
+        }
+      ],
+      "trackedFiles": 10
+    },
+    {
+      "area": "research-profile-source",
+      "ownerOrInstalledAuthority": "NOT_INFERRED_FROM_SOURCE_REGION",
+      "semanticCompleteness": "UNKNOWN",
+      "sourcePaths": [
+        "meta/research/evidence/publication-carrier-paper3-dogfood-r1.json",
+        "meta/research/planning/publication-closure-lego-r1.json",
+        "meta/research/planning/publication-perceptual-conformance-lego-r1.json",
+        "meta/research/publication-closure-profile-r1.json",
+        "meta/research/publication-closure-profile-r2.json",
+        "meta/research/publication/carrier-attestation-r1.schema.json",
+        "meta/research/publication/finding-r1.schema.json",
+        "meta/research/publication/observer-report-r1.schema.json",
+        "meta/research/publication/observer-task-envelope-r1.schema.json",
+        "meta/research/publication/perceptual-conformance-profile-r1.json",
+        "meta/research/publication/perceptual-conformance-r1.schema.json",
+        "meta/research/venues/fse-2027-research-r1.json"
+      ],
+      "sourcePrefix": "meta/research/",
+      "standing": "EXPLICIT_CROSS_SYSTEM_SURVEY_AREA",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "evidence",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "publication",
+          "trackedFiles": 6
+        },
+        {
+          "entry": "venues",
+          "trackedFiles": 1
+        }
+      ],
+      "trackedFiles": 12
+    },
+    {
+      "area": "research-schema-source",
+      "ownerOrInstalledAuthority": "NOT_INFERRED_FROM_SOURCE_REGION",
+      "semanticCompleteness": "UNKNOWN",
+      "sourcePaths": [
+        "profiles/research/mechanical-components/research-mechanical-component-r1.schema.json",
+        "profiles/research/tool-qualification/TOOL_QUALIFICATION_R1.md",
+        "profiles/research/tool-qualification/tool-qualification-packet-r1.schema.json"
+      ],
+      "sourcePrefix": "profiles/research/",
+      "standing": "EXPLICIT_CROSS_SYSTEM_SURVEY_AREA",
+      "topLevelEntries": [
+        {
+          "entry": "mechanical-components",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "tool-qualification",
+          "trackedFiles": 2
+        }
+      ],
+      "trackedFiles": 3
+    },
+    {
+      "area": "architecture-evidence",
+      "ownerOrInstalledAuthority": "NOT_INFERRED_FROM_SOURCE_REGION",
+      "semanticCompleteness": "UNKNOWN",
+      "sourcePaths": null,
+      "sourcePrefix": "docs/architecture/",
+      "standing": "EXPLICIT_CROSS_SYSTEM_SURVEY_AREA",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 67
+        },
+        {
+          "entry": "evidence",
+          "trackedFiles": 40
+        },
+        {
+          "entry": "schemas",
+          "trackedFiles": 5
+        }
+      ],
+      "trackedFiles": 112
+    },
+    {
+      "area": "migration-history",
+      "ownerOrInstalledAuthority": "NOT_INFERRED_FROM_SOURCE_REGION",
+      "semanticCompleteness": "UNKNOWN",
+      "sourcePaths": null,
+      "sourcePrefix": "docs/migration/",
+      "standing": "EXPLICIT_CROSS_SYSTEM_SURVEY_AREA",
+      "topLevelEntries": [
+        {
+          "entry": "acceptance",
+          "trackedFiles": 46
+        },
+        {
+          "entry": "receipts",
+          "trackedFiles": 60
+        },
+        {
+          "entry": "retirement",
+          "trackedFiles": 8
+        }
+      ],
+      "trackedFiles": 114
+    },
+    {
+      "area": "retrospective-docs",
+      "ownerOrInstalledAuthority": "NOT_INFERRED_FROM_SOURCE_REGION",
+      "semanticCompleteness": "UNKNOWN",
+      "sourcePaths": null,
+      "sourcePrefix": "docs/retro/",
+      "standing": "EXPLICIT_CROSS_SYSTEM_SURVEY_AREA",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 1
+        }
+      ],
+      "trackedFiles": 1
+    },
+    {
+      "area": "github-root-policy",
+      "ownerOrInstalledAuthority": "NOT_INFERRED_FROM_SOURCE_REGION",
+      "semanticCompleteness": "UNKNOWN",
+      "sourcePaths": null,
+      "sourcePrefix": ".github/",
+      "standing": "EXPLICIT_CROSS_SYSTEM_SURVEY_AREA",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "workflows",
+          "trackedFiles": 2
+        }
+      ],
+      "trackedFiles": 4
+    },
+    {
+      "area": "root-acceptance-tests",
+      "ownerOrInstalledAuthority": "NOT_INFERRED_FROM_SOURCE_REGION",
+      "semanticCompleteness": "UNKNOWN",
+      "sourcePaths": null,
+      "sourcePrefix": "tests/",
+      "standing": "EXPLICIT_CROSS_SYSTEM_SURVEY_AREA",
+      "topLevelEntries": [
+        {
+          "entry": "catalogs",
+          "trackedFiles": 1
+        }
+      ],
+      "trackedFiles": 1
+    },
+    {
+      "area": "shared-root-configuration",
+      "ownerOrInstalledAuthority": "NOT_INFERRED_FROM_SOURCE_REGION",
+      "semanticCompleteness": "UNKNOWN",
+      "sourcePaths": [
+        ".gitignore",
+        ".gitleaksignore",
+        "AGENTS.md",
+        "README.md",
+        "mise.toml",
+        "renovate.json"
+      ],
+      "sourcePrefix": null,
+      "standing": "EXPLICIT_CROSS_SYSTEM_SURVEY_AREA",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 6
+        }
+      ],
+      "trackedFiles": 6
+    }
+  ],
+  "explicitUnknowns": [
+    "Machine-readable out-of-Git installation, live process, databases, provider versions and user-specific Windows environment are not covered by Git enumeration.",
+    "A plan or repository prefix is not a LEGO, a proof, an installed effect, or a permanent human/agent owner.",
+    "Readset and dynamic consumers are not closed by source strings; migration documents record historical rather than current operational truth.",
+    "Root shared configuration contains six exact source entries but does not imply a single centralized capability owner.",
+    "Cross-system research profiles have static consumers; their release/installed consumers and independent study truth need separate evidence.",
+    "Cross-region semantic responsibility overlap, orphans and replacement contracts are not established by this source-level partition."
+  ],
+  "incrementalSourceScopeObservation": {
+    "addedSourcePaths": [
+      "packages/composition/formal/EffectReplayFence.ReconciliationIsUnreachable.cfg",
+      "packages/composition/formal/EffectReplayFence.TerminalCommittedWithoutEffectIsUnreachable.cfg",
+      "packages/composition/formal/EffectReplayFence.UnindexedUncertaintyIsUnreachable.cfg",
+      "packages/composition/formal/EffectReplayFence.cfg",
+      "packages/composition/formal/EffectReplayFence.tla",
+      "packages/composition/scripts/verify_effect_replay_formal.sh"
+    ],
+    "allAddedSourceAreas": [
+      "owner:composition"
+    ],
+    "comparisonBaseCut": "e913dae74d4a076ddbc35f0d90b2d39478cbf383",
+    "installedCurrentness": "UNKNOWN",
+    "limitation": "Bounded as-of this observed main; does not imply semantic or installed coverage, or bind later source changes.",
+    "modifiedSourceAreas": [
+      "owner:composition",
+      "cross:formal-prover-sources"
+    ],
+    "modifiedSourcePaths": [
+      "packages/composition/mise.toml",
+      "packages/composition/planning/lego-plan-r1.json",
+      "packages/composition/tests/test_effect_reconciliation_r1.py",
+      "tools/formal/RecursiveLegoRefinement.lean"
+    ],
+    "newTrackedFiles": 4999,
+    "observedCurrentCrossSystemSourcePaths": 347,
+    "observedCurrentRegisteredSourcePaths": 4652,
+    "observedMainCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+    "priorTrackedFiles": 4993,
+    "removedSourcePaths": [],
+    "scopeClosure": "ALL_NEW_GIT_SOURCE_PATHS_ROUTE_INTO_EXISTING_COMPOSITION_PREFIX",
+    "semanticValidity": "UNKNOWN"
+  },
+  "kind": "ordivon.phase1-fullsystem-source-scope-census",
+  "localGitRepositorySourceScope": {
+    "candidateOrdivonGitRoots": 9,
+    "candidateOrdivonTrackedSourceEntries": 14083,
+    "notes": [
+      "Local /root/projects only; not all installed, Windows, remote or provider sources.",
+      "Monorepo working repository HEAD is independent of this evidence file SourceCut and candidate PR source root.",
+      "Cross-repository runtime consumer, publish target, operational installation and authority require native evidence; excluded local Git roots are not assumed owned."
+    ],
+    "observedGitRoots": 12,
+    "qualification": "BOUNDED_LOCAL_GIT_PATH_ENUMERATION_ONLY_NOT_MONOREPO_COVERAGE_OR_DOMAIN_CONSUMER",
+    "qualifiedCrossRepositorySourceLiterals": [
+      {
+        "observedLiteral": "repository: ordivon-org/ordivon-media",
+        "sourceGitPath": "capabilities/media/.ordivon/publication.yaml",
+        "standing": "GIT_BLOB_LITERAL_REFERENCE_NOT_INSTALLED_OR_CONSUMER_CLOSURE",
+        "targetRepository": "ordivon-media"
+      },
+      {
+        "observedLiteral": "/root/projects/ordivon-research-v2/profiles/paper1_standard_native_r2.toml",
+        "sourceGitPath": "meta/next/authorities/records/acm-sigsoft/acm-sigsoft-benchmarking.json",
+        "standing": "GIT_BLOB_LITERAL_REFERENCE_NOT_INSTALLED_OR_CONSUMER_CLOSURE",
+        "targetRepository": "ordivon-research-v2"
+      },
+      {
+        "observedLiteral": "\"name\": \"ordivon-paper2\"",
+        "sourceGitPath": "capabilities/media/productions/ordivon-system-constellation-atlas/source/repositories.json",
+        "standing": "GIT_BLOB_LITERAL_REFERENCE_NOT_INSTALLED_OR_CONSUMER_CLOSURE",
+        "targetRepository": "ordivon-paper2"
+      }
+    ],
+    "repositories": [
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/SillyTavern",
+        "repository": "SillyTavern",
+        "scopeStanding": "NOT_AUTOMATICALLY_ORDIVON",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "ad29cbda62e92f145e44d7a10398a38af22ca986",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 28
+          },
+          {
+            "entry": ".gemini",
+            "trackedFiles": 1
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 25
+          },
+          {
+            "entry": ".vscode",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "backups",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "colab",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "data",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "default",
+            "trackedFiles": 200
+          },
+          {
+            "entry": "docker",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "plugins",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "public",
+            "trackedFiles": 592
+          },
+          {
+            "entry": "src",
+            "trackedFiles": 111
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 43
+          }
+        ],
+        "trackedFiles": 1010
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon",
+        "repository": "ordivon",
+        "scopeStanding": "CURRENT_ORIGINAL_WORKTREE",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "cbdd02771c7bc7842c38374854ffee703fb666e4",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 6
+          },
+          {
+            "entry": ".agents",
+            "trackedFiles": 39
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 4
+          },
+          {
+            "entry": "apps",
+            "trackedFiles": 26
+          },
+          {
+            "entry": "capabilities",
+            "trackedFiles": 1123
+          },
+          {
+            "entry": "docs",
+            "trackedFiles": 226
+          },
+          {
+            "entry": "domains",
+            "trackedFiles": 455
+          },
+          {
+            "entry": "extensions",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "meta",
+            "trackedFiles": 1027
+          },
+          {
+            "entry": "packages",
+            "trackedFiles": 45
+          },
+          {
+            "entry": "platform",
+            "trackedFiles": 642
+          },
+          {
+            "entry": "profiles",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "services",
+            "trackedFiles": 1327
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "tools",
+            "trackedFiles": 45
+          }
+        ],
+        "trackedFiles": 4971
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-media",
+        "repository": "ordivon-media",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 15
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 3
+          },
+          {
+            "entry": ".ordivon",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "apps",
+            "trackedFiles": 19
+          },
+          {
+            "entry": "docs",
+            "trackedFiles": 25
+          },
+          {
+            "entry": "media-v2",
+            "trackedFiles": 17
+          },
+          {
+            "entry": "packages",
+            "trackedFiles": 6
+          },
+          {
+            "entry": "planning",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "play",
+            "trackedFiles": 8
+          },
+          {
+            "entry": "productions",
+            "trackedFiles": 212
+          },
+          {
+            "entry": "research",
+            "trackedFiles": 170
+          },
+          {
+            "entry": "schemas",
+            "trackedFiles": 5
+          },
+          {
+            "entry": "scripts",
+            "trackedFiles": 19
+          },
+          {
+            "entry": "src",
+            "trackedFiles": 25
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 23
+          }
+        ],
+        "trackedFiles": 550
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-paper1-emse-r3-frozen",
+        "repository": "ordivon-paper1-emse-r3-frozen",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 6
+          },
+          {
+            "entry": ".dvc",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "deployment",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "docs",
+            "trackedFiles": 43
+          },
+          {
+            "entry": "dogfood",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "evals",
+            "trackedFiles": 17
+          },
+          {
+            "entry": "evidence",
+            "trackedFiles": 4
+          },
+          {
+            "entry": "papers",
+            "trackedFiles": 267
+          },
+          {
+            "entry": "profiles",
+            "trackedFiles": 4
+          },
+          {
+            "entry": "publication",
+            "trackedFiles": 12
+          },
+          {
+            "entry": "registry",
+            "trackedFiles": 15
+          },
+          {
+            "entry": "reports",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "requirements",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "research_objects",
+            "trackedFiles": 215
+          },
+          {
+            "entry": "scripts",
+            "trackedFiles": 13
+          },
+          {
+            "entry": "src",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 16
+          },
+          {
+            "entry": "tooling",
+            "trackedFiles": 50
+          },
+          {
+            "entry": "workflows",
+            "trackedFiles": 2
+          }
+        ],
+        "trackedFiles": 673
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-paper1-r25-reviewer-risk-closure-20260922",
+        "repository": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 6
+          },
+          {
+            "entry": ".dvc",
+            "trackedFiles": 2
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "data-products",
+            "trackedFiles": 4
+          },
+          {
+            "entry": "deployment",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "discovery",
+            "trackedFiles": 518
+          },
+          {
+            "entry": "docs",
+            "trackedFiles": 125
+          },
+          {
+            "entry": "dogfood",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "evals",
+            "trackedFiles": 17
+          },
+          {
+            "entry": "evidence",
+            "trackedFiles": 7
+          },
+          {
+            "entry": "papers",
+            "trackedFiles": 624
+          },
+          {
+            "entry": "planning",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "profiles",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "publication",
+            "trackedFiles": 12
+          },
+          {
+            "entry": "registry",
+            "trackedFiles": 16
+          },
+          {
+            "entry": "research",
+            "trackedFiles": 988
+          },
+          {
+            "entry": "research_objects",
+            "trackedFiles": 215
+          },
+          {
+            "entry": "scripts",
+            "trackedFiles": 22
+          },
+          {
+            "entry": "src",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 27
+          },
+          {
+            "entry": "tooling",
+            "trackedFiles": 50
+          },
+          {
+            "entry": "workflows",
+            "trackedFiles": 2
+          }
+        ],
+        "trackedFiles": 2646
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-paper2",
+        "repository": "ordivon-paper2",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "a0169766a19194dbcbdf0cf28ca963d89abf5d69",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 5
+          },
+          {
+            "entry": ".dvc",
+            "trackedFiles": 2
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "campaigns",
+            "trackedFiles": 749
+          },
+          {
+            "entry": "candidates",
+            "trackedFiles": 8
+          },
+          {
+            "entry": "discovery",
+            "trackedFiles": 80
+          },
+          {
+            "entry": "feasibility",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "novelty",
+            "trackedFiles": 9
+          },
+          {
+            "entry": "protocol",
+            "trackedFiles": 9
+          },
+          {
+            "entry": "sampling",
+            "trackedFiles": 97
+          },
+          {
+            "entry": "screening",
+            "trackedFiles": 934
+          },
+          {
+            "entry": "scripts",
+            "trackedFiles": 26
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 13
+          },
+          {
+            "entry": "tools",
+            "trackedFiles": 3
+          }
+        ],
+        "trackedFiles": 1940
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-r21-blind-eval-private-20261001",
+        "repository": "ordivon-r21-blind-eval-private-20261001",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "37f7d433ce9917aefba7f2940fef7ead8dc1e235",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "corpus",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "identities",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "manifest",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "randomization",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "scoring",
+            "trackedFiles": 5
+          },
+          {
+            "entry": "source-bundles",
+            "trackedFiles": 5
+          }
+        ],
+        "trackedFiles": 20
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-r21-blind-eval-public-20261001",
+        "repository": "ordivon-r21-blind-eval-public-20261001",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "af66bade40b8cf34d241bb5d89121fd64e288ba8",
+        "topLevelEntries": [
+          {
+            "entry": "arms",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "common",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "contracts",
+            "trackedFiles": 3
+          },
+          {
+            "entry": "corpus",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "manifests",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "packets",
+            "trackedFiles": 102
+          },
+          {
+            "entry": "rubric",
+            "trackedFiles": 2
+          }
+        ],
+        "trackedFiles": 114
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-research-v2",
+        "repository": "ordivon-research-v2",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "098c623d9c38a2fffcf620242f35577d7c827b69",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 7
+          },
+          {
+            "entry": ".dvc",
+            "trackedFiles": 2
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "data-products",
+            "trackedFiles": 4
+          },
+          {
+            "entry": "deployment",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "discovery",
+            "trackedFiles": 518
+          },
+          {
+            "entry": "docs",
+            "trackedFiles": 129
+          },
+          {
+            "entry": "evals",
+            "trackedFiles": 17
+          },
+          {
+            "entry": "evidence",
+            "trackedFiles": 7
+          },
+          {
+            "entry": "papers",
+            "trackedFiles": 629
+          },
+          {
+            "entry": "planning",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "profiles",
+            "trackedFiles": 10
+          },
+          {
+            "entry": "publication",
+            "trackedFiles": 12
+          },
+          {
+            "entry": "registry",
+            "trackedFiles": 16
+          },
+          {
+            "entry": "research",
+            "trackedFiles": 1145
+          },
+          {
+            "entry": "research_objects",
+            "trackedFiles": 230
+          },
+          {
+            "entry": "schemas",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "scripts",
+            "trackedFiles": 11
+          },
+          {
+            "entry": "src",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "studies",
+            "trackedFiles": 82
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 27
+          },
+          {
+            "entry": "tooling",
+            "trackedFiles": 50
+          }
+        ],
+        "trackedFiles": 2904
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/ordivon-sts2mcp",
+        "repository": "ordivon-sts2mcp",
+        "scopeStanding": "CANDIDATE_ORDIVON_SIBLING_BY_NAME",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 27
+          },
+          {
+            "entry": ".agents",
+            "trackedFiles": 1
+          },
+          {
+            "entry": ".claude",
+            "trackedFiles": 1
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 1
+          },
+          {
+            "entry": "docs",
+            "trackedFiles": 30
+          },
+          {
+            "entry": "mcp",
+            "trackedFiles": 4
+          },
+          {
+            "entry": "skills",
+            "trackedFiles": 26
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 25
+          },
+          {
+            "entry": "third_party",
+            "trackedFiles": 142
+          },
+          {
+            "entry": "tools",
+            "trackedFiles": 8
+          }
+        ],
+        "trackedFiles": 265
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/oss-e2-uptime-kuma-7984",
+        "repository": "oss-e2-uptime-kuma-7984",
+        "scopeStanding": "NOT_AUTOMATICALLY_ORDIVON",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "b092505f894d66669b67f46e1da72b51016eceab",
+        "topLevelEntries": [],
+        "trackedFiles": 0
+      },
+      {
+        "consumerClosure": "UNKNOWN",
+        "effectAuthority": "NOT_INFERRED_FROM_LOCAL_REPO",
+        "installedCurrentness": "UNKNOWN",
+        "localRoot": "/root/projects/xby-analysis",
+        "repository": "xby-analysis",
+        "scopeStanding": "NOT_AUTOMATICALLY_ORDIVON",
+        "semanticIdentity": "UNKNOWN_NOT_ESTABLISHED_BY_REPOSITORY_NAME",
+        "sourceCut": "6b79374a30f443bd63f18e859a80e39320b6691c",
+        "topLevelEntries": [
+          {
+            "entry": "(root-level-files)",
+            "trackedFiles": 4
+          },
+          {
+            "entry": ".github",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "analysis",
+            "trackedFiles": 58
+          },
+          {
+            "entry": "planning",
+            "trackedFiles": 2
+          },
+          {
+            "entry": "scripts",
+            "trackedFiles": 10
+          },
+          {
+            "entry": "tests",
+            "trackedFiles": 6
+          },
+          {
+            "entry": "tools",
+            "trackedFiles": 2
+          }
+        ],
+        "trackedFiles": 84
+      }
+    ]
+  },
+  "phase1Decision": "ONLY_SCOPE_BOUNDARIES_ADMITTED; DO_NOT_START_RECURSIVE_LEGO_OR_REAL_EFFECT_MIGRATION_FROM_THIS_DOCUMENT",
+  "registeredSourcePartitions": [
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "next",
+      "nativeVerifyTask": "next:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 4,
+          "declaredRelationRecords": 2,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "meta/next/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "meta/next/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 8
+        },
+        {
+          "entry": ".github",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "authorities",
+          "trackedFiles": 359
+        },
+        {
+          "entry": "capabilities",
+          "trackedFiles": 51
+        },
+        {
+          "entry": "data-products",
+          "trackedFiles": 5
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 56
+        },
+        {
+          "entry": "domains",
+          "trackedFiles": 50
+        },
+        {
+          "entry": "evidence",
+          "trackedFiles": 170
+        },
+        {
+          "entry": "experimental",
+          "trackedFiles": 12
+        },
+        {
+          "entry": "experiments",
+          "trackedFiles": 51
+        },
+        {
+          "entry": "knowledge",
+          "trackedFiles": 116
+        },
+        {
+          "entry": "migrations",
+          "trackedFiles": 49
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 23
+        },
+        {
+          "entry": "policies",
+          "trackedFiles": 8
+        },
+        {
+          "entry": "schemas",
+          "trackedFiles": 7
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 19
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 31
+        }
+      ],
+      "trackedFiles": 1016
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "composition",
+      "nativeVerifyTask": "composition:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 6,
+          "declaredRelationRecords": 6,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "packages/composition/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "packages/composition/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 5
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 5
+        },
+        {
+          "entry": "formal",
+          "trackedFiles": 11
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "src",
+          "trackedFiles": 16
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 10
+        }
+      ],
+      "trackedFiles": 48
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "control-plugin",
+      "nativeVerifyTask": "control-plugin:verify",
+      "planningSources": [],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "extensions/ordivon-control-plane/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 2
+        }
+      ],
+      "trackedFiles": 2
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "runtime",
+      "nativeVerifyTask": "runtime:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 19,
+          "declaredRelationRecords": 28,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "services/runtime/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "services/runtime/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 20
+        },
+        {
+          "entry": ".config",
+          "trackedFiles": 1
+        },
+        {
+          "entry": ".github",
+          "trackedFiles": 9
+        },
+        {
+          "entry": ".ordivon",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "crates",
+          "trackedFiles": 102
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 30
+        },
+        {
+          "entry": "evidence",
+          "trackedFiles": 7
+        },
+        {
+          "entry": "examples",
+          "trackedFiles": 4
+        },
+        {
+          "entry": "formal",
+          "trackedFiles": 14
+        },
+        {
+          "entry": "packaging",
+          "trackedFiles": 11
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 16
+        },
+        {
+          "entry": "platform",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "research",
+          "trackedFiles": 132
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 57
+        },
+        {
+          "entry": "standards",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 7
+        }
+      ],
+      "trackedFiles": 419
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "host",
+      "nativeVerifyTask": "host:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 8,
+          "declaredRelationRecords": 14,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "services/host/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        },
+        {
+          "declaredRecords": null,
+          "declaredRelationRecords": null,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "services/host/planning/lego-plan-r3.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "services/host/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 8
+        },
+        {
+          "entry": ".github",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 14
+        },
+        {
+          "entry": "experiments",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "migrations",
+          "trackedFiles": 12
+        },
+        {
+          "entry": "packaging",
+          "trackedFiles": 4
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 10
+        },
+        {
+          "entry": "src",
+          "trackedFiles": 16
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 30
+        },
+        {
+          "entry": "tools",
+          "trackedFiles": 2
+        }
+      ],
+      "trackedFiles": 98
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "harness",
+      "nativeVerifyTask": "harness:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 6,
+          "declaredRelationRecords": 6,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "services/harness/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "services/harness/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 11
+        },
+        {
+          "entry": ".github",
+          "trackedFiles": 8
+        },
+        {
+          "entry": ".ordivon",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "config",
+          "trackedFiles": 11
+        },
+        {
+          "entry": "containers",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 57
+        },
+        {
+          "entry": "evals",
+          "trackedFiles": 40
+        },
+        {
+          "entry": "evidence",
+          "trackedFiles": 149
+        },
+        {
+          "entry": "fixtures",
+          "trackedFiles": 10
+        },
+        {
+          "entry": "formal",
+          "trackedFiles": 13
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "research",
+          "trackedFiles": 101
+        },
+        {
+          "entry": "schemas",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 85
+        },
+        {
+          "entry": "src",
+          "trackedFiles": 54
+        },
+        {
+          "entry": "systemd",
+          "trackedFiles": 14
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 168
+        }
+      ],
+      "trackedFiles": 729
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "gateway",
+      "nativeVerifyTask": "gateway:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 10,
+          "declaredRelationRecords": 16,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "services/gateway/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        },
+        {
+          "declaredRecords": 22,
+          "declaredRelationRecords": 25,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "services/gateway/planning/lego-plan-windows-carrier-r2.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "services/gateway/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 5
+        },
+        {
+          "entry": "packaging",
+          "trackedFiles": 12
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 20
+        },
+        {
+          "entry": "src",
+          "trackedFiles": 13
+        },
+        {
+          "entry": "systemd",
+          "trackedFiles": 6
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 27
+        }
+      ],
+      "trackedFiles": 83
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "skills",
+      "nativeVerifyTask": "skills:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 7,
+          "declaredRelationRecords": 12,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "platform/skills/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "platform/skills/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 5
+        },
+        {
+          "entry": "config",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 5
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "plugins",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "src",
+          "trackedFiles": 8
+        },
+        {
+          "entry": "systemd",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 11
+        }
+      ],
+      "trackedFiles": 38
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "security",
+      "nativeVerifyTask": "security:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 7,
+          "declaredRelationRecords": 7,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "platform/security/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "platform/security/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 6
+        },
+        {
+          "entry": ".clusterfuzzlite",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "artifacts",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "contracts",
+          "trackedFiles": 15
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 23
+        },
+        {
+          "entry": "fixtures",
+          "trackedFiles": 15
+        },
+        {
+          "entry": "fuzz",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "labs",
+          "trackedFiles": 29
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "policies",
+          "trackedFiles": 9
+        },
+        {
+          "entry": "profiles",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "providers",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "schemas",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 26
+        },
+        {
+          "entry": "src",
+          "trackedFiles": 11
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 25
+        },
+        {
+          "entry": "threat-models",
+          "trackedFiles": 1
+        }
+      ],
+      "trackedFiles": 173
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "workstation",
+      "nativeVerifyTask": "workstation:ci",
+      "planningSources": [],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "platform/workstation/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 6
+        },
+        {
+          "entry": ".github",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "ansible",
+          "trackedFiles": 20
+        },
+        {
+          "entry": "contracts",
+          "trackedFiles": 6
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 28
+        },
+        {
+          "entry": "evidence",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "grafana",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "host",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "inventory",
+          "trackedFiles": 10
+        },
+        {
+          "entry": "manifests",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "n8n",
+          "trackedFiles": 6
+        },
+        {
+          "entry": "observability",
+          "trackedFiles": 12
+        },
+        {
+          "entry": "policy",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "postgresql",
+          "trackedFiles": 4
+        },
+        {
+          "entry": "providers",
+          "trackedFiles": 58
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 14
+        },
+        {
+          "entry": "systemd",
+          "trackedFiles": 6
+        },
+        {
+          "entry": "tempo",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "temporal",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 38
+        },
+        {
+          "entry": "tofu",
+          "trackedFiles": 9
+        },
+        {
+          "entry": "tools",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "windows",
+          "trackedFiles": 4
+        },
+        {
+          "entry": "workstation",
+          "trackedFiles": 39
+        }
+      ],
+      "trackedFiles": 274
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "network",
+      "nativeVerifyTask": "network:ci",
+      "planningSources": [
+        {
+          "declaredRecords": 10,
+          "declaredRelationRecords": 11,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "platform/network/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "platform/network/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 5
+        },
+        {
+          "entry": ".github",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "acceptance",
+          "trackedFiles": 13
+        },
+        {
+          "entry": "capabilities",
+          "trackedFiles": 4
+        },
+        {
+          "entry": "config",
+          "trackedFiles": 5
+        },
+        {
+          "entry": "consumers",
+          "trackedFiles": 66
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "evidence",
+          "trackedFiles": 5
+        },
+        {
+          "entry": "history",
+          "trackedFiles": 14
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "providers",
+          "trackedFiles": 7
+        },
+        {
+          "entry": "reference",
+          "trackedFiles": 7
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "systemd",
+          "trackedFiles": 6
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 17
+        }
+      ],
+      "trackedFiles": 158
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "artifact",
+      "nativeVerifyTask": "artifact:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 17,
+          "declaredRelationRecords": 23,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "capabilities/artifact/planning/lego-plan-r2.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "capabilities/artifact/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 7
+        },
+        {
+          "entry": ".github",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "artifact-delivery",
+          "trackedFiles": 183
+        },
+        {
+          "entry": "artifact_capabilities",
+          "trackedFiles": 22
+        },
+        {
+          "entry": "artifact_core",
+          "trackedFiles": 9
+        },
+        {
+          "entry": "artifact_evidence",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "artifact_operations",
+          "trackedFiles": 7
+        },
+        {
+          "entry": "artifact_trust",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "artifact_verification",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "artifact_verifiers",
+          "trackedFiles": 21
+        },
+        {
+          "entry": "config",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 45
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 10
+        },
+        {
+          "entry": "registry",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 43
+        },
+        {
+          "entry": "systemd",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 64
+        }
+      ],
+      "trackedFiles": 426
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "distribution",
+      "nativeVerifyTask": "distribution:verify",
+      "planningSources": [],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "capabilities/distribution/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 8
+        },
+        {
+          "entry": ".github",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "adapters",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "contracts",
+          "trackedFiles": 7
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 11
+        },
+        {
+          "entry": "evidence",
+          "trackedFiles": 15
+        },
+        {
+          "entry": "policy",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 20
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 1
+        }
+      ],
+      "trackedFiles": 69
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "media",
+      "nativeVerifyTask": "media:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 6,
+          "declaredRelationRecords": 4,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "capabilities/media/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "capabilities/media/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 15
+        },
+        {
+          "entry": ".github",
+          "trackedFiles": 2
+        },
+        {
+          "entry": ".ordivon",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "apps",
+          "trackedFiles": 19
+        },
+        {
+          "entry": "artifacts",
+          "trackedFiles": 16
+        },
+        {
+          "entry": "creative-library",
+          "trackedFiles": 6
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 25
+        },
+        {
+          "entry": "media-v2",
+          "trackedFiles": 18
+        },
+        {
+          "entry": "packages",
+          "trackedFiles": 6
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "play",
+          "trackedFiles": 8
+        },
+        {
+          "entry": "productions",
+          "trackedFiles": 218
+        },
+        {
+          "entry": "research",
+          "trackedFiles": 170
+        },
+        {
+          "entry": "schemas",
+          "trackedFiles": 5
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 21
+        },
+        {
+          "entry": "src",
+          "trackedFiles": 25
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 25
+        }
+      ],
+      "trackedFiles": 582
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "preservation",
+      "nativeVerifyTask": "preservation:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 4,
+          "declaredRelationRecords": 6,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "capabilities/preservation/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "capabilities/preservation/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "artifacts",
+          "trackedFiles": 32
+        },
+        {
+          "entry": "config",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 7
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "systemd",
+          "trackedFiles": 2
+        }
+      ],
+      "trackedFiles": 47
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "game",
+      "nativeVerifyTask": "game:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 6,
+          "declaredRelationRecords": 7,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "domains/game/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "domains/game/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 9
+        },
+        {
+          "entry": ".ordivon",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 8
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 6
+        },
+        {
+          "entry": "standards",
+          "trackedFiles": 8
+        },
+        {
+          "entry": "test",
+          "trackedFiles": 18
+        }
+      ],
+      "trackedFiles": 51
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "capital",
+      "nativeVerifyTask": "capital:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 8,
+          "declaredRelationRecords": 2,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "domains/capital/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "domains/capital/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 7
+        },
+        {
+          "entry": ".github",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "artifacts",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "config",
+          "trackedFiles": 28
+        },
+        {
+          "entry": "contracts",
+          "trackedFiles": 12
+        },
+        {
+          "entry": "data",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "data-products",
+          "trackedFiles": 4
+        },
+        {
+          "entry": "destroyer",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "docs",
+          "trackedFiles": 77
+        },
+        {
+          "entry": "evidence",
+          "trackedFiles": 54
+        },
+        {
+          "entry": "examples",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "fixtures",
+          "trackedFiles": 4
+        },
+        {
+          "entry": "infra",
+          "trackedFiles": 2
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "schema",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "scripts",
+          "trackedFiles": 44
+        },
+        {
+          "entry": "src",
+          "trackedFiles": 39
+        },
+        {
+          "entry": "tests",
+          "trackedFiles": 73
+        },
+        {
+          "entry": "tools",
+          "trackedFiles": 51
+        },
+        {
+          "entry": "wave_b",
+          "trackedFiles": 1
+        }
+      ],
+      "trackedFiles": 406
+    },
+    {
+      "consumerClosure": "UNKNOWN",
+      "installedCurrentness": "UNKNOWN",
+      "name": "web",
+      "nativeVerifyTask": "web:verify",
+      "planningSources": [
+        {
+          "declaredRecords": 6,
+          "declaredRelationRecords": 11,
+          "kind": "ordivon.project-lego-plan",
+          "sourcePath": "apps/web/planning/lego-plan-r1.json",
+          "standing": "DECLARED_SOURCE_NOT_QUALIFIED_LEGO"
+        }
+      ],
+      "semanticCompleteness": "NOT_ESTABLISHED",
+      "sourcePrefix": "apps/web/",
+      "standing": "FIRST_LAYER_GIT_SOURCE_INSPECTED",
+      "topLevelEntries": [
+        {
+          "entry": "(root-level-files)",
+          "trackedFiles": 9
+        },
+        {
+          "entry": "evidence",
+          "trackedFiles": 3
+        },
+        {
+          "entry": "planning",
+          "trackedFiles": 1
+        },
+        {
+          "entry": "src",
+          "trackedFiles": 9
+        },
+        {
+          "entry": "test",
+          "trackedFiles": 5
+        }
+      ],
+      "trackedFiles": 27
+    }
+  ],
+  "reproduction": "git --no-replace-objects ls-tree -r -z --name-only <gitCommit>; parse tools/repo/owners.toml at the same exact cut; first match registered source roots, else listed disjoint source areas; only six whitelisted root files; unknown or overlap must fail.",
+  "runtimeDiscoveredAdditionalSourceRoots": {
+    "combinedCountQualification": "4999 snapshot paths in Ordivon main cut 631c3c8310... plus 3000 in distinct Research Git cut fcef6d7a...; not deduplicated semantic units, not all current environments.",
+    "combinedObservedCommittedGitPathEntriesAcrossTwoRepos": 7999,
+    "dirtyWorkspaceCountAtObservation": 18,
+    "distinctCurrentHeadRevisionsObserved": 93,
+    "gap": "Other out-of-Repo systems, installed states and true cross-Repo consumer/merge/retirement closure remain unbounded UNKNOWN.",
+    "healthyOpenWorkspaceCountAtObservation": 111,
+    "newlyObservedIndependentResearchRepo": {
+      "committedGitTrackedPaths": 3000,
+      "committedTopLevelSourceSections": {
+        ".dvc": 2,
+        ".dvcignore": 1,
+        ".github": 2,
+        ".gitignore": 1,
+        ".python-version": 1,
+        "README.md": 1,
+        "data-products": 4,
+        "deployment": 2,
+        "discovery": 518,
+        "docs": 126,
+        "dogfood": 2,
+        "evals": 17,
+        "evidence": 7,
+        "papers": 629,
+        "planning": 1,
+        "profiles": 6,
+        "publication": 12,
+        "pyproject.toml": 1,
+        "registry": 16,
+        "research": 1234,
+        "research_objects": 230,
+        "schemas": 1,
+        "scripts": 22,
+        "src": 2,
+        "studies": 81,
+        "tests": 28,
+        "tooling": 50,
+        "uv.lock": 1,
+        "workflows": 2
+      },
+      "currentCommit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+      "dirtyWorkingTreeRecordsAtObservation": 70,
+      "effectPreservation": "DIRTY_WORKSPACE_PROTECTED_NO_MOVE_NO_CLOSE_NO_COMMIT",
+      "gitTree": "783bc5a25a50a963ce1ff6689d40d3c8086c46cc",
+      "notSourceEquivalentToMain": "Distinct Git repository identity, not interchangeable with Ordivon meta/research or profiles/research",
+      "sourceRepo": "/root/projects/ordivon-research-v2",
+      "sourceVsMainRelation": "UNKNOWN_UNMAPPED_RESEARCH_HISTORY_AND_CONSUMER_CDC",
+      "stagedWorkingTreeRecordsAtObservation": 69,
+      "workspaceId": "ws-paper3-claude-author-handoff-20261020",
+      "workspaceMutation": "NONE_READ_ONLY"
+    },
+    "observationStanding": "READ_ONLY_RUNTIME_WORKSPACE_INVENTORY_NOT_COMPLETE_INSTALLED_SCOPE",
+    "sourceRepoDiscoveryLimit": "Only healthy open Runtime Workspaces; closed and unmanaged repositories, Windows installations and external providers are UNKNOWN.",
+    "sourceRepoRootsObserved": [
+      "/root/projects/ordivon",
+      "/root/projects/ordivon-research-v2"
+    ]
+  },
+  "schemaVersion": 1,
+  "sourceConsumerExamples": [
+    {
+      "consumerSource": "services/gateway/src/ordivon_gateway/research_routes.py",
+      "liveUse": "UNKNOWN",
+      "realEffect": "UNKNOWN",
+      "referencedSource": "meta/research/publication-closure-profile-r2.json",
+      "sourceEvidence": "STATIC_LITERAL_VERIFIED_AT_SOURCECUT"
+    },
+    {
+      "consumerSource": "services/gateway/src/ordivon_gateway/research_routes.py",
+      "liveUse": "UNKNOWN",
+      "realEffect": "UNKNOWN",
+      "referencedSource": "meta/research/publication/perceptual-conformance-profile-r1.json",
+      "sourceEvidence": "STATIC_LITERAL_VERIFIED_AT_SOURCECUT"
+    },
+    {
+      "consumerSource": "capabilities/artifact/tests/test_artifact_publication_carrier_r1.py",
+      "liveUse": "UNKNOWN",
+      "realEffect": "UNKNOWN",
+      "referencedSource": "meta/research/venues/fse-2027-research-r1.json",
+      "sourceEvidence": "STATIC_LITERAL_VERIFIED_AT_SOURCECUT"
+    },
+    {
+      "consumerSource": "capabilities/artifact/tests/test_artifact_publication_carrier_r1.py",
+      "liveUse": "UNKNOWN",
+      "realEffect": "UNKNOWN",
+      "referencedSource": "meta/research/publication-closure-profile-r1.json",
+      "sourceEvidence": "STATIC_LITERAL_VERIFIED_AT_SOURCECUT"
+    },
+    {
+      "consumerSource": "tests/catalogs/test_research_tool_and_mechanical_component_contracts.py",
+      "liveUse": "UNKNOWN",
+      "realEffect": "UNKNOWN",
+      "referencedSource": "profiles/research/tool-qualification/tool-qualification-packet-r1.schema.json",
+      "sourceEvidence": "STATIC_LITERAL_VERIFIED_AT_SOURCECUT"
+    },
+    {
+      "consumerSource": "tests/catalogs/test_research_tool_and_mechanical_component_contracts.py",
+      "liveUse": "UNKNOWN",
+      "realEffect": "UNKNOWN",
+      "referencedSource": "profiles/research/mechanical-components/research-mechanical-component-r1.schema.json",
+      "sourceEvidence": "STATIC_LITERAL_VERIFIED_AT_SOURCECUT"
+    }
+  ],
+  "sourceCut": {
+    "gitCommit": "e913dae74d4a076ddbc35f0d90b2d39478cbf383",
+    "gitTree": "c8cafb6d09fede9237dea5a135c8d6624f7283b7",
+    "manifestBlob": "4fc30705371f2119cf27cdffb961dbd1ee23a4fe",
+    "normativeMathSha256": "8f445b6df14b15e8bdf8976e6316a0f286253915f1d16c6ae46aa3e9fbed836b",
+    "normativeSkillSha256": "83099962298977c054076ec8f2d4d6e07f6a3d1e63c7a3c9ffb5a225548030e1"
+  },
+  "totals": {
+    "ambiguousGitPaths": 0,
+    "crossSystemTrackedFiles": 347,
+    "registeredSourcePartitions": 18,
+    "registeredTrackedFiles": 4646,
+    "surveyCategories": 30,
+    "trackedFiles": 4993,
+    "unknownGitPaths": 0
+  },
+  "truthRole": "REBUILDABLE_BOUNDED_GIT_SCOPE_EVIDENCE_NOT_LEGO_REGISTRY_OR_PROOF",
+  "unmergedGitCandidateScope": {
+    "admission": "SOURCE_OVERLAY_ONLY_NOT_MAIN_OR_INSTALLED",
+    "allChangedPathsClassified": true,
+    "authorityBoundary": "No merge, permission, formal proof or runtime effect inferred from PR state",
+    "candidateOnlyPathsAbsentFromComparedMain": [
+      "capabilities/distribution/planning/lego-plan-r1.json",
+      "docs/architecture/LEGO_CORE_AND_SOURCE_TERRITORIES_20261027.md",
+      "docs/architecture/OWNER_BOUNDARIES_AND_AGENT_NAMING_RESEARCH_20261027.md",
+      "docs/architecture/evidence/LEGO_OWNER_TERRITORY_CENSUS_20261027_R1.json",
+      "docs/architecture/evidence/PHASE1_FULLSYSTEM_SOURCE_SCOPE_20261027_R1.json",
+      "meta/next/evidence/acceptance/lego-r21-phase1-owner-source-census-20261027.json",
+      "meta/research/latent-input-state-controllability-r1.md",
+      "packages/composition/tests/test_effect_reconciliation_formal_bridge_r21.py",
+      "platform/workstation/planning/lego-plan-r1.json",
+      "tools/formal/EffectReconciliationR21.lean",
+      "tools/formal/LatentInputReachability.lean"
+    ],
+    "changedFileReferencesAcrossPrs": 101,
+    "limitation": "Open PR listing is a time-scoped snapshot and can change independently of Git sourceCut.",
+    "mainComparisonSourceCut": "631c3c83104e97260b105b9bda73f0f8ec6a6924",
+    "observedAtUtc": "2026-10-27T13:35:09+00:00",
+    "observedOpenPrCount": 31,
+    "overlappingSourcePaths": [
+      {
+        "candidatePrNumbers": [
+          839,
+          838,
+          837
+        ],
+        "sourcePath": "capabilities/artifact/artifact-delivery/node/package.json"
+      },
+      {
+        "candidatePrNumbers": [
+          839,
+          838,
+          837
+        ],
+        "sourcePath": "capabilities/artifact/artifact-delivery/node/pnpm-lock.yaml"
+      },
+      {
+        "candidatePrNumbers": [
+          948,
+          944,
+          941
+        ],
+        "sourcePath": "capabilities/artifact/tests/test_artifact_software_release_elf.py"
+      },
+      {
+        "candidatePrNumbers": [
+          948,
+          941
+        ],
+        "sourcePath": "capabilities/artifact/tests/test_artifact_verify.py"
+      },
+      {
+        "candidatePrNumbers": [
+          976,
+          970
+        ],
+        "sourcePath": "packages/composition/planning/lego-plan-r1.json"
+      },
+      {
+        "candidatePrNumbers": [
+          970,
+          913
+        ],
+        "sourcePath": "packages/composition/src/ordivon_composition/cognitive_circuit_r1.py"
+      },
+      {
+        "candidatePrNumbers": [
+          977,
+          962
+        ],
+        "sourcePath": "packages/composition/tests/test_verification_obligation_r1.py"
+      },
+      {
+        "candidatePrNumbers": [
+          916,
+          915,
+          914
+        ],
+        "sourcePath": "services/runtime/planning/lego-plan-r1.json"
+      },
+      {
+        "candidatePrNumbers": [
+          977,
+          974,
+          972,
+          970,
+          948
+        ],
+        "sourcePath": "tools/formal/RecursiveLegoRefinement.lean"
+      },
+      {
+        "candidatePrNumbers": [
+          976,
+          965
+        ],
+        "sourcePath": "tools/formal/verify.py"
+      },
+      {
+        "candidatePrNumbers": [
+          981,
+          953,
+          948
+        ],
+        "sourcePath": "tools/repo/affected_owners.py"
+      },
+      {
+        "candidatePrNumbers": [
+          974,
+          964,
+          963,
+          941,
+          934,
+          933,
+          916,
+          915
+        ],
+        "sourcePath": "tools/repo/check_architecture_docs.py"
+      },
+      {
+        "candidatePrNumbers": [
+          981,
+          948
+        ],
+        "sourcePath": "tools/repo/owners.toml"
+      },
+      {
+        "candidatePrNumbers": [
+          981,
+          953,
+          948
+        ],
+        "sourcePath": "tools/repo/test_affected_owners.py"
+      },
+      {
+        "candidatePrNumbers": [
+          974,
+          964,
+          963,
+          948,
+          941,
+          933,
+          928,
+          916,
+          915
+        ],
+        "sourcePath": "tools/repo/test_lego_graph_laws.py"
+      }
+    ],
+    "pathReferenceCountsByClass": {
+      "owner:artifact": 12,
+      "owner:composition": 12,
+      "owner:distribution": 1,
+      "owner:gateway": 1,
+      "owner:harness": 1,
+      "owner:host": 1,
+      "owner:media": 6,
+      "owner:next": 2,
+      "owner:runtime": 16,
+      "owner:workstation": 1,
+      "sourceArea:architecture-evidence": 4,
+      "sourceArea:formal-prover-sources": 9,
+      "sourceArea:github-root-policy": 2,
+      "sourceArea:repository-mechanics": 31,
+      "sourceArea:research-profile-source": 1,
+      "sourceArea:shared-root-configuration": 1
+    },
+    "prSourceCuts": [
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          ".github/workflows/ci.yml",
+          "tools/repo/test_github_governance.py"
+        ],
+        "headSourceCut": "ddc2a3dd8c538e7add76aa50b370e2d9f8a52cb1",
+        "number": 982
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "tools/repo/affected_owners.py",
+          "tools/repo/owners.toml",
+          "tools/repo/test_affected_owners.py"
+        ],
+        "headSourceCut": "616f180b8a1673940a77fcb70d340d5315e1e8f9",
+        "number": 981
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "docs/architecture/evidence/PHASE1_FULLSYSTEM_SOURCE_SCOPE_20261027_R1.json"
+        ],
+        "headSourceCut": "b99e21dcdd39d3c12dcea7c69009efe546f92412",
+        "number": 980
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+          "services/runtime/mise.toml"
+        ],
+        "headSourceCut": "39d1cac4589d8dcec55fe1c53d1da59ef1fd9bfc",
+        "number": 979
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "packages/composition/tests/test_verification_obligation_r1.py",
+          "tools/formal/RecursiveLegoRefinement.lean"
+        ],
+        "headSourceCut": "1c97dd75b2d4ba2b8f77c775da4d503a4721e56c",
+        "number": 977
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "packages/composition/planning/lego-plan-r1.json",
+          "packages/composition/tests/test_effect_reconciliation_formal_bridge_r21.py",
+          "tools/formal/EffectReconciliationR21.lean",
+          "tools/formal/verify.py"
+        ],
+        "headSourceCut": "34f8772602bda7f4862d863791da6751e14ea6ea",
+        "number": 976
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/gateway/planning/lego-plan-r1.json",
+          "tools/formal/RecursiveLegoRefinement.lean",
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "9f95d3083f252c857790f4d41cfe6c7b3a85f50a",
+        "number": 974
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "tools/formal/RecursiveLegoRefinement.lean"
+        ],
+        "headSourceCut": "b036e532afd893cabe8bd05aa3363e93589ef3fb",
+        "number": 972
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "packages/composition/planning/lego-plan-r1.json",
+          "packages/composition/src/ordivon_composition/cognitive_circuit_r1.py",
+          "packages/composition/tests/test_cognitive_circuit_r1.py",
+          "tools/formal/RecursiveLegoRefinement.lean"
+        ],
+        "headSourceCut": "458e65a4d713001a71090a55f940308d3373dccd",
+        "number": 970
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "meta/research/latent-input-state-controllability-r1.md",
+          "tools/formal/LatentInputReachability.lean",
+          "tools/formal/verify.py"
+        ],
+        "headSourceCut": "eefa07880ef5bf3a49dbde768e29866510d451b7",
+        "number": 965
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "b050af0e019f9f13b42853080af13be7ae0d77f5",
+        "number": 964
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "515345a6f09d053b71ea06c60912d8fa4f4016ee",
+        "number": 963
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "packages/composition/src/ordivon_composition/verification_obligation_r1.py",
+          "packages/composition/tests/test_verification_obligation_r1.py"
+        ],
+        "headSourceCut": "993a31e1ac519007add6e1659646190c920a6a9e",
+        "number": 962
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "feat/source-territory-classification-20261027",
+        "changedPaths": [
+          "tools/repo/affected_owners.py",
+          "tools/repo/test_affected_owners.py"
+        ],
+        "headSourceCut": "2bc134f6d664a3efcf9fc255921c16691f38ad4e",
+        "number": 953
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          ".github/CODEOWNERS",
+          "capabilities/artifact/tests/test_artifact_software_release_elf.py",
+          "capabilities/artifact/tests/test_artifact_verify.py",
+          "docs/architecture/LEGO_CORE_AND_SOURCE_TERRITORIES_20261027.md",
+          "docs/architecture/evidence/LEGO_OWNER_TERRITORY_CENSUS_20261027_R1.json",
+          "meta/next/tests/test_browser_security_r8.py",
+          "mise.toml",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs",
+          "tools/formal/RecursiveLegoRefinement.lean",
+          "tools/repo/affected_owners.py",
+          "tools/repo/convergence_plan.py",
+          "tools/repo/dependency_contracts.toml",
+          "tools/repo/owners.toml",
+          "tools/repo/planning/lego-plan-r1.json",
+          "tools/repo/test_affected_owners.py",
+          "tools/repo/test_convergence_plan.py",
+          "tools/repo/test_lego_graph_laws.py",
+          "tools/repo/test_owner_boundaries.py"
+        ],
+        "headSourceCut": "a20fafe6d883b6d78b2b4272c3949f978cc2334f",
+        "number": 948
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "docs/architecture/OWNER_BOUNDARIES_AND_AGENT_NAMING_RESEARCH_20261027.md"
+        ],
+        "headSourceCut": "f758c65cfba4103df55eac13749e3db1098f5cd1",
+        "number": 945
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/artifact/scripts/artifact_software_release_elf.py",
+          "capabilities/artifact/tests/test_artifact_software_release_elf.py"
+        ],
+        "headSourceCut": "b2d83c330a1bfbaa8950a3346212113ff705b3a5",
+        "number": 944
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/media/planning/lego-plan-r1.json",
+          "capabilities/media/src/ordivon_studio/timed_text.py",
+          "capabilities/media/tests/test_timed_text.py"
+        ],
+        "headSourceCut": "de5bc5cf6ca622c1a81231aefd751246b137be52",
+        "number": 942
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/artifact/tests/test_artifact_software_release_elf.py",
+          "capabilities/artifact/tests/test_artifact_verify.py",
+          "capabilities/distribution/planning/lego-plan-r1.json",
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "2a74bf61296330720a62decdae5d6116abcc28c2",
+        "number": 941
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "platform/workstation/planning/lego-plan-r1.json",
+          "tools/repo/check_architecture_docs.py"
+        ],
+        "headSourceCut": "7269bcff35d26c3be459004e33604e5283bf713b",
+        "number": 934
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/harness/planning/lego-plan-r1.json",
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "b17a232026987c862ced552931fd9c5deb2866f2",
+        "number": 933
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "meta/next/evidence/acceptance/lego-r21-phase1-owner-source-census-20261027.json",
+          "services/host/planning/lego-plan-r1.json",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "bcdf5f26d410f12a2f0771d2c87a59b37bce835c",
+        "number": 928
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/runtime/planning/lego-plan-r1.json",
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "207af03c97bb80fe607152001824299124c4254c",
+        "number": 916
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/runtime/planning/lego-plan-r1.json",
+          "tools/repo/check_architecture_docs.py",
+          "tools/repo/test_lego_graph_laws.py"
+        ],
+        "headSourceCut": "9684fd13afdd228b84659b751161d7d1a401d574",
+        "number": 915
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/runtime/planning/lego-plan-r1.json"
+        ],
+        "headSourceCut": "9e01504615d199865fd312772abe040af79ad214",
+        "number": 914
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "packages/composition/pyproject.toml",
+          "packages/composition/src/ordivon_composition/cognitive_circuit_r1.py",
+          "packages/composition/tests/test_source_json_uniqueness.py",
+          "packages/composition/uv.lock"
+        ],
+        "headSourceCut": "6106104391cdfee80cc21bcc50a18d7f9acdc00c",
+        "number": 913
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/media/apps/motion-remotion/package.json",
+          "capabilities/media/apps/preview/package.json",
+          "capabilities/media/pnpm-lock.yaml"
+        ],
+        "headSourceCut": "12c685fac99b9ee4f073af2f3a28487fcd006bb7",
+        "number": 840
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/artifact/artifact-delivery/node/package.json",
+          "capabilities/artifact/artifact-delivery/node/pnpm-lock.yaml"
+        ],
+        "headSourceCut": "aa3f25cd2529936114a75a2d95eb1f6d57132d09",
+        "number": 839
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/artifact/artifact-delivery/node/package.json",
+          "capabilities/artifact/artifact-delivery/node/pnpm-lock.yaml"
+        ],
+        "headSourceCut": "0d5fab0a8244a52e8afe5b53d8d28861b94c1f08",
+        "number": 838
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "capabilities/artifact/artifact-delivery/node/package.json",
+          "capabilities/artifact/artifact-delivery/node/pnpm-lock.yaml"
+        ],
+        "headSourceCut": "b2e7adf919a18a9a573ae71455456f44e9d9f804",
+        "number": 837
+      },
+      {
+        "admission": "OPEN_CANDIDATE_NOT_MAIN",
+        "baseRefName": "main",
+        "changedPaths": [
+          "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/close_recovery.rs",
+          "services/runtime/docs/operations.md",
+          "services/runtime/formal/README.md",
+          "services/runtime/formal/WorkspaceConsumerCloseR1.cfg",
+          "services/runtime/formal/WorkspaceConsumerCloseR1.tla",
+          "services/runtime/scripts/ordivon-runtime-lifecycle",
+          "services/runtime/scripts/tests/test_lifecycle.py",
+          "services/runtime/scripts/tests/test_tla_formal_external_jar.py",
+          "services/runtime/scripts/tla-formal"
+        ],
+        "headSourceCut": "4d6529db704d6d9f0d74ec63519a6e0739dae1df",
+        "number": 817
+      }
+    ],
+    "uniqueSourcePaths": 64
+  }
+}

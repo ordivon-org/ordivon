@@ -1,0 +1,675 @@
+{
+  "compressionPolicy": "Do not repeat all 510 same-path/same-blob sources in metadata. Preserve exact deterministic SHA256 projection over sorted relativePath/mode/gitBlob from immutable two Git source cuts; replay source when needed. Retain only 39 divergent and 34 exclusive paths, where difference matters to consumer source authority.",
+  "deleteReplacementRules": [
+    {
+      "guard": "proof of no actual retained consumer and no distinct permission, evidence, external output, recovery or publication dependency; otherwise UNKNOWN",
+      "rule": "DELETE"
+    },
+    {
+      "guard": "behaviorally sufficient external LEGO plus consumer-refinement, access, currentness and proof obligation checks",
+      "rule": "REUSE_MATURE"
+    },
+    {
+      "guard": "observable semantic or environmental separation and irreducible consumers",
+      "rule": "KEEP"
+    },
+    {
+      "guard": "unresolved divergent paths, installed state, dynamic effects, or consumers",
+      "rule": "UNKNOWN"
+    }
+  ],
+  "kind": "ordivon.phase1.external_git_views_and_media_mirror_sourcecut",
+  "knownStaticConsumerBoundaryExamples": [
+    {
+      "evidenceClass": "PINNED_MAIN_GIT_SOURCE_STATIC_IMPORT",
+      "import": "../../../productions/runtime-introduction/production.json",
+      "sourcePath": "capabilities/media/apps/preview/src/app.tsx"
+    },
+    {
+      "evidenceClass": "PINNED_MAIN_GIT_SOURCE_STATIC_IMPORT",
+      "import": "../../../productions/runtime-introduction/evidence/runtime-demo.receipt.json",
+      "sourcePath": "capabilities/media/apps/motion-remotion/src/runtime-demo-receipt.ts"
+    },
+    {
+      "declaredEntrypoint": "ordivon-studio=ordivon_studio.cli:main",
+      "evidenceClass": "SOURCE_DECLARED_EXECUTABLE_NOT_INSTALLED",
+      "sourcePath": "capabilities/media/pyproject.toml"
+    }
+  ],
+  "mathProofStanding": "NOT_FORMALIZED_SOURCE_IDENTITY_ONLY",
+  "mediaMirror": {
+    "actualConsumerScope": "UNKNOWN_STATIC_REFERENCES_DO_NOT_PROVE_COMPLETE_RUNTIME",
+    "agentNavigationKinds": {
+      "divergent": "source_divergent_mirror_requiring_consumer_authority",
+      "externalOnly": "source_media_only_requires_consumer_check",
+      "identical": "source_identical_mirror_not_qualified_for_delete",
+      "mainOnly": "source_main_only_requires_consumer_check"
+    },
+    "divergent": [
+      {
+        "mainBlob": "c3df54c9b835b17994ccc5840d0eedee4ffd53bb",
+        "mainMode": "100644",
+        "mediaBlob": "a128d5c0d975a5b333e78950665709c8e2d88597",
+        "mediaMode": "100644",
+        "relativePath": ".python-version"
+      },
+      {
+        "mainBlob": "7cce2ecd7b01ff8a0e7d6fbfe57e55aea6599726",
+        "mainMode": "100644",
+        "mediaBlob": "78c9f328030d6f076accc63fcdbcd199f693be5f",
+        "mediaMode": "100644",
+        "relativePath": "README.md"
+      },
+      {
+        "mainBlob": "e01e5b5fb85131a6fc486a5583e1e2ebe85a49b9",
+        "mainMode": "100644",
+        "mediaBlob": "2a9fa133c3a3eae5efb30072684981a954e120d0",
+        "mediaMode": "100644",
+        "relativePath": "apps/motion-remotion/package.json"
+      },
+      {
+        "mainBlob": "10d0fe6fef70335fa1fb858dcefde192ffea72b8",
+        "mainMode": "100644",
+        "mediaBlob": "88b4610cd996a4d677e82661650985e99f320642",
+        "mediaMode": "100644",
+        "relativePath": "apps/preview/package.json"
+      },
+      {
+        "mainBlob": "1614f4fcaf7ca7e3addb1b528f02d9659e2021fa",
+        "mainMode": "100644",
+        "mediaBlob": "cd2057ecff3171ebf25cf51e95dc1137fdfdf01f",
+        "mediaMode": "100644",
+        "relativePath": "docs/creative-capability-core.md"
+      },
+      {
+        "mainBlob": "2535af3f6c92f273d41e1b6642317ca93010ffcc",
+        "mainMode": "100755",
+        "mediaBlob": "b27d836bf7ca4bcdd5c918180e43a5f35d1a3972",
+        "mediaMode": "100755",
+        "relativePath": "media-v2/bin/otiotool-pinned.sh"
+      },
+      {
+        "mainBlob": "1f005fa75a128bf7b101cd12316cee0ae59991f6",
+        "mainMode": "100755",
+        "mediaBlob": "05d0fff404cc29f3ed83df5cb8305649067fb79b",
+        "mediaMode": "100755",
+        "relativePath": "media-v2/bin/probe-otio.sh"
+      },
+      {
+        "mainBlob": "eb99072091b1a4cd69c06178a1e8c4134f2e489b",
+        "mainMode": "100755",
+        "mediaBlob": "6a5e494e7f53b4de6be06f4d9ec1d43f568f982d",
+        "mediaMode": "100755",
+        "relativePath": "media-v2/bin/probe-timed-text.sh"
+      },
+      {
+        "mainBlob": "57ab54c6d6a62ed6e54198c00d0a310304a77256",
+        "mainMode": "100755",
+        "mediaBlob": "35b3b5942880715b4d200892d11c85803f6cf22d",
+        "mediaMode": "100755",
+        "relativePath": "media-v2/bin/ttconv-pinned.sh"
+      },
+      {
+        "mainBlob": "1cf82a4d4c09f71c24be269da52a37f799069bc0",
+        "mainMode": "100755",
+        "mediaBlob": "55a189e61cf877614a02947076154716997e756e",
+        "mediaMode": "100755",
+        "relativePath": "media-v2/tests/otio-smoke.sh"
+      },
+      {
+        "mainBlob": "7647cb52b4a3e0525c7626351deead2bb940b802",
+        "mainMode": "100755",
+        "mediaBlob": "339af0d72fc2b1572f058095116a0602a1206b35",
+        "mediaMode": "100755",
+        "relativePath": "media-v2/tests/timedtext-smoke.sh"
+      },
+      {
+        "mainBlob": "f8215db65e14d19b8f112c39ba7ed878ecadd83e",
+        "mainMode": "100644",
+        "mediaBlob": "36e9c5f6e7695bd663abbb95199dd643f91f9419",
+        "mediaMode": "100644",
+        "relativePath": "mise.toml"
+      },
+      {
+        "mainBlob": "54abf273341feb2560823d93787178637abf81db",
+        "mainMode": "100644",
+        "mediaBlob": "93f187acf0ca9274d95dec26272b99d74db58354",
+        "mediaMode": "100644",
+        "relativePath": "package.json"
+      },
+      {
+        "mainBlob": "682a11bcee869b6248ed8053a6c0ada6fea9afc5",
+        "mainMode": "100644",
+        "mediaBlob": "2e61c97404a3e1a48336bfe8a7af0c4cdd4d5aaa",
+        "mediaMode": "100644",
+        "relativePath": "planning/lego-plan-r1.json"
+      },
+      {
+        "mainBlob": "3e0887e226593f895f159e695a745cde1b2787df",
+        "mainMode": "100644",
+        "mediaBlob": "b10f9a4e6f8da58ad2b7bf4d19f950a6091a0a6e",
+        "mediaMode": "100644",
+        "relativePath": "pnpm-lock.yaml"
+      },
+      {
+        "mainBlob": "f6d44d97fc79d37ee55cf6b86db06217fe5b1c1c",
+        "mainMode": "100644",
+        "mediaBlob": "15e18c169eef2252bbecfe108c01c55a67705ee2",
+        "mediaMode": "100644",
+        "relativePath": "productions/browser-perception-note/production.json"
+      },
+      {
+        "mainBlob": "1166023bedbe6ca4e1e09d081fd0fe3450d5c908",
+        "mainMode": "100644",
+        "mediaBlob": "6c2a50424731152c58598a4ec620cbe8aa511e58",
+        "mediaMode": "100644",
+        "relativePath": "productions/mhs-hardware-boundary/production.json"
+      },
+      {
+        "mainBlob": "28398e38054b37a941cff1a672ee9b2bcdf7e71c",
+        "mainMode": "100644",
+        "mediaBlob": "9ef431b7f76e01e53e7f809ce628db1bbef2c70c",
+        "mediaMode": "100644",
+        "relativePath": "productions/ordivon-book-v0/production.json"
+      },
+      {
+        "mainBlob": "3c2baffdda26f5c1ae863184929f16c21be5dda7",
+        "mainMode": "100644",
+        "mediaBlob": "cd9853a2bcbdd66a130980f6f10c7a2b5eb538c5",
+        "mediaMode": "100644",
+        "relativePath": "productions/ordivon-system-constellation-atlas/README.md"
+      },
+      {
+        "mainBlob": "34abb68b6a1828a220d43f059297beb248d68285",
+        "mainMode": "100644",
+        "mediaBlob": "88339589e6a63cb0c0bab0e44bea7aaa8f8def6a",
+        "mediaMode": "100644",
+        "relativePath": "productions/ordivon-system-constellation-atlas/generate.py"
+      },
+      {
+        "mainBlob": "1b1084abf0ec831e45dee89545fb89cf19d42396",
+        "mainMode": "100644",
+        "mediaBlob": "3ca4197e778373742ba15531d3ca0a415b20b1f6",
+        "mediaMode": "100644",
+        "relativePath": "productions/ordivon-system-constellation-atlas/manifest.sha256"
+      },
+      {
+        "mainBlob": "3d69aec7afe7795f72c68bf2fda5b5b9ef43ad18",
+        "mainMode": "100644",
+        "mediaBlob": "43df23a326c03f577d104b37541bfdf32d8f78ed",
+        "mediaMode": "100644",
+        "relativePath": "pyproject.toml"
+      },
+      {
+        "mainBlob": "2acf9f4abc21a0f3b2ccfaceecb1ed4ad7fcb068",
+        "mainMode": "100644",
+        "mediaBlob": "5599ce1ef8eee681288600634031eff81660965d",
+        "mediaMode": "100644",
+        "relativePath": "schemas/production.schema.json"
+      },
+      {
+        "mainBlob": "e7fc3489388581462bfbba0864131185f907cb7f",
+        "mainMode": "100755",
+        "mediaBlob": "2735d17d527be406eff0b312827d9270c975bfed",
+        "mediaMode": "100755",
+        "relativePath": "scripts/build-creative-index.py"
+      },
+      {
+        "mainBlob": "e0f737e06d891b92728d101d14a77737ea5a2e2f",
+        "mainMode": "100755",
+        "mediaBlob": "1345977660bc7406f78b2663625c92458308bf7f",
+        "mediaMode": "100755",
+        "relativePath": "scripts/owner-environment"
+      },
+      {
+        "mainBlob": "8055bc6d0eb40f6bee57420af6be475fc98673d7",
+        "mainMode": "100644",
+        "mediaBlob": "24eb93da4478c064b69057598738c9c6ccfb8861",
+        "mediaMode": "100644",
+        "relativePath": "scripts/require-js-deps.mjs"
+      },
+      {
+        "mainBlob": "cf56d40dd85deada4ff79a43edb593ab8c153902",
+        "mainMode": "100644",
+        "mediaBlob": "4fa5aad06f85bbe354fdaef4e1f575d6b28117d8",
+        "mediaMode": "100644",
+        "relativePath": "scripts/run-r6-creative-validity.py"
+      },
+      {
+        "mainBlob": "85f2a0904ac394720b192513880d16a7bcb0b95d",
+        "mainMode": "100644",
+        "mediaBlob": "7fa402919132210da511921921ea1634e197228a",
+        "mediaMode": "100644",
+        "relativePath": "src/ordivon_studio/agent_surface.py"
+      },
+      {
+        "mainBlob": "82962ddf365b84c49a689473e5e4f39845c05f1c",
+        "mainMode": "100644",
+        "mediaBlob": "0d04cad164c68a2ba26fc948c45cab9cbe97d585",
+        "mediaMode": "100644",
+        "relativePath": "src/ordivon_studio/creative_index.py"
+      },
+      {
+        "mainBlob": "7dedeb221daf2a4c86451b19262aff1a14dfd477",
+        "mainMode": "100644",
+        "mediaBlob": "71195fc0d1501e1a39269154a5e22e10b3e631cc",
+        "mediaMode": "100644",
+        "relativePath": "src/ordivon_studio/models.py"
+      },
+      {
+        "mainBlob": "6ad120add2c718fbbee7689ff4e756da479dbd35",
+        "mainMode": "100644",
+        "mediaBlob": "2231c9d20b28fc8c65eaca9573d4492592b84b69",
+        "mediaMode": "100644",
+        "relativePath": "src/ordivon_studio/research_validity.py"
+      },
+      {
+        "mainBlob": "ea3fc2518e662ca5510d750b08111e62a1a3101a",
+        "mainMode": "100644",
+        "mediaBlob": "fe0694b5d6fd9ee798c9aa18f49326d3cf0d2465",
+        "mediaMode": "100644",
+        "relativePath": "src/ordivon_studio/rich_perception.py"
+      },
+      {
+        "mainBlob": "447bc317af3afb0fb68184dcd4cd6c9f5f0b4181",
+        "mainMode": "100644",
+        "mediaBlob": "164303b4d55dee4f12d93eb76676a4a81ba98ca3",
+        "mediaMode": "100644",
+        "relativePath": "tests/test_agent_surface.py"
+      },
+      {
+        "mainBlob": "f9d8afb3f6e8751123f9e1420073817d470f6d51",
+        "mainMode": "100644",
+        "mediaBlob": "6748270172190e2f91e25190469b298778339564",
+        "mediaMode": "100644",
+        "relativePath": "tests/test_creative_index.py"
+      },
+      {
+        "mainBlob": "bd75410ab48a92e25b6f0397f84d4c55f9f95481",
+        "mainMode": "100644",
+        "mediaBlob": "455511c7a712c5e45697587f09dff643345b5897",
+        "mediaMode": "100644",
+        "relativePath": "tests/test_equipment.py"
+      },
+      {
+        "mainBlob": "bfb3d94bac52e4c4031512fbd29eb6df4c2233d6",
+        "mainMode": "100644",
+        "mediaBlob": "580c18c227f341773e85e636340f6c13bee1dea3",
+        "mediaMode": "100644",
+        "relativePath": "tests/test_models.py"
+      },
+      {
+        "mainBlob": "2d090a1f205b15da81318dcfd17c070ffb439fa0",
+        "mainMode": "100644",
+        "mediaBlob": "6e3995ddf2955ac09e68241bb0c295db9f64ca44",
+        "mediaMode": "100644",
+        "relativePath": "tests/test_research_validity.py"
+      },
+      {
+        "mainBlob": "33c2802da32353371664605e5ba6eb91a32757dd",
+        "mainMode": "100644",
+        "mediaBlob": "cf73035ad24ed026185c6a3d7a5525882ddbcfdf",
+        "mediaMode": "100644",
+        "relativePath": "tests/test_rich_perception.py"
+      },
+      {
+        "mainBlob": "3a4f521480a2482cbfe18dcba3f6407c5f375f00",
+        "mainMode": "100644",
+        "mediaBlob": "b52b125350ee11ef99eb4b9b854f401c742bfe67",
+        "mediaMode": "100644",
+        "relativePath": "uv.lock"
+      }
+    ],
+    "equalMirrorLedgerStanding": "EXACT_BLOB_DIGEST_REPLAY_REQUIRED_FROM_TWO_PINNED_GIT_TREES",
+    "exactPathCounts": {
+      "divergent": 39,
+      "externalOnly": 1,
+      "identical": 510,
+      "main": 582,
+      "mainOnly": 33,
+      "media": 550
+    },
+    "externalMediaGitCut": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+    "externalOnly": [
+      {
+        "mediaBlob": "a2a49b56d6f996377d4338e1facd37f01e70cc2a",
+        "mediaMode": "100644",
+        "relativePath": ".github/dependabot.yml"
+      }
+    ],
+    "identicalBlobProjectionSha256": "13d983038f02b1c2aa27a25f36c3b7c16158023e7d835c0a3448bf0eb40a5a0f",
+    "identicalSample": [
+      {
+        "gitBlob": "20a782eceef10844ebfc1a995e32679f13efad75",
+        "mode": "100644",
+        "relativePath": "productions/live-relay-001/render/live-relay-001-master.mkv"
+      },
+      {
+        "gitBlob": "6bb56fa4f640eb5dfa23c38847f95a55dc96ab06",
+        "mode": "100644",
+        "relativePath": "productions/live-relay-001/render/live-relay-001-source.mp4"
+      },
+      {
+        "gitBlob": "7aae1ce218e8f4d92746d9b7060ab1c0cd4225f6",
+        "mode": "100644",
+        "relativePath": ".env.example"
+      },
+      {
+        "gitBlob": "0909a182671dd30e79cee8b238de11adc7b1f7ac",
+        "mode": "100644",
+        "relativePath": ".github/workflows/ci.yml"
+      },
+      {
+        "gitBlob": "5cdb1b7c18737d6cc96561133ed2b19be26ec825",
+        "mode": "100644",
+        "relativePath": ".github/workflows/codeql.yml"
+      }
+    ],
+    "mainGitCut": "cbdd02771c7bc7842c38374854ffee703fb666e4",
+    "mainMediaPrefix": "capabilities/media/",
+    "mainOnly": [
+      {
+        "mainBlob": "54298973f6a354649575f5e0c8fa37de0ba444f7",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-archive/historical-works-r2-source-complete.json"
+      },
+      {
+        "mainBlob": "c21dde26ca0329e87cf6e505cfd78a39d2bac748",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/catalog-v1.json"
+      },
+      {
+        "mainBlob": "ec720bc3a80c2842d34f1fbcf0f83c68b9b3bf22",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/derived/cad-cross-work-derived-preview-r1.json"
+      },
+      {
+        "mainBlob": "eb444cba560061201a31b177a4e697753503a382",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/derived/game--look-away-garden.png"
+      },
+      {
+        "mainBlob": "8216c4104b9d42b4969aba2fb738d32716c23930",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/derived/game--seen-not-approved-pcb.svg"
+      },
+      {
+        "mainBlob": "6bc8fa718a6f0930434a238f37e1badec320767e",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/derived/game--signal-garden-evidence-petals.png"
+      },
+      {
+        "mainBlob": "c3ec90f65cd994fa9a90814c5ef704f6cc9349c5",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/derived/game--three-color-night-shift.png"
+      },
+      {
+        "mainBlob": "93433b48c7dcd3fe72c6a9c106e58655d0a0e107",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/derived/godot-derived-previews-r1.json"
+      },
+      {
+        "mainBlob": "8ff13470968a0c745911c3f041bfc2f814ea2d6a",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/derived/kicad-derived-preview-r1.json"
+      },
+      {
+        "mainBlob": "f0ffada51f571e5a468fdf402ef46f2a3fca14f1",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/derived/manifest-v1.json"
+      },
+      {
+        "mainBlob": "2fb035fd3eaaaa502358e64f553803055a21dde6",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/derived/media--alignment-field.png"
+      },
+      {
+        "mainBlob": "bbac6bfcdfba4110fa35b232c43ac7fcba434755",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/derived/workstation--signal-garden-cam-encoder.png"
+      },
+      {
+        "mainBlob": "b20982c7b692014c3cf1ed771624fc2b4247894d",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/evidence/acceptance-r1.json"
+      },
+      {
+        "mainBlob": "2e520c3f7b98012ce02db4d48cd83cfdb68ffea4",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/evidence/acceptance-r2.json"
+      },
+      {
+        "mainBlob": "208d44a4f2be574d39de37eabf7d963273ca746c",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/evidence/friction-glb-presentation-kind-r1.json"
+      },
+      {
+        "mainBlob": "5655e5c29aa9a760b9e975733150bef0d44b153a",
+        "mainMode": "100644",
+        "relativePath": "artifacts/creative-library/evidence/home.png"
+      },
+      {
+        "mainBlob": "b0f2b1bdd0dad030be851ff87e49ac85e55bd63e",
+        "mainMode": "100644",
+        "relativePath": "creative-library/MIGRATION.md"
+      },
+      {
+        "mainBlob": "cafb9629d6f33d1719076385d086f748f3386728",
+        "mainMode": "100644",
+        "relativePath": "creative-library/README.md"
+      },
+      {
+        "mainBlob": "d9b0b7a0cc262d3a301dde39c0ac62e315583746",
+        "mainMode": "100644",
+        "relativePath": "creative-library/SOURCE_BOUNDARY.json"
+      },
+      {
+        "mainBlob": "484290199770dc74117554bd924aff0d3e3eb983",
+        "mainMode": "100644",
+        "relativePath": "creative-library/web/app.js"
+      },
+      {
+        "mainBlob": "3e9e334835ad8bfad16d77fb8061a756c412bb87",
+        "mainMode": "100644",
+        "relativePath": "creative-library/web/index.html"
+      },
+      {
+        "mainBlob": "e8b40b0d6ddc69d69a1f22d3a92f1b6fcf5e63d2",
+        "mainMode": "100644",
+        "relativePath": "creative-library/web/styles.css"
+      },
+      {
+        "mainBlob": "34af99b301f2425017ed673dc92a223418707ddb",
+        "mainMode": "100644",
+        "relativePath": "media-v2/tests/test_media_v2_owner_tool_resolution.py"
+      },
+      {
+        "mainBlob": "62dd64437a6214d63ed9f998f73db6ca8d531c51",
+        "mainMode": "100644",
+        "relativePath": "productions/fishing-fable-lego-study-r1/claims.json"
+      },
+      {
+        "mainBlob": "dcb8e646025c5f601652560607293bd294609a57",
+        "mainMode": "100644",
+        "relativePath": "productions/fishing-fable-lego-study-r1/formal-writing-contracts-r1.md"
+      },
+      {
+        "mainBlob": "fda6c6174a7022ae3a081068b2a974dc9555adaf",
+        "mainMode": "100644",
+        "relativePath": "productions/fishing-fable-lego-study-r1/production.json"
+      },
+      {
+        "mainBlob": "7e5d5c643c836cc6dec58da267ae17771a6b358b",
+        "mainMode": "100644",
+        "relativePath": "productions/fishing-fable-lego-study-r1/story-archival-reconstruction.md"
+      },
+      {
+        "mainBlob": "8d811307cc1c1dc1639a6c3f08cdbb49c53d8fda",
+        "mainMode": "100644",
+        "relativePath": "productions/fishing-fable-lego-study-r1/writing-issue-census-r1.md"
+      },
+      {
+        "mainBlob": "f4ab5edf5cb1ad2f9e029c6587a4d353b1fc6232",
+        "mainMode": "100644",
+        "relativePath": "productions/fishing-fable-lego-study-r1/writing-lego-research-dossier-r1.md"
+      },
+      {
+        "mainBlob": "7419fc09e6a94eb40e90487f12120a1c4fd1ee3a",
+        "mainMode": "100644",
+        "relativePath": "scripts/creative_library.py"
+      },
+      {
+        "mainBlob": "decaf9aedcdd1eec736dea8005523f680b2c15ed",
+        "mainMode": "100644",
+        "relativePath": "scripts/migrate-r6-trials.py"
+      },
+      {
+        "mainBlob": "1d066a9d1991f35422297c3b4f2ce1924a16fd54",
+        "mainMode": "100644",
+        "relativePath": "tests/test_creative_library.py"
+      },
+      {
+        "mainBlob": "86abd6fab9b8123b5bd62343190143db7012f577",
+        "mainMode": "100644",
+        "relativePath": "tests/test_system_constellation_atlas.py"
+      }
+    ],
+    "partitionIdentitySha256": "45efa709903d858da3308f94ee76ee2a7c7c3d52ba8486afd8adbc6bd6fc2d4c",
+    "sourceDeleteStanding": "NO_AUTOMATIC_DELETE_WHILE_SOURCE_OF_TRUTH_AND_EFFECTS_UNQUALIFIED"
+  },
+  "schemaVersion": 1,
+  "snapshotQualifier": "Exact Git revision and path/mode/blob only. Snapshot semantic classification is not source authority, mathematical proof or evidence of production installation.",
+  "sourceTopology": {
+    "configuredOriginViews": 2,
+    "distinctGitObjectStores": 7,
+    "groupsByGitObjectStore": [
+      [
+        "ordivon"
+      ],
+      [
+        "ordivon-media"
+      ],
+      [
+        "ordivon-paper1-emse-r3-frozen",
+        "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+        "ordivon-research-v2"
+      ],
+      [
+        "ordivon-paper2"
+      ],
+      [
+        "ordivon-r21-blind-eval-private-20261001"
+      ],
+      [
+        "ordivon-r21-blind-eval-public-20261001"
+      ],
+      [
+        "ordivon-sts2mcp"
+      ]
+    ],
+    "linkedWorktreeViews": 2,
+    "observedWorkingDirectories": 9,
+    "views": [
+      {
+        "gitObjectStoreLabel": "ordivon",
+        "sourceGitCut": "cbdd02771c7bc7842c38374854ffee703fb666e4",
+        "sourceRemoteClass": "CONFIGURED_ORIGIN",
+        "sourceRootLabel": "ordivon",
+        "sourceScope": "GIT_VERSION_ONLY_NOT_INSTALLED_LEGO",
+        "sourceTree": "bd5f3fda292977e2ad52247b968a0a45ed9f0cab",
+        "sourceViewKind": "INDEPENDENT_GIT_OBJECT_STORE_VIEW",
+        "statusLineCount": 0,
+        "trackedGitStatus": "CLEAN"
+      },
+      {
+        "gitObjectStoreLabel": "ordivon-media",
+        "sourceGitCut": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+        "sourceRemoteClass": "CONFIGURED_ORIGIN",
+        "sourceRootLabel": "ordivon-media",
+        "sourceScope": "GIT_VERSION_ONLY_NOT_INSTALLED_LEGO",
+        "sourceTree": "ccae1747b73569bead57836e6764f12763cbb710",
+        "sourceViewKind": "INDEPENDENT_GIT_OBJECT_STORE_VIEW",
+        "statusLineCount": 0,
+        "trackedGitStatus": "CLEAN"
+      },
+      {
+        "gitObjectStoreLabel": "ordivon-research-v2",
+        "sourceGitCut": "098c623d9c38a2fffcf620242f35577d7c827b69",
+        "sourceRemoteClass": "NO_ORIGIN_OBSERVED",
+        "sourceRootLabel": "ordivon-research-v2",
+        "sourceScope": "GIT_VERSION_ONLY_NOT_INSTALLED_LEGO",
+        "sourceTree": "7dea24f28c129528527db18119e0d54cfcb139e9",
+        "sourceViewKind": "INDEPENDENT_GIT_OBJECT_STORE_VIEW",
+        "statusLineCount": 0,
+        "trackedGitStatus": "CLEAN"
+      },
+      {
+        "gitObjectStoreLabel": "ordivon-research-v2",
+        "sourceGitCut": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+        "sourceRemoteClass": "NO_ORIGIN_OBSERVED",
+        "sourceRootLabel": "ordivon-paper1-emse-r3-frozen",
+        "sourceScope": "GIT_VERSION_ONLY_NOT_INSTALLED_LEGO",
+        "sourceTree": "746c5e8799a6ad232b003238d8e94773170c1853",
+        "sourceViewKind": "LINKED_GIT_WORKTREE_VIEW",
+        "statusLineCount": 1,
+        "trackedGitStatus": "DIRTY"
+      },
+      {
+        "gitObjectStoreLabel": "ordivon-research-v2",
+        "sourceGitCut": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+        "sourceRemoteClass": "NO_ORIGIN_OBSERVED",
+        "sourceRootLabel": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+        "sourceScope": "GIT_VERSION_ONLY_NOT_INSTALLED_LEGO",
+        "sourceTree": "37b1f58841aa9b336558b8bbaf80de9b30e708c2",
+        "sourceViewKind": "LINKED_GIT_WORKTREE_VIEW",
+        "statusLineCount": 0,
+        "trackedGitStatus": "CLEAN"
+      },
+      {
+        "gitObjectStoreLabel": "ordivon-paper2",
+        "sourceGitCut": "a0169766a19194dbcbdf0cf28ca963d89abf5d69",
+        "sourceRemoteClass": "NO_ORIGIN_OBSERVED",
+        "sourceRootLabel": "ordivon-paper2",
+        "sourceScope": "GIT_VERSION_ONLY_NOT_INSTALLED_LEGO",
+        "sourceTree": "cb7883b7156fcc9631b3544c0273d2200b4d30b4",
+        "sourceViewKind": "INDEPENDENT_GIT_OBJECT_STORE_VIEW",
+        "statusLineCount": 0,
+        "trackedGitStatus": "CLEAN"
+      },
+      {
+        "gitObjectStoreLabel": "ordivon-r21-blind-eval-private-20261001",
+        "sourceGitCut": "37f7d433ce9917aefba7f2940fef7ead8dc1e235",
+        "sourceRemoteClass": "NO_ORIGIN_OBSERVED",
+        "sourceRootLabel": "ordivon-r21-blind-eval-private-20261001",
+        "sourceScope": "GIT_VERSION_ONLY_NOT_INSTALLED_LEGO",
+        "sourceTree": "0f309ce3e0ad2e7459731aab22bc972c3799eb67",
+        "sourceViewKind": "INDEPENDENT_GIT_OBJECT_STORE_VIEW",
+        "statusLineCount": 0,
+        "trackedGitStatus": "CLEAN"
+      },
+      {
+        "gitObjectStoreLabel": "ordivon-r21-blind-eval-public-20261001",
+        "sourceGitCut": "af66bade40b8cf34d241bb5d89121fd64e288ba8",
+        "sourceRemoteClass": "NO_ORIGIN_OBSERVED",
+        "sourceRootLabel": "ordivon-r21-blind-eval-public-20261001",
+        "sourceScope": "GIT_VERSION_ONLY_NOT_INSTALLED_LEGO",
+        "sourceTree": "921755c8db50a24eb1e013c196692185575e16dd",
+        "sourceViewKind": "INDEPENDENT_GIT_OBJECT_STORE_VIEW",
+        "statusLineCount": 0,
+        "trackedGitStatus": "CLEAN"
+      },
+      {
+        "gitObjectStoreLabel": "ordivon-sts2mcp",
+        "sourceGitCut": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+        "sourceRemoteClass": "NO_ORIGIN_OBSERVED",
+        "sourceRootLabel": "ordivon-sts2mcp",
+        "sourceScope": "GIT_VERSION_ONLY_NOT_INSTALLED_LEGO",
+        "sourceTree": "c5664a1ae48aa3dd6e1971ab2014d6acc444793d",
+        "sourceViewKind": "INDEPENDENT_GIT_OBJECT_STORE_VIEW",
+        "statusLineCount": 0,
+        "trackedGitStatus": "CLEAN"
+      }
+    ]
+  },
+  "truthScope": "GIT_SOURCE_ONLY_NO_CONSUMER_OR_INSTALLATION_CLOSURE"
+}

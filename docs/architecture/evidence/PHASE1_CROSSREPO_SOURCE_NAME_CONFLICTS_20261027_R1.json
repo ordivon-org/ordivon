@@ -1,0 +1,3487 @@
+{
+  "boundedSamePathCurrentnessCheck": {
+    "perRepository": [
+      {
+        "baselineCut": "178079203fa545bd16f58fb22e3f646141d1522a",
+        "objectChangedOrAbsentAtComparison": [],
+        "observedComparisonCut": "c7fd6ae2198ede644cd3a3800c0441ba6ef6ec15",
+        "pinnedConflictingPathOccurrences": 6,
+        "repo": "ordivon",
+        "sourceCurrentnessCounts": {
+          "SAME_GIT_OBJECT": 6
+        },
+        "truthBoundary": "GIT_TREES_ONLY_NOT_INSTALLED_OR_APPROVED_CONSUMER"
+      },
+      {
+        "baselineCut": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+        "objectChangedOrAbsentAtComparison": [],
+        "observedComparisonCut": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+        "pinnedConflictingPathOccurrences": 10,
+        "repo": "ordivon-media",
+        "sourceCurrentnessCounts": {
+          "SAME_GIT_OBJECT": 10
+        },
+        "truthBoundary": "GIT_TREES_ONLY_NOT_INSTALLED_OR_APPROVED_CONSUMER"
+      },
+      {
+        "baselineCut": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+        "objectChangedOrAbsentAtComparison": [],
+        "observedComparisonCut": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+        "pinnedConflictingPathOccurrences": 67,
+        "repo": "ordivon-paper1-emse-r3-frozen",
+        "sourceCurrentnessCounts": {
+          "SAME_GIT_OBJECT": 67
+        },
+        "truthBoundary": "GIT_TREES_ONLY_NOT_INSTALLED_OR_APPROVED_CONSUMER"
+      },
+      {
+        "baselineCut": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+        "objectChangedOrAbsentAtComparison": [],
+        "observedComparisonCut": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+        "pinnedConflictingPathOccurrences": 81,
+        "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+        "sourceCurrentnessCounts": {
+          "SAME_GIT_OBJECT": 81
+        },
+        "truthBoundary": "GIT_TREES_ONLY_NOT_INSTALLED_OR_APPROVED_CONSUMER"
+      },
+      {
+        "baselineCut": "a0169766a19194dbcbdf0cf28ca963d89abf5d69",
+        "objectChangedOrAbsentAtComparison": [],
+        "observedComparisonCut": "a0169766a19194dbcbdf0cf28ca963d89abf5d69",
+        "pinnedConflictingPathOccurrences": 4,
+        "repo": "ordivon-paper2",
+        "sourceCurrentnessCounts": {
+          "SAME_GIT_OBJECT": 4
+        },
+        "truthBoundary": "GIT_TREES_ONLY_NOT_INSTALLED_OR_APPROVED_CONSUMER"
+      },
+      {
+        "baselineCut": "37f7d433ce9917aefba7f2940fef7ead8dc1e235",
+        "objectChangedOrAbsentAtComparison": [],
+        "observedComparisonCut": "37f7d433ce9917aefba7f2940fef7ead8dc1e235",
+        "pinnedConflictingPathOccurrences": 0,
+        "repo": "ordivon-r21-blind-eval-private-20261001",
+        "sourceCurrentnessCounts": {},
+        "truthBoundary": "GIT_TREES_ONLY_NOT_INSTALLED_OR_APPROVED_CONSUMER"
+      },
+      {
+        "baselineCut": "af66bade40b8cf34d241bb5d89121fd64e288ba8",
+        "objectChangedOrAbsentAtComparison": [],
+        "observedComparisonCut": "af66bade40b8cf34d241bb5d89121fd64e288ba8",
+        "pinnedConflictingPathOccurrences": 0,
+        "repo": "ordivon-r21-blind-eval-public-20261001",
+        "sourceCurrentnessCounts": {},
+        "truthBoundary": "GIT_TREES_ONLY_NOT_INSTALLED_OR_APPROVED_CONSUMER"
+      },
+      {
+        "baselineCut": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+        "objectChangedOrAbsentAtComparison": [
+          {
+            "baselineObject": "3df607570fc355699da359f8e22df9b02af89dfa",
+            "observedObject": "385a98e5137cb67da06f22606ee58aab01cf8e3c",
+            "relativePath": ".github/workflows/ci.yml",
+            "standing": "CHANGED_GIT_OBJECT"
+          },
+          {
+            "baselineObject": "a128d5c0d975a5b333e78950665709c8e2d88597",
+            "observedObject": "6324d401a069f4020efcf0ff07442724b52f47c2",
+            "relativePath": ".python-version",
+            "standing": "CHANGED_GIT_OBJECT"
+          },
+          {
+            "baselineObject": "b8897ab82b1841bf1d56630330c0c0b6a156cf28",
+            "observedObject": "1696300f205030b7de777ada6835792c9d0a3111",
+            "relativePath": "README.md",
+            "standing": "CHANGED_GIT_OBJECT"
+          },
+          {
+            "baselineObject": "4b6296f6b45cd3efad6e7dc814cb0f805850ad2e",
+            "observedObject": "1edc6773746c9c03ffa80325a3dcdfa8d6decc4c",
+            "relativePath": "profiles/research_profiles.toml",
+            "standing": "CHANGED_GIT_OBJECT"
+          },
+          {
+            "baselineObject": "05ba8bb488e81f8a58521beef0e96943ba0aad26",
+            "observedObject": "ff6a5748cc31d5002e951c0a6a682d0b045c02f6",
+            "relativePath": "pyproject.toml",
+            "standing": "CHANGED_GIT_OBJECT"
+          },
+          {
+            "baselineObject": "fffa07e057b172cb143411a1b393b6b3f87a37d1",
+            "observedObject": null,
+            "relativePath": "scripts/build_first_paper_wrroc.py",
+            "standing": "ABSENT_FROM_OBSERVED_CUT"
+          },
+          {
+            "baselineObject": "abd32cd2b538cdac2a2da2387bdb634353c09a2f",
+            "observedObject": "d750bf66e2ed652b4ab351a9d558d2b73ef4a64a",
+            "relativePath": "scripts/verify.sh",
+            "standing": "CHANGED_GIT_OBJECT"
+          },
+          {
+            "baselineObject": "c9518250513e8639f26fc15e7c4bc40b7b2170a6",
+            "observedObject": null,
+            "relativePath": "tests/test_first_paper_wrroc.py",
+            "standing": "ABSENT_FROM_OBSERVED_CUT"
+          },
+          {
+            "baselineObject": "df253663d4d30464a0e7b502808910352df1c5a2",
+            "observedObject": "a89afb4af853d2ff19ff253e4af65868fd683d00",
+            "relativePath": "tests/test_research_profiles.py",
+            "standing": "CHANGED_GIT_OBJECT"
+          },
+          {
+            "baselineObject": "7825dcbc0590f54ac86a8a9279d6f9b30adf7b6d",
+            "observedObject": "afff1cdb4e2a2de30562afe0f5cf130966a1c135",
+            "relativePath": "uv.lock",
+            "standing": "CHANGED_GIT_OBJECT"
+          }
+        ],
+        "observedComparisonCut": "098c623d9c38a2fffcf620242f35577d7c827b69",
+        "pinnedConflictingPathOccurrences": 81,
+        "repo": "ordivon-research-v2",
+        "sourceCurrentnessCounts": {
+          "ABSENT_FROM_OBSERVED_CUT": 2,
+          "CHANGED_GIT_OBJECT": 8,
+          "SAME_GIT_OBJECT": 71
+        },
+        "truthBoundary": "GIT_TREES_ONLY_NOT_INSTALLED_OR_APPROVED_CONSUMER"
+      },
+      {
+        "baselineCut": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+        "objectChangedOrAbsentAtComparison": [],
+        "observedComparisonCut": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+        "pinnedConflictingPathOccurrences": 4,
+        "repo": "ordivon-sts2mcp",
+        "sourceCurrentnessCounts": {
+          "SAME_GIT_OBJECT": 4
+        },
+        "truthBoundary": "GIT_TREES_ONLY_NOT_INSTALLED_OR_APPROVED_CONSUMER"
+      }
+    ],
+    "semanticLimit": "Same Git object in two repositories does not prove operational equivalence; changed/absent means pinned alias evidence must not be promoted to current equivalence.",
+    "sourceOfCurrentCuts": "Origin/main remote-tracking ref in Ordivon monorepo; native local HEAD for 8 sibling repositories",
+    "temporalLimit": "Observed at this tool invocation only, not continuous monitoring or real installed live source"
+  },
+  "conflictKinds": {
+    "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE": 18,
+    "PAPER_PUBLICATION_SOURCE_AND_RECEIPT": 29,
+    "PLANNING_SOURCE_DECLARATION": 1,
+    "PROJECT_TOOLCHAIN_OR_CI_CONFIGURATION": 7,
+    "REPOSITORY_ENTRY_AND_POLICY_TEXT": 3,
+    "RESEARCH_BUILD_OR_TOOL_IMPLEMENTATION_SOURCE": 11,
+    "RESEARCH_DECLARATION_AND_REGISTRY_MATERIAL": 2,
+    "RESEARCH_DOCUMENTATION_OR_EVIDENCE_TEXT": 1,
+    "TEST_OR_ACCEPTANCE_SOURCE": 12
+  },
+  "counts": {
+    "gitSourceRoots": 9,
+    "identicalBlobAliases": 2565,
+    "samePathDifferentBlobAliases": 84,
+    "sameRelativePathsAcrossRepos": 2649,
+    "trackedSourcePathEntries": 14209,
+    "unqualifiedCarrierRoleHints": 0
+  },
+  "falseConflationFalsifiers": [
+    {
+      "falsifies": "same relative plan path always represents the same semantic LEGO",
+      "reason": "Same path across independent Media and Research repositories carries different Git blobs; no equal schema or consumer proven.",
+      "relativePath": "planning/lego-plan-r1.json"
+    },
+    {
+      "falsifies": "same CI basename means it executes for the same repository or environment",
+      "reason": "Git object IDs differ and GitHub Actions workflows run only in the repository that owns them, subject to its own configuration.",
+      "relativePath": ".github/workflows/ci.yml"
+    },
+    {
+      "falsifies": "same README filename identifies one active knowledge source",
+      "reason": "Repository-qualified commits and blob OIDs differ; README is source documentation, not immutable consumer or installed authority.",
+      "relativePath": "README.md"
+    }
+  ],
+  "kind": "ordivon.phase1-cross-repository-path-name-collision-audit",
+  "machineAdmissibilityBoundary": {
+    "ACTUAL_CONSUMER": "UNKNOWN",
+    "BYTES_EQUALITY": "FALSE_FOR_EACH_CONFLICT_ROW",
+    "EQUIVALENCE_OR_REFINEMENT": "UNKNOWN",
+    "INSTALLED_CURRENTNESS": "UNKNOWN",
+    "ORIGINAL_SOURCE_FILES_CHANGED": "NO",
+    "PERMISSION_TO_DELETE_OR_MERGE": "NO",
+    "SAME_FUNCTION": "UNKNOWN",
+    "SOURCE_PRESENCE": "YES_EXACT_COMMIT_AND_TREE"
+  },
+  "nameConflictRows": [
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 4,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "project-toolchain-or-ci-configuration:dependabot.yml",
+      "relativePath": ".github/dependabot.yml",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PROJECT_TOOLCHAIN_OR_CI_CONFIGURATION",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon@178079203fa545bd16f58fb22e3f646141d1522a:.github/dependabot.yml",
+          "blobOid": "8eea89befd6aceb1138898e8659fd5ba8b7531f7",
+          "commit": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "gitObjectType": "blob",
+          "repo": "ordivon",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-media@30f6d1228a4270a68cd715ca9a7b17742478958e:.github/dependabot.yml",
+          "blobOid": "a2a49b56d6f996377d4338e1facd37f01e70cc2a",
+          "commit": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+          "gitObjectType": "blob",
+          "repo": "ordivon-media",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:.github/dependabot.yml",
+          "blobOid": "b0bf8a45563e443d4466174963a14721aa2dea1b",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper2@a0169766a19194dbcbdf0cf28ca963d89abf5d69:.github/dependabot.yml",
+          "blobOid": "457d90f1504fea9018cdc317f4135d1ee445c5e0",
+          "commit": "a0169766a19194dbcbdf0cf28ca963d89abf5d69",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:.github/dependabot.yml",
+          "blobOid": "b0bf8a45563e443d4466174963a14721aa2dea1b",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 5,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "project-toolchain-or-ci-configuration:ci.yml",
+      "relativePath": ".github/workflows/ci.yml",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PROJECT_TOOLCHAIN_OR_CI_CONFIGURATION",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon@178079203fa545bd16f58fb22e3f646141d1522a:.github/workflows/ci.yml",
+          "blobOid": "f4f53de4b65f3f6bec0cde14108f564acc02b003",
+          "commit": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "gitObjectType": "blob",
+          "repo": "ordivon",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-media@30f6d1228a4270a68cd715ca9a7b17742478958e:.github/workflows/ci.yml",
+          "blobOid": "0909a182671dd30e79cee8b238de11adc7b1f7ac",
+          "commit": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+          "gitObjectType": "blob",
+          "repo": "ordivon-media",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:.github/workflows/ci.yml",
+          "blobOid": "e83b648f5559d722694f621ff6421349b1472a60",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper2@a0169766a19194dbcbdf0cf28ca963d89abf5d69:.github/workflows/ci.yml",
+          "blobOid": "e7fa83c1afb999282de1de2abbaf6ce82f4bcd4d",
+          "commit": "a0169766a19194dbcbdf0cf28ca963d89abf5d69",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:.github/workflows/ci.yml",
+          "blobOid": "3df607570fc355699da359f8e22df9b02af89dfa",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 5,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "project-toolchain-or-ci-configuration:.gitignore",
+      "relativePath": ".gitignore",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PROJECT_TOOLCHAIN_OR_CI_CONFIGURATION",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon@178079203fa545bd16f58fb22e3f646141d1522a:.gitignore",
+          "blobOid": "966d74db42af736a7026c39243d28e8652c3318c",
+          "commit": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "gitObjectType": "blob",
+          "repo": "ordivon",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-media@30f6d1228a4270a68cd715ca9a7b17742478958e:.gitignore",
+          "blobOid": "deed6efd2e9bed8607c64f4bcee343cc444cdc59",
+          "commit": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+          "gitObjectType": "blob",
+          "repo": "ordivon-media",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:.gitignore",
+          "blobOid": "300f0c3ce7d78a3c2fd9b2863c38ca5172bb72a1",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:.gitignore",
+          "blobOid": "300f0c3ce7d78a3c2fd9b2863c38ca5172bb72a1",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper2@a0169766a19194dbcbdf0cf28ca963d89abf5d69:.gitignore",
+          "blobOid": "a5cde48853b3d53db25d645da555ec45ba96139f",
+          "commit": "a0169766a19194dbcbdf0cf28ca963d89abf5d69",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:.gitignore",
+          "blobOid": "300f0c3ce7d78a3c2fd9b2863c38ca5172bb72a1",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-sts2mcp@960ffb766f5ec6846eca1caf2f238fb47b6d61da:.gitignore",
+          "blobOid": "825ceaceb64d5ff0947f35651adf9aff0e8008ed",
+          "commit": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+          "gitObjectType": "blob",
+          "repo": "ordivon-sts2mcp",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "project-toolchain-or-ci-configuration:.python-version",
+      "relativePath": ".python-version",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PROJECT_TOOLCHAIN_OR_CI_CONFIGURATION",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-media@30f6d1228a4270a68cd715ca9a7b17742478958e:.python-version",
+          "blobOid": "a128d5c0d975a5b333e78950665709c8e2d88597",
+          "commit": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+          "gitObjectType": "blob",
+          "repo": "ordivon-media",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:.python-version",
+          "blobOid": "e4fba2183587225f216eeada4c78dfab6b2e65f5",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:.python-version",
+          "blobOid": "a128d5c0d975a5b333e78950665709c8e2d88597",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:.python-version",
+          "blobOid": "a128d5c0d975a5b333e78950665709c8e2d88597",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "repository-entry-and-policy-text:AGENTS.md",
+      "relativePath": "AGENTS.md",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "REPOSITORY_ENTRY_AND_POLICY_TEXT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon@178079203fa545bd16f58fb22e3f646141d1522a:AGENTS.md",
+          "blobOid": "2a46aba1529f659e041e79b7f10c98f25c857034",
+          "commit": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "gitObjectType": "blob",
+          "repo": "ordivon",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-sts2mcp@960ffb766f5ec6846eca1caf2f238fb47b6d61da:AGENTS.md",
+          "blobOid": "2a2e11b12557c71bfe3443b989f43e8f40c58fdf",
+          "commit": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+          "gitObjectType": "blob",
+          "repo": "ordivon-sts2mcp",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "repository-entry-and-policy-text:LICENSE",
+      "relativePath": "LICENSE",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "REPOSITORY_ENTRY_AND_POLICY_TEXT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-media@30f6d1228a4270a68cd715ca9a7b17742478958e:LICENSE",
+          "blobOid": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+          "commit": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+          "gitObjectType": "blob",
+          "repo": "ordivon-media",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-sts2mcp@960ffb766f5ec6846eca1caf2f238fb47b6d61da:LICENSE",
+          "blobOid": "68f5c5ce891436fe90adfbf30c000f8fd7a89adb",
+          "commit": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+          "gitObjectType": "blob",
+          "repo": "ordivon-sts2mcp",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 6,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "repository-entry-and-policy-text:README.md",
+      "relativePath": "README.md",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "REPOSITORY_ENTRY_AND_POLICY_TEXT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon@178079203fa545bd16f58fb22e3f646141d1522a:README.md",
+          "blobOid": "dee57557e3644de7b6cf2e8a9bfb5d64d564cff2",
+          "commit": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "gitObjectType": "blob",
+          "repo": "ordivon",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-media@30f6d1228a4270a68cd715ca9a7b17742478958e:README.md",
+          "blobOid": "78c9f328030d6f076accc63fcdbcd199f693be5f",
+          "commit": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+          "gitObjectType": "blob",
+          "repo": "ordivon-media",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:README.md",
+          "blobOid": "d18c654606b113f29872b2bc5f035bdb406f04fc",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:README.md",
+          "blobOid": "d18c654606b113f29872b2bc5f035bdb406f04fc",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper2@a0169766a19194dbcbdf0cf28ca963d89abf5d69:README.md",
+          "blobOid": "1ac7fdf5d0f59eda8d67bc4c60ef239c21e7fbbd",
+          "commit": "a0169766a19194dbcbdf0cf28ca963d89abf5d69",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:README.md",
+          "blobOid": "b8897ab82b1841bf1d56630330c0c0b6a156cf28",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-sts2mcp@960ffb766f5ec6846eca1caf2f238fb47b6d61da:README.md",
+          "blobOid": "dafe4bb679ee08cd6ff052f38cc6e03d3c8f94fd",
+          "commit": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+          "gitObjectType": "blob",
+          "repo": "ordivon-sts2mcp",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-documentation-or-evidence-text:RESEARCH_AUTHORITY_CLOSURE_R1_20260913.md",
+      "relativePath": "docs/RESEARCH_AUTHORITY_CLOSURE_R1_20260913.md",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_DOCUMENTATION_OR_EVIDENCE_TEXT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:docs/RESEARCH_AUTHORITY_CLOSURE_R1_20260913.md",
+          "blobOid": "c09014a5bcdec2da430ee6136db214d35980c71a",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:docs/RESEARCH_AUTHORITY_CLOSURE_R1_20260913.md",
+          "blobOid": "33a7ba7d96010f4bd6e0ac2ad4fe1f26190ebb94",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:docs/RESEARCH_AUTHORITY_CLOSURE_R1_20260913.md",
+          "blobOid": "33a7ba7d96010f4bd6e0ac2ad4fe1f26190ebb94",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "project-toolchain-or-ci-configuration:mise.toml",
+      "relativePath": "mise.toml",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PROJECT_TOOLCHAIN_OR_CI_CONFIGURATION",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon@178079203fa545bd16f58fb22e3f646141d1522a:mise.toml",
+          "blobOid": "9232c303f58a2f72b66fb4a617b56e3fd8f9bb49",
+          "commit": "178079203fa545bd16f58fb22e3f646141d1522a",
+          "gitObjectType": "blob",
+          "repo": "ordivon",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-media@30f6d1228a4270a68cd715ca9a7b17742478958e:mise.toml",
+          "blobOid": "36e9c5f6e7695bd663abbb95199dd643f91f9419",
+          "commit": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+          "gitObjectType": "blob",
+          "repo": "ordivon-media",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:EMSE_SUBMISSION_PACKAGE_CANDIDATE_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/emse_submission_r1/EMSE_SUBMISSION_PACKAGE_CANDIDATE_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/emse_submission_r1/EMSE_SUBMISSION_PACKAGE_CANDIDATE_R1.json",
+          "blobOid": "b48450fb43c4586a326733322c4c044ca118e25b",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/emse_submission_r1/EMSE_SUBMISSION_PACKAGE_CANDIDATE_R1.json",
+          "blobOid": "d19580eeea96cb1709db7e874037249433e1051b",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:PACKAGE_VISUAL_REVIEW_MANIFEST_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/emse_submission_r1/package_visual_review_r1/PACKAGE_VISUAL_REVIEW_MANIFEST_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/emse_submission_r1/package_visual_review_r1/PACKAGE_VISUAL_REVIEW_MANIFEST_R1.json",
+          "blobOid": "fc41a0d5d41919e9d81f89cbe044f8c9f8d2777c",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/emse_submission_r1/package_visual_review_r1/PACKAGE_VISUAL_REVIEW_MANIFEST_R1.json",
+          "blobOid": "1f62acc99e5f24326d418853dee3dd3e71e25e17",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:P1_PUB_11_SPLIT_R1.md",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/P1_PUB_11_SPLIT_R1.md",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/P1_PUB_11_SPLIT_R1.md",
+          "blobOid": "7f3ed7181208dc48b3d37393e83b2157dacbdf20",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/P1_PUB_11_SPLIT_R1.md",
+          "blobOid": "a3a3101f9cb5112bc3d70eaacfc325b0521f9574",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/P1_PUB_11_SPLIT_R1.md",
+          "blobOid": "a3a3101f9cb5112bc3d70eaacfc325b0521f9574",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:PUBLICATION_INTERFACE_SPLIT_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/PUBLICATION_INTERFACE_SPLIT_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/PUBLICATION_INTERFACE_SPLIT_R1.json",
+          "blobOid": "04fa6a9b24f2a1e6b4bb56c0ff7c223fb6b338f2",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/PUBLICATION_INTERFACE_SPLIT_R1.json",
+          "blobOid": "9c3d842ddf7a5ab01e4477d45c97c20208f9c532",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/PUBLICATION_INTERFACE_SPLIT_R1.json",
+          "blobOid": "9c3d842ddf7a5ab01e4477d45c97c20208f9c532",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "test-or-acceptance-source:test_publication_interface_split_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/test_publication_interface_split_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "TEST_OR_ACCEPTANCE_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/test_publication_interface_split_r1.py",
+          "blobOid": "d973e15aac8c0b63098ef94b060a228ecf619a49",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/test_publication_interface_split_r1.py",
+          "blobOid": "b06f92097855fa77c7dc3a6966838df85480c140",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/test_publication_interface_split_r1.py",
+          "blobOid": "b06f92097855fa77c7dc3a6966838df85480c140",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:validate_publication_interface_split_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/validate_publication_interface_split_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/validate_publication_interface_split_r1.py",
+          "blobOid": "fc0def7457c3135aaa52dec417189c1362de9df8",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/validate_publication_interface_split_r1.py",
+          "blobOid": "0492e9abf5f8c17e51f71712d7cb18cda1b5bff2",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/publication_interface_r1/validate_publication_interface_split_r1.py",
+          "blobOid": "0492e9abf5f8c17e51f71712d7cb18cda1b5bff2",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:DISPLAY_ALT_TEXT_R1.md",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/DISPLAY_ALT_TEXT_R1.md",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/DISPLAY_ALT_TEXT_R1.md",
+          "blobOid": "d29a8c819076b5c392cca69fb17e0de49a79d7cc",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/DISPLAY_ALT_TEXT_R1.md",
+          "blobOid": "add640c06ff446059d9a8c01077d4cb7f783dc82",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/DISPLAY_ALT_TEXT_R1.md",
+          "blobOid": "add640c06ff446059d9a8c01077d4cb7f783dc82",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:DISPLAY_AUDIT_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/DISPLAY_AUDIT_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/DISPLAY_AUDIT_R1.json",
+          "blobOid": "cd889d27f4549c938ff45c0b3d2f7d663b3686bf",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/DISPLAY_AUDIT_R1.json",
+          "blobOid": "b7abe0915d35ef0d4b83521809bd73be93578c09",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/DISPLAY_AUDIT_R1.json",
+          "blobOid": "b7abe0915d35ef0d4b83521809bd73be93578c09",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:MANUSCRIPT_SEMANTIC_DIFF_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/MANUSCRIPT_SEMANTIC_DIFF_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/MANUSCRIPT_SEMANTIC_DIFF_R1.json",
+          "blobOid": "679ba9c9c6c9283c1d13d138c1b743508b29419f",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/MANUSCRIPT_SEMANTIC_DIFF_R1.json",
+          "blobOid": "a60569782c6c433c96085bd54b8a47862cb23131",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/MANUSCRIPT_SEMANTIC_DIFF_R1.json",
+          "blobOid": "a60569782c6c433c96085bd54b8a47862cb23131",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:PAPER1_REDESSIGN_BASELINE_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/PAPER1_REDESSIGN_BASELINE_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/PAPER1_REDESSIGN_BASELINE_R1.json",
+          "blobOid": "7ce07a9142a10f06c4c369c91be5d34524e0c3b2",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/PAPER1_REDESSIGN_BASELINE_R1.json",
+          "blobOid": "06aa85c1ec132263621d9ed1775946bced868c4a",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/PAPER1_REDESSIGN_BASELINE_R1.json",
+          "blobOid": "06aa85c1ec132263621d9ed1775946bced868c4a",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:PAPER1_REDESSIGN_BLUEPRINT_MANIFEST_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/PAPER1_REDESSIGN_BLUEPRINT_MANIFEST_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/PAPER1_REDESSIGN_BLUEPRINT_MANIFEST_R1.json",
+          "blobOid": "a5be3d9ce2ee9f5224af4398bbec474f02d143ba",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/PAPER1_REDESSIGN_BLUEPRINT_MANIFEST_R1.json",
+          "blobOid": "f7044003192996979e7f69f14f55d73fac1e6dec",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/PAPER1_REDESSIGN_BLUEPRINT_MANIFEST_R1.json",
+          "blobOid": "f7044003192996979e7f69f14f55d73fac1e6dec",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:SCIENCE_CLAIMSET_RECHECK_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+          "blobOid": "c058fbf546d5d000ceb6e8ff88df63b7f3027daa",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+          "blobOid": "baf4b1556dcad7c283783a35baf60bbd455dc350",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 3,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:DOCX_BUILD_MANIFEST_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/DOCX_BUILD_MANIFEST_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/DOCX_BUILD_MANIFEST_R1.json",
+          "blobOid": "4423a2d2cb7ff22a0dbf4dd5aed7b58889c8cee0",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/DOCX_BUILD_MANIFEST_R1.json",
+          "blobOid": "a6426f874a499a9907fbc4b6b6e1f2ff49f25ec7",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/DOCX_BUILD_MANIFEST_R1.json",
+          "blobOid": "efdf5041de074d7cf4e3fbc5ac0294c2f6f26117",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 3,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:DOCX_STRUCTURAL_QA_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/DOCX_STRUCTURAL_QA_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/DOCX_STRUCTURAL_QA_R1.json",
+          "blobOid": "63beb4d7be0aeb16003d5c64bf0dc908925c8684",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/DOCX_STRUCTURAL_QA_R1.json",
+          "blobOid": "8f66c7875b3f523c6e053cfd99a280d758ba4f93",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/DOCX_STRUCTURAL_QA_R1.json",
+          "blobOid": "d2a630cb27490ad302a2c350cd93efa2c33acebd",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 3,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:EMSE_PUBLICATION_SOURCE_R3_REDESSIGN_R1.qmd",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/EMSE_PUBLICATION_SOURCE_R3_REDESSIGN_R1.qmd",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/EMSE_PUBLICATION_SOURCE_R3_REDESSIGN_R1.qmd",
+          "blobOid": "f6ea9ef7764bf0754bf026d17e88cab8156c5fa1",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/EMSE_PUBLICATION_SOURCE_R3_REDESSIGN_R1.qmd",
+          "blobOid": "d95a310195f1db221fdeaa3670e0355022be60f1",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/EMSE_PUBLICATION_SOURCE_R3_REDESSIGN_R1.qmd",
+          "blobOid": "2c89d0bf986b6a54eedfdf92d70029af4dbfba00",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 3,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:EMSE_SUBMISSION_CANDIDATE_R3_REDESSIGN_R1.docx",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/EMSE_SUBMISSION_CANDIDATE_R3_REDESSIGN_R1.docx",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/EMSE_SUBMISSION_CANDIDATE_R3_REDESSIGN_R1.docx",
+          "blobOid": "ca79d704738e095defc9e113948ce7231ea0638c",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/EMSE_SUBMISSION_CANDIDATE_R3_REDESSIGN_R1.docx",
+          "blobOid": "d305465e8816c87b91ee8b5cab5ecd58f5f2ea12",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/EMSE_SUBMISSION_CANDIDATE_R3_REDESSIGN_R1.docx",
+          "blobOid": "9a70fb4d9a1e86a48929fa065b5fef161f227dfa",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:FINAL_BYTE_CANDIDATE_RECEIPT_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/FINAL_BYTE_CANDIDATE_RECEIPT_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/FINAL_BYTE_CANDIDATE_RECEIPT_R1.json",
+          "blobOid": "8aabd47d96fa1ae0c11ab5f5fdc3cde5d3f75877",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/FINAL_BYTE_CANDIDATE_RECEIPT_R1.json",
+          "blobOid": "76a89083208d2c5d4cc671979da6c304a0616c7b",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:build_display_audit_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/build_display_audit_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/build_display_audit_r1.py",
+          "blobOid": "e3bd24cd6d141aff60104ec2fbfcb7b7ca59470c",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/build_display_audit_r1.py",
+          "blobOid": "414956f69488be977eda2b33ae39a3ec45516dbb",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/build_display_audit_r1.py",
+          "blobOid": "414956f69488be977eda2b33ae39a3ec45516dbb",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:build_docx_candidate_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/build_docx_candidate_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/build_docx_candidate_r1.py",
+          "blobOid": "01fbcdd93344a15e5edfde9b37d0344ecebe114a",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/build_docx_candidate_r1.py",
+          "blobOid": "88ac79a29e8e240db8dd405580b19bcd1ca626f7",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/build_docx_candidate_r1.py",
+          "blobOid": "88ac79a29e8e240db8dd405580b19bcd1ca626f7",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:F1_PROVENANCE_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/F1_PROVENANCE_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/F1_PROVENANCE_R1.json",
+          "blobOid": "1d7c0e12a56ec612bee466cd83b6f0e8c3ffa655",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/F1_PROVENANCE_R1.json",
+          "blobOid": "b6e6498d863282e082e4771c6fc1e71546e7d1fd",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/F1_PROVENANCE_R1.json",
+          "blobOid": "b6e6498d863282e082e4771c6fc1e71546e7d1fd",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:F2_PROVENANCE_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/F2_PROVENANCE_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/F2_PROVENANCE_R1.json",
+          "blobOid": "980c68fae028d5a1d0a3c047cbbd6d4e4660158c",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/F2_PROVENANCE_R1.json",
+          "blobOid": "1116969c42ec059ed04f91e947c1c54220ee4a83",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/F2_PROVENANCE_R1.json",
+          "blobOid": "1116969c42ec059ed04f91e947c1c54220ee4a83",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:F3_PROVENANCE_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/F3_PROVENANCE_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/F3_PROVENANCE_R1.json",
+          "blobOid": "adb0079dd3eab48501f59ecc049499ce9317390a",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/F3_PROVENANCE_R1.json",
+          "blobOid": "62e4bfb7aa5d86cc4d37628e0fa917f565a0c2b2",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/F3_PROVENANCE_R1.json",
+          "blobOid": "62e4bfb7aa5d86cc4d37628e0fa917f565a0c2b2",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:T1_PROVENANCE_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/T1_PROVENANCE_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/T1_PROVENANCE_R1.json",
+          "blobOid": "9d0c671c37d9252cf314b62eb9e0fb15bde95cf8",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/T1_PROVENANCE_R1.json",
+          "blobOid": "5baaf36150665e54ce284848b233ba6f0974bb45",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/T1_PROVENANCE_R1.json",
+          "blobOid": "5baaf36150665e54ce284848b233ba6f0974bb45",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:T3_PROVENANCE_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/T3_PROVENANCE_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/T3_PROVENANCE_R1.json",
+          "blobOid": "497e01b7986987ea6cdfac1863975da957622325",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/T3_PROVENANCE_R1.json",
+          "blobOid": "9f3a37aecb91c5d1a1065052c0cd29ccf3b13e4c",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/displays/T3_PROVENANCE_R1.json",
+          "blobOid": "9f3a37aecb91c5d1a1065052c0cd29ccf3b13e4c",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:F1_STUDY_ARCHITECTURE_R1.pdf",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F1_STUDY_ARCHITECTURE_R1.pdf",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F1_STUDY_ARCHITECTURE_R1.pdf",
+          "blobOid": "48275f83222deb2839f3b72e61ab413a239f4d9a",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F1_STUDY_ARCHITECTURE_R1.pdf",
+          "blobOid": "61f6c75fca77bb39c1de7dad71469eac3b1eae7d",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F1_STUDY_ARCHITECTURE_R1.pdf",
+          "blobOid": "61f6c75fca77bb39c1de7dad71469eac3b1eae7d",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:F1_STUDY_ARCHITECTURE_R1.png",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F1_STUDY_ARCHITECTURE_R1.png",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F1_STUDY_ARCHITECTURE_R1.png",
+          "blobOid": "d3074845ca6649411a62c9e7ae87af7b33bc9683",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F1_STUDY_ARCHITECTURE_R1.png",
+          "blobOid": "e2c9876e6c46e8d73d26e6c4f2eff80737322764",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F1_STUDY_ARCHITECTURE_R1.png",
+          "blobOid": "e2c9876e6c46e8d73d26e6c4f2eff80737322764",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:F2_OPERATING_POINT_SENSITIVITY_R1.pdf",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F2_OPERATING_POINT_SENSITIVITY_R1.pdf",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F2_OPERATING_POINT_SENSITIVITY_R1.pdf",
+          "blobOid": "8b97a8fb9782435fc2115cab4df1ffb501413ec8",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F2_OPERATING_POINT_SENSITIVITY_R1.pdf",
+          "blobOid": "996b2d854bc2d2de667b182f1fe0d2d40482c5ce",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F2_OPERATING_POINT_SENSITIVITY_R1.pdf",
+          "blobOid": "996b2d854bc2d2de667b182f1fe0d2d40482c5ce",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:F2_OPERATING_POINT_SENSITIVITY_R1.png",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F2_OPERATING_POINT_SENSITIVITY_R1.png",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F2_OPERATING_POINT_SENSITIVITY_R1.png",
+          "blobOid": "5cd71c3929dc3c7147145c054349b0d7d0d1a838",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F2_OPERATING_POINT_SENSITIVITY_R1.png",
+          "blobOid": "abd95dc24308edd26c26c37d202611452a310cb4",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F2_OPERATING_POINT_SENSITIVITY_R1.png",
+          "blobOid": "abd95dc24308edd26c26c37d202611452a310cb4",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:F3_PROJECT_HETEROGENEITY_STABILITY_R1.pdf",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F3_PROJECT_HETEROGENEITY_STABILITY_R1.pdf",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F3_PROJECT_HETEROGENEITY_STABILITY_R1.pdf",
+          "blobOid": "9425adb7685455be5db407cb9bebd6f6036586c7",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F3_PROJECT_HETEROGENEITY_STABILITY_R1.pdf",
+          "blobOid": "30e99a7b9b172ac1dff2bdbb91acfbb58d8cf1a1",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F3_PROJECT_HETEROGENEITY_STABILITY_R1.pdf",
+          "blobOid": "30e99a7b9b172ac1dff2bdbb91acfbb58d8cf1a1",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:F3_PROJECT_HETEROGENEITY_STABILITY_R1.png",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F3_PROJECT_HETEROGENEITY_STABILITY_R1.png",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F3_PROJECT_HETEROGENEITY_STABILITY_R1.png",
+          "blobOid": "ce59bbb19d056e32180ac0d54eb2a32ec0070926",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F3_PROJECT_HETEROGENEITY_STABILITY_R1.png",
+          "blobOid": "21dd9f28a4fc44999412c71d97990fe8a9c2c005",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/F3_PROJECT_HETEROGENEITY_STABILITY_R1.png",
+          "blobOid": "21dd9f28a4fc44999412c71d97990fe8a9c2c005",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:f1_study_architecture.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/f1_study_architecture.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/f1_study_architecture.py",
+          "blobOid": "4e7f5a231c168e8f7b2719b470645fac7908271c",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/f1_study_architecture.py",
+          "blobOid": "f149e392bc85d196b0b3f4268d50ca4dff223707",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/f1_study_architecture.py",
+          "blobOid": "f149e392bc85d196b0b3f4268d50ca4dff223707",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:f2_operating_point_sensitivity.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/f2_operating_point_sensitivity.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/f2_operating_point_sensitivity.py",
+          "blobOid": "dc565c3176e254c4319a58ec7b0273fd75718237",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/f2_operating_point_sensitivity.py",
+          "blobOid": "d141afee47bee50be192e105910bb97b5b1f49c7",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/f2_operating_point_sensitivity.py",
+          "blobOid": "d141afee47bee50be192e105910bb97b5b1f49c7",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:f3_project_heterogeneity_stability.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/f3_project_heterogeneity_stability.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/f3_project_heterogeneity_stability.py",
+          "blobOid": "8dfff584837f7affd25e1bbde0a2a76cb73c2210",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/f3_project_heterogeneity_stability.py",
+          "blobOid": "babed963f0b5daead7f907c0cd369b1f7a96009b",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/figures/f3_project_heterogeneity_stability.py",
+          "blobOid": "babed963f0b5daead7f907c0cd369b1f7a96009b",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 3,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:PAPER1_REDESSIGN_WORKING_R1.md",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/manuscript_working/PAPER1_REDESSIGN_WORKING_R1.md",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/manuscript_working/PAPER1_REDESSIGN_WORKING_R1.md",
+          "blobOid": "e4d999921062baccb4d69d8b3151c3e9611b5a64",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/manuscript_working/PAPER1_REDESSIGN_WORKING_R1.md",
+          "blobOid": "0dfe99eb67a170944ed1a88643e491d949d14232",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/manuscript_working/PAPER1_REDESSIGN_WORKING_R1.md",
+          "blobOid": "49ab9191532a567369077eccb09da67689ecbe3e",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:T1_IDENTITY_CLAIM_LICENSE_R1.csv",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/T1_IDENTITY_CLAIM_LICENSE_R1.csv",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/T1_IDENTITY_CLAIM_LICENSE_R1.csv",
+          "blobOid": "9580cde34669053437f569e71561c7e92f9abb1b",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/T1_IDENTITY_CLAIM_LICENSE_R1.csv",
+          "blobOid": "54918f37be91de0ce11058aefe6f3439af27d922",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/T1_IDENTITY_CLAIM_LICENSE_R1.csv",
+          "blobOid": "54918f37be91de0ce11058aefe6f3439af27d922",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:T3_RQ_EVIDENCE_CEILING_R1.csv",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/T3_RQ_EVIDENCE_CEILING_R1.csv",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/T3_RQ_EVIDENCE_CEILING_R1.csv",
+          "blobOid": "341561fe877827bdd3eac9778c1d37667ecd5d56",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/T3_RQ_EVIDENCE_CEILING_R1.csv",
+          "blobOid": "44d46b79611f74ac5aaf80a83bb36c3831c41f29",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/T3_RQ_EVIDENCE_CEILING_R1.csv",
+          "blobOid": "44d46b79611f74ac5aaf80a83bb36c3831c41f29",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:build_t1_identity_claim_license_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/build_t1_identity_claim_license_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/build_t1_identity_claim_license_r1.py",
+          "blobOid": "a14ad4f2ca491d2025797c03950a0c7b8ce8341f",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/build_t1_identity_claim_license_r1.py",
+          "blobOid": "25ed448821e4f9e7d122a9f60a0bfcf4c9c4a1f9",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/build_t1_identity_claim_license_r1.py",
+          "blobOid": "25ed448821e4f9e7d122a9f60a0bfcf4c9c4a1f9",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-figure-or-table-source-and-evidence:build_t3_rq_evidence_ceiling_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/build_t3_rq_evidence_ceiling_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_FIGURE_OR_TABLE_SOURCE_AND_EVIDENCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/build_t3_rq_evidence_ceiling_r1.py",
+          "blobOid": "430dd14da9c5d3eb0710bd4eb310bdd7b6557a1c",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/build_t3_rq_evidence_ceiling_r1.py",
+          "blobOid": "ed31d0e408cb3a94f248c1fc340220e423bde589",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/tables/build_t3_rq_evidence_ceiling_r1.py",
+          "blobOid": "ed31d0e408cb3a94f248c1fc340220e423bde589",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "test-or-acceptance-source:test_display_audit_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_audit_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "TEST_OR_ACCEPTANCE_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_audit_r1.py",
+          "blobOid": "f319b531f3756c6d2f0ddd6ae6da324ccfd5fed8",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_audit_r1.py",
+          "blobOid": "500a169331d98f783d10ca1c080c65a3187ca29b",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_audit_r1.py",
+          "blobOid": "500a169331d98f783d10ca1c080c65a3187ca29b",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "test-or-acceptance-source:test_display_f1_t1_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_f1_t1_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "TEST_OR_ACCEPTANCE_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_f1_t1_r1.py",
+          "blobOid": "f01a51189a7588b44e4320f8c04de095fd5a3740",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_f1_t1_r1.py",
+          "blobOid": "bf28d0ebb1100ce3c0203c63e2cedc5b0867d57f",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_f1_t1_r1.py",
+          "blobOid": "bf28d0ebb1100ce3c0203c63e2cedc5b0867d57f",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "test-or-acceptance-source:test_display_f3_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_f3_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "TEST_OR_ACCEPTANCE_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_f3_r1.py",
+          "blobOid": "3815f5c2e7657fedbb97af46e7e1b80513f4f8be",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_f3_r1.py",
+          "blobOid": "3a7be4675f66b70c13f84d689b40eb0d5d08e624",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_f3_r1.py",
+          "blobOid": "3a7be4675f66b70c13f84d689b40eb0d5d08e624",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "test-or-acceptance-source:test_display_t2_f2_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_t2_f2_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "TEST_OR_ACCEPTANCE_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_t2_f2_r1.py",
+          "blobOid": "99cf60b4e66c31d4000c1234262b04898f48e027",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_t2_f2_r1.py",
+          "blobOid": "9604be885e6f6bf7d8819c63a224a9a50f25549a",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_t2_f2_r1.py",
+          "blobOid": "9604be885e6f6bf7d8819c63a224a9a50f25549a",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "test-or-acceptance-source:test_display_t3_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_t3_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "TEST_OR_ACCEPTANCE_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_t3_r1.py",
+          "blobOid": "91720cc700a650bd73df3f34792383c68092715e",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_t3_r1.py",
+          "blobOid": "61ff908128e4dbb6589bcfdbdc07cdf01ea644a4",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_display_t3_r1.py",
+          "blobOid": "61ff908128e4dbb6589bcfdbdc07cdf01ea644a4",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "test-or-acceptance-source:test_docx_candidate_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_docx_candidate_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "TEST_OR_ACCEPTANCE_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_docx_candidate_r1.py",
+          "blobOid": "5bbc2289d8aa956be60130b08a803a4d35e3806d",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_docx_candidate_r1.py",
+          "blobOid": "d064832e559672938d2050fb4450cf132eec9330",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_docx_candidate_r1.py",
+          "blobOid": "d064832e559672938d2050fb4450cf132eec9330",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "test-or-acceptance-source:test_manuscript_redesign_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_manuscript_redesign_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "TEST_OR_ACCEPTANCE_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_manuscript_redesign_r1.py",
+          "blobOid": "9617b0ac8dc2db1850a2cf4efd0dcfbb02870016",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_manuscript_redesign_r1.py",
+          "blobOid": "77976b14070a5128f8f66910c700bdca397a1888",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_manuscript_redesign_r1.py",
+          "blobOid": "77976b14070a5128f8f66910c700bdca397a1888",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "test-or-acceptance-source:test_redesign_invariants_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_redesign_invariants_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "TEST_OR_ACCEPTANCE_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_redesign_invariants_r1.py",
+          "blobOid": "45f692d5a64094e53fae2406557c4a2b67d96925",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_redesign_invariants_r1.py",
+          "blobOid": "4f5cf49d9ebba00a2e7dd3af5b2686d82d465ef2",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/test_redesign_invariants_r1.py",
+          "blobOid": "4f5cf49d9ebba00a2e7dd3af5b2686d82d465ef2",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:WORD_NATIVE_PROGRAMMATIC_QA_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/word_native_qa_r1/WORD_NATIVE_PROGRAMMATIC_QA_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/word_native_qa_r1/WORD_NATIVE_PROGRAMMATIC_QA_R1.json",
+          "blobOid": "9276abc32778d78ae6f4517bb41288d4168f9348",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/word_native_qa_r1/WORD_NATIVE_PROGRAMMATIC_QA_R1.json",
+          "blobOid": "e310d5c77d15b13446034a59ad9554cb437569f6",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:WORD_NATIVE_RENDER_MANIFEST_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/word_native_qa_r1/WORD_NATIVE_RENDER_MANIFEST_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/word_native_qa_r1/WORD_NATIVE_RENDER_MANIFEST_R1.json",
+          "blobOid": "aea26baacfa63161fa0e385aeffb04f783e5b5b9",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/word_native_qa_r1/WORD_NATIVE_RENDER_MANIFEST_R1.json",
+          "blobOid": "e5cbd666abc001b12973c8c79d880c9b9b982a23",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:WORD_NATIVE_VISUAL_QA_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/word_native_qa_r1/WORD_NATIVE_VISUAL_QA_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/word_native_qa_r1/WORD_NATIVE_VISUAL_QA_R1.json",
+          "blobOid": "6b92957a9d24f55d8511c6e4f023f6a01688d903",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/word_native_qa_r1/WORD_NATIVE_VISUAL_QA_R1.json",
+          "blobOid": "4667e6766e567f312e88a180be82df6c25e692d7",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:page-28.png",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/word_native_qa_r1/r25_render/page-28.png",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/word_native_qa_r1/r25_render/page-28.png",
+          "blobOid": "c2ab9bee7f073e3da062c3b8939218a4b11c6bc0",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/word_native_qa_r1/r25_render/page-28.png",
+          "blobOid": "80f9f0ffb21632c84427c828aedca72114444451",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:INNER_ARTIFACT_CARRIER_STATUS_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/reproduction_ux_r1/INNER_ARTIFACT_CARRIER_STATUS_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/reproduction_ux_r1/INNER_ARTIFACT_CARRIER_STATUS_R1.json",
+          "blobOid": "15985a75e22764d8e2bf0271d73252fb9faa3eb6",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/reproduction_ux_r1/INNER_ARTIFACT_CARRIER_STATUS_R1.json",
+          "blobOid": "703b98e143c3d71aaba33b62eb8215805278b18a",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/reproduction_ux_r1/INNER_ARTIFACT_CARRIER_STATUS_R1.json",
+          "blobOid": "703b98e143c3d71aaba33b62eb8215805278b18a",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:REPRODUCTION_UX_STATUS_R1.md",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/reproduction_ux_r1/REPRODUCTION_UX_STATUS_R1.md",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/reproduction_ux_r1/REPRODUCTION_UX_STATUS_R1.md",
+          "blobOid": "9b0c907f433abf822a900b3879caee8540dea7f1",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/reproduction_ux_r1/REPRODUCTION_UX_STATUS_R1.md",
+          "blobOid": "7edb500583681c6ea96185620d5538a822e51ac5",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/reproduction_ux_r1/REPRODUCTION_UX_STATUS_R1.md",
+          "blobOid": "7edb500583681c6ea96185620d5538a822e51ac5",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "test-or-acceptance-source:test_reproduction_ux_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/reproduction_ux_r1/test_reproduction_ux_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "TEST_OR_ACCEPTANCE_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/publication_r3_descoped/reproduction_ux_r1/test_reproduction_ux_r1.py",
+          "blobOid": "6c09d7f1cee1965fc71f2fc425a814428f9f75c6",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/reproduction_ux_r1/test_reproduction_ux_r1.py",
+          "blobOid": "775c38d37d8a0423bb78931019609edf8092ecdc",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/reproduction_ux_r1/test_reproduction_ux_r1.py",
+          "blobOid": "775c38d37d8a0423bb78931019609edf8092ecdc",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:PAPER1_R25_CLAIM_PERMISSION_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/reviewer_risk_r25/PAPER1_R25_CLAIM_PERMISSION_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/reviewer_risk_r25/PAPER1_R25_CLAIM_PERMISSION_R1.json",
+          "blobOid": "6e5d09553b5d7d85a3ff73f8a4b3e62fa3f18dfa",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/reviewer_risk_r25/PAPER1_R25_CLAIM_PERMISSION_R1.json",
+          "blobOid": "1bb5e98e299d1332ee126a8f23885f53d0d92e58",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:PAPER1_R25_SEMANTIC_CHANGE_CLASSIFICATION_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/reviewer_risk_r25/PAPER1_R25_SEMANTIC_CHANGE_CLASSIFICATION_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/reviewer_risk_r25/PAPER1_R25_SEMANTIC_CHANGE_CLASSIFICATION_R1.json",
+          "blobOid": "c40a43eab1a1bd7b435d9c69cf15503adb25bd3f",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/reviewer_risk_r25/PAPER1_R25_SEMANTIC_CHANGE_CLASSIFICATION_R1.json",
+          "blobOid": "1bb0d682437075027095f892a717f3d7c75a2a64",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:PAPER1_R25_TECHNICAL_QUALIFICATION_R1.json",
+      "relativePath": "papers/first_paper_r2_finite_family/publication_r3_descoped/reviewer_risk_r25/PAPER1_R25_TECHNICAL_QUALIFICATION_R1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/publication_r3_descoped/reviewer_risk_r25/PAPER1_R25_TECHNICAL_QUALIFICATION_R1.json",
+          "blobOid": "1aa57dc52a5229f053dd587a4d6195caa834478e",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/publication_r3_descoped/reviewer_risk_r25/PAPER1_R25_TECHNICAL_QUALIFICATION_R1.json",
+          "blobOid": "330e88d9b47502d4d4544c4719decb910c3fb913",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "paper-publication-source-and-receipt:analyze_reporting_sensitivity_r1.py",
+      "relativePath": "papers/first_paper_r2_finite_family/submission_maturity_r2/p11_repair_r1/analyze_reporting_sensitivity_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PAPER_PUBLICATION_SOURCE_AND_RECEIPT",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:papers/first_paper_r2_finite_family/submission_maturity_r2/p11_repair_r1/analyze_reporting_sensitivity_r1.py",
+          "blobOid": "ecc0152e97fc679b59d3ae2d68d7b64aa4e47338",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:papers/first_paper_r2_finite_family/submission_maturity_r2/p11_repair_r1/analyze_reporting_sensitivity_r1.py",
+          "blobOid": "22226d665b6bbde53d207752aa7464a9278298cb",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:papers/first_paper_r2_finite_family/submission_maturity_r2/p11_repair_r1/analyze_reporting_sensitivity_r1.py",
+          "blobOid": "22226d665b6bbde53d207752aa7464a9278298cb",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "planning-source-declaration:lego-plan-r1.json",
+      "relativePath": "planning/lego-plan-r1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PLANNING_SOURCE_DECLARATION",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-media@30f6d1228a4270a68cd715ca9a7b17742478958e:planning/lego-plan-r1.json",
+          "blobOid": "2e61c97404a3e1a48336bfe8a7af0c4cdd4d5aaa",
+          "commit": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+          "gitObjectType": "blob",
+          "repo": "ordivon-media",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:planning/lego-plan-r1.json",
+          "blobOid": "b89a5ac6cadb62fe07fd4836dcb88bd9995dcb3a",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:planning/lego-plan-r1.json",
+          "blobOid": "b89a5ac6cadb62fe07fd4836dcb88bd9995dcb3a",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-declaration-and-registry-material:research_profiles.toml",
+      "relativePath": "profiles/research_profiles.toml",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_DECLARATION_AND_REGISTRY_MATERIAL",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:profiles/research_profiles.toml",
+          "blobOid": "ea4fa7b8dafac19268c990cca1ceecdd92eae60f",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:profiles/research_profiles.toml",
+          "blobOid": "ea4fa7b8dafac19268c990cca1ceecdd92eae60f",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:profiles/research_profiles.toml",
+          "blobOid": "4b6296f6b45cd3efad6e7dc814cb0f805850ad2e",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 4,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "project-toolchain-or-ci-configuration:pyproject.toml",
+      "relativePath": "pyproject.toml",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PROJECT_TOOLCHAIN_OR_CI_CONFIGURATION",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-media@30f6d1228a4270a68cd715ca9a7b17742478958e:pyproject.toml",
+          "blobOid": "43df23a326c03f577d104b37541bfdf32d8f78ed",
+          "commit": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+          "gitObjectType": "blob",
+          "repo": "ordivon-media",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:pyproject.toml",
+          "blobOid": "8ba90cff0f356257f4063cf2ca5895e3f2206e7e",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:pyproject.toml",
+          "blobOid": "3fce6295811ea085ebc58173c5300c61ab82dab5",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:pyproject.toml",
+          "blobOid": "05ba8bb488e81f8a58521beef0e96943ba0aad26",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-declaration-and-registry-material:authority-closure-r1.json",
+      "relativePath": "registry/authority-closure-r1.json",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_DECLARATION_AND_REGISTRY_MATERIAL",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:registry/authority-closure-r1.json",
+          "blobOid": "c448f702d05e787fff3028b251e1aa19dab68bbf",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:registry/authority-closure-r1.json",
+          "blobOid": "1dc28579af8ba51d0f2e20667c809757cc3fc009",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:registry/authority-closure-r1.json",
+          "blobOid": "1dc28579af8ba51d0f2e20667c809757cc3fc009",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-build-or-tool-implementation-source:build_first_paper_wrroc.py",
+      "relativePath": "scripts/build_first_paper_wrroc.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_BUILD_OR_TOOL_IMPLEMENTATION_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:scripts/build_first_paper_wrroc.py",
+          "blobOid": "0a898fea3a77f867fefd34b21910a7980986847d",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:scripts/build_first_paper_wrroc.py",
+          "blobOid": "fffa07e057b172cb143411a1b393b6b3f87a37d1",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:scripts/build_first_paper_wrroc.py",
+          "blobOid": "fffa07e057b172cb143411a1b393b6b3f87a37d1",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-build-or-tool-implementation-source:verify.sh",
+      "relativePath": "scripts/verify.sh",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_BUILD_OR_TOOL_IMPLEMENTATION_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:scripts/verify.sh",
+          "blobOid": "ece2598cf4dc0d2cafa09aaf84aec5abc36e3c09",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:scripts/verify.sh",
+          "blobOid": "ece2598cf4dc0d2cafa09aaf84aec5abc36e3c09",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:scripts/verify.sh",
+          "blobOid": "abd32cd2b538cdac2a2da2387bdb634353c09a2f",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "test-or-acceptance-source:test_first_paper_wrroc.py",
+      "relativePath": "tests/test_first_paper_wrroc.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "TEST_OR_ACCEPTANCE_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:tests/test_first_paper_wrroc.py",
+          "blobOid": "0deac377727df8b75881c43afc2327bd3ed9185d",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:tests/test_first_paper_wrroc.py",
+          "blobOid": "c9518250513e8639f26fc15e7c4bc40b7b2170a6",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:tests/test_first_paper_wrroc.py",
+          "blobOid": "c9518250513e8639f26fc15e7c4bc40b7b2170a6",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "test-or-acceptance-source:test_research_profiles.py",
+      "relativePath": "tests/test_research_profiles.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "TEST_OR_ACCEPTANCE_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:tests/test_research_profiles.py",
+          "blobOid": "b9b368d950b1dff2b8438e24d7391f9eb03bd770",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:tests/test_research_profiles.py",
+          "blobOid": "df253663d4d30464a0e7b502808910352df1c5a2",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:tests/test_research_profiles.py",
+          "blobOid": "df253663d4d30464a0e7b502808910352df1c5a2",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-build-or-tool-implementation-source:smoke_figure_r1.py",
+      "relativePath": "tooling/scholarly_artifact_r1/figure_env_r1/smoke_figure_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_BUILD_OR_TOOL_IMPLEMENTATION_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:tooling/scholarly_artifact_r1/figure_env_r1/smoke_figure_r1.py",
+          "blobOid": "2cbb41b80eb054e1a9916d663315f9f13e5dd7f3",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:tooling/scholarly_artifact_r1/figure_env_r1/smoke_figure_r1.py",
+          "blobOid": "ce1cc1a13efceb221102df921b0015118e6ef6db",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:tooling/scholarly_artifact_r1/figure_env_r1/smoke_figure_r1.py",
+          "blobOid": "ce1cc1a13efceb221102df921b0015118e6ef6db",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-build-or-tool-implementation-source:validate_figure_env_r1.py",
+      "relativePath": "tooling/scholarly_artifact_r1/figure_env_r1/validate_figure_env_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_BUILD_OR_TOOL_IMPLEMENTATION_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:tooling/scholarly_artifact_r1/figure_env_r1/validate_figure_env_r1.py",
+          "blobOid": "12da10fd49e7490baab6298389d6c70c248afdc6",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:tooling/scholarly_artifact_r1/figure_env_r1/validate_figure_env_r1.py",
+          "blobOid": "fac38a5d44d478e214b72c212e1c2223ef518700",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:tooling/scholarly_artifact_r1/figure_env_r1/validate_figure_env_r1.py",
+          "blobOid": "fac38a5d44d478e214b72c212e1c2223ef518700",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-build-or-tool-implementation-source:inspect_scholarly_toolchain_r1.py",
+      "relativePath": "tooling/scholarly_artifact_r1/inspect_scholarly_toolchain_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_BUILD_OR_TOOL_IMPLEMENTATION_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:tooling/scholarly_artifact_r1/inspect_scholarly_toolchain_r1.py",
+          "blobOid": "5f6c246494685912441eb5a7b846d21da12958af",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:tooling/scholarly_artifact_r1/inspect_scholarly_toolchain_r1.py",
+          "blobOid": "c26b19fd5250702af8d4fdd8bbe66838b33a4f89",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:tooling/scholarly_artifact_r1/inspect_scholarly_toolchain_r1.py",
+          "blobOid": "c26b19fd5250702af8d4fdd8bbe66838b33a4f89",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-build-or-tool-implementation-source:build_reference_docx_r1.py",
+      "relativePath": "tooling/scholarly_artifact_r1/reference_docx_r1/build_reference_docx_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_BUILD_OR_TOOL_IMPLEMENTATION_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:tooling/scholarly_artifact_r1/reference_docx_r1/build_reference_docx_r1.py",
+          "blobOid": "88990904813f7a3d05fd3da0659a4b5d6ded6efb",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:tooling/scholarly_artifact_r1/reference_docx_r1/build_reference_docx_r1.py",
+          "blobOid": "e9fe64302461054b2d85e624154ce60de6cbbeaf",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:tooling/scholarly_artifact_r1/reference_docx_r1/build_reference_docx_r1.py",
+          "blobOid": "e9fe64302461054b2d85e624154ce60de6cbbeaf",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-build-or-tool-implementation-source:validate_reference_docx_r1.py",
+      "relativePath": "tooling/scholarly_artifact_r1/reference_docx_r1/validate_reference_docx_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_BUILD_OR_TOOL_IMPLEMENTATION_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:tooling/scholarly_artifact_r1/reference_docx_r1/validate_reference_docx_r1.py",
+          "blobOid": "2a7d9ebbbca12e66b3746d9327099d41fc120c53",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:tooling/scholarly_artifact_r1/reference_docx_r1/validate_reference_docx_r1.py",
+          "blobOid": "8536027c4332533466c6a7854fbd668f769dc3ed",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:tooling/scholarly_artifact_r1/reference_docx_r1/validate_reference_docx_r1.py",
+          "blobOid": "8536027c4332533466c6a7854fbd668f769dc3ed",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-build-or-tool-implementation-source:refresh_package_manifest_r1.py",
+      "relativePath": "tooling/scholarly_artifact_r1/refresh_package_manifest_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_BUILD_OR_TOOL_IMPLEMENTATION_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:tooling/scholarly_artifact_r1/refresh_package_manifest_r1.py",
+          "blobOid": "bf3c8cf2c9f6467fbd0c14c6657b3b26762fc7cd",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:tooling/scholarly_artifact_r1/refresh_package_manifest_r1.py",
+          "blobOid": "e5041fce09062c395ce3e325e1f2fca1e2d20039",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:tooling/scholarly_artifact_r1/refresh_package_manifest_r1.py",
+          "blobOid": "e5041fce09062c395ce3e325e1f2fca1e2d20039",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-build-or-tool-implementation-source:validate_adapter_bindings_r1.py",
+      "relativePath": "tooling/scholarly_artifact_r1/validate_adapter_bindings_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_BUILD_OR_TOOL_IMPLEMENTATION_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:tooling/scholarly_artifact_r1/validate_adapter_bindings_r1.py",
+          "blobOid": "7bb3c057e6dd3d4011bd5d793a7a885c2f5d28fd",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:tooling/scholarly_artifact_r1/validate_adapter_bindings_r1.py",
+          "blobOid": "c60fd50773dc17e2e937271e59be435fdb7aa3f8",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:tooling/scholarly_artifact_r1/validate_adapter_bindings_r1.py",
+          "blobOid": "c60fd50773dc17e2e937271e59be435fdb7aa3f8",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-build-or-tool-implementation-source:validate_package_manifest_r1.py",
+      "relativePath": "tooling/scholarly_artifact_r1/validate_package_manifest_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_BUILD_OR_TOOL_IMPLEMENTATION_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:tooling/scholarly_artifact_r1/validate_package_manifest_r1.py",
+          "blobOid": "ff962c5da28effa509eb0ec54cdc86758ad68262",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:tooling/scholarly_artifact_r1/validate_package_manifest_r1.py",
+          "blobOid": "f07f177273ccba1e26a8615374b17c18466169f2",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:tooling/scholarly_artifact_r1/validate_package_manifest_r1.py",
+          "blobOid": "f07f177273ccba1e26a8615374b17c18466169f2",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 2,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "research-build-or-tool-implementation-source:validate_scholarly_toolchain_r1.py",
+      "relativePath": "tooling/scholarly_artifact_r1/validate_scholarly_toolchain_r1.py",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "RESEARCH_BUILD_OR_TOOL_IMPLEMENTATION_SOURCE",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:tooling/scholarly_artifact_r1/validate_scholarly_toolchain_r1.py",
+          "blobOid": "2d3df3882e13815688bd256f10d0197ac78af392",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:tooling/scholarly_artifact_r1/validate_scholarly_toolchain_r1.py",
+          "blobOid": "d3199659f5b6a0da72cc2fddec671932eb695353",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:tooling/scholarly_artifact_r1/validate_scholarly_toolchain_r1.py",
+          "blobOid": "d3199659f5b6a0da72cc2fddec671932eb695353",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100755"
+        }
+      ]
+    },
+    {
+      "consumerOrReplacementEquivalence": "UNKNOWN_NOT_INFERRED",
+      "distinctContentOids": 4,
+      "productionOrLatestVersion": "UNKNOWN_NOT_INFERRED_FROM_REPOSITORY_NAME",
+      "proposedRoleSpecificName": "project-toolchain-or-ci-configuration:uv.lock",
+      "relativePath": "uv.lock",
+      "sameNameDifferentGitBytes": true,
+      "sourceRoleHint": "PROJECT_TOOLCHAIN_OR_CI_CONFIGURATION",
+      "versions": [
+        {
+          "agentReadableSourceId": "git:ordivon-media@30f6d1228a4270a68cd715ca9a7b17742478958e:uv.lock",
+          "blobOid": "b52b125350ee11ef99eb4b9b854f401c742bfe67",
+          "commit": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+          "gitObjectType": "blob",
+          "repo": "ordivon-media",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-emse-r3-frozen@d9022b15bc34467e5843ef2a30f75c8f2b27f0e1:uv.lock",
+          "blobOid": "a5e26f9886d894b566b9c0e1329cdbaae9157198",
+          "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-emse-r3-frozen",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-paper1-r25-reviewer-risk-closure-20260922@9d80f5b5b73796ddf013088c2a0de20f85556876:uv.lock",
+          "blobOid": "82db7c7d8952586ee7173f242146c4bbf751017e",
+          "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+          "gitObjectType": "blob",
+          "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        },
+        {
+          "agentReadableSourceId": "git:ordivon-research-v2@fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde:uv.lock",
+          "blobOid": "7825dcbc0590f54ac86a8a9279d6f9b30adf7b6d",
+          "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+          "gitObjectType": "blob",
+          "repo": "ordivon-research-v2",
+          "sourceIdentityStanding": "GIT_TREE_OBJECT_OBSERVED_ONLY",
+          "sourceMode": "100644"
+        }
+      ]
+    }
+  ],
+  "nameRule": "Proposed agentReadableSourceId = git:<repo>@<exact commit>:<relative path>; role display names are hints only, no path moving, no dynamic installed authority, no LEGO identity",
+  "pinnedRepositories": [
+    {
+      "commit": "178079203fa545bd16f58fb22e3f646141d1522a",
+      "repo": "ordivon",
+      "tracked": 5001,
+      "tree": "04591cb8f4d36fb7b43a782262c4638de7427192"
+    },
+    {
+      "commit": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+      "repo": "ordivon-media",
+      "tracked": 550,
+      "tree": "ccae1747b73569bead57836e6764f12763cbb710"
+    },
+    {
+      "commit": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+      "repo": "ordivon-paper1-emse-r3-frozen",
+      "tracked": 673,
+      "tree": "746c5e8799a6ad232b003238d8e94773170c1853"
+    },
+    {
+      "commit": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+      "repo": "ordivon-paper1-r25-reviewer-risk-closure-20260922",
+      "tracked": 2646,
+      "tree": "37b1f58841aa9b336558b8bbaf80de9b30e708c2"
+    },
+    {
+      "commit": "a0169766a19194dbcbdf0cf28ca963d89abf5d69",
+      "repo": "ordivon-paper2",
+      "tracked": 1940,
+      "tree": "cb7883b7156fcc9631b3544c0273d2200b4d30b4"
+    },
+    {
+      "commit": "37f7d433ce9917aefba7f2940fef7ead8dc1e235",
+      "repo": "ordivon-r21-blind-eval-private-20261001",
+      "tracked": 20,
+      "tree": "0f309ce3e0ad2e7459731aab22bc972c3799eb67"
+    },
+    {
+      "commit": "af66bade40b8cf34d241bb5d89121fd64e288ba8",
+      "repo": "ordivon-r21-blind-eval-public-20261001",
+      "tracked": 114,
+      "tree": "921755c8db50a24eb1e013c196692185575e16dd"
+    },
+    {
+      "commit": "fcef6d7aac13e95cc8bfe664e6b0893fcb85fcde",
+      "repo": "ordivon-research-v2",
+      "tracked": 3000,
+      "tree": "783bc5a25a50a963ce1ff6689d40d3c8086c46cc"
+    },
+    {
+      "commit": "960ffb766f5ec6846eca1caf2f238fb47b6d61da",
+      "repo": "ordivon-sts2mcp",
+      "tracked": 265,
+      "tree": "c5664a1ae48aa3dd6e1971ab2014d6acc444793d"
+    }
+  ],
+  "repoInvolvementAtConflictingRelativePaths": {
+    "ordivon": 6,
+    "ordivon-media": 10,
+    "ordivon-paper1-emse-r3-frozen": 67,
+    "ordivon-paper1-r25-reviewer-risk-closure-20260922": 81,
+    "ordivon-paper2": 4,
+    "ordivon-research-v2": 81,
+    "ordivon-sts2mcp": 4
+  },
+  "reuseNativeSources": "Git ls-tree, git rev-parse, existing PHASE1_FINE_MULTIREPO_SOURCE_TAXONOMY_20261027_R1.json; no new classifier or registry",
+  "schemaVersion": 1,
+  "scope": "9 repo-qualified pinned commit trees; only tracked versioned files, not untracked or installed",
+  "truthRole": "PINNED_GIT_TREE_PATH_AND_BLOB_DIFFERENCE_ONLY"
+}
