@@ -194,7 +194,7 @@
       "problemClass": "DATABASE_AUTHORITY_CONVERGENCE",
       "naturalOwner": "services/runtime",
       "standing": "UNKNOWN_LIVE_CUTOVER_NOT_CLAIMED",
-      "observation": "Historical Runtime PostgreSQL staged/catalog evidence existed before this observation; this census did not re-run live PG writer/readback/activation checks at a current deployment SourceCut. Therefore PG cutover and all live consumer acceptance remain UNKNOWN; neither historic SQLite nor candidate PostgreSQL provider is automatically current.",
+      "observation": "Fresh live physical readback on 2026-11-01: PostgreSQL service active and 5432 accepts connections; Runtime active; both Runtime storage-pressure and lifecycle systemd timers active/waiting; their effective ExecStart still uses registry.sqlite3, whose file exists at ~5.86 GB. Postgres port readiness does not prove Runtime Registry writer/readback migration.",
       "evidence": "Historical docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json and services/runtime/planning/lego-plan-r1.json RW1 are historical/reference claims only; no fresh operational credential/service/startup observation is presented here.",
       "consumers": "Runtime Linux and Windows Job/Attempt/Workspace, Gateway consumers, timer/service readers, live PostgreSQL writer and installed endpoints.",
       "formalObligation": "Change of persistence implementation must preserve required consumers, single-writer/atomic terminal truth, auth and replay fences; formal model or staged PG test cannot establish actual installed cutover.",
@@ -212,7 +212,32 @@
         "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
         "slice": "RW1"
       },
-      "decision": "Do not convert historical cutover readiness into ACCEPTED; require targeted owner-currentness reconfirmation before irreversible effects."
+      "decision": "Do not convert historical cutover readiness into ACCEPTED; require targeted owner-currentness reconfirmation before irreversible effects.",
+      "latestRequalification": {
+        "sourceCut": "277a62019b498614baf7b9666fb7a4c607c5172e",
+        "observedAt": "2026-11-01T03:43+08:00",
+        "cutoverAdmission": "NOT_ADMITTED",
+        "sourceVsInstalledBoundary": "Live systemd reads below are time-scoped physical observations, not installation SourceCut linkage.",
+        "physicalReadback": {
+          "runtimeService": "active/running",
+          "postgresqlService": "active/running",
+          "postgresTcpReadiness": "127.0.0.1:5432 accepting connections",
+          "runtimeStoragePressureTimer": "active/waiting",
+          "runtimeLifecycleTimer": "active/waiting",
+          "packagedAndInstalledTimerExec": "--database /var/lib/ordivon/registry/registry.sqlite3",
+          "sqliteRegistryBytesObserved": 5859770368,
+          "sqliteRegistryFilePresent": true,
+          "runtimePgWriterCurrent": "UNKNOWN",
+          "gatewayConsumerPgParity": "UNKNOWN"
+        },
+        "nativeConsumerEvidence": [
+          "services/runtime/packaging/systemd/ordivon-runtime-storage-pressure.service",
+          "services/runtime/packaging/systemd/ordivon-runtime-lifecycle.service",
+          "services/runtime/scripts/ordivon-runtime-status",
+          "platform/workstation/workstation/providers/runtime_control_provider.py"
+        ],
+        "decision": "Do not stop SQLite as if PG had replaced it: two physical timer consumers still pass SQLite paths. Remove/replace those consumers and qualify current Registry writer/readback before effectful cutover."
+      }
     },
     {
       "id": "DEPENDENCY-UPDATE-OWNER-COVERAGE-20261101",
