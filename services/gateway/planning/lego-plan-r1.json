@@ -170,6 +170,16 @@
         "Runtime Job/Attempt authority",
         "dispatch/replay truth",
         "Windows privilege decisions"
+      ],
+      "formalObligations": [
+        {
+          "kind": "COUNTEREXAMPLE_THEOREM_NOT_IMPLEMENTATION_PROOF",
+          "formalSource": "tools/formal/RecursiveLegoRefinement.lean",
+          "theorem": "OrdivonR21.equal_public_outputs_do_not_prove_effect_substitution",
+          "scope": "LEGO effect-sensitive public output projection with explicit assume/guarantee, abstract Unit and Bool effect",
+          "necessaryCondition": "Before claiming Gateway G03 runtime operation adapter replacement, show effect/authority observational preservation under actual consumer context, not only public MCP result equality.",
+          "sourceStanding": "LEAN_KERNEL_CHECKED_ABSTRACT_COUNTEREXAMPLE; GATEWAY_CODE_AND_INSTALLED_REFINEMENT_UNKNOWN"
+        }
       ]
     },
     {

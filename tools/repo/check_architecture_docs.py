@@ -2263,6 +2263,12 @@ def _select_agent_source_impact(change: dict[str, Any]) -> dict[str, Any]:
     assumptions have remained valid. All UNKNOWN and future standing kinds,
     changed/unindexed source paths and scoped proof-reuse flags are retained.
     """
+    # This is a transport-only source projection. A forged or future input
+    # cannot upgrade UNKNOWN/readset status by injecting a proof PASS.
+    if change.get("proofReuseAdmissible") is not False:
+        raise ArchitectureDocsError(
+            "Agent source projection requires explicit proofReuseAdmissible=false"
+        )
     rows = change["standingByDeclaredNode"]
     no_hit = [row for row in rows if row["sourceImpactStanding"] == "NO_DECLARED_HIT"]
     selected = [row for row in rows if row["sourceImpactStanding"] != "NO_DECLARED_HIT"]
