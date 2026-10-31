@@ -1860,11 +1860,11 @@ def validate_formal_issue_census(
                 evidence_paths = recent.get("nativeConsumerEvidence")
                 if not isinstance(evidence_paths, list) or not evidence_paths:
                     raise ArchitectureDocsError(f"database issue {issue_id} lacks owner-native source evidence")
+                if any(not isinstance(evidence, str) for evidence in evidence_paths):
+                    raise ArchitectureDocsError(f"database issue {issue_id} has invalid source evidence")
                 if len(set(evidence_paths)) != len(evidence_paths):
                     raise ArchitectureDocsError(f"database issue {issue_id} repeats source evidence")
                 for evidence in evidence_paths:
-                    if not isinstance(evidence, str):
-                        raise ArchitectureDocsError(f"database issue {issue_id} has invalid source evidence")
                     _source_bound_file(root, evidence, "database issue owner-native evidence")
         if issue.get("naturalOwner") not in known_owners:
             raise ArchitectureDocsError(f"issue {issue_id} has undeclared naturalOwner")
