@@ -83,8 +83,17 @@ impl PgAdmissionInput {
                 .expected_source_sha256
                 .bytes()
                 .all(|b| b.is_ascii_hexdigit())
-            || serde_json::from_str::<serde_json::Value>(&self.workspace_snapshot_json).is_err()
-            || serde_json::from_str::<serde_json::Value>(&self.execution_plan_json).is_err()
+            // Durable Runtime consumers decode both carriers as records.
+            // Parsing any JSON value alone admits null/scalars/arrays that
+            // cannot satisfy their existing typed source contracts.
+            || !matches!(
+                serde_json::from_str::<serde_json::Value>(&self.workspace_snapshot_json),
+                Ok(serde_json::Value::Object(_))
+            )
+            || !matches!(
+                serde_json::from_str::<serde_json::Value>(&self.execution_plan_json),
+                Ok(serde_json::Value::Object(_))
+            )
         {
             return Err(PgAdmissionError::InvalidInput);
         }
@@ -802,6 +811,50 @@ mod tests {
         assert!(exact_schema("runtime_pg_qualified_r1"));
     }
     #[test]
+    fn non_object_durable_json_is_rejected_before_postgres_effects() {
+        // RuntimeExecutionPlan and Workspace snapshots are records. Parsing as
+        // arbitrary JSON Value would accept a scalar/array that a consumer
+        // cannot decode as a valid durable state object.
+        let qualified = PgAdmissionInput {
+            job_id: "job".into(),
+            attempt_id: "attempt".into(),
+            reservation_id: "reservation".into(),
+            principal: "principal".into(),
+            client_request_id: "request".into(),
+            request_digest: "sha256:r".into(),
+            operation_digest: "sha256:o".into(),
+            workspace_id: "ws".into(),
+            workspace_snapshot_json: "{}".into(),
+            execution_plan_json: "{}".into(),
+            execution_plan_digest: "sha256:plan".into(),
+            launch_token_digest: "sha256:l".into(),
+            bundle_path: "/tmp/test".into(),
+            unit_name: "unit".into(),
+            global_limit: 1,
+            created_at_ms: 1,
+            expected_source_sha256: "a".repeat(64),
+        };
+        assert!(qualified.validate().is_ok(), "fixture must be admitted");
+        for raw in ["null", "true", "false", "[]", "42", "\"text\""] {
+            let mut invalid_snapshot = qualified.clone();
+            invalid_snapshot.workspace_snapshot_json = raw.into();
+            assert!(
+                matches!(
+                    invalid_snapshot.validate(),
+                    Err(PgAdmissionError::InvalidInput)
+                ),
+                "workspace_snapshot_json accepted non-object {raw}"
+            );
+            let mut invalid_plan = qualified.clone();
+            invalid_plan.execution_plan_json = raw.into();
+            assert!(
+                matches!(invalid_plan.validate(), Err(PgAdmissionError::InvalidInput)),
+                "execution_plan_json accepted non-object {raw}"
+            );
+        }
+    }
+
+    #[test]
     fn source_identity_must_be_present() {
         let i = PgAdmissionInput {
             job_id: "j".into(),
@@ -1017,6 +1070,19 @@ CREATE TABLE _stage_control(
         ));
         assert_eq!(scratch.count("jobs"), 0, "no write before PG qualification");
         scratch.qualify();
+        for (name, raw) in [("workspace", "null"), ("plan", "[]")] {
+            let mut invalid = a.clone();
+            if name == "workspace" {
+                invalid.workspace_snapshot_json = raw.into();
+            } else {
+                invalid.execution_plan_json = raw.into();
+            }
+            assert!(matches!(
+                store.admit(&invalid),
+                Err(PgAdmissionError::InvalidInput)
+            ));
+            assert_eq!(scratch.count("jobs"), 0, "invalid JSON persisted a PG Job");
+        }
         assert_eq!(
             store.admit(&a).unwrap(),
             PgAdmissionOutcome::Created("job-A".into())
