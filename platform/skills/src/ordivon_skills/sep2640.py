@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote, unquote, urlsplit
 
+from .catalog import SkillCatalogError, _package_revision
 from .model import SkillRecord
 from .parser import SkillParseError, _load_yaml_mapping
 
@@ -211,13 +212,27 @@ def resource_manifest(record: SkillRecord) -> tuple[SkillResourceManifestEntry, 
 
 
 def skill_entry(record: SkillRecord) -> Sep2640SkillEntry:
-    frontmatter = parse_standard_frontmatter(record.skill_root)
-    if frontmatter["name"] != record.name:
-        raise AgentSkillsConformanceError("catalog name differs from standard frontmatter name")
+    # A fresh digest of live files cannot replace the source package whose
+    # scan/trust verdict admitted this record. The standard Skills list/get
+    # and resource routes must share the same immutable admission boundary as
+    # the legacy skills.read consumer.
+    try:
+        if _package_revision(record.skill_root) != record.package_revision:
+            raise AgentSkillsConformanceError("Skill package differs from admitted scan")
+        if _sha256(record.main_resource.read_bytes()) != record.instruction_digest:
+            raise AgentSkillsConformanceError("SKILL.md differs from admitted scan")
+        frontmatter = parse_standard_frontmatter(record.skill_root)
+        if frontmatter["name"] != record.name:
+            raise AgentSkillsConformanceError("catalog name differs from standard frontmatter name")
+        resources = resource_manifest(record)
+        if _package_revision(record.skill_root) != record.package_revision:
+            raise AgentSkillsConformanceError("Skill package changed after admitted scan")
+    except (SkillCatalogError, OSError) as exc:
+        raise AgentSkillsConformanceError("cannot verify admitted Skill package") from exc
     return Sep2640SkillEntry(
         uri=skill_uri(record.source_id, record.name),
         frontmatter=frontmatter,
-        resources=resource_manifest(record),
+        resources=resources,
     )
 
 

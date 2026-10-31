@@ -87,6 +87,75 @@ class SkillMcpR3Tests(unittest.TestCase):
         self.assertIn("SELF_ROUTING", value["removedRiskTags"])
         self.assertIn("MANDATED_CITATION", value["removedRiskTags"])
 
+    def test_real_mcp_read_cannot_bypass_cached_scan_with_fresh_caller_hashes(self):
+        import hashlib
+
+        from ordivon_skills.catalog import _package_revision
+
+        td, _base, user, cfg = self.fixture()
+        self.addCleanup(td.cleanup)
+        write_skill(user, "alpha", "Original admitted content.\n")
+        skill = user / "alpha"
+        guide = skill / "guide.md"
+        guide.write_text("original", encoding="utf-8")
+        provider = CatalogProvider(cfg)
+        server = build_server(provider)
+        tools = {tool.name: tool for tool in server._tool_manager.list_tools()}
+        resolved = asyncio.run(tools["skills.resolve"].fn(ref="alpha"))
+        row = resolved.structured_content["resolved"]
+        unchanged = asyncio.run(
+            tools["skills.read"].fn(
+                skillId="user/alpha",
+                path="guide.md",
+                expectedInstructionDigest=row["instructionDigest"],
+                expectedPackageRevision=row["packageRevision"],
+            )
+        )
+        self.assertFalse(unchanged.is_error)
+        self.assertEqual(unchanged.structured_content["content"], "original")
+
+        guide.write_text("unscanned replacement", encoding="utf-8")
+        new_package = _package_revision(skill)
+        invalid_resource = asyncio.run(
+            tools["skills.read"].fn(
+                skillId="user/alpha",
+                path="guide.md",
+                expectedPackageRevision=new_package,
+            )
+        )
+        self.assertTrue(invalid_resource.is_error)
+        self.assertEqual(invalid_resource.structured_content["code"], "PACKAGE_CHANGED")
+
+        instruction = skill / "SKILL.md"
+        instruction.write_text(
+            "---\nname: alpha\ndescription: Unscanned changed skill\n---\n# altered\n",
+            encoding="utf-8",
+        )
+        new_instruction = "sha256:" + hashlib.sha256(instruction.read_bytes()).hexdigest()
+        invalid_instruction = asyncio.run(
+            tools["skills.read"].fn(
+                skillId="user/alpha",
+                expectedInstructionDigest=new_instruction,
+                expectedPackageRevision=_package_revision(skill),
+            )
+        )
+        self.assertTrue(invalid_instruction.is_error)
+        self.assertEqual(invalid_instruction.structured_content["code"], "DIGEST_MISMATCH")
+
+        # The native provider may admit new content only through its real rescan.
+        provider.get(force_refresh=True)
+        refreshed = asyncio.run(tools["skills.resolve"].fn(ref="alpha"))
+        revised = refreshed.structured_content["resolved"]
+        legitimate = asyncio.run(
+            tools["skills.read"].fn(
+                skillId="user/alpha",
+                expectedInstructionDigest=revised["instructionDigest"],
+                expectedPackageRevision=revised["packageRevision"],
+            )
+        )
+        self.assertFalse(legitimate.is_error)
+        self.assertIn("Unscanned changed skill", legitimate.structured_content["content"])
+
     def test_skill_prose_does_not_create_a_bridge_dependency_graph(self):
         td, _base, user, cfg = self.fixture()
         self.addCleanup(td.cleanup)
