@@ -2088,6 +2088,39 @@ def test_agent_native_source_path_to_owner_to_single_contract() -> None:
     )) // 3
 
 
+def test_agent_native_repo_path_fallback_does_not_claim_registered_owner() -> None:
+    """A Git-indexing helper is not a second real Repo authority."""
+    import subprocess
+
+    revision = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    repo = module.inspect_owner_source_path(
+        source_revision=revision,
+        source_path="tools/repo/source_history_legos.py", root=ROOT,
+    )
+    assert repo["sourceMembershipStanding"] == "TRACKED_SOURCE"
+    assert repo["ownerPartitions"] == [{
+        "name": "tools/repo",
+        "root": "tools/repo/",
+        "registrationStanding": "REPO_MECHANICS_FALLBACK_NOT_REGISTERED",
+        "verifyTask": "repo:ci",
+        "queueVerifyTask": "repo:ci",
+    }]
+    assert repo["consumerProofStanding"] == "UNKNOWN"
+    assert repo["proofReuseAdmissible"] is False
+
+    registered = module.inspect_owner_source_path(
+        source_revision=revision,
+        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        root=ROOT,
+    )
+    assert registered["ownerPartitions"][0]["registrationStanding"] == (
+        "REGISTERED_VERIFICATION_OWNER_AT_SOURCECUT"
+    )
+    assert registered["ownerPartitions"][0]["verifyTask"] == "gateway:verify"
+
+
 def test_agent_native_unknown_path_does_not_upgrade_no_consumer() -> None:
     import subprocess
 
