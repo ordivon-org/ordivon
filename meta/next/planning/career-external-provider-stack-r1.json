@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.career.external-provider-stack-plan",
+  "truthRole": "owner-local-composition-plan-not-provider-truth",
+  "sourceBaseline": "cbdd02771c7bc7842c38374854ffee703fb666e4",
+  "observedAtDate": "2026-10-31",
+  "constraints": {
+    "reuseBeforeBuild": true,
+    "noCareerRuntime": true,
+    "noSecondGlobalRegistry": true,
+    "irreversibleEffectsRequireHumanApproval": true,
+    "providerCaseStateIsNotExternalTruth": true
+  },
+  "layers": [
+    {
+      "id": "workflow",
+      "primary": "career-ops-hq/career-ops",
+      "mode": "skill-cli-donor",
+      "standing": "QUALIFIED_CANDIDATE"
+    },
+    {
+      "id": "product-surface",
+      "primary": "reactive-resume/reactive-resume",
+      "mode": "external-mcp-rest-product",
+      "standing": "QUALIFIED_CANDIDATE"
+    },
+    {
+      "id": "artifact-compiler",
+      "primary": "srbhr/Resume-Matcher",
+      "mode": "narrow-mcp-cli",
+      "standing": "QUALIFIED_CANDIDATE",
+      "condition": "use only for unique compiler/verification value not duplicated by selected product surface"
+    },
+    {
+      "id": "job-discovery-fallback",
+      "primary": "speedyapply/JobSpy",
+      "mode": "pinned-package-mcp-cli",
+      "pin": "1.4.1",
+      "standing": "SMOKE_VERIFIED_PLUGIN_CANDIDATE",
+      "precedence": [
+        "official ATS API",
+        "structured provider feed",
+        "official career page",
+        "JobSpy"
+      ]
+    },
+    {
+      "id": "workflow-methods",
+      "primary": "ai-job-search-dev/ai-job-search",
+      "mode": "method-and-adapter-donor",
+      "standing": "ABSORB_NOT_INSTALL_WHOLE"
+    },
+    {
+      "id": "tracker-alternative",
+      "primary": "Gsync/jobsync",
+      "mode": "targeted-compare",
+      "standing": "DO_NOT_PARALLEL_DEPLOY_BY_DEFAULT"
+    },
+    {
+      "id": "resume-interchange",
+      "primary": "jsonresume/jsonresume.org",
+      "mode": "schema-ecosystem",
+      "standing": "ADOPT_INTERCHANGE"
+    },
+    {
+      "id": "optional-render",
+      "primary": "rendercv/rendercv",
+      "mode": "on-demand",
+      "standing": "NO_CURRENT_CONSUMER"
+    }
+  ],
+  "authority": {
+    "careerRecord": "Ordivon/private user-authorized record composition",
+    "durableExecution": "Ordivon Runtime",
+    "coordinationEvidence": "Ordivon Host",
+    "persistence": "Ordivon PostgreSQL where Ordivon owns state; external product DB remains provider-local state",
+    "jobAndEmployerTruth": "external employer/ATS/provider",
+    "resumeProductState": "selected external resume/product provider",
+    "effectApproval": "user/human"
+  },
+  "nonSelections": [
+    {
+      "repository": "xitanggg/open-resume",
+      "reason": "stale upstream main; no new primary adoption"
+    },
+    {
+      "repository": "applypack/applypack",
+      "reason": "active watchlist but very low stars relative to selected active donors"
+    }
+  ],
+  "evidenceRefs": [
+    "meta/next/evidence/career/github-career-provider-ranking-20261031.json",
+    "meta/next/knowledge/lessons/github-top100-capability-radar-r2.md"
+  ]
+}
