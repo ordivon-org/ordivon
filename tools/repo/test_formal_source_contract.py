@@ -344,6 +344,15 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                 ).strip(),
             )
 
+    def test_formal_ci_selection_covers_every_declared_source_cut_input(self) -> None:
+        # No parallel dependency registry: the existing proof producer owns
+        # SOURCE_FILES and the existing Git selector must cover each input.
+        from tools.repo.affected_owners import requires_core_formal_verification
+
+        for source in formal.SOURCE_FILES:
+            with self.subTest(source=source):
+                self.assertTrue(requires_core_formal_verification((source,)))
+
     def test_source_cut_rejects_modified_untracked_and_symlink_inputs(self) -> None:
         def git(cwd: Path, *args: str) -> str:
             return subprocess.check_output(
