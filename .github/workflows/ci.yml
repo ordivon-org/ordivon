@@ -535,6 +535,30 @@ jobs:
                   and report.get("toolQualification")
                       == "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST"
                   and report.get("proofReuseAdmissible") is False
+                  and report.get("scopedModelReuse") == {
+                      "standing": "MODEL_REUSE_VERIFIED",
+                      "scope": "finite Lean ScopedReuseExample model property only",
+                      "theorem": (
+                          "OrdivonR21.ScopedReuseExample."
+                          "qualified_graph_reuse_preserves_model_property"
+                      ),
+                      "premiseQualification": {
+                          "readsetCompleteness": "LEAN_KERNEL_PROVED",
+                          "variationCoverage": "LEAN_KERNEL_PROVED",
+                          "actualReadEdgesCovered": "LEAN_KERNEL_PROVED",
+                          "reuseCandidate": "LEAN_KERNEL_PROVED",
+                          "oldModelProperty": "LEAN_KERNEL_PROVED",
+                      },
+                      "modelProofReuseAdmissible": True,
+                      "globalProofReuseAdmissible": False,
+                      "implementationRefinement": "UNKNOWN",
+                      "installedCurrentness": "UNKNOWN",
+                      "domainAcceptanceEstablished": False,
+                      "nonClaims": [
+                          "This does not qualify any Rust, TypeScript, Python, installed, or domain proof reuse.",
+                          "C04 REUSE_CANDIDATE remains non-authoritative without equivalent owner evidence.",
+                      ],
+                  }
                   and report.get("sourceFragmentRefinement") == {
                       "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
                       "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",

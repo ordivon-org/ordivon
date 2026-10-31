@@ -321,6 +321,39 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "timeout|frame|effect|projection"):
                         formal.qualified_timeout_adapter_fragment()
 
+    def test_scoped_model_reuse_receipt_requires_exact_kernel_probe(self) -> None:
+        probe = {
+            "probe": "Lean kernel qualified variation frame and countermodels",
+            "result": "PASS",
+            "rc": 0,
+        }
+        receipt = formal.scoped_model_reuse_evidence(probe)
+        self.assertEqual(receipt["standing"], "MODEL_REUSE_VERIFIED")
+        self.assertIs(receipt["modelProofReuseAdmissible"], True)
+        self.assertEqual(
+            receipt["premiseQualification"],
+            {
+                "readsetCompleteness": "LEAN_KERNEL_PROVED",
+                "variationCoverage": "LEAN_KERNEL_PROVED",
+                "actualReadEdgesCovered": "LEAN_KERNEL_PROVED",
+                "reuseCandidate": "LEAN_KERNEL_PROVED",
+                "oldModelProperty": "LEAN_KERNEL_PROVED",
+            },
+        )
+        self.assertEqual(receipt["implementationRefinement"], "UNKNOWN")
+        self.assertEqual(receipt["installedCurrentness"], "UNKNOWN")
+        self.assertIs(receipt["domainAcceptanceEstablished"], False)
+        self.assertIs(receipt["globalProofReuseAdmissible"], False)
+
+        for forged in (
+            {**probe, "result": "FAIL"},
+            {**probe, "rc": 1},
+            {**probe, "probe": "different formal probe"},
+        ):
+            with self.subTest(forged=forged):
+                with self.assertRaisesRegex(ValueError, "qualified variation"):
+                    formal.scoped_model_reuse_evidence(forged)
+
     def test_exact_git_source_readset_is_qualified(self) -> None:
         current = formal.qualified_source_cut()
         self.assertEqual(

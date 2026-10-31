@@ -288,6 +288,85 @@ theorem graph_reuse_preserves_property_if_qualified
       dependency changed unresolved read consumer readsHaveEdges candidate)
     oldProof
 
+-- Concrete non-vacuous MODEL-only reuse witness.  This closes all semantic
+-- premises required by graph_reuse_preserves_property_if_qualified for one
+-- finite model: the actual model read has an edge to the consumer, the readset
+-- determines the observation, every unmarked Ref is unchanged, the graph
+-- standing is reuseCandidate, and the old model property is proved.  Nothing
+-- here refines a Rust/TS/Python implementation or establishes installed state.
+namespace ScopedReuseExample
+
+inductive Node where
+  | changed | read | consumer
+deriving DecidableEq
+
+def dependency : Node → Node → Prop :=
+  fun upstream downstream => upstream = .read ∧ downstream = .consumer
+
+def changed : Node → Prop := fun node => node = .changed
+def unresolved : Node → Prop := fun _ => False
+def read : Node → Prop := fun node => node = .read
+
+theorem changed_does_not_reach_consumer :
+    ¬ ImpactReach dependency changed Node.consumer := by
+  intro reached
+  have onlyChanged : Node.consumer = Node.changed :=
+    impact_least_forward_closed dependency changed
+      (fun node => node = Node.changed)
+      (by intro node h; exact h)
+      (by
+        intro upstream downstream upstreamIsChanged edge
+        rcases edge with ⟨upstreamIsRead, _⟩
+        subst upstream
+        cases upstreamIsRead)
+      Node.consumer reached
+  cases onlyChanged
+
+theorem unresolved_reaches_nothing :
+    ∀ node, ¬ ImpactReach dependency unresolved node := by
+  intro node reached
+  have impossible : False :=
+    impact_least_forward_closed dependency unresolved
+      (fun _ => False)
+      (by intro _ h; exact h)
+      (by intro _ _ impossible _; exact False.elim impossible)
+      node reached
+  exact impossible
+
+theorem qualified_graph_reuse_preserves_model_property :
+    let oldEnv : Node → Bool := fun _ => false
+    let newEnv : Node → Bool := fun node =>
+      match node with
+      | .changed => true
+      | .read => false
+      | .consumer => false
+    (fun env : Node → Bool => env .read) newEnv = false := by
+  intro oldEnv newEnv
+  have edges : ∀ ref, read ref → dependency ref Node.consumer := by
+    intro ref h
+    subst ref
+    exact ⟨rfl, rfl⟩
+  have complete : ReadsetDetermines read (fun env : Node → Bool => env .read) := by
+    intro before after agreement
+    exact agreement Node.read rfl
+  have covers :
+      ∀ ref, ¬ (changed ref ∨ unresolved ref) → oldEnv ref = newEnv ref := by
+    intro ref stable
+    cases ref with
+    | changed => exact False.elim (stable (Or.inl rfl))
+    | read => rfl
+    | consumer => rfl
+  have candidate :
+      StandsAt dependency changed unresolved Node.consumer .reuseCandidate := by
+    exact ⟨changed_does_not_reach_consumer, unresolved_reaches_nothing Node.consumer⟩
+  exact graph_reuse_preserves_property_if_qualified
+    dependency changed unresolved read Node.consumer
+    oldEnv newEnv (fun env : Node → Bool => env .read)
+    (fun value => value = false)
+    edges complete covers candidate rfl
+
+end ScopedReuseExample
+
 -- Constructive negative witness: the source change IS listed, the readset
 -- IS correct, but the consumer edge is absent. The graph returns a reuse
 -- candidate anyway while the actual observable flips. Thus a proof about
@@ -440,6 +519,7 @@ end OrdivonR21
 #print axioms OrdivonR21.equal_task_images_can_hide_unobserved_git_source
 #print axioms OrdivonR21.graph_reuse_candidate_excludes_direct_readset_change
 #print axioms OrdivonR21.graph_reuse_preserves_property_if_qualified
+#print axioms OrdivonR21.ScopedReuseExample.qualified_graph_reuse_preserves_model_property
 #print axioms OrdivonR21.missing_consumer_edge_invalidates_graph_reuse
 
 #print axioms OrdivonR21.declared_external_anchor_cannot_be_self_owned

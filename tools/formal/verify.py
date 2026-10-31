@@ -17,6 +17,13 @@ REPO = ROOT.parents[1]
 # Exact executable proof inputs and their two existing mise manifests.
 # This is a bounded source readset, not a Cargo, plugin or dynamic-tool closure.
 TOOL_NAMES = ("lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy")
+VARIATION_PROBE_LABEL = "Lean kernel qualified variation frame and countermodels"
+SCOPED_MODEL_REUSE_THEOREM = (
+    "OrdivonR21.ScopedReuseExample.qualified_graph_reuse_preserves_model_property"
+)
+SCOPED_MODEL_REUSE_AXIOM_WITNESS = (
+    f"'{SCOPED_MODEL_REUSE_THEOREM}' does not depend on any axioms"
+)
 
 SOURCE_FILES = (
     "mise.toml",
@@ -238,6 +245,38 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
     }
 
 
+def scoped_model_reuse_evidence(probe: dict[str, object]) -> dict[str, object]:
+    """Project one exact Lean-kernel result; never qualify implementation reuse."""
+    if (
+        set(probe) != {"probe", "result", "rc"}
+        or probe.get("probe") != VARIATION_PROBE_LABEL
+        or probe.get("result") != "PASS"
+        or probe.get("rc") != 0
+    ):
+        raise ValueError("qualified variation kernel probe is required for scoped model reuse")
+    return {
+        "standing": "MODEL_REUSE_VERIFIED",
+        "scope": "finite Lean ScopedReuseExample model property only",
+        "theorem": SCOPED_MODEL_REUSE_THEOREM,
+        "premiseQualification": {
+            "readsetCompleteness": "LEAN_KERNEL_PROVED",
+            "variationCoverage": "LEAN_KERNEL_PROVED",
+            "actualReadEdgesCovered": "LEAN_KERNEL_PROVED",
+            "reuseCandidate": "LEAN_KERNEL_PROVED",
+            "oldModelProperty": "LEAN_KERNEL_PROVED",
+        },
+        "modelProofReuseAdmissible": True,
+        "globalProofReuseAdmissible": False,
+        "implementationRefinement": "UNKNOWN",
+        "installedCurrentness": "UNKNOWN",
+        "domainAcceptanceEstablished": False,
+        "nonClaims": [
+            "This does not qualify any Rust, TypeScript, Python, installed, or domain proof reuse.",
+            "C04 REUSE_CANDIDATE remains non-authoritative without equivalent owner evidence.",
+        ],
+    }
+
+
 def run(label: str, args: list[str], *, input_text: str | None = None,
         expected_rc: int = 0, must_contain: str | None = None,
         timeout: int = 95, env_overlay: dict[str, str] | None = None) -> dict[str, object]:
@@ -274,11 +313,14 @@ def main() -> None:
         core_olean = tmp / "RecursiveLegoRefinement.olean"
         probes.append(run("Lean kernel R2.1 relational composition",
                           [executable("lean"), "-o", str(core_olean), str(source)]))
-        probes.append(run(
-            "Lean kernel qualified variation frame and countermodels",
+        variation_probe = run(
+            VARIATION_PROBE_LABEL,
             [executable("lean"), str(variation)],
             env_overlay={"LEAN_PATH": str(tmp)},
-        ))
+            must_contain=SCOPED_MODEL_REUSE_AXIOM_WITNESS,
+        )
+        probes.append(variation_probe)
+        scoped_model_reuse = scoped_model_reuse_evidence(variation_probe)
         bad_lean = tmp / "Invalid.lean"
         bad_lean.write_text("theorem falseClaim (p : Prop) : p := by\n  exact True.intro\n")
         probes.append(run("Lean rejects false theorem", [executable("lean"), str(bad_lean)],
@@ -370,6 +412,7 @@ def main() -> None:
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "toolBinaries": tools_before,
         "proofReuseAdmissible": False,
+        "scopedModelReuse": scoped_model_reuse,
         "sourceFragmentRefinement": fragment,
         "implementationRefinement": "UNKNOWN",
         "installedCurrentness": "UNKNOWN",
