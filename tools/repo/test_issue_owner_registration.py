@@ -123,6 +123,39 @@ def test_database_cutover_census_cannot_claim_admission_without_real_owner_effec
         module.validate_formal_issue_census(weakened, plans)
 
 
+@pytest.mark.parametrize(
+    "malformed_paths",
+    [
+        [{"unexpected": "object"}],
+        [42],
+        [None],
+    ],
+)
+def test_database_cutover_rejects_non_string_evidence_before_deduplication(
+    malformed_paths,
+) -> None:
+    """External problem evidence must fail with the owner contract error, not TypeError."""
+    root = Path(__file__).resolve().parents[2]
+    census = json.loads(
+        (root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    plans = {
+        name: json.loads((root / name).read_text(encoding="utf-8"))
+        for name in {row["ownerPlan"] for row in census["registrations"]}
+    }
+    changed = copy.deepcopy(census)
+    issue = next(
+        row
+        for row in changed["issues"]
+        if row["problemClass"] == "DATABASE_AUTHORITY_CONVERGENCE"
+    )
+    issue["latestRequalification"]["nativeConsumerEvidence"] = malformed_paths
+    with pytest.raises(module.ArchitectureDocsError, match="invalid source evidence"):
+        module.validate_formal_issue_census(changed, plans)
+
+
 def test_oct26_new_cross_owner_frontiers_remain_explicitly_unknown() -> None:
     """Missing consumer/formal/Skill proofs must not be reclassified as passed by taxonomy."""
     root = Path(__file__).resolve().parents[2]
