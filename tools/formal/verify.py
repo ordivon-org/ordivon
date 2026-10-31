@@ -23,6 +23,7 @@ SOURCE_FILES = (
     "tools/formal/verify.py",
     "tools/formal/RecursiveLegoRefinement.lean",
     "tools/formal/RecursiveLegoVariationFrame.lean",
+    "tools/formal/LatentInputReachability.lean",
     "tools/formal/Proof.rs",
     "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs",
@@ -253,6 +254,45 @@ def main() -> None:
             [executable("lean"), str(variation)],
             env_overlay={"LEAN_PATH": str(tmp)},
         ))
+        # Proof-carrying Thought LEGO: reuse the native Lean source-qualified
+        # execution and the already compiled R2.1 .olean from this temp scope.
+        # An on-disk .olean from another Job must never satisfy this import.
+        latent = ROOT / "LatentInputReachability.lean"
+        if re.search(r"\b(sorry|admit|axiom)\b", latent.read_text()):
+            raise AssertionError("Unproved shortcut in latent Thought LEGO")
+        latent_olean = tmp / "LatentInputReachability.olean"
+        probes.append(run(
+            "Lean R4 nondeterministic and finite probability Thought LEGO",
+            [executable("lean"), "-o", str(latent_olean), str(latent)],
+            env_overlay={"LEAN_PATH": str(tmp)},
+        ))
+        theorems = re.findall(
+            r"(?m)^theorem\s+([A-Za-z_][A-Za-z0-9_]*)\b",
+            latent.read_text()
+        )
+        if len(theorems) != 38 or len(set(theorems)) != len(theorems):
+            raise AssertionError(
+                f"Expected 38 unique Thought LEGO theorem obligations; got {len(theorems)}"
+            )
+        audit = tmp / "LatentAxioms.lean"
+        audit.write_text(
+            "import LatentInputReachability\n" +
+            "".join("#print axioms OrdivonR21.LatentInput." + name + "\n"
+                    for name in theorems)
+        )
+        checked = subprocess.run(
+            [executable("lean"), str(audit)], cwd=ROOT,
+            env={**os.environ, "LEAN_PATH": str(tmp)},
+            capture_output=True, text=True, check=False, timeout=45
+        )
+        if checked.returncode or checked.stdout.count(
+                "does not depend on any axioms") != len(theorems):
+            raise AssertionError("R4 axiom verification failed: " +
+                                 (checked.stdout + checked.stderr)[-1900:])
+        probes.append({
+            "probe": "Lean R4 all 38 axiom-free theorem audit",
+            "result": "PASS", "rc": checked.returncode
+        })
         bad_lean = tmp / "Invalid.lean"
         bad_lean.write_text("theorem falseClaim (p : Prop) : p := by\n  exact True.intro\n")
         probes.append(run("Lean rejects false theorem", [executable("lean"), str(bad_lean)],
