@@ -9,13 +9,13 @@ metadata:
 
 # Recursive LEGO Calculus
 
-Useful when an Agent is deciding whether a capability should exist, be deleted, reused, decomposed or composed. Every formally DECLARED or ADMITTED independent LEGO, including an unproved method, capability, ordinary domain responsibility or composite, requires all eleven typed R2.1 coordinates; raw source/discovery and incomplete candidates are not admitted LEGOs.
+Useful when an Agent is deciding whether a capability should exist, be deleted, reused, decomposed or composed. A formally DECLARED or ADMITTED independent LEGO keeps the six practical roles and attaches only the typed formal views required by its current obligation; raw source/discovery and incomplete candidates are not admitted LEGOs.
 
 ## Adopt mature semantics
 
 Use LEGO as an engineering profile of established modularity and contract-based
-component design. Preserve six practical navigation questions, but full R2.1 coordinates are
-mandatory for every independently declared LEGO, not every source file.
+component design. Preserve the six practical navigation questions. Formal views are
+selected by representation and obligation; there is no mandatory universal coordinate tuple.
 Do not invent another module calculus, registry or per-file record.
 
 For a formal task, name the adopted semantic profile: typed signature,
@@ -59,16 +59,15 @@ Use whichever of these questions changes the current decision. They are **not** 
 
 1. **Goal.** Name the Human/domain outcome, exact current source, real consumer and natural owner. If the goal itself is doubtful, investigate before building.
 2. **Zero-base.** Pretend the existing file, service, Skill and LEGO do not exist. Trace every consumer through to a real outcome; consumers that exist only to keep each other alive do not justify retention. Prefer deleting the whole chain or using a mature existing provider.
-3. **LEGO.** For a responsibility that remains necessary, name the six decision-relevant roles: **identity, one responsibility, inputs, outputs, behavioral contract, acceptance**. Any formally DECLARED/ADMITTED LEGO **MUST instantiate every typed coordinate** of `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` with typed semantics, no omitted fields. An actually stateless or effect-free unit may use a justified Unit/empty effect; an unknown coordinate must be an explicit typed UNKNOWN(reason, scope, obligation) and blocks only proof claims depending on it. Complete declaration does not imply MODEL_PROVED, CODE_REFINED, INSTALLED_CURRENT or DOMAIN_ACCEPTED. LEGO is the responsibility, not its file, class, Agent, Skill or Tool.
+3. **LEGO.** For a responsibility that remains necessary, name the six decision-relevant roles: **identity, one responsibility, inputs, outputs, behavioral contract, acceptance**. If a formal claim is needed, attach one or more typed formal views selected by the real obligation and mature theory — for example assume-guarantee, transition-system, executable local proof, symbolic/property, equational or causal. An unknown view must be explicit UNKNOWN(reason, scope, obligation). Never invent state, effects, cost, approximation error or decomposition merely to satisfy a universal schema. Declaration shape does not imply MODEL_PROVED, CODE_REFINED, INSTALLED_CURRENT or DOMAIN_ACCEPTED. LEGO is the responsibility, not its file, class, Agent, Skill or Tool.
 4. **Compose.** Connect compatible inputs/outputs, assumptions/guarantees, identities and effect boundaries. Reuse a real owner interface; do not duplicate truth or assume a successful subcomponent implies a successful whole. Split or share only if replaceability and consumer outcomes improve.
 5. **Act.** Agents freely choose, compete, cooperate and adapt relevant Skills and Tools; no global minimality guarantee is assumed. Execute only through actual owner-authorized boundaries; no permanent role, mandatory workflow, or new LEGO execution service.
 6. **Select.** Observe changed consumer behavior and the scoped native verification evidence. Report PASS, FAIL or UNKNOWN honestly. Keep, replace, merge or delete based on evidence; stop when further decomposition adds glue instead of value.
 
-For raw discovery and INCOMPLETE_CANDIDATE notes, six navigation fields may suffice; they are not independently admitted LEGOs. Every formally DECLARED or ADMITTED independent LEGO needs a complete typed eleven-coordinate contract before any property proof. The declaration is not itself a checked mathematical obligation; proof, source refinement, installed state and user acceptance have independent evidence grades. A version-qualified InstanceOf(archetype, parameters, environment, state, effects) may resolve the full effective contract without duplicating eleven declarations per Run or message. This is a strict admission rule, not permission to create a separate registry, Schema, verifier or eleven new files per LEGO. Never fabricate effects, cost, zero approximation or evidence to fill a field. Reuse the existing source/API/proof carrier.
-
+For raw discovery and INCOMPLETE_CANDIDATE notes, the six navigation fields may suffice; they are not independently admitted LEGOs. A formally DECLARED or ADMITTED responsibility adds only the formal views required for the current claim. Each selected view uses the semantics of its mature owner and keeps proof/currentness evidence separately qualified. The historic eleven-coordinate ell input may be read during migration but is deprecated compatibility, not the R2.1 ontology. Never fabricate a view to fill a field; reuse the existing source/API/proof carrier.
 ### Agent public contract view and actual capability invocation
 
-Discovery is a projection of the **same full effective R2.1 contract**, not a
+Discovery is a projection of the **same owner boundary and selected formal views**, not a
 second incomplete LEGO or registry. L0 previews the goal/role/version and
 flags known external effects, required authority, failures/timeouts, and
 unknown proof/currentness. L1 provides typed I/O, pre/post/invariants,
@@ -99,8 +98,8 @@ operator, API, bounded tool or service responsibility)** and **思想型 LEGO
 These are two main decision-oriented categories, not a closed or exclusive
 schema: an effective Skill/Tool composite can contain both. Refine into
 consumer-proven subroles only when that split changes substitution, verification
-or selection. All admitted responsibilities use the same eleven-coordinate effective LEGO contract;
-instances may inherit a qualified versioned archetype without duplicate per-row metadata.
+or selection. All admitted responsibilities keep the same six practical boundary roles; selected formal
+views may be inherited from a qualified versioned archetype when that preserves the actual obligation.
 No additional registry or runtime enum is implied.
 
 The six navigation questions alone do not qualify a declared LEGO; the following **overlapping and revisable consumer-role lenses** do not replace this contract.
@@ -160,8 +159,8 @@ Prefer mature Owner model checkers, type systems and replay for real obligations
 
 ## Essential distinctions
 
-- All declared/admitted independent Method, Capability and Composite LEGOs require complete typed R2.1 coordinates; an unfinished candidate remains explicitly unadmitted.
-- External value acceptance is separate from resource cost c and approximation epsilon: bind the named goal/consumer, observable predicate or metric, baseline or fixed specification, checker/instrument, decision threshold, guardrails, current evidence and UNKNOWN. A mathematical architecture goal is not an installed product result. Test-only self-consuming cycles do not establish terminal use.
+- All declared/admitted independent Method, Capability and Composite LEGOs require the six practical boundary roles plus the typed formal views needed by the claims actually made; an unfinished candidate remains explicitly unadmitted.
+- External value acceptance is separate from any optional cost or approximation view: bind the named goal/consumer, observable predicate or metric, baseline or fixed specification, checker/instrument, decision threshold, guardrails, current evidence and UNKNOWN. A mathematical architecture goal is not an installed product result. Test-only self-consuming cycles do not establish terminal use.
 - Agent public information may hide implementation but cannot conceal decision-critical errors, effects, authority limits, proof standing or source currentness. Actual invocation still needs separate Owner authorization.
 
 - Goal and domain truth are not decided by a LEGO; a verifier result does not replace the user's or owner's acceptance.

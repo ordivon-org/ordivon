@@ -137,7 +137,7 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 
 ## Human direction — Formal LEGO R2.1 as mathematics-backed representation; agent environment hygiene (2026-10-24)
 
-**Standing:** scoped architecture/working-method decision from the Human, not a new LEGO definition, source of runtime truth, proof of whole-system conformance, or authorization to add infrastructure. The exact formal vocabulary remains the project Skill `project-ordivon-next/recursive-lego-calculus` and its version-bound `references/formal-model.md` (observed model SHA-256 `3df320213cfe449ac7a6effcb0b579906c60bf3e6cd272ee52c4e4e9fceed4a3`). The current source incorporates the 2026-10-26 mature-theory mapping (typed interfaces, assume–guarantee contracts, scoped composition and refinement); this source revision does not requalify earlier implementation evidence. Historical space broadcast: `space:ordivon-whole-system-optimization-r1:20261002`, topic `topic:ordivon-whole-system-optimization:mature-engineering-loop-r1:20261006`, message `message:recursive-lego-r21-math-kernels-agent-environment-decision:20261024`.
+**Standing:** scoped architecture/working-method decision from the Human, not a new LEGO definition, source of runtime truth, proof of whole-system conformance, or authorization to add infrastructure. The exact formal vocabulary remains the project Skill `project-ordivon-next/recursive-lego-calculus` and its version-bound `references/formal-model.md` (observed model SHA-256 `89e565483db174d607d2a1c42103dfcc03799793fd484052cd557c0176428b34`). The current source incorporates the 2026-10-26 mature-theory mapping (typed interfaces, assume–guarantee contracts, scoped composition and refinement); this source revision does not requalify earlier implementation evidence. Historical space broadcast: `space:ordivon-whole-system-optimization-r1:20261002`, topic `topic:ordivon-whole-system-optimization:mature-engineering-loop-r1:20261006`, message `message:recursive-lego-r21-math-kernels-agent-environment-decision:20261024`.
 
 **Why:** An Agent's observations and available actions are strongly shaped by paths, refs, tool exposure, installed versions, workspace contents and historical artifacts. The Agent then modifies those same surroundings. Stale sources, missing tools, repeated local patches, uncleared workspaces and unintegrated commits can therefore compound across Agent runs. Environment correctness is a prerequisite for trustworthy reasoning *and* actual effect execution; cleanup prevents feedback-driven duplication. This is a causal hypothesis to test on concrete runs, not a proof about all Agents.
 
@@ -209,55 +209,77 @@ registry, solver, mandatory workflow or global MSR verifier is introduced.
 
 ## R2.1 mathematical kernel: existing mathematics at the Owner boundary (2026-10-25)
 
-**Standing:** scoped refinement of the already accepted recursive LEGO calculus,
-not a new schema, all-Owner registry, proof kernel, default Workflow or source
-of runtime authority. This section is useful only when a *named current
-consumer* needs a contract that its natural Owner can actually verify.
+**Standing:** scoped refinement of the accepted recursive LEGO calculus, not a
+new all-Owner registry, runtime object, proof kernel, default Workflow or source
+of execution authority. Use it for a formally DECLARED/ADMITTED independent
+responsibility when a named consumer needs a contract its natural Owner can
+actually interpret and verify.
 
-The *only* canonical LEGO identity remains the original six-part contract
-already specified above:
+The stable engineering/navigation view remains:
 
 \[
 L = (identity, responsibility, inputs, outputs, contract, acceptance).
 \]
 
-Here **identity** and **responsibility** belong to the existing natural Owner;
-**acceptance** is a named current consumer's observable predicate. Do not
-rename a consumer set, state machine or mathematical proof into a competing
-LEGO object. When a named consumer B and goal g require more precision,
-interpret—not replace—that LEGO with an **optional semantic view**:
+These six roles answer how an Agent finds and reasons about the responsibility.
+They remain the canonical module/LEGO boundary. Formalization is attached only
+when a named obligation needs it.
+
+**Formal views are selected by representation, not a mandatory universal tuple.**
+A formally DECLARED or ADMITTED responsibility carries at least one typed view
+for the obligation being claimed:
+
+formalViews = [typed views selected by the current obligation]
+
+A view names the mature semantic profile being reused, its standing, a concrete
+statement or explicit UNKNOWN(reason, scope, obligation), and optional source
+carriers. The profile is not a closed Ordivon enum: examples include Pacti
+assume-guarantee contracts, TLA+/Quint transition systems, Kani/Verus local
+proof contracts, property/symbolic obligations, equational specifications and
+causal models. Choose only representations that change the current decision.
+
+Do not fabricate state, effects, cost, approximation error or decomposition
+just to fill a generic record. A stateless pure normalization may need an
+equational/property view and no state-machine view. A lifecycle owner may need
+a transition-system view without a cost model. A provider seam may need an
+assume-guarantee contract without pretending that Pacti owns runtime state.
+
+The historic eleven-coordinate ell declaration is accepted only as a
+**deprecated compatibility carrier** by the current Composition inspector while
+its source consumers migrate. It is not the canonical R2.1 ontology and it
+cannot establish proof, currentness, authority or domain acceptance.
+
+Every selected view is still only a declaration until independently qualified:
+
+DECLARATION_COMPLETE != MODEL_PROVED != CODE_REFINED != INSTALLED_CURRENT != DOMAIN_ACCEPTED.
+
+For a named consumer B and goal g, one transition/contract view may be expressed
+using the established mathematics:
 
 \[
 \mathrm{Semantics}(L)_{g,B}=(S,Init,Next,A,G,\pi_B).
 \]
 
-- \(S,Init,Next\) are existing Owner state and transition semantics; they are
-  absent for a stateless LEGO. \(I,O\) retain their native interface types.
-- \(A,G\subseteq\mathcal{T}_B\) are environment assumptions and guarantees
-  in the **same consumer-observable trace universe**, and \(\pi_B\) is the
-  consumer's observation projection. The mathematical contract obligation
-  for a model or implementation M is
-  \(\mathrm{Traces}_B(M)\cap A\subseteq G\), never an automatic PASS.
-- For a same-boundary safety replacement Old→New, a sufficient contract
-  refinement criterion is \(A_{\rm old}\subseteq A_{\rm new}\) and
-  \(A_{\rm old}\cap G_{\rm new}\subseteq G_{\rm old}\).
-  Liveness, required outcomes, identity, owner authority and any interface
-  adapters need separate explicit witnesses; a Git patch-ID, static graph or
-  test PASS does not prove behavioral equivalence.
-- For sequential composition \(L_1;L_2\), verify typed port compatibility
-  and \(G_1\land A_{\rm environment}\Rightarrow A_2\) at the actual shared
-  boundary. Feedback cycles need an independent inductive invariant;
-  independent component PASS or circular assumptions are not enough.
-- Effects are **derived** from the existing Owner's effect-bearing transition
-  relation R, not a ninth LEGO role. Admission must establish
-  \(\mathrm{Effects}(R)\subseteq
-  \mathrm{AuthorizedEffects}(owner,sourceCut)\); a verified DAG or type
-  signature by itself never grants that authority.
+S,Init,Next are used only where temporal state exists; A,G are assumptions and
+guarantees in a declared consumer-observable behavior or trace universe; and
+\pi_B is the consumer observation projection. For a model/implementation M, a
+typical behavioral obligation is
+\mathrm{Traces}_B(M) \cap A \subseteq G. This is one selected view, not a
+required shape for every module.
 
-This uses mature assume/guarantee contracts, trace refinement and the
-Owner's existing TLA+/TLC, typed interfaces and native CDC. It mandates
-**no** new common schema, state engine, solver, registry, Agent or second
-authority; optional fields are materialized only for a real consumer.
+For same-boundary replacement, use the selected theory's real refinement
+relation and side conditions. Saturated behavioral assume-guarantee contracts,
+Hoare-style sequential seams, transition-system simulation, trace refinement,
+property testing and statistical contracts are different tools. Do not collapse
+compatibility, refinement, observational equivalence, liveness, causality or
+authority into one relation.
+
+This reuses mature module/interface theory and existing Owner-native
+Lean/TLA+/TLC/Pacti/SMT/native tests. It mandates no new common runtime registry,
+execution service, solver or all-Owner authority. Declaration inspection checks
+shape and explicit UNKNOWN handling only; proof, source-to-model refinement,
+installed currentness, invocation authority and domain acceptance retain their
+own qualified evidence.
 
 | Existing Owner | Mature semantic kernel | Current executable consumer boundary | Missing authority deliberately **not** inferred |
 | --- | --- | --- | --- |

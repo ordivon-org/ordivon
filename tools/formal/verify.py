@@ -99,7 +99,7 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
 
     R2.1 responsibility: identify model-relevant source anchors, without
     granting an unproved semantic source-to-Lean refinement.
-    I = exact Python source & one Option Nat model profile;
+    I = exact Python source plus presence-aware TimeoutWire and Option Nat profiles;
     O = anchor observation, unknown code-refinement standing;
     S = task-local inspected source snapshot (no retained mutable state);
     pre = parseable source with matching named methods and anchors;
@@ -223,8 +223,9 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
         raise ValueError("timeout Gateway effect frame changed before dispatch")
 
     return {
-        "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
+        "scope": "source_ast_python_presence_aware_timeout_and_gateway_projection_only",
         "producerPath": path,
+        "wireModel": "OrdivonR21.TimeoutConnection.TimeoutWire/wireAdmitted",
         "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
         "sourceAstAnchorsObserved": True,
         "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",

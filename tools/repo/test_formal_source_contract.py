@@ -204,6 +204,11 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         self.assertIs(qualified["sourceAstAnchorsObserved"], True)
         self.assertIs(qualified["codeFragmentRefined"], False)
         self.assertEqual(qualified["sourceRefinementStanding"], "UNKNOWN")
+        self.assertEqual(
+            qualified["wireModel"],
+            "OrdivonR21.TimeoutConnection.TimeoutWire/wireAdmitted",
+        )
+        self.assertIn("presence_aware", qualified["scope"])
         self.assertIs(qualified["runtimeRustRefined"], False)
         target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
         source = target.read_text(encoding="utf-8")

@@ -536,8 +536,9 @@ jobs:
                       == "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST"
                   and report.get("proofReuseAdmissible") is False
                   and report.get("sourceFragmentRefinement") == {
-                      "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
+                      "scope": "source_ast_python_presence_aware_timeout_and_gateway_projection_only",
                       "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
+                      "wireModel": "OrdivonR21.TimeoutConnection.TimeoutWire/wireAdmitted",
                       "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
                       "sourceAstAnchorsObserved": True,
                       "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",

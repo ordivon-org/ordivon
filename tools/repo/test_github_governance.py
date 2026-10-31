@@ -93,8 +93,9 @@ def _qualified_formal_test_receipt(
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "proofReuseAdmissible": False,
         "sourceFragmentRefinement": {
-            "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
+            "scope": "source_ast_python_presence_aware_timeout_and_gateway_projection_only",
             "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
+            "wireModel": "OrdivonR21.TimeoutConnection.TimeoutWire/wireAdmitted",
             "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
             "sourceAstAnchorsObserved": True,
             "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",
@@ -301,6 +302,12 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             forged_code_grade = copy.deepcopy(full_report)
             forged_code_grade["sourceFragmentRefinement"]["codeFragmentRefined"] = True
             invalid_receipts["unearned-python-code-refinement"] = json.dumps(forged_code_grade)
+            no_wire_model = copy.deepcopy(full_report)
+            del no_wire_model["sourceFragmentRefinement"]["wireModel"]
+            invalid_receipts["missing-timeout-wire-model"] = json.dumps(no_wire_model)
+            forged_wire_model = copy.deepcopy(full_report)
+            forged_wire_model["sourceFragmentRefinement"]["wireModel"] = "OrdivonR21.TimeoutConnection.modeledBehavior"
+            invalid_receipts["forged-timeout-wire-model"] = json.dumps(forged_wire_model)
             no_effect_frame = copy.deepcopy(full_report)
             del no_effect_frame["sourceFragmentRefinement"]["effectFrameObserved"]
             invalid_receipts["missing-effect-frame-evidence"] = json.dumps(no_effect_frame)
@@ -381,7 +388,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
             # Two new forged/missing fragment receipts and one extra
             # source-blob omission case extend the negative corpus.
-            self.assertEqual(len(invalid_receipts), 66)
+            self.assertEqual(len(invalid_receipts), 68)
 
             try:
                 for label, payload in invalid_receipts.items():

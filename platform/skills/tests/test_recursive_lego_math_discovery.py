@@ -40,14 +40,16 @@ def test_strict_declared_r21_is_retrieved_by_real_skill_consumer() -> None:
         projection="raw",
     ).content
     assert "formally DECLARED or ADMITTED" in source
-    assert "ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)" in source
-    assert "DECLARATION_COMPLETE" in catalog.read_text(
+    assert "formal views are" in source.lower()
+    formal_reference = catalog.read_text(
         resolution.resolved.skill_id,
         relative_path="references/formal-model.md",
         context=context,
         expected_snapshot_revision=resolution.snapshot_revision,
         projection="raw",
     ).content
-    assert "same full effective R2.1 contract" in source
+    assert "legacy-r21-ell" in formal_reference
+    assert "does **not** require one universal mathematical record" in formal_reference
+    assert "selected formal views" in source
     assert "current principal, grant, scope" in source
     assert "READ_MORE/UNFOLD or refusal" in source

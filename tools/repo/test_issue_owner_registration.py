@@ -178,8 +178,9 @@ def test_oct26_distinct_windows_and_gateway_problem_lego_gaps() -> None:
         module.validate_formal_issue_census(fake, plans)
 
 
+
 def test_nov01_typed_issue_census_reuses_existing_owners_without_proof_promotion() -> None:
-    """Current time-scoped evidence must bind registered Owners; UNKNOWN stays explicit."""
+    """One current evidence carrier has typed issues; UNKNOWN and Owner boundaries stay explicit."""
     root = Path(__file__).resolve().parents[2]
     census = json.loads(
         (root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261101_R1.json")
@@ -189,20 +190,32 @@ def test_nov01_typed_issue_census_reuses_existing_owners_without_proof_promotion
         record["ownerPlan"]: json.loads((root / record["ownerPlan"]).read_text(encoding="utf-8"))
         for record in census["registrations"]
     }
-    assert len(census["issues"]) == 6
-    assert {entry["id"] for entry in census["issues"]} == {
-        "GIT-CURRENTNESS-20261101", "PR-CONVERGENCE-20261101",
-        "WORKTREE-CONSUMER-20261101", "DEPS-CURRENTNESS-20261101",
-        "FORMAL-R21-REFINEMENT-20261101", "PG-CONSUMER-SUBTRACTION-20261101",
+    expected = {
+        "GIT-CURRENTNESS-20261101",
+        "GIT-OBJECT-INTEGRITY-20261031",
+        "GIT-CARRIER-REDUNDANCY-20261031",
+        "PR-CONVERGENCE-20261101",
+        "WORKTREE-CONSUMER-20261101",
+        "DEPS-CURRENTNESS-20261101",
+        "FORMAL-R21-REFINEMENT-20261101",
+        "HOST-PLAN-REFINEMENT-20261031",
+        "RUNTIME-PG-AUTHORITY-20261031",
+        "HARNESS-EFFECT-AUTHORITY-20261031",
+        "NETWORK-EGRESS-SEMANTICS-20261031",
+        "PG-CONSUMER-SUBTRACTION-20261101",
     }
+    assert len(census["issues"]) == len(expected)
+    assert {entry["id"] for entry in census["issues"]} == expected
     assert census["truthRole"] == "time-scoped-audit-evidence-not-registry-or-admission"
-    assert "UNKNOWN" in next(
-        entry["standing"] for entry in census["issues"]
+    formal = next(
+        entry for entry in census["issues"]
         if entry["id"] == "FORMAL-R21-REFINEMENT-20261101"
     )
+    assert formal["registration"]["slice"] == "CR21"
+    assert "UNKNOWN" in formal["standing"]
     module.validate_formal_issue_census(census, plans)
 
-    # Never let an attractive free-form issue invent a verified Owner slice.
+    # Never let a free-form issue invent a verified Owner slice.
     bad = copy.deepcopy(census)
     target = next(row for row in bad["issues"] if row["id"] == "FORMAL-R21-REFINEMENT-20261101")
     target["registration"] = {
@@ -217,3 +230,59 @@ def test_nov01_typed_issue_census_reuses_existing_owners_without_proof_promotion
     bad["source"]["protectedGithubMain"] = "not-a-git-sha"
     with pytest.raises(module.ArchitectureDocsError, match="invalid Git source revision"):
         module.validate_formal_issue_census(bad, plans)
+
+
+def test_nov01_host_r1_r3_relation_remains_unknown_not_fabricated_registration() -> None:
+    root = Path(__file__).resolve().parents[2]
+    census = json.loads(
+        (root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261101_R1.json")
+        .read_text(encoding="utf-8")
+    )
+    plans = {
+        row["ownerPlan"]: json.loads((root / row["ownerPlan"]).read_text(encoding="utf-8"))
+        for row in census["registrations"]
+    }
+    host = next(i for i in census["issues"] if i["id"] == "HOST-PLAN-REFINEMENT-20261031")
+    assert host["problemClass"] == "OWNER_PLAN_REFINEMENT"
+    assert host["registration"]["state"] == "UNREGISTERED"
+    assert "UNPROVED" in host["standing"]
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_nov01_converged_problem_census_keeps_distinct_frontiers() -> None:
+    """PR, Workspace and cross-Owner DB frontiers are not one generic cleanup problem."""
+    root = Path(__file__).resolve().parents[2]
+    census = json.loads(
+        (root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261101_R1.json")
+        .read_text(encoding="utf-8")
+    )
+    plans = {
+        row["ownerPlan"]: json.loads((root / row["ownerPlan"]).read_text(encoding="utf-8"))
+        for row in census["registrations"]
+    }
+    rows = {row["id"]: row for row in census["issues"]}
+    assert rows["PR-CONVERGENCE-20261101"]["registration"]["slice"] == "RG1"
+    assert rows["WORKTREE-CONSUMER-20261101"]["registration"]["slice"] == "RW1"
+    assert rows["PG-CONSUMER-SUBTRACTION-20261101"]["registration"]["state"] == "UNREGISTERED"
+    assert rows["FORMAL-R21-REFINEMENT-20261101"]["registration"]["slice"] == "CR21"
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_r21_unconsumed_declaration_surface_stays_retired() -> None:
+    """A retirement guard is evidence of absence, never a retention consumer."""
+    root = Path(__file__).resolve().parents[2]
+    assert not (
+        root / "packages/composition/src/ordivon_composition/schemas/lego-declaration-r21.schema.json"
+    ).exists()
+    assert not (
+        root / "packages/composition/tests/test_r21_declaration_qualification.py"
+    ).exists()
+    package_init = (
+        root / "packages/composition/src/ordivon_composition/__init__.py"
+    ).read_text(encoding="utf-8")
+    interface = (
+        root / "packages/composition/src/ordivon_composition/interface_contract_r2.py"
+    ).read_text(encoding="utf-8")
+    assert "inspect_lego_declaration" not in package_init
+    assert "inspect_lego_declaration" not in interface
+    assert 'sub.add_parser("qualify")' not in interface

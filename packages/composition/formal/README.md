@@ -4,9 +4,18 @@
 
 ## Mature mathematical core
 
-LEGO 2.1 treats a LEGO as a **consumer-conditioned replaceable responsibility**, rather than automatically a file, Tool, Skill or Agent. Its familiar coordinates `(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` are optional semantic views: minimize them to the question being answered.
+LEGO 2.1 treats a LEGO as a **consumer-conditioned replaceable responsibility**,
+rather than automatically a file, Tool, Skill or Agent. The six practical roles
+— identity, responsibility, inputs, outputs, behavioral contract and acceptance
+— remain the canonical navigation/engineering boundary. Formal claims attach
+only the typed mature views required by the current obligation. A transition
+model does not force a cost field; an assume-guarantee seam does not force a
+state machine; an equational view does not force an effect model. UNKNOWN stays
+explicit and scoped. The historic eleven-coordinate ell carrier is legacy
+compatibility only and is not proof, installation, authority or domain acceptance.
 
-For this owner boundary, reuse the standard typed transition-system model `(S, Init, Next)`, invariant checking by TLC, and **assume–guarantee** contracts on its seams. The existing `packages/composition` Cognitive Circuit, JSON Schema and Verification Obligation remain responsible for typed ports, caller-authored gate requirements, exact digests and bound verifier identities. This model is not their replacement.
+For this owner boundary, reuse the standard typed transition-system model (S, Init, Next), invariant checking by TLC, and **assume–guarantee** contracts on its seams as the selected mathematical profile. The existing packages/composition Cognitive Circuit, JSON Schema and Verification Obligation remain responsible for typed ports, caller-authored gate requirements, exact digests and bound verifier identities. This model is not their replacement and no new universal LEGO runtime or proof engine is introduced.
+
 
 - **Host:** maintains Work continuity; it may record verified acceptance, but does not create the domain verdict.
 - **Harness:** proposes a bounded Agent action, not physical dispatch authority.

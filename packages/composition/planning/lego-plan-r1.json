@@ -340,7 +340,27 @@
       "label": "existing selective proof obligation impact supplies scoped UNKNOWN propagation to effect reconciliation"
     }
   ],
-  "slices": [],
+  "slices": [
+    {
+      "id": "CR21",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "C01",
+        "C02",
+        "C03",
+        "C04",
+        "C05",
+        "C06"
+      ],
+      "acceptance": [
+        "The canonical LEGO remains the existing six practical navigation roles plus the complete typed R2.1 ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold) declaration for every independently declared/admitted LEGO; the slice does not mint a second ontology or runtime object.",
+        "Every composition/replacement claim names its mature semantic profile and keeps typed port compatibility, assume-guarantee refinement, observational equivalence, state-transition refinement, effect authority and evidence currentness as distinct relations; no relation is inferred from filename, schema shape or shared identity.",
+        "Sequential, parallel, feedback and hiding composition use theory-specific operators and side conditions from the existing R2.1 formal model; UNKNOWN side conditions fail the dependent proof claim closed rather than becoming empty assumptions, zero cost/error or vacuous PASS.",
+        "Existing Lean/TLA+/TLC/Dafny/Quint/Kani/implementation checkers remain replaceable proof providers bound to exact source/model/config identities; a verifier PASS never grants execution authority, installed currentness or domain acceptance.",
+        "The existing C01-C06 source consumers and negative tests remain green, and a mutation that changes a registered Problem LEGO problemClass to an unrecognised free-text value is rejected by the repository-native architecture gate."
+      ]
+    }
+  ],
   "knownGaps": [
     "Confirmed imports from meta/next at Git SourceCut; runtime installation and external consumers not attested.",
     "Refinement from formal verifier target psi to domain target phi not inferred from source-only contract projection.",

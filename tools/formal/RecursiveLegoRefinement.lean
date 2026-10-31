@@ -900,6 +900,65 @@ end OrdivonR21.PriorityClosure
 -- The absent optional Agent timeout must not erase the caller's grant.
 namespace OrdivonR21.TimeoutConnection
 
+-- Preserve raw wire presence before Option Nat lowers away the distinction
+-- between an absent field and a present schema-invalid value such as JSON null.
+-- This boundary sum refines admitted values into the existing Option Nat model.
+inductive TimeoutWire where
+  | absent
+  | value (timeout : Nat)
+  | invalid
+  deriving DecidableEq, Repr
+
+def decodeWire : TimeoutWire → Option (Option Nat)
+  | .absent => some none
+  | .value timeout => some (some timeout)
+  | .invalid => none
+
+def wireAdmitted (grant : Nat) (wire : TimeoutWire) : Prop :=
+  match decodeWire wire with
+  | some requested =>
+      match requested with
+      | none => 0 < grant
+      | some timeout => 0 < timeout ∧ timeout ≤ grant
+  | none => False
+
+def wireForwarded (grant : Nat) (wire : TimeoutWire) : Option Nat :=
+  match decodeWire wire with
+  | some requested => some (requested.getD grant)
+  | none => none
+
+theorem invalid_wire_is_rejected (grant : Nat) :
+    ¬ wireAdmitted grant .invalid := by
+  simp [wireAdmitted, decodeWire]
+
+theorem absent_wire_uses_caller_grant (grant : Nat) (h : 0 < grant) :
+    wireAdmitted grant .absent ∧ wireForwarded grant .absent = some grant := by
+  simp [wireAdmitted, wireForwarded, decodeWire, h]
+
+theorem valid_wire_preserves_value
+    (grant timeout : Nat)
+    (h : 0 < timeout ∧ timeout ≤ grant) :
+    wireAdmitted grant (.value timeout) ∧
+      wireForwarded grant (.value timeout) = some timeout := by
+  simp [wireAdmitted, wireForwarded, decodeWire, h]
+
+theorem admitted_wire_has_forwarded_value
+    (grant : Nat) (wire : TimeoutWire)
+    (h : wireAdmitted grant wire) :
+    ∃ outgoing, wireForwarded grant wire = some outgoing ∧
+      0 < outgoing ∧ outgoing ≤ grant := by
+  cases wire with
+  | absent =>
+      refine ⟨grant, ?_, ?_⟩
+      · simp [wireForwarded, decodeWire]
+      · simpa [wireAdmitted, decodeWire] using h
+  | value timeout =>
+      refine ⟨timeout, ?_, ?_⟩
+      · simp [wireForwarded, decodeWire]
+      · simpa [wireAdmitted, decodeWire] using h
+  | invalid =>
+      simp [wireAdmitted, decodeWire] at h
+
 def forwarded (grant : Nat) (requested : Option Nat) : Nat :=
   requested.getD grant
 

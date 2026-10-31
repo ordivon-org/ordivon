@@ -204,47 +204,39 @@ acceptance); these are engineering descriptors, not six mathematical axioms.
 
 ### Semantic mapping
 
-| Existing R2.1 coordinate | Adopted interpretation | Required distinction |
+| Formal concern | Mature representation | Required distinction |
 | --- | --- | --- |
-| identity / responsibility | scoped component identity and requirement allocation | identity is not semantic equivalence |
-| I, O | typed signatures / ports with declared direction and visibility | shape compatibility is not behavioral substitutability |
-| S, pre, post, inv | transition systems and Hoare-style obligations | invariant satisfiability is not invariant preservation |
-| behavioral contract | assume–guarantee contract with explicit behavior universe | a specification is distinct from its implementations |
-| compose / unfold | theory-specific composition and hiding / architectural decomposition | hiding is not generally invertible |
-| replacement | contract refinement or contextual/observational relation | declare the relation and its direction |
-| rho, alpha, gamma, beta | abstraction and property-preserving realization relations | arbitrary encoding is not automatically a Galois connection |
-| eff | observable effects and environment/authority assumptions | a proof never grants execution permission |
-| c, epsilon | measured cost / explicitly defined approximation bounds | neither is a universal truth or compatibility metric |
-| prov, acceptance | source-bound evidence and requirement-specific acceptance | metadata and test outcomes are not component semantics |
+| typed inputs/outputs | language/schema types, protocol ports | shape compatibility is not behavioral substitutability |
+| behavior contract | Pacti/assume-guarantee or protocol contract | specification is distinct from implementation |
+| lifecycle/state | LTS, TLA+/Quint, refinement map | use only when temporal state exists |
+| local implementation proof | Kani/Verus requires/ensures/modifies/invariants | bounded/model proof is scoped to its harness and source |
+| pure laws | equational/property specification | do not fabricate effects or mutable state |
+| uncertainty/error/cost | measured statistical or quantitative contract | only when the consumer decision uses it |
+| causality | explicit intervention/causal model | dependency is not causation |
+| evidence/currentness | source-bound qualification record | evidence metadata is not component semantics |
 
-The R2.1 formal admission tuple
+R2.1 therefore does **not** require one universal mathematical record. The
+canonical engineering boundary remains the six practical roles, while each
+formal claim selects the smallest mature representation capable of expressing
+its real obligation. Formal views are overlapping and optional relative to one
+another, but a formal declaration must contain at least one view for the claim
+being declared.
 
-`ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`
+The historic compatibility input
 
-is **mandatory, in full, for every independent formally DECLARED or ADMITTED LEGO**, whether method, capability, composite or ordinary domain responsibility, including when no property has yet been proved. DECLARATION_COMPLETE is not MODEL_PROVED. Raw source, exploratory evidence and incomplete candidates are not independently admitted LEGOs.
-Its six practical identity/responsibility/interface/contract/acceptance roles
-remain mandatory too. Do not omit a coordinate because it is awkward; give it
-an exact typed interpretation and a relevant checked obligation. For genuinely
-stateless, effect-free or exact components use `S=Unit`, empty effects or
-`epsilon=0` **only with a justified semantic argument**. `c` needs a named
-unit and scope; `prov` binds the exact implementation/model and evidence;
-`unfold` identifies the actual connected/hidden children (possibly an
-explicitly justified atomic leaf). If a coordinate's value or evidence is unknown, declare a typed UNKNOWN(reason,
-unit/scope where relevant, unfulfilled obligation); this is a present field,
-not a numeric 0 or a proof. UNKNOWN blocks only propositions relying on it.
-Proof standing for an unrelated verified property may still be MODEL_PROVED,
-but CODE_REFINED or INSTALLED_CURRENT requires its own qualified bridge.
-The existing Lean fields c : Nat and epsilon : Nat are a scoped numeric
-model, not a general representation of unknown empirical cost or error. The tuple is a typed declaration with separate mathematical obligations, not
-an automatic theorem, new runtime object, metadata registry, invented
-universal calculus or proof that every repository file is a LEGO. Acceptance
-also declares the consumer/goal and observation or Boolean theorem, a
-comparable baseline or fixed specification, instrument, decision predicate,
-guardrails and evidence/UNKNOWN; cost c and error epsilon do not substitute
-for domain outcome. An explicitly requested verified architecture theorem can
-be a scoped architecture milestone, never by itself a deployed product claim.
-Keep existing names and natural consumer APIs; check each applicable coordinate
-in the existing mature Lean/Pacti/TLA+/SMT/implementation proof carrier.
+ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)
+
+may still be accepted by the current Composition declaration inspector while
+old callers migrate. It is deprecated and must not be described as the current
+R2.1 ontology. Compatibility input is normalized as legacy-r21-ell and cannot
+by itself establish MODEL_PROVED, CODE_REFINED, INSTALLED_CURRENT, safe
+invocation or DOMAIN_ACCEPTED.
+
+For each selected view, use its theory's own composition, satisfaction and
+refinement rules. If the required representation or bridge is unknown, record
+UNKNOWN(reason, scope, obligation) for that view rather than inventing Unit,
+zero cost, zero error, empty effects or a fake decomposition. Qualification and
+provenance remain separate evidence about a claim/view at an exact SourceCut.
 
 ### Behavioral assume–guarantee profile
 

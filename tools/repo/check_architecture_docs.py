@@ -153,6 +153,39 @@ def _load_json(path: Path, *, source_bytes: bytes | None = None) -> dict[str, An
 # no new registry, executable DSL, scheduler or Owner truth.
 # Finite R2.1 relation types already consumed by the natural Owners.
 # graphlib, not this vocabulary, owns dependency DAG math.
+FORMAL_ISSUE_PROBLEM_CLASSES = frozenset({
+    "BACKING_STORE_ALLOCATION_AND_RECOVERY_CONSUMER",
+    "CI_COVERAGE",
+    "CI_EXECUTION",
+    "CROSS_OWNER_REFINEMENT_BRIDGE",
+    "CROSS_TARGET_EXECUTION_ENVIRONMENT",
+    "DATABASE_AUTHORITY_CONVERGENCE",
+    "DEPENDENCY_CONVERGENCE",
+    "ENVIRONMENT_CONTRACT",
+    "FORMAL_INFORMATION_FLOW",
+    "FORMAL_REFINEMENT_GAP",
+    "FORMAL_REGISTRATION_SOURCE_PROVENANCE",
+    "GATEWAY_SKILLS_ROUTE_DISCOVERY_SEAM",
+    "GIT_REMOTE_REFERENCE",
+    "GIT_RESIDUE",
+    "HOST_DISK_PRESSURE",
+    "LEGO_DEFINITION",
+    "NETWORK_EGRESS",
+    "OWNER_IDENTITY_CONTRACT",
+    "OWNER_PLAN_REFINEMENT",
+    "PR_CONVERGENCE",
+    "RECOVERY_SNAPSHOT_RETENTION_UNPROVEN",
+    "SECURITY_COMPOSITION",
+    "SKILL_DOMAIN_DISCOVERY",
+    "SKILL_PROVENANCE",
+    "SOURCE_CONVERGENCE",
+    "SOURCE_GRAPH_INTEGRITY",
+    "TEST_EVIDENCE",
+    "WINDOWS_EXECUTION_CONTEXT_CAPABILITY_DRIFT",
+    "WORKSPACE_CONSUMER_CONTINUITY",
+    "WORKSPACE_LIFECYCLE",
+})
+
 LEGO_RELATION_KINDS = frozenset({
     "ADAPTATION",
     "AUTHORITY",
@@ -1746,6 +1779,10 @@ def validate_formal_issue_census(
         for field in ("problemClass", "naturalOwner", "standing", "evidence", "consumers", "formalObligation"):
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
+        if issue["problemClass"] not in FORMAL_ISSUE_PROBLEM_CLASSES:
+            raise ArchitectureDocsError(
+                f"issue {issue_id} has unknown formal issue problemClass"
+            )
 
     # The existing GIT-01 list is an evidence projection, not deletion
     # authority. Validate its complete source-bound identity/type relation at
