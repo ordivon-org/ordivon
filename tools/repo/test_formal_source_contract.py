@@ -243,42 +243,73 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                         formal.qualified_timeout_adapter_fragment()
 
     def test_partial_ast_source_anchors_must_not_promise_semantic_refinement(self) -> None:
-        """Native Formal receipt must remain honest about untracked Python writes.
-
-        These in-memory mutants were previously admitted by the existing
-        source-anchor checker despite changing the actual Harness return
-        value. A SOURCE-ANCHOR witness is useful, but is not CODE_REFINED.
-        """
+        """A remaining pre-projection rebind keeps source refinement UNKNOWN."""
         baseline = formal.qualified_timeout_adapter_fragment()
         self.assertIs(baseline["sourceAstAnchorsObserved"], True)
+        self.assertEqual(
+            baseline["effectFrameObserved"],
+            "exact_post_projection_return_and_immediate_gateway_dispatch",
+        )
         self.assertIs(baseline["codeFragmentRefined"], False)
         self.assertEqual(baseline["sourceRefinementStanding"], "UNKNOWN")
 
         target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
         source = target.read_text(encoding="utf-8")
         before = '        execution["timeoutMs"] = _forward_granted_timeout(\n'
-        after = '        return (\n            "workspace.exec",'
         self.assertEqual(source.count(before), 1)
-        self.assertEqual(source.count(after), 1)
-        mutants = {
-            "rebind_after_guard": source.replace(
-                before, '        timeout = None\n' + before, 1
-            ),
-            "mutate_output_after_assignment": source.replace(
-                after,
+        mutant = source.replace(before, '        timeout = None\n' + before, 1)
+        compile(mutant, str(target), "exec")
+
+        actual_read = Path.read_text
+
+        def read_with_mutant(path, *args, **kwargs):
+            if path == target:
+                return mutant
+            return actual_read(path, *args, **kwargs)
+
+        with patch.object(Path, "read_text", read_with_mutant):
+            outcome = formal.qualified_timeout_adapter_fragment()
+        self.assertIs(outcome["sourceAstAnchorsObserved"], True)
+        self.assertIs(outcome["codeFragmentRefined"], False)
+        self.assertEqual(outcome["sourceRefinementStanding"], "UNKNOWN")
+
+    def test_timeout_source_observation_rejects_post_projection_effect_mutations(self) -> None:
+        """Exact observed frame rejects caller/Gateway mutations before handoff."""
+        target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        original = target.read_text(encoding="utf-8")
+        variants = (
+            (
+                "caller-update",
+                '        return (\n            "workspace.exec",',
                 '        execution.update({"timeoutMs": self.gateway_grant.max_timeout_ms + 1})\n'
-                + after, 1,
+                '        return (\n            "workspace.exec",',
             ),
-            "mutate_output_through_alias": source.replace(
-                after,
+            (
+                "caller-alias",
+                '        return (\n            "workspace.exec",',
                 '        alias = execution\n'
                 '        alias.update({"timeoutMs": self.gateway_grant.max_timeout_ms + 1})\n'
-                + after, 1,
+                '        return (\n            "workspace.exec",',
             ),
-        }
+            (
+                "gateway-update",
+                '        receipt = self._call("execution.submit", gateway_args)',
+                '        gateway_args.update({"timeoutMs": 900000})\n'
+                '        receipt = self._call("execution.submit", gateway_args)',
+            ),
+            (
+                "gateway-alias",
+                '        receipt = self._call("execution.submit", gateway_args)',
+                '        alias = gateway_args\n'
+                '        alias["timeoutMs"] = 900000\n'
+                '        receipt = self._call("execution.submit", gateway_args)',
+            ),
+        )
         actual_read = Path.read_text
-        for label, mutant in mutants.items():
+        for label, old, new in variants:
             with self.subTest(label=label):
+                self.assertIn(old, original)
+                mutant = original.replace(old, new, 1)
                 compile(mutant, str(target), "exec")
 
                 def read_with_mutant(path, *args, **kwargs):
@@ -287,12 +318,8 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                     return actual_read(path, *args, **kwargs)
 
                 with patch.object(Path, "read_text", read_with_mutant):
-                    outcome = formal.qualified_timeout_adapter_fragment()
-                # The anchor reader can still describe observed syntax, but
-                # it MUST NOT certify source-code refinement for any mutant.
-                self.assertIs(outcome["sourceAstAnchorsObserved"], True)
-                self.assertIs(outcome["codeFragmentRefined"], False)
-                self.assertEqual(outcome["sourceRefinementStanding"], "UNKNOWN")
+                    with self.assertRaisesRegex(ValueError, "timeout|frame|effect|projection"):
+                        formal.qualified_timeout_adapter_fragment()
 
     def test_exact_git_source_readset_is_qualified(self) -> None:
         current = formal.qualified_source_cut()
