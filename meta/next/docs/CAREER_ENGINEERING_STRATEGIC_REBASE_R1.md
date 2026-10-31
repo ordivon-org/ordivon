@@ -1,14 +1,14 @@
 # Career Engineering Strategic Rebase R1
 
-Status: **DETACHED CANDIDATE / EXTERNAL-FIRST / NO PRODUCTION CUTOVER**
-Source baseline: `origin/main@ffd81854b424b4fb136715a8ea022ca3b28fc2e7`\nOriginal audit baseline: `cbdd02771c7bc7842c38374854ffee703fb666e4`; rebased 2026-11-01 after verifying no intervening Career/provider path overlap.
+Status: **DETACHED REMEDIATION CANDIDATE / EXTERNAL-FIRST / NO PRODUCTION CUTOVER**
+Source baseline: `origin/main@277a62019b498614baf7b9666fb7a4c607c5172e`
 Observed through: **2026-11-01**
 
 ## Decision
 
-Do not extend the detached Career R2–R6 chain as if it were current architecture. Retain it only as a donor for proven evidence/currentness/security boundaries. Career Engineering is rebuilt from current main around maintained external providers and Ordivon's existing Runtime / Host / PostgreSQL substrate.
+Career Engineering is not a new Career application, workflow engine, scheduler, registry, database, or scraper collection. It is a semantic/evidence composition over Ordivon's existing Runtime / Host / PostgreSQL substrate plus narrowly qualified external providers.
 
-The semantic composition is:
+The semantic chain remains:
 
 ```text
 Career Record
@@ -21,167 +21,199 @@ Career Record
   -> updated Career Record / decisions
 ```
 
-A resume is a materialized artifact. An AI job-search project is a replaceable provider/operator. Neither becomes Career Core.
+A provider is admitted only for the exact boundary that a real consumer and evidence justify. Repository popularity, package installation, interface discovery, and historical experiments do not by themselves create an active binding.
+
+## Qualification states
+
+Three states are now explicit:
+
+```text
+BEHAVIORALLY QUALIFIED
+  exact pinned provider behavior was replayed against retained fixtures/invocations
+
+INTERFACE QUALIFIED
+  stable interface/schema/auth boundary was verified, but domain operations were not
+
+DORMANT / REFERENCE / EXPERIMENT
+  useful donor or prior evidence with no active consumer or incomplete qualification
+```
+
+This replaces the earlier "selected provider stack" interpretation, which was too broad.
 
 ## Stable release is the executable contract
 
-Provider selection now separates three different facts:
+Provider selection separates:
 
 ```text
 upstream main          = discovery of possible future capability
-stable release/package = executable provider contract
-live hosted service    = independently currentness-observed external service
+stable release/package = executable provider identity
+live hosted service    = independently currentness-observed service
 ```
 
-This distinction was falsified in practice. Career-Ops `main` documents `keyword-match --url/--jd-text`, while the actually published `1.38.0` release does not; executing `--url` against the release returned `Unknown option: --url`. Therefore no Career capability may be admitted merely because it exists on upstream main.
+Career-Ops supplied a concrete counterexample. Its top-level npm CLI for `@santifer/career-ops@1.38.0` scaffolds a workspace; it does not expose `keyword-match` as a package subcommand. The deterministic diagnostic lives inside the initialized stable-release workspace. That workspace's `keyword-match.mjs` rejects the newer-main-only `--url` surface. Claims are therefore bound to the actual released artifact and exact invocation, not to main documentation.
 
-Durable executions pin exact release/package/commit identities. Floating `latest` is a discovery signal, not a durable execution contract.
+## Current qualified surfaces
 
-## Selected external stack and actual adoption evidence
+### 1. Career-Ops — narrow behaviorally qualified diagnostic
 
-| Provider | Role | Executable boundary | Current standing |
-|---|---|---|---|
-| Career-Ops | workflow / rubric / deterministic Career validators | upstream Agent Plugin + Skill + `@santifer/career-ops@1.38.0` | **release init verified** |
-| Reactive Resume | primary resume / cover-letter / application product surface | upstream native Agent Plugin + hosted/self-hosted MCP/REST | **v6.0.9 native plugin schema + hosted OAuth boundary verified** |
-| Resume-Matcher | narrow artifact compiler / preservation / ATS diagnostics | stable v1.4.0 CLI/MCP under Python 3.13 | **stable CLI + preservation tests verified** |
-| JobSync | ATS opportunity-discovery method donor | Greenhouse / Lever / Ashby discovery patterns | **absorb methods; no parallel product** |
-| JobSpy | discovery fallback | pinned `python-jobspy[mcp]==1.4.1` | **package/plugin smoke verified** |
-| AI-Job-Search | workflow and source-adapter method donor | Skills / deterministic guards | **absorb methods, not whole product** |
-| JSON Resume | resume interchange | schema ecosystem | **adopt interchange** |
-| RenderCV | optional renderer | CLI/library | **on demand only** |
+Pinned provider:
 
-The dated star/maintenance census remains discovery evidence, not acceptance proof.
+- `@santifer/career-ops@1.38.0`
+- release git head `115bc9873e3d43e23883f3c8f16436617facc62c`
 
-## Delete-by-default decisions
+Current admitted capability is only the deterministic JD skill-gap diagnostic from the initialized stable release.
 
-Because mature providers now cover these surfaces, Career should not build or retain a custom:
+Committed fixtures:
 
-- resume editor/template product;
-- application board/calendar/CRM UI;
-- generic job-board scraper when an official ATS or selected provider exists;
-- workflow engine, scheduler, queue or Career runtime;
-- global registry parallel to Ordivon's existing module/catalog machinery;
-- second canonical application database.
+- `meta/next/fixtures/career/career-ops-synthetic-jd.md`
+- `meta/next/fixtures/career/career-ops-synthetic-cv.md`
 
-Reactive Resume is the primary product surface. JobSync remains valuable for its ATS discovery methods, not as a second tracker product. Resume-Matcher application CRUD is explicitly excluded from the initial adoption surface.
-
-## Career-Ops: upstream Skill/CLI donor, not database authority
-
-The exact `1.38.0` npm release was installed into an ephemeral directory. Its Agent Skill was present, `doctor --json` correctly reported an unconfigured fresh workspace, and `verify-pipeline` correctly reported that no application ledger existed yet. No user facts were invented to make the smoke pass.
-
-Career-Ops is therefore adopted at the upstream Skill/workflow/validator boundary. Its file-first tracker remains provider-local implementation and does not become Ordivon durable truth.
-
-## Reactive Resume: reuse its native plugin, do not wrap it
-
-Latest stable `v6.0.9` (`854459a44eb896ca185611bf669a65be4d5111cf`, published 2026-10-29) itself ships an Agent Plugins 1.0 plugin and streamable-HTTP MCP configuration. Both stable-release schemas validate against Ordivon's Agent Plugins 1.0 fixtures. An unauthenticated probe of the hosted MCP returned HTTP 401 plus the OAuth protected-resource challenge, proving the endpoint is reachable and guarded without exposing user data. An earlier candidate had named `v6.0.2`; the latest-release check falsified that stale currentness and the candidate was corrected rather than preserving it.
-
-Therefore Ordivon should consume the upstream plugin/service directly. A private Reactive Resume wrapper would be redundant. Self-hosted deployment must pin a stable release/image; hosted service currentness is observed independently.
-
-Reactive Resume application state remains **user-side product case state**, not employer truth.
-
-## Resume-Matcher: narrow compiler/verifier with a hard runtime boundary
-
-Stable v1.4.0 is pinned to commit `dcd0962656e3e1ac2b4490689159362f9d48cd32`.
-
-A negative probe on the current host Python 3.15 failed dependency resolution because the tested `onnxruntime` wheel set did not provide `cp315`. The exact same stable provider succeeded under `uvx --python 3.13`. That runtime version is therefore part of the provider contract, not an incidental local detail.
-
-The provider also reports SQLite as its default backend. That is **not admitted as Ordivon Career durable state**. Initial production-facing adoption is biased toward stateless/read-only validation tools; any persistent Resume-Matcher deployment requires explicit PostgreSQL configuration and a real consumer.
-
-Initial admitted tools:
+Replay:
 
 ```text
-get_status
-get_resume_schema
-validate_tailored_resume
-parse_check_file
-score_resume
+python3 meta/next/scripts/replay_career_provider_qualification.py
 ```
 
-Stateful compilation/rendering tools remain conditional. `create_application / update_application / list_applications` are excluded initially to prevent a second application-state authority.
+The replay initializes the exact stable release, verifies its git head, runs `node jd-skill-gap.mjs synthetic-jd.md`, executes the provider's built-in self-test, and executes a negative currentness probe.
 
-## First real vertical slices
+Observed deterministic result:
 
-### Official ATS -> deterministic gap diagnostic
+- supported by resume prose: `TypeScript, Rust, Python, Go`
+- gaps: `Spring, JavaScript, C++`
+- provider self-test: **115 passed, 0 failed**
+- stable release rejects `keyword-match.mjs --url ...` with `Unknown option: --url`
 
-A live Cloudflare `Software Engineer Intern (2027)` posting was captured from the official Greenhouse Job Board API, not through scraping. Career-Ops release `1.38.0` then deterministically extracted:
+This is a derived diagnostic only. It is not eligibility, hiring probability, or employer judgment. Career-Ops' file-first tracker is not Ordivon durable truth. Broader Career-Ops workflow/agent behavior remains donor material, not admitted behavior.
 
-`Spring, TypeScript, JavaScript, Rust, C++, Python, Go`.
+Evidence: `meta/next/evidence/career/career-ops-1.38.0-replay-20261101.json`.
 
-Against a synthetic CV, its keyword diagnostic reported 4/7 coverage (57%). That number is evidence that the deterministic function ran; it is **not** eligibility, offer probability or employer judgment.
+### 2. Reactive Resume — interface qualified, not behaviorally connected
 
-Evidence: `meta/next/evidence/career/cloudflare-8245211-career-ops-vertical-slice-20261031.json`.
+Latest stable `v6.0.9` at commit `854459a44eb896ca185611bf669a65be4d5111cf` itself contains an Agent Plugins 1.0 plugin and streamable-HTTP MCP configuration. Both schemas validate against Ordivon's Agent Plugins 1.0 fixtures.
 
-### Canonical master -> preservation -> scoring
+An unauthenticated probe of `https://rxresu.me/mcp` returned HTTP 401 with an OAuth protected-resource challenge. This proves a reachable guarded interface at observation time, not account access or successful resume/application operations.
 
-Stable Resume-Matcher v1.4.0 created a synthetic master in an ephemeral provider-local directory. The test then read the master back through `get_resume` before deriving drafts, preserving provider-generated `sectionMeta`.
+Reactive Resume remains the preferred external resume/cover-letter/application product surface because duplicating that UI/product in Ordivon has no demonstrated consumer. However, this candidate claims **no authenticated Reactive Resume product behavior**.
 
-- changing only summary/bullet text: **accepted**;
-- changing the institution from `Synthetic University` to `Invented University`: **rejected** with `education.identity`;
-- no application CRUD was invoked;
-- a draft ATS diagnostic was returned, but is explicitly typed as a provider diagnostic rather than hiring probability.
+## Demoted providers and deleted activation
 
-Evidence: `meta/next/evidence/career/resume-matcher-1.4.0-artifact-compiler-slice-20261101.json`.
+### Resume-Matcher
 
-This test also caught a useful composition rule: **read provider-canonical state back before deriving a mutation**. Guessing the provider's generated structure caused the first positive attempt to fail closed.
+The v1.4.0 experiment remains useful evidence: after creating and reading provider-canonical synthetic state, summary/bullet edits passed while an institution identity mutation failed with `education.identity`.
+
+Independent review found that this did **not** match the earlier "initial admitted tools" story: the demonstrated path required stateful `create_master_resume` + `get_resume`, and the observed backend was ephemeral SQLite. It is therefore **experiment only / no admitted consumer**. The positive result also emitted `GROUNDING_REVIEW_REQUIRED`, proving structural preservation is not equivalent to factual grounding.
+
+### JobSync
+
+No verified slice consumes JobSync. The demonstrated Opportunity Intake path used the official Greenhouse API directly. JobSync is therefore **reference only** for discovery patterns; there is no active binding or parallel tracker product.
+
+### JobSpy
+
+The prior candidate plugin was based on package/entrypoint smoke only. No live-board request or MCP behavior was accepted, and no current consumer requires it. The Ordivon JobSpy plugin activation is therefore deleted. JobSpy remains only a dormant fallback candidate.
+
+### Other donors
+
+AI-Job-Search remains a method reference; JSON Resume an interchange reference; RenderCV an on-demand renderer. None is an active binding without a consumer.
 
 ## Opportunity acquisition order
 
 ```text
-official ATS API / company structured feed
+official ATS API / employer structured source
   -> Schema.org JobPosting / provider-native structured page
-  -> official company career page
-  -> provider-native ATS discovery (e.g. selected JobSync methods)
-  -> JobSpy fallback
+  -> official employer career page
+  -> qualified external discovery provider with a concrete consumer
   -> generic browser/scrape only when justified
 ```
 
-JobSpy never displaces first-party sources when they exist.
+The first demonstrated live opportunity path used the official Greenhouse API directly.
 
-## Career semantic core
+## Historical evidence is not admission proof
 
-### CE1 Career Record
-Private, source-locatable facts, achievements, projects, education, credentials, claims and evidence. External standards/interchange may describe it; external products do not become its truth authority.
+Two earlier slices are retained because they contain useful observations, but their role is explicitly reduced:
 
-### CE2 Opportunity Intake
-Captures provider identity, source time, observation time and currentness. A captured listing does not prove future availability.
+- `cloudflare-8245211-career-ops-vertical-slice-20261031.json` = **historical live observation, not replay-complete admission proof**.
+- `resume-matcher-1.4.0-artifact-compiler-slice-20261101.json` = **experiment only, not an active provider binding**.
 
-### CE3 Role / Competency Model
-Separates hard eligibility, responsibilities, competencies, skills and preferences. Exact employer criteria outrank generic taxonomies.
+The new committed Career-Ops replay is the current provider-native behavioral qualification.
 
-### CE4 Evidence & Gap
-Maps target requirements to claims/evidence. Missing keyword != missing ability. UNKNOWN != FAIL.
+## Independent review and blockers
 
-### CE5 Artifact Compiler
-Materializes resume/cover-letter/answers/interview packets from approved facts. Provider preservation checks guard source identity; provider match scores remain diagnostics.
+A genuinely independent read-only Codex CLI review examined exact head:
 
-### CE6 Application Lifecycle
-Durable case state composes existing Runtime/Host and the selected product surface. Irreversible external effects require human approval and external receipt/reconciliation.
+`baf7f557e0bf29866f231cf1af4b8a4a58632257`
+
+Evidence:
+
+`meta/next/evidence/career/independent-codex-review-baf7f557-20261101.json`
+
+Verdict: **BLOCK**.
+
+It identified:
+
+1. Resume-Matcher's demonstrated stateful preservation path did not match the earlier admitted-tool boundary.
+2. The unit tests were mostly snapshot assertions over our own evidence JSON and could not establish provider behavior.
+3. The earlier vertical slices lacked enough retained input/invocation material for independent replay.
+
+The remediation in the current dirty candidate addresses those findings by demoting Resume-Matcher/JobSync/JobSpy, deleting the JobSpy plugin activation, separating snapshot tests from provider-native replay, and committing exact Career-Ops fixtures plus replay invocation.
+
+These fixes are **not yet considered reviewed**. A fresh independent review must inspect the exact post-remediation commit.
+
+A second Claude CLI review attempt produced no review because that local CLI was not authenticated. It is not counted as evidence.
+
+## Testing semantics
+
+`meta/next/tests/test_career_external_provider_stack.py` is now intentionally a **snapshot/composition consistency suite**. It checks that:
+
+- only the narrow Career-Ops capability is behaviorally qualified;
+- interface qualification does not masquerade as provider behavior;
+- dormant providers remain dormant;
+- the prior independent BLOCK is preserved;
+- committed replay evidence is bound to the exact fixture hashes;
+- historical experiments are not promoted into active bindings.
+
+Provider behavior is established by the explicit replay command, not by assertions over stored JSON.
 
 ## Formal / type-driven invariants
 
 ```text
-StableProviderCapability => observed in pinned release/package/commit
-MainOnlyCapability       => not executable contract
-SubmittedApplication     => observed submission effect OR explicitly UNVERIFIED_USER_CLAIM
-ExternalOutcome          => provider/external observation OR remains UNVERIFIED
-ArtifactClaim            => supported by Career Record evidence OR marked unsupported
-IrreversibleEffect       => HumanApproval
-UNKNOWN                  != FAIL
-Drafted                  != Submitted
-ProductCaseState         != EmployerTruth
-ProviderObservation      != FutureAvailability
-ProviderScore            != HiringProbability
-DurableCareerState       => PostgreSQL / existing Ordivon authority, not provider-default SQLite
+StableProviderCapability => observed in exact released artifact
+BehaviorallyQualified     => replayable provider-native behavior + retained input
+InterfaceQualified        != BehaviorallyQualified
+PackageSmoke              != ActiveBinding
+HistoricalExperiment      != ActiveBinding
+SubmittedApplication      => observed external effect OR UNVERIFIED_USER_CLAIM
+ExternalOutcome           => external/provider observation OR UNKNOWN
+ArtifactClaim             => supported by evidence OR marked unsupported
+IrreversibleEffect        => HumanApproval
+UNKNOWN                   != FAIL
+Drafted                   != Submitted
+ProductCaseState          != EmployerTruth
+ProviderScore             != HiringProbability
+DurableCareerState        => existing Ordivon/PostgreSQL authority
 ```
 
-## R2–R6 donor retention / deletion
+## Delete-by-default result
 
-Retain: SourceCut/currentness fencing, three-valued qualification, private-input negative tests, claim/evidence/external-truth separation, drafted-vs-submitted separation, exact provider identity and linked-source falsification.
+Current candidate deliberately does **not** add or retain a custom:
 
-Demote to specimens: HKUST-specific IELTS route and rust-analyzer issue experiments.
+- Career runtime/scheduler/queue;
+- second global registry;
+- resume/application UI;
+- canonical Career SQLite store;
+- parallel JobSync tracker;
+- active JobSpy wrapper/plugin;
+- Resume-Matcher application store;
+- generic scraper where first-party ATS data suffices.
 
-Delete from future Career ownership unless a real consumer proves otherwise: generic Agent capability registry ownership, Career execution runtime/scheduler, premature employer onboarding subsystem, duplicate resume/application UI and duplicate provider databases.
+## Integration gate
 
-## Current standing
+Remote `main` advanced from the earlier `ffd81854...` baseline to `277a62019b49...`. The intervening remote diff had zero exact overlap with the current Career remediation paths and no Career/provider-related paths, so the candidate is rebased onto `277a620...` before rereview.
 
-This remains a detached candidate. It is not merged into main and no production cutover or job application submission has occurred. What is now stronger than the initial candidate is that provider decisions are backed by executable release smokes and two end-to-end synthetic slices rather than repository popularity alone.
+The blocker is epistemic and explicit: the last independent review verdict is **BLOCK**, and the changes made after it still require a fresh independent rereview. Therefore:
+
+```text
+mergeAdmitted = false
+freshIndependentReviewRequired = true
+```
+
+No production cutover or external application effect has occurred.

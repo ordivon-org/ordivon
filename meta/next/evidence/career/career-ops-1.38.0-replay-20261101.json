@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.career.provider-native-replay",
+  "observedAtDate": "2026-11-01",
+  "provider": "career-ops-hq/career-ops",
+  "binding": {
+    "npm": "@santifer/career-ops",
+    "version": "1.38.0",
+    "releaseGitHead": "115bc9873e3d43e23883f3c8f16436617facc62c",
+    "packageCliBoundary": "top-level package CLI performs workspace init; qualified diagnostic runs from the initialized stable-release workspace",
+    "qualifiedEntrypoint": "node jd-skill-gap.mjs synthetic-jd.md"
+  },
+  "fixtures": {
+    "jobDescription": {
+      "path": "meta/next/fixtures/career/career-ops-synthetic-jd.md",
+      "sha256": "ee5e19b6b0a45cbcd81d4c57ec00f1831ad1d6d90437c91acbd671f74f987e21"
+    },
+    "syntheticCv": {
+      "path": "meta/next/fixtures/career/career-ops-synthetic-cv.md",
+      "sha256": "7d2967460f9b108d6c98a234415241851d5f7247d623bb7a775d045015a0bbef"
+    }
+  },
+  "invocations": {
+    "init": "npx --yes @santifer/career-ops@1.38.0 init <ephemeral>",
+    "gap": "node jd-skill-gap.mjs synthetic-jd.md",
+    "selfTest": "node jd-skill-gap.mjs --self-test",
+    "negativeCurrentnessProbe": "node keyword-match.mjs --url https://example.invalid"
+  },
+  "observed": {
+    "gapResult": {
+      "existing": [],
+      "supportedByResume": [
+        "TypeScript",
+        "Rust",
+        "Python",
+        "Go"
+      ],
+      "gap": [
+        "Spring",
+        "JavaScript",
+        "C++"
+      ],
+      "lowConfidence": null,
+      "partialCoverage": null
+    },
+    "selfTestSummary": "115 passed, 0 failed",
+    "negativeCurrentnessProbeExitCode": 1,
+    "negativeCurrentnessProbeObserved": "Unknown option: --url"
+  },
+  "acceptance": {
+    "exactReleaseHead": true,
+    "providerNativeDiagnosticReplayed": true,
+    "builtInSelfTestPassed": true,
+    "mainOnlySurfaceRejectedByStableRelease": true,
+    "userDataUsed": false,
+    "externalJobBoardQueried": false
+  },
+  "truthBoundary": "This replay proves only the pinned stable release's deterministic skill-gap behavior on committed synthetic fixtures and the recorded release/main interface drift. It does not prove employer eligibility, hiring probability, live vacancy state, user-specific Career data, or application submission.",
+  "initStdoutTail": "wright install chromium || npx playwright install chromium || node -e \"console.warn('\\ncareer-ops: could not install Playwright Chromium. Everything else is installed; PDF generation and browser checks need it. Run: npx playwright install chromium')\"\n\n\nadded 7 packages, and audited 8 packages in 3s\n\n3 packages are looking for funding\n  run `npm fund` for details\n\nfound 0 vulnerabilities\n\n✓ career-ops @ career-ops-v1.38.0 is ready in /tmp/ordivon-t/c3f3d783bbfd8025e8d8/ordivon-career-provider-replay-4dfq474f/career-ops\n\nNext steps:\n  1. cd /tmp/ordivon-t/c3f3d783bbfd8025e8d8/ordivon-career-provider-replay-4dfq474f/career-ops\n  2. Open your workspace with any of:  claude, codex   (detected)\n\nOn first launch it walks you through setup — your CV, profile and target\nroles — just by chatting. Nothing to configure by hand.\n\ncareer-ops is AI-agnostic — Claude Code, Codex, Qwen, OpenCode, Copilot, Antigravity and Grok all work.\n\nOptional (for PDF generation):\n  npx playwright install chromium\n\n"
+}

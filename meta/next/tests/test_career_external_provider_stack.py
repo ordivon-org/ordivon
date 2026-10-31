@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 CAREER = ROOT / "meta/next/evidence/career"
+FIXTURES = ROOT / "meta/next/fixtures/career"
 RANKING = CAREER / "github-career-provider-ranking-20261031.json"
 STACK = ROOT / "meta/next/planning/career-external-provider-stack-r1.json"
-PLUGIN = ROOT / "extensions/ordivon-career-discovery"
-MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
-PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+REVIEW = CAREER / "independent-codex-review-baf7f557-20261101.json"
+REPLAY = CAREER / "career-ops-1.38.0-replay-20261101.json"
+JOBSPY_PLUGIN = ROOT / "extensions/ordivon-career-discovery"
 
 
 def load(path: Path) -> dict:
@@ -19,136 +21,142 @@ def load(path: Path) -> dict:
     return value
 
 
-class CareerExternalProviderStackTest(unittest.TestCase):
-    def test_ranking_is_unique_descending_and_current_selection_is_maintained(self) -> None:
-        rows = load(RANKING)["providers"]
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+class CareerExternalProviderSnapshotTest(unittest.TestCase):
+    """Snapshot/composition consistency only.
+
+    Provider behavior is qualified by explicit replay commands/evidence, not by
+    these JSON assertions.
+    """
+
+    def test_ranking_is_a_dated_discovery_snapshot_not_activation_authority(self) -> None:
+        data = load(RANKING)
+        rows = data["providers"]
         self.assertEqual(len(rows), len({row["repository"] for row in rows}))
         self.assertEqual(rows, sorted(rows, key=lambda row: row["stars"], reverse=True))
-        by_repo = {row["repository"]: row for row in rows}
-        for repo in (
-            "career-ops-hq/career-ops",
-            "reactive-resume/reactive-resume",
-            "srbhr/Resume-Matcher",
-            "speedyapply/JobSpy",
-        ):
-            row = by_repo[repo]
-            self.assertFalse(row["archived"], repo)
-            self.assertIn(row["license"], {"MIT", "Apache-2.0"}, repo)
-            self.assertGreater(row["commits30d"], 0, repo)
-        self.assertEqual(by_repo["xitanggg/open-resume"]["decision"], "NO_NEW_ADOPTION_STALE")
-        self.assertEqual(by_repo["xitanggg/open-resume"]["commits90d"], 0)
+        self.assertIn("not correctness", data["truthBoundary"].lower())
+        self.assertIn("adoption additionally requires", data["rankingRule"].lower())
 
-    def test_stack_separates_release_identity_authority_and_persistence(self) -> None:
+    def test_stack_has_only_one_behaviorally_qualified_provider_capability(self) -> None:
         stack = load(STACK)
-        self.assertEqual(stack["schemaVersion"], 2)
-        self.assertEqual(stack["providerIdentityPolicy"]["executableContract"], "stable release/package/commit identity")
-        self.assertTrue(stack["providerIdentityPolicy"]["floatingLatestForbiddenForDurableExecution"])
+        self.assertEqual(stack["schemaVersion"], 3)
         self.assertTrue(stack["constraints"]["noCareerRuntime"])
         self.assertTrue(stack["constraints"]["noSecondGlobalRegistry"])
         self.assertTrue(stack["constraints"]["noDurableSqliteCareerState"])
-        self.assertTrue(stack["constraints"]["providerScoresAreDiagnosticsNotOutcomeProbability"])
-        gate = stack["integrationGate"]
-        self.assertTrue(gate["remoteMainMatchesSourceBaseline"])
-        self.assertFalse(gate["independentPeerCounterexampleObserved"])
-        self.assertFalse(gate["mergeAdmitted"])
-        by_id = {layer["id"]: layer for layer in stack["layers"]}
+        self.assertTrue(stack["constraints"]["unknownIsNotFalse"])
 
-        career_ops = by_id["workflow"]
-        self.assertEqual(career_ops["pin"], "1.38.0")
-        self.assertEqual(career_ops["releaseGitHead"], "115bc9873e3d43e23883f3c8f16436617facc62c")
-        self.assertNotEqual(career_ops["releaseGitHead"], career_ops["observedMain"])
-        self.assertEqual(career_ops["standing"], "RELEASE_INIT_VERIFIED")
+        qualified = stack["behaviorallyQualified"]
+        self.assertEqual(len(qualified), 1)
+        self.assertEqual(qualified[0]["provider"], "career-ops-hq/career-ops")
+        self.assertEqual(qualified[0]["version"], "1.38.0")
+        self.assertEqual(
+            qualified[0]["releaseGitHead"],
+            "115bc9873e3d43e23883f3c8f16436617facc62c",
+        )
+        self.assertEqual(qualified[0]["standing"], "BEHAVIORALLY_REPLAYED_SYNTHETIC")
 
-        reactive = by_id["product-surface"]
-        self.assertEqual(reactive["primary"], "reactive-resume/reactive-resume")
-        self.assertIn("NATIVE_PLUGIN", reactive["standing"])
-        self.assertEqual(reactive["stableChannel"], "v6.0.9")
-        self.assertEqual(reactive["releaseCommit"], "854459a44eb896ca185611bf669a65be4d5111cf")
-        self.assertEqual(reactive["hostedMcpEndpoint"], "https://rxresu.me/mcp")
+    def test_interface_qualification_does_not_claim_reactive_resume_behavior(self) -> None:
+        stack = load(STACK)
+        interfaces = {x["provider"]: x for x in stack["interfaceQualified"]}
+        reactive = interfaces["reactive-resume/reactive-resume"]
+        self.assertEqual(reactive["stableRelease"], "v6.0.9")
+        self.assertEqual(
+            reactive["releaseCommit"],
+            "854459a44eb896ca185611bf669a65be4d5111cf",
+        )
+        self.assertEqual(
+            reactive["standing"],
+            "STABLE_NATIVE_PLUGIN_INTERFACE_VERIFIED_NOT_CONNECTED",
+        )
+        self.assertEqual(
+            reactive["consumerState"],
+            "NO_AUTHENTICATED_CONSUMER_IN_THIS_CANDIDATE",
+        )
 
-        matcher = by_id["artifact-compiler"]
-        self.assertEqual(matcher["pin"], "1.4.0")
-        self.assertEqual(matcher["testedPython"], "3.13")
-        self.assertIn("create_application", matcher["excludedInitialTools"])
-        self.assertIn("SQLite", matcher["persistenceRule"])
-        self.assertNotIn("create_application", matcher["allowedInitialTools"])
-
-        jobsync = by_id["opportunity-discovery-methods"]
-        self.assertIn("NO_PARALLEL_PRODUCT", jobsync["standing"])
-
-    def test_jobspy_agent_plugin_is_pinned_and_secret_free(self) -> None:
-        plugin = load(PLUGIN / "plugin.json")
-        mcp = load(PLUGIN / "mcp.json")
-        self.assertEqual(plugin["$schema"], PLUGIN_SCHEMA)
-        self.assertEqual(mcp["$schema"], MCP_SCHEMA)
-        server = mcp["mcpServers"]["jobspy"]
-        self.assertEqual(server["type"], "stdio")
-        self.assertEqual(server["command"], "uvx")
-        self.assertEqual(server["args"], ["--from", "python-jobspy[mcp]==1.4.1", "mcp-jobspy"])
-        self.assertNotIn("@latest", json.dumps(mcp))
-        self.assertNotIn("env", server)
-
-    def test_career_ops_release_is_executable_and_main_drift_is_not_promoted(self) -> None:
-        ev = load(CAREER / "career-ops-1.38.0-provider-smoke-20261031.json")
-        self.assertTrue(ev["acceptance"]["fullEphemeralInit"])
-        self.assertTrue(ev["acceptance"]["freshStateDetectedWithoutFabrication"])
-        self.assertTrue(ev["acceptance"]["releaseVsMainDriftDetected"])
-        self.assertNotEqual(ev["releaseGitHead"], ev["observedMain"])
-        self.assertIn("Unknown option", ev["currentnessCounterexample"]["executedNegativeProbe"])
-
-    def test_reactive_resume_reuses_upstream_plugin_and_preserves_auth_boundary(self) -> None:
         ev = load(CAREER / "reactive-resume-mcp-boundary-20261031.json")
-        self.assertEqual(ev["stableRelease"]["tag"], "v6.0.9")
-        self.assertEqual(ev["stableRelease"]["gitCommit"], "854459a44eb896ca185611bf669a65be4d5111cf")
-        self.assertTrue(ev["acceptance"]["stableReleaseLatestAtObservation"])
         self.assertTrue(ev["acceptance"]["stableReleasePluginSchemasValid"])
-        self.assertEqual(ev["adoptionRule"]["wrapperDecision"], "REUSE_UPSTREAM_NATIVE_PLUGIN_NO_ORDIVON_WRAPPER")
         self.assertEqual(ev["hostedBoundaryProbe"]["httpStatus"], 401)
-        self.assertTrue(ev["acceptance"]["currentPluginSchemasValid"])
-        self.assertTrue(ev["acceptance"]["authBoundaryObserved"])
+        self.assertIn("neither grants access", ev["truthBoundary"].lower())
 
-    def test_provider_overlap_falsification_preserves_only_unique_roles(self) -> None:
-        ev = load(CAREER / "provider-overlap-falsification-20261101.json")
-        self.assertEqual(ev["reactiveResume"]["stableRelease"], "v6.0.9")
+    def test_unproven_providers_are_dormant_and_jobspy_plugin_is_deleted(self) -> None:
+        stack = load(STACK)
+        dormant = {x["provider"]: x for x in stack["dormantReferences"]}
         self.assertEqual(
-            ev["jobSyncOverlap"]["decision"],
-            "KEEP_METHOD_DONOR_REJECT_PARALLEL_TRACKER_PRODUCT",
+            dormant["srbhr/Resume-Matcher"]["standing"],
+            "EXPERIMENT_ONLY_NO_ADMITTED_CONSUMER",
         )
-        self.assertIn("scheduled Greenhouse discovery", ev["jobSyncOverlap"]["uniqueRetainedMethods"])
         self.assertEqual(
-            ev["resumeMatcherOverlap"]["decision"],
-            "KEEP_NARROW_PRESERVATION_VERIFIER",
+            dormant["Gsync/jobsync"]["standing"],
+            "REFERENCE_ONLY_NO_ACTIVE_BINDING",
         )
-        self.assertFalse(ev["resumeMatcherOverlap"]["equivalentReactiveResumeNamedToolObserved"])
-        self.assertEqual(ev["lowerStarSearch"]["conclusionState"], "UNKNOWN")
-        self.assertEqual(ev["correction"]["priorReactiveResumeStableChannel"], "v6.0.2")
-        self.assertEqual(ev["correction"]["correctedStableChannel"], "v6.0.9")
+        self.assertEqual(
+            dormant["speedyapply/JobSpy"]["standing"],
+            "DORMANT_FALLBACK_PACKAGE_SMOKE_ONLY",
+        )
+        self.assertFalse(JOBSPY_PLUGIN.exists())
 
-    def test_official_ats_to_gap_slice_keeps_diagnostics_bounded(self) -> None:
-        ev = load(CAREER / "cloudflare-8245211-career-ops-vertical-slice-20261031.json")
-        self.assertEqual(ev["providerBindings"]["opportunityIntake"]["provider"], "Greenhouse official Job Board API")
-        self.assertTrue(ev["syntheticCandidate"])
-        self.assertGreater(len(ev["extractedSkills"]), 0)
-        self.assertGreaterEqual(ev["coverage"]["coveragePct"], 0)
-        self.assertLessEqual(ev["coverage"]["coveragePct"], 100)
-        self.assertIn("not employer eligibility", ev["truthBoundary"])
+    def test_independent_review_block_is_preserved_and_requires_fresh_rereview(self) -> None:
+        review = load(REVIEW)
+        self.assertEqual(review["reviewedHead"], "baf7f557e0bf29866f231cf1af4b8a4a58632257")
+        self.assertEqual(review["verdict"], "BLOCK")
+        self.assertEqual(
+            {x["id"] for x in review["mergeBlockers"]},
+            {"C1", "C2", "C3"},
+        )
+        self.assertFalse(review["secondHarnessAttempt"]["countedAsIndependentReview"])
 
-    def test_resume_matcher_stable_runtime_and_artifact_preservation(self) -> None:
-        smoke = load(CAREER / "resume-matcher-1.4.0-provider-smoke-20261101.json")
-        self.assertTrue(smoke["acceptance"]["defaultHostPythonRejected"])
-        self.assertTrue(smoke["acceptance"]["python313CliStarts"])
-        self.assertEqual(smoke["getStatus"]["value"]["backend"], "sqlite")
-        self.assertIn("create_application", smoke["adoptionBoundary"]["excludedInitialTools"])
+        gate = load(STACK)["integrationGate"]
+        self.assertEqual(gate["lastIndependentReview"]["verdict"], "BLOCK")
+        self.assertTrue(gate["lastIndependentReview"]["independentCounterexampleObserved"])
+        self.assertTrue(gate["freshIndependentReviewRequired"])
+        self.assertFalse(gate["mergeAdmitted"])
 
-        ev = load(CAREER / "resume-matcher-1.4.0-artifact-compiler-slice-20261101.json")
-        self.assertTrue(ev["acceptance"]["canonicalMasterReadBack"])
-        self.assertTrue(ev["acceptance"]["positiveTailoredDraftAccepted"])
-        self.assertTrue(ev["acceptance"]["factMutationRejected"])
-        self.assertFalse(ev["acceptance"]["applicationCrudUsed"])
-        self.assertTrue(ev["positivePreservationCheck"]["valid"])
-        self.assertFalse(ev["negativePreservationCheck"]["valid"])
-        self.assertTrue(any("education.identity" in x for x in ev["negativePreservationCheck"]["violations"]))
-        self.assertIn("not hiring probability", ev["truthBoundary"])
+    def test_provider_native_replay_evidence_is_bound_to_committed_fixtures(self) -> None:
+        ev = load(REPLAY)
+        self.assertEqual(ev["binding"]["version"], "1.38.0")
+        self.assertEqual(
+            ev["binding"]["releaseGitHead"],
+            "115bc9873e3d43e23883f3c8f16436617facc62c",
+        )
+        jd = FIXTURES / "career-ops-synthetic-jd.md"
+        cv = FIXTURES / "career-ops-synthetic-cv.md"
+        self.assertEqual(ev["fixtures"]["jobDescription"]["sha256"], sha256(jd))
+        self.assertEqual(ev["fixtures"]["syntheticCv"]["sha256"], sha256(cv))
+        self.assertEqual(
+            ev["observed"]["gapResult"]["supportedByResume"],
+            ["TypeScript", "Rust", "Python", "Go"],
+        )
+        self.assertEqual(
+            ev["observed"]["gapResult"]["gap"],
+            ["Spring", "JavaScript", "C++"],
+        )
+        self.assertEqual(ev["observed"]["selfTestSummary"], "115 passed, 0 failed")
+        self.assertEqual(ev["observed"]["negativeCurrentnessProbeExitCode"], 1)
+        self.assertEqual(
+            ev["observed"]["negativeCurrentnessProbeObserved"],
+            "Unknown option: --url",
+        )
+        self.assertFalse(ev["acceptance"]["userDataUsed"])
+        self.assertFalse(ev["acceptance"]["externalJobBoardQueried"])
+
+    def test_historical_slices_are_not_admission_proof(self) -> None:
+        stack = load(STACK)
+        by_id = {x["id"]: x for x in stack["evidenceClassification"]}
+        self.assertEqual(
+            by_id["cloudflare-live-slice"]["standing"],
+            "HISTORICAL_LIVE_OBSERVATION_NOT_REPLAY_COMPLETE",
+        )
+        self.assertEqual(
+            by_id["resume-matcher-preservation-slice"]["standing"],
+            "EXPERIMENT_ONLY_NOT_ADMITTED",
+        )
+
+        matcher = load(CAREER / "resume-matcher-1.4.0-artifact-compiler-slice-20261101.json")
+        self.assertIn("GROUNDING_REVIEW_REQUIRED", matcher["positivePreservationCheck"]["grounding_warnings"][0])
+        self.assertIn("SQLite", matcher["sqliteBoundary"])
 
 
 if __name__ == "__main__":

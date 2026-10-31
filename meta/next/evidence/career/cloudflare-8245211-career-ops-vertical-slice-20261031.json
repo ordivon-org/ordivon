@@ -86,5 +86,7 @@
     ],
     "keywordSource": "report"
   },
-  "truthBoundary": "The official ATS observation establishes the captured posting at observation time. Career-Ops extraction/coverage are deterministic diagnostics over that text and a synthetic CV; they are not employer eligibility, hiring probability, application submission, or future vacancy proof."
+  "evidenceStanding": "HISTORICAL_LIVE_OBSERVATION_NOT_REPLAY_COMPLETE",
+  "admissionUse": "context only; the retained file does not include all source bytes, synthetic inputs and invocations needed for independent provider replay",
+  "truthBoundary": "The official ATS observation establishes the captured posting at observation time. Career-Ops extraction/coverage are deterministic diagnostics over that text and a synthetic CV; they are not employer eligibility, hiring probability, application submission, future vacancy proof, or current provider-admission proof."
 }

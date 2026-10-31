@@ -1,6 +1,0 @@
-{
-  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "ordivon.career-discovery-jobspy",
-  "version": "0.1.0",
-  "description": "Pinned external JobSpy MCP discovery provider for Ordivon Career Engineering; read-only discovery candidate, not job/employer authority."
-}

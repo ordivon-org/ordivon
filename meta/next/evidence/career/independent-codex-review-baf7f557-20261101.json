@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.career.independent-review",
+  "observedAtDate": "2026-11-01",
+  "reviewedHead": "baf7f557e0bf29866f231cf1af4b8a4a58632257",
+  "sourceBaseline": "ffd81854b424b4fb136715a8ea022ca3b28fc2e7",
+  "reviewer": {
+    "harness": "Codex CLI",
+    "session": "ephemeral",
+    "repositoryAccess": "read-only sandbox",
+    "userConfigLoaded": false,
+    "modelIdentity": "not asserted by evidence"
+  },
+  "runtimeEvidence": {
+    "jobId": "job-01a1937b-8247-7592-bce3-d83d807ccf5c",
+    "attemptId": "attempt-01a1937b-8247-7592-bce3-d8486e9f6056",
+    "stdoutArtifactId": "attempt-01a1937b-8247-7592-bce3-d8486e9f6056.stdout",
+    "codexExitCode": 0,
+    "repositoryModifiedByReviewer": false
+  },
+  "secondHarnessAttempt": {
+    "harness": "Claude CLI",
+    "countedAsIndependentReview": false,
+    "result": "Not logged in; no review produced"
+  },
+  "verdict": "BLOCK",
+  "mergeBlockers": [
+    {
+      "id": "C1",
+      "severity": "high",
+      "claim": "Resume-Matcher preservation was presented as initially admitted, but the demonstrated path requires create_master_resume plus get_resume while the admitted tool list omitted/conditioned those operations and only exercised ephemeral SQLite.",
+      "requiredAction": "Demote Resume-Matcher preservation to an experiment unless a real consumer proves the exact state/persistence composition."
+    },
+    {
+      "id": "C2",
+      "severity": "high",
+      "claim": "The local unit tests are mostly snapshot-consistency checks over recorded JSON and do not themselves establish provider behavior.",
+      "requiredAction": "Stop treating snapshot tests as behavioral qualification and add an exact provider-native replay for every capability used to justify admission."
+    },
+    {
+      "id": "C3",
+      "severity": "medium",
+      "claim": "The original vertical slices did not retain enough exact input/invocation material for an independent replay of their strongest behavioral claims.",
+      "requiredAction": "Commit synthetic fixtures and exact invocation contracts; classify unreplayable historical slices as observations rather than admission proof."
+    }
+  ],
+  "deletionCandidates": [
+    {
+      "component": "Gsync/jobsync",
+      "decision": "DEMOTE",
+      "reason": "No verified slice consumes it; the demonstrated opportunity path uses the official Greenhouse API directly."
+    },
+    {
+      "component": "srbhr/Resume-Matcher",
+      "decision": "DEMOTE",
+      "reason": "Only preservation was non-duplicate; general compiler/render/scoring roles have no verified consumer."
+    },
+    {
+      "component": "career-ops-hq/career-ops",
+      "decision": "KEEP_NARROW",
+      "reason": "The deterministic extraction/gap behavior has a distinct demonstrated role; broad workflow adoption is not established."
+    },
+    {
+      "component": "speedyapply/JobSpy",
+      "decision": "DEMOTE",
+      "reason": "Only package/help/entrypoint smoke exists; no live-board or MCP behavioral acceptance exists."
+    }
+  ],
+  "counterexamples": [
+    {
+      "claimUnderTest": "A successful Resume-Matcher preservation check establishes grounded tailored content.",
+      "state": "VERIFIED",
+      "counterexample": "The positive result is valid=true while also returning GROUNDING_REVIEW_REQUIRED for summary; structural preservation does not discharge factual grounding."
+    },
+    {
+      "claimUnderTest": "The integration record described the exact reviewed HEAD.",
+      "state": "VERIFIED",
+      "counterexample": "The static candidateHead field named e597d7f while the reviewed HEAD was baf7f557; a commit cannot safely use a self-referential current-head claim."
+    },
+    {
+      "claimUnderTest": "Reactive Resume product behavior was verified.",
+      "state": "VERIFIED",
+      "counterexample": "Evidence proves stable plugin schemas and hosted OAuth protection, not authenticated resume/application operations."
+    },
+    {
+      "claimUnderTest": "Stars are only discovery evidence.",
+      "state": "VERIFIED",
+      "counterexample": "One nonselection rationale used low stars without a comparative behavioral result; popularity must not be an acceptance criterion."
+    }
+  ],
+  "acceptance": {
+    "independentCounterexampleObserved": true,
+    "verdictBlocksMerge": true,
+    "reviewWasReadOnly": true,
+    "failedClaudeAttemptExcluded": true
+  },
+  "truthBoundary": "This records one independent read-only Codex review of the exact reviewed commit and its blockers. It is not consensus. Fixes made after the reviewed commit require a fresh independent review."
+}

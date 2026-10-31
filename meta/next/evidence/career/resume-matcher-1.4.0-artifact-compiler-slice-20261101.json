@@ -205,5 +205,7 @@
     "applicationCrudUsed": false
   },
   "sqliteBoundary": "The provider used only an ephemeral temporary directory for this smoke. Its default SQLite backend is NOT accepted as Ordivon Career durable state. Persisted provider state requires explicit PostgreSQL configuration and a real consumer.",
-  "truthBoundary": "This proves stable provider canonicalization, preservation checks and draft scoring on synthetic data only. The score is a provider diagnostic, not hiring probability or employer judgment, and no application was created or submitted."
+  "evidenceStanding": "EXPERIMENT_ONLY_NOT_ADMITTED",
+  "admissionUse": "preservation counterexample only; the demonstrated path requires stateful create/read and observed ephemeral SQLite, so no active binding is inferred",
+  "truthBoundary": "This historical experiment observed provider canonicalization, preservation checks and draft scoring on synthetic data only. The positive check still emitted GROUNDING_REVIEW_REQUIRED, so preservation does not establish factual grounding. The score is not hiring probability or employer judgment, and this evidence does not admit a persisted Career provider binding."
 }
