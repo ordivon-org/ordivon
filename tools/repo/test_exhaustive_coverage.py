@@ -413,7 +413,7 @@ class ExactGitCrossFormatReferenceTests(unittest.TestCase):
                             "capabilities/artifact/scripts/artifact_audio.py"
                             for h in hits))
         self.assertTrue(any(h["candidateConsumerPath"] ==
-                            "capabilities/artifact/artifact-delivery/donor-r1/manifest.json"
+                            "capabilities/artifact/artifact-delivery/shadow-v2/examples/audio-flac-pcm16-r1-v2.json"
                             for h in hits))
         self.assertTrue(all(h["semanticConsumerStanding"] == "UNKNOWN"
                             for h in hits))
