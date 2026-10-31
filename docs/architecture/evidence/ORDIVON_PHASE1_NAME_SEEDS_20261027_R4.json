@@ -1077,7 +1077,7 @@
     },
     {
       "canRenamePhysicalPath": false,
-      "candidateName": "artifact-shadow-contract-experiments",
+      "candidateName": "artifact-format-schemas-and-smoke-inputs",
       "consumerStanding": "UNKNOWN",
       "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
       "priorLabelEvidence": "PATH_INFERRED",
@@ -1187,7 +1187,7 @@
     },
     {
       "canRenamePhysicalPath": false,
-      "candidateName": "declarative-agent-plugin-package",
+      "candidateName": "gateway-client-plugin-manifest",
       "consumerStanding": "UNKNOWN",
       "evidenceBoundary": "PEER_R2_OBSERVATION_PATH_AND_RECORDED_README_OR_PATH_ONLY",
       "priorLabelEvidence": "OBSERVED two JSON plugin package files",

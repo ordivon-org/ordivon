@@ -78,6 +78,26 @@ class SourceContentFacetTests(unittest.TestCase):
         self.assertNotEqual(original["meta/next/authorities/records/"]["candidateName"],
                             original["meta/next/authorities/observations/"]["candidateName"])
 
+    def test_agent_names_preserve_active_artifact_schema_and_gateway_plugin_consumers(self):
+        seed=json.loads((ROOT / "docs/architecture/evidence/ORDIVON_PHASE1_NAME_SEEDS_20261027_R4.json").read_text())
+        named={x["sourcePrefix"]:x for x in seed["specificPathDisplayAliases"]}
+        artifact=named["capabilities/artifact/artifact-delivery/shadow-contracts/"]
+        plugin=named["extensions/ordivon-control-plane/"]
+        self.assertEqual(artifact["candidateName"],"artifact-format-schemas-and-smoke-inputs")
+        self.assertEqual(plugin["candidateName"],"gateway-client-plugin-manifest")
+        for item in (artifact,plugin):
+            self.assertIs(item["canRenamePhysicalPath"],False)
+            self.assertEqual(item["consumerStanding"],"UNKNOWN")
+            self.assertEqual(item["semanticQualification"],"UNQUALIFIED")
+        self.assertIn("shadow-contracts/audio-flac-contract-v1.schema.json",
+            (ROOT/"capabilities/artifact/artifact-delivery/donor-r1/manifest.json").read_text())
+        self.assertIn("shadow-contracts/design-3d-glb-material-scene-game-smoke-r1.json",
+            (ROOT/"capabilities/artifact/artifact-delivery/consumer-acceptance/game-veilwild-glb-material-scene-r1.json").read_text())
+        self.assertIn("not an executable control plane",
+            (ROOT/"extensions/ordivon-control-plane/plugin.json").read_text())
+        self.assertIn('DEFAULT_PLUGIN = REPO_ROOT / "extensions" / "ordivon-control-plane"',
+            (ROOT/"meta/next/scripts/materialize_agent_plugin.py").read_text())
+
     def test_shebang_without_extension_is_observable(self):
         v=M.content_probe("scripts/check-provider","100755",26,b"#!/usr/bin/env bash\nexit 0\n")
         self.assertEqual(v["contentForm"],"SHEBANG_SCRIPT")
