@@ -720,6 +720,51 @@ def test_native_owner_source_projection_is_scoped_and_deterministic() -> None:
     assert module.main(["--project-owner-graphs"]) == 0
 
 
+def test_runtime_r07_r08_r09_real_source_contract_declarations_are_projected() -> None:
+    """Only claim source-bound R2.1 declarations; no implementation/formal upgrade."""
+    from tools.repo.check_architecture_docs import project_owner_lego_source_graph
+
+    graph = project_owner_lego_source_graph(ROOT)
+    vertices = {row["ref"]: row for row in graph["vertices"]}
+    owner = "services/runtime/planning/lego-plan-r1.json"
+    expected = {
+        "R07": "crates/ordivon-runtime-core/src/runtime/authority_contract.rs",
+        "R08": "crates/ordivon-runtime-core/src/runtime/operation_circuit.rs",
+        "R09": "crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
+    }
+    for identity, owner_relative_path in expected.items():
+        node = vertices[f"{owner}#{identity}"]
+        assert node["semanticContractStanding"] == "DECLARED_IO_BEHAVIOR_NOT_VERIFIED"
+        assert node["declaredContractProfile"] == "r21-source-declared-v1"
+        assert node["declaredResponsibility"]
+        assert node["declaredInputs"] and node["declaredOutputs"]
+        assert node["declaredBehavioralContract"]
+        assert node["declaredAcceptance"]
+        assert node["declaredAuthority"]
+        assert any(
+            x["path"] == f"services/runtime/{owner_relative_path}"
+            and x["qualification"] == "WORKTREE_FILE_BYTES_ONLY"
+            for x in node["sourceAnchors"]
+        )
+    assert "ACTUAL_CONSUMER" in graph["excluded"]["unverifiedFacets"]
+    assert "FORMAL_PROOF" in graph["excluded"]["unverifiedFacets"]
+
+
+@pytest.mark.parametrize("dropped", ("inputs", "outputs", "behavioralContract", "all"))
+def test_declared_r21_contract_cannot_silently_lose_one_role(dropped: str) -> None:
+    """Incremental adoption: reject incomplete declarations, not legacy absence."""
+    owner = "services/runtime/planning/lego-plan-r1.json"
+    plan = json.loads((ROOT / owner).read_text(encoding="utf-8"))
+    target = next(node for node in plan["nodes"] if node["id"] == "R07")
+    if dropped == "all":
+        for role in ("inputs", "outputs", "behavioralContract"):
+            target.pop(role)
+    else:
+        target.pop(dropped)
+    with pytest.raises(module.ArchitectureDocsError, match="incomplete declared R2.1 contract"):
+        module.validate_owner_lego_graph(plan)
+
+
 def test_native_git_sourcecut_graph_ignores_mutable_worktree_plan(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
