@@ -217,3 +217,73 @@ def test_nov01_typed_issue_census_reuses_existing_owners_without_proof_promotion
     bad["source"]["protectedGithubMain"] = "not-a-git-sha"
     with pytest.raises(module.ArchitectureDocsError, match="invalid Git source revision"):
         module.validate_formal_issue_census(bad, plans)
+
+
+def test_nov1_r2_problem_classes_are_finite_and_r21_refinement_links_cr21() -> None:
+    root = Path(__file__).resolve().parents[2]
+    path = root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261101_R2.json"
+    census = json.loads(path.read_text(encoding="utf-8"))
+    plans = {
+        row["ownerPlan"]: json.loads((root / row["ownerPlan"]).read_text(encoding="utf-8"))
+        for row in census["registrations"]
+    }
+    issue = next(
+        row for row in census["issues"]
+        if row["id"] == "FORMAL-R21-REFINEMENT-20261101-R2"
+    )
+    assert issue["registration"] == {
+        "state": "LINKED",
+        "ownerPlan": "packages/composition/planning/lego-plan-r1.json",
+        "slice": "CR21",
+    }
+    cr21 = next(
+        row for row in plans["packages/composition/planning/lego-plan-r1.json"]["slices"]
+        if row["id"] == "CR21"
+    )
+    assert cr21["status"] == "PROPOSED"
+    assert set(cr21["nodeIds"]) == {"C01", "C02", "C03", "C04", "C05", "C06"}
+    module.validate_formal_issue_census(census, plans)
+
+    typo = copy.deepcopy(census)
+    typo["issues"][0]["problemClass"] = "SOURCE_GRAPH_INTEGRIT"
+    with pytest.raises(
+        module.ArchitectureDocsError, match="unknown formal issue problemClass"
+    ):
+        module.validate_formal_issue_census(typo, plans)
+
+
+def test_nov1_r2_host_cross_schema_relation_remains_unknown() -> None:
+    root = Path(__file__).resolve().parents[2]
+    path = root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261101_R2.json"
+    census = json.loads(path.read_text(encoding="utf-8"))
+    plans = {
+        row["ownerPlan"]: json.loads((root / row["ownerPlan"]).read_text(encoding="utf-8"))
+        for row in census["registrations"]
+    }
+    host = next(
+        row for row in census["issues"]
+        if row["id"] == "HOST-PLAN-REFINEMENT-20261101"
+    )
+    assert host["problemClass"] == "OWNER_PLAN_REFINEMENT"
+    assert host["registration"] == {
+        "state": "LINKED",
+        "ownerPlan": "services/host/planning/lego-plan-r1.json",
+        "slice": "HR3ALIGN",
+    }
+    assert "SEMANTIC_REFINEMENT_UNKNOWN" in host["standing"]
+    module.validate_formal_issue_census(census, plans)
+
+
+def test_nov1_r2_closed_dependency_issue_is_time_scoped_not_permanent_latest_claim() -> None:
+    root = Path(__file__).resolve().parents[2]
+    census = json.loads(
+        (root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261101_R2.json")
+        .read_text(encoding="utf-8")
+    )
+    issue = next(
+        row for row in census["issues"]
+        if row["id"] == "DEPS-CURRENTNESS-20261101-R2"
+    )
+    assert issue["standing"].startswith("CLOSED_CURRENT_")
+    assert "time-scoped" in issue["formalObligation"]
+    assert issue["decision"].startswith("No dependency action")

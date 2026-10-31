@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.formal-lego-issue-census-evidence",
+  "truthRole": "time-scoped-audit-evidence-not-registry-or-admission",
+  "observedAt": "2026-11-01T03:40+08:00 onward; mutable counts are exact only at this R2 observation.",
+  "source": {
+    "protectedGithubMain": "277a62019b498614baf7b9666fb7a4c607c5172e",
+    "linuxLocalMain": "21995702f73f477fd3903dc6e98b6de1f8069a92",
+    "mergeBase": "21995702f73f477fd3903dc6e98b6de1f8069a92",
+    "parentEvidence": "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261101_R1.json",
+    "workspaceSourceCut": "277a62019b498614baf7b9666fb7a4c607c5172e",
+    "localRefSnapshotDigest": "sha256:c579b96a7bc7d527e13a600fd75e3d7baab3be734f31efed90a96331910d3dbe",
+    "observationBoundary": "Protected main, local refs, PRs, worktrees, registries and installed state are mutable. Revalidate the exact premise before any external effect."
+  },
+  "representation": {
+    "primary": "typed incremental Problem LEGO evidence over an exact SourceCut",
+    "problemStates": [
+      "OBSERVED",
+      "UNKNOWN",
+      "REPRODUCED",
+      "OWNER_NATIVE_VERIFIED",
+      "PROTECTED_CURRENT_CI_VERIFIED",
+      "CLOSED"
+    ],
+    "representationKinds": [
+      "type",
+      "graph",
+      "constraint",
+      "state-machine",
+      "algebra",
+      "equivalence",
+      "declarative",
+      "abstraction",
+      "causal",
+      "compression"
+    ],
+    "provenance": "R2 increment over immutable R1 evidence; owner-local slices remain non-authoritative planning projections.",
+    "formalSafety": "UNKNOWN != FALSE; declaration complete != model proof != implementation refinement != installed currentness != domain acceptance.",
+    "deletePolicy": "DELETE is default only after exact consumer/effect/provenance closure proves no unique value; history/name/existence never grant retention."
+  },
+  "registrations": [
+    {
+      "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+      "slice": "RG1",
+      "scope": "Git object/DAG/currentness and source-carrier redundancy under exact SourceCut."
+    },
+    {
+      "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+      "slice": "RG2",
+      "scope": "Dependency updater/currentness relation with time-scoped latest-stable closure."
+    },
+    {
+      "ownerPlan": "packages/composition/planning/lego-plan-r1.json",
+      "slice": "CR21",
+      "scope": "Proposed R2.1 mature semantic/composition kernel over existing Composition nodes and declaration inspection."
+    },
+    {
+      "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+      "slice": "RW12",
+      "scope": "Runtime PostgreSQL durable-authority cutover state machine and physical refinement obligations."
+    },
+    {
+      "ownerPlan": "services/harness/planning/lego-plan-r1.json",
+      "slice": "HS2",
+      "scope": "Harness action-admission/effect-binding authority separation."
+    },
+    {
+      "ownerPlan": "platform/network/planning/lego-plan-r1.json",
+      "slice": "NS2",
+      "scope": "Network no-forwarding/egress denial semantics."
+    },
+    {
+      "ownerPlan": "services/host/planning/lego-plan-r1.json",
+      "slice": "HR3ALIGN",
+      "scope": "Host R3-to-R1 total source alignment; semantic refinement and replacement remain explicitly UNKNOWN."
+    }
+  ],
+  "issues": [
+    {
+      "id": "GIT-OBJECT-INTEGRITY-20261101",
+      "problemClass": "SOURCE_GRAPH_INTEGRITY",
+      "naturalOwner": "tools/repo",
+      "standing": "REPAIRED_INVALID_EMPTY_LOOSE_OBJECTS_PROMISOR_MARKERS_TYPED_SEPARATELY",
+      "observation": "The shared core object store earlier contained 15 zero-byte loose objects matching objects/xx/<38hex>. Zero-byte pack/*.promisor files were separately typed as valid partial-clone metadata and retained. Invalid loose objects were removed; current protected-main objects are readable.",
+      "evidence": "Runtime repair observation on 2026-10-31 plus current SourceCut 277a62019b498614baf7b9666fb7a4c607c5172e",
+      "consumers": "Git DAG/currentness/UniqueEffect/merge-base reasoning and every source-bound proof or cleanup decision.",
+      "formalObligation": "LooseObject(p) => size(p)>0 and GitHashValid(p); PromisorMarker(p) is a distinct carrier. If object integrity is unknown, dependent graph proofs remain UNKNOWN. Repair may delete only proven zero-information invalid loose carriers.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG1"
+      },
+      "representation": {
+        "primary": "type",
+        "supporting": [
+          "constraint"
+        ],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "REPAIRED_SOURCE_ENVIRONMENT",
+        "requiredWitness": "Typed loose-object/promisor distinction, readable exact protected-main object and native Git integrity observation before graph mutation.",
+        "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
+      },
+      "decision": "Keep Git's native object model as owner; do not build a custom object registry or delete zero-byte files by untyped heuristic."
+    },
+    {
+      "id": "GIT-CARRIER-REDUNDANCY-20261101",
+      "problemClass": "GIT_RESIDUE",
+      "naturalOwner": "tools/repo",
+      "standing": "THREE_PROVEN_REDUNDANT_LOCAL_BRANCH_CARRIERS_RETIRED_REMAINDER_REQUIRES_FRESH_PROOF",
+      "observation": "On SourceCut 277a62019b498614baf7b9666fb7a4c607c5172e, one CAS-bounded cleanup found exactly three local branches already merged into protected main, absent from open PR heads/worktree heads/tracked text evidence, with unchanged remote/ref snapshot. They were deleted: arch/p0-r21-effect-sensitive-substitution-post-frame-20261027, build/latest-node-consumer-dependencies-20261031, fix/r21-native-impact-no-queue-nonvacuity-r1. Snapshot now had 41 local branches, 99 worktrees and 47 open PRs before further concurrent changes.",
+      "evidence": "Runtime clientRequestId ordivon-safe-local-branch-retirement-20261101-r1; ref snapshot sha256:c579b96a7bc7d527e13a600fd75e3d7baab3be734f31efed90a96331910d3dbe",
+      "consumers": "Agent SourceCut discovery, repository branch namespace, worktree lifecycle, PR/evidence provenance and disk/control-plane complexity.",
+      "formalObligation": "DeleteCarrier(b) requires b reachable from exact protected main, no open-PR head, no live worktree head, no explicit retained evidence reference and unchanged ref/remote snapshot immediately before deletion. Existence/history/name never implies retention value.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG1"
+      },
+      "representation": {
+        "primary": "graph",
+        "supporting": [
+          "compression"
+        ],
+        "methodSkill": ".agents/skills/project-kernel-decomposition/SKILL.md",
+        "evidenceState": "OWNER_NATIVE_MUTATION_OBSERVED",
+        "requiredWitness": "Exact reachability and consumer-set difference plus pre-effect remote/ref CAS revalidation.",
+        "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
+      },
+      "decision": "Continue DELETE-by-default only per fresh exact snapshot; do not reuse yesterday's candidate list after concurrent branch/worktree changes."
+    },
+    {
+      "id": "DEPS-CURRENTNESS-20261101-R2",
+      "problemClass": "DEPENDENCY_CONVERGENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "CLOSED_CURRENT_PROTECTED_MAIN_LATEST_STABLE_SET_AND_NO_OPEN_DEPENDENCY_PRS",
+      "observation": "Protected main pins @opentelemetry/api 1.10.0, @opentelemetry/sdk-node 0.300.0, @playwright/test 1.64.1 and React 19.3.1; these match npm latest tags observed 2026-11-01. GitHub open dependency PR count is zero on this SourceCut.",
+      "evidence": "Protected main 277a62019b498614baf7b9666fb7a4c607c5172e; npm current package pages observed 2026-11-01; merged latest-node consumer changes on main.",
+      "consumers": "Artifact delivery Node probe/lock and Media preview/motion applications.",
+      "formalObligation": "LatestAdmissible(d,v,t) requires stable published v at observed t, owner lock consistency and affected consumer verification. CLOSED is time-scoped; a future registry release creates a new observation rather than rewriting this evidence.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG2"
+      },
+      "representation": {
+        "primary": "constraint",
+        "supporting": [
+          "equivalence"
+        ],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "CLOSED_TIME_SCOPED",
+        "requiredWitness": "Exact registry latest tag, current manifest/lock and owner-native consumer evidence on the candidate SourceCut.",
+        "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
+      },
+      "decision": "No dependency action in this pass; do not reopen or repeat the old Dependabot PR audit unless version/currentness inputs change."
+    },
+    {
+      "id": "FORMAL-R21-REFINEMENT-20261101-R2",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "packages/composition",
+      "standing": "DECLARATION_INSPECTOR_REUSED_CR21_REGISTERED_IMPLEMENTATION_AND_INSTALLED_REFINEMENT_STILL_UNKNOWN",
+      "observation": "Protected main now implements inspect_lego_declaration with a complete eleven-coordinate R2.1 schema and explicit non-promotion flags. Composition still had six implemented source nodes but no slice before this R2 projection; CR21 now binds the existing nodes as a proposed semantic-kernel slice without claiming proof or deployment.",
+      "evidence": "packages/composition/src/ordivon_composition/interface_contract_r2.py; schemas/lego-declaration-r21.schema.json; tests/test_r21_declaration_qualification.py; packages/composition/planning/lego-plan-r1.json#CR21; tools/formal/RecursiveLegoRefinement.lean.",
+      "consumers": "R2.1 declaration inspection, interface/substitution reasoning, proof-impact/replacement gates and future Runtime/Host/Harness/Network refinements.",
+      "formalObligation": "DeclarationComplete(L) != ModelProved(L) != ImplementationRefined(L) != InstalledCurrent(L) != ConsumerAccepted(L). Composition/substitution additionally requires the selected mature theory's side conditions and effect/frame preservation.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "packages/composition/planning/lego-plan-r1.json",
+        "slice": "CR21"
+      },
+      "representation": {
+        "primary": "algebra",
+        "supporting": [
+          "equivalence"
+        ],
+        "methodSkill": ".agents/skills/compositional-contracts/SKILL.md",
+        "evidenceState": "SOURCE_IMPLEMENTED_SLICE_PROPOSED",
+        "requiredWitness": "CR21 source/native/formal checks plus explicit implementation and installed-consumer refinement for each promoted claim.",
+        "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
+      },
+      "decision": "Reuse the new declaration inspector and existing mature formal kernels; add no second calculus or global proof registry."
+    },
+    {
+      "id": "HOST-PLAN-REFINEMENT-20261101",
+      "problemClass": "OWNER_PLAN_REFINEMENT",
+      "naturalOwner": "services/host",
+      "standing": "STRUCTURAL_R1_R3_SOURCE_ALIGNMENT_IMPLEMENTED_SEMANTIC_REFINEMENT_UNKNOWN",
+      "observation": "Host schema-3 semanticAlignment is now repository-validated against the schema-1 carrier: retained IDs and mapping keys are equal, every mapping target is a real R1 node, the target union covers all R1 nodes, project identity is shared, and sourceRevision equals the R1 review SourceCut. This is a structural source projection only.",
+      "evidence": "services/host/planning/lego-plan-r1.json; services/host/planning/lego-plan-r3.json; tools/repo/check_architecture_docs.py OWNER_LEGO_PLAN_PROJECTIONS.",
+      "consumers": "Host architecture/change planning, Agent discovery of retained/retired responsibilities and Runtime/Harness collaboration seams.",
+      "formalObligation": "StructuralAlignment(R3,R1) is now checked. BehavioralRefinement(R3,R1), contextual substitution, installed currentness and safe retirement remain separate UNKNOWN obligations; total source mapping does not imply semantic equivalence.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "services/host/planning/lego-plan-r1.json",
+        "slice": "HR3ALIGN"
+      },
+      "representation": {
+        "primary": "equivalence",
+        "supporting": [
+          "abstraction"
+        ],
+        "methodSkill": ".agents/skills/compositional-contracts/SKILL.md",
+        "evidenceState": "SOURCE_ALIGNMENT_IMPLEMENTED_SEMANTIC_REFINEMENT_UNKNOWN",
+        "requiredWitness": "Repository-native HR3ALIGN mapping checks for structural source alignment; a future semantic retirement still needs preserved behavioral obligations and counterexamples.",
+        "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
+      },
+      "decision": "Use HR3ALIGN as the current source-navigation bridge; do not retire R1 or claim R3 substitution until behavioral preservation has an independent consumer/refinement witness."
+    },
+    {
+      "id": "RUNTIME-PG-AUTHORITY-20261101",
+      "problemClass": "DATABASE_AUTHORITY_CONVERGENCE",
+      "naturalOwner": "services/runtime",
+      "standing": "RW12_PROPOSED_POSTGRES_TARGET_PHYSICAL_CUTOVER_NOT_PROVED",
+      "observation": "Current repo SQL census still reports multi-owner direct SQLite callsites and NOT_CUT_OVER. Runtime RW12 already owns a bounded PostgreSQL cutover state machine and explicitly requires no overlapping SQLite/PG writer authority, source parity, recovery and physical consumer readback.",
+      "evidence": "services/runtime/planning/lego-plan-r1.json#RW12; services/runtime/formal/RuntimePgCutoverR1.tla; current repository SQL dialect/authority checks.",
+      "consumers": "Runtime Job/Attempt/Reservation/Workspace durable state, Windows/Linux Runtime services, replay and effect reconciliation.",
+      "formalObligation": "Runtime PG promotion requires exact source/parity evidence, one admitted writer, no concurrent legacy writer, replay/recovery preservation and real owner-native restart/readback consumers. Model PASS or repo-wide SQLite counts alone cannot authorize cutover/deletion.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW12"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [
+          "constraint"
+        ],
+        "methodSkill": ".agents/skills/systems-engineering/SKILL.md",
+        "evidenceState": "PROPOSED_OWNER_SLICE_PHYSICAL_REFINEMENT_UNKNOWN",
+        "requiredWitness": "RW12 named counterexamples plus source-bound PostgreSQL parity/restart/consumer evidence and proof legacy writer authority is inactive.",
+        "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
+      },
+      "decision": "Keep focus on the single-writer durable-state hard kernel; retire SQLite switch/dual-authority glue only after physical consumer closure."
+    },
+    {
+      "id": "HARNESS-EFFECT-AUTHORITY-20261101",
+      "problemClass": "SECURITY_COMPOSITION",
+      "naturalOwner": "services/harness",
+      "standing": "HS2_PROPOSED_EFFECT_AUTHORITY_SEPARATION_NOT_YET_VERIFIED_AS_SLICE",
+      "observation": "Harness HS2 already composes ActionAdmission and EffectBinding, while existing TLA+/native tests distinguish provider claim, durable receipt, ambiguous effect and reconciliation. The slice remains PROPOSED.",
+      "evidence": "services/harness/planning/lego-plan-r1.json#HS2; formal/ProviderClaimR1.tla; formal/ConversationBindingCutoverR1.tla and owner-native effect tests.",
+      "consumers": "Agent Runs, provider/tool calls, Runtime foreign evidence, browser/human-session effects and durable effect reconciliation.",
+      "formalObligation": "Model/tool/Agent messages never mint authority; admitted intent, physical effect attempt, durable observation, reconciliation and domain success are distinct states. UNKNOWN effect cannot transition to blind retry or PASS.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "services/harness/planning/lego-plan-r1.json",
+        "slice": "HS2"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [
+          "causal"
+        ],
+        "methodSkill": ".agents/skills/stpa/SKILL.md",
+        "evidenceState": "PROPOSED_OWNER_SLICE",
+        "requiredWitness": "Unsafe-control-action counterexamples plus exact owner-native effect/reconciliation observations on the promoted source.",
+        "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
+      },
+      "decision": "Strengthen/reuse HS2; create no parallel effect-authority service."
+    },
+    {
+      "id": "NETWORK-EGRESS-SEMANTICS-20261101",
+      "problemClass": "NETWORK_EGRESS",
+      "naturalOwner": "platform/network",
+      "standing": "NS2_PROPOSED_PROVIDER_GENERAL_DENIAL_SEMANTICS_NOT_VERIFIED",
+      "observation": "NS2 already states VPN reachability is not policy enforcement and CONNECT=403 is only one conservative sufficient witness; other providers may reject after CONNECT=200 plus TLS reset. Generic curl failure/407/000/origin-403 remain insufficient.",
+      "evidence": "platform/network/planning/lego-plan-r1.json#NS2 and existing policy/ready.sh evidence.",
+      "consumers": "Agent/tool egress admission, package/auth/metrics paths and compromised-inner-layer containment.",
+      "formalObligation": "Each admitted denial signature must bind exact policy, source/destination/attempt and independent no-forwarding evidence. Similar transport symptoms are not equivalent causes without a preservation relation.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "platform/network/planning/lego-plan-r1.json",
+        "slice": "NS2"
+      },
+      "representation": {
+        "primary": "causal",
+        "supporting": [
+          "equivalence"
+        ],
+        "methodSkill": ".agents/skills/information-flow-analysis/SKILL.md",
+        "evidenceState": "PROPOSED_OWNER_SLICE",
+        "requiredWitness": "Same-attempt policy identity, independent upstream no-forwarding observation and negative controls for lookalike failures.",
+        "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
+      },
+      "decision": "Keep provider-general denial semantics UNKNOWN until no-forwarding is independently witnessed; do not broaden READY from generic transport errors."
+    }
+  ],
+  "verification": {
+    "state": "PROPOSED",
+    "meaning": "Repository-native validation proves typed source-bound representation/registration structure only. It does not authorize GitHub publication, workspace deletion, database cutover or external effects.",
+    "nonClaims": [
+      "No exhaustive installed-system census",
+      "No proof of external consumer absence",
+      "No PostgreSQL cutover admission",
+      "No Host R1/R3 equivalence",
+      "No provider-general network-denial equivalence"
+    ]
+  }
+}

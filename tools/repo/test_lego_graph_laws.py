@@ -618,6 +618,9 @@ def test_non_r1_owner_carriers_have_typed_source_envelopes(
         candidate = tmp_path / relative
         candidate.parent.mkdir(parents=True, exist_ok=True)
         candidate.write_bytes((ROOT / relative).read_bytes())
+    host_r1 = tmp_path / "services/host/planning/lego-plan-r1.json"
+    host_r1.parent.mkdir(parents=True, exist_ok=True)
+    host_r1.write_bytes((ROOT / "services/host/planning/lego-plan-r1.json").read_bytes())
     module.validate_owner_plan_projection_carriers(tmp_path)
     target = tmp_path / carrier
     content = json.loads(target.read_text(encoding="utf-8"))
@@ -2441,4 +2444,45 @@ def test_repository_formal_declaration_removed_reopens_only_formal_gap() -> None
         )
         assert not exhaustive_coverage.declared_values(
             copy, exhaustive_coverage.FIELDS["FORMAL"]
+        )
+
+
+def test_host_r3_semantic_alignment_is_total_source_projection_not_equivalence() -> None:
+    r1 = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
+    r3 = json.loads((ROOT / "services/host/planning/lego-plan-r3.json").read_text())
+    module.validate_host_r3_semantic_alignment(ROOT, r3)
+    assert set(r3["semanticAlignment"]["mapping"]) == {
+        row["id"] for row in r3["retained"]
+    }
+    assert {
+        target
+        for targets in r3["semanticAlignment"]["mapping"].values()
+        for target in targets
+    } == {row["id"] for row in r1["nodes"]}
+    slice_ = next(row for row in r1["slices"] if row["id"] == "HR3ALIGN")
+    assert slice_["status"] == "IMPLEMENTED"
+    assert "UNKNOWN" in " ".join(slice_["acceptance"])
+
+
+@pytest.mark.parametrize("mutation", ("missing_retained", "unknown_target", "source_revision"))
+def test_host_r3_semantic_alignment_fails_closed(mutation: str, tmp_path: Path) -> None:
+    r1_path = tmp_path / "services/host/planning/lego-plan-r1.json"
+    r3_path = tmp_path / "services/host/planning/lego-plan-r3.json"
+    r1_path.parent.mkdir(parents=True)
+    r1_path.write_bytes((ROOT / "services/host/planning/lego-plan-r1.json").read_bytes())
+    r3_path.write_bytes((ROOT / "services/host/planning/lego-plan-r3.json").read_bytes())
+    r3 = json.loads(r3_path.read_text())
+    if mutation == "missing_retained":
+        del r3["semanticAlignment"]["mapping"][r3["retained"][0]["id"]]
+        message = "retained coverage drift"
+    elif mutation == "unknown_target":
+        r3["semanticAlignment"]["mapping"][r3["retained"][0]["id"]] = ["NOT_A_R1_NODE"]
+        message = "unknown Host R1 node"
+    else:
+        r3["semanticAlignment"]["sourceRevision"] = "0" * 40
+        message = "source revision drift"
+    r3_path.write_text(json.dumps(r3))
+    with pytest.raises(module.ArchitectureDocsError, match=message):
+        module.validate_host_r3_semantic_alignment(
+            tmp_path, json.loads(r3_path.read_text())
         )
