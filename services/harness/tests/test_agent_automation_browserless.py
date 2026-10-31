@@ -72,6 +72,51 @@ def config(root: Path):
 
 
 class BrowserlessAutomationServiceTests(unittest.TestCase):
+    def test_campaign_spec_rejects_duplicate_identity_before_temporal_admission(self):
+        """An ambiguous on-disk campaign identity must never reach admission."""
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "campaign.json"
+            raw = json.dumps(spec(), sort_keys=True, separators=(",", ":"))
+            needle = '"campaignId":"campaign:test-browserless"'
+            self.assertEqual(raw.count(needle), 1)
+            path.write_text(
+                raw.replace(
+                    needle,
+                    '"campaignId":"campaign:other",' + needle,
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "duplicate JSON object key"):
+                BrowserlessAutomationService.load_spec(path)
+            # Nonvacuity: the same unambiguous source is still admitted.
+            path.write_text(raw, encoding="utf-8")
+            self.assertIsNotNone(BrowserlessAutomationService.load_spec(path))
+
+    def test_browserless_config_rejects_duplicate_nested_endpoint_identity(self):
+        """The carrier identity cannot depend on permissive last-key-wins JSON."""
+        from agent_automation_browserless import _read_json
+
+        with tempfile.TemporaryDirectory() as root:
+            local = Path(root)
+            raw = json.dumps(config(local), sort_keys=True, separators=(",", ":"))
+            needle = '"id":"carrier-a"'
+            self.assertEqual(raw.count(needle), 1)
+            path = local / "config.json"
+            path.write_text(
+                raw.replace(needle, '"id":"other-carrier",' + needle, 1),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "duplicate JSON object key"):
+                BrowserlessAutomationConfig.from_dict(_read_json(path))
+            path.write_text(raw, encoding="utf-8")
+            self.assertEqual(
+                BrowserlessAutomationConfig.from_dict(_read_json(path))
+                .browserless_pool.endpoints[0]
+                .endpoint_id,
+                "carrier-a",
+            )
+
     def test_prompt_file_accepts_one_conventional_terminal_newline(self):
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / "prompt.txt"
