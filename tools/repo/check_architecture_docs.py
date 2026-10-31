@@ -148,6 +148,49 @@ def _load_json(path: Path, *, source_bytes: bytes | None = None) -> dict[str, An
     return value
 
 
+# Problem LEGO classes are finite source types, not attractive free-form labels.
+# This set includes every historical class already admitted by the immutable
+# time-scoped censuses plus current refinements. Adding a genuinely new class
+# requires an explicit source change and its negative-control tests.
+FORMAL_ISSUE_PROBLEM_CLASSES = frozenset({
+    "BACKING_STORE_ALLOCATION_AND_RECOVERY_CONSUMER",
+    "CI_COVERAGE",
+    "CI_EXECUTION",
+    "CROSS_OWNER_REFINEMENT_BRIDGE",
+    "CROSS_TARGET_EXECUTION_ENVIRONMENT",
+    "DATABASE_AUTHORITY_CONVERGENCE",
+    "DATABASE_AUTHORITY_PRECONDITION",
+    "DEPENDENCY_CONVERGENCE",
+    "ENVIRONMENT_CONTRACT",
+    "FORMAL_INFORMATION_FLOW",
+    "FORMAL_REFINEMENT_GAP",
+    "FORMAL_REGISTRATION_SOURCE_PROVENANCE",
+    "GATEWAY_SKILLS_ROUTE_DISCOVERY_SEAM",
+    "GIT_REMOTE_REFERENCE",
+    "GIT_RESIDUE",
+    "HOST_DISK_PRESSURE",
+    "LEGO_DEFINITION",
+    "NETWORK_EGRESS",
+    "OWNER_IDENTITY_CONTRACT",
+    "OWNER_PLAN_REFINEMENT",
+    "PR_CONVERGENCE",
+    "RECOVERY_SNAPSHOT_RETENTION_UNPROVEN",
+    "SECURITY_COMPOSITION",
+    "SKILL_DOMAIN_DISCOVERY",
+    "SKILL_PROVENANCE",
+    "SOURCE_CONVERGENCE",
+    "SOURCE_GRAPH_INTEGRITY",
+    "TEST_EVIDENCE",
+    "WINDOWS_EXECUTION_CONTEXT_CAPABILITY_DRIFT",
+    "WORKSPACE_CONSUMER_CONTINUITY",
+    "WORKSPACE_LIFECYCLE",
+})
+
+FORMAL_ISSUE_REPRESENTATION_TYPES = frozenset({
+    "type", "graph", "constraint", "state-machine", "algebra",
+    "equivalence", "declarative", "abstraction", "causal", "compression",
+})
+
 # The other registered Owner checker handles typed edges and dependency DAGs.
 # This validator checks the independent typed node and slice closure;
 # no new registry, executable DSL, scheduler or Owner truth.
@@ -225,6 +268,86 @@ def validate_owner_plan_inventory(root: Path) -> None:
         )
 
 
+def validate_host_r3_semantic_alignment(root: Path, projection: dict[str, Any]) -> None:
+    """Check one exact Host R3-to-R1 source alignment, not semantic equivalence.
+
+    R3 intentionally uses a different native representation. This validator only
+    proves that its declared retained responsibilities are totally source-aligned
+    to the exact R1 carrier revision and that every current R1 node remains
+    represented. It does not prove behavioral refinement, installed currentness,
+    replacement safety, or permission to delete either carrier.
+    """
+    alignment = projection.get("semanticAlignment")
+    if not isinstance(alignment, dict):
+        raise ArchitectureDocsError("Host R3 semantic alignment missing")
+    source_revision = alignment.get("sourceRevision")
+    if not isinstance(source_revision, str) or re.fullmatch(r"[0-9a-f]{40}", source_revision) is None:
+        raise ArchitectureDocsError("Host R3 semantic alignment source revision invalid")
+    if alignment.get("carrier") != "planning/lego-plan-r1.json":
+        raise ArchitectureDocsError("Host R3 semantic alignment carrier drift")
+    if not isinstance(alignment.get("scope"), str) or not alignment["scope"].strip():
+        raise ArchitectureDocsError("Host R3 semantic alignment scope missing")
+
+    r1 = _load_json(
+        _source_bound_file(
+            root,
+            "services/host/planning/lego-plan-r1.json",
+            "Host R1 semantic alignment carrier",
+        )
+    )
+    if projection.get("project", {}).get("id") != r1.get("project", {}).get("id"):
+        raise ArchitectureDocsError("Host R3 semantic alignment project identity drift")
+    review = r1.get("review")
+    if not isinstance(review, dict) or review.get("sourceRevision") != source_revision:
+        raise ArchitectureDocsError("Host R3 semantic alignment source revision drift")
+
+    retained = projection.get("retained")
+    if not isinstance(retained, list) or not retained:
+        raise ArchitectureDocsError("Host R3 retained responsibilities missing")
+    retained_ids = [row.get("id") for row in retained if isinstance(row, dict)]
+    if (
+        len(retained_ids) != len(retained)
+        or any(not isinstance(identity, str) or not _canonical_owner_lego_id(identity)
+               for identity in retained_ids)
+        or len(retained_ids) != len(set(retained_ids))
+    ):
+        raise ArchitectureDocsError("Host R3 retained identity invalid")
+
+    mapping = alignment.get("mapping")
+    if not isinstance(mapping, dict) or set(mapping) != set(retained_ids):
+        raise ArchitectureDocsError("Host R3 semantic alignment retained coverage drift")
+
+    r1_nodes = r1.get("nodes")
+    if not isinstance(r1_nodes, list) or not r1_nodes:
+        raise ArchitectureDocsError("Host R1 semantic alignment nodes missing")
+    r1_ids = {row.get("id") for row in r1_nodes if isinstance(row, dict)}
+    if len(r1_ids) != len(r1_nodes) or any(not isinstance(x, str) for x in r1_ids):
+        raise ArchitectureDocsError("Host R1 semantic alignment node identity invalid")
+
+    observed_targets: set[str] = set()
+    for retained_id, targets in mapping.items():
+        if (
+            not isinstance(targets, list)
+            or not targets
+            or len(targets) != len(set(targets))
+            or any(not isinstance(target, str) or target not in r1_ids for target in targets)
+        ):
+            raise ArchitectureDocsError(
+                f"Host R3 semantic alignment unknown Host R1 node: {retained_id}"
+            )
+        observed_targets.update(targets)
+    if observed_targets != r1_ids:
+        raise ArchitectureDocsError("Host R3 semantic alignment R1 coverage drift")
+
+    retired_vocabulary = alignment.get("retiredVocabulary")
+    if (
+        not isinstance(retired_vocabulary, list)
+        or not retired_vocabulary
+        or any(not isinstance(value, str) or not value.strip() for value in retired_vocabulary)
+    ):
+        raise ArchitectureDocsError("Host R3 semantic alignment retired vocabulary missing")
+
+
 def validate_owner_plan_projection_carriers(root: Path) -> None:
     """Validate exact R2/R3 carrier identities without imposing R1 graph laws.
 
@@ -245,6 +368,8 @@ def validate_owner_plan_projection_carriers(root: Path) -> None:
         project = projection.get("project")
         if not isinstance(project, dict) or not isinstance(project.get("id"), str) or not project["id"].strip():
             raise ArchitectureDocsError(f"Owner plan projection identity missing: {relative}")
+        if relative == "services/host/planning/lego-plan-r3.json":
+            validate_host_r3_semantic_alignment(root, projection)
 
 
 def _validated_owner_lego_edges(
@@ -1746,6 +1871,10 @@ def validate_formal_issue_census(
         for field in ("problemClass", "naturalOwner", "standing", "evidence", "consumers", "formalObligation"):
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ArchitectureDocsError(f"issue {issue_id} lacks {field}")
+        if issue["problemClass"] not in FORMAL_ISSUE_PROBLEM_CLASSES:
+            raise ArchitectureDocsError(
+                f"issue {issue_id} has unknown formal issue problemClass"
+            )
 
     # The existing GIT-01 list is an evidence projection, not deletion
     # authority. Validate its complete source-bound identity/type relation at
@@ -1897,10 +2026,7 @@ def validate_formal_issue_census(
                 raise ArchitectureDocsError("historical Git blocker cannot authorize branch deletion")
             blocked.add(commit)
 
-    representation_types = {
-        "type", "graph", "constraint", "state-machine", "algebra",
-        "equivalence", "declarative", "abstraction", "causal", "compression",
-    }
+    representation_types = FORMAL_ISSUE_REPRESENTATION_TYPES
     for issue in issues:
         rep = issue.get("representation")
         issue_id = issue["id"]

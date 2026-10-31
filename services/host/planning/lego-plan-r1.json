@@ -595,7 +595,28 @@
       "label": "committed social rows feed actor-scoped navigation"
     }
   ],
-  "slices": [],
+  "slices": [
+    {
+      "id": "HR3ALIGN",
+      "status": "IMPLEMENTED",
+      "nodeIds": [
+        "O01",
+        "O02",
+        "O03",
+        "O04",
+        "O09",
+        "O10",
+        "O11",
+        "O12"
+      ],
+      "acceptance": [
+        "The Host R3 retained responsibility IDs exactly equal semanticAlignment.mapping keys.",
+        "Every semanticAlignment target names a current Host R1 node and the union of targets covers every current R1 node.",
+        "Host R3 semanticAlignment.sourceRevision exactly equals the Host R1 review.sourceRevision and both carriers keep the same project identity.",
+        "The checked relation is total source alignment only: behavioral refinement, installed currentness, replacement safety and retirement of either carrier remain UNKNOWN."
+      ]
+    }
+  ],
   "gaps": [
     "Work relation DAG, ActorRef declaration, subscription lifecycle, Space participation, message relations, coordination intents and FTS remain under existing parents pending deeper independent contract qualification.",
     "Declared relationships are source/consumer candidates; complete dynamic consumer coverage and universal refinement remain UNKNOWN."
