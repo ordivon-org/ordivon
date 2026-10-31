@@ -943,9 +943,18 @@ def inspect_owner_source_path(
     for prefix, name in owners:
         if source_path.startswith(prefix):
             row = registered.get((prefix, name))
+            # Repo mechanics is a source-navigation fallback, not a registered
+            # verification Owner. Distinguish this projection before a consumer
+            # or deletion selector interprets it as an authority root.
+            if row is None and (prefix, name) != ("tools/repo/", "tools/repo"):
+                raise ArchitectureDocsError("unregistered source owner projection")
             selected.append({
                 "name": name,
                 "root": prefix,
+                "registrationStanding": (
+                    "REGISTERED_VERIFICATION_OWNER_AT_SOURCECUT" if row
+                    else "REPO_MECHANICS_FALLBACK_NOT_REGISTERED"
+                ),
                 "verifyTask": row["verify_task"] if row else "repo:ci",
                 "queueVerifyTask": (
                     row.get("queue_verify_task", row["verify_task"]) if row

@@ -2091,6 +2091,40 @@ def test_agent_native_source_path_to_owner_to_single_contract() -> None:
     )) // 3
 
 
+def test_agent_native_repo_navigation_fallback_is_not_registered_authority() -> None:
+    """Repo CLI lookup has a useful navigational fallback, not an Owner grant."""
+    import subprocess
+
+    revision = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    fallback = module.inspect_owner_source_path(
+        source_revision=revision,
+        source_path="tools/repo/source_history_legos.py",
+        root=ROOT,
+    )
+    assert fallback["ownerPartitions"] == [{
+        "name": "tools/repo",
+        "root": "tools/repo/",
+        "registrationStanding": "REPO_MECHANICS_FALLBACK_NOT_REGISTERED",
+        "verifyTask": "repo:ci",
+        "queueVerifyTask": "repo:ci",
+    }]
+    assert fallback["sourceMembershipStanding"] == "TRACKED_SOURCE"
+    assert fallback["consumerProofStanding"] == "UNKNOWN"
+    assert fallback["proofReuseAdmissible"] is False
+
+    real = module.inspect_owner_source_path(
+        source_revision=revision,
+        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        root=ROOT,
+    )
+    assert real["ownerPartitions"][0]["registrationStanding"] == (
+        "REGISTERED_VERIFICATION_OWNER_AT_SOURCECUT"
+    )
+    assert real["ownerPartitions"][0]["verifyTask"] == "gateway:verify"
+
+
 def test_agent_native_unknown_path_does_not_upgrade_no_consumer() -> None:
     import subprocess
 
