@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.formal-lego-issue-census-evidence",
+  "truthRole": "time-scoped-audit-evidence-not-registry-or-admission",
+  "observedAt": "2026-11-01T03:15:24+08:00",
+  "source": {
+    "protectedGithubMain": "ffd81854b424b4fb136715a8ea022ca3b28fc2e7",
+    "linuxLocalMain": "21995702f73f477fd3903dc6e98b6de1f8069a92",
+    "observationBoundary": "GitHub main and local refs read in one bounded Runtime Job; concurrent Agents can move refs immediately after; no live or installed authority inferred."
+  },
+  "representation": {
+    "primary": "typed problem-state and source-bound owner link",
+    "problemStates": [
+      "OBSERVED",
+      "UNKNOWN",
+      "REPRODUCED",
+      "OWNER_NATIVE_VERIFIED",
+      "PROTECTED_CURRENT_CI_VERIFIED",
+      "CLOSED"
+    ],
+    "deletePolicy": "No real consumer means deletion candidate, not automatic effect permission; source and installed consumers may differ.",
+    "formalSafety": "UNKNOWN != FALSE; model proof != implementation refinement != installed currentness; retrospective observations never authorize effects."
+  },
+  "registrations": [
+    {
+      "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+      "slice": "RG1",
+      "scope": "Git DAG/PR/currentness truth kept distinct from cached refs and mergeability"
+    },
+    {
+      "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+      "slice": "RG2",
+      "scope": "Actual updater/manifest owner relation; latest release check remains time-scoped"
+    },
+    {
+      "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+      "slice": "RW1",
+      "scope": "Runtime native Workspace close guards, not external unique-source consumer closure"
+    }
+  ],
+  "issues": [
+    {
+      "id": "GIT-CURRENTNESS-20261101",
+      "problemClass": "SOURCE_CONVERGENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "OBSERVED_LOCAL_BEHIND_REMOTE",
+      "observation": "03:15:24+08 local main 21995702f73f477fd3903dc6e98b6de1f8069a92; origin/main and authenticated GitHub main both ffd81854b424b4fb136715a8ea022ca3b28fc2e7. Cached origin/main happened to match GitHub in this snapshot only.",
+      "evidence": "Runtime Job job-01a19363-56bf-7313-b5c5-750566b4d071, gh api repos/.../git/ref/heads/main, git rev-parse",
+      "consumers": "Repo SourceCut selection, PR merge decisions, Owner CDC, formal verifier source provenance",
+      "formalObligation": "Promote(SourceCut S) requires exact observed RemoteTip R and S==R or an independently qualified relative relation; CachedOrigin==Local never establishes RemoteNow==Local, nor consumer equivalence.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG1"
+      },
+      "representation": {
+        "primary": "equivalence",
+        "supporting": [
+          "graph"
+        ],
+        "evidenceState": "OBSERVED_SOURCE_BOUND_OR_UNKNOWN_AS_STATED",
+        "selectionReason": "Minimal representation needed for the observed consumer boundary; no model/implementation/installed proof promotion.",
+        "requiredWitness": "Repeat gh API protected-main OID observation and local Git compare on the exact source candidate before publication."
+      },
+      "decision": "Use exact fetched main for isolated candidates, revalidate GitHub main before effectful merge; no reset or false proof promotion."
+    },
+    {
+      "id": "PR-CONVERGENCE-20261101",
+      "problemClass": "PR_CONVERGENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "OBSERVED_PENDING_PROOF_CLASSIFICATION",
+      "observation": "Open PRs=49 (CLEAN=19, BLOCKED=9, DIRTY=21) in a bounded GitHub list at 03:15+08. PR #1181 provides new declaration-shape inspection; it is not code refinement or a demonstrated domain consumer. PR #1184 is blocked with failed required verification; PR #1022 deletes one old plan.",
+      "evidence": "Runtime Job job-01a19363-56bf-7313-b5c5-750566b4d071 and job-01a19366-e4dc-7032-a11b-4a3bd1134442; gh pr view/diff",
+      "consumers": "Protected merge queue, existing Owner behavior, affected contract/code/verification consumers",
+      "formalObligation": "MergeEligible(PR,S,R) implies current exact head S, current parent R, required protected checks on resulting candidate, and preserved unique consumer behavior; GREEN(old-source) does not imply APPROVED(now).",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG1"
+      },
+      "representation": {
+        "primary": "constraint",
+        "supporting": [
+          "graph"
+        ],
+        "evidenceState": "OBSERVED_SOURCE_BOUND_OR_UNKNOWN_AS_STATED",
+        "selectionReason": "Minimal representation needed for the observed consumer boundary; no model/implementation/installed proof promotion.",
+        "requiredWitness": "For each candidate obtain current PR head, merge-queue SHA and affected Owner native tests; compare unique current consumers before supersession."
+      },
+      "decision": "Prioritize latest nonredundant improvements; delete stale duplicate PRs only after source/consumer equivalence evidence; never promote a declaration-schema PASS to theorem."
+    },
+    {
+      "id": "WORKTREE-CONSUMER-20261101",
+      "problemClass": "WORKSPACE_LIFECYCLE",
+      "naturalOwner": "services/runtime",
+      "standing": "OBSERVED_WORKTREES_WITH_UNKNOWN_EXTERNAL_CONSUMERS",
+      "observation": "Root Git projected 53 worktrees and 40 local branch refs at 03:15+08; these count different entity universes. Other Agents use workspaces concurrently. Clean worktree does not establish no unique unmerged source/effect consumers.",
+      "evidence": "Runtime Job job-01a19363-56bf-7313-b5c5-750566b4d071; git worktree list --porcelain; git for-each-ref",
+      "consumers": "Runtime open/held Job identities, unmerged source revisions, Host cross-agent consumers, physical disk reclamation",
+      "formalObligation": "Close(W) => no active/held Jobs AND verified source digest/CAS AND no unpreserved unique Git/effect consumer; Runtime Workspace guard proof does not imply external orphan branch safe-to-delete.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW1"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [
+          "graph"
+        ],
+        "evidenceState": "OBSERVED_SOURCE_BOUND_OR_UNKNOWN_AS_STATED",
+        "selectionReason": "Minimal representation needed for the observed consumer boundary; no model/implementation/installed proof promotion.",
+        "requiredWitness": "For each workspace inspect exact active/held Jobs, source digest, unique Git refs and live external consumers before cleanup."
+      },
+      "decision": "Reconcile Jobs and source refs before closing; discard no unique consumer proof; no blanket rm/prune."
+    },
+    {
+      "id": "DEPS-CURRENTNESS-20261101",
+      "problemClass": "DEPENDENCY_CONVERGENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "OBSERVED_CURRENT_DEPENDENCY_CONSUMER",
+      "observation": "Current main source has @opentelemetry/api 1.10.0, @opentelemetry/sdk-node 0.300.0, @playwright/test 1.64.1, react 19.3.1. PR #838 MERGED; #837/#839/#840 CLOSED not merged; substantive latest versions integrated by #1190. This does not assert every dependency remains latest now.",
+      "evidence": "Runtime Job job-01a19364-2ec6-7bf0-a132-45285725e6e9, Git main 21995702f73f477fd3903dc6e98b6de1f8069a92 (ancestor of source snapshot)",
+      "consumers": "Artifact Node package/lock, Media two React applications, Dependabot and Renovate update roles",
+      "formalObligation": "LatestAdmissible(d,v,t) => published stable at observed t AND owner lockfile consistent AND affected native consumer PASS; upstream PR green alone does not establish combined dependency compatibility.",
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG2"
+      },
+      "representation": {
+        "primary": "constraint",
+        "supporting": [
+          "equivalence"
+        ],
+        "evidenceState": "OBSERVED_SOURCE_BOUND_OR_UNKNOWN_AS_STATED",
+        "selectionReason": "Minimal representation needed for the observed consumer boundary; no model/implementation/installed proof promotion.",
+        "requiredWitness": "Observe registry stable release at the exact time; reproduce combined lockfile and native owner verification on candidate SHA."
+      },
+      "decision": "Do not merge lower/duplicate dependency PRs; upgrade package versions and lockfiles as one scoped owner-native candidate."
+    },
+    {
+      "id": "FORMAL-R21-REFINEMENT-20261101",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "packages/composition",
+      "standing": "MODEL_PROOF_PASS_IMPLEMENTATION_AND_INSTALLED_UNKNOWN",
+      "observation": "tools/formal native verification exited 0 at source ffd81854; result explicitly reports codeFragmentRefined for Python timeout fragment but runtimeRustRefined=false, implementationRefinement=UNKNOWN and installedCurrentness=UNKNOWN. Existing composition R2.1 declaration inspection PR #1181 is a candidate, not deployed behavior.",
+      "evidence": "Runtime Job job-01a19366-315c-7f61-9c4a-057b054c34b7; tools/formal/verify.py; tools/formal/RecursiveLegoRefinement.lean; PR #1181",
+      "consumers": "Composition interface substitution, Harness timeout caller, Gateway/Runtime physical admission",
+      "formalObligation": "ModelProved(P) does not imply CodeRefined(P,implementation) or InstalledCurrent(P,env). Effect-safe substitute requires typed pre/post and frame/refinement plus exact code evidence and real consumer observation.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Composition has no source-qualified named Owner plan slice for this cross-source implementation refinement; tools/formal is a repository source region, not a separately registered natural Owner."
+      },
+      "representation": {
+        "primary": "equivalence",
+        "supporting": [
+          "type"
+        ],
+        "evidenceState": "OBSERVED_SOURCE_BOUND_OR_UNKNOWN_AS_STATED",
+        "selectionReason": "Minimal representation needed for the observed consumer boundary; no model/implementation/installed proof promotion.",
+        "requiredWitness": "Provide executable Rust/Gateway refinement witness and affected caller negative control; do not reuse model-only Lean PASS."
+      },
+      "decision": "Keep existing verified Lean/SMT proof; target native Rust/Gateway transition refinement and real consumer falsifiers rather than invent another proof registry."
+    },
+    {
+      "id": "PG-CONSUMER-SUBTRACTION-20261101",
+      "problemClass": "DATABASE_AUTHORITY_PRECONDITION",
+      "naturalOwner": "services/runtime",
+      "standing": "OBSERVED_SQLITE_CONSUMER_SCOPE_NOT_CUT_OVER",
+      "observation": "Root repo native SQL census observed 75 direct SQLite API call sites in 39 source files, PostgreSQL 18.6 pglast acceptance, and explicit durable-owner migration standing NOT_CUT_OVER. This is source-level scoped evidence, not proof all are Runtime consumers.",
+      "evidence": "Runtime Job job-01a19367-d5d2-7b12-b0dc-1b72874ef439; tools/repo/check_sql_dialects.py; tools/repo/mise.toml",
+      "consumers": "Runtime/other Owner durable storage contracts; replay IDs, readback, recovery, old writer retirement",
+      "formalObligation": "PGCutoverSafe => SourceCurrent AND OwnerNativePostgresReadbackEquivalent AND ReplayReconciliationPass AND NoConflictingWriter AND PreservedActiveEffectIdentity; raw SQLite call counts do not prove migration safe or deletion admissible.",
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "Cross-owner SQL census spans many Owners; the existing Runtime RW12 remains proposed, and a blanket repo-wide PG cutover would falsely assign Runtime ownership to unrelated SQLite consumers."
+      },
+      "representation": {
+        "primary": "graph",
+        "supporting": [
+          "constraint"
+        ],
+        "evidenceState": "OBSERVED_SOURCE_BOUND_OR_UNKNOWN_AS_STATED",
+        "selectionReason": "Minimal representation needed for the observed consumer boundary; no model/implementation/installed proof promotion.",
+        "requiredWitness": "Owner-partition source SQLite callsites; prove exact PG readback and replay recovery on live transition before old-writer disable."
+      },
+      "decision": "Partition actual source call sites by Owner and physical consumer before replacing each storage seam; no SQLite historical deletion based on counts."
+    }
+  ],
+  "verification": {
+    "state": "SCOPED",
+    "validatedWith": "tools/repo/check_architecture_docs.py::validate_formal_issue_census",
+    "nonClaims": [
+      "No exhaustive whole-system census",
+      "No proof of consumer absence outside source",
+      "No live PostgreSQL cutover admission",
+      "No current installed-state certification"
+    ]
+  }
+}

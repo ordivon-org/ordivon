@@ -176,3 +176,44 @@ def test_oct26_distinct_windows_and_gateway_problem_lego_gaps() -> None:
     }
     with pytest.raises(module.ArchitectureDocsError, match="unknown owner-local LEGO"):
         module.validate_formal_issue_census(fake, plans)
+
+
+def test_nov01_typed_issue_census_reuses_existing_owners_without_proof_promotion() -> None:
+    """Current time-scoped evidence must bind registered Owners; UNKNOWN stays explicit."""
+    root = Path(__file__).resolve().parents[2]
+    census = json.loads(
+        (root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261101_R1.json")
+        .read_text(encoding="utf-8")
+    )
+    plans = {
+        record["ownerPlan"]: json.loads((root / record["ownerPlan"]).read_text(encoding="utf-8"))
+        for record in census["registrations"]
+    }
+    assert len(census["issues"]) == 6
+    assert {entry["id"] for entry in census["issues"]} == {
+        "GIT-CURRENTNESS-20261101", "PR-CONVERGENCE-20261101",
+        "WORKTREE-CONSUMER-20261101", "DEPS-CURRENTNESS-20261101",
+        "FORMAL-R21-REFINEMENT-20261101", "PG-CONSUMER-SUBTRACTION-20261101",
+    }
+    assert census["truthRole"] == "time-scoped-audit-evidence-not-registry-or-admission"
+    assert "UNKNOWN" in next(
+        entry["standing"] for entry in census["issues"]
+        if entry["id"] == "FORMAL-R21-REFINEMENT-20261101"
+    )
+    module.validate_formal_issue_census(census, plans)
+
+    # Never let an attractive free-form issue invent a verified Owner slice.
+    bad = copy.deepcopy(census)
+    target = next(row for row in bad["issues"] if row["id"] == "FORMAL-R21-REFINEMENT-20261101")
+    target["registration"] = {
+        "state": "LINKED",
+        "ownerPlan": "packages/composition/planning/lego-plan-r1.json",
+        "slice": "R21-RUST-REFINED",
+    }
+    with pytest.raises(module.ArchitectureDocsError, match="unknown owner-local LEGO"):
+        module.validate_formal_issue_census(bad, plans)
+
+    bad = copy.deepcopy(census)
+    bad["source"]["protectedGithubMain"] = "not-a-git-sha"
+    with pytest.raises(module.ArchitectureDocsError, match="invalid Git source revision"):
+        module.validate_formal_issue_census(bad, plans)
