@@ -1266,3 +1266,58 @@ class SourceHistoryLegosTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class RepoVerificationPrefixFiniteWitnessTests(unittest.TestCase):
+    def test_exact_git_tree_paths_match_at_most_one_current_verification_root(self) -> None:
+        """Finite SourceCut-instance witness; not a verified Python refinement.
+
+        Root prefix-freeness is a native admission invariant. The String
+        comparability theorem lives in existing tools/formal/verify.py and is
+        solved independently with Z3 and cvc5. This test instantiates the
+        theorem's precondition on the CURRENT immutable owners manifest/tree.
+        """
+        import os
+        from tools.repo import affected_owners
+
+        repo = Path(__file__).resolve().parents[2]
+        roots = affected_owners.load_owners(repo / "tools/repo/owners.toml")
+        root_paths = [item.root for item in roots]
+        self.assertTrue(root_paths)
+        for i, left in enumerate(root_paths):
+            for right in root_paths[i + 1:]:
+                self.assertFalse(left.startswith(right))
+                self.assertFalse(right.startswith(left))
+        cut = subprocess.check_output(
+            ["git", "--no-replace-objects", "-C", str(repo),
+             "rev-parse", "--verify", "HEAD^{commit}"], text=True,
+        ).strip()
+        # Couple the finite source-tree instance to the ACTUAL manifest and
+        # validator bytes, not an uncommitted checkout masquerading as HEAD.
+        for relative in ("tools/repo/owners.toml", "tools/repo/affected_owners.py"):
+            committed_bytes = subprocess.check_output(
+                ["git", "--no-replace-objects", "-C", str(repo),
+                 "show", f"{cut}:{relative}"],
+            )
+            self.assertEqual((repo / relative).read_bytes(), committed_bytes)
+        tree_paths = subprocess.check_output(
+            ["git", "--no-replace-objects", "-C", str(repo),
+             "ls-tree", "-r", "-z", "--name-only", cut],
+        )
+        observed = [os.fsdecode(x) for x in tree_paths.split(b"\0") if x]
+        self.assertGreater(len(observed), 0)
+        self.assertEqual(len(observed), len(set(observed)))
+        assigned = unassigned = 0
+        for path in observed:
+            matches = [root for root in root_paths if path.startswith(root)]
+            self.assertLessEqual(len(matches), 1, path)
+            if matches:
+                assigned += 1
+            else:
+                unassigned += 1
+        self.assertGreater(assigned, 0)
+        self.assertGreater(unassigned, 0)
+        # Without prefix-incomparability, the strong property is false.
+        self.assertTrue("services/runtime/job.rs".startswith("services/"))
+        self.assertTrue("services/runtime/job.rs".startswith("services/runtime/"))
