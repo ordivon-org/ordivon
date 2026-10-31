@@ -1240,10 +1240,10 @@ mod live_pg_tests {
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_rejects_shallow_release_and_artifact_owner_constraints() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
         let mut release = Scratch::new(&dsn);
         release.qualify();
         assert!(PgAdmissionStore::connect(&dsn, &release.name).is_ok());
@@ -1847,10 +1847,10 @@ mod live_pg_tests {
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_admission_readback_is_exact_and_never_claims_absence() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let a = payload("ack-lost", "job-ack-lost", "ws-ack-lost", 2);
@@ -1935,10 +1935,10 @@ mod live_pg_tests {
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_bundle_and_dispatch_commit_before_external_effect() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -2036,10 +2036,10 @@ mod live_pg_tests {
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_cancellation_blocks_unissued_dispatch_without_false_terminal() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -2090,10 +2090,10 @@ mod live_pg_tests {
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_clean_epoch_needs_no_old_sqlite_requests() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut pg = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -2128,11 +2128,11 @@ mod live_pg_tests {
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_readonly_job_projection_fences_stage_and_incoherent_terminal() {
         use crate::PgJobReadback;
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
         let mut scratch = Scratch::new(&dsn);
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
         let input = payload("readback-req", "readback-job", "readback-workspace", 2);
@@ -2244,10 +2244,10 @@ mod live_pg_tests {
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_artifact_metadata_terminal_is_atomic_replayable_and_rejects_corruption() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -2384,10 +2384,10 @@ mod live_pg_tests {
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_composed_admit_dispatch_artifact_terminal_is_one_consumer_chain() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
