@@ -144,7 +144,7 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
     if len(model_input) != 1:
         raise ValueError("timeout model input binding changed")
 
-    guard = expr('timeout is not None and (type(timeout) is not int or timeout < 1 or timeout > self.gateway_grant.max_timeout_ms)')
+    guard = expr('"timeoutMs" in call.arguments and (type(timeout) is not int or timeout < 1 or timeout > self.gateway_grant.max_timeout_ms)')
     guards = [(i, x) for i, x in enumerate(lower.body)
               if isinstance(x, ast.If) and canonical(x.test) == guard]
     if (len(guards) != 1 or guards[0][0] <= model_input[0]

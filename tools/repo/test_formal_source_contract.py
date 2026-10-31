@@ -215,6 +215,7 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
             ),
             "projection": 'gateway_args["timeoutMs"] = execution["timeoutMs"]',
             "guard": "timeout > self.gateway_grant.max_timeout_ms",
+            "presence": 'if "timeoutMs" in call.arguments and (',
         }
         revisions = {
             "default": (
@@ -224,6 +225,7 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
             ),
             "projection": 'gateway_args["timeoutMs"] = None',
             "guard": "timeout > 900_000",
+            "presence": "if timeout is not None and (",
         }
         real_read = Path.read_text
         for name, original in originals.items():
