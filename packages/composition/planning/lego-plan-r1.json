@@ -22,8 +22,6 @@
       "formal/EffectReplayFence.cfg",
       "scripts/verify_effect_replay_formal.sh",
       "tests/test_identity_token_grammar.py",
-      "src/ordivon_composition/schemas/lego-declaration-r21.schema.json",
-      "tests/test_r21_declaration_qualification.py",
       "docs/IDENTITY_TOKEN_GRAMMAR_20261031.md"
     ]
   },
@@ -75,7 +73,7 @@
       "id": "C02",
       "label": "InterfaceCompatibilityAndAdmissibility",
       "kind": "consumer_contract",
-      "responsibility": "Evaluate explicitly declared interface compatibility, provenance and evidence currentness independently of provider execution, and inspect complete typed R2.1 declaration shape without promoting declaration completeness into proof, refinement, installation or authority.",
+      "responsibility": "Evaluate explicitly declared interface compatibility, provenance and evidence currentness independently of provider execution.",
       "authority": "Composition source contract only, verifier/domain semantic authority remains outside",
       "state": "IMPLEMENTED",
       "inputs": [
@@ -88,15 +86,12 @@
       "behavioralContract": "Output distinguishes compatibility, evidence sufficiency and currentness; missing, unknown or stale source does not become proof of actual deployment compatibility.",
       "acceptance": [
         "Negative tests reject circuit binding mismatch and ambiguous/stale evidence while preserving distinct compatibility/currentness status.",
-        "COMPOSITION-TOKEN-20261031: identity, SHA-256 and evidence-reference tokens consume the whole JSON string; a valid token followed by LF/CR/CRLF/U+2028/U+2029 is rejected by the native Draft202012Validator at the schema boundary.",
-        "R2.1 declaration inspection requires identity/responsibility/goal/consumer/profile/source/acceptance plus all eleven ell coordinates I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold with typed UNKNOWN reasons; a complete declaration explicitly leaves nonvacuity, model proof, implementation refinement, installed currentness, consumer observation, safe invocation and domain acceptance false."
+        "COMPOSITION-TOKEN-20261031: identity, SHA-256 and evidence-reference tokens consume the whole JSON string; a valid token followed by LF/CR/CRLF/U+2028/U+2029 is rejected by the native Draft202012Validator at the schema boundary."
       ],
       "evidence": [
         "src/ordivon_composition/interface_contract_r2.py",
         "tests/test_interface_contract_core.py",
-        "tests/test_identity_token_grammar.py",
-        "src/ordivon_composition/schemas/lego-declaration-r21.schema.json",
-        "tests/test_r21_declaration_qualification.py"
+        "tests/test_identity_token_grammar.py"
       ],
       "dependencies": [
         "C01"
@@ -112,16 +107,10 @@
           "path": "meta/next/tests/test_interface_contract_r2.py",
           "operation": "evaluate_interface/currentness_standing via native tests",
           "standing": "SOURCE_IMPORTED_TEST_CONSUMER_NOT_INSTALLED"
-        },
-        {
-          "path": "packages/composition/tests/test_r21_declaration_qualification.py",
-          "operation": "inspect_lego_declaration native declaration-shape and non-promotion tests",
-          "standing": "SOURCE_NATIVE_TEST_CONSUMER; MODEL/IMPLEMENTATION/INSTALLED/DOMAIN_STANDING_NOT_PROMOTED"
         }
       ],
       "formalObligations": [
-        "Source-verified compatibility result is not assume-guarantee fulfillment by actual Runtime/Host consumers.",
-        "Declaration completeness is only a typed source-shape judgment; satisfiability, nonvacuity, semantic-profile soundness, source authenticity/refinement, installed currentness, authority and consumer/domain acceptance remain separate obligations."
+        "Source-verified compatibility result is not assume-guarantee fulfillment by actual Runtime/Host consumers."
       ],
       "qualification": "SOURCE_CONTRACT_IMPLEMENTED; MODEL/INSTALLED/DOMAIN acceptance not inferred"
     },
@@ -369,7 +358,7 @@
         "Every replacement/composition claim names its mature semantic profile and keeps typed port compatibility, assume-guarantee refinement, observational equivalence, transition refinement, effect authority, evidence currentness and installed currentness as distinct relations.",
         "Sequential, parallel, feedback and hiding composition use their theory-specific operators and side conditions; UNKNOWN side conditions block only the dependent claim and never become empty assumptions, zero cost/error or vacuous PASS.",
         "Existing Lean/TLA+/TLC/Dafny/Quint/Kani/source/native consumers remain replaceable proof carriers bound to exact model/source/config identities; declaration completeness or verifier PASS never grants runtime invocation, installed currentness or domain acceptance.",
-        "Repository-native negative controls reject an unknown free-text Problem LEGO class, a forged CR21 registration, and any R2.1 declaration that omits a coordinate or promotes declaration completeness into proof/refinement/currentness."
+        "Repository-native negative controls reject an unknown free-text Problem LEGO class and a forged CR21 registration. Full R2.1 coordinates and proof/currentness non-promotion remain requirements in the established Skill, source, and Lean formal carriers; they are not a second inspector CLI."
       ]
     }
   ],

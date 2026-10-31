@@ -11,7 +11,6 @@ from .cognitive_circuit_r1 import (
 from .interface_contract_r2 import (
     currentness_standing,
     evaluate_interface,
-    inspect_lego_declaration,
 )
 from .successor_contract_r1 import (
     compile_successor_contract,
@@ -35,7 +34,6 @@ __all__ = [
     "currentness_standing",
     "evaluate_gate_results",
     "evaluate_interface",
-    "inspect_lego_declaration",
     "evaluate_successor_gates",
     "resolve_verifier_bindings",
     "select_source_readset_impacts",
