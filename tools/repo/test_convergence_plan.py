@@ -20,6 +20,133 @@ sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 
+
+
+class CandidateSourceRedundancyTests(unittest.TestCase):
+    """Independent immutable-Git oracle; no operational deletion side effects."""
+
+    def test_distinguishes_same_source_from_different_history_and_real_unique_values(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="ordivon-semantic-gc-") as tmp:
+            repo = Path(tmp)
+
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args],
+                    text=True, stderr=subprocess.PIPE, timeout=20,
+                ).strip()
+
+            git("init", "-q")
+            git("config", "user.email", "gc-oracle@example.invalid")
+            git("config", "user.name", "Source value oracle")
+            (repo / "consumer.py").write_text("VALUE = 0\n")
+            git("add", ".")
+            git("commit", "-qm", "base")
+            base = git("rev-parse", "HEAD")
+
+            (repo / "consumer.py").write_text("VALUE = 1\n")
+            git("add", ".")
+            git("commit", "-qm", "candidate behavior")
+            candidate = git("rev-parse", "HEAD")
+
+            git("checkout", "--detach", "-q", base)
+            (repo / "consumer.py").write_text("VALUE = 1\n")
+            (repo / "another_owner.py").write_text("NEW = 1\n")
+            git("add", ".")
+            git("commit", "-qm", "different history same consumer bytes")
+            equal_main = git("rev-parse", "HEAD")
+
+            equal = MODULE.assess_candidate_source_redundancy(
+                candidate=candidate, main=equal_main, repo=repo,
+            )
+            self.assertEqual(equal["sourceStanding"], "CANDIDATE_TOUCHED_BLOBS_EQUAL_MAIN")
+            self.assertEqual(equal["candidateChangePaths"], ["consumer.py"])
+            self.assertEqual(equal["mainDifferingPaths"], [])
+            self.assertFalse(equal["candidateInMainHistory"])
+            self.assertFalse(equal["retirementAdmissible"])
+            self.assertEqual(equal["consumerStanding"], "UNKNOWN_NOT_EXHAUSTIVELY_TRACED")
+
+            (repo / "consumer.py").write_text("VALUE = 2\n")
+            git("add", ".")
+            git("commit", "-qm", "main has different semantics")
+            different_main = git("rev-parse", "HEAD")
+            differing = MODULE.assess_candidate_source_redundancy(
+                candidate=candidate, main=different_main, repo=repo,
+            )
+            self.assertEqual(
+                differing["sourceStanding"], "CANDIDATE_TOUCHED_BLOBS_DIFFER_FROM_MAIN"
+            )
+            self.assertEqual(differing["mainDifferingPaths"], ["consumer.py"])
+            self.assertFalse(differing["retirementAdmissible"])
+
+            # Changing executable mode changes the Git tree even if blob bytes match.
+            git("checkout", "--detach", "-q", equal_main)
+            (repo / "consumer.py").chmod(0o755)
+            git("add", ".")
+            git("commit", "-qm", "mode change in main")
+            mode_main = git("rev-parse", "HEAD")
+            mode = MODULE.assess_candidate_source_redundancy(
+                candidate=candidate, main=mode_main, repo=repo,
+            )
+            self.assertEqual(mode["mainDifferingPaths"], ["consumer.py"])
+
+            # Historical containment is distinct from current file equality.
+            git("checkout", "--detach", "-q", candidate)
+            (repo / "consumer.py").write_text("VALUE = 99\n")
+            git("add", ".")
+            git("commit", "-qm", "revert/change after candidate")
+            later = git("rev-parse", "HEAD")
+            old = MODULE.assess_candidate_source_redundancy(
+                candidate=candidate, main=later, repo=repo,
+            )
+            self.assertTrue(old["candidateInMainHistory"])
+            self.assertEqual(old["mainDifferingPaths"], ["consumer.py"])
+            self.assertEqual(
+                old["comparisonBasis"], "FIRST_PARENT_ONLY_NOT_FULL_PR_DELTA"
+            )
+
+            # An attacker-controlled replace ref must not alter immutable
+            # source accounting or introduce an extra candidate-owned path.
+            git("replace", candidate, equal_main)
+            try:
+                sealed = MODULE.assess_candidate_source_redundancy(
+                    candidate=candidate, main=different_main, repo=repo,
+                )
+                self.assertEqual(sealed["candidateChangePaths"], ["consumer.py"])
+                self.assertEqual(sealed["mainDifferingPaths"], ["consumer.py"])
+            finally:
+                git("replace", "-d", candidate)
+
+            for bad in ("main", "0" * 39, "Z" * 40, "x\nHEAD"):
+                with self.subTest(candidate=bad):
+                    with self.assertRaises(ValueError):
+                        MODULE.assess_candidate_source_redundancy(
+                            candidate=bad, main=later, repo=repo,
+                        )
+
+    def test_native_cli_on_real_source_cuts_denies_deletion(self) -> None:
+        repo = MODULE_PATH.parents[2]
+        main = MODULE._git("rev-parse", "HEAD")
+        parent = MODULE._git("rev-parse", "HEAD^")
+        output = subprocess.check_output(
+            [sys.executable, str(MODULE_PATH),
+             "--retirement-candidate", parent, "--retirement-main", main],
+            cwd=repo, text=True, timeout=30,
+        )
+        import json
+        receipt = json.loads(output)
+        self.assertEqual(receipt["sourceCuts"]["candidate"], parent)
+        self.assertFalse(receipt["retirementAdmissible"])
+        self.assertEqual(receipt["installedStanding"], "UNKNOWN")
+        proc = subprocess.run(
+            [sys.executable, str(MODULE_PATH),
+             "--retirement-candidate", parent, "--retirement-main", main,
+             "--changed-file", "tools/repo/convergence_plan.py"],
+            cwd=repo, text=True, capture_output=True, timeout=30,
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("requires only both exact Git cuts", proc.stderr)
+
+
 class ConvergencePlanTests(unittest.TestCase):
     def test_all_native_owner_combinations_preserve_mandatory_queue_closure(self) -> None:
         """A finite consumer CDC bridge for existing R2.1 monotone-impact laws.
