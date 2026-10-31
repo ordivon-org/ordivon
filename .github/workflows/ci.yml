@@ -540,6 +540,7 @@ jobs:
                       "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
                       "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
                       "sourceAstAnchorsObserved": True,
+                      "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",
                       "codeFragmentRefined": False,
                       "sourceRefinementStanding": "UNKNOWN",
                       "runtimeRustRefined": False,

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import copy
 import hashlib
 import json
 import os
@@ -108,6 +109,8 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
     epsilon = semantic-model correspondence UNKNOWN;
     prov = exact Git source check by qualified_source_cut, external to this call;
     unfold = existing Lean TimeoutConnection and actual Harness/Gateway methods.
+    Raw JSON admission precedes the Lean Option Nat domain: missing timeoutMs
+    maps to none, whereas an explicit null is invalid and must be rejected.
     Acceptance: in-memory semantic mutants must never get CODE_REFINED.
     """
     path = "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
@@ -123,11 +126,13 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
         return methods[0]
 
     def canonical(expr: ast.AST) -> str:
-        # Assignment targets have Store context, while parser expressions
-        # have Load context. Target identity ignores only this AST context.
-        return ast.dump(expr, include_attributes=False).replace(
-            ", ctx=Store()", ""
-        )
+        # Python 3.14 and 3.15 differ in whether default AST context fields
+        # are printed. Normalize context on a copy, never on the source tree.
+        normalized = copy.deepcopy(expr)
+        for node in ast.walk(normalized):
+            if hasattr(node, "ctx"):
+                node.ctx = ast.Load()
+        return ast.dump(normalized, include_attributes=False, show_empty=True)
 
     def expr(source: str) -> str:
         return canonical(ast.parse(source, mode="eval").body)
