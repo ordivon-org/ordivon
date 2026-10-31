@@ -14,6 +14,8 @@ from typing import Any
 
 import jsonschema
 
+from artifact_core.json_validation import load_json
+
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/audio-flac-contract-v1.schema.json"
 FLAC = Path(os.environ.get("ARTIFACT_FLAC", "/opt/ordivon/external/flac/1.5.0-1/flac"))
@@ -64,7 +66,7 @@ def metaflac_value(path: Path, option: str) -> tuple[int, str, str]:
 
 
 def validate_contract(contract: dict[str, Any]) -> list[str]:
-    schema = json.loads(CONTRACT_SCHEMA.read_text())
+    schema = load_json(CONTRACT_SCHEMA)
     return [f"audio contract schema invalid: {e.message}" for e in sorted(jsonschema.Draft202012Validator(schema).iter_errors(contract), key=lambda e: list(e.path))]
 
 
@@ -72,7 +74,7 @@ def verify_flac(path: Path, contract_path: Path, evidence_dir: Path | None = Non
     if not path.is_file():
         return {"schemaVersion": 1, "kind": "artifact-audio-verification", "profileId": "audio-flac-pcm16-r1", "status": "FAIL", "failures": ["input is not a regular file"]}
     try:
-        contract = json.loads(contract_path.read_text())
+        contract = load_json(contract_path)
     except Exception as error:
         return {"schemaVersion": 1, "kind": "artifact-audio-verification", "profileId": "audio-flac-pcm16-r1", "status": "FAIL", "artifact": artifact_fact(path), "failures": [f"contract unreadable: {error}"]}
     failures = validate_contract(contract)

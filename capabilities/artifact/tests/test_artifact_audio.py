@@ -101,6 +101,39 @@ class ArtifactAudioTests(unittest.TestCase):
             self.assertEqual(value['decoderMatrix']['status'],'PASS')
             self.assertIn('canonical decoded PCM SHA-256 differs from object contract',value['failures'])
 
+    def test_ambiguous_nested_contract_cannot_reach_flac_decoder(self):
+        """Consumer contract names must be unambiguous before decoder effects."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "invalid.flac"
+            subject.write_bytes(b"not-a-flac-file")
+            contract = root / "contract.json"
+            original = json.dumps(json.loads(BASE.read_text()))
+            unique = '"sampleRateHz": 48000'
+            self.assertEqual(original.count(unique), 1)
+            # JSON last-wins would otherwise interpret this as valid 48 kHz.
+            contract.write_text(
+                original.replace(unique, '"sampleRateHz": 44100, ' + unique, 1)
+            )
+            evidence = root / "evidence"
+            rejected = MODULE.verify_flac(subject, contract, evidence)
+            self.assertEqual(rejected["status"], "FAIL")
+            self.assertTrue(
+                any("duplicate JSON key: sampleRateHz" in f for f in rejected["failures"]),
+                rejected,
+            )
+            self.assertFalse(evidence.exists())
+
+            # Non-vacuity: an unambiguous contract reaches family verification.
+            contract.write_text(original)
+            admitted = MODULE.verify_flac(subject, contract, evidence)
+            self.assertEqual(admitted["status"], "FAIL")
+            self.assertFalse(
+                any("duplicate JSON key" in f for f in admitted["failures"]),
+                admitted,
+            )
+            self.assertTrue((evidence / "verification.json").is_file())
+
     def test_contract_schema_rejects_non_r1_bit_depth_before_decoders(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
