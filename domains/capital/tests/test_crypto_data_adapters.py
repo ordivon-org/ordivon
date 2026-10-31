@@ -28,6 +28,23 @@ class CryptoDataAdapterPolicyTests(unittest.TestCase):
         self.assertEqual(x['okx']['historicalNautilusNativeAdapter']['role'],'HISTORICAL_CANDIDATE_EVIDENCE_ONLY')
         self.assertEqual(x['binance']['historicalNautilusNativeAdapter']['role'],'HISTORICAL_CANDIDATE_EVIDENCE_ONLY')
 
+    def test_readme_agent_source_map_matches_current_machine_policy(self):
+        # A historical adapter must not be silently promoted by prose.
+        # This source consistency test does not qualify installed provider IO.
+        cfg = json.loads(CFG.read_text(encoding="utf-8"))
+        entrypoint = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("Current public-data adapter source map (Agent navigation", entrypoint)
+        for venue in ("okx", "binance"):
+            current = cfg[venue]["primaryPublicDataPath"]
+            self.assertIn(f"`{venue}.primaryPublicDataPath={current}`", entrypoint)
+            self.assertEqual(
+                cfg[venue]["historicalNautilusNativeAdapter"]["role"],
+                "HISTORICAL_CANDIDATE_EVIDENCE_ONLY",
+            )
+        self.assertIn("historical candidate evidence only", entrypoint)
+        self.assertNotIn("OKX uses the qualified Nautilus native public client", entrypoint)
+        self.assertIn("does not establish which provider is installed or running", entrypoint)
+
     def test_policy_checker(self):
         out=subprocess.check_output([str(ROOT/'scripts/check-crypto-data-adapter-policy')],text=True)
         x=json.loads(out)
