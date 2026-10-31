@@ -20,7 +20,8 @@
       "tests/test_effect_reconciliation_r1.py",
       "formal/EffectReplayFence.tla",
       "formal/EffectReplayFence.cfg",
-      "scripts/verify_effect_replay_formal.sh"
+      "scripts/verify_effect_replay_formal.sh",
+      "tests/test_identity_token_grammar.py"
     ]
   },
   "nodes": [
@@ -41,11 +42,13 @@
       ],
       "behavioralContract": "Manifest has unique typed references, excludes illegal dependency cycles and unresolved assumptions, and rejects mismatched or stale verifier-owned gate evidence; mechanical closure never invents successful domain effects.",
       "acceptance": [
-        "Contract fixtures check deterministic compilation, stale result rejection, unknown assumptions and malformed/cyclic graph behavior."
+        "Contract fixtures check deterministic compilation, stale result rejection, unknown assumptions and malformed/cyclic graph behavior.",
+        "COMPOSITION-TOKEN-20261031: identity, SHA-256 and evidence-reference tokens consume the whole JSON string; a valid token followed by LF/CR/CRLF/U+2028/U+2029 is rejected by the native Draft202012Validator at the schema boundary."
       ],
       "evidence": [
         "src/ordivon_composition/cognitive_circuit_r1.py",
-        "tests/test_cognitive_circuit_r1.py"
+        "tests/test_cognitive_circuit_r1.py",
+        "tests/test_identity_token_grammar.py"
       ],
       "dependencies": [],
       "sharedRefs": [],
@@ -81,11 +84,13 @@
       ],
       "behavioralContract": "Output distinguishes compatibility, evidence sufficiency and currentness; missing, unknown or stale source does not become proof of actual deployment compatibility.",
       "acceptance": [
-        "Negative tests reject circuit binding mismatch and ambiguous/stale evidence while preserving distinct compatibility/currentness status."
+        "Negative tests reject circuit binding mismatch and ambiguous/stale evidence while preserving distinct compatibility/currentness status.",
+        "COMPOSITION-TOKEN-20261031: identity, SHA-256 and evidence-reference tokens consume the whole JSON string; a valid token followed by LF/CR/CRLF/U+2028/U+2029 is rejected by the native Draft202012Validator at the schema boundary."
       ],
       "evidence": [
         "src/ordivon_composition/interface_contract_r2.py",
-        "tests/test_interface_contract_core.py"
+        "tests/test_interface_contract_core.py",
+        "tests/test_identity_token_grammar.py"
       ],
       "dependencies": [
         "C01"
@@ -124,11 +129,13 @@
       ],
       "behavioralContract": "Obligation identities and source commitments preserve exact manifest/gate scope; a caller cannot claim an arbitrary matching verifier or unsupported goal as accepted evidence.",
       "acceptance": [
-        "Verification obligation suites reject cross-circuit bindings, malformed identities and unauthorized inferred completeness."
+        "Verification obligation suites reject cross-circuit bindings, malformed identities and unauthorized inferred completeness.",
+        "COMPOSITION-TOKEN-20261031: identity, SHA-256 and evidence-reference tokens consume the whole JSON string; a valid token followed by LF/CR/CRLF/U+2028/U+2029 is rejected by the native Draft202012Validator at the schema boundary."
       ],
       "evidence": [
         "src/ordivon_composition/verification_obligation_r1.py",
-        "tests/test_verification_obligation_r1.py"
+        "tests/test_verification_obligation_r1.py",
+        "tests/test_identity_token_grammar.py"
       ],
       "dependencies": [
         "C01"
@@ -216,11 +223,13 @@
       ],
       "behavioralContract": "Missing, unresolved, stale, self-referential or optional-only gates cannot vacuously satisfy a required successor transition.",
       "acceptance": [
-        "Tests verify required positive gates, optional-only nonvacuity, self-reference and unknown/negative gate handling."
+        "Tests verify required positive gates, optional-only nonvacuity, self-reference and unknown/negative gate handling.",
+        "COMPOSITION-TOKEN-20261031: identity, SHA-256 and evidence-reference tokens consume the whole JSON string; a valid token followed by LF/CR/CRLF/U+2028/U+2029 is rejected by the native Draft202012Validator at the schema boundary."
       ],
       "evidence": [
         "src/ordivon_composition/successor_contract_r1.py",
-        "tests/test_successor_contract_r1.py"
+        "tests/test_successor_contract_r1.py",
+        "tests/test_identity_token_grammar.py"
       ],
       "dependencies": [
         "C01"
