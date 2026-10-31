@@ -123,6 +123,99 @@ class CandidateSourceRedundancyTests(unittest.TestCase):
                             candidate=bad, main=later, repo=repo,
                         )
 
+    def test_historical_head_does_not_certify_full_multicommit_pr_delta(self) -> None:
+        # Last-commit equality cannot establish that earlier PR commits
+        # remained in main: original branch changes may have been reverted.
+        with tempfile.TemporaryDirectory(prefix="ordivon-pr-scope-counterexample-") as tmp:
+            repo = Path(tmp)
+
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True,
+                    stderr=subprocess.PIPE, timeout=20,
+                ).strip()
+
+            git("init", "-q")
+            git("config", "user.email", "historical-pr@example.invalid")
+            git("config", "user.name", "Historical PR oracle")
+            (repo / "early.py").write_text("VALUE = 0\n")
+            (repo / "late.py").write_text("VALUE = 0\n")
+            git("add", ".")
+            git("commit", "-qm", "base")
+            (repo / "early.py").write_text("VALUE = 1\n")
+            git("add", ".")
+            git("commit", "-qm", "earlier branch commit")
+            (repo / "late.py").write_text("VALUE = 1\n")
+            git("add", ".")
+            git("commit", "-qm", "later branch commit")
+            candidate = git("rev-parse", "HEAD")
+            (repo / "early.py").write_text("VALUE = 0\n")
+            git("add", ".")
+            git("commit", "-qm", "post-merge revert of earlier feature")
+            main = git("rev-parse", "HEAD")
+
+            receipt = MODULE.assess_candidate_source_redundancy(
+                candidate=candidate, main=main, repo=repo,
+            )
+            self.assertTrue(receipt["candidateInMainHistory"])
+            self.assertEqual(receipt["candidateChangePaths"], ["late.py"])
+            self.assertEqual(receipt["mainMatchingPaths"], ["late.py"])
+            self.assertFalse(receipt["fullCandidateDeltaQualified"])
+            self.assertEqual(
+                receipt["sourceStanding"],
+                "HISTORICAL_FIRST_PARENT_ONLY_NO_FULL_PR_REDUNDANCY_JUDGMENT",
+            )
+            self.assertFalse(receipt["retirementAdmissible"])
+
+    def test_explicit_repository_scope_rejects_ambient_git_dir(self) -> None:
+        # git -C repo is not a repository identity fence when Git's location
+        # environment is inherited: an unrelated repository can be selected.
+        with tempfile.TemporaryDirectory(prefix="ordivon-git-scope-") as tmp:
+            repo_a, repo_b = (Path(tmp) / name for name in ("a", "b"))
+
+            def git(repo: Path, *args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args],
+                    text=True, stderr=subprocess.PIPE, timeout=20,
+                ).strip()
+
+            for repo in (repo_a, repo_b):
+                repo.mkdir()
+                git(repo, "init", "-q")
+                git(repo, "config", "user.email", "scope@example.invalid")
+                git(repo, "config", "user.name", "Source identity oracle")
+                (repo / "source.py").write_text("VALUE = 0\\n")
+                git(repo, "add", ".")
+                git(repo, "commit", "-qm", "base")
+
+            (repo_b / "source.py").write_text("VALUE = 1\\n")
+            git(repo_b, "add", ".")
+            git(repo_b, "commit", "-qm", "second")
+            foreign_candidate = git(repo_b, "rev-parse", "HEAD")
+            (repo_b / "source.py").write_text("VALUE = 2\\n")
+            git(repo_b, "add", ".")
+            git(repo_b, "commit", "-qm", "third")
+            foreign_main = git(repo_b, "rev-parse", "HEAD")
+
+            for ambient in (
+                {"GIT_DIR": str(repo_b / ".git")},
+                {"GIT_OBJECT_DIRECTORY": str(repo_b / ".git" / "objects")},
+            ):
+                with self.subTest(ambient=tuple(ambient)):
+                    with mock.patch.dict(os.environ, ambient):
+                        # Explicit repo A MUST be the source universe,
+                        # regardless of inherited repository/object locations.
+                        with self.assertRaises(subprocess.CalledProcessError):
+                            MODULE.assess_candidate_source_redundancy(
+                                candidate=foreign_candidate,
+                                main=foreign_main, repo=repo_a,
+                            )
+                        actual_b = MODULE.assess_candidate_source_redundancy(
+                            candidate=foreign_candidate,
+                            main=foreign_main, repo=repo_b,
+                        )
+                        self.assertTrue(actual_b["candidateInMainHistory"])
+
     def test_native_cli_on_real_source_cuts_denies_deletion(self) -> None:
         repo = MODULE_PATH.parents[2]
         main = MODULE._git("rev-parse", "HEAD")
