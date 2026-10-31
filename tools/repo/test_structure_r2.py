@@ -221,3 +221,28 @@ def test_phase1_content_scan_exact_source_complete_and_non_authoritative():
                }
                for x in result["summary"]["contentObservedCounterexamples12"])
     assert all(x["actualConsumers"] == "UNKNOWN" for x in result["paths"])
+
+def test_phase1_source_form_lexical_names_never_admit_semantic_proof():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "phase1_content_forms",
+        ROOT / "tools" / "repo" / "source_content_facets.py",
+    )
+    assert spec is not None and spec.loader is not None
+    forms = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(forms)
+    for path, expected in [
+        ("docs/migration/receipts/host.commit-map", "HISTORICAL_COMMIT_MAPPING_TEXT"),
+        ("services/runtime/formal/RuntimeDispatchR1.tla", "TLA_PLUS_SPECIFICATION_TEXT"),
+        ("platform/workstation/n8n/ordivon-n8n.container", "PODMAN_QUADLET_UNIT_TEXT"),
+    ]:
+        carrier = forms.content_probe(path, "100644", 4, b"text")
+        assert carrier["contentForm"] == expected
+        assert carrier["readStanding"] == "LEXICAL_SOURCE_FORM_ONLY"
+        assert carrier["semanticQualification"] == "UNKNOWN"
+    assert forms.MAX_READ_BYTES <= 4 * 1024 * 1024
+    stream = forms.content_probe(
+        "evidence/runs.jsonl", "100644", 13, b'{"kind":"r1"}\n{"kind":"r2"}'
+    )
+    assert stream["readStanding"] == "FIRST_RECORD_PARSED_ONLY"
+    assert stream["contentForm"] == "JSONL_FIRST_OBJECT_ONLY"

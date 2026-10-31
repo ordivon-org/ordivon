@@ -41,6 +41,83 @@ class SourceContentFacetTests(unittest.TestCase):
     def test_unlisted_source_is_exposed(self):
         with self.assertRaisesRegex(ValueError,"Unclassified"):
             M.candidate_zone("unknown/source.py",[{"sourceRef":"runtime","sourcePrefix":"services/runtime/"}])
+    def test_large_source_json_below_four_mib_is_syntax_parsed(self):
+        source=b'{"kind":"declaration","payload":"' + b'x'*131072 + b'"}'
+        self.assertLess(len(source),M.MAX_READ_BYTES)
+        item=M.content_probe("evidence/large.json","100644",len(source),source)
+        self.assertEqual(item["contentForm"],"JSON_OBJECT_DECLARATION")
+        self.assertEqual(item["claimedFields"]["kind"],"declaration")
+        self.assertEqual(item["readStanding"],"SYNTAX_PARSED")
+
+    def test_jsonl_only_first_record_is_never_declared_full_parse(self):
+        source=b'{"kind":"first"}\n{"kind":"second"}'
+        item=M.content_probe("evidence/runs.jsonl","100644",len(source),source)
+        self.assertEqual(item["contentForm"],"JSONL_FIRST_OBJECT_ONLY")
+        self.assertEqual(item["readStanding"],"FIRST_RECORD_PARSED_ONLY")
+        self.assertEqual(item["claimedFields"]["kind"],"first")
+
+    def test_geopackage_blob_magic_is_observation_only(self):
+        b=b"SQLite format 3\x00"+b"GPKG"
+        item=M.content_probe("media/map.gpkg","100644",len(b),b)
+        self.assertEqual(item["contentForm"],"BINARY_OR_MEDIA_FILE")
+        self.assertEqual(item["containerMagicStanding"],"OBSERVED_MATCHING_MAGIC")
+        self.assertEqual(item["semanticQualification"],"UNKNOWN")
+        bad=M.content_probe("media/map.gpkg","100644",8,b"notdb")
+        self.assertEqual(bad["containerMagicStanding"],"MAGIC_MISMATCH")
+
+    def test_blend_suffix_is_not_blender_execution_proof(self):
+        item=M.content_probe("media/object.blend","100644",12,b"not checked")
+        self.assertEqual(item["readStanding"],"SKIPPED_BINARY")
+        self.assertEqual(item["containerMagicStanding"],"NOT_CHECKED_FOR_THIS_FORMAT")
+
+    def test_untrusted_git_symlink_not_dereferenced_as_source(self):
+        item=M.content_probe("src/handler.py","120000",16,b"other-file.py")
+        self.assertEqual(item["contentForm"],"GIT_SYMLINK_BLOB_ONLY")
+        self.assertEqual(item["readStanding"],"SYMLINK_TARGET_NOT_DEREFERENCED")
+
+    def test_mdx_html_and_csharp_are_carrier_forms_not_executable_assurances(self):
+        self.assertEqual(M.content_probe("book.mdx","100644",15,b"# Chapter\\nHello")["contentForm"],"MDX_DOCUMENT_UNEXECUTED")
+        self.assertEqual(M.content_probe("site.html","100644",12,b"<div>x</div>")["contentForm"],"HTML_MARKUP_UNEXECUTED")
+        self.assertEqual(M.content_probe("Agent.cs","100644",11,b"class Agent{}")["contentForm"],"SOURCE_CS")
+
+    def test_historical_commit_map_is_not_an_active_source_consumer(self):
+        v=M.content_probe("docs/migration/receipts/capital.commit-map","100644",8,b"historical")
+        self.assertEqual(v["contentForm"],"HISTORICAL_COMMIT_MAPPING_TEXT")
+        self.assertEqual(v["readStanding"],"LEXICAL_SOURCE_FORM_ONLY")
+        self.assertEqual(v["semanticQualification"],"UNKNOWN")
+
+    def test_formal_and_deployment_files_are_only_syntactic_carriers(self):
+        rows={
+            "tools/formal/Proof.dfy":"DAFNY_MODEL_SOURCE_TEXT",
+            "services/harness/formal/ProviderClaimR1.tla":"TLA_PLUS_SPECIFICATION_TEXT",
+            "platform/workstation/temporal/temporal.service.j2":"JINJA_TEMPLATE_TEXT",
+            "platform/workstation/n8n/ordivon-n8n.container":"PODMAN_QUADLET_UNIT_TEXT",
+            "platform/workstation/tofu/agent-birth-handoff/main.tf":"OPENTOFU_TERRAFORM_SOURCE",
+        }
+        for path,role in rows.items():
+            with self.subTest(path=path):
+                obs=M.content_probe(path,"100644",12,b"declaration")
+                self.assertEqual(obs["contentForm"],role)
+                self.assertEqual(obs["semanticQualification"],"UNKNOWN")
+
+    def test_geojson_jsonld_and_otio_are_parsed_envelopes_not_live_producers(self):
+        examples={
+            "map.geojson":("GEOJSON_OBJECT",b'{"type":"FeatureCollection","features":[]}'),
+            "model.jsonld":("JSON_LD_OBJECT",b'{"@context":{"x":"y"},"type":"Dataset"}'),
+            "timeline.otio":("OPENTIMELINEIO_OBJECT",b'{"OTIO_SCHEMA":"Timeline.1"}'),
+        }
+        for path,(role,body) in examples.items():
+            with self.subTest(path=path):
+                obs=M.content_probe(path,"100644",len(body),body)
+                self.assertEqual(obs["contentForm"],role)
+                self.assertEqual(obs["readStanding"],"SYNTAX_PARSED")
+                self.assertNotIn("semanticQualification",obs)
+
+    def test_source_unknown_form_remains_unknown(self):
+        obs=M.content_probe("undocumented.xyzzz","100644",7,b"unknown")
+        self.assertEqual(obs["contentForm"],"TEXT_OTHER_UNKNOWN_FUNCTION")
+        self.assertEqual(obs["semanticQualification"],"UNKNOWN")
+
     def test_rootfiles_own_zone_only_if_no_slash(self):
         z=[{"sourceRef":"region/repository-root-config","sourcePrefix":""}]
         self.assertEqual(M.candidate_zone("AGENTS.md",z),"region/repository-root-config")
