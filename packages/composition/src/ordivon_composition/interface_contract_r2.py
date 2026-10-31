@@ -156,22 +156,97 @@ def evaluate_interface(
     return result
 
 
+LEGO_DECLARATION_SCHEMA = ROOT / "schemas" / "lego-declaration-r21.schema.json"
+LEGO_COORDINATES = ("I", "O", "S", "pre", "post", "inv", "eff", "c", "epsilon", "prov", "unfold")
+
+
+def inspect_lego_declaration(declaration: dict[str, Any]) -> dict[str, Any]:
+    """Check only complete R2.1 declaration shape, not proof or permission."""
+    _validate_schema(declaration, LEGO_DECLARATION_SCHEMA, "R2.1 LEGO declaration")
+    for name in (
+        "identity",
+        "responsibility",
+        "goal",
+        "consumerRef",
+        "semanticProfile",
+        "publicObservation",
+        "sourceRef",
+    ):
+        if not declaration[name].strip():
+            raise CircuitContractError(f"R2.1 {name} cannot be whitespace")
+    for name in ("criterion", "baseline", "oracle"):
+        if not declaration["acceptance"][name].strip():
+            raise CircuitContractError(f"R2.1 acceptance.{name} cannot be whitespace")
+    unknown_coordinates: list[str] = []
+    for name in LEGO_COORDINATES:
+        cell = declaration["ell"][name]
+        if not cell["type"].strip():
+            raise CircuitContractError(f"R2.1 {name} type cannot be whitespace")
+        if cell["standing"] == "UNKNOWN":
+            if not cell["reason"].strip():
+                raise CircuitContractError(f"R2.1 {name} UNKNOWN needs a reason")
+            unknown_coordinates.append(name)
+        elif not cell["statement"].strip() or cell["statement"].strip().upper() == "UNKNOWN":
+            raise CircuitContractError(f"R2.1 {name} DECLARED needs a concrete statement")
+    return {
+        "kind": "ordivon.r21.lego-declaration-inspection",
+        "identity": declaration["identity"],
+        "declarationDigest": canonical_digest(declaration),
+        "declarationStanding": (
+            "DECLARATION_COMPLETE_WITH_UNKNOWNS"
+            if unknown_coordinates
+            else "DECLARATION_COMPLETE_UNPROVED"
+        ),
+        "unknownCoordinates": unknown_coordinates,
+        "semanticProfile": declaration["semanticProfile"],
+        "consumerRef": declaration["consumerRef"],
+        "publicInfo": {
+            "goal": declaration["goal"],
+            "responsibility": declaration["responsibility"],
+            "publicObservation": declaration["publicObservation"],
+            "types": {
+                name: declaration["ell"][name]
+                for name in ("I", "O", "pre", "post", "inv", "eff", "c", "epsilon")
+            },
+            "sourceRef": declaration["sourceRef"],
+            "acceptance": declaration["acceptance"],
+        },
+        "nonvacuityEstablished": False,
+        "modelProofEstablished": False,
+        "implementationRefined": False,
+        "installedCurrent": False,
+        "consumerObserved": False,
+        "safeToInvoke": False,
+        "domainAcceptanceEstablished": False,
+        "claimBoundary": (
+            "Only caller-declared shape is checked. No satisfiability, "
+            "nonvacuity, profile soundness, source authenticity/refinement, "
+            "authorization, installation, consumer use or domain completion."
+        ),
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
     evaluate = sub.add_parser("evaluate")
     evaluate.add_argument("observation", type=Path)
     evaluate.add_argument("expectation", type=Path)
+    qualify = sub.add_parser("qualify")
+    qualify.add_argument("declaration", type=Path)
     return parser
 
 
 def main() -> int:
     args = _parser().parse_args()
     try:
-        result = evaluate_interface(
-            _load_json(args.observation),
-            _load_json(args.expectation),
-        )
+        if args.command == "qualify":
+            result = inspect_lego_declaration(_load_json(args.declaration))
+        else:
+            result = evaluate_interface(
+                _load_json(args.observation),
+                _load_json(args.expectation),
+            )
     except (OSError, json.JSONDecodeError, CircuitContractError) as exc:
         raise SystemExit(f"interface contract R2 failed: {exc}") from exc
     print(json.dumps(result, indent=2, sort_keys=True))
