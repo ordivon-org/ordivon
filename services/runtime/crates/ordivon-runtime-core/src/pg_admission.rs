@@ -832,6 +832,18 @@ mod live_pg_tests {
     use std::sync::{Arc, Barrier};
     use std::thread;
 
+    fn physical_pg_test_dsn() -> String {
+        std::env::var("ORDIVON_PG_TEST_DSN").expect(
+            "physical PostgreSQL tests require ORDIVON_PG_TEST_DSN; run the dedicated mise task",
+        )
+    }
+
+    fn historical_pg_stage_test_dsn() -> String {
+        std::env::var("ORDIVON_PG_STAGE_TEST_DSN").expect(
+            "historical stage qualification requires ORDIVON_PG_STAGE_TEST_DSN; run the dedicated stage task",
+        )
+    }
+
     // An operator supplies an isolated PostgreSQL DSN for physical tests.
     // No environment value means the ordinary CI suite never mutates PG.
     const SCHEMA: &str = r#"
@@ -950,10 +962,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_rejects_synthetic_writer_without_event_sequence_uniqueness() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         assert!(PgAdmissionStore::connect(&dsn, &scratch.name).is_ok());
@@ -971,10 +982,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_rejects_foreign_key_that_points_at_wrong_pg_target() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         assert!(PgAdmissionStore::connect(&dsn, &scratch.name).is_ok());
@@ -995,10 +1005,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_native_atomic_admission_replay_fence_and_rollback() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
         let a = payload("request-A", "job-A", "workspace-A", 2);
@@ -1097,10 +1106,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_terminal_cas_replay_orphan_hold_and_atomic_rollback() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1179,10 +1187,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_stale_attempt_cannot_terminalize_current_job() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1237,10 +1244,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_artifact_bearing_terminal_is_denied_until_full_owner_exists() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1281,10 +1287,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_STAGE_TEST_DSN historical-stage qualification"]
     fn historical_pg_stage_is_not_an_admission_authority() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_STAGE_TEST_DSN") else {
-            return;
-        };
+        let dsn = historical_pg_stage_test_dsn();
         let mut inspector = Client::connect(&dsn, NoTls).unwrap();
         let before: i64 = inspector
             .query_one("SELECT count(*) FROM rw12_stage_cutover_r1.jobs", &[])
@@ -1313,10 +1318,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_cancel_commit_readback_is_exact_and_fail_closed_after_ack_loss() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         let mut writer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
         let mut observer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1379,10 +1383,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_cancel_intent_is_atomic_replayable_and_never_implies_dispatch_stopped() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
         let first = payload("cancel-before-dispatch", "job-cancel-accepted", "ws-a", 2);
@@ -1431,10 +1434,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_cancel_intent_running_orphan_and_missing_reservation_fences() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1566,10 +1568,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_concurrent_duplicate_never_creates_second_job() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let gate = Arc::new(Barrier::new(5));
