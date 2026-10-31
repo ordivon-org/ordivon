@@ -568,7 +568,7 @@ class PluginGatewayExecutionBridge(SQLiteHarnessRuntimeBridge):
                     "Gateway environment variable is outside the caller grant",
                     kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
                 )
-        if timeout is not None and (
+        if "timeoutMs" in call.arguments and (
             type(timeout) is not int or timeout < 1 or timeout > self.gateway_grant.max_timeout_ms
         ):
             raise ToolBridgeError(

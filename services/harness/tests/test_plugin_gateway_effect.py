@@ -545,3 +545,37 @@ def test_gateway_adapter_waits_for_committed_but_incomplete_artifact_projection(
     assert observed["deliveryDisposition"] == "reconciliation_required"
     assert observed["recoveryRequired"] is True
     assert observed["resultAvailable"] is False
+
+
+def test_present_null_timeout_is_rejected_on_real_agent_run() -> None:
+    """A present, schema-illegal null must not reach Gateway execution.submit."""
+    from dataclasses import replace
+
+    from jsonschema import Draft202012Validator
+
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = _adapter(timeout_ms=None)
+    first, second = adapter._results
+    call = first.tool_calls[0]
+    explicit_null = {**call.arguments, "timeoutMs": None}
+    assert list(Draft202012Validator(factory._definition.input_schema).iter_errors(explicit_null))
+    adapter._results = (
+        replace(first, tool_calls=(replace(call, arguments=explicit_null),)),
+        second,
+    )
+
+    with tempfile.TemporaryDirectory() as directory:
+        clock = FixedClock()
+        run = HarnessAgentRun.create(
+            Path(directory),
+            _contract(factory),
+            lambda _contract: adapter,
+            tool_bridge_factory=factory,
+            clock_ms=clock,
+            monotonic_ms=clock,
+        )
+        run.run(())
+        assert not [arguments for name, arguments in client.calls if name == "execution.submit"], (
+            "schema-illegal explicit null reached actual Gateway submission"
+        )

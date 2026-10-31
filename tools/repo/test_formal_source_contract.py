@@ -198,10 +198,12 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         self.assertLess(step.index(admission), step.index("mise run formal:verify"))
         self.assertIn("KANI_HOME:", step)
 
-    def test_timeout_source_fragment_refinement_rejects_changed_python_semantics(self) -> None:
-        """Source-bound certificate rejects a changed producer or transport."""
+    def test_timeout_source_anchor_reader_rejects_changed_explicit_syntax(self) -> None:
+        """Anchor observation rejects changed syntax without proving code semantics."""
         qualified = formal.qualified_timeout_adapter_fragment()
-        self.assertIs(qualified["codeFragmentRefined"], True)
+        self.assertIs(qualified["sourceAstAnchorsObserved"], True)
+        self.assertIs(qualified["codeFragmentRefined"], False)
+        self.assertEqual(qualified["sourceRefinementStanding"], "UNKNOWN")
         self.assertIs(qualified["runtimeRustRefined"], False)
         target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
         source = target.read_text(encoding="utf-8")
@@ -213,6 +215,7 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
             ),
             "projection": 'gateway_args["timeoutMs"] = execution["timeoutMs"]',
             "guard": "timeout > self.gateway_grant.max_timeout_ms",
+            "presence": 'if "timeoutMs" in call.arguments and (',
         }
         revisions = {
             "default": (
@@ -222,6 +225,7 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
             ),
             "projection": 'gateway_args["timeoutMs"] = None',
             "guard": "timeout > 900_000",
+            "presence": "if timeout is not None and (",
         }
         real_read = Path.read_text
         for name, original in originals.items():
@@ -236,6 +240,85 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
 
                 with patch.object(Path, "read_text", simulated_source_read):
                     with self.assertRaisesRegex(ValueError, "timeout|admission"):
+                        formal.qualified_timeout_adapter_fragment()
+
+    def test_partial_ast_source_anchors_must_not_promise_semantic_refinement(self) -> None:
+        """A remaining pre-projection rebind keeps source refinement UNKNOWN."""
+        baseline = formal.qualified_timeout_adapter_fragment()
+        self.assertIs(baseline["sourceAstAnchorsObserved"], True)
+        self.assertEqual(
+            baseline["effectFrameObserved"],
+            "exact_post_projection_return_and_immediate_gateway_dispatch",
+        )
+        self.assertIs(baseline["codeFragmentRefined"], False)
+        self.assertEqual(baseline["sourceRefinementStanding"], "UNKNOWN")
+
+        target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        source = target.read_text(encoding="utf-8")
+        before = '        execution["timeoutMs"] = _forward_granted_timeout(\n'
+        self.assertEqual(source.count(before), 1)
+        mutant = source.replace(before, '        timeout = None\n' + before, 1)
+        compile(mutant, str(target), "exec")
+
+        actual_read = Path.read_text
+
+        def read_with_mutant(path, *args, **kwargs):
+            if path == target:
+                return mutant
+            return actual_read(path, *args, **kwargs)
+
+        with patch.object(Path, "read_text", read_with_mutant):
+            outcome = formal.qualified_timeout_adapter_fragment()
+        self.assertIs(outcome["sourceAstAnchorsObserved"], True)
+        self.assertIs(outcome["codeFragmentRefined"], False)
+        self.assertEqual(outcome["sourceRefinementStanding"], "UNKNOWN")
+
+    def test_timeout_source_observation_rejects_post_projection_effect_mutations(self) -> None:
+        """Exact observed frame rejects caller/Gateway mutations before handoff."""
+        target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        original = target.read_text(encoding="utf-8")
+        variants = (
+            (
+                "caller-update",
+                '        return (\n            "workspace.exec",',
+                '        execution.update({"timeoutMs": self.gateway_grant.max_timeout_ms + 1})\n'
+                '        return (\n            "workspace.exec",',
+            ),
+            (
+                "caller-alias",
+                '        return (\n            "workspace.exec",',
+                '        alias = execution\n'
+                '        alias.update({"timeoutMs": self.gateway_grant.max_timeout_ms + 1})\n'
+                '        return (\n            "workspace.exec",',
+            ),
+            (
+                "gateway-update",
+                '        receipt = self._call("execution.submit", gateway_args)',
+                '        gateway_args.update({"timeoutMs": 900000})\n'
+                '        receipt = self._call("execution.submit", gateway_args)',
+            ),
+            (
+                "gateway-alias",
+                '        receipt = self._call("execution.submit", gateway_args)',
+                '        alias = gateway_args\n'
+                '        alias["timeoutMs"] = 900000\n'
+                '        receipt = self._call("execution.submit", gateway_args)',
+            ),
+        )
+        actual_read = Path.read_text
+        for label, old, new in variants:
+            with self.subTest(label=label):
+                self.assertIn(old, original)
+                mutant = original.replace(old, new, 1)
+                compile(mutant, str(target), "exec")
+
+                def read_with_mutant(path, *args, **kwargs):
+                    if path == target:
+                        return mutant
+                    return actual_read(path, *args, **kwargs)
+
+                with patch.object(Path, "read_text", read_with_mutant):
+                    with self.assertRaisesRegex(ValueError, "timeout|frame|effect|projection"):
                         formal.qualified_timeout_adapter_fragment()
 
     def test_exact_git_source_readset_is_qualified(self) -> None:
