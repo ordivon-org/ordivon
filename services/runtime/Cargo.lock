@@ -1210,6 +1210,7 @@ dependencies = [
  "hex",
  "jsonwebtoken",
  "ordivon-runtime-core",
+ "postgres",
  "reqwest",
  "rmcp",
  "schemars",

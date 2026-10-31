@@ -130,3 +130,6 @@ pub use windows_broker::WindowsPrivilegedBrokerConfig;
 mod integration_tests;
 #[cfg(test)]
 mod tests;
+
+#[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
+pub mod pg_runtime;

@@ -6,6 +6,10 @@
 
 #[cfg(feature = "postgres-registry-admission")]
 pub mod pg_admission;
+#[cfg(feature = "postgres-registry-admission")]
+mod pg_readback;
+#[cfg(feature = "postgres-registry-admission")]
+pub use pg_readback::{PgJobReadback, PgJobSnapshot};
 #[cfg(feature = "transactional-runtime")]
 mod runtime;
 #[cfg(feature = "universal-executor")]
@@ -100,3 +104,10 @@ pub use runtime::{
     MAX_WORKSPACE_INSPECTION_JOB_LIMIT, RUNTIME_DOCTOR_SCHEMA_VERSION,
     RUNTIME_REPAIR_SCHEMA_VERSION,
 };
+
+#[cfg(all(
+    feature = "transactional-runtime",
+    feature = "postgres-registry-admission",
+    target_os = "linux"
+))]
+pub use runtime::pg_runtime::{PgRuntime, PgRuntimeConfig};

@@ -9,10 +9,6 @@ homepage.workspace = true
 description = "Trusted-local Workspace execution, durable Job state, evidence, reconciliation, and recovery core for Ordivon."
 publish = false
 
-# Kani injects its verifier crate only under cfg(kani); normal Cargo builds do not.
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)"] }
-
 [features]
 default = ["transactional-runtime"]
 systemd-supervisor = ["dep:libc"]
