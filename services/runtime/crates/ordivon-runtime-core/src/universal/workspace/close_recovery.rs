@@ -184,7 +184,10 @@ fn installed_systemd_workspace_consumers(
                 if line.is_empty() || line.starts_with('#') || line.starts_with(';') {
                     return false;
                 }
-                if instance_alias && line.contains("/var/lib/ordivon/runtime/workspaces/%i") {
+                if instance_alias && (
+                    line.contains("/var/lib/ordivon/runtime/workspaces/%i")
+                    || line.contains("/var/lib/ordivon/runtime/workspaces/%I")
+                ) {
                     // For installed agent@ws-id.service, systemd expands %i
                     // to ws-id; a literal-only source search misses it.
                     return true;
@@ -981,6 +984,21 @@ mod installed_unit_consumer_tests {
             "CANDIDATE_FALSE_GREEN: systemd template %i can resolve to the live workspace"
         );
     }
+    #[test]
+    fn unescaped_instance_specifier_is_a_workspace_consumer() {
+        let temp = TestUnitRoot::new();
+        let root = temp.path().join("units");
+        let wants = root.join("multi-user.target.wants");
+        fs::create_dir_all(&wants).unwrap();
+        let template = root.join("agent@.service");
+        fs::write(&template,
+            "[Service]\nWorkingDirectory=/var/lib/ordivon/runtime/workspaces/%I\n"
+        ).unwrap();
+        symlink(&template, wants.join("agent@ws-raw.service")).unwrap();
+        let found = installed_systemd_workspace_consumers("ws-raw", &[&root]).unwrap();
+        assert_eq!(found, vec![wants.join("agent@ws-raw.service").display().to_string()]);
+    }
+
     use std::os::unix::fs::symlink;
     struct TestUnitRoot(std::path::PathBuf);
 
