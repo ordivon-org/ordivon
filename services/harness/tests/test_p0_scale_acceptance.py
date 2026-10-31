@@ -14,6 +14,10 @@ SPEC.loader.exec_module(MODULE)
 
 
 class HarnessP0ScaleAcceptanceTests(unittest.TestCase):
+    def test_p95_nearest_rank_does_not_hide_one_slow_inspection(self) -> None:
+        self.assertEqual(MODULE._percentile([1.0, 2.0, 3.0, 100.0], 0.95), 100.0)
+        self.assertEqual(MODULE._percentile([1.0, 2.0, 3.0, 100.0], 0.50), 2.0)
+
     def test_small_scale_receipt_is_exact_and_healthy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             receipt = MODULE.run_acceptance(
