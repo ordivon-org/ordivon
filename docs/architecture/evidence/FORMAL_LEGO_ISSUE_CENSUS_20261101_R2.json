@@ -227,7 +227,7 @@
         "requiredWitness": "CR21 source/native/formal checks plus explicit implementation and installed-consumer refinement for each promoted claim.",
         "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
       },
-      "decision": "Reuse the new declaration inspector and existing mature formal kernels; add no second calculus or global proof registry.",
+      "decision": "Retire the old unconsumed declaration inspector after merged #1209; reuse the still-consumed verification-obligation compiler and Source Readset selector. Native obligation binding counterexample is source evidence only; full implementation refinement and installed currentness remain UNKNOWN.",
       "readsetEvidence": {
         "sourceCut": "6557ab5f2858832151430cc5f5e3dc020c3da0f1",
         "sourcePaths": [
@@ -236,10 +236,10 @@
         "consumerPaths": [
           "packages/composition/src/ordivon_composition/verification_obligation_r1.py"
         ],
-        "verifierPath": "packages/composition/tests/test_r21_declaration_qualification.py",
+        "verifierPath": "packages/composition/tests/test_verification_obligation_r1.py",
         "counterexample": {
-          "path": "packages/composition/tests/test_r21_declaration_qualification.py",
-          "symbol": "test_missing_effect_or_consumer_acceptance_rejected"
+          "path": "packages/composition/tests/test_verification_obligation_r1.py",
+          "symbol": "test_missing_required_binding_remains_open"
         },
         "dependencyClosure": "UNKNOWN",
         "verificationStanding": "UNKNOWN"
