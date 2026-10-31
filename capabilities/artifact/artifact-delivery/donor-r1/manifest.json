@@ -1,5 +1,5 @@
 {
-  "baseRevision": "0f2786cee960b9853342507b93588cf4504e7bf1",
+  "baseRevision": "a62bdf66a6c2736c969ab93fa60e8a5c4bf06efe",
   "coverage": {
     "isolatedValidatorImplementations": 20,
     "liveProvenShadowBindings": 20,
@@ -12,18 +12,15 @@
       "concept": "legacy Artifact delivery orchestration",
       "disposition": "DO_NOT_PROMOTE",
       "reason": "Mixed production orchestration and historical compatibility are execution implementation, not reusable problem knowledge.",
-      "reference": {
-        "path": "scripts/artifact_delivery.py",
-        "sha256": "8556d81cccf7ae008c5617ee768aac7b245ec9b8f1bb352f2857647ca23e04da"
-      }
+      "reference": null
     },
     {
       "concept": "Temporal Artifact execution wiring",
       "disposition": "DO_NOT_PROMOTE",
       "reason": "Durability and activity execution belong to the replaceable workflow provider layer.",
       "reference": {
-        "path": "scripts/artifact_delivery_temporal_support.py",
-        "sha256": "39280953dc279b702663376a64f1d9592570e00a8f7a25a6030e0349e70c5c50"
+        "path": "scripts/artifact_temporal_support.py",
+        "sha256": "6d5ec7f6dfd0acb7854f8448ffe8d50c325d777d895c1dc3c690570fc647cac3"
       }
     },
     {
@@ -32,7 +29,7 @@
       "reason": "OCI packaging is release infrastructure and a replaceable capability provider, not Artifact problem ontology.",
       "reference": {
         "path": "scripts/artifact_oci_package.py",
-        "sha256": "d93b1944687ed6b6da6235de0ad25f3af17ed4fdfebb98860cf5abf504b58b30"
+        "sha256": "5abe03b5bbe012326bd6bfa4cb192cf883797cac94db910148448312d203de9c"
       }
     },
     {
@@ -50,7 +47,7 @@
       "reason": "Environment probing is provider integration and should remain replaceable.",
       "reference": {
         "path": "scripts/artifact_delivery_toolchain_doctor.py",
-        "sha256": "49d81ae50bc7b339ccf7e21270275d3073b13355017b8572a705603faf2e5102"
+        "sha256": "d99bd0beaf64d5ac34e41ae17ccc78f60bdf503cb03395006da5dd4c2b0ea30d"
       }
     }
   ],
@@ -518,7 +515,7 @@
       },
       "validatorImplementation": {
         "path": "scripts/artifact_wave.py",
-        "sha256": "9e8356ac6bf9ef55b44ce1f9c21bf84520f9d74681ef247751d283ec81ee62a5"
+        "sha256": "1b2dc9f935219391c955115deb795441b6bc2bd4467e1c1d61a1c59d5ed4fa55"
       }
     },
     {
@@ -1986,23 +1983,18 @@
           "pythonParser"
         ],
         "proofKeys": [
-          "changedBody",
-          "duplicateMessageId",
+          "externalDelivery",
           "focusedTests",
-          "htmlMessage",
-          "lfOnlyMessage",
-          "liveSmokeArtifactSha256",
-          "liveSmokeBodySha256",
-          "liveSmokeContractCanonicalDigest",
-          "liveSmokeRuntimeJobId",
-          "liveSmokeVerificationEvidenceSha256",
-          "multipartMessage",
-          "validInternetMessage",
-          "wrongSubjectContract"
+          "installedCurrentness",
+          "issueId",
+          "nativeRuntimeJobId",
+          "qualification",
+          "scope",
+          "sourceDigests"
         ],
         "reference": {
           "path": "artifact-delivery/shadow-bindings/message-internet-text-local-r1.json",
-          "sha256": "8657abe8b8ac8e17e9bf997341d6fdd32ea517718cee3846d979d8894d633460"
+          "sha256": "34aa3bf3f32061be075d3df119c76184ba33d7c9375ff6eb0d203656639e431f"
         },
         "standing": "LOCAL_LIVE_PROVEN"
       },
@@ -2110,7 +2102,7 @@
       },
       "validatorImplementation": {
         "path": "scripts/artifact_message.py",
-        "sha256": "55c10ea2d3a17e34d3e87df9c73ea69b21b48decc9e771276c9f42387da60ebc"
+        "sha256": "89626081cc600ed99046feb1db91f2c5862bd3ea1fd1da75a81a1c67fa29ed56"
       }
     },
     {
@@ -2255,7 +2247,7 @@
       },
       "validatorImplementation": {
         "path": "scripts/artifact_moving_image.py",
-        "sha256": "f14df80c96412884f0cf380c011e6eb9b4481b5bbb4320473229e0c32b33e995"
+        "sha256": "ba6ad7795644b406fc5a25682806807dd8079d9d484bf0a695499e8b4fd9e1e9"
       }
     },
     {
@@ -2893,7 +2885,7 @@
       },
       "validatorImplementation": {
         "path": "scripts/artifact_software_release_elf.py",
-        "sha256": "0b90f95f172666fef076af12ed9e7442b18ff53912042a494c93f83f46e57af6"
+        "sha256": "dd9881527b792ba0503a53f1e0a9045ef426a377d66d23097a9b8deb213c9c73"
       }
     },
     {
@@ -3290,7 +3282,7 @@
       },
       "validatorImplementation": {
         "path": "scripts/artifact_still_image.py",
-        "sha256": "936718da6ee64f7166b89a7f825e548ff02ad35d12626d88fdf07f1ba0d3a473"
+        "sha256": "0e2860621f3266b1219e01585a60232f2eecf10900027be49a5f8102f0ea1123"
       }
     },
     {

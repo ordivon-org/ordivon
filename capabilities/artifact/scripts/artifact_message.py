@@ -1,22 +1,32 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse,hashlib,json,os,re,subprocess,tempfile
-from datetime import timezone
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import subprocess
+import tempfile
+from datetime import UTC
 from email import policy
 from email.parser import BytesParser
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+
 import jsonschema
+
 ROOT=Path(__file__).resolve().parents[1]
 SCHEMA=ROOT/'artifact-delivery/shadow-contracts/message-internet-text-contract-v1.schema.json'
-NODE=Path(os.environ.get('ARTIFACT_NODE','/root/.local/share/mise/installs/node/26.12.0/bin/node')); MAILPARSER=Path('/opt/ordivon/external/mailparser-js/3.9.26/node_modules/mailparser')
+NODE_VERSION=json.loads((ROOT/'artifact-delivery/node/package.json').read_text())['engines']['node']
+NODE=Path(os.environ.get('ARTIFACT_NODE',f'/root/.local/share/mise/installs/node/{NODE_VERSION}/bin/node')); MAILPARSER=Path('/opt/ordivon/external/mailparser-js/3.9.26/node_modules/mailparser')
 REQ=['Date','From','To','Subject','Message-ID','MIME-Version','Content-Type','Content-Transfer-Encoding']
 def sha_bytes(b):return hashlib.sha256(b).hexdigest()
 def sha_file(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def canon(x):return hashlib.sha256(json.dumps(x,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
 def validate(c):
  s=json.loads(SCHEMA.read_text());return [f"message contract schema invalid: {e.message}" for e in sorted(jsonschema.Draft202012Validator(s,format_checker=jsonschema.FormatChecker()).iter_errors(c),key=lambda e:list(e.path))]
-def norm_date(v):return parsedate_to_datetime(v).astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+def norm_date(v):return parsedate_to_datetime(v).astimezone(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
 def py_view(raw):
  try:
   m=BytesParser(policy=policy.default).parsebytes(raw)
@@ -26,8 +36,8 @@ def py_view(raw):
   return {'defects':[type(x).__name__ for x in m.defects],'from':addrs(m['From']),'to':addrs(m['To']),'subject':str(m['Subject']) if m['Subject'] is not None else None,'messageId':str(m['Message-ID']) if m['Message-ID'] is not None else None,'date':norm_date(str(m['Date'])) if m['Date'] else None,'contentType':m.get_content_type(),'charset':m.get_content_charset(),'cte':str(m['Content-Transfer-Encoding']) if m['Content-Transfer-Encoding'] else None,'mimeVersion':str(m['MIME-Version']) if m['MIME-Version'] else None,'multipart':m.is_multipart(),'bodySha256':sha_bytes(canonical_body.encode('utf-8')) if isinstance(canonical_body,str) else None},None
  except Exception as e:return {},str(e)
 def node_view(path,ev):
- script=ev/'mailparser-view.cjs';script.write_text('''const fs=require("fs"),crypto=require("crypto");const {simpleParser}=require("/opt/ordivon/external/mailparser-js/3.9.26/node_modules/mailparser");(async()=>{const m=await simpleParser(fs.readFileSync(process.argv[2]));const A=x=>(x?.value||[]).map(v=>({name:v.name||"",address:v.address||""}));const ct=m.headers.get("content-type")||{};const iso=m.date?m.date.toISOString():null;const d=iso&&iso.endsWith(".000Z")?iso.slice(0,-5)+"Z":iso;const CR=String.fromCharCode(13),LF=String.fromCharCode(10);const text=(m.text||"").split(CR+LF).join(LF).split(CR).join(LF);console.log(JSON.stringify({from:A(m.from),to:A(m.to),subject:m.subject??null,messageId:m.messageId??null,date:d,contentType:ct.value||null,charset:ct.params?.charset||null,cte:m.headers.get("content-transfer-encoding")||null,mimeVersion:m.headers.get("mime-version")||null,attachments:m.attachments.length,html:!!m.html,bodySha256:crypto.createHash("sha256").update(Buffer.from(text,"utf8")).digest("hex")}));})().catch(e=>{console.error(e);process.exit(1)});''')
- p=subprocess.run([str(NODE),str(script),str(path)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=60);(ev/'mailparser.stderr.txt').write_bytes(p.stderr)
+ script=ev/'mailparser-view.cjs';script.write_text('''const fs=require("fs"),crypto=require("crypto");const {simpleParser}=require(process.argv[3]);(async()=>{const m=await simpleParser(fs.readFileSync(process.argv[2]));const A=x=>(x?.value||[]).map(v=>({name:v.name||"",address:v.address||""}));const ct=m.headers.get("content-type")||{};const iso=m.date?m.date.toISOString():null;const d=iso&&iso.endsWith(".000Z")?iso.slice(0,-5)+"Z":iso;const CR=String.fromCharCode(13),LF=String.fromCharCode(10);const text=(m.text||"").split(CR+LF).join(LF).split(CR).join(LF);console.log(JSON.stringify({from:A(m.from),to:A(m.to),subject:m.subject??null,messageId:m.messageId??null,date:d,contentType:ct.value||null,charset:ct.params?.charset||null,cte:m.headers.get("content-transfer-encoding")||null,mimeVersion:m.headers.get("mime-version")||null,attachments:m.attachments.length,html:!!m.html,bodySha256:crypto.createHash("sha256").update(Buffer.from(text,"utf8")).digest("hex")}));})().catch(e=>{console.error(e);process.exit(1)});''')
+ p=subprocess.run([str(NODE),str(script),str(path),str(MAILPARSER)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=60);(ev/'mailparser.stderr.txt').write_bytes(p.stderr)
  if p.returncode:return {},p.stderr.decode('utf-8','replace')
  try:return json.loads(p.stdout),None
  except Exception as e:return {},str(e)
