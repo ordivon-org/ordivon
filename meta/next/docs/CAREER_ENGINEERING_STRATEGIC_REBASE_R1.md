@@ -1,7 +1,7 @@
 # Career Engineering Strategic Rebase R1
 
 Status: **DETACHED REMEDIATION CANDIDATE / EXTERNAL-FIRST / NO PRODUCTION CUTOVER**
-Source baseline: `origin/main@277a62019b498614baf7b9666fb7a4c607c5172e`
+Source baseline: `origin/main@4733af25b4b3296ea75e3b370ec539f1bfd860d7`
 Observed through: **2026-11-01**
 
 ## Decision
@@ -21,7 +21,7 @@ Career Record
   -> updated Career Record / decisions
 ```
 
-A provider is admitted only for the exact boundary that a real consumer and evidence justify. Repository popularity, package installation, interface discovery, and historical experiments do not by themselves create an active binding.
+A provider is behaviorally qualified only for the exact replayed boundary and retained evidence. A synthetic evaluation consumer does not establish a connected real Career Record or production activation. Repository popularity, package installation, interface discovery, and historical experiments do not by themselves create an active binding.
 
 ## Qualification states
 
@@ -156,7 +156,7 @@ It identified:
 
 The remediation in the current dirty candidate addresses those findings by demoting Resume-Matcher/JobSync/JobSpy, deleting the JobSpy plugin activation, separating snapshot tests from provider-native replay, and committing exact Career-Ops fixtures plus replay invocation.
 
-These fixes are **not yet considered reviewed**. A fresh independent review must inspect the exact post-remediation commit.
+A fresh independent read-only Codex review inspected the post-remediation implementation commit 21d2c38b15ace4f39ed657a186f29ead8a956efe and returned **PASS_WITH_FINDINGS**, with C1/C2/C3 CLOSED within synthetic qualification scope. It noted stale baseline references and a synthetic consumer phrased too strongly; those metadata findings are corrected here. A final review of the corrected commit and separate owner-native acceptance remain required before integration.
 
 A second Claude CLI review attempt produced no review because that local CLI was not authenticated. It is not counted as evidence.
 
@@ -207,9 +207,9 @@ Current candidate deliberately does **not** add or retain a custom:
 
 ## Integration gate
 
-Remote `main` advanced from the earlier `ffd81854...` baseline to `277a62019b49...`. The intervening remote diff had zero exact overlap with the current Career remediation paths and no Career/provider-related paths, so the candidate is rebased onto `277a620...` before rereview.
+Remote `main` advanced from the earlier `ffd81854...` baseline to `277a62019b49...`. The intervening remote diff had no observed Career-provider overlap. The implementation candidate is now based on `277a620...` before rereview.
 
-The blocker is epistemic and explicit: the last independent review verdict is **BLOCK**, and the changes made after it still require a fresh independent rereview. Therefore:
+The earlier independent review verdict was **BLOCK**; the subsequent read-only review of 21d2c38 returned **PASS_WITH_FINDINGS** and closed C1/C2/C3 in synthetic scope. Metadata correction and owner-native integration still require final verification. Therefore:
 
 ```text
 mergeAdmitted = false

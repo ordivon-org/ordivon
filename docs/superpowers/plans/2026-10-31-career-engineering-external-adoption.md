@@ -4,7 +4,7 @@
 
 **Goal:** Rebase Career Engineering on maintained external providers without extending detached R2–R6 experiments into a new Career runtime/product stack.
 
-**Source baseline:** `origin/main@277a62019b498614baf7b9666fb7a4c607c5172e`
+**Source baseline:** `origin/main@4733af25b4b3296ea75e3b370ec539f1bfd860d7`
 **Observed through:** 2026-11-01
 
 ## Global constraints
@@ -84,10 +84,11 @@
 ### Task 9 — Integration gate
 
 - [x] Detect remote `main` advance to `277a62019b49...`; audit `ffd81854... → 277a620...` and observe zero exact Career remediation overlap / zero Career-provider related paths.
-- [ ] Rebase the complete detached Career candidate chain onto `origin/main@277a62019b49...` before fresh rereview.
+- [x] Rebase the complete detached Career candidate chain onto `origin/main@277a62019b49...` before fresh rereview.
 - [x] Encode last independent review as BLOCK, not as consensus.
 - [x] Remove self-referential "current candidateHead" gate semantics; bind reviews to the exact head they actually reviewed.
-- [ ] Commit the BLOCK remediation as a new detached technical candidate.
-- [ ] Run a **fresh independent read-only rereview of that exact commit**, explicitly checking C1/C2/C3.
-- [ ] If rereview still BLOCKs, repair and repeat.
+- [x] Commit BLOCK remediation as detached technical candidate 21d2c38b15ace4f39ed657a186f29ead8a956efe.
+- [x] Run independent read-only rereview of 21d2c38b15ace4f39ed657a186f29ead8a956efe: PASS_WITH_FINDINGS; C1/C2/C3 CLOSED in synthetic scope.
+- [x] Correct the rereview findings: current main baseline and synthetic-only consumer terminology.
+- [ ] Rereview final metadata-corrected commit before integration admission.
 - [ ] Do not merge/cut over while `mergeAdmitted=false`; production integration is separate from technical qualification.

@@ -3,7 +3,7 @@
   "kind": "ordivon.career.external-provider-stack-plan",
   "status": "DETACHED_REMEDIATION_AFTER_INDEPENDENT_BLOCK",
   "truthRole": "owner-local-composition-plan-not-provider-truth",
-  "sourceBaseline": "277a62019b498614baf7b9666fb7a4c607c5172e",
+  "sourceBaseline": "4733af25b4b3296ea75e3b370ec539f1bfd860d7",
   "originalAuditBaseline": "cbdd02771c7bc7842c38374854ffee703fb666e4",
   "observedThroughDate": "2026-11-01",
   "providerIdentityPolicy": {
@@ -47,8 +47,9 @@
       "standing": "BEHAVIORALLY_REPLAYED_SYNTHETIC",
       "replayEvidence": "meta/next/evidence/career/career-ops-1.38.0-replay-20261101.json",
       "replayScript": "meta/next/scripts/replay_career_provider_qualification.py",
-      "consumer": "CE4 deterministic skill-gap diagnostic over an observed JD and Career Record text",
-      "authorityBoundary": "derived diagnostic only; not employer eligibility, hiring probability, or durable Career state"
+      "consumer": "Synthetic evaluator exercising CE4 skill-gap diagnostic against committed synthetic JD/CV fixtures; no connected Career Record consumer",
+      "authorityBoundary": "derived diagnostic only; not employer eligibility, hiring probability, or durable Career state",
+      "activeConsumerState": "NO_CONNECTED_REAL_CAREER_RECORD_CONSUMER"
     }
   ],
   "interfaceQualified": [
@@ -100,8 +101,8 @@
     }
   ],
   "integrationGate": {
-    "remoteMainObserved": "277a62019b498614baf7b9666fb7a4c607c5172e",
-    "sourceBaseline": "277a62019b498614baf7b9666fb7a4c607c5172e",
+    "remoteMainObserved": "4733af25b4b3296ea75e3b370ec539f1bfd860d7",
+    "sourceBaseline": "4733af25b4b3296ea75e3b370ec539f1bfd860d7",
     "remoteMainMatchesSourceBaseline": true,
     "spacePeerReviewHandoffSequences": [
       23952,
@@ -120,10 +121,27 @@
         "C3"
       ]
     },
-    "remediationState": "CHANGES_AFTER_BLOCK_NOT_YET_REREVIEWED",
+    "remediationState": "C1_C2_C3_CLOSED_IN_SYNTHETIC_SCOPE_POST_REMEDIATION_REVIEW",
     "freshIndependentReviewRequired": true,
     "mergeAdmitted": false,
-    "reason": "Remote main advanced to 277a62019b49 without touching Career/provider remediation paths. The independent review still blocked the prior Career head; remediation must be rebased and freshly rereviewed before any integration-readiness claim."
+    "reason": "Independent review of implementation HEAD 21d2c38 closed C1/C2/C3 within synthetic scope. Current metadata-only corrections still require a final source-bound review; production admission and whole-owner verification are separate.",
+    "latestRemediationReview": {
+      "reviewedHead": "21d2c38b15ace4f39ed657a186f29ead8a956efe",
+      "harness": "Codex CLI ephemeral read-only",
+      "reviewJobId": "job-01a1939a-511d-7403-8e9d-df45b5895916",
+      "verdict": "PASS_WITH_FINDINGS",
+      "blockers": [],
+      "priorBlockersClosed": [
+        "C1",
+        "C2",
+        "C3"
+      ],
+      "findings": [
+        "stale base refs",
+        "synthetic consumer overstated"
+      ],
+      "scope": "implementation head before metadata-only corrections"
+    }
   },
   "authority": {
     "careerRecord": "Ordivon/private user-authorized record composition",
