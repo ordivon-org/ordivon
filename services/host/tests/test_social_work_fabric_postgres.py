@@ -628,24 +628,34 @@ def test_topic_message_identity_waits_for_real_pg_topic_no_key_update_lock() -> 
             future = pool.submit(post_message)
             assert started.wait(timeout=5)
             saw_blocked_actual_sql = False
-            deadline = monotonic() + 6
-            while monotonic() < deadline:
-                if future.done():
-                    break
-                row = observer.execute(
-                    "SELECT EXISTS("
-                    "SELECT 1 FROM pg_stat_activity "
-                    "WHERE pid <> pg_backend_pid() AND datname=current_database() "
-                    "AND wait_event_type='Lock' AND query LIKE %s)",
-                    ("%FROM topics WHERE topic_ref=% FOR NO KEY UPDATE%",),
-                ).fetchone()
-                if row is not None and row[0]:
-                    saw_blocked_actual_sql = True
-                    break
-                sleep(0.03)
+            completed_before_release = False
+            try:
+                deadline = monotonic() + 6
+                while monotonic() < deadline:
+                    if future.done():
+                        completed_before_release = True
+                        break
+                    row = observer.execute(
+                        "SELECT EXISTS("
+                        "SELECT 1 FROM pg_stat_activity "
+                        "WHERE pid <> pg_backend_pid() AND datname=current_database() "
+                        "AND wait_event_type='Lock' AND query LIKE %s)",
+                        ("%FROM topics WHERE topic_ref=% FOR NO KEY UPDATE%",),
+                    ).fetchone()
+                    # pg_stat_activity statistics are transaction-snapshot cached.
+                    # Refresh every observation; otherwise a real PG lock wait
+                    # can be invisible to this test for the entire transaction.
+                    observer.commit()
+                    if row is not None and row[0]:
+                        saw_blocked_actual_sql = True
+                        break
+                    sleep(0.03)
+            finally:
+                # Release the independent holder *before* raising any failed
+                # assertion, so the worker pool can never deadlock on teardown.
+                blocker.commit()
             assert saw_blocked_actual_sql, "real Host writer did not wait on the topic row fence"
-            assert not future.done(), "message was admitted before topic owner released its lock"
-            blocker.commit()
+            assert not completed_before_release, "message admitted before topic owner released lock"
             admitted = future.result(timeout=6)
 
     assert admitted["admission"] == "committed"
