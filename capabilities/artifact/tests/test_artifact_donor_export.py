@@ -79,4 +79,62 @@ class ArtifactDonorExportTests(unittest.TestCase):
         self.assertIn("orchestration", concepts)
         self.assertIn("transport", concepts)
 
+    def test_current_git_source_cut_contains_every_donor_reference(self):
+        import subprocess
+        revision = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        M.verify_source_cut(M.build(revision))
+
+    def test_nonexistent_git_commit_is_rejected_even_when_schema_passes(self):
+        donor = M.build("0" * 40)
+        self.assertEqual(M.validate(donor), [])
+        with self.assertRaisesRegex(ValueError, "available Git commit"):
+            M.verify_source_cut(donor)
+
+    def test_mismatched_git_blob_is_rejected_even_when_manifest_shape_is_valid(self):
+        import subprocess
+        revision = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        donor = M.build(revision)
+        donor["profiles"][0]["sourceProfile"]["sha256"] = "0" * 64
+        self.assertEqual(M.validate(donor), [])
+        with self.assertRaisesRegex(ValueError, "digest mismatch"):
+            M.verify_source_cut(donor)
+
+    def test_cli_rejects_unqualified_sourcecut_without_writing_manifest(self):
+        import subprocess
+        import sys
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            output = Path(td) / "manifest.json"
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "scripts/artifact_donor_export.py"),
+                 "--base-revision", "0" * 40, "--output", str(output)],
+                capture_output=True, text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("donor SourceCut qualification failed", result.stderr)
+            self.assertFalse(output.exists())
+
+    def test_cli_exports_exact_present_sourcecut_manifest(self):
+        import subprocess
+        import sys
+        import tempfile
+        revision = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        with tempfile.TemporaryDirectory() as td:
+            output = Path(td) / "manifest.json"
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "scripts/artifact_donor_export.py"),
+                 "--base-revision", revision, "--output", str(output)],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            manifest = json.loads(output.read_text())
+            self.assertEqual(manifest["baseRevision"], revision)
+            self.assertEqual(M.validate(manifest), [])
+
 if __name__ == "__main__": unittest.main()

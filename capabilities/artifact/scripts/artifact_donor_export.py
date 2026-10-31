@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -223,6 +224,53 @@ def validate(x: dict[str, Any]) -> list[str]:
     v = jsonschema.Draft202012Validator(schema)
     return [e.message for e in sorted(v.iter_errors(x), key=lambda e: list(e.path))]
 
+def source_references(donor: dict[str, Any]) -> list[dict[str, str]]:
+    """The existing manifest's actual file dependencies, not an inferred consumer graph."""
+    refs = list(donor["sourceReferences"].values())
+    for profile in donor["profiles"]:
+        refs.append(profile["sourceProfile"])
+        if profile["objectContract"]:
+            refs.append(profile["objectContract"]["schema"])
+        if profile["capabilityBinding"]:
+            refs.append(profile["capabilityBinding"]["reference"])
+        if profile["validatorImplementation"]:
+            refs.append(profile["validatorImplementation"])
+    refs.extend(item["reference"] for item in donor["excludedInfrastructure"] if item.get("reference"))
+    refs.append({"path": str(SCHEMA.relative_to(ROOT)), "sha256": sha(SCHEMA)})
+    return refs
+
+
+def verify_source_cut(donor: dict[str, Any]) -> None:
+    """Fail closed if a claimed Git revision does not contain the exported input bytes."""
+    revision = donor["baseRevision"]
+    if len(revision) != 40 or any(c not in "0123456789abcdef" for c in revision):
+        raise ValueError("baseRevision must be an exact lowercase 40-hex Git commit")
+    root_result = subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "--show-toplevel"],
+        capture_output=True, check=True, text=True,
+    )
+    git_root = Path(root_result.stdout.strip()).resolve()
+    kind = subprocess.run(
+        ["git", "-C", str(git_root), "cat-file", "-t", revision],
+        capture_output=True, text=True,
+    )
+    if kind.returncode or kind.stdout.strip() != "commit":
+        raise ValueError("baseRevision does not identify an available Git commit")
+    for ref_obj in source_references(donor):
+        candidate = (ROOT / ref_obj["path"]).resolve()
+        if not candidate.is_relative_to(ROOT):
+            raise ValueError("donor reference escapes the Artifact source root")
+        git_path = candidate.relative_to(git_root).as_posix()
+        source = subprocess.run(
+            ["git", "-C", str(git_root), "show", f"{revision}:{git_path}"],
+            capture_output=True,
+        )
+        if source.returncode:
+            raise ValueError(f"baseRevision is missing donor source: {git_path}")
+        if hashlib.sha256(source.stdout).hexdigest() != ref_obj["sha256"]:
+            raise ValueError(f"baseRevision donor digest mismatch: {git_path}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-revision", required=True)
@@ -234,6 +282,10 @@ def main() -> int:
     failures = validate(out)
     if failures:
         raise SystemExit("donor manifest schema failures: " + "; ".join(failures))
+    try:
+        verify_source_cut(out)
+    except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+        raise SystemExit(f"donor SourceCut qualification failed: {exc}") from exc
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(out, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
     print(json.dumps(out["coverage"], sort_keys=True))
