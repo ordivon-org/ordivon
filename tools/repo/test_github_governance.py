@@ -92,6 +92,30 @@ def _qualified_formal_test_receipt(
         "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "proofReuseAdmissible": False,
+        "scopedModelReuse": {
+            "standing": "MODEL_REUSE_VERIFIED",
+            "scope": "finite Lean ScopedReuseExample model property only",
+            "theorem": (
+                "OrdivonR21.ScopedReuseExample."
+                "qualified_graph_reuse_preserves_model_property"
+            ),
+            "premiseQualification": {
+                "readsetCompleteness": "LEAN_KERNEL_PROVED",
+                "variationCoverage": "LEAN_KERNEL_PROVED",
+                "actualReadEdgesCovered": "LEAN_KERNEL_PROVED",
+                "reuseCandidate": "LEAN_KERNEL_PROVED",
+                "oldModelProperty": "LEAN_KERNEL_PROVED",
+            },
+            "modelProofReuseAdmissible": True,
+            "globalProofReuseAdmissible": False,
+            "implementationRefinement": "UNKNOWN",
+            "installedCurrentness": "UNKNOWN",
+            "domainAcceptanceEstablished": False,
+            "nonClaims": [
+                "This does not qualify any Rust, TypeScript, Python, installed, or domain proof reuse.",
+                "C04 REUSE_CANDIDATE remains non-authoritative without equivalent owner evidence.",
+            ],
+        },
         "sourceFragmentRefinement": {
             "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
             "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
@@ -307,6 +331,21 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             forged_effect_frame = copy.deepcopy(full_report)
             forged_effect_frame["sourceFragmentRefinement"]["effectFrameObserved"] = "implementation_proven"
             invalid_receipts["forged-effect-frame-evidence"] = json.dumps(forged_effect_frame)
+            no_scoped_reuse = copy.deepcopy(full_report)
+            no_scoped_reuse.pop("scopedModelReuse")
+            invalid_receipts["missing-scoped-model-reuse"] = json.dumps(no_scoped_reuse)
+            forged_scoped_reuse = copy.deepcopy(full_report)
+            forged_scoped_reuse["scopedModelReuse"][
+                "implementationRefinement"
+            ] = "PASS"
+            invalid_receipts["forged-scoped-model-implementation-refinement"] = json.dumps(
+                forged_scoped_reuse
+            )
+            forged_global_reuse = copy.deepcopy(full_report)
+            forged_global_reuse["scopedModelReuse"][
+                "globalProofReuseAdmissible"
+            ] = True
+            invalid_receipts["forged-global-proof-reuse"] = json.dumps(forged_global_reuse)
             no_tools = copy.deepcopy(full_report)
             no_tools.pop("toolBinaries")
             invalid_receipts["no-eight-tool-witnesses"] = json.dumps(no_tools)
@@ -379,9 +418,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             wrong_count = copy.deepcopy(full_report)
             wrong_count["count"] += 1
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
-            # Two new forged/missing fragment receipts and one extra
-            # source-blob omission case extend the negative corpus.
-            self.assertEqual(len(invalid_receipts), 66)
+            # Keep the finite mutation corpus explicit so a removed negative
+            # admission case cannot silently shrink coverage.
+            self.assertEqual(len(invalid_receipts), 69)
 
             try:
                 for label, payload in invalid_receipts.items():
