@@ -1055,6 +1055,26 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(route.returncode, 0, route.stderr)
         self.assertEqual(route.stdout.strip(), "distribution:verify")
 
+    def test_release_policy_uses_exact_runtime_rust_toolchain(self) -> None:
+        """Release dependency policy must use the checked consumer Rust compiler."""
+        import tomllib
+        import yaml
+
+        toolchain = tomllib.loads(
+            (ROOT / "services/runtime/rust-toolchain.toml").read_text()
+        )["toolchain"]["channel"]
+        root = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        release = yaml.safe_load(
+            (ROOT / ".github/workflows/runtime-release.yml").read_text()
+        )
+        for workflow, job in ((root, "root-verification"),
+                              (release, "runtime-release")):
+            steps = workflow["jobs"][job]["steps"]
+            matches = [step for step in steps
+                       if step.get("uses", "").startswith("EmbarkStudios/cargo-deny-action@")]
+            self.assertEqual(len(matches), 1)
+            self.assertEqual(matches[0]["with"]["rust-version"], toolchain)
+
     def test_runtime_release_attestations_verify_every_subject_and_fail_closed(self) -> None:
         """Exercise official verifier CLI orchestration, not cryptographic trust."""
         import os
