@@ -320,3 +320,130 @@ def test_nov1_r2_closed_dependency_issue_is_time_scoped_not_permanent_latest_cla
     assert issue["standing"].startswith("CLOSED_CURRENT_")
     assert "time-scoped" in issue["formalObligation"]
     assert issue["decision"].startswith("No dependency action")
+
+
+def _current_problem_evidence():
+    root = Path(__file__).resolve().parents[2]
+    census = json.loads(
+        (root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261101_R2.json")
+        .read_text(encoding="utf-8")
+    )
+    plans = {
+        r["ownerPlan"]: json.loads((root / r["ownerPlan"]).read_text())
+        for r in census["registrations"]
+    }
+    return root, census, plans
+
+
+def test_problem_r2_readsets_are_source_bound_with_finite_negative_controls():
+    root, census, plans = _current_problem_evidence()
+    assert len(census["issues"]) == 9
+    assert sum(x["registration"]["state"] == "UNREGISTERED" for x in census["issues"]) == 1
+    assert all(x["readsetEvidence"]["dependencyClosure"] == "UNKNOWN" for x in census["issues"])
+    assert all(x["readsetEvidence"]["verificationStanding"] == "UNKNOWN" for x in census["issues"])
+    module.validate_formal_issue_census(census, plans, root=root)
+
+
+@pytest.mark.parametrize("mutation", (
+    "source_cut", "missing_consumer", "untracked_path", "negative_symbol",
+    "false_proof", "missing_partition", "wrong_partition_count",
+    "disguised_single_owner",
+))
+def test_problem_source_projection_falsifies_ungrounded_claims(mutation):
+    root, census, plans = _current_problem_evidence()
+    altered = copy.deepcopy(census)
+    first = altered["issues"][0]["readsetEvidence"]
+    last = altered["issues"][-1]
+    if mutation == "source_cut":
+        first["sourceCut"] = "0" * 40
+    elif mutation == "missing_consumer":
+        first["consumerPaths"] = []
+    elif mutation == "untracked_path":
+        first["sourcePaths"] = ["services/host/does-not-exist.py"]
+    elif mutation == "negative_symbol":
+        first["counterexample"]["symbol"] = "test_nonexistent_green"
+    elif mutation == "false_proof":
+        first["verificationStanding"] = "VERIFIED"
+    elif mutation == "missing_partition":
+        last["consumerPartitions"][0]["sourcePaths"].pop()
+    elif mutation == "wrong_partition_count":
+        last["consumerPartitions"][0]["directCallsites"] += 1
+    else:
+        last["registration"] = {
+            "state": "LINKED",
+            "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+            "slice": "RW12",
+        }
+    with pytest.raises(module.ArchitectureDocsError):
+        module.validate_formal_issue_census(altered, plans, root=root)
+
+
+def test_problem_readset_reuses_native_git_and_existing_composition_impact():
+    """Real Git source differences classify only source-bound rechecks/UNKNOWN."""
+    import sys
+
+    root, census, plans = _current_problem_evidence()
+    module.validate_formal_issue_census(census, plans, root=root)
+    sys.path.insert(0, str(root / "packages/composition/src"))
+    from ordivon_composition.verification_obligation_r1 import select_source_readset_impacts
+    from tools.repo.source_history_legos import source_membership_delta
+
+    cut = census["source"]["readsetObservationSourceCut"]
+    evidence = module.project_formal_problem_readsets(census, source_cut=cut, scope_prefix="tools/repo/")
+    # First-parent change into the audited SourceCut is real Git evidence,
+    # not a mock forged authorityRefs/changedRefs array.
+    import subprocess
+    parent = subprocess.check_output(
+        ["git", "-C", str(root), "rev-parse", cut + "^1"], text=True
+    ).strip()
+    delta = source_membership_delta(root, parent, cut, "tools/repo/", max_members=20000)
+    result = select_source_readset_impacts(
+        git_source_delta=delta, source_readset_evidence=evidence,
+    )
+    rows = result["selection"]["standingByObligation"]
+    standings = {r["id"]: r["standing"] for r in rows}
+    assert 2 <= len(standings) <= 9
+    assert "RECHECK_REQUIRED" in standings.values()
+    assert "UNKNOWN" in standings.values()
+    assert "REUSE_CANDIDATE" not in standings.values()
+    assert result["proofReuseAdmissible"] is False
+    assert result["proofAcceptanceEstablished"] is False
+
+    tampered = copy.deepcopy(census)
+    tampered["issues"][0]["readsetEvidence"]["sourceCut"] = "f" * 40
+    with pytest.raises(module.ArchitectureDocsError, match="stale issue SourceCut"):
+        module.project_formal_problem_readsets(tampered, source_cut=cut, scope_prefix="tools/repo/")
+
+
+def test_problem_readset_cli_is_task_local_scoped_and_non_authoritative(tmp_path):
+    import subprocess
+    import sys
+
+    root, census, plans = _current_problem_evidence()
+    cut = census["source"]["readsetObservationSourceCut"]
+    command = [
+        sys.executable, str(root / "tools/repo/check_architecture_docs.py"),
+        "--project-problem-readsets",
+        "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261101_R2.json",
+        "--source-revision", cut,
+        "--problem-impact-prefix", "tools/repo/",
+    ]
+    result = subprocess.run(command, cwd=root, capture_output=True, text=True, check=True)
+    projected = json.loads(result.stdout)
+    assert projected == module.project_formal_problem_readsets(
+        census, source_cut=cut, scope_prefix="tools/repo/"
+    )
+    assert len(projected["items"]) == 5
+    assert projected["unscopedDependencies"]["problem:PG-CROSS-OWNER-CONSUMERS-20261101-R2"] == 39
+    assert all(item["dependenciesComplete"] is False for item in projected["items"])
+    assert projected["proofReuseAdmissible"] is False
+    for change in (
+        ["--source-revision", "0" * 40],
+        ["--problem-impact-prefix", ""],
+        ["--problem-impact-prefix", "../../"],
+    ):
+        bad = command[:]
+        flag, new_value = change
+        bad[bad.index(flag) + 1] = new_value
+        denied = subprocess.run(bad, cwd=root, capture_output=True, text=True)
+        assert denied.returncode != 0

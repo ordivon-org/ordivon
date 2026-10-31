@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import re
+import subprocess
 from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
@@ -1876,6 +1877,87 @@ def validate_formal_issue_census(
                 f"issue {issue_id} has unknown formal issue problemClass"
             )
 
+    # Time-scoped Problem LEGO readsets supply positive paths, not proof closure.
+    if census.get("sourceReadsetContract") is not None:
+        if census["sourceReadsetContract"] != "positive-owner-source-observation-r1":
+            raise ArchitectureDocsError("unknown problem readset contract")
+        cut = source.get("readsetObservationSourceCut")
+        if not isinstance(cut, str) or not re.fullmatch(r"[0-9a-f]{40}", cut):
+            raise ArchitectureDocsError("problem readset lacks observed SourceCut")
+        # Git owns source path membership, not a mutable checkout tree. This
+        # validates OBSERVED source addresses, not executable source refinement.
+        tree = subprocess.run(
+            ["git", "--no-replace-objects", "-C", str(root), "ls-tree",
+             "-r", "-z", "--name-only", cut],
+            capture_output=True, check=False,
+        )
+        if tree.returncode != 0:
+            raise ArchitectureDocsError("problem evidence SourceCut is not readable")
+        observed_paths = set(filter(None, tree.stdout.decode(
+            "utf-8", "surrogateescape").split(chr(0))))
+        for issue in issues:
+            e = issue.get("readsetEvidence")
+            fields = {"sourceCut", "sourcePaths", "consumerPaths", "verifierPath",
+                      "counterexample", "dependencyClosure", "verificationStanding"}
+            if not isinstance(e, dict) or set(e) != fields or e["sourceCut"] != cut:
+                raise ArchitectureDocsError("missing typed problem source/readset evidence")
+            if (e["dependencyClosure"], e["verificationStanding"]) != ("UNKNOWN", "UNKNOWN"):
+                raise ArchitectureDocsError("source inventory cannot establish verification")
+            for field in ("sourcePaths", "consumerPaths"):
+                paths = e[field]
+                if not isinstance(paths, list) or not paths or len(paths) != len(set(paths)):
+                    raise ArchitectureDocsError("missing, duplicate or untyped problem path")
+                for path in paths:
+                    if not isinstance(path, str):
+                        raise ArchitectureDocsError("untyped problem source path")
+                    if path not in observed_paths:
+                        raise ArchitectureDocsError("problem source path not in observed SourceCut")
+                    _source_bound_file(root, path, "problem " + field)
+            if not isinstance(e["verifierPath"], str):
+                raise ArchitectureDocsError("untyped verifier")
+            if e["verifierPath"] not in observed_paths:
+                raise ArchitectureDocsError("problem verifier missing from observed SourceCut")
+            _source_bound_file(root, e["verifierPath"], "problem verifier")
+            negative = e["counterexample"]
+            if not isinstance(negative, dict) or set(negative) != {"path", "symbol"}:
+                raise ArchitectureDocsError("missing negative control")
+            if not isinstance(negative["path"], str) or not isinstance(negative["symbol"], str):
+                raise ArchitectureDocsError("untyped negative control")
+            if negative["path"] not in observed_paths:
+                raise ArchitectureDocsError("counterexample not in observed SourceCut")
+            test_source = _source_bound_file(root, negative["path"], "negative control")
+            if (not negative["symbol"].startswith("test_")
+                or not re.search(r"\bdef\s+" + re.escape(negative["symbol"]) + r"\s*\(",
+                                 test_source.read_text(encoding="utf-8"))):
+                raise ArchitectureDocsError("negative control not source-addressable")
+            if "consumerPartitions" in issue:
+                if issue["registration"]["state"] != "UNREGISTERED":
+                    raise ArchitectureDocsError("cross-owner PG falsely registered")
+                try:
+                    from tools.repo.check_sql_dialects import tracked_owner_sqlite_calls
+                except ModuleNotFoundError:
+                    from check_sql_dialects import tracked_owner_sqlite_calls
+                actual = tracked_owner_sqlite_calls(root)
+                declared = {}
+                seen = set()
+                for part in issue["consumerPartitions"]:
+                    if not isinstance(part, dict) or set(part) != {"owner","sourcePaths","directCallsites"}:
+                        raise ArchitectureDocsError("invalid PG consumer partition")
+                    owner, paths = part["owner"], part["sourcePaths"]
+                    if not isinstance(owner, str) or owner in seen or not isinstance(paths, list):
+                        raise ArchitectureDocsError("duplicate PG owner")
+                    seen.add(owner)
+                    if not paths or paths != sorted(set(paths)):
+                        raise ArchitectureDocsError("invalid PG owner paths")
+                    for path in paths:
+                        if not isinstance(path, str) or not path.startswith(owner + "/") or path in declared or path not in actual:
+                            raise ArchitectureDocsError("PG consumer partition drift")
+                        declared[path] = actual[path]
+                    if sum(declared[p] for p in paths) != part["directCallsites"]:
+                        raise ArchitectureDocsError("PG consumer callsite count drift")
+                if declared != actual or sorted(e["consumerPaths"]) != sorted(actual):
+                    raise ArchitectureDocsError("PG consumer partitions not exhaustive")
+
     # The existing GIT-01 list is an evidence projection, not deletion
     # authority. Validate its complete source-bound identity/type relation at
     # the canonical architecture gate, not only in handpicked regression tests.
@@ -2133,6 +2215,43 @@ def validate_formal_issue_census(
     if linked_pairs != seen:
         raise ArchitectureDocsError("orphan owner-local LEGO registration")
 
+
+
+def project_formal_problem_readsets(census: dict[str, Any], *,
+                                    source_cut: str, scope_prefix: str) -> dict[str, Any]:
+    """Project positive issue edges into one native directory-scoped Git selector.
+
+    Read edges outside the scoped Git namespace remain UNKNOWN; separate
+    queries are required, never automatic proof reuse across directories.
+    """
+    if (census.get("sourceReadsetContract") != "positive-owner-source-observation-r1"
+        or census.get("source", {}).get("readsetObservationSourceCut") != source_cut
+        or not isinstance(scope_prefix, str) or not scope_prefix.endswith("/")
+        or scope_prefix.startswith("/") or chr(92) in scope_prefix
+        or any(part in {"", ".", ".."} for part in scope_prefix[:-1].split("/"))):
+        raise ArchitectureDocsError("unqualified problem readset Git scope")
+    items = []
+    unscoped = {}
+    for issue in census["issues"]:
+        e = issue["readsetEvidence"]
+        if e["sourceCut"] != source_cut:
+            raise ArchitectureDocsError("stale issue SourceCut")
+        all_paths = sorted(set(e["sourcePaths"] + e["consumerPaths"] +
+                               [e["verifierPath"], e["counterexample"]["path"]]))
+        paths = [p for p in all_paths if p.startswith(scope_prefix)]
+        if not paths:
+            continue
+        unscoped["problem:" + issue["id"]] = len(all_paths) - len(paths)
+        items.append({"id": "problem:" + issue["id"],
+                      "sourcePaths": paths, "dependenciesComplete": False})
+    return {
+        "kind": "ordivon.source-readset-evidence",
+        "truthRole": "scoped-positive-problem-edges-not-proof",
+        "sourceCut": source_cut, "scopePrefix": scope_prefix, "items": items,
+        "unscopedDependencies": unscoped,
+        "dependencyQualification": "POSITIVE_GIT_EDGES_OTHER_SCOPES_AND_ENV_UNKNOWN",
+        "proofReuseAdmissible": False,
+    }
 
 
 def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
@@ -2409,6 +2528,10 @@ def _select_agent_source_impact(change: dict[str, Any]) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--project-problem-readsets", metavar="CENSUS_PATH",
+                        help="source-bound readset projection into existing Composition impact-readsets")
+    parser.add_argument("--problem-impact-prefix",
+                        help="one canonical Git directory prefix, e.g. tools/repo/")
     parser.add_argument("--project-owner-graphs", action="store_true")
     parser.add_argument("--agent-impact", action="store_true",
                         help="compact changed/UNKNOWN source impact for Agent clients; not a proof reuse gate")
@@ -2421,6 +2544,29 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--python-target-source", help="exact node-anchored Python src file")
     args = parser.parse_args(argv)
     try:
+        if args.project_problem_readsets:
+            if (not args.source_revision or args.problem_impact_prefix is None
+                or args.compare_source_revision or args.agent_impact
+                or args.project_owner_graphs or args.inspect_owner_path
+                or args.inspect_owner_lego or args.inspect_python_node):
+                raise ArchitectureDocsError(
+                    "problem projection requires exact --source-revision and --problem-impact-prefix")
+            path = _source_bound_file(ROOT, args.project_problem_readsets, "problem census")
+            census = _load_json(path)
+            plans = {
+                row["ownerPlan"]: _load_json(
+                    _source_bound_file(ROOT, row["ownerPlan"], "problem owner plan")
+                ) for row in census["registrations"]
+            }
+            validate_formal_issue_census(census, plans)
+            projection = project_formal_problem_readsets(
+                census, source_cut=args.source_revision,
+                scope_prefix=args.problem_impact_prefix,
+            )
+            print(json.dumps(projection, sort_keys=True))
+            return 0
+        if args.problem_impact_prefix is not None:
+            raise ArchitectureDocsError("problem-impact-prefix requires problem projection")
         if args.agent_impact and not (
             args.project_owner_graphs and args.source_revision
             and args.compare_source_revision and not args.inspect_python_node

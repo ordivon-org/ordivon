@@ -10,7 +10,8 @@
     "parentEvidence": "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261101_R1.json",
     "workspaceSourceCut": "277a62019b498614baf7b9666fb7a4c607c5172e",
     "localRefSnapshotDigest": "sha256:c579b96a7bc7d527e13a600fd75e3d7baab3be734f31efed90a96331910d3dbe",
-    "observationBoundary": "Protected main, local refs, PRs, worktrees, registries and installed state are mutable. Revalidate the exact premise before any external effect."
+    "observationBoundary": "Protected main, local refs, PRs, worktrees, registries and installed state are mutable. Revalidate the exact premise before any external effect.",
+    "readsetObservationSourceCut": "6557ab5f2858832151430cc5f5e3dc020c3da0f1"
   },
   "representation": {
     "primary": "typed incremental Problem LEGO evidence over an exact SourceCut",
@@ -100,7 +101,23 @@
         "requiredWitness": "Typed loose-object/promisor distinction, readable exact protected-main object and native Git integrity observation before graph mutation.",
         "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
       },
-      "decision": "Keep Git's native object model as owner; do not build a custom object registry or delete zero-byte files by untyped heuristic."
+      "decision": "Keep Git's native object model as owner; do not build a custom object registry or delete zero-byte files by untyped heuristic.",
+      "readsetEvidence": {
+        "sourceCut": "6557ab5f2858832151430cc5f5e3dc020c3da0f1",
+        "sourcePaths": [
+          "tools/repo/source_history_legos.py"
+        ],
+        "consumerPaths": [
+          "tools/repo/affected_owners.py"
+        ],
+        "verifierPath": "tools/repo/test_source_history_legos.py",
+        "counterexample": {
+          "path": "tools/repo/test_source_history_legos.py",
+          "symbol": "test_invalid_reference_fails_not_reported_as_empty"
+        },
+        "dependencyClosure": "UNKNOWN",
+        "verificationStanding": "UNKNOWN"
+      }
     },
     {
       "id": "GIT-CARRIER-REDUNDANCY-20261101",
@@ -126,7 +143,23 @@
         "requiredWitness": "Exact reachability and consumer-set difference plus pre-effect remote/ref CAS revalidation.",
         "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
       },
-      "decision": "Continue DELETE-by-default only per fresh exact snapshot; do not reuse yesterday's candidate list after concurrent branch/worktree changes."
+      "decision": "Continue DELETE-by-default only per fresh exact snapshot; do not reuse yesterday's candidate list after concurrent branch/worktree changes.",
+      "readsetEvidence": {
+        "sourceCut": "6557ab5f2858832151430cc5f5e3dc020c3da0f1",
+        "sourcePaths": [
+          "tools/repo/source_history_legos.py"
+        ],
+        "consumerPaths": [
+          "tools/repo/test_source_history_legos.py"
+        ],
+        "verifierPath": "tools/repo/test_source_history_legos.py",
+        "counterexample": {
+          "path": "tools/repo/test_source_history_legos.py",
+          "symbol": "test_unique_cross_path_bytes_are_not_consumer_or_rename_proofs"
+        },
+        "dependencyClosure": "UNKNOWN",
+        "verificationStanding": "UNKNOWN"
+      }
     },
     {
       "id": "DEPS-CURRENTNESS-20261101-R2",
@@ -152,7 +185,23 @@
         "requiredWitness": "Exact registry latest tag, current manifest/lock and owner-native consumer evidence on the candidate SourceCut.",
         "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
       },
-      "decision": "No dependency action in this pass; do not reopen or repeat the old Dependabot PR audit unless version/currentness inputs change."
+      "decision": "No dependency action in this pass; do not reopen or repeat the old Dependabot PR audit unless version/currentness inputs change.",
+      "readsetEvidence": {
+        "sourceCut": "6557ab5f2858832151430cc5f5e3dc020c3da0f1",
+        "sourcePaths": [
+          ".github/dependabot.yml"
+        ],
+        "consumerPaths": [
+          "tools/repo/test_dependency_update_ownership.py"
+        ],
+        "verifierPath": "tools/repo/test_dependency_update_ownership.py",
+        "counterexample": {
+          "path": "tools/repo/test_dependency_update_ownership.py",
+          "symbol": "test_update_owner_cover_rejects_new_orphan_and_duplicate_paths"
+        },
+        "dependencyClosure": "UNKNOWN",
+        "verificationStanding": "UNKNOWN"
+      }
     },
     {
       "id": "FORMAL-R21-REFINEMENT-20261101-R2",
@@ -178,7 +227,23 @@
         "requiredWitness": "CR21 source/native/formal checks plus explicit implementation and installed-consumer refinement for each promoted claim.",
         "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
       },
-      "decision": "Reuse the new declaration inspector and existing mature formal kernels; add no second calculus or global proof registry."
+      "decision": "Reuse the new declaration inspector and existing mature formal kernels; add no second calculus or global proof registry.",
+      "readsetEvidence": {
+        "sourceCut": "6557ab5f2858832151430cc5f5e3dc020c3da0f1",
+        "sourcePaths": [
+          "packages/composition/src/ordivon_composition/interface_contract_r2.py"
+        ],
+        "consumerPaths": [
+          "packages/composition/src/ordivon_composition/verification_obligation_r1.py"
+        ],
+        "verifierPath": "packages/composition/tests/test_r21_declaration_qualification.py",
+        "counterexample": {
+          "path": "packages/composition/tests/test_r21_declaration_qualification.py",
+          "symbol": "test_missing_effect_or_consumer_acceptance_rejected"
+        },
+        "dependencyClosure": "UNKNOWN",
+        "verificationStanding": "UNKNOWN"
+      }
     },
     {
       "id": "HOST-PLAN-REFINEMENT-20261101",
@@ -204,7 +269,24 @@
         "requiredWitness": "Repository-native HR3ALIGN mapping checks for structural source alignment; a future semantic retirement still needs preserved behavioral obligations and counterexamples.",
         "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
       },
-      "decision": "Use HR3ALIGN as the current source-navigation bridge; do not retire R1 or claim R3 substitution until behavioral preservation has an independent consumer/refinement witness."
+      "decision": "Use HR3ALIGN as the current source-navigation bridge; do not retire R1 or claim R3 substitution until behavioral preservation has an independent consumer/refinement witness.",
+      "readsetEvidence": {
+        "sourceCut": "6557ab5f2858832151430cc5f5e3dc020c3da0f1",
+        "sourcePaths": [
+          "services/host/planning/lego-plan-r3.json",
+          "tools/repo/check_architecture_docs.py"
+        ],
+        "consumerPaths": [
+          "services/host/planning/lego-plan-r1.json"
+        ],
+        "verifierPath": "tools/repo/test_lego_graph_laws.py",
+        "counterexample": {
+          "path": "tools/repo/test_lego_graph_laws.py",
+          "symbol": "test_host_r3_semantic_alignment_fails_closed"
+        },
+        "dependencyClosure": "UNKNOWN",
+        "verificationStanding": "UNKNOWN"
+      }
     },
     {
       "id": "RUNTIME-PG-AUTHORITY-20261101",
@@ -230,7 +312,23 @@
         "requiredWitness": "RW12 named counterexamples plus source-bound PostgreSQL parity/restart/consumer evidence and proof legacy writer authority is inactive.",
         "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
       },
-      "decision": "Keep focus on the single-writer durable-state hard kernel; retire SQLite switch/dual-authority glue only after physical consumer closure."
+      "decision": "Keep focus on the single-writer durable-state hard kernel; retire SQLite switch/dual-authority glue only after physical consumer closure.",
+      "readsetEvidence": {
+        "sourceCut": "6557ab5f2858832151430cc5f5e3dc020c3da0f1",
+        "sourcePaths": [
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/registry_storage.rs"
+        ],
+        "consumerPaths": [
+          "services/runtime/scripts/postgres_registry_currentness.py"
+        ],
+        "verifierPath": "services/runtime/scripts/tests/test_postgres_registry_currentness.py",
+        "counterexample": {
+          "path": "services/runtime/scripts/tests/test_postgres_registry_currentness.py",
+          "symbol": "test_equal_counts_are_still_unknown_not_cutover_admission"
+        },
+        "dependencyClosure": "UNKNOWN",
+        "verificationStanding": "UNKNOWN"
+      }
     },
     {
       "id": "HARNESS-EFFECT-AUTHORITY-20261101",
@@ -256,7 +354,23 @@
         "requiredWitness": "Unsafe-control-action counterexamples plus exact owner-native effect/reconciliation observations on the promoted source.",
         "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
       },
-      "decision": "Strengthen/reuse HS2; create no parallel effect-authority service."
+      "decision": "Strengthen/reuse HS2; create no parallel effect-authority service.",
+      "readsetEvidence": {
+        "sourceCut": "6557ab5f2858832151430cc5f5e3dc020c3da0f1",
+        "sourcePaths": [
+          "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        ],
+        "consumerPaths": [
+          "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        ],
+        "verifierPath": "services/harness/tests/test_plugin_gateway_effect.py",
+        "counterexample": {
+          "path": "services/harness/tests/test_plugin_gateway_effect.py",
+          "symbol": "test_gateway_effect_grant_rejects_ambient_execution_authority"
+        },
+        "dependencyClosure": "UNKNOWN",
+        "verificationStanding": "UNKNOWN"
+      }
     },
     {
       "id": "NETWORK-EGRESS-SEMANTICS-20261101",
@@ -282,7 +396,196 @@
         "requiredWitness": "Same-attempt policy identity, independent upstream no-forwarding observation and negative controls for lookalike failures.",
         "selectionReason": "Choose the narrowest existing Owner/mature formal representation that exposes the actual consumer boundary; no source/model observation is promoted into installed or domain truth."
       },
-      "decision": "Keep provider-general denial semantics UNKNOWN until no-forwarding is independently witnessed; do not broaden READY from generic transport errors."
+      "decision": "Keep provider-general denial semantics UNKNOWN until no-forwarding is independently witnessed; do not broaden READY from generic transport errors.",
+      "readsetEvidence": {
+        "sourceCut": "6557ab5f2858832151430cc5f5e3dc020c3da0f1",
+        "sourcePaths": [
+          "platform/network/consumers/claude/ready.sh"
+        ],
+        "consumerPaths": [
+          "platform/network/consumers/claude/config/authority.json"
+        ],
+        "verifierPath": "platform/network/tests/test_egress_routing_behavior.py",
+        "counterexample": {
+          "path": "platform/network/tests/test_egress_routing_behavior.py",
+          "symbol": "test_terminal_reject_negative_control_is_observable"
+        },
+        "dependencyClosure": "UNKNOWN",
+        "verificationStanding": "UNKNOWN"
+      }
+    },
+    {
+      "id": "PG-CROSS-OWNER-CONSUMERS-20261101-R2",
+      "problemClass": "DATABASE_AUTHORITY_CONVERGENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "CROSS_OWNER_DIRECT_SQLITE_CALLS_OBSERVED_PHYSICAL_PG_REFINEMENT_UNKNOWN",
+      "observation": "Exact tracked source scan on 6557ab5f2858832151430cc5f5e3dc020c3da0f1 found 39 SQLite direct-callsite source paths and 75 direct API uses in 9 owner-prefix partitions. A lexical/static census is not execution or durable authority proof.",
+      "evidence": "tools/repo/check_sql_dialects.py::tracked_owner_sqlite_calls and tests in tools/repo/test_sql_dialects.py",
+      "consumers": "Independent Runtime, Harness, Gateway, Web, Capital, Media, Workstation, Security, and experimental SQLite users; per-owner authority and retirement differ.",
+      "formalObligation": "Each owner must demonstrate its own full active consumer set, PG readback/recovery/replay, exclusive writer authority and installed currentness before removing a SQLite consumer. Counted static paths alone never prove these. Registry/cutover remains UNKNOWN.",
+      "representation": {
+        "primary": "graph",
+        "supporting": [
+          "constraint"
+        ],
+        "methodSkill": ".agents/skills/project-kernel-decomposition/SKILL.md",
+        "requiredWitness": "Current tracked SQL scanner and per-owner physical PG readers plus adversarial old-writer/restore tests.",
+        "selectionReason": "Owner-partitioned consumers are a graph question, not a Runtime-only migration declaration."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No single Owner can justify cross-owner migration; tools/repo owns the read-only inventory, not replacement authority. Do not fabricate a shared RW12 slice."
+      },
+      "consumerPartitions": [
+        {
+          "owner": "apps/web",
+          "sourcePaths": [
+            "apps/web/src/store.ts"
+          ],
+          "directCallsites": 1
+        },
+        {
+          "owner": "capabilities/media",
+          "sourcePaths": [
+            "capabilities/media/scripts/migrate-r6-trials.py"
+          ],
+          "directCallsites": 1
+        },
+        {
+          "owner": "domains/capital",
+          "sourcePaths": [
+            "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
+            "domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py"
+          ],
+          "directCallsites": 2
+        },
+        {
+          "owner": "meta/next",
+          "sourcePaths": [
+            "meta/next/experiments/browser-security-r4/cf07_metadata_snapshot.py",
+            "meta/next/experiments/chaoxing-autosign-mvp/chaoxing_mvp/ledger.py"
+          ],
+          "directCallsites": 2
+        },
+        {
+          "owner": "platform/security",
+          "sourcePaths": [
+            "platform/security/labs/agent-admission-rs/src/grant-store.ts",
+            "platform/security/labs/agent-admission-rs/src/principal-store.ts"
+          ],
+          "directCallsites": 2
+        },
+        {
+          "owner": "platform/workstation",
+          "sourcePaths": [
+            "platform/workstation/scripts/host_historical_projection.py",
+            "platform/workstation/scripts/host_retirement_snapshot.py"
+          ],
+          "directCallsites": 5
+        },
+        {
+          "owner": "services/gateway",
+          "sourcePaths": [
+            "services/gateway/src/ordivon_gateway/external_worker.py"
+          ],
+          "directCallsites": 1
+        },
+        {
+          "owner": "services/harness",
+          "sourcePaths": [
+            "services/harness/scripts/agent_automation_browserless.py",
+            "services/harness/scripts/agent_automation_ledger_reconcile.py",
+            "services/harness/scripts/agent_automation_release.py",
+            "services/harness/scripts/browser_security_witness_source.py",
+            "services/harness/scripts/campaign_materialization.py",
+            "services/harness/scripts/cft_human_session.py",
+            "services/harness/scripts/harness_p0_scale_acceptance.py",
+            "services/harness/scripts/materialization_reconciliation_archive.py",
+            "services/harness/scripts/playwright_browserless_turn_once.py",
+            "services/harness/scripts/sqlite_conversation_binding.py",
+            "services/harness/scripts/sqlite_conversation_materializer.py",
+            "services/harness/scripts/sqlite_wake_turn_map.py",
+            "services/harness/src/ordivon_harness/sqlite_store.py",
+            "services/harness/src/ordivon_harness/store_ops.py"
+          ],
+          "directCallsites": 24
+        },
+        {
+          "owner": "services/runtime",
+          "sourcePaths": [
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/doctor.rs",
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/error.rs",
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/inspection.rs",
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/inspection/operator.rs",
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/registry.rs",
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs",
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/registry/query.rs",
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/registry_storage.rs",
+            "services/runtime/crates/ordivon-runtime-core/src/runtime/repair.rs",
+            "services/runtime/scripts/backup.py",
+            "services/runtime/scripts/mcp_e2e.py",
+            "services/runtime/scripts/pg_retention_census.py",
+            "services/runtime/scripts/postgres_registry_stage.py",
+            "services/runtime/scripts/restore.py"
+          ],
+          "directCallsites": 37
+        }
+      ],
+      "decision": "Retain one source-scanned negative inventory; move each actual durable cutover independently to its existing natural Owner, not a new database registry.",
+      "readsetEvidence": {
+        "sourceCut": "6557ab5f2858832151430cc5f5e3dc020c3da0f1",
+        "sourcePaths": [
+          "tools/repo/check_sql_dialects.py"
+        ],
+        "consumerPaths": [
+          "apps/web/src/store.ts",
+          "capabilities/media/scripts/migrate-r6-trials.py",
+          "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
+          "domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py",
+          "meta/next/experiments/browser-security-r4/cf07_metadata_snapshot.py",
+          "meta/next/experiments/chaoxing-autosign-mvp/chaoxing_mvp/ledger.py",
+          "platform/security/labs/agent-admission-rs/src/grant-store.ts",
+          "platform/security/labs/agent-admission-rs/src/principal-store.ts",
+          "platform/workstation/scripts/host_historical_projection.py",
+          "platform/workstation/scripts/host_retirement_snapshot.py",
+          "services/gateway/src/ordivon_gateway/external_worker.py",
+          "services/harness/scripts/agent_automation_browserless.py",
+          "services/harness/scripts/agent_automation_ledger_reconcile.py",
+          "services/harness/scripts/agent_automation_release.py",
+          "services/harness/scripts/browser_security_witness_source.py",
+          "services/harness/scripts/campaign_materialization.py",
+          "services/harness/scripts/cft_human_session.py",
+          "services/harness/scripts/harness_p0_scale_acceptance.py",
+          "services/harness/scripts/materialization_reconciliation_archive.py",
+          "services/harness/scripts/playwright_browserless_turn_once.py",
+          "services/harness/scripts/sqlite_conversation_binding.py",
+          "services/harness/scripts/sqlite_conversation_materializer.py",
+          "services/harness/scripts/sqlite_wake_turn_map.py",
+          "services/harness/src/ordivon_harness/sqlite_store.py",
+          "services/harness/src/ordivon_harness/store_ops.py",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/doctor.rs",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/error.rs",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/inspection.rs",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/inspection/operator.rs",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/registry.rs",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/registry/query.rs",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/registry_storage.rs",
+          "services/runtime/crates/ordivon-runtime-core/src/runtime/repair.rs",
+          "services/runtime/scripts/backup.py",
+          "services/runtime/scripts/mcp_e2e.py",
+          "services/runtime/scripts/pg_retention_census.py",
+          "services/runtime/scripts/postgres_registry_stage.py",
+          "services/runtime/scripts/restore.py"
+        ],
+        "verifierPath": "tools/repo/test_sql_dialects.py",
+        "counterexample": {
+          "path": "tools/repo/test_sql_dialects.py",
+          "symbol": "test_new_sqlite_owner_outside_old_runtime_harness_scope_fails_closed"
+        },
+        "dependencyClosure": "UNKNOWN",
+        "verificationStanding": "UNKNOWN"
+      }
     }
   ],
   "verification": {
@@ -294,6 +597,9 @@
       "No PostgreSQL cutover admission",
       "No Host R1/R3 equivalence",
       "No provider-general network-denial equivalence"
-    ]
-  }
+    ],
+    "sourceReadsetStanding": "POSITIVE_STATIC_EDGES_ONLY_DYNAMIC_AND_INSTALLED_UNKNOWN",
+    "sourceReadsetNonClaims": "Verifiers/counterexamples are source addresses. Test execution, physical authority, proof reuse and domain acceptance remain independent."
+  },
+  "sourceReadsetContract": "positive-owner-source-observation-r1"
 }
