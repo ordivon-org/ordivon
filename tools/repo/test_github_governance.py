@@ -1387,7 +1387,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             self.assertIn(f"mise run {inner}", cmd)
         native = tomllib.loads((ROOT / "platform/workstation/mise.toml").read_text(encoding="utf-8"))
         self.assertEqual(native["tools"]["python"], "3.15.1")
-        self.assertEqual(native["tools"]["pnpm"], "12.15.0")
+        self.assertEqual(native["tools"]["pnpm"], "12.16.1")
         ci = native["tasks"]["ci"]["run"]
         for required in (
             "uv lock --check", "uv sync --locked", "uv run ruff check .",
