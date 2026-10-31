@@ -88,3 +88,79 @@ def test_harness_backfill_detects_unique_episode_identities() -> None:
     assert summary["episodeIdentityCollisions"] == 0
     assert summary["citedRuntimeJobCount"] == 2
     assert summary["standing"] == "PASS_HARNESS_RSI_EPISODE_PROJECTION"
+
+
+def test_unqualified_receipt_freeform_values_do_not_escape_as_episode_dimensions() -> (
+    None
+):
+    """SourceRecordDigest may commit to raw fields; Episode must not copy them."""
+    for field in ("modelId", "researchOutcome"):
+        source = receipt()
+        source[field] = "SECRET_RAW_CREDENTIAL_DO_NOT_COPY"
+        episode = project_harness_rsi_record(
+            source, source_name="harness-rsi-p5-fixture.json"
+        )
+        assert "SECRET_RAW_CREDENTIAL_DO_NOT_COPY" not in repr(episode)
+        original = project_harness_rsi_record(
+            receipt(), source_name="harness-rsi-p5-fixture.json"
+        )
+        assert (
+            episode["anchor"]["sourceRecordDigest"]
+            != original["anchor"]["sourceRecordDigest"]
+        )
+
+
+def test_harness_episode_rejects_untrusted_identity_fields() -> None:
+    """An unqualified raw receipt cannot be relabeled as a public identity."""
+    source = receipt()
+    source["kind"] = "SECRET_RAW_CREDENTIAL_DO_NOT_COPY"
+    try:
+        project_harness_rsi_record(source, source_name="harness-rsi-p5-fixture.json")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("unqualified kind was projected")
+
+
+def test_unqualified_runtime_source_identity_cannot_be_projected() -> None:
+    source = receipt()
+    source["acceptedDiscovery"]["runtimeJobId"] = "job-SECRET_RAW_VALUE_123"
+    try:
+        project_harness_rsi_record(source, source_name="harness-rsi-p5-fixture.json")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("unqualified runtime ID was projected")
+
+
+def test_unqualified_source_filename_and_git_revision_fail_closed() -> None:
+    source = receipt()
+    for source_name in ("../../secret.json", "harness-rsi-p5-secret\n.json"):
+        try:
+            project_harness_rsi_record(source, source_name=source_name)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("unqualified source filename was projected")
+
+    source["baseRevision"] = "RAW_PRIVATE_ACCOUNT_ID"
+    try:
+        project_harness_rsi_record(source, source_name="harness-rsi-p5-fixture.json")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("unqualified source revision was projected")
+
+
+def test_harness_episode_fails_closed_on_unbounded_measures() -> None:
+    for value in (float("nan"), float("inf"), -1, 10**30, "token-like-private-string"):
+        source = receipt()
+        source["acceptedDiscovery"]["observationCount"] = value
+        try:
+            project_harness_rsi_record(
+                source, source_name="harness-rsi-p5-fixture.json"
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("unqualified source measure was projected")

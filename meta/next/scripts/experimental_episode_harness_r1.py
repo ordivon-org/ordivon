@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -30,6 +32,16 @@ RUNTIME_JOB_KEYS = {
     "repairVerificationRuntimeJobId",
     "measurementRuntimeJobId",
 }
+
+# The receipt is NOT a trusted source of public free-form strings. Only
+# structural identifiers enter the analytical projection; the full source
+# remains represented by sourceRecordDigest, never by copied payload bytes.
+PUBLIC_KIND = re.compile(r"ordivon\.harness-rsi-[a-z0-9][a-z0-9-]{0,95}\Z")
+PUBLIC_SOURCE_NAME = re.compile(r"harness-rsi-p[a-z0-9][a-z0-9-]{0,95}\.json\Z")
+GIT_REVISION = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?\Z")
+RUNTIME_JOB_ID = re.compile(r"job-[A-Za-z0-9][A-Za-z0-9-]{0,71}\Z")
+PUBLIC_STATUSES = frozenset({"accepted", "falsified", "blocked", "failed", "rejected"})
+
 
 MEASURE_KEYS = {
     "rounds",
@@ -76,18 +88,21 @@ def project_harness_rsi_record(
 ) -> dict[str, Any]:
     kind = record.get("kind")
     status = record.get("status")
-    if not isinstance(kind, str) or not kind:
-        raise ValueError("Harness RSI evidence requires kind")
-    if not isinstance(status, str) or not status:
-        raise ValueError("Harness RSI evidence requires status")
+    if not isinstance(kind, str) or PUBLIC_KIND.fullmatch(kind) is None:
+        raise ValueError("Harness RSI kind is not a qualified public identifier")
+    if not isinstance(status, str) or status not in PUBLIC_STATUSES:
+        raise ValueError("Harness RSI status is not a qualified lifecycle value")
+    if PUBLIC_SOURCE_NAME.fullmatch(source_name) is None:
+        raise ValueError("Harness RSI source_name is not a bounded receipt basename")
 
-    runtime_jobs = sorted(
-        {
-            str(value)
-            for _, value in _walk_named_scalars(record, wanted=RUNTIME_JOB_KEYS)
-            if isinstance(value, str) and value.startswith("job-")
-        }
-    )
+    candidate_jobs = _walk_named_scalars(record, wanted=RUNTIME_JOB_KEYS)
+    runtime_jobs: list[str] = []
+    for field, value in candidate_jobs:
+        if not isinstance(value, str) or RUNTIME_JOB_ID.fullmatch(value) is None:
+            # Never echo unqualified source bytes in a parser diagnostic.
+            raise ValueError(f"Harness RSI runtime reference at {field} is unqualified")
+        runtime_jobs.append(value)
+    runtime_jobs = sorted(set(runtime_jobs))
 
     owner_refs: list[dict[str, Any]] = []
     for field, relation in (
@@ -97,7 +112,12 @@ def project_harness_rsi_record(
         ("testHardeningRevision", "test-hardening-revision"),
     ):
         revision = record.get(field)
-        if isinstance(revision, str) and revision:
+        if revision is not None:
+            if (
+                not isinstance(revision, str)
+                or GIT_REVISION.fullmatch(revision) is None
+            ):
+                raise ValueError(f"Harness RSI {field} is not a full Git revision")
             owner_refs.append(
                 {
                     "ownerId": "git",
@@ -122,19 +142,18 @@ def project_harness_rsi_record(
         {"name": "harness.acceptance_status", "value": status},
         {"name": "harness.source_name", "value": source_name},
     ]
-    for field, name in (
-        ("researchOutcome", "harness.research_outcome"),
-        ("modelId", "harness.model_id"),
-    ):
-        value = record.get(field)
-        if isinstance(value, (str, int, float, bool)):
-            dimensions.append({"name": name, "value": value})
-
-    measures = [
-        {"name": f"harness.{path}", "value": value}
-        for path, value in _walk_named_scalars(record, wanted=MEASURE_KEYS)
-        if isinstance(value, (int, float)) and not isinstance(value, bool)
-    ]
+    # The receipt does not attest that modelId/researchOutcome are non-secret.
+    # Arbitrary source strings cannot be promoted to public dimensions merely
+    # because their field name sounds benign. Digest the source, omit the value.
+    measures: list[dict[str, Any]] = []
+    for path, value in _walk_named_scalars(record, wanted=MEASURE_KEYS):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"Harness RSI measure {path} is not numeric")
+        # Bounded resource observations only; arbitrary long numeric values
+        # cannot be smuggled into an otherwise approved measure dimension.
+        if not math.isfinite(value) or not 0 <= value <= 1_000_000_000_000:
+            raise ValueError(f"Harness RSI measure {path} is not finite/bounded")
+        measures.append({"name": f"harness.{path}", "value": value})
 
     source_digest = canonical_digest(record)
     result: dict[str, Any] = {
@@ -167,6 +186,7 @@ def project_harness_rsi_record(
         "unresolved": [
             "Acceptance receipts are compact evidence summaries, not complete Harness event journals.",
             "A cited Runtime Job reference is not reinterpreted as Harness-owned execution truth.",
+            "Unqualified source modelId/researchOutcome strings are omitted from the Episode.",
         ],
         "nonClaims": [
             "Episode is not Harness Agent-Run truth.",
