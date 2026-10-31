@@ -533,6 +533,8 @@ def select_source_readset_impacts(
             raise CircuitContractError("source readset evidence has duplicate proof identity")
         seen_ids.add(item["id"])
         paths = item["sourcePaths"]
+        if any(not isinstance(path, str) for path in paths):
+            raise CircuitContractError("source readset paths must be strings")
         if len(paths) != len(set(paths)):
             raise CircuitContractError("source readset has duplicate source paths")
         refs: list[str] = []
