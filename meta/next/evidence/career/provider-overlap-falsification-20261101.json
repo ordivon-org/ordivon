@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.career.provider-overlap-falsification",
+  "observedAtDate": "2026-11-01",
+  "purpose": "Falsify duplicate provider ownership after external-first selection; absence claims remain bounded to inspected stable interfaces.",
+  "reactiveResume": {
+    "stableRelease": "v6.0.9",
+    "releaseCommit": "854459a44eb896ca185611bf669a65be4d5111cf",
+    "publishedAt": "2026-10-29T21:35:46Z",
+    "stableAgentPluginSchemaValidated": true,
+    "stableMcpSchemaValidated": true,
+    "hostedEndpoint": "https://rxresu.me/mcp",
+    "productCapabilitiesObserved": [
+      "resume CRUD/import/export",
+      "cover-letter CRUD/export",
+      "application CRUD/stats",
+      "application notes/interviews/timeline",
+      "application document attachments",
+      "application match/tailor/draft message"
+    ],
+    "authorityBoundary": "Primary user-side resume/cover-letter/application product state only; not employer truth."
+  },
+  "jobSyncOverlap": {
+    "productOverlapWithReactiveResume": true,
+    "uniqueRetainedMethods": [
+      "scheduled Greenhouse discovery",
+      "scheduled Lever discovery",
+      "scheduled Ashby discovery",
+      "company-board directory resolution",
+      "review-before-promote discovery pattern"
+    ],
+    "decision": "KEEP_METHOD_DONOR_REJECT_PARALLEL_TRACKER_PRODUCT",
+    "rationale": "Reactive Resume stable release already owns the application/resume product surface. JobSync is retained only where its ATS discovery methods add CE2 Opportunity Intake value."
+  },
+  "resumeMatcherOverlap": {
+    "reactiveResumeStableToolNamesInspected": true,
+    "uniqueRetainedCapability": "deterministic source-preservation/grounding validation before accepting tailored resume mutations",
+    "observedProviderTool": "validate_tailored_resume",
+    "observedCounterexample": "synthetic education institution mutation was rejected with education.identity",
+    "equivalentReactiveResumeNamedToolObserved": false,
+    "decision": "KEEP_NARROW_PRESERVATION_VERIFIER",
+    "authorityBoundary": "No application CRUD; provider score remains diagnostic."
+  },
+  "careerOpsOverlap": {
+    "decision": "KEEP_WORKFLOW_AND_VALIDATOR_DONOR",
+    "currentnessCounterexample": "stable 1.38.0 rejected main-only keyword-match --url",
+    "rule": "release identity is executable contract; main is discovery"
+  },
+  "lowerStarSearch": {
+    "queries": [
+      "Greenhouse Lever Ashby job search MCP",
+      "resume verification job application MCP"
+    ],
+    "exactGitHubSearchResults": [
+      [],
+      []
+    ],
+    "conclusionState": "UNKNOWN",
+    "conclusion": "These exact targeted searches found no alternative repositories, but this is not proof that no lower-star unique provider exists. The discovery claim remains bounded and may be expanded when a concrete missing consumer appears."
+  },
+  "correction": {
+    "priorReactiveResumeStableChannel": "v6.0.2",
+    "correctedStableChannel": "v6.0.9",
+    "reason": "GitHub latest stable release observation on 2026-11-01 showed v6.0.9; the candidate must follow latest-stable policy and pin the exact verified tag commit."
+  },
+  "truthBoundary": "This evidence supports provider de-duplication and exact stable interface selection. It does not prove hosted service availability beyond the separate boundary probe, nor employer outcomes, nor exhaustive absence of alternative providers."
+}

@@ -58,6 +58,8 @@ class CareerExternalProviderStackTest(unittest.TestCase):
         reactive = by_id["product-surface"]
         self.assertEqual(reactive["primary"], "reactive-resume/reactive-resume")
         self.assertIn("NATIVE_PLUGIN", reactive["standing"])
+        self.assertEqual(reactive["stableChannel"], "v6.0.9")
+        self.assertEqual(reactive["releaseCommit"], "854459a44eb896ca185611bf669a65be4d5111cf")
         self.assertEqual(reactive["hostedMcpEndpoint"], "https://rxresu.me/mcp")
 
         matcher = by_id["artifact-compiler"]
@@ -92,10 +94,31 @@ class CareerExternalProviderStackTest(unittest.TestCase):
 
     def test_reactive_resume_reuses_upstream_plugin_and_preserves_auth_boundary(self) -> None:
         ev = load(CAREER / "reactive-resume-mcp-boundary-20261031.json")
+        self.assertEqual(ev["stableRelease"]["tag"], "v6.0.9")
+        self.assertEqual(ev["stableRelease"]["gitCommit"], "854459a44eb896ca185611bf669a65be4d5111cf")
+        self.assertTrue(ev["acceptance"]["stableReleaseLatestAtObservation"])
+        self.assertTrue(ev["acceptance"]["stableReleasePluginSchemasValid"])
         self.assertEqual(ev["adoptionRule"]["wrapperDecision"], "REUSE_UPSTREAM_NATIVE_PLUGIN_NO_ORDIVON_WRAPPER")
         self.assertEqual(ev["hostedBoundaryProbe"]["httpStatus"], 401)
         self.assertTrue(ev["acceptance"]["currentPluginSchemasValid"])
         self.assertTrue(ev["acceptance"]["authBoundaryObserved"])
+
+    def test_provider_overlap_falsification_preserves_only_unique_roles(self) -> None:
+        ev = load(CAREER / "provider-overlap-falsification-20261101.json")
+        self.assertEqual(ev["reactiveResume"]["stableRelease"], "v6.0.9")
+        self.assertEqual(
+            ev["jobSyncOverlap"]["decision"],
+            "KEEP_METHOD_DONOR_REJECT_PARALLEL_TRACKER_PRODUCT",
+        )
+        self.assertIn("scheduled Greenhouse discovery", ev["jobSyncOverlap"]["uniqueRetainedMethods"])
+        self.assertEqual(
+            ev["resumeMatcherOverlap"]["decision"],
+            "KEEP_NARROW_PRESERVATION_VERIFIER",
+        )
+        self.assertFalse(ev["resumeMatcherOverlap"]["equivalentReactiveResumeNamedToolObserved"])
+        self.assertEqual(ev["lowerStarSearch"]["conclusionState"], "UNKNOWN")
+        self.assertEqual(ev["correction"]["priorReactiveResumeStableChannel"], "v6.0.2")
+        self.assertEqual(ev["correction"]["correctedStableChannel"], "v6.0.9")
 
     def test_official_ats_to_gap_slice_keeps_diagnostics_bounded(self) -> None:
         ev = load(CAREER / "cloudflare-8245211-career-ops-vertical-slice-20261031.json")

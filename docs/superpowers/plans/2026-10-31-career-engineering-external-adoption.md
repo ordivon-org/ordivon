@@ -67,5 +67,14 @@
 - [x] Post independent peer-review request to Career Space (sequence 23952); sent request is not consensus.
 - [x] Re-run expanded contract tests after the stable-provider/slice updates (7/7 PASS plus plugin/schema/architecture/semantic checks).
 - [x] Commit the stable-provider/slice update as a second detached candidate commit.
-- [ ] Post exact second commit + new counterexamples to Space and inspect any reply.
+- [x] Post exact second commit + new counterexamples to Space (sequence 23961) and inspect replies; no independent reply was present immediately after the handoff.
 - [ ] Do not merge/cut over until integration selection and independent review are explicitly observed.
+
+### Task 7 — Currentness and provider-overlap falsification
+
+- [x] Re-check Reactive Resume latest stable release rather than trusting the earlier candidate value.
+- [x] Correct stale `v6.0.2` to latest stable `v6.0.9@854459a44eb896ca185611bf669a65be4d5111cf`.
+- [x] Validate the native Agent Plugin and MCP schemas on the stable release itself, not only `main`.
+- [x] Compare Reactive Resume application/resume MCP ownership with JobSync; retain only JobSync's Greenhouse/Lever/Ashby discovery methods.
+- [x] Compare Resume-Matcher with Reactive Resume; retain deterministic source-preservation validation as the non-duplicate capability and keep application CRUD excluded.
+- [x] Run targeted lower-star GitHub searches for missing ATS/MCP/resume-verification providers; exact searches returned no candidates, but record the absence claim as `UNKNOWN` rather than exhaustive proof.

@@ -1,13 +1,20 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "kind": "ordivon.career.external-provider-observation",
   "provider": "reactive-resume/reactive-resume",
-  "observedAtDate": "2026-10-31",
-  "stableChannelForSelfHost": "v6.0.2",
+  "observedAtDate": "2026-11-01",
+  "stableRelease": {
+    "tag": "v6.0.9",
+    "gitCommit": "854459a44eb896ca185611bf669a65be4d5111cf",
+    "publishedAt": "2026-10-29T21:35:46Z",
+    "latestReleaseAtObservation": true
+  },
   "observedMain": "ddedd46dcdadf984da06968c0df6e7bd343dc43a",
   "upstreamNativePlugin": {
     "pluginPath": "plugins/reactive-resume/plugin.json",
     "mcpPath": "plugins/reactive-resume/mcp.json",
+    "stableReleaseAgentPluginSchemaValidated": true,
+    "stableReleaseMcpSchemaValidated": true,
     "currentMainAgentPluginSchemaValidated": true,
     "currentMainMcpSchemaValidated": true,
     "mcpTransport": "streamable-http",
@@ -22,14 +29,22 @@
   },
   "adoptionRule": {
     "wrapperDecision": "REUSE_UPSTREAM_NATIVE_PLUGIN_NO_ORDIVON_WRAPPER",
-    "selfHostedCurrentness": "pin a stable release/image and verify before use",
+    "selfHostedCurrentness": "pin exact latest stable release/image after verification; v6.0.9 is the verified release at this observation",
     "hostedCurrentness": "hosted endpoint is independently observed at call time and is not equated with a pinned repository release"
   },
   "acceptance": {
+    "stableReleaseLatestAtObservation": true,
+    "stableReleaseNativePluginObserved": true,
+    "stableReleasePluginSchemasValid": true,
     "upstreamNativePluginObserved": true,
     "currentPluginSchemasValid": true,
     "networkEndpointObserved": true,
     "authBoundaryObserved": true
   },
-  "truthBoundary": "The probe proves the hosted MCP endpoint was reachable and auth-guarded at observation time. It grants no access and proves no resume/application state. Product case state is not employer truth."
+  "correction": {
+    "previousCandidateStableChannel": "v6.0.2",
+    "correctedTo": "v6.0.9",
+    "reason": "latest stable release observation superseded the stale candidate value"
+  },
+  "truthBoundary": "The stable-release checks prove v6.0.9 contains a valid native Agent Plugin/MCP package. The hosted probe proves the MCP endpoint was reachable and auth-guarded at observation time. Neither grants access nor proves any resume/application state. Product case state is not employer truth."
 }

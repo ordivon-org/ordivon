@@ -42,7 +42,7 @@ Durable executions pin exact release/package/commit identities. Floating `latest
 | Provider | Role | Executable boundary | Current standing |
 |---|---|---|---|
 | Career-Ops | workflow / rubric / deterministic Career validators | upstream Agent Plugin + Skill + `@santifer/career-ops@1.38.0` | **release init verified** |
-| Reactive Resume | primary resume / cover-letter / application product surface | upstream native Agent Plugin + hosted/self-hosted MCP/REST | **native plugin schema + hosted OAuth boundary verified** |
+| Reactive Resume | primary resume / cover-letter / application product surface | upstream native Agent Plugin + hosted/self-hosted MCP/REST | **v6.0.9 native plugin schema + hosted OAuth boundary verified** |
 | Resume-Matcher | narrow artifact compiler / preservation / ATS diagnostics | stable v1.4.0 CLI/MCP under Python 3.13 | **stable CLI + preservation tests verified** |
 | JobSync | ATS opportunity-discovery method donor | Greenhouse / Lever / Ashby discovery patterns | **absorb methods; no parallel product** |
 | JobSpy | discovery fallback | pinned `python-jobspy[mcp]==1.4.1` | **package/plugin smoke verified** |
@@ -73,7 +73,7 @@ Career-Ops is therefore adopted at the upstream Skill/workflow/validator boundar
 
 ## Reactive Resume: reuse its native plugin, do not wrap it
 
-Current upstream already ships an Agent Plugins 1.0 plugin and a streamable-HTTP MCP configuration. Those current plugin schemas validate against Ordivon's Agent Plugins 1.0 fixtures. An unauthenticated probe of the hosted MCP returned HTTP 401 plus the OAuth protected-resource challenge, proving the endpoint is reachable and guarded without exposing user data.
+Latest stable `v6.0.9` (`854459a44eb896ca185611bf669a65be4d5111cf`, published 2026-10-29) itself ships an Agent Plugins 1.0 plugin and streamable-HTTP MCP configuration. Both stable-release schemas validate against Ordivon's Agent Plugins 1.0 fixtures. An unauthenticated probe of the hosted MCP returned HTTP 401 plus the OAuth protected-resource challenge, proving the endpoint is reachable and guarded without exposing user data. An earlier candidate had named `v6.0.2`; the latest-release check falsified that stale currentness and the candidate was corrected rather than preserving it.
 
 Therefore Ordivon should consume the upstream plugin/service directly. A private Reactive Resume wrapper would be redundant. Self-hosted deployment must pin a stable release/image; hosted service currentness is observed independently.
 
