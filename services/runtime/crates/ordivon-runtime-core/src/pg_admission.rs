@@ -530,6 +530,39 @@ fn terminal_transition(from: &str, to: &str) -> bool {
         _ => false,
     }
 }
+#[cfg(kani)]
+mod kani_transition_proofs {
+    use super::terminal_transition;
+
+    #[kani::proof]
+    fn proof_pg_terminal_transition_matches_contract() {
+        let from_id: u8 = kani::any();
+        let to_id: u8 = kani::any();
+        kani::assume(from_id < 12 && to_id < 12);
+        let state = |id: u8| match id {
+            0 => "accepted",
+            1 => "starting",
+            2 => "running",
+            3 => "stopping",
+            4 => "recovering",
+            5 => "succeeded",
+            6 => "failed",
+            7 => "timed_out",
+            8 => "cancelled",
+            9 => "lost",
+            10 => "orphaned",
+            _ => "unqualified",
+        };
+        // Independent, finite contract for the declared runtime state alphabet.
+        let expected = match from_id {
+            0 => matches!(to_id, 6 | 8 | 9 | 10),
+            1..=4 => matches!(to_id, 5..=10),
+            _ => false,
+        };
+        assert_eq!(terminal_transition(state(from_id), state(to_id)), expected);
+    }
+}
+
 impl PgAdmissionStore {
     /// Exact no-Artifact terminal/Job/reservation/event atomicity, no runner or
     /// external output effect. Arbitrary Artifact-bearing terminal commits are
