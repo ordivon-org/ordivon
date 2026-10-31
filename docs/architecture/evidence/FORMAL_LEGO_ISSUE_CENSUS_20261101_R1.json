@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.formal-lego-issue-census-evidence",
+  "truthRole": "time-scoped-audit-evidence-not-registry-or-admission",
+  "observedAt": "2026-11-01T03:40:00+08:00",
+  "source": {
+    "protectedGithubMain": "ed0915fcb082388336593e35e450f6a66853f626",
+    "sourceCutRole": "exact-observed-source-not-live-perpetuity",
+    "semanticScope": "bounded repo-native issue census, PR/CI and limited owner verification"
+  },
+  "representation": {
+    "policy": "one primary + at most one supporting mature lens",
+    "model": "typed owner-local issue evidence; not a new global register, not proof grade"
+  },
+  "formalLaws": [
+    "DECLARATION_COMPLETE != MODEL_PROVED != CODE_REFINED != INSTALLED_CURRENT != CONSUMER_ACCEPTED",
+    "SOURCE_AST_ANCHORS_OBSERVED != CODE_REFINED",
+    "NO_PROOF_REUSE_FROM_STALE_SOURCEREADSET",
+    "NO_UNQUALIFIED_RETIRE: Git source and physical/consumer effects are separate",
+    "OWNER_NATIVE_TRUTH: only actual owner readback admits effects/cutover"
+  ],
+  "registrations": [
+    {
+      "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+      "slice": "RG1",
+      "scope": "Git identity/source and PR reference evidence, source only"
+    },
+    {
+      "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+      "slice": "RG2",
+      "scope": "Manifest updater ownership and exact dependency closures, not latest proof"
+    },
+    {
+      "ownerPlan": "services/harness/planning/lego-plan-r1.json",
+      "slice": "HS2",
+      "scope": "Harness action admission/source evidence proposal; no actual code refinement proof"
+    },
+    {
+      "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+      "slice": "RW1",
+      "scope": "Runtime workspace/job state existing owner; live PG cutover explicitly unknown"
+    }
+  ],
+  "issues": [
+    {
+      "id": "R21-SOURCE-GRADE-20261101",
+      "problemClass": "FORMAL_EVIDENCE_GRADE",
+      "naturalOwner": "services/harness",
+      "standing": "OBSERVED_MAIN_UNSOUND_GRADE_REPAIR_QUEUED",
+      "observation": "At the observed protected main, tools/formal/verify.py emits codeFragmentRefined=true from source AST anchors; .github/workflows/ci.yml demands true, although alias/rebinding mutations preserve anchor syntax and alter actual Python behavior. PR #1184 head 3b06f0edb8f00cbcd997099e8e4e05c07ecea4be demotes this grade and was green in GitHub CI; merge queue as of observation only.",
+      "evidence": "Git source: tools/formal/verify.py, tools/repo/test_formal_source_contract.py, .github/workflows/ci.yml, services/harness/src/ordivon_harness/plugin_gateway_effect.py. Independent native PR head Runtime Job job-01a1936d-68ef-7dd3-9143-06de1293a78f: 16/16 Formal probes; 21/21 governance tests; 11/11 Formal source contract tests on same head.",
+      "consumers": "Harness Gateway timeout effect binding; GitHub protected Formal receipt admission; independent Agent code-refinement readers.",
+      "formalObligation": "SOURCE_AST_ANCHORS_OBSERVED does not imply CODE_REFINED; mathematical model PASS does not imply implemented Rust/Python semantics or installed currentness. A present-null timeout is invalid, absence maps through caller grant. Proof promotion requires separate implementation refinement witness.",
+      "representation": {
+        "primary": "type",
+        "supporting": [
+          "abstraction"
+        ],
+        "requiredWitness": "Only exact changed head with valid model probes, actual negative semantic mutants, GitHub receipt consumer and honest UNKNOWN grades; no installed claims.",
+        "selectionReason": "An invalid proof-grade type promotion is the root defect; counterexample-guided abstraction explains why syntax anchors were insufficient.",
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md"
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "services/harness/planning/lego-plan-r1.json",
+        "slice": "HS2"
+      },
+      "decision": "Re-use and merge PR #1184 after protected current CI and queue checks; do not duplicate another Formal runner or invent refinement."
+    },
+    {
+      "id": "R21-DECLARATION-20261101",
+      "problemClass": "R21_CONTRACT_COMPLETENESS",
+      "naturalOwner": "packages/composition",
+      "standing": "CANDIDATE_QUEUED_AND_INDEPENDENT_OWNER_VERIFIED",
+      "observation": "Current main lacked the PR #1181 typed public declaration inspection. PR head 69f3674697edcc1017ca4ef92c943b41dd7c7528 requires all 11 R2.1 coordinates and reason-bearing UNKNOWN, never treating shape as source/proof/authorization. Its merge tree with main a359505cddc01d1d27f50f2b2b39f09b62f1ad35 was source-validated in isolated synthetic commit c4101af179c962b7b1c94813e8c68168cef8ddeb.",
+      "evidence": "Native combined Composition owner verification job-01a19375-db8f-73c3-bf97-a6599c9f0a61 PASS: Ruff, Pytest, schema/CLI negatives, 4 finite TLC owner-boundary profiles, Effect Replay Fence controls and docs validator. PR #1181 root-verification SUCCESS, merge queue entry awaiting checks.",
+      "consumers": "Existing Composition interface API and CLI; Agent caller requiring bounded L0/L1 R2.1 information, not a new registry.",
+      "formalObligation": "Every independently DECLARED or ADMITTED R2.1 LEGO exposes typed (I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold), or explicit typed UNKNOWN with obligation; declaration completeness cannot establish nonvacuity, refinement, execution authorization or domain acceptance.",
+      "representation": {
+        "primary": "type",
+        "supporting": [
+          "constraint"
+        ],
+        "requiredWitness": "Reject missing/ambiguous coordinate/unknown/effect with negative tests; successful declaration preserves all proof and installed booleans false.",
+        "selectionReason": "Static typed JSON schema is the smallest existing native representation; constraint lens enforces admission without inventing a separate calculus.",
+        "methodSkill": ".agents/skills/compositional-contracts/SKILL.md"
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No source-qualified owner-local slice for this exact issue. Existing Owner source/test/CI evidence is retained; do not appropriate tools/repo RG1/RG2 as its semantic authority."
+      },
+      "decision": "Consume PR #1181 through protected queue. Existing Composition Owner remains semantic authority; record is a time-scoped reference, not proof."
+    },
+    {
+      "id": "GIT-CURRENTNESS-20261101",
+      "problemClass": "SOURCE_CONVERGENCE",
+      "naturalOwner": "tools/repo",
+      "standing": "OBSERVED_TIME_SCOPED",
+      "observation": "Protected GitHub main advanced repeatedly under concurrent merges during this reform. SourceCut for this census is ed0915fcb082388336593e35e450f6a66853f626. Cached local origin/main is not a timeless remote truth. Previous disconnected issue evidence dated October 24-25 has historical source cuts and cannot be promoted to current facts.",
+      "evidence": "gh api repos/ordivon-org/ordivon/commits/main; git fetch origin main; git rev-parse origin/main and HEAD; exact Runtime source workspace admission. Owner-native tools/repo RG1 source/history contracts.",
+      "consumers": "PR merge queue, checked owner binaries, composition proof source readsets, Runtime Workspace source identity and Agent evidence reuse.",
+      "formalObligation": "Valid source-grade evidence is a claim over exact immutable readsets and a bounded observation. CachedOrigin==LocalMain does not imply LiveGitHub==LocalMain. At merge/admission re-read remote and verify parent/currentness.",
+      "representation": {
+        "primary": "equivalence",
+        "supporting": [
+          "state-machine"
+        ],
+        "requiredWitness": "Read live remote exact commit OID at action time; check ancestry/CI/consumers before effect; no automatic cross-SourceCut proof reuse.",
+        "selectionReason": "A source equality assertion is bounded; a temporal state transition changes its truth. Equivalence plus transition guard directly models the defect.",
+        "methodSkill": ".agents/skills/method-router/SKILL.md"
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG1"
+      },
+      "decision": "Retain current owner-native Git source mechanisms; do not create a parallel Git registry or replay historical branch operations."
+    },
+    {
+      "id": "GIT-BRANCH-PR-RETIREMENT-20261101",
+      "problemClass": "PR_REDUNDANCY_AND_CONSUMER_CLOSURE",
+      "naturalOwner": "tools/repo",
+      "standing": "PARTIALLY_CLOSED_UNKNOWN_FRONTIER",
+      "observation": "Prior confirmed 278 redundant local refs were deleted as ancestor or patch-equivalent no-current-ref consumers; concurrent agents also pruned other branches. The exact current count is time-varying. PR #1012 and #1022 retired two unconsumed meta/next planning projections; other PRs cannot be closed solely because old, DIRTY or patch-distinct.",
+      "evidence": "Git main+worktree/branch identity at earlier exact observation, PR #1012 and #1022 merged GitHub readback. Current tree root no longer needs duplicate planning artifacts. Historical PR bodies retain native repo:ci/next:verify evidence.",
+      "consumers": "Production Owner source consumers, protected main, Git worktrees, open PR heads, external installed or dynamic readers remaining UNKNOWN.",
+      "formalObligation": "Retirement of a ref requires no unique source/consumer contribution and no active worktree/PR/ref occupancy. Retirement of executable/module requires behavioral substitution evidence. Zero lexical references proves only the inspected Git scope, not universal non-consumption.",
+      "representation": {
+        "primary": "graph",
+        "supporting": [
+          "equivalence"
+        ],
+        "requiredWitness": "Exact Git reachability/patch equivalence + consumer/frozen-effect graph, with UNKNOWN dynamic edges preserved.",
+        "selectionReason": "Consumer reachability and semantic equivalence distinguish redundant reference handles from unique behavior and external effects.",
+        "methodSkill": ".agents/skills/design-structure-matrix/SKILL.md"
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG1"
+      },
+      "decision": "PR #1012 and #1022 are closed via protected queue; continue only owner-consumer-qualified cleanup for remaining PRs."
+    },
+    {
+      "id": "DEPENDENCY-CURRENTNESS-20261101",
+      "problemClass": "DEPENDENCY_CONVERGENCE",
+      "naturalOwner": "capabilities/media",
+      "standing": "MERGED_SOURCE_NOT_INSTALLED_CURRENT",
+      "observation": "PR #1190 already merged latest OTel/Playwright/React and source consumer. At 2026-11-01 npm registry evaluation the residual latest versions were pnpm 12.16.1, @types/node 26.6.6, Remotion CLI/runtime 4.0.539, vite 8.3.5; PR #1192 commit 08aa07e1a879d1d0e32a3ff6b7d3075563fb434f applied those + both owner pnpm pins and lockfiles and merged through protected queue.",
+      "evidence": "Runtime job-01a19368-9935-72c2-b39b-0e996672d826: Media native mise run verify PASS. js frozen lock installs PASS. Both owner pnpm outdated outputs {} at registry observation; PR #1192 root-verification SUCCESS and merged GitHub at 2026-10-31T19:39:38Z.",
+      "consumers": "Media TypeScript/Remotion/Vite preview production and Artifact Node package tooling; installed and live browser-provider paths not verified.",
+      "formalObligation": "The effective owner lockfile, manifest, pin and actual consumer must agree on a same-version provider closure. Registry latest at observation does not establish future latest or installed state; peer requirements across OTel and React family must be discharged.",
+      "representation": {
+        "primary": "declarative",
+        "supporting": [
+          "constraint"
+        ],
+        "requiredWitness": "Frozen-lock install, owner production build/typecheck, direct dependency latest at source/registry observation and exact consumer tests.",
+        "selectionReason": "Declarative lockfile/pin/current source is sufficient, not a new dependency graph DB. Constraint lens checks peer/subfamily version compatibility.",
+        "methodSkill": ".agents/skills/compositional-contracts/SKILL.md"
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No source-qualified owner-local slice for this exact issue. Existing Owner source/test/CI evidence is retained; do not appropriate tools/repo RG1/RG2 as its semantic authority."
+      },
+      "decision": "Retain merged #1190 and #1192; do not replay dependency changes or assert installed freshness; recheck only after registry/owner source changes."
+    },
+    {
+      "id": "MEDIA-MONOREPO-ROOT-20261101",
+      "problemClass": "OWNER_CARRIER_PATH_IDENTITY",
+      "naturalOwner": "capabilities/media",
+      "standing": "MERGED_NATIVE_CONSUMER_VERIFIED",
+      "observation": "The media-v2 video and audio smoke scripts erroneously chose the monorepo Git root for their Media owner fixtures. Source-anchored script-root path repair was committed in #1192 and merged. The failure was reproduced before the correction.",
+      "evidence": "Runtime job-01a19368-5f88-74e2-88eb-0300dfb61cc5: owner tool-resolution tests 3/3 PASS, video positive and wrong-resolution negative PASS; audio positive and loudness/peak/codec negatives PASS. Native full Media owner verification job-01a19368-9935-72c2-b39b-0e996672d826 PASS.",
+      "consumers": "Media smoke scripts, preview/type/build owner verification, Git monorepo checkout, not Runtime or Host truth.",
+      "formalObligation": "Script-local owner-root derivation is independent of enclosing Git checkout depth; missing fixture must cause negative test failure rather than a false green. Source root and semantic module identity are separate.",
+      "representation": {
+        "primary": "declarative",
+        "supporting": [
+          "equivalence"
+        ],
+        "requiredWitness": "Invoke both native media smoke scripts from a monorepo checkout and an unrelated working directory; verify media-local profile resolution, positive and negative technical QC.",
+        "selectionReason": "Declarative owner-root relation is the actual broken assumption; equivalence covers checkout/cwd independence.",
+        "methodSkill": ".agents/skills/project-kernel-decomposition/SKILL.md"
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "No source-qualified owner-local slice for this exact issue. Existing Owner source/test/CI evidence is retained; do not appropriate tools/repo RG1/RG2 as its semantic authority."
+      },
+      "decision": "Retain merged minimal fix and its existing owner test. Do not create a new source path registry."
+    },
+    {
+      "id": "RUNTIME-PG-CUTOVER-20261101",
+      "problemClass": "DATABASE_AUTHORITY_CONVERGENCE",
+      "naturalOwner": "services/runtime",
+      "standing": "UNKNOWN_LIVE_CUTOVER_NOT_CLAIMED",
+      "observation": "Historical Runtime PostgreSQL staged/catalog evidence existed before this observation; this census did not re-run live PG writer/readback/activation checks at a current deployment SourceCut. Therefore PG cutover and all live consumer acceptance remain UNKNOWN; neither historic SQLite nor candidate PostgreSQL provider is automatically current.",
+      "evidence": "Historical docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json and services/runtime/planning/lego-plan-r1.json RW1 are historical/reference claims only; no fresh operational credential/service/startup observation is presented here.",
+      "consumers": "Runtime Linux and Windows Job/Attempt/Workspace, Gateway consumers, timer/service readers, live PostgreSQL writer and installed endpoints.",
+      "formalObligation": "Change of persistence implementation must preserve required consumers, single-writer/atomic terminal truth, auth and replay fences; formal model or staged PG test cannot establish actual installed cutover.",
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [
+          "graph"
+        ],
+        "requiredWitness": "Fresh runtime actual tool catalog vs Gateway/Harness callers; PG write/readback; real service and health identity; writer absence/SQLite timers and cutover receipt.",
+        "selectionReason": "State-machine pins terminal durability and consumer graph isolates still-live SQLite providers; no speculative schema replaces owner-native readback.",
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md"
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "services/runtime/planning/lego-plan-r1.json",
+        "slice": "RW1"
+      },
+      "decision": "Do not convert historical cutover readiness into ACCEPTED; require targeted owner-currentness reconfirmation before irreversible effects."
+    },
+    {
+      "id": "DEPENDENCY-UPDATE-OWNER-COVERAGE-20261101",
+      "problemClass": "DEPENDENCY_UPDATE_AUTHORITY",
+      "naturalOwner": "tools/repo",
+      "standing": "OWNER_SOURCE_OBSERVED_NO_LATEST_GUARANTEE",
+      "observation": "The existing canonical updater ownership RG2 is a source/update-manifest routing contract. A passing RG2 checker does not establish that exact affected owner package versions are registry-latest or that the installed runtime has been upgraded. Observed latest residuals on 2026-11-01 were handled by Media and Artifact owners in merged PR #1192, not by promoting Repo to dependency-runtime authority.",
+      "evidence": "tools/repo/planning/lego-plan-r1.json RG2; tools/repo/test_dependency_update_ownership.py; capabilities/media/package.json and capabilities/media/mise.toml; capabilities/artifact/artifact-delivery/node/package.json; merged PR #1192 exact source consumer evidence.",
+      "consumers": "GitHub Dependabot/Renovate source-mapping, pnpm workspace owner lockfile, owner package install verification and CI update routing.",
+      "formalObligation": "Manifest-to-updater mapping must be unique and deterministic for each currently declared owner manifest. Current source/update coverage does not imply registry latest stable, peer compatibility, installed currentness or domain consumer acceptance.",
+      "representation": {
+        "primary": "graph",
+        "supporting": [
+          "constraint"
+        ],
+        "requiredWitness": "Existing RG2 source mapping, zero/duplicate manifest coverage negative tests and actual owner-specific lockfile and install evidence.",
+        "selectionReason": "Ownership graph verifies update routing; constraints catch duplicate/missing coverage while native owners verify latest and working products.",
+        "methodSkill": ".agents/skills/design-structure-matrix/SKILL.md"
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "tools/repo/planning/lego-plan-r1.json",
+        "slice": "RG2"
+      },
+      "decision": "Keep RG2 as repository mechanics only. Latest-version policies remain in owner package/lockfile/current registry observations, not Repo semantic proof."
+    }
+  ],
+  "nonClaims": [
+    "No global universal LEGO registry",
+    "No automatic deletion of dynamic/installed consumers",
+    "No current PG migration success",
+    "No installed proof or authorization from 11-coordinate declaration",
+    "No cross-owner proof from individually passing owner tests"
+  ]
+}
