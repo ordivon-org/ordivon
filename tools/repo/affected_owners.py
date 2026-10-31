@@ -169,6 +169,10 @@ def requires_core_formal_verification(paths: Iterable[str]) -> bool:
     return any(
         (normalized := _normalize(path)) == "mise.toml"
         or normalized.startswith("tools/formal/")
+        # This exact Harness adapter is an executable input of the existing
+        # Formal SOURCE_FILES readset. Changing it invalidates the native
+        # timeout bridge proof regardless of owner-root classification.
+        or normalized == "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
         for path in paths
     )
 
