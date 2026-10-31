@@ -207,7 +207,7 @@ Current candidate deliberately does **not** add or retain a custom:
 
 ## Integration gate
 
-Remote `main` advanced from the earlier `ffd81854...` baseline to `277a62019b49...`. The intervening remote diff had no observed Career-provider overlap. The implementation candidate is now based on `277a620...` before rereview.
+The historical `main` progression was `ffd81854...` → `277a62019b49...` → `9237d3e30066...` → current source baseline `4733af25b4b3296ea75e3b370ec539f1bfd860d7`. The last `9237d3e...` → `4733af25...` change contained only Formal/readset and Runtime trace changes, with no Career path overlap. The isolated Career candidate was rebased onto that exact current base before final review.
 
 The earlier independent review verdict was **BLOCK**; the subsequent read-only review of 21d2c38 returned **PASS_WITH_FINDINGS** and closed C1/C2/C3 in synthetic scope. Metadata correction and owner-native integration still require final verification. Therefore:
 
