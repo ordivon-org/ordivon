@@ -114,7 +114,20 @@ fn installed_systemd_workspace_consumers(
                         } else {
                             path.parent().unwrap_or(&directory).join(target)
                         };
-                        if next.to_string_lossy().contains(workspace_id) {
+                        // Missing unit files have no loaded bytes to inspect.
+                        // Check the exact Workspace path component, not a
+                        // substring: ws-target-copy must not retain ws-target.
+                        let mut lexical = std::path::PathBuf::new();
+                        for component in next.components() {
+                            match component {
+                                std::path::Component::ParentDir => {
+                                    lexical.pop();
+                                }
+                                std::path::Component::CurDir => {}
+                                other => lexical.push(other.as_os_str()),
+                            }
+                        }
+                        if lexical.starts_with(Path::new(&prefix)) {
                             matches.push(path.display().to_string());
                             continue;
                         }
@@ -1067,6 +1080,17 @@ mod installed_unit_consumer_tests {
         assert!(
             ensure_no_installed_systemd_consumer("ws-target", &[&root]).is_ok(),
             "broken unrelated systemd alias globally blocked clean closure",
+        );
+        // A dangling link to a DIFFERENT workspace whose name has this
+        // Workspace as a prefix is not a consumer of this Workspace.
+        let different = root.join("similar-name.service");
+        symlink(
+            "/var/lib/ordivon/runtime/workspaces/ws-target-copy/linked.service",
+            &different,
+        ).unwrap();
+        assert!(
+            ensure_no_installed_systemd_consumer("ws-target", &[&root]).is_ok(),
+            "a different Workspace prefix alias must not block close",
         );
         let link = root.join("target.service");
         symlink(
