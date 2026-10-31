@@ -547,8 +547,9 @@ def test_gateway_adapter_waits_for_committed_but_incomplete_artifact_projection(
     assert observed["resultAvailable"] is False
 
 
-def test_present_null_timeout_is_rejected_on_real_agent_run() -> None:
-    """A present, schema-illegal null must not reach Gateway execution.submit."""
+@pytest.mark.parametrize("invalid", [None, True, False, 0, -1, 10_001, "10"])
+def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object) -> None:
+    """An invalid canonical JSON value must not reach Gateway execution.submit."""
     from dataclasses import replace
 
     from jsonschema import Draft202012Validator
@@ -558,10 +559,12 @@ def test_present_null_timeout_is_rejected_on_real_agent_run() -> None:
     adapter = _adapter(timeout_ms=None)
     first, second = adapter._results
     call = first.tool_calls[0]
-    explicit_null = {**call.arguments, "timeoutMs": None}
-    assert list(Draft202012Validator(factory._definition.input_schema).iter_errors(explicit_null))
+    invalid_arguments = {**call.arguments, "timeoutMs": invalid}
+    assert list(
+        Draft202012Validator(factory._definition.input_schema).iter_errors(invalid_arguments)
+    )
     adapter._results = (
-        replace(first, tool_calls=(replace(call, arguments=explicit_null),)),
+        replace(first, tool_calls=(replace(call, arguments=invalid_arguments),)),
         second,
     )
 
@@ -577,5 +580,26 @@ def test_present_null_timeout_is_rejected_on_real_agent_run() -> None:
         )
         run.run(())
         assert not [arguments for name, arguments in client.calls if name == "execution.submit"], (
-            "schema-illegal explicit null reached actual Gateway submission"
+            "schema-illegal timeout reached actual Gateway submission"
+        )
+
+
+def test_canonical_json_timeout_input_is_narrower_than_json_schema_numeric_integer() -> None:
+    """A source-observed representation gap must not be mistaken for wire equivalence."""
+    from jsonschema import Draft202012Validator
+
+    factory = _factory(GatewayExecutionFixture())
+    schema = factory._definition.input_schema
+    raw = {
+        "executable": "/usr/bin/rg",
+        "args": ["needle", "."],
+        "timeoutMs": 1000.0,
+    }
+    assert Draft202012Validator(schema).is_valid(raw)
+    assert "canonical JSON integer token" in schema["properties"]["timeoutMs"]["description"]
+    with pytest.raises(ValueError, match="floating-point values are forbidden"):
+        AgentToolCall(
+            tool_call_id="tool-call:noncanonical-timeout",
+            name="execution.submit",
+            arguments=raw,
         )
