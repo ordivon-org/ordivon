@@ -2321,7 +2321,7 @@ mod live_pg_tests {
         assert_eq!(scratch.count("job_events"), 3);
         assert_eq!(
             store
-                .commit_terminal_with_artifacts(&terminal, &[artifact.clone()])
+                .commit_terminal_with_artifacts(&terminal, std::slice::from_ref(&artifact))
                 .unwrap(),
             PgTerminalOutcome::Committed(first.job_id.clone())
         );
@@ -2329,7 +2329,7 @@ mod live_pg_tests {
         assert_eq!(scratch.count("job_events"), 5);
         assert_eq!(
             store
-                .commit_terminal_with_artifacts(&terminal, &[artifact.clone()])
+                .commit_terminal_with_artifacts(&terminal, std::slice::from_ref(&artifact))
                 .unwrap(),
             PgTerminalOutcome::Existing(first.job_id.clone()),
             "identical replay never writes duplicate Artifact"
@@ -2471,7 +2471,7 @@ mod live_pg_tests {
         };
         assert_eq!(
             store
-                .commit_terminal_with_artifacts(&terminal, &[artifact.clone()])
+                .commit_terminal_with_artifacts(&terminal, std::slice::from_ref(&artifact))
                 .unwrap(),
             PgTerminalOutcome::Committed(request.job_id.clone()),
         );

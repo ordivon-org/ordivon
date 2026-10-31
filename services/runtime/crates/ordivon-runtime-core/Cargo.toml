@@ -47,6 +47,11 @@ name = "ordivon-runtime-windows-deploy"
 path = "src/bin/ordivon-runtime-windows-deploy.rs"
 required-features = ["operator-tools"]
 
+# Kani's real proof harnesses compile under cfg(kani); standard
+# Cargo/Clippy check-cfg must recognize it without permitting unknown cfgs.
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
+
 [dependencies]
 hex.workspace = true
 libc = { workspace = true, optional = true }
