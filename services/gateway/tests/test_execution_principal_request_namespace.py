@@ -169,6 +169,7 @@ def test_verified_principals_cannot_reattach_each_others_request_id() -> None:
 
 def test_verified_external_execution_preserves_owner_capability_and_identity() -> None:
     from ordivon_gateway.contracts import (
+        ArtifactChunk,
         ExecutionObservation,
         ExecutionReceipt,
         ExecutionResolution,
@@ -184,6 +185,7 @@ def test_verified_external_execution_preserves_owner_capability_and_identity() -
             self.operations: dict[str, str] = {}
             self.observe_count = 0
             self.cancel_count = 0
+            self.artifact_count = 0
 
         async def execution_resolve(self, *, capability: str, request_id: str):
             matched = self.operations.get(request_id)
@@ -219,6 +221,22 @@ def test_verified_external_execution_preserves_owner_capability_and_identity() -
                 terminal=True,
             )
 
+        async def artifact_read(
+            self, operation_ref: str, artifact_id: str, *, offset=0, max_bytes=1_048_576
+        ):
+            self.artifact_count += 1
+            return ArtifactChunk(
+                operation_ref=operation_ref,
+                owner_id="external.pull",
+                native_id="op-01",
+                artifact_id=artifact_id,
+                offset=offset,
+                next_offset=offset + 3,
+                eof=True,
+                digest="sha256:external-test-byte-witness",
+                content="abc",
+            )
+
     owner = ExternalCapability()
     server = build_server(owner)  # type: ignore[arg-type]
     a = _context(server, "principal:cf-access:A")
@@ -236,8 +254,15 @@ def test_verified_external_execution_preserves_owner_capability_and_identity() -
         for action in ("execution.get", "execution.cancel"):
             with pytest.raises(ToolError, match="cannot be qualified"):
                 await server.call_tool(action, arguments, b)
+        read_args = {**arguments, "artifactId": "stdout"}
+        own_bytes = await server.call_tool("artifact.read", read_args, a)
+        assert not own_bytes.is_error
+        assert own_bytes.structured_content["content"] == "abc"
+        with pytest.raises(ToolError, match="cannot be qualified"):
+            await server.call_tool("artifact.read", read_args, b)
         assert owner.observe_count == 1
         assert owner.cancel_count == 1
+        assert owner.artifact_count == 1
 
     asyncio.run(run())
 
