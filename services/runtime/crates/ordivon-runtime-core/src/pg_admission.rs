@@ -83,8 +83,17 @@ impl PgAdmissionInput {
                 .expected_source_sha256
                 .bytes()
                 .all(|b| b.is_ascii_hexdigit())
-            || serde_json::from_str::<serde_json::Value>(&self.workspace_snapshot_json).is_err()
-            || serde_json::from_str::<serde_json::Value>(&self.execution_plan_json).is_err()
+            // Durable Runtime consumers decode both carriers as records.
+            // Parsing any JSON value alone admits null/scalars/arrays that
+            // cannot satisfy their existing typed source contracts.
+            || !matches!(
+                serde_json::from_str::<serde_json::Value>(&self.workspace_snapshot_json),
+                Ok(serde_json::Value::Object(_))
+            )
+            || !matches!(
+                serde_json::from_str::<serde_json::Value>(&self.execution_plan_json),
+                Ok(serde_json::Value::Object(_))
+            )
         {
             return Err(PgAdmissionError::InvalidInput);
         }
@@ -802,6 +811,50 @@ mod tests {
         assert!(exact_schema("runtime_pg_qualified_r1"));
     }
     #[test]
+    fn non_object_durable_json_is_rejected_before_postgres_effects() {
+        // RuntimeExecutionPlan and Workspace snapshots are records. Parsing as
+        // arbitrary JSON Value would accept a scalar/array that a consumer
+        // cannot decode as a valid durable state object.
+        let qualified = PgAdmissionInput {
+            job_id: "job".into(),
+            attempt_id: "attempt".into(),
+            reservation_id: "reservation".into(),
+            principal: "principal".into(),
+            client_request_id: "request".into(),
+            request_digest: "sha256:r".into(),
+            operation_digest: "sha256:o".into(),
+            workspace_id: "ws".into(),
+            workspace_snapshot_json: "{}".into(),
+            execution_plan_json: "{}".into(),
+            execution_plan_digest: "sha256:plan".into(),
+            launch_token_digest: "sha256:l".into(),
+            bundle_path: "/tmp/test".into(),
+            unit_name: "unit".into(),
+            global_limit: 1,
+            created_at_ms: 1,
+            expected_source_sha256: "a".repeat(64),
+        };
+        assert!(qualified.validate().is_ok(), "fixture must be admitted");
+        for raw in ["null", "true", "false", "[]", "42", "\"text\""] {
+            let mut invalid_snapshot = qualified.clone();
+            invalid_snapshot.workspace_snapshot_json = raw.into();
+            assert!(
+                matches!(
+                    invalid_snapshot.validate(),
+                    Err(PgAdmissionError::InvalidInput)
+                ),
+                "workspace_snapshot_json accepted non-object {raw}"
+            );
+            let mut invalid_plan = qualified.clone();
+            invalid_plan.execution_plan_json = raw.into();
+            assert!(
+                matches!(invalid_plan.validate(), Err(PgAdmissionError::InvalidInput)),
+                "execution_plan_json accepted non-object {raw}"
+            );
+        }
+    }
+
+    #[test]
     fn source_identity_must_be_present() {
         let i = PgAdmissionInput {
             job_id: "j".into(),
@@ -831,6 +884,18 @@ mod live_pg_tests {
     use super::*;
     use std::sync::{Arc, Barrier};
     use std::thread;
+
+    fn physical_pg_test_dsn() -> String {
+        std::env::var("ORDIVON_PG_TEST_DSN").expect(
+            "physical PostgreSQL tests require ORDIVON_PG_TEST_DSN; run the dedicated mise task",
+        )
+    }
+
+    fn historical_pg_stage_test_dsn() -> String {
+        std::env::var("ORDIVON_PG_STAGE_TEST_DSN").expect(
+            "historical stage qualification requires ORDIVON_PG_STAGE_TEST_DSN; run the dedicated stage task",
+        )
+    }
 
     // An operator supplies an isolated PostgreSQL DSN for physical tests.
     // No environment value means the ordinary CI suite never mutates PG.
@@ -950,10 +1015,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_rejects_synthetic_writer_without_event_sequence_uniqueness() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         assert!(PgAdmissionStore::connect(&dsn, &scratch.name).is_ok());
@@ -971,10 +1035,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_rejects_foreign_key_that_points_at_wrong_pg_target() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         assert!(PgAdmissionStore::connect(&dsn, &scratch.name).is_ok());
@@ -995,10 +1058,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_native_atomic_admission_replay_fence_and_rollback() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
         let a = payload("request-A", "job-A", "workspace-A", 2);
@@ -1008,6 +1070,19 @@ CREATE TABLE _stage_control(
         ));
         assert_eq!(scratch.count("jobs"), 0, "no write before PG qualification");
         scratch.qualify();
+        for (name, raw) in [("workspace", "null"), ("plan", "[]")] {
+            let mut invalid = a.clone();
+            if name == "workspace" {
+                invalid.workspace_snapshot_json = raw.into();
+            } else {
+                invalid.execution_plan_json = raw.into();
+            }
+            assert!(matches!(
+                store.admit(&invalid),
+                Err(PgAdmissionError::InvalidInput)
+            ));
+            assert_eq!(scratch.count("jobs"), 0, "invalid JSON persisted a PG Job");
+        }
         assert_eq!(
             store.admit(&a).unwrap(),
             PgAdmissionOutcome::Created("job-A".into())
@@ -1097,10 +1172,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_terminal_cas_replay_orphan_hold_and_atomic_rollback() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1179,10 +1253,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_stale_attempt_cannot_terminalize_current_job() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1237,10 +1310,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_artifact_bearing_terminal_is_denied_until_full_owner_exists() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1281,10 +1353,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_STAGE_TEST_DSN historical-stage qualification"]
     fn historical_pg_stage_is_not_an_admission_authority() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_STAGE_TEST_DSN") else {
-            return;
-        };
+        let dsn = historical_pg_stage_test_dsn();
         let mut inspector = Client::connect(&dsn, NoTls).unwrap();
         let before: i64 = inspector
             .query_one("SELECT count(*) FROM rw12_stage_cutover_r1.jobs", &[])
@@ -1313,10 +1384,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_cancel_commit_readback_is_exact_and_fail_closed_after_ack_loss() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         let mut writer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
         let mut observer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1379,10 +1449,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_cancel_intent_is_atomic_replayable_and_never_implies_dispatch_stopped() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
         let first = payload("cancel-before-dispatch", "job-cancel-accepted", "ws-a", 2);
@@ -1431,10 +1500,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_cancel_intent_running_orphan_and_missing_reservation_fences() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1566,10 +1634,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_concurrent_duplicate_never_creates_second_job() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let gate = Arc::new(Barrier::new(5));
