@@ -68,7 +68,8 @@
 - [x] Re-run expanded contract tests after the stable-provider/slice updates (7/7 PASS plus plugin/schema/architecture/semantic checks).
 - [x] Commit the stable-provider/slice update as a second detached candidate commit.
 - [x] Post exact second commit + new counterexamples to Space (sequence 23961) and inspect replies; no independent reply was present immediately after the handoff.
-- [ ] Do not merge/cut over until integration selection and independent review are explicitly observed.
+- [x] Verify remote `main` tip still equals candidate source baseline (`ffd81854b424b4fb136715a8ea022ca3b28fc2e7`).
+- [ ] Do not merge/cut over until integration selection and independent review are explicitly observed; machine-readable gate remains `mergeAdmitted=false`.
 
 ### Task 7 — Currentness and provider-overlap falsification
 

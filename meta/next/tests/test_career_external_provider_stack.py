@@ -47,6 +47,10 @@ class CareerExternalProviderStackTest(unittest.TestCase):
         self.assertTrue(stack["constraints"]["noSecondGlobalRegistry"])
         self.assertTrue(stack["constraints"]["noDurableSqliteCareerState"])
         self.assertTrue(stack["constraints"]["providerScoresAreDiagnosticsNotOutcomeProbability"])
+        gate = stack["integrationGate"]
+        self.assertTrue(gate["remoteMainMatchesSourceBaseline"])
+        self.assertFalse(gate["independentPeerCounterexampleObserved"])
+        self.assertFalse(gate["mergeAdmitted"])
         by_id = {layer["id"]: layer for layer in stack["layers"]}
 
         career_ops = by_id["workflow"]

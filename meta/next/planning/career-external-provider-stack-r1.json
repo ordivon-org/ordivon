@@ -118,6 +118,16 @@
       "standing": "NO_CURRENT_CONSUMER"
     }
   ],
+  "integrationGate": {
+    "candidateHead": "e597d7fb5c7a825ce3984fe569f181987d6110e8",
+    "remoteMainObserved": "ffd81854b424b4fb136715a8ea022ca3b28fc2e7",
+    "sourceBaseline": "ffd81854b424b4fb136715a8ea022ca3b28fc2e7",
+    "remoteMainMatchesSourceBaseline": true,
+    "peerReviewHandoffSequences": [23952, 23961, 23962],
+    "independentPeerCounterexampleObserved": false,
+    "mergeAdmitted": false,
+    "reason": "Technical verification is green and remote main matches the source baseline, but no independent peer counterexample/review has been observed. Do not infer merge admission from local success."
+  },
   "authority": {
     "careerRecord": "Ordivon/private user-authorized record composition",
     "opportunityTruth": "external employer/ATS/provider",
