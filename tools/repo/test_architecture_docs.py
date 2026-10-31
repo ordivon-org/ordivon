@@ -926,9 +926,8 @@ def test_retired_next_historical_owner_cohorts_are_not_reintroduced() -> None:
         assert not retired.intersection(paths)
         retired.update(paths)
     assert len(retired) == 36
-    # The current Social Fabric Owner is retained, not replaced by old R2.
-    assert (ROOT / "meta/next/scripts/social_fabric_r1.py").is_file()
-    assert (ROOT / "meta/next/tests/test_social_fabric_r1.py").is_file()
+    # Historical R2 retirement does not require a separate R1 snapshot compiler;
+    # live Social work/attention are served by Host-native consumers.
     module.validate_formal_issue_census(census, plans)
 
 
