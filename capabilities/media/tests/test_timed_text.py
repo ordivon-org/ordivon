@@ -45,6 +45,26 @@ class TimedTextTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             export_webvtt(document)
 
+    def test_bool_values_are_not_integer_timestamps(self) -> None:
+        # Falsifier for Python's bool subclassing int: time ticks are exact integers.
+        for field in ("base", "start", "end"):
+            document = {
+                **DOCUMENT,
+                "timeBase": dict(DOCUMENT["timeBase"]),
+                "cues": [dict(cue) for cue in DOCUMENT["cues"]],
+            }
+            if field == "base":
+                document["timeBase"]["ticksPerSecond"] = True
+            elif field == "start":
+                document["cues"][0]["startTick"] = False
+            else:
+                document["cues"][0]["endTick"] = True
+            with self.subTest(field=field):
+                with self.assertRaises(ValueError):
+                    export_webvtt(document)
+                with self.assertRaises(ValueError):
+                    validate_timed_text_delivery(document, media_duration_seconds="3.000")
+
     def test_delivery_validation_binds_locked_cues_to_media_duration(self) -> None:
         result = validate_timed_text_delivery(DOCUMENT, media_duration_seconds="3.000")
         self.assertTrue(result["ok"])

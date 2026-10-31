@@ -152,6 +152,86 @@
         "Real PostgreSQL tests run with disposable DSN; an absent DSN does not authorize PostgreSQL acceptance.",
         "Legacy trial-history migration is not automatic retention: require a current consumer purpose, exact experiment search identity and independently attested writer-stop before source reads or PG writes; no demonstrated consumer implies no import. The old source remains outside importer deletion authority and requires independent post-cutover retirement."
       ]
+    },
+    {
+      "id": "V07",
+      "label": "TimedTextMechanicalDeliveryQualification",
+      "kind": "verifier",
+      "responsibility": "Independently qualify an exact authored TimedText track against selected media duration, cue lock state, allowed kinds and temporal ordering without claiming caption semantic completeness, auditory accessibility or user comprehension.",
+      "authority": "Media source-level timed-text delivery contract only; media file truth remains with the supplied ffprobe source and end-user outcome remains external",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/timed_text.py",
+        "src/ordivon_studio/cli.py",
+        "src/ordivon_studio/models.py",
+        "schemas/timed-text.schema.json",
+        "tests/test_timed_text.py"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "WCAG semantic compliance or audience acceptance",
+        "media source file identity, not provided by validator",
+        "timed-text format serialization contract V08"
+      ],
+      "acceptance": [
+        "For an exact rational media duration, invalid cue ranges, duplicate identities, out-of-order intervals, overruns, prohibited cue kinds or unlocked delivery cues never yield ok=true.",
+        "Python bool aliases for integer tick fields are rejected; native negative tests exercise this exact contract.",
+        "CLI qc-timed-text binds track and media file hashes and explicitly reports semanticCaptionCoverage=not-evaluated. These are source-level properties, not a claim of installed ffprobe/source media approval."
+      ],
+      "inputs": [
+        "TimedText JSON with ticksPerSecond and ordered cue IDs/ticks/kind/status/text",
+        "exact selected media duration as decimal/rational text and delivery policy"
+      ],
+      "outputs": [
+        "bounded mechanical delivery result with typed errors, lastCueEndTick/mediaDurationTicks and explicit semanticCaptionCoverage=not-evaluated"
+      ],
+      "behavioralContract": "Validate exact positive integer tick base and nonboolean integer cue boundaries, uniqueness and ordering, and enforce requested delivery policy under exact Fraction duration comparison; never infer WCAG completeness, video semantic correctness or installed render success from structural pass.",
+      "environment": [
+        "Python Media source model and JSON schema; external ffprobe/installed media environment remains separate"
+      ],
+      "effects": [
+        "Pure mechanical qualification computation; CLI may read specified files and emit JSON evidence, but validator itself cannot modify media or provider state"
+      ]
+    },
+    {
+      "id": "V08",
+      "label": "TimedTextInterchangeEncoding",
+      "kind": "transform",
+      "responsibility": "Project one validated structural TimedText cue representation to independently consumable standard WebVTT or SubRip (SRT) text tracks for the Media CLI; format encoding is replaceable without becoming timed-track delivery acceptance.",
+      "authority": "Media local format export only; external consumer and player rendering remain separate",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/timed_text.py",
+        "src/ordivon_studio/cli.py",
+        "tests/test_timed_text.py",
+        "schemas/timed-text.schema.json"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "V07 media-duration/delivery policy",
+        "external caption semantic correctness or player behavior",
+        "rendered file admission, immutability or public delivery"
+      ],
+      "acceptance": [
+        "With structurally qualified tick data, WebVTT serialization emits cue IDs, dot-millisecond timecodes and header, while SRT emits ordinal indices and comma-millisecond timecodes.",
+        "Duplicate cue IDs, nonpositive or noninteger tick bases, nonordered/invalid boundaries including bool aliases are rejected instead of serialized silently.",
+        "CLI timed-text command consumes exactly selected format and writes requested local output; no guarantee that a client player rendered it or that V07 delivery checks were performed."
+      ],
+      "inputs": [
+        "structurally validated TimedText source; chosen WebVTT/SRT format"
+      ],
+      "outputs": [
+        "WebVTT or SRT text body or precise structural rejection"
+      ],
+      "behavioralContract": "Reuse common cue parser but preserve interchange-specific header, identity, ordinal numbering and millisecond timebase rendering; output may be generated without V07 delivery acceptance and therefore MUST NOT imply delivery eligibility.",
+      "environment": [
+        "Python local Media CLI and declared TimedText JSON schema"
+      ],
+      "effects": [
+        "Pure text transformation; CLI optionally writes user-selected output file"
+      ]
     }
   ],
   "edges": [
@@ -178,6 +258,12 @@
       "to": "V05",
       "type": "EVIDENCE",
       "label": "selected output standing"
+    },
+    {
+      "from": "V07",
+      "to": "V04",
+      "type": "EVIDENCE",
+      "label": "scoped timed-text mechanical delivery checks contribute limited RenderQC evidence; semantic completeness not implied"
     }
   ],
   "slices": [
