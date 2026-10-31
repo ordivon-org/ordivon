@@ -18,14 +18,16 @@ from ordivon_composition.verification_obligation_r1 import (
 
 
 def _source_readset_fixture(*, complete_second: bool = False):
+    # Owner-neutral fixture: this unit test exercises the generic Composition
+    # bridge. Real Runtime paths/readsets are produced and tested by Runtime.
     scope = "git:repo:" + ("1" * 64)
     current = "a" * 40
-    first = scope + ":path:services/runtime/a.py"
-    second = scope + ":path:services/runtime/b.py"
+    first = scope + ":path:owner/a.py"
+    second = scope + ":path:owner/b.py"
     delta = {
         "kind": "ordivon.git-source-membership-delta",
         "truthRole": "exact-git-source-delta-no-proof-acceptance",
-        "queryPrefix": "services/runtime/",
+        "queryPrefix": "owner/",
         "sourceScopeRef": scope,
         "sourceCuts": {"previous": "b" * 40, "current": current},
         "authorityRefs": [first, second],
@@ -35,22 +37,22 @@ def _source_readset_fixture(*, complete_second: bool = False):
     }
     evidence = {
         "kind": "ordivon.source-readset-evidence",
-        "truthRole": "runtime-owner-source-readsets-not-proof-or-consumer-authority",
+        "truthRole": "test-owner-source-readsets-not-proof-or-consumer-authority",
         "sourceCut": current,
-        "scopePrefix": "services/runtime/",
+        "scopePrefix": "owner/",
         "items": [
             {
-                "id": "proof:runtime:a",
-                "sourcePaths": ["services/runtime/a.py"],
+                "id": "proof:test:a",
+                "sourcePaths": ["owner/a.py"],
                 "dependenciesComplete": False,
             },
             {
-                "id": "proof:runtime:b",
-                "sourcePaths": ["services/runtime/b.py"],
+                "id": "proof:test:b",
+                "sourcePaths": ["owner/b.py"],
                 "dependenciesComplete": complete_second,
             },
         ],
-        "dependencyQualification": "RUNTIME_MANIFEST_DECLARED_NOT_CLOSED",
+        "dependencyQualification": "TEST_OWNER_DECLARED_NOT_CLOSED",
         "proofReuseAdmissible": False,
     }
     return delta, evidence
@@ -64,8 +66,8 @@ def test_source_readset_impact_reuses_existing_three_valued_selector():
     )
     standing = {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]}
     assert standing == {
-        "proof:runtime:a": "RECHECK_REQUIRED",
-        "proof:runtime:b": "REUSE_CANDIDATE",
+        "proof:test:a": "RECHECK_REQUIRED",
+        "proof:test:b": "REUSE_CANDIDATE",
     }
     assert result["selection"]["unindexedChangeRefs"] == []
     assert result["proofReuseAdmissible"] is False
@@ -79,8 +81,8 @@ def test_source_readset_impact_preserves_incomplete_unaffected_dependency_as_unk
         source_readset_evidence=evidence,
     )
     standing = {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]}
-    assert standing["proof:runtime:a"] == "RECHECK_REQUIRED"
-    assert standing["proof:runtime:b"] == "UNKNOWN"
+    assert standing["proof:test:a"] == "RECHECK_REQUIRED"
+    assert standing["proof:test:b"] == "UNKNOWN"
 
 
 @pytest.mark.parametrize("mutation", ["sourcecut", "scope", "missing-path", "duplicate-path"])
@@ -89,13 +91,13 @@ def test_source_readset_impact_fails_closed_on_unqualified_bridge(mutation):
     if mutation == "sourcecut":
         evidence["sourceCut"] = "c" * 40
     elif mutation == "scope":
-        evidence["scopePrefix"] = "services/host/"
+        evidence["scopePrefix"] = "other/"
     elif mutation == "missing-path":
-        evidence["items"][0]["sourcePaths"] = ["services/runtime/missing.py"]
+        evidence["items"][0]["sourcePaths"] = ["owner/missing.py"]
     else:
         evidence["items"][0]["sourcePaths"] = [
-            "services/runtime/a.py",
-            "services/runtime/a.py",
+            "owner/a.py",
+            "owner/a.py",
         ]
     with pytest.raises(CircuitContractError):
         select_source_readset_impacts(
