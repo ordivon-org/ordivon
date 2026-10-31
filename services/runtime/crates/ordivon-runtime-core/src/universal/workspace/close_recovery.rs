@@ -30,55 +30,112 @@ fn installed_systemd_workspace_consumers(
     let mut matches = Vec::new();
     let mut observed_entries = 0_usize;
     let mut pending = Vec::new();
+    let mut canonical_roots = Vec::new();
     for root in roots {
         let metadata = match fs::symlink_metadata(root) {
             Ok(metadata) => metadata,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
-            Err(_) => return Err(external_unit_inspection_error("systemd unit root is unreadable")),
+            Err(_) => {
+                return Err(external_unit_inspection_error(
+                    "systemd unit root is unreadable",
+                ));
+            }
         };
         if !metadata.file_type().is_dir() {
-            return Err(external_unit_inspection_error("systemd unit root is not a regular directory"));
+            return Err(external_unit_inspection_error(
+                "systemd unit root is not a regular directory",
+            ));
         }
+        canonical_roots.push(fs::canonicalize(root).map_err(|_| {
+            external_unit_inspection_error("systemd unit root cannot be canonicalized")
+        })?);
+        canonical_roots.push(fs::canonicalize(root).map_err(|_| {
+            external_unit_inspection_error("systemd unit root cannot be canonicalized")
+        })?);
         pending.push(((*root).to_path_buf(), 0_usize));
     }
     while let Some((directory, depth)) = pending.pop() {
         if depth > MAX_DEPTH {
-            return Err(external_unit_inspection_error("unit directory depth exceeded limit"));
+            return Err(external_unit_inspection_error(
+                "unit directory depth exceeded limit",
+            ));
         }
-        let entries = fs::read_dir(&directory)
-            .map_err(|_| external_unit_inspection_error("could not enumerate systemd unit directory"))?;
+        let entries = fs::read_dir(&directory).map_err(|_| {
+            external_unit_inspection_error("could not enumerate systemd unit directory")
+        })?;
         for entry in entries {
             observed_entries += 1;
             if observed_entries > MAX_ENTRIES {
-                return Err(external_unit_inspection_error("systemd unit inventory exceeded bound"));
+                return Err(external_unit_inspection_error(
+                    "systemd unit inventory exceeded bound",
+                ));
             }
-            let entry = entry
-                .map_err(|_| external_unit_inspection_error("systemd unit inventory was unreadable"))?;
+            let entry = entry.map_err(|_| {
+                external_unit_inspection_error("systemd unit inventory was unreadable")
+            })?;
             let path = entry.path();
-            let file_type = entry
-                .file_type()
-                .map_err(|_| external_unit_inspection_error("systemd unit file type was unreadable"))?;
-            if file_type.is_symlink() {
-                continue;
-            }
+            let file_type = entry.file_type().map_err(|_| {
+                external_unit_inspection_error("systemd unit file type was unreadable")
+            })?;
             if file_type.is_dir() {
                 pending.push((path, depth + 1));
                 continue;
             }
-            if !file_type.is_file() {
+            if !file_type.is_file() && !file_type.is_symlink() {
                 continue;
             }
             let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
-            if ![".service", ".timer", ".socket", ".path", ".mount", ".automount", ".conf"]
-                .iter()
-                .any(|suffix| name.ends_with(suffix))
+            if ![
+                ".service",
+                ".timer",
+                ".socket",
+                ".path",
+                ".mount",
+                ".automount",
+                ".conf",
+            ]
+            .iter()
+            .any(|suffix| name.ends_with(suffix))
             {
                 continue;
             }
-            let metadata = fs::metadata(&path)
-                .map_err(|_| external_unit_inspection_error("systemd unit metadata is unreadable"))?;
+            // A systemctl-linked unit may point outside every scanned unit
+            // directory. Do not equate the link's identity with its content.
+            let instance_alias = name.contains(&format!("@{workspace_id}."));
+            if file_type.is_symlink() {
+                let resolved = fs::canonicalize(&path).map_err(|_| {
+                    external_unit_inspection_error("systemd unit symlink target is not inspectable")
+                })?;
+                if resolved == Path::new("/dev/null") {
+                    continue; // systemd masked unit: cannot be activated
+                }
+                if resolved.starts_with(Path::new(&prefix)) {
+                    matches.push(path.display().to_string());
+                    continue;
+                }
+                if canonical_roots
+                    .iter()
+                    .any(|root| resolved.starts_with(root))
+                    && !instance_alias
+                {
+                    // The same ordinary unit file is independently enumerated
+                    // in a scanned root; only a named template instance needs
+                    // this alias inspected for its %i expansion.
+                    continue;
+                }
+            }
+            let metadata = fs::metadata(&path).map_err(|_| {
+                external_unit_inspection_error("systemd unit metadata is unreadable")
+            })?;
+            if !metadata.is_file() {
+                return Err(external_unit_inspection_error(
+                    "systemd unit alias is not a regular file",
+                ));
+            }
             if metadata.len() > MAX_UNIT_BYTES {
-                return Err(external_unit_inspection_error("systemd unit file exceeds inspection bound"));
+                return Err(external_unit_inspection_error(
+                    "systemd unit file exceeds inspection bound",
+                ));
             }
             let content = fs::read_to_string(&path)
                 .map_err(|_| external_unit_inspection_error("systemd unit bytes are unreadable"))?;
@@ -87,12 +144,17 @@ fn installed_systemd_workspace_consumers(
                 if line.is_empty() || line.starts_with('#') || line.starts_with(';') {
                     return false;
                 }
+                if instance_alias && line.contains("/var/lib/ordivon/runtime/workspaces/%i") {
+                    // For installed agent@ws-id.service, systemd expands %i
+                    // to ws-id; a literal-only source search misses it.
+                    return true;
+                }
                 let mut suffix = line;
                 while let Some(offset) = suffix.find(&prefix) {
                     let tail = &suffix[offset + prefix.len()..];
-                    if tail.chars().next().is_none_or(|next|
+                    if tail.chars().next().is_none_or(|next| {
                         !next.is_ascii_alphanumeric() && next != '.' && next != '_' && next != '-'
-                    ) {
+                    }) {
                         return true;
                     }
                     suffix = tail;
@@ -130,12 +192,14 @@ fn ensure_no_installed_systemd_consumer(
     }
     Err(UniversalExecError::new(
         UniversalExecErrorCode::WorkspaceStateMismatch,
-        format!("installed systemd unit still consumes Workspace: {}", matches.join(", ")),
+        format!(
+            "installed systemd unit still consumes Workspace: {}",
+            matches.join(", ")
+        ),
         Some("workspaceId"),
         true,
     ))
 }
-
 
 pub(crate) fn remove_git_workspace(
     config: &UniversalExecutorConfig,
@@ -320,8 +384,7 @@ pub(crate) fn remove_git_workspace(
             // commit for the normal diff/digest path. Do not disguise this as
             // a verified clean state or manufacture a zero-OID rescue ref.
             let unborn_head = registered_workspace_head(&record)?.is_some_and(|head| {
-                (head.len() == 40 || head.len() == 64)
-                    && head.bytes().all(|byte| byte == b'0')
+                (head.len() == 40 || head.len() == 64) && head.bytes().all(|byte| byte == b'0')
             });
             if !unborn_head {
                 return Err(error);
@@ -382,10 +445,7 @@ pub(crate) fn remove_git_workspace(
         }
     }
 
-    require_recent_workspace_consumer_release(
-        record.created_unix_ms,
-        request.consumer_released,
-    )?;
+    require_recent_workspace_consumer_release(record.created_unix_ms, request.consumer_released)?;
 
     let final_head = git_output(&recorded, ["rev-parse", "HEAD"])?
         .trim()
@@ -578,8 +638,9 @@ fn remove_registered_workspace_with_broken_metadata(
     let git_marker = target.join(".git");
     match fs::symlink_metadata(&git_marker) {
         Ok(metadata) if metadata.is_file() || metadata.file_type().is_symlink() => {
-            fs::remove_file(&git_marker)
-                .map_err(|error| io_error(&git_marker, "remove invalid Workspace .git marker", error))?;
+            fs::remove_file(&git_marker).map_err(|error| {
+                io_error(&git_marker, "remove invalid Workspace .git marker", error)
+            })?;
         }
         Ok(_) => {
             return Err(UniversalExecError::new(
@@ -748,7 +809,6 @@ fn remove_git_worktree_from_workspace(
     }
 }
 
-
 #[cfg(test)]
 mod rescue_ref_atomicity_tests {
     use super::*;
@@ -786,7 +846,16 @@ mod rescue_ref_atomicity_tests {
                     .as_nanos()
             ));
             std::fs::create_dir(&path).expect("create test repository");
-            git(&path, &["init", "-q", "-b", "main", &format!("--object-format={algorithm}")]);
+            git(
+                &path,
+                &[
+                    "init",
+                    "-q",
+                    "-b",
+                    "main",
+                    &format!("--object-format={algorithm}"),
+                ],
+            );
             git(&path, &["config", "user.name", "Ordivon Test"]);
             git(&path, &["config", "user.email", "test@example.invalid"]);
             std::fs::write(path.join("state"), b"first").expect("first source");
@@ -803,7 +872,10 @@ mod rescue_ref_atomicity_tests {
             assert!(first.status.success());
             let collision = try_create_rescue_ref_if_absent(&path, reference, &second_head)
                 .expect("atomic Git transaction");
-            assert!(!collision.status.success(), "an occupied slot must never be replaced");
+            assert!(
+                !collision.status.success(),
+                "an occupied slot must never be replaced"
+            );
             assert_eq!(git(&path, &["rev-parse", reference]), first_head);
             ensure_rescue_ref(&path, "one-slot", &first_head).expect("same HEAD is idempotent");
             let mismatch = ensure_rescue_ref(&path, "one-slot", &second_head)
@@ -818,6 +890,48 @@ mod rescue_ref_atomicity_tests {
 #[cfg(all(test, target_os = "linux"))]
 mod installed_unit_consumer_tests {
     use super::*;
+
+    #[test]
+    fn linked_systemd_unit_outside_scanned_roots_is_not_safe_to_ignore() {
+        let temp = TestUnitRoot::new();
+        let root = temp.path().join("units");
+        let external = temp.path().join("external");
+        fs::create_dir_all(&root).unwrap();
+        fs::create_dir_all(&external).unwrap();
+        let source = external.join("remote.service");
+        fs::write(
+            &source,
+            "[Service]\nWorkingDirectory=/var/lib/ordivon/runtime/workspaces/ws-linked\n",
+        )
+        .unwrap();
+        let link = root.join("remote.service");
+        symlink(&source, &link).unwrap();
+        let result = installed_systemd_workspace_consumers("ws-linked", &[&root]);
+        assert!(
+            result.is_err() || !result.unwrap().is_empty(),
+            "CANDIDATE_FALSE_GREEN: systemctl link supports an external service file"
+        );
+    }
+
+    #[test]
+    fn instantiated_systemd_unit_specifier_is_not_safe_to_treat_as_absent() {
+        let temp = TestUnitRoot::new();
+        let root = temp.path().join("units");
+        let wanted = root.join("multi-user.target.wants");
+        fs::create_dir_all(&wanted).unwrap();
+        let source = root.join("agent@.service");
+        fs::write(
+            &source,
+            "[Service]\nWorkingDirectory=/var/lib/ordivon/runtime/workspaces/%i\n",
+        )
+        .unwrap();
+        symlink(&source, wanted.join("agent@ws-instance.service")).unwrap();
+        let result = installed_systemd_workspace_consumers("ws-instance", &[&root]);
+        assert!(
+            result.is_err() || !result.unwrap().is_empty(),
+            "CANDIDATE_FALSE_GREEN: systemd template %i can resolve to the live workspace"
+        );
+    }
     use std::os::unix::fs::symlink;
     struct TestUnitRoot(std::path::PathBuf);
 
@@ -856,14 +970,18 @@ mod installed_unit_consumer_tests {
             &service,
             "# WorkingDirectory=/var/lib/ordivon/runtime/workspaces/ws-target\n\
              WorkingDirectory=/var/lib/ordivon/runtime/workspaces/ws-target-copy\n",
-        ).unwrap();
-        assert!(installed_systemd_workspace_consumers("ws-target", &[&root])
-            .unwrap()
-            .is_empty());
+        )
+        .unwrap();
+        assert!(
+            installed_systemd_workspace_consumers("ws-target", &[&root])
+                .unwrap()
+                .is_empty()
+        );
         fs::write(
             &service,
             "WorkingDirectory=/var/lib/ordivon/runtime/workspaces/ws-target\n",
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(
             installed_systemd_workspace_consumers("ws-target", &[&root]).unwrap(),
             vec![service.display().to_string()]
@@ -886,16 +1004,19 @@ mod installed_unit_consumer_tests {
         fs::write(
             &file,
             "ExecStartPre=/usr/bin/test -d /var/lib/ordivon/runtime/workspaces/ws-root/.git\n",
-        ).unwrap();
+        )
+        .unwrap();
         let symlink_path = root.join("old.service");
         symlink(&file, &symlink_path).unwrap();
         assert_eq!(
             installed_systemd_workspace_consumers("ws-root", &[&root]).unwrap(),
             vec![file.display().to_string()]
         );
-        assert!(installed_systemd_workspace_consumers("ws-other", &[&root])
-            .unwrap()
-            .is_empty());
+        assert!(
+            installed_systemd_workspace_consumers("ws-other", &[&root])
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
