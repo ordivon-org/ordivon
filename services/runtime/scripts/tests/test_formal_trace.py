@@ -687,6 +687,35 @@ class FormalTraceContractTests(unittest.TestCase):
         errors = self.module.validate(mutated, invariants)
         self.assertTrue(any("lacks declared native proving test" in e for e in errors), errors)
 
+    def test_runtime_source_readset_evidence_is_typed_incomplete_and_source_bound(self):
+        trace, invariants = manifests()
+        source_cut = "a" * 40
+        evidence = self.module.project_proving_test_source_readsets(
+            trace,
+            invariants,
+            source_cut=source_cut,
+        )
+        self.assertEqual(evidence["kind"], "ordivon.source-readset-evidence")
+        self.assertEqual(evidence["sourceCut"], source_cut)
+        self.assertEqual(evidence["scopePrefix"], "services/runtime/")
+        self.assertFalse(evidence["proofReuseAdmissible"])
+        self.assertEqual(
+            evidence["dependencyQualification"],
+            "RUNTIME_MANIFEST_DECLARED_NOT_CLOSED",
+        )
+        self.assertEqual(len(evidence["items"]), len(trace["provingTests"]))
+        for item in evidence["items"]:
+            self.assertTrue(item["id"].startswith("proof:runtime:"))
+            self.assertFalse(item["dependenciesComplete"])
+            self.assertEqual(item["sourcePaths"], sorted(set(item["sourcePaths"])))
+            self.assertTrue(
+                all(path.startswith("services/runtime/") for path in item["sourcePaths"])
+            )
+        with self.assertRaisesRegex(ValueError, "exact Git object ID"):
+            self.module.project_proving_test_source_readsets(
+                trace, invariants, source_cut="HEAD"
+            )
+
     def test_runtime_formal_source_impact_is_selective_for_exact_test_file(self):
         trace, invariants = manifests()
         changed = {"services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs"}

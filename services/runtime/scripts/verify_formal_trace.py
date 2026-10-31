@@ -635,28 +635,22 @@ def _qualify_current_compiler_readset(source_head: str) -> dict[str, Any]:
     return receipt
 
 
-def project_proving_test_source_impact(
+def project_proving_test_source_readsets(
     trace: dict[str, Any],
     invariant_manifest: dict[str, Any],
-    changed_paths: set[str],
     compiler_inputs: set[str] | None = None,
+    *,
+    source_cut: str | None = None,
 ) -> dict[str, Any]:
-    """Rebuild one Runtime-owned Git-source read-set projection, never proof reuse.
+    """Project Runtime-owned source readsets without making an impact decision.
 
-    The source read-sets are *declared* by the existing trace manifest, not a
-    compiler-discovered consumer closure. A changed unindexed Runtime source is
-    UNKNOWN, rather than permission to reuse a test or mechanized proof.
+    This is the natural-owner evidence half of incremental verification. It
+    names positive source dependencies consumed by each existing proving test.
+    The readsets are deliberately NOT claimed complete: compiler dep-info can
+    add positive edges, but dynamic/build/environment closure remains unknown.
     """
+
     prefix = "services/runtime/"
-    if not isinstance(changed_paths, set) or any(
-        not isinstance(path, str)
-        or not path
-        or path.startswith("/")
-        or "\\" in path
-        or any(part in {"", ".", ".."} for part in path.split("/"))
-        for path in changed_paths
-    ):
-        raise ValueError("impact changed paths must be exact normalized Git paths")
 
     def owned(relative: str) -> str:
         if (
@@ -691,9 +685,11 @@ def project_proving_test_source_impact(
                     common.add(owned(ref.split("::", 1)[0]))
 
     carriers = {
-        item["id"]: owned(item["path"]) for key in ("contractSeams", "supportingContracts") for item in trace[key]
+        item["id"]: owned(item["path"])
+        for key in ("contractSeams", "supportingContracts")
+        for item in trace[key]
     }
-    readsets = {}
+    readsets: dict[str, set[str]] = {}
     for witness in trace["provingTests"]:
         files = set(common)
         files.add(owned(witness["path"]))
@@ -702,30 +698,90 @@ def project_proving_test_source_impact(
 
     if compiler_inputs is not None:
         if not isinstance(compiler_inputs, set) or any(
-            not isinstance(path, str) or not path.startswith(prefix) or path.startswith("/") or ".." in path.split("/")
+            not isinstance(path, str)
+            or not path.startswith(prefix)
+            or path.startswith("/")
+            or ".." in path.split("/")
             for path in compiler_inputs
         ):
             raise ValueError("compiler inputs must be normalized Runtime Git source paths")
-        # One common Cargo libtest binary hosts all five named Rust witnesses.
-        # This is compiler evidence of *positive* read edges only. Unknown
-        # negative/dynamic dependencies still cannot authorize proof reuse.
+        # One common Cargo libtest binary hosts all named Rust witnesses.
+        # This establishes additional positive source edges only.
         for files in readsets.values():
             files.update(compiler_inputs)
-    indexed = set().union(common, *readsets.values())
+
+    evidence: dict[str, Any] = {
+        "kind": "ordivon.source-readset-evidence",
+        "truthRole": "runtime-owner-source-readsets-not-proof-or-consumer-authority",
+        "scopePrefix": prefix,
+        "items": [
+            {
+                "id": "proof:runtime:" + witness_id,
+                "sourcePaths": sorted(readset),
+                "dependenciesComplete": False,
+            }
+            for witness_id, readset in sorted(readsets.items())
+        ],
+        "dependencyQualification": (
+            "DECLARED_PLUS_CARGO_POSITIVE_EDGES_NOT_CLOSED"
+            if compiler_inputs is not None
+            else "RUNTIME_MANIFEST_DECLARED_NOT_CLOSED"
+        ),
+        "proofReuseAdmissible": False,
+        "nonClaims": [
+            "Readset evidence names positive Runtime source dependencies only.",
+            "dependenciesComplete=false because Rust/build/dynamic/environment closure is not proved.",
+            "This evidence does not establish verifier PASS, implementation refinement, installed currentness, or domain acceptance.",
+        ],
+    }
+    if source_cut is not None:
+        if not isinstance(source_cut, str) or len(source_cut) not in (40, 64):
+            raise ValueError("source readset evidence needs an exact Git object ID")
+        if any(ch not in "0123456789abcdef" for ch in source_cut):
+            raise ValueError("source readset evidence needs a lowercase hexadecimal Git object ID")
+        evidence["sourceCut"] = source_cut
+    return evidence
+
+
+def project_proving_test_source_impact(
+    trace: dict[str, Any],
+    invariant_manifest: dict[str, Any],
+    changed_paths: set[str],
+    compiler_inputs: set[str] | None = None,
+) -> dict[str, Any]:
+    """Rebuild one Runtime-owned Git-source impact projection, never proof reuse."""
+
+    prefix = "services/runtime/"
+    if not isinstance(changed_paths, set) or any(
+        not isinstance(path, str)
+        or not path
+        or path.startswith("/")
+        or "\\" in path
+        or any(part in {"", ".", ".."} for part in path.split("/"))
+        for path in changed_paths
+    ):
+        raise ValueError("impact changed paths must be exact normalized Git paths")
+
+    readset_evidence = project_proving_test_source_readsets(
+        trace, invariant_manifest, compiler_inputs
+    )
+    readsets = {
+        item["id"].removeprefix("proof:runtime:"): set(item["sourcePaths"])
+        for item in readset_evidence["items"]
+    }
+    indexed = set().union(*(readsets.values() or [set()]))
     runtime_changed = {path for path in changed_paths if path.startswith(prefix)}
     unindexed = runtime_changed - indexed
     # Root build/toolchain inputs can invalidate the interpretation of every
     # Runtime source witness even when no Runtime-local path has changed.
-    # This is a deliberately bounded cross-cutting assumption guard, NOT a
-    # claim that every external dependency has been discovered.
     crosscutting_assumption_changes = {
-        path for path in changed_paths if path in _ROOT_BUILD_INPUTS or path.startswith(".cargo/")
+        path
+        for path in changed_paths
+        if path in _ROOT_BUILD_INPUTS or path.startswith(".cargo/")
     }
     rows = []
     for witness_id, readset in sorted(readsets.items()):
         hits = sorted(readset & changed_paths)
-        # Shared Rust callees are not proved closed by the manifest, and
-        # global build inputs can invalidate every witness without local diffs.
         standing = (
             "RECHECK_REQUIRED"
             if hits
@@ -745,13 +801,17 @@ def project_proving_test_source_impact(
         "kind": "ordivon.runtime-formal-source-impact",
         "truthRole": "non-authoritative-exact-git-source-projection",
         "standingByWitness": rows,
+        "sourceReadsetEvidence": readset_evidence,
         "unindexedRuntimeChanges": sorted(unindexed),
-        "compilerInputQualification": "ONE_CARGO_LIBTEST_POSITIVE_SOURCE_EDGES"
-        if compiler_inputs is not None
-        else "NOT_OBSERVED",
+        "compilerInputQualification": (
+            "ONE_CARGO_LIBTEST_POSITIVE_SOURCE_EDGES"
+            if compiler_inputs is not None
+            else "NOT_OBSERVED"
+        ),
         "crosscuttingAssumptionChanges": sorted(crosscutting_assumption_changes),
         "changedPaths": sorted(changed_paths),
         "scope": "Runtime tracked Git source plus declared root build/toolchain assumption guards ONLY; no installed/configured/physical/runtime consumer claims",
+        "proofReuseAdmissible": False,
         "nonClaims": [
             "REUSE_CANDIDATE is not proof PASS, implementation refinement, or installed acceptance.",
             "Declared source readsets are not demonstrated complete Rust build/runtime dependency closures.",
@@ -1164,11 +1224,18 @@ def main(argv: list[str] | None = None) -> int:
         try:
             delta = _git_source_changes(args.impact_base, args.impact_head)
             compiler = _qualify_current_compiler_readset(args.impact_head) if args.impact_compiler else None
+            compiler_inputs = set(compiler["sourcePaths"]) if compiler else None
             projection = project_proving_test_source_impact(
                 trace,
                 invariant_manifest,
                 delta,
-                compiler_inputs=set(compiler["sourcePaths"]) if compiler else None,
+                compiler_inputs=compiler_inputs,
+            )
+            projection["sourceReadsetEvidence"] = project_proving_test_source_readsets(
+                trace,
+                invariant_manifest,
+                compiler_inputs,
+                source_cut=args.impact_head,
             )
             if compiler:
                 projection["compilerEvidence"] = compiler

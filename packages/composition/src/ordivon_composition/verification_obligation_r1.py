@@ -18,6 +18,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote_from_bytes
 
 from .cognitive_circuit_r1 import (
     CircuitContractError,
@@ -470,6 +471,118 @@ def _cyclic_proof_members(rows: list[dict[str, Any]]) -> set[str]:
         if len(component) > 1 or root in graph[root]:
             cyclic.update(component)
     return cyclic
+
+
+def select_source_readset_impacts(
+    *,
+    git_source_delta: dict[str, Any],
+    source_readset_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    """Compose natural-owner source readsets with the existing impact selector.
+
+    Git owns immutable path/member truth. The source owner supplies positive
+    read edges. Composition only maps those paths to exact Git authority refs
+    and reuses select_impacted_obligations; it does not create a second impact
+    algorithm or promote a readset candidate into proof acceptance.
+    """
+
+    if (
+        not isinstance(git_source_delta, dict)
+        or git_source_delta.get("kind") != "ordivon.git-source-membership-delta"
+        or git_source_delta.get("gitSourceQueryComplete") is not True
+        or git_source_delta.get("proofReuseAdmissible") is not False
+    ):
+        raise CircuitContractError("source-readset impact needs qualified Git source delta")
+    cuts = git_source_delta.get("sourceCuts")
+    if (
+        not isinstance(cuts, dict)
+        or not isinstance(cuts.get("current"), str)
+        or not isinstance(git_source_delta.get("sourceScopeRef"), str)
+        or not isinstance(git_source_delta.get("queryPrefix"), str)
+        or not isinstance(git_source_delta.get("authorityRefs"), list)
+        or not isinstance(git_source_delta.get("changedRefs"), list)
+    ):
+        raise CircuitContractError("Git source delta lacks exact authority projection")
+
+    evidence = source_readset_evidence
+    if (
+        not isinstance(evidence, dict)
+        or evidence.get("kind") != "ordivon.source-readset-evidence"
+        or evidence.get("proofReuseAdmissible") is not False
+        or evidence.get("sourceCut") != cuts["current"]
+        or evidence.get("scopePrefix") != git_source_delta["queryPrefix"]
+        or not isinstance(evidence.get("items"), list)
+        or not isinstance(evidence.get("dependencyQualification"), str)
+    ):
+        raise CircuitContractError("source readset evidence must bind the exact current Git scope")
+
+    authority = set(git_source_delta["authorityRefs"])
+    obligations: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for item in evidence["items"]:
+        if (
+            not isinstance(item, dict)
+            or set(item) != {"id", "sourcePaths", "dependenciesComplete"}
+            or not isinstance(item["id"], str)
+            or ":" not in item["id"]
+            or not isinstance(item["sourcePaths"], list)
+            or type(item["dependenciesComplete"]) is not bool
+        ):
+            raise CircuitContractError("source readset item has invalid contract")
+        if item["id"] in seen_ids:
+            raise CircuitContractError("source readset evidence has duplicate proof identity")
+        seen_ids.add(item["id"])
+        paths = item["sourcePaths"]
+        if len(paths) != len(set(paths)):
+            raise CircuitContractError("source readset has duplicate source paths")
+        refs: list[str] = []
+        for path in paths:
+            if (
+                not isinstance(path, str)
+                or not path.startswith(evidence["scopePrefix"])
+                or path.startswith("/")
+                or "\\" in path
+                or any(part in {"", ".", ".."} for part in path.split("/"))
+            ):
+                raise CircuitContractError("source readset path escapes qualified Git scope")
+            encoded = quote_from_bytes(path.encode("utf-8", "surrogateescape"), safe="/")
+            ref = f"{git_source_delta['sourceScopeRef']}:path:{encoded}"
+            if ref not in authority:
+                raise CircuitContractError(
+                    "source readset path is absent from exact Git authority refs"
+                )
+            refs.append(ref)
+        obligations.append(
+            {
+                "id": item["id"],
+                "dependsOn": sorted(refs),
+                "dependenciesComplete": item["dependenciesComplete"],
+            }
+        )
+
+    selection = select_impacted_obligations(
+        authority_refs=git_source_delta["authorityRefs"],
+        obligations=obligations,
+        changed_refs=git_source_delta["changedRefs"],
+    )
+    result = {
+        "kind": "ordivon.task-local-source-readset-impact",
+        "truthRole": "rebuildable-non-authoritative-owner-readset-selection",
+        "sourceCut": cuts["current"],
+        "sourceScopeRef": git_source_delta["sourceScopeRef"],
+        "queryPrefix": git_source_delta["queryPrefix"],
+        "readsetDependencyQualification": evidence["dependencyQualification"],
+        "selection": selection,
+        "proofReuseAdmissible": False,
+        "proofAcceptanceEstablished": False,
+        "nonClaims": [
+            "Owner readset evidence supplies positive dependency edges, not proof of complete dynamic/build/environment closure.",
+            "REUSE_CANDIDATE remains a scheduling candidate and is never verifier PASS.",
+            "No implementation refinement, installed currentness, effect authority, or domain acceptance is established.",
+        ],
+    }
+    result["projectionDigest"] = canonical_digest(result)
+    return result
 
 
 def classify_observed_environment_delta(
@@ -995,6 +1108,123 @@ def select_manifest_gate_impacts(
     return projection
 
 
+def _requalify_git_source_delta(repo: Path, delta: dict[str, Any]) -> dict[str, Any]:
+    """Recompute one caller-supplied Git delta through the native source owner."""
+
+    if not isinstance(delta, dict) or delta.get("kind") != "ordivon.git-source-membership-delta":
+        raise CircuitContractError("select-impact needs an exact Git source delta")
+    if (
+        delta.get("gitSourceQueryComplete") is not True
+        or delta.get("proofReuseAdmissible") is not False
+    ):
+        raise CircuitContractError("select-impact cannot promote unqualified Git source evidence")
+    try:
+        cuts = delta.get("sourceCuts")
+        if not isinstance(cuts, dict):
+            raise ValueError("sourceCuts must specify immutable Git commits")
+        owner_tool = Path(__file__).resolve().parents[4] / "tools/repo/source_history_legos.py"
+        if not owner_tool.is_file() or owner_tool.is_symlink():
+            raise ValueError("Git owner query entrypoint unavailable")
+
+        def require_qualified_owner_tool() -> None:
+            # Exact provenance covers the finite direct local producer readset.
+            for relative in (
+                "tools/repo/source_history_legos.py",
+                "tools/repo/affected_owners.py",
+            ):
+                producer = owner_tool.parents[2] / relative
+                tree_entry = subprocess.run(
+                    [
+                        "git",
+                        "--no-replace-objects",
+                        "-C",
+                        str(owner_tool.parents[2]),
+                        "ls-tree",
+                        "-z",
+                        "--full-tree",
+                        "HEAD",
+                        "--",
+                        relative,
+                    ],
+                    capture_output=True,
+                    check=False,
+                )
+                expected = (
+                    rb"(100644|100755) blob [0-9a-f]{40,64}\t"
+                    + re.escape(relative.encode("utf-8"))
+                    + rb"\x00"
+                )
+                if tree_entry.returncode != 0 or re.fullmatch(expected, tree_entry.stdout) is None:
+                    raise CircuitContractError(
+                        "native Git query producer Git tree mode is not regular: " + relative
+                    )
+                committed = subprocess.run(
+                    [
+                        "git",
+                        "--no-replace-objects",
+                        "-C",
+                        str(owner_tool.parents[2]),
+                        "show",
+                        "HEAD:" + relative,
+                    ],
+                    capture_output=True,
+                    check=False,
+                )
+                if (
+                    committed.returncode != 0
+                    or not producer.is_file()
+                    or producer.is_symlink()
+                    or committed.stdout != producer.read_bytes()
+                ):
+                    raise CircuitContractError(
+                        "native Git query producer differs from its Git SourceCut: " + relative
+                    )
+
+        require_qualified_owner_tool()
+        native_query = subprocess.run(
+            [
+                sys.executable,
+                str(owner_tool),
+                "--repo",
+                str(repo),
+                "--left",
+                cuts.get("previous"),
+                "--right",
+                cuts.get("current"),
+                "--impact-prefix",
+                delta.get("queryPrefix"),
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        require_qualified_owner_tool()
+        if native_query.returncode != 0:
+            raise ValueError("native Git source query failed")
+        qualified = json.loads(native_query.stdout)
+    except CircuitContractError:
+        raise
+    except (ValueError, OSError, TypeError) as exc:
+        raise CircuitContractError(
+            "select-impact requires independently recomputable native Git scope"
+        ) from exc
+    if qualified != delta:
+        raise CircuitContractError(
+            "select-impact Git report differs from exact native source delta"
+        )
+    roots, changes = qualified["authorityRefs"], qualified["changedRefs"]
+    if (
+        not isinstance(roots, list)
+        or not isinstance(changes, list)
+        or any(not isinstance(ref, str) for ref in roots + changes)
+        or not set(changes).issubset(set(roots))
+    ):
+        raise CircuitContractError(
+            "Git impact changed refs must belong to same scoped authority set"
+        )
+    return qualified
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
@@ -1018,6 +1248,11 @@ def _parser() -> argparse.ArgumentParser:
     # against the exact immutable source cuts before using it for scheduling.
     impact_parser.add_argument("--repo", type=Path, required=True)
     impact_parser.add_argument("--unknown-refs", type=Path)
+
+    readset_parser = sub.add_parser("impact-readsets")
+    readset_parser.add_argument("git_source_delta", type=Path)
+    readset_parser.add_argument("source_readset_evidence", type=Path)
+    readset_parser.add_argument("--repo", type=Path, required=True)
 
     manifest_parser = sub.add_parser("impact-manifests")
     manifest_parser.add_argument("previous_manifest", type=Path)
@@ -1124,157 +1359,21 @@ def main() -> int:
                 "proofReuseAdmissible": False,
             }
         elif args.command == "select-impact":
-            delta = _load_json(args.git_source_delta)
-            # The JSON is caller-supplied, not authenticated proof evidence.
-            # Retain both module contracts: source-only owner projection and
-            # Composition's non-authoritative task-local selection.
-            if (
-                not isinstance(delta, dict)
-                or delta.get("kind") != "ordivon.git-source-membership-delta"
-            ):
-                raise CircuitContractError("select-impact needs an exact Git source delta")
-            if (
-                delta.get("gitSourceQueryComplete") is not True
-                or delta.get("proofReuseAdmissible") is not False
-            ):
-                raise CircuitContractError(
-                    "select-impact cannot promote unqualified Git source evidence"
-                )
-            # Consume the native Git owner's existing query CLI. Composition
-            # is a separate Python package: the repository tools package is
-            # not guaranteed to be importable from its project-only sys.path.
-            # If this checkout-bound executable is unavailable, fail closed.
-            try:
-                cuts = delta.get("sourceCuts")
-                if not isinstance(cuts, dict):
-                    raise ValueError("sourceCuts must specify immutable Git commits")
-                owner_tool = (
-                    Path(__file__).resolve().parents[4] / "tools/repo/source_history_legos.py"
-                )
-                if not owner_tool.is_file() or owner_tool.is_symlink():
-                    raise ValueError("Git owner query entrypoint unavailable")
-
-                def require_qualified_owner_tool() -> None:
-                    # This process asks the existing Git Owner query for exact
-                    # evidence. Do not execute a mutable checkout implementation
-                    # while presenting that answer as source-qualified.
-                    # Native source-history directly imports affected_owners.
-                    # Exact byte provenance must include both actually executed
-                    # local Python producers, not only the entrypoint script.
-                    # This is finite SOURCE qualification, not a dynamic import
-                    # closure or a proof of installed Python interpreter bytes.
-                    for relative in (
-                        "tools/repo/source_history_legos.py",
-                        "tools/repo/affected_owners.py",
-                    ):
-                        producer = owner_tool.parents[2] / relative
-                        tree_entry = subprocess.run(
-                            [
-                                "git",
-                                "--no-replace-objects",
-                                "-C",
-                                str(owner_tool.parents[2]),
-                                "ls-tree",
-                                "-z",
-                                "--full-tree",
-                                "HEAD",
-                                "--",
-                                relative,
-                            ],
-                            capture_output=True,
-                            check=False,
-                        )
-                        expected = (
-                            rb"(100644|100755) blob [0-9a-f]{40,64}\t"
-                            + re.escape(relative.encode("utf-8"))
-                            + rb"\x00"
-                        )
-                        if (
-                            tree_entry.returncode != 0
-                            or re.fullmatch(expected, tree_entry.stdout) is None
-                        ):
-                            raise CircuitContractError(
-                                "native Git query producer Git tree mode is not regular: "
-                                + relative
-                            )
-                        committed = subprocess.run(
-                            [
-                                "git",
-                                "--no-replace-objects",
-                                "-C",
-                                str(owner_tool.parents[2]),
-                                "show",
-                                "HEAD:" + relative,
-                            ],
-                            capture_output=True,
-                            check=False,
-                        )
-                        if (
-                            committed.returncode != 0
-                            or not producer.is_file()
-                            or producer.is_symlink()
-                            or committed.stdout != producer.read_bytes()
-                        ):
-                            raise CircuitContractError(
-                                "native Git query producer differs from its Git SourceCut: "
-                                + relative
-                            )
-
-                require_qualified_owner_tool()
-                native_query = subprocess.run(
-                    [
-                        sys.executable,
-                        str(owner_tool),
-                        "--repo",
-                        str(args.repo),
-                        "--left",
-                        cuts.get("previous"),
-                        "--right",
-                        cuts.get("current"),
-                        "--impact-prefix",
-                        delta.get("queryPrefix"),
-                    ],
-                    text=True,
-                    capture_output=True,
-                    check=False,
-                )
-                require_qualified_owner_tool()
-                if native_query.returncode != 0:
-                    raise ValueError("native Git source query failed")
-                qualified = json.loads(native_query.stdout)
-            except CircuitContractError:
-                raise
-            except (ValueError, OSError, TypeError) as exc:
-                raise CircuitContractError(
-                    "select-impact requires independently recomputable native Git scope"
-                ) from exc
-            if qualified != delta:
-                raise CircuitContractError(
-                    "select-impact Git report differs from exact native source delta"
-                )
-            roots, changes = qualified["authorityRefs"], qualified["changedRefs"]
-            if (
-                not isinstance(roots, list)
-                or not isinstance(changes, list)
-                or any(not isinstance(ref, str) for ref in roots + changes)
-                or not set(changes).issubset(set(roots))
-            ):
-                raise CircuitContractError(
-                    "Git impact changed refs must belong to same scoped authority set"
-                )
+            qualified = _requalify_git_source_delta(args.repo, _load_json(args.git_source_delta))
             obligations = _load_task_local_json_list(args.obligations)
             unknown = _load_task_local_json_list(args.unknown_refs) if args.unknown_refs else None
-            if not isinstance(obligations, list) or (
-                unknown is not None and not isinstance(unknown, list)
-            ):
-                raise CircuitContractError(
-                    "select-impact obligations and unknown refs must be arrays"
-                )
             result = select_impacted_obligations(
-                authority_refs=roots,
+                authority_refs=qualified["authorityRefs"],
                 obligations=obligations,
-                changed_refs=changes,
+                changed_refs=qualified["changedRefs"],
                 unknown_refs=unknown,
+            )
+        elif args.command == "impact-readsets":
+            qualified = _requalify_git_source_delta(args.repo, _load_json(args.git_source_delta))
+            evidence = _load_json(args.source_readset_evidence)
+            result = select_source_readset_impacts(
+                git_source_delta=qualified,
+                source_readset_evidence=evidence,
             )
         else:
             raise CircuitContractError(f"unknown verification command: {args.command}")
