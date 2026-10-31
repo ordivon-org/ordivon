@@ -93,6 +93,14 @@ def _model_execution_definition(grant: PluginGatewayExecutionGrant) -> AgentTool
                     "type": "integer",
                     "minimum": 1,
                     "maximum": grant.max_timeout_ms,
+                    # The upstream AgentToolCall canonical JSON port deliberately
+                    # rejects floating-point spellings, even values such as 1.0
+                    # that JSON Schema considers integers. Disclose this narrower
+                    # representation contract without claiming Schema equivalence.
+                    "description": (
+                        "Use a canonical JSON integer token (for example 1000, not 1000.0). "
+                        "Omit the property to use the caller-granted limit; null is invalid."
+                    ),
                 },
             },
             "required": ["executable", "args"],
