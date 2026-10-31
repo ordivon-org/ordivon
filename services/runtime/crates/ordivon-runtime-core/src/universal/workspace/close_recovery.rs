@@ -49,9 +49,6 @@ fn installed_systemd_workspace_consumers(
         canonical_roots.push(fs::canonicalize(root).map_err(|_| {
             external_unit_inspection_error("systemd unit root cannot be canonicalized")
         })?);
-        canonical_roots.push(fs::canonicalize(root).map_err(|_| {
-            external_unit_inspection_error("systemd unit root cannot be canonicalized")
-        })?);
         pending.push(((*root).to_path_buf(), 0_usize));
     }
     while let Some((directory, depth)) = pending.pop() {
@@ -103,9 +100,39 @@ fn installed_systemd_workspace_consumers(
             // directory. Do not equate the link's identity with its content.
             let instance_alias = name.contains(&format!("@{workspace_id}."));
             if file_type.is_symlink() {
-                let resolved = fs::canonicalize(&path).map_err(|_| {
-                    external_unit_inspection_error("systemd unit symlink target is not inspectable")
-                })?;
+                let resolved = match fs::canonicalize(&path) {
+                    Ok(resolved) => resolved,
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                        // An unrelated dangling link has no loadable source NOW;
+                        // it cannot block every Workspace close in the system.
+                        // An explicit Workspace link still preserves its root.
+                        let target = fs::read_link(&path).map_err(|_| {
+                            external_unit_inspection_error("systemd symlink cannot be read")
+                        })?;
+                        let next = if target.is_absolute() {
+                            target
+                        } else {
+                            path.parent().unwrap_or(&directory).join(target)
+                        };
+                        if next.to_string_lossy().contains(workspace_id) {
+                            matches.push(path.display().to_string());
+                            continue;
+                        }
+                        if let Ok(metadata) = fs::symlink_metadata(&next) {
+                            if metadata.file_type().is_symlink() {
+                                return Err(external_unit_inspection_error(
+                                    "unresolved nested systemd symlink requires inspection",
+                                ));
+                            }
+                        }
+                        continue; // missing unrelated unit: no current file content
+                    }
+                    Err(_) => {
+                        return Err(external_unit_inspection_error(
+                            "systemd unit symlink target is not inspectable",
+                        ));
+                    }
+                };
                 if resolved == Path::new("/dev/null") {
                     continue; // systemd masked unit: cannot be activated
                 }
@@ -268,9 +295,18 @@ pub(crate) fn remove_git_workspace(
         ensure_no_installed_systemd_consumer(
             &request.workspace_id,
             &[
+                Path::new("/etc/systemd/system.control"),
+                Path::new("/run/systemd/system.control"),
+                Path::new("/run/systemd/transient"),
+                Path::new("/run/systemd/generator.early"),
                 Path::new("/etc/systemd/system"),
+                Path::new("/etc/systemd/system.attached"),
                 Path::new("/run/systemd/system"),
+                Path::new("/run/systemd/system.attached"),
+                Path::new("/run/systemd/generator"),
+                Path::new("/usr/local/lib/systemd/system"),
                 Path::new("/usr/lib/systemd/system"),
+                Path::new("/run/systemd/generator.late"),
             ],
         )?;
     }
@@ -1016,6 +1052,30 @@ mod installed_unit_consumer_tests {
             installed_systemd_workspace_consumers("ws-other", &[&root])
                 .unwrap()
                 .is_empty()
+        );
+    }
+
+    #[test]
+    fn unrelated_broken_unit_link_must_not_block_every_workspace_close() {
+        // A missing unrelated source cannot currently load a Workspace.
+        // Absence in this filesystem readset is not proof of the live manager.
+        let temp = TestUnitRoot::new();
+        let root = temp.path().join("units");
+        fs::create_dir(&root).unwrap();
+        let absent = temp.path().join("no-such-unrelated.service");
+        symlink(&absent, root.join("unrelated.service")).unwrap();
+        assert!(
+            ensure_no_installed_systemd_consumer("ws-target", &[&root]).is_ok(),
+            "broken unrelated systemd alias globally blocked clean closure",
+        );
+        let link = root.join("target.service");
+        symlink(
+            "/var/lib/ordivon/runtime/workspaces/ws-target/linked.service",
+            &link,
+        ).unwrap();
+        assert!(
+            ensure_no_installed_systemd_consumer("ws-target", &[&root]).is_err(),
+            "even a broken symlink explicitly pointing to this Workspace is a consumer root",
         );
     }
 
