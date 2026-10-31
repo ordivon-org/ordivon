@@ -501,6 +501,8 @@ def select_source_readset_impacts(
         or not isinstance(git_source_delta.get("queryPrefix"), str)
         or not isinstance(git_source_delta.get("authorityRefs"), list)
         or not isinstance(git_source_delta.get("changedRefs"), list)
+        or any(not isinstance(ref, str) for ref in git_source_delta["authorityRefs"])
+        or any(not isinstance(ref, str) for ref in git_source_delta["changedRefs"])
     ):
         raise CircuitContractError("Git source delta lacks exact authority projection")
 
@@ -533,6 +535,8 @@ def select_source_readset_impacts(
             raise CircuitContractError("source readset evidence has duplicate proof identity")
         seen_ids.add(item["id"])
         paths = item["sourcePaths"]
+        if any(not isinstance(path, str) for path in paths):
+            raise CircuitContractError("source readset paths must be strings")
         if len(paths) != len(set(paths)):
             raise CircuitContractError("source readset has duplicate source paths")
         refs: list[str] = []

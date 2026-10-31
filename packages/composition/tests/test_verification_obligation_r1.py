@@ -106,6 +106,28 @@ def test_source_readset_impact_fails_closed_on_unqualified_bridge(mutation):
         )
 
 
+@pytest.mark.parametrize(
+    "field,invalid",
+    [
+        ("sourcePaths", [{"unexpected": "object"}]),
+        ("authorityRefs", [{"unexpected": "object"}]),
+        ("changedRefs", [{"unexpected": "object"}]),
+    ],
+)
+def test_source_readset_rejects_unhashable_wire_values_with_contract_error(field, invalid):
+    """Malformed untrusted JSON remains a typed contract rejection, never TypeError."""
+    delta, evidence = _source_readset_fixture()
+    if field == "sourcePaths":
+        evidence["items"][0][field] = invalid
+    else:
+        delta[field] = invalid
+    with pytest.raises(CircuitContractError):
+        select_source_readset_impacts(
+            git_source_delta=delta,
+            source_readset_evidence=evidence,
+        )
+
+
 def test_source_readset_existing_cli_requalifies_git_and_preserves_unknown_boundary(tmp_path):
     """Real Git delta + owner readset evidence uses existing Composition CLI."""
     import json
