@@ -1823,7 +1823,16 @@ def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() 
         assert proof["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
         assert record["consumer"].strip() and record["remoteWitness"].strip()
         mise = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
-        assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
+        if owner == "capabilities/distribution":
+            # The GIT-01 record is a historical SourceCut verdict, not a mandate
+            # to keep uv installed after its Python/OPA source consumer retired.
+            assert "uv" not in mise["tools"]
+            assert "bash scripts/test-structure.sh" in mise["tasks"]["verify"]["run"]
+            assert (
+                ROOT / owner / "evidence/r7-artifact-development-publication-intent.json"
+            ).is_file()
+        else:
+            assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
         assert task in mise["tasks"]
     module.validate_formal_issue_census(census, plans)
 

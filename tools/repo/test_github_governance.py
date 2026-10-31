@@ -1032,11 +1032,13 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         native = tomllib.loads(
             (ROOT / "capabilities/distribution/mise.toml").read_text()
         )["tasks"]["verify"]["run"]
-        for required in (
-            "uv lock --check", "uv sync --locked", "uv run ruff check .",
-            "bash scripts/test-all.sh", "shellcheck",
-        ):
-            self.assertIn(required, native)
+        # Source-only Distribution retains R7/n8n fixture and shell contracts;
+        # retired Python/OPA policy acceptance has no production consumer.
+        self.assertIn("bash scripts/test-structure.sh", native)
+        self.assertIn("shellcheck", native)
+        for retired in ("uv lock --check", "uv sync --locked",
+                        "uv run ruff check .", "scripts/test-all.sh"):
+            self.assertNotIn(retired, native)
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         self.assertIn("merge_group", workflow.get("on", workflow.get(True, {})))
         steps = workflow["jobs"]["root-verification"]["steps"]
