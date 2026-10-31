@@ -1,86 +1,71 @@
 # Career Engineering External Adoption Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Use execution + independent verification; provider popularity is discovery evidence only.
 
-**Goal:** Rebase Ordivon Career Engineering on current, highly maintained external providers and refresh GitHub star-discovery evidence without extending the detached Career R2–R6 experiment chain.
+**Goal:** Rebase Career Engineering on maintained external providers without extending the detached Career R2–R6 experiment chain or creating duplicate Ordivon infrastructure.
 
-**Architecture:** Preserve current `main@cbdd02771c7bc7842c38374854ffee703fb666e4` as the source baseline and treat prior Career branches as evidence/security donors only. External projects remain provider authorities behind narrow Skill/MCP/CLI/API seams; Ordivon owns composition, evidence/currentness, durable Runtime/Host state, and explicit human/effect boundaries rather than copying product implementations.
+**Source baseline:** `origin/main@ffd81854b424b4fb136715a8ea022ca3b28fc2e7`\n**Original audit baseline:** `cbdd02771c7bc7842c38374854ffee703fb666e4`; candidate rebased on 2026-11-01 after verifying the intervening main changes did not touch Career/provider-owned paths.
 
-**Tech Stack:** GitHub CLI/API, Markdown/JSON evidence, Agent Skills/MCP provider seams, existing Ordivon Runtime/Host/PostgreSQL.
-
-**Spec:** `meta/next/docs/CAREER_ENGINEERING_STRATEGIC_REBASE_R1.md`
-
-## Global Constraints
+## Global constraints
 
 - DELETE / REUSE / COMPOSE before EXTEND / CREATE.
-- High GitHub stars are a discovery/maturity signal, never correctness or adoption proof.
-- Prefer active MIT/Apache projects with recent commits/releases and narrow reusable interfaces.
-- Do not create a second Runtime, scheduler, global registry, or Career-owned execution engine.
-- Do not make an external product database authoritative for employer/university/provider truth.
-- Pin provider versions/commits for reproducible execution; separately observe latest stable versions for upgrade decisions.
-- Human approval remains required before irreversible application/communication effects.
-- No production/main mutation or provider-side application submission in this candidate.
+- Stable release/package/commit is the executable provider contract; main is candidate future capability.
+- Do not create a second Runtime, scheduler, registry, application UI or canonical application DB.
+- No durable SQLite Career state.
+- Human approval before irreversible application/communication effects.
+- Provider scores are diagnostics, never hiring probabilities.
 
----
+### Task 1 — Refresh GitHub global and Career ranking evidence
 
-### Task 1: Refresh GitHub global and Career-specific ranking evidence
+- [x] Query GitHub Top-100 by current stars and preserve R1 history.
+- [x] Record Career donor stars, license, archived state, exact head, 30/90-day commits and latest release.
+- [x] Validate exact 100-row Top-100, uniqueness and descending order.
+- [x] Create dated Career ranking evidence and global R2 radar.
 
-**Files:**
-- Create: `meta/next/evidence/career/github-career-provider-ranking-20261031.json`
-- Create: `meta/next/knowledge/lessons/github-top100-capability-radar-r2.md`
+### Task 2 — Select providers and delete duplicate ownership
 
-**Interfaces:**
-- Consumes: GitHub repository/search API via authenticated `gh api`.
-- Produces: dated immutable discovery evidence and a human-readable R2 radar snapshot.
+- [x] Career-Ops = workflow/Skill/validator donor, not canonical database.
+- [x] Reactive Resume = primary product/UI/API/MCP donor; delete custom resume/application UI by default.
+- [x] Resume-Matcher = narrow artifact compiler/verifier, not application-state authority.
+- [x] JobSpy = pinned fallback after authoritative/structured sources.
+- [x] AI-Job-Search = method/adaptor donor; JSON Resume = interchange; RenderCV = on-demand.
+- [x] JobSync = absorb Greenhouse/Lever/Ashby discovery methods; do not deploy a parallel tracker product.
+- [x] Keep Career Core at Career Record → Opportunity → Role/Competency → Evidence/Gap → Artifact Compiler → Application Lifecycle.
 
-- [ ] **Step 1:** Query GitHub Search API for `stars:>100000`, sorted descending, exactly 100 rows.
-- [ ] **Step 2:** Compare current repository identities with R1; preserve R1 as historical evidence rather than overwrite it.
-- [ ] **Step 3:** Query Career donor repositories for stars, license, archived state, default-branch head, 30/90-day commit counts and latest release.
-- [ ] **Step 4:** Record raw current observations with exact provider identity and observation date.
-- [ ] **Step 5:** Validate row counts, uniqueness, descending star order and required fields with Python assertions.
+### Task 3 — Prove direct JobSpy external consumption
 
-### Task 2: Define strategic provider selection and authority boundaries
+- [x] Pin `python-jobspy[mcp]==1.4.1`.
+- [x] Verify distribution and `jobspy` / `mcp-jobspy` entry points.
+- [x] Materialize Agent Plugins 1.0 candidate without copying scraper source.
+- [x] Keep live-board/ToS/currentness outside the package smoke truth boundary.
 
-**Files:**
-- Create: `meta/next/docs/CAREER_ENGINEERING_STRATEGIC_REBASE_R1.md`
-- Create: `meta/next/planning/career-external-provider-stack-r1.json`
+### Task 4 — Stable-provider currentness and native-interface qualification
 
-**Interfaces:**
-- Consumes: Task 1 evidence plus current source interfaces inspected at exact upstream heads.
-- Produces: selected donor stack and explicit ADOPT / COMPOSE / ABSORB / ON_DEMAND / REJECT decisions.
+- [x] Career-Ops `1.38.0`: npm executable + full ephemeral init + doctor + fresh-state verification.
+- [x] Detect Career-Ops release/main drift: released `keyword-match` lacks main-only `--url/--jd-text`.
+- [x] Reactive Resume: verify upstream-native Agent Plugin/MCP schema on observed main.
+- [x] Reactive hosted MCP: observe reachable OAuth-protected boundary without credentials.
+- [x] Resume-Matcher stable `1.4.0`: negative default-Python probe and positive Python 3.13 CLI/get_status.
+- [x] Record Resume-Matcher default SQLite as non-admitted durable Career state.
 
-- [ ] **Step 1:** Select Career-Ops as primary Skill/workflow/validator donor, without adopting its file store as Ordivon canonical state.
-- [ ] **Step 2:** Select Reactive Resume as primary product/UI/API/MCP donor for resumes, cover letters and application case tracking; keep external-employer truth separate.
-- [ ] **Step 3:** Select Resume-Matcher as a narrow MCP/CLI artifact compiler/verification donor only where it adds functionality not already supplied by Reactive Resume.
-- [ ] **Step 4:** Select JobSpy as a pinned MCP discovery fallback after official ATS APIs; encode scraping/currentness/ToS uncertainty.
-- [ ] **Step 5:** Mark AI-Job-Search as workflow/adapter method donor, JobSync as targeted comparison, RenderCV on-demand, OpenResume stale/no-new-adoption, JSON Resume as interchange standard, ApplyPack as watchlist.
-- [ ] **Step 6:** Encode Career core as Career Record → Opportunity Intake → Role/Competency → Evidence/Gap → Artifact Compiler → Application Lifecycle, all consuming existing Runtime/Host/PG rather than creating a Career runtime.
+### Task 5 — Real vertical slices without external effects
 
-### Task 3: Prove direct external-provider consumption with a pinned JobSpy smoke test
+- [x] Capture a live opportunity from official Cloudflare Greenhouse API.
+- [x] Run Career-Ops release skill extraction and keyword coverage on synthetic CV.
+- [x] Bind diagnostic output to truth boundary; do not infer eligibility/hiring probability.
+- [x] Create/read-back synthetic Resume-Matcher master from provider canonical state.
+- [x] Positive preservation test: summary/bullet rewrite accepted.
+- [x] Negative preservation test: institution identity mutation rejected.
+- [x] Run draft score without application CRUD; type score as provider diagnostic.
+- [x] Keep all provider-local SQLite use ephemeral; no Ordivon durable SQLite introduced.
 
-**Files:**
-- Create: `meta/next/evidence/career/jobspy-1.4.1-provider-smoke-20261031.json`
+### Task 6 — Verification and independent falsification
 
-**Interfaces:**
-- Consumes: published `python-jobspy==1.4.1` / `mcp-jobspy` package through `uvx`.
-- Produces: execution receipt for package availability and exposed CLI/MCP entry points; no job-board write effects.
-
-- [ ] **Step 1:** Run a pinned package command in an isolated temporary cache/environment, not a repository install.
-- [ ] **Step 2:** Verify `jobspy` and/or `mcp-jobspy` entry point availability and version/package metadata.
-- [ ] **Step 3:** Do not claim live board availability from a help/version smoke; record external network/provider truth as unverified unless separately queried.
-- [ ] **Step 4:** Persist command, exit code, observed version, upstream commit/release and authority boundary.
-
-### Task 4: Independent review request and verification
-
-**Files:**
-- Modify only if required by failed validation; otherwise no new implementation files.
-
-**Interfaces:**
-- Consumes: Tasks 1–3.
-- Produces: fresh verification evidence and a Space peer-review request.
-
-- [ ] **Step 1:** Validate all new JSON with `python -m json.tool`.
-- [ ] **Step 2:** Run source-policy/architecture checks relevant to `meta/next` documentation/evidence.
-- [ ] **Step 3:** Inspect `git diff --check`, status, and exact diff.
-- [ ] **Step 4:** Post a bounded peer-review request asking for counterexamples to provider selection, especially Reactive Resume vs JobSync duplication, Career-Ops persistence mismatch, Resume-Matcher overlap, and JobSpy scraping risk.
-- [ ] **Step 5:** Do not call the candidate complete or merged; leave it detached until independent review/integration choice.
+- [x] Validate JSON evidence and provider contract tests for first candidate.
+- [x] Validate JobSpy Agent Plugin schema/materialization.
+- [x] Run architecture documentation drift and `git diff --check`.
+- [x] Post independent peer-review request to Career Space (sequence 23952); sent request is not consensus.
+- [x] Re-run expanded contract tests after the stable-provider/slice updates (7/7 PASS plus plugin/schema/architecture/semantic checks).
+- [x] Commit the stable-provider/slice update as a second detached candidate commit.
+- [ ] Post exact second commit + new counterexamples to Space and inspect any reply.
+- [ ] Do not merge/cut over until integration selection and independent review are explicitly observed.

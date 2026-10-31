@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.career.external-provider-smoke",
+  "provider": "career-ops-hq/career-ops",
+  "package": "@santifer/career-ops",
+  "pin": "1.38.0",
+  "releaseGitHead": "115bc9873e3d43e23883f3c8f16436617facc62c",
+  "observedMain": "5faf02498b2e36d1af212472d390254f849e68db",
+  "observedAtDate": "2026-10-31",
+  "packageSurface": {
+    "npmLatestAtObservation": "1.38.0",
+    "license": "MIT",
+    "executable": "career-ops",
+    "npxHelpExitCode": 0,
+    "upstreamPortableSurface": "Agent Plugins 1.0 plugin.json plus Agent Skill; OpenAI extension declares local executor requirement"
+  },
+  "fullInitSmoke": {
+    "commandShape": "npx --yes @santifer/career-ops@1.38.0 init <ephemeral-directory>",
+    "exitCode": 0,
+    "packageVersion": "1.38.0",
+    "agentSkillPresent": true,
+    "doctor": {
+      "onboardingNeeded": true,
+      "expectedMissingForFreshSetup": [
+        "cv.md",
+        "config/profile.yml",
+        "modes/_profile.md",
+        "portals.yml"
+      ],
+      "note": "Fresh setup correctly remained unpersonalized; no user Career data was fabricated."
+    },
+    "verifyPipeline": {
+      "exitCode": 0,
+      "observation": "No applications.md found; upstream reports this as normal for a fresh setup."
+    }
+  },
+  "currentnessCounterexample": {
+    "stableReleaseBehavior": "career-ops 1.38.0 keyword-match supports report-file input but not --url/--jd-text",
+    "currentMainBehavior": "observed main keyword-match documentation exposes --url and --jd-text",
+    "executedNegativeProbe": "running release 1.38.0 keyword-match with --url returned 'Unknown option: --url'",
+    "conclusion": "Do not infer released provider capability from main. Bind the package/release identity executed by the consumer."
+  },
+  "acceptance": {
+    "publishedExactVersion": true,
+    "npxExecutable": true,
+    "fullEphemeralInit": true,
+    "freshStateDetectedWithoutFabrication": true,
+    "releaseVsMainDriftDetected": true
+  },
+  "truthBoundary": "Package/plugin/init availability proves a usable upstream release surface. It does not configure user data, prove live job sources, make heuristic scores hiring probabilities, or prove any application was submitted."
+}

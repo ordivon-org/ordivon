@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.career.external-provider-observation",
+  "provider": "reactive-resume/reactive-resume",
+  "observedAtDate": "2026-10-31",
+  "stableChannelForSelfHost": "v6.0.2",
+  "observedMain": "ddedd46dcdadf984da06968c0df6e7bd343dc43a",
+  "upstreamNativePlugin": {
+    "pluginPath": "plugins/reactive-resume/plugin.json",
+    "mcpPath": "plugins/reactive-resume/mcp.json",
+    "currentMainAgentPluginSchemaValidated": true,
+    "currentMainMcpSchemaValidated": true,
+    "mcpTransport": "streamable-http",
+    "endpoint": "https://rxresu.me/mcp"
+  },
+  "hostedBoundaryProbe": {
+    "mode": "unauthenticated POST; no credentials and no user data",
+    "curlExitCode": 0,
+    "httpStatus": 401,
+    "oauthProtectedResourceChallengeObserved": true,
+    "responseSummary": "JSON-RPC Unauthorized with WWW-Authenticate Bearer resource_metadata challenge"
+  },
+  "adoptionRule": {
+    "wrapperDecision": "REUSE_UPSTREAM_NATIVE_PLUGIN_NO_ORDIVON_WRAPPER",
+    "selfHostedCurrentness": "pin a stable release/image and verify before use",
+    "hostedCurrentness": "hosted endpoint is independently observed at call time and is not equated with a pinned repository release"
+  },
+  "acceptance": {
+    "upstreamNativePluginObserved": true,
+    "currentPluginSchemasValid": true,
+    "networkEndpointObserved": true,
+    "authBoundaryObserved": true
+  },
+  "truthBoundary": "The probe proves the hosted MCP endpoint was reachable and auth-guarded at observation time. It grants no access and proves no resume/application state. Product case state is not employer truth."
+}

@@ -1,35 +1,87 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "ordivon.career.external-provider-stack-plan",
   "truthRole": "owner-local-composition-plan-not-provider-truth",
-  "sourceBaseline": "cbdd02771c7bc7842c38374854ffee703fb666e4",
-  "observedAtDate": "2026-10-31",
+  "sourceBaseline": "ffd81854b424b4fb136715a8ea022ca3b28fc2e7",
+  "originalAuditBaseline": "cbdd02771c7bc7842c38374854ffee703fb666e4",
+  "rebasedAtDate": "2026-11-01",
+  "observedThroughDate": "2026-11-01",
+  "providerIdentityPolicy": {
+    "executableContract": "stable release/package/commit identity",
+    "mainBranchRole": "discovery of candidate future capability only",
+    "floatingLatestForbiddenForDurableExecution": true,
+    "rationale": "A maintained main branch may contain unreleased interfaces. Stable provider behavior must be bound to the published artifact or exact release commit actually verified."
+  },
   "constraints": {
     "reuseBeforeBuild": true,
     "noCareerRuntime": true,
     "noSecondGlobalRegistry": true,
+    "noCustomResumeOrApplicationUiByDefault": true,
+    "noDurableSqliteCareerState": true,
     "irreversibleEffectsRequireHumanApproval": true,
-    "providerCaseStateIsNotExternalTruth": true
+    "providerCaseStateIsNotExternalTruth": true,
+    "providerScoresAreDiagnosticsNotOutcomeProbability": true
   },
   "layers": [
     {
       "id": "workflow",
       "primary": "career-ops-hq/career-ops",
-      "mode": "skill-cli-donor",
-      "standing": "QUALIFIED_CANDIDATE"
+      "mode": "upstream-native-agent-plugin-and-cli",
+      "pin": "1.38.0",
+      "releaseGitHead": "115bc9873e3d43e23883f3c8f16436617facc62c",
+      "observedMain": "5faf02498b2e36d1af212472d390254f849e68db",
+      "standing": "RELEASE_INIT_VERIFIED",
+      "currentnessWitness": "release 1.38.0 keyword-match lacks main-only --url/--jd-text flags; bind release behavior, not main documentation",
+      "authorityBoundary": "workflow/rubric/validator donor; its file-first tracker is not Ordivon canonical durable state"
     },
     {
       "id": "product-surface",
       "primary": "reactive-resume/reactive-resume",
-      "mode": "external-mcp-rest-product",
-      "standing": "QUALIFIED_CANDIDATE"
+      "mode": "upstream-native-agent-plugin-mcp-rest-product",
+      "stableChannel": "v6.0.2",
+      "observedMain": "ddedd46dcdadf984da06968c0df6e7bd343dc43a",
+      "hostedMcpEndpoint": "https://rxresu.me/mcp",
+      "standing": "CURRENT_NATIVE_PLUGIN_SCHEMA_AND_HOSTED_AUTH_BOUNDARY_VERIFIED",
+      "selfHostRule": "pin a stable release/image before durable self-hosted use; hosted service is independently currentness-observed",
+      "authorityBoundary": "resume/cover-letter/application product case state; never employer/ATS external truth"
     },
     {
       "id": "artifact-compiler",
       "primary": "srbhr/Resume-Matcher",
-      "mode": "narrow-mcp-cli",
-      "standing": "QUALIFIED_CANDIDATE",
-      "condition": "use only for unique compiler/verification value not duplicated by selected product surface"
+      "mode": "pinned-stable-cli-mcp-artifact-verifier",
+      "pin": "1.4.0",
+      "releaseCommit": "dcd0962656e3e1ac2b4490689159362f9d48cd32",
+      "testedPython": "3.13",
+      "observedDefaultHostPythonFailure": "3.15 dependency resolution fails because current onnxruntime wheel set lacks cp315",
+      "standing": "STABLE_CLI_AND_PRESERVATION_VERIFIED",
+      "allowedInitialTools": [
+        "get_status",
+        "get_resume_schema",
+        "validate_tailored_resume",
+        "parse_check_file",
+        "score_resume"
+      ],
+      "conditionalTools": [
+        "create_master_resume",
+        "add_job",
+        "tailor_and_verify",
+        "verify_resume",
+        "export_resume_pdf"
+      ],
+      "excludedInitialTools": [
+        "create_application",
+        "update_application",
+        "list_applications"
+      ],
+      "persistenceRule": "default SQLite may be used only in disposable provider-local tests; any persisted provider state requires PostgreSQL plus a real consumer",
+      "authorityBoundary": "artifact compiler/verifier only; ATS scores are diagnostics and application CRUD is not admitted"
+    },
+    {
+      "id": "opportunity-discovery-methods",
+      "primary": "Gsync/jobsync",
+      "mode": "absorb-ats-discovery-methods-not-product",
+      "standing": "ABSORB_GREENHOUSE_LEVER_ASHBY_DISCOVERY_METHODS_NO_PARALLEL_PRODUCT",
+      "authorityBoundary": "reuse discovery/directory/ranking methods where they improve CE2; do not deploy its tracker/database when Reactive Resume plus Ordivon already satisfy product-state consumers"
     },
     {
       "id": "job-discovery-fallback",
@@ -41,20 +93,16 @@
         "official ATS API",
         "structured provider feed",
         "official career page",
+        "provider-native ATS discovery",
         "JobSpy"
-      ]
+      ],
+      "authorityBoundary": "fallback observation provider; scraped result is neither vacancy-currentness proof nor provider permission"
     },
     {
       "id": "workflow-methods",
       "primary": "ai-job-search-dev/ai-job-search",
       "mode": "method-and-adapter-donor",
       "standing": "ABSORB_NOT_INSTALL_WHOLE"
-    },
-    {
-      "id": "tracker-alternative",
-      "primary": "Gsync/jobsync",
-      "mode": "targeted-compare",
-      "standing": "DO_NOT_PARALLEL_DEPLOY_BY_DEFAULT"
     },
     {
       "id": "resume-interchange",
@@ -71,13 +119,25 @@
   ],
   "authority": {
     "careerRecord": "Ordivon/private user-authorized record composition",
+    "opportunityTruth": "external employer/ATS/provider",
     "durableExecution": "Ordivon Runtime",
     "coordinationEvidence": "Ordivon Host",
-    "persistence": "Ordivon PostgreSQL where Ordivon owns state; external product DB remains provider-local state",
-    "jobAndEmployerTruth": "external employer/ATS/provider",
+    "persistence": "Ordivon PostgreSQL for Ordivon-owned durable state; external provider-local persistence is non-authoritative and must not introduce durable SQLite into Career",
     "resumeProductState": "selected external resume/product provider",
     "effectApproval": "user/human"
   },
+  "verifiedSlices": [
+    {
+      "id": "official-ats-to-gap-diagnostic",
+      "evidence": "meta/next/evidence/career/cloudflare-8245211-career-ops-vertical-slice-20261031.json",
+      "standing": "VERIFIED_SYNTHETIC_CANDIDATE"
+    },
+    {
+      "id": "artifact-preservation-and-score",
+      "evidence": "meta/next/evidence/career/resume-matcher-1.4.0-artifact-compiler-slice-20261101.json",
+      "standing": "VERIFIED_SYNTHETIC_CANDIDATE"
+    }
+  ],
   "nonSelections": [
     {
       "repository": "xitanggg/open-resume",
@@ -85,11 +145,17 @@
     },
     {
       "repository": "applypack/applypack",
-      "reason": "active watchlist but very low stars relative to selected active donors"
+      "reason": "active watchlist but very low stars relative to selected active donors without a unique proven consumer"
     }
   ],
   "evidenceRefs": [
     "meta/next/evidence/career/github-career-provider-ranking-20261031.json",
+    "meta/next/evidence/career/jobspy-1.4.1-provider-smoke-20261031.json",
+    "meta/next/evidence/career/career-ops-1.38.0-provider-smoke-20261031.json",
+    "meta/next/evidence/career/reactive-resume-mcp-boundary-20261031.json",
+    "meta/next/evidence/career/resume-matcher-1.4.0-provider-smoke-20261101.json",
+    "meta/next/evidence/career/cloudflare-8245211-career-ops-vertical-slice-20261031.json",
+    "meta/next/evidence/career/resume-matcher-1.4.0-artifact-compiler-slice-20261101.json",
     "meta/next/knowledge/lessons/github-top100-capability-radar-r2.md"
   ]
 }
