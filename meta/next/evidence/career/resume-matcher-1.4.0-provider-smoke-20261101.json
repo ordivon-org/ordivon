@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.career.external-provider-smoke",
+  "provider": "srbhr/Resume-Matcher",
+  "stableRelease": {
+    "version": "1.4.0",
+    "gitCommit": "dcd0962656e3e1ac2b4490689159362f9d48cd32",
+    "sourceSubdirectory": "apps/backend"
+  },
+  "observedAtDate": "2026-11-01",
+  "negativeRuntimeProbe": {
+    "command": "uvx --from <pinned-v1.4.0-source> resume-matcher --help",
+    "exitCode": 1,
+    "stderrTail": "error: No solution found when resolving tool dependencies\n  cause: Because onnxruntime>=1.17.0 has no wheels with a matching Python ABI tag (e.g., `cp315`) and magika>=0.6.1,<=0.6.3 depends on onnxruntime>=1.17.0, we can conclude that magika>=0.6.1,<=0.6.3 cannot be used.\n         And because only the following versions of magika are available:\n             magika<=0.6.3\n             magika>0.7.dev0\n         we can conclude that magika>=0.6.1,<0.7.dev0 cannot be used.\n         And because markitdown==0.1.8 depends on magika>=0.6.1,<0.7.dev0 and rm-backend==1.4.0 depends on markitdown[docx]==0.1.8, we can conclude that rm-backend==1.4.0 cannot be used.\n         And because only rm-backend==1.4.0 is available and you require rm-backend, we can conclude that your requirements are unsatisfiable.\n\nhint: You require CPython 3.15 (`cp315`), but we only found wheels for `onnxruntime` (v1.31.1) with the following Python ABI tags: `cp311`, `cp312`, `cp313`, `cp313t`, `cp314`, `cp314t`\n"
+  },
+  "verifiedRuntimeProbe": {
+    "python": "3.13",
+    "command": "uvx --python 3.13 --from <pinned-v1.4.0-source> resume-matcher --help",
+    "exitCode": 0,
+    "stdoutHead": "Usage: resume-matcher <tool> [arguments]\n       resume-matcher <tool> --help     the tool's description and argument schema\n\nArguments are one JSON object:\n  '{\"resume_id\": \"abc\"}'   inline\n  @args.json               read from a file\n  -                        read from stdin\n\nor any number of fields:\n  key=value                a string\n  key=@job.md              a string read from a file\n  key:=json                any JSON value (number, true, list, object)\n  key:=@data.json          any JSON value read from a file\n\nThe result is printed as JSON. Exit code 1 means the tool failed (the reason is\non stderr), 2 means the command line was wrong.\n\nTools:\n  add_job                   Store a job description. Pass the keywords you extracted to enable scoring.\n  create_application        Add a tracker card for an existing job_id or a pasted job_description.\n  create_master_resume      Create a master resume from structured data you built (e.g. from extract_document_text).\n  export_resume_pdf         Render a saved resume to PDF and report its page count. Needs the web frontend running. Overwrites an existing file at output_path.\n  extract_document_text     Extract markdown from a local PDF/DOCX/DOC/MD/TXT file (absolute path).\n  get_job                   Get a stored job description and its cached keywords.\n  get_resume                Get a resume's structured data, cover letter and outreach message.\n  get_resume_job            Get the job a tailored resume was tailored for.\n  get_resume_schema         JSON schema for resume_data plus authoring guidance. The rules are guidance; save tools enforce only the preservation checks.\n  get_status                Data location, record counts, templates and limits. Call this first.\n  list_applications         List tracker cards, optionally for one status column.\n  list_resumes              List resumes, newest first. Masters are the source of truth for tailoring.\n  parse_check_file          ATS parse-check a local PDF or DOCX (absolute path): extractability, layout and content checks.\n  parse_check_resume        ATS parse-check a saved resume as rendered with these settings, plus a round trip against its data. Writes nothing.\n  recalculate_ats_score     Recompute and store a tailored resume's ATS score from its saved data and job keywords.\n  save_tailored_resume      Save a tailored resume you wrote. Rejected if it breaks preservation rules.\n  score_resume              Keyword match and ATS score for a saved resume or draft against job keywords.\n  set_cover_letter          Store a cover letter you wrote for a resume.\n  set_default_master        Make a master resume the default tailoring source.\n  set_job_keywords          Attach the keywords you extracted to an existing job.\n  set_outreach_message      Store an outreach message you wrote for a resume.\n  set_resume_title          Rename a resume (max 80 characters).\n  tailor_and_verify         Validate, save and verify a tailored resume you wrote, in one call.\n  update_application        Move or edit a tracker card. Omitted fields stay unchanged. Pass null for notes, company or role to clear it, or for position to move the card to the end of its column.\n  update_resume             Replace a resume's structured data. Tailored resumes get grounding warnings.\n  validate_tailored_resume  Dry-run the preservation checks save_tailored_resume enforces. Writes nothing.\n  verify_resume             Render a saved resume once and report page count, ATS parse-check, keyword score and issues. Writes nothing.\n",
+    "stderrTail": "   Building rm-backend @ git+https://github.com/srbhr/Resume-Matcher.git@dcd0962656e3e1ac2b4490689159362f9d48cd32#subdirectory=apps/backend\nDownloading aiohttp (1.8MiB)\nDownloading hf-xet (4.1MiB)\nDownloading onnxruntime (22.7MiB)\nDownloading openai (1.6MiB)\nDownloading sqlalchemy (4.4MiB)\nDownloading cryptography (4.5MiB)\nDownloading numpy (15.9MiB)\nDownloading tiktoken (1.1MiB)\nDownloading magika (14.7MiB)\nDownloading lxml (5.0MiB)\nDownloading botocore (15.4MiB)\nDownloading tokenizers (3.2MiB)\nDownloading pydantic-core (2.1MiB)\nDownloading pillow (6.8MiB)\nDownloading pypdfium2 (3.6MiB)\nDownloading litellm (35.1MiB)\nDownloading pdfminer-six (6.3MiB)\nDownloading psycopg-binary (5.0MiB)\nDownloading playwright (46.0MiB)\n Downloaded tiktoken\n Downloaded openai\n Downloaded aiohttp\n Downloaded pydantic-core\n      Built rm-backend @ git+https://github.com/srbhr/Resume-Matcher.git@dcd0962656e3e1ac2b4490689159362f9d48cd32#subdirectory=apps/backend\n Downloaded tokenizers\n Downloaded pypdfium2\n Downloaded hf-xet\n Downloaded sqlalchemy\n Downloaded cryptography\n Downloaded lxml\n Downloaded psycopg-binary\n Downloaded pdfminer-six\n Downloaded pillow\n Downloaded magika\n Downloaded botocore\n Downloaded numpy\n Downloaded onnxruntime\n Downloaded litellm\n Downloaded playwright\nInstalled 101 packages in 386ms\n"
+  },
+  "getStatus": {
+    "exitCode": 0,
+    "value": {
+      "version": "1.4.0",
+      "data_dir": "/var/lib/ordivon/runtime/cache/tmp/ws-gpt56-career-strategic-rebase-20261031-r1/tmp.I5s4wFccI5/uv-cache/archive-v0/apgtCwZ4ZqAGKFSR/lib/python3.13/site-packages/data",
+      "frontend_base_url": "http://localhost:3000",
+      "templates": [
+        "swiss-single",
+        "swiss-two-column",
+        "modern",
+        "modern-two-column",
+        "latex",
+        "clean",
+        "vivid",
+        "vivid-single",
+        "modern-deedy",
+        "deedy"
+      ],
+      "master_resumes": 0,
+      "max_master_resumes": 5,
+      "backend": "sqlite",
+      "total_resumes": 0,
+      "total_jobs": 0,
+      "total_improvements": 0,
+      "has_master_resume": false
+    },
+    "stderrTail": "   Updating https://github.com/srbhr/Resume-Matcher.git (dcd0962656e3e1ac2b4490689159362f9d48cd32)\n    Updated https://github.com/srbhr/Resume-Matcher.git (dcd0962656e3e1ac2b4490689159362f9d48cd32)\n   Building rm-backend @ git+https://github.com/srbhr/Resume-Matcher.git@dcd0962656e3e1ac2b4490689159362f9d48cd32#subdirectory=apps/backend\nDownloading tokenizers (3.2MiB)\nDownloading tiktoken (1.1MiB)\nDownloading litellm (35.1MiB)\nDownloading hf-xet (4.1MiB)\nDownloading pypdfium2 (3.6MiB)\nDownloading numpy (15.9MiB)\nDownloading pdfminer-six (6.3MiB)\nDownloading lxml (5.0MiB)\nDownloading openai (1.6MiB)\nDownloading cryptography (4.5MiB)\nDownloading magika (14.7MiB)\nDownloading aiohttp (1.8MiB)\nDownloading botocore (15.4MiB)\nDownloading pillow (6.8MiB)\nDownloading sqlalchemy (4.4MiB)\nDownloading playwright (46.0MiB)\nDownloading onnxruntime (22.7MiB)\nDownloading pydantic-core (2.1MiB)\nDownloading psycopg-binary (5.0MiB)\n Downloaded tiktoken\n      Built rm-backend @ git+https://github.com/srbhr/Resume-Matcher.git@dcd0962656e3e1ac2b4490689159362f9d48cd32#subdirectory=apps/backend\n Downloaded openai\n Downloaded aiohttp\n Downloaded pydantic-core\n Downloaded tokenizers\n Downloaded pypdfium2\n Downloaded hf-xet\n Downloaded sqlalchemy\n Downloaded cryptography\n Downloaded psycopg-binary\n Downloaded lxml\n Downloaded pdfminer-six\n Downloaded pillow\n Downloaded magika\n Downloaded botocore\n Downloaded numpy\n Downloaded onnxruntime\n Downloaded litellm\n Downloaded playwright\nInstalled 101 packages in 419ms\n"
+  },
+  "acceptance": {
+    "stableReleasePinned": true,
+    "defaultHostPythonRejected": true,
+    "python313CliStarts": true,
+    "getStatusReturnsJson": true
+  },
+  "adoptionBoundary": {
+    "allowedInitialTools": [
+      "get_status",
+      "get_resume_schema",
+      "validate_tailored_resume",
+      "parse_check_file",
+      "score_resume"
+    ],
+    "conditionalTools": [
+      "create_master_resume",
+      "add_job",
+      "tailor_and_verify",
+      "verify_resume",
+      "export_resume_pdf"
+    ],
+    "excludedInitialTools": [
+      "create_application",
+      "update_application",
+      "list_applications"
+    ],
+    "reason": "Use Resume-Matcher as a narrow artifact compiler/verifier. Do not create a second application-state authority; tools requiring its frontend/database become conditional consumers, not Career core."
+  },
+  "truthBoundary": "This proves the pinned stable backend CLI can be resolved and executed under the tested Python 3.13 runtime, and records a negative default-host-runtime probe. It does not prove AI-provider configuration, frontend-dependent rendering, employer truth, application state, or hiring outcomes."
+}

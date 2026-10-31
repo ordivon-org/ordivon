@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.career.external-artifact-compiler-slice",
+  "observedAtDate": "2026-11-01",
+  "provider": "srbhr/Resume-Matcher",
+  "binding": {
+    "version": "1.4.0",
+    "gitCommit": "dcd0962656e3e1ac2b4490689159362f9d48cd32",
+    "python": "3.13"
+  },
+  "mode": "ephemeral provider-local smoke; synthetic facts only; no application CRUD; no external effect",
+  "canonicalizationRule": "Create the synthetic master, read it back with get_resume, and derive drafts from provider-canonical resume_data so provider-generated sectionMeta is preserved.",
+  "createdMaster": {
+    "observed": true,
+    "responseKeys": [
+      "is_default_master",
+      "is_master",
+      "parent_id",
+      "processing_status",
+      "resume_id",
+      "title",
+      "updated_at"
+    ]
+  },
+  "positivePreservationCheck": {
+    "valid": true,
+    "violations": [],
+    "grounding_warnings": [
+      "GROUNDING_REVIEW_REQUIRED: Review summary against the source resume."
+    ],
+    "changed_fields": [
+      "summary",
+      "workExperience[0].description[0]"
+    ],
+    "changed_field_count": 2
+  },
+  "negativePreservationCheck": {
+    "valid": false,
+    "violations": [
+      "preservation repairs required at: education[0].institution",
+      "source preservation failed: education.identity"
+    ],
+    "grounding_warnings": [
+      "GROUNDING_REVIEW_REQUIRED: Review summary against the source resume."
+    ],
+    "changed_fields": [
+      "education[0].institution",
+      "summary",
+      "workExperience[0].description[0]"
+    ],
+    "changed_field_count": 3,
+    "repaired_resume_data": {
+      "personalInfo": {
+        "name": "Synthetic Candidate",
+        "title": "Computer Science Student",
+        "email": "synthetic@example.invalid",
+        "phone": "",
+        "location": "Synthetic City",
+        "website": null,
+        "linkedin": null,
+        "github": null
+      },
+      "summary": "Software engineering student focused on TypeScript, Python, Rust, and Go.",
+      "workExperience": [
+        {
+          "id": 1,
+          "title": "Student Developer",
+          "company": "Synthetic Lab",
+          "location": "Remote",
+          "years": "2026",
+          "description": [
+            "Built services using TypeScript and Python.",
+            "Used Rust for systems experiments."
+          ],
+          "descriptionStyles": [
+            "bullet",
+            "bullet"
+          ],
+          "condensed": false
+        }
+      ],
+      "education": [
+        {
+          "id": 1,
+          "institution": "Synthetic University",
+          "degree": "BSc Computer Science",
+          "years": "2025-2029",
+          "description": "Synthetic test record"
+        }
+      ],
+      "personalProjects": [
+        {
+          "id": 1,
+          "name": "Synthetic Network Tool",
+          "role": "Developer",
+          "years": "2026",
+          "github": null,
+          "website": null,
+          "description": [
+            "Implemented a Go API and Linux networking test harness."
+          ],
+          "descriptionStyles": [
+            "bullet"
+          ]
+        }
+      ],
+      "additional": {
+        "technicalSkills": [
+          "TypeScript",
+          "Python",
+          "Rust",
+          "Go"
+        ],
+        "languages": [],
+        "certificationsTraining": [],
+        "awards": []
+      },
+      "sectionMeta": [
+        {
+          "id": "personalInfo",
+          "key": "personalInfo",
+          "displayName": "Personal Info",
+          "sectionType": "personalInfo",
+          "isDefault": true,
+          "isVisible": true,
+          "order": 0
+        },
+        {
+          "id": "summary",
+          "key": "summary",
+          "displayName": "Summary",
+          "sectionType": "text",
+          "isDefault": true,
+          "isVisible": true,
+          "order": 1
+        },
+        {
+          "id": "workExperience",
+          "key": "workExperience",
+          "displayName": "Experience",
+          "sectionType": "itemList",
+          "isDefault": true,
+          "isVisible": true,
+          "order": 2
+        },
+        {
+          "id": "education",
+          "key": "education",
+          "displayName": "Education",
+          "sectionType": "itemList",
+          "isDefault": true,
+          "isVisible": true,
+          "order": 3
+        },
+        {
+          "id": "personalProjects",
+          "key": "personalProjects",
+          "displayName": "Projects",
+          "sectionType": "itemList",
+          "isDefault": true,
+          "isVisible": true,
+          "order": 4
+        },
+        {
+          "id": "additional",
+          "key": "additional",
+          "displayName": "Skills & Awards",
+          "sectionType": "stringList",
+          "isDefault": true,
+          "isVisible": true,
+          "order": 5
+        }
+      ],
+      "customSections": {}
+    }
+  },
+  "statelessDraftScore": {
+    "keyword_match_percentage": 57.1,
+    "overall_score": 59.3,
+    "sub_scores": {
+      "keyword_match": 57.1,
+      "skills_coverage": 57.1,
+      "title_match": 0.0,
+      "section_completeness": 100.0,
+      "date_consistency": 100.0
+    },
+    "missing_keywords": [
+      "JavaScript",
+      "C++",
+      "Spring"
+    ],
+    "injectable_keywords": [],
+    "recommendations": [
+      "Use the exact job title \"Software Engineer Intern (2027)\" in your resume headline. Recruiters filter by title literally, so synonyms are missed. Edit the headline in the Builder; tailoring does not change it.",
+      "Add these high-priority missing keywords: JavaScript, C++, Spring.",
+      "Expand your Skills section to include more of the tools and technologies listed in the job description."
+    ]
+  },
+  "acceptance": {
+    "syntheticMasterCreated": true,
+    "canonicalMasterReadBack": true,
+    "positiveTailoredDraftAccepted": true,
+    "factMutationRejected": true,
+    "scoreReturned": true,
+    "applicationCrudUsed": false
+  },
+  "sqliteBoundary": "The provider used only an ephemeral temporary directory for this smoke. Its default SQLite backend is NOT accepted as Ordivon Career durable state. Persisted provider state requires explicit PostgreSQL configuration and a real consumer.",
+  "evidenceStanding": "EXPERIMENT_ONLY_NOT_ADMITTED",
+  "admissionUse": "preservation counterexample only; the demonstrated path requires stateful create/read and observed ephemeral SQLite, so no active binding is inferred",
+  "truthBoundary": "This historical experiment observed provider canonicalization, preservation checks and draft scoring on synthetic data only. The positive check still emitted GROUNDING_REVIEW_REQUIRED, so preservation does not establish factual grounding. The score is not hiring probability or employer judgment, and this evidence does not admit a persisted Career provider binding."
+}

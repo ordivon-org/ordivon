@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.career.external-provider-smoke",
+  "provider": "speedyapply/JobSpy",
+  "package": "python-jobspy",
+  "pin": "1.4.1",
+  "observedAtDate": "2026-10-31",
+  "mode": "ephemeral uv environment; no repository install; no job-board query",
+  "metadataCommand": {
+    "argv": [
+      "uv",
+      "run",
+      "--isolated",
+      "--with",
+      "python-jobspy[mcp]==1.4.1",
+      "python",
+      "-c",
+      "import importlib.metadata as m, json; d=m.distribution('python-jobspy'); print(json.dumps({'version':d.version,'entryPoints':sorted([{'name':e.name,'value':e.value,'group':e.group} for e in d.entry_points if e.group=='console_scripts'],key=lambda x:x['name'])}))"
+    ],
+    "exitCode": 0,
+    "stdout": "{\"version\": \"1.4.1\", \"entryPoints\": [{\"name\": \"jobspy\", \"value\": \"jobspy.cli:main\", \"group\": \"console_scripts\"}, {\"name\": \"mcp-jobspy\", \"value\": \"jobspy.mcp:main\", \"group\": \"console_scripts\"}]}",
+    "stderrTail": "Downloading curl-cffi (13.4MiB)\nDownloading pandas (11.5MiB)\nDownloading pydantic-core (2.1MiB)\nDownloading cryptography (4.8MiB)\nDownloading numpy (15.9MiB)\n Downloaded pydantic-core\n Downloaded cryptography\n Downloaded pandas\n Downloaded curl-cffi\n Downloaded numpy\nInstalled 42 packages in 129ms\n"
+  },
+  "cliHelpCommand": {
+    "argv": [
+      "uvx",
+      "--from",
+      "python-jobspy==1.4.1",
+      "jobspy",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdoutHead": "usage: jobspy [QUERY] [options]\n\nSearch job boards and print one JSON object per job (JSON Lines) on stdout.\nFields a board did not give are left out.\nDefault: 5 jobs from each of 4 boards; --site picks boards, -n sets the count.\nErrors and warnings go to stderr.\n\nexamples:\n  jobspy \"software engineer\" --site indeed,linkedin --location Chicago -n 20\n  jobspy nurse --site indeed,linkedin --hours-old 24 -o jobs.jsonl\n  jobspy \"data analyst\" --remote --fields title,company,job_url\n\nexit codes:\n  0    at least one board answered, also with no jobs\n  1    every board failed\n  2    usage error\n  130  interrupted\n\noptions:\n  -h, --help                  show this help message and exit\n  -V, --version               show program's version number and exit\n\nsearch:\n  QUERY                       search term\n  --location TEXT             city, state or country\n  --distance N                miles (default 50)\n  --remote                    remote jobs only\n  --job-type T                one of the job types below\n  --hours-old N               posted in the last N hours\n  --easy-apply                jobs hosted on the board\n  --country-indeed C          Indeed and Glassdoor (default usa)\n  -n, --results-wanted N      per board (default 5)\n  --offset N                  skip the first N results\n\nboards:\n  --site LIST                 comma list (default: see board names below)\n  --fetch-description         fetch each job's page (one request per job)\n  --description-format F      markdown (default), html, plain\n  --enforce-annual-salary     convert pay to yearly\n  --linkedin-company-ids IDS  LinkedIn company ids\n  --proxies LIST              a URL, a comma list, or a file with one per line\n  --ca-cert PATH              CA bundle for the proxy\n  --user-agent TEXT           User-Agent header\n\noutput:\n  --fields LIST               see below\n  -o, --output FILE           also save full records (.csv, .json or .jsonl)\n\ndiagnostics:\n  stderr shows warnings by default\n\n  -q, --quiet                 errors\n  -v, --verbose               info\n\nboard names:\n  indeed, linkedin, zip_recruiter, glassdoor (default)\n  bayt (Middle East), naukri (India), bdjobs (Bangladesh), hellowork (France)\n\njob types:\n  fulltime, parttime, contract, temporary, internship, perdiem, other,\n  volunteer\n\ndefault fields:\n  site, title, company, location, date_posted, job_type, is_remote,\n  min_amount, max_amount, currency, interval, job_url\n\nother fields (--fields takes any of these, or all):\n  id, job_url_direct, salary_source, job_level, job_function, listing_type,\n  emails, description, company_industry, company_url, company_logo,\n  company_url_direct, company_addresses, company_num_employees,\n  company_revenue, company_description, skills, experience_range,\n  company_rating, company_reviews_count, vacancy_count, work_from_home_type",
+    "stderrTail": "Installed 22 packages in 112ms\n"
+  },
+  "observedDistribution": {
+    "version": "1.4.1",
+    "entryPoints": [
+      {
+        "name": "jobspy",
+        "value": "jobspy.cli:main",
+        "group": "console_scripts"
+      },
+      {
+        "name": "mcp-jobspy",
+        "value": "jobspy.mcp:main",
+        "group": "console_scripts"
+      }
+    ]
+  },
+  "acceptance": {
+    "exactVersionLoaded": true,
+    "jobspyCliExposed": true,
+    "mcpJobspyExposed": true,
+    "jobspyHelpExitZero": true
+  },
+  "truthBoundary": "This proves pinned package acquisition/import and advertised local entry points only. It does not prove any job board is reachable, permits scraping, has fresh vacancies, or will remain compatible."
+}

@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 3,
+  "kind": "ordivon.career.external-provider-stack-plan",
+  "status": "DETACHED_REMEDIATION_AFTER_INDEPENDENT_BLOCK",
+  "truthRole": "owner-local-composition-plan-not-provider-truth",
+  "sourceBaseline": "4733af25b4b3296ea75e3b370ec539f1bfd860d7",
+  "originalAuditBaseline": "cbdd02771c7bc7842c38374854ffee703fb666e4",
+  "observedThroughDate": "2026-11-01",
+  "providerIdentityPolicy": {
+    "executableContract": "stable release/package/commit identity",
+    "mainBranchRole": "discovery of candidate future capability only",
+    "floatingLatestForbiddenForDurableExecution": true,
+    "rankingRole": "discovery and maintenance signal only; dated ranking decisions do not activate a provider",
+    "rationale": "Admission requires a real consumer plus evidence at the exact provider boundary being claimed."
+  },
+  "qualificationModel": {
+    "behaviorallyQualified": "exact pinned provider behavior replayed against retained fixtures/invocations",
+    "interfaceQualified": "stable interface/schema/auth boundary verified without claiming successful domain operations",
+    "dormantReference": "useful donor/candidate/standard with no active consumer or incomplete behavioral qualification"
+  },
+  "constraints": {
+    "reuseBeforeBuild": true,
+    "noCareerRuntime": true,
+    "noSecondGlobalRegistry": true,
+    "noCustomResumeOrApplicationUiByDefault": true,
+    "noDurableSqliteCareerState": true,
+    "irreversibleEffectsRequireHumanApproval": true,
+    "providerCaseStateIsNotExternalTruth": true,
+    "providerScoresAreDiagnosticsNotOutcomeProbability": true,
+    "unknownIsNotFalse": true
+  },
+  "sourcePrecedence": [
+    "official ATS API / employer structured source",
+    "Schema.org JobPosting / provider-native structured page",
+    "official employer career page",
+    "qualified external discovery provider with a concrete consumer",
+    "generic browser/scrape only when justified"
+  ],
+  "behaviorallyQualified": [
+    {
+      "id": "career-gap-diagnostic",
+      "provider": "career-ops-hq/career-ops",
+      "version": "1.38.0",
+      "releaseGitHead": "115bc9873e3d43e23883f3c8f16436617facc62c",
+      "packageBoundary": "top-level npm CLI scaffolds a workspace",
+      "executableBoundary": "initialized stable-release workspace: node jd-skill-gap.mjs synthetic-jd.md",
+      "standing": "BEHAVIORALLY_REPLAYED_SYNTHETIC",
+      "replayEvidence": "meta/next/evidence/career/career-ops-1.38.0-replay-20261101.json",
+      "replayScript": "meta/next/scripts/replay_career_provider_qualification.py",
+      "consumer": "Synthetic evaluator exercising CE4 skill-gap diagnostic against committed synthetic JD/CV fixtures; no connected Career Record consumer",
+      "authorityBoundary": "derived diagnostic only; not employer eligibility, hiring probability, or durable Career state",
+      "activeConsumerState": "NO_CONNECTED_REAL_CAREER_RECORD_CONSUMER"
+    }
+  ],
+  "interfaceQualified": [
+    {
+      "id": "resume-application-product-surface",
+      "provider": "reactive-resume/reactive-resume",
+      "stableRelease": "v6.0.9",
+      "releaseCommit": "854459a44eb896ca185611bf669a65be4d5111cf",
+      "hostedMcpEndpoint": "https://rxresu.me/mcp",
+      "standing": "STABLE_NATIVE_PLUGIN_INTERFACE_VERIFIED_NOT_CONNECTED",
+      "evidence": "meta/next/evidence/career/reactive-resume-mcp-boundary-20261031.json",
+      "consumerState": "NO_AUTHENTICATED_CONSUMER_IN_THIS_CANDIDATE",
+      "authorityBoundary": "preferred external resume/cover-letter/application product surface by interface fit; no authenticated product behavior is admitted"
+    }
+  ],
+  "dormantReferences": [
+    {
+      "provider": "srbhr/Resume-Matcher",
+      "pin": "1.4.0",
+      "standing": "EXPERIMENT_ONLY_NO_ADMITTED_CONSUMER",
+      "reason": "Historical preservation experiment requires stateful create/read and observed ephemeral SQLite; exact PG/canonical-source composition has no real consumer.",
+      "evidence": "meta/next/evidence/career/resume-matcher-1.4.0-artifact-compiler-slice-20261101.json"
+    },
+    {
+      "provider": "Gsync/jobsync",
+      "standing": "REFERENCE_ONLY_NO_ACTIVE_BINDING",
+      "reason": "No verified slice consumes it; direct official Greenhouse API already satisfies the demonstrated Opportunity Intake path."
+    },
+    {
+      "provider": "speedyapply/JobSpy",
+      "pin": "1.4.1",
+      "standing": "DORMANT_FALLBACK_PACKAGE_SMOKE_ONLY",
+      "reason": "Package/entrypoint smoke exists, but no live-board or MCP behavioral acceptance and no concrete consumer. Prior Ordivon plugin activation is deleted."
+    },
+    {
+      "provider": "ai-job-search-dev/ai-job-search",
+      "standing": "METHOD_REFERENCE_ONLY",
+      "reason": "Workflow/source-adapter patterns may be mined on demand; no whole-product binding."
+    },
+    {
+      "provider": "jsonresume/jsonresume.org",
+      "standing": "INTERCHANGE_REFERENCE_NO_ACTIVE_CONSUMER",
+      "reason": "Useful schema ecosystem; activate only when a concrete interchange consumer exists."
+    },
+    {
+      "provider": "rendercv/rendercv",
+      "standing": "NO_CURRENT_CONSUMER",
+      "reason": "Optional renderer only."
+    }
+  ],
+  "integrationGate": {
+    "remoteMainObserved": "4733af25b4b3296ea75e3b370ec539f1bfd860d7",
+    "sourceBaseline": "4733af25b4b3296ea75e3b370ec539f1bfd860d7",
+    "remoteMainMatchesSourceBaseline": true,
+    "spacePeerReviewHandoffSequences": [
+      23952,
+      23961,
+      23962
+    ],
+    "lastIndependentReview": {
+      "reviewedHead": "baf7f557e0bf29866f231cf1af4b8a4a58632257",
+      "harness": "Codex CLI ephemeral read-only",
+      "evidence": "meta/next/evidence/career/independent-codex-review-baf7f557-20261101.json",
+      "verdict": "BLOCK",
+      "independentCounterexampleObserved": true,
+      "blockers": [
+        "C1",
+        "C2",
+        "C3"
+      ]
+    },
+    "remediationState": "C1_C2_C3_CLOSED_IN_SYNTHETIC_SCOPE_POST_REMEDIATION_REVIEW",
+    "freshIndependentReviewRequired": true,
+    "mergeAdmitted": false,
+    "reason": "Independent review of implementation HEAD 21d2c38 closed C1/C2/C3 within synthetic scope. Current metadata-only corrections still require a final source-bound review; production admission and whole-owner verification are separate.",
+    "latestRemediationReview": {
+      "reviewedHead": "21d2c38b15ace4f39ed657a186f29ead8a956efe",
+      "harness": "Codex CLI ephemeral read-only",
+      "reviewJobId": "job-01a1939a-511d-7403-8e9d-df45b5895916",
+      "verdict": "PASS_WITH_FINDINGS",
+      "blockers": [],
+      "priorBlockersClosed": [
+        "C1",
+        "C2",
+        "C3"
+      ],
+      "findings": [
+        "stale base refs",
+        "synthetic consumer overstated"
+      ],
+      "scope": "implementation head before metadata-only corrections"
+    }
+  },
+  "authority": {
+    "careerRecord": "Ordivon/private user-authorized record composition",
+    "opportunityTruth": "external employer/ATS/provider",
+    "durableExecution": "Ordivon Runtime",
+    "coordinationEvidence": "Ordivon Host",
+    "persistence": "Ordivon PostgreSQL for Ordivon-owned durable state; provider-local persistence is not Career authority",
+    "effectApproval": "user/human"
+  },
+  "evidenceClassification": [
+    {
+      "id": "career-ops-provider-native-replay",
+      "evidence": "meta/next/evidence/career/career-ops-1.38.0-replay-20261101.json",
+      "standing": "PROVIDER_NATIVE_REPLAY_VERIFIED",
+      "admissionUse": "supports the narrow behaviorallyQualified Career-Ops gap diagnostic"
+    },
+    {
+      "id": "cloudflare-live-slice",
+      "evidence": "meta/next/evidence/career/cloudflare-8245211-career-ops-vertical-slice-20261031.json",
+      "standing": "HISTORICAL_LIVE_OBSERVATION_NOT_REPLAY_COMPLETE",
+      "admissionUse": "context/evidence only; does not independently qualify provider behavior"
+    },
+    {
+      "id": "resume-matcher-preservation-slice",
+      "evidence": "meta/next/evidence/career/resume-matcher-1.4.0-artifact-compiler-slice-20261101.json",
+      "standing": "EXPERIMENT_ONLY_NOT_ADMITTED",
+      "admissionUse": "records a useful preservation counterexample, not an active provider binding"
+    }
+  ],
+  "nonSelections": [
+    {
+      "repository": "xitanggg/open-resume",
+      "reason": "stale upstream at the dated census and no unique verified current consumer"
+    },
+    {
+      "repository": "applypack/applypack",
+      "reason": "no unique verified consumer relative to currently qualified surfaces; popularity is not an acceptance criterion"
+    }
+  ],
+  "evidenceRefs": [
+    "meta/next/evidence/career/github-career-provider-ranking-20261031.json",
+    "meta/next/evidence/career/career-ops-1.38.0-provider-smoke-20261031.json",
+    "meta/next/evidence/career/career-ops-1.38.0-replay-20261101.json",
+    "meta/next/evidence/career/reactive-resume-mcp-boundary-20261031.json",
+    "meta/next/evidence/career/provider-overlap-falsification-20261101.json",
+    "meta/next/evidence/career/resume-matcher-1.4.0-provider-smoke-20261101.json",
+    "meta/next/evidence/career/cloudflare-8245211-career-ops-vertical-slice-20261031.json",
+    "meta/next/evidence/career/resume-matcher-1.4.0-artifact-compiler-slice-20261101.json",
+    "meta/next/evidence/career/independent-codex-review-baf7f557-20261101.json",
+    "meta/next/knowledge/lessons/github-top100-capability-radar-r2.md"
+  ]
+}

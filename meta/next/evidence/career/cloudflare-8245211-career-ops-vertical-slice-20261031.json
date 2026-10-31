@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.career.vertical-slice-evidence",
+  "observedAtDate": "2026-10-31",
+  "slice": "official ATS -> Career-Ops release skill extraction -> Career-Ops release keyword coverage",
+  "providerBindings": {
+    "opportunityIntake": {
+      "provider": "Greenhouse official Job Board API",
+      "jobId": 8245211
+    },
+    "careerOps": {
+      "npm": "@santifer/career-ops",
+      "version": "1.38.0",
+      "gitHead": "115bc9873e3d43e23883f3c8f16436617facc62c"
+    }
+  },
+  "opportunity": {
+    "provider": "Greenhouse Job Board API",
+    "board": "cloudflare",
+    "jobId": 8245211,
+    "title": "Software Engineer Intern (2027)",
+    "updatedAt": "2026-10-30T18:16:11-04:00",
+    "absoluteUrl": "https://boards.greenhouse.io/cloudflare/jobs/8245211?gh_jid=8245211",
+    "officeNames": [
+      "London, United Kingdom"
+    ],
+    "departmentNames": [
+      "University"
+    ],
+    "questionLabels": [
+      "First Name",
+      "Last Name",
+      "Email",
+      "Phone",
+      "Resume/CV",
+      "Cover Letter",
+      "Legal Name (if different than above)",
+      "Linkedin Profile",
+      "Github Profile URL",
+      "How did you hear about this job?",
+      "Do you currently have the right to work in the UK?",
+      "Do you now or will you in the future require immigration sponsorship to work at Cloudflare?",
+      "Are you currently enrolled in a university or program and will return to the program upon completion of internship?",
+      "If you are currently enrolled in a university or program, when do you expect to graduate or complete your program? (Select the closest date.)",
+      "If you are enrolled in university, what degree are you currently pursuing?\n",
+      "A successful internship may lead to consideration for a full-time opportunity. If you were to receive a full-time offer, when would you be available to start?",
+      "Which term(s) are you available to intern?",
+      "Are you available for a 12-week full-time (40 hours per week) internship during your select term(s)?",
+      "Are you able to work in our London office 3–5 days a week?",
+      "Area of interest in Software Engineering\n",
+      "Why are you interested in Cloudflare's Software Engineering Internship? What products or features are you interested in building?",
+      "Please review and acknowledge Cloudflare's Candidate Privacy Policy (cloudflare.com/candidate-privacy-notice/)."
+    ],
+    "rawSha256": "4fbc034e335ac474004b4e3bf0817df0e7b869f00e33b5e70e4759b856487a37"
+  },
+  "syntheticCandidate": true,
+  "extractedSkills": [
+    "Spring",
+    "TypeScript",
+    "JavaScript",
+    "Rust",
+    "C++",
+    "Python",
+    "Go"
+  ],
+  "coverage": {
+    "total": 7,
+    "presentCount": 4,
+    "coveragePct": 57,
+    "present": [
+      "TypeScript",
+      "Rust",
+      "Python",
+      "Go"
+    ],
+    "thin": [
+      "TypeScript",
+      "Rust",
+      "Python",
+      "Go"
+    ],
+    "missing": [
+      "Spring",
+      "JavaScript",
+      "C++"
+    ],
+    "keywordSource": "report"
+  },
+  "evidenceStanding": "HISTORICAL_LIVE_OBSERVATION_NOT_REPLAY_COMPLETE",
+  "admissionUse": "context only; the retained file does not include all source bytes, synthetic inputs and invocations needed for independent provider replay",
+  "truthBoundary": "The official ATS observation establishes the captured posting at observation time. Career-Ops extraction/coverage are deterministic diagnostics over that text and a synthetic CV; they are not employer eligibility, hiring probability, application submission, future vacancy proof, or current provider-admission proof."
+}

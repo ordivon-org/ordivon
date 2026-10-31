@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.career.provider-overlap-falsification",
+  "observedAtDate": "2026-11-01",
+  "purpose": "Record deletion/demotion decisions after independent falsification; absence claims remain bounded.",
+  "independentReview": {
+    "evidence": "meta/next/evidence/career/independent-codex-review-baf7f557-20261101.json",
+    "reviewedHead": "baf7f557e0bf29866f231cf1af4b8a4a58632257",
+    "verdict": "BLOCK"
+  },
+  "reactiveResume": {
+    "stableRelease": "v6.0.9",
+    "releaseCommit": "854459a44eb896ca185611bf669a65be4d5111cf",
+    "stableAgentPluginSchemaValidated": true,
+    "stableMcpSchemaValidated": true,
+    "hostedEndpoint": "https://rxresu.me/mcp",
+    "decision": "INTERFACE_QUALIFIED_NOT_BEHAVIORALLY_CONNECTED",
+    "rationale": "Stable plugin/MCP schemas and hosted OAuth boundary are observed, but no authenticated resume/application operation was executed."
+  },
+  "jobSyncOverlap": {
+    "productOverlapWithReactiveResume": true,
+    "referencedMethods": [
+      "scheduled Greenhouse discovery",
+      "scheduled Lever discovery",
+      "scheduled Ashby discovery",
+      "company-board directory resolution",
+      "review-before-promote discovery pattern"
+    ],
+    "decision": "DEMOTE_TO_REFERENCE_NO_ACTIVE_BINDING",
+    "rationale": "No verified consumer depends on JobSync; the demonstrated Opportunity Intake path uses the official Greenhouse API directly."
+  },
+  "resumeMatcherOverlap": {
+    "historicalCapability": "source-preservation validation on provider-canonical synthetic state",
+    "observedCounterexample": "education institution mutation rejected with education.identity while summary still emitted GROUNDING_REVIEW_REQUIRED",
+    "decision": "DEMOTE_TO_EXPERIMENT_NO_ADMITTED_CONSUMER",
+    "rationale": "The demonstrated preservation path is stateful and used ephemeral SQLite; no real consumer proves the canonical-source/PG composition."
+  },
+  "careerOpsOverlap": {
+    "decision": "KEEP_NARROW_DETERMINISTIC_DIAGNOSTIC",
+    "qualifiedCapability": "jd-skill-gap over committed synthetic JD/CV",
+    "replayEvidence": "meta/next/evidence/career/career-ops-1.38.0-replay-20261101.json",
+    "currentnessCounterexample": "initialized stable 1.38.0 keyword-match script rejects main-only --url",
+    "broaderWorkflowStanding": "DONOR_ONLY"
+  },
+  "jobSpyOverlap": {
+    "decision": "DEMOTE_TO_DORMANT_NO_ACTIVE_PLUGIN",
+    "rationale": "Only package/help/entrypoint smoke exists; no live-board/MCP behavioral acceptance or concrete consumer."
+  },
+  "lowerStarSearch": {
+    "queries": [
+      "Greenhouse Lever Ashby job search MCP",
+      "resume verification job application MCP"
+    ],
+    "exactGitHubSearchResults": [
+      [],
+      []
+    ],
+    "conclusionState": "UNKNOWN",
+    "conclusion": "The exact targeted searches found no alternatives; this is not exhaustive evidence and does not justify acceptance or rejection by popularity."
+  },
+  "correction": {
+    "priorReactiveResumeStableChannel": "v6.0.2",
+    "correctedStableChannel": "v6.0.9",
+    "reason": "Latest-stable observation superseded the stale candidate value."
+  },
+  "truthBoundary": "This evidence records bounded de-duplication/demotion decisions. It does not prove exhaustive absence of alternatives, authenticated Reactive Resume behavior, or future provider availability."
+}

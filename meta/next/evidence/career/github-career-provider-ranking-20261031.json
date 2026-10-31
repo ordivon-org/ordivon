@@ -1,0 +1,303 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.career.external-provider-ranking-observation",
+  "observedAtDate": "2026-10-31",
+  "source": "GitHub repository and GraphQL APIs via gh; upstream source interfaces inspected separately at exact heads",
+  "rankingRule": "stars descending; adoption additionally requires maintenance, interface fit, license and authority-boundary fit",
+  "truthBoundary": "Stars/activity are volatile discovery evidence, not correctness, security, availability, legal permission or career-outcome proof.",
+  "providers": [
+    {
+      "repository": "career-ops-hq/career-ops",
+      "stars": 78931,
+      "forks": 14566,
+      "archived": false,
+      "license": "MIT",
+      "defaultBranch": "main",
+      "head": "5faf02498b2e36d1af212472d390254f849e68db",
+      "headCommittedAt": "2026-10-30T21:04:00Z",
+      "pushedAt": "2026-10-31T06:03:20Z",
+      "commits30d": 1166,
+      "commits90d": 2592,
+      "latestRelease": {
+        "name": "web: v0.16.0",
+        "tagName": "web-v0.16.0",
+        "publishedAt": "2026-10-23T17:34:21Z",
+        "isDraft": false,
+        "isPrerelease": false,
+        "url": "https://github.com/career-ops-hq/career-ops/releases/tag/web-v0.16.0"
+      },
+      "description": "Open-source AI job search agent and job finder: scan job boards, score each job 1-5 against your CV before you apply, tailor an ATS-friendly resume and cover letter, get interview prep and an application tracker. It helps you fill in each application; you press Submit. Runs locally in Codex, OpenCode and other AI CLIs, or as a Claude Code plugin.",
+      "selectionTier": "PRIMARY",
+      "decision": "ADOPT_SKILL_AND_VALIDATOR_DONOR",
+      "interface": [
+        "Agent Skill",
+        "multi-CLI workflow",
+        "deterministic Node validators"
+      ],
+      "role": "Primary workflow/rubric/provenance donor; do not adopt file-first tracker as Ordivon canonical state.",
+      "authorityBoundary": "Candidate analysis/material only; Ordivon Runtime/Host/PG retain durable composition state and external employers retain outcome authority."
+    },
+    {
+      "repository": "ai-job-search-dev/ai-job-search",
+      "stars": 68079,
+      "forks": 21618,
+      "archived": false,
+      "license": "MIT",
+      "defaultBranch": "master",
+      "head": "83c788d779b74522bb346145ef675b984bf2d3f7",
+      "headCommittedAt": "2026-10-27T15:14:35Z",
+      "pushedAt": "2026-10-31T05:59:09Z",
+      "commits30d": 133,
+      "commits90d": 292,
+      "latestRelease": {
+        "name": "v1.7.3 - Least privilege, postings checked before use, and fifty-eight fixes",
+        "tagName": "v1.7.3",
+        "publishedAt": "2026-10-19T16:42:35Z",
+        "isDraft": false,
+        "isPrerelease": false,
+        "url": "https://github.com/ai-job-search-dev/ai-job-search/releases/tag/v1.7.3"
+      },
+      "description": "The job search that runs on your machine. AI job application framework built on Claude Code: evaluate postings, tailor CVs, write cover letters, prep interviews. Fork it and own it.",
+      "selectionTier": "METHOD_DONOR",
+      "decision": "ABSORB_WORKFLOW_AND_SOURCE_ADAPTER_METHODS",
+      "interface": [
+        "Agent Skills",
+        "TypeScript source CLIs",
+        "deterministic Python guards"
+      ],
+      "role": "Reuse staged rank/apply, source adapters, input guards and drafted-vs-applied methods; avoid a second end-to-end product/runtime.",
+      "authorityBoundary": "Adapter observations and generated artifacts are not application receipts or employer truth."
+    },
+    {
+      "repository": "reactive-resume/reactive-resume",
+      "stars": 45111,
+      "forks": 4901,
+      "archived": false,
+      "license": "MIT",
+      "defaultBranch": "main",
+      "head": "38c05e622b3fde10ce1c0d8767bfc1f59958a88f",
+      "headCommittedAt": "2026-10-31T06:07:04Z",
+      "pushedAt": "2026-10-31T06:07:08Z",
+      "commits30d": 267,
+      "commits90d": 685,
+      "latestRelease": {
+        "name": "forme-native-v0.0.0-f7a5ce86fcfafb330e8f8b0b05a9403e132f0185bf7b74ef8ff411dedf05ceb9",
+        "tagName": "forme-native-v0.0.0-f7a5ce86fcfafb330e8f8b0b05a9403e132f0185bf7b74ef8ff411dedf05ceb9",
+        "publishedAt": "2026-10-30T06:45:34Z",
+        "isDraft": false,
+        "isPrerelease": true,
+        "url": "https://github.com/reactive-resume/reactive-resume/releases/tag/forme-native-v0.0.0-f7a5ce86fcfafb330e8f8b0b05a9403e132f0185bf7b74ef8ff411dedf05ceb9"
+      },
+      "description": "A one-of-a-kind resume builder that keeps your privacy in mind. Completely secure, customizable, portable, open-source and free forever. Try it out today!",
+      "selectionTier": "PRIMARY",
+      "decision": "ADOPT_PRODUCT_API_MCP_DONOR",
+      "interface": [
+        "MCP",
+        "REST/OpenAPI",
+        "PostgreSQL self-hosted product"
+      ],
+      "role": "Primary product/UI/API donor for resumes, cover letters and user-visible application case tracking.",
+      "authorityBoundary": "Product case state is not proof an employer received or acted unless separately observed."
+    },
+    {
+      "repository": "srbhr/Resume-Matcher",
+      "stars": 28979,
+      "forks": 5114,
+      "archived": false,
+      "license": "Apache-2.0",
+      "defaultBranch": "main",
+      "head": "8c6a1b75c6f4eb2e7b9d49986dc5d0a80d5a4234",
+      "headCommittedAt": "2026-10-30T06:46:36Z",
+      "pushedAt": "2026-10-30T06:46:46Z",
+      "commits30d": 542,
+      "commits90d": 744,
+      "latestRelease": {
+        "name": "1.4 Short Circuit",
+        "tagName": "v1.4.0",
+        "publishedAt": "2026-10-21T20:38:33Z",
+        "isDraft": false,
+        "isPrerelease": false,
+        "url": "https://github.com/srbhr/Resume-Matcher/releases/tag/v1.4.0"
+      },
+      "description": "The #1 AI Harness for Building Resumes, PDFs, Cover Letters & more, locally with 100+ LLMs support.",
+      "selectionTier": "COMPOSED",
+      "decision": "ADOPT_NARROW_MCP_CLI_ARTIFACT_COMPILER",
+      "interface": [
+        "MCP",
+        "JSON CLI"
+      ],
+      "role": "Use tailor/verify/score/export only where it adds measurable value beyond Reactive Resume; never create a second canonical application store.",
+      "authorityBoundary": "Generated or scored resume content remains a claim/artifact and must stay source-grounded."
+    },
+    {
+      "repository": "rendercv/rendercv",
+      "stars": 17873,
+      "forks": 1378,
+      "archived": false,
+      "license": "MIT",
+      "defaultBranch": "main",
+      "head": "1d4b87bc427e4cf61c0ef49623c971b0e2224708",
+      "headCommittedAt": "2026-03-25T13:45:27Z",
+      "pushedAt": "2026-10-31T03:16:04Z",
+      "commits30d": 0,
+      "commits90d": 0,
+      "latestRelease": {
+        "name": "v2.8",
+        "tagName": "v2.8",
+        "publishedAt": "2026-03-21T00:17:12Z",
+        "isDraft": false,
+        "isPrerelease": false,
+        "url": "https://github.com/rendercv/rendercv/releases/tag/v2.8"
+      },
+      "description": "Resume builder for academics and engineers",
+      "selectionTier": "ON_DEMAND",
+      "decision": "ON_DEMAND_RENDER_PROVIDER",
+      "interface": [
+        "CLI/library"
+      ],
+      "role": "Retain as deterministic rendering option only if selected artifact consumers require it.",
+      "authorityBoundary": "Rendering correctness is not career-outcome evidence."
+    },
+    {
+      "repository": "xitanggg/open-resume",
+      "stars": 8957,
+      "forks": 1044,
+      "archived": false,
+      "license": "AGPL-3.0",
+      "defaultBranch": "main",
+      "head": "4f8255a2c763479837f69f1dccf2a3338730cd79",
+      "headCommittedAt": "2024-10-29T07:41:39Z",
+      "pushedAt": "2024-10-29T07:41:51Z",
+      "commits30d": 0,
+      "commits90d": 0,
+      "latestRelease": null,
+      "description": "OpenResume is a powerful open-source resume builder and resume parser. https://open-resume.com/",
+      "selectionTier": "STALE",
+      "decision": "NO_NEW_ADOPTION_STALE",
+      "interface": [
+        "Web app"
+      ],
+      "role": "Do not choose as a new primary donor while upstream main remains stale.",
+      "authorityBoundary": "Historical popularity does not override current maintenance."
+    },
+    {
+      "repository": "speedyapply/JobSpy",
+      "stars": 4600,
+      "forks": 912,
+      "archived": false,
+      "license": "MIT",
+      "defaultBranch": "main",
+      "head": "68b88d6909a2342ad75fbb945c4204a3a7ed6665",
+      "headCommittedAt": "2026-10-27T15:30:40Z",
+      "pushedAt": "2026-10-27T15:30:44Z",
+      "commits30d": 32,
+      "commits90d": 40,
+      "latestRelease": {
+        "name": "v1.4.1",
+        "tagName": "v1.4.1",
+        "publishedAt": "2026-10-23T05:11:40Z",
+        "isDraft": false,
+        "isPrerelease": false,
+        "url": "https://github.com/speedyapply/JobSpy/releases/tag/v1.4.1"
+      },
+      "description": "Jobs scraper library for LinkedIn, Indeed, Glassdoor, ZipRecruiter, Bayt, Naukri, BDJobs & HelloWork",
+      "selectionTier": "COMPOSED",
+      "decision": "ADOPT_PINNED_MCP_DISCOVERY_FALLBACK",
+      "interface": [
+        "PyPI library",
+        "CLI",
+        "MCP"
+      ],
+      "role": "Pinned discovery adapter after official ATS APIs / structured feeds; use with source-specific compliance/currentness checks.",
+      "authorityBoundary": "Scraped observations can be blocked/stale and do not prove vacancy availability or provider permission."
+    },
+    {
+      "repository": "Gsync/jobsync",
+      "stars": 1476,
+      "forks": 263,
+      "archived": false,
+      "license": "MIT",
+      "defaultBranch": "main",
+      "head": "8c20325c35dbf203334a270cef5aef446f06a774",
+      "headCommittedAt": "2026-10-30T22:13:41Z",
+      "pushedAt": "2026-10-30T22:16:17Z",
+      "commits30d": 63,
+      "commits90d": 361,
+      "latestRelease": {
+        "name": "v1.2.0",
+        "tagName": "v1.2.0",
+        "publishedAt": "2026-10-30T21:49:01Z",
+        "isDraft": false,
+        "isPrerelease": false,
+        "url": "https://github.com/Gsync/jobsync/releases/tag/v1.2.0"
+      },
+      "description": "Job application tracker and AI-powered job search assistant. Helps job seekers manage their search journey with AI resume review, job matching, task logging, and application analytics, all while keeping your data private.",
+      "selectionTier": "COMPARE",
+      "decision": "TARGETED_COMPARE_NOT_PARALLEL_PRODUCT",
+      "interface": [
+        "MCP",
+        "self-hosted Postgres app"
+      ],
+      "role": "Mine Greenhouse/Lever/Ashby discovery and tracker semantics; avoid parallel deployment if Reactive Resume satisfies the same consumers.",
+      "authorityBoundary": "Self-hosted tracker state is user-side case state, not employer truth."
+    },
+    {
+      "repository": "jsonresume/jsonresume.org",
+      "stars": 342,
+      "forks": 69,
+      "archived": false,
+      "license": "MIT",
+      "defaultBranch": "master",
+      "head": "5aef1d01f6ce51c71c724c3fa18cc993423337e7",
+      "headCommittedAt": "2026-10-30T22:16:54Z",
+      "pushedAt": "2026-10-30T22:17:54Z",
+      "commits30d": 161,
+      "commits90d": 183,
+      "latestRelease": {
+        "name": "jsonresume-theme-urban-techno@0.2.10",
+        "tagName": "jsonresume-theme-urban-techno@0.2.10",
+        "publishedAt": "2026-10-23T03:14:11Z",
+        "isDraft": false,
+        "isPrerelease": false,
+        "url": "https://github.com/jsonresume/jsonresume.org/releases/tag/jsonresume-theme-urban-techno%400.2.10"
+      },
+      "description": "The mono repo that builds the homepage, utils, ui components, registry and anything else",
+      "selectionTier": "STANDARD",
+      "decision": "ADOPT_INTERCHANGE_SCHEMA_ECOSYSTEM",
+      "interface": [
+        "JSON Resume schema/packages"
+      ],
+      "role": "Use for resume interchange where compatible; legacy resume-cli/schema repositories moved into this active monorepo.",
+      "authorityBoundary": "Interchange schema does not authenticate factual claims."
+    },
+    {
+      "repository": "applypack/applypack",
+      "stars": 30,
+      "forks": 11,
+      "archived": false,
+      "license": "MIT",
+      "defaultBranch": "main",
+      "head": "bb5ed6f9e0ddbf410b1e9a4559f500f246c1677c",
+      "headCommittedAt": "2026-10-29T13:57:17Z",
+      "pushedAt": "2026-10-29T14:36:44Z",
+      "commits30d": 689,
+      "commits90d": 1905,
+      "latestRelease": {
+        "name": "v2.63.41 — a letter after Save as vN, the years gate counts its own work",
+        "tagName": "v2.63.41",
+        "publishedAt": "2026-10-29T13:57:26Z",
+        "isDraft": false,
+        "isPrerelease": false,
+        "url": "https://github.com/applypack/applypack/releases/tag/v2.63.41"
+      },
+      "description": "Self-hosted AI console for the whole job search: finds the postings, checks they're real, scores your resume without flattering it, drafts the cover letter, tracks the application. 22 sources, 5 swappable AI backends, your data in your own Postgres.",
+      "selectionTier": "WATCHLIST",
+      "decision": "WATCH_ACTIVE_LOW_STAR",
+      "interface": [
+        "self-hosted app"
+      ],
+      "role": "Monitor fast-moving local-first design; do not prefer over higher-star active donors without a unique consumer.",
+      "authorityBoundary": "Activity velocity alone is not maturity or correctness proof."
+    }
+  ]
+}
