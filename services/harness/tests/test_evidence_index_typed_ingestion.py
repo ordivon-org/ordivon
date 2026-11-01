@@ -596,6 +596,80 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
                 check_evidence.ROOT = previous_root
                 check_evidence.EVIDENCE = previous_evidence
 
+    def test_pinned_original_source_can_be_qualified_without_network_from_complete_git_graph(
+        self,
+    ) -> None:
+        """Original pinned Git DAG is the trust anchor; no mutable remote HEAD."""
+        from unittest.mock import patch
+
+        source_cut = check_evidence._HARNESS_ORIGINAL_SOURCE_CUT
+        locally_available = (
+            subprocess.run(
+                ["git", "--no-replace-objects", "cat-file", "-e", f"{source_cut}^{{tree}}"],
+                cwd=ROOT,
+                env={**check_evidence._original_source_git_environment(), "GIT_NO_LAZY_FETCH": "1"},
+                capture_output=True,
+                check=False,
+            ).returncode
+            == 0
+        )
+        if not locally_available:
+            self.skipTest("exact original Git object tree is not present locally")
+        # No network access is permitted. Old clone-from-remote implementation
+        # is RED here; a fully materialized content-addressed original DAG
+        # is allowed only with exact pinned cut and independent Git object DB.
+        check_evidence._historical_source_checkout.cache_clear()
+        try:
+            with patch.object(
+                check_evidence,
+                "_HARNESS_ORIGINAL_SOURCE_REPO",
+                "file:///definitely-not-an-original-repository",
+            ):
+                repository = check_evidence._historical_source_checkout()
+                self.assertEqual(
+                    subprocess.check_output(
+                        ["git", "--no-replace-objects", "rev-parse", "HEAD"],
+                        cwd=repository,
+                        text=True,
+                    ).strip(),
+                    source_cut,
+                )
+                self.assertFalse((repository / "objects/info/alternates").exists())
+                actual = check_evidence._validate_original_historical_source(
+                    "harness-campaign3-rich-effect-owner-v1-capture.json",
+                    EXPECTED["harness.research.campaign3-rich-effect-owner-capture-v1"][2],
+                    (
+                        ROOT / "evidence/harness-campaign3-rich-effect-owner-v1-capture.json"
+                    ).read_bytes(),
+                )
+                self.assertEqual(actual, [])
+        finally:
+            check_evidence._historical_source_checkout.cache_clear()
+
+    def test_unrelated_monorepo_git_cut_cannot_impersonate_original_source_offline(self) -> None:
+        from unittest.mock import patch
+
+        current_cut = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            text=True,
+        ).strip()
+        self.assertNotEqual(current_cut, check_evidence._HARNESS_ORIGINAL_SOURCE_CUT)
+        check_evidence._historical_source_checkout.cache_clear()
+        try:
+            with (
+                patch.object(check_evidence, "_HARNESS_ORIGINAL_SOURCE_CUT", current_cut),
+                patch.object(
+                    check_evidence,
+                    "_HARNESS_ORIGINAL_SOURCE_REPO",
+                    "file:///definitely-not-an-original-repository",
+                ),
+            ):
+                with self.assertRaises(subprocess.CalledProcessError):
+                    check_evidence._historical_source_checkout()
+        finally:
+            check_evidence._historical_source_checkout.cache_clear()
+
     def test_complete_evidence_contract_is_green(self) -> None:
         completed = subprocess.run(
             [sys.executable, str(SCRIPT)],

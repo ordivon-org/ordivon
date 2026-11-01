@@ -447,28 +447,174 @@ def _original_source_git_environment() -> dict[str, str]:
     }
 
 
+def _local_pinned_original_source_graph(directory: Path) -> bool:
+    """Build an isolated, complete original Git DAG from pinned local objects.
+
+    This does NOT turn a monorepo ancestry check into a source proof. Git
+    transfers exactly the hardcoded original *commit object* (including its
+    immutable parents and trees) into a new bare object database. Neither
+    current HEAD, a tree-prefix rewrite, alternate objects, nor local Git
+    grafts/replace refs are admitted as the original-source identity.
+    """
+    environment = _original_source_git_environment()
+    environment["GIT_NO_LAZY_FETCH"] = "1"
+    try:
+        source = subprocess.check_output(
+            ["git", "--no-replace-objects", "rev-parse", "--show-toplevel"],
+            cwd=ROOT,
+            env=environment,
+            text=True,
+            timeout=12,
+        ).strip()
+        subprocess.run(
+            [
+                "git",
+                "--no-replace-objects",
+                "cat-file",
+                "-e",
+                f"{_HARNESS_ORIGINAL_SOURCE_CUT}^{{tree}}",
+            ],
+            cwd=source,
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=12,
+        )
+        # An unrelated monorepo commit has a valid Git hash too; it cannot
+        # masquerade as the old standalone Harness source root.
+        subprocess.run(
+            [
+                "git",
+                "--no-replace-objects",
+                "cat-file",
+                "-e",
+                f"{_HARNESS_ORIGINAL_SOURCE_CUT}:src/ordivon_harness",
+            ],
+            cwd=source,
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=12,
+        )
+        imported = subprocess.run(
+            [
+                "git",
+                "--no-replace-objects",
+                "cat-file",
+                "-e",
+                f"{_HARNESS_ORIGINAL_SOURCE_CUT}:services/harness/src/ordivon_harness",
+            ],
+            cwd=source,
+            env=environment,
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=12,
+        )
+        if imported.returncode == 0:
+            raise ValueError("pinned original source is a monorepo-root object")
+        subprocess.run(
+            ["git", "init", "--bare", "-q", str(directory)],
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=12,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "protocol.file.allow=always",
+                "fetch",
+                "--no-tags",
+                "--quiet",
+                source,
+                _HARNESS_ORIGINAL_SOURCE_CUT,
+            ],
+            cwd=directory,
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=70,
+        )
+        subprocess.run(
+            ["git", "update-ref", "refs/heads/pinned-original", _HARNESS_ORIGINAL_SOURCE_CUT],
+            cwd=directory,
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            timeout=12,
+        )
+        subprocess.run(
+            ["git", "symbolic-ref", "HEAD", "refs/heads/pinned-original"],
+            cwd=directory,
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            timeout=12,
+        )
+        # A bare transfer never borrows objects from mutable monorepo packs
+        # after this point, and forbids lazy reads from any remote.
+        if (directory / "objects/info/alternates").exists():
+            raise ValueError("original-source graph inherited mutable alternate objects")
+        # The fast path is acceptable ONLY for a fully materialized,
+        # independently self-contained Git graph, not a promisor/shallow
+        # cache whose missing objects would be fetched after qualification.
+        subprocess.run(
+            [
+                "git",
+                "--no-replace-objects",
+                "fsck",
+                "--full",
+                "--no-reflogs",
+                "--no-dangling",
+                "--strict",
+            ],
+            cwd=directory,
+            env=environment,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=65,
+        )
+        return True
+    except OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError:
+        # A missing/incomplete local *original* graph is not permission to
+        # substitute a monorepo commit. Retain remote pinned-source fallback.
+        return False
+
+
 @lru_cache(maxsize=1)
 def _historical_source_checkout() -> Path:
     """Read-only native Git snapshot. Missing original source is NOT a PASS."""
     directory = Path(tempfile.mkdtemp(prefix="ordivon-harness-historical-git-"))
     try:
-        subprocess.run(
-            [
-                "git",
-                "-c",
-                "protocol.version=2",
-                "clone",
-                "--filter=blob:none",
-                "--single-branch",
-                "--no-checkout",
-                _HARNESS_ORIGINAL_SOURCE_REPO,
-                str(directory),
-            ],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            timeout=110,
-        )
+        if not _local_pinned_original_source_graph(directory):
+            # An unavailable immutable local original-DAG object graph must
+            # not produce false acceptance. Fall back to the existing remote
+            # original-source origin and *same* exact commit identity.
+            shutil.rmtree(directory)
+            subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "protocol.version=2",
+                    "clone",
+                    "--filter=blob:none",
+                    "--single-branch",
+                    "--no-checkout",
+                    _HARNESS_ORIGINAL_SOURCE_REPO,
+                    str(directory),
+                ],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                timeout=110,
+            )
         observed = subprocess.check_output(
             ["git", "--no-replace-objects", "rev-parse", "HEAD"],
             cwd=directory,
