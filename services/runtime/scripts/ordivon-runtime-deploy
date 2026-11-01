@@ -864,6 +864,48 @@ def latest_release_state(deployment_root: Path) -> dict[str, object] | None:
     return max(states, key=lambda item: (int(item["finishedAtMs"]), str(item["receiptEvent"])))
 
 
+def installed_baseline_drift(
+    expected: dict[str, tuple[str, int]], installed: list[dict[str, object]]
+) -> list[dict[str, object]]:
+    """Expose the existing receipt comparison as exact, read-only evidence.
+
+    This cannot authorize a release: eligibility continues to use the full
+    fingerprint equality and all original admission/rollback guards.
+    """
+    current = {str(item["name"]): item for item in installed}
+    differences: list[dict[str, object]] = []
+    for name in sorted(expected.keys() | current.keys()):
+        recorded = expected.get(name)
+        observed = current.get(name)
+        expected_digest, expected_mode = recorded if recorded is not None else (None, None)
+        observed_digest = observed.get("digest") if observed is not None else None
+        observed_mode = observed.get("mode") if observed is not None else None
+        fields: list[str] = []
+        if recorded is None:
+            fields.append("unexpected")
+        elif observed is None or not bool(observed.get("present")):
+            fields.append("missing_or_nonregular")
+        else:
+            if expected_digest != observed_digest:
+                fields.append("digest")
+            if expected_mode != observed_mode:
+                fields.append("mode")
+            if not bool(observed.get("usable")):
+                fields.append("unusable")
+        if fields:
+            differences.append(
+                {
+                    "name": name,
+                    "differenceFields": fields,
+                    "expectedDigest": expected_digest,
+                    "observedDigest": observed_digest,
+                    "expectedMode": expected_mode,
+                    "observedMode": observed_mode,
+                }
+            )
+    return differences
+
+
 def matching_release_commit(
     deployment_root: Path, installed_records: object
 ) -> str | None:
@@ -1192,6 +1234,7 @@ def deployment_plan(args: argparse.Namespace) -> dict[str, object]:
                 "artifactCount": len(baseline_names),
                 "artifactNames": sorted(baseline_names),
                 "authorized": baseline_authorized,
+                "artifactDrift": installed_baseline_drift(baseline_fingerprint, installed),
                 "additiveCandidateArtifacts": additive_candidate_names,
             }
         ),
