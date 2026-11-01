@@ -64,6 +64,7 @@ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 cargo test --locked -p ordivon-runtime-core --no-default-features --features transactional-runtime -- --skip request_identity_and_terminal_winner_match_reference_model
 python3 scripts/tests/test_focused_verification_contract.py -v
 python3 scripts/tests/test_pg_physical_verification_contract.py -v
+python3 scripts/tests/test_pg_disposable_physical.py -v
 scripts/owner-environment extended
 python scripts/check_docs.py
 mise run formal:verify
@@ -123,6 +124,11 @@ fi
 cargo test --locked -p ordivon-runtime-core --no-default-features \
   --features postgres-registry-admission pg18_ -- --ignored --nocapture --test-threads=1
 """
+
+[tasks."test:postgres-registry:disposable"]
+description = "Run native PG18 challenger tests in an isolated PostgreSQL instance; never inherit production DSN"
+run = "python scripts/pg_disposable_physical.py"
+
 
 [tasks."test:postgres-registry:stage"]
 description = "Verify the historical PostgreSQL stage remains non-authoritative; separate from fresh scratch PG tests"
