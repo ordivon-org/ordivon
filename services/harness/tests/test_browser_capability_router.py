@@ -229,6 +229,45 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         )
         self.assertNotIn("secret", json.dumps(value).lower())
 
+    def test_subprocess_json_timeout_fails_closed_without_crashing_doctor(self):
+        with mock.patch.object(
+            R.subprocess,
+            "run",
+            side_effect=R.subprocess.TimeoutExpired(["status-probe", "status"], 20),
+        ):
+            rc, status, error = R._subprocess_json(["status-probe", "status"], timeout=20)
+        self.assertEqual(rc, 124)
+        self.assertIsNone(status)
+        self.assertIn("TIMEOUT", error)
+
+    def test_subprocess_json_startup_error_fails_closed_without_crashing_doctor(self):
+        with mock.patch.object(R.subprocess, "run", side_effect=OSError("exec failed")):
+            rc, status, error = R._subprocess_json(["status-probe", "status"], timeout=20)
+        self.assertEqual(rc, 127)
+        self.assertIsNone(status)
+        self.assertIn("PROBE_EXEC_ERROR", error)
+
+    def test_jev_probe_fails_closed_on_nonzero_status_exit_even_with_healthy_json(self):
+        route = next(x for x in self.policy()["routes"] if x["routeId"] == "jev-fast-windows-v1")
+        fake_status = {
+            "healthy": True,
+            "consumerCredentials": {
+                "typesafePresent": True,
+                "typesafeDecryptable": True,
+                "textModelPresent": True,
+                "textModelDecryptable": True,
+            },
+        }
+        with (
+            mock.patch.object(R, "_subprocess_json", return_value=(9, fake_status, "failed")),
+            mock.patch.object(R.Path, "is_file", return_value=True),
+            mock.patch.dict(R.os.environ, {}, clear=True),
+        ):
+            result = R._probe_jev(route, {"text-entry"})
+        self.assertFalse(result["ready"])
+        self.assertEqual(result["standing"], "WORKSTATION_PROVIDER_UNHEALTHY")
+        self.assertEqual(result["probeReturnCode"], 9)
+
     def test_jev_probe_accepts_workstation_dpapi_bindings_without_ambient_secrets(self):
         route = next(x for x in self.policy()["routes"] if x["routeId"] == "jev-fast-windows-v1")
         fake_status = {
