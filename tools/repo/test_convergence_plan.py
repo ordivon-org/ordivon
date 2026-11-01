@@ -1147,6 +1147,49 @@ class ConvergencePlanTests(unittest.TestCase):
                         [], ["formal:verify"], changed
                     )
 
+    def test_queue_native_empty_script_warning_covers_root_task_composition(self) -> None:
+        """The native warning is on a transitive task, not necessarily its caller.
+
+        Mise's native dependency listing does not include run task steps. Root
+        manifest health is conservative here: unrelated empty task entries
+        also invalidate native queue admission; do not claim a closed graph.
+        """
+        import json
+        import unittest.mock
+
+        selected = ["formal:verify"]
+        changed = ["tools/formal/Proof.qnt"]
+        cases = {
+            "depends": 'depends = ["helper"]',
+            "run-task": 'run = [{task = "helper"}]',
+            "run-parallel": 'run = [{tasks = ["helper"]}]',
+            "post": 'run = "echo selected"\ndepends_post = ["helper"]',
+            "unrelated": 'run = "echo selected"',
+        }
+        with tempfile.TemporaryDirectory(prefix="ordivon-mise-closure-") as temp:
+            manifest = Path(temp) / "mise.toml"
+            for relation, body in cases.items():
+                with self.subTest(relation=relation):
+                    manifest.write_text(
+                        '[tasks.helper]\nrun = ["   "]\n'
+                        '[tasks."formal:verify"]\n' + body + "\n",
+                        encoding="utf-8",
+                    )
+                    result = subprocess.run(
+                        ["mise", "--cd", str(manifest.parent),
+                         "tasks", "validate", "--json"],
+                        capture_output=True, text=True, timeout=20,
+                    )
+                    self.assertEqual(result.returncode, 0)
+                    self.assertTrue(any(
+                        issue.get("task") == "helper"
+                        and issue.get("category") == "empty-script"
+                        for issue in json.loads(result.stdout)["issues"]
+                    ))
+                    with unittest.mock.patch.object(MODULE, "ROOT_TASKS_PATH", manifest):
+                        with self.assertRaisesRegex(ValueError, "empty-script"):
+                            MODULE.validate_queue_task_selection([], selected, changed)
+
     def test_selected_queue_preserves_native_mise_task_object_forms(self) -> None:
         """Do not replace the real Mise type system with a string-only validator."""
         import unittest.mock

@@ -233,11 +233,18 @@ def validate_queue_task_selection(
             raise ValueError("selected queue tasks require structured native mise validation") from exc
         if not isinstance(diagnostic, dict) or not isinstance(diagnostic.get("issues"), list):
             raise ValueError("selected queue tasks require structured native mise validation")
+        # A selected task may execute tasks named only in depends,
+        # depends_post, or object-valued run steps. Native mise validation
+        # reports an empty-script warning against the callee, not the queue
+        # task. Mise task deps omits run steps and is not a complete graph.
+        # Require the shared root task manifest to be free of native
+        # empty-script warnings whenever a CI queue is selected. Unrelated
+        # root tasks also block admission; no false closed reachability proof.
         for issue in diagnostic["issues"]:
             if not isinstance(issue, dict) or not isinstance(issue.get("task"), str) or not isinstance(issue.get("category"), str):
                 raise ValueError("selected queue tasks have malformed native mise diagnostics")
-            if issue["task"] in requested_tasks and issue["category"] == "empty-script":
-                raise ValueError("selected queue task has native mise empty-script warning")
+            if issue["category"] == "empty-script":
+                raise ValueError("root mise task has native mise empty-script warning")
 
 
 def build_plan(
