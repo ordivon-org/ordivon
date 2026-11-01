@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, field as dataclass_field
+from typing import Any, cast
 
-from anc_canonical import JsonValue, canonical_bytes, canonical_digest, validate_json_value
+from anc_canonical import JsonValue, canonical_bytes, canonical_digest, loads_strict, validate_json_value
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,10 +44,13 @@ class HarnessToolObservation:
     tool_call_id: str
     tool_name: str
     status: str
-    structured_content: dict[str, JsonValue]
+    structured_content: dict[str, JsonValue] = dataclass_field(compare=False)
     runtime_job_ref: str | None = None
     artifact_refs: tuple[HarnessArtifactReference, ...] = ()
     reconciled: bool = False
+    # Equality, hashing, evidence digest and model-facing serialization use
+    # the admitted canonical snapshot, never a caller-owned mutable dictionary.
+    _content_bytes: bytes = dataclass_field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         if not self.tool_call_id or self.tool_call_id != self.tool_call_id.strip():
@@ -62,7 +65,13 @@ class HarnessToolObservation:
             "cancelled",
         }:
             raise ValueError(f"unsupported Tool Observation status: {self.status}")
+        if not isinstance(self.structured_content, dict):
+            raise TypeError("Tool Observation structured content must be an object")
         validate_json_value(self.structured_content)
+        sealed_content = canonical_bytes(self.structured_content)
+        object.__setattr__(self, "_content_bytes", sealed_content)
+        # Separate the public convenience projection from the source alias.
+        object.__setattr__(self, "structured_content", loads_strict(sealed_content))
         if self.runtime_job_ref is not None and (
             not self.runtime_job_ref or self.runtime_job_ref != self.runtime_job_ref.strip()
         ):
@@ -86,7 +95,7 @@ class HarnessToolObservation:
             "toolCallId": self.tool_call_id,
             "toolName": self.tool_name,
             "status": self.status,
-            "structuredContent": self.structured_content,
+            "structuredContent": cast(dict[str, JsonValue], loads_strict(self._content_bytes)),
             "runtimeJobRef": self.runtime_job_ref,
             "artifactRefs": [item.to_dict() for item in self.artifact_refs],
             "reconciled": self.reconciled,
@@ -140,7 +149,7 @@ class HarnessToolObservation:
             "name": self.tool_name,
             "observation": {
                 "status": self.status,
-                "content": self.structured_content,
+                "content": cast(dict[str, JsonValue], loads_strict(self._content_bytes)),
                 "runtimeJobRef": self.runtime_job_ref,
                 "artifactRefs": [item.to_dict() for item in self.artifact_refs],
                 "reconciled": self.reconciled,
@@ -150,7 +159,7 @@ class HarnessToolObservation:
     def bounded(self, max_bytes: int) -> HarnessToolObservation:
         if max_bytes < 1 or len(canonical_bytes(self.to_dict())) <= max_bytes:
             return self
-        original_content = dict(self.structured_content)
+        original_content = cast(dict[str, JsonValue], loads_strict(self._content_bytes))
         bounded_content: dict[str, JsonValue] = {
             "truncated": True,
             "originalContentDigest": canonical_digest(original_content),
