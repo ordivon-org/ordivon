@@ -111,12 +111,52 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         self.assertIn("expected_rc=1", src)
 
     def test_checker_is_same_toolchain_and_sha_qualified(self) -> None:
+        """Pure source-contract test: CI does not install the Lean provider.
+
+        Synthetic executable bytes check path, hash and fail-closed behavior;
+        only opt-in native Formal execution tests the real toolchain.
+        """
         import hashlib
-        binaries = formal.qualified_tool_binaries()
-        checker, lean = binaries['leanchecker'], binaries['lean']
-        self.assertEqual(Path(checker['path']), Path(lean['path']).with_name('leanchecker'))
-        self.assertEqual(checker['version'], lean['version'])
-        self.assertEqual(checker['sha256'], hashlib.sha256(Path(checker['path']).read_bytes()).hexdigest())
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-lean-identity-") as tmp:
+            directory = Path(tmp)
+            for name in (*formal.TOOL_NAMES, "leanchecker"):
+                binary = directory / name
+                binary.write_bytes(b"#!/bin/sh\nexit 0\n")
+                binary.chmod(0o755)
+
+            def qualified_mise_which(args, **_kwargs):
+                self.assertEqual(args[:2], ["mise", "which"])
+                if args[2] == "--version":
+                    self.assertIn(args[3], formal.TOOL_NAMES)
+                    return "fixture-provider-version\n"
+                self.assertIn(args[2], formal.TOOL_NAMES)
+                return str(directory / args[2]) + "\n"
+
+            with patch.object(
+                formal.subprocess, "check_output", side_effect=qualified_mise_which
+            ):
+                binaries = formal.qualified_tool_binaries()
+                checker, lean = binaries["leanchecker"], binaries["lean"]
+                self.assertEqual(len(binaries), len(formal.TOOL_NAMES) + 1)
+                self.assertEqual(
+                    Path(checker["path"]),
+                    Path(lean["path"]).with_name("leanchecker"),
+                )
+                self.assertEqual(checker["version"], lean["version"])
+                self.assertEqual(
+                    checker["sha256"],
+                    hashlib.sha256(Path(checker["path"]).read_bytes()).hexdigest(),
+                )
+
+                checker_file = directory / "leanchecker"
+                checker_file.unlink()
+                with self.assertRaisesRegex(ValueError, "no qualified leanchecker"):
+                    formal.qualified_tool_binaries()
+
+                checker_file.symlink_to(directory / "z3")
+                with self.assertRaisesRegex(ValueError, "no qualified leanchecker"):
+                    formal.qualified_tool_binaries()
 
     def test_formal_consumer_allows_real_kani_cache_prelude_without_skipping_proof(self) -> None:
         """A KANI_HOME setup is not a different proof interface."""
