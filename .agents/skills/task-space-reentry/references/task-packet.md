@@ -59,3 +59,39 @@ Positive: task forum entry retrieves current root and selects only needed Skill,
 Negative: no matching work, unavailable Skills, stale Skill digest, changed SourceCut, missing dynamic consumer, or Host participation with no authorization must remain UNKNOWN/BLOCKED. No explicit Agent task -> no task assignment and no automatic write.
 
 Do not batch read every Topic or every Skill; use bounded Host pagination and native Skill progressive disclosure.
+
+## Terminal Work obligation transport (only when closing or superseding Work)
+
+Do **not** treat `completed` or `abandoned` as a proof that all entries of
+`unresolved` vanished. A successor WorkRef in `referenceRefs` is navigation,
+not proof that each old obligation was received.
+
+For a named *terminal* Work and each target *open* Work, obtain exact `work.get`
+snapshots and record their `workRef`, integer `revision`, `state`, and
+`unresolved` arrays. For every original unresolved item, attach a human-reviewed,
+exact string mapping to an active successor's unresolved item. Run the
+read-only optional helper `scripts/check_obligation_handoff.py` with one JSON
+object on stdin:
+
+```json
+{"source":{"workRef":"work:old","revision":2,"state":"completed","unresolved":["verify consumer"]},"successors":[{"workRef":"work:new","revision":4,"state":"open","unresolved":["verify consumer end-to-end"]}],"links":[{"sourceObligation":"verify consumer","sourceRevision":2,"successorRef":"work:new","successorRevision":4,"successorObligation":"verify consumer end-to-end"}]}
+```
+
+Helper success means only **NAVIGATION_COVERED** for the caller-supplied versions.
+It **does not verify semantic equivalence** between the strings, current
+versions at the Host, permission, source identity, implementation proof, or
+technical completion. Re-read native Host versions before using the result;
+if a receiver changed, re-evaluate and report `UNKNOWN`.
+
+For separately verified **resolved** or **superseded** obligations, cite the
+actual owner-qualified receipt and explicit disposition in the *current*
+receiving Work/Topic; do not manufacture a synthetic receiving obligation
+solely to turn the helper green. Leave any unmapped or contested item
+`UNKNOWN` and post a bounded handoff into the existing canonical Task Control
+Topic. This does not reopen a terminal Work or create another task registry.
+
+Negative controls: missing old obligation, stale receiver revision,
+receiver already terminal, duplicate mapping, self-referential successor,
+out-of-scope task and missing owner receipt must never be reported as
+semantically complete. This procedure is advisory and never authorizes
+an external effect.
