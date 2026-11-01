@@ -92,6 +92,56 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         _verify_formal_task_behavior("python3 -I verify.py")
         _verify_formal_task_behavior(peer_task)
 
+    def test_loader_trace_can_fake_zero_exit_without_executing_proof(self) -> None:
+        """An unchanged real ELF executable can report rc0 without running its code."""
+        import os
+        import sys
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-formal-elf-loader-") as tmp:
+            receipt = Path(tmp) / "executed"
+            command = [sys.executable, "-I", "-c",
+                       "from pathlib import Path; Path(" + repr(str(receipt)) +
+                       ").write_text('executed')"]
+            # Direct positive oracle *would* misclassify a loader listing
+            # as a successful process exit; its intended effect never ran.
+            trace_env = {**os.environ, "LD_TRACE_LOADED_OBJECTS": "1"}
+            observed = subprocess.run(
+                command, env=trace_env, capture_output=True, text=True, timeout=8,
+            )
+            self.assertEqual(observed.returncode, 0)
+            self.assertFalse(receipt.exists(), "code unexpectedly ran under loader trace")
+            with patch.dict(os.environ, {"LD_TRACE_LOADED_OBJECTS": "1"}):
+                with self.assertRaisesRegex(ValueError, "loader|LD_"):
+                    formal.run("model positive probe", command, expected_rc=0)
+            self.assertFalse(receipt.exists())
+
+    def test_formal_run_rejects_loader_in_explicit_child_overlay(self) -> None:
+        """Named child overlays must not bypass the parent LD_* admission."""
+        import sys
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-formal-loader-overlay-") as tmp:
+            marker = Path(tmp) / "executed"
+            command = [sys.executable, "-I", "-c",
+                       "from pathlib import Path; Path(" + repr(str(marker)) +
+                       ").write_text('executed')"]
+            with self.assertRaisesRegex(ValueError, "loader|LD_"):
+                formal.run(
+                    "positive child", command, expected_rc=0,
+                    env_overlay={"LD_TRACE_LOADED_OBJECTS": "1"},
+                )
+            self.assertFalse(marker.exists())
+
+    def test_formal_proof_rejects_loader_overrides_before_source_or_tools(self) -> None:
+        """No formal proof receipt may issue under ambient LD_* overrides."""
+        for variable in ("LD_PRELOAD", "LD_LIBRARY_PATH",
+                         "LD_AUDIT", "LD_TRACE_LOADED_OBJECTS"):
+            with self.subTest(variable=variable):
+                with patch.dict(os.environ, {variable: "/tmp/untrusted-loader-input"}):
+                    with patch.object(formal, "qualified_source_cut") as source:
+                        with self.assertRaisesRegex(ValueError, "loader|LD_"):
+                            formal.main()
+                        source.assert_not_called()
+
     def test_formal_task_excludes_untracked_python_module_shadow(self) -> None:
         """Real root->mise child command must not load forged imports from CWD or PYTHONPATH."""
         import os

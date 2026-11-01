@@ -254,9 +254,26 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
     }
 
 
+def require_unmodified_elf_loader_environment(
+        overrides: dict[str, str] | None = None) -> None:
+    """Reject unqualified Linux loader controls for actual proof children.
+
+    This observes the *current* Python process environment only. It cannot
+    undo an inherited preload already executed before this process started,
+    attest the system loader, or establish transitive library closure.
+    """
+    altered = sorted(name for name in (set(os.environ) | set(overrides or {}))
+                     if name.startswith("LD_"))
+    if altered:
+        raise ValueError(
+            "unqualified ELF loader environment (LD_*): " + ", ".join(altered)
+        )
+
+
 def run(label: str, args: list[str], *, input_text: str | None = None,
         expected_rc: int = 0, must_contain: str | None = None,
         timeout: int = 95, env_overlay: dict[str, str] | None = None) -> dict[str, object]:
+    require_unmodified_elf_loader_environment(env_overlay)
     command_env = ({**os.environ, **env_overlay} if env_overlay is not None else None)
     p = subprocess.run(args, cwd=ROOT, input=input_text, text=True,
                        capture_output=True, check=False, timeout=timeout, env=command_env)
@@ -272,6 +289,7 @@ def run(label: str, args: list[str], *, input_text: str | None = None,
 
 
 def main() -> None:
+    require_unmodified_elf_loader_environment()
     source_before = qualified_source_cut()
     fragment = qualified_timeout_adapter_fragment()
     tools_before = qualified_tool_binaries()
@@ -396,6 +414,8 @@ def main() -> None:
             "SMT answers are cross-solver results for the stated QF_LIA formula only",
             "Git pre/post snapshots cannot exclude transient mutate-and-restore",
             "mise executable SHA-256 binds entrypoints, not their dynamic libraries or plugins",
+            "LD_* environment override rejection is a live-process admission condition, "
+            "not pre-exec loader attestation, full dependency closure or time continuity",
         ],
     }, indent=2, ensure_ascii=False))
 
