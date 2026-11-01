@@ -114,6 +114,103 @@ def qualified_tool_binaries() -> dict[str, dict[str, str]]:
     return result
 
 
+
+def observed_z3_elf_dependencies(executable: Path) -> dict[str, object]:
+    """Observe glibc's resolved ELF DT_NEEDED closure for ONE native Z3 consumer.
+
+    This is a platform-bounded pre/post input witness, not a complete
+    dependency closure: dlopen, child processes, prior loader effects and
+    time-of-check/time-of-use remain UNKNOWN. No ldd or executing the target.
+    """
+    require_unmodified_elf_loader_environment()
+    target = executable.resolve(strict=True)
+    if not target.is_file():
+        raise ValueError("Z3 ELF entrypoint is not a regular file")
+
+    # PT_INTERP is an ELF64 little-endian header reference. Reject other
+    # architectures rather than guessing the consumer's dynamic linker.
+    import struct
+    with target.open("rb") as handle:
+        header = handle.read(64)
+        if len(header) != 64 or header[:6] != b"\x7fELF\x02\x01":
+            raise ValueError("unsupported Z3 ELF format (expected ELF64 little-endian)")
+        phoff = struct.unpack_from("<Q", header, 32)[0]
+        phentsize, phnum = struct.unpack_from("<HH", header, 54)
+        if not (56 <= phentsize <= 256 and 0 < phnum <= 128):
+            raise ValueError("unqualified Z3 ELF program headers")
+        interpreter = None
+        for index in range(phnum):
+            handle.seek(phoff + index * phentsize)
+            record = handle.read(phentsize)
+            if len(record) != phentsize:
+                raise ValueError("truncated Z3 ELF program header")
+            if struct.unpack_from("<I", record)[0] == 3:  # PT_INTERP
+                if interpreter is not None:
+                    raise ValueError("multiple ELF interpreters")
+                offset = struct.unpack_from("<Q", record, 8)[0]
+                size = struct.unpack_from("<Q", record, 32)[0]
+                if not (1 <= size <= 512):
+                    raise ValueError("unqualified ELF interpreter length")
+                handle.seek(offset)
+                raw = handle.read(size)
+                if len(raw) != size or raw[-1:] != b"\x00":
+                    raise ValueError("malformed Z3 ELF interpreter")
+                interpreter = raw[:-1].decode("utf-8", errors="strict")
+    if interpreter != "/lib64/ld-linux-x86-64.so.2":
+        raise ValueError("unsupported Z3 ELF interpreter: " + str(interpreter))
+
+    loader = Path(interpreter).resolve(strict=True)
+    if not loader.is_file() or not stat.S_ISREG(loader.stat().st_mode):
+        raise ValueError("unqualified ELF loader")
+    report = subprocess.run(
+        [str(loader), "--list", str(target)], cwd=ROOT,
+        text=True, capture_output=True, check=False, timeout=15,
+    )
+    if report.returncode:
+        raise ValueError("ELF loader dependency listing failed: " + report.stderr[-500:])
+
+    # Parse only realized absolute paths, excluding the virtual VDSO.
+    libraries: dict[str, str] = {}
+    for line in report.stdout.splitlines():
+        line = line.strip()
+        if not line or line.startswith("linux-vdso.so.1 "):
+            continue
+        # Some glibc runners emit standalone address annotations. They
+        # identify no library and must never be treated as dependencies.
+        # Only this exact metadata shape may be ignored; "not found" and
+        # any unqualified SONAME continue to fail closed below.
+        if re.fullmatch(r"\(0x[0-9a-fA-F]+\)", line):
+            continue
+        # ld.so --list address annotations differ between glibc builds.
+        # The actual dependency identity is its resolved absolute pathname,
+        # not a formatter-specific "(0x...)" trailing field.
+        name = (line.rsplit(" => ", 1)[-1] if " => " in line else line)
+        name = name.split(None, 1)[0]
+        if not name.startswith("/"):
+            # Keep the exact falsifier visible to independent CI reviewers,
+            # without printing arbitrary-length loader output or environment.
+            printable = re.sub(r"[^\x20-\x7e]", "?", line)[:160]
+            raise ValueError(
+                "unresolved or nonabsolute Z3 ELF loader dependency: " + repr(printable)
+            )
+        library = Path(name).resolve(strict=True)
+        if not library.is_file() or not stat.S_ISREG(library.stat().st_mode):
+            raise ValueError("nonregular Z3 ELF loader dependency")
+        with library.open("rb") as stream:
+            digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        libraries[str(library)] = digest
+    if not libraries or str(loader) not in libraries:
+        raise ValueError("incomplete ELF loader-observed dependency listing")
+    with target.open("rb") as stream:
+        entry_digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    return {
+        "scope": "linux-elf64-x86_64-glibc-ld.so-list-prepost-not-dlopen-or-TOCTOU",
+        "entrypointSha256": entry_digest,
+        "interpreterPath": str(loader),
+        "resolvedLibraries": dict(sorted(libraries.items())),
+    }
+
+
 def qualified_timeout_adapter_fragment() -> dict[str, object]:
     """Source-bound AST *anchor* observation for ONE Python timeout seam.
 
@@ -297,6 +394,9 @@ def main() -> None:
     source_before = qualified_source_cut()
     fragment = qualified_timeout_adapter_fragment()
     tools_before = qualified_tool_binaries()
+    z3_elf_before = observed_z3_elf_dependencies(Path(tools_before["z3"]["path"]))
+    if z3_elf_before["entrypointSha256"] != tools_before["z3"]["sha256"]:
+        raise ValueError("Z3 ELF entrypoint differs from selected mise executable")
 
     def executable(name: str) -> str:
         return tools_before[name]["path"]
@@ -398,6 +498,9 @@ def main() -> None:
     tools_after = qualified_tool_binaries()
     if tools_after != tools_before:
         raise ValueError("mise verifier executable identity changed during checks")
+    z3_elf_after = observed_z3_elf_dependencies(Path(tools_after["z3"]["path"]))
+    if z3_elf_after != z3_elf_before:
+        raise ValueError("Z3 ELF resolved dependency changed during proof checks")
     print(json.dumps({
         "kind": "source-scoped-native-formal-toolchain-check",
         "status": "PASS", "probes": probes, "count": len(probes),
@@ -407,6 +510,7 @@ def main() -> None:
         "sourceBlobs": source_before["sourceBlobs"],
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "toolBinaries": tools_before,
+        "z3ObservedElfDependencies": z3_elf_before,
         "proofReuseAdmissible": False,
         "sourceFragmentRefinement": fragment,
         "implementationRefinement": "UNKNOWN",
@@ -418,6 +522,8 @@ def main() -> None:
             "SMT answers are cross-solver results for the stated QF_LIA formula only",
             "Git pre/post snapshots cannot exclude transient mutate-and-restore",
             "mise executable SHA-256 binds entrypoints, not their dynamic libraries or plugins",
+            "Z3 ELF loader --list records a scoped pre/post resolved library snapshot only; "
+            "dlopen, child tools and loader TOCTOU are not observed or qualified",
             "LD_* environment override rejection is a live-process admission condition, "
             "not pre-exec loader attestation, full dependency closure or time continuity",
         ],
