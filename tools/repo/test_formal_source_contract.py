@@ -115,6 +115,20 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                     formal.run("model positive probe", command, expected_rc=0)
             self.assertFalse(receipt.exists())
 
+    def test_independently_callable_qualifiers_reject_preloaded_parent(self) -> None:
+        """A source or tool receipt cannot trust a Python process already preloaded.
+
+        The script main() fence is necessary but not sufficient because tests,
+        plugins and other consumers can invoke these public qualifiers directly.
+        """
+        with patch.dict(os.environ, {"LD_PRELOAD": "/tmp/untrusted-formal-inject.so"}):
+            with patch.object(formal.subprocess, "check_output") as child:
+                for qualifier in (formal.qualified_source_cut, formal.qualified_tool_binaries):
+                    with self.subTest(qualifier=qualifier.__name__):
+                        with self.assertRaisesRegex(ValueError, "LD_"):
+                            qualifier()
+                child.assert_not_called()
+
     def test_formal_run_rejects_loader_in_explicit_child_overlay(self) -> None:
         """Named child overlays must not bypass the parent LD_* admission."""
         import sys
