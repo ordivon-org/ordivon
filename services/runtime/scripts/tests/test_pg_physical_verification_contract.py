@@ -75,6 +75,12 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
         self.assertEqual(pg_bin["required-features"], ["postgres-runtime"])
         self.assertIn("postgres-runtime", cargo["features"])
 
+    def test_disposable_pg_launcher_is_explicit_and_does_not_replace_required_dsn_gate(self) -> None:
+        data = tomllib.loads(MISE.read_text(encoding="utf-8"))
+        launcher = data["tasks"]["test:postgres-registry:disposable"]["run"]
+        self.assertEqual(launcher, "python scripts/pg_disposable_physical.py")
+        self.assertIn("test:postgres-registry:physical", data["tasks"])
+
     def test_mise_has_fail_closed_physical_and_stage_tasks(self) -> None:
         data = tomllib.loads(MISE.read_text(encoding="utf-8"))
         physical = data["tasks"]["test:postgres-registry:physical"]["run"]
