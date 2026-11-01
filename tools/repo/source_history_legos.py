@@ -26,7 +26,11 @@ HEADER = "__ORDIVON_HISTORY_RECORD__"
 def _source_git_env() -> dict[str, str]:
     # .git/info/grafts alters Git ancestry even with --no-replace-objects.
     # Bind source-history reads to the literal commit DAG, never this local overlay.
-    env = os.environ.copy()
+    # The CLI accepts an explicit --repo. An inherited GIT_DIR or object
+    # directory from an Agent's parent process must not redirect native Git
+    # away from that repository or spoof the source/consumer DAG.
+    env = {key: value for key, value in os.environ.items()
+           if not key.startswith("GIT_")}
     env["GIT_GRAFT_FILE"] = os.devnull
     return env
 

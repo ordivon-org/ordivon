@@ -27,6 +27,52 @@ def git(p: Path, *args: str) -> str:
 
 
 
+class SourceHistoryGitEnvironmentTests(unittest.TestCase):
+    def test_explicit_source_repo_ignores_foreign_ambient_git_namespace(self):
+        # Composition runs this native source-history producer with --repo.
+        # Inherited GIT_DIR must not replace that explicit immutable source.
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-history-foreign-env-") as temp:
+            root = Path(temp)
+            actual, foreign = root / "actual", root / "foreign"
+            for repo in (actual, foreign):
+                repo.mkdir()
+                git(repo, "init", "-q")
+                git(repo, "config", "user.name", "History Env CDC")
+                git(repo, "config", "user.email", "history@example.invalid")
+                (repo / "init.txt").write_text(repo.name + "\\n")
+                git(repo, "add", ".")
+                git(repo, "commit", "-qm", "initial")
+            before = git(actual, "rev-parse", "HEAD")
+            member = actual / "sources" / "owner.py"
+            member.parent.mkdir()
+            member.write_text("PUBLIC = True\\n")
+            git(actual, "add", ".")
+            git(actual, "commit", "-qm", "real source member")
+            after = git(actual, "rev-parse", "HEAD")
+            source = source_history_legos.source_membership_query
+            expected = source(actual, after, "sources/")
+            self.assertEqual([e["path"] for e in expected["members"]],
+                             ["sources/owner.py"])
+            delta = source_history_legos.source_membership_delta(
+                actual, before, after, "sources/"
+            )
+            for override in (
+                {"GIT_DIR": str(foreign / ".git")},
+                {"GIT_OBJECT_DIRECTORY": str(foreign / ".git" / "objects")},
+                {"GIT_ALTERNATE_OBJECT_DIRECTORIES": str(foreign / ".git" / "objects")},
+            ):
+                with self.subTest(override=tuple(override)):
+                    with patch.dict(os.environ, override):
+                        self.assertEqual(source(actual, after, "sources/"), expected)
+                        self.assertEqual(
+                            source_history_legos.source_membership_delta(
+                                actual, before, after, "sources/"
+                            ), delta
+                        )
+
+
 class AgentCompactSourceImpactTests(unittest.TestCase):
     def test_unchanged_scope_does_not_promote_proof_and_skips_expensive_members(self):
         with tempfile.TemporaryDirectory(prefix="ordivon-agent-opaque-source-") as temp:
