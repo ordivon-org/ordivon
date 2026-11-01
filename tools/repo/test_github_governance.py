@@ -85,12 +85,27 @@ def _qualified_formal_test_receipt(
         ).strip()
         for rel in _FORMAL_SOURCE_FILES
     }
+    # Real Alloy's launcher uses an application JAR and a bundled JVM.
+    # These are separate executable inputs, not contained in the ELF SHA.
+    resource_paths = {
+        "alloyAppJar": fake_bin_dir.parent / "lib/app/org.alloytools.alloy.dist.jar",
+        "alloyJvm": fake_bin_dir.parent / "lib/runtime/lib/server/libjvm.so",
+    }
+    resource_records = {}
+    for name, resource in resource_paths.items():
+        resource.parent.mkdir(parents=True, exist_ok=True)
+        resource.write_bytes(("fixture Alloy dependency: " + name).encode("utf-8"))
+        resource_records[name] = {
+            "path": str(resource.resolve(strict=True)),
+            "sha256": hashlib.sha256(resource.read_bytes()).hexdigest(),
+        }
     return {
         "kind": "source-scoped-native-formal-toolchain-check",
         "status": "PASS", "sourceCut": source_cut,
         "gitObjectFormat": "sha1",
         "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
+        "toolResources": resource_records,
         "proofReuseAdmissible": False,
         "sourceFragmentRefinement": {
             "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
@@ -334,6 +349,23 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             no_tools = copy.deepcopy(full_report)
             no_tools.pop("toolBinaries")
             invalid_receipts["no-eight-tool-witnesses"] = json.dumps(no_tools)
+            absent_resources = copy.deepcopy(full_report)
+            absent_resources.pop("toolResources")
+            invalid_receipts["no-alloy-runtime-resources"] = json.dumps(absent_resources)
+            missing_jar = copy.deepcopy(full_report)
+            missing_jar["toolResources"].pop("alloyAppJar")
+            invalid_receipts["alloy-app-jar-omitted"] = json.dumps(missing_jar)
+            wrong_jar = copy.deepcopy(full_report)
+            wrong_jar["toolResources"]["alloyAppJar"]["sha256"] = "0" * 64
+            invalid_receipts["alloy-app-jar-wrong-digest"] = json.dumps(wrong_jar)
+            wrong_jvm = copy.deepcopy(full_report)
+            wrong_jvm["toolResources"]["alloyJvm"]["sha256"] = "0" * 64
+            invalid_receipts["alloy-jvm-wrong-digest"] = json.dumps(wrong_jvm)
+            foreign_jar = copy.deepcopy(full_report)
+            foreign_jar["toolResources"]["alloyAppJar"] = copy.deepcopy(
+                foreign_jar["toolResources"]["alloyJvm"]
+            )
+            invalid_receipts["alloy-jar-valid-hash-foreign-path"] = json.dumps(foreign_jar)
             # The Formal mathematical model cannot grant implementation
             # refinement or actual installed effect acceptance. A checker that
             # claims PASS for either must fail this consumer's admission, even
@@ -417,7 +449,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
             # Two new forged/missing fragment receipts and one extra
             # source-blob omission case extend the negative corpus.
-            self.assertEqual(len(invalid_receipts), 68)
+            self.assertEqual(len(invalid_receipts), 73)
 
             try:
                 for label, payload in invalid_receipts.items():
