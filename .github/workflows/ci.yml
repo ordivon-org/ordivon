@@ -528,6 +528,7 @@ jobs:
               probes = report.get("probes")
               sources = report.get("sourceBlobs")
               tools = report.get("toolBinaries")
+              resources = report.get("toolResources")
               oid_len = {"sha1": 40, "sha256": 64}.get(report.get("gitObjectFormat"))
               if not (
                   report.get("kind") == "source-scoped-native-formal-toolchain-check"
@@ -562,6 +563,8 @@ jobs:
                   and isinstance(probes, list) and len(probes) == len(EXPECTED_PROBES)
                   and isinstance(sources, dict) and set(sources) == REQUIRED_SOURCE_FILES
                   and isinstance(tools, dict) and set(tools) == REQUIRED_TOOLS
+                  and isinstance(resources, dict)
+                  and set(resources) == {"alloyAppJar", "alloyJvm"}
                   and oid_len == len(expected)
               ):
                   return False
@@ -625,6 +628,29 @@ jobs:
                           or not os.access(executable, os.X_OK)):
                       return False
                   with executable.open("rb") as stream:
+                      if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
+                          return False
+              # The Alloy ELF uses a bundled JVM and application JAR. Neither
+              # is covered by the entrypoint digest; require both real files.
+              alloy_root = Path(tools["alloy"]["path"]).parent.parent
+              for name, relative in {
+                  "alloyAppJar": "lib/app/org.alloytools.alloy.dist.jar",
+                  "alloyJvm": "lib/runtime/lib/server/libjvm.so",
+              }.items():
+                  record = resources[name]
+                  if (not isinstance(record, dict)
+                          or set(record) != {"path", "sha256"}
+                          or not all(isinstance(record[x], str) and record[x]
+                                     for x in ("path", "sha256"))
+                          or re.fullmatch("[0-9a-f]{64}", record["sha256"]) is None):
+                      return False
+                  path = Path(record["path"])
+                  if (path != alloy_root / relative
+                          or not path.is_absolute() or path.is_symlink()
+                          or not path.is_file()
+                          or not stat.S_ISREG(path.stat().st_mode)):
+                      return False
+                  with path.open("rb") as stream:
                       if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
                           return False
               return True

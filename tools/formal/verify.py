@@ -114,6 +114,26 @@ def qualified_tool_binaries() -> dict[str, dict[str, str]]:
     return result
 
 
+def qualified_alloy_runtime_resources(alloy_executable: str) -> dict[str, dict[str, str]]:
+    """Bind two observed Alloy/JVM code inputs outside the executable ELF.
+
+    These are actual consumed files, not a complete Java/native loader readset.
+    """
+    root = Path(alloy_executable).parent.parent
+    relative_paths = {
+        "alloyAppJar": "lib/app/org.alloytools.alloy.dist.jar",
+        "alloyJvm": "lib/runtime/lib/server/libjvm.so",
+    }
+    resources: dict[str, dict[str, str]] = {}
+    for name, relative in relative_paths.items():
+        path = root / relative
+        if (path.is_symlink() or not path.is_file()
+                or not stat.S_ISREG(path.stat().st_mode)):
+            raise ValueError(f"unqualified Alloy runtime dependency: {name}")
+        with path.open("rb") as handle:
+            digest = hashlib.file_digest(handle, "sha256").hexdigest()
+        resources[name] = {"path": str(path), "sha256": digest}
+    return resources
 
 def observed_z3_elf_dependencies(executable: Path) -> dict[str, object]:
     """Observe glibc's resolved ELF DT_NEEDED closure for ONE native Z3 consumer.
@@ -394,6 +414,7 @@ def main() -> None:
     source_before = qualified_source_cut()
     fragment = qualified_timeout_adapter_fragment()
     tools_before = qualified_tool_binaries()
+    alloy_resources_before = qualified_alloy_runtime_resources(tools_before["alloy"]["path"])
     z3_elf_before = observed_z3_elf_dependencies(Path(tools_before["z3"]["path"]))
     if z3_elf_before["entrypointSha256"] != tools_before["z3"]["sha256"]:
         raise ValueError("Z3 ELF entrypoint differs from selected mise executable")
@@ -498,6 +519,8 @@ def main() -> None:
     tools_after = qualified_tool_binaries()
     if tools_after != tools_before:
         raise ValueError("mise verifier executable identity changed during checks")
+    if qualified_alloy_runtime_resources(tools_after["alloy"]["path"]) != alloy_resources_before:
+        raise ValueError("Alloy/JVM runtime code inputs changed during checks")
     z3_elf_after = observed_z3_elf_dependencies(Path(tools_after["z3"]["path"]))
     if z3_elf_after != z3_elf_before:
         raise ValueError("Z3 ELF resolved dependency changed during proof checks")
@@ -510,6 +533,7 @@ def main() -> None:
         "sourceBlobs": source_before["sourceBlobs"],
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "toolBinaries": tools_before,
+        "toolResources": alloy_resources_before,
         "z3ObservedElfDependencies": z3_elf_before,
         "proofReuseAdmissible": False,
         "sourceFragmentRefinement": fragment,

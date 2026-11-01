@@ -115,6 +115,31 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                     formal.run("model positive probe", command, expected_rc=0)
             self.assertFalse(receipt.exists())
 
+    def test_alloy_runtime_resources_bind_jvm_and_app_bytes(self) -> None:
+        """Alloy's 48 KB ELF is not the JVM or the model-checking application."""
+        import hashlib
+        with tempfile.TemporaryDirectory(prefix="ordivon-alloy-code-readset-") as tmp:
+            root = Path(tmp)
+            exe = root / "bin/alloy"
+            exe.parent.mkdir(parents=True)
+            exe.write_bytes(b"alloy launch fixture")
+            jar = root / "lib/app/org.alloytools.alloy.dist.jar"
+            jvm = root / "lib/runtime/lib/server/libjvm.so"
+            for path, value in ((jar, b"alloy app"), (jvm, b"jvm runtime")):
+                path.parent.mkdir(parents=True)
+                path.write_bytes(value)
+            initial = formal.qualified_alloy_runtime_resources(str(exe))
+            self.assertEqual(set(initial), {"alloyAppJar", "alloyJvm"})
+            self.assertEqual(initial["alloyAppJar"]["sha256"],
+                             hashlib.sha256(b"alloy app").hexdigest())
+            jar.write_bytes(b"changed alloy app")
+            changed = formal.qualified_alloy_runtime_resources(str(exe))
+            self.assertNotEqual(initial["alloyAppJar"], changed["alloyAppJar"])
+            self.assertEqual(initial["alloyJvm"], changed["alloyJvm"])
+            jvm.unlink()
+            with self.assertRaisesRegex(ValueError, "alloyJvm"):
+                formal.qualified_alloy_runtime_resources(str(exe))
+
     def test_independently_callable_qualifiers_reject_preloaded_parent(self) -> None:
         """A source or tool receipt cannot trust a Python process already preloaded.
 
