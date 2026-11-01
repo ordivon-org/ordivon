@@ -2391,6 +2391,57 @@ mod live_pg_tests {
         assert_eq!(first.attempt_state, "accepted");
         assert_eq!(first.resolution, None);
         assert_eq!(first.reservation_state, "active");
+        // Source is still QUALIFIED_WRITER, but its physical epoch is no
+        // longer operator-qualified. A restored/historical Job must not be
+        // advertised through this API as current authoritative state.
+        scratch
+            .admin
+            .execute(
+                "UPDATE _stage_control SET promotion_allowed=false WHERE id='epoch'",
+                &[],
+            )
+            .unwrap();
+        assert!(matches!(
+            store.observe_job_readonly(&input.job_id, &input.expected_source_sha256),
+            Err(PgAdmissionError::Unqualified)
+        ));
+        scratch
+            .admin
+            .execute(
+                "UPDATE _stage_control SET promotion_allowed=true WHERE id='epoch'",
+                &[],
+            )
+            .unwrap();
+        let true_epoch: String = scratch
+            .admin
+            .query_one(
+                "SELECT source_sha256 FROM _stage_control WHERE id='epoch'",
+                &[],
+            )
+            .unwrap()
+            .get(0);
+        scratch
+            .admin
+            .execute(
+                "UPDATE _stage_control SET source_sha256=$1 WHERE id='epoch'",
+                &[&"f".repeat(64)],
+            )
+            .unwrap();
+        assert!(matches!(
+            store.observe_job_readonly(&input.job_id, &input.expected_source_sha256),
+            Err(PgAdmissionError::Unqualified)
+        ));
+        scratch
+            .admin
+            .execute(
+                "UPDATE _stage_control SET source_sha256=$1 WHERE id='epoch'",
+                &[&true_epoch],
+            )
+            .unwrap();
+        assert!(matches!(
+            store.observe_job_readonly(&input.job_id, &input.expected_source_sha256),
+            Ok(PgJobReadback::Observed(_))
+        ));
         assert_eq!(
             scratch.count("job_events"),
             events_before,
