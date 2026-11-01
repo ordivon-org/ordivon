@@ -466,6 +466,47 @@ liveness and information-flow hyperproperties need their own preservation
 arguments. A sampled execution trace is conformance evidence, not a universal
 implementation-refinement theorem.
 
+### Historical evidence provenance: content-addressed DAG versus transport (R15)
+
+Reuse the canonical R2.1 `prov` coordinate; do **not** create a new LEGO
+tuple, historical-source registry or evidence signing layer. For an archived
+original repository, the natural native Git consumer must establish
+
+\[
+\operatorname{HistoricalProv}(c,r,p,b) :=
+\operatorname{PinnedCommit}(c) \land
+\operatorname{OriginalRootShape}(c) \land
+\operatorname{ClosedGitDAG}(c) \land
+\operatorname{CreatedOnce}(p,c) \land
+\operatorname{Ancestor}(r,\operatorname{Create}(p)) \land
+\operatorname{GitBlobBytes}(c,p)=b.
+\]
+
+Here `c` is a previously accepted exact original standalone commit,
+`r` is the asserted original implementation revision, `p` is an
+archived evidence path, and `b` the bytes imported into the monorepo.
+An original Git object graph retrieved from a trusted local cache may
+qualify this **historical** property without accessing a mutable GitHub
+HEAD, but only after materializing it into a separate bare object database
+and running native `git fsck --full --strict` with no graft, replace,
+promisor-lazy-fetch or object alternates. If any required object is missing,
+the consumer must fall back to the unchanged pinned original remote or
+report **UNKNOWN/FAIL**; never substitute current monorepo ancestry or
+the same-named file as a source identity.
+
+Actual owner: `services/harness/scripts/check_evidence.py`, existing
+legacy receipt retention tests in
+`services/harness/tests/test_evidence_index_typed_ingestion.py`.
+Native negative controls reject a forged current-main source commit,
+a wrong historical predecessor, tampered evidence bytes and source
+unavailability. A network-disabled test demonstrates identity can be
+proved from the fully connected exact original Git DAG; it does **not**
+prove currently installed Runtime behavior or current upstream GitHub
+branch identity. See official Git `git-fetch`, `git-fsck`,
+`git-replace`, and partial-clone/promisor documentation. Git SHA-1
+collision-resistance and Git binary/environment remain explicit trust
+assumptions, not formally proved cryptographic semantics.
+
 ### Architectural acceptance and incremental evidence
 
 Architectural requirements are legitimate current goals. Accept an abstract
