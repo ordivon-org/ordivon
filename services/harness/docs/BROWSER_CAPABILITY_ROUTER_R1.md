@@ -77,6 +77,18 @@ does not resurrect retired Harness policy ontology.
 Harness continues to own exact Run execution/effect continuity after a caller/domain has selected
 an admitted route. Runtime continues to own physical Job/Attempt truth.
 
+## Structured Browser Use action identity (2026-11-02 source qualification)
+
+The generic Browser Use adapter returns a CDP `backendDOMNodeId` with each actionable
+AX affordance. A caller should rebind click/input to index + role + name + that exact
+node ID. If an old caller lacks node ID, same-role/name duplicates fail closed
+instead of clicking a potentially reordered sibling. The benchmark adapter consumes
+this exact observation field. An AX backend ID is scoped to the current document;
+this does **not** prove tab/document continuity after navigation, prevent
+time-of-check/time-of-use changes between the new AX tree and the coordinate click,
+or establish domain semantic success. Those stronger properties remain UNKNOWN.
+This is a local source contract, not a claim of installed Browserless readiness.
+
 ## Current machine standing — 2026-09-18
 
 Observed during R1 dogfood:

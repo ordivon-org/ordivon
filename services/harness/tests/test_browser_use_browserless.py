@@ -182,5 +182,87 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
             launcher.session_name("../bad")
 
 
+    def test_same_named_reordered_buttons_do_not_silently_retarget(self):
+        """An AX-tree index plus role/name is not a stable element identity."""
+        import browser_use_browserless as launcher
+
+        # The originally observed index 0 was backend 101. A dynamic page
+        # inserts another identically named target ahead of it before click.
+        nodes = [
+            {"role": {"value": "button"}, "name": {"value": "Delete"}, "backendDOMNodeId": 202},
+            {"role": {"value": "button"}, "name": {"value": "Delete"}, "backendDOMNodeId": 101},
+        ]
+        clicked = []
+
+        def fake_cdp(name, **kwargs):
+            if name == "Accessibility.getFullAXTree":
+                return {"nodes": nodes}
+            if name == "DOM.getBoxModel":
+                x = kwargs["backendNodeId"]
+                return {"model": {"content": [x, 0, x, 0, x, 0, x, 0]}}
+            raise AssertionError(name)
+
+        scope = {
+            "cdp": fake_cdp,
+            "click_at_xy": lambda x, y: clicked.append((x, y)),
+            "wait": lambda _seconds: None,
+        }
+        with self.assertRaises(AssertionError):
+            exec(launcher.program_click(0, "button", "Delete"), scope)
+        self.assertEqual(clicked, [], "ambiguous same-name target must never receive a click")
+
+
+    def test_snapshot_node_id_survives_observe_and_guards_duplicate_actions(self):
+        """The caller binds a snapshot-scoped AX backend id, not just index/name."""
+        import contextlib
+        import io
+        import browser_use_browserless as launcher
+
+        nodes = [
+            {"role": {"value": "button"}, "name": {"value": "Delete"}, "backendDOMNodeId": 202},
+            {"role": {"value": "button"}, "name": {"value": "Delete"}, "backendDOMNodeId": 101},
+        ]
+        clicked = []
+
+        def cdp(command, **kwargs):
+            if command == "Accessibility.getFullAXTree":
+                return {"nodes": nodes}
+            if command == "DOM.getBoxModel":
+                bid = kwargs["backendNodeId"]
+                return {"model": {"content": [bid, 0, bid, 0, bid, 0, bid, 0]}}
+            raise AssertionError(command)
+
+        context = {
+            "cdp": cdp,
+            "page_info": lambda: {"url": "https://example.test/list"},
+            "click_at_xy": lambda x, y: clicked.append((x, y)),
+            "wait": lambda seconds: None,
+        }
+        observed = io.StringIO()
+        with contextlib.redirect_stdout(observed):
+            exec(launcher.program_observe(include_text=False, max_chars=100), context)
+        rows = json.loads(observed.getvalue())["affordances"]
+        self.assertEqual([row["backendDOMNodeId"] for row in rows], [202, 101])
+
+        with self.assertRaisesRegex(AssertionError, "affordance-node-changed"):
+            exec(launcher.program_click(0, "button", "Delete", expect_backend_dom_node_id=101), context)
+        self.assertEqual(clicked, [])
+        observed = io.StringIO()
+        with contextlib.redirect_stdout(observed):
+            exec(launcher.program_click(1, "button", "Delete", expect_backend_dom_node_id=101), context)
+        self.assertEqual(clicked, [(101.0, 0.0)])
+        self.assertEqual(json.loads(observed.getvalue())["standing"], "CLICKED")
+
+        clicked.clear()
+        with self.assertRaisesRegex(AssertionError, "affordance-ambiguous"):
+            exec(launcher.program_input(0, "button", "Delete", "unsafe"), context)
+        self.assertEqual(clicked, [])
+
+        for invalid in (-1, 0, True, "101"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "positive integer"):
+                    launcher.program_click(0, "button", "Delete", expect_backend_dom_node_id=invalid)
+
+
 if __name__ == "__main__":
     unittest.main()
