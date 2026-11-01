@@ -196,6 +196,25 @@ def execute(root: Path) -> dict[str, object]:
             "INSERT INTO _stage_control(id,state,source_sha256,promotion_allowed)"
             " VALUES('lab','STAGED','sha256:lab',false)",
         )
+
+        # Deliberately seal the operator-owned "source" qualification BEFORE
+        # the base backup.  PITR will restore this row even after branching.
+        sql(
+            55491,
+            "INSERT INTO _stage_control(id,state,source_sha256,promotion_allowed)"
+            " VALUES('source','QUALIFIED_WRITER','" + "a" * 64 + "',true)",
+        )
+        original_system_id = value(55491, "SELECT system_identifier FROM pg_control_system()")
+        original_timeline = int(value(55491, "SELECT timeline_id FROM pg_control_checkpoint()"))
+        # Hypothetical operator authority (separate from restored PG):
+        # only an externally current epoch seal can defeat timeline rollback.
+        # This test does NOT install or authorize a production writer.
+        seal = {"systemId": original_system_id, "timelineId": original_timeline, "sourceSha": "a" * 64}
+        (root / "operator-qualification-seal.json").write_text(json.dumps(seal, sort_keys=True))
+        require(
+            value(55491, "SELECT source_sha256 FROM _stage_control WHERE id='source'") == seal["sourceSha"],
+            "operator seal must match original qualified stage",
+        )
         before = value(
             55491,
             "SELECT (SELECT count(*) FROM jobs)||'|'||(SELECT count(*) FROM attempts)||'|'||(SELECT count(*) FROM artifacts)",
@@ -236,6 +255,17 @@ def execute(root: Path) -> dict[str, object]:
         sql(55491, insert("job-pre-target", "request-pre-target", 200))
         sql(55491, "SELECT pg_create_restore_point('ordivon_after_first_extra')")
         sql(55491, insert("job-post-target", "request-post-target", 300))
+        # Runtime Release has a specific real effect_id UNIQUE constraint.
+        # Persist this after the recovery point so PITR will erase the binding.
+        sql(
+            55491,
+            "INSERT INTO job_runtime_release_effects "
+            "(job_id,effect_id,contract,request_digest,workspace_id,"
+            "commit_revision,candidate_manifest_digest,expected_tool_count,"
+            "receipt_path,binding_digest) VALUES "
+            "('job-post-target','effect-r1','release-v1','req-r1',"
+            "'ws-lab','sha1','sha256:manifest',0,'/scratch/effect-r1','binding-r1')",
+        )
         external_receipt = root / "independent_effect_receipt"
         external_receipt.write_text("effect-after-restore-point\n")
         sql(55491, "SELECT pg_switch_wal()")
@@ -251,6 +281,12 @@ def execute(root: Path) -> dict[str, object]:
         start("restore", 55492)
         require(
             value(55492, "SELECT count(*) FROM jobs WHERE job_id='job-crash'") == "1", "committed crash replay missing"
+        )
+
+        # Normal crash restart does not branch WAL timeline.
+        require(
+            int(value(55492, "SELECT timeline_id FROM pg_control_checkpoint()")) == seal["timelineId"],
+            "normal crash-restart should retain exact qualified timeline",
         )
 
         def race(tag: str) -> bool:
@@ -274,6 +310,32 @@ def execute(root: Path) -> dict[str, object]:
             "WAL after target wrongly replayed",
         )
         require(value(55493, "SELECT count(*) FROM jobs") == "2", "PITR cut wrong")
+
+        new_timeline = int(value(55493, "SELECT timeline_id FROM pg_control_checkpoint()"))
+        require(
+            value(55493, "SELECT system_identifier FROM pg_control_system()") == original_system_id,
+            "PITR changed cluster system identifier",
+        )
+        require(new_timeline != original_timeline, "PITR promotion did not create a new timeline")
+        restored_seal = json.loads((root / "operator-qualification-seal.json").read_text())
+        require(restored_seal == seal, "independent seal changed across PITR")
+        eligible_by_independent_timeline_seal = (
+            value(55493, "SELECT system_identifier FROM pg_control_system()") == restored_seal["systemId"]
+            and new_timeline == restored_seal["timelineId"]
+            and value(55493, "SELECT source_sha256 FROM _stage_control WHERE id='source'") == restored_seal["sourceSha"]
+        )
+        require(not eligible_by_independent_timeline_seal, "PITR must require operator requalification")
+        require(
+            value(
+                55493, "SELECT state||'|'||source_sha256||'|'||promotion_allowed FROM _stage_control WHERE id='source'"
+            )
+            == "QUALIFIED_WRITER|" + "a" * 64 + "|true",
+            "PITR lost the inherited operator writer qualification",
+        )
+        require(
+            value(55493, "SELECT count(*) FROM job_runtime_release_effects WHERE effect_id='effect-r1'") == "0",
+            "PITR should erase the post-target release binding",
+        )
         require(
             value(55493, "SELECT promotion_allowed FROM _stage_control WHERE id='lab'") == "f", "stage flag changed"
         )
@@ -287,6 +349,21 @@ def execute(root: Path) -> dict[str, object]:
             "recovery timeline unexpectedly remembered post-target request",
         )
         require(external_receipt.read_text() == "effect-after-restore-point\n", "effect receipt vanished")
+        # The original external receipt is still there but PG's release effect
+        # uniqueness does not survive a rollback past its original write.
+        sql(
+            55493,
+            "INSERT INTO job_runtime_release_effects "
+            "(job_id,effect_id,contract,request_digest,workspace_id,"
+            "commit_revision,candidate_manifest_digest,expected_tool_count,"
+            "receipt_path,binding_digest) VALUES "
+            "('job-replayed-after-pitr','effect-r1','release-v1','req-r1',"
+            "'ws-lab','sha1','sha256:manifest',0,'/scratch/effect-r1','binding-r1')",
+        )
+        require(
+            value(55493, "SELECT count(*) FROM job_runtime_release_effects WHERE effect_id='effect-r1'") == "1",
+            "the restored timeline did not admit the original effect identity",
+        )
         pitr_seconds = time.monotonic() - t_pitr
         return {
             "status": "PASS",
@@ -301,11 +378,18 @@ def execute(root: Path) -> dict[str, object]:
                 "post_point_excluded",
                 "external_receipt_outlives_restored_job",
                 "same_request_readmitted_after_pitr",
-                "writer_stage_unqualified",
+                "operator_writer_qualification_revived_after_new_timeline",
+                "hypothetical_operator_timeline_seal_rejects_pitr_not_crash",
+                "release_effect_id_rebound_after_pitr",
+                "lab_stage_flag_unqualified",
             ],
             "backupAndVerifySeconds": round(backup_seconds, 3),
             "pitrReadbackSeconds": round(pitr_seconds, 3),
             "totalSeconds": round(time.monotonic() - started, 3),
+            "originalTimelineId": original_timeline,
+            "recoveredTimelineId": new_timeline,
+            "clusterSystemIdStable": True,
+            "candidateMitigation": "independent timeline-bound operator seal required; NOT installed",
             "externalEffectSemantics": "UNKNOWN; PITR counterexample forbids blind replay",
             "productionRuntimeEffect": "NONE",
             "productionRpoRto": "UNKNOWN",
