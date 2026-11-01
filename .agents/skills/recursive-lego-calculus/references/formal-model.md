@@ -295,6 +295,37 @@ Account for parameter substitution, framing and effects. Partial-correctness
 triples do not establish termination. The old `post1 => pre2` check is a
 sequential seam obligation, not a theorem for arbitrary interacting services.
 
+**R2.1 sequential substitution rule (mechanically checked, bounded ports).**
+The existing Lean OrdivonR21.IOContract projection has assumptions A
+and guarantees G over the same observable I/O port universe. For
+F_new <=ref F_old and H_new <=ref H_old, local refinement does *not* alone
+authorize replacing F_old;H_old by F_new;H_new. A sufficient middle-wire
+obligation is:
+
+    forall x y, A_F_old(x) and G_F_new(x,y) -> A_H_old(y)
+
+Under this condition the original sequentialContract (existential
+relational composition) satisfies
+(F_new;H_new) <=ref (F_old;H_old). The checked Lean proof is
+OrdivonR21.sequential_refines_if_intermediate_admissible, with reflexive
+and transitive refinement lemmas in the same existing formal source.
+The local_refinements_do_not_imply_unconditional_sequential_refinement
+countermodel uses Bool intermediate values: F guarantees true,
+H_old admits only false, and H_new allows both. Each local
+refinement holds but global refinement fails. Thus replacing a
+contract/LEGO merely because both parts passed is unsound.
+
+This side condition is sufficient, not claimed necessary. The theorem
+concerns the restricted input/output contract projection **only**; when
+instantiating the full unique 11-coordinate R2.1 LEGO, the S, inv,
+eff, c, epsilon, prov and unfold coordinates retain independent
+typed obligations (in particular a hidden effect or installed authority
+cannot be erased by this projection). Implementation-to-model refinement,
+evidence readset closure and deployment currentness require separate
+consumer verification. To recheck, run Lean from tools/formal/ with
+mise exec -- lean RecursiveLegoRefinement.lean and inspect the
+#print axioms reports on positive and counterexample theorems.
+
 For the **saturated behavioral contract algebra**, after lifting both
 contracts to a common behavior universe, the parallel contract operation is:
 
