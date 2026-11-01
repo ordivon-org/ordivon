@@ -143,6 +143,17 @@ For algebraic assume/guarantee composition or substitution, prefer an admitted f
 
 Do not activate every lens. Choose only methods/providers that can change the decision.
 
+## Consumer-rooted retirement (optional)
+
+When removing a PR, Git ref, source responsibility or Runtime Workspace with
+disputed live consumers, read references/consumer-rooted-retirement.md.
+Use the existing Repo SourceCut prefilter, natural Owner tests and native
+Runtime/Host/Git tools. Source equality alone does not authorize retirement;
+separate production, installed, dynamic, test-only and historical consumers.
+PR close, remote ref delete, source retirement and Workspace close are distinct
+effects. Keep uncovered consumers UNKNOWN. Do not create a new collector,
+registry or independent Skill. Do not invoke this reference for routine edits.
+
 ## Default proof discipline — CEGAR, not MSR
 
 Do **not** optimize for a purported Minimum Sufficient Representation by default.
