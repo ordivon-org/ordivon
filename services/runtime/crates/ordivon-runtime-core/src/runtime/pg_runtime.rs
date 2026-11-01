@@ -109,6 +109,12 @@ impl PgRuntime {
                 "PG Runtime source writer not qualified; refusing startup",
             ));
         }
+        crate::pg_admission::require_pg_writer_epoch(
+            &mut db.client,
+            &runtime.config.source_sha256,
+            false,
+        )
+        .map_err(pg)?;
         // Authorization includes the independently controlled app-role
         // privilege check in store(); only now may native paths be created.
         runtime.config.executor.ensure_store().map_err(io)?;
@@ -180,6 +186,8 @@ impl PgRuntime {
                 "PG Runtime source writer revoked; refusing Workspace effect",
             ));
         }
+        crate::pg_admission::require_pg_writer_epoch(tx, &self.config.source_sha256, true)
+            .map_err(pg)?;
         Ok(())
     }
     /// Advertise only capabilities implemented by this PostgreSQL-native entrypoint.

@@ -1,6 +1,6 @@
 //! Native PostgreSQL Runtime admission contract, NOT production authority.
 //! Explicitly opt-in until the full lifecycle/refinement/consumer proof exists.
-use postgres::{Client, IsolationLevel, NoTls};
+use postgres::{Client, GenericClient, IsolationLevel, NoTls};
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -162,6 +162,60 @@ impl PgAdmissionInput {
     }
 }
 
+/// An operator-owned epoch seal is the *same existing* _stage_control table,
+/// not a second registry.  Source-only qualification can survive a PITR while
+/// PostgreSQL forks a different WAL timeline and loses downstream effect IDs.
+///
+/// The operator stamps id='epoch', state='QUALIFIED_EPOCH', and the digest
+/// calculated by this function while its qualified source/cluster/timeline
+/// is current.  A missing/old epoch always refuses new effects.  The app role
+/// requires SELECT on _stage_control and PUBLIC read-only pg_control functions,
+/// but cannot INSERT/UPDATE the protected state or fingerprint itself.
+pub fn pg_writer_epoch_digest(source: &str, system_id: &str, timeline: i32) -> String {
+    let bytes = format!("ordivon-pg-writer-epoch-v1\0{source}\0{system_id}\0{timeline}");
+    hex::encode(Sha256::digest(bytes.as_bytes()))
+}
+
+pub(crate) fn require_pg_writer_epoch<C: GenericClient>(
+    db: &mut C,
+    expected_source: &str,
+    lock_for_write: bool,
+) -> Result<(), PgAdmissionError> {
+    let physical = db.query_one(
+        "SELECT (SELECT system_identifier::text FROM pg_control_system()), \
+                (SELECT timeline_id FROM pg_control_checkpoint()), \
+                (SELECT left(pg_walfile_name(pg_current_wal_lsn()),8))",
+        &[],
+    )?;
+    let system_id: String = physical.get(0);
+    let timeline: i32 = physical.get(1);
+    let current_wal_timeline: String = physical.get(2);
+    // The control-file checkpoint may lag a promotion. If it does, refuse
+    // admission rather than mistake a freshly branched WAL for the old epoch.
+    if current_wal_timeline != format!("{timeline:08X}") {
+        return Err(PgAdmissionError::Unqualified);
+    }
+    if timeline < 1 {
+        return Err(PgAdmissionError::Unqualified);
+    }
+    let digest = pg_writer_epoch_digest(expected_source, &system_id, timeline);
+    let query = if lock_for_write {
+        "SELECT state,source_sha256,promotion_allowed FROM _stage_control WHERE id='epoch' FOR SHARE"
+    } else {
+        "SELECT state,source_sha256,promotion_allowed FROM _stage_control WHERE id='epoch'"
+    };
+    let seal = db
+        .query_opt(query, &[])?
+        .ok_or(PgAdmissionError::Unqualified)?;
+    if seal.get::<_, String>(0) != "QUALIFIED_EPOCH"
+        || seal.get::<_, String>(1) != digest
+        || !seal.get::<_, bool>(2)
+    {
+        return Err(PgAdmissionError::Unqualified);
+    }
+    Ok(())
+}
+
 /// Required keys and references for the durable PG authority, not merely
 /// a row-correct historical import. The native stage intentionally does not
 /// assert all of these, and must not be promoted as an active write schema.
@@ -289,6 +343,7 @@ impl PgAdmissionStore {
         if state != "QUALIFIED_WRITER" || !permitted || source != i.expected_source_sha256 {
             return Err(PgAdmissionError::Unqualified);
         }
+        require_pg_writer_epoch(&mut tx, &i.expected_source_sha256, true)?;
         if let Some(row) = tx.query_opt(
             "SELECT k.job_id,j.request_digest FROM idempotency_keys k \
              JOIN jobs j ON j.job_id=k.job_id AND j.principal=k.principal \
@@ -410,6 +465,7 @@ impl PgAdmissionStore {
         if state != "QUALIFIED_WRITER" || !permitted || source != i.expected_source_sha256 {
             return Err(PgAdmissionError::Unqualified);
         }
+        require_pg_writer_epoch(&mut tx, &i.expected_source_sha256, false)?;
 
         // A key by itself is insufficient: require the original immutable Job,
         // first Attempt and capacity reservation to be mutually consistent.
@@ -682,6 +738,7 @@ impl PgAdmissionStore {
         if status != "QUALIFIED_WRITER" || !permitted || seal != i.expected_source_sha256 {
             return Err(PgAdmissionError::Unqualified);
         }
+        require_pg_writer_epoch(&mut tx, &i.expected_source_sha256, true)?;
         let current=tx.query_opt(
             "SELECT job_id,state,result_digest,row_version FROM attempts WHERE attempt_id=$1 FOR UPDATE",
             &[&i.attempt_id])?.ok_or(PgAdmissionError::InvalidInput)?;
@@ -890,6 +947,7 @@ impl PgAdmissionStore {
         if state != "QUALIFIED_WRITER" || !permitted || source != i.expected_source_sha256 {
             return Err(PgAdmissionError::Unqualified);
         }
+        require_pg_writer_epoch(&mut tx, &i.expected_source_sha256, true)?;
 
         let job = tx.query_opt(
             "SELECT resolution,desired_state,current_attempt_id FROM jobs WHERE job_id=$1 FOR UPDATE",
@@ -1040,6 +1098,7 @@ impl PgAdmissionStore {
         if state != "QUALIFIED_WRITER" || !permitted || source != i.expected_source_sha256 {
             return Err(PgAdmissionError::Unqualified);
         }
+        require_pg_writer_epoch(&mut tx, &i.expected_source_sha256, false)?;
         let Some(job) = tx.query_opt(
             "SELECT desired_state,resolution,current_attempt_id FROM jobs WHERE job_id=$1",
             &[&i.job_id],
@@ -1114,6 +1173,21 @@ impl PgAdmissionStore {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn physical_epoch_fingerprint_is_domain_and_timeline_bound() {
+        let source = "a".repeat(64);
+        let previous = pg_writer_epoch_digest(&source, "77123", 1);
+        assert_eq!(previous.len(), 64);
+        assert_ne!(previous, pg_writer_epoch_digest(&source, "77123", 2));
+        assert_ne!(previous, pg_writer_epoch_digest(&source, "77124", 1));
+        assert_ne!(
+            previous,
+            pg_writer_epoch_digest(&"b".repeat(64), "77123", 1)
+        );
+        assert_eq!(previous, pg_writer_epoch_digest(&source, "77123", 1));
+    }
+
     use super::*;
     #[test]
     fn schema_boundary_fails_closed() {
@@ -1295,6 +1369,19 @@ mod live_pg_tests {
                 "UPDATE _stage_control SET state='QUALIFIED_WRITER',promotion_allowed=true WHERE id='source'",
                 &[]
             ).expect("test-only synthetic qualifier");
+            let pg = self.admin.query_one(
+                "SELECT (SELECT system_identifier::text FROM pg_control_system()),                         (SELECT timeline_id FROM pg_control_checkpoint())",
+                &[],
+            ).expect("native physical PostgreSQL epoch");
+            let digest = pg_writer_epoch_digest(
+                &"a".repeat(64),
+                &pg.get::<_, String>(0),
+                pg.get::<_, i32>(1),
+            );
+            self.admin.execute(
+                "INSERT INTO _stage_control VALUES('epoch','QUALIFIED_EPOCH',$1,true)                  ON CONFLICT(id) DO UPDATE SET state='QUALIFIED_EPOCH',source_sha256=EXCLUDED.source_sha256,promotion_allowed=true",
+                &[&digest],
+            ).expect("operator-owned epoch fixture");
         }
         fn count(&mut self, table: &str) -> i64 {
             self.admin

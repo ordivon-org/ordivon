@@ -46,6 +46,63 @@ Treat unhealthy service state, unresolved Registry conditions, held reservations
 
 Recover through Runtime reconciliation, documented repair or quarantine paths, explicit Workspace close/reclaim operations, and receipt-bound Git rollback. Never delete live state or redispatch ambiguous work as a substitute for diagnosis.
 
+## PostgreSQL Runtime recovery branch qualification (source candidate)
+
+The opt-in PostgreSQL-native Runtime has TWO distinct conditions in its
+existing operator-owned _stage_control table. The source record retains
+state=QUALIFIED_WRITER, exact source SHA-256, promotion_allowed=true.
+A second row has id=epoch, state=QUALIFIED_EPOCH, promotion_allowed=true,
+and a 64-character digest of source SHA-256, physical PostgreSQL system
+identifier, and current WAL timeline ID. This adds no table, general
+Registry, or automatic promotion path.
+
+After ordinary restart on the same WAL timeline, the existing epoch record
+remains valid. After PITR/archive recovery promotion onto a new timeline,
+a restored source row alone is insufficient: Rust startup, Job admission,
+dispatch and Workspace write gates must reject the old epoch. The producer
+does not stamp or repair its own record; only an approved independent PG
+operator may requalify a recovered branch AFTER reconciling provider effect
+receipts and establishing that the old writers are fenced.
+
+The operator first reads the CURRENT database physical identity using SQL:
+
+    SELECT (SELECT system_identifier::text FROM pg_control_system()) AS system_id,
+           (SELECT timeline_id FROM pg_control_checkpoint()) AS checkpoint_timeline,
+           (SELECT left(pg_walfile_name(pg_current_wal_lsn()), 8)) AS live_wal_timeline_hex;
+
+The last two timeline values must agree, otherwise leave admission denied.
+For the exact approved source hash, let SOURCE, SYSTEM_ID and TLI denote the
+readback values. Compute the record digest with Python 3's standard library,
+exactly matching the pg_writer_epoch_digest Rust function:
+
+    import hashlib
+    source, system_id, timeline_id = SOURCE, SYSTEM_ID, int(TLI)
+    epoch_digest = hashlib.sha256(
+        f"ordivon-pg-writer-epoch-v1\0{source}\0{system_id}\0{timeline_id}".encode()
+    ).hexdigest()
+
+Only an operator-approved transaction may write this digest as the existing
+_stage_control(id, state, source_sha256, promotion_allowed) row
+('epoch','QUALIFIED_EPOCH',epoch_digest,true), preserving the separate source
+authorization row. A missing/mismatched epoch refuses effects. The Runtime
+application role must not have INSERT/DELETE or protected UPDATE authority
+on this control table.
+
+**Proof boundary:** (system_identifier,timeline_id,source) detects an old
+qualification on a branched timeline, but is NOT a globally unique
+incarnation or dual-writer lease. Independently cloned histories can
+carry the same timeline number; PG snapshots can also roll back effect-ID
+uniqueness. Keep the existing service/orchestrator single-writer and
+provider-receipt fences. An epoch requalification does not prove external
+effects did not occur, and a green scratch test does not install or
+authorize a production PG Writer.
+
+The no-production-write physical falsifier is
+services/runtime/scripts/tests/pg_recovery_pitr_probe.py; Rust natural
+consumers are in crates/ordivon-runtime-mcp/tests/pg_vertical.rs.
+PostgreSQL source: https://www.postgresql.org/docs/18/continuous-archiving.html
+and https://www.postgresql.org/docs/18/functions-info.html .
+
 ## Verification
 
 Use service status, Runtime doctor and inspect commands, capacity acceptance, lifecycle receipts, contained-local acceptance, deployment manifests, and the repository test suite. The architecture is defined in [`runtime.md`](runtime.md), focused repair guidance is in [`recovery.md`](recovery.md), and exact command sequences and acceptance conditions follow in the detailed sections.

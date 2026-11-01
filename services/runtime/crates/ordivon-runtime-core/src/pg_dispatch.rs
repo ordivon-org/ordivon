@@ -71,6 +71,7 @@ fn require_qualified_writer(
     {
         return Err(PgAdmissionError::Unqualified);
     }
+    require_pg_writer_epoch(tx, expected_source, true)?;
     Ok(())
 }
 
