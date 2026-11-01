@@ -37,7 +37,9 @@ class PluginMcpObservationBridge:
         requested = tuple(sorted(allowed_tools or OBSERVATION_ONLY_GATEWAY_TOOLS))
         if not requested or len(requested) != len(set(requested)):
             raise ValueError("Plugin MCP observation Tool grant must be non-empty and unique")
-        forbidden = set(requested) - OBSERVATION_ONLY_GATEWAY_TOOLS
+        # Gateway work.get is owner-native read-only; it is opt-in only and
+        # must never silently widen the legacy default Tool grant.
+        forbidden = set(requested) - OBSERVATION_ONLY_GATEWAY_TOOLS - {"work.get"}
         if forbidden:
             raise ValueError(
                 f"Plugin MCP observation bridge refuses effectful/unknown Tools: {sorted(forbidden)}"

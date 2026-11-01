@@ -236,3 +236,86 @@ class AgentPluginCompositionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+def test_explicit_host_work_get_is_readonly_and_scope_fenced() -> None:
+    """One real Gateway owner tool name, not a new task acceptance service."""
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        write_plugin(root)
+        plugin = AgentPluginComposition.load(root)
+
+        class WorkOwnerClient(FakeMcpClient):
+            def list_tools(self):
+                return (*super().list_tools(), {
+                    "name": "work.get",
+                    "description": "Read exact Host Work current snapshot",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {"workRef": {"type": "string"}},
+                        "required": ["workRef"],
+                    },
+                })
+
+            def call_tool(self, name, arguments):
+                self.calls.append((name, dict(arguments)))
+                if name != "work.get":
+                    raise AssertionError("effectful call must not be routed")
+                if arguments != {"workRef": "work:qualify-client"}:
+                    return True, {"code": "WORK_NOT_FOUND"}
+                return False, {
+                    "kind": "ordivon.host-work",
+                    "workRef": "work:qualify-client",
+                    "revision": 5,
+                    "state": "open",
+                    "snapshotDigest": canonical_digest({"exact": "work"}),
+                    "snapshot": {"objective": "Qualify accepted Work", "frontier": "source"},
+                    "truthBoundary": "Host work continuity; not assignment or authorization",
+                }
+
+        client = WorkOwnerClient()
+        # Opt-in only: existing default bridge cannot silently read an extra Work.
+        default = PluginMcpObservationBridge(plugin.mcp("ordivon-gateway"), client)
+        self_default = {tool.name for tool in default.definitions()}
+        assert "work.get" not in self_default
+        bridge = PluginMcpObservationBridge(
+            plugin.mcp("ordivon-gateway"), client, allowed_tools=("work.get",)
+        )
+        good = bridge.execute(
+            AgentToolCall(
+                tool_call_id="tool-call:host-work:1",
+                name="work.get",
+                arguments={"workRef": "work:qualify-client"},
+            ),
+            step_id="tool-step:work-read",
+        )
+        assert good.status == "observed"
+        assert good.structured_content["revision"] == 5
+        assert good.structured_content["state"] == "open"
+        assert bridge.restore_current_attempt_tool_exchanges((good,))[0]["role"] == "tool"
+        bad = bridge.execute(
+            AgentToolCall(
+                tool_call_id="tool-call:host-work:2",
+                name="work.get",
+                arguments={"workRef": "work:not-authorized"},
+            ),
+            step_id="tool-step:absent-work",
+        )
+        assert bad.status == "rejected"
+        assert bad.structured_content["code"] == "WORK_NOT_FOUND"
+        from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+        import pytest
+        with pytest.raises(ToolBridgeError):
+            bridge.execute(
+                AgentToolCall(
+                    tool_call_id="tool-call:effect-denied",
+                    name="execution.submit",
+                    arguments={},
+                ),
+                step_id="tool-step:effect-denied",
+            )
+        assert client.calls == [
+            ("work.get", {"workRef": "work:qualify-client"}),
+            ("work.get", {"workRef": "work:not-authorized"}),
+        ]

@@ -105,3 +105,40 @@ for unique text (backward-compatible); duplicate text without an index is
 ambiguous and rejected. `coveredIndices`, `missingIndices` and
 `invalidIndices` are position-aware navigation witnesses, **not** evidence
 of semantic discharge. Never silently deduplicate a Host Work obligation.
+
+## Explicit Work acceptance in existing Harness (source-only, opt-in)
+
+An actual Agent/Harness caller may use the existing Agent Plugin
+`AgentPluginSkillComponent.to_accepted_work_view_source` after an **explicit
+Work acceptance**. Supply the current named `workRef`, integer `revision`,
+caller-observed Host Work snapshot SHA-256, and expected selected Plugin Skill
+SHA-256. Compose the resulting `HarnessWorkingViewSource` into an existing
+`HarnessCognitionSeedSource` with a `HarnessAgentRun` cognition profile.
+
+This is a **caller-authored selection**, not a native Host acceptance event,
+not a Skill Provider installed readback, and not a new authoritative scheduler.
+The caller verifies the current Work and owner facts through `work.get`
+before any effect. The helper performs no Host RPC. Passive Space browsing
+does not invoke this adapter.
+
+Malformed task identifiers, invalid revisions, mismatched digests and changed
+local instruction bytes are rejected. Topic prose is excluded from this source.
+The result is model-visible context only; no Tool or permission is granted.
+
+### Owner-native Work read through the existing Harness Plugin ToolBridge
+
+The Gateway already exposes `work.get` as a Host-owned read-only operation.
+`PluginMcpObservationBridge` admits it **only** if the caller explicitly
+requests `allowed_tools=("work.get",)`; the default observation grant
+remains unchanged. A client can supply its result to
+`AgentPluginSkillComponent.to_requalified_work_view_source` using a
+caller-owned `read_current_work` callback. This rechecks the observed
+WorkRef, positive revision, open state, exact snapshot digest and selected
+Skill bytes **at context construction time**. No task Space browse or Host
+membership invokes it automatically.
+
+The result is a bounded model-visible cognition source, not Host authenticated
+task acceptance, a lease, external effect authority, or globally atomic
+currentness. Before actions, revalidate using the actual natural owner.
+Missing Work, stale revision/digest, changed Skill bytes or ungranted Tool
+calls must fail closed. Host Work and Topic text remain untrusted task data.
