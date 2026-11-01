@@ -96,27 +96,42 @@ def _bounded_json_integer(value: str) -> int:
         raise CircuitContractError("JSON integer cannot be represented") from exc
 
 
-def _require_unicode_scalars(value: Any) -> None:
-    # Python's JSON decoder accepts lone escaped UTF-16 surrogates that cannot
-    # be encoded to UTF-8 for our canonical digest. One iterative check works
-    # for keys, nested string values, object roots and proof-array roots.
-    pending = [value]
+def _require_unicode_scalars(
+    value: Any, *, git_byte_path_fields: frozenset[str] = frozenset()
+) -> None:
+    # Git pathname bytes may be decoded with surrogateescape; JSON evidence
+    # elsewhere MUST remain Unicode scalar text. Exemption is restricted to
+    # exact path-valued fields at the caller's explicit CLI boundary.
+    pending: list[tuple[Any, str | None]] = [(value, None)]
     while pending:
-        item = pending.pop()
+        item, field = pending.pop()
         if isinstance(item, str):
             try:
-                item.encode("utf-8")
+                item.encode(
+                    "utf-8",
+                    errors="surrogateescape" if field in git_byte_path_fields else "strict",
+                )
             except UnicodeError as exc:
                 raise CircuitContractError("invalid Unicode scalar in JSON evidence") from exc
         elif isinstance(item, dict):
-            pending.extend(item.keys())
-            pending.extend(item.values())
+            # Object KEYS are never byte paths and cannot inherit exemption.
+            pending.extend((key, None) for key in item)
+            pending.extend((child, key) for key, child in item.items())
         elif isinstance(item, list):
-            pending.extend(item)
+            pending.extend((child, field) for child in item)
 
 
-def _load_json_value(path: Path, *, source_bytes: bytes | None = None) -> Any:
-    """One source/evidence admission boundary shared by all Composition CLIs."""
+def _load_json_value(
+    path: Path,
+    *,
+    source_bytes: bytes | None = None,
+    git_byte_path_fields: frozenset[str] = frozenset(),
+) -> Any:
+    """One source/evidence admission boundary shared by Composition CLIs.
+
+    The opt-in byte-path exemption is only for Repo's Git source members and
+    natural Owner sourcePaths; it never changes other JSON evidence contracts.
+    """
     try:
         raw = source_bytes if source_bytes is not None else path.read_bytes()
         value = json.loads(
@@ -126,7 +141,7 @@ def _load_json_value(path: Path, *, source_bytes: bytes | None = None) -> Any:
             parse_float=_finite_json_float,
             parse_int=_bounded_json_integer,
         )
-        _require_unicode_scalars(value)
+        _require_unicode_scalars(value, git_byte_path_fields=git_byte_path_fields)
     except CircuitContractError:
         raise
     except (UnicodeError, RecursionError) as exc:
@@ -134,8 +149,15 @@ def _load_json_value(path: Path, *, source_bytes: bytes | None = None) -> Any:
     return value
 
 
-def _load_json(path: Path, *, source_bytes: bytes | None = None) -> dict[str, Any]:
-    value = _load_json_value(path, source_bytes=source_bytes)
+def _load_json(
+    path: Path,
+    *,
+    source_bytes: bytes | None = None,
+    git_byte_path_fields: frozenset[str] = frozenset(),
+) -> dict[str, Any]:
+    value = _load_json_value(
+        path, source_bytes=source_bytes, git_byte_path_fields=git_byte_path_fields
+    )
     if not isinstance(value, dict):
         raise CircuitContractError(f"{path}: root must be an object")
     return value

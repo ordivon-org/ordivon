@@ -1372,8 +1372,21 @@ def main() -> int:
                 unknown_refs=unknown,
             )
         elif args.command == "impact-readsets":
-            qualified = _requalify_git_source_delta(args.repo, _load_json(args.git_source_delta))
-            evidence = _load_json(args.source_readset_evidence)
+            # Repo's path members are Git byte strings, not necessarily UTF-8.
+            # Keep all non-path JSON values on the strict Unicode-scalar lane.
+            qualified = _requalify_git_source_delta(
+                args.repo,
+                _load_json(
+                    args.git_source_delta,
+                    git_byte_path_fields=frozenset(
+                        {"addedPaths", "removedPaths", "changedValuePaths"}
+                    ),
+                ),
+            )
+            evidence = _load_json(
+                args.source_readset_evidence,
+                git_byte_path_fields=frozenset({"sourcePaths"}),
+            )
             result = select_source_readset_impacts(
                 git_source_delta=qualified,
                 source_readset_evidence=evidence,
