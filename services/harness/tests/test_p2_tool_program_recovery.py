@@ -3,14 +3,20 @@ from __future__ import annotations
 import unittest
 
 from ordivon_harness.agent_tool_observation import HarnessToolObservation
-from ordivon_harness.tool_program import HarnessToolProgramAction
+from ordivon_harness.tool_program import (
+    HarnessToolProgram,
+    HarnessToolProgramAction,
+    HarnessToolProgramStep,
+    observation_ref,
+)
 from ordivon_harness.tool_program_recovery import (
+    HarnessToolProgramActionExecutor,
     derive_tool_program_inner_call,
     derive_tool_program_step_id,
     recover_tool_program_action,
 )
 
-from tests.test_p2_tool_program import dependent_program
+from tests.test_p2_tool_program import Bridge, READ, WRITE, dependent_program
 
 
 def observed(call, content):
@@ -28,6 +34,54 @@ class ToolProgramRecoveryP2Tests(unittest.TestCase):
             action_call_id=f"program-action:p2:{suffix}",
             program=dependent_program(),
         )
+
+    def test_action_executor_uses_one_validated_snapshot_across_effects(self) -> None:
+        action = HarnessToolProgramAction(
+            action_call_id="program-action:p2:recovery-snapshot",
+            program=HarnessToolProgram(
+                steps=(
+                    HarnessToolProgramStep("read", "read_value", {"key": "source"}),
+                    HarnessToolProgramStep("write", "write_value", {"value": "authorized"}),
+                ),
+                outputs={"written": observation_ref("write", "written")},
+            ),
+        )
+        original = action.program.digest
+
+        class MutatingBridge(Bridge):
+            def execute(self, call, *, step_id):
+                observation = super().execute(call, step_id=step_id)
+                if call.name == "read_value":
+                    action.program.steps[1].arguments["value"] = "tampered"
+                    action.program.outputs["invalid"] = observation_ref("missing", "written")
+                return observation
+
+        bridge = MutatingBridge()
+        result = HarnessToolProgramActionExecutor(bridge, (READ, WRITE)).execute(
+            action, remaining_tool_calls=2, step_prefix="recovery-snapshot"
+        )
+        self.assertEqual(result.status, "completed")
+        self.assertEqual(bridge.calls[-1][0].arguments["value"], "authorized")
+        self.assertEqual(result.program_digest, original)
+        self.assertEqual(result.output, {"written": "authorized"})
+
+    def test_recovery_rejects_invalid_mutated_action_before_next_call(self) -> None:
+        action = HarnessToolProgramAction(
+            action_call_id="program-action:p2:recovery-validation",
+            program=HarnessToolProgram(
+                steps=(HarnessToolProgramStep("write", "write_value", {"value": "protected"}),),
+                outputs={},
+            ),
+        )
+        action.program.outputs["unsafe"] = observation_ref("missing", "written")
+        with self.assertRaisesRegex(ValueError, "unknown step"):
+            recover_tool_program_action(action, ())
+        bridge = Bridge()
+        with self.assertRaisesRegex(ValueError, "unknown step"):
+            HarnessToolProgramActionExecutor(bridge, (WRITE,)).execute(
+                action, remaining_tool_calls=1, step_prefix="recover-before-effect"
+            )
+        self.assertEqual(bridge.calls, [])
 
     def test_empty_restart_projection_derives_first_exact_inner_call(self) -> None:
         action = self.action()
@@ -83,7 +137,9 @@ class ToolProgramRecoveryP2Tests(unittest.TestCase):
             },
         )
 
-    def test_same_program_with_different_outer_action_identity_has_distinct_inner_calls(self) -> None:
+    def test_same_program_with_different_outer_action_identity_has_distinct_inner_calls(
+        self,
+    ) -> None:
         first = derive_tool_program_inner_call(self.action("a"), 0, ())
         second = derive_tool_program_inner_call(self.action("b"), 0, ())
         self.assertNotEqual(first.tool_call_id, second.tool_call_id)

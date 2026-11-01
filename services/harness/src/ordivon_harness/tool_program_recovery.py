@@ -1,7 +1,7 @@
 """Pure restart reconstruction for Harness-native ToolProgram actions.
 
 This module performs no Tool execution and owns no durable state.  It derives
-exact inner Tool Call identities/arguments from one immutable
+exact inner Tool Call identities/arguments from one validated
 ``HarnessToolProgramAction`` plus an exact durable observation prefix.  The same
 projection can therefore be used before live integration to prove that restart
 semantics do not require a second program ledger.
@@ -9,6 +9,7 @@ semantics do not require a second program ledger.
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
@@ -50,13 +51,9 @@ def derive_tool_program_inner_call(
         step = action.program.steps[index]
         expected_id = f"tool-call:program:{token}:{index + 1}"
         if observation.tool_call_id != expected_id or observation.tool_name != step.tool_name:
-            raise ValueError(
-                "ToolProgram durable observation differs from derived inner Tool Call"
-            )
+            raise ValueError("ToolProgram durable observation differs from derived inner Tool Call")
         if observation.status != "observed":
-            raise ValueError(
-                "ToolProgram cannot derive a later step after a non-observed outcome"
-            )
+            raise ValueError("ToolProgram cannot derive a later step after a non-observed outcome")
         by_step[step.step_id] = observation
 
     step = action.program.steps[step_index]
@@ -86,10 +83,7 @@ def derive_tool_program_step_id(
     if type(step_index) is not int or not 0 <= step_index < len(action.program.steps):
         raise ValueError("ToolProgram step index is outside the program")
     step = action.program.steps[step_index]
-    return (
-        f"{step_prefix}:program:{_action_token(action)}:"
-        f"{step_index + 1}:{step.step_id}"
-    )
+    return f"{step_prefix}:program:{_action_token(action)}:{step_index + 1}:{step.step_id}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,6 +127,9 @@ def recover_tool_program_action(
 ) -> HarnessToolProgramRecoveryProjection:
     """Reconstruct exact next work or terminal result without executing a Tool."""
 
+    # Recovery must reject mutable JSON contract drift before deriving any
+    # next effect, and use one stable action identity for all projections.
+    action = HarnessToolProgramAction.from_dict(copy.deepcopy(action.to_dict()))
     if len(observations) > len(action.program.steps):
         raise ValueError("ToolProgram durable observation prefix exceeds program length")
 
@@ -147,9 +144,7 @@ def recover_tool_program_action(
             observation.tool_call_id != expected.tool_call_id
             or observation.tool_name != expected.name
         ):
-            raise ValueError(
-                "ToolProgram durable observation differs from derived inner Tool Call"
-            )
+            raise ValueError("ToolProgram durable observation differs from derived inner Tool Call")
         observed_prefix.append(observation)
         if observation.status != "observed":
             if index != len(observations) - 1:
@@ -229,15 +224,15 @@ class HarnessToolProgramActionExecutor:
     ) -> HarnessToolProgramResult:
         if type(remaining_tool_calls) is not int or remaining_tool_calls < 0:
             raise ValueError("ToolProgram remaining Tool budget must be non-negative")
+        # Freeze and revalidate the entire admitted action before Tool calls.
+        # Nested JSON mappings remain mutable despite frozen dataclasses.
+        action = HarnessToolProgramAction.from_dict(copy.deepcopy(action.to_dict()))
         if action.physical_tool_calls > remaining_tool_calls:
             raise ValueError("ToolProgram exceeds remaining Tool Call budget")
-        denied = sorted(
-            {step.tool_name for step in action.program.steps} - self.admitted_tools
-        )
+        denied = sorted({step.tool_name for step in action.program.steps} - self.admitted_tools)
         if denied:
             raise ValueError(
-                "ToolProgram references Tools not admitted on the exact turn: "
-                + ", ".join(denied)
+                "ToolProgram references Tools not admitted on the exact turn: " + ", ".join(denied)
             )
 
         observations: list[HarnessToolObservation] = []
@@ -255,10 +250,7 @@ class HarnessToolProgramActionExecutor:
                     step_prefix=step_prefix,
                 ),
             )
-            if (
-                observation.tool_call_id != call.tool_call_id
-                or observation.tool_name != call.name
-            ):
+            if observation.tool_call_id != call.tool_call_id or observation.tool_name != call.name:
                 raise ValueError(
                     "ToolProgram bridge returned an observation for a different Tool Call"
                 )

@@ -252,6 +252,16 @@ and owns execution against the already-admitted ToolBridge; recovery stays in
 depends on the contract directly, not the executor or Runtime. This is an
 internal seam, not a new Tool grant or a new owner.
 
+ToolProgram's public frozen data classes contain mutable nested JSON values.
+Both the direct executor and the native action/recovery entrypoints therefore
+deep-copy and revalidate the complete versioned contract **before any Tool
+effect or restart projection**. A Tool callback modifying caller-held input
+cannot redirect later steps or change the active program digest. This is a
+per-execution snapshot boundary, not a claim that external references or
+arbitrary concurrent mutation during input capture are deeply immutable.
+Record the exact admitted action/digest before dispatch when durability is
+required; never equate a model proposal with actual external effect authority.
+
 The current execution path is deliberately one waist:
 
 ```text
