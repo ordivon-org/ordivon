@@ -762,6 +762,10 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
             max_output_bytes: 1024 * 1024,
         },
     };
+    assert!(
+        !config.executor.store_root.exists(),
+        "an isolated candidate must begin without a Workspace store"
+    );
     fixture
         .db
         .execute("DELETE FROM _stage_control", &[])
@@ -770,6 +774,10 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
         .err()
         .expect("empty stage must reject startup");
     assert!(denied.to_string().contains("not qualified"), "{denied}");
+    assert!(
+        !config.executor.store_root.exists(),
+        "denied startup must not create any Workspace store"
+    );
     fixture
         .db
         .execute(
@@ -784,6 +792,10 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
         mismatched.to_string().contains("not qualified"),
         "{mismatched}"
     );
+    assert!(
+        !config.executor.store_root.exists(),
+        "a wrong SourceCut must not create a Workspace store"
+    );
     fixture
         .db
         .execute(
@@ -792,6 +804,10 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
         )
         .unwrap();
     let running = PgRuntime::new(config.clone()).expect("exact operator-qualified source starts");
+    assert!(
+        config.executor.store_root.is_dir(),
+        "qualified startup must initialize the existing store"
+    );
     // Even with a distinct table owner, a mistaken grant on a protected
     // qualification column must fail before the Runtime advertises tools.
     fixture
@@ -1242,6 +1258,10 @@ fn pg_startup_refuses_application_self_qualified_control_table() {
     assert!(
         candidate.is_err(),
         "a role that owns _stage_control cannot independently qualify its own writer"
+    );
+    assert!(
+        !fixture.root.join("self-qualified-attempt").exists(),
+        "self-qualified PostgreSQL authority must not create Workspace directories"
     );
 }
 
