@@ -365,6 +365,19 @@ def exact_source_checkout(source_repo: Path, commit: str):
         raise RuntimeError(
             f"requested commit {commit} is not the exact configured owner revision {resolved_owner}"
         )
+    # A --shared clone of a partial/promisor source may use upload-pack rather
+    # than alternates. Materialize the exact Git tree before cloning, so absent
+    # promised blobs cannot silently produce a dirty or incomplete checkout.
+    archive = subprocess.run(
+        [str(git), "-C", str(git_root), "archive", "--format=tar", commit],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if archive.returncode != 0:
+        detail = archive.stderr.strip() or f"exit {archive.returncode}"
+        raise RuntimeError(f"cannot materialize exact release source: {detail}")
     with tempfile.TemporaryDirectory(prefix="ordivon-runtime-release-source-") as temporary:
         checkout = Path(temporary) / "source"
         run(
@@ -376,6 +389,16 @@ def exact_source_checkout(source_repo: Path, commit: str):
                 "--no-checkout",
                 str(git_root),
                 str(checkout),
+            ]
+        )
+        # The clone's ref advertisement may omit the target if the local main
+        # lags origin/main. Fetch by exact OID with no ref or FETCH_HEAD write.
+        run(
+            [
+                str(git), "-C", str(checkout),
+                "-c", "gc.auto=0", "-c", "maintenance.auto=false",
+                "fetch", "--quiet", "--no-tags", "--no-write-fetch-head",
+                str(git_root), commit,
             ]
         )
         run([str(git), "-C", str(checkout), "checkout", "--quiet", "--detach", commit])
