@@ -514,6 +514,83 @@ class DeployReclaimTests(unittest.TestCase):
                     ).stdout.strip()
                     self.assertEqual(observed, expected)
 
+    def test_exact_source_checkout_materializes_promisor_commit_beyond_local_head(self) -> None:
+        """A partial local clone may advertise only an older local main."""
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            checkout_source = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))[
+                "exact_source_checkout"
+            ]
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bare = root / "bare.git"
+            seed = root / "seed"
+            source = root / "partial"
+            subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+            subprocess.run(
+                ["git", "-C", str(bare), "config", "uploadpack.allowFilter", "true"],
+                check=True,
+            )
+            subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+            for key, value in (
+                ("user.name", "Release Test"),
+                ("user.email", "release-test@example.invalid"),
+            ):
+                subprocess.run(["git", "-C", str(seed), "config", key, value], check=True)
+            owner_file = seed / "services/runtime/owner.txt"
+            owner_file.parent.mkdir(parents=True)
+            owner_file.write_text("old\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(seed), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(seed), "commit", "-qm", "old"], check=True)
+            subprocess.run(
+                ["git", "-C", str(seed), "remote", "add", "origin", str(bare)], check=True
+            )
+            subprocess.run(
+                ["git", "-C", str(seed), "push", "-q", "-u", "origin", "main"],
+                check=True,
+            )
+            subprocess.run(
+                [
+                    "git", "-c", "protocol.file.allow=always", "clone", "-q",
+                    "--filter=blob:none", bare.as_uri(), str(source),
+                ],
+                check=True,
+            )
+            old_head = subprocess.check_output(
+                ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
+            ).strip()
+            owner_file.write_text("new\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(seed), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(seed), "commit", "-qm", "new"], check=True)
+            target = subprocess.check_output(
+                ["git", "-C", str(seed), "rev-parse", "HEAD"], text=True
+            ).strip()
+            subprocess.run(
+                ["git", "-C", str(seed), "push", "-q", "origin", "main"], check=True
+            )
+            subprocess.run(["git", "-C", str(source), "fetch", "-q", "origin"], check=True)
+            self.assertNotEqual(old_head, target)
+            self.assertEqual(
+                subprocess.check_output(
+                    ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
+                ).strip(),
+                old_head,
+            )
+            self.assertEqual(
+                subprocess.check_output(
+                    ["git", "-C", str(source), "config", "remote.origin.promisor"],
+                    text=True,
+                ).strip(),
+                "true",
+            )
+            with checkout_source(source / "services/runtime", target) as materialized:
+                self.assertEqual(
+                    (materialized / "owner.txt").read_text(encoding="utf-8"), "new\n"
+                )
+
     def test_release_source_owner_revision_ignores_sibling_monorepo_commits(self) -> None:
         scripts_path = str(REPO / "scripts")
         sys.path.insert(0, scripts_path)
