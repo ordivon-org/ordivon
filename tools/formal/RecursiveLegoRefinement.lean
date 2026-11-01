@@ -1555,3 +1555,40 @@ end OrdivonR21.MessageEvidence
 #print axioms OrdivonR21.MessageEvidence.protocol_assumptions_are_nonvacuous
 #print axioms OrdivonR21.MessageEvidence.executable_model_refines_protocol
 #print axioms OrdivonR21.MessageEvidence.overwrite_breaks_existing_immutability
+
+
+
+-- Historical v1 projection identity and formal proof standing are different
+-- authorities. A caller's SATISFIED string cannot decide theorem validity.
+-- This model establishes impossibility of report-only proof, not Python
+-- implementation refinement or an installed verifier.
+namespace OrdivonR21.ReportIsNotProof
+
+structure ReportedGateWorld where
+  callerSaysSatisfied : Bool
+  actualSpecificationHolds : Bool
+
+theorem same_satisfied_report_can_hide_opposite_truth :
+    ∃ (good bad : ReportedGateWorld),
+      good.callerSaysSatisfied = true ∧
+      bad.callerSaysSatisfied = true ∧
+      good.callerSaysSatisfied = bad.callerSaysSatisfied ∧
+      good.actualSpecificationHolds = true ∧
+      bad.actualSpecificationHolds = false := by
+  refine ⟨⟨true, true⟩, ⟨true, false⟩, ?_, ?_, ?_, ?_, ?_⟩ <;> rfl
+
+theorem no_report_only_decider_can_prove_actual_truth
+    (judge : Bool → Bool) :
+    ¬ (∀ world : ReportedGateWorld,
+         judge world.callerSaysSatisfied = world.actualSpecificationHolds) := by
+  intro h
+  have hTrue := h ⟨true, true⟩
+  have hFalse := h ⟨true, false⟩
+  simp only at hTrue hFalse
+  rw [hTrue] at hFalse
+  exact Bool.noConfusion hFalse
+
+end OrdivonR21.ReportIsNotProof
+
+#print axioms OrdivonR21.ReportIsNotProof.same_satisfied_report_can_hide_opposite_truth
+#print axioms OrdivonR21.ReportIsNotProof.no_report_only_decider_can_prove_actual_truth

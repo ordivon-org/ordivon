@@ -394,6 +394,37 @@ def evaluate_gate_results(
     return projection
 
 
+def evaluate_gate_proof_qualification(
+    manifest: dict[str, Any],
+    results: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Bind proof *non-claims* to a validated v1 gate receipt, without changing its ID.
+
+    A caller-authored SATISFIED report is not a checked theorem. The existing
+    gate projection and its canonical digest are a historical consumer
+    contract; any independent verification must live in a separately
+    identified envelope, not mutate the v1 projection or silently relabel it.
+    """
+    projection = evaluate_gate_results(manifest, results)
+    qualification: dict[str, Any] = {
+        "schemaVersion": 1,
+        "kind": "ordivon.cognitive-circuit-proof-qualification",
+        "sourceProjectionDigest": projection["projectionDigest"],
+        "sourceSchemaVersion": projection["schemaVersion"],
+        "formalProofStanding": "UNKNOWN_NOT_CHECKED",
+        "formalDischargeEstablished": False,
+        "proofReuseAdmissible": False,
+        "truthBoundary": (
+            "Validated gate records are caller reports. An evidenceRef, owner "
+            "label, mechanical gate closure or passing CI does not establish a "
+            "checked theorem, implementation refinement, installed behavior "
+            "or downstream domain acceptance. This envelope is non-authoritative."
+        ),
+    }
+    qualification["qualificationDigest"] = canonical_digest(qualification)
+    return qualification
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)

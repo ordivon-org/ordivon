@@ -8,6 +8,7 @@ from ordivon_composition.cognitive_circuit_r1 import (
     CircuitContractError,
     canonical_digest,
     compile_manifest,
+    evaluate_gate_proof_qualification,
     evaluate_gate_results,
     validate_manifest,
 )
@@ -456,3 +457,39 @@ def test_gate_closure_matches_exhaustive_bounded_status_algebra() -> None:
                 assert projection[field] == [
                     f"gate:bounded-{i}" for i, value in enumerate(mandatory) if value == status
                 ]
+
+
+def test_gate_proof_qualification_is_separate_and_preserves_v1_identity() -> None:
+    manifest = valid_manifest()
+    report = gate_result(manifest, "SATISFIED")
+    report["evidenceRefs"] = ["evidence:any-unchecked-assertion"]
+    before = evaluate_gate_results(manifest, [report])
+    assert before["projectionDigest"] == (
+        "sha256:b248c281aec478507ecd58e0c9735ec79a1312c2ad1d394d851390f1991c1994"
+    )
+    qualification = evaluate_gate_proof_qualification(manifest, [report])
+    after = evaluate_gate_results(manifest, [report])
+    assert after == before  # All v1 output fields and digest remain bit-for-bit unchanged.
+    assert "formalProofStanding" not in after
+    assert qualification["kind"] == "ordivon.cognitive-circuit-proof-qualification"
+    assert qualification["schemaVersion"] == 1
+    assert qualification["sourceProjectionDigest"] == before["projectionDigest"]
+    assert qualification["formalProofStanding"] == "UNKNOWN_NOT_CHECKED"
+    assert qualification["formalDischargeEstablished"] is False
+    assert qualification["proofReuseAdmissible"] is False
+    assert qualification["qualificationDigest"] == canonical_digest(
+        {key: value for key, value in qualification.items() if key != "qualificationDigest"}
+    )
+
+
+def test_gate_proof_qualification_rejects_stale_or_missing_input() -> None:
+    manifest = valid_manifest()
+    valid = gate_result(manifest)
+    stale = copy.deepcopy(valid)
+    stale["manifestDigest"] = _digest("different-manifest")
+    with pytest.raises(CircuitContractError, match="stale/different manifest digest"):
+        evaluate_gate_proof_qualification(manifest, [stale])
+    unknown = evaluate_gate_proof_qualification(manifest, [])
+    assert unknown["formalProofStanding"] == "UNKNOWN_NOT_CHECKED"
+    assert unknown["formalDischargeEstablished"] is False
+    assert unknown["proofReuseAdmissible"] is False
