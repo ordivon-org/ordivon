@@ -130,11 +130,6 @@ def assess_family_claim_mapping(
                 gaps[claim] = "EXPLICIT_STATUS_ABSENT"
                 continue
             status = observed["status"]
-        elif mode == "zero-return-code":
-            if not isinstance(observed, int):
-                gaps[claim] = "RETURN_CODE_ABSENT"
-                continue
-            status = "PASS" if observed == 0 else "FAIL"
         else:
             raise ValueError(f"unsupported mapping mode: {mode!r}")
         claim_results[claim] = {
