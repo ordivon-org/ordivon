@@ -265,6 +265,80 @@ class SourceHistoryLegosTests(unittest.TestCase):
             ))
             self.assertEqual(cli, runtime)
 
+    def test_stable_patch_id_does_not_prove_python_consumer_behavior(self):
+        """Exact native Git cherry-mark can equate behaviorally different code.
+
+        Whitespace (including Python indentation) is ignored by stable
+        patch-id. Keep the exact final-tree blob and Owner consumer truth
+        independent even when the candidate looks like an absorbed commit.
+        """
+        with tempfile.TemporaryDirectory(prefix="ordivon-patch-id-semantic-") as temp:
+            repo = Path(temp)
+            git(repo, "init", "-q", "-b", "main")
+            git(repo, "config", "user.name", "Ordivon Test")
+            git(repo, "config", "user.email", "test@example.invalid")
+            owner = repo / "tools/repo/owners.toml"
+            owner.parent.mkdir(parents=True)
+            owner.write_text(
+                CANONICAL_OWNER_HEADER
+                + '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+                + 'verify_task = "runtime:verify"\n'
+            )
+            source = repo / "services/runtime/consumer.py"
+            source.parent.mkdir(parents=True)
+            base = (
+                "def select(flag):\n"
+                "    if flag:\n"
+                '        print("true")\n'
+                "    return 2\n"
+            )
+            source.write_text(base)
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "behavioral baseline")
+            git(repo, "branch", "remote-main")
+
+            # Both diffs insert return 0 at the same line. Patch-id
+            # drops the significant indentation and declares equality.
+            local_program = base.replace(
+                "    return 2\n", "    return 0\n    return 2\n"
+            )
+            source.write_text(local_program)
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "unconditional return")
+            local_commit = git(repo, "rev-parse", "HEAD")
+
+            git(repo, "switch", "-q", "remote-main")
+            remote_program = base.replace(
+                "    return 2\n", "        return 0\n    return 2\n"
+            )
+            source.write_text(remote_program)
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "conditional return")
+            remote_commit = git(repo, "rev-parse", "HEAD")
+
+            local_ns: dict = {}
+            remote_ns: dict = {}
+            exec(local_program, local_ns)
+            exec(remote_program, remote_ns)
+            self.assertEqual(local_ns["select"](False), 0)
+            self.assertEqual(remote_ns["select"](False), 2)
+
+            projection = history(repo, local_commit, remote_commit)
+            self.assertEqual(projection["counts"], {"local": 1, "remote": 1})
+            records = {r["commit"]: r for r in projection["commits"]}
+            for commit in (local_commit, remote_commit):
+                record = records[commit]
+                self.assertEqual(record["patchRelation"], "PATCH_ID_EQUIVALENT")
+                self.assertEqual(
+                    record["pathRelations"], {"DIFFERENT_OR_OWN_TIP_ABSENT": 1}
+                )
+                self.assertEqual(record["owners"], ["runtime"])
+                self.assertEqual(
+                    record["consumerQualification"],
+                    "UNKNOWN_REQUIRES_OWNER_CDC",
+                )
+            self.assertIn("do not prove consumer behavior", projection["warning"])
+
     def test_declared_owner_with_no_commits_has_valid_zero_delta_view(self):
         with tempfile.TemporaryDirectory(prefix="ordivon-empty-owner-cut-") as temp:
             root = Path(temp)
