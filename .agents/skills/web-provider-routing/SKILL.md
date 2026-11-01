@@ -65,7 +65,7 @@ When the decision selects `browser_use` on this node, use the structured isolate
 /opt/ordivon/agent-automation/current/scripts/browser_use_browserless.py
 ```
 
-Keep one stable `--session-id` for the bounded task. Use `open -> observe -> click/input/scroll/back/tabs -> observe -> close`. Bind click/input to the observed index plus role and accessible name. Re-observe after meaningful state changes. `browser-agent-*` is the generic pool; never consume `chatgpt-carrier-11/12/13` for ordinary web tasks.
+Keep one stable `--session-id` for the bounded task. Use `open -> observe -> click/input/scroll/back/tabs -> observe -> close`. Bind click/input to the observed index, role, accessible name, and `backendDOMNodeId` using `--expect-backend-dom-node-id`. Without a bound node ID, identical role/name targets are rejected rather than guessed. Re-observe after meaningful state changes and any ambiguous or stale-target error; do not retry a potentially effected action without checking domain state. `browser-agent-*` is the generic pool; never consume `chatgpt-carrier-11/12/13` for ordinary web tasks.
 
 ## Completion boundary
 

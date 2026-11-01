@@ -269,6 +269,7 @@ def _browser_use_route_adapter(
                 int(target["index"]),
                 contract["buttonRole"],
                 contract["buttonName"],
+                expect_backend_dom_node_id=int(target["backendDOMNodeId"]),
             )
         )
         action_count += 1
