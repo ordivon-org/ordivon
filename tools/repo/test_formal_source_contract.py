@@ -39,9 +39,9 @@ def _verify_formal_task_behavior(run: str) -> None:
         line.strip() for line in run.splitlines()
         if line.strip() and not line.lstrip().startswith("#")
     ]
-    if not commands or commands[-1] != "python3 verify.py":
-        raise ValueError("Formal task must end with the native verifier call")
-    if commands.count("python3 verify.py") != 1:
+    if not commands or commands[-1] != "python3 -I verify.py":
+        raise ValueError("Formal task requires isolated native verifier call")
+    if commands.count("python3 -I verify.py") != 1:
         raise ValueError("Formal task must invoke the verifier exactly once")
     for line in commands[:-1]:
         # A shell status or appended action is not an equivalent environment
@@ -87,10 +87,125 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         peer_task = (
             "# Isolate Kani's potentially broken shared cache\n"
             'export KANI_HOME="${KANI_HOME:-${HOME}/.cache/ordivon/kani}"\n'
-            "python3 verify.py\n"
+            "python3 -I verify.py\n"
         )
-        _verify_formal_task_behavior("python3 verify.py")
+        _verify_formal_task_behavior("python3 -I verify.py")
         _verify_formal_task_behavior(peer_task)
+
+    def test_loader_trace_can_fake_zero_exit_without_executing_proof(self) -> None:
+        """An unchanged real ELF executable can report rc0 without running its code."""
+        import os
+        import sys
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-formal-elf-loader-") as tmp:
+            receipt = Path(tmp) / "executed"
+            command = [sys.executable, "-I", "-c",
+                       "from pathlib import Path; Path(" + repr(str(receipt)) +
+                       ").write_text('executed')"]
+            # Direct positive oracle *would* misclassify a loader listing
+            # as a successful process exit; its intended effect never ran.
+            trace_env = {**os.environ, "LD_TRACE_LOADED_OBJECTS": "1"}
+            observed = subprocess.run(
+                command, env=trace_env, capture_output=True, text=True, timeout=8,
+            )
+            self.assertEqual(observed.returncode, 0)
+            self.assertFalse(receipt.exists(), "code unexpectedly ran under loader trace")
+            with patch.dict(os.environ, {"LD_TRACE_LOADED_OBJECTS": "1"}):
+                with self.assertRaisesRegex(ValueError, "loader|LD_"):
+                    formal.run("model positive probe", command, expected_rc=0)
+            self.assertFalse(receipt.exists())
+
+    def test_formal_run_rejects_loader_in_explicit_child_overlay(self) -> None:
+        """Named child overlays must not bypass the parent LD_* admission."""
+        import sys
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-formal-loader-overlay-") as tmp:
+            marker = Path(tmp) / "executed"
+            command = [sys.executable, "-I", "-c",
+                       "from pathlib import Path; Path(" + repr(str(marker)) +
+                       ").write_text('executed')"]
+            with self.assertRaisesRegex(ValueError, "loader|LD_"):
+                formal.run(
+                    "positive child", command, expected_rc=0,
+                    env_overlay={"LD_TRACE_LOADED_OBJECTS": "1"},
+                )
+            self.assertFalse(marker.exists())
+
+    def test_formal_proof_rejects_loader_overrides_before_source_or_tools(self) -> None:
+        """No formal proof receipt may issue under ambient LD_* overrides."""
+        for variable in ("LD_PRELOAD", "LD_LIBRARY_PATH",
+                         "LD_AUDIT", "LD_TRACE_LOADED_OBJECTS"):
+            with self.subTest(variable=variable):
+                with patch.dict(os.environ, {variable: "/tmp/untrusted-loader-input"}):
+                    with patch.object(formal, "qualified_source_cut") as source:
+                        with self.assertRaisesRegex(ValueError, "loader|LD_"):
+                            formal.main()
+                        source.assert_not_called()
+
+    def test_formal_task_excludes_untracked_python_module_shadow(self) -> None:
+        """Real root->mise child command must not load forged imports from CWD or PYTHONPATH."""
+        import os
+
+        run = tomllib.loads((FORMAL / "mise.toml").read_text(encoding="utf-8"))[
+            "tasks"
+        ]["verify"]["run"]
+        with tempfile.TemporaryDirectory(prefix="ordivon-formal-py-import-") as temp:
+            root = Path(temp)
+            poison = root / "external-imports"
+            poison.mkdir()
+            (root / "json.py").write_text(
+                "raise RuntimeError('UNTRACKED_CWD_IMPORT_EXECUTED')\n",
+                encoding="utf-8",
+            )
+            (poison / "json.py").write_text(
+                "raise RuntimeError('UNTRACKED_PYTHONPATH_IMPORT_EXECUTED')\n",
+                encoding="utf-8",
+            )
+            receipt = root / "verified.json"
+            (root / "verify.py").write_text(
+                "import json, os, sys\n"
+                "assert sys.flags.isolated == 1, 'native verifier is not Python isolated'\n"
+                "with open(os.environ['FORMAL_IMPORT_RECEIPT'], 'w') as f:\n"
+                "    f.write(json.dumps({'isolated': True}))\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                ["bash", "-euo", "pipefail", "-c", run],
+                cwd=root,
+                env={**os.environ, "PYTHONPATH": str(poison),
+                     "FORMAL_IMPORT_RECEIPT": str(receipt)},
+                capture_output=True, text=True, timeout=8,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(receipt.read_text(), '{"isolated": true}')
+
+    def test_direct_nonisolated_verifier_fails_before_untrusted_import(self) -> None:
+        """Direct invocation bypassing mise must fail before any PYTHONPATH import."""
+        import os
+        import sys
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-direct-import-gate-") as tmp:
+            poison = Path(tmp)
+            marker = poison / "imported-marker"
+            (poison / "json.py").write_text(
+                "import os\n"
+                "open(os.environ['FORMAL_IMPORT_MARKER'], 'w').close()\n"
+                "raise RuntimeError('FORGED_JSON_MODULE_EXECUTED')\n",
+                encoding="utf-8",
+            )
+            attempt = subprocess.run(
+                [sys.executable, str(FORMAL / "verify.py")],
+                cwd=ROOT, capture_output=True, text=True, timeout=8,
+                env={**os.environ, "PYTHONPATH": str(poison),
+                     "FORMAL_IMPORT_MARKER": str(marker)},
+            )
+            self.assertNotEqual(attempt.returncode, 0)
+            self.assertIn("requires Python -I", attempt.stderr + attempt.stdout)
+            self.assertFalse(marker.exists(), "module was imported before fail-closed preflight")
+
+    def test_formal_source_contract_rejects_nonisolated_runner(self) -> None:
+        with self.assertRaisesRegex(ValueError, "isolated|native verifier"):
+            _verify_formal_task_behavior("python3 verify.py")
 
     def test_formal_child_contract_has_nonvacuous_execution_receipts(self) -> None:
         """R2.1 bounded executable A/G seam; lexical admission is not execution."""
@@ -102,7 +217,7 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
             ]["verify"]["run"],
             '# Prepare only the native optional Kani cache\n'
             'export KANI_HOME="${KANI_HOME:-${HOME}/.cache/ordivon/kani}"\n'
-            'python3 verify.py',
+            'python3 -I verify.py',
         )
         with tempfile.TemporaryDirectory(prefix="ordivon-formal-behavior-") as tmp:
             root = Path(tmp).resolve()
@@ -369,14 +484,28 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                 ):
                     subprocess.run(["git", "-C", str(repo), *args], check=True)
                 (repo / "source.lean").write_text(
-                    "def identity (n : Nat) := n" +
-                    ("\n" if repo == real else " + 1\n"),
-                    encoding="utf-8",
+                    "def identity (n : Nat) := n\n", encoding="utf-8",
                 )
+                if repo == foreign:
+                    (repo / "unrelated.txt").write_text(
+                        "foreign commit identity\n", encoding="utf-8",
+                    )
                 subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
                 subprocess.run(
                     ["git", "-C", str(repo), "commit", "-qm", "source"], check=True
                 )
+            # The dangerous case is identical declared proof blobs under
+            # different Git HEAD identities. A mismatching blob can fail via
+            # hash validation without exercising the foreign-HEAD flaw.
+            def git(repo: Path, *args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True,
+                ).strip()
+
+            self.assertNotEqual(git(real, "rev-parse", "HEAD"),
+                                git(foreign, "rev-parse", "HEAD"))
+            self.assertEqual(git(real, "rev-parse", "HEAD:source.lean"),
+                             git(foreign, "rev-parse", "HEAD:source.lean"))
             with patch.object(formal, "REPO", real), patch.object(
                 formal, "SOURCE_FILES", ("source.lean",)
             ):
@@ -390,6 +519,53 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                     with self.subTest(override=tuple(override)):
                         with patch.dict(os.environ, override):
                             self.assertEqual(formal.qualified_source_cut(), expected)
+
+    def test_formal_sourcecut_does_not_use_untrusted_path_git(self) -> None:
+        """A PATH Git wrapper cannot manufacture a foreign HEAD for equal proof blobs."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-formal-git-path-") as temp:
+            root = Path(temp)
+            real, foreign, bin_dir = root / "real", root / "foreign", root / "bin"
+            for repo in (real, foreign):
+                repo.mkdir()
+                for args in (
+                    ("init", "-q"),
+                    ("config", "user.name", "Formal PATH CDC"),
+                    ("config", "user.email", "git-path@example.invalid"),
+                ):
+                    subprocess.run(["/usr/bin/git", "-C", str(repo), *args], check=True)
+                (repo / "proof.lean").write_text("def same := true\n", encoding="utf-8")
+                if repo == foreign:
+                    (repo / "other.txt").write_text("different HEAD\n", encoding="utf-8")
+                subprocess.run(["/usr/bin/git", "-C", str(repo), "add", "."], check=True)
+                subprocess.run(["/usr/bin/git", "-C", str(repo), "commit", "-qm", "fixture"],
+                               check=True)
+            bin_dir.mkdir()
+            wrapper = bin_dir / "git"
+            wrapper.write_text(
+                "#!/usr/bin/env python3\n"
+                "import os, sys\n"
+                "args = sys.argv[1:]\n"
+                "if '-C' in args and any(x in args for x in ('rev-parse', 'ls-tree')):\n"
+                "    args[args.index('-C') + 1] = os.environ['FORMAL_FOREIGN_ROOT']\n"
+                "os.execv('/usr/bin/git', ['/usr/bin/git', *args])\n",
+                encoding="utf-8",
+            )
+            wrapper.chmod(0o755)
+            with patch.object(formal, "REPO", real), patch.object(
+                formal, "SOURCE_FILES", ("proof.lean",)
+            ):
+                expected = formal.qualified_source_cut()
+                foreign_head = subprocess.check_output(
+                    ["/usr/bin/git", "-C", str(foreign), "rev-parse", "HEAD"],
+                    text=True,
+                ).strip()
+                self.assertNotEqual(expected["gitHead"], foreign_head)
+                with patch.dict(os.environ, {
+                    "PATH": str(bin_dir) + os.pathsep + os.environ.get("PATH", ""),
+                    "FORMAL_FOREIGN_ROOT": str(foreign),
+                }):
+                    actual = formal.qualified_source_cut()
+                self.assertEqual(actual, expected, "foreign Git CLI reselected by PATH")
 
     def test_source_cut_rejects_modified_untracked_and_symlink_inputs(self) -> None:
         def git(cwd: Path, *args: str) -> str:

@@ -77,6 +77,38 @@ theorem omitted_dependency_invalidates_unqualified_frame :
     | true => cases isRead
   · decide
 
+-- R2.1 environment qualifier refinement for the actual native Formal
+-- consumer: loader state is an independent read dependency of a process
+-- verdict, even when the selected executable bytes stay unchanged.
+-- This is a two-Ref MODEL counterexample; it does not attest libc/ELF.
+namespace FormalLoaderFrame
+
+def verdict (environment : Bool → Bool) : Bool :=
+  environment false && environment true
+
+theorem same_entrypoint_does_not_preserve_loader_dependent_verdict :
+    ∃ (before after : Bool → Bool),
+      before false = after false ∧
+      verdict before ≠ verdict after := by
+  refine ⟨(fun _ => true), (fun ref => if ref then false else true),
+    rfl, ?_⟩
+  decide
+
+-- To reuse a bounded process-verdict property, this consumer needs an
+-- actual frame obligation for BOTH entrypoint and loader dependency.
+theorem qualified_binary_and_loader_frame_preserves_verdict
+    (before after : Bool → Bool)
+    (binaryStable : before false = after false)
+    (loaderStable : before true = after true) :
+    verdict before = verdict after := by
+  simp only [verdict, binaryStable, loaderStable]
+
+end FormalLoaderFrame
+
+#print axioms OrdivonR21.FormalLoaderFrame.same_entrypoint_does_not_preserve_loader_dependent_verdict
+#print axioms OrdivonR21.FormalLoaderFrame.qualified_binary_and_loader_frame_preserves_verdict
+
+
 -- Interface output alone is NOT full R2.1 behavior: an adapter may return
 -- the same Unit response while its external-effect flag changes from
 -- "not authorized" to "effect performed". The existing contract refinement
