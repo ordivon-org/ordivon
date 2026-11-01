@@ -101,3 +101,65 @@ R1 does not establish:
 - task authorization;
 - browser semantic success;
 - Runtime physical completion.
+
+
+## 2026-11-02 real-consumer browser LEGO audit: node-identity before effect
+
+This incremental source audit compares the current `browser_use_browserless.py`
+adapter and its benchmark route consumer against browser-owned accessibility
+snapshots, Playwright snapshot-scoped refs, and Playwright actionability.
+It is **not** a new browser registry, provider, Skill, or readiness policy.
+
+The previous Browser Use click/input contract re-enumerated AX nodes at
+execution time and checked only `index + role + accessible name`. Two
+same-named buttons can exchange an index, or one can be replaced by another
+with the same role and name. The old guard would admit a coordinate action
+on the wrong physical node. A native red test reproduced that missing
+identity witness.
+
+The current candidate adds `backendDOMNodeId` from the existing Chromium
+`Accessibility.getFullAXTree` observation and requires the exact positive
+integer ID on click/input. Before a coordinate effect, the generated program
+re-observes and checks both semantic fields and the exact node ID.
+Changed target identity raises `affordance-identity-changed`; there is no
+relocation, retry, or fallback. The existing Browser Benchmark adapter now
+passes the observed node ID, retaining the one real in-tree consumer.
+
+R2.1 narrow LEGO representation:
+
+- `I`: selected route and observed index, role, name, browser-provided node ID.
+- `O`: either a single attempted click/input or a fail-closed refusal;
+  the action receipt remains non-semantic until outcome observation.
+- `S`: ephemeral Browser Use daemon/session and current Chromium document.
+- `pre`: exact Browserless lane and captured target binding, available CDP.
+- `post`: no coordinate effect on a mismatched/replaced AX node at the
+  guard point; an observed CLICKED status alone is **not** task success.
+- `inv`: no caller-chosen action retargeting, no silent index-only fallback.
+- `eff`: read AX+box model, then one browser action when admitted.
+- `c`: bounded page AX projection of up to 160 affordances; no new model.
+- `epsilon`: DOM can mutate after guard; overlays, hit testing, OOPIF and
+  unchanged node with changed *surrounding meaning* are **UNKNOWN**.
+- `prov`: existing Browser Use source and actual benchmark consumer;
+  red/green tests and exact source SHA/Job receipts accompany publication.
+- `unfold`: upstream CDP AX/DOM observation -> ephemeral identity check ->
+  existing action helper -> independent outcome witness.
+
+An unrelated but real doctor failure was also reproduced: missing optional
+Browserless/ChatGPT Automation adapter imports crashed the *whole* router.
+The source now returns `ADAPTER_UNAVAILABLE` for only the unavailable lane.
+Live doctor is an observation: `READY_ON_DEMAND` and `READY` do not
+authorize browser operations or imply site compatibility.
+
+**External standards to reuse rather than copy**: WAI-ARIA and AccName for
+roles/names; Playwright for actionability/autowait and isolated test contexts;
+Browserless for reconnection/session TTL and cleanup; Chrome remote-debug
+security requires a dedicated nondefault profile/explicit user consent;
+Superpowers TDD/verification and ECC browser-qa for independent falsification.
+
+**Open hard kernels, not hidden as PASS**: prove a full decision-bound
+semantic witness for the same physical DOM node after nearby context changes;
+document/frame generation under navigation and OOPIF; stable hit-test before
+coordinates; recipient verification beyond action status; browser session
+isolation and explicit cleanup under concurrent/reconnect/lost-response cases.
+Only add implementation complexity after a real owner consumer and failing
+reproduction, not from speculative framework symmetry.

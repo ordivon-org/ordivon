@@ -25,7 +25,9 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
         import browserless_podman_deploy as deploy
 
         birth = deploy.render_config(self.binding())
-        browser = deploy.render_browser_use_config(self.binding(), browser_use_executable="/bin/true")
+        browser = deploy.render_browser_use_config(
+            self.binding(), browser_use_executable="/bin/true"
+        )
         self.assertEqual(
             [x["id"] for x in birth["browserSubstrate"]["endpoints"]],
             ["chatgpt-carrier-11", "chatgpt-carrier-12", "chatgpt-carrier-13"],
@@ -165,7 +167,7 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
             "doctor",
         ):
             self.assertIn(f'add_parser("{action}")', text)
-        click = launcher.program_click(2, "button", "Submit")
+        click = launcher.program_click(2, "button", "Submit", 120)
         self.assertIn("affordance-changed", click)
         self.assertIn("Submit", click)
         with self.assertRaisesRegex(ValueError, "permits only"):
@@ -180,6 +182,100 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
         self.assertRegex(a, r"^ordivon-bu-[0-9a-f]{24}$")
         with self.assertRaises(ValueError):
             launcher.session_name("../bad")
+
+    def test_same_named_replacement_is_rejected_before_coordinate_effect(self):
+        """An index + ARIA role/name is not an identity when duplicate nodes re-order."""
+        import browser_use_browserless as launcher
+
+        target = {"role": "button", "name": "Delete", "backendDOMNodeId": 107}
+        current = {"role": "button", "name": "Delete", "backendDOMNodeId": 204}
+        calls = []
+
+        def cdp(method, **kwargs):
+            if method == "Accessibility.getFullAXTree":
+                return {
+                    "nodes": [
+                        {
+                            "role": {"value": current["role"]},
+                            "name": {"value": current["name"]},
+                            "backendDOMNodeId": current["backendDOMNodeId"],
+                        }
+                    ]
+                }
+            if method == "DOM.getBoxModel":
+                return {"model": {"content": [0, 0, 30, 0, 30, 30, 0, 30]}}
+            raise AssertionError(method)
+
+        def click_at_xy(x, y):
+            calls.append((x, y))
+
+        def wait(_secs):
+            pass
+
+        program = launcher.program_click(
+            0, target["role"], target["name"], target["backendDOMNodeId"]
+        )
+        with self.assertRaisesRegex(AssertionError, "affordance-identity-changed"):
+            exec(
+                program,
+                {
+                    "cdp": cdp,
+                    "click_at_xy": click_at_xy,
+                    "wait": wait,
+                    "page_info": lambda: {"url": "about:blank"},
+                },
+            )
+        self.assertEqual(calls, [], "wrong duplicate must never receive the browser effect")
+
+    def test_exact_backend_node_is_preserved_and_bool_rejected(self):
+        import browser_use_browserless as launcher
+
+        text = launcher.program_observe(include_text=False, max_chars=40)
+        self.assertIn('"backendDOMNodeId"', text)
+
+        program = launcher.program_click(0, "button", "Delete", 107)
+        self.assertIn("backendDOMNodeId", program)
+        self.assertIn("affordance-identity-changed", program)
+        for bad in (True, 0, -1, "107", None):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                launcher.program_click(0, "button", "Delete", bad)
+
+        # Strict default prevents silent legacy index-only clicks or text entry.
+        with self.assertRaises(TypeError):
+            launcher.program_click(0, "button", "Delete")
+        with self.assertRaises(TypeError):
+            launcher.program_input(0, "textbox", "Task", "value")
+
+    def test_same_backend_node_can_execute_exactly_one_click(self):
+        import browser_use_browserless as launcher
+
+        effects = []
+
+        def cdp(method, **kwargs):
+            if method == "Accessibility.getFullAXTree":
+                return {
+                    "nodes": [
+                        {
+                            "role": {"value": "button"},
+                            "name": {"value": "Delete"},
+                            "backendDOMNodeId": 107,
+                        }
+                    ]
+                }
+            if method == "DOM.getBoxModel":
+                return {"model": {"content": [0, 0, 30, 0, 30, 30, 0, 30]}}
+            raise AssertionError(method)
+
+        exec(
+            launcher.program_click(0, "button", "Delete", 107),
+            {
+                "cdp": cdp,
+                "click_at_xy": lambda x, y: effects.append((x, y)),
+                "wait": lambda _secs: None,
+                "page_info": lambda: {"url": "about:blank"},
+            },
+        )
+        self.assertEqual(effects, [(15.0, 15.0)])
 
 
 if __name__ == "__main__":

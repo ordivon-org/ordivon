@@ -47,8 +47,7 @@ def _metric_cells(observed: Mapping[str, int]) -> dict[str, dict[str, Any]]:
     if unknown:
         raise ValueError(f"adapter emitted unknown benchmark metrics: {sorted(unknown)}")
     cells = {
-        name: {"standing": "NOT_OBSERVED", "value": None}
-        for name in benchmark.METRIC_CONTRACT
+        name: {"standing": "NOT_OBSERVED", "value": None} for name in benchmark.METRIC_CONTRACT
     }
     for name, value in observed.items():
         if type(value) is not int or value < 0:
@@ -58,7 +57,10 @@ def _metric_cells(observed: Mapping[str, int]) -> dict[str, dict[str, Any]]:
 
 
 def validate_run_request(raw: Mapping[str, Any]) -> dict[str, Any]:
-    if raw.get("schemaVersion") != 1 or raw.get("kind") != "ordivon.browser-benchmark-route-run-request":
+    if (
+        raw.get("schemaVersion") != 1
+        or raw.get("kind") != "ordivon.browser-benchmark-route-run-request"
+    ):
         raise ValueError("route run request identity mismatch")
     run_id = raw.get("runId")
     if not isinstance(run_id, str) or not RUN_ID.fullmatch(run_id):
@@ -132,9 +134,9 @@ def _jev_route_adapter(
 
         execute_fn = jev.execute_request
     contract = case["executionContract"]
-    request_id = "bcrs3-" + hashlib.sha256(
-        f"{run_id}:{case['caseDigest']}".encode()
-    ).hexdigest()[:32]
+    request_id = (
+        "bcrs3-" + hashlib.sha256(f"{run_id}:{case['caseDigest']}".encode()).hexdigest()[:32]
+    )
     provider_request = {
         "schemaVersion": 1,
         "requestId": request_id,
@@ -222,9 +224,9 @@ def _browser_use_route_adapter(
     contract = case["executionContract"]
     value, pool = browser_module.load_config(browser_module.DEFAULT_CONFIG)
     executable = str(value.get("browserUseExecutable") or "")
-    session_id = "bcrs3:" + hashlib.sha256(
-        f"{run_id}:{case['caseDigest']}".encode()
-    ).hexdigest()[:24]
+    session_id = (
+        "bcrs3:" + hashlib.sha256(f"{run_id}:{case['caseDigest']}".encode()).hexdigest()[:24]
+    )
     endpoint = browser_module.select_endpoint(pool, session_id, None)
     provider_effect = False
     action_count = 0
@@ -269,6 +271,7 @@ def _browser_use_route_adapter(
                 int(target["index"]),
                 contract["buttonRole"],
                 contract["buttonName"],
+                target["backendDOMNodeId"],
             )
         )
         action_count += 1
@@ -395,7 +398,13 @@ def validate_run_result(
     run_id = raw.get("runId")
     if not isinstance(run_id, str) or not RUN_ID.fullmatch(run_id):
         raise ValueError("route run result has invalid runId")
-    for key in ("requestDigest", "caseDigest", "routePlanDigest", "routeId", "adapterReceiptDigest"):
+    for key in (
+        "requestDigest",
+        "caseDigest",
+        "routePlanDigest",
+        "routeId",
+        "adapterReceiptDigest",
+    ):
         value = raw.get(key)
         if not isinstance(value, str) or not value:
             raise ValueError(f"route run result has invalid {key}")

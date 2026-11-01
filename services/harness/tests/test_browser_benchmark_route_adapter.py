@@ -220,6 +220,7 @@ class BrowserBenchmarkRouteAdapterTests(unittest.TestCase):
                             "index": 4,
                             "role": "button",
                             "name": "Complete Benchmark",
+                            "backendDOMNodeId": 41,
                             "x": 10,
                             "y": 20,
                         }
