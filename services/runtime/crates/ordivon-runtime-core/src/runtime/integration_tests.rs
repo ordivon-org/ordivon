@@ -1554,6 +1554,16 @@ fn runtime_success_missing_source_observation_is_quarantined() {
 #[test]
 #[ignore = "requires root, systemd, cgroup v2, built Runner, and explicit local opt-in"]
 fn runtime_tampered_source_observation_is_quarantined() {
+    run_tampered_source_observation_is_quarantined(false);
+}
+
+#[test]
+#[ignore = "requires root, systemd, cgroup v2, built Runner, and explicit local opt-in"]
+fn runtime_self_consistent_source_drift_after_success_is_quarantined() {
+    run_tampered_source_observation_is_quarantined(true);
+}
+
+fn run_tampered_source_observation_is_quarantined(coherent_drift: bool) {
     if std::env::var("ORDIVON_RUN_INTEGRATION").as_deref() != Ok("1") {
         return;
     }
@@ -1592,6 +1602,12 @@ fn runtime_tampered_source_observation_is_quarantined() {
         serde_json::from_slice(&fs::read(&observation_path).unwrap()).unwrap();
     observation["observedWorkspaceSourceDigest"] =
         serde_json::Value::String(format!("sha256:{}", "0".repeat(64)));
+    // The existing test changes only the digest (an internally inconsistent
+    // receipt). This second physical case changes the matching flag too:
+    // its self-consistent source-drift report must NEVER accompany success.
+    if coherent_drift {
+        observation["matchesCommitment"] = serde_json::Value::Bool(false);
+    }
     fs::write(
         &observation_path,
         serde_json::to_vec_pretty(&observation).unwrap(),
@@ -1612,10 +1628,31 @@ fn runtime_tampered_source_observation_is_quarantined() {
         })
         .unwrap();
     assert_eq!(observed.status, "orphaned");
+    // A malformed receipt cannot be registered. A *self-consistent* but
+    // negative source observation may be retained as counterevidence; what
+    // MUST NOT happen is a successful Job or a committed execution result.
+    let retained_negative = observed
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.kind == "workspace_source_observation");
+    assert_eq!(retained_negative.is_some(), coherent_drift);
     assert!(!observed
         .artifacts
         .iter()
-        .any(|artifact| artifact.kind == "workspace_source_observation"));
+        .any(|artifact| artifact.kind == "execution_result"));
+    if let Some(negative) = retained_negative {
+        let actual = runtime
+            .read_artifact(&ArtifactReadRequest {
+                schema_version: RUNTIME_SCHEMA_VERSION,
+                job_id: started.job_id.clone(),
+                artifact_id: negative.artifact_id.clone(),
+                offset: 0,
+                max_bytes: 65_536,
+            })
+            .unwrap();
+        let datum: serde_json::Value = serde_json::from_str(&actual.content).unwrap();
+        assert_eq!(datum["matchesCommitment"], serde_json::Value::Bool(false));
+    }
     let connection = Connection::open(&context.registry.db_path).unwrap();
     let reason: String = connection
         .query_row(
