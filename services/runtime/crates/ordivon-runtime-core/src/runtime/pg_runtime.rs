@@ -946,7 +946,10 @@ impl PgRuntime {
                 &a,
                 plan.workspace_source_digest.as_deref(),
                 true,
-                false,
+                super::evidence::SourceObservationRequirement::for_terminal(
+                    terminal.state,
+                    &terminal.reason_code,
+                ),
             )? {
                 terminal.artifacts.push(artifact);
             }
