@@ -21,9 +21,18 @@ import tomllib
 from pathlib import Path
 
 
+def _source_git_env() -> dict[str, str]:
+    # Repo/SourceCut identity comes from the explicit -C repository, never
+    # inherited Agent/CI Git namespace, object DB, config, or graft overlays.
+    env = {key: value for key, value in os.environ.items()
+           if not key.startswith("GIT_")}
+    env["GIT_GRAFT_FILE"] = os.devnull
+    return env
+
+
 def git(repo: Path, *args: str) -> bytes:
     p = subprocess.run(["git", "--no-replace-objects", "-C", str(repo), *args],
-                       capture_output=True)
+                       capture_output=True, env=_source_git_env())
     if p.returncode:
         raise ValueError(f"git {args[0]} failed: {p.stderr[:400]!r}")
     return p.stdout
@@ -1226,7 +1235,7 @@ def static_python_import_frontier(repo: Path, source: str,
     proc = subprocess.run(
         ["git", "--no-replace-objects", "-C", str(repo), "cat-file", "--batch"],
         input="".join(oid + "\n" for oid in oids).encode("ascii"),
-        capture_output=True, check=True)
+        capture_output=True, check=True, env=_source_git_env())
     by_oid = {}
     offset = 0
     for oid in oids:
@@ -1421,7 +1430,7 @@ def exact_git_reference_hints(
         for pattern in dict.fromkeys(patterns):
             args.extend(("-e", pattern))
         args.extend((source, "--"))
-        proc = subprocess.run(args, capture_output=True)
+        proc = subprocess.run(args, capture_output=True, env=_source_git_env())
         if proc.returncode not in (0, 1):
             raise ValueError("source Git grep failed; cannot project incomplete references")
         if len(proc.stdout) > 8 * 1024 * 1024:
@@ -1641,7 +1650,7 @@ def independent_scope_frontier(
         git_probe = subprocess.run(
             ["git", "--no-replace-objects", "-C", str(root),
              "rev-parse", "--show-toplevel"],
-            capture_output=True,
+            capture_output=True, env=_source_git_env(),
         )
         if git_probe.returncode == 0:
             raise ValueError("non-Git dataset path belongs to a Git worktree")
@@ -1798,7 +1807,7 @@ def cross_scope_exact_locator_hints(
             cmd = ["git", "--no-replace-objects", "-C", str(root),
                    "grep", "-l", "-z", "-I", "-F", "-e",
                    token.decode("utf-8"), cut, "--"]
-            proc = subprocess.run(cmd, capture_output=True)
+            proc = subprocess.run(cmd, capture_output=True, env=_source_git_env())
             if proc.returncode not in (0, 1):
                 raise ValueError("Git grep lexical survey failed closed")
             prefix = (cut + ":").encode("ascii")
