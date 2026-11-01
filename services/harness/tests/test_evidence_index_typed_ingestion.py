@@ -670,6 +670,35 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         finally:
             check_evidence._historical_source_checkout.cache_clear()
 
+    def test_original_git_graph_rejects_shallow_boundary_even_when_native_fsck_succeeds(
+        self,
+    ) -> None:
+        """Git fsck honors shallow roots; a truncated DAG cannot prove ancestry."""
+        from unittest.mock import patch
+
+        original_run = subprocess.run
+        inserted = []
+
+        def inject_shallow_boundary(*args, **kwargs):
+            command = args[0]
+            if isinstance(command, list) and command[:3] == ["git", "--no-replace-objects", "fsck"]:
+                dest = Path(kwargs["cwd"])
+                (dest / "shallow").write_text(
+                    check_evidence._HARNESS_ORIGINAL_SOURCE_CUT + "\n",
+                    encoding="ascii",
+                )
+                inserted.append(dest)
+            return original_run(*args, **kwargs)
+
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory) / "original-bare"
+            with patch.object(
+                check_evidence.subprocess, "run", side_effect=inject_shallow_boundary
+            ):
+                accepted = check_evidence._local_pinned_original_source_graph(destination)
+            self.assertEqual(inserted, [destination])
+            self.assertFalse(accepted, "shallow original graph cannot prove its full ancestors")
+
     def test_complete_evidence_contract_is_green(self) -> None:
         completed = subprocess.run(
             [sys.executable, str(SCRIPT)],

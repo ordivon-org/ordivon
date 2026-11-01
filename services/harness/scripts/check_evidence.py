@@ -581,6 +581,18 @@ def _local_pinned_original_source_graph(directory: Path) -> bool:
             stderr=subprocess.PIPE,
             timeout=65,
         )
+        # Native git fsck accepts declared shallow graph boundaries; those
+        # are not a full history/ancestor qualification. Require no shallow
+        # marker on the isolated original object DB after native fsck.
+        shallow = subprocess.check_output(
+            ["git", "--no-replace-objects", "rev-parse", "--is-shallow-repository"],
+            cwd=directory,
+            env=environment,
+            text=True,
+            timeout=12,
+        ).strip()
+        if shallow != "false":
+            raise ValueError("pinned original Git DAG has an unqualified shallow boundary")
         return True
     except OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError:
         # A missing/incomplete local *original* graph is not permission to
