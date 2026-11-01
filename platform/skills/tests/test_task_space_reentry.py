@@ -43,6 +43,7 @@ def test_task_space_reentry_materializes_bounded_fenced_guidance():
         context=context, expected_snapshot_revision=result.snapshot_revision,
         projection="raw",
     ).content
+    assert "space:ordivon-task-control-r1:20261101" in ref
     assert "space:ordivon-capability-task-forum-r1:20261101" in ref
     assert "work:ordivon:capability-program-root-r1:20261101" in ref
     assert "No task is assigned by Space participation" in ref

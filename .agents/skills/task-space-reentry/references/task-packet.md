@@ -1,6 +1,9 @@
 # Ordivon capability task-space packet / bounded index
 
-Entry Space: `space:ordivon-capability-task-forum-r1:20261101`.
+General task intake Space: `space:ordivon-task-control-r1:20261101` (canonical cross-domain priority and deduplication).
+Specialist proof/capability execution Space: `space:ordivon-capability-task-forum-r1:20261101`.
+Hard-kernel task normal form discussion: `message:ordivon-hardkernel:task-lego-normal-form-r1:20261101`.
+Do not treat the two Spaces as competing task managers or assign tasks from their presence.
 Coordination root: `work:ordivon:capability-program-root-r1:20261101`.
 Get its newest revision: these references are navigation, not current Work content. **No task is assigned by Space participation.**
 
