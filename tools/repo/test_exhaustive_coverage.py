@@ -17,6 +17,64 @@ SPEC.loader.exec_module(M)
 
 
 class FullCoverageTests(unittest.TestCase):
+    def test_native_git_inventory_obeys_explicit_repo_under_foreign_git_env(self):
+        # The actual convergence_plan consumer calls these source-projection
+        # functions against an explicit repo. Inherited GIT_DIR or object-store
+        # overrides must not substitute an unrelated repo for the source-cut.
+        import os
+        import tempfile
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-source-inventory-git-env-") as tmp:
+            actual = pathlib.Path(tmp) / "actual"
+            foreign = pathlib.Path(tmp) / "foreign"
+            for repo in (actual, foreign):
+                repo.mkdir()
+                for args in (
+                    ("init", "-q"),
+                    ("config", "user.name", "Git census CDC"),
+                    ("config", "user.email", "git-census@example.invalid"),
+                ):
+                    subprocess.run(["git", "-C", str(repo), *args], check=True)
+                (repo / "common.txt").write_text(repo.name + "\n")
+                if repo == actual:
+                    (repo / "provider.py").write_text("VALUE = 1\n")
+                    (repo / "consumer.py").write_text("import provider\n")
+                subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+                subprocess.run(["git", "-C", str(repo), "commit", "-qm", "init"], check=True)
+
+            expected_oid = subprocess.check_output(
+                ["git", "-C", str(actual), "rev-parse", "HEAD"], text=True,
+            ).strip()
+            expected_tree = M.tree(actual, expected_oid)
+            self.assertEqual(
+                [x["path"] for x in expected_tree],
+                ["common.txt", "consumer.py", "provider.py"],
+            )
+            expected_imports = M.static_python_import_frontier(actual, expected_oid)
+            # Both tracked Python blobs are passed through native cat-file
+            # even if top-level imports are unqualified static edges.
+            self.assertEqual(expected_imports["summary"]["gitPythonPaths"], 2)
+            for injected in (
+                {"GIT_DIR": str(foreign / ".git")},
+                {"GIT_OBJECT_DIRECTORY": str(foreign / ".git" / "objects")},
+                {"GIT_ALTERNATE_OBJECT_DIRECTORIES": str(foreign / ".git" / "objects")},
+            ):
+                with self.subTest(injected=tuple(injected)):
+                    with patch.dict(os.environ, injected):
+                        self.assertEqual(
+                            M.git(actual, "rev-parse", "HEAD").decode().strip(),
+                            expected_oid,
+                        )
+                        self.assertEqual(M.exact_commit(actual, expected_oid), expected_oid)
+                        self.assertEqual(M.tree(actual, expected_oid), expected_tree)
+                        # This consumer uses direct Git cat-file --batch too;
+                        # the helper alone must not hide an unguarded Git path.
+                        self.assertEqual(
+                            M.static_python_import_frontier(actual, expected_oid),
+                            expected_imports,
+                        )
+
     def test_root_only_is_not_evidence_of_semantic_qualification(self):
         now = M.source_partition("services/runtime/src/main.rs", {
             "owners": [{"name": "runtime", "root": "services/runtime/"}]})
