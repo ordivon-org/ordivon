@@ -262,6 +262,13 @@ arbitrary concurrent mutation during input capture are deeply immutable.
 Record the exact admitted action/digest before dispatch when durability is
 required; never equate a model proposal with actual external effect authority.
 
+The result boundary is separate from the input boundary: ToolProgram result
+and ToolObservation preserve canonical construction-time bytes for evidence
+and model serialization. Public output dictionaries remain convenience views;
+mutating them does not rewrite a sealed result digest or the model projection.
+This is not a guarantee of deep immutability, a durable receipt, or external
+occurrence truth.
+
 The current execution path is deliberately one waist:
 
 ```text

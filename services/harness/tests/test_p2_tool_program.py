@@ -13,6 +13,7 @@ from ordivon_harness.tool_program import (
     HarnessToolProgram,
     HarnessToolProgramAction,
     HarnessToolProgramExecutor,
+    HarnessToolProgramResult,
     HarnessToolProgramStep,
     observation_ref,
     project_tool_program_action_capability,
@@ -273,6 +274,43 @@ class ToolProgramP2Tests(unittest.TestCase):
         self.assertEqual(result.status, "unknown")
         self.assertEqual([call.name for call, _ in bridge.calls], ["read_value", "lookup_value"])
         self.assertEqual(result.output, {})
+
+    def test_program_result_digest_and_model_projection_are_sealed_after_return(self) -> None:
+        result = HarnessToolProgramExecutor(Bridge(), (READ, LOOKUP)).execute(
+            dependent_program(), remaining_tool_calls=2, step_prefix="result-snapshot"
+        )
+        original = result.to_dict()
+        model_projection = result.to_model_projection()
+        digest = result.digest
+        self.assertEqual(result.status, "completed")
+
+        # A caller must not forge durable result evidence or model-visible
+        # content merely by mutating the public convenience JSON mapping.
+        result.output["matches"].append("forged")
+        result.output["query"] = "forged"
+        self.assertEqual(result.digest, digest)
+        self.assertEqual(result.to_dict(), original)
+        self.assertEqual(result.to_model_projection(), model_projection)
+
+        emitted = result.to_dict()
+        emitted["output"]["matches"].append("forged-serialization")
+        self.assertEqual(result.to_dict(), original)
+
+    def test_program_result_output_does_not_alias_constructor_input(self) -> None:
+        original = HarnessToolProgramExecutor(Bridge(), (READ, LOOKUP)).execute(
+            dependent_program(), remaining_tool_calls=2, step_prefix="constructor-snapshot"
+        )
+        output = {"nested": {"items": ["trusted"]}}
+        result = HarnessToolProgramResult(
+            program_digest=original.program_digest,
+            status=original.status,
+            observations=original.observations,
+            output=output,
+        )
+        expected_digest = result.digest
+        output["nested"]["items"].append("untrusted")
+        self.assertEqual(result.output, {"nested": {"items": ["trusted"]}})
+        self.assertEqual(result.digest, expected_digest)
 
     def test_model_projection_keeps_exact_step_evidence_but_not_intermediate_content(self) -> None:
         result = HarnessToolProgramExecutor(Bridge(), (READ, LOOKUP)).execute(

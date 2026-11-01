@@ -7,9 +7,16 @@ values and validation live in tool_program_contract without executing Tools.
 from __future__ import annotations
 
 import copy
-from dataclasses import dataclass
+from dataclasses import dataclass, field as dataclass_field
+from typing import cast
 
-from anc_canonical import JsonValue, canonical_digest, validate_json_value
+from anc_canonical import (
+    JsonValue,
+    canonical_bytes,
+    canonical_digest,
+    loads_strict,
+    validate_json_value,
+)
 
 from .agent_tool_observation import HarnessToolObservation
 from .ordivon.model import AgentToolCall, AgentToolDefinition
@@ -97,7 +104,10 @@ class HarnessToolProgramResult:
     program_digest: str
     status: str
     observations: tuple[HarnessToolObservation, ...]
-    output: dict[str, JsonValue]
+    output: dict[str, JsonValue] = dataclass_field(compare=False)
+    # Public output remains a mutable convenience view. Evidence digests and
+    # model serialization use only the validated construction-time bytes.
+    _output_bytes: bytes = dataclass_field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         if self.status not in {
@@ -109,6 +119,9 @@ class HarnessToolProgramResult:
         }:
             raise ValueError(f"unsupported ToolProgram result status: {self.status}")
         validate_json_value(self.output)
+        output_bytes = canonical_bytes(self.output)
+        object.__setattr__(self, "_output_bytes", output_bytes)
+        object.__setattr__(self, "output", cast(dict[str, JsonValue], loads_strict(output_bytes)))
         if self.status == "completed" and any(
             observation.status != "observed" for observation in self.observations
         ):
@@ -125,7 +138,7 @@ class HarnessToolProgramResult:
             "programDigest": self.program_digest,
             "status": self.status,
             "observations": [observation.to_dict() for observation in self.observations],
-            "output": self.output,
+            "output": cast(dict[str, JsonValue], loads_strict(self._output_bytes)),
         }
         validate_json_value(value)
         return value
@@ -150,7 +163,7 @@ class HarnessToolProgramResult:
                 }
                 for observation in self.observations
             ],
-            "output": self.output,
+            "output": cast(dict[str, JsonValue], loads_strict(self._output_bytes)),
         }
         validate_json_value(value)
         return value
