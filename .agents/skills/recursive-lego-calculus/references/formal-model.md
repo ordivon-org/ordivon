@@ -419,6 +419,19 @@ CODE_REFINED, INSTALLED_CURRENT, or DOMAIN_ACCEPTED. A concrete
 input/output/trace simulation bridge needs its own behavior, effect,
 consumer and installed-currentness evidence.
 
+**Native execution identity (H04):** a Gateway recovery/submit binding
+is one abstract triple (nativeId, operationRef, requestId). The existing
+Lean source checks the conditional induction rule
+admitted_binding_preserves_coherence on a finite history, with pairwise
+identity equivalences in ALL three directions, and a finite bad replay
+unguarded_native_request_rebinding_breaks_coherence countermodel. The
+corresponding real Harness consumer is GatewayMcpRuntimeAdapter:
+retain exactly one binding, allow exact replay, reject native/operation/
+request rebindings before mutating its two existing maps. This is only
+an abstract identity-state law + native Python/fixture tests: not a proof
+that the entire Python implementation or installed Gateway/Runtime
+refines the abstract model under all possible concurrency or crashes.
+
 For **protocol interaction**, an interface-automata profile may express
 input/output/internal actions and use alternating simulation for refinement.
 Its original optimistic compatibility means that a suitable environment

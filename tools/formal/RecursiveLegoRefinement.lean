@@ -413,6 +413,78 @@ theorem algebraic_tensor_does_not_imply_io_implementation :
 #print axioms algebraic_tensor_does_not_imply_io_implementation
 
 
+-- Real H04 identity boundary, stated as a pure finite-state refinement
+-- obligation. These labels are ABSTRACT Nat names, not runtime identity
+-- strings. The Python source and effects need separate owner-native tests.
+structure NativeOperationBinding where
+  nativeId : Nat
+  operationRef : Nat
+  requestId : Nat
+  deriving DecidableEq
+
+def BindingCompatible (a b : NativeOperationBinding) : Prop :=
+  (a.nativeId = b.nativeId ↔ a.operationRef = b.operationRef) ∧
+  (a.nativeId = b.nativeId ↔ a.requestId = b.requestId)
+
+def BindingHistoryCoherent (history : List NativeOperationBinding) : Prop :=
+  ∀ a ∈ history, ∀ b ∈ history, BindingCompatible a b
+
+theorem binding_compatible_refl (a : NativeOperationBinding) :
+    BindingCompatible a a := by
+  constructor
+  · constructor <;> intro _ <;> rfl
+  · constructor <;> intro _ <;> rfl
+
+theorem binding_compatible_symm (a b : NativeOperationBinding)
+    (h : BindingCompatible a b) : BindingCompatible b a := by
+  constructor
+  · constructor
+    · intro hNative
+      exact (h.1.mp hNative.symm).symm
+    · intro hOperation
+      exact (h.1.mpr hOperation.symm).symm
+  · constructor
+    · intro hNative
+      exact (h.2.mp hNative.symm).symm
+    · intro hRequest
+      exact (h.2.mpr hRequest.symm).symm
+
+-- A newly admitted owner receipt preserves every previously admitted
+-- binding in each of the three directions (native, operation, request).
+theorem admitted_binding_preserves_coherence
+    (old : List NativeOperationBinding) (candidate : NativeOperationBinding)
+    (hOld : BindingHistoryCoherent old)
+    (hAdmit : ∀ prior ∈ old, BindingCompatible candidate prior) :
+    BindingHistoryCoherent (candidate :: old) := by
+  intro a ha b hb
+  simp only [List.mem_cons] at ha hb
+  rcases ha with ha | ha
+  · subst a
+    rcases hb with hb | hb
+    · subst b
+      exact binding_compatible_refl candidate
+    · exact hAdmit b hb
+  · rcases hb with hb | hb
+    · subst b
+      exact binding_compatible_symm candidate a (hAdmit a ha)
+    · exact hOld a ha b hb
+
+-- Without admission checking, the same native ID can be given a new
+-- request ID; the next accepted-state invariant fails (finite countermodel).
+theorem unguarded_native_request_rebinding_breaks_coherence :
+    ∃ (old fresh : NativeOperationBinding),
+      old.nativeId = fresh.nativeId ∧
+      ¬ BindingHistoryCoherent [fresh, old] := by
+  refine ⟨⟨0, 0, 0⟩, ⟨0, 0, 1⟩, rfl, ?_⟩
+  intro hHistory
+  have hPair := hHistory ⟨0, 0, 1⟩ (by simp) ⟨0, 0, 0⟩ (by simp)
+  have hRequest : (1 : Nat) = 0 := hPair.2.1 rfl
+  contradiction
+
+#print axioms admitted_binding_preserves_coherence
+#print axioms unguarded_native_request_rebinding_breaks_coherence
+
+
 -- Nonvacuity: two implementations can each satisfy their own contracts,
 -- yet their sequential composition is not total when assumptions conflict.
 theorem incompatible_components_are_not_composable :
