@@ -17,6 +17,9 @@ LEGACY_PROTOCOL_VERSION = "2025-06-18"
 PROBE_USER_AGENT = "ordivon-mcp-probe/1"
 MAX_RUNTIME_ENV_FILE_BYTES = 64 * 1024
 MAX_BEARER_TOKEN_FILE_BYTES = 16_384
+# Bound MCP catalog enumeration before it can authorize a release or a PG cutover.
+MAX_TOOL_CATALOG_PAGES = 64
+MAX_TOOL_CATALOG_NAMES = 4096
 
 
 class McpProbeError(RuntimeError):
@@ -45,9 +48,7 @@ def _read_bounded_regular_file_text(
         if not stat.S_ISREG(metadata.st_mode):
             raise McpProbeError(f"{label} must be a regular file")
         if require_private and stat.S_IMODE(metadata.st_mode) & 0o077:
-            raise McpProbeError(
-                f"{label} must not be accessible by group or others"
-            )
+            raise McpProbeError(f"{label} must not be accessible by group or others")
         if metadata.st_size > max_bytes:
             raise McpProbeError(f"{label} exceeds the configured bound")
 
@@ -97,9 +98,7 @@ def load_bearer_token(environment: dict[str, str]) -> str:
     inline = environment.get("ORDIVON_BEARER_TOKEN")
     token_file = environment.get("ORDIVON_BEARER_TOKEN_FILE")
     if inline is not None and token_file is not None:
-        raise McpProbeError(
-            "environment must define exactly one of ORDIVON_BEARER_TOKEN or ORDIVON_BEARER_TOKEN_FILE"
-        )
+        raise McpProbeError("environment must define exactly one of ORDIVON_BEARER_TOKEN or ORDIVON_BEARER_TOKEN_FILE")
     if inline is not None:
         token = inline.strip()
     elif token_file is not None:
@@ -113,9 +112,7 @@ def load_bearer_token(environment: dict[str, str]) -> str:
             require_private=True,
         ).strip()
     else:
-        raise McpProbeError(
-            "environment must define one of ORDIVON_BEARER_TOKEN or ORDIVON_BEARER_TOKEN_FILE"
-        )
+        raise McpProbeError("environment must define one of ORDIVON_BEARER_TOKEN or ORDIVON_BEARER_TOKEN_FILE")
     if not token or any(character.isspace() for character in token):
         raise McpProbeError("Runtime Bearer token must contain one non-whitespace token")
     return token
@@ -285,19 +282,40 @@ def _catalog_result(
     expected_tool_count: int | None,
     required_tools: tuple[str, ...],
 ) -> dict[str, object]:
-    tools = client.request("tools/list").get("tools")
-    if not isinstance(tools, list):
-        raise McpProbeError("MCP tools/list lacks a tools array")
+    # Both modern and legacy MCP support cursor pagination. A required tool on
+    # the first page is NOT sufficient evidence that the catalog is complete.
+    # Keep one bounded and exact consumer-owned read set across all pages.
     names: list[str] = []
-    seen: set[str] = set()
-    for tool in tools:
-        if not isinstance(tool, dict) or not isinstance(tool.get("name"), str) or not tool["name"]:
-            raise McpProbeError("MCP tool catalog contains an invalid tool entry")
-        name = tool["name"]
-        if name in seen:
-            raise McpProbeError(f"MCP tool catalog contains duplicate tool name: {name}")
-        seen.add(name)
-        names.append(name)
+    seen_names: set[str] = set()
+    seen_cursors: set[str] = set()
+    cursor: str | None = None
+    for _ in range(MAX_TOOL_CATALOG_PAGES):
+        page = client.request("tools/list", {"cursor": cursor}) if cursor is not None else client.request("tools/list")
+        if not isinstance(page, dict) or not isinstance(page.get("tools"), list):
+            raise McpProbeError("MCP tools/list lacks a tools array")
+        if page.get("resultType", "complete") != "complete":
+            raise McpProbeError("MCP tool catalog page was not complete")
+        for tool in page["tools"]:
+            if not isinstance(tool, dict) or not isinstance(tool.get("name"), str) or not tool["name"]:
+                raise McpProbeError("MCP tool catalog contains an invalid tool entry")
+            name = tool["name"]
+            if name in seen_names:
+                raise McpProbeError(f"MCP tool catalog contains duplicate tool name: {name}")
+            seen_names.add(name)
+            names.append(name)
+            if len(names) > MAX_TOOL_CATALOG_NAMES:
+                raise McpProbeError("MCP tool catalog exceeds the bounded tool count")
+        next_cursor = page.get("nextCursor")
+        if next_cursor is None:
+            break
+        if not isinstance(next_cursor, str):
+            raise McpProbeError("MCP tools/list returned an invalid nextCursor")
+        if next_cursor in seen_cursors:
+            raise McpProbeError("MCP tools/list repeated an already visited cursor")
+        seen_cursors.add(next_cursor)
+        cursor = next_cursor
+    else:
+        raise McpProbeError("MCP tool catalog exceeded the bounded page count")
     names.sort()
     if expected_tool_count is not None and len(names) != expected_tool_count:
         raise McpProbeError(f"MCP tool count {len(names)} does not equal expected {expected_tool_count}")

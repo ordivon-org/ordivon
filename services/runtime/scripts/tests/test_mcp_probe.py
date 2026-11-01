@@ -49,7 +49,7 @@ class RuntimeProbeWireContractTests(unittest.TestCase):
         payload = (
             b": keepalive\r\n\r\n"
             b'data: {"jsonrpc":"2.0","method":"notifications/progress"}\r\n\r\n'
-            b'event: message\r\n'
+            b"event: message\r\n"
             b'data: {"jsonrpc":"2.0",\r\n'
             b'data: "id":7,"result":{"ok":true}}\r\n\r\n'
         )
@@ -100,6 +100,144 @@ class RuntimeProbeWireContractTests(unittest.TestCase):
                 )
 
 
+class RuntimeCatalogPaginationTests(unittest.TestCase):
+    """Operator readiness must not bless only the first MCP tools/list page."""
+
+    class CatalogClient:
+        lifecycle = "legacy"
+        protocol_version = "2025-06-18"
+
+        def __init__(self, pages):
+            self.pages = pages
+            self.requested = []
+
+        def request(self, method, params=None):
+            assert method == "tools/list"
+            cursor = (params or {}).get("cursor")
+            self.requested.append(cursor)
+            return self.pages[cursor]
+
+    @staticmethod
+    def lifecycle():
+        return {"protocolVersion": "2025-06-18", "serverInfo": {"name": "fixture"}}
+
+    def test_pages_are_exhausted_before_operator_readiness_can_pass(self) -> None:
+        client = self.CatalogClient(
+            {
+                None: {"tools": [{"name": "release.apply"}], "nextCursor": "page/2"},
+                "page/2": {"tools": [{"name": "release.get"}]},
+            }
+        )
+        receipt = _catalog_result(
+            client,
+            self.lifecycle(),
+            expected_tool_count=None,
+            required_tools=("release.apply",),
+        )
+        self.assertEqual(receipt["toolNames"], ["release.apply", "release.get"])
+        self.assertEqual(receipt["toolCount"], 2)
+        self.assertEqual(client.requested, [None, "page/2"])
+
+    def test_empty_cursor_is_an_opaque_valid_continuation(self) -> None:
+        client = self.CatalogClient(
+            {
+                None: {"tools": [{"name": "release.apply"}], "nextCursor": ""},
+                "": {"tools": [{"name": "release.get"}]},
+            }
+        )
+        receipt = _catalog_result(
+            client,
+            self.lifecycle(),
+            expected_tool_count=2,
+            required_tools=("release.apply", "release.get"),
+        )
+        self.assertEqual(receipt["toolCount"], 2)
+        self.assertEqual(client.requested, [None, ""])
+
+    def test_required_tool_may_be_on_second_page(self) -> None:
+        client = self.CatalogClient(
+            {
+                None: {"tools": [{"name": "release.apply"}], "nextCursor": "p2"},
+                "p2": {"tools": [{"name": "release.get"}]},
+            }
+        )
+        self.assertEqual(
+            _catalog_result(
+                client,
+                self.lifecycle(),
+                expected_tool_count=2,
+                required_tools=("release.get",),
+            )["toolCount"],
+            2,
+        )
+
+    def test_replayed_cursor_or_duplicate_tool_cannot_pass_as_complete(self) -> None:
+        for pages in (
+            {
+                None: {"tools": [{"name": "release.apply"}], "nextCursor": "p2"},
+                "p2": {"tools": [{"name": "release.get"}], "nextCursor": "p2"},
+            },
+            {
+                None: {"tools": [{"name": "release.apply"}], "nextCursor": "p2"},
+                "p2": {"tools": [{"name": "release.apply"}]},
+            },
+        ):
+            with self.subTest(pages=pages):
+                with self.assertRaises(McpProbeError):
+                    _catalog_result(
+                        self.CatalogClient(pages),
+                        self.lifecycle(),
+                        expected_tool_count=None,
+                        required_tools=("release.apply",),
+                    )
+
+    def test_catalog_pages_are_bounded_before_readiness_passes(self) -> None:
+        from mcp_probe import MAX_TOOL_CATALOG_PAGES, MAX_TOOL_CATALOG_NAMES
+
+        pages = {None: {"tools": [{"name": "release.apply"}], "nextCursor": "p1"}}
+        for i in range(1, MAX_TOOL_CATALOG_PAGES):
+            pages[f"p{i}"] = {
+                "tools": [{"name": f"tool-{i}"}],
+                "nextCursor": f"p{i + 1}",
+            }
+        with self.assertRaisesRegex(McpProbeError, "page count"):
+            _catalog_result(
+                self.CatalogClient(pages),
+                self.lifecycle(),
+                expected_tool_count=None,
+                required_tools=("release.apply",),
+            )
+        with self.assertRaisesRegex(McpProbeError, "tool count"):
+            _catalog_result(
+                self.CatalogClient(
+                    {None: {"tools": [{"name": f"tool-{i}"} for i in range(MAX_TOOL_CATALOG_NAMES + 1)]}}
+                ),
+                self.lifecycle(),
+                expected_tool_count=None,
+                required_tools=(),
+            )
+
+    def test_malformed_cursor_and_incomplete_result_never_green(self) -> None:
+        for invalid in ([], 123):
+            with self.subTest(cursor=invalid):
+                client = self.CatalogClient({None: {"tools": [{"name": "release.apply"}], "nextCursor": invalid}})
+                with self.assertRaises(McpProbeError):
+                    _catalog_result(
+                        client,
+                        self.lifecycle(),
+                        expected_tool_count=None,
+                        required_tools=("release.apply",),
+                    )
+        client = self.CatalogClient({None: {"resultType": "partial", "tools": [{"name": "release.apply"}]}})
+        with self.assertRaises(McpProbeError):
+            _catalog_result(
+                client,
+                self.lifecycle(),
+                expected_tool_count=None,
+                required_tools=("release.apply",),
+            )
+
+
 class RuntimeProbeTransportTests(unittest.TestCase):
     def test_probe_uses_stable_machine_user_agent(self) -> None:
         client = McpClient(
@@ -113,7 +251,6 @@ class RuntimeProbeTransportTests(unittest.TestCase):
         self.assertEqual(request.get_header("User-agent"), PROBE_USER_AGENT)
         self.assertNotIn("Python-urllib", request.get_header("User-agent"))
 
-
     def test_probe_client_accepts_notification_before_exact_sse_result(self) -> None:
         class SseResponse(_Response):
             headers = _Headers({"Content-Type": "text/event-stream"})
@@ -124,9 +261,7 @@ class RuntimeProbeTransportTests(unittest.TestCase):
                     b'data: {"jsonrpc":"2.0","id":1,"result":{"supportedVersions":[]}}\n\n'
                 )
 
-        client = McpClient(
-            "https://mcp.example.invalid/mcp", "test-token", client_name="consumer"
-        )
+        client = McpClient("https://mcp.example.invalid/mcp", "test-token", client_name="consumer")
         with mock.patch("mcp_probe.urllib.request.urlopen", return_value=SseResponse()):
             self.assertEqual(client.request("server/discover", {}), {"supportedVersions": []})
 
@@ -139,8 +274,7 @@ class RuntimeCredentialTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "runtime.env"
             path.write_text(
-                "# comment\nORDIVON_BIND=127.0.0.1:8897\n"
-                "ORDIVON_BEARER_TOKEN_FILE='/etc/ordivon/runtime-mcp.token'\n",
+                "# comment\nORDIVON_BIND=127.0.0.1:8897\nORDIVON_BEARER_TOKEN_FILE='/etc/ordivon/runtime-mcp.token'\n",
                 encoding="utf-8",
             )
             self.assertEqual(
@@ -293,10 +427,12 @@ class RuntimeCredentialTests(unittest.TestCase):
                 load_bearer_token({"ORDIVON_BEARER_TOKEN_FILE": str(path)})
             os.chmod(path, 0o600)
             with self.assertRaisesRegex(McpProbeError, "exactly one"):
-                load_bearer_token({
-                    "ORDIVON_BEARER_TOKEN": "inline",
-                    "ORDIVON_BEARER_TOKEN_FILE": str(path),
-                })
+                load_bearer_token(
+                    {
+                        "ORDIVON_BEARER_TOKEN": "inline",
+                        "ORDIVON_BEARER_TOKEN_FILE": str(path),
+                    }
+                )
 
 
 if __name__ == "__main__":
