@@ -153,6 +153,10 @@ def _validate_text(value: str, label: str) -> str:
 def _affordance_prelude() -> str:
     roles = json.dumps(list(ACTION_ROLES))
     lines = [
+        "def _ordivon_require(condition, detail):",
+        "    if not condition:",
+        "        raise AssertionError(detail)",
+        "",
         "def _ordivon_affordances():",
         f"    roles=set({roles})",
         "    rows=[]",
@@ -223,19 +227,19 @@ def _target_program(
     ):
         raise ValueError("expect-backend-dom-node-id must be a positive integer")
     identity = (
-        f"assert row['backendDOMNodeId']=={expect_backend_dom_node_id}, "
-        "{'error':'affordance-node-changed'}\n"
+        f"_ordivon_require(row['backendDOMNodeId']=={expect_backend_dom_node_id}, "
+        "{'error':'affordance-node-changed'})\n"
         if expect_backend_dom_node_id is not None
-        else "assert sum(r['role']==row['role'] and r['name']==row['name'] for r in rows)==1, "
-        "{'error':'affordance-ambiguous-reobserve-and-bind-node'}\n"
+        else "_ordivon_require(sum(r['role']==row['role'] and r['name']==row['name'] for r in rows)==1, "
+        "{'error':'affordance-ambiguous-reobserve-and-bind-node'})\n"
     )
     return (
         "import json\n" + _affordance_prelude() + f"rows=_ordivon_affordances()\nidx={index}\n"
-        'assert idx < len(rows), {"error":"affordance-index-out-of-range","count":len(rows)}\n'
+        '_ordivon_require(idx < len(rows), {"error":"affordance-index-out-of-range","count":len(rows)})\n'
         "row=rows[idx]\n"
-        f"assert row['role']=={json.dumps(expect_role)} and row['name']=={json.dumps(expect_name)}, "
-        "{'error':'affordance-changed','observed':{'role':row['role'],'name':row['name']}}\n"
-        "assert row['x'] is not None and row['y'] is not None, {'error':'affordance-has-no-box'}\n"
+        f"_ordivon_require(row['role']=={json.dumps(expect_role)} and row['name']=={json.dumps(expect_name)}, "
+        "{'error':'affordance-changed','observed':{'role':row['role'],'name':row['name']}})\n"
+        "_ordivon_require(row['x'] is not None and row['y'] is not None, {'error':'affordance-has-no-box'})\n"
         + identity
         + action_code
         + f'print(json.dumps({{"standing":{json.dumps(standing)},"target":{{"index":idx,"role":row["role"],"name":row["name"]}},"pageAfter":_ordivon_page_info()}},sort_keys=True,ensure_ascii=False))\n'
@@ -282,7 +286,7 @@ def program_back() -> str:
     return (
         "import json\n"
         'hist=cdp("Page.getNavigationHistory")\nidx=hist.get("currentIndex",0)\nentries=hist.get("entries",[])\n'
-        'assert idx>0, {"error":"no-back-history"}\n'
+        'if idx<=0: raise AssertionError({"error":"no-back-history"})\n'
         'cdp("Page.navigateToHistoryEntry",entryId=entries[idx-1]["id"])\nwait_for_load()\n'
         'print(json.dumps({"standing":"BACK","pageAfter":page_info()},sort_keys=True))\n'
     )
