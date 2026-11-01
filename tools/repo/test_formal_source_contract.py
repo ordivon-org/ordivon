@@ -5,6 +5,7 @@ This checks Git SourceCut and CLI wiring, NOT external theorem prover verdicts.
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import os
 import shlex
@@ -81,6 +82,114 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         # Repo CI performs a bounded source admission, not the entire
         # opt-in toolchain: never fake Lean/Z3/Kani proof success.
         self.assertNotIn("mise run formal:verify", ci_script)
+
+    def test_native_retirement_source_is_a_required_consumer_owned_proof(self) -> None:
+        """Retirement permission must be a precise independent Lean challenge."""
+        challenge = FORMAL / "RecursiveLegoRetirementChallenge.lean"
+        self.assertTrue(challenge.is_file())
+        text = challenge.read_text(encoding="utf-8")
+        self.assertIn("remove_only_if_all_consumer_closure_premises_hold", text)
+        self.assertIn("RetirementClosure.no_live_consumer_if_closed_and_current", text)
+        self.assertIn("theorem newly_live_consumer_defeats_old_negative_witness", text)
+        self.assertIn(
+            "tools/formal/RecursiveLegoRetirementChallenge.lean",
+            formal.SOURCE_FILES,
+        )
+        runner = (FORMAL / "verify.py").read_text(encoding="utf-8")
+        self.assertIn("str(retirement_challenge)", runner)
+        self.assertIn("consumer-owned R2.1 retirement closure challenge", runner)
+        self.assertIn("Leanchecker replays consumer-owned retirement challenge", runner)
+        self.assertIn('RecursiveLegoRetirementChallenge.olean', runner)
+
+    def test_official_leanchecker_qualifies_and_rejects_false_proof(self) -> None:
+        """R2.1 must check the actual olean declarations, not axiom text only."""
+        src = (FORMAL / "verify.py").read_text(encoding="utf-8")
+        self.assertIn('result["leanchecker"]', src)
+        self.assertIn("Leanchecker replays R2.1 core declarations", src)
+        self.assertIn("Leanchecker replays R2.1 variation declarations", src)
+        self.assertIn("Leanchecker rejects forged false declaration", src)
+        self.assertIn("declaration type mismatch", src)
+        self.assertIn("expected_rc=1", src)
+
+    def test_checker_is_same_toolchain_and_sha_qualified(self) -> None:
+        """Pure source-contract test: CI does not install the Lean provider.
+
+        Synthetic executable bytes check path, hash and fail-closed behavior;
+        only opt-in native Formal execution tests the real toolchain.
+        """
+        import hashlib
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-lean-identity-") as tmp:
+            directory = Path(tmp)
+            for name in (*formal.TOOL_NAMES, "leanchecker"):
+                binary = directory / name
+                binary.write_bytes(b"#!/bin/sh\nexit 0\n")
+                binary.chmod(0o755)
+
+            def qualified_mise_which(args, **_kwargs):
+                self.assertEqual(args[:2], ["mise", "which"])
+                if args[2] == "--version":
+                    self.assertIn(args[3], formal.TOOL_NAMES)
+                    return "fixture-provider-version\n"
+                self.assertIn(args[2], formal.TOOL_NAMES)
+                return str(directory / args[2]) + "\n"
+
+            with patch.object(
+                formal.subprocess, "check_output", side_effect=qualified_mise_which
+            ):
+                binaries = formal.qualified_tool_binaries()
+                checker, lean = binaries["leanchecker"], binaries["lean"]
+                self.assertEqual(len(binaries), len(formal.TOOL_NAMES) + 1)
+                self.assertEqual(
+                    Path(checker["path"]),
+                    Path(lean["path"]).with_name("leanchecker"),
+                )
+                self.assertEqual(checker["version"], lean["version"])
+                self.assertEqual(
+                    checker["sha256"],
+                    hashlib.sha256(Path(checker["path"]).read_bytes()).hexdigest(),
+                )
+
+                checker_file = directory / "leanchecker"
+                checker_file.unlink()
+                with self.assertRaisesRegex(ValueError, "no qualified leanchecker"):
+                    formal.qualified_tool_binaries()
+
+                checker_file.symlink_to(directory / "z3")
+                with self.assertRaisesRegex(ValueError, "no qualified leanchecker"):
+                    formal.qualified_tool_binaries()
+
+    def test_ci_receipt_tracks_exact_native_formal_consumer_duties(self) -> None:
+        """The CI receipt validator must not silently lag new Formal proofs."""
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        def extract(start, stop):
+            self.assertEqual(workflow.count(start), 1)
+            return ast.literal_eval(workflow.split(start, 1)[1].split(stop, 1)[0].strip())
+
+        probes = extract(
+            "          EXPECTED_PROBES = ",
+            "\n          REQUIRED_SOURCE_FILES = ",
+        )
+        sources = extract(
+            "          REQUIRED_SOURCE_FILES = ",
+            "\n          REQUIRED_TOOLS = ",
+        )
+        tools = extract(
+            "          REQUIRED_TOOLS = ",
+            "\n\n          def reject_duplicate_keys",
+        )
+        self.assertEqual(len(probes), 22)
+        self.assertEqual(set(sources), set(formal.SOURCE_FILES))
+        self.assertEqual(set(tools), set(formal.TOOL_NAMES) | {"leanchecker"})
+        for label, rc in {
+            "Lean kernel consumer-owned R2.1 retirement closure challenge": 0,
+            "Leanchecker replays R2.1 core declarations": 0,
+            "Leanchecker replays R2.1 variation declarations": 0,
+            "Leanchecker replays consumer-owned retirement challenge": 0,
+            "Lean compiler accepts forged axiom-free proof when kernel skipped": 0,
+            "Leanchecker rejects forged false declaration": 1,
+        }.items():
+            self.assertEqual(probes.get(label), rc, label)
 
     def test_formal_consumer_allows_real_kani_cache_prelude_without_skipping_proof(self) -> None:
         """A KANI_HOME setup is not a different proof interface."""
@@ -463,7 +572,7 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         self.assertEqual(set(current["sourceBlobs"]), set(formal.SOURCE_FILES))
         # The source-scoped Formal proof now binds the actual Harness
         # execution adapter as well as ten existing proof/toolchain inputs.
-        self.assertEqual(len(current["sourceBlobs"]), 11)
+        self.assertEqual(len(current["sourceBlobs"]), 12)
         for relative, oid in current["sourceBlobs"].items():
             self.assertEqual(
                 oid,
