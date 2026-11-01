@@ -127,16 +127,21 @@ def validate_request(value: Mapping[str, Any], policy: Mapping[str, Any]) -> dic
 
 
 def _subprocess_json(args: list[str], *, timeout: int = 15) -> tuple[int, dict[str, Any] | None, str]:
-    proc = subprocess.run(
-        args,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        timeout=timeout,
-        check=False,
-    )
+    try:
+        proc = subprocess.run(
+            args,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return 124, None, f"PROBE_TIMEOUT:{timeout}s"
+    except OSError as error:
+        return 127, None, f"PROBE_EXEC_ERROR:{type(error).__name__}"
     try:
         value = json.loads(proc.stdout)
     except json.JSONDecodeError:
