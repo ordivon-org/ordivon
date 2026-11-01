@@ -87,6 +87,19 @@ impl Fixture {
             &[&"a".repeat(64)],
         )
         .unwrap();
+        let physical = db.query_one(
+            "SELECT (SELECT system_identifier::text FROM pg_control_system()),                     (SELECT timeline_id FROM pg_control_checkpoint())", &[],
+        ).unwrap();
+        let digest = ordivon_runtime_core::pg_admission::pg_writer_epoch_digest(
+            &"a".repeat(64),
+            &physical.get::<_, String>(0),
+            physical.get::<_, i32>(1),
+        );
+        db.execute(
+            "INSERT INTO _stage_control VALUES('epoch','QUALIFIED_EPOCH',$1,true)",
+            &[&digest],
+        )
+        .unwrap();
         // A disposable native PG operator owns this schema, while the
         // application role may lock the control row but not promote itself.
         db.batch_execute(
@@ -803,6 +816,60 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
             &[&"a".repeat(64)],
         )
         .unwrap();
+    let physical = fixture.db.query_one(
+        "SELECT (SELECT system_identifier::text FROM pg_control_system()),                 (SELECT timeline_id FROM pg_control_checkpoint())", &[],
+    ).unwrap();
+    let digest = ordivon_runtime_core::pg_admission::pg_writer_epoch_digest(
+        &"a".repeat(64),
+        &physical.get::<_, String>(0),
+        physical.get::<_, i32>(1),
+    );
+    let denied_without_epoch = PgRuntime::new(config.clone())
+        .err()
+        .expect("source-only writer must NOT qualify without physical epoch");
+    assert!(
+        denied_without_epoch.to_string().contains("Unqualified"),
+        "{denied_without_epoch}",
+    );
+    fixture
+        .db
+        .execute(
+            "INSERT INTO _stage_control VALUES('epoch','QUALIFIED_EPOCH',$1,true)",
+            &[&digest],
+        )
+        .unwrap();
+    // A PITR fork keeps the source SHA but changes the current physical WAL
+    // timeline. A stale operator epoch must not requalify that branch.
+    let stale_epoch = ordivon_runtime_core::pg_admission::pg_writer_epoch_digest(
+        &"a".repeat(64),
+        &physical.get::<_, String>(0),
+        physical.get::<_, i32>(1) + 1,
+    );
+    fixture
+        .db
+        .execute(
+            "UPDATE _stage_control SET source_sha256=$1 WHERE id='epoch'",
+            &[&stale_epoch],
+        )
+        .unwrap();
+    let stale_denied = PgRuntime::new(config.clone())
+        .err()
+        .expect("future or stale WAL timeline must fail closed");
+    assert!(
+        stale_denied.to_string().contains("Unqualified"),
+        "{stale_denied}"
+    );
+    assert!(
+        !config.executor.store_root.exists(),
+        "wrong timeline must not create Workspace directories",
+    );
+    fixture
+        .db
+        .execute(
+            "UPDATE _stage_control SET source_sha256=$1 WHERE id='epoch'",
+            &[&digest],
+        )
+        .unwrap();
     let running = PgRuntime::new(config.clone()).expect("exact operator-qualified source starts");
     assert!(
         config.executor.store_root.is_dir(),
@@ -1169,6 +1236,43 @@ fn fresh_pg_revoked_writer_refuses_new_workspace_effects() {
         json!({"workspaceId":"ws-revoke-existing","sourceRepo":repo,"sourceRevision":"HEAD"}),
     );
     assert_ne!(existing["isError"], true, "{existing}");
+
+    // Source remains QUALIFIED_WRITER: revoke ONLY the independently bound
+    // physical epoch. A long-lived MCP must reject fresh Workspace effects.
+    fixture
+        .db
+        .execute(
+            "UPDATE _stage_control SET promotion_allowed=false WHERE id='epoch'",
+            &[],
+        )
+        .unwrap();
+    let epoch_denied = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-revoke-epoch","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_eq!(
+        epoch_denied["isError"], true,
+        "source-only writer accepted new work with revoked physical epoch: {epoch_denied}",
+    );
+    let epoch_mutation_denied = call(
+        &endpoint,
+        "workspace.mutate",
+        json!({"workspaceId":"ws-revoke-existing","mutations":[{
+            "mode":"WRITE","relativePath":"revoked-epoch.txt","content":"must-not-write"
+        }]}),
+    );
+    assert_eq!(
+        epoch_mutation_denied["isError"], true,
+        "{epoch_mutation_denied}"
+    );
+    fixture
+        .db
+        .execute(
+            "UPDATE _stage_control SET promotion_allowed=true WHERE id='epoch'",
+            &[],
+        )
+        .unwrap();
 
     fixture
         .db
