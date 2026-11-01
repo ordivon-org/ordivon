@@ -358,6 +358,11 @@ jobs:
         if: steps.affected.outputs.formal == 'true'
         shell: bash
         env:
+          # The selected Formal consumer installs pinned github: tools on a
+          # fresh runner. mise-action's own token does not persist to this
+          # later shell step; unauthenticated API metadata can hit 60/hour.
+          # Use the existing contents:read job token, scoped ONLY here.
+          GITHUB_TOKEN: ${{ github.token }}
           # Isolate Kani's release bundle to this job; a truncated shared
           # ~/.kani cache must not masquerade as a mathematical proof result.
           KANI_HOME: ${{ runner.temp }}/ordivon-core-formal-kani

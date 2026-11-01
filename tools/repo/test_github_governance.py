@@ -174,6 +174,22 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertLess(names.index("Repository mechanics"), names.index("Select affected owners"))
         self.assertLess(names.index("Select affected owners"), names.index("Verify affected owners"))
 
+    def test_formal_merge_queue_installer_uses_builtin_github_token(self) -> None:
+        """The actual Formal install consumes GitHub release metadata on clean runners."""
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        root = workflow["jobs"]["root-verification"]
+        self.assertEqual(root["permissions"] if "permissions" in root else
+                         workflow["permissions"], {"contents": "read"})
+        steps = {step["name"]: step for step in root["steps"]}
+        formal = steps["Verify changed core Formal source"]
+        self.assertEqual(formal["env"]["GITHUB_TOKEN"], "$" + "{{ github.token }}")
+        self.assertIn("mise install", formal["run"])
+        self.assertIn("mise run formal:verify", formal["run"])
+        self.assertNotIn("GITHUB_TOKEN", root.get("env", {}),
+                         "Token must be scoped to the one Formal consumer step")
+
     def test_selected_formal_has_one_isolated_real_invocation_and_owner_failures_propagate(self) -> None:
         """Execute the real GitHub queue shell and dedicated Formal step."""
         import os
