@@ -5,6 +5,7 @@ This checks Git SourceCut and CLI wiring, NOT external theorem prover verdicts.
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import os
 import shlex
@@ -157,6 +158,38 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                 checker_file.symlink_to(directory / "z3")
                 with self.assertRaisesRegex(ValueError, "no qualified leanchecker"):
                     formal.qualified_tool_binaries()
+
+    def test_ci_receipt_tracks_exact_native_formal_consumer_duties(self) -> None:
+        """The CI receipt validator must not silently lag new Formal proofs."""
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        def extract(start, stop):
+            self.assertEqual(workflow.count(start), 1)
+            return ast.literal_eval(workflow.split(start, 1)[1].split(stop, 1)[0].strip())
+
+        probes = extract(
+            "          EXPECTED_PROBES = ",
+            "\n          REQUIRED_SOURCE_FILES = ",
+        )
+        sources = extract(
+            "          REQUIRED_SOURCE_FILES = ",
+            "\n          REQUIRED_TOOLS = ",
+        )
+        tools = extract(
+            "          REQUIRED_TOOLS = ",
+            "\n\n          def reject_duplicate_keys",
+        )
+        self.assertEqual(len(probes), 22)
+        self.assertEqual(set(sources), set(formal.SOURCE_FILES))
+        self.assertEqual(set(tools), set(formal.TOOL_NAMES) | {"leanchecker"})
+        for label, rc in {
+            "Lean kernel consumer-owned R2.1 retirement closure challenge": 0,
+            "Leanchecker replays R2.1 core declarations": 0,
+            "Leanchecker replays R2.1 variation declarations": 0,
+            "Leanchecker replays consumer-owned retirement challenge": 0,
+            "Lean compiler accepts forged axiom-free proof when kernel skipped": 0,
+            "Leanchecker rejects forged false declaration": 1,
+        }.items():
+            self.assertEqual(probes.get(label), rc, label)
 
     def test_formal_consumer_allows_real_kani_cache_prelude_without_skipping_proof(self) -> None:
         """A KANI_HOME setup is not a different proof interface."""

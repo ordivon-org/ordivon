@@ -476,7 +476,13 @@ jobs:
           # Consumer-owned finite proof obligations. Exit 0 and a subset are not enough.
           EXPECTED_PROBES = {
               "Lean kernel R2.1 relational composition": 0,
+              "Leanchecker replays R2.1 core declarations": 0,
               "Lean kernel qualified variation frame and countermodels": 0,
+              "Lean kernel consumer-owned R2.1 retirement closure challenge": 0,
+              "Leanchecker replays consumer-owned retirement challenge": 0,
+              "Leanchecker replays R2.1 variation declarations": 0,
+              "Lean compiler accepts forged axiom-free proof when kernel skipped": 0,
+              "Leanchecker rejects forged false declaration": 1,
               "Lean rejects false theorem": 1,
               "Z3: sat": 0,
               "Z3: unsat": 0,
@@ -498,6 +504,7 @@ jobs:
               "tools/formal/verify.py",
               "tools/formal/RecursiveLegoRefinement.lean",
               "tools/formal/RecursiveLegoVariationFrame.lean",
+              "tools/formal/RecursiveLegoRetirementChallenge.lean",
               "tools/formal/Proof.rs",
               "tools/formal/Proof.dfy",
               "tools/formal/ProofKani.rs",
@@ -505,7 +512,7 @@ jobs:
               "tools/formal/Proof.als",
               "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
           }
-          REQUIRED_TOOLS = {"lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy"}
+          REQUIRED_TOOLS = {"lean", "leanchecker", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy"}
 
           def reject_duplicate_keys(pairs):
               value = {}
