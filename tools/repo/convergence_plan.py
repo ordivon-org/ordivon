@@ -728,12 +728,106 @@ def assess_candidate_source_redundancy(
     }
 
 
+
+def assess_candidate_pair_confluence(
+    *, left: str, right: str, repo: Path | None = None,
+) -> dict[str, object]:
+    """Bounded exact-Git preflight for two competing source candidates.
+
+    Git textual merging, even with overlapping paths, is neither semantic
+    confluence nor proof that independent consumer obligations survive.
+    Return only a fail-closed review projection; never merge a working tree,
+    mutate branches, or authorize PR integration/deletion/installed effects.
+    """
+    if repo is None:
+        repo = Path(__file__).resolve().parents[2]
+    # Object/revision identity is from the explicit repository, not ambient
+    # GIT_DIR/GIT_CONFIG_* or a replace/graft ref controlled by the caller.
+    git_env = {key: value for key, value in os.environ.items()
+               if not key.startswith("GIT_")}
+    git_env["GIT_GRAFT_FILE"] = os.devnull
+
+    def native(*args: str) -> subprocess.CompletedProcess[bytes]:
+        return subprocess.run(
+            ["git", "--no-replace-objects", "-C", str(repo), *args],
+            env=git_env, capture_output=True, check=False,
+        )
+
+    def exact_cut(raw: str) -> str:
+        if not re.fullmatch(r"[0-9a-f]{40}", raw):
+            raise ValueError("confluence SourceCuts must be exact 40-hex Git IDs")
+        result = native("rev-parse", "--verify", raw + "^{commit}")
+        if result.returncode or result.stdout.decode().strip() != raw:
+            raise ValueError("confluence SourceCut is not an exact local commit")
+        return raw
+
+    left, right = exact_cut(left), exact_cut(right)
+    bases = native("merge-base", "--all", left, right)
+    if bases.returncode:
+        raise ValueError("confluence candidates have no common Git base")
+    all_bases = bases.stdout.decode().splitlines()
+    if len(all_bases) != 1:
+        raise ValueError("confluence requires one unambiguous Git merge base")
+    base = all_bases[0]
+
+    def paths_for(candidate: str) -> set[str]:
+        result = native(
+            "diff", "--no-ext-diff", "--no-textconv", "--no-renames",
+            "--name-only", "-z", base, candidate,
+        )
+        if result.returncode:
+            raise ValueError("candidate source delta unavailable")
+        paths = {os.fsdecode(path) for path in result.stdout.split(b"\0") if path}
+        if len(paths) > 256:
+            raise ValueError("candidate source delta exceeds 256-path review")
+        return paths
+
+    left_paths, right_paths = paths_for(left), paths_for(right)
+    overlap = sorted(left_paths & right_paths)
+    union = sorted(left_paths | right_paths)
+    # --quiet returns only the real Git merge outcome, with no conflict-text
+    # buffer or working-tree/index modification. It may write Git tree objects.
+    preview = native("merge-tree", "--write-tree", "--quiet", left, right)
+    if preview.returncode not in (0, 1):
+        raise ValueError("native merge-tree could not inspect candidate pair")
+    merged_textually = preview.returncode == 0
+    owners = sorted(o.name for o in affected_owners.owners_for_paths(union))
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.repo-candidate-pair-confluence-preflight",
+        "sourceCuts": {"left": left, "right": right, "commonMergeBase": base},
+        "gitMergeStanding": "CLEAN" if merged_textually else "CONFLICT",
+        "sharedChangedPaths": overlap,
+        "sharedChangedPathCount": len(overlap),
+        "leftChangedPathCount": len(left_paths),
+        "rightChangedPathCount": len(right_paths),
+        "candidateAffectedOwnerHints": owners,
+        "coreFormalCheckHint": affected_owners.requires_core_formal_verification(union),
+        "consumerCompatibilityStanding": "UNKNOWN_UNOBSERVED_CONSUMERS",
+        "semanticConfluenceQualified": False,
+        "integrationAdmissible": False,
+        "installedStanding": "UNKNOWN",
+        "requiredReview": (
+            "Resolve Git conflict and separately verify affected consumers"
+            if not merged_textually else
+            "Git text clean; independently test shared consumers, unique evidence, "
+            "external effects and current SourceCut before integration"
+        ),
+        "truthBoundary": (
+            "Bounded exact Git candidate deltas and native text merge preflight; "
+            "owner hints are static. No proof of consumer semantics, task/Work "
+            "deduplication, installed behavior, external effects or merge authority."
+        ),
+    }
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Project one Git candidate into conservative Ordivon convergence scopes."
     )
     parser.add_argument("--retirement-candidate", help="exact old candidate commit")
     parser.add_argument("--retirement-main", help="exact protected main commit")
+    parser.add_argument("--confluence-left", help="first exact candidate commit")
+    parser.add_argument("--confluence-right", help="second exact candidate commit")
     parser.add_argument("--base")
     parser.add_argument("--head")
     parser.add_argument("--changed-file", action="append", default=[])
@@ -755,6 +849,18 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _parser().parse_args()
     try:
+        if args.confluence_left or args.confluence_right:
+            if (not args.confluence_left or not args.confluence_right
+                    or args.retirement_candidate or args.retirement_main
+                    or args.base or args.head or args.changed_file
+                    or args.impact_prefix or args.explain_impacts
+                    or args.source_cut or args.format != "json"):
+                raise ValueError("confluence preflight requires only two exact Git cuts and JSON")
+            receipt = assess_candidate_pair_confluence(
+                left=args.confluence_left, right=args.confluence_right,
+            )
+            print(json.dumps(receipt, sort_keys=True))
+            return 0
         if args.retirement_candidate or args.retirement_main:
             if (not args.retirement_candidate or not args.retirement_main
                     or args.base or args.head or args.changed_file
