@@ -1,6 +1,13 @@
 """Opt-in native formal tools smoke and negative oracles, not a new verifier."""
 from __future__ import annotations
 
+# Before any import that can resolve from an untracked module path, reject
+# direct nonisolated invocation. Import-as-module remains available to tests.
+if __name__ == "__main__":
+    import sys
+    if not sys.flags.isolated:
+        raise SystemExit("Formal verifier requires Python -I before import resolution")
+
 import ast
 import copy
 import hashlib
@@ -45,7 +52,10 @@ def qualified_source_cut() -> dict[str, object]:
         return subprocess.check_output(
             # Exact SourceCut must read original Git objects, not a mutable
             # refs/replace overlay that can alias the same commit SHA.
-            ["git", "--no-replace-objects", "-C", str(REPO), *args],
+            # Linux-only formal tool group uses the OS-owned Git executable.
+            # Ambient PATH must not select a fake commit/object reader.
+            # This does NOT attest /usr/bin/git or its transitive libraries.
+            ["/usr/bin/git", "--no-replace-objects", "-C", str(REPO), *args],
             text=True, stderr=subprocess.PIPE, env=git_env,
         ).strip()
 

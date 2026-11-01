@@ -14,5 +14,5 @@ run = """
 # of the legacy shared ~/.kani directory, where a truncated archive blocks
 # otherwise valid Lean/SMT/Kani proofs. Respect an explicit caller override.
 export KANI_HOME="${KANI_HOME:-${HOME}/.cache/ordivon/kani}"
-python3 verify.py
+python3 -I verify.py
 """
