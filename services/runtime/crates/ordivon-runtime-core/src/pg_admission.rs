@@ -1,6 +1,8 @@
 //! Native PostgreSQL Runtime admission contract, NOT production authority.
 //! Explicitly opt-in until the full lifecycle/refinement/consumer proof exists.
 use postgres::{Client, IsolationLevel, NoTls};
+use serde::de::{self, MapAccess, SeqAccess, Visitor};
+use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use uuid::Uuid;
@@ -61,6 +63,67 @@ fn exact_schema(s: &str) -> bool {
         && s.as_bytes()[0].is_ascii_alphabetic()
         && s.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'_')
 }
+/// One-pass JSON admission: reject duplicate members at ANY depth, including
+/// keys that become identical after JSON escape decoding. Do not retain a
+/// second JSON AST; the durable typed consumers parse only after this gate.
+struct JsonObjectWithUniqueKeys(bool);
+
+impl<'de> Deserialize<'de> for JsonObjectWithUniqueKeys {
+    fn deserialize<D: serde::Deserializer<'de>>(input: D) -> Result<Self, D::Error> {
+        struct UniqueKeysVisitor;
+        impl<'de> Visitor<'de> for UniqueKeysVisitor {
+            type Value = JsonObjectWithUniqueKeys;
+
+            fn expecting(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(fmt, "a JSON value with unique object members")
+            }
+
+            fn visit_bool<E: de::Error>(self, _: bool) -> Result<Self::Value, E> {
+                Ok(JsonObjectWithUniqueKeys(false))
+            }
+            fn visit_i64<E: de::Error>(self, _: i64) -> Result<Self::Value, E> {
+                Ok(JsonObjectWithUniqueKeys(false))
+            }
+            fn visit_u64<E: de::Error>(self, _: u64) -> Result<Self::Value, E> {
+                Ok(JsonObjectWithUniqueKeys(false))
+            }
+            fn visit_f64<E: de::Error>(self, _: f64) -> Result<Self::Value, E> {
+                Ok(JsonObjectWithUniqueKeys(false))
+            }
+            fn visit_str<E: de::Error>(self, _: &str) -> Result<Self::Value, E> {
+                Ok(JsonObjectWithUniqueKeys(false))
+            }
+            fn visit_string<E: de::Error>(self, _: String) -> Result<Self::Value, E> {
+                Ok(JsonObjectWithUniqueKeys(false))
+            }
+            fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
+                Ok(JsonObjectWithUniqueKeys(false))
+            }
+            fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
+                while seq.next_element::<JsonObjectWithUniqueKeys>()?.is_some() {}
+                Ok(JsonObjectWithUniqueKeys(false))
+            }
+            fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
+                let mut keys = HashSet::new();
+                while let Some((key, _)) = map.next_entry::<String, JsonObjectWithUniqueKeys>()? {
+                    if !keys.insert(key) {
+                        return Err(de::Error::custom("duplicate JSON object member"));
+                    }
+                }
+                Ok(JsonObjectWithUniqueKeys(true))
+            }
+        }
+        input.deserialize_any(UniqueKeysVisitor)
+    }
+}
+
+fn unambiguous_json_object(raw: &str) -> bool {
+    matches!(
+        serde_json::from_str::<JsonObjectWithUniqueKeys>(raw),
+        Ok(JsonObjectWithUniqueKeys(true))
+    )
+}
+
 impl PgAdmissionInput {
     fn validate(&self) -> Result<(), PgAdmissionError> {
         let strings = [
@@ -90,14 +153,8 @@ impl PgAdmissionInput {
             // Durable Runtime consumers decode both carriers as records.
             // Parsing any JSON value alone admits null/scalars/arrays that
             // cannot satisfy their existing typed source contracts.
-            || !matches!(
-                serde_json::from_str::<serde_json::Value>(&self.workspace_snapshot_json),
-                Ok(serde_json::Value::Object(_))
-            )
-            || !matches!(
-                serde_json::from_str::<serde_json::Value>(&self.execution_plan_json),
-                Ok(serde_json::Value::Object(_))
-            )
+            || !unambiguous_json_object(&self.workspace_snapshot_json)
+            || !unambiguous_json_object(&self.execution_plan_json)
         {
             return Err(PgAdmissionError::InvalidInput);
         }
@@ -1110,6 +1167,55 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_nested_json_keys_are_rejected_before_durable_pg_effects() {
+        let qualified = PgAdmissionInput {
+            job_id: "job".into(),
+            attempt_id: "attempt".into(),
+            reservation_id: "reservation".into(),
+            principal: "principal".into(),
+            client_request_id: "request".into(),
+            request_digest: "sha256:r".into(),
+            operation_digest: "sha256:o".into(),
+            workspace_id: "ws".into(),
+            workspace_snapshot_json: r#"{"snapshot":{"revision":1}}"#.into(),
+            execution_plan_json: r#"{"plan":{"timeoutMs":1000}}"#.into(),
+            execution_plan_digest: "sha256:plan".into(),
+            launch_token_digest: "sha256:l".into(),
+            bundle_path: "/tmp/test".into(),
+            unit_name: "unit".into(),
+            global_limit: 1,
+            created_at_ms: 1,
+            expected_source_sha256: "a".repeat(64),
+        };
+        assert!(
+            qualified.validate().is_ok(),
+            "ordinary nested objects qualify"
+        );
+        for raw in [
+            r#"{"revision":1,"revision":2}"#,
+            r#"{"snapshot":{"revision":1,"revision":2}}"#,
+            r#"{"snapshots":[{"revision":1,"revision":2}]}"#,
+            r#"{"\u0061":1,"a":2}"#,
+        ] {
+            let mut invalid_snapshot = qualified.clone();
+            invalid_snapshot.workspace_snapshot_json = raw.into();
+            assert!(
+                matches!(
+                    invalid_snapshot.validate(),
+                    Err(PgAdmissionError::InvalidInput)
+                ),
+                "workspace_snapshot_json admitted ambiguous JSON {raw}"
+            );
+            let mut invalid_plan = qualified.clone();
+            invalid_plan.execution_plan_json = raw.into();
+            assert!(
+                matches!(invalid_plan.validate(), Err(PgAdmissionError::InvalidInput)),
+                "execution_plan_json admitted ambiguous JSON {raw}"
+            );
+        }
+    }
+
+    #[test]
     fn source_identity_must_be_present() {
         let i = PgAdmissionInput {
             job_id: "j".into(),
@@ -1316,7 +1422,13 @@ mod live_pg_tests {
         ));
         assert_eq!(scratch.count("jobs"), 0, "no write before PG qualification");
         scratch.qualify();
-        for (name, raw) in [("workspace", "null"), ("plan", "[]")] {
+        for (name, raw) in [
+            ("workspace", "null"),
+            ("plan", "[]"),
+            ("workspace", r#"{"revision":1,"revision":2}"#),
+            ("plan", r#"{"plan":{"timeoutMs":1000,"timeoutMs":2000}}"#),
+            ("workspace", r#"{"nested":[{"a":1,"a":2}]}"#),
+        ] {
             let mut invalid = a.clone();
             if name == "workspace" {
                 invalid.workspace_snapshot_json = raw.into();
