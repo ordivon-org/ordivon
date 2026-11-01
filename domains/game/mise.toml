@@ -1,9 +1,10 @@
 [tools]
 node = "26.12.1"
 pnpm = "12.16.1"
+godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check"
+run = "pnpm install --frozen-lockfile && pnpm check && mise run test:native"
 
 
 [tasks."test:native"]

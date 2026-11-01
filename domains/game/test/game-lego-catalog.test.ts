@@ -80,9 +80,13 @@ function validateNativeGameConsumerClaims(plan: any): void {
   const memoryTest = readFileSync(new URL('./game-design-counterexample-memory.test.ts', import.meta.url), 'utf8');
   assert.ok(memoryTest.includes('../standards/game_design_counterexample_memory_r1.json'));
 
-  // G06 has a native Godot *test* consumer, not a proven Bevy/production
-  // consumer. It is deliberately NOT part of the ordinary game:verify task.
+  // G06 is a native Godot fixture, not shipped Bevy gameplay. Its REAL
+  // consumer must nevertheless run under the Game Owner verification task.
   const nativeMise = readFileSync(new URL('../mise.toml', import.meta.url), 'utf8');
+  assert.ok(nativeMise.includes('godot = "4.7.2-stable"'),
+    'Game native engine must be pinned to the current stable release');
+  assert.ok(nativeMise.includes('&& mise run test:native'),
+    'Game Owner verify must execute the native Godot consumer');
   assert.ok(nativeMise.includes('[tasks."test:native"]'));
   assert.ok(nativeMise.includes('godot --headless --path test/fixtures/native-godot-assembly --script res://assert.gd'));
   const godotTest = readFileSync(new URL('../test/fixtures/native-godot-assembly/assert.gd', import.meta.url), 'utf8');
