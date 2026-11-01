@@ -40,7 +40,7 @@ class _Response:
     def __exit__(self, exc_type, exc, tb):
         return False
 
-    def read(self):
+    def read(self, size=None):
         return json.dumps({"jsonrpc": "2.0", "id": 1, "result": {}}).encode()
 
 
@@ -239,6 +239,87 @@ class RuntimeCatalogPaginationTests(unittest.TestCase):
 
 
 class RuntimeProbeTransportTests(unittest.TestCase):
+    def test_mcp_transport_never_reads_unbounded_json_or_sse(self) -> None:
+        class BoundedResponse:
+            status = 200
+            headers = _Headers({"Content-Type": "application/json"})
+
+            def __init__(self, too_large: bool):
+                self.too_large = too_large
+                self.read_sizes = []
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self, size=None):
+                self.read_sizes.append(size)
+                if self.too_large:
+                    return b"x" * 17
+                return b'{"jsonrpc":"2.0","id":1,"result":{}}'
+
+        from mcp_probe import McpClient
+
+        for exceeds in (False, True):
+            with self.subTest(exceeds=exceeds):
+                response = BoundedResponse(exceeds)
+                client = McpClient("http://127.0.0.1:1/mcp", "test-only", client_name="bounded")
+                with (
+                    mock.patch("mcp_probe.MAX_MCP_RESPONSE_BYTES", 16 if exceeds else 64, create=True),
+                    mock.patch("mcp_probe.urllib.request.urlopen", return_value=response),
+                ):
+                    if exceeds:
+                        with self.assertRaisesRegex(McpProbeError, "size|bound|large"):
+                            client.request("tools/list")
+                    else:
+                        self.assertEqual(client.request("tools/list"), {})
+                self.assertEqual(response.read_sizes, [17 if exceeds else 65])
+
+    def test_http_error_response_cannot_exceed_the_same_body_limit(self) -> None:
+        from io import BytesIO
+        from urllib.error import HTTPError
+
+        url = "http://127.0.0.1:1/mcp"
+        error = HTTPError(
+            url,
+            503,
+            "upstream unavailable",
+            _Headers({"Content-Type": "application/json"}),
+            BytesIO(b"x" * 17),
+        )
+        with (
+            mock.patch("mcp_probe.MAX_MCP_RESPONSE_BYTES", 16),
+            mock.patch("mcp_probe.urllib.request.urlopen", side_effect=error),
+        ):
+            with self.assertRaisesRegex(McpProbeError, "bounded response size"):
+                McpClient(url, "test-only", client_name="error-bound").request("tools/list")
+
+    def test_sse_success_still_decodes_below_response_limit(self) -> None:
+        class SseResponse:
+            status = 200
+            headers = _Headers({"Content-Type": "text/event-stream"})
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self, size=None):
+                self.read_bound = size
+                return b'data: {"jsonrpc":"2.0","id":1,"result":{"tools":[]}}\n\n'
+
+        response = SseResponse()
+        with (
+            mock.patch("mcp_probe.MAX_MCP_RESPONSE_BYTES", 128),
+            mock.patch("mcp_probe.urllib.request.urlopen", return_value=response),
+        ):
+            value = McpClient("http://127.0.0.1:1/mcp", "test-only", client_name="sse-bound").request("tools/list")
+        self.assertEqual(value, {"tools": []})
+        self.assertEqual(response.read_bound, 129)
+
     def test_probe_uses_stable_machine_user_agent(self) -> None:
         client = McpClient(
             "https://mcp.example.invalid/mcp",
@@ -255,7 +336,7 @@ class RuntimeProbeTransportTests(unittest.TestCase):
         class SseResponse(_Response):
             headers = _Headers({"Content-Type": "text/event-stream"})
 
-            def read(self):
+            def read(self, size=None):
                 return (
                     b'data: {"jsonrpc":"2.0","method":"notifications/progress"}\n\n'
                     b'data: {"jsonrpc":"2.0","id":1,"result":{"supportedVersions":[]}}\n\n'
