@@ -766,20 +766,26 @@ def assess_candidate_pair_confluence(
     if bases.returncode:
         raise ValueError("confluence candidates have no common Git base")
     all_bases = bases.stdout.decode().splitlines()
-    if len(all_bases) != 1:
-        raise ValueError("confluence requires one unambiguous Git merge base")
-    base = all_bases[0]
-
+    if not all_bases or len(all_bases) > 16:
+        raise ValueError("confluence requires 1..16 native common merge bases")
+    # git merge-tree handles criss-cross ancestry with recursive virtual
+    # ancestor construction. Do not replace mature Git's algorithm by picking
+    # one arbitrary merge base. For static owner hints, union changes against
+    # all best bases; that is only a conservative over-approximation.
     def paths_for(candidate: str) -> set[str]:
-        result = native(
-            "diff", "--no-ext-diff", "--no-textconv", "--no-renames",
-            "--name-only", "-z", base, candidate,
-        )
-        if result.returncode:
-            raise ValueError("candidate source delta unavailable")
-        paths = {os.fsdecode(path) for path in result.stdout.split(b"\0") if path}
-        if len(paths) > 256:
-            raise ValueError("candidate source delta exceeds 256-path review")
+        paths: set[str] = set()
+        for base in all_bases:
+            result = native(
+                "diff", "--no-ext-diff", "--no-textconv", "--no-renames",
+                "--name-only", "-z", base, candidate,
+            )
+            if result.returncode:
+                raise ValueError("candidate source delta unavailable")
+            paths.update(
+                os.fsdecode(path) for path in result.stdout.split(b"\0") if path
+            )
+            if len(paths) > 256:
+                raise ValueError("candidate source delta exceeds 256-path review")
         return paths
 
     left_paths, right_paths = paths_for(left), paths_for(right)
@@ -789,13 +795,21 @@ def assess_candidate_pair_confluence(
     # buffer or working-tree/index modification. It may write Git tree objects.
     preview = native("merge-tree", "--write-tree", "--quiet", left, right)
     if preview.returncode not in (0, 1):
-        raise ValueError("native merge-tree could not inspect candidate pair")
+        raise ValueError(f"native merge-tree could not inspect candidate pair (code={preview.returncode}, stderr={preview.stderr.decode(errors='replace')[:500]})")
     merged_textually = preview.returncode == 0
     owners = sorted(o.name for o in affected_owners.owners_for_paths(union))
     return {
         "schemaVersion": 1,
         "kind": "ordivon.repo-candidate-pair-confluence-preflight",
-        "sourceCuts": {"left": left, "right": right, "commonMergeBase": base},
+        "sourceCuts": {
+            "left": left, "right": right,
+            "commonMergeBase": all_bases[0] if len(all_bases) == 1 else None,
+            "allBestMergeBases": all_bases,
+        },
+        "sourcePathStanding": (
+            "SINGLE_MERGE_BASE_EXACT_DELTA" if len(all_bases) == 1 else
+            "MULTIPLE_MERGE_BASES_CONSERVATIVE_UNION"
+        ),
         "gitMergeStanding": "CLEAN" if merged_textually else "CONFLICT",
         "sharedChangedPaths": overlap,
         "sharedChangedPathCount": len(overlap),
@@ -815,7 +829,8 @@ def assess_candidate_pair_confluence(
         ),
         "truthBoundary": (
             "Bounded exact Git candidate deltas and native text merge preflight; "
-            "owner hints are static. No proof of consumer semantics, task/Work "
+            "multi-base path unions are conservative owner hints, not a "
+            "unique patch boundary. No proof of consumer semantics, task/Work "
             "deduplication, installed behavior, external effects or merge authority."
         ),
     }
