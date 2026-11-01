@@ -259,6 +259,107 @@ theorem local_refinements_do_not_imply_unconditional_sequential_refinement :
 #print axioms local_refinements_do_not_imply_unconditional_sequential_refinement
 
 
+-- Standard saturated assume-guarantee *parallel CONTRACT ALGEBRA*.
+-- This is a lifted common-behavior universe B, represented by the EXISTING
+-- IOContract B Unit; a B value is the whole observation, not merely an
+-- input port. No second contract schema or executable synchronization claim.
+def tensorGuarantee {B : Type} (C D : IOContract B Unit) (b : B) : Prop :=
+  SaturatedGuarantee C b () ∧ SaturatedGuarantee D b ()
+
+def tensorContract {B : Type} (C D : IOContract B Unit) :
+    IOContract B Unit where
+  assume := fun b =>
+    (C.assume b ∧ D.assume b) ∨ ¬ tensorGuarantee C D b
+  guarantee := fun b _ => tensorGuarantee C D b
+
+-- The extra negative-guarantee assumption is ESSENTIAL: it ensures that
+-- saturation of the composite is exactly conjunction of saturations.
+theorem tensor_saturation_exact {B : Type}
+    (C D : IOContract B Unit) (b : B) :
+    SaturatedGuarantee (tensorContract C D) b () ↔
+      tensorGuarantee C D b := by
+  classical
+  change (¬ ((C.assume b ∧ D.assume b) ∨
+    ¬ tensorGuarantee C D b) ∨ tensorGuarantee C D b) ↔
+      tensorGuarantee C D b
+  constructor
+  · intro h
+    rcases h with hNotA | hG
+    · exact Classical.byContradiction (fun hNotG =>
+        hNotA (Or.inr hNotG))
+    · exact hG
+  · intro hG
+    exact Or.inr hG
+
+theorem refinement_preserves_saturated_guarantee {α β : Type}
+    (new old : IOContract α β) (hRef : Refines new old)
+    (x : α) (y : β) :
+    SaturatedGuarantee new x y →
+      SaturatedGuarantee old x y := by
+  classical
+  intro hNew
+  by_cases hOld : old.assume x
+  · rcases hNew with hNotNew | hNewG
+    · exact False.elim (hNotNew (hRef.1 x hOld))
+    · exact Or.inr (hRef.2 x y hOld hNewG)
+  · exact Or.inl hOld
+
+-- Local component refinement is monotone for this SAME-BEHAVIOR contract
+-- operation. This DOES NOT prove installed concurrent composition, I/O
+-- synchronization, hiding, effect interleavings or reactive realizability.
+theorem tensor_refinement_monotone {B : Type}
+    (Cnew Cold Dnew Dold : IOContract B Unit)
+    (hC : Refines Cnew Cold)
+    (hD : Refines Dnew Dold) :
+    Refines (tensorContract Cnew Dnew)
+      (tensorContract Cold Dold) := by
+  have preserve (b : B) :
+      tensorGuarantee Cnew Dnew b →
+        tensorGuarantee Cold Dold b := by
+    intro hG
+    exact ⟨refinement_preserves_saturated_guarantee Cnew Cold hC b () hG.1,
+      refinement_preserves_saturated_guarantee Dnew Dold hD b () hG.2⟩
+  constructor
+  · intro b hOld
+    change (Cold.assume b ∧ Dold.assume b) ∨
+      ¬ tensorGuarantee Cold Dold b at hOld
+    rcases hOld with hBoth | hNotG
+    · exact Or.inl ⟨hC.1 b hBoth.1, hD.1 b hBoth.2⟩
+    · exact Or.inr (fun hNewG => hNotG (preserve b hNewG))
+  · intro b y _ hNewG
+    cases y
+    exact preserve b hNewG
+
+-- A real Bool-sized countermodel: replacing saturated tensor with naive
+-- (A1 ∧ A2, G1 ∧ G2) falsely permits an observable behavior when one
+-- component rejects it under its own legal assumption.
+theorem naive_parallel_conjunction_is_not_tensor :
+    ∃ (C D : IOContract Unit Unit),
+      SaturatedGuarantee
+        { assume := fun b => C.assume b ∧ D.assume b
+          guarantee := fun b y => C.guarantee b y ∧ D.guarantee b y }
+        () () ∧
+      ¬ SaturatedGuarantee (tensorContract C D) () () := by
+  let C : IOContract Unit Unit := {
+    assume := fun _ => False
+    guarantee := fun _ _ => False
+  }
+  let D : IOContract Unit Unit := {
+    assume := fun _ => True
+    guarantee := fun _ _ => False
+  }
+  refine ⟨C, D, ?_, ?_⟩
+  · exact Or.inl (fun h => h.1)
+  · intro h
+    have hG := (tensor_saturation_exact C D ()).mp h
+    simp [tensorGuarantee, SaturatedGuarantee, D] at hG
+
+#print axioms tensor_saturation_exact
+#print axioms refinement_preserves_saturated_guarantee
+#print axioms tensor_refinement_monotone
+#print axioms naive_parallel_conjunction_is_not_tensor
+
+
 -- Nonvacuity: two implementations can each satisfy their own contracts,
 -- yet their sequential composition is not total when assumptions conflict.
 theorem incompatible_components_are_not_composable :

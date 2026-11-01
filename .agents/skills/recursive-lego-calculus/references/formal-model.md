@@ -391,6 +391,19 @@ synchronization, shared variables and hiding realize the adopted semantics.
 Do not replace it with naive `(A1 and A2, G1 and G2)`, or infer liveness,
 schedulability, causal realizability or permission from this equation.
 
+The existing Lean OrdivonR21.IOContract has **input-only** assumptions.
+To check the standard full-behavior tensor without another contract schema,
+instantiate its input type as the whole behavior universe B and output type
+as Unit: IOContract B Unit. Unit is a representation carrier, **not** an
+assertion that an executable component produces no output. The Lean kernel
+checks tensor_saturation_exact (exact saturated guarantee intersection),
+tensor_refinement_monotone (local refinement monotonicity within that SAME
+behavior universe) and naive_parallel_conjunction_is_not_tensor (a finite
+countermodel to naive conjunction). These do **not** prove executable
+concurrency, effect interleavings, reactive realizability, an installed
+component, or hidden-port refinement. Each still needs its own qualified
+bridge and current SourceCut. Inspect their existing #print axioms reports.
+
 For **protocol interaction**, an interface-automata profile may express
 input/output/internal actions and use alternating simulation for refinement.
 Its original optimistic compatibility means that a suitable environment

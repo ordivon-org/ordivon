@@ -35,12 +35,18 @@ SOURCE_FILES = (
 
 def qualified_source_cut() -> dict[str, object]:
     """Bind each used proof file to an exact regular Git blob at current HEAD."""
+    # The proof witness must be bound to this verifier's declared repository,
+    # not a foreign Agent/CI Git namespace, object database or config.
+    git_env = {key: value for key, value in os.environ.items()
+               if not key.startswith("GIT_")}
+    git_env["GIT_GRAFT_FILE"] = os.devnull
+
     def git(*args: str) -> str:
         return subprocess.check_output(
             # Exact SourceCut must read original Git objects, not a mutable
             # refs/replace overlay that can alias the same commit SHA.
             ["git", "--no-replace-objects", "-C", str(REPO), *args],
-            text=True, stderr=subprocess.PIPE,
+            text=True, stderr=subprocess.PIPE, env=git_env,
         ).strip()
 
     object_format = git("rev-parse", "--show-object-format=storage")
