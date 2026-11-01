@@ -681,22 +681,24 @@ fn append_terminal_evidence_for_commit_with_observation(
         == super::ExecutionTarget::LocalLinux
         && plan.workspace_source_digest.is_some()
         && runner_result_terminal
-        && matches!(
+        && (terminal.state == AttemptState::Succeeded
+            || matches!(
             terminal.reason_code.as_str(),
-            "PROCESS_EXIT_ZERO"
-                | "PROCESS_COMPLETED_BEFORE_STOP_EFFECTIVE"
-                | "PROCESS_EXIT_NONZERO"
+            "PROCESS_EXIT_NONZERO"
                 | "DEADLINE_EXCEEDED"
                 | "WORKSPACE_SOURCE_PRECONDITION_DRIFT"
                 | "INPUT_PRECONDITION_DRIFT"
                 | "HOST_DEPENDENCY_RUNTIME_DRIFT"
                 | "EXECUTABLE_RUNTIME_DRIFT"
-        );
+        ));
     let source_observation = match validate_workspace_source_observation_artifact(
         attempt,
         plan.workspace_source_digest.as_deref(),
         source_observation_required,
-        terminal.reason_code == "WORKSPACE_SOURCE_PRECONDITION_DRIFT",
+        super::evidence::SourceObservationRequirement::for_terminal(
+            terminal.state,
+            &terminal.reason_code,
+        ),
     ) {
         Ok(source_observation) => source_observation,
         Err(error)

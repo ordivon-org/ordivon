@@ -138,11 +138,80 @@ pub(crate) fn prepare_runner_terminal_from_bundle(
     })
 }
 
+/// Terminal-state-indexed source observation obligation. These states are
+/// mutually exclusive; a pair of booleans admitted contradictory requests.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum SourceObservationRequirement {
+    Unconstrained,
+    MustMatch,
+    MustDiffer,
+}
+
+impl SourceObservationRequirement {
+    pub(crate) fn for_terminal(state: AttemptState, reason: &str) -> Self {
+        if state == AttemptState::Succeeded {
+            Self::MustMatch
+        } else if reason == "WORKSPACE_SOURCE_PRECONDITION_DRIFT" {
+            Self::MustDiffer
+        } else {
+            Self::Unconstrained
+        }
+    }
+}
+
+fn validate_source_observation_relation(
+    observed: Option<&str>,
+    matches: Option<bool>,
+    observation_error: Option<&str>,
+    committed: &str,
+    requirement: SourceObservationRequirement,
+) -> RuntimeResult<()> {
+    let valid_digest = |value: &str| {
+        value
+            .strip_prefix("sha256:")
+            .is_some_and(|hex| hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit()))
+    };
+    match (observed, matches, observation_error) {
+        (Some(observed), Some(matches), None)
+            if valid_digest(observed) && matches == (observed == committed) =>
+        {
+            if requirement == SourceObservationRequirement::MustDiffer && matches {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::ArtifactIdentityConflict,
+                    "Workspace source drift result carried a matching source observation",
+                    Some("workspaceSourceObservation"),
+                    false,
+                ));
+            }
+            if requirement == SourceObservationRequirement::MustMatch && !matches {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::ArtifactIdentityConflict,
+                    "Successful process carried a mismatching Workspace source observation",
+                    Some("workspaceSourceObservation"),
+                    false,
+                ));
+            }
+        }
+        (None, None, Some(error_code))
+            if !error_code.is_empty()
+                && requirement == SourceObservationRequirement::Unconstrained => {}
+        _ => {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ArtifactIdentityConflict,
+                "Workspace source observation digest/error relation is invalid",
+                Some("workspaceSourceObservation"),
+                false,
+            ));
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn validate_workspace_source_observation_artifact(
     current: &AttemptRecord,
     committed_workspace_source_digest: Option<&str>,
     require_if_committed: bool,
-    require_mismatch: bool,
+    requirement: SourceObservationRequirement,
 ) -> RuntimeResult<Option<ArtifactRegistration>> {
     let path = Path::new(&current.bundle_path).join(WORKSPACE_SOURCE_OBSERVATION_FILE);
     if !require_if_committed && !path.exists() {
@@ -245,33 +314,13 @@ pub(crate) fn validate_workspace_source_observation_artifact(
             false,
         ));
     }
-    match (
+    validate_source_observation_relation(
         evidence.observed_workspace_source_digest.as_deref(),
         evidence.matches_commitment,
         evidence.observation_error_code.as_deref(),
-    ) {
-        (Some(observed), Some(matches), None)
-            if valid_digest(observed) && matches == (observed == committed) =>
-        {
-            if require_mismatch && matches {
-                return Err(RuntimeError::new(
-                    RuntimeErrorCode::ArtifactIdentityConflict,
-                    "Workspace source drift result carried a matching source observation",
-                    Some("workspaceSourceObservation"),
-                    false,
-                ));
-            }
-        }
-        (None, None, Some(error_code)) if !error_code.is_empty() && !require_mismatch => {}
-        _ => {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::ArtifactIdentityConflict,
-                "Workspace source observation digest/error relation is invalid",
-                Some("workspaceSourceObservation"),
-                false,
-            ));
-        }
-    }
+        committed,
+        requirement,
+    )?;
     Ok(Some(ArtifactRegistration {
         artifact_id: format!("{}.workspace-source-observation", current.attempt_id),
         kind: "workspace_source_observation".to_string(),
@@ -380,4 +429,106 @@ fn io_error(context: &str, error: std::io::Error) -> RuntimeError {
         None,
         false,
     )
+}
+
+#[cfg(test)]
+mod source_observation_semantic_tests {
+    use super::{validate_source_observation_relation, SourceObservationRequirement};
+    use crate::runtime::AttemptState;
+
+    const COMMITTED: &str =
+        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const DIFFERENT: &str =
+        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+    #[test]
+    fn successful_state_requires_match_even_with_new_terminal_reason() {
+        assert_eq!(
+            SourceObservationRequirement::for_terminal(
+                AttemptState::Succeeded,
+                "FUTURE_SUCCESS_REASON"
+            ),
+            SourceObservationRequirement::MustMatch
+        );
+        assert_eq!(
+            SourceObservationRequirement::for_terminal(
+                AttemptState::Succeeded,
+                "PROCESS_COMPLETED_BEFORE_STOP_EFFECTIVE"
+            ),
+            SourceObservationRequirement::MustMatch
+        );
+        assert_eq!(
+            SourceObservationRequirement::for_terminal(
+                AttemptState::Failed,
+                "WORKSPACE_SOURCE_PRECONDITION_DRIFT"
+            ),
+            SourceObservationRequirement::MustDiffer
+        );
+        assert_eq!(
+            SourceObservationRequirement::for_terminal(AttemptState::TimedOut, "DEADLINE_EXCEEDED"),
+            SourceObservationRequirement::Unconstrained
+        );
+    }
+
+    #[test]
+    fn successful_process_must_not_carry_drifted_source_observation() {
+        assert!(
+            validate_source_observation_relation(
+                Some(DIFFERENT),
+                Some(false),
+                None,
+                COMMITTED,
+                SourceObservationRequirement::MustMatch,
+            )
+            .is_err(),
+            "a successful execution must not preserve a source-drift observation"
+        );
+    }
+
+    #[test]
+    fn successful_process_must_not_carry_unresolved_source_observation() {
+        assert!(
+            validate_source_observation_relation(
+                None,
+                None,
+                Some("UNKNOWN_SOURCE_OBSERVATION"),
+                COMMITTED,
+                SourceObservationRequirement::MustMatch,
+            )
+            .is_err(),
+            "missing source observation cannot attest a successful process"
+        );
+    }
+
+    #[test]
+    fn successful_process_accepts_committed_source_observation() {
+        assert!(validate_source_observation_relation(
+            Some(COMMITTED),
+            Some(true),
+            None,
+            COMMITTED,
+            SourceObservationRequirement::MustMatch,
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn source_precondition_drift_still_requires_a_real_mismatch() {
+        assert!(validate_source_observation_relation(
+            Some(DIFFERENT),
+            Some(false),
+            None,
+            COMMITTED,
+            SourceObservationRequirement::MustDiffer,
+        )
+        .is_ok());
+        assert!(validate_source_observation_relation(
+            Some(COMMITTED),
+            Some(true),
+            None,
+            COMMITTED,
+            SourceObservationRequirement::MustDiffer,
+        )
+        .is_err());
+    }
 }
