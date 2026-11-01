@@ -213,19 +213,31 @@ def validate_queue_task_selection(
                 callable_task = False
             if not callable_task:
                 raise ValueError(f"selected queue task has no root mise runner: {name}")
-        # A nonempty TOML value cannot prove the actual runner can parse a
-        # command or resolve its task dependencies. Reuse the already installed
-        # native mise validator instead of reimplementing its task language.
-        # Validation does not execute the task or establish its effects.
+        # Delegate task-language semantics to Mise. Its empty-script warning
+        # can have exit code 0, yet a selected CI verification task is then
+        # not runnable. Consume native structured diagnostics, not a second
+        # hand-written TOML task parser. No task execution is inferred here.
         try:
             native = subprocess.run(
-                ["mise", "--cd", str(ROOT_TASKS_PATH.parent), "tasks", "validate"],
+                ["mise", "--cd", str(ROOT_TASKS_PATH.parent),
+                 "tasks", "validate", "--json"],
                 capture_output=True, text=True, timeout=30, check=False,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise ValueError("selected queue tasks require native mise task validation") from exc
         if native.returncode != 0:
             raise ValueError("selected queue tasks fail native mise task validation")
+        try:
+            diagnostic = json.loads(native.stdout)
+        except json.JSONDecodeError as exc:
+            raise ValueError("selected queue tasks require structured native mise validation") from exc
+        if not isinstance(diagnostic, dict) or not isinstance(diagnostic.get("issues"), list):
+            raise ValueError("selected queue tasks require structured native mise validation")
+        for issue in diagnostic["issues"]:
+            if not isinstance(issue, dict) or not isinstance(issue.get("task"), str) or not isinstance(issue.get("category"), str):
+                raise ValueError("selected queue tasks have malformed native mise diagnostics")
+            if issue["task"] in requested_tasks and issue["category"] == "empty-script":
+                raise ValueError("selected queue task has native mise empty-script warning")
 
 
 def build_plan(

@@ -1118,6 +1118,60 @@ class ConvergencePlanTests(unittest.TestCase):
                                 [], ["formal:verify"], changed,
                             )
 
+    def test_selected_queue_native_empty_script_warning_is_not_runnable(self) -> None:
+        """Mise exits zero for empty-script warnings: CI cannot treat that as a runner."""
+        import json
+        import unittest.mock
+
+        changed = ["tools/formal/Proof.qnt"]
+        with tempfile.TemporaryDirectory(prefix="ordivon-mise-empty-script-") as temp:
+            manifest = Path(temp) / "mise.toml"
+            manifest.write_text(
+                '[tasks."formal:verify"]\nrun = ["   "]\n',
+                encoding="utf-8",
+            )
+            native = subprocess.run(
+                ["mise", "--cd", str(manifest.parent), "tasks", "validate", "--json"],
+                capture_output=True, text=True, timeout=20,
+            )
+            self.assertEqual(native.returncode, 0)
+            issues = json.loads(native.stdout)["issues"]
+            self.assertTrue(any(
+                issue["task"] == "formal:verify"
+                and issue["category"] == "empty-script"
+                for issue in issues
+            ))
+            with unittest.mock.patch.object(MODULE, "ROOT_TASKS_PATH", manifest):
+                with self.assertRaisesRegex(ValueError, "empty-script"):
+                    MODULE.validate_queue_task_selection(
+                        [], ["formal:verify"], changed
+                    )
+
+    def test_selected_queue_preserves_native_mise_task_object_forms(self) -> None:
+        """Do not replace the real Mise type system with a string-only validator."""
+        import unittest.mock
+
+        changed = ["tools/formal/Proof.qnt"]
+        admitted = (
+            'run = [{task = "helper"}]',
+            'run = [{tasks = ["helper"]}]',
+            'depends = [["helper", "--flag"]]',
+            'depends = [{task = "helper", args = ["--flag"], optional = true}]',
+        )
+        with tempfile.TemporaryDirectory(prefix="ordivon-mise-native-types-") as temp:
+            manifest = Path(temp) / "mise.toml"
+            for task in admitted:
+                with self.subTest(task=task):
+                    manifest.write_text(
+                        '[tasks.helper]\nrun = "echo helper"\n'
+                        '[tasks."formal:verify"]\n' + task + '\n',
+                        encoding="utf-8",
+                    )
+                    with unittest.mock.patch.object(MODULE, "ROOT_TASKS_PATH", manifest):
+                        MODULE.validate_queue_task_selection(
+                            [], ["formal:verify"], changed
+                        )
+
     def test_github_queue_uses_same_strict_formal_source_task_validation(self) -> None:
         workflow = (MODULE_PATH.parents[2] / ".github/workflows/ci.yml").read_text()
         self.assertIn("convergence_plan.validate_queue_task_selection(", workflow)
