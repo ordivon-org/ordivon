@@ -204,45 +204,68 @@ def program_observe(*, include_text: bool, max_chars: int) -> str:
         + "try:\n    wait_for_load(timeout=10.0)\nexcept Exception:\n    pass\n"
         + text_expr
         + "rows=_ordivon_affordances()\n"
-        'safe=[{"index":i,"role":r["role"],"name":r["name"],"x":r["x"],"y":r["y"]} for i,r in enumerate(rows)]\n'
+        'safe=[{"index":i,"role":r["role"],"name":r["name"],"backendDOMNodeId":r["backendDOMNodeId"],"x":r["x"],"y":r["y"]} for i,r in enumerate(rows)]\n'
         'print(json.dumps({"standing":"OBSERVED","page":page_info(),"affordances":safe,"visibleText":body},sort_keys=True,ensure_ascii=False))\n'
     )
 
 
 def _target_program(
-    index: int, expect_role: str, expect_name: str, action_code: str, standing: str
+    index: int,
+    expect_role: str,
+    expect_name: str,
+    expect_backend_node_id: int,
+    action_code: str,
+    standing: str,
 ) -> str:
-    if index < 0 or index >= MAX_OBSERVE_ELEMENTS:
-        raise ValueError(f"index must be between 0 and {MAX_OBSERVE_ELEMENTS - 1}")
+    """Refuse a stale indexed target even when a replacement has the same role/name.
+
+    Browser-owned backendDOMNodeId is an ephemeral DOM identity, not an
+    authorization, navigation/semantic-context witness or actionability proof.
+    """
+    if type(index) is not int or index < 0 or index >= MAX_OBSERVE_ELEMENTS:
+        raise ValueError(f"index must be an integer between 0 and {MAX_OBSERVE_ELEMENTS - 1}")
     if expect_role not in ACTION_ROLES:
         raise ValueError("expect-role is not an actionable role")
     expect_name = _validate_text(expect_name, "expect-name")
+    if type(expect_backend_node_id) is not int or expect_backend_node_id < 1:
+        raise ValueError("expect-backend-node-id must be a positive integer")
     return (
         "import json\n" + _affordance_prelude() + f"rows=_ordivon_affordances()\nidx={index}\n"
         'assert idx < len(rows), {"error":"affordance-index-out-of-range","count":len(rows)}\n'
         "row=rows[idx]\n"
         f"assert row['role']=={json.dumps(expect_role)} and row['name']=={json.dumps(expect_name)}, "
         "{'error':'affordance-changed','observed':{'role':row['role'],'name':row['name']}}\n"
+        f"assert row['backendDOMNodeId']=={expect_backend_node_id}, "
+        "{'error':'affordance-identity-changed','observed':row['backendDOMNodeId']}\n"
         "assert row['x'] is not None and row['y'] is not None, {'error':'affordance-has-no-box'}\n"
         + action_code
-        + f'print(json.dumps({{"standing":{json.dumps(standing)},"target":{{"index":idx,"role":row["role"],"name":row["name"]}},"pageAfter":_ordivon_page_info()}},sort_keys=True,ensure_ascii=False))\n'
+        + f'print(json.dumps({{"standing":{json.dumps(standing)},"target":{{"index":idx,"role":row["role"],"name":row["name"],"backendDOMNodeId":row["backendDOMNodeId"]}},"pageAfter":_ordivon_page_info()}},sort_keys=True,ensure_ascii=False))\n'
     )
 
 
-def program_click(index: int, expect_role: str, expect_name: str) -> str:
+def program_click(
+    index: int, expect_role: str, expect_name: str, expect_backend_node_id: int
+) -> str:
     return _target_program(
-        index, expect_role, expect_name, 'click_at_xy(row["x"],row["y"])\nwait(0.25)\n', "CLICKED"
+        index,
+        expect_role,
+        expect_name,
+        expect_backend_node_id,
+        'click_at_xy(row["x"],row["y"])\nwait(0.25)\n',
+        "CLICKED",
     )
 
 
-def program_input(index: int, expect_role: str, expect_name: str, text: str) -> str:
+def program_input(
+    index: int, expect_role: str, expect_name: str, text: str, expect_backend_node_id: int
+) -> str:
     text = _validate_text(text, "text")
     code = (
         'click_at_xy(row["x"],row["y"])\n'
         'press_key("a",modifiers=2)\npress_key("Backspace")\n'
         f"type_text({json.dumps(text)})\nwait(0.25)\n"
     )
-    return _target_program(index, expect_role, expect_name, code, "INPUT")
+    return _target_program(index, expect_role, expect_name, expect_backend_node_id, code, "INPUT")
 
 
 def program_scroll(dy: int) -> str:
@@ -327,10 +350,12 @@ def parser() -> argparse.ArgumentParser:
     click.add_argument("--index", type=int, required=True)
     click.add_argument("--expect-role", required=True)
     click.add_argument("--expect-name", required=True)
+    click.add_argument("--expect-backend-node-id", type=int, required=True)
     inp = sub.add_parser("input")
     inp.add_argument("--index", type=int, required=True)
     inp.add_argument("--expect-role", required=True)
     inp.add_argument("--expect-name", required=True)
+    inp.add_argument("--expect-backend-node-id", type=int, required=True)
     inp.add_argument("--text", required=True)
     scr = sub.add_parser("scroll")
     scr.add_argument("--dy", type=int, required=True)
@@ -357,8 +382,12 @@ def main() -> int:
     programs = {
         "open": lambda: program_open(a.url),
         "observe": lambda: program_observe(include_text=a.include_text, max_chars=a.max_chars),
-        "click": lambda: program_click(a.index, a.expect_role, a.expect_name),
-        "input": lambda: program_input(a.index, a.expect_role, a.expect_name, a.text),
+        "click": lambda: program_click(
+            a.index, a.expect_role, a.expect_name, a.expect_backend_node_id
+        ),
+        "input": lambda: program_input(
+            a.index, a.expect_role, a.expect_name, a.text, a.expect_backend_node_id
+        ),
         "scroll": lambda: program_scroll(a.dy),
         "back": program_back,
         "tabs": program_tabs,

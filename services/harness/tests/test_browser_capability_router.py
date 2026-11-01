@@ -70,7 +70,6 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         self.assertEqual(value["selectedRoute"]["executor"], "cft_human_session")
         self.assertEqual(value["selectedRoute"]["substrate"], "systemd_cft")
 
-
     def test_visual_requirement_holds_when_visual_provider_is_not_materialized(self):
         value = R.plan_route(
             self.req(requiredFeatures=["visual-understanding"]),
@@ -224,9 +223,7 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         ):
             value = R._probe_jev(route, {"text-entry"})
         self.assertFalse(value["ready"])
-        self.assertEqual(
-            value["missingEnvironment"], ["TEXT_MODEL_API_KEY", "TYPESAFE_API_KEY"]
-        )
+        self.assertEqual(value["missingEnvironment"], ["TEXT_MODEL_API_KEY", "TYPESAFE_API_KEY"])
         self.assertNotIn("secret", json.dumps(value).lower())
 
     def test_jev_probe_accepts_workstation_dpapi_bindings_without_ambient_secrets(self):
@@ -282,7 +279,6 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         self.assertIn("global_capability_registry", text)
         self.assertNotIn("HarnessProviderUsePolicy", text)
 
-
     def test_cold_browser_use_endpoint_is_ready_on_demand_without_starting_it(self):
         route = {
             "readiness": {
@@ -297,7 +293,9 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
             activation_unit = "ordivon-browser-agent.target"
 
             def health(self):
-                raise AssertionError("cold activatable route must not health-probe inactive carrier")
+                raise AssertionError(
+                    "cold activatable route must not health-probe inactive carrier"
+                )
 
         class Pool:
             endpoints = (Endpoint(),)
@@ -313,11 +311,15 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
 
         def run(args, **_kwargs):
             if args[:2] == ["/usr/bin/systemctl", "is-enabled"]:
-                return __import__("subprocess").CompletedProcess(args, 0, stdout="generated\n", stderr="")
+                return __import__("subprocess").CompletedProcess(
+                    args, 0, stdout="generated\n", stderr=""
+                )
             if args[:3] == ["/usr/bin/systemctl", "is-active", "--quiet"]:
                 return __import__("subprocess").CompletedProcess(args, 3, stdout="", stderr="")
             if args[:4] == ["/usr/bin/systemctl", "show", "-p", "LoadState"]:
-                return __import__("subprocess").CompletedProcess(args, 0, stdout="loaded\n", stderr="")
+                return __import__("subprocess").CompletedProcess(
+                    args, 0, stdout="loaded\n", stderr=""
+                )
             raise AssertionError(args)
 
         with (
@@ -336,6 +338,7 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         self.assertEqual(value["activatableEndpointIds"], ["browser-agent-22"])
         self.assertEqual(value["healthyEndpointIds"], [])
 
+
 class BrowserUseBindingTests(unittest.TestCase):
     def test_renderer_accepts_resolved_browser_use_executable(self):
         import browserless_podman_deploy as deploy
@@ -351,9 +354,7 @@ class BrowserUseBindingTests(unittest.TestCase):
         value = deploy.render_browser_use_config(
             binding, browser_use_executable="/opt/browser-use/bin/browser-use"
         )
-        self.assertEqual(
-            value["browserUseExecutable"], "/opt/browser-use/bin/browser-use"
-        )
+        self.assertEqual(value["browserUseExecutable"], "/opt/browser-use/bin/browser-use")
 
     def test_resolver_falls_back_to_uv_tool_environment(self):
         import browserless_podman_deploy as deploy
@@ -405,9 +406,7 @@ class BrowserUsePolicyReadinessTests(unittest.TestCase):
             "browserUseExecutable": "/bin/true",
             "browserSubstrate": {"kind": "browserless", "endpoints": []},
         }
-        completed = __import__("subprocess").CompletedProcess(
-            [], 1, stdout="masked\n", stderr=""
-        )
+        completed = __import__("subprocess").CompletedProcess([], 1, stdout="masked\n", stderr="")
         with (
             mock.patch.object(R.Path, "is_file", return_value=True),
             mock.patch.object(R, "_read_json", return_value=fake_config),
@@ -421,3 +420,38 @@ class BrowserUsePolicyReadinessTests(unittest.TestCase):
         self.assertEqual(value["standing"], "POLICY_DISABLED")
         self.assertFalse(value["ready"])
         self.assertEqual(value["policyDisabledEndpointIds"], ["browser-agent-21"])
+
+    def test_missing_optional_browser_executor_does_not_crash_router_doctor(self):
+        """One unavailable provider should be a typed HOLD, not crash other routes."""
+        policy = R.load_policy(ROOT / "config/browser-capability-routes.json")
+        selected = next(
+            r for r in policy["routes"] if r["routeId"] == "chatgpt-agent-automation-browserless-v1"
+        )
+        policy["routes"] = [selected]
+        real_import = __import__
+
+        def deny_optional(name, *args, **kwargs):
+            if name in ("agent_automation_browserless", "scripts.agent_automation_browserless"):
+                raise ModuleNotFoundError(name)
+            return real_import(name, *args, **kwargs)
+
+        with mock.patch("builtins.__import__", side_effect=deny_optional):
+            verdict = R.doctor(policy=policy)
+        self.assertFalse(verdict["healthy"])
+        self.assertEqual(verdict["readyRouteIds"], [])
+        self.assertEqual(verdict["routes"][0]["readiness"]["standing"], "ADAPTER_UNAVAILABLE")
+
+    def test_missing_browserless_bridge_does_not_admit_browser_use(self):
+        policy = R.load_policy(ROOT / "config/browser-capability-routes.json")
+        route = next(r for r in policy["routes"] if r["routeId"] == "browser-use-browserless-v1")
+        real_import = __import__
+
+        def deny_optional(name, *args, **kwargs):
+            if name in ("browserless_substrate", "scripts.browserless_substrate"):
+                raise ModuleNotFoundError(name)
+            return real_import(name, *args, **kwargs)
+
+        with mock.patch("builtins.__import__", side_effect=deny_optional):
+            verdict = R.probe_route(route, set())
+        self.assertFalse(verdict["ready"])
+        self.assertEqual(verdict["standing"], "ADAPTER_UNAVAILABLE")
