@@ -94,6 +94,10 @@ def fixture(root: Path) -> dict[str, Path]:
     install = root / "install"
     install.mkdir()
     executable(install / "runtime", "runtime\n")
+    proc_root = root / "proc"
+    fake_process = proc_root / "123"
+    fake_process.mkdir(parents=True)
+    (fake_process / "exe").symlink_to(install / "runtime")
     deployment_root = root / "deployments"
     previous_deployment = deployment_root / "deploy-0"
     previous_deployment.mkdir(parents=True)
@@ -210,6 +214,7 @@ def fixture(root: Path) -> dict[str, Path]:
         "deployments": deployments.parent,
         "candidates": candidates,
         "install": install,
+        "proc": proc_root,
         "env": env_file,
         "systemctl": systemctl,
     }
@@ -233,6 +238,8 @@ def raw_command(paths: dict[str, Path], *extra: str) -> list[str]:
         str(paths["env"]),
         "--systemctl",
         str(paths["systemctl"]),
+        "--proc-root",
+        str(paths["proc"]),
         *extra,
     ]
 
@@ -544,6 +551,62 @@ class RuntimeStatusTests(unittest.TestCase):
             )
             dashboard_report = json.loads(dashboard.stdout)
             self.assertNotEqual(dashboard_report["dashboard"]["jobs"].get("available"), False)
+
+    def test_live_service_image_receipt_match_is_observed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            result = subprocess.run(
+                raw_command(paths, "--health", "--json"),
+                cwd=REPO, check=True, text=True, capture_output=True,
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(report["service"]["processImage"]["verified"])
+            self.assertEqual(
+                report["service"]["processImage"]["observedDigest"],
+                digest(paths["install"] / "runtime"),
+            )
+
+    def test_live_service_image_unavailable_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            (paths["proc"] / "123" / "exe").unlink()
+            result = subprocess.run(
+                raw_command(paths, "--health", "--json"),
+                cwd=REPO, check=False, text=True, capture_output=True,
+            )
+            self.assertEqual(result.returncode, 1, result.stdout)
+            report = json.loads(result.stdout)
+            self.assertIn("SERVICE_PROCESS_IMAGE_UNAVAILABLE", report["health"]["reasons"])
+            self.assertFalse(report["service"]["processImage"]["verified"])
+
+    def test_live_service_image_mismatch_is_not_healthy_when_receipt_and_disk_match(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            live = subprocess.Popen(
+                ["/usr/bin/sleep", "30"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+            try:
+                executable(
+                    paths["systemctl"],
+                    "#!/usr/bin/env python3\n"
+                    "print('ActiveState=active')\n"
+                    "print('SubState=running')\n"
+                    f"print('MainPID={live.pid}')\n"
+                    "print('ExecMainStartTimestamp=now')\n"
+                    "print('NRestarts=0')\n",
+                )
+                observed = subprocess.run(
+                    raw_command(paths, "--health", "--json", "--proc-root", "/proc"),
+                    cwd=REPO, check=False, text=True, capture_output=True,
+                )
+                self.assertEqual(observed.returncode, 1, observed.stdout)
+                self.assertIn(
+                    "SERVICE_PROCESS_IMAGE_MISMATCH",
+                    json.loads(observed.stdout)["health"]["reasons"],
+                )
+            finally:
+                live.terminate()
+                live.wait(timeout=5)
 
     def test_mismatched_binary_and_expected_commit_require_action(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

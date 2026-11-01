@@ -26,6 +26,7 @@ DEFAULT_INSTALL_DIR = Path("/usr/local/libexec/ordivon")
 DEFAULT_ENV_FILE = Path("/etc/ordivon/ordivon-runtime.env")
 DEFAULT_SERVICE = "ordivon-runtime.service"
 DEFAULT_SYSTEMCTL = Path("/usr/bin/systemctl")
+DEFAULT_PROC_ROOT = Path("/proc")
 MAX_WORKSPACE_SCAN = 256
 MAX_PROTOCOL_TRACE_BYTES = 8 * 1024 * 1024
 DEFAULT_PROTOCOL_RETENTION_HOURS = 168
@@ -90,6 +91,8 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--stale-dirty-hours", type=int, default=DEFAULT_STALE_DIRTY_HOURS)
     result.add_argument("--service", default=DEFAULT_SERVICE)
     result.add_argument("--systemctl", type=absolute_path, default=DEFAULT_SYSTEMCTL)
+    result.add_argument("--proc-root", type=absolute_path, default=DEFAULT_PROC_ROOT,
+                        help="process filesystem for checking the actual service MainPID image")
     result.add_argument("--expected-commit", type=exact_commit)
     result.add_argument("--max-workspaces", type=int, default=MAX_WORKSPACE_SCAN)
     result.add_argument(
@@ -559,6 +562,54 @@ def service_status(systemctl: Path, service: str, reasons: list[str]) -> dict[st
         "mainPid": main_pid,
         "startedAt": values.get("ExecMainStartTimestamp") or None,
         "restarts": restarts,
+    }
+
+
+def service_process_image_status(
+    service: dict[str, Any],
+    deployment: dict[str, Any],
+    proc_root: Path,
+    reasons: list[str],
+) -> dict[str, Any]:
+    """Compare the running MainPID image against the deployed artifact receipt.
+
+    Disk/receipt equality alone cannot establish what the daemon is executing.
+    This is a bounded point-in-time witness, not an atomic deployment proof.
+    """
+    if service.get("activeState") != "active" or service.get("subState") != "running":
+        return {"verified": False, "reason": "service_not_running"}
+    pid = service.get("mainPid")
+    if not isinstance(pid, int) or pid <= 0:
+        reasons.append("SERVICE_PROCESS_IMAGE_UNAVAILABLE")
+        return {"verified": False, "reason": "pid_unavailable"}
+    artifacts = deployment.get("artifacts")
+    if not isinstance(artifacts, list):
+        artifacts = []
+    # Current native release is ordivon-runtime; older binary-only receipts
+    # recorded the single service image as runtime.
+    expected = next(
+        (entry for entry in artifacts if entry.get("name") == "ordivon-runtime"),
+        None,
+    )
+    if expected is None:
+        expected = next((entry for entry in artifacts if entry.get("name") == "runtime"), None)
+    if expected is None or not isinstance(expected.get("expectedDigest"), str):
+        reasons.append("SERVICE_PROCESS_IMAGE_UNBOUND")
+        return {"verified": False, "reason": "receipt_image_unbound"}
+    try:
+        observed = sha256(proc_root / str(pid) / "exe")
+    except OSError:
+        reasons.append("SERVICE_PROCESS_IMAGE_UNAVAILABLE")
+        return {"verified": False, "reason": "image_unreadable"}
+    reference = expected["expectedDigest"]
+    matches = observed == reference
+    if not matches:
+        reasons.append("SERVICE_PROCESS_IMAGE_MISMATCH")
+    return {
+        "verified": matches,
+        "expectedDigest": reference,
+        "observedDigest": observed,
+        "matchesReceipt": matches,
     }
 
 
@@ -1408,6 +1459,7 @@ def build_status(args: argparse.Namespace) -> dict[str, Any]:
         health_reasons,
     )
     service = service_status(args.systemctl, args.service, health_reasons)
+    service["processImage"] = service_process_image_status(service, deployment, args.proc_root, health_reasons)
     config = whitelisted_config(args.env_file, health_reasons)
     registry, held = registry_status(args.database, health_reasons)
 
