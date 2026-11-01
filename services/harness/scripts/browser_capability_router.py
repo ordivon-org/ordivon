@@ -154,7 +154,7 @@ def _probe_jev(route: Mapping[str, Any], required: set[str]) -> dict[str, Any]:
             "missingEnvironment": [],
         }
     rc, status, stderr = _subprocess_json([command, "status"], timeout=20)
-    physical = bool(status and status.get("healthy") is True)
+    physical = bool(rc == 0 and status and status.get("healthy") is True)
     consumer_credentials = (status or {}).get("consumerCredentials", {})
     available_credentials = {
         "TYPESAFE_API_KEY": bool(
