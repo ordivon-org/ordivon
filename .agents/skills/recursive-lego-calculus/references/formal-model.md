@@ -404,6 +404,21 @@ concurrency, effect interleavings, reactive realizability, an installed
 component, or hidden-port refinement. Each still needs its own qualified
 bridge and current SourceCut. Inspect their existing #print axioms reports.
 
+**Critical representation boundary (kernel checked):** B is the WHOLE
+BEHAVIOR in this tensor encoding, while the existing Implements predicate
+treats its input coordinate as an environment-provided INPUT.
+The theorem tensor_io_implementation_iff_universal_saturation proves that
+the tensor, when incorrectly fed into that I/O-totality predicate, admits
+an implementation only if EVERY behavior in B satisfies its saturated
+conjunction. The finite theorem
+algebraic_tensor_does_not_imply_io_implementation shows a well-defined
+algebraic tensor with no such I/O-total implementation. This is a
+PROJECTION MISMATCH, not a proof that standard saturated contracts are
+intrinsically unrealizable. Do not promote tensor_refinement_monotone into
+CODE_REFINED, INSTALLED_CURRENT, or DOMAIN_ACCEPTED. A concrete
+input/output/trace simulation bridge needs its own behavior, effect,
+consumer and installed-currentness evidence.
+
 For **protocol interaction**, an interface-automata profile may express
 input/output/internal actions and use alternating simulation for refinement.
 Its original optimistic compatibility means that a suitable environment
