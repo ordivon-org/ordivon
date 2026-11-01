@@ -33,6 +33,24 @@ class AffectedOwnersTests(unittest.TestCase):
             ["skills"],
         )
 
+    def test_project_agent_skill_changes_select_existing_skills_consumer(self) -> None:
+        # Real Skills test reads this canonical project Skill, not just platform/skills source.
+        source = ".agents/skills/recursive-lego-calculus/SKILL.md"
+        self.assertEqual(self.names(source), ["skills"])
+        self.assertEqual(self.queue_tasks(source), ["skills:verify"])
+        self.assertEqual(
+            self.names(".agents/skills/recursive-lego-calculus/references/formal-model.md"),
+            ["skills"],
+        )
+        self.assertEqual(self.names("docs/agent-skills-example.md"), [])
+
+    def test_runtime_release_workflow_selects_actual_runtime_verifier(self) -> None:
+        # Tagged release workflow builds Runtime binary, SBOM and attestations.
+        source = ".github/workflows/runtime-release.yml"
+        self.assertEqual(self.names(source), ["runtime"])
+        self.assertEqual(self.queue_tasks(source), ["runtime:verify"])
+        self.assertEqual(self.names(".github/workflows/release-notes-example.yml"), [])
+
     def test_multiple_existing_owner_changes_preserve_relative_order(self) -> None:
         self.assertEqual(
             self.names(
@@ -62,6 +80,16 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertEqual(
             self.queue_tasks("tools/formal/RecursiveLegoRefinement.lean"), []
         )
+
+    def test_harness_timeout_proof_input_selects_existing_formal_task(self) -> None:
+        # The native Formal source readset consumes this exact Harness adapter.
+        # A Harness-only change must invalidate the proof task as well.
+        source = "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        self.assertEqual(self.names(source), ["harness"])
+        self.assertTrue(MODULE.requires_core_formal_verification((source,)))
+        self.assertFalse(MODULE.requires_core_formal_verification((
+            "services/harness/README.md",
+        )))
 
     def test_next_queue_verification_defaults_to_full_verify(self) -> None:
         self.assertEqual(self.tasks("meta/next/README.md"), ["next:verify"])
@@ -267,6 +295,58 @@ class AffectedOwnersTests(unittest.TestCase):
                 set(paths),
                 {"services/runtime/src/example.txt", "services/gateway/src/example.txt"},
             )
+
+    def test_exact_git_sourcecut_ignores_foreign_repository_environment(self) -> None:
+        # CI and agents may inherit GIT_DIR from a separate git-worktree or
+        # GIT_OBJECT_DIRECTORY from an alternate repository. Verify actual
+        # source/consumer selection for the cwd repository, not the ambient one.
+        import os
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-owner-git-env-") as tmp:
+            root = Path(tmp)
+            local = root / "actual"
+            foreign = root / "foreign"
+            for repo in (local, foreign):
+                repo.mkdir()
+                subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+                subprocess.run(["git", "-C", str(repo), "config",
+                                "user.email", "test@example.invalid"], check=True)
+                subprocess.run(["git", "-C", str(repo), "config",
+                                "user.name", "Owner Git testcase"], check=True)
+                (repo / "file.txt").write_text("initial\n", encoding="utf-8")
+                subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+                subprocess.run(["git", "-C", str(repo), "commit", "-qm", "base"], check=True)
+
+            def git(repo: Path, *args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True,
+                ).strip()
+
+            before = git(local, "rev-parse", "HEAD")
+            target = local / "services" / "runtime" / "src" / "consumer.py"
+            target.parent.mkdir(parents=True)
+            target.write_text("ENABLED = True\n", encoding="utf-8")
+            git(local, "add", ".")
+            git(local, "commit", "-qm", "introduce runtime consumer")
+            after = git(local, "rev-parse", "HEAD")
+            expected = ("services/runtime/src/consumer.py",)
+            previous = Path.cwd()
+            try:
+                os.chdir(local)
+                self.assertEqual(MODULE.changed_paths(before, after), expected)
+                for env in (
+                    {"GIT_DIR": str(foreign / ".git")},
+                    {"GIT_OBJECT_DIRECTORY": str(foreign / ".git" / "objects")},
+                    {"GIT_ALTERNATE_OBJECT_DIRECTORIES": str(foreign / ".git" / "objects")},
+                ):
+                    with self.subTest(env=tuple(env)):
+                        with patch.dict(os.environ, env):
+                            self.assertEqual(
+                                MODULE.changed_paths(before, after), expected
+                            )
+            finally:
+                os.chdir(previous)
 
     def test_unknown_top_level_path_is_not_silently_attributed(self) -> None:
         self.assertEqual(self.names("README.md"), [])

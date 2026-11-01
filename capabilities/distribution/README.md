@@ -1,143 +1,61 @@
-# Ordivon Distribution v2
+# Ordivon Distribution
 
-Distribution is an **optional effect-safety and delivery profile**, not a mandatory Ordivon control plane.
+Distribution retains optional external-effect safety guidance, historical provider
+observations and a source fixture consumed by Workstation's n8n acceptance.
+It does not run an admission service or a generic distribution control plane.
 
-Its purpose is to preserve a small set of cross-provider safety lessons when a task actually needs them:
+## Current consumer boundary
 
-1. model/caller intent is not execution authority;
-2. one consequential external effect should be bound to the exact payload/account/effect occurrence that was authorized;
-3. local transport/workflow success is not provider acceptance;
-4. ambiguous external outcomes must be reconciled by the provider/effect owner before unsafe retry.
+Workstation's `accept-n8n-distribution-adapter-smoke.sh` reads
+`evidence/r7-artifact-development-publication-intent.json` as a negative Artifact
+input. Its invocation code extracts intent/effect fields and constructs a
+synthetic CloudEvents 1.0 decision. The n8n workflow checks the blocked branch and
+a separate GitHub GET-only readback branch.
 
-These are composition laws. They do not imply one mandatory Distribution runtime stack.
+That consumer does not invoke Distribution approval, authority, admission or
+reconciliation code. Its acceptance proves event branching and readback
+reachability, not provider-write admission or publication.
 
-## Current architecture
+## Direct provider composition
 
-The default route is the thinnest adequate natural owner:
+A real delivery task should use the destination's native API, CLI or connector,
+its IAM/OAuth and exact provider readback. Runtime supplies local physical
+execution truth only when required; workflow and integration providers are
+selected for the task.
 
-```text
-task/domain
-  -> provider-native API / client / CLI / connector
-  -> provider IAM / OAuth / policy
-  -> provider-native effect identity/read-back
-  -> claim-specific verification
-```
+Retain these effect-safety rules at the actual consumer:
+- bind an authorized effect to its exact provider, account, payload and occurrence;
+- credentials alone do not establish permission for an intended write;
+- local transport/workflow success does not establish provider acceptance;
+- reconcile ambiguous outcomes before retry unless provider idempotency or
+  authoritative absence makes retry safe.
 
-Use a Distribution-owned reference contract or reconciliation helper only when a concrete cross-provider workload demonstrates that direct provider semantics leave a real gap.
+Postiz, rclone and OpenAPI Generator remain optional external-tool observation
+profiles. Their probes do not establish current production availability or
+authorize provider writes.
 
-In particular, there is **no canonical path** requiring:
+## Retired implementations
 
-```text
-Runtime input.ingest
--> Distribution EffectAuthority
--> OPA
--> Temporal
--> n8n
--> provider
-```
+The former approval/EffectAuthority producer, bound-input admission wrapper,
+reconciliation policies, schemas and synthetic tests had no tracked downstream
+consumer outside their own reference suite. They are retired from active source.
+The R7 input remains because Workstation reads it; that fixture does not justify
+retaining an unused policy stack.
 
-Runtime, OPA, Temporal, n8n and provider adapters are independently selectable capabilities. A caller may use none, one, or several of them.
+The former R8 Temporal dispatch smoke and R10 Steam local preflight are also
+retired. Use Temporal or provider-native release tools at a real consumer when
+needed. The old composition declaration and local LEGO plan were removed because
+they had no actual execution consumer; no replacement registry or plan is needed.
 
-## Residual forward surface
+Dated R1-R10 documents and receipts describe their original source cuts.
+They do not declare a current runtime topology. Git retains retired code history.
 
-The repository currently retains bounded reference implementations for:
+## Source verification
 
-- exact occurrence/content binding;
-- provider-observation binding;
-- explicit effect-authority translation where a caller cannot use its native IAM/approval surface directly;
-- admission examples over those bindings;
-- reconciliation examples that preserve UNKNOWN and require provider idempotency or authoritative absence before retry.
+Run `mise run verify` in this owner. It validates retained JSON profiles and the
+consumed R7 fixture, checks retired surfaces are not wired into forward scripts,
+and runs native ShellCheck.
 
-These implementations are **reference/profile mechanisms**, not universal domain truth or a required service.
-
-Natural owners remain:
-
-| Concern | Natural owner |
-| --- | --- |
-| caller/user identity | identity provider / client |
-| credentials | provider / secret store |
-| authorization | IAM / OAuth / caller policy |
-| provider capability | provider |
-| physical execution | provider / Runtime only when exact local evidence is required |
-| durable process | Temporal-class workflow only when needed |
-| integration automation | n8n / provider-native integration |
-| provider acceptance/read-back | provider |
-| semantic acceptance | consuming domain |
-
-## Retired forward surfaces
-
-### R8 Temporal integration smoke — retired
-
-The former Distribution-owned Temporal Activity smoke had no cross-repository executable consumer. Durable invocation is generic workflow infrastructure and remains with Temporal/integration owners. Historical R8 documentation/evidence remains provenance only.
-
-### R10 Steam local preflight — retired
-
-The former Steam-oriented local directory lifecycle preflight had no cross-repository executable consumer. It was a provider/product-specific validation experiment, not a cross-provider Distribution primitive. A future real Steam release should use SteamPipe/SteamCMD and the product/release owner directly. Historical R10 documentation/evidence remains provenance only.
-
-## Provider/tool observations
-
-Postiz, rclone, OpenAPI Generator, provider-native APIs and similar systems are candidate providers, not components of a Distribution platform. Their presence in historical observations or compatibility tests does not make them mandatory dependencies.
-
-Prefer:
-
-```text
-native provider interface
-  -> deterministic connector/workflow
-  -> provider-specific adapter
-  -> cross-provider abstraction only after demonstrated duplication
-```
-
-Repository correctness and external carrier availability are separate gates:
-
-- `bash scripts/test-all.sh` is the deterministic repository/source contract and is required by CI;
-- `bash scripts/test-external-carriers.sh` is an on-demand observation suite for provider/tool surfaces and may depend on network access, credentials, local binaries, or container registries;
-- an unavailable optional carrier does not invalidate source correctness, and a passing carrier smoke does not grant provider or domain authority.
-
-## Historical R2-R7 material
-
-R2-R7 document the path by which the repository learned to separate caller intent, provider observation, exact effect authority, Runtime-bound input experiments, Artifact release standing and provider read-back.
-
-Those documents remain useful provenance. Their historical composition is not a required current topology.
-
-## EffectAuthority oracle LEGO (native verification)
-
-- **Identity:** `distribution.effect-authority-consumer-oracle` (Distribution-owned test responsibility, not an authorization provider).
-- **Responsibility:** falsify incorrect mappings from an exact user approval to its provider/account/effect occurrence.
-- **Inputs:** the reference Distribution intent, synthetic approval, and `produce_effect_authority.produce` result.
-- **Outputs:** a deterministic PASS or a nonzero contract violation, with no real external provider effect.
-- **Contract:** exact decision, occurrence, provider, account, effect and approval source binding; deliberate corruptions must always be rejected, including in optimized Python.
-- **Acceptance:** `scripts/test-all.sh` calls `python -O scripts/test-effect-authority-producer.py` through the existing pinned `uv` environment. The test's consumer oracle explicitly checks four corrupted outputs and does not rely on Python `assert` being enabled. This is evidence for the synthetic contract only, not live IAM/provider acceptance.
-
-## Verification rule
-
-```text
-local command success
-!= workflow success
-!= provider acknowledgement
-!= provider effect
-!= domain success
-```
-
-Evidence must come from the owner appropriate to the claim.
-
-## Repository direction
-
-The September R1 `planning/lego-plan-r1.json` projection was retired:
-no tracked code, test, Owner registration, or explicit DS1 consumer read it;
-its free-text `BLOCKED` status did not satisfy the canonical typed slice
-grammar. This removes a **non-authoritative planning duplicate**, not any
-provider-write guard. The existing direct-provider-first laws, native
-EffectAuthority oracle, OPA policy and readback tests remain the consumers.
-Git retains historical provenance; external consumers not represented in
-this SourceCut remain UNKNOWN.
-
-This repository should shrink as provider/client standards improve.
-
-A retained custom mechanism must answer:
-
-1. Which real cross-provider workload uses it?
-2. Which natural owner cannot express the needed semantic?
-3. Why is a direct provider/client solution insufficient?
-4. Can the mechanism be a profile/Skill/reference instead of executable infrastructure?
-
-No demonstrated residual means retire or externalize.
+`bash scripts/test-external-carriers.sh` remains an optional observation of the
+provider/tool interfaces. It is separate from deterministic source verification
+and may require external binaries, credentials or network access.

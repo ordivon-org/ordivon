@@ -8,7 +8,10 @@ from .cognitive_circuit_r1 import (
     validate_gate_result,
     validate_manifest,
 )
-from .interface_contract_r2 import currentness_standing, evaluate_interface
+from .interface_contract_r2 import (
+    currentness_standing,
+    evaluate_interface,
+)
 from .successor_contract_r1 import (
     compile_successor_contract,
     evaluate_successor_gates,
@@ -18,6 +21,7 @@ from .successor_contract_r1 import (
 from .verification_obligation_r1 import (
     compile_verification_obligations,
     resolve_verifier_bindings,
+    select_source_readset_impacts,
     validate_obligation_set,
 )
 
@@ -32,6 +36,7 @@ __all__ = [
     "evaluate_interface",
     "evaluate_successor_gates",
     "resolve_verifier_bindings",
+    "select_source_readset_impacts",
     "validate_gate_result",
     "validate_manifest",
     "validate_obligation_set",

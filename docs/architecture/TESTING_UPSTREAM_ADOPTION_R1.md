@@ -10,6 +10,25 @@ This is **navigation**, not a new test framework, a new Skill, or a second CI au
 4. **Execute** focused native test, then the Owner's `mise run verify` or documented queue qualification.
 5. **Acceptance** reports exact source SHA, tool/runtime, test count, positive/negative/equivalent cases and separate **PASS / FAIL / SKIP / NOT_RUN / ENV_BLOCKED** status. Local green does not equal protected GitHub green.
 
+## Verification by property and consumer (select on demand)
+
+Formal-first specifies *what must hold*, not a universal demand that every Owner run every formal tool. Before selecting verification, record the exact property, environment/SourceCut, implementation, affected consumers, permitted effects and falsifying result. For a routine local edit, use focused native checks; for a high-consequence boundary, strengthen the proof/test chain as the actual failure mode requires.
+
+| Claim / failure mode | Suitable established verification | What a PASS does **not** establish |
+| --- | --- | --- |
+| Types, input and output shape | Owner compiler, schema checker, static analysis and unit tests | Temporal behavior, real consumer correctness |
+| Invariants over many inputs or action sequences | Property-based and model-based/state-machine testing, with shrinking and replay | An exhaustive mathematical theorem |
+| Abstract safety/liveness/contract obligations | Lean, TLA+/TLC, Z3/SMT or the Owner's current formal model, each with explicit bounds and assumptions | Implemented code refinement or deployed effects |
+| Model-to-code or cross-language compatibility | Kani/Verus/CrossHair only on supported code; independent reference, differential and consumer-driven contract (CDC) tests | Correctness outside the model/tool scope |
+| Persistent effects and recovery | Real Owner integration, PostgreSQL read-back, concurrency, fault injection and replay | External or domain acceptance without its own oracle |
+| Agent choices and probabilistic predictions | Trace/trajectory eval, independent outcomes, held-out cases, calibration and cost/error comparisons against a simple baseline | Authority, causal effect or universal generalization |
+
+Prefer the Owner's *already installed* runner, not the example tool by name: Rust Cargo / cargo-nextest, proptest, cargo-fuzz, Kani or Verus where supported; Python pytest, Hypothesis, CrossHair or Z3 where relevant; TypeScript's existing Node runner, fast-check and Playwright, rather than requiring Vitest. Specialized proof languages do not expand the Rust/Python/TypeScript implementation policy. Preserve the Owner's lockfiles; keep upgraded dependencies and affected tests consistent.
+
+Keep three evidence claims separate: **specification/model property**, **implementation refinement**, and **current consumer/deployed outcome**. A checked finite trace or toy model is not a universal liveness theorem. CDC and replay require the actual old/new observation boundary; static imports alone are not observed consumers. Binding evidence to SourceCut, tool/version, environment assumptions, readsets and consumers makes invalidation precise; when a required dependency changes or cannot be observed, retain UNKNOWN. A successful process exit, model conclusion, test-only loop or untrusted tool text never grants permission or establishes semantic acceptance.
+
+Stop once the scoped acceptance predicate has owner-native execution evidence and the remaining uncertainty is explicit. Do not add a generic testing service, verifier registry, redundant Skill or mandatory global preflight to implement this guidance.
+
 ## Executable Agent Tool binding — upstream Skills + native Owner commands
 
 This is task **Spec → established third-party testing SOP/Skill → task Plan →

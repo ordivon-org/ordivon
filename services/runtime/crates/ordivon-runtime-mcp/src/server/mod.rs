@@ -134,3 +134,6 @@ mod tools;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(all(feature = "postgres-runtime", target_os = "linux"))]
+include!("pg_server.rs");

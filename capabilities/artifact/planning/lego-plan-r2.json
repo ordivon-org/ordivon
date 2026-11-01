@@ -11,7 +11,6 @@
       "README.md",
       "docs/artifact-build-delivery-e2e-v1.md",
       "docs/ARTIFACT_VERIFICATION_SERVICE_R1.md",
-      "docs/ARTIFACT_KNOWLEDGE_TO_ACTION_DONOR_R1.md",
       "docs/ARTIFACT_CAPABILITY_DECOMPOSITION_WAVE_A15_R1.md",
       "artifact_core/contracts.py",
       "artifact_core/profiles.py",
@@ -239,8 +238,7 @@
       "kind": "externalize",
       "responsibility": "Move bytes or issue bounded transport capabilities.",
       "currentEvidence": [
-        "scripts/artifact_r2_mailbox.py",
-        "docs/ARTIFACT_KNOWLEDGE_TO_ACTION_DONOR_R1.md"
+        "scripts/artifact_r2_mailbox.py"
       ],
       "state": "DO_NOT_PROMOTE"
     },

@@ -151,7 +151,10 @@
     "always-on native concurrent same-request admission test witnesses one Job/Attempt and one reserved slot under two racing submitters; bounded initial-admission slice only, not a whole Rust-to-model refinement",
     "bounded identity consistency: every abstract live Attempt is the current Attempt before a second retry could introduce overlap",
     "abstract held-orphan fence: Runtime may clear the selected Attempt while preserving a reserved orphan that remains recovery-required; no blind retry",
-    "held-orphan reservation is a separate BOOLEAN owner abstraction; a qualifying orphan may arise before or after confirmed dispatch"
+    "held-orphan reservation is a separate BOOLEAN owner abstraction; a qualifying orphan may arise before or after confirmed dispatch",
+    "production Rust local refinement witness: Kani verifies ReservationContract::terminal_target_with_evidence composed with AttemptLifecycleContract over every Attempt terminal class; Orphaned maps exactly to HeldOrphaned and retains capacity while other qualified terminal states release it",
+    "production Rust fail-closed witness: Kani verifies terminal reservation targeting is admitted exactly when terminal Attempt, result evidence, finishedAt, matching Job resolution and absence of currentAttempt all hold, and separately rejects every mismatched terminal Job resolution",
+    "the Kani witnesses are opt-in mechanized implementation evidence executed by services/runtime formal:kani:verify; current source contains the harnesses proof_actual_terminal_reservation_target_preserves_held_orphan_fence, proof_actual_terminal_reservation_target_fails_closed_on_incomplete_evidence and proof_actual_terminal_reservation_target_rejects_mismatched_job_resolution"
   ],
   "nonClaims": [
     "This is not a mechanized refinement proof from Rust semantics to TLA+ semantics.",
@@ -164,7 +167,10 @@
     "The new NoCompetingLiveAttempts abstract invariant is model-checked but not an always-on Rust proof: physical concurrent-observer and ambiguity-no-redrive integration tests are opt-in.",
     "NoDetachedLiveAttempt does not prove Rust/SQLite refinement; admission and held-orphan Rust witnesses are narrower concrete cases.",
     "The abstract orphanedHeld state is only a bounded projection of a persisted held-orphan reservation. It does not establish persistence/recovery refinement or cross-Job reservation exclusivity.",
-    "The heldReservation Boolean abstracts one Job only; it does not prove global capacity accounting or physical launch occurrence for an Orphaned attempt."
+    "The heldReservation Boolean abstracts one Job only; it does not prove global capacity accounting or physical launch occurrence for an Orphaned attempt.",
+    "The Kani reservation/Attempt proofs are local pure-contract implementation proofs, not a mechanized refinement of Registry SQL/CAS, reconciliation transactions, global capacity accounting, provider launch evidence, or the complete Rust Runtime to RuntimeDispatchR1.",
+    "formal:kani:verify is opt-in and is not executed by the normal Runtime verify task; source presence/currentness of a Kani harness is not a substitute for a Runtime execution receipt showing that the verifier actually ran.",
+    "The held-orphan Kani proof establishes ReservationContract target/capacity fencing under its explicit evidence inputs; it does not prove that persistent database rows, cross-Job reservations, or physical providers supplied those inputs correctly."
   ],
   "supportingContracts": [
     {

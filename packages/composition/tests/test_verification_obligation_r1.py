@@ -12,8 +12,237 @@ from ordivon_composition.verification_obligation_r1 import (
     resolve_verifier_bindings,
     select_impacted_obligations,
     select_manifest_gate_impacts,
+    select_source_readset_impacts,
     validate_obligation_set,
 )
+
+
+def _source_readset_fixture(*, complete_second: bool = False):
+    # Owner-neutral fixture: this unit test exercises the generic Composition
+    # bridge. Real Runtime paths/readsets are produced and tested by Runtime.
+    scope = "git:repo:" + ("1" * 64)
+    current = "a" * 40
+    first = scope + ":path:owner/a.py"
+    second = scope + ":path:owner/b.py"
+    delta = {
+        "kind": "ordivon.git-source-membership-delta",
+        "truthRole": "exact-git-source-delta-no-proof-acceptance",
+        "queryPrefix": "owner/",
+        "sourceScopeRef": scope,
+        "sourceCuts": {"previous": "b" * 40, "current": current},
+        "authorityRefs": [first, second],
+        "changedRefs": [first],
+        "gitSourceQueryComplete": True,
+        "proofReuseAdmissible": False,
+    }
+    evidence = {
+        "kind": "ordivon.source-readset-evidence",
+        "truthRole": "test-owner-source-readsets-not-proof-or-consumer-authority",
+        "sourceCut": current,
+        "scopePrefix": "owner/",
+        "items": [
+            {
+                "id": "proof:test:a",
+                "sourcePaths": ["owner/a.py"],
+                "dependenciesComplete": False,
+            },
+            {
+                "id": "proof:test:b",
+                "sourcePaths": ["owner/b.py"],
+                "dependenciesComplete": complete_second,
+            },
+        ],
+        "dependencyQualification": "TEST_OWNER_DECLARED_NOT_CLOSED",
+        "proofReuseAdmissible": False,
+    }
+    return delta, evidence
+
+
+def test_source_readset_impact_reuses_existing_three_valued_selector():
+    delta, evidence = _source_readset_fixture(complete_second=True)
+    result = select_source_readset_impacts(
+        git_source_delta=delta,
+        source_readset_evidence=evidence,
+    )
+    standing = {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]}
+    assert standing == {
+        "proof:test:a": "RECHECK_REQUIRED",
+        "proof:test:b": "REUSE_CANDIDATE",
+    }
+    assert result["selection"]["unindexedChangeRefs"] == []
+    assert result["proofReuseAdmissible"] is False
+    assert result["selection"]["proofReuseAdmissible"] is False
+
+
+def test_source_readset_impact_preserves_incomplete_unaffected_dependency_as_unknown():
+    delta, evidence = _source_readset_fixture()
+    result = select_source_readset_impacts(
+        git_source_delta=delta,
+        source_readset_evidence=evidence,
+    )
+    standing = {row["id"]: row["standing"] for row in result["selection"]["standingByObligation"]}
+    assert standing["proof:test:a"] == "RECHECK_REQUIRED"
+    assert standing["proof:test:b"] == "UNKNOWN"
+
+
+@pytest.mark.parametrize("mutation", ["sourcecut", "scope", "missing-path", "duplicate-path"])
+def test_source_readset_impact_fails_closed_on_unqualified_bridge(mutation):
+    delta, evidence = _source_readset_fixture()
+    if mutation == "sourcecut":
+        evidence["sourceCut"] = "c" * 40
+    elif mutation == "scope":
+        evidence["scopePrefix"] = "other/"
+    elif mutation == "missing-path":
+        evidence["items"][0]["sourcePaths"] = ["owner/missing.py"]
+    else:
+        evidence["items"][0]["sourcePaths"] = [
+            "owner/a.py",
+            "owner/a.py",
+        ]
+    with pytest.raises(CircuitContractError):
+        select_source_readset_impacts(
+            git_source_delta=delta,
+            source_readset_evidence=evidence,
+        )
+
+
+@pytest.mark.parametrize("bad_path", [{"unexpected": "object"}, ["nested", "array"]])
+def test_source_readset_impact_rejects_nonstring_unhashable_paths(bad_path):
+    delta, evidence = _source_readset_fixture()
+    evidence["items"][0]["sourcePaths"] = [bad_path]
+    with pytest.raises(CircuitContractError):
+        select_source_readset_impacts(
+            git_source_delta=delta,
+            source_readset_evidence=evidence,
+        )
+
+
+@pytest.mark.parametrize("field", ["authorityRefs", "changedRefs"])
+def test_source_readset_impact_rejects_unhashable_git_ref_members(field):
+    delta, evidence = _source_readset_fixture()
+    delta[field] = [{"unexpected": "object"}]
+    with pytest.raises(CircuitContractError):
+        select_source_readset_impacts(
+            git_source_delta=delta,
+            source_readset_evidence=evidence,
+        )
+
+
+def test_source_readset_existing_cli_requalifies_git_and_preserves_unknown_boundary(tmp_path):
+    """Real Git delta + owner readset evidence uses existing Composition CLI."""
+    import json
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    subject = tmp_path / "source-readset-cli"
+    subject.mkdir()
+    source_repo = Path(__file__).resolve().parents[3]
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(subject), *args], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Ordivon Test")
+    git("config", "user.email", "readset@example.invalid")
+    (subject / "a").mkdir()
+    (subject / "a/source.txt").write_text("before\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "before")
+    previous = git("rev-parse", "HEAD")
+    (subject / "a/source.txt").write_text("after\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "after")
+    current = git("rev-parse", "HEAD")
+
+    delta_output = subprocess.check_output(
+        [
+            sys.executable,
+            str(source_repo / "tools/repo/source_history_legos.py"),
+            "--repo",
+            str(subject),
+            "--left",
+            previous,
+            "--right",
+            current,
+            "--impact-prefix",
+            "a/",
+        ],
+        text=True,
+    )
+    delta_file = tmp_path / "delta.json"
+    evidence_file = tmp_path / "readsets.json"
+    delta_file.write_text(delta_output, encoding="utf-8")
+    evidence_file.write_text(
+        json.dumps(
+            {
+                "kind": "ordivon.source-readset-evidence",
+                "truthRole": "test-owner-positive-source-readsets",
+                "sourceCut": current,
+                "scopePrefix": "a/",
+                "items": [
+                    {
+                        "id": "proof:test:changed",
+                        "sourcePaths": ["a/source.txt"],
+                        "dependenciesComplete": False,
+                    }
+                ],
+                "dependencyQualification": "TEST_OWNER_DECLARED_NOT_CLOSED",
+                "proofReuseAdmissible": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "impact-readsets",
+            str(delta_file),
+            str(evidence_file),
+            "--repo",
+            str(subject),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert proc.returncode == 0, proc.stderr
+    result = json.loads(proc.stdout)
+    assert result["kind"] == "ordivon.task-local-source-readset-impact"
+    assert result["sourceCut"] == current
+    assert result["proofReuseAdmissible"] is False
+    assert result["selection"]["proofReuseAdmissible"] is False
+    assert result["selection"]["standingByObligation"] == [
+        {
+            "id": "proof:test:changed",
+            "standing": "RECHECK_REQUIRED",
+        }
+    ]
+
+    # Same valid Git delta cannot launder readsets from another SourceCut.
+    forged = json.loads(evidence_file.read_text(encoding="utf-8"))
+    forged["sourceCut"] = previous
+    evidence_file.write_text(json.dumps(forged), encoding="utf-8")
+    denied = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "impact-readsets",
+            str(delta_file),
+            str(evidence_file),
+            "--repo",
+            str(subject),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert denied.returncode != 0
+    assert "exact current Git scope" in denied.stderr
+    assert "Traceback" not in denied.stderr
 
 
 def _digest(label: str) -> str:

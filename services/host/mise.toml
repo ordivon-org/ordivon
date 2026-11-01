@@ -8,6 +8,7 @@ set -euo pipefail
 uv lock --check
 uv sync --locked
 uv run ruff check .
+mise run formal:reply-source
 uv run python -m pytest
 """
 
@@ -22,4 +23,23 @@ uv run python -m pytest -q "${HOST_PYTEST_NODE:-tests/test_canonical_property.py
 run = """
 set -euo pipefail
 bash tools/host_queue_verify.sh
+"""
+
+
+[tasks."formal:reply-source"]
+description = "Exact Host reply decision: pinned mature CrossHair symbolic source verification"
+run = """
+set -euo pipefail
+uv lock --check
+if report="$(uv run --locked --group formal python -m crosshair check --analysis_kind PEP316 --per_condition_timeout 25 --report_all ordivon_host_v2.social_store._reply_target_precedes_source 2>&1)"; then
+  printf '%s\\n' "$report"
+else
+  printf '%s\\n' "$report" >&2
+  exit 1
+fi
+confirmed="$(printf '%s\\n' "$report" | grep -c 'info: Confirmed over all paths' || true)"
+if [ "$confirmed" -ne 2 ]; then
+  printf 'Causal reply source refinement not confirmed: %s/2 obligations\\n' "$confirmed" >&2
+  exit 1
+fi
 """

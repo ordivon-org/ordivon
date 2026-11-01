@@ -5,6 +5,10 @@ use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use uuid::Uuid;
 
+#[path = "pg_dispatch.rs"]
+mod dispatch;
+pub use dispatch::{PgBundleReady, PgDispatchIssued};
+
 #[derive(Debug)]
 pub enum PgAdmissionError {
     InvalidInput,
@@ -83,8 +87,17 @@ impl PgAdmissionInput {
                 .expected_source_sha256
                 .bytes()
                 .all(|b| b.is_ascii_hexdigit())
-            || serde_json::from_str::<serde_json::Value>(&self.workspace_snapshot_json).is_err()
-            || serde_json::from_str::<serde_json::Value>(&self.execution_plan_json).is_err()
+            // Durable Runtime consumers decode both carriers as records.
+            // Parsing any JSON value alone admits null/scalars/arrays that
+            // cannot satisfy their existing typed source contracts.
+            || !matches!(
+                serde_json::from_str::<serde_json::Value>(&self.workspace_snapshot_json),
+                Ok(serde_json::Value::Object(_))
+            )
+            || !matches!(
+                serde_json::from_str::<serde_json::Value>(&self.execution_plan_json),
+                Ok(serde_json::Value::Object(_))
+            )
         {
             return Err(PgAdmissionError::InvalidInput);
         }
@@ -150,6 +163,15 @@ fn qualified_schema_constraints(client: &mut Client, schema: &str) -> Result<(),
         ("job_events", "f", &["job_id"], "jobs"),
         ("job_events", "f", &["attempt_id"], "attempts"),
         ("artifacts", "p", &["artifact_id"], ""),
+        ("job_runtime_release_effects", "p", &["job_id"], ""),
+        ("job_runtime_release_effects", "u", &["effect_id"], ""),
+        ("job_runtime_release_effects", "f", &["job_id"], "jobs"),
+        (
+            "artifacts",
+            "u",
+            &["attempt_id", "kind", "relative_path"],
+            "",
+        ),
         ("artifacts", "f", &["job_id"], "jobs"),
         ("artifacts", "f", &["attempt_id"], "attempts"),
         ("_stage_control", "p", &["id"], ""),
@@ -168,7 +190,7 @@ fn qualified_schema_constraints(client: &mut Client, schema: &str) -> Result<(),
 }
 
 pub struct PgAdmissionStore {
-    client: Client,
+    pub(crate) client: Client,
 }
 impl PgAdmissionStore {
     pub fn connect(dsn: &str, schema: &str) -> Result<Self, PgAdmissionError> {
@@ -210,13 +232,23 @@ impl PgAdmissionStore {
         if state != "QUALIFIED_WRITER" || !permitted || source != i.expected_source_sha256 {
             return Err(PgAdmissionError::Unqualified);
         }
-        if let Some(row)=tx.query_opt(
-            "SELECT job_id,operation_digest FROM idempotency_keys WHERE principal=$1 AND client_request_id=$2",
-            &[&i.principal,&i.client_request_id])? {
-            let job_id:String=row.get(0);
-            let digest:String=row.get(1);
-            if digest!=i.operation_digest {return Err(PgAdmissionError::IdempotencyConflict);}
-            tx.commit().map_err(|_|PgAdmissionError::UnknownCommit)?;
+        if let Some(row) = tx.query_opt(
+            "SELECT k.job_id,j.request_digest FROM idempotency_keys k \
+             JOIN jobs j ON j.job_id=k.job_id AND j.principal=k.principal \
+                AND j.client_request_id=k.client_request_id \
+                AND j.operation_digest=k.operation_digest \
+             WHERE k.principal=$1 AND k.client_request_id=$2",
+            &[&i.principal, &i.client_request_id],
+        )? {
+            let job_id: String = row.get(0);
+            let request_digest: String = row.get(1);
+            // Exact replay binds the proposal, not current Workspace bytes,
+            // resolved plan, or provider identity. Those facts belong to
+            // the original committed Operation, not this second admission.
+            if request_digest != i.request_digest {
+                return Err(PgAdmissionError::IdempotencyConflict);
+            }
+            tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
             return Ok(PgAdmissionOutcome::Existing(job_id));
         }
         // This predicate fences new writer effects, not read-only replay of a
@@ -287,6 +319,138 @@ impl PgAdmissionStore {
     }
 }
 
+/// Read-only witness for a potentially committed admission whose response was lost.
+///
+/// Inconclusive is deliberately NOT equivalent to "the write did not commit".
+/// The witness binds the exact submitted identity, its initial Attempt and
+/// capacity reservation, and all three admission events. It does not assert
+/// dispatch, runner activity, terminal completion, or installed PG authority.
+#[derive(Debug, PartialEq, Eq)]
+pub enum PgAdmissionObservation {
+    Confirmed(String),
+    Inconclusive,
+}
+
+impl PgAdmissionStore {
+    pub fn observe_admission(
+        &mut self,
+        i: &PgAdmissionInput,
+    ) -> Result<PgAdmissionObservation, PgAdmissionError> {
+        i.validate()?;
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only(true)
+            .start()?;
+        let authority = tx.query_opt(
+            "SELECT state,source_sha256,promotion_allowed FROM _stage_control WHERE id='source'",
+            &[],
+        )?.ok_or(PgAdmissionError::Unqualified)?;
+        let state: String = authority.get(0);
+        let source: String = authority.get(1);
+        let permitted: bool = authority.get(2);
+        if state != "QUALIFIED_WRITER" || !permitted || source != i.expected_source_sha256 {
+            return Err(PgAdmissionError::Unqualified);
+        }
+
+        // A key by itself is insufficient: require the original immutable Job,
+        // first Attempt and capacity reservation to be mutually consistent.
+        // Mutable lifecycle/desired-state columns must NOT be pinned to their
+        // initial values: the original admission stays true after progression.
+        let row = tx.query_opt(
+            "SELECT j.job_id,j.request_digest,j.operation_digest,j.workspace_id, \
+                    j.workspace_snapshot_json,j.execution_plan_json,j.execution_plan_digest, \
+                    j.created_at_ms,a.attempt_id,a.attempt_number,a.launch_token_digest, \
+                    a.bundle_path,a.unit_name,a.created_at_ms, \
+                    r.reservation_id,r.global_limit,r.acquired_at_ms \
+             FROM idempotency_keys k \
+             JOIN jobs j ON j.job_id=k.job_id AND j.principal=k.principal \
+                AND j.client_request_id=k.client_request_id \
+             JOIN attempts a ON a.job_id=j.job_id AND a.attempt_number=1 \
+             JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id \
+             WHERE k.principal=$1 AND k.client_request_id=$2 \
+                AND k.operation_digest=j.operation_digest",
+            &[&i.principal, &i.client_request_id],
+        )?;
+        let Some(row) = row else {
+            return Ok(PgAdmissionObservation::Inconclusive);
+        };
+        let matches = row.get::<_, String>(0) == i.job_id
+            && row.get::<_, String>(1) == i.request_digest
+            && row.get::<_, String>(2) == i.operation_digest
+            && row.get::<_, String>(3) == i.workspace_id
+            && row.get::<_, String>(4) == i.workspace_snapshot_json
+            && row.get::<_, String>(5) == i.execution_plan_json
+            && row.get::<_, String>(6) == i.execution_plan_digest
+            && row.get::<_, i64>(7) == i.created_at_ms
+            && row.get::<_, String>(8) == i.attempt_id
+            && row.get::<_, i64>(9) == 1
+            && row.get::<_, String>(10) == i.launch_token_digest
+            && row.get::<_, String>(11) == i.bundle_path
+            && row.get::<_, String>(12) == i.unit_name
+            && row.get::<_, i64>(13) == i.created_at_ms
+            && row.get::<_, String>(14) == i.reservation_id
+            && row.get::<_, i64>(15) == i64::from(i.global_limit)
+            && row.get::<_, i64>(16) == i.created_at_ms;
+        if !matches {
+            return Ok(PgAdmissionObservation::Inconclusive);
+        }
+
+        let rows = tx.query(
+            "SELECT event_sequence,event_type,origin,previous_state,new_state, \
+                    reason_code,detail_json,detail_digest,observed_at_ms,attempt_id \
+             FROM job_events WHERE job_id=$1 AND event_sequence BETWEEN 1 AND 3 \
+             ORDER BY event_sequence",
+            &[&i.job_id],
+        )?;
+        if rows.len() != 3 {
+            return Ok(PgAdmissionObservation::Inconclusive);
+        }
+        let expected = [
+            (
+                "REQUEST_RECEIVED",
+                "REQUEST_ACCEPTED",
+                None,
+                serde_json::json!({"requestDigest":i.request_digest}),
+            ),
+            (
+                "JOB_RECORD_CREATED",
+                "JOB_CREATED",
+                None,
+                serde_json::json!({"operationDigest":i.operation_digest}),
+            ),
+            (
+                "ATTEMPT_CREATED",
+                "ATTEMPT_ACCEPTED",
+                Some("accepted"),
+                serde_json::json!({"attemptNumber":1}),
+            ),
+        ];
+        for (index, (row, (event_type, reason, new_state, detail))) in
+            rows.iter().zip(expected.iter()).enumerate()
+        {
+            let encoded = detail.to_string();
+            let digest = format!("sha256:{}", hex::encode(Sha256::digest(encoded.as_bytes())));
+            if row.get::<_, i64>(0) != (index + 1) as i64
+                || row.get::<_, String>(1) != *event_type
+                || row.get::<_, String>(2) != "SYSTEM_DERIVED"
+                || row.get::<_, Option<String>>(3).is_some()
+                || row.get::<_, Option<String>>(4).as_deref() != *new_state
+                || row.get::<_, String>(5) != *reason
+                || row.get::<_, String>(6) != encoded
+                || row.get::<_, String>(7) != digest
+                || row.get::<_, i64>(8) != i.created_at_ms
+                || row.get::<_, Option<String>>(9).as_deref() != Some(i.attempt_id.as_str())
+            {
+                return Ok(PgAdmissionObservation::Inconclusive);
+            }
+        }
+        tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
+        Ok(PgAdmissionObservation::Confirmed(i.job_id.clone()))
+    }
+}
+
 #[derive(Clone)]
 pub struct PgTerminalNoArtifacts {
     pub attempt_id: String,
@@ -303,6 +467,59 @@ pub enum PgTerminalOutcome {
     Committed(String),
     Existing(String),
 }
+
+/// PG only commits metadata; physical bytes must be validated by the Runner.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PgArtifactRegistration {
+    pub artifact_id: String,
+    pub kind: String,
+    pub relative_path: String,
+    pub digest: String,
+    pub media_type: String,
+    pub byte_length: i64,
+    pub truncated: bool,
+    pub created_at_ms: i64,
+}
+pub(crate) fn pg_artifact_manifest_digest(artifacts: &[PgArtifactRegistration]) -> String {
+    let mut ordered = artifacts.to_vec();
+    ordered.sort_by(|a, b| a.artifact_id.cmp(&b.artifact_id));
+    let manifest: Vec<_> = ordered
+        .iter()
+        .map(|a| {
+            serde_json::json!({
+                "artifactId":a.artifact_id, "kind":a.kind, "relativePath":a.relative_path,
+                "digest":a.digest, "mediaType":a.media_type,"byteLength":a.byte_length,
+                "truncated":a.truncated, "createdAtMs":a.created_at_ms
+            })
+        })
+        .collect();
+    let bytes = serde_json::to_vec(&manifest).expect("bounded Artifact manifest is JSON");
+    format!("sha256:{}", hex::encode(Sha256::digest(&bytes)))
+}
+pub(crate) fn valid_pg_artifacts(artifacts: &[PgArtifactRegistration]) -> bool {
+    let mut ids = HashSet::new();
+    let mut paths = HashSet::new();
+    artifacts.iter().all(|a| {
+        !a.artifact_id.is_empty()
+            && !a.kind.is_empty()
+            && !a.media_type.is_empty()
+            && a.media_type.len() <= 256
+            && a.byte_length >= 0
+            && a.created_at_ms >= 0
+            && a.digest.starts_with("sha256:")
+            && a.digest.len() == 71
+            && a.digest[7..].bytes().all(|b| b.is_ascii_hexdigit())
+            && !a.relative_path.is_empty()
+            && !a.relative_path.starts_with('/')
+            && !a.relative_path.contains('\\')
+            && !a
+                .relative_path
+                .split('/')
+                .any(|p| p == ".." || p.is_empty())
+            && ids.insert(a.artifact_id.as_str())
+            && paths.insert((a.kind.as_str(), a.relative_path.as_str()))
+    })
+}
 fn terminal_transition(from: &str, to: &str) -> bool {
     match from {
         "accepted" => matches!(to, "cancelled" | "failed" | "lost" | "orphaned"),
@@ -313,7 +530,6 @@ fn terminal_transition(from: &str, to: &str) -> bool {
         _ => false,
     }
 }
-
 #[cfg(kani)]
 mod kani_transition_proofs {
     use super::terminal_transition;
@@ -355,6 +571,26 @@ impl PgAdmissionStore {
         &mut self,
         i: &PgTerminalNoArtifacts,
     ) -> Result<PgTerminalOutcome, PgAdmissionError> {
+        self.commit_terminal_artifacts_impl(i, &[])
+    }
+    pub fn commit_terminal_with_artifacts(
+        &mut self,
+        i: &PgTerminalNoArtifacts,
+        artifacts: &[PgArtifactRegistration],
+    ) -> Result<PgTerminalOutcome, PgAdmissionError> {
+        if artifacts.is_empty() {
+            return Err(PgAdmissionError::InvalidInput);
+        }
+        self.commit_terminal_artifacts_impl(i, artifacts)
+    }
+    fn commit_terminal_artifacts_impl(
+        &mut self,
+        i: &PgTerminalNoArtifacts,
+        artifacts: &[PgArtifactRegistration],
+    ) -> Result<PgTerminalOutcome, PgAdmissionError> {
+        if !valid_pg_artifacts(artifacts) {
+            return Err(PgAdmissionError::InvalidInput);
+        }
         if i.attempt_id.is_empty()
             || i.result_digest.is_empty()
             || i.reason_code.is_empty()
@@ -402,17 +638,26 @@ impl PgAdmissionStore {
         )?;
         let job_resolution: Option<String> = job.get(0);
         let current_attempt: Option<String> = job.get(1);
-        // This is strictly the no-Artifact terminal responsibility. Never
-        // silently complete a Job with registered Artifact consumers here.
-        let has_artifacts: bool = tx
-            .query_one(
-                "SELECT EXISTS(SELECT 1 FROM artifacts WHERE attempt_id=$1)",
-                &[&i.attempt_id],
-            )?
-            .get(0);
-        if has_artifacts {
+        let existing = tx.query(
+            "SELECT artifact_id,kind,relative_path,digest,media_type,byte_length,truncated,created_at_ms FROM artifacts WHERE attempt_id=$1 ORDER BY artifact_id",
+            &[&i.attempt_id],
+        )?;
+        if artifacts.is_empty() && !existing.is_empty() {
             return Err(PgAdmissionError::Blocked);
         }
+        let mut sorted = artifacts.to_vec();
+        sorted.sort_by(|a, b| a.artifact_id.cmp(&b.artifact_id));
+        let same_artifacts = existing.len() == sorted.len()
+            && existing.iter().zip(&sorted).all(|(row, a)| {
+                row.get::<_, String>(0) == a.artifact_id
+                    && row.get::<_, String>(1) == a.kind
+                    && row.get::<_, String>(2) == a.relative_path
+                    && row.get::<_, String>(3) == a.digest
+                    && row.get::<_, String>(4) == a.media_type
+                    && row.get::<_, i64>(5) == a.byte_length
+                    && row.get::<_, bool>(6) == a.truncated
+                    && row.get::<_, i64>(7) == a.created_at_ms
+            });
         if matches!(
             previous.as_str(),
             "succeeded" | "failed" | "timed_out" | "cancelled" | "lost" | "orphaned"
@@ -420,11 +665,15 @@ impl PgAdmissionStore {
             if previous == i.terminal_state
                 && digest.as_deref() == Some(&i.result_digest)
                 && job_resolution.as_deref() == Some(&i.terminal_state)
+                && same_artifacts
             {
                 tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
                 return Ok(PgTerminalOutcome::Existing(job_id));
             }
             return Err(PgAdmissionError::IdempotencyConflict);
+        }
+        if !existing.is_empty() {
+            return Err(PgAdmissionError::Blocked);
         }
         // The Job's current Attempt is the only Attempt allowed to commit a
         // fresh terminal effect. A superseded Attempt may not resolve the Job,
@@ -446,6 +695,13 @@ impl PgAdmissionStore {
               &i.attempt_id,&i.expected_row_version,&previous])?;
         if changed != 1 {
             return Err(PgAdmissionError::Blocked);
+        }
+        for a in artifacts {
+            tx.execute(
+                "INSERT INTO artifacts(artifact_id,job_id,attempt_id,kind,relative_path,digest,media_type,byte_length,truncated,created_at_ms) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+                &[&a.artifact_id,&job_id,&i.attempt_id,&a.kind,&a.relative_path,
+                &a.digest,&a.media_type,&a.byte_length,&a.truncated,&a.created_at_ms],
+            )?;
         }
         if i.terminal_state == "orphaned" {
             let count=tx.execute(
@@ -478,7 +734,15 @@ impl PgAdmissionStore {
             (
                 "PROCESS_EXITED",
                 "SYSTEM_OBSERVED",
-                serde_json::json!({"resultDigest":i.result_digest,"exitCode":i.exit_code}),
+                if artifacts.is_empty() {
+                    serde_json::json!({"resultDigest":i.result_digest,"exitCode":i.exit_code})
+                } else {
+                    serde_json::json!({
+                        "resultDigest":i.result_digest,
+                        "exitCode":i.exit_code,
+                        "artifactSetDigest":pg_artifact_manifest_digest(artifacts)
+                    })
+                },
             ),
             (
                 "JOB_TERMINAL",
@@ -802,6 +1066,50 @@ mod tests {
         assert!(exact_schema("runtime_pg_qualified_r1"));
     }
     #[test]
+    fn non_object_durable_json_is_rejected_before_postgres_effects() {
+        // RuntimeExecutionPlan and Workspace snapshots are records. Parsing as
+        // arbitrary JSON Value would accept a scalar/array that a consumer
+        // cannot decode as a valid durable state object.
+        let qualified = PgAdmissionInput {
+            job_id: "job".into(),
+            attempt_id: "attempt".into(),
+            reservation_id: "reservation".into(),
+            principal: "principal".into(),
+            client_request_id: "request".into(),
+            request_digest: "sha256:r".into(),
+            operation_digest: "sha256:o".into(),
+            workspace_id: "ws".into(),
+            workspace_snapshot_json: "{}".into(),
+            execution_plan_json: "{}".into(),
+            execution_plan_digest: "sha256:plan".into(),
+            launch_token_digest: "sha256:l".into(),
+            bundle_path: "/tmp/test".into(),
+            unit_name: "unit".into(),
+            global_limit: 1,
+            created_at_ms: 1,
+            expected_source_sha256: "a".repeat(64),
+        };
+        assert!(qualified.validate().is_ok(), "fixture must be admitted");
+        for raw in ["null", "true", "false", "[]", "42", "\"text\""] {
+            let mut invalid_snapshot = qualified.clone();
+            invalid_snapshot.workspace_snapshot_json = raw.into();
+            assert!(
+                matches!(
+                    invalid_snapshot.validate(),
+                    Err(PgAdmissionError::InvalidInput)
+                ),
+                "workspace_snapshot_json accepted non-object {raw}"
+            );
+            let mut invalid_plan = qualified.clone();
+            invalid_plan.execution_plan_json = raw.into();
+            assert!(
+                matches!(invalid_plan.validate(), Err(PgAdmissionError::InvalidInput)),
+                "execution_plan_json accepted non-object {raw}"
+            );
+        }
+    }
+
+    #[test]
     fn source_identity_must_be_present() {
         let i = PgAdmissionInput {
             job_id: "j".into(),
@@ -832,49 +1140,21 @@ mod live_pg_tests {
     use std::sync::{Arc, Barrier};
     use std::thread;
 
+    fn physical_pg_test_dsn() -> String {
+        std::env::var("ORDIVON_PG_TEST_DSN").expect(
+            "physical PostgreSQL tests require ORDIVON_PG_TEST_DSN; run the dedicated mise task",
+        )
+    }
+
+    fn historical_pg_stage_test_dsn() -> String {
+        std::env::var("ORDIVON_PG_STAGE_TEST_DSN").expect(
+            "historical stage qualification requires ORDIVON_PG_STAGE_TEST_DSN; run the dedicated stage task",
+        )
+    }
+
     // An operator supplies an isolated PostgreSQL DSN for physical tests.
     // No environment value means the ordinary CI suite never mutates PG.
-    const SCHEMA: &str = r#"
-CREATE TABLE jobs(
- job_id text PRIMARY KEY, principal text NOT NULL,
- client_request_id text NOT NULL, request_digest text NOT NULL,
- operation_digest text NOT NULL, workspace_id text NOT NULL,
- workspace_snapshot_json text NOT NULL, execution_plan_json text NOT NULL,
- execution_plan_digest text NOT NULL, created_at_ms bigint NOT NULL,
- desired_state text NOT NULL CHECK(desired_state IN ('run','cancelled')),
- resolution text, current_attempt_id text, row_version bigint NOT NULL DEFAULT 0,
- UNIQUE(principal,client_request_id));
-CREATE TABLE attempts(
- attempt_id text PRIMARY KEY, job_id text NOT NULL REFERENCES jobs(job_id),
- attempt_number bigint NOT NULL CHECK(attempt_number >= 1),
- state text NOT NULL, termination_intent text NOT NULL,
- launch_token_digest text NOT NULL, bundle_path text NOT NULL,
- unit_name text UNIQUE NOT NULL, created_at_ms bigint NOT NULL,
- row_version bigint NOT NULL DEFAULT 0, result_digest text, exit_code integer,
- finished_at_ms bigint, UNIQUE(job_id,attempt_number));
-CREATE TABLE idempotency_keys(
- principal text NOT NULL, client_request_id text NOT NULL,
- operation_digest text NOT NULL, job_id text NOT NULL UNIQUE REFERENCES jobs(job_id),
- created_at_ms bigint NOT NULL, PRIMARY KEY(principal,client_request_id));
-CREATE TABLE concurrency_reservations(
- reservation_id text PRIMARY KEY,attempt_id text NOT NULL UNIQUE REFERENCES attempts(attempt_id),
- global_limit bigint NOT NULL,state text NOT NULL, acquired_at_ms bigint NOT NULL,
- state_observed_at_ms bigint NOT NULL, released_at_ms bigint, release_reason text);
-CREATE TABLE job_events(
- event_id text PRIMARY KEY,job_id text NOT NULL REFERENCES jobs(job_id),
- attempt_id text REFERENCES attempts(attempt_id),
- event_sequence bigint NOT NULL,event_type text NOT NULL,
- origin text NOT NULL,previous_state text,new_state text,reason_code text NOT NULL,
- detail_json text NOT NULL,detail_digest text NOT NULL,
- observed_at_ms bigint NOT NULL,UNIQUE(job_id,event_sequence));
-CREATE TABLE job_runtime_release_effects(job_id text NOT NULL);
-CREATE TABLE artifacts(
- artifact_id text PRIMARY KEY,job_id text NOT NULL REFERENCES jobs(job_id),
- attempt_id text NOT NULL REFERENCES attempts(attempt_id));
-CREATE TABLE _stage_control(
- id text PRIMARY KEY, state text NOT NULL, source_sha256 text NOT NULL,
- promotion_allowed boolean NOT NULL);
-"#;
+    const SCHEMA: &str = include_str!("../sql/pg_fresh_epoch.sql");
 
     struct Scratch {
         admin: Client,
@@ -950,10 +1230,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_rejects_synthetic_writer_without_event_sequence_uniqueness() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         assert!(PgAdmissionStore::connect(&dsn, &scratch.name).is_ok());
@@ -971,10 +1250,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_rejects_foreign_key_that_points_at_wrong_pg_target() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         assert!(PgAdmissionStore::connect(&dsn, &scratch.name).is_ok());
@@ -995,10 +1273,40 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+    fn pg18_rejects_shallow_release_and_artifact_owner_constraints() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
+        let mut release = Scratch::new(&dsn);
+        release.qualify();
+        assert!(PgAdmissionStore::connect(&dsn, &release.name).is_ok());
+        release.admin.batch_execute(
+            "ALTER TABLE job_runtime_release_effects DROP CONSTRAINT job_runtime_release_effects_effect_id_key"
+        ).expect("test-only weakened release uniqueness");
+        assert!(matches!(
+            PgAdmissionStore::connect(&dsn, &release.name),
+            Err(PgAdmissionError::Unqualified)
+        ));
+
+        let mut artifact = Scratch::new(&dsn);
+        artifact.qualify();
+        assert!(PgAdmissionStore::connect(&dsn, &artifact.name).is_ok());
+        artifact
+            .admin
+            .batch_execute(
+                "ALTER TABLE artifacts DROP CONSTRAINT artifacts_attempt_id_kind_relative_path_key",
+            )
+            .expect("test-only weakened artifact uniqueness");
+        assert!(matches!(
+            PgAdmissionStore::connect(&dsn, &artifact.name),
+            Err(PgAdmissionError::Unqualified)
+        ));
+    }
+
+    #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_native_atomic_admission_replay_fence_and_rollback() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
         let a = payload("request-A", "job-A", "workspace-A", 2);
@@ -1008,6 +1316,19 @@ CREATE TABLE _stage_control(
         ));
         assert_eq!(scratch.count("jobs"), 0, "no write before PG qualification");
         scratch.qualify();
+        for (name, raw) in [("workspace", "null"), ("plan", "[]")] {
+            let mut invalid = a.clone();
+            if name == "workspace" {
+                invalid.workspace_snapshot_json = raw.into();
+            } else {
+                invalid.execution_plan_json = raw.into();
+            }
+            assert!(matches!(
+                store.admit(&invalid),
+                Err(PgAdmissionError::InvalidInput)
+            ));
+            assert_eq!(scratch.count("jobs"), 0, "invalid JSON persisted a PG Job");
+        }
         assert_eq!(
             store.admit(&a).unwrap(),
             PgAdmissionOutcome::Created("job-A".into())
@@ -1027,7 +1348,7 @@ CREATE TABLE _stage_control(
         scratch
             .admin
             .execute(
-                "INSERT INTO job_runtime_release_effects(job_id) VALUES($1)",
+                "INSERT INTO job_runtime_release_effects(job_id,effect_id,contract,request_digest,workspace_id,commit_revision,candidate_manifest_digest,expected_tool_count,receipt_path,binding_digest) VALUES($1,'effect-fixture','release-v1','test-request','ws-fixture','revision-fixture','manifest-fixture',0,'effect-receipt','effect-binding')",
                 &[&a.job_id],
             )
             .unwrap();
@@ -1036,7 +1357,7 @@ CREATE TABLE _stage_control(
             PgAdmissionOutcome::Existing(a.job_id.clone())
         );
         let mut conflicting_during_effect = a.clone();
-        conflicting_during_effect.operation_digest = "sha256:other-effect".into();
+        conflicting_during_effect.request_digest = "sha256:other-request".into();
         assert!(matches!(
             store.admit(&conflicting_during_effect),
             Err(PgAdmissionError::IdempotencyConflict)
@@ -1060,7 +1381,7 @@ CREATE TABLE _stage_control(
             )
             .unwrap();
         let mut conflict = a.clone();
-        conflict.operation_digest = "sha256:different-effect".into();
+        conflict.request_digest = "sha256:different-request".into();
         assert!(matches!(
             store.admit(&conflict),
             Err(PgAdmissionError::IdempotencyConflict)
@@ -1097,10 +1418,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_terminal_cas_replay_orphan_hold_and_atomic_rollback() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1179,10 +1499,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_stale_attempt_cannot_terminalize_current_job() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1237,10 +1556,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_artifact_bearing_terminal_is_denied_until_full_owner_exists() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1249,7 +1567,7 @@ CREATE TABLE _stage_control(
         scratch
             .admin
             .execute(
-                "INSERT INTO artifacts VALUES('artifact-test',$1,$2)",
+                "INSERT INTO artifacts(artifact_id,job_id,attempt_id) VALUES('artifact-test',$1,$2)",
                 &[&input.job_id, &input.attempt_id],
             )
             .unwrap();
@@ -1281,10 +1599,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_STAGE_TEST_DSN historical-stage qualification"]
     fn historical_pg_stage_is_not_an_admission_authority() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_STAGE_TEST_DSN") else {
-            return;
-        };
+        let dsn = historical_pg_stage_test_dsn();
         let mut inspector = Client::connect(&dsn, NoTls).unwrap();
         let before: i64 = inspector
             .query_one("SELECT count(*) FROM rw12_stage_cutover_r1.jobs", &[])
@@ -1313,10 +1630,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_cancel_commit_readback_is_exact_and_fail_closed_after_ack_loss() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         let mut writer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
         let mut observer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1379,10 +1695,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_cancel_intent_is_atomic_replayable_and_never_implies_dispatch_stopped() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
         let first = payload("cancel-before-dispatch", "job-cancel-accepted", "ws-a", 2);
@@ -1431,10 +1746,9 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_cancel_intent_running_orphan_and_missing_reservation_fences() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
-        };
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
@@ -1566,10 +1880,634 @@ CREATE TABLE _stage_control(
     }
 
     #[test]
-    fn pg18_concurrent_duplicate_never_creates_second_job() {
-        let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN") else {
-            return;
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+    fn pg18_admission_readback_is_exact_and_never_claims_absence() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let a = payload("ack-lost", "job-ack-lost", "ws-ack-lost", 2);
+        let mut observer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        assert_eq!(
+            observer.observe_admission(&a).unwrap(),
+            PgAdmissionObservation::Inconclusive,
+            "absence must not prove that the original COMMIT did not happen"
+        );
+
+        let mut writer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        assert_eq!(
+            writer.admit(&a).unwrap(),
+            PgAdmissionOutcome::Created(a.job_id.clone())
+        );
+        // Treat writer COMMIT acknowledgement as lost. Read back on an
+        // independent qualified connection without issuing a second write.
+        assert_eq!(
+            observer.observe_admission(&a).unwrap(),
+            PgAdmissionObservation::Confirmed(a.job_id.clone())
+        );
+        assert_eq!(scratch.count("jobs"), 1);
+        assert_eq!(scratch.count("attempts"), 1);
+        assert_eq!(scratch.count("job_events"), 3);
+
+        let mut conflicting = a.clone();
+        conflicting.request_digest = "sha256:altered-request".into();
+        assert_eq!(
+            observer.observe_admission(&conflicting).unwrap(),
+            PgAdmissionObservation::Inconclusive
+        );
+        conflicting = a.clone();
+        conflicting.operation_digest = "sha256:altered-operation".into();
+        assert_eq!(
+            observer.observe_admission(&conflicting).unwrap(),
+            PgAdmissionObservation::Inconclusive
+        );
+        conflicting = a.clone();
+        conflicting.attempt_id = "attempt-unrelated".into();
+        assert_eq!(
+            observer.observe_admission(&conflicting).unwrap(),
+            PgAdmissionObservation::Inconclusive
+        );
+
+        // A missing capacity reservation is independently disqualifying,
+        // even while the complete original event sequence remains intact.
+        scratch
+            .admin
+            .execute(
+                "DELETE FROM concurrency_reservations WHERE attempt_id=$1",
+                &[&a.attempt_id],
+            )
+            .unwrap();
+        assert_eq!(
+            observer.observe_admission(&a).unwrap(),
+            PgAdmissionObservation::Inconclusive
+        );
+        scratch.admin.execute(
+            "INSERT INTO concurrency_reservations(reservation_id,attempt_id,global_limit,state,acquired_at_ms,state_observed_at_ms) VALUES($1,$2,$3,'active',$4,$4)",
+            &[&a.reservation_id,&a.attempt_id,&i64::from(a.global_limit),&a.created_at_ms],
+        ).unwrap();
+        assert_eq!(
+            observer.observe_admission(&a).unwrap(),
+            PgAdmissionObservation::Confirmed(a.job_id.clone()),
+            "restoring the original reservation must restore the complete witness"
+        );
+
+        // Conversely, the key/Job/Attempt/reservation rows are not sufficient
+        // without all original admission events.
+        scratch
+            .admin
+            .execute(
+                "DELETE FROM job_events WHERE job_id=$1 AND event_sequence=2",
+                &[&a.job_id],
+            )
+            .unwrap();
+        assert_eq!(
+            observer.observe_admission(&a).unwrap(),
+            PgAdmissionObservation::Inconclusive
+        );
+        assert_eq!(scratch.count("jobs"), 1);
+    }
+
+    #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+    fn pg18_bundle_and_dispatch_commit_before_external_effect() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        let a = payload("dispatch-request", "dispatch-job", "dispatch-ws", 2);
+        assert_eq!(
+            store.admit(&a).unwrap(),
+            PgAdmissionOutcome::Created(a.job_id.clone())
+        );
+        let digest = format!("sha256:{}", "b".repeat(64));
+        let issued = PgDispatchIssued {
+            attempt_id: a.attempt_id.clone(),
+            expected_row_version: 1,
+            expected_bundle_digest: digest.clone(),
+            observed_at_ms: a.created_at_ms + 2,
+            expected_source_sha256: a.expected_source_sha256.clone(),
         };
+        assert!(matches!(
+            store.mark_dispatch_issued_pg(&issued),
+            Err(PgAdmissionError::Blocked)
+        ));
+        assert_eq!(scratch.count("job_events"), 3);
+        let prepared = PgBundleReady {
+            attempt_id: a.attempt_id.clone(),
+            expected_row_version: 0,
+            bundle_digest: digest.clone(),
+            observed_at_ms: a.created_at_ms + 1,
+            expected_source_sha256: a.expected_source_sha256.clone(),
+        };
+        assert_eq!(store.commit_bundle_ready_pg(&prepared).unwrap(), 1);
+        assert!(matches!(
+            store.commit_bundle_ready_pg(&prepared),
+            Err(PgAdmissionError::Blocked)
+        ));
+        assert_eq!(scratch.count("job_events"), 4);
+        // Wrong source cut and missing original bundle evidence must never
+        // permit an attempted dispatch, even when the Attempt row looks ready.
+        let mut wrong_source = issued.clone();
+        wrong_source.expected_source_sha256 = "f".repeat(64);
+        assert!(matches!(
+            store.mark_dispatch_issued_pg(&wrong_source),
+            Err(PgAdmissionError::Unqualified)
+        ));
+        let original_detail = serde_json::json!({"bundleDigest": digest}).to_string();
+        let original_digest = format!(
+            "sha256:{}",
+            hex::encode(Sha256::digest(original_detail.as_bytes()))
+        );
+        scratch.admin.execute(
+            "UPDATE job_events SET detail_digest='sha256:tampered'              WHERE job_id=$1 AND event_type='BUNDLE_READY'",
+            &[&a.job_id],
+        ).unwrap();
+        assert!(matches!(
+            store.mark_dispatch_issued_pg(&issued),
+            Err(PgAdmissionError::Blocked)
+        ));
+        assert_eq!(scratch.count("job_events"), 4);
+        scratch.admin.execute(
+            "UPDATE job_events SET detail_digest=$1              WHERE job_id=$2 AND event_type='BUNDLE_READY'",
+            &[&original_digest, &a.job_id],
+        ).unwrap();
+        assert_eq!(store.mark_dispatch_issued_pg(&issued).unwrap(), 2);
+        assert_eq!(scratch.count("job_events"), 5);
+        assert!(matches!(
+            store.mark_dispatch_issued_pg(&issued),
+            Err(PgAdmissionError::Blocked)
+        ));
+        assert_eq!(scratch.count("job_events"), 5);
+        let row = scratch
+            .admin
+            .query_one(
+                "SELECT state,row_version,bundle_digest FROM attempts WHERE attempt_id=$1",
+                &[&a.attempt_id],
+            )
+            .unwrap();
+        assert_eq!(row.get::<_, String>(0), "starting");
+        assert_eq!(row.get::<_, i64>(1), 2);
+        assert_eq!(
+            row.get::<_, Option<String>>(2).as_deref(),
+            Some(digest.as_str())
+        );
+        let event = scratch.admin.query_one(
+            "SELECT origin,reason_code,previous_state,new_state FROM job_events WHERE job_id=$1 AND event_sequence=5",
+            &[&a.job_id],
+        ).unwrap();
+        assert_eq!(event.get::<_, String>(0), "SYSTEM_DERIVED");
+        assert_eq!(event.get::<_, String>(1), "AT_MOST_ONCE_BOUNDARY_COMMITTED");
+        assert_eq!(
+            event.get::<_, Option<String>>(2).as_deref(),
+            Some("accepted")
+        );
+        assert_eq!(
+            event.get::<_, Option<String>>(3).as_deref(),
+            Some("starting")
+        );
+    }
+
+    #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+    fn pg18_cancellation_blocks_unissued_dispatch_without_false_terminal() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        let a = payload("cancel-pre-dispatch", "cancel-job", "cancel-ws", 2);
+        assert_eq!(
+            store.admit(&a).unwrap(),
+            PgAdmissionOutcome::Created(a.job_id.clone())
+        );
+        let digest = format!("sha256:{}", "d".repeat(64));
+        let ready = PgBundleReady {
+            attempt_id: a.attempt_id.clone(),
+            expected_row_version: 0,
+            bundle_digest: digest.clone(),
+            observed_at_ms: a.created_at_ms + 1,
+            expected_source_sha256: a.expected_source_sha256.clone(),
+        };
+        assert_eq!(store.commit_bundle_ready_pg(&ready).unwrap(), 1);
+        assert_eq!(
+            store
+                .request_cancel_intent(&PgCancelIntent {
+                    job_id: a.job_id.clone(),
+                    observed_at_ms: a.created_at_ms + 2,
+                    expected_source_sha256: a.expected_source_sha256.clone(),
+                })
+                .unwrap(),
+            PgCancelOutcome::IntentRecorded(a.job_id.clone())
+        );
+        let issued = PgDispatchIssued {
+            attempt_id: a.attempt_id.clone(),
+            expected_row_version: 2,
+            expected_bundle_digest: digest.clone(),
+            observed_at_ms: a.created_at_ms + 3,
+            expected_source_sha256: a.expected_source_sha256.clone(),
+        };
+        assert!(matches!(
+            store.mark_dispatch_issued_pg(&issued),
+            Err(PgAdmissionError::Blocked)
+        ));
+        let row = scratch.admin.query_one(
+            "SELECT a.state,j.desired_state,j.resolution,r.state FROM attempts a JOIN jobs j ON j.job_id=a.job_id JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id WHERE a.attempt_id=$1",
+            &[&a.attempt_id],
+        ).unwrap();
+        assert_eq!(row.get::<_, String>(0), "accepted");
+        assert_eq!(row.get::<_, String>(1), "cancelled");
+        assert_eq!(row.get::<_, Option<String>>(2), None);
+        assert_eq!(row.get::<_, String>(3), "active");
+        assert_eq!(scratch.count("job_events"), 5);
+    }
+
+    #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+    fn pg18_clean_epoch_needs_no_old_sqlite_requests() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let mut pg = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        // This was an old SQLite request ID, but the owner explicitly
+        // retired all old history. In a NEW PG epoch it is simply a new key.
+        let request = payload("formerly-old-key", "new-pg-job", "new-workspace", 2);
+        assert_eq!(
+            pg.admit(&request).unwrap(),
+            PgAdmissionOutcome::Created(request.job_id.clone())
+        );
+        assert_eq!(
+            pg.admit(&request).unwrap(),
+            PgAdmissionOutcome::Existing(request.job_id.clone())
+        );
+        let mut changed = request.clone();
+        // A changed resolved physical Operation cannot redefine an existing
+        // request key: the original replay is valid even after source drift.
+        changed.operation_digest = "sha256:different-current-epoch-operation".into();
+        assert_eq!(
+            pg.admit(&changed).unwrap(),
+            PgAdmissionOutcome::Existing(request.job_id.clone())
+        );
+        changed.request_digest = "sha256:different-current-epoch-request".into();
+        assert!(matches!(
+            pg.admit(&changed),
+            Err(PgAdmissionError::IdempotencyConflict)
+        ));
+        assert_eq!(scratch.count("jobs"), 1);
+        assert_eq!(scratch.count("attempts"), 1);
+        assert_eq!(scratch.count("concurrency_reservations"), 1);
+        assert_eq!(scratch.count("job_events"), 3);
+    }
+
+    #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+    fn pg18_readonly_job_projection_fences_stage_and_incoherent_terminal() {
+        use crate::PgJobReadback;
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
+        let mut scratch = Scratch::new(&dsn);
+        let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        let input = payload("readback-req", "readback-job", "readback-workspace", 2);
+        assert!(matches!(
+            store.observe_job_readonly(&input.job_id, &input.expected_source_sha256),
+            Err(PgAdmissionError::Unqualified)
+        ));
+        scratch.qualify();
+        assert_eq!(
+            store
+                .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+                .unwrap(),
+            PgJobReadback::Inconclusive,
+        );
+        store.admit(&input).unwrap();
+        let events_before = scratch.count("job_events");
+        let first = store
+            .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+            .unwrap();
+        let PgJobReadback::Observed(first) = first else {
+            panic!("admitted PG job must be read coherently");
+        };
+        assert_eq!(first.attempt_id, input.attempt_id);
+        assert_eq!(first.attempt_state, "accepted");
+        assert_eq!(first.resolution, None);
+        assert_eq!(first.reservation_state, "active");
+        assert_eq!(
+            scratch.count("job_events"),
+            events_before,
+            "readback must not append effects"
+        );
+        assert!(matches!(
+            store.observe_job_readonly(&input.job_id, &"f".repeat(64)),
+            Err(PgAdmissionError::Unqualified)
+        ));
+        let cancel = PgCancelIntent {
+            job_id: input.job_id.clone(),
+            observed_at_ms: 1234570,
+            expected_source_sha256: input.expected_source_sha256.clone(),
+        };
+        store.request_cancel_intent(&cancel).unwrap();
+        let cancelling = store
+            .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+            .unwrap();
+        let PgJobReadback::Observed(cancelling) = cancelling else {
+            panic!("cancel intent must not erase the active Attempt");
+        };
+        assert_eq!(cancelling.desired_state, "cancelled");
+        assert_eq!(cancelling.resolution, None);
+        assert_eq!(cancelling.reservation_state, "active");
+        store
+            .commit_terminal_no_artifacts(&PgTerminalNoArtifacts {
+                attempt_id: input.attempt_id.clone(),
+                expected_row_version: 1,
+                terminal_state: "cancelled".into(),
+                result_digest: "sha256:terminal".into(),
+                reason_code: "READBACK_TEST".into(),
+                exit_code: None,
+                finished_at_ms: 1234571,
+                expected_source_sha256: input.expected_source_sha256.clone(),
+            })
+            .unwrap();
+        let terminal = store
+            .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+            .unwrap();
+        let PgJobReadback::Observed(terminal) = terminal else {
+            panic!("verified PG terminal transaction must be projected");
+        };
+        assert_eq!(terminal.resolution.as_deref(), Some("cancelled"));
+        assert_eq!(terminal.reservation_state, "released");
+        assert_eq!(terminal.current_attempt_id, None);
+        let original_digest: String = scratch
+            .admin
+            .query_one(
+                "SELECT detail_digest FROM job_events WHERE job_id=$1 AND event_type='JOB_TERMINAL'",
+                &[&input.job_id],
+            )
+            .unwrap()
+            .get(0);
+        scratch.admin.execute(
+            "UPDATE job_events SET detail_digest='sha256:tampered' WHERE job_id=$1 AND event_type='JOB_TERMINAL'",
+            &[&input.job_id],
+        ).unwrap();
+        assert_eq!(
+            store
+                .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+                .unwrap(),
+            PgJobReadback::Inconclusive,
+        );
+        scratch.admin.execute(
+            "UPDATE job_events SET detail_digest=$1 WHERE job_id=$2 AND event_type='JOB_TERMINAL'",
+            &[&original_digest, &input.job_id],
+        ).unwrap();
+
+        // A corrupt durable reservation must never yield a successful readback.
+        scratch
+            .admin
+            .execute(
+                "UPDATE concurrency_reservations SET state='active' WHERE attempt_id=$1",
+                &[&input.attempt_id],
+            )
+            .unwrap();
+        assert_eq!(
+            store
+                .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+                .unwrap(),
+            PgJobReadback::Inconclusive,
+        );
+    }
+
+    #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+    fn pg18_artifact_metadata_terminal_is_atomic_replayable_and_rejects_corruption() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        let first = payload(
+            "artifact-request-one",
+            "artifact-job-one",
+            "artifact-workspace",
+            2,
+        );
+        store.admit(&first).unwrap();
+        let artifact = PgArtifactRegistration {
+            artifact_id: "artifact-A".into(),
+            kind: "stdout".into(),
+            relative_path: "output/stdout.txt".into(),
+            digest: format!("sha256:{}", "a".repeat(64)),
+            media_type: "text/plain".into(),
+            byte_length: 14,
+            truncated: false,
+            created_at_ms: 1234568,
+        };
+        let terminal = PgTerminalNoArtifacts {
+            attempt_id: first.attempt_id.clone(),
+            expected_row_version: 0,
+            terminal_state: "failed".into(),
+            result_digest: "sha256:result-with-artifact".into(),
+            reason_code: "PG_ARTIFACT_TERMINAL_TEST".into(),
+            exit_code: Some(1),
+            finished_at_ms: 1234569,
+            expected_source_sha256: first.expected_source_sha256.clone(),
+        };
+        let mut invalid = artifact.clone();
+        invalid.relative_path = "../outside".into();
+        assert!(matches!(
+            store.commit_terminal_with_artifacts(&terminal, &[invalid]),
+            Err(PgAdmissionError::InvalidInput)
+        ));
+        assert_eq!(scratch.count("artifacts"), 0);
+        assert_eq!(scratch.count("job_events"), 3);
+        assert_eq!(
+            store
+                .commit_terminal_with_artifacts(&terminal, std::slice::from_ref(&artifact))
+                .unwrap(),
+            PgTerminalOutcome::Committed(first.job_id.clone())
+        );
+        assert_eq!(scratch.count("artifacts"), 1);
+        assert_eq!(scratch.count("job_events"), 5);
+        assert_eq!(
+            store
+                .commit_terminal_with_artifacts(&terminal, std::slice::from_ref(&artifact))
+                .unwrap(),
+            PgTerminalOutcome::Existing(first.job_id.clone()),
+            "identical replay never writes duplicate Artifact"
+        );
+        assert!(matches!(
+            store.commit_terminal_no_artifacts(&terminal),
+            Err(PgAdmissionError::Blocked)
+        ));
+        let mut corrupted = artifact.clone();
+        corrupted.digest = format!("sha256:{}", "b".repeat(64));
+        assert!(matches!(
+            store.commit_terminal_with_artifacts(&terminal, &[corrupted]),
+            Err(PgAdmissionError::IdempotencyConflict)
+        ));
+        let observed = store
+            .observe_job_readonly(&first.job_id, &first.expected_source_sha256)
+            .unwrap();
+        assert!(matches!(observed, crate::PgJobReadback::Observed(_)));
+        let current: String = scratch
+            .admin
+            .query_one(
+                "SELECT digest FROM artifacts WHERE artifact_id=$1",
+                &[&"artifact-A"],
+            )
+            .unwrap()
+            .get(0);
+        scratch
+            .admin
+            .execute(
+                "UPDATE artifacts SET digest=$1 WHERE artifact_id=$2",
+                &[&format!("sha256:{}", "c".repeat(64)), &"artifact-A"],
+            )
+            .unwrap();
+        assert_eq!(
+            store
+                .observe_job_readonly(&first.job_id, &first.expected_source_sha256)
+                .unwrap(),
+            crate::PgJobReadback::Inconclusive,
+            "existing terminal event must bind the exact Artifact manifest"
+        );
+        scratch
+            .admin
+            .execute(
+                "UPDATE artifacts SET digest=$1 WHERE artifact_id=$2",
+                &[&current, &"artifact-A"],
+            )
+            .unwrap();
+        let second = payload(
+            "artifact-request-two",
+            "artifact-job-two",
+            "another-workspace",
+            2,
+        );
+        store.admit(&second).unwrap();
+        let second_terminal = PgTerminalNoArtifacts {
+            attempt_id: second.attempt_id.clone(),
+            expected_row_version: 0,
+            terminal_state: "failed".into(),
+            result_digest: "sha256:second-result".into(),
+            reason_code: "PG_DUPLICATE_ARTIFACT".into(),
+            exit_code: Some(1),
+            finished_at_ms: 1234570,
+            expected_source_sha256: second.expected_source_sha256.clone(),
+        };
+        // Global Artifact ID collision rejects the WHOLE terminal transaction.
+        assert!(matches!(
+            store.commit_terminal_with_artifacts(&second_terminal, &[artifact]),
+            Err(PgAdmissionError::Database(_))
+        ));
+        assert_eq!(scratch.count("artifacts"), 1);
+        assert_eq!(
+            scratch.count("job_events"),
+            8,
+            "second Job keeps only its 3 admission events"
+        );
+        let projection = store
+            .observe_job_readonly(&second.job_id, &second.expected_source_sha256)
+            .unwrap();
+        let crate::PgJobReadback::Observed(projection) = projection else {
+            panic!("failed artifact insert must not terminalize Attempt or free capacity");
+        };
+        assert_eq!(projection.resolution, None);
+        assert_eq!(projection.attempt_state, "accepted");
+        assert_eq!(projection.reservation_state, "active");
+    }
+
+    #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+    fn pg18_composed_admit_dispatch_artifact_terminal_is_one_consumer_chain() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        let request = payload("chain-request", "chain-job", "chain-workspace", 2);
+        assert_eq!(
+            store.admit(&request).unwrap(),
+            PgAdmissionOutcome::Created(request.job_id.clone())
+        );
+        let bundle = PgBundleReady {
+            attempt_id: request.attempt_id.clone(),
+            expected_row_version: 0,
+            bundle_digest: format!("sha256:{}", "b".repeat(64)),
+            observed_at_ms: 1234568,
+            expected_source_sha256: request.expected_source_sha256.clone(),
+        };
+        assert_eq!(store.commit_bundle_ready_pg(&bundle).unwrap(), 1);
+        let dispatch = PgDispatchIssued {
+            attempt_id: request.attempt_id.clone(),
+            expected_row_version: 1,
+            expected_bundle_digest: bundle.bundle_digest,
+            observed_at_ms: 1234569,
+            expected_source_sha256: request.expected_source_sha256.clone(),
+        };
+        assert_eq!(store.mark_dispatch_issued_pg(&dispatch).unwrap(), 2);
+        assert!(matches!(
+            store.mark_dispatch_issued_pg(&dispatch),
+            Err(PgAdmissionError::Blocked),
+        ));
+        let artifact = PgArtifactRegistration {
+            artifact_id: "chain-artifact".into(),
+            kind: "stdout".into(),
+            relative_path: "output/chain.txt".into(),
+            digest: format!("sha256:{}", "c".repeat(64)),
+            media_type: "text/plain".into(),
+            byte_length: 8,
+            truncated: false,
+            created_at_ms: 1234570,
+        };
+        let terminal = PgTerminalNoArtifacts {
+            attempt_id: request.attempt_id.clone(),
+            expected_row_version: 2,
+            terminal_state: "failed".into(),
+            result_digest: "sha256:chain-result".into(),
+            reason_code: "CHAIN_TEST".into(),
+            exit_code: Some(1),
+            finished_at_ms: 1234571,
+            expected_source_sha256: request.expected_source_sha256.clone(),
+        };
+        assert_eq!(
+            store
+                .commit_terminal_with_artifacts(&terminal, std::slice::from_ref(&artifact))
+                .unwrap(),
+            PgTerminalOutcome::Committed(request.job_id.clone()),
+        );
+        assert_eq!(
+            scratch.count("job_events"),
+            7,
+            "admission 3, dispatch 2, terminal 2"
+        );
+        assert_eq!(scratch.count("artifacts"), 1);
+        let outcome = store
+            .observe_job_readonly(&request.job_id, &request.expected_source_sha256)
+            .unwrap();
+        let crate::PgJobReadback::Observed(snapshot) = outcome else {
+            panic!("full PG lifecycle must remain coherently observable");
+        };
+        assert_eq!(snapshot.resolution.as_deref(), Some("failed"));
+        assert_eq!(snapshot.reservation_state, "released");
+        assert_eq!(snapshot.attempt_row_version, 3);
+        assert_eq!(
+            store
+                .commit_terminal_with_artifacts(&terminal, &[artifact])
+                .unwrap(),
+            PgTerminalOutcome::Existing(request.job_id.clone()),
+        );
+        assert_eq!(
+            scratch.count("job_events"),
+            7,
+            "retry may not append a second terminal"
+        );
+        assert_eq!(scratch.count("artifacts"), 1);
+    }
+
+    #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+    fn pg18_concurrent_duplicate_never_creates_second_job() {
+        let dsn = physical_pg_test_dsn();
         let mut scratch = Scratch::new(&dsn);
         scratch.qualify();
         let gate = Arc::new(Barrier::new(5));

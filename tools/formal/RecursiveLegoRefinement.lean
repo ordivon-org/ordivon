@@ -325,10 +325,103 @@ theorem unlisted_dependency_breaks_frame :
     cases hImpossible
   · decide
 
+-- A SOURCE/API-only equivalence cannot justify LEGO replacement when
+-- environment-visible effects or authority outcomes differ.  This theorem
+-- instantiates the existing IOContract with (public output, observable effect)
+-- rather than creating another module calculus or assuming an Agent Owner.
+-- The candidates are total and have identical public output projections.
+theorem equal_public_outputs_do_not_prove_effect_substitution :
+    ∃ (spec : IOContract Unit (Unit × Bool))
+      (original candidate : Unit → (Unit × Bool) → Prop),
+      Implements spec original ∧
+      (∀ inp out,
+        (∃ effect : Bool, original inp (out, effect)) ↔
+        (∃ effect : Bool, candidate inp (out, effect))) ∧
+      ¬ Implements spec candidate := by
+  let spec : IOContract Unit (Unit × Bool) := {
+    assume := fun _ => True
+    guarantee := fun _ result => result.2 = false
+  }
+  let original : Unit → (Unit × Bool) → Prop :=
+    fun _ result => result.2 = false
+  let candidate : Unit → (Unit × Bool) → Prop :=
+    fun _ result => result.2 = true
+  refine ⟨spec, original, candidate, ?_, ?_, ?_⟩
+  · constructor
+    · intro _ result _ hOriginal
+      exact hOriginal
+    · intro _ _
+      exact ⟨((), false), rfl⟩
+  · intro inp out
+    constructor
+    · intro _
+      exact ⟨true, rfl⟩
+    · intro _
+      exact ⟨false, rfl⟩
+  · intro hCandidate
+    have hContradiction : true = false :=
+      hCandidate.1 () ((), true) True.intro rfl
+    cases hContradiction
+
+-- This countermodel disproves the inference
+-- "same public I/O projection => effect/authority-preserving replacement".
+-- It does NOT assert that any particular Gateway or Runtime implementation
+-- violates its contract: that requires separate model-to-code refinement.
+
 end OrdivonR21
 
 #print axioms OrdivonR21.closed_dependency_frame
 #print axioms OrdivonR21.unlisted_dependency_breaks_frame
+
+-- The source-only Agent transport projection can OMIT only declared misses.
+-- This small standard List.filter law is separate from dependency-frame
+-- soundness: it is NOT permission to reuse an implementation proof.
+namespace OrdivonR21
+
+inductive SourceImpactStanding where
+  | noDeclaredHit
+  | unknown
+  | recheckRequired
+  | changed
+  deriving DecidableEq, Repr
+
+def CompactImpact (rows : List SourceImpactStanding) :
+    List SourceImpactStanding :=
+  rows.filter (fun standing => standing != .noDeclaredHit)
+
+theorem agent_impact_preserves_nontrivial_standings
+    (rows : List SourceImpactStanding) (standing : SourceImpactStanding) :
+    standing ∈ CompactImpact rows ↔
+      standing ∈ rows ∧ standing ≠ .noDeclaredHit := by
+  simp [CompactImpact]
+
+theorem agent_impact_cannot_hide_unknown
+    (rows : List SourceImpactStanding)
+    (h : SourceImpactStanding.unknown ∈ rows) :
+    SourceImpactStanding.unknown ∈ CompactImpact rows := by
+  exact (agent_impact_preserves_nontrivial_standings rows
+    .unknown).2 ⟨h, by decide⟩
+
+theorem agent_impact_cannot_hide_recheck
+    (rows : List SourceImpactStanding)
+    (h : SourceImpactStanding.recheckRequired ∈ rows) :
+    SourceImpactStanding.recheckRequired ∈ CompactImpact rows := by
+  exact (agent_impact_preserves_nontrivial_standings rows
+    .recheckRequired).2 ⟨h, by decide⟩
+
+theorem agent_impact_excludes_declared_misses
+    (rows : List SourceImpactStanding) :
+    SourceImpactStanding.noDeclaredHit ∉ CompactImpact rows := by
+  intro h
+  exact ((agent_impact_preserves_nontrivial_standings rows
+    .noDeclaredHit).1 h).2 rfl
+
+end OrdivonR21
+
+#print axioms OrdivonR21.agent_impact_preserves_nontrivial_standings
+#print axioms OrdivonR21.agent_impact_cannot_hide_unknown
+#print axioms OrdivonR21.agent_impact_cannot_hide_recheck
+#print axioms OrdivonR21.agent_impact_excludes_declared_misses
 
 #print axioms OrdivonR21.reuse_if_readset_covers_goal
 #print axioms OrdivonR21.extending_qualified_readset_preserves_soundness
@@ -801,6 +894,285 @@ end OrdivonR21.PriorityClosure
 #print axioms OrdivonR21.refinement_iff_saturated_guarantee
 #print axioms OrdivonR21.narrowed_assumptions_cannot_substitute
 
+-- K1 bounded Harness -> Gateway -> Runtime timeout connection, as a
+-- mathematical input adapter ONLY. Gateway/Python/Rust implementation
+-- refinement and installed Runtime defaults are separate proof obligations.
+-- The absent optional Agent timeout must not erase the caller's grant.
+namespace OrdivonR21.TimeoutConnection
+
+def forwarded (grant : Nat) (requested : Option Nat) : Nat :=
+  requested.getD grant
+
+def admitted (grant : Nat) : Option Nat → Prop
+  | none => 0 < grant
+  | some timeout => 0 < timeout ∧ timeout ≤ grant
+
+theorem accepted_request_preserves_grant
+    (grant : Nat) (requested : Option Nat)
+    (h : admitted grant requested) :
+    0 < forwarded grant requested ∧ forwarded grant requested ≤ grant := by
+  cases requested with
+  | none =>
+      exact ⟨h, Nat.le_refl grant⟩
+  | some timeout =>
+      exact h
+
+theorem absent_request_uses_caller_grant (grant : Nat) :
+    forwarded grant none = grant := rfl
+
+theorem explicit_request_preserves_admitted_value
+    (grant timeout : Nat)
+    (_h : admitted grant (some timeout)) :
+    forwarded grant (some timeout) = timeout := rfl
+
+-- Nonvacuous model counterexample: delegating absent timeout to a
+-- wider downstream default loses the upstream authorized bound.
+theorem runtime_default_can_exceed_caller_grant :
+    ∃ (grant runtimeDefault : Nat),
+      0 < grant ∧ grant < runtimeDefault ∧
+      forwarded grant none ≤ grant ∧ ¬ runtimeDefault ≤ grant := by
+  exact ⟨10000, 86400000, by decide, by decide, by decide, by decide⟩
+
+-- Strict, task-local R2.1 LEGO profile demanded for this admitted K1
+-- responsibility. I/O/S are ACTUAL Lean types, not untyped JSON labels.
+-- Extra identity, responsibility, and acceptance retain the six practical
+-- roles; each of the eleven historical coordinates is mandatory HERE.
+-- This structure is a formal model, not a new registry/runtime or proof
+-- that an arbitrary Python/Rust binary implements it.
+structure StrictLego21 (I O S : Type) where
+  identity : String
+  responsibility : String
+  pre : S → I → Prop
+  post : S → I → O → S → Prop
+  inv : S → Prop
+  eff : S → I → O → S → Prop
+  c : S → I → Nat
+  epsilon : Nat
+  prov : String
+  unfold : List String
+  accept : S → I → O → S → Prop
+
+-- Coordinates, in order:
+-- I = Option Nat (the optional Agent timeout),
+-- O = Nat (explicit forwarded timeout), S = Nat (the caller grant).
+-- pre = admitted, post = exact forwarding and preserved grant,
+-- inv = positive and bounded grant, eff = this adapter has no state change,
+-- c = one ABSTRACT projection step, epsilon = zero numeric approximation,
+-- prov = source-level traceability (NOT installed currentness),
+-- unfold = one existing Harness adapter responsibility.
+def strictTimeout : StrictLego21 (Option Nat) Nat Nat where
+  identity := "harness.gateway.execution.timeout-bound-r21"
+  responsibility := "preserve caller timeout grant across optional Agent port"
+  pre := fun grant requested => admitted grant requested
+  post := fun grant requested outgoing next =>
+    outgoing = forwarded grant requested ∧ next = grant
+  inv := fun grant => 0 < grant ∧ grant ≤ 900000
+  eff := fun grant _ _ next => next = grant
+  c := fun _ _ => 1
+  epsilon := 0
+  prov := "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+  unfold := ["PluginGatewayExecutionGrant", "GatewayMcpRuntimeAdapter"]
+  accept := fun grant requested outgoing next =>
+    outgoing = forwarded grant requested ∧
+    next = grant ∧
+    0 < outgoing ∧ outgoing ≤ grant
+
+def asIOContract {I O S : Type} (lego : StrictLego21 I O S) :
+    IOContract (S × I) (O × S) where
+  assume := fun x => lego.inv x.1 ∧ lego.pre x.1 x.2
+  guarantee := fun x y =>
+    lego.post x.1 x.2 y.1 y.2 ∧
+    lego.eff x.1 x.2 y.1 y.2 ∧
+    lego.accept x.1 x.2 y.1 y.2
+
+-- The OLD contract is owned by existing Harness consumers, independent of
+-- the replacement candidate's invariant/precondition definitions. Without
+-- independence, narrowing the new admissible grant range also silently
+-- narrows this old domain, making a claimed refinement tautological.
+-- The 1..900000 millisecond limit is the existing source-level grant contract
+-- (PluginGatewayExecutionGrant.__post_init__), not a new policy.
+def oldConsumerContract : IOContract (Nat × Option Nat) (Nat × Nat) where
+  assume := fun x =>
+    (0 < x.1 ∧ x.1 ≤ 900000) ∧
+      match x.2 with
+      | none => True
+      | some requested => 0 < requested ∧ requested ≤ x.1
+  guarantee := fun x y => 0 < y.1 ∧ y.1 ≤ x.1 ∧ y.2 = x.1
+
+-- The mathematical implementation transition is explicitly deterministic.
+-- Its equality with the native Python branch still requires an independent
+-- trusted program/source-to-model bridge; this statement cannot mint one.
+def modeledBehavior :
+    (Nat × Option Nat) → (Nat × Nat) → Prop :=
+  fun x y => y = (forwarded x.1 x.2, x.1)
+
+theorem strictTimeout_refines_existing_consumer :
+    Refines (asIOContract strictTimeout) oldConsumerContract := by
+  constructor
+  · intro ⟨grant, requested⟩ hOld
+    dsimp [oldConsumerContract] at hOld
+    rcases hOld with ⟨hGrant, hRequest⟩
+    refine ⟨hGrant, ?_⟩
+    cases requested with
+    | none => exact hGrant.1
+    | some t => exact hRequest
+  · intro x y hOld hNew
+    rcases hNew with ⟨_hPost, hEff, hAccept⟩
+    rcases hAccept with ⟨_hExact, _hState, hPositive, hBounded⟩
+    exact ⟨hPositive, hBounded, hEff⟩
+
+-- A genuine old consumer admits every established owner-grant value.
+-- Shrinking the candidate's invariant must NOT shrink that old admission.
+-- This is a permanent independent negative refinement witness.
+def narrowedTimeout : StrictLego21 (Option Nat) Nat Nat :=
+  { strictTimeout with inv := fun grant => grant = 10000 }
+
+theorem narrowed_candidate_is_nonvacuous :
+    ∃ (grant : Nat) (requested : Option Nat),
+      narrowedTimeout.inv grant ∧ narrowedTimeout.pre grant requested := by
+  exact ⟨10000, none, rfl, (by change 0 < 10000; decide)⟩
+
+theorem narrowed_candidate_cannot_replace_old_consumer :
+    ¬ Refines (asIOContract narrowedTimeout) oldConsumerContract := by
+  intro hRef
+  have hOld : oldConsumerContract.assume (300000, none) := by
+    change (0 < 300000 ∧ 300000 ≤ 900000) ∧ True
+    exact ⟨⟨by decide, by decide⟩, trivial⟩
+  have hNew := hRef.1 (300000, none) hOld
+  have wrong : (300000 : Nat) = 10000 := hNew.1
+  exact (by decide : (300000 : Nat) ≠ 10000) wrong
+
+-- The old contract must ALSO retain explicitly requested timeouts.
+-- Candidate precondition drift must never change old consumer eligibility.
+theorem old_consumer_admits_explicit_50000 :
+    oldConsumerContract.assume (300000, some 50000) := by
+  change (0 < 300000 ∧ 300000 ≤ 900000) ∧
+    (0 < 50000 ∧ 50000 ≤ 300000)
+  decide
+
+-- The new candidate remains realizable but rejects a previously admissible
+-- explicit timeout, so substitution must fail even when the grant invariant
+-- itself is unchanged.
+def narrowedRequestTimeout : StrictLego21 (Option Nat) Nat Nat :=
+  { strictTimeout with
+    pre := fun grant requested =>
+      admitted grant requested ∧
+        match requested with
+        | none => True
+        | some timeout => timeout ≤ 10000 }
+
+theorem narrowedRequestTimeout_has_admitted_input :
+    ∃ (grant : Nat) (requested : Option Nat),
+      narrowedRequestTimeout.inv grant ∧
+        narrowedRequestTimeout.pre grant requested := by
+  refine ⟨10000, some 5000, ?_, ?_⟩
+  · change 0 < 10000 ∧ 10000 ≤ 900000
+    decide
+  · change (0 < 5000 ∧ 5000 ≤ 10000) ∧ 5000 ≤ 10000
+    decide
+
+theorem narrowedRequestTimeout_cannot_replace_oldConsumer :
+    ¬ Refines (asIOContract narrowedRequestTimeout) oldConsumerContract := by
+  intro hRef
+  have hNew := hRef.1 (300000, some 50000)
+    old_consumer_admits_explicit_50000
+  have hBound : (50000 : Nat) ≤ 10000 := hNew.2.2
+  exact (by decide : ¬ ((50000 : Nat) ≤ 10000)) hBound
+
+theorem modeledBehavior_implements_strictTimeout :
+    Implements (asIOContract strictTimeout) modeledBehavior := by
+  constructor
+  · intro x y hAssume hBehavior
+    subst y
+    dsimp [asIOContract, strictTimeout, modeledBehavior] at *
+    refine ⟨⟨rfl, rfl⟩, rfl, ⟨rfl, rfl, ?_⟩⟩
+    exact accepted_request_preserves_grant x.1 x.2 hAssume.2
+  · intro x _
+    exact ⟨(forwarded x.1 x.2, x.1), rfl⟩
+
+theorem modeledBehavior_preserves_old_consumer :
+    Implements oldConsumerContract modeledBehavior :=
+  refinement_preserves_implementation
+    (asIOContract strictTimeout) oldConsumerContract modeledBehavior
+    modeledBehavior_implements_strictTimeout
+    strictTimeout_refines_existing_consumer
+
+-- This obligation is stronger than mere invariant satisfiability:
+-- every accepted modeled step preserves its state invariant.
+theorem strictTimeout_preserves_invariant
+    (grant : Nat) (requested : Option Nat)
+    (outgoing next : Nat)
+    (hInv : strictTimeout.inv grant)
+    (hPost : strictTimeout.post grant requested outgoing next) :
+    strictTimeout.inv next := by
+  rw [hPost.2]
+  exact hInv
+
+-- The cost/approximation coordinates are intentionally abstract: a single
+-- projection step, with no mathematical approximation of the timeout value.
+-- They are not latency, monetary cost, installed effects or proof reliability.
+theorem strictTimeout_abstract_cost_and_epsilon
+    (grant : Nat) (requested : Option Nat) :
+    strictTimeout.c grant requested = 1 ∧ strictTimeout.epsilon = 0 :=
+  ⟨rfl, rfl⟩
+
+-- The admitted mathematical realization exactly matches the declared
+-- effect/acceptance relation, not just the old bounded consumer guarantee.
+theorem strictTimeout_transition_meets_acceptance
+    (grant : Nat) (requested : Option Nat)
+    (hInv : strictTimeout.inv grant)
+    (hPre : strictTimeout.pre grant requested) :
+    strictTimeout.post grant requested
+      (forwarded grant requested) grant ∧
+    strictTimeout.eff grant requested
+      (forwarded grant requested) grant ∧
+    strictTimeout.accept grant requested
+      (forwarded grant requested) grant := by
+  have hBound := accepted_request_preserves_grant grant requested hPre
+  exact ⟨⟨rfl, rfl⟩, rfl, ⟨rfl, rfl, hBound⟩⟩
+
+-- Exact, non-vacuous admitted source input, so success cannot be obtained
+-- merely because the input assumptions are contradictory.
+theorem strictTimeout_has_admitted_input :
+    ∃ (grant : Nat) (requested : Option Nat),
+      strictTimeout.inv grant ∧ strictTimeout.pre grant requested := by
+  refine ⟨10000, none, ?_, ?_⟩
+  · change 0 < 10000 ∧ 10000 ≤ 900000
+    exact ⟨by decide, by decide⟩
+  · change admitted 10000 none
+    exact (by decide : 0 < 10000)
+
+-- An uncontrolled downstream default violates the old consumer guarantee.
+-- The countermodel is concrete and cannot be disguised as a compatible
+-- refinement merely by supplying an arbitrary evidence reference.
+theorem unbounded_default_not_a_refinement :
+    ¬ oldConsumerContract.guarantee
+      (10000, none) (86400000, 10000) := by
+  intro h
+  have hBad : 86400000 ≤ 10000 := h.2.1
+  exact (by decide : ¬ (86400000 ≤ 10000)) hBad
+
+end OrdivonR21.TimeoutConnection
+
+#print axioms OrdivonR21.TimeoutConnection.old_consumer_admits_explicit_50000
+#print axioms OrdivonR21.TimeoutConnection.narrowedRequestTimeout_has_admitted_input
+#print axioms OrdivonR21.TimeoutConnection.narrowedRequestTimeout_cannot_replace_oldConsumer
+#print axioms OrdivonR21.TimeoutConnection.narrowed_candidate_is_nonvacuous
+#print axioms OrdivonR21.TimeoutConnection.narrowed_candidate_cannot_replace_old_consumer
+#print axioms OrdivonR21.TimeoutConnection.modeledBehavior_implements_strictTimeout
+#print axioms OrdivonR21.TimeoutConnection.strictTimeout_refines_existing_consumer
+#print axioms OrdivonR21.TimeoutConnection.modeledBehavior_preserves_old_consumer
+#print axioms OrdivonR21.TimeoutConnection.strictTimeout_has_admitted_input
+#print axioms OrdivonR21.TimeoutConnection.unbounded_default_not_a_refinement
+#print axioms OrdivonR21.TimeoutConnection.strictTimeout_preserves_invariant
+#print axioms OrdivonR21.TimeoutConnection.strictTimeout_abstract_cost_and_epsilon
+#print axioms OrdivonR21.TimeoutConnection.strictTimeout_transition_meets_acceptance
+
+#print axioms OrdivonR21.TimeoutConnection.accepted_request_preserves_grant
+#print axioms OrdivonR21.TimeoutConnection.absent_request_uses_caller_grant
+#print axioms OrdivonR21.TimeoutConnection.explicit_request_preserves_admitted_value
+#print axioms OrdivonR21.TimeoutConnection.runtime_default_can_exceed_caller_grant
+
 -- R2.1 Representation-first / Equivalence-first: an evidence identity is
 -- stable only if source numeric meaning is preserved by the chosen encoding.
 -- This is the MODEL contract for the Composition JSON Decimal/Float boundary.
@@ -847,3 +1219,339 @@ end OrdivonR21.NumericRepresentation
 #print axioms OrdivonR21.NumericRepresentation.qualified_same_encoding_implies_same_exact_value
 #print axioms OrdivonR21.NumericRepresentation.different_source_same_encoding_requires_refusal
 #print axioms OrdivonR21.NumericRepresentation.unchecked_numeric_alias_is_possible
+
+-- R2.1 K1/Cross-Agent evidence message LEGO, one scoped responsibility.
+-- ell_M = (I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold):
+-- I=(ref,digest) of an already authenticated, open-topic message;
+-- O=(success status, unchanged or appended ledger); S=ref→(digest,seq), nextSeq;
+-- pre=ref and digest nonempty; authorized writer/open topic/transactional
+--      admission are externally required preconditions, not proven by Lean;
+-- post=matching replay returns existing, conflicting digest refuses mutation,
+--      unseen ref appends exactly once, no other ref is changed;
+-- inv=previously committed digest and order never silently change;
+-- eff=one append or none (not downstream execution);
+-- c=one abstract atomic insertion; epsilon=0 in this exact finite-step model;
+-- prov=Host v2 social_store.post_message ON CONFLICT/transaction sourcecut;
+-- unfold=(Gateway.message_post, Host.post_message, Host.topic_resume).
+-- These are mandatory *for this instantiated LEGO*; this namespace is NOT a
+-- universal metadata registry. SQL isolation, network authentication, the
+-- actual Python implementation, installed revision, and result-currentness
+-- are independent K2 refinement obligations, NOT claimed here.
+namespace OrdivonR21.MessageEvidence
+
+-- This ledger is a LOGICAL successful-commit projection: nextSeq is
+-- an abstract ordinal, NOT PostgreSQL nextval(), which may have gaps.
+-- The physical wire sequence, request-receipt table and allocator are
+-- outside this modeled observation universe. K2 must separately prove an
+-- order-preserving realization to wire sequences. Equality is NOT assumed.
+structure Ledger where
+  messages : String → Option (String × Nat)
+  nextSeq : Nat
+
+inductive Admission where
+  | committed
+  | existing
+  | conflict
+  deriving DecidableEq
+
+def append (s : Ledger) (ref digest : String) : Ledger :=
+  { messages := fun k =>
+      if k = ref then some (digest, s.nextSeq) else s.messages k
+    nextSeq := s.nextSeq + 1 }
+
+def deliver (s : Ledger) (ref digest : String) : Ledger × Admission :=
+  match s.messages ref with
+  | none => (append s ref digest, .committed)
+  | some (oldDigest, _) =>
+      if oldDigest = digest then (s, .existing) else (s, .conflict)
+
+-- Positive and negative results follow by full case analysis, with no
+-- axioms for delivery or external verifier success.
+theorem same_ref_digest_replay_is_state_preserving
+    (s : Ledger) (ref digest : String) (seq : Nat)
+    (h : s.messages ref = some (digest, seq)) :
+    deliver s ref digest = (s, .existing) := by
+  simp [deliver, h]
+
+theorem different_digest_conflict_is_state_preserving
+    (s : Ledger) (ref stored incoming : String) (seq : Nat)
+    (h : s.messages ref = some (stored, seq))
+    (hDifferent : stored ≠ incoming) :
+    deliver s ref incoming = (s, .conflict) := by
+  simp [deliver, h, hDifferent]
+
+theorem fresh_ref_appends_once
+    (s : Ledger) (ref digest : String)
+    (h : s.messages ref = none) :
+    (deliver s ref digest).2 = .committed ∧
+    (deliver s ref digest).1.messages ref =
+      some (digest, s.nextSeq) ∧
+    (deliver s ref digest).1.nextSeq = s.nextSeq + 1 := by
+  simp [deliver, h, append]
+
+theorem fresh_ref_does_not_mutate_other_messages
+    (s : Ledger) (ref digest other : String)
+    (h : s.messages ref = none) (hOther : other ≠ ref) :
+    (deliver s ref digest).1.messages other = s.messages other := by
+  simp [deliver, h, append, hOther]
+
+-- State-transition semantics: the first delivery commits, any identical
+-- repeated delivery returns the SAME state. No second sequence allocation.
+theorem fresh_then_replay_is_idempotent
+    (s : Ledger) (ref digest : String)
+    (h : s.messages ref = none) :
+    deliver (deliver s ref digest).1 ref digest =
+      ((deliver s ref digest).1, .existing) := by
+  have hInserted :
+      (deliver s ref digest).1.messages ref =
+        some (digest, s.nextSeq) := (fresh_ref_appends_once s ref digest h).2.1
+  exact same_ref_digest_replay_is_state_preserving
+    (deliver s ref digest).1 ref digest s.nextSeq hInserted
+
+-- A non-constant abstract specification is deliberately independent of the
+-- algorithm: it constrains every previously present message and all new
+-- references, including unrelated references.
+def Guarantees (input : Ledger × String × String)
+    (output : Ledger × Admission) : Prop :=
+  let s := input.1
+  let ref := input.2.1
+  let digest := input.2.2
+  let next := output.1
+  let status := output.2
+  (∀ old seq, s.messages ref = some (old, seq) →
+      next = s ∧ (if old = digest then status = .existing
+                  else status = .conflict)) ∧
+  (s.messages ref = none →
+      status = .committed ∧
+      next.messages ref = some (digest, s.nextSeq) ∧
+      next.nextSeq = s.nextSeq + 1 ∧
+      ∀ other, other ≠ ref → next.messages other = s.messages other)
+
+def protocol : IOContract (Ledger × String × String) (Ledger × Admission) :=
+  { assume := fun i => i.2.1 ≠ "" ∧ i.2.2 ≠ ""
+    guarantee := Guarantees }
+
+def executableModel (input : Ledger × String × String)
+    (output : Ledger × Admission) : Prop :=
+  output = deliver input.1 input.2.1 input.2.2
+
+-- Admitted problem instances demonstrably exist; model satisfaction is not
+-- achieved by assuming an impossible or empty input domain.
+theorem protocol_assumptions_are_nonvacuous :
+    ∃ (input : Ledger × String × String), protocol.assume input := by
+  refine ⟨({ messages := fun _ => none, nextSeq := 1 }, "ref", "digest"), ?_⟩
+  simp [protocol]
+
+-- Strict model-level refinement to the INDEPENDENT behavioral postcondition,
+-- with totality for every admitted input. This does NOT certify Host Python
+-- or Postgres as an implementation of executableModel.
+theorem executable_model_refines_protocol :
+    Implements protocol executableModel := by
+  constructor
+  · intro ⟨s, ref, digest⟩ output _ hExec
+    subst output
+    change Guarantees (s, ref, digest) (deliver s ref digest)
+    unfold Guarantees
+    constructor
+    · intro old seq hOld
+      change s.messages ref = some (old, seq) at hOld
+      by_cases hd : old = digest
+      · subst old
+        simp [deliver, hOld]
+      · simp [deliver, hOld, hd]
+    · intro hFresh
+      change s.messages ref = none at hFresh
+      constructor
+      · simp [deliver, hFresh]
+      constructor
+      · simp [deliver, hFresh, append]
+      constructor
+      · simp [deliver, hFresh, append]
+      · intro other hOther
+        change other ≠ ref at hOther
+        simp [deliver, hFresh, append, hOther]
+  · intro ⟨s, ref, digest⟩ _
+    exact ⟨deliver s ref digest, rfl⟩
+
+-- Counterexample when the assumed uniqueness/atomicity contract is removed:
+-- overwriting a previously committed digest cannot satisfy this protocol.
+theorem overwrite_breaks_existing_immutability :
+    ∃ (s : Ledger) (ref old incoming : String) (seq : Nat),
+      old ≠ incoming ∧
+      s.messages ref = some (old, seq) ∧
+      ¬ Guarantees (s, ref, incoming)
+        (append s ref incoming, .committed) := by
+  let s : Ledger := { messages := fun _ => some ("old", 0), nextSeq := 1 }
+  refine ⟨s, "message", "old", "new", 0, by decide, rfl, ?_⟩
+  intro h
+  have hConflict := (h.1 "old" 0 rfl).2
+  simp at hConflict
+
+-- Instantiate the EXISTING R2.1 typed 11-coordinate component carrier
+-- from TimeoutConnection. This models one real collaboration responsibility;
+-- it does not create another transport, registry, framework or evaluator.
+def LedgerInvariant (s : Ledger) : Prop :=
+  0 < s.nextSeq ∧
+    ∀ ref digest seq, s.messages ref = some (digest, seq) →
+      seq < s.nextSeq
+
+theorem append_preserves_ledger_invariant (s : Ledger) (ref digest : String)
+    (hInv : LedgerInvariant s) :
+    LedgerInvariant (append s ref digest) := by
+  constructor
+  · exact Nat.zero_lt_succ s.nextSeq
+  · intro key stored seq hStored
+    change (if key = ref then some (digest, s.nextSeq) else s.messages key) =
+      some (stored, seq) at hStored
+    change seq < s.nextSeq + 1
+    by_cases hKey : key = ref
+    · rw [if_pos hKey] at hStored
+      cases hStored
+      exact Nat.lt_succ_self s.nextSeq
+    · rw [if_neg hKey] at hStored
+      exact Nat.lt_trans (hInv.2 key stored seq hStored)
+        (Nat.lt_succ_self s.nextSeq)
+
+theorem deliver_preserves_ledger_invariant (s : Ledger) (ref digest : String)
+    (hInv : LedgerInvariant s) :
+    LedgerInvariant (deliver s ref digest).1 := by
+  unfold deliver
+  cases h : s.messages ref with
+  | none =>
+      simpa [h] using append_preserves_ledger_invariant s ref digest hInv
+  | some old =>
+      by_cases same : old.1 = digest
+      · simpa [h, same] using hInv
+      · simpa [h, same] using hInv
+
+def strictMessage :
+    OrdivonR21.TimeoutConnection.StrictLego21
+      (String × String) Admission Ledger where
+  identity := "host.space.message.post-and-replay-r21"
+  responsibility := "atomic durable message admission with immutable identity"
+  pre := fun _ request => request.1 ≠ "" ∧ request.2 ≠ ""
+  post := fun s request admission next =>
+    deliver s request.1 request.2 = (next, admission)
+  inv := LedgerInvariant
+  eff := fun s _ admission next =>
+    (admission = .committed → next.nextSeq = s.nextSeq + 1) ∧
+    (admission ≠ .committed → next = s)
+  c := fun _ _ => 1
+  epsilon := 0
+  prov := "services/host/src/ordivon_host_v2/social_store.py:post_message"
+  unfold := ["Gateway.message_post", "Host.social_store.post_message",
+             "Host.topic_resume"]
+  accept := fun s request admission next =>
+    Guarantees (s, request.1, request.2) (next, admission)
+
+def oldMessageConsumer : IOContract
+    (Ledger × String × String) (Admission × Ledger) where
+  assume := fun x => LedgerInvariant x.1 ∧
+    x.2.1 ≠ "" ∧ x.2.2 ≠ ""
+  guarantee := fun x y =>
+    Guarantees (x.1, x.2.1, x.2.2) (y.2, y.1)
+
+def strictMessageBehavior (x : Ledger × String × String)
+    (y : Admission × Ledger) : Prop :=
+  deliver x.1 x.2.1 x.2.2 = (y.2, y.1)
+
+-- Exact effect discipline follows from the three independent cases of the
+-- durable-message model (fresh, same digest, conflicting digest).
+theorem admitted_delivery_effect (s : Ledger) (ref digest : String) :
+    let result := deliver s ref digest
+    (result.2 = .committed → result.1.nextSeq = s.nextSeq + 1) ∧
+    (result.2 ≠ .committed → result.1 = s) := by
+  cases h : s.messages ref with
+  | none =>
+      simp [deliver, h, append]
+  | some entry =>
+      by_cases same : entry.1 = digest
+      · simp [deliver, h, same]
+      · simp [deliver, h, same]
+
+theorem strict_message_model_implements_contract :
+    Implements
+      (OrdivonR21.TimeoutConnection.asIOContract strictMessage)
+      strictMessageBehavior := by
+  constructor
+  · intro ⟨s, ref, digest⟩ ⟨admission, next⟩ hAssume hBehavior
+    change deliver s ref digest = (next, admission) at hBehavior
+    change LedgerInvariant s ∧
+      (ref ≠ "" ∧ digest ≠ "") at hAssume
+    change
+      (deliver s ref digest = (next, admission)) ∧
+      ((admission = .committed → next.nextSeq = s.nextSeq + 1) ∧
+       (admission ≠ .committed → next = s)) ∧
+      Guarantees (s, ref, digest) (next, admission)
+    constructor
+    · exact hBehavior
+    constructor
+    · have hEffect := admitted_delivery_effect s ref digest
+      rw [hBehavior] at hEffect
+      exact hEffect
+    · have hOld : protocol.assume (s, ref, digest) := hAssume.2
+      have hModel : executableModel (s, ref, digest) (next, admission) :=
+        hBehavior.symm
+      exact executable_model_refines_protocol.1
+        (s, ref, digest) (next, admission) hOld hModel
+  · intro ⟨s, ref, digest⟩ _
+    exact ⟨((deliver s ref digest).2, (deliver s ref digest).1), rfl⟩
+
+theorem strict_message_refines_existing_consumer :
+    Refines
+      (OrdivonR21.TimeoutConnection.asIOContract strictMessage)
+      oldMessageConsumer := by
+  constructor
+  · intro x hOld
+    exact hOld
+  · intro x y _ hNew
+    exact hNew.2.2
+
+theorem strict_message_preserves_existing_consumers :
+    Implements oldMessageConsumer strictMessageBehavior :=
+  refinement_preserves_implementation
+    (OrdivonR21.TimeoutConnection.asIOContract strictMessage)
+    oldMessageConsumer strictMessageBehavior
+    strict_message_model_implements_contract
+    strict_message_refines_existing_consumer
+
+theorem strict_message_model_preserves_invariant
+    (s : Ledger) (ref digest : String)
+    (hInv : strictMessage.inv s) :
+    strictMessage.inv (deliver s ref digest).1 :=
+  deliver_preserves_ledger_invariant s ref digest hInv
+
+-- Nonvacuity of the full typed invariant and admission precondition.
+theorem strict_message_has_admitted_state_and_request :
+    ∃ (s : Ledger) (ref digest : String),
+      strictMessage.inv s ∧ strictMessage.pre s (ref, digest) := by
+  refine ⟨{ messages := fun _ => none, nextSeq := 1 }, "ref", "digest", ?_, ?_⟩
+  · constructor
+    · exact (by decide : 0 < (1 : Nat))
+    · intro ref digest seq h
+      cases h
+  · exact ⟨by decide, by decide⟩
+
+theorem strict_message_abstract_cost_and_zero_error
+    (s : Ledger) (request : String × String) :
+    strictMessage.c s request = 1 ∧ strictMessage.epsilon = 0 :=
+  ⟨rfl, rfl⟩
+
+end OrdivonR21.MessageEvidence
+
+#print axioms OrdivonR21.MessageEvidence.admitted_delivery_effect
+#print axioms OrdivonR21.MessageEvidence.strict_message_model_implements_contract
+#print axioms OrdivonR21.MessageEvidence.strict_message_refines_existing_consumer
+#print axioms OrdivonR21.MessageEvidence.strict_message_preserves_existing_consumers
+#print axioms OrdivonR21.MessageEvidence.strict_message_model_preserves_invariant
+#print axioms OrdivonR21.MessageEvidence.strict_message_abstract_cost_and_zero_error
+#print axioms OrdivonR21.MessageEvidence.strict_message_has_admitted_state_and_request
+
+#print axioms OrdivonR21.MessageEvidence.same_ref_digest_replay_is_state_preserving
+#print axioms OrdivonR21.MessageEvidence.different_digest_conflict_is_state_preserving
+#print axioms OrdivonR21.MessageEvidence.fresh_ref_appends_once
+#print axioms OrdivonR21.MessageEvidence.fresh_ref_does_not_mutate_other_messages
+#print axioms OrdivonR21.MessageEvidence.fresh_then_replay_is_idempotent
+#print axioms OrdivonR21.MessageEvidence.protocol_assumptions_are_nonvacuous
+#print axioms OrdivonR21.MessageEvidence.executable_model_refines_protocol
+#print axioms OrdivonR21.MessageEvidence.overwrite_breaks_existing_immutability

@@ -86,7 +86,12 @@ def _abs(value: str | Path) -> Path:
 
 
 def _read_json(path: Path) -> dict:
-    value = json.loads(Path(path).read_text(encoding="utf-8"))
+    # Browserless/Temporal admission uses one existing Harness canonical decoder.
+    # Duplicate nested keys and non-finite values must not silently rewrite a
+    # Campaign, carrier identity, or replay-binding before provider effects.
+    from anc_canonical import loads_strict
+
+    value = loads_strict(Path(path).read_bytes())
     if not isinstance(value, dict):
         raise ValueError("expected JSON object")
     return value

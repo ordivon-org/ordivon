@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "equityUsd": "100",
+  "availableEquityUsd": "40",
+  "positions": [
+    {
+      "instrumentId": "SYNTHETIC-A",
+      "signedNotionalUsd": "120",
+      "factorLoadings": {"sector": "0.5"}
+    }
+  ],
+  "scenarios": [
+    {"scenarioId": "hold", "action": "HOLD"},
+    {
+      "scenarioId": "reduce-quarter",
+      "action": "DE_RISK",
+      "instrumentId": "SYNTHETIC-A",
+      "reductionFraction": "0.25",
+      "shock": {"instrumentId": "SYNTHETIC-A", "magnitudePct": "10"}
+    },
+    {
+      "scenarioId": "hedge-sector",
+      "action": "HEDGE",
+      "instrumentId": "SYNTHETIC-B",
+      "targetFactor": "sector",
+      "signedNotionalDeltaUsd": "-20",
+      "factorLoadings": {"sector": "1"}
+    }
+  ]
+}

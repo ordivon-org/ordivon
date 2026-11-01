@@ -217,11 +217,34 @@ acceptance); these are engineering descriptors, not six mathematical axioms.
 | c, epsilon | measured cost / explicitly defined approximation bounds | neither is a universal truth or compatibility metric |
 | prov, acceptance | source-bound evidence and requirement-specific acceptance | metadata and test outcomes are not component semantics |
 
-The historical tuple
+The R2.1 formal admission tuple
+
 `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`
-remains an optional view of an existing responsibility. It is not a mandatory
-record, new runtime object, or independent mathematical definition of a module.
-Keep existing names and owner APIs; select only the views needed by the obligation.
+
+is **mandatory, in full, for every independent formally DECLARED or ADMITTED LEGO**, whether method, capability, composite or ordinary domain responsibility, including when no property has yet been proved. DECLARATION_COMPLETE is not MODEL_PROVED. Raw source, exploratory evidence and incomplete candidates are not independently admitted LEGOs.
+Its six practical identity/responsibility/interface/contract/acceptance roles
+remain mandatory too. Do not omit a coordinate because it is awkward; give it
+an exact typed interpretation and a relevant checked obligation. For genuinely
+stateless, effect-free or exact components use `S=Unit`, empty effects or
+`epsilon=0` **only with a justified semantic argument**. `c` needs a named
+unit and scope; `prov` binds the exact implementation/model and evidence;
+`unfold` identifies the actual connected/hidden children (possibly an
+explicitly justified atomic leaf). If a coordinate's value or evidence is unknown, declare a typed UNKNOWN(reason,
+unit/scope where relevant, unfulfilled obligation); this is a present field,
+not a numeric 0 or a proof. UNKNOWN blocks only propositions relying on it.
+Proof standing for an unrelated verified property may still be MODEL_PROVED,
+but CODE_REFINED or INSTALLED_CURRENT requires its own qualified bridge.
+The existing Lean fields c : Nat and epsilon : Nat are a scoped numeric
+model, not a general representation of unknown empirical cost or error. The tuple is a typed declaration with separate mathematical obligations, not
+an automatic theorem, new runtime object, metadata registry, invented
+universal calculus or proof that every repository file is a LEGO. Acceptance
+also declares the consumer/goal and observation or Boolean theorem, a
+comparable baseline or fixed specification, instrument, decision predicate,
+guardrails and evidence/UNKNOWN; cost c and error epsilon do not substitute
+for domain outcome. An explicitly requested verified architecture theorem can
+be a scoped architecture milestone, never by itself a deployed product claim.
+Keep existing names and natural consumer APIs; check each applicable coordinate
+in the existing mature Lean/Pacti/TLA+/SMT/implementation proof carrier.
 
 ### Behavioral assume–guarantee profile
 

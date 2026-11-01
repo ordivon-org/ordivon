@@ -93,6 +93,14 @@ def _model_execution_definition(grant: PluginGatewayExecutionGrant) -> AgentTool
                     "type": "integer",
                     "minimum": 1,
                     "maximum": grant.max_timeout_ms,
+                    # The upstream AgentToolCall canonical JSON port deliberately
+                    # rejects floating-point spellings, even values such as 1.0
+                    # that JSON Schema considers integers. Disclose this narrower
+                    # representation contract without claiming Schema equivalence.
+                    "description": (
+                        "Use a canonical JSON integer token (for example 1000, not 1000.0). "
+                        "Omit the property to use the caller-granted limit; null is invalid."
+                    ),
                 },
             },
             "required": ["executable", "args"],
@@ -110,6 +118,20 @@ def _tool_digest(raw: dict[str, JsonValue]) -> str:
     }
     validate_json_value(value)
     return canonical_digest(value)
+
+
+def _forward_granted_timeout(grant: int, requested: int | None) -> int:
+    """Native R2.1 StrictLego21 timeout projection, admitted under caller grant.
+
+    pre: 1 <= grant <= 900000
+    pre: requested is None or (1 <= requested <= grant)
+    post: __return__ == (grant if requested is None else requested)
+    post: 1 <= __return__ <= grant
+
+    Source symbolic checking covers this pure projection. Authority admission,
+    Gateway forwarding, Runtime effects and installed currentness are separate.
+    """
+    return grant if requested is None else requested
 
 
 def _required_text(value: object, label: str) -> str:
@@ -554,7 +576,7 @@ class PluginGatewayExecutionBridge(SQLiteHarnessRuntimeBridge):
                     "Gateway environment variable is outside the caller grant",
                     kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
                 )
-        if timeout is not None and (
+        if "timeoutMs" in call.arguments and (
             type(timeout) is not int or timeout < 1 or timeout > self.gateway_grant.max_timeout_ms
         ):
             raise ToolBridgeError(
@@ -582,8 +604,12 @@ class PluginGatewayExecutionBridge(SQLiteHarnessRuntimeBridge):
         }
         if env is not None:
             execution["env"] = dict(env)
-        if timeout is not None:
-            execution["timeoutMs"] = timeout
+        # Runtime's omitted-timeout default is owned by Runtime and may be
+        # wider than this Harness caller's grant. Preserve the explicit
+        # capability bound even when the model leaves timeoutMs unspecified.
+        execution["timeoutMs"] = _forward_granted_timeout(
+            self.gateway_grant.max_timeout_ms, timeout
+        )
         return (
             "workspace.exec",
             {

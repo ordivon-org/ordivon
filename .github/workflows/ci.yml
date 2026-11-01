@@ -146,7 +146,8 @@ jobs:
           if (( ${#tasks[@]} == 1 )) && [[ -z "${tasks[0]}" ]]; then tasks=(); fi
           # Owner tasks keep their canonical one-to-one queue contract. The
           # existing Formal checker is a source-only task, not a fake Owner:
-          # only an exact tools/formal/ change can append formal:verify.
+          # exact Formal source, the source-bound Harness adapter, or root
+          # Formal task wiring can append formal:verify.
           # Reuse the same native validator as the repository regression tests.
           python3 - "$owners_file" "$tasks_file" "$RUNNER_TEMP/ordivon-convergence-plan.json" <<'PY'
           import json
@@ -498,6 +499,7 @@ jobs:
               "tools/formal/ProofKani.rs",
               "tools/formal/Proof.qnt",
               "tools/formal/Proof.als",
+              "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
           }
           REQUIRED_TOOLS = {"lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy"}
 
@@ -534,6 +536,17 @@ jobs:
                   and report.get("toolQualification")
                       == "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST"
                   and report.get("proofReuseAdmissible") is False
+                  and report.get("sourceFragmentRefinement") == {
+                      "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
+                      "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
+                      "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
+                      "sourceAstAnchorsObserved": True,
+                      "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",
+                      "codeFragmentRefined": False,
+                      "sourceRefinementStanding": "UNKNOWN",
+                      "runtimeRustRefined": False,
+                      "installedCurrentness": "UNKNOWN",
+                  }
                   # Mathematical model proofs cannot silently promote their
                   # implementation or installed-effect standing to PASS.
                   # A stronger grade requires its own independently admitted

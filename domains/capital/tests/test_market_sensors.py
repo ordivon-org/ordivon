@@ -10,6 +10,30 @@ from ordivon_capital.markets.market_sensors import (
 
 
 class MarketSensorTests(unittest.TestCase):
+    def test_public_bbo_matches_finite_positive_order_contract_on_bounded_alphabet(self):
+        # Executable finite-refinement witness, NOT a proof over every Decimal.
+        from decimal import Decimal, InvalidOperation
+
+        from ordivon_capital.markets.market_sensors import qualified_public_bbo
+
+        alphabet = ("-1", "0", "0.5", "1", "2", "NaN", "Infinity", "invalid")
+        for bid in alphabet:
+            for ask in alphabet:
+                with self.subTest(bid=bid, ask=ask):
+                    try:
+                        b, a = Decimal(bid), Decimal(ask)
+                        expected = b.is_finite() and a.is_finite() and 0 < b <= a
+                    except InvalidOperation:
+                        expected = False
+                    if expected:
+                        actual_bid, actual_ask = qualified_public_bbo(
+                            bid, ask, source="bounded-test"
+                        )
+                        self.assertEqual((actual_bid, actual_ask), (b, a))
+                    else:
+                        with self.assertRaises(MarketSensorError):
+                            qualified_public_bbo(bid, ask, source="bounded-test")
+
     def test_open_interest_change_requires_ordered_same_instrument_window(self):
         result = open_interest_change([
             {"instrumentId": "SNDK-USDT-SWAP", "observedAtMs": 1000, "openInterestUsd": "100"},

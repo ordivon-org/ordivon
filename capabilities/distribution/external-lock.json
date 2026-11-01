@@ -2,15 +2,6 @@
   "schemaVersion": 1,
   "observedOn": "2026-09-11",
   "activated": {
-    "opa": {
-      "repo": "https://github.com/open-policy-agent/opa.git",
-      "revision": "05c845177c80747a2aabb607f9318f981993cc76",
-      "release": "v1.21.4",
-      "containerImage": "docker.io/openpolicyagent/opa:1.21.4-static",
-      "containerDigest": "sha256:47f93480b09e24c220ae75f1e9133585ba6d698059951668d35e6a4fc32ebc82",
-      "role": "policy-decision-point",
-      "lastQualifiedOn": "2026-10-24"
-    },
     "postiz": {
       "repo": "https://github.com/gitroomhq/postiz-app.git",
       "revision": "36d5fc7b3ac3f17178b1589cf7a7337523017a41",
@@ -33,12 +24,33 @@
     }
   },
   "availableNotActivatedR1": {
-    "cloudevents": {"repo":"https://github.com/cloudevents/spec.git","revision":"2ed3806b4ad8fda35813263cfefb2d73098b7655"},
-    "in-toto-attestation": {"repo":"https://github.com/in-toto/attestation.git","revision":"2dcd055e9f72e746687c306e35f4e59720ff45be"},
-    "cosign": {"repo":"https://github.com/sigstore/cosign.git","revision":"633e8f4303b7db64c369bdfa315374a8bd511ac6"},
-    "tuf-spec": {"repo":"https://github.com/theupdateframework/specification.git","revision":"59e601ed29c0d2e497264ae8b31c11b8ef07df1e"},
-    "oras": {"repo":"https://github.com/oras-project/oras.git","revision":"d0da4a96a6893d2e7f44ea60a8f317a2fcce1cf9"},
-    "harbor": {"repo":"https://github.com/goharbor/harbor.git","revision":"95b28b3cd48e30c1d357f646d398fc8c7919f901"},
-    "argo-rollouts": {"repo":"https://github.com/argoproj/argo-rollouts.git","revision":"910c61ffa5db28c5fdae7593e48c01c405f019c9"}
+    "cloudevents": {
+      "repo": "https://github.com/cloudevents/spec.git",
+      "revision": "2ed3806b4ad8fda35813263cfefb2d73098b7655"
+    },
+    "in-toto-attestation": {
+      "repo": "https://github.com/in-toto/attestation.git",
+      "revision": "2dcd055e9f72e746687c306e35f4e59720ff45be"
+    },
+    "cosign": {
+      "repo": "https://github.com/sigstore/cosign.git",
+      "revision": "633e8f4303b7db64c369bdfa315374a8bd511ac6"
+    },
+    "tuf-spec": {
+      "repo": "https://github.com/theupdateframework/specification.git",
+      "revision": "59e601ed29c0d2e497264ae8b31c11b8ef07df1e"
+    },
+    "oras": {
+      "repo": "https://github.com/oras-project/oras.git",
+      "revision": "d0da4a96a6893d2e7f44ea60a8f317a2fcce1cf9"
+    },
+    "harbor": {
+      "repo": "https://github.com/goharbor/harbor.git",
+      "revision": "95b28b3cd48e30c1d357f646d398fc8c7919f901"
+    },
+    "argo-rollouts": {
+      "repo": "https://github.com/argoproj/argo-rollouts.git",
+      "revision": "910c61ffa5db28c5fdae7593e48c01c405f019c9"
+    }
   }
 }

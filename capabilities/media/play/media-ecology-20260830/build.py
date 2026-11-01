@@ -63,11 +63,20 @@ def _render(
 ) -> str:
     feed = projection["feed"]
     threads = projection["threads"]
-    collections = projection["collections"]
+    raw_collections = projection["collections"]
     board_source_fence = projection.get("boardSourceFence")
     assert isinstance(feed, dict)
     assert isinstance(threads, list)
-    assert isinstance(collections, list)
+    if not isinstance(raw_collections, list):
+        raise ValueError("projection.collections must be a list")
+    # --projection is an independent, real HTML ingress. It must satisfy the
+    # same source-object contract as the Collection CLI before rendering any
+    # provenance badge. Shape qualification is not source-byte attestation.
+    collections = []
+    for raw_collection in raw_collections:
+        if not isinstance(raw_collection, dict):
+            raise ValueError("projection collection must be an object")
+        collections.append(validate_collection(raw_collection))
 
     if isinstance(board_source_fence, dict):
         source_kind = str(board_source_fence.get("kind"))

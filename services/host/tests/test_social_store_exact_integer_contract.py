@@ -128,3 +128,42 @@ def test_ack_topic_cursor_accepts_exact_integer_to_sql_boundary(monkeypatch) -> 
             cursor=0,
             client_request_id="host-int-contract:valid-ack",
         )
+
+
+def test_host_search_preserves_cjk_literal_substring_and_english_fts(monkeypatch) -> None:
+    """Agent retrieval must find a Chinese phrase embedded in a larger token.
+
+    No test database is needed for checking the SQL and bound argument; a
+    separate PostgreSQL consumer test checks the actual substring behavior.
+    """
+    observed: list[tuple[str, tuple[object, ...]]] = []
+
+    class FakeConnection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def transaction(self):
+            return self
+
+        def execute(self, statement, parameters=None):
+            if parameters is not None:
+                observed.append((statement, parameters))
+            return self
+
+        def fetchall(self):
+            return []
+
+    monkeypatch.setattr(social_store.psycopg, "connect", lambda *_args, **_kw: FakeConnection())
+    store = SocialStore("postgresql://not-used/host")
+    for query, cjk in (("终端消费", True), ("LEGO", False), ("中文 LEGO", False)):
+        observed.clear()
+        result = store.search_messages(query)
+        assert result["messages"] == []
+        assert len(observed) == 1
+        sql, args = observed[0]
+        assert args[0] == query
+        assert "strpos(body,%s)>0" in sql if cjk else "websearch_to_tsquery" in sql
+        assert query not in sql  # No user query is interpolated into SQL text.

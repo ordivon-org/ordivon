@@ -602,6 +602,102 @@
         "Source complexity decreases without adding a generic Fabric, effect framework or provider registry."
       ],
       "nextAction": "Measure deleted responsibilities and code after each extraction; closure is deletion, not another abstraction layer."
+    },
+    {
+      "id": "R19",
+      "label": "PostgresRegistryAdmissionChallenger",
+      "kind": "replacement_candidate",
+      "responsibility": "Provide a bounded native PostgreSQL transactional challenger for Runtime admission, cancel intent/readback and no-Artifact terminalization while full Registry lifecycle parity remains unimplemented.",
+      "authority": "SOURCE_CHALLENGER_ONLY_NO_INSTALLED_RUNTIME_AUTHORITY",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "crates/ordivon-runtime-core/src/pg_admission.rs",
+        "scripts/tests/test_pg_physical_verification_contract.py",
+        "mise.toml#test:postgres-registry:physical",
+        "mise.toml#test:postgres-registry:stage"
+      ],
+      "dependencies": [
+        "R03",
+        "R06"
+      ],
+      "mustNotOwn": [
+        "installed Runtime durable authority",
+        "generic SQLite/PostgreSQL backend switching",
+        "Artifact-bearing terminal commits",
+        "dispatch/bind-running lifecycle",
+        "full query/list/inspection surface",
+        "repair/recovery/release/Workspace-close parity",
+        "migration promotion"
+      ],
+      "replacementCoverage": [
+        {
+          "operation": "atomic admission + idempotent replay + capacity reservation",
+          "standing": "SOURCE_IMPLEMENTED_PHYSICAL_PG18_QUALIFICATION_REQUIRED"
+        },
+        {
+          "operation": "cancel intent mutation + exact separate-connection readback",
+          "standing": "SOURCE_IMPLEMENTED_PHYSICAL_PG18_QUALIFICATION_REQUIRED"
+        },
+        {
+          "operation": "no-Artifact terminal CAS + reservation release/orphan hold",
+          "standing": "SOURCE_IMPLEMENTED_PHYSICAL_PG18_QUALIFICATION_REQUIRED"
+        },
+        {
+          "operation": "schema/PK/UNIQUE/FK qualification",
+          "standing": "SOURCE_IMPLEMENTED_PHYSICAL_PG18_QUALIFICATION_REQUIRED"
+        },
+        {
+          "operation": "concurrent duplicate admission",
+          "standing": "SOURCE_IMPLEMENTED_PHYSICAL_PG18_QUALIFICATION_REQUIRED"
+        },
+        {
+          "operation": "Artifact-bearing terminal commit",
+          "standing": "EXPLICITLY_BLOCKED"
+        },
+        {
+          "operation": "dispatch/start/running provider lifecycle",
+          "standing": "UNKNOWN_NOT_IMPLEMENTED"
+        },
+        {
+          "operation": "general job/list/artifact/query projections",
+          "standing": "UNKNOWN_NOT_IMPLEMENTED"
+        },
+        {
+          "operation": "repair/recovery/reconciliation admin operations",
+          "standing": "UNKNOWN_NOT_IMPLEMENTED"
+        },
+        {
+          "operation": "release/Workspace close/backup/restore",
+          "standing": "UNKNOWN_NOT_IMPLEMENTED"
+        },
+        {
+          "operation": "installed writer promotion and cross-OS cutover",
+          "standing": "UNKNOWN_NOT_AUTHORIZED"
+        }
+      ],
+      "consumerBindings": [
+        {
+          "path": "crates/ordivon-runtime-core/src/pg_admission.rs#live_pg_tests",
+          "standing": "NATIVE_PG18_PHYSICAL_TEST_CONSUMER_WHEN_EXPLICIT_DSN"
+        },
+        {
+          "path": "planning/lego-plan-r1.json#RW12",
+          "standing": "PLANNED_CUTOVER_CONSUMER_NOT_INSTALLED"
+        }
+      ],
+      "acceptance": [
+        "Regular source/unit verification reports PG physical cases as ignored rather than silently PASS when no DSN is supplied.",
+        "Dedicated physical qualification fails closed when ORDIVON_PG_TEST_DSN is absent and executes all ten pg18_* tests when present.",
+        "The historical stage non-authority test is a separate obligation requiring ORDIVON_PG_STAGE_TEST_DSN; lack of stage evidence never becomes PASS.",
+        "Only operations listed SOURCE_IMPLEMENTED_PHYSICAL_PG18_QUALIFICATION_REQUIRED are eligible for an exact-source physical PASS; UNKNOWN/blocked operations prevent Engine cutover and this node never gains installed authority from source metadata."
+      ],
+      "formalObligations": [
+        "Kani terminal-transition proof and PG18 physical tests cover only the declared bounded operations; they do not establish full Registry contextual refinement.",
+        "RW12 must prove remaining consumer operations and one-writer installed cutover before R19 may refine R06 for production."
+      ],
+      "qualification": "SOURCE_IMPLEMENTED_PARTIAL_PG_CHALLENGER_PHYSICAL_AND_INSTALLED_CURRENTNESS_EXTERNAL",
+      "nextAction": "Extend only the next actual Engine Registry consumer operation under native SQLite-vs-PG differential/physical evidence; do not add a generic backend switch or dual writer."
     }
   ],
   "edges": [
@@ -772,6 +868,18 @@
       "to": "R18",
       "type": "DELETION",
       "label": "only proven replacement permits old aggregation deletion"
+    },
+    {
+      "from": "R06",
+      "to": "R19",
+      "type": "REALIZATION",
+      "label": "bounded PostgreSQL challenger realizes a strict subset of the Registry storage seam"
+    },
+    {
+      "from": "R03",
+      "to": "R19",
+      "type": "STATE",
+      "label": "PG challenger must preserve Job/Attempt state semantics for covered operations"
     }
   ],
   "slices": [
@@ -1075,7 +1183,8 @@
         "R06",
         "R11",
         "R12",
-        "R17"
+        "R17",
+        "R19"
       ],
       "acceptance": [
         "Bounded cutover model RuntimePgCutoverR1 passes TLC on the currently locked upstream toolchain, checking owner typing, certified promotion, committed PostgreSQL effect preservation and frozen-source parity.",
@@ -1091,7 +1200,8 @@
         "PHASE L3 RETIRE: after cross-process real-world readback and post-restart recovery acceptance, retire inactive SQLite writers, redundant branches and obsolete switch/dual-database glue by exact consumer-through and native deletion checks. Keep source backups until restore obligations are proven; no blind cleanup and no permanent bidirectional switch manager.",
         "FORMAL COMPOSITION: refine the existing single-owner RuntimePgCutoverR1 state machine with WindowsPgReady, WindowsControlReady, LinuxQuiesced and LinuxPgReady observations; require LinuxPgReady => WindowsPgReady /\\ WindowsControlReady /\\ LinuxQuiesced /\\ LinuxParityCertified; never have old/new writer authority for the same Runtime simultaneously, and never rollback a committed independent PG effect. Check named counterexamples for early Linux promotion, control-session loss, stale revision, unequal parity, orphaned Attempt and concurrent installed writer. A TLC PASS is scoped to the encoded finite model, not proof of SCM/wsl/Rust/PG physical implementation.",
         "STOP CONDITIONS: no independent PG availability, nonmatching original SourceCut, unknown unique committed Job/effect, noncanonical session/principal/executable identity, ambiguous Windows-to-Linux control reachability, failed physical parity, multiple live writers, missing Native Owner test or failed GitHub protected CI => do not promote. Record typed UNKNOWN and retain recoverable source until the exact problem is resolved.",
-        "DATA_RETENTION_UNPROVEN/CONSUMER_CLOSURE: before any Runtime SQLite-to-PostgreSQL import, run the existing-owner read-only source-bound pg_retention_census.py and qualify the union of unresolved Jobs, running/recovery Attempts and unreleased Reservations; terminal Jobs, events, artifacts and old idempotency keys are NOT automatically copied or deleted without an executable replay/observability/effect consumer and any applicable retention obligation. Zero-row tables require no row transfer; old schema_migrations describe the SQLite format, not rows of a new PostgreSQL schema. Count-only census has no authority to certify PG physical cutover or destructive retirement."
+        "DATA_RETENTION_UNPROVEN/CONSUMER_CLOSURE: before any Runtime SQLite-to-PostgreSQL import, run the existing-owner read-only source-bound pg_retention_census.py and qualify the union of unresolved Jobs, running/recovery Attempts and unreleased Reservations; terminal Jobs, events, artifacts and old idempotency keys are NOT automatically copied or deleted without an executable replay/observability/effect consumer and any applicable retention obligation. Zero-row tables require no row transfer; old schema_migrations describe the SQLite format, not rows of a new PostgreSQL schema. Count-only census has no authority to certify PG physical cutover or destructive retirement.",
+        "R19 is admitted only as a partial source challenger: its bounded admission/cancel/no-Artifact-terminal operations require an exact-source fresh-schema PG18 physical PASS; every UNKNOWN/blocked Registry operation prevents installed cutover."
       ],
       "evidence": [
         "Runtime R06 existing natural Owner Registry and its native transactional and recovery consumers.",
@@ -1108,10 +1218,12 @@
         "W0 Windows Registry witness (2026-10-26): limited Windows service token read ORDIVON_REGISTRY_ROOT (4 immediate files) and ORDIVON_STORE_ROOT, and runtime env contained no configured PostgreSQL Registry backend key; installed Rust Registry still depends on rusqlite. No secret config values collected, no state migrated.",
         "W2 control witness (2026-10-26): native Windows Runtime active_user ZYCXFYH/16663 invoked wsl.exe -d archlinux -u root, returned uid 0 and active Linux ordivon-runtime.service status. Service limited identity failed to resolve that user WSL distro (WSL_E_DISTRO_NOT_FOUND). Session longevity, logout/restart continuity, and any stop/start effect remain UNVERIFIED.",
         "services/runtime/scripts/pg_retention_census.py: bounded read-only SQLite source snapshot, sanitized row/cohort counts and unconditional STOP for PG cutover.",
-        "services/runtime/scripts/tests/test_pg_retention_census.py: synthetic live, terminal-but-reserved, recovery-required, orphan, missing schema and literal reserved filename cases."
+        "services/runtime/scripts/tests/test_pg_retention_census.py: synthetic live, terminal-but-reserved, recovery-required, orphan, missing schema and literal reserved filename cases.",
+        "crates/ordivon-runtime-core/src/pg_admission.rs: feature-gated native PostgreSQL challenger, intentionally not consumed by installed Engine.",
+        "mise.toml test:postgres-registry:physical: explicit DSN-gated physical PG18 qualification; normal tests cannot silently convert missing PG into PASS."
       ],
       "blockers": [
-        "Installed Runtime PostgreSQL store implementation and exact SQL Schema/CAS transaction mapping not yet implemented or qualified.",
+        "R19 covers only admission/cancel/no-Artifact-terminal and schema/concurrency fences; Artifact terminal, dispatch/running lifecycle, full queries, repair/recovery/reconciliation, release/Workspace-close/backup/restore and installed promotion remain unimplemented or UNKNOWN.",
         "No independent physical cross-database checkpoint, row/digest/cursor parity, bounded dual-read equivalence and provider-effect recovery proof exists.",
         "W0: exact Windows PG installation, credentials, isolation and both installed Runtime candidate Registry locations not yet qualified; no physical migration may start before verified independent PG.",
         "W2: persistent Windows user-session Linux control after logout, reboot and Windows service restart is UNKNOWN; Windows LocalSystem WSL cannot be substituted for active_user.",

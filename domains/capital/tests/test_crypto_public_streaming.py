@@ -15,6 +15,27 @@ class StreamingSnapshotTests(unittest.TestCase):
         x=evaluate_snapshot(latest)
         self.assertTrue(x['qualified']); self.assertEqual(x['reason'],'PASS')
         self.assertLessEqual(x['sourceTimeSpanMs'],1200); self.assertLessEqual(x['receiveTimeSpanMs'],1200)
+    def test_each_real_stream_quote_rejects_all_bad_bid_ask_classes(self):
+        invalid = (("crossed", "102", "101"), ("negative-bid", "-1", "101"),
+                   ("negative-ask", "100", "-101"), ("zero", "0", "101"),
+                   ("NaN", "NaN", "101"), ("Infinity", "Infinity", "101"),
+                   ("malformed", "unavailable", "101"))
+        for key in KEYS:
+            for label, bid, ask in invalid:
+                with self.subTest(stream=key, invalid=label):
+                    latest = {
+                        "OKX:BTC": row(1000, 1_000_000_000),
+                        "OKX:ETH": row(1010, 1_010_000_000),
+                        "BINANCE:BTC": row(1100, 1_100_000_000),
+                        "BINANCE:ETH": row(1110, 1_110_000_000),
+                    }
+                    latest[key] = {**latest[key], "bid": bid, "ask": ask}
+                    result = evaluate_snapshot(latest)
+                    self.assertFalse(result["qualified"])
+                    self.assertEqual(result["reason"], "INVALID_BBO")
+                    self.assertEqual(result["invalid"], [key])
+                    self.assertNotIn("comparisons", result)
+
     def test_previous_snapshot_requires_every_stream_to_advance(self):
         prev={k:row(1000,1_000_000_000) for k in KEYS}
         cur={k:row(1001,1_100_000_000) for k in KEYS}; cur['OKX:BTC']=row(1000,1_100_000_000)

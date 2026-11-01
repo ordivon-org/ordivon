@@ -574,6 +574,95 @@ def test_work_snapshot_response_loss_replay_with_new_request_id_is_existing() ->
     assert replay["admission"] == "existing"
 
 
+def test_topic_message_identity_waits_for_real_pg_topic_no_key_update_lock() -> None:
+    """A real independent PG writer cannot allocate a visible topic message early.
+
+    The lock held here is intentionally FOR NO KEY UPDATE, compatible with
+    messages' FK KEY SHARE. Without the Host's explicit same-topic row fence,
+    the post can commit while the other transaction still owns the topic.
+    """
+    import threading
+    from time import monotonic
+
+    assert DSN is not None
+    token = uuid4().hex
+    actor = f"actor:agent:topic-prefix:{token}"
+    space_ref = f"space:topic-prefix:{token}"
+    topic_ref = f"topic:topic-prefix:{token}"
+    msg_ref = f"message:topic-prefix:{token}"
+    work = WorkStore(DSN)
+    social = SocialStore(DSN)
+    declare_actor(work, actor)
+    social.create_space(
+        SpaceInput(space_ref=space_ref, actor_ref=actor, purpose="topic prefix lock"),
+        client_request_id=f"space:{space_ref}",
+    )
+    social.create_topic(
+        TopicInput(topic_ref=topic_ref, space_ref=space_ref, actor_ref=actor, title="race"),
+        client_request_id=f"topic:{topic_ref}",
+    )
+    payload = MessageInput(
+        message_ref=msg_ref,
+        client_request_id=f"message:{msg_ref}",
+        space_ref=space_ref,
+        topic_ref=topic_ref,
+        author_actor_ref=actor,
+        message_kind=MessageKind.FINDING,
+        body="topic lock source-level consumer witness",
+        recorded_at_ms=123,
+    )
+    started = threading.Event()
+
+    def post_message() -> dict:
+        started.set()
+        return social.post_message(payload)
+
+    with psycopg.connect(DSN) as blocker, psycopg.connect(DSN) as observer:
+        # Keep the independent topic owner transaction open. This lock does
+        # NOT block ordinary FK KEY SHARE on message insertion.
+        blocker.execute(
+            "SELECT topic_ref FROM topics WHERE topic_ref=%s FOR NO KEY UPDATE",
+            (topic_ref,),
+        ).fetchone()
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(post_message)
+            assert started.wait(timeout=5)
+            saw_blocked_actual_sql = False
+            completed_before_release = False
+            try:
+                deadline = monotonic() + 6
+                while monotonic() < deadline:
+                    if future.done():
+                        completed_before_release = True
+                        break
+                    row = observer.execute(
+                        "SELECT EXISTS("
+                        "SELECT 1 FROM pg_stat_activity "
+                        "WHERE pid <> pg_backend_pid() AND datname=current_database() "
+                        "AND wait_event_type='Lock' AND query LIKE %s)",
+                        ("%FROM topics WHERE topic_ref=% FOR NO KEY UPDATE%",),
+                    ).fetchone()
+                    # pg_stat_activity statistics are transaction-snapshot cached.
+                    # Refresh every observation; otherwise a real PG lock wait
+                    # can be invisible to this test for the entire transaction.
+                    observer.commit()
+                    if row is not None and row[0]:
+                        saw_blocked_actual_sql = True
+                        break
+                    sleep(0.03)
+            finally:
+                # Release the independent holder *before* raising any failed
+                # assertion, so the worker pool can never deadlock on teardown.
+                blocker.commit()
+            assert saw_blocked_actual_sql, "real Host writer did not wait on the topic row fence"
+            assert not completed_before_release, "message admitted before topic owner released lock"
+            admitted = future.result(timeout=6)
+
+    assert admitted["admission"] == "committed"
+    assert social.get_message(msg_ref)["messageRef"] == msg_ref
+    assert [m["messageRef"] for m in social.resume_topic(topic_ref)["messages"]] == [msg_ref]
+
+
 def test_attention_change_clock_serializes_commit_order_and_rollback_has_no_hole() -> None:
     import threading
     import time
@@ -1091,3 +1180,85 @@ def test_work_read_rejects_postgres_modified_current_pointer_digest() -> None:
         )
     with pytest.raises(RuntimeError, match="current Work snapshot pointer digest differs"):
         store.get_work(work)
+
+
+
+def test_reply_relation_must_point_to_earlier_committed_message() -> None:
+    """A later reply is causal; self/backward replies must not form loops."""
+    assert DSN is not None
+    work = WorkStore(DSN)
+    social = SocialStore(DSN)
+    actor, _ = refs("reply-order")
+    declare_actor(work, actor)
+    space_ref = f"space:reply-order:{uuid4().hex}"
+    topic_ref = f"topic:reply-order:{uuid4().hex}"
+    social.create_space(
+        SpaceInput(space_ref=space_ref, purpose="causal-replies", actor_ref=actor),
+        client_request_id=f"space:{space_ref}",
+    )
+    social.create_topic(
+        TopicInput(topic_ref=topic_ref, space_ref=space_ref, title="causal", actor_ref=actor),
+        client_request_id=f"topic:{topic_ref}",
+    )
+    earlier = f"message:{uuid4().hex}"
+    later = f"message:{uuid4().hex}"
+    first = social.post_message(
+        MessageInput(
+            message_ref=earlier,
+            client_request_id=f"post:{earlier}",
+            space_ref=space_ref,
+            topic_ref=topic_ref,
+            author_actor_ref=actor,
+            body="original",
+            recorded_at_ms=2,
+        )
+    )
+    second = social.post_message(
+        MessageInput(
+            message_ref=later,
+            client_request_id=f"post:{later}",
+            space_ref=space_ref,
+            topic_ref=topic_ref,
+            author_actor_ref=actor,
+            body="reply",
+            recorded_at_ms=1,  # client clock order is irrelevant
+        )
+    )
+    assert second["sequence"] > first["sequence"]
+    valid = social.add_message_relation(
+        MessageRelationInput(
+            source_message_ref=later,
+            relation=MessageRelationKind.REPLY_TO,
+            target_ref=earlier,
+            actor_ref=actor,
+        ),
+        client_request_id=f"valid-reply:{later}",
+    )
+    assert valid["admission"] == "committed"
+
+    for source, target in ((earlier, earlier), (earlier, later), (later, later)):
+        with pytest.raises(ConflictError, match="earlier message"):
+            social.add_message_relation(
+                MessageRelationInput(
+                    source_message_ref=source,
+                    relation=MessageRelationKind.REPLY_TO,
+                    target_ref=target,
+                    actor_ref=actor,
+                ),
+                client_request_id=f"invalid-reply:{source}:{target}",
+            )
+
+    # References are deliberately NOT a causal reply relation.
+    retro_reference = social.add_message_relation(
+        MessageRelationInput(
+            source_message_ref=earlier,
+            relation=MessageRelationKind.REFERENCES,
+            target_ref=later,
+            actor_ref=actor,
+        ),
+        client_request_id=f"backward-reference:{earlier}",
+    )
+    assert retro_reference["admission"] == "committed"
+    actual = social.list_message_relations(earlier, direction="outgoing")
+    assert not any(row["relation"] == "reply_to" for row in actual["relations"])
+    assert any(row["relation"] == "references" for row in actual["relations"])

@@ -75,13 +75,25 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
         carrier = (ROOT / "capabilities/artifact/scripts/artifact_oci_package.py").read_text(encoding="utf-8")
         self.assertIn('os.environ.get("ARTIFACT_OPA"', carrier)
         self.assertIn('sha256_file(DEFAULT_OPA)', carrier)
-        for owner in ("platform/security", "capabilities/distribution"):
-            manifest = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
-            self.assertIn("opa", manifest["tools"])
+        active_security = tomllib.loads(
+            (ROOT / "platform/security/mise.toml").read_text(encoding="utf-8")
+        )
+        self.assertIn("opa", active_security["tools"])
+        # Distribution's synthetic R7 n8n consumer uses a JSON intent fixture,
+        # not its formerly self-tested Python/OPA decision interpreter.
+        retired = tomllib.loads(
+            (ROOT / "capabilities/distribution/mise.toml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("opa", retired["tools"])
+        self.assertFalse((ROOT / "capabilities/distribution/policy/distribution.rego").exists())
+        self.assertTrue(
+            (ROOT / "capabilities/distribution/evidence/"
+             "r7-artifact-development-publication-intent.json").is_file()
+        )
 
     def test_active_opa_policy_owners_consume_one_current_version(self):
-        """Current OPA policy consumers converge; no stale Mise OPA release."""
-        owners = ("platform/security", "capabilities/distribution", "meta/next")
+        """Actual Security and Next OPA consumers converge; no unused Distribution pin."""
+        owners = ("platform/security", "meta/next")
         versions = {
             owner: tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
             ["tools"]["opa"]

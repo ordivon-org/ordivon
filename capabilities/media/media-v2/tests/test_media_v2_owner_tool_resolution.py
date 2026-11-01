@@ -16,6 +16,8 @@ class MediaV2OwnerToolResolutionTests(unittest.TestCase):
             "bin/probe-timed-text.sh",
             "tests/otio-smoke.sh",
             "tests/timedtext-smoke.sh",
+            "tests/audio-smoke.sh",
+            "tests/smoke.sh",
         ):
             path = MEDIA_V2 / relative
             line = next(

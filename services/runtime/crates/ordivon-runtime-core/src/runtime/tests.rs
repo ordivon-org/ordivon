@@ -5046,15 +5046,26 @@ fn terminal_commit_is_atomic_idempotent_and_releases_capacity() {
         exit_code: Some(0),
         infrastructure_error_digest: None,
         finished_at_ms: 13,
-        artifacts: vec![ArtifactRegistration {
-            artifact_id: "artifact:stdout".to_string(),
-            kind: "stdout".to_string(),
-            relative_path: "stdout.log".to_string(),
-            digest: digest(b"output"),
-            media_type: "text/plain".to_string(),
-            byte_length: 6,
-            truncated: false,
-        }],
+        artifacts: vec![
+            ArtifactRegistration {
+                artifact_id: "artifact:stdout".to_string(),
+                kind: "stdout".to_string(),
+                relative_path: "stdout.log".to_string(),
+                digest: digest(b"output"),
+                media_type: "text/plain".to_string(),
+                byte_length: 6,
+                truncated: false,
+            },
+            ArtifactRegistration {
+                artifact_id: "artifact:stderr".to_string(),
+                kind: "stderr".to_string(),
+                relative_path: "stderr.log".to_string(),
+                digest: digest(b"error"),
+                media_type: "text/plain".to_string(),
+                byte_length: 5,
+                truncated: false,
+            },
+        ],
         reason_code: "PROCESS_EXIT_ZERO".to_string(),
     };
     let projection = sandbox.registry.commit_terminal(&terminal).unwrap();
@@ -5084,11 +5095,74 @@ fn terminal_commit_is_atomic_idempotent_and_releases_capacity() {
             .list_artifacts(&created.job.job_id)
             .unwrap()
             .len(),
-        1
+        2
     );
     assert_eq!(
         sandbox.registry.commit_terminal(&terminal).unwrap(),
         projection
+    );
+    // Artifact registration order is not part of set-valued effect identity.
+    let mut reordered = terminal.clone();
+    reordered.artifacts.reverse();
+    assert_eq!(
+        sandbox.registry.commit_terminal(&reordered).unwrap(),
+        projection
+    );
+
+    // The result digest is not a digest of every independently registered
+    // Artifact effect. Try each independently consumed registration facet and
+    // exact cardinality, without changing the already qualified result.
+    let mut candidates = Vec::new();
+    let mut changed = terminal.clone();
+    changed.artifacts[0].artifact_id = "artifact:replaced".to_string();
+    candidates.push(("artifact_id", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts[0].digest = digest(b"different-output");
+    candidates.push(("digest", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts[0].kind = "stderr".to_string();
+    candidates.push(("kind", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts[0].relative_path = "different.log".to_string();
+    candidates.push(("relative_path", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts[0].media_type = "application/json".to_string();
+    candidates.push(("media_type", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts[0].byte_length += 1;
+    candidates.push(("byte_length", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts[0].truncated = true;
+    candidates.push(("truncated", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts.clear();
+    candidates.push(("missing", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts.push(changed.artifacts[0].clone());
+    changed.artifacts[1].artifact_id = "artifact:extra".to_string();
+    candidates.push(("extra", changed));
+    let mut changed = terminal.clone();
+    changed.artifacts.push(changed.artifacts[0].clone());
+    candidates.push(("duplicate", changed));
+    for (facet, changed) in candidates {
+        let error = sandbox.registry.commit_terminal(&changed).unwrap_err();
+        assert_eq!(
+            error.code,
+            RuntimeErrorCode::ArtifactIdentityConflict,
+            "{facet}"
+        );
+    }
+    assert_eq!(
+        sandbox.registry.commit_terminal(&terminal).unwrap(),
+        projection
+    );
+    assert_eq!(
+        sandbox
+            .registry
+            .list_artifacts(&created.job.job_id)
+            .unwrap()
+            .len(),
+        2
     );
 
     let mut conflict = terminal;

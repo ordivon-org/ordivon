@@ -618,6 +618,9 @@ def test_non_r1_owner_carriers_have_typed_source_envelopes(
         candidate = tmp_path / relative
         candidate.parent.mkdir(parents=True, exist_ok=True)
         candidate.write_bytes((ROOT / relative).read_bytes())
+    host_r1 = tmp_path / "services/host/planning/lego-plan-r1.json"
+    host_r1.parent.mkdir(parents=True, exist_ok=True)
+    host_r1.write_bytes((ROOT / "services/host/planning/lego-plan-r1.json").read_bytes())
     module.validate_owner_plan_projection_carriers(tmp_path)
     target = tmp_path / carrier
     content = json.loads(target.read_text(encoding="utf-8"))
@@ -1958,6 +1961,47 @@ def test_agent_compact_source_impact_keeps_unknown_unindexed_and_finite_proof_sc
     assert result["afterSourceCut"] == original["afterSourceCut"]
 
 
+def test_agent_source_projection_refines_bounded_formal_filter_and_keeps_future_unknowns() -> None:
+    """Executable bounded model bridge for the native Lean filter law.
+
+    This is NOT a proof of all Python states, runtime consumers or readsets.
+    """
+    import itertools
+
+    standings = (
+        "NO_DECLARED_HIT", "UNKNOWN", "RECHECK_REQUIRED",
+        "SOURCE_CHANGED", "UNRECOGNIZED_FUTURE_STANDING",
+    )
+    for length in range(5):
+        for sequence in itertools.product(standings, repeat=length):
+            rows = [{"ref": f"R{i}", "sourceImpactStanding": standing}
+                    for i, standing in enumerate(sequence)]
+            source = {"proofReuseAdmissible": False, "standingByDeclaredNode": rows}
+            observed = module._select_agent_source_impact(source)
+            expected = [row for row in rows
+                        if row["sourceImpactStanding"] != "NO_DECLARED_HIT"]
+            assert observed["standingByDeclaredNode"] == expected
+            assert observed["omittedNoDeclaredHitCount"] == len(rows) - len(expected)
+            assert observed["proofReuseAdmissible"] is False
+            assert source["standingByDeclaredNode"] == rows
+
+
+def test_agent_source_projection_rejects_forged_reuse_or_missing_qualification() -> None:
+    """Reusing proof without actual closed dependency evidence is forbidden."""
+    for forged in (True, None, 0, "PASS"):
+        with pytest.raises(module.ArchitectureDocsError, match="proofReuseAdmissible=false"):
+            module._select_agent_source_impact({
+                "proofReuseAdmissible": forged,
+                "standingByDeclaredNode": [
+                    {"ref": "R1", "sourceImpactStanding": "NO_DECLARED_HIT"},
+                ],
+            })
+    with pytest.raises(module.ArchitectureDocsError, match="proofReuseAdmissible=false"):
+        module._select_agent_source_impact({
+            "standingByDeclaredNode": [{"ref": "R1", "sourceImpactStanding": "UNKNOWN"}],
+        })
+
+
 def test_agent_compact_source_impact_does_not_discard_new_unknown_categories() -> None:
     sample = {
         "proofReuseAdmissible": False,
@@ -2045,6 +2089,40 @@ def test_agent_native_source_path_to_owner_to_single_contract() -> None:
     assert len(json.dumps(result)) < len(json.dumps(
         module.project_owner_lego_source_graph(ROOT, source_revision=revision)
     )) // 3
+
+
+def test_agent_native_repo_navigation_fallback_is_not_registered_authority() -> None:
+    """Repo CLI lookup has a useful navigational fallback, not an Owner grant."""
+    import subprocess
+
+    revision = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    fallback = module.inspect_owner_source_path(
+        source_revision=revision,
+        source_path="tools/repo/source_history_legos.py",
+        root=ROOT,
+    )
+    assert fallback["ownerPartitions"] == [{
+        "name": "tools/repo",
+        "root": "tools/repo/",
+        "registrationStanding": "REPO_MECHANICS_FALLBACK_NOT_REGISTERED",
+        "verifyTask": "repo:ci",
+        "queueVerifyTask": "repo:ci",
+    }]
+    assert fallback["sourceMembershipStanding"] == "TRACKED_SOURCE"
+    assert fallback["consumerProofStanding"] == "UNKNOWN"
+    assert fallback["proofReuseAdmissible"] is False
+
+    real = module.inspect_owner_source_path(
+        source_revision=revision,
+        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        root=ROOT,
+    )
+    assert real["ownerPartitions"][0]["registrationStanding"] == (
+        "REGISTERED_VERIFICATION_OWNER_AT_SOURCECUT"
+    )
+    assert real["ownerPartitions"][0]["verifyTask"] == "gateway:verify"
 
 
 def test_agent_native_unknown_path_does_not_upgrade_no_consumer() -> None:
@@ -2400,4 +2478,45 @@ def test_repository_formal_declaration_removed_reopens_only_formal_gap() -> None
         )
         assert not exhaustive_coverage.declared_values(
             copy, exhaustive_coverage.FIELDS["FORMAL"]
+        )
+
+
+def test_host_r3_semantic_alignment_is_total_source_projection_not_equivalence() -> None:
+    r1 = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
+    r3 = json.loads((ROOT / "services/host/planning/lego-plan-r3.json").read_text())
+    module.validate_host_r3_semantic_alignment(ROOT, r3)
+    assert set(r3["semanticAlignment"]["mapping"]) == {
+        row["id"] for row in r3["retained"]
+    }
+    assert {
+        target
+        for targets in r3["semanticAlignment"]["mapping"].values()
+        for target in targets
+    } == {row["id"] for row in r1["nodes"]}
+    slice_ = next(row for row in r1["slices"] if row["id"] == "HR3ALIGN")
+    assert slice_["status"] == "IMPLEMENTED"
+    assert "UNKNOWN" in " ".join(slice_["acceptance"])
+
+
+@pytest.mark.parametrize("mutation", ("missing_retained", "unknown_target", "source_revision"))
+def test_host_r3_semantic_alignment_fails_closed(mutation: str, tmp_path: Path) -> None:
+    r1_path = tmp_path / "services/host/planning/lego-plan-r1.json"
+    r3_path = tmp_path / "services/host/planning/lego-plan-r3.json"
+    r1_path.parent.mkdir(parents=True)
+    r1_path.write_bytes((ROOT / "services/host/planning/lego-plan-r1.json").read_bytes())
+    r3_path.write_bytes((ROOT / "services/host/planning/lego-plan-r3.json").read_bytes())
+    r3 = json.loads(r3_path.read_text())
+    if mutation == "missing_retained":
+        del r3["semanticAlignment"]["mapping"][r3["retained"][0]["id"]]
+        message = "retained coverage drift"
+    elif mutation == "unknown_target":
+        r3["semanticAlignment"]["mapping"][r3["retained"][0]["id"]] = ["NOT_A_R1_NODE"]
+        message = "unknown Host R1 node"
+    else:
+        r3["semanticAlignment"]["sourceRevision"] = "0" * 40
+        message = "source revision drift"
+    r3_path.write_text(json.dumps(r3))
+    with pytest.raises(module.ArchitectureDocsError, match=message):
+        module.validate_host_r3_semantic_alignment(
+            tmp_path, json.loads(r3_path.read_text())
         )

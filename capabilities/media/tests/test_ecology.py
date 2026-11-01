@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 
 from ordivon_studio.ecology import (
     BOARD_THREAD_TRUTH_ROLE,
@@ -529,6 +534,58 @@ class EcologyTests(unittest.TestCase):
         self.assertEqual(collection["truthRole"], COLLECTION_TRUTH_ROLE)
         self.assertEqual(len(collection["members"]), 2)
         self.assertEqual(collection["members"][0]["sourceRevision"], "a" * 40)
+
+    def test_collection_and_feed_reject_malformed_source_object_sha256(self) -> None:
+        # This is a real consumer-visible provenance claim, not a metadata-only
+        # optional field: the source digest appears in the published collection.
+        for malformed in ("Z" * 64, "A" * 64, "0" * 63, "0" * 63 + "g"):
+            with self.subTest(malformed=malformed):
+                value = _collection()
+                value["members"][0]["sourceObjects"][0]["digest"] = "sha256:" + malformed
+                with self.assertRaisesRegex(ValueError, "sourceObjects.digest"):
+                    validate_collection(value)
+                with self.assertRaisesRegex(ValueError, "sourceObjects.digest"):
+                    collection_feed_item(value)
+        self.assertEqual(
+            validate_collection(_collection())["members"][0]["sourceObjects"][0]["digest"],
+            "sha256:" + "1" * 64,
+        )
+
+    def test_real_media_ecology_html_ingress_cannot_bypass_collection_contract(self) -> None:
+        # The existing authored pilot can be re-rendered via --projection,
+        # bypassing the original collection/project CLI. The same malformed
+        # digest must be rejected before HTML output is written.
+        pilot = Path(__file__).resolve().parents[1] / "play/media-ecology-20260830"
+        good = json.loads((pilot / "projection.json").read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            valid_path = root / "valid.json"
+            bad_path = root / "invalid.json"
+            output_path = root / "collection.html"
+            valid_path.write_text(json.dumps(good), encoding="utf-8")
+            good_run = subprocess.run(
+                [sys.executable, str(pilot / "build.py"), "--projection", str(valid_path),
+                 "--html", str(output_path)],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(good_run.returncode, 0, good_run.stderr)
+            html = output_path.read_text(encoding="utf-8")
+            self.assertIn("collection:daily-cabinet:2026-08-30", html)
+            self.assertIn("sha256:", html)
+            output_path.unlink()
+            bad = json.loads(json.dumps(good))
+            bad["collections"][0]["members"][0]["sourceObjects"][0]["digest"] = (
+                "sha256:" + "Z" * 64
+            )
+            bad_path.write_text(json.dumps(bad), encoding="utf-8")
+            rejected = subprocess.run(
+                [sys.executable, str(pilot / "build.py"), "--projection", str(bad_path),
+                 "--html", str(output_path)],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn("sourceObjects.digest", rejected.stderr)
+            self.assertFalse(output_path.exists(), "invalid provenance was published as HTML")
 
     def test_collection_rejects_ephemeral_conversation_source_revision(self) -> None:
         value = _collection()

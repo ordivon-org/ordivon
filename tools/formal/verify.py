@@ -1,6 +1,8 @@
 """Opt-in native formal tools smoke and negative oracles, not a new verifier."""
 from __future__ import annotations
 
+import ast
+import copy
 import hashlib
 import json
 import os
@@ -27,6 +29,7 @@ SOURCE_FILES = (
     "tools/formal/ProofKani.rs",
     "tools/formal/Proof.qnt",
     "tools/formal/Proof.als",
+    "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
 )
 
 
@@ -91,6 +94,150 @@ def qualified_tool_binaries() -> dict[str, dict[str, str]]:
     return result
 
 
+def qualified_timeout_adapter_fragment() -> dict[str, object]:
+    """Source-bound AST *anchor* observation for ONE Python timeout seam.
+
+    R2.1 responsibility: identify model-relevant source anchors, without
+    granting an unproved semantic source-to-Lean refinement.
+    I = exact Python source & one Option Nat model profile;
+    O = anchor observation, unknown code-refinement standing;
+    S = task-local inspected source snapshot (no retained mutable state);
+    pre = parseable source with matching named methods and anchors;
+    post = anchor matches, never a proof of all accepted Python executions;
+    inv = caller rebinds, alias mutations and effects are not inferred away;
+    eff = read-only source observation; c = AST traversal, bound UNKNOWN;
+    epsilon = semantic-model correspondence UNKNOWN;
+    prov = exact Git source check by qualified_source_cut, external to this call;
+    unfold = existing Lean TimeoutConnection and actual Harness/Gateway methods.
+    Raw JSON admission precedes the Lean Option Nat domain: missing timeoutMs
+    maps to none, whereas an explicit null is invalid and must be rejected.
+    Acceptance: in-memory semantic mutants must never get CODE_REFINED.
+    """
+    path = "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+    tree = ast.parse((REPO / path).read_text(encoding="utf-8"), filename=path)
+
+    def method(owner: str, name: str) -> ast.FunctionDef:
+        cls = [x for x in tree.body if isinstance(x, ast.ClassDef) and x.name == owner]
+        if len(cls) != 1:
+            raise ValueError("unqualified timeout producer class")
+        methods = [x for x in cls[0].body if isinstance(x, ast.FunctionDef) and x.name == name]
+        if len(methods) != 1:
+            raise ValueError("unqualified timeout producer method")
+        return methods[0]
+
+    def canonical(expr: ast.AST) -> str:
+        # Python 3.14 and 3.15 differ in whether default AST context fields
+        # are printed. Normalize context on a copy, never on the source tree.
+        normalized = copy.deepcopy(expr)
+        for node in ast.walk(normalized):
+            if hasattr(node, "ctx"):
+                node.ctx = ast.Load()
+        return ast.dump(normalized, include_attributes=False, show_empty=True)
+
+    def expr(source: str) -> str:
+        return canonical(ast.parse(source, mode="eval").body)
+
+    def assign(statement: ast.stmt, target: str, value: str) -> bool:
+        return (isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and canonical(statement.targets[0]) == expr(target)
+                and canonical(statement.value) == expr(value))
+
+    lower = method("PluginGatewayExecutionBridge", "_lower_runtime_tool_call")
+    model_input = [i for i, x in enumerate(lower.body)
+                   if assign(x, "timeout", 'call.arguments.get("timeoutMs")')]
+    if len(model_input) != 1:
+        raise ValueError("timeout model input binding changed")
+
+    guard = expr('"timeoutMs" in call.arguments and (type(timeout) is not int or timeout < 1 or timeout > self.gateway_grant.max_timeout_ms)')
+    guards = [(i, x) for i, x in enumerate(lower.body)
+              if isinstance(x, ast.If) and canonical(x.test) == guard]
+    if (len(guards) != 1 or guards[0][0] <= model_input[0]
+            or len(guards[0][1].body) != 1
+            or not isinstance(guards[0][1].body[0], ast.Raise)
+            or guards[0][1].orelse):
+        raise ValueError("actual Python admission is not the modeled fail-closed precondition")
+
+    # The producer can be the original inline expression or the existing
+    # Harness formal-owner extraction confirmed by CrossHair/Z3. These are
+    # TWO exact qualified implementations of the SAME Lean Option Nat rule.
+    direct = "self.gateway_grant.max_timeout_ms if timeout is None else timeout"
+    verified_helper = "_forward_granted_timeout(self.gateway_grant.max_timeout_ms, timeout)"
+    inline = [i for i, x in enumerate(lower.body)
+              if assign(x, 'execution["timeoutMs"]', direct)]
+    extracted = [i for i, x in enumerate(lower.body)
+                 if assign(x, 'execution["timeoutMs"]', verified_helper)]
+    if len(inline) + len(extracted) != 1:
+        raise ValueError("actual Python timeout normalization does not match Lean model")
+    producer_index = (inline + extracted)[0]
+    if producer_index <= guards[0][0]:
+        raise ValueError("actual timeout projection is not guarded")
+    if extracted:
+        helpers = [x for x in tree.body if isinstance(x, ast.FunctionDef)
+                   and x.name == "_forward_granted_timeout"]
+        if len(helpers) != 1 or len(helpers[0].body) != 2:
+            raise ValueError("verified timeout helper body changed")
+        helper = helpers[0]
+        if not isinstance(helper.body[-1], ast.Return) or not (
+            canonical(helper.body[-1].value) == expr(
+                "grant if requested is None else requested"
+            )
+        ):
+            raise ValueError("verified timeout helper changed its exact model")
+        doc = ast.get_docstring(helper) or ""
+        required = (
+            "pre: 1 <= grant <= 900000",
+            "pre: requested is None or (1 <= requested <= grant)",
+            "post: __return__ == (grant if requested is None else requested)",
+            "post: 1 <= __return__ <= grant",
+        )
+        if any(part not in doc for part in required):
+            raise ValueError("verified timeout helper lost formal assumptions")
+
+    # The real Gateway adapter must project exactly the materialized value.
+    submit = method("GatewayMcpRuntimeAdapter", "_submit")
+    expected = ast.parse('if "timeoutMs" in execution:\n    gateway_args["timeoutMs"] = execution["timeoutMs"]\n').body[0]
+    projections = [(i, x) for i, x in enumerate(submit.body)
+                   if isinstance(x, ast.If) and canonical(x.test) == expr('"timeoutMs" in execution')]
+    if len(projections) != 1 or canonical(projections[0][1]) != canonical(expected):
+        raise ValueError("Gateway timeout propagation differs from the modeled identity")
+
+    # Close only the exact post-projection source frame we can mechanically
+    # observe. Arbitrary Python calls can mutate dictionaries through aliases;
+    # scanning Assign/Delete nodes is not a sound semantic refinement proof.
+    expected_return = ast.parse(
+        'return ("workspace.exec", {"schemaVersion": 1, '
+        '"clientRequestId": request_id, "execution": execution}, request_id)'
+    ).body[0]
+    after_producer = lower.body[producer_index + 1:]
+    if (len(after_producer) != 1
+            or canonical(after_producer[0]) != canonical(expected_return)):
+        raise ValueError("timeout caller effect frame is not qualified before return")
+
+    expected_dispatch = ast.parse(
+        'receipt = self._call("execution.submit", gateway_args)'
+    ).body[0]
+    after_projection = submit.body[projections[0][0] + 1:]
+    if (not after_projection
+            or canonical(after_projection[0]) != canonical(expected_dispatch)):
+        raise ValueError("timeout Gateway effect frame changed before dispatch")
+
+    return {
+        "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
+        "producerPath": path,
+        "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
+        "sourceAstAnchorsObserved": True,
+        "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",
+        # Even this stronger exact frame is only a bounded source observation.
+        # It does not prove Python control-flow/data-flow semantics, alias
+        # behavior before the frame, or source-to-Lean implementation refinement.
+        "codeFragmentRefined": False,
+        "sourceRefinementStanding": "UNKNOWN",
+        "runtimeRustRefined": False,
+        "installedCurrentness": "UNKNOWN",
+    }
+
+
 def run(label: str, args: list[str], *, input_text: str | None = None,
         expected_rc: int = 0, must_contain: str | None = None,
         timeout: int = 95, env_overlay: dict[str, str] | None = None) -> dict[str, object]:
@@ -110,6 +257,7 @@ def run(label: str, args: list[str], *, input_text: str | None = None,
 
 def main() -> None:
     source_before = qualified_source_cut()
+    fragment = qualified_timeout_adapter_fragment()
     tools_before = qualified_tool_binaries()
 
     def executable(name: str) -> str:
@@ -222,6 +370,7 @@ def main() -> None:
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "toolBinaries": tools_before,
         "proofReuseAdmissible": False,
+        "sourceFragmentRefinement": fragment,
         "implementationRefinement": "UNKNOWN",
         "installedCurrentness": "UNKNOWN",
         "limitations": [

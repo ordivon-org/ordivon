@@ -22,6 +22,7 @@ SQLITE_MIGRATION = "services/runtime/crates/ordivon-runtime-core/migrations/runt
 SQLITE_STORAGE = "services/runtime/crates/ordivon-runtime-core/src/runtime/"
 OSQUERY_PREFIX = "platform/workstation/inventory/queries/"
 POSTGRESQL_FILE = "meta/next/scripts/experimental_episode_r5c_source_r1.sql"
+POSTGRESQL_RUNTIME_EPOCH = "services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
 
 # Exact full-host inventories can traverse thousands of installed Python/npm
 # packages on an ephemeral CI runner. Keep them executable and bounded, not
@@ -268,7 +269,7 @@ def classify(path: str) -> str | None:
         return "sqlite"
     if path.startswith(SQLITE_STORAGE) and path.endswith("_storage.sql"):
         return "sqlite"
-    if path == POSTGRESQL_FILE:
+    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH}:
         return "postgresql"
     return None
 
@@ -486,7 +487,25 @@ def check(root: Path) -> tuple[list[str], list[str]]:
             issues.append("PostgreSQL AST parser version is not pinned to exact 8.6")
         for name in grouped["postgresql"]:
             parsed = parse_sql((root / name).read_text(encoding="utf-8"))
-            if len(parsed) != 1:
+            if name == POSTGRESQL_RUNTIME_EPOCH:
+                # Actual fresh-epoch provider uses BEGIN, a typed operator DO
+                # fence, eight CREATE TABLEs, one index and COMMIT. Parse the
+                # *whole* source; a trailing DROP or extra grant must not pass
+                # on the strength of the existing single-SELECT PG fixture.
+                observed = tuple(type(statement.stmt).__name__ for statement in parsed)
+                expected = (
+                    "TransactionStmt", "DoStmt",
+                    "CreateStmt", "CreateStmt", "CreateStmt", "CreateStmt",
+                    "CreateStmt", "CreateStmt", "IndexStmt", "CreateStmt",
+                    "CreateStmt", "TransactionStmt",
+                )
+                if observed != expected or (
+                    parsed[0].stmt.kind != 0 or parsed[-1].stmt.kind != 2
+                ):
+                    issues.append(
+                        f"PostgreSQL fresh-epoch DDL statement structure changed: {name}"
+                    )
+            elif len(parsed) != 1:
                 issues.append(f"PostgreSQL statement count changed unexpectedly: {name}")
         facts.append(f"PostgreSQL {current}: {len(grouped['postgresql'])} SQL source AST parsed with pglast")
     except (ImportError, OSError, subprocess.SubprocessError, ValueError) as exc:

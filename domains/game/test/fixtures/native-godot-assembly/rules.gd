@@ -2,6 +2,8 @@ extends Node
 
 # The game-specific rule connection consumes Godot Resources and emits
 # a native signal. No generic Game state or event framework is introduced.
+const ConfigType = preload("res://config.gd")
+
 signal state_changed(state: Dictionary)
 
 @export var configuration: Resource
@@ -13,9 +15,24 @@ var phase: String = "uninitialized"
 
 func reset_game(replacement: Resource = null) -> bool:
     var chosen: Resource = replacement if replacement != null else configuration
-    if chosen == null or not chosen.has_method("is_valid") or not chosen.is_valid():
+    # Godot's native script Resource type is the typed input port for this
+    # actual gameplay LEGO. An arbitrary Resource self-reporting is_valid
+    # does not supply board/energy/cost/turn fields and must not be installed.
+    if not chosen is ConfigType or not ConfigType.accepts_parameters(chosen):
         return false
-    configuration = chosen
+    # A valid derived Resource may require constructor arguments and cannot
+    # necessarily be duplicated by Godot. This game's actual contract consumes
+    # five base numeric ports, not the provider's subtype or constructor.
+    # Snapshot them into a fresh, native base Resource before changing state.
+    var admitted: Resource = ConfigType.new()
+    admitted.board_width = chosen.board_width
+    admitted.goal_x = chosen.goal_x
+    admitted.starting_energy = chosen.starting_energy
+    admitted.step_cost = chosen.step_cost
+    admitted.turn_limit = chosen.turn_limit
+    if not ConfigType.accepts_parameters(admitted):
+        return false
+    configuration = admitted
     x = 0
     energy = configuration.starting_energy
     turn = 0

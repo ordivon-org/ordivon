@@ -42,6 +42,17 @@ class MessageNotFound(RuntimeError):
     pass
 
 
+def _reply_target_precedes_source(source_sequence: int, target_sequence: int) -> bool:
+    """Strictly earlier reply target, using exact PostgreSQL signed bigint order.
+
+    pre: -(2**63) <= source_sequence <= 2**63 - 1
+    pre: -(2**63) <= target_sequence <= 2**63 - 1
+    post: __return__ == (target_sequence < source_sequence)
+    post: __return__ == (not (target_sequence >= source_sequence))
+    """
+    return not (target_sequence >= source_sequence)
+
+
 class SocialStore:
     """Durable Social Graph records without IAM, scheduling, ranking, or effect authority."""
 
@@ -210,7 +221,10 @@ class SocialStore:
                 return replay
             self._require_actor(conn, value.author_actor_ref)
             self._require_space(conn, value.space_ref)
-            topic = self._require_topic(conn, value.topic_ref)
+            # The same-topic row fence precedes the IDENTITY default so a
+            # later visible sequence cannot overtake a pending older one.
+            # NO KEY UPDATE remains compatible with FK KEY SHARE on topics.
+            topic = self._require_topic(conn, value.topic_ref, for_no_key_update=True)
             if topic["space_ref"] != value.space_ref:
                 raise ConflictError("topic does not belong to the supplied space")
             if topic["state"] != "open":
@@ -919,6 +933,24 @@ class SocialStore:
         if before_sequence is not None and (type(before_sequence) is not int or before_sequence < 1):
             raise ValueError("before_sequence must be positive")
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
+        # PostgreSQL 'simple' FTS does not segment Chinese words. Match a
+        # single unspaced CJK phrase literally so it can occur within a
+        # longer Chinese token; preserve historical FTS for other queries.
+        # The predicate is fixed SQL and query bytes stay parameter-bound.
+        cjk_literal = (
+            any("\u3400" <= char <= "\u9fff" for char in query)
+            and not any(char.isspace() for char in query.strip())
+        )
+        search_predicate = (
+            "strpos(body,%s)>0"
+            if cjk_literal
+            else "to_tsvector('simple',body) @@ websearch_to_tsquery('simple',%s)"
+        )
+        search_boundary = (
+            "PostgreSQL CJK literal substring locator"
+            if cjk_literal
+            else "PostgreSQL full-text locator"
+        )
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             if space_ref is not None:
@@ -929,7 +961,7 @@ class SocialStore:
                     raise ConflictError("topic does not belong to supplied space")
             rows = conn.execute(
                 "SELECT sequence,message_ref,space_ref,topic_ref,author_actor_ref,message_kind,body,message_digest,recorded_at_ms,created_at "
-                "FROM messages WHERE to_tsvector('simple',body) @@ websearch_to_tsquery('simple',%s) "
+                "FROM messages WHERE " + search_predicate + " "
                 "AND (%s::text IS NULL OR space_ref=%s) AND (%s::text IS NULL OR topic_ref=%s) "
                 "AND (%s::bigint IS NULL OR sequence<%s) ORDER BY sequence DESC LIMIT %s",
                 (query, space_ref, space_ref, topic_ref, topic_ref, before_sequence, before_sequence, limit + 1),
@@ -963,7 +995,7 @@ class SocialStore:
                     "nextBeforeSequence": None if not page else int(page[-1]["sequence"]),
                     "rankingApplied": False,
                     "ordering": "sequence_desc",
-                    "truthBoundary": "PostgreSQL full-text locator ordered by message sequence, not relevance/priority; message claims require owner-native verification",
+                    "truthBoundary": search_boundary + " ordered by message sequence, not relevance/priority; message claims require owner-native verification",
                 }
 
             page, byte_more = bounded_prefix(
@@ -982,7 +1014,7 @@ class SocialStore:
                 "nextBeforeSequence": int(page[-1]["sequence"]) if has_more and page else None,
                 "rankingApplied": False,
                 "ordering": "sequence_desc",
-                "truthBoundary": "PostgreSQL full-text locator ordered by message sequence, not relevance/priority; message claims require owner-native verification",
+                "truthBoundary": search_boundary + " ordered by message sequence, not relevance/priority; message claims require owner-native verification",
             }
 
     def resume_topic(
@@ -1164,10 +1196,12 @@ class SocialStore:
             raise SpaceNotFound(space_ref)
 
     @staticmethod
-    def _require_topic(conn: psycopg.Connection[dict[str, Any]], topic_ref: str) -> dict[str, Any]:
+    def _require_topic(
+        conn: psycopg.Connection[dict[str, Any]], topic_ref: str, *, for_no_key_update: bool = False
+    ) -> dict[str, Any]:
         row = conn.execute(
             "SELECT topic_ref,space_ref,title,state,created_by_actor_ref,created_at,updated_at "
-            "FROM topics WHERE topic_ref=%s",
+            "FROM topics WHERE topic_ref=%s" + (" FOR NO KEY UPDATE" if for_no_key_update else ""),
             (topic_ref,),
         ).fetchone()
         if row is None:
@@ -1179,7 +1213,8 @@ class SocialStore:
         conn: psycopg.Connection[dict[str, Any]], message_ref: str
     ) -> dict[str, Any]:
         row = conn.execute(
-            "SELECT message_ref,space_ref,topic_ref,author_actor_ref FROM messages WHERE message_ref=%s",
+            "SELECT message_ref,sequence,space_ref,topic_ref,author_actor_ref "
+            "FROM messages WHERE message_ref=%s",
             (message_ref,),
         ).fetchone()
         if row is None:
@@ -1205,6 +1240,16 @@ class SocialStore:
                 and target["topic_ref"] != source["topic_ref"]
             ):
                 raise ConflictError("reply_to cannot cross topics")
+            if (
+                value.relation == MessageRelationKind.REPLY_TO
+                and not _reply_target_precedes_source(
+                    source["sequence"], target["sequence"]
+                )
+            ):
+                # Immutable identity ordinals form a strict descending rank
+                # for every reply edge, so its transitive closure is acyclic.
+                # Lean: OrdivonR21.CausalReply.qualified_reply_graph_acyclic.
+                raise ConflictError("reply_to must target an earlier message")
             if (
                 value.relation == MessageRelationKind.SUPERSEDES
                 and value.target_ref == value.source_message_ref

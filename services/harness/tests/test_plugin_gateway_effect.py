@@ -203,7 +203,15 @@ def _contract(factory: PluginGatewayExecutionBridgeFactory) -> HarnessRunContrac
     )
 
 
-def _adapter() -> ScriptedTurnAdapter:
+def _adapter(timeout_ms: int | None = 5_000) -> ScriptedTurnAdapter:
+    arguments = {
+        "executable": "/usr/bin/rg",
+        "args": ["needle", "."],
+        "cwdRelative": ".",
+        "env": {"ORDIVON_TEST": "1"},
+    }
+    if timeout_ms is not None:
+        arguments["timeoutMs"] = timeout_ms
     return ScriptedTurnAdapter(
         (
             AgentTurnResult(
@@ -214,13 +222,7 @@ def _adapter() -> ScriptedTurnAdapter:
                     AgentToolCall(
                         tool_call_id="tool-call:plugin-h2",
                         name="execution.submit",
-                        arguments={
-                            "executable": "/usr/bin/rg",
-                            "args": ["needle", "."],
-                            "cwdRelative": ".",
-                            "env": {"ORDIVON_TEST": "1"},
-                            "timeoutMs": 5_000,
-                        },
+                        arguments=arguments,
                     ),
                 ),
                 conclusion=None,
@@ -243,6 +245,29 @@ def _adapter() -> ScriptedTurnAdapter:
             ),
         )
     )
+
+
+def test_omitted_timeout_is_bounded_by_actual_harness_grant() -> None:
+    """A valid optional tool input must not acquire Runtime's wider default."""
+    with tempfile.TemporaryDirectory() as directory:
+        client = GatewayExecutionFixture()
+        factory = _factory(client)  # exact caller grant: 10,000ms
+        clock = FixedClock()
+        run = HarnessAgentRun.create(
+            Path(directory),
+            _contract(factory),
+            lambda _contract: _adapter(timeout_ms=None),
+            tool_bridge_factory=factory,
+            clock_ms=clock,
+            monotonic_ms=clock,
+        )
+        result = run.run(())
+        assert result.loop_result.stop_code.value == "candidate_completed"
+        calls = [(name, args) for name, args in client.calls if name == "execution.submit"]
+        assert len(calls) == 1
+        # Gateway's public typed execution.submit MUST carry an explicit
+        # limit, otherwise Runtime's own default can exceed the caller grant.
+        assert calls[0][1]["timeoutMs"] == 10_000
 
 
 def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch() -> None:
@@ -288,6 +313,7 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
         assert submit["capability"] == "execution.linux"
         assert submit["workspaceId"] == "ws-plugin-h2"
         assert submit["executable"] == "/usr/bin/rg"
+        assert submit["timeoutMs"] == 5_000  # explicitly admitted value is unchanged
         assert submit["requestId"].startswith("request:harness-gateway:")
 
 
@@ -519,3 +545,61 @@ def test_gateway_adapter_waits_for_committed_but_incomplete_artifact_projection(
     assert observed["deliveryDisposition"] == "reconciliation_required"
     assert observed["recoveryRequired"] is True
     assert observed["resultAvailable"] is False
+
+
+@pytest.mark.parametrize("invalid", [None, True, False, 0, -1, 10_001, "10"])
+def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object) -> None:
+    """An invalid canonical JSON value must not reach Gateway execution.submit."""
+    from dataclasses import replace
+
+    from jsonschema import Draft202012Validator
+
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = _adapter(timeout_ms=None)
+    first, second = adapter._results
+    call = first.tool_calls[0]
+    invalid_arguments = {**call.arguments, "timeoutMs": invalid}
+    assert list(
+        Draft202012Validator(factory._definition.input_schema).iter_errors(invalid_arguments)
+    )
+    adapter._results = (
+        replace(first, tool_calls=(replace(call, arguments=invalid_arguments),)),
+        second,
+    )
+
+    with tempfile.TemporaryDirectory() as directory:
+        clock = FixedClock()
+        run = HarnessAgentRun.create(
+            Path(directory),
+            _contract(factory),
+            lambda _contract: adapter,
+            tool_bridge_factory=factory,
+            clock_ms=clock,
+            monotonic_ms=clock,
+        )
+        run.run(())
+        assert not [arguments for name, arguments in client.calls if name == "execution.submit"], (
+            "schema-illegal timeout reached actual Gateway submission"
+        )
+
+
+def test_canonical_json_timeout_input_is_narrower_than_json_schema_numeric_integer() -> None:
+    """A source-observed representation gap must not be mistaken for wire equivalence."""
+    from jsonschema import Draft202012Validator
+
+    factory = _factory(GatewayExecutionFixture())
+    schema = factory._definition.input_schema
+    raw = {
+        "executable": "/usr/bin/rg",
+        "args": ["needle", "."],
+        "timeoutMs": 1000.0,
+    }
+    assert Draft202012Validator(schema).is_valid(raw)
+    assert "canonical JSON integer token" in schema["properties"]["timeoutMs"]["description"]
+    with pytest.raises(ValueError, match="floating-point values are forbidden"):
+        AgentToolCall(
+            tool_call_id="tool-call:noncanonical-timeout",
+            name="execution.submit",
+            arguments=raw,
+        )

@@ -23,7 +23,7 @@
     "circuitId": { "type": "string", "minLength": 1 },
     "manifestDigest": {
       "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$"
+      "pattern": "^sha256:[0-9a-f]{64}(?![\\s\\S])"
     },
     "gateId": { "type": "string", "minLength": 1 },
     "verifierOwnerId": { "type": "string", "minLength": 1 },
@@ -31,7 +31,7 @@
     "evidenceRefs": {
       "type": "array",
       "uniqueItems": true,
-      "items": { "type": "string", "minLength": 1, "pattern": "^\\S+$" }
+      "items": { "type": "string", "minLength": 1, "pattern": "^\\S+(?![\\s\\S])" }
     },
     "supportScope": { "type": "string", "minLength": 1 },
     "nonClaims": {

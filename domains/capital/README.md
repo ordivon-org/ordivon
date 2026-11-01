@@ -170,6 +170,25 @@ Golden Path (no provider account, synthetic data, no order):
 `tests/test_factor_lego_consumer_contract.py`. This only demonstrates current
 mechanical consumer boundaries; it is not evidence of positive investment Edge.
 
+## Direct Agent-consumable portfolio LEGO
+
+The read-only scenario brief composes raw caller position observations
+(examples/portfolio_scenario_brief_r1.json), thought LEGO (gross/net,
+overlapping factor exposure, explicit risk budget and evidence-gate semantics)
+and capability LEGO (native exposure, what-if and policy functions) into
+one actually consumable higher-order JSON result, not a new planning registry.
+
+Run: scripts/run-portfolio-scenario-brief < examples/portfolio_scenario_brief_r1.json
+
+The CLI reads only stdin, emits JSON only on successful materialization, and
+does not fetch account data, choose a winning trade, or authorize an order.
+Missing risk limits and missing liquidity/dependence evidence remain
+READ_ONLY_EVIDENCE_INCOMPLETE; a future evidence-gate PASS remains non-executable.
+The existing Capital suite includes the real consumer regression and 16
+finite signed-position/reduction interactions. These tests prove only this
+bounded source implementation behavior, not investment alpha or global formal
+implementation refinement.
+
 ## Non-live and private-read admission LEGO
 
 The existing Capital policy-checker LEGO uses these three Owner scripts:

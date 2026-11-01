@@ -26,6 +26,8 @@ def main() -> int:
         fail("Harness may expose only the official MCP v2 standards-adapter extra")
     expected_groups = {
         "dev": ["ruff==0.17.2"],
+        # Formal solver is isolated from the default dev/test/runtime closure.
+        "formal": ["crosshair-tool==0.0.112"],
         "test": [
             "mcp==2.3.0",
             "uvicorn==0.52.1",
@@ -35,7 +37,7 @@ def main() -> int:
         ],
     }
     if raw.get("dependency-groups") != expected_groups:
-        fail("Harness dependency groups must preserve exact dev/test separation")
+        fail("Harness dependency groups must preserve exact dev/test/formal isolation")
 
     # The Temporal worker installs a small requirements carrier separately
     # from the Harness wheel. It must consume this same owner pin, never retain

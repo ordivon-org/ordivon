@@ -136,11 +136,22 @@ def owners_for_paths(
     # consumer: Composition select-impact executes this exact producer.
     # Do not expand unrelated repo producer edits to all 18 domain queues.
     history_consumer_changed = "tools/repo/source_history_legos.py" in normalized
+    # Existing platform/skills consumers discover and read actual project
+    # Skills under .agents/skills, outside the platform/skills code root.
+    project_skill_consumer_changed = any(
+        path.startswith(".agents/skills/") for path in normalized
+    )
     selected: list[Owner] = []
     for owner in owners:
         if (
             any(path.startswith(owner.root) for path in normalized)
             or (history_consumer_changed and owner.name == "composition")
+            or (project_skill_consumer_changed and owner.name == "skills")
+            # Tagged Runtime release builds and attests Runtime artifacts.
+            or (
+                owner.name == "runtime"
+                and ".github/workflows/runtime-release.yml" in normalized
+            )
         ):
             selected.append(owner)
     return tuple(selected)
@@ -158,6 +169,10 @@ def requires_core_formal_verification(paths: Iterable[str]) -> bool:
     return any(
         (normalized := _normalize(path)) == "mise.toml"
         or normalized.startswith("tools/formal/")
+        # This exact Harness adapter is an executable input of the existing
+        # Formal SOURCE_FILES readset. Changing it invalidates the native
+        # timeout bridge proof regardless of owner-root classification.
+        or normalized == "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
         for path in paths
     )
 
@@ -176,7 +191,15 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
         # Object replacement and the separate legacy graft file can each
         # rewrite ancestry without changing the requested commit IDs. Both
         # are excluded from exact SourceCut delta/verification selection.
-        env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
+        # Protect the real working repository's immutable SourceCut from
+        # inherited Git namespace/object-store overrides (e.g. agent tools
+        # invoking this selector from another Git worktree). A different
+        # repository must not determine required consumer verification.
+        env={
+            **{key: value for key, value in os.environ.items()
+               if not key.startswith("GIT_")},
+            "GIT_GRAFT_FILE": os.devnull,
+        },
         check=True,
         stdout=subprocess.PIPE,
     )

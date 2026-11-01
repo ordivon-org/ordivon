@@ -45,6 +45,31 @@ class TimedTextTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             export_webvtt(document)
 
+    def test_tick_boolean_aliases_are_rejected_by_all_public_consumers(self) -> None:
+        # JSON Schema rejects booleans as integers, but direct Python callers
+        # bypass the schema and must not silently reinterpret True as tick 1.
+        for field in ("base", "start", "end"):
+            document = {
+                **DOCUMENT,
+                "timeBase": dict(DOCUMENT["timeBase"]),
+                "cues": [dict(cue) for cue in DOCUMENT["cues"]],
+            }
+            if field == "base":
+                document["timeBase"]["ticksPerSecond"] = True
+            elif field == "start":
+                document["cues"][0]["startTick"] = False
+            else:
+                document["cues"][0]["endTick"] = True
+            with self.subTest(field=field):
+                for consumer in (
+                    export_webvtt,
+                    export_srt,
+                ):
+                    with self.assertRaises(ValueError):
+                        consumer(document)
+                with self.assertRaises(ValueError):
+                    validate_timed_text_delivery(document, media_duration_seconds="3.000")
+
     def test_delivery_validation_binds_locked_cues_to_media_duration(self) -> None:
         result = validate_timed_text_delivery(DOCUMENT, media_duration_seconds="3.000")
         self.assertTrue(result["ok"])

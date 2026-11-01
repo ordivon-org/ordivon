@@ -45,6 +45,7 @@ _FORMAL_SOURCE_FILES = (
     "tools/formal/Proof.rs", "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs", "tools/formal/Proof.qnt",
     "tools/formal/Proof.als",
+    "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
 )
 _FORMAL_PROBE_ORACLES = (
     ("Lean kernel R2.1 relational composition", 0),
@@ -91,6 +92,17 @@ def _qualified_formal_test_receipt(
         "sourceQualification": "EXACT_GIT_BLOBS_CHECKED_PRE_AND_POST",
         "toolQualification": "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST",
         "proofReuseAdmissible": False,
+        "sourceFragmentRefinement": {
+            "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
+            "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
+            "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
+            "sourceAstAnchorsObserved": True,
+            "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",
+            "codeFragmentRefined": False,
+            "sourceRefinementStanding": "UNKNOWN",
+            "runtimeRustRefined": False,
+            "installedCurrentness": "UNKNOWN",
+        },
         "implementationRefinement": "UNKNOWN",
         "installedCurrentness": "UNKNOWN",
         "sourceBlobs": sources,
@@ -280,6 +292,21 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             no_sources = copy.deepcopy(full_report)
             no_sources.pop("sourceBlobs")
             invalid_receipts["no-source-blob-membership"] = json.dumps(no_sources)
+            no_fragment = copy.deepcopy(full_report)
+            no_fragment.pop("sourceFragmentRefinement")
+            invalid_receipts["missing-executable-fragment-evidence"] = json.dumps(no_fragment)
+            forged_fragment = copy.deepcopy(full_report)
+            forged_fragment["sourceFragmentRefinement"]["runtimeRustRefined"] = True
+            invalid_receipts["forged-rust-refinement-claim"] = json.dumps(forged_fragment)
+            forged_code_grade = copy.deepcopy(full_report)
+            forged_code_grade["sourceFragmentRefinement"]["codeFragmentRefined"] = True
+            invalid_receipts["unearned-python-code-refinement"] = json.dumps(forged_code_grade)
+            no_effect_frame = copy.deepcopy(full_report)
+            del no_effect_frame["sourceFragmentRefinement"]["effectFrameObserved"]
+            invalid_receipts["missing-effect-frame-evidence"] = json.dumps(no_effect_frame)
+            forged_effect_frame = copy.deepcopy(full_report)
+            forged_effect_frame["sourceFragmentRefinement"]["effectFrameObserved"] = "implementation_proven"
+            invalid_receipts["forged-effect-frame-evidence"] = json.dumps(forged_effect_frame)
             no_tools = copy.deepcopy(full_report)
             no_tools.pop("toolBinaries")
             invalid_receipts["no-eight-tool-witnesses"] = json.dumps(no_tools)
@@ -352,7 +379,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             wrong_count = copy.deepcopy(full_report)
             wrong_count["count"] += 1
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
-            self.assertEqual(len(invalid_receipts), 60)
+            # Two new forged/missing fragment receipts and one extra
+            # source-blob omission case extend the negative corpus.
+            self.assertEqual(len(invalid_receipts), 66)
 
             try:
                 for label, payload in invalid_receipts.items():
@@ -490,11 +519,16 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
             ).strip()
             report = work / "formal-fixture.json"
-            report.write_text(json.dumps(
-                _qualified_formal_test_receipt(
-                    repo, source_cut, work / "fake-formal-tool-binaries",
-                )
-            ), encoding="utf-8")
+            example_receipt = _qualified_formal_test_receipt(
+                repo, source_cut, work / "fake-formal-tool-binaries",
+            )
+            # A structurally valid positive fake receipt must NEVER
+            # promote source AST anchors to real Python code refinement.
+            self.assertIs(
+                example_receipt["sourceFragmentRefinement"]["codeFragmentRefined"],
+                False,
+            )
+            report.write_text(json.dumps(example_receipt), encoding="utf-8")
             tasks = work / "ordivon-affected-tasks.txt"
             tasks.write_text("runtime:verify\n", encoding="utf-8")
             record = work / "mise-record.txt"
@@ -998,11 +1032,13 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         native = tomllib.loads(
             (ROOT / "capabilities/distribution/mise.toml").read_text()
         )["tasks"]["verify"]["run"]
-        for required in (
-            "uv lock --check", "uv sync --locked", "uv run ruff check .",
-            "bash scripts/test-all.sh", "shellcheck",
-        ):
-            self.assertIn(required, native)
+        # Source-only Distribution retains R7/n8n fixture and shell contracts;
+        # retired Python/OPA policy acceptance has no production consumer.
+        self.assertIn("bash scripts/test-structure.sh", native)
+        self.assertIn("shellcheck", native)
+        for retired in ("uv lock --check", "uv sync --locked",
+                        "uv run ruff check .", "scripts/test-all.sh"):
+            self.assertNotIn(retired, native)
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         self.assertIn("merge_group", workflow.get("on", workflow.get(True, {})))
         steps = workflow["jobs"]["root-verification"]["steps"]
@@ -1020,6 +1056,26 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         )
         self.assertEqual(route.returncode, 0, route.stderr)
         self.assertEqual(route.stdout.strip(), "distribution:verify")
+
+    def test_release_policy_uses_exact_runtime_rust_toolchain(self) -> None:
+        """Release dependency policy must use the checked consumer Rust compiler."""
+        import tomllib
+        import yaml
+
+        toolchain = tomllib.loads(
+            (ROOT / "services/runtime/rust-toolchain.toml").read_text()
+        )["toolchain"]["channel"]
+        root = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        release = yaml.safe_load(
+            (ROOT / ".github/workflows/runtime-release.yml").read_text()
+        )
+        for workflow, job in ((root, "root-verification"),
+                              (release, "runtime-release")):
+            steps = workflow["jobs"][job]["steps"]
+            matches = [step for step in steps
+                       if step.get("uses", "").startswith("EmbarkStudios/cargo-deny-action@")]
+            self.assertEqual(len(matches), 1)
+            self.assertEqual(matches[0]["with"]["rust-version"], toolchain)
 
     def test_runtime_release_attestations_verify_every_subject_and_fail_closed(self) -> None:
         """Exercise official verifier CLI orchestration, not cryptographic trust."""
@@ -1353,7 +1409,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             self.assertIn(f"mise run {inner}", cmd)
         native = tomllib.loads((ROOT / "platform/workstation/mise.toml").read_text(encoding="utf-8"))
         self.assertEqual(native["tools"]["python"], "3.15.1")
-        self.assertEqual(native["tools"]["pnpm"], "12.15.0")
+        self.assertEqual(native["tools"]["pnpm"], "12.16.1")
         ci = native["tasks"]["ci"]["run"]
         for required in (
             "uv lock --check", "uv sync --locked", "uv run ruff check .",

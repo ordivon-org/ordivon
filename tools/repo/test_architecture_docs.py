@@ -926,9 +926,8 @@ def test_retired_next_historical_owner_cohorts_are_not_reintroduced() -> None:
         assert not retired.intersection(paths)
         retired.update(paths)
     assert len(retired) == 36
-    # The current Social Fabric Owner is retained, not replaced by old R2.
-    assert (ROOT / "meta/next/scripts/social_fabric_r1.py").is_file()
-    assert (ROOT / "meta/next/tests/test_social_fabric_r1.py").is_file()
+    # Historical R2 retirement does not require a separate R1 snapshot compiler;
+    # live Social work/attention are served by Host-native consumers.
     module.validate_formal_issue_census(census, plans)
 
 
@@ -1824,7 +1823,16 @@ def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() 
         assert proof["patchRelation"] == "PATCH_DISTINCT_UNQUALIFIED"
         assert record["consumer"].strip() and record["remoteWitness"].strip()
         mise = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
-        assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
+        if owner == "capabilities/distribution":
+            # The GIT-01 record is a historical SourceCut verdict, not a mandate
+            # to keep uv installed after its Python/OPA source consumer retired.
+            assert "uv" not in mise["tools"]
+            assert "bash scripts/test-structure.sh" in mise["tasks"]["verify"]["run"]
+            assert (
+                ROOT / owner / "evidence/r7-artifact-development-publication-intent.json"
+            ).is_file()
+        else:
+            assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
         assert task in mise["tasks"]
     module.validate_formal_issue_census(census, plans)
 

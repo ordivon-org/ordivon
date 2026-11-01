@@ -131,6 +131,31 @@ class Sep2640SkillsTests(unittest.TestCase):
                     ):
                         parse_standard_frontmatter(sample)
 
+    def test_standard_manifest_requires_the_actual_admitted_scan_not_just_live_bytes(self) -> None:
+        td, base, provider, _token = self.make_fixture()
+        self.addCleanup(td.cleanup)
+        catalog = provider.get(force_refresh=True)
+        record = catalog.by_skill_id("user/alpha", invocation_mode="explicit")
+        original_entry = skill_entry(record)
+        self.assertEqual(original_entry.frontmatter["name"], "alpha")
+
+        guide = base / "user" / "alpha" / "references" / "guide.md"
+        guide.write_text("post-scan mutation\n", encoding="utf-8")
+        with self.assertRaisesRegex(AgentSkillsConformanceError, "admitted"):
+            skill_entry(record)
+
+        instruction = base / "user" / "alpha" / "SKILL.md"
+        instruction.write_text(
+            "---\nname: alpha\ndescription: Unscanned update\n---\n# changed\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AgentSkillsConformanceError, "admitted"):
+            skill_entry(record)
+
+        refreshed = provider.get(force_refresh=True)
+        admitted = refreshed.by_skill_id("user/alpha", invocation_mode="explicit")
+        self.assertEqual(skill_entry(admitted).frontmatter["description"], "Unscanned update")
+
     def test_unicode_name_round_trip_and_exact_parent_match_follow_agent_skills_spec(self) -> None:
         td = tempfile.TemporaryDirectory()
         self.addCleanup(td.cleanup)
@@ -193,6 +218,89 @@ class Sep2640SkillsTests(unittest.TestCase):
         self.assertEqual(parsed["license"], "Apache-2.0")
         self.assertEqual(parsed["metadata"], {"author": "example-org", "version": "1.0"})
         self.assertEqual(parsed["allowed-tools"], "Read Bash(git:*)")
+
+    def test_disabled_skill_source_denies_all_standard_mcp_consumers(self) -> None:
+        """Actual SEP-2640 list/get/read obeys the same typed policy.
+
+        Uses a valid URI obtained from an enabled catalog, so disabled
+        get/read cannot pass merely by rejecting malformed resource names.
+        This tests fresh source configuration; TTL revocation is separate.
+        """
+        td, base, initial_provider, token_file = self.make_fixture()
+        self.addCleanup(td.cleanup)
+        record = initial_provider.get(force_refresh=True).by_skill_id(
+            "user/alpha", invocation_mode="explicit"
+        )
+        valid_uri = skill_entry(record).uri
+        config_file = base / "skills.json"
+        original = json.loads(config_file.read_text(encoding="utf-8"))
+        meta = {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+        }
+
+        async def exercise(app, enabled: bool) -> None:
+            async with app.app.router.lifespan_context(app.app):
+                transport = httpx.ASGITransport(app=app)
+                async with httpx.AsyncClient(
+                    transport=transport, base_url="http://127.0.0.1:8895"
+                ) as client:
+                    async def call(method: str, params: dict, request_id: int):
+                        response = await client.post(
+                            "/mcp",
+                            headers={
+                                "Authorization": "Bearer " + "x" * 64,
+                                "MCP-Protocol-Version": "2026-07-28",
+                                "Mcp-Method": method,
+                                **(
+                                    {"Mcp-Name": params["uri"]}
+                                    if method == "resources/read"
+                                    else {}
+                                ),
+                                "Accept": "application/json",
+                            },
+                            json={
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "method": method,
+                                "params": {**params, "_meta": meta},
+                            },
+                        )
+                        self.assertIn(response.status_code, (200, 400), response.text)
+                        payload = response.json()
+                        if response.status_code == 400:
+                            self.assertIn("error", payload, payload)
+                        return payload
+
+                    listed = await call("skills/list", {}, 1)
+                    self.assertNotIn("error", listed, listed)
+                    names = [
+                        row["frontmatter"]["name"]
+                        for row in listed["result"]["skills"]
+                    ]
+                    self.assertEqual("alpha" in names, enabled)
+                    for request_id, method in enumerate(
+                        ("skills/get", "resources/read"), 2
+                    ):
+                        response = await call(method, {"uri": valid_uri}, request_id)
+                        if enabled:
+                            self.assertNotIn("error", response, response)
+                            self.assertIn("result", response)
+                        else:
+                            self.assertIn("error", response, response)
+                            self.assertNotIn("result", response)
+
+        for enabled in (True, False):
+            with self.subTest(enabled=enabled):
+                config = json.loads(json.dumps(original))
+                config["compatibilitySources"][0]["enabled"] = enabled
+                config_file.write_text(json.dumps(config), encoding="utf-8")
+                app = build_app(
+                    McpSettings(config_file, token_file=token_file),
+                    CatalogProvider(config_file),
+                    "x" * 64,
+                )
+                asyncio.run(exercise(app, enabled))
 
     def test_http_sep2640_list_get_and_resources_read_are_digest_consistent(self) -> None:
         td, base, provider, token_file = self.make_fixture()
@@ -266,6 +374,70 @@ class Sep2640SkillsTests(unittest.TestCase):
         [content] = read["contents"]
         self.assertEqual(content["uri"], alpha["uri"])
         self.assertEqual(content["text"].encode("utf-8"), skill_bytes)
+
+    def test_standard_wire_never_serves_unscanned_replacement_bytes(self) -> None:
+        td, base, provider, token_file = self.make_fixture()
+        self.addCleanup(td.cleanup)
+        settings = McpSettings(base / "skills.json", token_file=token_file)
+        app = build_app(settings, provider, "x" * 64)
+        uri = "skill://ordivon/user/alpha/SKILL.md"
+        meta = {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+        }
+
+        async def call(client, method: str, params: dict, request_id: int):
+            payload = {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "method": method,
+                "params": {**params, "_meta": meta},
+            }
+            response = await client.post(
+                "/mcp",
+                headers={
+                    "Authorization": "Bearer " + "x" * 64,
+                    "MCP-Protocol-Version": "2026-07-28",
+                    "Mcp-Method": method,
+                    **({"Mcp-Name": params["uri"]} if method == "resources/read" else {}),
+                    "Accept": "application/json",
+                },
+                json=payload,
+            )
+            self.assertIn(response.status_code, (200, 400, 500), response.text)
+            return response.json()
+
+        async def exercise():
+            async with app.app.router.lifespan_context(app.app):
+                transport = httpx.ASGITransport(app=app)
+                async with httpx.AsyncClient(
+                    transport=transport, base_url="http://127.0.0.1:8895"
+                ) as client:
+                    baseline = await call(client, "skills/list", {}, 1)
+                    self.assertIn(
+                        "alpha",
+                        [r["frontmatter"]["name"] for r in baseline["result"]["skills"]],
+                    )
+                    # The provider's positive scan verdict is still cached.
+                    guide = base / "user" / "alpha" / "references" / "guide.md"
+                    guide.write_text("unscanned replacement", encoding="utf-8")
+                    listed = await call(client, "skills/list", {}, 2)
+                    got = await call(client, "skills/get", {"uri": uri}, 3)
+                    read = await call(client, "resources/read", {"uri": uri}, 4)
+                    self.assertNotIn(
+                        "alpha",
+                        [r["frontmatter"]["name"] for r in listed["result"]["skills"]],
+                    )
+                    self.assertIn("error", got)
+                    self.assertIn("error", read)
+                    self.assertNotIn("unscanned replacement", json.dumps((listed, got, read)))
+                    provider.get(force_refresh=True)
+                    resumed = await call(client, "skills/list", {}, 5)
+                    self.assertIn(
+                        "alpha",
+                        [r["frontmatter"]["name"] for r in resumed["result"]["skills"]],
+                    )
+        asyncio.run(exercise())
 
     def test_resources_read_rejects_bytes_changed_after_manifest_check(self) -> None:
         from unittest import mock

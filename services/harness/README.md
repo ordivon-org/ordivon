@@ -244,6 +244,14 @@ The CLI does not invent the Objective, Context, Tool grant, Provider, budget, or
 
 Use `ordivon_harness.api` for normal applications. The recommended execution handle is `HarnessAgentRun`: the caller supplies the exact Contract, Contract-bound Adapter factory, and any Runtime execution authority; Harness mechanically reconstructs the durable composition on resume. The former aggregate `ordivon_harness.capability_catalog` and generic task-conditioned capability-discovery layer are retired; exact request-bound action truth remains on `AgentTurnRequest` and process-local composition is exposed by `HarnessAgentRun.explain()`, while caller/domain current standing remains outside Harness and only exact already-admitted Tool subsets enter the existing turn projection; cross-Run knowledge/procedure selection remains external and enters Harness directly as exact cognition seed sources; bounded programmatic Tool composition/recovery lives in `ordivon_harness.tool_program` and `ordivon_harness.tool_program_recovery`; observation-only source retrieval uses the existing Runtime/search-read mechanics without a specialized Harness observation wrapper. These advanced mechanics are not promoted into the supported `ordivon_harness.api` facade. These projections/admission helpers do not grant authority or own external knowledge repositories/effects.
 
+ToolProgram's **pure wire contract** (step, program, action and bounded observation
+references) is in `ordivon_harness.tool_program_contract`. The existing
+`ordivon_harness.tool_program` import remains available to consumers
+and owns execution against the already-admitted ToolBridge; recovery stays in
+`ordivon_harness.tool_program_recovery`. The AgentTurnResult model
+depends on the contract directly, not the executor or Runtime. This is an
+internal seam, not a new Tool grant or a new owner.
+
 The current execution path is deliberately one waist:
 
 ```text

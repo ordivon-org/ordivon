@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# A first-party, credential-free Agent action: stdin portfolio -> JSON brief.
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+exec "$root/scripts/run-capability-python" "$root/scripts/portfolio_scenario_brief.py"

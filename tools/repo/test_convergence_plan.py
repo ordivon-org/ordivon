@@ -20,6 +20,257 @@ sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 
+
+
+class CandidateSourceRedundancyTests(unittest.TestCase):
+    """Independent immutable-Git oracle; no operational deletion side effects."""
+
+    def test_distinguishes_same_source_from_different_history_and_real_unique_values(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="ordivon-semantic-gc-") as tmp:
+            repo = Path(tmp)
+
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args],
+                    text=True, stderr=subprocess.PIPE, timeout=20,
+                ).strip()
+
+            git("init", "-q")
+            git("config", "user.email", "gc-oracle@example.invalid")
+            git("config", "user.name", "Source value oracle")
+            (repo / "consumer.py").write_text("VALUE = 0\n")
+            git("add", ".")
+            git("commit", "-qm", "base")
+            base = git("rev-parse", "HEAD")
+
+            (repo / "consumer.py").write_text("VALUE = 1\n")
+            git("add", ".")
+            git("commit", "-qm", "candidate behavior")
+            candidate = git("rev-parse", "HEAD")
+
+            git("checkout", "--detach", "-q", base)
+            (repo / "consumer.py").write_text("VALUE = 1\n")
+            (repo / "another_owner.py").write_text("NEW = 1\n")
+            git("add", ".")
+            git("commit", "-qm", "different history same consumer bytes")
+            equal_main = git("rev-parse", "HEAD")
+
+            equal = MODULE.assess_candidate_source_redundancy(
+                candidate=candidate, main=equal_main, repo=repo,
+            )
+            self.assertEqual(equal["sourceStanding"], "CANDIDATE_TOUCHED_BLOBS_EQUAL_MAIN")
+            self.assertEqual(equal["candidateChangePaths"], ["consumer.py"])
+            self.assertEqual(equal["mainDifferingPaths"], [])
+            self.assertFalse(equal["candidateInMainHistory"])
+            self.assertFalse(equal["retirementAdmissible"])
+            self.assertEqual(equal["consumerStanding"], "UNKNOWN_NOT_EXHAUSTIVELY_TRACED")
+
+            (repo / "consumer.py").write_text("VALUE = 2\n")
+            git("add", ".")
+            git("commit", "-qm", "main has different semantics")
+            different_main = git("rev-parse", "HEAD")
+            differing = MODULE.assess_candidate_source_redundancy(
+                candidate=candidate, main=different_main, repo=repo,
+            )
+            self.assertEqual(
+                differing["sourceStanding"], "CANDIDATE_TOUCHED_BLOBS_DIFFER_FROM_MAIN"
+            )
+            self.assertEqual(differing["mainDifferingPaths"], ["consumer.py"])
+            self.assertFalse(differing["retirementAdmissible"])
+
+            # Changing executable mode changes the Git tree even if blob bytes match.
+            git("checkout", "--detach", "-q", equal_main)
+            (repo / "consumer.py").chmod(0o755)
+            git("add", ".")
+            git("commit", "-qm", "mode change in main")
+            mode_main = git("rev-parse", "HEAD")
+            mode = MODULE.assess_candidate_source_redundancy(
+                candidate=candidate, main=mode_main, repo=repo,
+            )
+            self.assertEqual(mode["mainDifferingPaths"], ["consumer.py"])
+
+            # Historical containment is distinct from current file equality.
+            git("checkout", "--detach", "-q", candidate)
+            (repo / "consumer.py").write_text("VALUE = 99\n")
+            git("add", ".")
+            git("commit", "-qm", "revert/change after candidate")
+            later = git("rev-parse", "HEAD")
+            old = MODULE.assess_candidate_source_redundancy(
+                candidate=candidate, main=later, repo=repo,
+            )
+            self.assertTrue(old["candidateInMainHistory"])
+            self.assertEqual(old["mainDifferingPaths"], ["consumer.py"])
+            self.assertEqual(
+                old["comparisonBasis"], "FIRST_PARENT_ONLY_NOT_FULL_PR_DELTA"
+            )
+
+            # An attacker-controlled replace ref must not alter immutable
+            # source accounting or introduce an extra candidate-owned path.
+            git("replace", candidate, equal_main)
+            try:
+                sealed = MODULE.assess_candidate_source_redundancy(
+                    candidate=candidate, main=different_main, repo=repo,
+                )
+                self.assertEqual(sealed["candidateChangePaths"], ["consumer.py"])
+                self.assertEqual(sealed["mainDifferingPaths"], ["consumer.py"])
+            finally:
+                git("replace", "-d", candidate)
+
+            for bad in ("main", "0" * 39, "Z" * 40, "x\nHEAD"):
+                with self.subTest(candidate=bad):
+                    with self.assertRaises(ValueError):
+                        MODULE.assess_candidate_source_redundancy(
+                            candidate=bad, main=later, repo=repo,
+                        )
+
+    def test_historical_head_does_not_certify_full_multicommit_pr_delta(self) -> None:
+        # Last-commit equality cannot establish that earlier PR commits
+        # remained in main: original branch changes may have been reverted.
+        with tempfile.TemporaryDirectory(prefix="ordivon-pr-scope-counterexample-") as tmp:
+            repo = Path(tmp)
+
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True,
+                    stderr=subprocess.PIPE, timeout=20,
+                ).strip()
+
+            git("init", "-q")
+            git("config", "user.email", "historical-pr@example.invalid")
+            git("config", "user.name", "Historical PR oracle")
+            (repo / "early.py").write_text("VALUE = 0\n")
+            (repo / "late.py").write_text("VALUE = 0\n")
+            git("add", ".")
+            git("commit", "-qm", "base")
+            (repo / "early.py").write_text("VALUE = 1\n")
+            git("add", ".")
+            git("commit", "-qm", "earlier branch commit")
+            (repo / "late.py").write_text("VALUE = 1\n")
+            git("add", ".")
+            git("commit", "-qm", "later branch commit")
+            candidate = git("rev-parse", "HEAD")
+            (repo / "early.py").write_text("VALUE = 0\n")
+            git("add", ".")
+            git("commit", "-qm", "post-merge revert of earlier feature")
+            main = git("rev-parse", "HEAD")
+
+            receipt = MODULE.assess_candidate_source_redundancy(
+                candidate=candidate, main=main, repo=repo,
+            )
+            self.assertTrue(receipt["candidateInMainHistory"])
+            self.assertEqual(receipt["candidateChangePaths"], ["late.py"])
+            self.assertEqual(receipt["mainMatchingPaths"], ["late.py"])
+            self.assertFalse(receipt["fullCandidateDeltaQualified"])
+            self.assertEqual(
+                receipt["sourceStanding"],
+                "HISTORICAL_FIRST_PARENT_ONLY_NO_FULL_PR_REDUNDANCY_JUDGMENT",
+            )
+            self.assertFalse(receipt["retirementAdmissible"])
+
+    def test_explicit_repository_scope_rejects_ambient_git_dir(self) -> None:
+        # git -C repo is not a repository identity fence when Git's location
+        # environment is inherited: an unrelated repository can be selected.
+        with tempfile.TemporaryDirectory(prefix="ordivon-git-scope-") as tmp:
+            repo_a, repo_b = (Path(tmp) / name for name in ("a", "b"))
+
+            def git(repo: Path, *args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args],
+                    text=True, stderr=subprocess.PIPE, timeout=20,
+                ).strip()
+
+            for repo in (repo_a, repo_b):
+                repo.mkdir()
+                git(repo, "init", "-q")
+                git(repo, "config", "user.email", "scope@example.invalid")
+                git(repo, "config", "user.name", "Source identity oracle")
+                (repo / "source.py").write_text("VALUE = 0\\n")
+                git(repo, "add", ".")
+                git(repo, "commit", "-qm", "base")
+
+            (repo_b / "source.py").write_text("VALUE = 1\\n")
+            git(repo_b, "add", ".")
+            git(repo_b, "commit", "-qm", "second")
+            foreign_candidate = git(repo_b, "rev-parse", "HEAD")
+            (repo_b / "source.py").write_text("VALUE = 2\\n")
+            git(repo_b, "add", ".")
+            git(repo_b, "commit", "-qm", "third")
+            foreign_main = git(repo_b, "rev-parse", "HEAD")
+
+            for ambient in (
+                {"GIT_DIR": str(repo_b / ".git")},
+                {"GIT_OBJECT_DIRECTORY": str(repo_b / ".git" / "objects")},
+            ):
+                with self.subTest(ambient=tuple(ambient)):
+                    with mock.patch.dict(os.environ, ambient):
+                        # Explicit repo A MUST be the source universe,
+                        # regardless of inherited repository/object locations.
+                        with self.assertRaises(subprocess.CalledProcessError):
+                            MODULE.assess_candidate_source_redundancy(
+                                candidate=foreign_candidate,
+                                main=foreign_main, repo=repo_a,
+                            )
+                        actual_b = MODULE.assess_candidate_source_redundancy(
+                            candidate=foreign_candidate,
+                            main=foreign_main, repo=repo_b,
+                        )
+                        self.assertTrue(actual_b["candidateInMainHistory"])
+
+    def test_native_cli_on_real_source_cuts_denies_deletion(self) -> None:
+        repo = MODULE_PATH.parents[2]
+        main = MODULE._git("rev-parse", "HEAD")
+        parent = MODULE._git("rev-parse", "HEAD^")
+        output = subprocess.check_output(
+            [sys.executable, str(MODULE_PATH),
+             "--retirement-candidate", parent, "--retirement-main", main],
+            cwd=repo, text=True, timeout=30,
+        )
+        import json
+        receipt = json.loads(output)
+        self.assertEqual(receipt["sourceCuts"]["candidate"], parent)
+        self.assertFalse(receipt["retirementAdmissible"])
+        self.assertEqual(receipt["installedStanding"], "UNKNOWN")
+        proc = subprocess.run(
+            [sys.executable, str(MODULE_PATH),
+             "--retirement-candidate", parent, "--retirement-main", main,
+             "--changed-file", "tools/repo/convergence_plan.py"],
+            cwd=repo, text=True, capture_output=True, timeout=30,
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("requires only both exact Git cuts", proc.stderr)
+
+
+class SourceCutGitEnvironmentTests(unittest.TestCase):
+    def test_sourcecut_git_resolve_uses_current_repo_not_foreign_git_dir(self) -> None:
+        # build_plan uses _git before calling affected_owners.changed_paths.
+        # Both edges must bind the same actual repository.
+        with tempfile.TemporaryDirectory(prefix="ordivon-repo-git-env-") as tmp:
+            root = Path(tmp)
+            local, foreign = root / "local", root / "foreign"
+            for repo in (local, foreign):
+                repo.mkdir()
+                subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+                subprocess.run(["git", "-C", str(repo), "config",
+                                "user.email", "test@example.invalid"], check=True)
+                subprocess.run(["git", "-C", str(repo), "config",
+                                "user.name", "Owner Git testcase"], check=True)
+                (repo / "manifest.txt").write_text(repo.name + "\n")
+                subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+                subprocess.run(["git", "-C", str(repo), "commit", "-qm", "base"], check=True)
+
+            original = Path.cwd()
+            try:
+                os.chdir(local)
+                intended = MODULE._git("rev-parse", "HEAD")
+                with mock.patch.dict(os.environ, {
+                    "GIT_DIR": str(foreign / ".git"),
+                    "GIT_OBJECT_DIRECTORY": str(foreign / ".git" / "objects"),
+                }):
+                    self.assertEqual(MODULE._git("rev-parse", "HEAD"), intended)
+            finally:
+                os.chdir(original)
+
+
 class ConvergencePlanTests(unittest.TestCase):
     def test_all_native_owner_combinations_preserve_mandatory_queue_closure(self) -> None:
         """A finite consumer CDC bridge for existing R2.1 monotone-impact laws.
@@ -89,6 +340,32 @@ class ConvergencePlanTests(unittest.TestCase):
             [owner.name for owner in native_owners],
             [owner.queue_task for owner in native_owners],
         )
+
+    def test_real_project_skill_change_retains_skills_verification_consumer(self) -> None:
+        # platform/skills/tests/test_recursive_lego_math_discovery.py reads this source.
+        path = ".agents/skills/recursive-lego-calculus/SKILL.md"
+        plan = MODULE.build_plan(changed_files=[path])
+        self.assertIn("skills", plan["verificationOwners"])
+        self.assertIn("skills:verify", plan["queueVerifyTasks"])
+        with self.assertRaisesRegex(ValueError, "queue source impact"):
+            MODULE.validate_queue_task_selection([], [], [path])
+        MODULE.validate_queue_task_selection(
+            plan["verificationOwners"], plan["queueVerifyTasks"], [path]
+        )
+        self.assertEqual(
+            MODULE.build_plan(changed_files=["docs/agent-skills-example.md"])[
+                "queueVerifyTasks"
+            ],
+            [],
+        )
+
+    def test_runtime_release_workflow_retains_actual_runtime_gate(self) -> None:
+        path = ".github/workflows/runtime-release.yml"
+        plan = MODULE.build_plan(changed_files=[path])
+        self.assertIn("runtime", plan["verificationOwners"])
+        self.assertIn("runtime:verify", plan["queueVerifyTasks"])
+        with self.assertRaisesRegex(ValueError, "queue source impact"):
+            MODULE.validate_queue_task_selection([], [], [path])
 
     def test_exact_git_replace_cannot_erase_formal_source_queue_or_spoof_tree(self) -> None:
         """LEGO 2.1 source identity must not follow mutable Git replacement refs.
@@ -323,12 +600,38 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertFalse(explanation["impactClosureAdmissible"])
         self.assertFalse(explanation["proofReuseAdmissible"])
 
+    def test_self_hosted_empty_queue_is_not_a_required_unexecuted_task(self) -> None:
+        """R2.1 nonvacuity: no scoped task is not an unexecuted required one."""
+        cut = MODULE._git("rev-parse", "HEAD")
+        source = "docs/architecture/ORDIVON_COMPOSITION_ARCHITECTURE_R1.md"
+        plan = MODULE.build_plan(changed_files=[source])
+        self.assertEqual(plan["queueVerifyTasks"], [])
+        result = MODULE.explain_source_impacts(plan, source_cut=cut)
+        self.assertEqual(result["queueVerifyTasks"], [])
+        self.assertEqual(result["verificationOwners"], [])
+        self.assertEqual(
+            result["verificationStanding"], "NO_NATIVE_QUEUE_TASK_SELECTED_IN_SCOPE"
+        )
+        self.assertFalse(result["proofReuseAdmissible"])
+        self.assertFalse(result["impactClosureAdmissible"])
+        self.assertEqual(result["runtimeCallStanding"], "UNKNOWN")
+        cli = subprocess.check_output(
+            [sys.executable, str(MODULE_PATH),
+             "--changed-file", source, "--explain-impacts"],
+            cwd=MODULE_PATH.parents[2], text=True, timeout=45,
+        )
+        result_cli = __import__("json").loads(cli)
+        self.assertEqual(result_cli["verificationStanding"],
+                         result["verificationStanding"])
+
     def test_self_hosted_formal_source_impact_preserves_existing_real_task(self) -> None:
         plan = MODULE.build_plan(changed_files=["tools/formal/RecursiveLegoRefinement.lean"])
         explanation = MODULE.explain_source_impacts(
             plan, source_cut=MODULE._git("rev-parse", "HEAD")
         )
         self.assertEqual(explanation["queueVerifyTasks"], ["formal:verify"])
+        self.assertEqual(explanation["verificationStanding"],
+                         "REQUIRED_NOT_EXECUTED_BY_PROJECTION")
         self.assertEqual(explanation["verificationOwners"], [])
         self.assertEqual(explanation["unindexedChangedPaths"], [])
         self.assertEqual(explanation["changedSourceInputs"][0]["candidateConsumers"], [])

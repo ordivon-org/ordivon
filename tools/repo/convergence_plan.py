@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import tomllib
 from collections import deque
@@ -24,7 +25,14 @@ def _git(*args: str) -> str:
         ["git", "--no-replace-objects", *args],
         # Preserve the same graft-free immutable Git SourceCut used by the
         # native affected-owner delta selector.
-        env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
+        # SourceCut identity must come from the cwd repository. Inherited
+        # GIT_DIR/GIT_OBJECT_DIRECTORY/GIT_CONFIG_* can point to a foreign
+        # object database even when replacing refs and grafts are disabled.
+        env={
+            **{key: value for key, value in os.environ.items()
+               if not key.startswith("GIT_")},
+            "GIT_GRAFT_FILE": os.devnull,
+        },
         check=True,
         text=True,
         capture_output=True,
@@ -452,7 +460,12 @@ def explain_source_impacts(
         "directOwners": plan["directOwners"],
         "verificationOwners": verify_owners,
         "queueVerifyTasks": queue_tasks,
-        "verificationStanding": "REQUIRED_NOT_EXECUTED_BY_PROJECTION",
+        # R2.1 nonvacuity: an empty scoped task set is not a required
+        # unexecuted task. It still cannot certify globally absent consumers.
+        "verificationStanding": (
+            "REQUIRED_NOT_EXECUTED_BY_PROJECTION" if queue_tasks
+            else "NO_NATIVE_QUEUE_TASK_SELECTED_IN_SCOPE"
+        ),
         "changedSourceInputs": source_items,
         "unindexedChangedPaths": missing,
         "staticPythonCandidateCount": sum(
@@ -561,10 +574,147 @@ def build_qualified_temporal_impact(
     }
 
 
+
+
+def assess_candidate_source_redundancy(
+    *, candidate: str, main: str, repo: Path | None = None,
+) -> dict[str, object]:
+    """Read-only Git-object comparison for an OLD PR against an exact main cut.
+
+    This is a source-value/ancestry *pre-filter*, NOT semantic equivalence,
+    an installed-consumer census, proof-reuse permission, or deletion authority.
+    In particular, changed Git modes and absent paths are part of the value.
+    """
+    if repo is None:
+        repo = Path(__file__).resolve().parents[2]
+
+    # Git location/object/config variables inherited from an Agent shell can
+    # redirect git -C repo to another repository. Bind object inspection to
+    # the explicit repo instead of ambient process Git state.
+    git_env = {key: value for key, value in os.environ.items()
+               if not key.startswith("GIT_")}
+    git_env["GIT_GRAFT_FILE"] = os.devnull
+
+    def native(*args: str) -> bytes:
+        result = subprocess.run(
+            ["git", "--no-replace-objects", "-C", str(repo), *args],
+            env=git_env,
+            check=True, capture_output=True,
+        )
+        return result.stdout
+
+    def exact_cut(value: str) -> str:
+        if not re.fullmatch(r"[0-9a-f]{40}", value):
+            raise ValueError("candidate/main SourceCut must be exact 40-hex Git IDs")
+        resolved = native("rev-parse", "--verify", value + "^{commit}").decode().strip()
+        if resolved != value:
+            raise ValueError("candidate/main SourceCut is not the exact commit")
+        return resolved
+
+    candidate = exact_cut(candidate)
+    main = exact_cut(main)
+    bases = native("merge-base", "--all", candidate, main).decode().splitlines()
+    if len(bases) != 1:
+        raise ValueError("candidate/main require one unambiguous merge base")
+    common_base = bases[0]
+    # If candidate is itself contained in main history, merge-base returns
+    # candidate and a naive diff would be empty. This is NOT evidence the
+    # candidate contributed no behavior. Use a clearly disclosed one-commit
+    # first-parent scope instead of claiming full PR-delta knowledge.
+    if common_base == candidate:
+        parents = native("rev-list", "--parents", "-n", "1", candidate).decode().split()
+        if len(parents) < 2:
+            raise ValueError("root ancestor has no bounded first-parent diff base")
+        base = parents[1]
+        comparison_basis = "FIRST_PARENT_ONLY_NOT_FULL_PR_DELTA"
+    else:
+        base = common_base
+        comparison_basis = "FORK_TO_CANDIDATE_GIT_DELTA"
+    # The candidate's OWN source change is compared against main. Diffing
+    # current main against an old branch head would count unrelated newer main
+    # changes as if they had originated in that old PR.
+    paths_raw = native(
+        "diff", "--no-ext-diff", "--no-textconv", "--no-renames",
+        "--name-only", "-z", base, candidate,
+    ).split(b"\0")
+    paths = [os.fsdecode(path) for path in paths_raw if path]
+    if len(paths) > 256:
+        raise ValueError("candidate source delta exceeds 256-path bounded review")
+    if len(paths) != len(set(paths)):
+        raise ValueError("duplicate candidate changed path")
+
+    def tree_values(revision: str) -> dict[str, tuple[str, str, str]]:
+        index: dict[str, tuple[str, str, str]] = {}
+        for entry in native("ls-tree", "-r", "-z", revision).split(b"\0"):
+            if not entry:
+                continue
+            metadata, path = entry.split(b"\t", 1)
+            mode, kind, sha = metadata.decode("ascii").split(" ")
+            index[os.fsdecode(path)] = (mode, kind, sha)
+        return index
+
+    candidate_values = tree_values(candidate)
+    main_values = tree_values(main)
+    matching = [path for path in paths if candidate_values.get(path) == main_values.get(path)]
+    differing = [path for path in paths if path not in matching]
+    # Historical inclusion can coexist with later reverts/modifications.
+    is_in_main_history = subprocess.run(
+        ["git", "--no-replace-objects", "-C", str(repo),
+         "merge-base", "--is-ancestor", candidate, main],
+        env=git_env,
+        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False,
+    ).returncode == 0
+
+    full_candidate_delta_qualified = common_base != candidate
+    if not full_candidate_delta_qualified:
+        # Only the tip's first-parent delta was inspected. Earlier commits
+        # in a historical multi-commit PR may have been reverted in main.
+        # Do not report whole-candidate source equality from this partial view.
+        source_standing = (
+            "HISTORICAL_FIRST_PARENT_ONLY_NO_FULL_PR_REDUNDANCY_JUDGMENT"
+        )
+    elif not paths:
+        source_standing = "NO_CANDIDATE_SOURCE_DELTA"
+    elif not differing:
+        source_standing = "CANDIDATE_TOUCHED_BLOBS_EQUAL_MAIN"
+    else:
+        source_standing = "CANDIDATE_TOUCHED_BLOBS_DIFFER_FROM_MAIN"
+    # A source-matching PR may be closed after independent checks, but
+    # this projection must NEVER authorize branch/worktree/domain deletion.
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.repo-candidate-source-redundancy",
+        "sourceCuts": {
+            "candidate": candidate, "main": main,
+            "commonMergeBase": common_base, "comparisonBase": base,
+        },
+        "comparisonBasis": comparison_basis,
+        "fullCandidateDeltaQualified": full_candidate_delta_qualified,
+        "candidateChangePaths": paths,
+        "candidateChangedPathCount": len(paths),
+        "mainMatchingPaths": matching,
+        "mainDifferingPaths": differing,
+        "candidateInMainHistory": is_in_main_history,
+        "sourceStanding": source_standing,
+        "consumerStanding": "UNKNOWN_NOT_EXHAUSTIVELY_TRACED",
+        "installedStanding": "UNKNOWN",
+        "formalRefinementStanding": "UNKNOWN",
+        "retirementAdmissible": False,
+        "proofReuseAdmissible": False,
+        "truthBoundary": (
+            "Exact immutable Git tree entries and bounded candidate-delta comparison "
+            "only. No proof of runtime consumers, installed effects, semantic "
+            "refinement, or permission to delete a PR, branch, Workspace or source."
+        ),
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Project one Git candidate into conservative Ordivon convergence scopes."
     )
+    parser.add_argument("--retirement-candidate", help="exact old candidate commit")
+    parser.add_argument("--retirement-main", help="exact protected main commit")
     parser.add_argument("--base")
     parser.add_argument("--head")
     parser.add_argument("--changed-file", action="append", default=[])
@@ -586,6 +736,17 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _parser().parse_args()
     try:
+        if args.retirement_candidate or args.retirement_main:
+            if (not args.retirement_candidate or not args.retirement_main
+                    or args.base or args.head or args.changed_file
+                    or args.impact_prefix or args.explain_impacts
+                    or args.source_cut or args.format != "json"):
+                raise ValueError("retirement source review requires only both exact Git cuts and JSON")
+            receipt = assess_candidate_source_redundancy(
+                candidate=args.retirement_candidate, main=args.retirement_main,
+            )
+            print(json.dumps(receipt, sort_keys=True))
+            return 0
         if args.impact_prefix:
             if (args.changed_file or args.explain_impacts or args.source_cut
                     or not args.base or not args.head):

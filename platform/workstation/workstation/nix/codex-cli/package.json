@@ -1,7 +1,7 @@
 {
   "name": "ordivon-codex-cli",
   "private": true,
-  "packageManager": "pnpm@12.15.0",
+  "packageManager": "pnpm@12.16.1",
   "version": "0.0.0",
   "description": "Workstation Codex CLI version tracked by Dependabot and consumed by Home Manager",
   "dependencies": {

@@ -1,3 +1,12 @@
+"""Current Parquet producer / DuckDB independent-reader qualification.
+
+Source-role: external provider conformance probe (NOT an Ordivon domain owner,
+provider admission decision, or production financial write interface).
+Executable entry: scripts/run-parquet-duckdb-owner-requalification-r17.
+Prior R16/PyArrow 25 qualification is replaced by this current R17/PyArrow 26
+program; historical source remains recoverable from its original Git commit.
+"""
+
 from __future__ import annotations
 
 import hashlib
@@ -149,7 +158,7 @@ def _stress_rows() -> list[dict[str, object]]:
 
 
 def main() -> None:
-    if sys.version_info[:3] != (3, 15, 0):
+    if sys.version_info[:3] != (3, 15, 1):
         raise SystemExit(f"unexpected current Python runtime: {sys.version.split()[0]}")
     if pa.__version__ != "26.0.0":
         raise SystemExit(f"unexpected PyArrow version: {pa.__version__}")
@@ -294,7 +303,7 @@ def main() -> None:
             "contract": "contracts/parquet-materialization-readback-v1.json",
             "pyarrow": {
                 "version": pa.__version__,
-                "python3150ExecutableQualification": "PASS",
+                "python3151ExecutableQualification": "PASS",
                 "role": "PARQUET_MATERIALIZATION_OWNER",
                 "installedFileCount": files,
                 "installedFootprintBytes": footprint,
