@@ -75,7 +75,7 @@ def _qualified_formal_test_receipt(
         executable.write_bytes(("fixture executable: " + name).encode("utf-8"))
         executable.chmod(0o700)
         fixture_binaries[name] = {
-            "path": str(executable), "version": "fixture",
+            "path": str(executable.resolve(strict=True)), "version": "fixture",
             "sha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
         }
     sources = {
@@ -214,6 +214,12 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 '#!/usr/bin/env bash\n'
                 'if [[ "$1" == --cd && "$3" == config && "$4" == ls ]]; then '
                 'exec "$MISE_NATIVE_FOR_CONFIG" "$@"; fi\n'
+                'if [[ "$1" == which ]]; then\n'
+                '  if [[ "$2" == --version && -f "$FORMAL_FAKE_BINARY_DIR/$3" ]]; then\n'
+                '    printf "fixture\\n"; exit 0; fi\n'
+                '  if [[ -f "$FORMAL_FAKE_BINARY_DIR/$2" ]]; then\n'
+                '    printf "%s\\n" "$FORMAL_FAKE_BINARY_DIR/$2"; exit 0; fi\n'
+                '  exit 44; fi\n'
                 'printf "%s\\n" "$*" >> "$MISE_RECORD"\n'
                 'if [[ "$1" == run && "$2" == runtime:verify && '
                 '"$' + '{MOCK_FAIL_RUNTIME:-0}" == 1 ]]; then exit 37; fi\n'
@@ -248,6 +254,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 "RUNNER_TEMP": str(folder),
                 "MISE_RECORD": str(log),
                 "FORMAL_MOCK_RECEIPT": str(report_path),
+                "FORMAL_FAKE_BINARY_DIR": str(folder / "fake-formal-tool-binaries"),
                 "PATH": str(folder / "bin") + os.pathsep + env.get("PATH", ""),
             })
 
@@ -387,6 +394,18 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             no_version = copy.deepcopy(full_report)
             no_version["toolBinaries"]["lean"]["version"] = ""
             invalid_receipts["tool-version-missing"] = json.dumps(no_version)
+            wrong_version = copy.deepcopy(full_report)
+            wrong_version["toolBinaries"]["lean"]["version"] = "unselected-version"
+            invalid_receipts["tool-version-mismatch"] = json.dumps(wrong_version)
+            # A valid SHA of another executable does not bind the declared
+            # verifier to the Mise-selected tool that ran the proof.
+            wrong_tool_identity = copy.deepcopy(full_report)
+            wrong_tool_identity["toolBinaries"]["lean"] = copy.deepcopy(
+                wrong_tool_identity["toolBinaries"]["z3"]
+            )
+            invalid_receipts["valid-digest-foreign-tool-identity"] = json.dumps(
+                wrong_tool_identity
+            )
             stale_cut = copy.deepcopy(full_report)
             stale_cut["sourceCut"] = "0" * len(stale_cut["sourceCut"])
             invalid_receipts["stale-source-cut"] = json.dumps(stale_cut)
@@ -398,7 +417,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
             # Two new forged/missing fragment receipts and one extra
             # source-blob omission case extend the negative corpus.
-            self.assertEqual(len(invalid_receipts), 66)
+            self.assertEqual(len(invalid_receipts), 68)
 
             try:
                 for label, payload in invalid_receipts.items():
@@ -520,6 +539,12 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             mock.write_text(
                 '#!/usr/bin/env bash\n'
                 'if [[ "$1" == --cd && "$3" == config && "$4" == ls ]]; then exec "$MISE_NATIVE_FOR_CONFIG" "$@"; fi\n'
+                'if [[ "$1" == which ]]; then\n'
+                '  if [[ "$2" == --version && -f "$FORMAL_FAKE_BINARY_DIR/$3" ]]; then\n'
+                '    printf "fixture\\n"; exit 0; fi\n'
+                '  if [[ -f "$FORMAL_FAKE_BINARY_DIR/$2" ]]; then\n'
+                '    printf "%s\\n" "$FORMAL_FAKE_BINARY_DIR/$2"; exit 0; fi\n'
+                '  exit 44; fi\n'
                 'printf "%s\\n" "$*" >> "$MISE_RECORD"\n',
                 encoding="utf-8",
             )
@@ -553,6 +578,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             env["RUNNER_TEMP"] = str(work)
             env["MISE_RECORD"] = str(record)
             env["FORMAL_MOCK_RECEIPT"] = str(report)
+            env["FORMAL_FAKE_BINARY_DIR"] = str(work / "fake-formal-tool-binaries")
             import shutil
             env["MISE_NATIVE_FOR_CONFIG"] = shutil.which("mise") or "/usr/bin/mise"
             env["MISE_TRUSTED_CONFIG_PATHS"] = str(repo)
