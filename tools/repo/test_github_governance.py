@@ -42,6 +42,7 @@ _FORMAL_SOURCE_FILES = (
     "mise.toml", "tools/formal/mise.toml", "tools/formal/verify.py",
     "tools/formal/RecursiveLegoRefinement.lean",
     "tools/formal/RecursiveLegoVariationFrame.lean",
+    "tools/formal/RecursiveLegoRetirementChallenge.lean",
     "tools/formal/Proof.rs", "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs", "tools/formal/Proof.qnt",
     "tools/formal/Proof.als",
@@ -49,7 +50,13 @@ _FORMAL_SOURCE_FILES = (
 )
 _FORMAL_PROBE_ORACLES = (
     ("Lean kernel R2.1 relational composition", 0),
+    ("Leanchecker replays R2.1 core declarations", 0),
     ("Lean kernel qualified variation frame and countermodels", 0),
+    ("Lean kernel consumer-owned R2.1 retirement closure challenge", 0),
+    ("Leanchecker replays consumer-owned retirement challenge", 0),
+    ("Leanchecker replays R2.1 variation declarations", 0),
+    ("Lean compiler accepts forged axiom-free proof when kernel skipped", 0),
+    ("Leanchecker rejects forged false declaration", 1),
     ("Lean rejects false theorem", 1),
     ("Z3: sat", 0), ("Z3: unsat", 0),
     ("cvc5: sat", 0), ("cvc5: unsat", 0),
@@ -61,7 +68,7 @@ _FORMAL_PROBE_ORACLES = (
     ("Quint rejects type error", 1),
     ("Alloy finite SAT model", 0),
 )
-_FORMAL_TOOLS = ("lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy")
+_FORMAL_TOOLS = ("lean", "leanchecker", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy")
 
 def _qualified_formal_test_receipt(
     checkout: Path, source_cut: str, fake_bin_dir: Path
@@ -333,7 +340,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             invalid_receipts["forged-effect-frame-evidence"] = json.dumps(forged_effect_frame)
             no_tools = copy.deepcopy(full_report)
             no_tools.pop("toolBinaries")
-            invalid_receipts["no-eight-tool-witnesses"] = json.dumps(no_tools)
+            invalid_receipts["no-qualified-tool-witnesses"] = json.dumps(no_tools)
             # The Formal mathematical model cannot grant implementation
             # refinement or actual installed effect acceptance. A checker that
             # claims PASS for either must fail this consumer's admission, even
@@ -415,9 +422,19 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             wrong_count = copy.deepcopy(full_report)
             wrong_count["count"] += 1
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
-            # Two new forged/missing fragment receipts and one extra
-            # source-blob omission case extend the negative corpus.
-            self.assertEqual(len(invalid_receipts), 68)
+            # The first 28 independent negative receipt cases are fixed.
+            # For each real probe/source/tool, test an omitted witness; each
+            # negative oracle also gets a wrong-return-code falsifier.
+            # Derive the count from the exact consumer grammar, not from
+            # a stale pre-R22 fixture size.
+            self.assertEqual(
+                len(invalid_receipts),
+                28
+                + len(full_report["probes"])
+                + len(full_report["sourceBlobs"])
+                + len(full_report["toolBinaries"])
+                + sum("rejects" in x["probe"] for x in full_report["probes"]),
+            )
 
             try:
                 for label, payload in invalid_receipts.items():
