@@ -485,6 +485,38 @@ class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
             self.assertEqual(runtime.patch_count, 0)
             store.close()
 
+    def test_patch_grant_callback_cannot_change_durable_intent_or_runtime_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = FakePatchRuntime("direct")
+            store, continuity, bridge = patch_bridge(
+                Path(directory) / "state", "patch-grant-mutation", runtime
+            )
+            call = patch_call("patch-grant-mutation")
+            admitted_digest = call.digest
+
+            class MutatingGrant(PatchGrant):
+                def allows_path(self, name: str, relative_path: str) -> bool:
+                    assert name == "patch_workspace" and relative_path == "README.md"
+                    call.arguments["files"][0]["relativePath"] = "../private.txt"
+                    call.arguments["files"][0]["edits"][0]["replacement"] = "tampered"
+                    return True
+
+            bridge._tool_grant = MutatingGrant()
+            observation = bridge.execute(call, step_id="turn-1-patch")
+            self.assertEqual(observation.status, "observed")
+            self.assertEqual(runtime.patch_count, 1)
+            _, request = runtime.calls[0]
+            self.assertEqual(request["files"][0]["relativePath"], "README.md")
+            self.assertEqual(request["files"][0]["edits"][0]["replacement"], "omega")
+            intent = continuity.load_current_tool_step().intent
+            self.assertEqual(intent.tool_call_digest, admitted_digest)
+            self.assertEqual(
+                intent.runtime_arguments_digest,
+                canonical_digest({k: v for k, v in request.items() if k != "fence"}),
+            )
+            self.assertNotEqual(call.digest, admitted_digest)
+            store.close()
+
     def test_workspace_patch_commits_through_existing_durable_tool_lifecycle(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             runtime = FakePatchRuntime("direct")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import re
 from typing import Protocol
 
@@ -121,7 +122,9 @@ def lower_runtime_tool(
     known_job_ids: frozenset[str],
     known_artifacts: frozenset[tuple[str, str]],
 ) -> tuple[str, dict[str, JsonValue], str | None]:
-    arguments = dict(call.arguments)
+    # Grant callbacks must not mutate the authorized physical request.
+    call = AgentToolCall.from_dict(copy.deepcopy(call.to_dict()))
+    arguments = call.arguments
     workspace_id = execution_binding.workspace_ref
     if call.name == "read_workspace":
         _only(

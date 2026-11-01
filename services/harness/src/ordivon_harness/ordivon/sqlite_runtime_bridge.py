@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
@@ -566,6 +567,8 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
         turn_id: str,
         control: ExecutionControl | None,
     ) -> HarnessToolObservation:
+        # Bind one validated Tool Call to authorization, durable intent and effect.
+        call = AgentToolCall.from_dict(copy.deepcopy(call.to_dict()))
         allowed = {definition.name for definition in self._tool_definitions}
         if call.name not in allowed:
             raise ToolBridgeError(
