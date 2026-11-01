@@ -42,6 +42,9 @@ SOURCE_FILES = (
 
 def qualified_source_cut() -> dict[str, object]:
     """Bind each used proof file to an exact regular Git blob at current HEAD."""
+    # Imported callers bypass main(): do not issue evidence from a Python
+    # process whose ELF loader was already externally influenced.
+    require_unmodified_elf_loader_environment()
     # The proof witness must be bound to this verifier's declared repository,
     # not a foreign Agent/CI Git namespace, object database or config.
     git_env = {key: value for key, value in os.environ.items()
@@ -90,6 +93,7 @@ def qualified_source_cut() -> dict[str, object]:
 
 def qualified_tool_binaries() -> dict[str, dict[str, str]]:
     """Resolve upstream tools through mise and bind exact executed entrypoint bytes."""
+    require_unmodified_elf_loader_environment()
     result: dict[str, dict[str, str]] = {}
     for name in TOOL_NAMES:
         raw_path = subprocess.check_output(
