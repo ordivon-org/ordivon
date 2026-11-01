@@ -1262,3 +1262,190 @@ def test_reply_relation_must_point_to_earlier_committed_message() -> None:
     actual = social.list_message_relations(earlier, direction="outgoing")
     assert not any(row["relation"] == "reply_to" for row in actual["relations"])
     assert any(row["relation"] == "references" for row in actual["relations"])
+
+
+def test_two_real_host_works_share_one_harness_pg_effect_without_losing_work_evidence(
+    tmp_path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cross-owner integration: actual Host Work transactions + real Harness PG fence.
+
+    This proves only that an EXPLICIT stable effect ID survives two separate
+    WorkRef carriers. Work equality/prose/references do not manufacture an
+    effect-equivalence proof, and no external provider is contacted here.
+    """
+    assert DSN is not None
+    from pathlib import Path
+
+    # Deliberately test-only composition. Host has no production dependency
+    # on the Harness implementation or any new cross-owner registry.
+    harness_scripts = Path(__file__).resolve().parents[2] / "harness" / "scripts"
+    with monkeypatch.context() as patch:
+        patch.syspath_prepend(str(harness_scripts))
+        from postgres_turn_effects import PostgresTurnEffects, TurnEffectConflict
+
+        host = WorkStore(DSN)
+        effect_store = PostgresTurnEffects(DSN)
+        effect_store.activate_empty_fresh(tmp_path / "legacy-absent.sqlite")
+
+        effect_id = "turn:hk02:shared:" + uuid4().hex
+        prompt_digest = "sha256:" + ("7" * 64)
+        target = "https://chatgpt.com/c/cross-owner-fixture"
+        carriers = []
+        for i in range(2):
+            actor, work_ref = refs(f"hk02-physical-{i}")
+            declare_actor(host, actor)
+            initial = WorkSnapshotInput(
+                objective="same wording is NOT evidence of same effect",
+                frontier="before provider effect",
+                reference_refs=[effect_id],
+            )
+            created = host.create_work(
+                WorkCreateInput(
+                    work_ref=work_ref, kind="task", actor_ref=actor,
+                    initial_snapshot=initial,
+                ),
+                client_request_id=f"create:{work_ref}",
+            )
+            assert created["admission"] == "committed"
+            carriers.append((actor, work_ref))
+
+        barrier = Barrier(2)
+
+        def attempt(carrier):
+            barrier.wait(timeout=10)
+            admitted = effect_store.claim_before_send(
+                effect_id, prompt_digest, target
+            )
+            return carrier, admitted
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            attempted = list(pool.map(attempt, carriers))
+        assert sum(row["admittedToSend"] for _, row in attempted) == 1
+        assert all(row["state"] == "UNKNOWN" for _, row in attempted)
+
+        # Separate Host CAS commits preserve each unique Work projection.
+        for actor, work_ref in carriers:
+            updated = host.commit_snapshot(
+                work_ref,
+                expected_revision=1,
+                snapshot=WorkSnapshotInput(
+                    objective="same wording is NOT evidence of same effect",
+                    frontier="after provider fence",
+                    established=[f"unique-work-evidence:{work_ref}"],
+                    reference_refs=[effect_id],
+                ),
+                actor_ref=actor,
+                client_request_id=f"checkpoint:{work_ref}",
+            )
+            assert updated["revision"] == 2
+
+        finished = effect_store.record_after_send(
+            effect_id, prompt_digest, target, "COMPLETED",
+            {"providerReceipt": "one observed fixture receipt"},
+        )
+        assert finished["safeToResend"] is False
+        replay = effect_store.claim_before_send(effect_id, prompt_digest, target)
+        assert replay["admittedToSend"] is False
+        assert replay["state"] == "COMPLETED"
+        assert "one observed fixture receipt" in replay["receipt_json"]
+
+        for _, work_ref in carriers:
+            actual = host.get_work(work_ref)
+            assert actual["revision"] == 2
+            assert actual["snapshot"]["referenceRefs"] == [effect_id]
+            assert actual["snapshot"]["established"] == [
+                f"unique-work-evidence:{work_ref}"
+            ]
+
+        with pytest.raises(TurnEffectConflict, match="identity conflict"):
+            effect_store.claim_before_send(
+                effect_id, "sha256:" + ("8" * 64), target
+            )
+
+        # Negative: same objective but a DIFFERENT owner key is a distinct
+        # legal effect. This demonstrates the unresolved upstream seam:
+        # Host Work has not certified domain-equivalence of two intents.
+        distinct = effect_store.claim_before_send(
+            "turn:hk02:independent:" + uuid4().hex, prompt_digest, target,
+        )
+        assert distinct["admittedToSend"] is True
+
+
+def test_concurrent_agents_rebase_unique_work_evidence_after_real_host_cas_race() -> None:
+    """Loss-free recovery uses owner readback + explicit evidence reconciliation.
+
+    A Host revision CAS loser must not infer that its unique evidence committed.
+    Nor may its stale payload replace the winner's evidence after a reread.
+    """
+    assert DSN is not None
+    store = WorkStore(DSN)
+    actor_a, work_ref = refs("hk02-two-agent-reconcile")
+    actor_b, _ = refs("hk02-competing-writer")
+    declare_actor(store, actor_a)
+    declare_actor(store, actor_b)
+    shared_effect = "turn:hk02:evidence:" + uuid4().hex
+    store.create_work(
+        WorkCreateInput(
+            work_ref=work_ref, kind="task", actor_ref=actor_a,
+            initial_snapshot=WorkSnapshotInput(
+                objective="preserve both independent facts",
+                frontier="before competing evidence",
+                reference_refs=[shared_effect],
+            ),
+        ),
+        client_request_id=f"create:{work_ref}",
+    )
+    barrier = Barrier(2)
+
+    def competing_commit(actor: str, unique_evidence: str):
+        barrier.wait(timeout=10)
+        try:
+            row = store.commit_snapshot(
+                work_ref, expected_revision=1,
+                snapshot=WorkSnapshotInput(
+                    objective="preserve both independent facts",
+                    frontier="one Agent has new evidence",
+                    established=[unique_evidence],
+                    reference_refs=[shared_effect],
+                ),
+                actor_ref=actor,
+                client_request_id=f"compete:{work_ref}:{actor}",
+            )
+            return unique_evidence, row["admission"]
+        except ConflictError:
+            return unique_evidence, "conflict"
+
+    facts = ("evidence:agent:A", "evidence:agent:B")
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = list(
+            pool.map(
+                lambda a: competing_commit(*a),
+                ((actor_a, facts[0]), (actor_b, facts[1])),
+            )
+        )
+    assert sorted(standing for _, standing in outcomes) == ["committed", "conflict"]
+    winner = next(fact for fact, status in outcomes if status == "committed")
+    loser = next(fact for fact, status in outcomes if status == "conflict")
+    assert winner != loser
+    observed = store.get_work(work_ref)
+    assert observed["revision"] == 2
+    assert observed["snapshot"]["established"] == [winner]
+
+    # A new revision can still replace the entire snapshot. Thus only an
+    # independently checked read/union/submit loop preserves both facts.
+    # The loser carries unique provenance but reuses the exact owner snapshot.
+    reconciled = WorkSnapshotInput.model_validate({
+        **observed["snapshot"],
+        "frontier": "conflicting evidence explicitly reconciled",
+        "established": [*observed["snapshot"]["established"], loser],
+    })
+    recovered = store.commit_snapshot(
+        work_ref, expected_revision=observed["revision"],
+        snapshot=reconciled, actor_ref=actor_b,
+        client_request_id=f"reconcile:{work_ref}:{loser}",
+    )
+    assert recovered["revision"] == 3
+    final = store.get_work(work_ref)
+    assert final["snapshot"]["established"] == [winner, loser]
+    assert final["snapshot"]["referenceRefs"] == [shared_effect]
+    assert store.get_work(work_ref, revision=2)["snapshot"]["established"] == [winner]
