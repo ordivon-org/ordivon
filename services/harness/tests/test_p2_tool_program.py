@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import sys
 import unittest
+from unittest.mock import patch
 
 from anc_canonical import canonical_digest
 
 from ordivon_harness.agent_tool_observation import HarnessToolObservation
-from ordivon_harness.ordivon.model import AgentToolCall, AgentToolDefinition
+from ordivon_harness.ordivon.model import AgentToolCall, AgentToolDefinition, AgentTurnResult
 from ordivon_harness.tool_program import (
     HarnessToolProgram,
     HarnessToolProgramAction,
@@ -103,6 +105,34 @@ def dependent_program() -> HarnessToolProgram:
 
 
 class ToolProgramP2Tests(unittest.TestCase):
+    def test_action_wire_contract_does_not_require_executor_import(self) -> None:
+        """The model consumes the pure contract, not the Tool executor module."""
+        from ordivon_harness.tool_program_contract import HarnessToolProgramAction as ContractAction
+
+        self.assertIs(HarnessToolProgramAction, ContractAction)
+        action = HarnessToolProgramAction(
+            action_call_id="program-action:p2:contract-boundary",
+            program=dependent_program(),
+        )
+        turn = AgentTurnResult(
+            model_call_id="model-call:p2:contract-boundary",
+            model_id="test-model",
+            content=None,
+            tool_calls=(),
+            conclusion=None,
+            usage={},
+            finish_reason="tool_calls",
+            raw_response_digest="sha256:" + "f" * 64,
+            tool_program_action=action,
+        )
+        # Fail if a future refactor makes the domain model import the executor.
+        # Production callers still use the pre-existing public tool_program path.
+        with patch.dict(sys.modules, {"ordivon_harness.tool_program": None}):
+            encoded = turn.to_dict()
+            decoded = AgentTurnResult.from_dict(encoded)
+        self.assertEqual(decoded, turn)
+        self.assertEqual(decoded.digest, turn.digest)
+
     def test_round_trip_digest_and_prior_observation_dataflow_are_deterministic(self) -> None:
         program = dependent_program()
         self.assertEqual(HarnessToolProgram.from_dict(program.to_dict()), program)

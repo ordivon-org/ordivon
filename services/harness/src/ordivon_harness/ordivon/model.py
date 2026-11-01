@@ -6,6 +6,8 @@ from typing import Any, Protocol
 
 from anc_canonical import JsonValue, canonical_bytes, canonical_digest, validate_json_value
 
+from ..tool_program_contract import HarnessToolProgramAction
+
 from ..working_view import (
     AgentCallerIngressPromotionProposal,
     AgentWorkingSetTransitionProposal,
@@ -553,7 +555,7 @@ class AgentTurnResult:
     effective_model_id: str | None = None
     working_set_transition: AgentWorkingSetTransitionProposal | None = None
     caller_ingress_promotion: AgentCallerIngressPromotionProposal | None = None
-    tool_program_action: Any | None = None
+    tool_program_action: HarnessToolProgramAction | None = None
 
     def __post_init__(self) -> None:
         _text(self.model_call_id, "Model Call identity", max_bytes=300)
@@ -564,8 +566,6 @@ class AgentTurnResult:
         if len(call_ids) != len(set(call_ids)):
             raise ValueError("Agent turn Tool Call identities must be unique")
         if self.tool_program_action is not None:
-            from ..tool_program import HarnessToolProgramAction
-
             if not isinstance(self.tool_program_action, HarnessToolProgramAction):
                 raise TypeError("Agent turn ToolProgram action is invalid")
         actions = (
@@ -615,8 +615,6 @@ class AgentTurnResult:
         if self.caller_ingress_promotion is not None:
             value["callerIngressPromotion"] = self.caller_ingress_promotion.to_dict()
         if self.tool_program_action is not None:
-            from ..tool_program import HarnessToolProgramAction
-
             if not isinstance(self.tool_program_action, HarnessToolProgramAction):
                 raise TypeError("Agent turn ToolProgram action is invalid")
             value["toolProgramAction"] = self.tool_program_action.to_dict()
@@ -710,10 +708,7 @@ class AgentTurnResult:
             tool_program_action=(
                 None
                 if raw_program is None
-                else __import__(
-                    "ordivon_harness.tool_program",
-                    fromlist=["HarnessToolProgramAction"],
-                ).HarnessToolProgramAction.from_dict(raw_program)
+                else HarnessToolProgramAction.from_dict(raw_program)
             ),
         )
 
