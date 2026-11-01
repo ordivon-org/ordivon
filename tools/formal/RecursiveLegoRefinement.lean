@@ -985,6 +985,106 @@ def asIOContract {I O S : Type} (lego : StrictLego21 I O S) :
     lego.eff x.1 x.2 y.1 y.2 ∧
     lego.accept x.1 x.2 y.1 y.2
 
+-- INVARIANT-CLOSURE OBLIGATION of the EXISTING 11-coordinate R2.1 LEGO.
+-- The old asIOContract checks inv at the *input* but its guarantee does
+-- not imply inv at the resulting state. No extra LEGO registry/type is
+-- needed: this is a predicate on the canonical tuple itself.
+-- Neither an AST shape nor declaring "inv" proves this property.
+def PreservesInvariant {I O S : Type} (lego : StrictLego21 I O S) : Prop :=
+  ∀ s i o next,
+    lego.inv s → lego.pre s i →
+    lego.post s i o next → lego.eff s i o next →
+    lego.accept s i o next → lego.inv next
+
+-- A derived view, not a replacement definition of the 11-tuple.
+-- This makes the next-state obligation a consumer-observable guarantee.
+def asInvariantClosedContract {I O S : Type}
+    (lego : StrictLego21 I O S) :
+    IOContract (S × I) (O × S) where
+  assume := (asIOContract lego).assume
+  guarantee := fun x y =>
+    (asIOContract lego).guarantee x y ∧ lego.inv y.2
+
+theorem invariant_closed_contract_refines_existing {I O S : Type}
+    (lego : StrictLego21 I O S) :
+    Refines (asInvariantClosedContract lego) (asIOContract lego) := by
+  constructor
+  · intro x h
+    exact h
+  · intro _ _ _ h
+    exact h.1
+
+-- A proved preservation property plus the already-required nonvacuous
+-- implementation relation transports invariants to every produced state.
+-- This is a MODEL theorem; installed code still needs refinement evidence.
+theorem invariant_preserved_by_qualified_implementation {I O S : Type}
+    (lego : StrictLego21 I O S)
+    (behavior : (S × I) → (O × S) → Prop)
+    (hImpl : Implements (asIOContract lego) behavior)
+    (hClosed : PreservesInvariant lego) :
+    ∀ s i o next,
+      lego.inv s → lego.pre s i →
+      behavior (s, i) (o, next) → lego.inv next := by
+  intro s i o next hInv hPre hBehavior
+  have hGuarantee := hImpl.1 (s, i) (o, next)
+    ⟨hInv, hPre⟩ hBehavior
+  exact hClosed s i o next hInv hPre
+    hGuarantee.1 hGuarantee.2.1 hGuarantee.2.2
+
+-- Checked upgrade: an existing total implementation is admitted under the
+-- stronger consumer-observable contract IF its LEGO separately proves
+-- invariant closure. This is not a universal property of all R2.1 tuples.
+theorem qualified_implementation_implements_invariant_closed_contract
+    {I O S : Type}
+    (lego : StrictLego21 I O S)
+    (behavior : (S × I) → (O × S) → Prop)
+    (hImpl : Implements (asIOContract lego) behavior)
+    (hClosed : PreservesInvariant lego) :
+    Implements (asInvariantClosedContract lego) behavior := by
+  constructor
+  · intro ⟨s, i⟩ ⟨o, next⟩ hAssume hBehavior
+    have hOld := hImpl.1 (s, i) (o, next) hAssume hBehavior
+    exact ⟨hOld, hClosed s i o next hAssume.1 hAssume.2
+      hOld.1 hOld.2.1 hOld.2.2⟩
+  · exact hImpl.2
+
+-- NONVACUOUS NEGATIVE WITNESS: a component can be total on every
+-- admitted input and satisfy all of the original post/eff/accept checks
+-- while still moving from a valid state to one violating its own inv.
+-- This prevents claiming invariant preservation from the 11 field names.
+theorem input_only_invariant_is_insufficient :
+    ∃ (L : StrictLego21 Unit Unit Bool)
+      (behavior : (Bool × Unit) → (Unit × Bool) → Prop),
+      Implements (asIOContract L) behavior ∧
+      ¬ PreservesInvariant L := by
+  let L : StrictLego21 Unit Unit Bool := {
+    identity := "formal-negative.invariant-drop"
+    responsibility := "counterexample to input-only invariant"
+    pre := fun _ _ => True
+    post := fun _ _ _ next => next = false
+    inv := fun s => s = true
+    eff := fun _ _ _ _ => True
+    c := fun _ _ => 1
+    epsilon := 0
+    prov := "finite-lean-countermodel-not-installed-code"
+    unfold := []
+    accept := fun _ _ _ _ => True
+  }
+  let behavior : (Bool × Unit) → (Unit × Bool) → Prop :=
+    fun _ y => y = ((), false)
+  refine ⟨L, behavior, ?_, ?_⟩
+  · constructor
+    · intro x y _ hBehavior
+      change y = ((), false) at hBehavior
+      subst y
+      exact ⟨rfl, trivial, trivial⟩
+    · intro _ _
+      exact ⟨((), false), rfl⟩
+  · intro hClosed
+    have hInvalid : L.inv false :=
+      hClosed true () () false rfl trivial rfl trivial trivial
+    exact Bool.noConfusion hInvalid
+
 -- The OLD contract is owned by existing Harness consumers, independent of
 -- the replacement candidate's invariant/precondition definitions. Without
 -- independence, narrowing the new admissible grant range also silently
@@ -1108,6 +1208,21 @@ theorem strictTimeout_preserves_invariant
   rw [hPost.2]
   exact hInv
 
+-- Reuse the PREEXISTING native state-invariant theorem to discharge
+-- the new general eleven-coordinate closure obligation. Do not duplicate
+-- the responsibility-level proof or infer actual Python installed behavior.
+theorem strictTimeout_has_transition_invariant_closure :
+    PreservesInvariant strictTimeout := by
+  intro grant requested outgoing next hInv _ hPost _ _
+  exact strictTimeout_preserves_invariant grant requested outgoing next
+    hInv hPost
+
+theorem timeout_model_implements_invariant_closed_contract :
+    Implements (asInvariantClosedContract strictTimeout) modeledBehavior :=
+  qualified_implementation_implements_invariant_closed_contract
+    strictTimeout modeledBehavior modeledBehavior_implements_strictTimeout
+    strictTimeout_has_transition_invariant_closure
+
 -- The cost/approximation coordinates are intentionally abstract: a single
 -- projection step, with no mathematical approximation of the timeout value.
 -- They are not latency, monetary cost, installed effects or proof reliability.
@@ -1165,6 +1280,10 @@ end OrdivonR21.TimeoutConnection
 #print axioms OrdivonR21.TimeoutConnection.strictTimeout_has_admitted_input
 #print axioms OrdivonR21.TimeoutConnection.unbounded_default_not_a_refinement
 #print axioms OrdivonR21.TimeoutConnection.strictTimeout_preserves_invariant
+#print axioms OrdivonR21.TimeoutConnection.input_only_invariant_is_insufficient
+#print axioms OrdivonR21.TimeoutConnection.invariant_preserved_by_qualified_implementation
+#print axioms OrdivonR21.TimeoutConnection.strictTimeout_has_transition_invariant_closure
+#print axioms OrdivonR21.TimeoutConnection.timeout_model_implements_invariant_closed_contract
 #print axioms OrdivonR21.TimeoutConnection.strictTimeout_abstract_cost_and_epsilon
 #print axioms OrdivonR21.TimeoutConnection.strictTimeout_transition_meets_acceptance
 
@@ -1521,6 +1640,29 @@ theorem strict_message_model_preserves_invariant
     strictMessage.inv (deliver s ref digest).1 :=
   deliver_preserves_ledger_invariant s ref digest hInv
 
+-- Connect the second REAL consumer model to the exact same canonical
+-- R2.1 invariant-closure proposition. Reuse the existing Host message
+-- invariant theorem, rather than create a parallel tuple or proof engine.
+theorem strict_message_has_transition_invariant_closure :
+    OrdivonR21.TimeoutConnection.PreservesInvariant strictMessage := by
+  intro s request admission next hInv _ hPost _ _
+  have hPrior :=
+    strict_message_model_preserves_invariant
+      s request.1 request.2 hInv
+  have hNext :
+      (deliver s request.1 request.2).1 = next :=
+    congrArg Prod.fst hPost
+  exact hNext ▸ hPrior
+
+theorem strict_message_implements_invariant_closed_contract :
+    Implements
+      (OrdivonR21.TimeoutConnection.asInvariantClosedContract strictMessage)
+      strictMessageBehavior :=
+  OrdivonR21.TimeoutConnection.qualified_implementation_implements_invariant_closed_contract
+    strictMessage strictMessageBehavior
+    strict_message_model_implements_contract
+    strict_message_has_transition_invariant_closure
+
 -- Nonvacuity of the full typed invariant and admission precondition.
 theorem strict_message_has_admitted_state_and_request :
     ∃ (s : Ledger) (ref digest : String),
@@ -1544,6 +1686,8 @@ end OrdivonR21.MessageEvidence
 #print axioms OrdivonR21.MessageEvidence.strict_message_refines_existing_consumer
 #print axioms OrdivonR21.MessageEvidence.strict_message_preserves_existing_consumers
 #print axioms OrdivonR21.MessageEvidence.strict_message_model_preserves_invariant
+#print axioms OrdivonR21.MessageEvidence.strict_message_has_transition_invariant_closure
+#print axioms OrdivonR21.MessageEvidence.strict_message_implements_invariant_closed_contract
 #print axioms OrdivonR21.MessageEvidence.strict_message_abstract_cost_and_zero_error
 #print axioms OrdivonR21.MessageEvidence.strict_message_has_admitted_state_and_request
 
