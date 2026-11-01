@@ -31,6 +31,7 @@ SOURCE_FILES = (
     "tools/formal/verify.py",
     "tools/formal/RecursiveLegoRefinement.lean",
     "tools/formal/RecursiveLegoVariationFrame.lean",
+    "tools/formal/RecursiveLegoRetirementChallenge.lean",
     "tools/formal/Proof.rs",
     "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs",
@@ -111,6 +112,21 @@ def qualified_tool_binaries() -> dict[str, dict[str, str]]:
         with path.open("rb") as handle:
             checksum = hashlib.file_digest(handle, "sha256").hexdigest()
         result[name] = {"path": str(path), "version": version, "sha256": checksum}
+    # Lean ships its own post-elaboration kernel checker. Reuse the binary
+    # from the SAME qualified Lean toolchain, not an unrelated PATH shim.
+    # This is not the independent external comparator.
+    checker_path = Path(result["lean"]["path"]).with_name("leanchecker")
+    if (not checker_path.is_file() or checker_path.is_symlink()
+            or not stat.S_ISREG(checker_path.stat().st_mode)
+            or not os.access(checker_path, os.X_OK)):
+        raise ValueError("Lean toolchain has no qualified leanchecker")
+    with checker_path.open("rb") as handle:
+        checker_sha = hashlib.file_digest(handle, "sha256").hexdigest()
+    result["leanchecker"] = {
+        "path": str(checker_path),
+        "version": result["lean"]["version"],
+        "sha256": checker_sha,
+    }
     return result
 
 
@@ -304,18 +320,79 @@ def main() -> None:
     probes: list[dict[str, object]] = []
     source = ROOT / "RecursiveLegoRefinement.lean"
     variation = ROOT / "RecursiveLegoVariationFrame.lean"
-    for proof_file in (source, variation):
+    retirement_challenge = ROOT / "RecursiveLegoRetirementChallenge.lean"
+    for proof_file in (source, variation, retirement_challenge):
         if re.search(r"\b(sorry|admit|axiom)\b", proof_file.read_text()):
             raise AssertionError("Unproved Lean shortcut in source")
-    with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
+    with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-", dir=ROOT) as d:
         tmp = Path(d)
         core_olean = tmp / "RecursiveLegoRefinement.olean"
         probes.append(run("Lean kernel R2.1 relational composition",
                           [executable("lean"), "-o", str(core_olean), str(source)]))
+        # Recheck the serialized kernel declarations independently of the
+        # elaboration process. Normal mode checks OUR modules against the
+        # separately rechecked core/imports; --fresh on all Lean imports can
+        # exceed the runtime cap without improving this bounded source duty.
+        qualified_lean_path = str(Path(executable("lean")).parent) + os.pathsep + os.environ.get("PATH", "")
+        checker_env = {"LEAN_PATH": str(tmp), "PATH": qualified_lean_path}
+        probes.append(run(
+            "Leanchecker replays R2.1 core declarations",
+            [executable("leanchecker"), "RecursiveLegoRefinement"],
+            env_overlay=checker_env, timeout=40,
+        ))
+        variation_olean = tmp / "RecursiveLegoVariationFrame.olean"
         probes.append(run(
             "Lean kernel qualified variation frame and countermodels",
-            [executable("lean"), str(variation)],
+            [executable("lean"), "-o", str(variation_olean), str(variation)],
             env_overlay={"LEAN_PATH": str(tmp)},
+        ))
+        probes.append(run(
+            "Lean kernel consumer-owned R2.1 retirement closure challenge",
+            [executable("lean"), "-DwarningAsError=true", "-o",
+             str(tmp / "RecursiveLegoRetirementChallenge.olean"),
+             str(retirement_challenge)],
+            env_overlay={"LEAN_PATH": str(tmp)},
+            must_contain=(
+                "'OrdivonR21.NativeRetirementChallenge."
+                "remove_only_if_all_consumer_closure_premises_hold' "
+                "does not depend on any axioms"
+            ),
+        ))
+        probes.append(run(
+            "Leanchecker replays consumer-owned retirement challenge",
+            [executable("leanchecker"), "RecursiveLegoRetirementChallenge"],
+            env_overlay=checker_env, timeout=40,
+        ))
+        probes.append(run(
+            "Leanchecker replays R2.1 variation declarations",
+            [executable("leanchecker"), "RecursiveLegoVariationFrame"],
+            env_overlay=checker_env, timeout=40,
+        ))
+        # Actual known dishonest proof: elaborator's skipKernelTC and
+        # #print axioms both pass; post-elaboration leanchecker MUST reject.
+        # This is a disposable test file and never a production proof input.
+        forged = tmp / "R21ForgedKernel.lean"
+        forged.write_text(
+            "import Lean\n"
+            "open Lean Elab Tactic\n"
+            'elab "r21_cheat" : tactic => do\n'
+            "  let goal ← getMainGoal\n"
+            "  goal.assign (mkConst ``True.intro)\n"
+            "  replaceMainGoal []\n"
+            "set_option debug.skipKernelTC true in\n"
+            "theorem fake_consumer_proof : False := by r21_cheat\n"
+            "#print axioms fake_consumer_proof\n"
+        )
+        probes.append(run(
+            "Lean compiler accepts forged axiom-free proof when kernel skipped",
+            [executable("lean"), "-o", str(tmp / "R21ForgedKernel.olean"), str(forged)],
+            must_contain="'fake_consumer_proof' does not depend on any axioms",
+        ))
+        probes.append(run(
+            "Leanchecker rejects forged false declaration",
+            [executable("leanchecker"), "R21ForgedKernel"],
+            expected_rc=1, must_contain="declaration type mismatch",
+            env_overlay=checker_env, timeout=40,
         ))
         bad_lean = tmp / "Invalid.lean"
         bad_lean.write_text("theorem falseClaim (p : Prop) : p := by\n  exact True.intro\n")

@@ -51,6 +51,15 @@ rollback and retirement conditions. Reuse these at the next replacement.
 Do not create a universal adapter, new registry, Agent or separate LEGO
 calculus for hypothetical future reuse; verifier PASS is always scoped.
 
+For **Formal proof-object assurance**, reuse native `tools/formal/verify.py`
+and the installed Lean toolchain's `leanchecker`, not a custom checker.
+The same-toolchain binary digest is requalified before and after.
+Core and variation `.olean` declarations are each replayed; a
+`debug.skipKernelTC` dishonest proof is expected to be rejected even
+if compilation and `#print axioms` pass. Non-`--fresh` assumes imported
+library environments. This is not an external comparator, installed-code
+refinement, source-issuer authorization or permission for domain effects.
+
 ### Conditional negative-consumer proof (not deletion authority)
 
 For a contested retirement, use
@@ -65,6 +74,15 @@ systemd file scan or loaded-manager query does **not** establish these
 premises; retain UNKNOWN until a separate concrete Owner witness closes
 them. This conditional R2.1 pre/inv/prov law is neither a new LEGO nor
 permission to delete a Workspace.
+
+The native Formal owner now checks a **consumer-owned theorem statement** in
+`tools/formal/RecursiveLegoRetirementChallenge.lean` as part of
+`mise run formal:verify`. The independent challenge must prove the exact
+four-premise retirement rule and the three missing-premise counterexamples;
+a same-named, axiom-free but weakened producer theorem is **not** sufficient.
+This protects the *meaning of the modeled permission*, not live consumer
+observation, actual filesystem deletion authority, or proof-source issuer.
+Do not duplicate the checker as a new Skill or service.
 
 ## Practical rule
 
