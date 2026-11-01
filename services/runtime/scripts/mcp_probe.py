@@ -17,6 +17,7 @@ LEGACY_PROTOCOL_VERSION = "2025-06-18"
 PROBE_USER_AGENT = "ordivon-mcp-probe/1"
 MAX_RUNTIME_ENV_FILE_BYTES = 64 * 1024
 MAX_BEARER_TOKEN_FILE_BYTES = 16_384
+MAX_MCP_RESPONSE_BYTES = 64 * 1024 * 1024  # Same bound for JSON and SSE, including error responses.
 # Bound MCP catalog enumeration before it can authorize a release or a PG cutover.
 MAX_TOOL_CATALOG_PAGES = 64
 MAX_TOOL_CATALOG_NAMES = 4096
@@ -152,6 +153,14 @@ def parse_mcp_response(content_type: str, body: bytes) -> dict[str, Any]:
     return final
 
 
+def _read_bounded_mcp_body(stream: Any) -> bytes:
+    """Reject excess bytes before JSON/SSE decoding; never trust Content-Length."""
+    body = stream.read(MAX_MCP_RESPONSE_BYTES + 1)
+    if len(body) > MAX_MCP_RESPONSE_BYTES:
+        raise McpProbeError("MCP response exceeds the bounded response size")
+    return body
+
+
 @dataclass
 class McpClient:
     endpoint: str
@@ -209,7 +218,7 @@ class McpClient:
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 status = int(response.status)
-                body = response.read()
+                body = _read_bounded_mcp_body(response)
                 message = (
                     {}
                     if notification and not body
@@ -218,7 +227,7 @@ class McpClient:
                 response_headers = {key.lower(): value for key, value in response.headers.items()}
         except urllib.error.HTTPError as error:
             status = int(error.code)
-            message = parse_mcp_response(error.headers.get("Content-Type", ""), error.read())
+            message = parse_mcp_response(error.headers.get("Content-Type", ""), _read_bounded_mcp_body(error))
             response_headers = {key.lower(): value for key, value in error.headers.items()}
         if request_id is not None and message.get("id") != request_id:
             raise McpProbeError(f"unexpected response id for {method}: {message}")
