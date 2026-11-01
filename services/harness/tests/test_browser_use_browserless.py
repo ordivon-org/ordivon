@@ -264,5 +264,35 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
                     launcher.program_click(0, "button", "Delete", expect_backend_dom_node_id=invalid)
 
 
+    def test_optimized_interpreter_must_not_disable_browser_target_contract(self):
+        """A browser action's preconditions must hold even with Python -O."""
+        import browser_use_browserless as launcher
+
+        # At observation, index 0 corresponded to backend 101.
+        # It is now index 0 backend 202, with the same role and name.
+        nodes = [
+            {"role": {"value": "button"}, "name": {"value": "Delete"}, "backendDOMNodeId": 202},
+            {"role": {"value": "button"}, "name": {"value": "Delete"}, "backendDOMNodeId": 101},
+        ]
+        clicked = []
+        def cdp(name, **kw):
+            if name == "Accessibility.getFullAXTree":
+                return {"nodes": nodes}
+            if name == "DOM.getBoxModel":
+                i=kw["backendNodeId"]
+                return {"model": {"content": [i,0,i,0,i,0,i,0]}}
+            raise RuntimeError(name)
+        scope = {"cdp": cdp, "click_at_xy": lambda x,y: clicked.append((x,y)),
+                 "wait": lambda t: None, "page_info": lambda: None}
+        action = launcher.program_click(
+            0, "button", "Delete", expect_backend_dom_node_id=101,
+        )
+        # Python optimizer removes assert statements. A genuine precondition
+        # must be implemented with an explicit branch and exception instead.
+        with self.assertRaises((RuntimeError, ValueError, AssertionError)):
+            exec(compile(action, "<browser-use-action>", "exec", optimize=1), scope)
+        self.assertEqual(clicked, [])
+
+
 if __name__ == "__main__":
     unittest.main()
