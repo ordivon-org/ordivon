@@ -581,10 +581,17 @@ def assess_candidate_source_redundancy(
     if repo is None:
         repo = Path(__file__).resolve().parents[2]
 
+    # Git location/object/config variables inherited from an Agent shell can
+    # redirect git -C repo to another repository. Bind object inspection to
+    # the explicit repo instead of ambient process Git state.
+    git_env = {key: value for key, value in os.environ.items()
+               if not key.startswith("GIT_")}
+    git_env["GIT_GRAFT_FILE"] = os.devnull
+
     def native(*args: str) -> bytes:
         result = subprocess.run(
             ["git", "--no-replace-objects", "-C", str(repo), *args],
-            env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
+            env=git_env,
             check=True, capture_output=True,
         )
         return result.stdout
@@ -647,11 +654,19 @@ def assess_candidate_source_redundancy(
     is_in_main_history = subprocess.run(
         ["git", "--no-replace-objects", "-C", str(repo),
          "merge-base", "--is-ancestor", candidate, main],
-        env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
+        env=git_env,
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False,
     ).returncode == 0
 
-    if not paths:
+    full_candidate_delta_qualified = common_base != candidate
+    if not full_candidate_delta_qualified:
+        # Only the tip's first-parent delta was inspected. Earlier commits
+        # in a historical multi-commit PR may have been reverted in main.
+        # Do not report whole-candidate source equality from this partial view.
+        source_standing = (
+            "HISTORICAL_FIRST_PARENT_ONLY_NO_FULL_PR_REDUNDANCY_JUDGMENT"
+        )
+    elif not paths:
         source_standing = "NO_CANDIDATE_SOURCE_DELTA"
     elif not differing:
         source_standing = "CANDIDATE_TOUCHED_BLOBS_EQUAL_MAIN"
@@ -667,6 +682,7 @@ def assess_candidate_source_redundancy(
             "commonMergeBase": common_base, "comparisonBase": base,
         },
         "comparisonBasis": comparison_basis,
+        "fullCandidateDeltaQualified": full_candidate_delta_qualified,
         "candidateChangePaths": paths,
         "candidateChangedPathCount": len(paths),
         "mainMatchingPaths": matching,
