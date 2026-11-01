@@ -6,6 +6,7 @@ This checks Git SourceCut and CLI wiring, NOT external theorem prover verdicts.
 from __future__ import annotations
 
 import importlib.util
+import os
 import shlex
 import subprocess
 import tempfile
@@ -352,6 +353,43 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         for source in formal.SOURCE_FILES:
             with self.subTest(source=source):
                 self.assertTrue(requires_core_formal_verification((source,)))
+
+    def test_formal_exact_source_cut_ignores_inherited_foreign_git_store(self) -> None:
+        # Executed proof-input readset must not resolve a different Git repo
+        # when invoked by an Agent with ambient GIT_DIR/object-store settings.
+        with tempfile.TemporaryDirectory(prefix="ordivon-formal-two-repos-") as temp:
+            root = Path(temp)
+            real, foreign = root / "real", root / "foreign"
+            for repo in (real, foreign):
+                repo.mkdir()
+                for args in (
+                    ("init", "-q"),
+                    ("config", "user.name", "Formal CDC"),
+                    ("config", "user.email", "formal-env@example.invalid"),
+                ):
+                    subprocess.run(["git", "-C", str(repo), *args], check=True)
+                (repo / "source.lean").write_text(
+                    "def identity (n : Nat) := n" +
+                    ("\n" if repo == real else " + 1\n"),
+                    encoding="utf-8",
+                )
+                subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+                subprocess.run(
+                    ["git", "-C", str(repo), "commit", "-qm", "source"], check=True
+                )
+            with patch.object(formal, "REPO", real), patch.object(
+                formal, "SOURCE_FILES", ("source.lean",)
+            ):
+                expected = formal.qualified_source_cut()
+                for override in (
+                    {"GIT_DIR": str(foreign / ".git")},
+                    {"GIT_OBJECT_DIRECTORY": str(foreign / ".git" / "objects")},
+                    {"GIT_ALTERNATE_OBJECT_DIRECTORIES":
+                     str(foreign / ".git" / "objects")},
+                ):
+                    with self.subTest(override=tuple(override)):
+                        with patch.dict(os.environ, override):
+                            self.assertEqual(formal.qualified_source_cut(), expected)
 
     def test_source_cut_rejects_modified_untracked_and_symlink_inputs(self) -> None:
         def git(cwd: Path, *args: str) -> str:
