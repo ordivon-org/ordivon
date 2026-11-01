@@ -68,6 +68,74 @@ def test_concurrent_claim_one_provider_admission(owner: PostgresTurnEffects, tmp
     assert all(row["state"] == "UNKNOWN" for row in results)
 
 
+def test_distinct_agents_and_workrefs_one_effect_identity_only_one_send_admission(
+    owner: PostgresTurnEffects, tmp_path: Path,
+) -> None:
+    """Two WorkRef carriers are not two provider effects when the effect ID agrees."""
+    from threading import Barrier
+
+    owner.activate_empty_fresh(tmp_path / "absent.sqlite")
+    same_effect = "turn:cross-work:stable-effect-1"
+    carriers = [
+        ("actor:agent:first", "work:research:first"),
+        ("actor:agent:second", "work:research:second"),
+    ]
+    barrier = Barrier(len(carriers))
+
+    def attempt(carrier: tuple[str, str]) -> tuple[str, str, dict]:
+        actor, work_ref = carrier
+        barrier.wait(timeout=10)
+        receipt = _claim(owner, same_effect)
+        return actor, work_ref, receipt
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(attempt, carriers))
+    assert {row[1] for row in results} == {carrier[1] for carrier in carriers}
+    assert sum(row[2]["admittedToSend"] for row in results) == 1
+    assert all(row[2]["state"] == "UNKNOWN" for row in results)
+    assert _claim(owner, same_effect)["admittedToSend"] is False
+
+    # A provider result is immutable across both Work carriers; no re-SEND
+    # follows from losing a task revision or receiving a delayed response.
+    identity = (same_effect, "sha256:" + "a" * 64, "https://chatgpt.com/c/existing")
+    owner.record_after_send(*identity, "COMPLETED", {"providerAccepted": True})
+    persisted = owner.get(same_effect)
+    assert persisted is not None and persisted["state"] == "COMPLETED"
+    replay = _claim(owner, same_effect)
+    assert replay["state"] == "COMPLETED" and not replay["admittedToSend"]
+    assert replay["receipt_json"] == persisted["receipt_json"]
+
+
+def test_distinct_effect_id_same_prompt_and_target_must_not_be_auto_deduplicated(
+    owner: PostgresTurnEffects, tmp_path: Path,
+) -> None:
+    """Equal prose/target is not an owner-observed equivalence witness."""
+    owner.activate_empty_fresh(tmp_path / "absent.sqlite")
+    first = _claim(owner, "turn:legitimate-send:1")
+    second = _claim(owner, "turn:legitimate-send:2")
+    assert first["admittedToSend"] is True
+    assert second["admittedToSend"] is True
+    assert owner.get("turn:legitimate-send:1") is not None
+    assert owner.get("turn:legitimate-send:2") is not None
+    # Both admissions are by design, not proof of a bug. If both are
+    # intended to represent ONE effect, upstream must supply ONE key.
+
+
+def test_cross_work_same_effect_id_with_different_payload_never_authorizes_second_send(
+    owner: PostgresTurnEffects, tmp_path: Path,
+) -> None:
+    """An asserted alias cannot change the effect after another Agent claimed it."""
+    owner.activate_empty_fresh(tmp_path / "absent.sqlite")
+    effect = "turn:cross-work:effect-conflict"
+    assert _claim(owner, effect)["admittedToSend"] is True
+    with pytest.raises(TurnEffectConflict, match="identity conflict"):
+        owner.claim_before_send(
+            effect, "sha256:" + "b" * 64, "https://chatgpt.com/c/existing",
+        )
+    assert owner.get(effect)["state"] == "UNKNOWN"
+    assert _claim(owner, effect)["admittedToSend"] is False
+
+
 def test_conflicting_identity_cannot_rebind(owner: PostgresTurnEffects, tmp_path: Path):
     owner.activate_empty_fresh(tmp_path / "absent.sqlite")
     _claim(owner)
