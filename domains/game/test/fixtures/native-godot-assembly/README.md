@@ -16,6 +16,17 @@ and view_variant.tscn without changing the state transition implementation.
 A player may edit native resources or select another native presentation.
 A new ruleset may instead supply its own scene and rule semantics.
 
+**Strict LEGO R2.1 game-rule consumer (this fixture only):** the gameplay
+responsibility consumes a typed native Godot config Resource and legal
+action, and produces bounded state plus a state-change Signal. Its admission
+guarantee is that a candidate outside the actual config script type or
+base numeric parameter invariants is rejected, preserving snapshot,
+events and UI. A valid native subclass remains replaceable; overriding
+is_valid() cannot self-certify an invalid subclass. Admitted Resources are
+deep-copied, so later caller mutation does not silently rewrite live rules
+without an explicit reset. This reuses Godot native capabilities, not a
+second Mod Runtime or configuration registry.
+
 **Exact bounded test:** load a real Godot PackedScene, reject illegal actions
 and invalid substitutions without state changes, check a winning path,
 run the same rules with player-supplied data, substitute a native presentation
