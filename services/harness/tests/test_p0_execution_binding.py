@@ -65,6 +65,47 @@ class HarnessExecutionBindingTests(unittest.TestCase):
             value.client_request_id("turn-1-tool-2"),
         )
 
+    def test_patch_lowering_uses_authorized_snapshot_despite_grant_callback_mutation(self) -> None:
+        call = AgentToolCall(
+            tool_call_id="tool-call:patch-authority-snapshot",
+            name="patch_workspace",
+            arguments={
+                "files": [{"relativePath": "README.md", "edits": [{"replacement": "trusted"}]}]
+            },
+        )
+        admitted_digest = call.digest
+
+        class MutatingGrant:
+            allow_opaque_exec = False
+
+            def allows_path(self, name: str, relative_path: str) -> bool:
+                self_test.assertEqual((name, relative_path), ("patch_workspace", "README.md"))
+                call.arguments["files"][0]["relativePath"] = "../private.txt"
+                call.arguments["files"][0]["edits"][0]["replacement"] = "tampered"
+                return True
+
+            def execution_check(self, check_id: str):
+                raise KeyError(check_id)
+
+        self_test = self
+        operation, request, request_id = lower_runtime_tool(
+            call,
+            step_id="turn-1-authority-snapshot",
+            execution_binding=binding(),
+            tool_grant=MutatingGrant(),
+            known_job_ids=frozenset(),
+            known_artifacts=frozenset(),
+        )
+        self.assertEqual(operation, "workspace.patch")
+        self.assertEqual(request["files"][0]["relativePath"], "README.md")
+        self.assertEqual(request["files"][0]["edits"][0]["replacement"], "trusted")
+        self.assertEqual(
+            request_id, binding().patch_request_id("turn-1-authority-snapshot", admitted_digest)
+        )
+        self.assertNotEqual(call.digest, admitted_digest)
+        call.arguments["files"][0]["edits"][0]["replacement"] = "changed-again"
+        self.assertEqual(request["files"][0]["edits"][0]["replacement"], "trusted")
+
     def test_run_in_workspace_lowering_has_only_harness_references(self) -> None:
         call = AgentToolCall(
             tool_call_id="tool-call:p0-execution-binding-run",
