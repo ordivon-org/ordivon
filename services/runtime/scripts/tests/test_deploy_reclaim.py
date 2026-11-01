@@ -469,6 +469,37 @@ def fake_systemctl(root: Path) -> Path:
 
 
 class DeployReclaimTests(unittest.TestCase):
+    def test_installed_baseline_drift_exposes_exact_lossless_file_differences(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+        finally:
+            sys.path.remove(scripts_path)
+        classify = module["installed_baseline_drift"]
+        receipt = {
+            "runtime": ("sha256:" + "a" * 64, 0o755),
+            "cache": ("sha256:" + "b" * 64, 0o755),
+            "missing": ("sha256:" + "c" * 64, 0o755),
+        }
+        current = [
+            {"name": "runtime", "present": True, "usable": True, "digest": "sha256:" + "a" * 64, "mode": 0o755},
+            {"name": "cache", "present": True, "usable": True, "digest": "sha256:" + "d" * 64, "mode": 0o700},
+            {"name": "missing", "present": False, "usable": False, "digest": None, "mode": None},
+            {"name": "extra", "present": True, "usable": True, "digest": "sha256:" + "e" * 64, "mode": 0o755},
+        ]
+        drift = classify(receipt, current)
+        self.assertEqual([item["name"] for item in drift], ["cache", "extra", "missing"])
+        self.assertEqual(drift[0]["differenceFields"], ["digest", "mode"])
+        self.assertEqual(drift[0]["expectedDigest"], "sha256:" + "b" * 64)
+        self.assertEqual(drift[0]["observedDigest"], "sha256:" + "d" * 64)
+        self.assertEqual(drift[1]["differenceFields"], ["unexpected"])
+        self.assertEqual(drift[2]["differenceFields"], ["missing_or_nonregular"])
+        self.assertEqual(classify(receipt, [
+            {"name": name, "present": True, "usable": True, "digest": values[0], "mode": values[1]}
+            for name, values in receipt.items()
+        ]), [])
+
     def test_disposable_git_fixture_never_schedules_implicit_maintenance(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary) / "repo"
@@ -1367,6 +1398,11 @@ class DeployReclaimTests(unittest.TestCase):
             plan = json.loads(planned.stdout)
             self.assertFalse(plan["eligible"])
             self.assertFalse(plan["installedBaseline"]["authorized"])
+            self.assertEqual(
+                [(entry["name"], entry["differenceFields"]) for entry in
+                 plan["installedBaseline"]["artifactDrift"]],
+                [("ordivon-runtime-pressure-control", ["missing_or_nonregular"])],
+            )
             self.assertIn(
                 "installed release artifacts do not match the latest deployment receipt",
                 plan["blockers"],
