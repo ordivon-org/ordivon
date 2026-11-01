@@ -583,6 +583,7 @@ class IndependentRunRecorder:
             conclusion_object = self.store.inspect_object(conclusion_object_digest)
         proposal = None
         proposal_object = None
+        raw_proposal: dict[str, Any] | None = None
         proposal_object_digest = data.get("completionProposalObjectDigest")
         if proposal_object_digest is not None:
             if not isinstance(proposal_object_digest, str):
@@ -623,12 +624,36 @@ class IndependentRunRecorder:
         ):
             raise ValueError("authorized Harness conclusion content is missing")
         if proposal is not None and (
-            proposal.digest != proposal_digest
+            # A v1 proposal has no unresolvedUnknowns. Its persisted digest
+            # binds the original v1 wire object, not the upgraded v2 view.
+            canonical_digest(raw_proposal) != proposal_digest
             or proposal.run_receipt_digest != receipt.digest
             or proposal.trace_digest != trace.digest
             or proposal.contract_digest != self.contract.digest
         ):
             raise ValueError("Completion Proposal bindings differ")
+        if proposal is not None and (
+            proposal.harness_run_id != receipt.harness_run_id
+            or proposal.caller_id != receipt.caller_id
+            or proposal.caller_run_ref != receipt.caller_run_ref
+        ):
+            raise ValueError("Completion Proposal identity differs from Run Receipt")
+        if proposal is not None and conclusion is not None and (
+            conclusion.status != "candidate_completed"
+            or proposal.summary != conclusion.summary
+            or proposal.evidence_refs != conclusion.evidence_refs
+            or proposal.artifact_refs != conclusion.artifact_refs
+            or proposal.usage != receipt.usage
+            or (
+                raw_proposal is not None
+                and (
+                    raw_proposal["schemaVersion"] == 2
+                    or bool(conclusion.unresolved_unknowns)
+                )
+                and proposal.unresolved_unknowns != conclusion.unresolved_unknowns
+            )
+        ):
+            raise ValueError("Completion Proposal claims differ from source conclusion")
         if (
             proposal is None
             and proposal_digest is not None
