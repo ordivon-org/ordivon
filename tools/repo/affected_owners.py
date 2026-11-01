@@ -191,7 +191,15 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
         # Object replacement and the separate legacy graft file can each
         # rewrite ancestry without changing the requested commit IDs. Both
         # are excluded from exact SourceCut delta/verification selection.
-        env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
+        # Protect the real working repository's immutable SourceCut from
+        # inherited Git namespace/object-store overrides (e.g. agent tools
+        # invoking this selector from another Git worktree). A different
+        # repository must not determine required consumer verification.
+        env={
+            **{key: value for key, value in os.environ.items()
+               if not key.startswith("GIT_")},
+            "GIT_GRAFT_FILE": os.devnull,
+        },
         check=True,
         stdout=subprocess.PIPE,
     )
