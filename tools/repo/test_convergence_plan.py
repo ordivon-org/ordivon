@@ -240,6 +240,215 @@ class CandidateSourceRedundancyTests(unittest.TestCase):
         self.assertIn("requires only both exact Git cuts", proc.stderr)
 
 
+
+class CandidatePairConfluenceTests(unittest.TestCase):
+    """Native three-way Git oracle: clean syntax is NOT semantic agreement."""
+
+    def test_shared_consumer_clean_merge_still_requires_independent_review(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="ordivon-hk02-merge-") as tmp:
+            repo = Path(tmp)
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args],
+                    text=True, stderr=subprocess.PIPE, timeout=20,
+                ).strip()
+            git("init", "-q")
+            git("config", "user.email", "hk02@example.invalid")
+            git("config", "user.name", "HK02 verifier")
+            source = repo / "consumer.py"
+            lines = [f"VALUE_{i} = 0\n" for i in range(12)]
+            source.write_text("".join(lines))
+            git("add", ".")
+            git("commit", "-qm", "common base")
+            base = git("rev-parse", "HEAD")
+
+            # Two distinct changes to one file merge cleanly at text level.
+            lines_a = list(lines)
+            lines_a[1] = "VALUE_1 = 101\n"
+            source.write_text("".join(lines_a))
+            git("commit", "-qam", "A modifies consumer first clause")
+            left = git("rev-parse", "HEAD")
+
+            git("checkout", "--detach", "-q", base)
+            lines_b = list(lines)
+            lines_b[10] = "VALUE_10 = 202\n"
+            source.write_text("".join(lines_b))
+            git("commit", "-qam", "B modifies consumer last clause")
+            right = git("rev-parse", "HEAD")
+
+            receipt = MODULE.assess_candidate_pair_confluence(
+                left=left, right=right, repo=repo,
+            )
+            self.assertEqual(receipt["gitMergeStanding"], "CLEAN")
+            self.assertEqual(receipt["sharedChangedPaths"], ["consumer.py"])
+            self.assertEqual(receipt["consumerCompatibilityStanding"],
+                             "UNKNOWN_UNOBSERVED_CONSUMERS")
+            self.assertFalse(receipt["semanticConfluenceQualified"])
+            self.assertFalse(receipt["integrationAdmissible"])
+            self.assertEqual(git("status", "--porcelain"), "")
+
+            # Different semantic requirements for the same clause must
+            # yield a textual conflict, not a false clean result.
+            git("checkout", "--detach", "-q", base)
+            lines_conflict = list(lines)
+            lines_conflict[1] = "VALUE_1 = 303\n"
+            source.write_text("".join(lines_conflict))
+            git("commit", "-qam", "C conflicts on A clause")
+            conflict = git("rev-parse", "HEAD")
+            conflicting = MODULE.assess_candidate_pair_confluence(
+                left=left, right=conflict, repo=repo,
+            )
+            self.assertEqual(conflicting["gitMergeStanding"], "CONFLICT")
+            self.assertFalse(conflicting["integrationAdmissible"])
+
+            # Independent file changes can merge textually, but a transitive
+            # consumer or environmental effect remains unobserved.
+            git("checkout", "--detach", "-q", base)
+            (repo / "other.py").write_text("VALUE = 3\n")
+            git("add", ".")
+            git("commit", "-qm", "D touches a different file")
+            independent = git("rev-parse", "HEAD")
+            disjoint = MODULE.assess_candidate_pair_confluence(
+                left=left, right=independent, repo=repo,
+            )
+            self.assertEqual(disjoint["gitMergeStanding"], "CLEAN")
+            self.assertEqual(disjoint["sharedChangedPaths"], [])
+            self.assertFalse(disjoint["integrationAdmissible"])
+            for bad in ("HEAD", "0" * 39, "F" * 40, "x\nHEAD"):
+                with self.subTest(bad=bad), self.assertRaises(ValueError):
+                    MODULE.assess_candidate_pair_confluence(
+                        left=bad, right=right, repo=repo,
+                    )
+
+
+
+    def test_two_individually_valid_disjoint_changes_can_break_merged_consumer(self) -> None:
+        """Independent semantic counterexample against Git-clean=>compatible."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-hk02-consumer-cex-") as tmp:
+            repo = Path(tmp) / "source"
+            repo.mkdir()
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True,
+                    stderr=subprocess.PIPE, timeout=20,
+                ).strip()
+            def consumer_passes(root: Path) -> bool:
+                return subprocess.run(
+                    [sys.executable, "-B", "-c",
+                     "from consumer import run; assert run() == 2"],
+                    cwd=root, capture_output=True, timeout=15,
+                ).returncode == 0
+            git("init", "-q")
+            git("config", "user.name", "HK02 CEX")
+            git("config", "user.email", "hk02-cex@example.invalid")
+            provider = repo / "provider.py"
+            consumer = repo / "consumer.py"
+            provider.write_text("def value(x):\n    return x + 1\n")
+            consumer.write_text("from provider import value\ndef run():\n    return value(1)\n")
+            git("add", ".")
+            git("commit", "-qm", "base provider consumer")
+            base = git("rev-parse", "HEAD")
+            self.assertTrue(consumer_passes(repo))
+
+            # Candidate A narrows the provider behavior but old consumer
+            # stays correct. Candidate B changes only the call pattern
+            # but is correct against the base provider.
+            provider.write_text(
+                "def value(x):\n    return x + 1 if x == 1 else 0\n"
+            )
+            git("commit", "-qam", "A valid provider change")
+            left = git("rev-parse", "HEAD")
+            self.assertTrue(consumer_passes(repo))
+            git("checkout", "--detach", "-q", base)
+            consumer.write_text(
+                "from provider import value\ndef run():\n    return value(0) + 1\n"
+            )
+            git("commit", "-qam", "B valid call pattern change")
+            right = git("rev-parse", "HEAD")
+            self.assertTrue(consumer_passes(repo))
+
+            receipt = MODULE.assess_candidate_pair_confluence(
+                left=left, right=right, repo=repo
+            )
+            self.assertEqual(receipt["gitMergeStanding"], "CLEAN")
+            self.assertEqual(receipt["sharedChangedPaths"], [])
+            self.assertFalse(receipt["semanticConfluenceQualified"])
+            self.assertFalse(receipt["integrationAdmissible"])
+
+            # Build actual Git's proposed merged tree, not an AST or
+            # synthetic expectation. Read its two real files and execute
+            # the same consumer oracle against the merged candidate.
+            merge_tree = git("merge-tree", "--write-tree", left, right)
+            merged = Path(tmp) / "merged"
+            merged.mkdir()
+            for path in ("provider.py", "consumer.py"):
+                (merged / path).write_bytes(
+                    subprocess.check_output(
+                        ["git", "-C", str(repo), "show",
+                         f"{merge_tree}:{path}"], timeout=20,
+                    )
+                )
+            self.assertFalse(
+                consumer_passes(merged),
+                "Git CLEAN can still violate actual consumer behavior",
+            )
+            self.assertEqual(git("status", "--porcelain"), "")
+
+    def test_crisscross_best_ancestors_use_native_git_resolution(self) -> None:
+        """Do not reject Git-supported virtual-ancestor merge topologies."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-hk02-crisscross-") as tmp:
+            repo = Path(tmp)
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True,
+                    stderr=subprocess.PIPE, timeout=20,
+                ).strip()
+            git("init", "-q")
+            git("config", "user.name", "HK02 merge base")
+            git("config", "user.email", "hk02-base@example.invalid")
+            (repo / "one.txt").write_text("zero\n")
+            git("add", ".")
+            git("commit", "-qm", "O")
+            o = git("rev-parse", "HEAD")
+            (repo / "one.txt").write_text("A\n")
+            git("commit", "-qam", "A")
+            a = git("rev-parse", "HEAD")
+            git("checkout", "--detach", "-q", o)
+            (repo / "two.txt").write_text("B\n")
+            git("add", ".")
+            git("commit", "-qm", "B")
+            b = git("rev-parse", "HEAD")
+
+            # Two histories share incomparable A and B best ancestors.
+            # git commit-tree constructs source-only fixture commits
+            # without a real working-tree merge or branch mutation.
+            tree = git("rev-parse", o + "^{tree}")
+            left = git("commit-tree", tree, "-p", a, "-p", b, "-m", "M1")
+            right = git("commit-tree", tree, "-p", b, "-p", a, "-m", "M2")
+            bases = set(git("merge-base", "--all", left, right).splitlines())
+            self.assertEqual(bases, {a, b})
+            # Some installed Git versions fail to evaluate this unusual
+            # but valid commit DAG. Preserve the fail-closed owner boundary:
+            # return a conservative preview or raise an explicit error,
+            # never infer integration from a native merge failure.
+            try:
+                receipt = MODULE.assess_candidate_pair_confluence(
+                    left=left, right=right, repo=repo,
+                )
+            except ValueError as exc:
+                self.assertIn("native merge-tree could not inspect", str(exc))
+            else:
+                self.assertEqual(
+                    set(receipt["sourceCuts"]["allBestMergeBases"]), {a, b}
+                )
+                self.assertIsNone(receipt["sourceCuts"]["commonMergeBase"])
+                self.assertEqual(
+                    receipt["sourcePathStanding"],
+                    "MULTIPLE_MERGE_BASES_CONSERVATIVE_UNION",
+                )
+                self.assertFalse(receipt["integrationAdmissible"])
+                self.assertFalse(receipt["semanticConfluenceQualified"])
+
 class SourceCutGitEnvironmentTests(unittest.TestCase):
     def test_sourcecut_git_resolve_uses_current_repo_not_foreign_git_dir(self) -> None:
         # build_plan uses _git before calling affected_owners.changed_paths.
