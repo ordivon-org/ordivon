@@ -4272,6 +4272,88 @@ else:
                 plan["blockers"],
             )
 
+    def test_rollback_rejects_stale_receipt_before_current_backup_or_restore(self) -> None:
+        """A valid old backup must not be a rollback for a newer release."""
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+        finally:
+            sys.path.remove(scripts_path)
+        rollback = module["rollback_deployment"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            install = root / "install"
+            install.mkdir()
+            installed = install / "runtime"
+            write_executable(installed, "current-release\n")
+            receipt_root = root / "receipts"
+            old = receipt_root / "old"
+            latest = receipt_root / "latest"
+            (old / "previous").mkdir(parents=True)
+            latest.mkdir(parents=True)
+            prior = old / "previous/runtime"
+            write_executable(prior, "historical-build\n")
+            prior_digest = "sha256:" + hashlib.sha256(prior.read_bytes()).hexdigest()
+            previous = {
+                "name": "runtime", "kind": "binary", "present": True,
+                "digest": prior_digest, "mode": 0o755,
+            }
+            env = root / "env"
+            old_manifest = {
+                "schemaVersion": module["SCHEMA_VERSION"],
+                "installDir": str(install),
+                "envFile": str(env),
+                "service": "ordivon-runtime.service",
+                "artifacts": [{"name": "runtime", "kind": "binary", "mode": 0o755}],
+                "previous": [previous],
+            }
+            (old / "manifest.json").write_text(json.dumps(old_manifest), encoding="utf-8")
+            for path, ts, sha in ((old, 100, "a"), (latest, 200, "b")):
+                (path / "result.json").write_text(json.dumps({
+                    "status": "deployed",
+                    "commit": sha * 40,
+                    "finishedAtMs": ts,
+                    "installed": [{
+                        "name": "runtime", "kind": "binary",
+                        "digest": "sha256:" + sha * 64, "mode": 0o755,
+                    }],
+                }), encoding="utf-8")
+            args = argparse.Namespace(
+                receipt=old, confirm_receipt=old, install_dir=install,
+                service="ordivon-runtime.service", env_file=env,
+                database=root / "registry.sqlite3", lock_file=root / "lock",
+                drain_seconds=0.5, systemctl=Path("/bin/true"), wait_seconds=1.0,
+            )
+            restore_calls = []
+            def must_not_restore(*_args, **_kw):
+                restore_calls.append("UNAUTHORIZED_RESTORE")
+                raise AssertionError("stale receipt reached physical rollback")
+            with patch.dict(rollback.__globals__, {
+                "rollback_database": lambda _args: root / "registry.sqlite3",
+                "exclusive_lock": lambda _path: nullcontext(),
+                "fenced_execution_drain": lambda *_args, **_kw: nullcontext(),
+                "restore_previous": must_not_restore,
+            }):
+                with self.assertRaisesRegex(RuntimeError, "not the current release"):
+                    rollback(args)
+            self.assertEqual(restore_calls, [])
+            self.assertFalse(list(old.glob("rollback-current-*")))
+            self.assertEqual(installed.read_text(), "current-release\n")
+            # An unknown-Commit rollback by a different receipt still consumes
+            # the release epoch even though it cannot be a known build baseline.
+            other_rollback = receipt_root / "recovery"
+            other_rollback.mkdir()
+            (other_rollback / "rollback-result.json").write_text(json.dumps({
+                "status": "restored_previous", "commit": None, "finishedAtMs": 300,
+                "installed": [{
+                    "name": "runtime", "digest": "sha256:" + "c" * 64,
+                    "mode": 0o755,
+                }],
+            }), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "not the current release"):
+                module["require_current_rollback_receipt"](latest)
+
     def test_deploy_apply_and_explicit_rollback_are_receipted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -4371,6 +4453,9 @@ else:
                 self.assertEqual((install / "runtime").read_text(), "new-runtime\n")
                 self.assertEqual((install / "runtime.previous").read_text(), "old-runtime\n")
                 receipt = Path(deployment["receipt"])
+                # Recovery from the latest receipted release remains possible
+                # even if an installed operator has unreceipted byte drift.
+                write_executable(install / "runtime", "manual-drift-after-release\n")
                 rolled_back = subprocess.run(
                     [
                         sys.executable,
@@ -4398,10 +4483,22 @@ else:
                     text=True,
                     capture_output=True,
                 )
+                # A completed rollback without a known previous Commit
+                # still consumes its receipt; it cannot run a second time.
+                replay = subprocess.run(
+                    rolled_back.args, cwd=REPO, check=False, text=True,
+                    capture_output=True,
+                )
+                self.assertEqual(replay.returncode, 1, replay.stderr)
+                self.assertIn("not the current release", replay.stderr)
             rollback = json.loads(rolled_back.stdout)
             self.assertEqual(rollback["status"], "restored_previous")
             self.assertEqual((install / "runtime").read_text(), "old-runtime\n")
             self.assertTrue(Path(rollback["currentBackup"]).is_dir())
+            self.assertEqual(
+                (Path(rollback["currentBackup"]) / "runtime").read_text(),
+                "manual-drift-after-release\n",
+            )
 
     def test_structured_deploy_effect_has_deterministic_receipt_and_exact_replay(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

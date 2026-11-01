@@ -2027,6 +2027,34 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
             if admission_fence_handle is not None:
                 admission_fence_handle.close()
 
+def require_current_rollback_receipt(receipt: Path) -> None:
+    """Allow rollback only from the latest successful release epoch.
+
+    Historical preimages are authentic data, not authority to replace a later
+    release. This guard does not forbid recovery of an unknown installed-file
+    drift from the latest actual release.
+    """
+    latest = latest_release_state(receipt.parent)
+    expected_event = receipt / "result.json"
+    if latest is None or Path(str(latest["receiptEvent"])).resolve() != expected_event:
+        raise RuntimeError("rollback receipt is not the current release")
+    # A successful rollback can have no previousCommit (unknown provenance),
+    # so release_history_states intentionally omits it from known-Commit
+    # baselines. It still consumes the rollback epoch and must block replay.
+    for event_path in receipt.parent.glob("*/rollback-result.json"):
+        if event_path.is_symlink():
+            raise RuntimeError("rollback history is unsafe")
+        try:
+            event = json.loads(event_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise RuntimeError("rollback history is unreadable") from error
+        if not isinstance(event, dict) or event.get("status") != "restored_previous":
+            continue
+        finished = event.get("finishedAtMs")
+        if type(finished) is not int or finished >= int(latest["finishedAtMs"]):
+            raise RuntimeError("rollback receipt is not the current release")
+
+
 def rollback_deployment(args: argparse.Namespace) -> dict[str, object]:
     receipt = args.receipt.resolve()
     if args.confirm_receipt.resolve() != receipt:
@@ -2097,6 +2125,13 @@ def rollback_deployment(args: argparse.Namespace) -> dict[str, object]:
         )
     database = rollback_database(args)
     with exclusive_lock(args.lock_file), fenced_execution_drain(database, args.drain_seconds):
+        # Release apply uses this same lock. Recheck after acquiring it so a
+        # concurrent successful deploy cannot make this preimage stale.
+        # Legacy v1 recovery receipts did not record a current release
+        # fingerprint. Keep their explicitly confirmed recovery contract;
+        # modern v2 receipts must prove they are the latest release event.
+        if version == SCHEMA_VERSION:
+            require_current_rollback_receipt(receipt)
         current = receipt / f"rollback-current-{int(time.time() * 1000)}"
         current.mkdir()
         current_runtime_policy = (
