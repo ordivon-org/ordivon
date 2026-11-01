@@ -360,6 +360,59 @@ theorem naive_parallel_conjunction_is_not_tensor :
 #print axioms naive_parallel_conjunction_is_not_tensor
 
 
+-- Representation boundary: IOContract B Unit represents FULL-BEHAVIOR
+-- saturated algebra, but existing Implements treats B as ENVIRONMENT INPUT.
+-- An algebraic tensor is NOT automatically executable implementation evidence.
+theorem tensor_io_implementation_iff_universal_saturation {B : Type}
+    (C D : IOContract B Unit) :
+    (∃ behavior : B → Unit → Prop,
+      Implements (tensorContract C D) behavior) ↔
+      (∀ b, tensorGuarantee C D b) := by
+  constructor
+  · intro ⟨behavior, hImpl⟩ b
+    classical
+    by_cases hSat : tensorGuarantee C D b
+    · exact hSat
+    · have hAssume : (tensorContract C D).assume b :=
+        Or.inr hSat
+      obtain ⟨unit, hBehavior⟩ := hImpl.2 b hAssume
+      cases unit
+      exact False.elim (hSat (hImpl.1 b () hAssume hBehavior))
+  · intro hSat
+    refine ⟨(fun _ _ => True), ?_⟩
+    constructor
+    · intro b unit _ _
+      cases unit
+      exact hSat b
+    · intro _ _
+      exact ⟨(), True.intro⟩
+
+-- Concrete finite falsifier: a well-defined saturated tensor has an
+-- excluded behavior; its naive B-input implementation must fail totality.
+-- This is a projection mismatch, not general contract unrealizability.
+theorem algebraic_tensor_does_not_imply_io_implementation :
+    ∃ (C D : IOContract Unit Unit),
+      ¬ (∃ behavior : Unit → Unit → Prop,
+          Implements (tensorContract C D) behavior) := by
+  let C : IOContract Unit Unit := {
+    assume := fun _ => False
+    guarantee := fun _ _ => False
+  }
+  let D : IOContract Unit Unit := {
+    assume := fun _ => True
+    guarantee := fun _ _ => False
+  }
+  refine ⟨C, D, ?_⟩
+  intro hExists
+  have hUniversal :=
+    (tensor_io_implementation_iff_universal_saturation C D).mp hExists
+  have hSat := hUniversal ()
+  simp [tensorGuarantee, SaturatedGuarantee, D] at hSat
+
+#print axioms tensor_io_implementation_iff_universal_saturation
+#print axioms algebraic_tensor_does_not_imply_io_implementation
+
+
 -- Nonvacuity: two implementations can each satisfy their own contracts,
 -- yet their sequential composition is not total when assumptions conflict.
 theorem incompatible_components_are_not_composable :
