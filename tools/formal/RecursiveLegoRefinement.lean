@@ -163,6 +163,102 @@ theorem sequential_implements_if_compatible {α β γ : Type}
     obtain ⟨z, hS⟩ := hSecond.2 y (compatible x y hA hG1)
     exact ⟨z, y, hR, hS⟩
 
+-- R2.1 refinement is a preorder at the same exposed ports.  Replacing a
+-- component along this relation is meaningful only under the old consumer's
+-- assumptions; this is not a proof of installed source or external effects.
+theorem refines_refl {α β : Type} (C : IOContract α β) :
+    Refines C C := by
+  constructor
+  · intro x h
+    exact h
+  · intro x y _ h
+    exact h
+
+theorem refines_trans {α β : Type}
+    (new intermediate old : IOContract α β)
+    (hNI : Refines new intermediate)
+    (hIO : Refines intermediate old) :
+    Refines new old := by
+  constructor
+  · intro x hOld
+    exact hNI.1 x (hIO.1 x hOld)
+  · intro x y hOld hNew
+    have hIntermediateA := hIO.1 x hOld
+    have hIntermediateG := hNI.2 x y hIntermediateA hNew
+    exact hIO.2 x y hOld hIntermediateG
+
+-- The middle wire is a *real contract boundary*: a new first module may
+-- emit values outside the old second module's admitted input domain.
+-- Independent refinement of each factor is insufficient. The exact side
+-- condition below discharges that missing consumer assumption.
+theorem sequential_refines_if_intermediate_admissible
+    {α β γ : Type}
+    (firstNew firstOld : IOContract α β)
+    (secondNew secondOld : IOContract β γ)
+    (hFirst : Refines firstNew firstOld)
+    (hSecond : Refines secondNew secondOld)
+    (hIntermediate : ∀ x y,
+      firstOld.assume x →
+      firstNew.guarantee x y →
+      secondOld.assume y) :
+    Refines
+      (sequentialContract firstNew secondNew)
+      (sequentialContract firstOld secondOld) := by
+  constructor
+  · intro x hOld
+    exact hFirst.1 x hOld
+  · intro x z hOld ⟨y, hNewFirst, hNewSecond⟩
+    have hOldFirst := hFirst.2 x y hOld hNewFirst
+    have hOldMiddle := hIntermediate x y hOld hNewFirst
+    have hOldSecond := hSecond.2 y z hOldMiddle hNewSecond
+    exact ⟨y, hOldFirst, hOldSecond⟩
+
+-- Constructive CEGAR witness: the first component only emits true, while
+-- the old second consumer admits false. The new second component accepts
+-- both but weakens the guarantee at true. Both LOCAL refinements pass;
+-- their UNGUARDED sequential substitution nevertheless fails.
+theorem local_refinements_do_not_imply_unconditional_sequential_refinement :
+    ∃ (firstNew firstOld : IOContract Unit Bool)
+      (secondNew secondOld : IOContract Bool Unit),
+      Refines firstNew firstOld ∧
+      Refines secondNew secondOld ∧
+      ¬ Refines
+        (sequentialContract firstNew secondNew)
+        (sequentialContract firstOld secondOld) := by
+  let first : IOContract Unit Bool := {
+    assume := fun _ => True
+    guarantee := fun _ output => output = true
+  }
+  let secondOld : IOContract Bool Unit := {
+    assume := fun input => input = false
+    guarantee := fun input _ => input = false
+  }
+  let secondNew : IOContract Bool Unit := {
+    assume := fun _ => True
+    guarantee := fun _ _ => True
+  }
+  refine ⟨first, first, secondNew, secondOld, ?_, ?_, ?_⟩
+  · exact refines_refl first
+  · constructor
+    · intro _ _
+      trivial
+    · intro input _ _ _
+      trivial
+  · intro hComposite
+    have hAccepted := hComposite.2 () () True.intro
+      (show (sequentialContract first secondNew).guarantee () () from
+        ⟨true, rfl, True.intro⟩)
+    obtain ⟨middle, hFirst, hSecond⟩ := hAccepted
+    have hTrue : middle = true := hFirst
+    have hFalse : middle = false := hSecond
+    cases middle <;> simp_all
+
+#print axioms refines_refl
+#print axioms refines_trans
+#print axioms sequential_refines_if_intermediate_admissible
+#print axioms local_refinements_do_not_imply_unconditional_sequential_refinement
+
+
 -- Nonvacuity: two implementations can each satisfy their own contracts,
 -- yet their sequential composition is not total when assumptions conflict.
 theorem incompatible_components_are_not_composable :
