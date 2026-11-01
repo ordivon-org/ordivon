@@ -34,7 +34,8 @@ def _materialization_for(spec: CampaignLaunchSpec, agent_id: str):
 
 
 async def _admit_workflow(
-    client: Client, workflow, value, *, workflow_id: str, task_queue: str
+    client: Client, workflow, value, *, workflow_id: str, task_queue: str,
+    reuse_failed_only: bool = False,
 ) -> dict[str, str]:
     try:
         handle = await client.start_workflow(
@@ -42,7 +43,10 @@ async def _admit_workflow(
             value,
             id=workflow_id,
             task_queue=task_queue,
-            id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE,
+            id_reuse_policy=(
+                WorkflowIDReusePolicy.ALLOW_DUPLICATE_FAILED_ONLY
+                if reuse_failed_only else WorkflowIDReusePolicy.REJECT_DUPLICATE
+            ),
             id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,
         )
     except WorkflowAlreadyStartedError as error:
@@ -71,18 +75,26 @@ async def _admit_failed_continue_retry(
             "retryStanding": f"not-admitted-prior-{prior.status.name.lower()}",
             "priorRunId": prior.run_id,
         }
-    retry_id = str(uuid.uuid7())
+    # Temporal itself arbitrates retry runs of this ONE logical Workflow ID.
+    # Random retry Workflow IDs allow two Agents to fork a failed operation.
+    # FAILED_ONLY permits a new run after failure; USE_EXISTING converges
+    # concurrent starts on the same in-flight run. The PG effect fence remains
+    # the separate authority for the actual provider SEND.
     admission = await _admit_workflow(
         client,
         AGENT_CONTINUE_WORKFLOW,
         value,
-        workflow_id=retry_id,
+        workflow_id=logical_workflow_id,
         task_queue=task_queue,
+        reuse_failed_only=True,
     )
     return {
         **admission,
-        "retryStanding": "admitted-after-failed",
-        "retryId": retry_id,
+        "retryStanding": (
+            "admitted-after-failed"
+            if admission["disposition"] == "admitted"
+            else "not-admitted-existing"
+        ),
         "logicalWorkflowId": logical_workflow_id,
         "priorRunId": prior.run_id,
     }
