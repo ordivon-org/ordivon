@@ -9,10 +9,6 @@ homepage.workspace = true
 description = "Trusted-local Workspace execution, durable Job state, evidence, reconciliation, and recovery core for Ordivon."
 publish = false
 
-# Kani injects its verifier crate only under cfg(kani); normal Cargo builds do not.
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)"] }
-
 [features]
 default = ["transactional-runtime"]
 systemd-supervisor = ["dep:libc"]
@@ -50,6 +46,11 @@ required-features = ["operator-tools"]
 name = "ordivon-runtime-windows-deploy"
 path = "src/bin/ordivon-runtime-windows-deploy.rs"
 required-features = ["operator-tools"]
+
+# Kani's real proof harnesses compile under cfg(kani); standard
+# Cargo/Clippy check-cfg must recognize it without permitting unknown cfgs.
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
 
 [dependencies]
 hex.workspace = true

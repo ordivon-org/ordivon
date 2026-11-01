@@ -1597,7 +1597,7 @@ fn validate_exec_payload_for_target(
     }
 }
 
-fn validate_run_proposal_structure(proposal: &super::JobRunProposal) -> RuntimeResult<()> {
+pub(crate) fn validate_run_proposal_structure(proposal: &super::JobRunProposal) -> RuntimeResult<()> {
     let validation_request = JobRunRequest {
         schema_version: proposal.schema_version,
         client_request_id: proposal.client_request_id.clone(),

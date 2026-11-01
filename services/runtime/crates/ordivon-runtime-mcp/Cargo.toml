@@ -34,3 +34,14 @@ tower-http.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Services"] }
+
+[features]
+postgres-runtime = ["ordivon-runtime-core/postgres-registry-admission"]
+
+[[bin]]
+name = "ordivon-runtime-pg"
+path = "src/pg_main.rs"
+required-features = ["postgres-runtime"]
+
+[dev-dependencies]
+postgres = "0.19"

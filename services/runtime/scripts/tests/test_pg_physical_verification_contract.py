@@ -18,7 +18,8 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
     def test_pg18_tests_are_explicitly_ignored_until_physical_task(self) -> None:
         text = SOURCE.read_text(encoding="utf-8")
         names = re.findall(r"(?m)^    fn (pg18_[A-Za-z0-9_]+)\(\)", text)
-        self.assertEqual(len(names), 10)
+        self.assertGreaterEqual(len(names), 18)
+        # All native database-dependent tests must remain opt-in, not silently skip.
         for name in names:
             pattern = (
                 r'#\[test\]\s*'
@@ -57,12 +58,22 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
         rw12 = next(row for row in plan["slices"] if row["id"] == "RW12")
         self.assertIn("R19", rw12["nodeIds"])
 
-        production = "\n".join(
-            path.read_text(encoding="utf-8")
-            for path in sorted(ENGINE.rglob("*.rs"))
+        # The new feature-gated PG vertical may consume PgAdmissionStore.
+        # The installed legacy Registry and default MCP binary must not
+        # silently switch durability ownership as a side effect of this PR.
+        legacy_registry = (ENGINE / "registry.rs").read_text(encoding="utf-8")
+        legacy_mcp = (
+            ROOT / "crates/ordivon-runtime-mcp/src/main.rs"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("PgAdmissionStore", legacy_registry)
+        self.assertNotIn("pg_admission::", legacy_registry)
+        self.assertNotIn("PgRuntime", legacy_mcp)
+        cargo = tomllib.loads(
+            (ROOT / "crates/ordivon-runtime-mcp/Cargo.toml").read_text(encoding="utf-8")
         )
-        self.assertNotIn("PgAdmissionStore", production)
-        self.assertNotIn("pg_admission::", production)
+        pg_bin = next(row for row in cargo["bin"] if row["name"] == "ordivon-runtime-pg")
+        self.assertEqual(pg_bin["required-features"], ["postgres-runtime"])
+        self.assertIn("postgres-runtime", cargo["features"])
 
     def test_mise_has_fail_closed_physical_and_stage_tasks(self) -> None:
         data = tomllib.loads(MISE.read_text(encoding="utf-8"))
