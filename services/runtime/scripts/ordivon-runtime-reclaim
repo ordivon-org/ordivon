@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import math
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import fcntl
 import hashlib
 import http.client
@@ -228,6 +229,7 @@ def inspect_workspaces(
             if (records_root / f"{workspace_id}.json").exists()
             or (records_root / f"{workspace_id}.json").is_symlink()
         ]
+    classify_inputs: list[tuple[Path, Path, str, list[str]]] = []
     for record_path in record_paths:
         workspace_id = record_path.stem
         record_ids.add(workspace_id)
@@ -249,15 +251,28 @@ def inspect_workspaces(
                 terminal_record = None
             if isinstance(terminal_record, dict) and terminal_record.get("state") == "closed":
                 continue
-        record_candidate = classify_record(
+        classify_inputs.append((
+            record_path, workspace_path, workspace_id,
+            active_by_workspace.get(workspace_id, []),
+        ))
+
+    def classify_one(entry: tuple[Path, Path, str, list[str]]) -> dict[str, object] | None:
+        record_path, workspace_path, workspace_id, active_job_ids = entry
+        return classify_record(
             record_path,
             workspace_path,
             workspace_id,
-            active_job_ids=active_by_workspace.get(workspace_id, []),
+            active_job_ids=active_job_ids,
             measure_bytes=args.measure_bytes,
         )
-        if record_candidate is not None:
-            candidates.append(record_candidate)
+
+    # Independent read-only Git/record checks are I/O-bound. Bounded workers
+    # preserve complete, ordered evidence and fail closed on any exception;
+    # apply still performs its original per-Workspace currentness checks.
+    with ThreadPoolExecutor(max_workers=4) as workers:
+        for record_candidate in workers.map(classify_one, classify_inputs):
+            if record_candidate is not None:
+                candidates.append(record_candidate)
 
     if workspace_root.exists():
         if selected_workspace_ids is None:

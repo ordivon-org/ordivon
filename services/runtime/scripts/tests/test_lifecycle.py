@@ -73,6 +73,91 @@ def init_repository(path: Path) -> str:
 
 class LifecycleTests(unittest.TestCase):
 
+    def test_parallel_reclaim_inspect_propagates_unknown_worker_failure(self) -> None:
+        """One unverified Workspace must never become an omitted green result."""
+        from unittest.mock import patch
+
+        reclaim = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        inspect = reclaim["inspect_workspaces"]
+        with tempfile.TemporaryDirectory() as temporary:
+            runtime = Path(temporary) / "runtime"
+            records = runtime / "workspace-records"
+            records.mkdir(parents=True)
+            for workspace_id in ("ws-safe", "ws-unverified"):
+                (records / f"{workspace_id}.json").write_text(
+                    '{"state":"open"}', encoding="utf-8"
+                )
+            def classify(_record: Path, _physical: Path, workspace_id: str,
+                         **_kwargs: object) -> dict[str, object]:
+                if workspace_id == "ws-unverified":
+                    raise RuntimeError("unknown git source")
+                return {"workspaceId": workspace_id, "classification": "closable"}
+
+            args = argparse.Namespace(
+                database=Path(temporary) / "registry.sqlite3",
+                runtime_store_root=runtime, workspace_root=None,
+                busy_timeout_ms=5000, measure_bytes=False,
+            )
+            with patch.dict(inspect.__globals__, {
+                "registry_projection": lambda *_args: {
+                    "migrationVersion": 6, "activeWorkspaces": []
+                },
+                "classify_record": classify,
+            }):
+                with self.assertRaisesRegex(RuntimeError, "unknown git source"):
+                    inspect(args)
+
+    def test_reclaim_inspect_bounded_parallel_classifies_all_in_stable_order(self) -> None:
+        """Read-only per-Workspace Git checks must not serialize the whole sweep."""
+        import threading
+        from unittest.mock import patch
+
+        reclaim = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        inspect = reclaim["inspect_workspaces"]
+        globals_ = inspect.__globals__
+        state = {"running": 0, "peak": 0}
+        lock = threading.Lock()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            runtime = root / "runtime"
+            records = runtime / "workspace-records"
+            physical = runtime / "workspaces"
+            records.mkdir(parents=True)
+            physical.mkdir()
+            for index in range(12):
+                name = f"ws-{index:02d}"
+                (physical / name).mkdir()
+                (records / f"{name}.json").write_text('{"state":"open"}', encoding="utf-8")
+
+            def classify(_record: Path, _physical: Path, workspace_id: str,
+                         *, active_job_ids: list[str], measure_bytes: bool) -> dict[str, object]:
+                self.assertEqual(active_job_ids, [])
+                self.assertFalse(measure_bytes)
+                with lock:
+                    state["running"] += 1
+                    state["peak"] = max(state["peak"], state["running"])
+                time.sleep(0.06)
+                with lock:
+                    state["running"] -= 1
+                return {"workspaceId": workspace_id, "classification": "blocked_dirty"}
+
+            args = argparse.Namespace(database=root / "test.sqlite3",
+                                      runtime_store_root=runtime, workspace_root=None,
+                                      busy_timeout_ms=5000, measure_bytes=False)
+            with patch.dict(globals_, {
+                "registry_projection": lambda *_args: {
+                    "migrationVersion": 6, "activeWorkspaces": []
+                },
+                "classify_record": classify,
+            }):
+                result = inspect(args)
+            self.assertGreaterEqual(state["peak"], 2)
+            self.assertEqual(
+                [item["workspaceId"] for item in result["candidates"]],
+                [f"ws-{index:02d}" for index in range(12)],
+            )
+            self.assertEqual(result["summary"]["counts"], {"blocked_dirty": 12})
+
     def test_lifecycle_rejects_boolean_timestamps_at_owner_boundaries(self) -> None:
         """JSON booleans cannot silently become epoch timestamps or byte counts."""
         for field in ("createdUnixMs", "estimatedBytes"):
