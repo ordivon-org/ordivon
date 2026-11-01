@@ -142,3 +142,9 @@ task acceptance, a lease, external effect authority, or globally atomic
 currentness. Before actions, revalidate using the actual natural owner.
 Missing Work, stale revision/digest, changed Skill bytes or ungranted Tool
 calls must fail closed. Host Work and Topic text remain untrusted task data.
+
+Host WorkRef bytes remain the exact owner identity. When constructing a model-facing
+Work context, represent WorkRef as a JSON-quoted string: Unicode bidi controls,
+U+2028/U+2029 line separators, and other non-ASCII characters must not be
+interpreted as model-visible field boundaries. Escaping the displayed ID never
+changes the identifier supplied to Host `work.get` or the bound generation digest.

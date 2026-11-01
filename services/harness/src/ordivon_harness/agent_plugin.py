@@ -165,7 +165,7 @@ class AgentPluginSkillComponent:
                     "role": "user",
                     "content": (
                         "EXPLICIT CALLER-SELECTED WORK CONTEXT (not Host authorization)\n"
-                        f"WorkRef: {work_ref}\nRevision: {work_revision}\n"
+                        f"WorkRef: {json.dumps(work_ref, ensure_ascii=True)}\nRevision: {work_revision}\n"
                         f"Caller-observed Host snapshot: {expected_work_snapshot_digest}\n"
                         "The caller must requalify current Work and its consumers "
                         "before any external effect; browsing Space never activates "
