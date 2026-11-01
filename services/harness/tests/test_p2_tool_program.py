@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 import sys
 import unittest
 from unittest.mock import patch
@@ -105,6 +106,25 @@ def dependent_program() -> HarnessToolProgram:
 
 
 class ToolProgramP2Tests(unittest.TestCase):
+    def test_fresh_model_import_does_not_load_tool_executor(self) -> None:
+        """Verify the real import boundary from a fresh Python process."""
+        code = (
+            "import sys\n"
+            "from ordivon_harness.ordivon.model import AgentTurnResult\n"
+            "assert 'ordivon_harness.tool_program' not in sys.modules\n"
+            "from ordivon_harness.tool_program_contract import HarnessToolProgramAction\n"
+            "assert 'ordivon_harness.tool_program' not in sys.modules\n"
+            "assert AgentTurnResult.__annotations__['tool_program_action'] == "
+            "'HarnessToolProgramAction | None'\n"
+        )
+        subprocess.run(
+            [sys.executable, "-c", code],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+
     def test_action_wire_contract_does_not_require_executor_import(self) -> None:
         """The model consumes the pure contract, not the Tool executor module."""
         from ordivon_harness.tool_program_contract import HarnessToolProgramAction as ContractAction

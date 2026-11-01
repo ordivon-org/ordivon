@@ -1,7 +1,7 @@
 """Deterministic ToolProgram execution over already-admitted Harness Tools.
 
-Public names remain import-compatible here, while immutable ToolProgram data
-and validation live in tool_program_contract and have no execution dependency.
+Public names remain import-compatible here, while versioned ToolProgram wire
+values and validation live in tool_program_contract without executing Tools.
 """
 
 from __future__ import annotations
