@@ -233,6 +233,26 @@ class ArtifactClaimResultsAdapterR1Tests(unittest.TestCase):
                 all(item["status"] == "PASS" for item in native_claims.values())
             )
 
+    def test_unconsumed_zero_return_code_mapping_is_retired(self):
+        # No declared consumer uses this mode. It had admitted False as a
+        # successful numeric exit code. The real WAVE/PNG mode is "status".
+        canonical = {
+            "id": "artifact:exit-code-typed",
+            "requiredEvidence": {"execution": {"required": True}},
+        }
+        mapping = {"execution": {
+            "pointer": "/runnerExitCode",
+            "mode": "zero-return-code",
+        }}
+        for value in (False, True, 0, 1, -1, 0.0, "0", None):
+            with self.subTest(return_code=value):
+                with self.assertRaisesRegex(ValueError, "unsupported mapping mode"):
+                    A.assess_family_claim_mapping(
+                        {"status": "PASS", "verification": {"runnerExitCode": value}},
+                        canonical,
+                        mapping,
+                    )
+
     def test_contract_rejects_missing_profile_claim_even_when_native_result_passes(self):
         _, canonical = profile("still-image-png-srgb-r1")
         native = {"status": "PASS", "decoderMatrix": {"status": "PASS"}}
