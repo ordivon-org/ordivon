@@ -240,6 +240,37 @@ class CandidateSourceRedundancyTests(unittest.TestCase):
         self.assertIn("requires only both exact Git cuts", proc.stderr)
 
 
+class SourceCutGitEnvironmentTests(unittest.TestCase):
+    def test_sourcecut_git_resolve_uses_current_repo_not_foreign_git_dir(self) -> None:
+        # build_plan uses _git before calling affected_owners.changed_paths.
+        # Both edges must bind the same actual repository.
+        with tempfile.TemporaryDirectory(prefix="ordivon-repo-git-env-") as tmp:
+            root = Path(tmp)
+            local, foreign = root / "local", root / "foreign"
+            for repo in (local, foreign):
+                repo.mkdir()
+                subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+                subprocess.run(["git", "-C", str(repo), "config",
+                                "user.email", "test@example.invalid"], check=True)
+                subprocess.run(["git", "-C", str(repo), "config",
+                                "user.name", "Owner Git testcase"], check=True)
+                (repo / "manifest.txt").write_text(repo.name + "\n")
+                subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+                subprocess.run(["git", "-C", str(repo), "commit", "-qm", "base"], check=True)
+
+            original = Path.cwd()
+            try:
+                os.chdir(local)
+                intended = MODULE._git("rev-parse", "HEAD")
+                with mock.patch.dict(os.environ, {
+                    "GIT_DIR": str(foreign / ".git"),
+                    "GIT_OBJECT_DIRECTORY": str(foreign / ".git" / "objects"),
+                }):
+                    self.assertEqual(MODULE._git("rev-parse", "HEAD"), intended)
+            finally:
+                os.chdir(original)
+
+
 class ConvergencePlanTests(unittest.TestCase):
     def test_all_native_owner_combinations_preserve_mandatory_queue_closure(self) -> None:
         """A finite consumer CDC bridge for existing R2.1 monotone-impact laws.

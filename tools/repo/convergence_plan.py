@@ -25,7 +25,14 @@ def _git(*args: str) -> str:
         ["git", "--no-replace-objects", *args],
         # Preserve the same graft-free immutable Git SourceCut used by the
         # native affected-owner delta selector.
-        env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
+        # SourceCut identity must come from the cwd repository. Inherited
+        # GIT_DIR/GIT_OBJECT_DIRECTORY/GIT_CONFIG_* can point to a foreign
+        # object database even when replacing refs and grafts are disabled.
+        env={
+            **{key: value for key, value in os.environ.items()
+               if not key.startswith("GIT_")},
+            "GIT_GRAFT_FILE": os.devnull,
+        },
         check=True,
         text=True,
         capture_output=True,
