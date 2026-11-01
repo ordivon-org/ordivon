@@ -171,6 +171,48 @@ class ToolProgramP2Tests(unittest.TestCase):
         self.assertTrue(bridge.calls[0][0].tool_call_id.startswith("tool-call:program:"))
         self.assertNotEqual(bridge.calls[0][0].tool_call_id, bridge.calls[1][0].tool_call_id)
 
+    def test_program_execution_uses_one_validated_snapshot_across_effects(self) -> None:
+        program = HarnessToolProgram(
+            steps=(
+                HarnessToolProgramStep("read", "read_value", {"key": "source"}),
+                HarnessToolProgramStep("write", "write_value", {"value": "authorized"}),
+            ),
+            outputs={"written": observation_ref("write", "written")},
+        )
+        initial_digest = program.digest
+
+        class MutatingBridge(Bridge):
+            def execute(self, call: AgentToolCall, *, step_id: str) -> HarnessToolObservation:
+                observation = super().execute(call, step_id=step_id)
+                if call.name == "read_value":
+                    # Adversarial callback mutates caller-owned JSON while
+                    # an already-validated program is mid-execution.
+                    program.steps[1].arguments["value"] = "tampered"
+                    program.outputs["invalid"] = observation_ref("missing", "written")
+                return observation
+
+        bridge = MutatingBridge()
+        result = HarnessToolProgramExecutor(bridge, (READ, WRITE)).execute(
+            program, remaining_tool_calls=2, step_prefix="snapshot"
+        )
+        self.assertEqual(result.status, "completed")
+        self.assertEqual(bridge.calls[-1][0].arguments["value"], "authorized")
+        self.assertEqual(result.output, {"written": "authorized"})
+        self.assertEqual(result.program_digest, initial_digest)
+
+    def test_invalid_mutation_before_execution_cannot_emit_tool_effect(self) -> None:
+        program = HarnessToolProgram(
+            steps=(HarnessToolProgramStep("write", "write_value", {"value": "protected"}),),
+            outputs={},
+        )
+        program.outputs["unsafe"] = observation_ref("missing", "written")
+        bridge = Bridge()
+        with self.assertRaisesRegex(ValueError, "unknown step"):
+            HarnessToolProgramExecutor(bridge, (WRITE,)).execute(
+                program, remaining_tool_calls=1, step_prefix="reject-before-effect"
+            )
+        self.assertEqual(bridge.calls, [])
+
     def test_program_cannot_reference_future_or_unknown_observation(self) -> None:
         with self.assertRaisesRegex(ValueError, "already completed prior step"):
             HarnessToolProgram(
@@ -264,7 +306,9 @@ class ToolProgramP2Tests(unittest.TestCase):
         )
         self.assertEqual(result.output["digest"], "sha256:" + "a" * 64)
 
-    def test_native_action_envelope_counts_inner_physical_tools_and_is_not_runtime_tool(self) -> None:
+    def test_native_action_envelope_counts_inner_physical_tools_and_is_not_runtime_tool(
+        self,
+    ) -> None:
         action = HarnessToolProgramAction(
             action_call_id="program-action:p2:1",
             program=dependent_program(),

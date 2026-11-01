@@ -6,6 +6,7 @@ values and validation live in tool_program_contract without executing Tools.
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
@@ -179,13 +180,16 @@ class HarnessToolProgramExecutor:
         if type(remaining_tool_calls) is not int or remaining_tool_calls < 0:
             raise ValueError("ToolProgram remaining Tool budget must be non-negative")
         _text(step_prefix, "ToolProgram step prefix", max_bytes=240)
+        # The public frozen dataclasses contain mutable JSON mappings. Capture
+        # and revalidate a deep snapshot before any Tool effect: callbacks must
+        # not modify later steps, output references or the run's digest.
+        program = HarnessToolProgram.from_dict(copy.deepcopy(program.to_dict()))
         if len(program.steps) > remaining_tool_calls:
             raise ValueError("ToolProgram exceeds remaining Tool Call budget")
         denied = sorted({step.tool_name for step in program.steps} - self.admitted_tools)
         if denied:
             raise ValueError(
-                "ToolProgram references Tools not admitted on the exact turn: "
-                + ", ".join(denied)
+                "ToolProgram references Tools not admitted on the exact turn: " + ", ".join(denied)
             )
 
         observations_by_step: dict[str, HarnessToolObservation] = {}
@@ -204,11 +208,10 @@ class HarnessToolProgramExecutor:
                 call,
                 step_id=f"{step_prefix}:program:{token}:{index}:{step.step_id}",
             )
-            if (
-                observation.tool_call_id != call.tool_call_id
-                or observation.tool_name != call.name
-            ):
-                raise ValueError("ToolProgram bridge returned an observation for a different Tool Call")
+            if observation.tool_call_id != call.tool_call_id or observation.tool_name != call.name:
+                raise ValueError(
+                    "ToolProgram bridge returned an observation for a different Tool Call"
+                )
             observations.append(observation)
             observations_by_step[step.step_id] = observation
             if observation.status != "observed":
