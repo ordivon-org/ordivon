@@ -581,6 +581,116 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                     actual = formal.qualified_source_cut()
                 self.assertEqual(actual, expected, "foreign Git CLI reselected by PATH")
 
+    def test_loader_address_only_annotation_is_not_an_elf_dependency(self) -> None:
+        """Address annotations have no library identity; unknown SONAMEs still fail."""
+        import sys
+
+        true_run = subprocess.run
+
+        def run_with_address_annotation(*args, **kwargs):
+            observed = true_run(*args, **kwargs)
+            return subprocess.CompletedProcess(
+                observed.args, observed.returncode,
+                stdout=observed.stdout + "\n(0x00007008fa400000)\n",
+                stderr=observed.stderr,
+            )
+
+        with patch.object(
+            formal.subprocess, "run", side_effect=run_with_address_annotation,
+        ):
+            resolved = formal.observed_z3_elf_dependencies(Path(sys.executable))
+        self.assertTrue(resolved["resolvedLibraries"])
+        self.assertNotIn(
+            "(0x00007008fa400000)", resolved["resolvedLibraries"],
+        )
+
+    def test_unqualified_elf_loader_line_has_bounded_failure_witness(self) -> None:
+        """Unknown ld.so entries remain rejected and identify their exact input."""
+        import sys
+        from types import SimpleNamespace
+
+        unqualified = "libmissing-real-cause.so => not found"
+        with patch.object(
+            formal.subprocess, "run",
+            return_value=SimpleNamespace(
+                returncode=0,
+                stdout="\n".join(["linux-vdso.so.1 (0x0)", unqualified]),
+                stderr="",
+            ),
+        ):
+            with self.assertRaisesRegex(
+                ValueError, "libmissing-real-cause\\.so",
+            ):
+                formal.observed_z3_elf_dependencies(Path(sys.executable))
+
+    def test_native_elf_dependency_hash_changes_with_same_executable(self) -> None:
+        """Real Rust ELF consumer: same entrypoint, changed resolved shared library."""
+        import hashlib
+        import shutil
+
+        if not shutil.which("rustc"):
+            self.skipTest("Rust compiler unavailable for real native ELF fixture")
+        with tempfile.TemporaryDirectory(prefix="ordivon-elf-readset-") as td:
+            root = Path(td)
+            library = root / "libdecision.so"
+            lib_source = root / "decision.rs"
+            app_source = root / "caller.rs"
+            executable = root / "caller"
+            app_source.write_text(
+                'unsafe extern "C" { fn decision() -> i32; }\n'
+                'fn main() { println!("{}", unsafe { decision() }); }\n',
+                encoding="utf-8",
+            )
+
+            def build_library(value: int) -> None:
+                lib_source.write_text(
+                    '#[no_mangle]\npub extern "C" fn decision() -> i32 { '
+                    + str(value) + ' }\n',
+                    encoding="utf-8",
+                )
+                subprocess.run(
+                    ["rustc", "--edition=2021", "--crate-type=cdylib",
+                     "--crate-name=decision", str(lib_source), "-o", str(library)],
+                    cwd=root, check=True, capture_output=True, text=True, timeout=60,
+                )
+
+            build_library(7)
+            subprocess.run(
+                ["rustc", "--edition=2021", str(app_source),
+                 "-L", "native=" + str(root), "-l", "dylib=decision",
+                 "-C", "link-arg=-Wl,-rpath,$ORIGIN", "-o", str(executable)],
+                cwd=root, check=True, capture_output=True, text=True, timeout=60,
+            )
+            def run_native() -> str:
+                return subprocess.check_output([str(executable)], text=True).strip()
+            self.assertEqual(run_native(), "7")
+            entry_hash = hashlib.sha256(executable.read_bytes()).hexdigest()
+            before = formal.observed_z3_elf_dependencies(executable)
+            self.assertIn(str(library.resolve()), before["resolvedLibraries"])
+            build_library(19)
+            self.assertEqual(run_native(), "19")
+            self.assertEqual(hashlib.sha256(executable.read_bytes()).hexdigest(),
+                             entry_hash, "ELF entrypoint bytes unexpectedly changed")
+            # A changed resolved library MUST either change the qualified
+            # observation or make requalification fail closed. Different
+            # glibc/CI loader builds need not produce the same --list format.
+            changed_digest = hashlib.sha256(library.read_bytes()).hexdigest()
+            self.assertNotEqual(
+                before["resolvedLibraries"][str(library.resolve())],
+                changed_digest,
+                "the intended native loader input did not actually change",
+            )
+            try:
+                after = formal.observed_z3_elf_dependencies(executable)
+            except ValueError as error:
+                self.assertRegex(
+                    str(error),
+                    "unresolved|nonabsolute|dependency listing failed|nonregular",
+                )
+            else:
+                self.assertNotEqual(before, after, "changed ELF library falsely reused")
+                self.assertEqual(before["entrypointSha256"], after["entrypointSha256"])
+
     def test_source_cut_rejects_modified_untracked_and_symlink_inputs(self) -> None:
         def git(cwd: Path, *args: str) -> str:
             return subprocess.check_output(
