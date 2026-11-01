@@ -125,6 +125,15 @@ Changed target identity raises `affordance-identity-changed`; there is no
 relocation, retry, or fallback. The existing Browser Benchmark adapter now
 passes the observed node ID, retaining the one real in-tree consumer.
 
+The independent physical Browserless counterexample left that same node ID
+unchanged but placed an opaque overlay above the button. The previous coordinate
+click reported CLICKED while the overlay received the event. The existing
+generated action now reuses Chromium `DOM.resolveNode` and `Runtime.callFunctionOn`
+to require `document.elementFromPoint(x,y)` to be the selected element or one
+of its descendants; the resolved remote object is released in a `finally`
+block. Unknown, intercepted or detached targets fail before coordinate effects.
+This is a narrow native hit-test at the guard point, not new browser policy.
+
 R2.1 narrow LEGO representation:
 
 - `I`: selected route and observed index, role, name, browser-provided node ID.
@@ -132,13 +141,15 @@ R2.1 narrow LEGO representation:
   the action receipt remains non-semantic until outcome observation.
 - `S`: ephemeral Browser Use daemon/session and current Chromium document.
 - `pre`: exact Browserless lane and captured target binding, available CDP.
-- `post`: no coordinate effect on a mismatched/replaced AX node at the
-  guard point; an observed CLICKED status alone is **not** task success.
+- `post`: no coordinate effect on a mismatched/replaced AX node or a
+  hit-test mismatch at the guard point; CLICKED alone is **not** task success.
 - `inv`: no caller-chosen action retargeting, no silent index-only fallback.
-- `eff`: read AX+box model, then one browser action when admitted.
+- `eff`: read AX/box, native Chromium hit-test on exact target, then one
+  browser action when admitted.
 - `c`: bounded page AX projection of up to 160 affordances; no new model.
-- `epsilon`: DOM can mutate after guard; overlays, hit testing, OOPIF and
-  unchanged node with changed *surrounding meaning* are **UNKNOWN**.
+- `epsilon`: DOM can mutate between hit-test and click; OOPIF,
+  inherited/changed *surrounding meaning*, full Playwright stability checks
+  and independently observed domain effects are still **UNKNOWN**.
 - `prov`: existing Browser Use source and actual benchmark consumer;
   red/green tests and exact source SHA/Job receipts accompany publication.
 - `unfold`: upstream CDP AX/DOM observation -> ephemeral identity check ->
@@ -158,8 +169,8 @@ Superpowers TDD/verification and ECC browser-qa for independent falsification.
 
 **Open hard kernels, not hidden as PASS**: prove a full decision-bound
 semantic witness for the same physical DOM node after nearby context changes;
-document/frame generation under navigation and OOPIF; stable hit-test before
-coordinates; recipient verification beyond action status; browser session
+document/frame generation under navigation and OOPIF; atomic guard-to-click
+continuity; recipient verification beyond action status; browser session
 isolation and explicit cleanup under concurrent/reconnect/lost-response cases.
 Only add implementation complexity after a real owner consumer and failing
 reproduction, not from speculative framework symmetry.

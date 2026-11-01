@@ -238,6 +238,13 @@ def _target_program(
         f"assert row['backendDOMNodeId']=={expect_backend_node_id}, "
         "{'error':'affordance-identity-changed','observed':row['backendDOMNodeId']}\n"
         "assert row['x'] is not None and row['y'] is not None, {'error':'affordance-has-no-box'}\n"
+        # Native Chromium event hit-testing, not another browser control layer.
+        # Descendants (e.g. <span> inside a button) remain actionable.
+        'node_object=cdp("DOM.resolveNode",backendNodeId=row["backendDOMNodeId"])["object"]["objectId"]\n'
+        'try:\n'
+        '    hit=cdp("Runtime.callFunctionOn",objectId=node_object,functionDeclaration="function(x,y){ const h=document.elementFromPoint(x,y); return !!h && this.isConnected && (h===this || this.contains(h)); }",arguments=[{"value":row["x"]},{"value":row["y"]}],returnByValue=True)\n'
+        'finally:\n    cdp("Runtime.releaseObject",objectId=node_object)\n'
+        'assert hit.get("result",{}).get("value") is True, {"error":"affordance-not-hit-target"}\n'
         + action_code
         + f'print(json.dumps({{"standing":{json.dumps(standing)},"target":{{"index":idx,"role":row["role"],"name":row["name"],"backendDOMNodeId":row["backendDOMNodeId"]}},"pageAfter":_ordivon_page_info()}},sort_keys=True,ensure_ascii=False))\n'
     )

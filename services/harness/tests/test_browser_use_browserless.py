@@ -264,6 +264,12 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
                 }
             if method == "DOM.getBoxModel":
                 return {"model": {"content": [0, 0, 30, 0, 30, 30, 0, 30]}}
+            if method == "DOM.resolveNode":
+                return {"object": {"objectId": "exact-107"}}
+            if method == "Runtime.callFunctionOn":
+                return {"result": {"type": "boolean", "value": True}}
+            if method == "Runtime.releaseObject":
+                return {}
             raise AssertionError(method)
 
         exec(
@@ -276,6 +282,67 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
             },
         )
         self.assertEqual(effects, [(15.0, 15.0)])
+
+
+    def test_pointer_overlay_fails_before_coordinate_click_on_same_backend_node(self):
+        """Exact DOM identity is not the same as browser hit-test/actionability."""
+        import browser_use_browserless as launcher
+
+        calls = []
+
+        def cdp(method, **kwargs):
+            calls.append(method)
+            if method == "Accessibility.getFullAXTree":
+                return {"nodes": [{"role": {"value": "button"}, "name": {"value": "Submit"}, "backendDOMNodeId": 7}]}
+            if method == "DOM.getBoxModel":
+                return {"model": {"content": [20, 20, 200, 20, 200, 100, 20, 100]}}
+            if method == "DOM.resolveNode":
+                return {"object": {"objectId": "target-node"}}
+            if method == "Runtime.callFunctionOn":
+                return {"result": {"type": "boolean", "value": False}}
+            if method == "Runtime.releaseObject":
+                return {}
+            raise AssertionError(method)
+
+        effects = []
+        with self.assertRaisesRegex(AssertionError, "affordance-not-hit-target"):
+            exec(
+                launcher.program_click(0, "button", "Submit", 7),
+                {"cdp": cdp, "click_at_xy": lambda x, y: effects.append((x, y)),
+                 "wait": lambda _: None, "page_info": lambda: {"url": "about:blank"}},
+            )
+        self.assertEqual(effects, [])
+        self.assertIn("Runtime.callFunctionOn", calls)
+        self.assertIn("Runtime.releaseObject", calls)
+
+    def test_pointer_hit_test_accepts_selected_node_or_nested_descendant(self):
+        import browser_use_browserless as launcher
+
+        declarations = []
+        effects = []
+
+        def cdp(method, **kwargs):
+            if method == "Accessibility.getFullAXTree":
+                return {"nodes": [{"role": {"value": "button"}, "name": {"value": "Submit"}, "backendDOMNodeId": 7}]}
+            if method == "DOM.getBoxModel":
+                return {"model": {"content": [20, 20, 200, 20, 200, 100, 20, 100]}}
+            if method == "DOM.resolveNode":
+                return {"object": {"objectId": "target-node"}}
+            if method == "Runtime.callFunctionOn":
+                declarations.append(kwargs["functionDeclaration"])
+                return {"result": {"type": "boolean", "value": True}}
+            if method == "Runtime.releaseObject":
+                return {}
+            raise AssertionError(method)
+
+        exec(
+            launcher.program_click(0, "button", "Submit", 7),
+            {"cdp": cdp, "click_at_xy": lambda x, y: effects.append((x, y)),
+             "wait": lambda _: None, "page_info": lambda: {"url": "about:blank"}},
+        )
+        self.assertEqual(effects, [(110.0, 60.0)])
+        self.assertEqual(len(declarations), 1)
+        self.assertIn("this.contains(", declarations[0])
 
 
 if __name__ == "__main__":
