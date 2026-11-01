@@ -489,7 +489,13 @@ An original Git object graph retrieved from a trusted local cache may
 qualify this **historical** property without accessing a mutable GitHub
 HEAD, but only after materializing it into a separate bare object database
 and running native `git fsck --full --strict` with no graft, replace,
-promisor-lazy-fetch or object alternates. If any required object is missing,
+promisor-lazy-fetch or object alternates. Native Git fsck itself permits
+recorded shallow boundaries; graph closure additionally requires the isolated
+repository's native `git rev-parse --is-shallow-repository` to be exactly
+`false` *after* fsck. Empty, ambiguous or shallow results fail closed. The
+native R16 witness injects a shallow cut into a previously healthy original
+Git object graph, confirms fsck succeeds, and verifies that the owner then
+rejects historical provenance. If any required object is missing,
 the consumer must fall back to the unchanged pinned original remote or
 report **UNKNOWN/FAIL**; never substitute current monorepo ancestry or
 the same-named file as a source identity.
