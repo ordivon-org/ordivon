@@ -21,13 +21,27 @@ def _strict_work(row: object, *, terminal: bool) -> dict:
     if row["state"] not in allowed:
         raise ValueError("source must be terminal and successors open")
     obligations = row["unresolved"]
-    if (
-        not isinstance(obligations, list)
-        or any(not isinstance(v, str) or not v.strip() for v in obligations)
-        or len(obligations) != len(set(obligations))
+    if not isinstance(obligations, list) or any(
+        not isinstance(v, str) or not v.strip() for v in obligations
     ):
-        raise ValueError("unresolved must be a list of unique, nonempty strings")
+        raise ValueError("unresolved must be a list of nonempty strings")
+    # Host WorkSnapshotInput is an ordered list[str], not a set. An identical
+    # textual obligation can occur twice; never collapse occurrences by text.
     return row
+
+
+def _ordinal(items: list[str], value: str, supplied: object, *, field: str) -> int | None:
+    """Resolve one list occurrence; duplicate text requires an explicit index."""
+    if supplied is None:
+        matches = [i for i, item in enumerate(items) if item == value]
+        if len(matches) > 1:
+            raise ValueError(f"{field} required for repeated obligation text")
+        return matches[0] if matches else None
+    if type(supplied) is not int or supplied < 0:
+        raise ValueError(f"{field} must be a nonnegative integer")
+    if supplied >= len(items) or items[supplied] != value:
+        return None
+    return supplied
 
 
 def assess(payload: object) -> dict:
@@ -47,42 +61,57 @@ def assess(payload: object) -> dict:
     raw_links = payload["links"]
     if not isinstance(raw_links, list):
         raise ValueError("links must be an array")
-    by_obligation = {}
-    invalid_links = []
+    required = {"sourceObligation", "sourceRevision", "successorRef",
+                "successorRevision", "successorObligation"}
+    optional = {"sourceIndex", "successorIndex"}
+    by_index = {}
+    invalid_indices = []
     for link in raw_links:
-        if not isinstance(link, dict) or set(link) != {
-            "sourceObligation", "sourceRevision", "successorRef",
-            "successorRevision", "successorObligation"
-        }:
+        if not isinstance(link, dict) or not required <= set(link) or set(link) - (required | optional):
             raise ValueError("every link needs exact typed source and receiver witnesses")
         obligation = link["sourceObligation"]
         if not isinstance(obligation, str) or obligation not in source["unresolved"]:
             raise ValueError("link refers to nonexistent source obligation")
-        if obligation in by_obligation:
+        index = _ordinal(source["unresolved"], obligation, link.get("sourceIndex"),
+                         field="sourceIndex")
+        if index is None:
+            raise ValueError("sourceIndex inconsistent with source obligation")
+        if index in by_index:
             raise ValueError("duplicate source obligation link")
-        by_obligation[obligation] = link
+        by_index[index] = link
         receiver = successors.get(link["successorRef"]) if isinstance(link["successorRef"], str) else None
+        target = link["successorObligation"]
         if (type(link["sourceRevision"]) is not int
             or link["sourceRevision"] != source["revision"]
             or receiver is None
             or type(link["successorRevision"]) is not int
             or link["successorRevision"] != receiver["revision"]
-            or not isinstance(link["successorObligation"], str)
-            or link["successorObligation"] not in receiver["unresolved"]):
-            invalid_links.append(obligation)
+            or not isinstance(target, str)
+            or target not in receiver["unresolved"]):
+            invalid_indices.append(index)
+            continue
+        if _ordinal(receiver["unresolved"], target, link.get("successorIndex"),
+                    field="successorIndex") is None:
+            invalid_indices.append(index)
 
-    missing = [x for x in source["unresolved"] if x not in by_obligation]
+    missing_indices = [i for i in range(len(source["unresolved"])) if i not in by_index]
+    missing = [source["unresolved"][i] for i in missing_indices]
+    invalid_links = [source["unresolved"][i] for i in invalid_indices]
+    covered_indices = [
+        i for i in range(len(source["unresolved"]))
+        if i in by_index and i not in invalid_indices
+    ]
     return {
         "kind": "ordivon.task-obligation-handoff-coverage-v1",
         "sourceRef": source["workRef"],
         "sourceRevision": source["revision"],
-        "navigationCovered": not missing and not invalid_links,
+        "navigationCovered": not missing_indices and not invalid_indices,
         "missing": missing,
+        "missingIndices": missing_indices,
         "invalidLinks": invalid_links,
-        "obligationsCarried": [
-            x for x in source["unresolved"]
-            if x in by_obligation and x not in invalid_links
-        ],
+        "invalidIndices": invalid_indices,
+        "obligationsCarried": [source["unresolved"][i] for i in covered_indices],
+        "coveredIndices": covered_indices,
         "semanticEquivalence": "UNKNOWN",
         "ownerCurrentness": "UNKNOWN",
         "technicalCompletion": "UNKNOWN",

@@ -95,3 +95,13 @@ receiver already terminal, duplicate mapping, self-referential successor,
 out-of-scope task and missing owner receipt must never be reported as
 semantically complete. This procedure is advisory and never authorizes
 an external effect.
+
+If an actual Host Work lists the same unresolved text more than once, it is
+**not** a set: the list preserves distinct occurrence positions. For any link
+whose source text repeats, include zero-based `sourceIndex`; for any repeated
+receiving text, include zero-based `successorIndex`. Each index must refer to
+an exact matching string at the observed Work revision. No index is required
+for unique text (backward-compatible); duplicate text without an index is
+ambiguous and rejected. `coveredIndices`, `missingIndices` and
+`invalidIndices` are position-aware navigation witnesses, **not** evidence
+of semantic discharge. Never silently deduplicate a Host Work obligation.

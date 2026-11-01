@@ -103,3 +103,45 @@ def test_skill_reference_exposes_optional_transfer_not_automatic_execution():
     row = next(x for x in catalog.inventory if x.skill_id ==
                "project-ordivon-next/task-space-reentry")
     assert row.scan_state == "PASS" and row.implicit_invocation is True
+
+
+def test_duplicate_host_obligations_have_indexed_navigation_without_false_completion():
+    # Host WorkSnapshotInput.unresolved is list[str], not a uniqueness-constrained set.
+    data = packet()
+    data["source"]["unresolved"] = ["same", "same"]
+    data["links"] = [
+        {"sourceObligation": "same", "sourceRevision": 2,
+         "successorRef": "work:new", "successorRevision": 4,
+         "successorObligation": "consumer-readset-real", "sourceIndex": 0},
+        {"sourceObligation": "same", "sourceRevision": 2,
+         "successorRef": "work:new", "successorRevision": 4,
+         "successorObligation": "skill-client-e2e", "sourceIndex": 1},
+    ]
+    result = helper.assess(data)
+    assert result["navigationCovered"] is True
+    assert result["coveredIndices"] == [0, 1]
+    assert result["technicalCompletion"] == "UNKNOWN"
+
+
+def test_duplicate_source_without_index_rejected_as_ambiguous():
+    data = packet()
+    data["source"]["unresolved"] = ["same", "same"]
+    data["links"] = [{"sourceObligation": "same", "sourceRevision": 2,
+                      "successorRef": "work:new", "successorRevision": 4,
+                      "successorObligation": "consumer-readset-real"}]
+    with pytest.raises(ValueError, match="sourceIndex"):
+        helper.assess(data)
+
+
+def test_duplicate_receiver_needs_index_and_wrong_index_fails_closed():
+    data = packet()
+    data["successors"][0]["unresolved"] = ["repeat", "repeat"]
+    for i, link in enumerate(data["links"]):
+        link["successorObligation"] = "repeat"
+    with pytest.raises(ValueError, match="successorIndex"):
+        helper.assess(data)
+    data["links"][0]["successorIndex"] = 0
+    data["links"][1]["successorIndex"] = 1
+    assert helper.assess(data)["navigationCovered"] is True
+    data["links"][1]["successorIndex"] = 2
+    assert helper.assess(data)["navigationCovered"] is False
