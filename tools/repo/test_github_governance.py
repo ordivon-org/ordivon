@@ -174,6 +174,23 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertLess(names.index("Repository mechanics"), names.index("Select affected owners"))
         self.assertLess(names.index("Select affected owners"), names.index("Verify affected owners"))
 
+    def test_formal_cold_install_reuses_scoped_github_job_token(self) -> None:
+        """Native GitHub release backend must not use anonymous 60/hour API quota."""
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        self.assertEqual(workflow["permissions"], {"contents": "read"})
+        steps = {step["name"]: step for step in
+                 workflow["jobs"]["root-verification"]["steps"]}
+        # Only the selected Formal owner gets this token, not every arbitrary
+        # unselected Owner task or the entire job.
+        self.assertNotIn("env", workflow["jobs"]["root-verification"])
+        formal = steps["Verify changed core Formal source"]
+        self.assertEqual(formal["env"]["GITHUB_TOKEN"], "$" + "{{ github.token }}")
+        self.assertIn("mise install", formal["run"])
+        self.assertIn("mise run formal:verify", formal["run"])
+        self.assertNotIn("GITHUB_TOKEN", steps["Verify affected owners"].get("env", {}))
+
     def test_selected_formal_has_one_isolated_real_invocation_and_owner_failures_propagate(self) -> None:
         """Execute the real GitHub queue shell and dedicated Formal step."""
         import os
