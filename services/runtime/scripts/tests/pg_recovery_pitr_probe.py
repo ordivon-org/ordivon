@@ -278,6 +278,15 @@ def execute(root: Path) -> dict[str, object]:
             value(55493, "SELECT promotion_allowed FROM _stage_control WHERE id='lab'") == "f", "stage flag changed"
         )
         require(external_receipt.read_text() == "effect-after-restore-point\n", "external effect receipt missing")
+        # Demonstrate the cross-timeline idempotency hazard, not just absence:
+        # the restored ledger can now ACCEPT the same client key again while
+        # its original external effect receipt still exists outside that DB.
+        sql(55493, insert("job-replayed-after-pitr", "request-post-target", 900))
+        require(
+            value(55493, "SELECT count(*) FROM jobs WHERE client_request_id='request-post-target'") == "1",
+            "recovery timeline unexpectedly remembered post-target request",
+        )
+        require(external_receipt.read_text() == "effect-after-restore-point\n", "effect receipt vanished")
         pitr_seconds = time.monotonic() - t_pitr
         return {
             "status": "PASS",
@@ -291,6 +300,7 @@ def execute(root: Path) -> dict[str, object]:
                 "pitr_named_restore_point",
                 "post_point_excluded",
                 "external_receipt_outlives_restored_job",
+                "same_request_readmitted_after_pitr",
                 "writer_stage_unqualified",
             ],
             "backupAndVerifySeconds": round(backup_seconds, 3),
