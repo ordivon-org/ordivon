@@ -680,6 +680,14 @@ def detach_idle_open_build_candidate(
             current_activity = workspace_activity_marker_for(database, workspace_id)
             if current_activity != planned_activity:
                 return None, "workspace_activity_changed_after_plan"
+        # The plan is a snapshot: a Workspace may be closed by its natural
+        # Runtime owner while this prune waits for admission reconciliation.
+        # Missing bytes are a no-op, not a failed deletion. lstat (not exists)
+        # keeps dangling symlinks distinguishable and therefore fail-closed.
+        try:
+            path.lstat()
+        except FileNotFoundError:
+            return None, "workspace_build_absent_after_plan"
         validate_cache_candidate(cache_root, path)
         detached_root = cache_root / ".prune-detached"
         detached_root.mkdir(parents=True, exist_ok=True)

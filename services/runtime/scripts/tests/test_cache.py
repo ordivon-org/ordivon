@@ -705,6 +705,100 @@ class CacheRetentionTests(unittest.TestCase):
             self.assertEqual(len(stranded), 1)
             self.assertEqual(Path(stranded[0]["path"]), detached[0])
 
+    def test_idle_build_disappearing_after_plan_is_noop_not_failed_deletion(self) -> None:
+        """A closed Workspace may remove a planned cache entry before the fence."""
+        module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-cache"))
+        detach = module["detach_idle_open_build_candidate"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            runtime, database = root / "runtime", root / "registry.sqlite3"
+            initialize_registry(database)
+            build = runtime / "cache" / "build" / "closed-ws"
+            build.parent.mkdir(parents=True)
+            marker = "sha256:" + "d" * 64
+            candidate = {
+                "kind": "idle_open_workspace_build",
+                "path": str(build),
+                "workspaceId": "closed-ws",
+                "workspaceActivityMarker": marker,
+            }
+            with patch.dict(detach.__globals__, {
+                "active_workspace_ids": lambda _: set(),
+                "workspace_record_standing": lambda *_: "open",
+                "workspace_activity_marker_for": lambda *_: marker,
+            }):
+                self.assertEqual(
+                    detach(database, root, runtime, candidate, "receipt-id"),
+                    (None, "workspace_build_absent_after_plan"),
+                )
+                # A broken symlink is a different source identity and must
+                # NOT become a silent missing-path success.
+                build.symlink_to(root / "missing-external-directory", target_is_directory=True)
+                with self.assertRaisesRegex(RuntimeError, "not a regular directory"):
+                    detach(database, root, runtime, candidate, "receipt-id")
+
+    def test_prune_receipt_completes_when_closed_workspace_build_disappears(self) -> None:
+        """No stale-plan failure or new deletion after a concurrent close."""
+        module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-cache"))
+        prune = module["prune"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            runtime, database = root / "runtime", root / "registry.sqlite3"
+            initialize_registry(database)
+            build = runtime / "cache" / "build" / "closed-ws"
+            build.mkdir(parents=True)
+            (build / "artifact").write_bytes(b"x" * 120)
+            marker = "sha256:" + "d" * 64
+            candidate = {
+                "kind": "idle_open_workspace_build",
+                "path": str(build),
+                "bytes": 120,
+                "workspaceId": "closed-ws",
+                "workspaceActivityMarker": marker,
+                "requiresAdmissionFence": True,
+            }
+            reads = 0
+
+            def census(*_args: object, **_kwargs: object) -> tuple[int, list[dict[str, object]]]:
+                nonlocal reads
+                reads += 1
+                if reads == 1:
+                    # The natural Workspace owner closes after planning, while
+                    # cache prune has not yet crossed its deletion boundary.
+                    shutil.rmtree(build)
+                    return 120, [candidate]
+                return 0, []
+
+            args = type("Args", (), {
+                "database": database,
+                "registry_root": root,
+                "runtime_store_root": runtime,
+                "receipt_root": root / "receipts",
+                "lock_file": root / "cache.lock",
+                "env_file": None,
+                "confirm_policy": "PRUNE_EXECUTION_CACHES",
+                "high_watermark_bytes": 50,
+                "low_watermark_bytes": 10,
+            })()
+            with patch.dict(prune.__globals__, {
+                "cache_prune_candidates": census,
+                "active_workspace_ids": lambda _: set(),
+                "workspace_record_standing": lambda *_: "open",
+                "workspace_activity_marker_for": lambda *_: marker,
+            }):
+                report = prune(args)
+            self.assertEqual(reads, 2)
+            self.assertEqual(report["status"], "completed")
+            self.assertEqual(report["capacityDisposition"], "within_high_watermark")
+            self.assertEqual(report["failures"], [])
+            self.assertEqual(len(report["actions"]), 1)
+            self.assertEqual(report["actions"][0]["action"], "cache_retained")
+            self.assertEqual(
+                report["actions"][0]["reason"], "workspace_build_absent_after_plan"
+            )
+            self.assertFalse(build.exists())
+            self.assertTrue(Path(report["receipt"], "result.json").is_file())
+
     def test_prune_keeps_reclaimable_residual_partial_after_delete_failure(self) -> None:
         module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-cache"))
         with tempfile.TemporaryDirectory() as temporary:
