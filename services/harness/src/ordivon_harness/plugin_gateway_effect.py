@@ -166,6 +166,37 @@ class GatewayMcpRuntimeAdapter:
         self._operation_refs: dict[str, str] = {}
         self._operation_requests: dict[str, str] = {}
 
+    def _retain_operation_binding(
+        self, native_id: str, operation_ref: str, request_id: str
+    ) -> None:
+        """Fail closed on a contradictory Gateway receipt or recovery.
+
+        The two existing ephemeral maps are the only local state. An accepted
+        transition must preserve (nativeId, operationRef, clientRequestId)
+        identity across late replies, retries, observation and cancellation.
+        This is a local cache invariant, not a durable Gateway/Runtime proof.
+        """
+        previous_ref = self._operation_refs.get(native_id)
+        previous_request = self._operation_requests.get(native_id)
+        if (
+            (previous_ref is not None and previous_ref != operation_ref)
+            or (previous_request is not None and previous_request != request_id)
+            or any(
+                key != native_id and value == request_id
+                for key, value in self._operation_requests.items()
+            )
+            or any(
+                key != native_id and value == operation_ref
+                for key, value in self._operation_refs.items()
+            )
+        ):
+            raise HarnessRuntimeClientError(
+                "Gateway execution identity binding conflicts with prior evidence"
+            )
+        # No writes may happen before all contradictions have been excluded.
+        self._operation_refs[native_id] = operation_ref
+        self._operation_requests[native_id] = request_id
+
     def _call(self, name: str, arguments: dict[str, JsonValue]) -> dict[str, JsonValue]:
         try:
             is_error, payload = self.client.call_tool(name, arguments)
@@ -222,16 +253,18 @@ class GatewayMcpRuntimeAdapter:
             _gateway_field(receipt, "operation_ref", "operationRef"), "operationRef"
         )
         native_id = _required_text(_gateway_field(receipt, "native_id", "nativeId"), "nativeId")
-        self._operation_refs[native_id] = operation_ref
-        self._operation_requests[native_id] = request_id
         terminal = _gateway_field(receipt, "terminal", "terminal")
-        if terminal is True:
-            return self._observe_operation(operation_ref, native_id, wait_ms=0)
-        if terminal is not False:
+        if not isinstance(terminal, bool):
             raise HarnessRuntimeClientError("Gateway execution receipt omitted terminal")
+        # Validate the complete nonterminal receipt before retaining its
+        # identities: an invalid owner observation must not poison recovery.
+        state = _required_text(receipt.get("state"), "state")
+        self._retain_operation_binding(native_id, operation_ref, request_id)
+        if terminal:
+            return self._observe_operation(operation_ref, native_id, wait_ms=0)
         return {
             "jobId": native_id,
-            "status": _required_text(receipt.get("state"), "state"),
+            "status": state,
             "executionTerminal": False,
             "executionDisposition": None,
             "deliveryDisposition": (
@@ -279,8 +312,7 @@ class GatewayMcpRuntimeAdapter:
             raise HarnessRuntimeClientError(
                 "Gateway recovery returned a Job in a different workspace"
             )
-        self._operation_refs[native_id] = operation_ref
-        self._operation_requests[native_id] = request_id
+        self._retain_operation_binding(native_id, operation_ref, request_id)
         return {
             "jobs": [
                 {

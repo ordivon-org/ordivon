@@ -419,6 +419,109 @@ def test_gateway_recovery_requires_owner_observed_workspace(mutation: str) -> No
         assert names == ["execution.submit", "execution.resolve"]
 
 
+def test_gateway_native_job_identity_cannot_rebind_to_another_request() -> None:
+    # The same native job must not be attached to a different durable request
+    # after a late submit receipt or a recovered resolution.
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+
+    def submit(request_id: str) -> dict:
+        return {
+            "clientRequestId": request_id,
+            "execution": {
+                "workspaceId": "ws-plugin-h2",
+                "foreignReferences": [],
+                "executable": "/usr/bin/rg",
+                "args": ["needle"],
+                "cwdRelative": ".",
+            },
+        }
+
+    first = adapter.call_tool("workspace.exec", submit("request:one"))
+    assert first["jobId"] == client.native_id
+    with pytest.raises(HarnessRuntimeClientError, match="binding|identity|request"):
+        adapter.call_tool("workspace.exec", submit("request:other"))
+    assert adapter._operation_requests[client.native_id] == "request:one"
+    with pytest.raises(HarnessRuntimeClientError, match="binding|identity|request"):
+        adapter.call_tool(
+            "task.list",
+            {"workspaceId": "ws-plugin-h2", "clientRequestId": "request:other"},
+        )
+    assert adapter._operation_requests[client.native_id] == "request:one"
+    # Exact idempotent replay is still accepted.
+    second = adapter.call_tool("workspace.exec", submit("request:one"))
+    assert second["jobId"] == first["jobId"]
+
+
+def test_gateway_same_request_cannot_rebind_to_different_native_operation() -> None:
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    args = {
+        "clientRequestId": "request:one",
+        "execution": {
+            "workspaceId": "ws-plugin-h2",
+            "foreignReferences": [],
+            "executable": "/usr/bin/rg",
+        },
+    }
+    original_native = client.native_id
+    original_ref = client.operation_ref
+    adapter.call_tool("workspace.exec", args)
+    client.native_id = "job-other"
+    client.operation_ref = "ordivon-exec:v1:runtime.linux:job-other"
+    with pytest.raises(HarnessRuntimeClientError, match="binding|identity|request"):
+        adapter.call_tool("workspace.exec", args)
+    assert adapter._operation_requests == {original_native: "request:one"}
+    assert adapter._operation_refs == {original_native: original_ref}
+
+
+def test_gateway_operation_ref_cannot_attach_to_a_different_job() -> None:
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    def submit(request_id: str) -> dict:
+        return {
+            "clientRequestId": request_id,
+            "execution": {"workspaceId": "ws-plugin-h2", "foreignReferences": [],
+                          "executable": "/usr/bin/rg"},
+        }
+    original_job = client.native_id
+    adapter.call_tool("workspace.exec", submit("request:one"))
+    client.native_id = "job-alias"
+    with pytest.raises(HarnessRuntimeClientError, match="binding"):
+        adapter.call_tool("workspace.exec", submit("request:other"))
+    assert adapter._operation_requests == {original_job: "request:one"}
+    assert adapter._operation_refs == {original_job: client.operation_ref}
+
+
+@pytest.mark.parametrize("invalid", ("terminal", "state"))
+def test_gateway_rejected_submit_receipt_does_not_poison_operation_map(invalid: str) -> None:
+    client = GatewayExecutionFixture()
+    original = client.call_tool
+    def forged(name, arguments):
+        is_error, receipt = original(name, arguments)
+        if name == "execution.submit":
+            receipt = dict(receipt)
+            if invalid == "terminal":
+                receipt["terminal"] = None
+            else:
+                receipt.pop("state")
+        return is_error, receipt
+    client.call_tool = forged
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    with pytest.raises(HarnessRuntimeClientError):
+        adapter.call_tool("workspace.exec", {
+            "clientRequestId": "request:untrusted",
+            "execution": {"workspaceId": "ws-plugin-h2", "foreignReferences": [],
+                          "executable": "/usr/bin/rg"},
+        })
+    assert adapter._operation_refs == {}
+    assert adapter._operation_requests == {}
+
+
 def test_gateway_effect_bridge_propagates_cooperative_control_cancellation() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
