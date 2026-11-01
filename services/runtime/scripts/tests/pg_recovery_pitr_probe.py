@@ -215,6 +215,17 @@ def execute(root: Path) -> dict[str, object]:
             value(55491, "SELECT source_sha256 FROM _stage_control WHERE id='source'") == seal["sourceSha"],
             "operator seal must match original qualified stage",
         )
+        # A physical clone on the original WAL timeline carries the same
+        # operator epoch digest. This qualifies *local* SQL authority only,
+        # not a global dual-Writer lease or provider exactly-once semantics.
+        epoch_digest = hashlib.sha256(
+            f"ordivon-pg-writer-epoch-v1\0{'a' * 64}\0{original_system_id}\0{original_timeline}".encode()
+        ).hexdigest()
+        sql(
+            55491,
+            "INSERT INTO _stage_control(id,state,source_sha256,promotion_allowed)"
+            " VALUES('epoch','QUALIFIED_EPOCH','" + epoch_digest + "',true)",
+        )
         before = value(
             55491,
             "SELECT (SELECT count(*) FROM jobs)||'|'||(SELECT count(*) FROM attempts)||'|'||(SELECT count(*) FROM artifacts)",
@@ -240,7 +251,9 @@ def execute(root: Path) -> dict[str, object]:
         )
         postgres(PG + "pg_verifybackup", str(root / "restore"))
         shutil.copytree(root / "restore", root / "pitr")
+        shutil.copytree(root / "restore", root / "sibling")
         chown_tree(root / "pitr")
+        chown_tree(root / "sibling")
         backup_seconds = time.monotonic() - t_backup
         manifest = root / "restore/backup_manifest"
         original = manifest.read_bytes()
@@ -271,7 +284,46 @@ def execute(root: Path) -> dict[str, object]:
         sql(55491, "SELECT pg_switch_wal()")
 
         start("restore", 55492)
-        require(value(55492, "SELECT count(*) FROM jobs") == "1", "base backup leaked post-backup changes")
+        start("sibling", 55494)
+        for branch_port in (55492, 55494):
+            require(
+                value(branch_port, "SELECT system_identifier FROM pg_control_system()") == original_system_id,
+                "sibling physical clone has a different PG system identifier",
+            )
+            require(
+                int(value(branch_port, "SELECT timeline_id FROM pg_control_checkpoint()")) == original_timeline,
+                "sibling clone unexpectedly forked WAL timeline",
+            )
+            require(
+                value(branch_port, "SELECT source_sha256 FROM _stage_control WHERE id='epoch'") == epoch_digest,
+                "sibling clone did not inherit identical operator qualification",
+            )
+        # Two independent databases accept the SAME request and Release
+        # effect identities despite their native unique constraints.
+        for branch_port, job_id in ((55492, "job-branch-restore"), (55494, "job-branch-sibling")):
+            sql(branch_port, insert(job_id, "request-cross-clone", 777, principal="actor-clone"))
+            sql(
+                branch_port,
+                "INSERT INTO job_runtime_release_effects "
+                "(job_id,effect_id,contract,request_digest,workspace_id,"
+                "commit_revision,candidate_manifest_digest,expected_tool_count,"
+                "receipt_path,binding_digest) VALUES "
+                f"('{job_id}','effect-cross-clone','release-v1','req-clone',"
+                "'ws-lab','sha1','sha256:manifest',0,'/scratch/cloned','binding-clone')",
+            )
+        for branch_port in (55492, 55494):
+            require(
+                value(branch_port, "SELECT count(*) FROM jobs WHERE client_request_id='request-cross-clone'") == "1",
+                "independent clone rejected same client request identity",
+            )
+            require(
+                value(
+                    branch_port, "SELECT count(*) FROM job_runtime_release_effects WHERE effect_id='effect-cross-clone'"
+                )
+                == "1",
+                "independent clone rejected same Release effect identity",
+            )
+        require(value(55492, "SELECT count(*) FROM jobs") == "2", "base backup leaked post-backup changes")
         require(value(55492, "SELECT count(*) FROM attempts") == "1", "attempt missing")
         require(value(55492, "SELECT count(*) FROM artifacts") == "1", "artifact missing")
         duplicate = sql(55492, insert("duplicate", "request-base", 400), check=False)
@@ -317,6 +369,16 @@ def execute(root: Path) -> dict[str, object]:
             "PITR changed cluster system identifier",
         )
         require(new_timeline != original_timeline, "PITR promotion did not create a new timeline")
+
+        # The persisted operator epoch row itself is restored from the
+        # original timeline. The live current-timeline digest differs, so
+        # the actual Rust Writer guard must refuse this stale row.
+        inherited_epoch = value(55493, "SELECT source_sha256 FROM _stage_control WHERE id='epoch'")
+        branch_epoch = hashlib.sha256(
+            f"ordivon-pg-writer-epoch-v1\0{'a' * 64}\0{original_system_id}\0{new_timeline}".encode()
+        ).hexdigest()
+        require(inherited_epoch == epoch_digest, "restored old epoch was unexpectedly replaced")
+        require(inherited_epoch != branch_epoch, "PITR old operator epoch would incorrectly qualify new timeline")
         restored_seal = json.loads((root / "operator-qualification-seal.json").read_text())
         require(restored_seal == seal, "independent seal changed across PITR")
         eligible_by_independent_timeline_seal = (
@@ -382,6 +444,10 @@ def execute(root: Path) -> dict[str, object]:
                 "hypothetical_operator_timeline_seal_rejects_pitr_not_crash",
                 "release_effect_id_rebound_after_pitr",
                 "lab_stage_flag_unqualified",
+                "persisted_old_epoch_rejected_after_pitr_timeline_change",
+                "sibling_clones_share_cluster_timeline_and_qualified_epoch",
+                "same_request_admitted_on_both_cloned_primaries",
+                "same_release_effect_id_bound_on_both_cloned_primaries",
             ],
             "backupAndVerifySeconds": round(backup_seconds, 3),
             "pitrReadbackSeconds": round(pitr_seconds, 3),
@@ -389,13 +455,14 @@ def execute(root: Path) -> dict[str, object]:
             "originalTimelineId": original_timeline,
             "recoveredTimelineId": new_timeline,
             "clusterSystemIdStable": True,
-            "candidateMitigation": "independent timeline-bound operator seal required; NOT installed",
+            "candidateMitigation": "PG timeline-bound Rust source guard merged; installed state UNKNOWN; not globally sufficient",
+            "globalWriterExclusion": "NOT_PROVEN: sibling clones share physical ID, timeline, and epoch",
             "externalEffectSemantics": "UNKNOWN; PITR counterexample forbids blind replay",
             "productionRuntimeEffect": "NONE",
             "productionRpoRto": "UNKNOWN",
         }
     finally:
-        for name in ("pitr", "restore", "primary"):
+        for name in ("pitr", "sibling", "restore", "primary"):
             try:
                 stop(name)
             except Exception:
