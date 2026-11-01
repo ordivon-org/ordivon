@@ -375,14 +375,14 @@ theorem tensor_io_implementation_iff_universal_saturation {B : Type}
     · exact hSat
     · have hAssume : (tensorContract C D).assume b :=
         Or.inr hSat
-      obtain ⟨unit, hBehavior⟩ := hImpl.2 b hAssume
-      cases unit
+      obtain ⟨u, hBehavior⟩ := hImpl.2 b hAssume
+      cases u
       exact False.elim (hSat (hImpl.1 b () hAssume hBehavior))
   · intro hSat
     refine ⟨(fun _ _ => True), ?_⟩
     constructor
-    · intro b unit _ _
-      cases unit
+    · intro b u _ _
+      cases u
       exact hSat b
     · intro _ _
       exact ⟨(), True.intro⟩
@@ -1557,7 +1557,7 @@ theorem strictTimeout_abstract_cost_and_epsilon
 -- effect/acceptance relation, not just the old bounded consumer guarantee.
 theorem strictTimeout_transition_meets_acceptance
     (grant : Nat) (requested : Option Nat)
-    (hInv : strictTimeout.inv grant)
+    (_hInv : strictTimeout.inv grant)
     (hPre : strictTimeout.pre grant requested) :
     strictTimeout.post grant requested
       (forwarded grant requested) grant ∧
@@ -1846,10 +1846,10 @@ theorem append_preserves_ledger_invariant (s : Ledger) (ref digest : String)
       some (stored, seq) at hStored
     change seq < s.nextSeq + 1
     by_cases hKey : key = ref
-    · rw [if_pos hKey] at hStored
+    · rw [ite_eq_left hKey] at hStored
       cases hStored
       exact Nat.lt_succ_self s.nextSeq
-    · rw [if_neg hKey] at hStored
+    · rw [ite_eq_right hKey] at hStored
       exact Nat.lt_trans (hInv.2 key stored seq hStored)
         (Nat.lt_succ_self s.nextSeq)
 
