@@ -51,6 +51,21 @@ rollback and retirement conditions. Reuse these at the next replacement.
 Do not create a universal adapter, new registry, Agent or separate LEGO
 calculus for hypothetical future reuse; verifier PASS is always scoped.
 
+### Conditional negative-consumer proof (not deletion authority)
+
+For a contested retirement, use
+references/consumer-rooted-retirement.md and the axiom-free Lean theorem
+OrdivonR21.RetirementClosure.no_live_consumer_if_closed_and_current
+in tools/formal/RecursiveLegoRefinement.lean. Its four required premises
+are complete observation of reachable live consumers, no observed witness,
+currentEdges subset snapshotEdges, and currentLive subset snapshotLive.
+The same file proves three counterexamples when observation closure,
+dependency currentness or liveness currentness is missing. A current
+systemd file scan or loaded-manager query does **not** establish these
+premises; retain UNKNOWN until a separate concrete Owner witness closes
+them. This conditional R2.1 pre/inv/prov law is neither a new LEGO nor
+permission to delete a Workspace.
+
 ## Practical rule
 
 A LEGO is one **goal-conditioned, replaceable responsibility** with identity, inputs, outputs, behavioral contract and acceptance. It is not a file, Agent, Skill, Tool or required runtime object.

@@ -358,6 +358,10 @@ jobs:
         if: steps.affected.outputs.formal == 'true'
         shell: bash
         env:
+          # mise-action limits its GitHub auth to that action. The later
+          # Formal mise install must use GitHub's read-only job token for
+          # release metadata instead of exhausting anonymous API quota.
+          GITHUB_TOKEN: ${{ github.token }}
           # Isolate Kani's release bundle to this job; a truncated shared
           # ~/.kani cache must not masquerade as a mathematical proof result.
           KANI_HOME: ${{ runner.temp }}/ordivon-core-formal-kani

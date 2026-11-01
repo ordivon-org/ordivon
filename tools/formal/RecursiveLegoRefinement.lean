@@ -1795,3 +1795,90 @@ end OrdivonR21.MessageEvidence
 #print axioms OrdivonR21.MessageEvidence.protocol_assumptions_are_nonvacuous
 #print axioms OrdivonR21.MessageEvidence.executable_model_refines_protocol
 #print axioms OrdivonR21.MessageEvidence.overwrite_breaks_existing_immutability
+
+-- Consumer-rooted retirement: an empty observed readset is NOT evidence
+-- of consumer absence without both root/dependency completeness and freshness.
+-- This is an existing R2.1 pre/invariant/provenance proof obligation,
+-- not another LEGO declaration, admission service or registry.
+--
+-- snapshotEdges is the observed source/dependency graph; currentEdges
+-- is the graph at the instant of removal. A safe proof must establish that
+-- every CURRENT relevant edge was in the snapshot, that every CURRENT live
+-- consumer was live in the snapshot, and that the bounded observer covered
+-- all reachable live snapshot consumers. None follows from Git SHA alone.
+namespace OrdivonR21.RetirementClosure
+
+def HasLiveConsumer {Node : Type}
+    (dependency : Node → Node → Prop) (live : Node → Prop)
+    (workspace : Node) : Prop :=
+  ∃ consumer, OrdivonR21.ImpactReach dependency
+    (fun node => node = workspace) consumer ∧ live consumer
+
+theorem no_live_consumer_if_closed_and_current {Node : Type}
+    (workspace : Node)
+    (snapshotEdges currentEdges : Node → Node → Prop)
+    (snapshotLive currentLive observed : Node → Prop)
+    (hEdges : ∀ upstream downstream,
+      currentEdges upstream downstream →
+        snapshotEdges upstream downstream)
+    (hLive : ∀ node, currentLive node → snapshotLive node)
+    (hComplete : ∀ node,
+      OrdivonR21.ImpactReach snapshotEdges
+        (fun candidate => candidate = workspace) node →
+      snapshotLive node → observed node)
+    (hNoWitness : ∀ node, ¬ observed node) :
+    ¬ HasLiveConsumer currentEdges currentLive workspace := by
+  intro hConsumer
+  obtain ⟨node, hReach, hCurrentLive⟩ := hConsumer
+  have hSnapshotReach :
+      OrdivonR21.ImpactReach snapshotEdges
+        (fun candidate => candidate = workspace) node :=
+    OrdivonR21.impact_monotone_in_declared_edges
+      currentEdges snapshotEdges
+      (fun candidate => candidate = workspace) hEdges node hReach
+  exact hNoWitness node (hComplete node hSnapshotReach
+    (hLive node hCurrentLive))
+
+-- Negative proof: a syntactically empty observer may overlook a real
+-- downstream live consumer. UNKNOWN cannot be promoted to absence.
+theorem no_match_without_coverage_is_not_safe :
+    ∃ observed : OrdivonR21.DisjointLEGO → Prop,
+      (∀ node, ¬ observed node) ∧
+      HasLiveConsumer OrdivonR21.aToB
+        (fun node => node = .b) .a := by
+  refine ⟨(fun _ => False), ?_, ?_⟩
+  · intro _ h
+    exact h
+  · exact ⟨.b, OrdivonR21.real_consumer_must_be_rechecked, rfl⟩
+
+-- Negative proof: a new dependency after observation introduces a reachable
+-- live consumer. Even a complete old empty graph cannot certify the new one.
+theorem new_edge_invalidates_old_negative_observation :
+    (¬ HasLiveConsumer OrdivonR21.noDependency
+      (fun node : OrdivonR21.DisjointLEGO => node = .b) .a) ∧
+    HasLiveConsumer OrdivonR21.aToB
+      (fun node => node = .b) .a := by
+  constructor
+  · intro ⟨node, hReach, hLive⟩
+    cases hLive
+    exact OrdivonR21.unrelated_lego_not_impacted hReach
+  · exact ⟨.b, OrdivonR21.real_consumer_must_be_rechecked, rfl⟩
+
+-- Negative proof: a consumer becoming live after the source check can defeat
+-- a valid earlier negative result even when all dependency edges stay fixed.
+theorem new_live_consumer_invalidates_old_negative_observation :
+    (¬ HasLiveConsumer OrdivonR21.aToB
+      (fun _ : OrdivonR21.DisjointLEGO => False) .a) ∧
+    HasLiveConsumer OrdivonR21.aToB
+      (fun node => node = .b) .a := by
+  constructor
+  · intro ⟨_, _, hLive⟩
+    exact hLive
+  · exact ⟨.b, OrdivonR21.real_consumer_must_be_rechecked, rfl⟩
+
+end OrdivonR21.RetirementClosure
+
+#print axioms OrdivonR21.RetirementClosure.no_live_consumer_if_closed_and_current
+#print axioms OrdivonR21.RetirementClosure.no_match_without_coverage_is_not_safe
+#print axioms OrdivonR21.RetirementClosure.new_edge_invalidates_old_negative_observation
+#print axioms OrdivonR21.RetirementClosure.new_live_consumer_invalidates_old_negative_observation
