@@ -1,8 +1,8 @@
 //! Consistent, read-only PostgreSQL lifecycle projection for migration consumers.
 //! It does not dispatch, reconcile, authorize, or certify a physical effect.
 use crate::pg_admission::{
-    pg_artifact_manifest_digest, valid_pg_artifacts, PgAdmissionError, PgAdmissionStore,
-    PgArtifactRegistration,
+    pg_artifact_manifest_digest, require_pg_writer_epoch, valid_pg_artifacts, PgAdmissionError,
+    PgAdmissionStore, PgArtifactRegistration,
 };
 use postgres::{IsolationLevel, Transaction};
 use sha2::{Digest, Sha256};
@@ -200,6 +200,11 @@ impl PgAdmissionStore {
         if state != "QUALIFIED_WRITER" || source != expected_source_sha256 || !permitted {
             return Err(PgAdmissionError::Unqualified);
         }
+        // A source-qualified row can survive PITR on a new WAL timeline.
+        // Current Job readback must not promote restored historical data to
+        // installed/current authority without the operator-owned PG epoch.
+        // This is a read-only check; forensic SQL can still inspect old rows.
+        require_pg_writer_epoch(&mut tx, expected_source_sha256, false)?;
         let Some(job) = tx.query_opt(
             "SELECT desired_state, resolution, current_attempt_id, row_version FROM jobs WHERE job_id=$1",
             &[&job_id],

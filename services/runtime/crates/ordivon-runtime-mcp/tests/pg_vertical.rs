@@ -1236,6 +1236,8 @@ fn fresh_pg_revoked_writer_refuses_new_workspace_effects() {
         json!({"workspaceId":"ws-revoke-existing","sourceRepo":repo,"sourceRevision":"HEAD"}),
     );
     assert_ne!(existing["isError"], true, "{existing}");
+    let list_before = call(&endpoint, "job.list", json!({"limit": 1}));
+    assert_ne!(list_before["isError"], true, "{list_before}");
 
     // Source remains QUALIFIED_WRITER: revoke ONLY the independently bound
     // physical epoch. A long-lived MCP must reject fresh Workspace effects.
@@ -1254,6 +1256,11 @@ fn fresh_pg_revoked_writer_refuses_new_workspace_effects() {
     assert_eq!(
         epoch_denied["isError"], true,
         "source-only writer accepted new work with revoked physical epoch: {epoch_denied}",
+    );
+    let epoch_list_denied = call(&endpoint, "job.list", json!({"limit": 1}));
+    assert_eq!(
+        epoch_list_denied["isError"], true,
+        "revoked physical epoch falsely projected current Job list: {epoch_list_denied}",
     );
     let epoch_mutation_denied = call(
         &endpoint,
@@ -1274,6 +1281,8 @@ fn fresh_pg_revoked_writer_refuses_new_workspace_effects() {
         )
         .unwrap();
 
+    let requalified_list = call(&endpoint, "job.list", json!({"limit": 1}));
+    assert_ne!(requalified_list["isError"], true, "{requalified_list}");
     fixture
         .db
         .execute(
