@@ -1705,6 +1705,101 @@ mod live_pg_tests {
         }
     }
 
+    /// Independent Windows native evidence reader consumes exact PostgreSQL
+    /// admission rows. A qualified PG row alone must NOT imply OS launch.
+    #[test]
+    #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+    fn windows_pg_bundle_consumer_reads_real_admission_without_claiming_process() {
+        use crate::pg_windows_evidence::{
+            inspect_admitted_windows_pg_bundle, PgWindowsWitnessPhase,
+        };
+        use std::fs;
+        let dsn = physical_pg_test_dsn();
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let temp = tempfile::tempdir().unwrap();
+        let mut input = payload("win-native-witness", "job-win-witness", "workspace-win", 2);
+        let attempt = input.attempt_id.clone();
+        let bundle = temp.path().join("pg-attempts").join(&attempt);
+        fs::create_dir_all(&bundle).unwrap();
+        input.bundle_path = bundle.to_string_lossy().into_owned();
+        input.unit_name = format!("Ordivon.{attempt}");
+        input.launch_token_digest = format!("sha256:{}", "a".repeat(64));
+        input.workspace_snapshot_json = serde_json::json!({
+            "executionProvider": {
+                "contract":"windows_native_launcher_v1",
+                "executableDigest":format!("sha256:{}", "c".repeat(64))
+            }
+        })
+        .to_string();
+        let request = b"immutable-Windows-Runner-request-v1";
+        fs::write(bundle.join("request.json"), request).unwrap();
+        let digest = format!("sha256:{}", hex::encode(Sha256::digest(request)));
+        let mut owner = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        assert!(matches!(
+            owner.admit(&input).unwrap(),
+            PgAdmissionOutcome::Created(_)
+        ));
+        // Absence of a PG-admitted bundle readiness receipt fails closed.
+        assert!(inspect_admitted_windows_pg_bundle(
+            &dsn,
+            &scratch.name,
+            &"a".repeat(64),
+            &input.principal,
+            &input.job_id,
+            temp.path()
+        )
+        .is_err());
+        let version: i64 = owner
+            .client
+            .query_one(
+                "SELECT row_version FROM attempts WHERE attempt_id=$1",
+                &[&attempt],
+            )
+            .unwrap()
+            .get(0);
+        owner
+            .commit_bundle_ready_pg(&crate::pg_admission::PgBundleReady {
+                attempt_id: attempt.clone(),
+                expected_row_version: version,
+                bundle_digest: digest.clone(),
+                observed_at_ms: input.created_at_ms + 1,
+                expected_source_sha256: "a".repeat(64),
+            })
+            .unwrap();
+        let missing = inspect_admitted_windows_pg_bundle(
+            &dsn,
+            &scratch.name,
+            &"a".repeat(64),
+            &input.principal,
+            &input.job_id,
+            temp.path(),
+        )
+        .unwrap();
+        assert_eq!(missing.phase, PgWindowsWitnessPhase::NoLauncherWitness);
+        assert!(!missing.terminal_proven);
+        assert!(inspect_admitted_windows_pg_bundle(
+            &dsn,
+            &scratch.name,
+            &"a".repeat(64),
+            "another-principal",
+            &input.job_id,
+            temp.path()
+        )
+        .is_err());
+        fs::write(bundle.join("request.json"), b"tampered").unwrap();
+        assert!(inspect_admitted_windows_pg_bundle(
+            &dsn,
+            &scratch.name,
+            &"a".repeat(64),
+            &input.principal,
+            &input.job_id,
+            temp.path()
+        )
+        .unwrap_err()
+        .contains("request digest"));
+    }
+
     #[test]
     #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
     fn pg18_rejects_synthetic_writer_without_event_sequence_uniqueness() {

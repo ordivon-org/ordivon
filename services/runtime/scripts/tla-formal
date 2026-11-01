@@ -1006,15 +1006,70 @@ PY_RESOURCE_QUEUE
   )
 }
 
+check_windows_pg_attempt() {
+  verify_jar
+  java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY "$ROOT/formal/RuntimeWindowsPgAttemptR1.tla"
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeWindowsPgAttemptR1.cfg RuntimeWindowsPgAttemptR1.tla)
+}
+
+check_windows_pg_attempt_counterexample() {
+  verify_jar
+  (
+    tmp_dir=$(mktemp -d -t ordivon-winpg-attempt-XXXXXX)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
+    cp "$ROOT/formal/RuntimeWindowsPgAttemptR1.tla" "$tmp_dir/"
+    cp "$ROOT/formal/RuntimeWindowsPgAttemptR1.cfg" "$tmp_dir/"
+    printf '\nINVARIANT NeverTerminal\n' >> "$tmp_dir/RuntimeWindowsPgAttemptR1.cfg"
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+        -config RuntimeWindowsPgAttemptR1.cfg RuntimeWindowsPgAttemptR1.tla) > "$tmp_dir/negative.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] || ! grep -Fq 'Invariant NeverTerminal is violated' "$tmp_dir/negative.log"; then
+      echo 'WinPG attempt anti-vacuity counterexample FAILED' >&2
+      tail -30 "$tmp_dir/negative.log" >&2
+      exit 1
+    fi
+    echo 'WinPG attempt legal terminal reachable; no vacuous proof PASS'
+    # Independent falsifier: deliberately remove the native OS exit guard.
+    # The model MUST then reach a terminal while PID/owner is still alive or
+    # ambiguous; otherwise the safe model is too weak to catch this bug.
+    python3 - "$tmp_dir/RuntimeWindowsPgAttemptR1.tla" <<'PY_WINPG_UNGUARDED'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+src = path.read_text(encoding='utf-8')
+guard = '    /\\ osOwner = "exited"\n'
+assert src.count(guard) == 1, "formal Windows PG owner guard changed"
+path.write_text(src.replace(guard, '', 1), encoding='utf-8')
+PY_WINPG_UNGUARDED
+    sed -i '/INVARIANT NeverTerminal/d' "$tmp_dir/RuntimeWindowsPgAttemptR1.cfg"
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+        -config RuntimeWindowsPgAttemptR1.cfg RuntimeWindowsPgAttemptR1.tla) > "$tmp_dir/unguarded.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] || ! grep -Fq 'Invariant TerminalRequiresExactOsExit is violated' "$tmp_dir/unguarded.log"; then
+      echo 'WinPG missing OS exit guard negative control FAILED' >&2
+      tail -30 "$tmp_dir/unguarded.log" >&2
+      exit 1
+    fi
+    echo 'WinPG missing OS exit guard counterexample PASS'
+  )
+}
+
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
   check-dispatch) check_runtime_dispatch ;;
+  check-windows-pg-attempt) check_windows_pg_attempt ;;
+  falsify-windows-pg-attempt) check_windows_pg_attempt_counterexample ;;
   check-resource) check_runtime_resource_queue ;;
   falsify-resource) falsify_runtime_resource_queue ;;
-  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_runtime_resource_queue ;;
+  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_workspace_consumer_close_r2_candidate; check_workspace_multi_agent_release; check_windows_pg_attempt; check_runtime_resource_queue ;;
   falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
-  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; falsify_runtime_resource_queue ;;
+  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2
