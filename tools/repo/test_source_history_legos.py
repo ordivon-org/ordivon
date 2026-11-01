@@ -73,6 +73,60 @@ class SourceHistoryGitEnvironmentTests(unittest.TestCase):
                         )
 
 
+class NativeGitGraftIsolationTests(unittest.TestCase):
+    def test_native_source_ancestry_ignores_graft_overlay(self):
+        """Exact source DAG must ignore the deprecated Git graft overlay."""
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-graft-source-cdc-") as temp:
+            repo = Path(temp)
+            git(repo, "init", "-q", "-b", "main")
+            git(repo, "config", "user.name", "Formal Source CDC")
+            git(repo, "config", "user.email", "formal@example.invalid")
+            target = repo / "sources" / "owner.py"
+            target.parent.mkdir(parents=True)
+            target.write_text("VALUE = 1\n")
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "baseline")
+            oldest = git(repo, "rev-parse", "HEAD")
+            target.write_text("VALUE = 2\n")
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "middle")
+            target.write_text("VALUE = 3\n")
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "latest")
+            newest = git(repo, "rev-parse", "HEAD")
+
+            # Grafts rewrite ancestry without changing the immutable commits.
+            grafts = repo / ".git" / "info" / "grafts"
+            grafts.write_text(newest + "\n", encoding="ascii")
+            unqualified = subprocess.run(
+                ["git", "--no-replace-objects", "-C", str(repo),
+                 "merge-base", "--is-ancestor", oldest, newest],
+                capture_output=True, check=False,
+            )
+            self.assertEqual(unqualified.returncode, 1)
+            source_history_legos.require_ancestral_source_cuts(repo, oldest, newest)
+            qualified = source_history_legos.source_membership_delta(
+                repo, oldest, newest, "sources/"
+            )
+            self.assertEqual(qualified["changedValuePaths"], ["sources/owner.py"])
+            self.assertFalse(qualified["proofReuseAdmissible"])
+
+            # A single removed graft-environment binding changes the verdict.
+            def without_graft_binding():
+                return {
+                    key: value for key, value in os.environ.items()
+                    if not key.startswith("GIT_")
+                }
+            with patch.object(source_history_legos, "_source_git_env",
+                              side_effect=without_graft_binding):
+                with self.assertRaisesRegex(ValueError, "ancestry not established"):
+                    source_history_legos.require_ancestral_source_cuts(
+                        repo, oldest, newest
+                    )
+
+
 class AgentCompactSourceImpactTests(unittest.TestCase):
     def test_unchanged_scope_does_not_promote_proof_and_skips_expensive_members(self):
         with tempfile.TemporaryDirectory(prefix="ordivon-agent-opaque-source-") as temp:
