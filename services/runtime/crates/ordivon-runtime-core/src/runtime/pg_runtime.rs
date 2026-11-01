@@ -75,7 +75,9 @@ fn decode<T: serde::de::DeserializeOwned>(s: &str) -> RuntimeResult<T> {
 
 impl PgRuntime {
     pub fn new(config: PgRuntimeConfig) -> RuntimeResult<Self> {
-        config.executor.ensure_store().map_err(io)?;
+        // Pure preflight first: an unqualified or unreachable PG writer must
+        // never create Workspace/cache directories before source admission.
+        config.executor.validate().map_err(io)?;
         if config.source_sha256.len() != 64
             || !config.source_sha256.bytes().all(|b| b.is_ascii_hexdigit())
         {
@@ -107,6 +109,9 @@ impl PgRuntime {
                 "PG Runtime source writer not qualified; refusing startup",
             ));
         }
+        // Authorization includes the independently controlled app-role
+        // privilege check in store(); only now may native paths be created.
+        runtime.config.executor.ensure_store().map_err(io)?;
         Ok(runtime)
     }
     fn store(&self) -> RuntimeResult<PgAdmissionStore> {
