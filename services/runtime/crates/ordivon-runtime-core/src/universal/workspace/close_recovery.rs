@@ -214,6 +214,130 @@ fn installed_systemd_workspace_consumers(
     Ok(matches)
 }
 
+// Installed file scanning cannot see a loaded manager's transient units or
+// already-unlinked unit source. Query the native read-only manager projection;
+// this is an additional bounded fence, never a completeness/TOCTOU proof.
+#[cfg(target_os = "linux")]
+fn manager_unit_consumers(
+    properties: &str,
+    workspace_id: &str,
+    expected_names: &[String],
+) -> Result<Vec<String>, UniversalExecError> {
+    use std::collections::HashSet;
+    let expected: HashSet<&str> = expected_names.iter().map(String::as_str).collect();
+    let mut seen = HashSet::new();
+    let mut hits = Vec::new();
+    let prefix = format!("/var/lib/ordivon/runtime/workspaces/{workspace_id}");
+    for unit in properties.split("\n\n").filter(|unit| !unit.trim().is_empty()) {
+        let mut name = None;
+        let mut state = None;
+        let mut consumes = false;
+        for line in unit.lines() {
+            if let Some(id) = line.strip_prefix("Id=") {
+                name = Some(id);
+            } else if let Some(value) = line.strip_prefix("LoadState=") {
+                state = Some(value);
+            } else if [
+                "WorkingDirectory=", "ExecStart=", "ExecStartPre=",
+                "ExecStartPost=", "ExecCondition=", "Environment=",
+                "EnvironmentFiles=", "RootDirectory=", "RootImage=",
+            ].iter().any(|field| line.starts_with(field)) {
+                let mut remainder = line;
+                while let Some(start) = remainder.find(&prefix) {
+                    let suffix = &remainder[start + prefix.len()..];
+                    if suffix.chars().next().is_none_or(|next| {
+                        !next.is_ascii_alphanumeric() && next != '.' && next != '_' && next != '-'
+                    }) {
+                        consumes = true;
+                        break;
+                    }
+                    remainder = suffix;
+                }
+            }
+        }
+        let name = name.ok_or_else(|| external_unit_inspection_error(
+            "manager response lacks unit identity",
+        ))?;
+        // --all also includes retained failed/not-found and masked units.
+        // Their normalized properties remain observable, even though there
+        // may be no loadable unit file. Do not confuse LoadState with whether
+        // the returned manager identity is valid or still has a reference.
+        if !expected.contains(name)
+            || !seen.insert(name)
+            || !matches!(state, Some("loaded" | "not-found" | "masked"))
+        {
+            return Err(external_unit_inspection_error(
+                "manager unit changed state or identity during inspection",
+            ));
+        }
+        if consumes { hits.push(name.to_string()); }
+    }
+    if seen.len() != expected.len() {
+        return Err(external_unit_inspection_error("manager omitted an enumerated unit"));
+    }
+    Ok(hits)
+}
+
+#[cfg(target_os = "linux")]
+fn manager_read_only_query(args: &[&str]) -> Result<String, UniversalExecError> {
+    // Native GNU timeout bounds a hung system bus; no shell or effectful verb.
+    let result = std::process::Command::new("/usr/bin/timeout")
+        .args(["-k", "1s", "8s", "/usr/bin/systemctl"])
+        .args(args)
+        .output()
+        .map_err(|_| external_unit_inspection_error("native manager CLI unavailable"))?;
+    if !result.status.success() || result.stdout.len() > 8 * 1024 * 1024 {
+        return Err(external_unit_inspection_error("manager query failed or exceeded bounds"));
+    }
+    String::from_utf8(result.stdout)
+        .map_err(|_| external_unit_inspection_error("manager query output invalid UTF-8"))
+}
+
+#[cfg(target_os = "linux")]
+fn ensure_no_loaded_manager_consumer(workspace_id: &str) -> Result<(), UniversalExecError> {
+    // The system manager does not exist in non-systemd PID1 environments.
+    // User manager / arbitrary process readsets remain outside this check.
+    if !Path::new("/run/systemd/system").is_dir() {
+        return Ok(());
+    }
+    let list = manager_read_only_query(&[
+        "list-units", "--all", "--plain", "--no-legend", "--no-pager",
+    ])?;
+    let mut names = Vec::new();
+    for line in list.lines().filter(|line| !line.trim().is_empty()) {
+        let mut fields = line.split_whitespace();
+        let first = fields.next().unwrap_or("");
+        let name = if first == "●" { fields.next().unwrap_or("") } else { first };
+        if name.is_empty() || !name.contains('.') {
+            return Err(external_unit_inspection_error("invalid loaded manager unit name"));
+        }
+        names.push(name.to_string());
+        if names.len() > 4096 {
+            return Err(external_unit_inspection_error("loaded unit count exceeds bound"));
+        }
+    }
+    if names.is_empty() {
+        return Ok(());
+    }
+    let mut args = vec![
+        "show", "--all", "--no-pager",
+        "--property=Id,LoadState,WorkingDirectory,ExecStart,ExecStartPre,ExecStartPost,ExecCondition,Environment,EnvironmentFiles,RootDirectory,RootImage",
+        "--", // -.mount is a valid live unit; never reinterpret it as a CLI flag.
+    ];
+    args.extend(names.iter().map(String::as_str));
+    let properties = manager_read_only_query(&args)?;
+    let consumers = manager_unit_consumers(&properties, workspace_id, &names)?;
+    if !consumers.is_empty() {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::WorkspaceStateMismatch,
+            format!("loaded systemd manager still consumes Workspace: {}", consumers.join(", ")),
+            Some("workspaceId"),
+            true,
+        ));
+    }
+    Ok(())
+}
+
 #[cfg(target_os = "linux")]
 fn external_unit_inspection_error(reason: &str) -> UniversalExecError {
     UniversalExecError::new(
@@ -325,6 +449,16 @@ pub(crate) fn remove_git_workspace(
                 Path::new("/run/systemd/generator.late"),
             ],
         )?;
+        // Both manager property matching and installed-unit parsing above
+        // address this exact production Workspace path namespace. A test or
+        // alternative configured workspace root cannot be retained by that
+        // particular path: do not impose a global PID1 query on unrelated
+        // temporary Git worktree closures.
+        if target
+            == Path::new("/var/lib/ordivon/runtime/workspaces").join(&request.workspace_id)
+        {
+            ensure_no_loaded_manager_consumer(&request.workspace_id)?;
+        }
     }
 
     if !target.exists() {
@@ -1135,4 +1269,54 @@ mod installed_unit_consumer_tests {
         let err = installed_systemd_workspace_consumers("ws-target", &[&alias]).unwrap_err();
         assert!(err.message.contains("not a regular directory"));
     }
+    #[test]
+    fn loaded_transient_unit_retains_workspace_even_without_installed_unit_file() {
+        let temp = TestUnitRoot::new();
+        let root = temp.path().join("units");
+        fs::create_dir(&root).unwrap();
+        assert!(installed_systemd_workspace_consumers("ws-live", &[&root])
+            .unwrap().is_empty());
+        let names = vec!["transient.service".to_string()];
+        let show = "Id=transient.service\nLoadState=loaded\nWorkingDirectory=/var/lib/ordivon/runtime/workspaces/ws-live\n\n";
+        assert_eq!(manager_unit_consumers(show, "ws-live", &names).unwrap(), names);
+        assert!(manager_unit_consumers(show, "ws-live-copy", &names).unwrap().is_empty());
+    }
+
+    #[test]
+    fn changing_or_partial_manager_snapshot_is_not_a_negative_consumer_proof() {
+        let names = vec!["one.service".to_string(), "two.scope".to_string()];
+        let one = "Id=one.service\nLoadState=loaded\nWorkingDirectory=\n\n";
+        assert!(manager_unit_consumers(one, "ws-root", &names).is_err());
+        let missing = "Id=one.service\nLoadState=not-found\nWorkingDirectory=\n\n";
+        assert!(manager_unit_consumers(missing, "ws-root", &names[..1]).unwrap().is_empty());
+        let masked = "Id=one.service\nLoadState=masked\nWorkingDirectory=\n\n";
+        assert!(manager_unit_consumers(masked, "ws-root", &names[..1]).unwrap().is_empty());
+        let unknown = "Id=one.service\nLoadState=future-unknown\nWorkingDirectory=\n\n";
+        assert!(manager_unit_consumers(unknown, "ws-root", &names[..1]).is_err());
+        assert!(manager_unit_consumers(&format!("{one}{one}"), "ws-root", &names[..1]).is_err());
+    }
+
+    #[test]
+    fn systemd_manager_real_readonly_query_is_not_vacuous_when_booted() {
+        if !Path::new("/run/systemd/system").is_dir() {
+            return; // Non-systemd CI has no PID1 system manager to query.
+        }
+        let list = manager_read_only_query(&[
+            "list-units", "--all", "--plain", "--no-legend", "--no-pager",
+        ]).expect("real systemd manager unit inventory");
+        assert!(!list.trim().is_empty(), "real manager must expose units");
+        // The real manager commonly includes a unit named '-.mount';
+        // the exact native probe must handle names beginning with a dash.
+        ensure_no_loaded_manager_consumer("ws-nonexistent-ordivon-gpt6-probe-20261101")
+            .expect("no unrelated loaded manager consumer");
+    }
+
+    #[test]
+    fn loaded_manager_properties_cover_scope_environment_and_exec() {
+        let names = vec!["one.scope".to_string(), "two.service".to_string()];
+        let show = "Id=one.scope\nLoadState=loaded\nEnvironment=ROOT=/var/lib/ordivon/runtime/workspaces/ws-scope/bin\n\nId=two.service\nLoadState=loaded\nExecStart={ path=/bin/sh ; argv[]=/bin/sh /var/lib/ordivon/runtime/workspaces/ws-scope/job; }\n\n";
+        assert_eq!(manager_unit_consumers(show, "ws-scope", &names).unwrap(), names);
+        assert!(manager_unit_consumers(show, "ws-other", &names).unwrap().is_empty());
+    }
+
 }
