@@ -1882,3 +1882,135 @@ end OrdivonR21.RetirementClosure
 #print axioms OrdivonR21.RetirementClosure.no_match_without_coverage_is_not_safe
 #print axioms OrdivonR21.RetirementClosure.new_edge_invalidates_old_negative_observation
 #print axioms OrdivonR21.RetirementClosure.new_live_consumer_invalidates_old_negative_observation
+
+-- Stateful/effectful profile of the *same* R2.1 11-tuple, not a new calculus.
+-- I,O,S,pre,post,visible eff are instantiated here. Invariants, cost,
+-- epsilon, provenance, unfold and installed environment remain separate.
+namespace OrdivonR21
+
+structure ObservableStep (σ ι ο ε : Type) where
+  enabled : σ → ι → Prop
+  step : σ → ι → ο → ε → σ → Prop
+
+-- The relation is NEW concrete state -> OLD abstract state. An old input
+-- must remain accepted; a visible output must actually be produced; and
+-- every new visible response/effect must match an old transition.
+-- Strict one-step observations: no claims about hidden/stuttering actions,
+-- fairness, divergence, resource budgets or installed Rust behavior.
+def StepRefines {σNew σOld ι ο ε : Type}
+    (new : ObservableStep σNew ι ο ε)
+    (old : ObservableStep σOld ι ο ε)
+    (related : σNew → σOld → Prop) : Prop :=
+  (∀ n o i, related n o → old.enabled o i → new.enabled n i) ∧
+  (∀ n o i, related n o → old.enabled o i →
+    ∃ output effect n', new.step n i output effect n') ∧
+  (∀ n o i output effect n', related n o → old.enabled o i →
+    new.step n i output effect n' →
+    ∃ o', old.step o i output effect o' ∧ related n' o')
+
+theorem step_refinement_has_real_progress {σNew σOld ι ο ε : Type}
+    (new : ObservableStep σNew ι ο ε)
+    (old : ObservableStep σOld ι ο ε)
+    (related : σNew → σOld → Prop)
+    (h : StepRefines new old related)
+    (n : σNew) (o : σOld) (i : ι)
+    (hRelated : related n o) (hEnabled : old.enabled o i) :
+    ∃ output effect n', new.step n i output effect n' :=
+  h.2.1 n o i hRelated hEnabled
+
+theorem step_refinement_preserves_two_visible_effects
+    {σNew σOld ι ο ε : Type}
+    (new : ObservableStep σNew ι ο ε)
+    (old : ObservableStep σOld ι ο ε)
+    (related : σNew → σOld → Prop)
+    (h : StepRefines new old related)
+    (n n' n'' : σNew) (o : σOld) (i₁ i₂ : ι)
+    (y₁ y₂ : ο) (effect₁ effect₂ : ε)
+    (hRelated : related n o) (hFirstEnabled : old.enabled o i₁)
+    (hSecondEnabled : ∀ oldNext, old.step o i₁ y₁ effect₁ oldNext →
+      old.enabled oldNext i₂)
+    (hNewFirst : new.step n i₁ y₁ effect₁ n')
+    (hNewSecond : new.step n' i₂ y₂ effect₂ n'') :
+    ∃ o' o'', old.step o i₁ y₁ effect₁ o' ∧
+      old.step o' i₂ y₂ effect₂ o'' ∧ related n'' o'' := by
+  obtain ⟨o', hOldFirst, hRelatedNext⟩ :=
+    h.2.2 n o i₁ y₁ effect₁ n' hRelated hFirstEnabled hNewFirst
+  obtain ⟨o'', hOldSecond, hRelatedFinal⟩ :=
+    h.2.2 n' o' i₂ y₂ effect₂ n'' hRelatedNext
+      (hSecondEnabled o' hOldFirst) hNewSecond
+  exact ⟨o', o'', hOldFirst, hOldSecond, hRelatedFinal⟩
+
+-- A safety-only simulation permits a new component that never responds,
+-- since EVERY new effect is vacuously matched when there are no new effects.
+-- The full StepRefines progress clause rejects this counterexample.
+theorem vacuous_effect_safety_cannot_prove_step_refinement :
+    ∃ (old new : ObservableStep Unit Unit Unit Unit),
+      (∀ n o i y effect n', new.step n i y effect n' →
+        ∃ o', old.step o i y effect o' ∧ True) ∧
+      ¬ StepRefines new old (fun _ _ => True) := by
+  let old : ObservableStep Unit Unit Unit Unit := {
+    enabled := fun _ _ => True
+    step := fun _ _ _ _ _ => True
+  }
+  let new : ObservableStep Unit Unit Unit Unit := {
+    enabled := fun _ _ => True
+    step := fun _ _ _ _ _ => False
+  }
+  refine ⟨old, new, ?_, ?_⟩
+  · intro _ _ _ _ _ _ hImpossible
+    exact False.elim hImpossible
+  · intro h
+    obtain ⟨_, _, _, hImpossible⟩ :=
+      h.2.1 () () () True.intro True.intro
+    exact hImpossible
+
+
+-- StepRefines alone can be satisfied by an empty state relation. Initial
+-- admissibility is a separate requirement for a real consumer.
+theorem empty_relation_satisfies_step_refinement
+    {σNew σOld ι ο ε : Type}
+    (new : ObservableStep σNew ι ο ε)
+    (old : ObservableStep σOld ι ο ε) :
+    StepRefines new old (fun _ _ => False) := by
+  constructor
+  · intro _ _ _ hRelated
+    exact False.elim hRelated
+  constructor
+  · intro _ _ _ hRelated
+    exact False.elim hRelated
+  · intro _ _ _ _ _ _ hRelated
+    exact False.elim hRelated
+
+-- Derived initial-state coverage, not another coordinate of R2.1.
+def InitialCoverage {σNew σOld : Type}
+    (newInitial : σNew → Prop) (oldInitial : σOld → Prop)
+    (related : σNew → σOld → Prop) : Prop :=
+  ∀ oldState, oldInitial oldState →
+    ∃ newState, newInitial newState ∧ related newState oldState
+
+theorem initial_coverage_supplies_related_state
+    {σNew σOld : Type}
+    (newInitial : σNew → Prop) (oldInitial : σOld → Prop)
+    (related : σNew → σOld → Prop)
+    (hOld : ∃ oldState, oldInitial oldState)
+    (hCoverage : InitialCoverage newInitial oldInitial related) :
+    ∃ newState oldState, newInitial newState ∧
+      oldInitial oldState ∧ related newState oldState := by
+  obtain ⟨oldState, hOldState⟩ := hOld
+  obtain ⟨newState, hNewState, hRelated⟩ :=
+    hCoverage oldState hOldState
+  exact ⟨newState, oldState, hNewState, hOldState, hRelated⟩
+
+theorem empty_relation_fails_real_initial_coverage :
+    ¬ InitialCoverage
+      (fun _ : Unit => True) (fun _ : Unit => True)
+      (fun _ _ => False) := by
+  intro hCoverage
+  obtain ⟨_, _, impossible⟩ := hCoverage () True.intro
+  exact impossible
+
+#print axioms empty_relation_satisfies_step_refinement
+#print axioms initial_coverage_supplies_related_state
+#print axioms empty_relation_fails_real_initial_coverage
+
+end OrdivonR21

@@ -281,6 +281,58 @@ when asking for a realizable reactive implementation. Check non-vacuity
 separately: empty assumptions or absent relevant behaviors can make
 satisfaction vacuous without solving the intended architectural obligation.
 
+### Stateful observable-step refinement: safety AND enabled progress
+
+Existing native Lean owner: tools/formal/RecursiveLegoRefinement.lean.
+This is a restricted semantic **profile of the same canonical R2.1 11-tuple**,
+not an alternate LEGO definition. ObservableStep instantiates the typed
+input I, output O, state S, enabled pre, transition post and one visible
+effect label from eff. The inv, full eff/authority policy, c, epsilon, prov
+and unfold coordinates retain their separate typed declarations and qualified
+proof obligations. They are not defaulted to empty or zero.
+
+Fix a relation R between NEW concrete and OLD abstract states (not
+necessarily a function), identical consumer input alphabet, and an explicit
+consumer-observable (output, effect) alphabet. For every related pair and
+input accepted by the OLD component, require simultaneously:
+
+1. Input receptiveness: the NEW component accepts the old legal input.
+2. Enabled progress: there EXISTS an actual new transition. Otherwise the
+   empty transition relation satisfies ordinary safety simulation vacuously.
+3. Step matching: EVERY new visible output/effect transition has an OLD
+   transition with the same observed output/effect and a related successor.
+
+StepRefines is the exact Lean predicate combining these conditions.
+Theorems step_refinement_has_real_progress and
+step_refinement_preserves_two_visible_effects show a one-step non-vacuity
+and two-step trace matching consequence. The theorem
+vacuous_effect_safety_cannot_prove_step_refinement supplies a concrete
+safety-only false-green model; this is a kernel proof, not an AST check.
+A substitution may be rejected even if its successful outputs happen to
+match the old outputs: dropping required old commands or returning no
+output breaks the consumer.
+
+This is the strict one-step observable profile, not a theorem about
+invisible transitions, stuttering, arbitrary fairness, asynchronous
+timeouts, cancellation, divergence, effect authority, probabilistic
+approximation or cost. For those, adopt the appropriate simulation/temporal
+theory with explicit side conditions, state mapping, initialization and
+fairness/ranking obligations. Lean makes initial-state nonvacuity explicit:
+empty_relation_satisfies_step_refinement shows StepRefines is vacuous
+when state relation R is empty. InitialCoverage is a derived predicate
+on existing typed initial-state sets and R; for a nonempty OLD initial
+set, initial_coverage_supplies_related_state produces a related start,
+and empty_relation_fails_real_initial_coverage rejects the false-green.
+This is neither an installed initialization proof nor a new R2.1 field.
+
+Initial states must be related separately;
+no real Rust or installed PG backend is verified merely by this Lean proof.
+
+Mature roots: Abadi and Lamport, The Existence of Refinement Mappings;
+de Alfaro and Henzinger, Interface Automata; Chilton, Jonsson and
+Kwiatkowska, An Algebraic Theory of Interface Automata. Use the existing
+pinned Lean owner (mise run formal:verify), not a new registry or verifier.
+
 ### Composition is theory-specific
 
 Use separate, declared operators for sequential, parallel, feedback and hiding
