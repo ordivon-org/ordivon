@@ -591,7 +591,10 @@ jobs:
                   ).strip()
                   if blob != actual:
                       return False
-              for record in tools.values():
+              # Rehashing the self-declared path does not establish which
+              # verifier Mise selected. Bind the receipt to the native tool
+              # resolver used by the actual Formal producer (in its cwd).
+              for name, record in tools.items():
                   if not isinstance(record, dict) or set(record) != {"path", "version", "sha256"}:
                       return False
                   if not all(isinstance(record[x], str) and record[x]
@@ -602,6 +605,20 @@ jobs:
                   # A well-formed digest string does not identify an installed binary.
                   # Rehash the *actual recorded executable*, not just its claimed SHA.
                   executable = Path(record["path"])
+                  selected_path = subprocess.check_output(
+                      ["mise", "which", name],
+                      cwd=Path("tools/formal"), text=True, stderr=subprocess.PIPE,
+                      timeout=20,
+                  ).strip()
+                  selected_version = subprocess.check_output(
+                      ["mise", "which", "--version", name],
+                      cwd=Path("tools/formal"), text=True, stderr=subprocess.PIPE,
+                      timeout=20,
+                  ).strip()
+                  if (not selected_path or not selected_version
+                          or str(Path(selected_path).resolve(strict=True)) != str(executable)
+                          or record["version"] != selected_version):
+                      return False
                   if (not executable.is_absolute() or executable.is_symlink()
                           or not executable.is_file()
                           or not stat.S_ISREG(executable.stat().st_mode)
