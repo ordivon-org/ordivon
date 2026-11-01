@@ -244,6 +244,118 @@ def test_source_readset_existing_cli_requalifies_git_and_preserves_unknown_bound
     assert "exact current Git scope" in denied.stderr
     assert "Traceback" not in denied.stderr
 
+    # A caller can supply arbitrary JSON Unicode, including ill-formed
+    # surrogate code points that cannot denote a Git filename's
+    # surrogateescape-decoded bytes. This must stay inside the typed CLI
+    # rejection boundary, not surface a Python Unicode traceback.
+    for malformed in ("a/\ud800.txt", "a/\udc00.txt"):
+        malformed_evidence = dict(forged)
+        malformed_evidence["sourceCut"] = current
+        malformed_evidence["items"] = [
+            {
+                "id": "proof:test:invalid-unicode",
+                "sourcePaths": [malformed],
+                "dependenciesComplete": True,
+            },
+        ]
+        evidence_file.write_text(
+            json.dumps(malformed_evidence, ensure_ascii=True), encoding="utf-8"
+        )
+        unqualified = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "impact-readsets",
+                str(delta_file),
+                str(evidence_file),
+                "--repo",
+                str(subject),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert unqualified.returncode != 0
+        assert "invalid Unicode scalar in JSON evidence" in unqualified.stderr
+        assert "Traceback" not in unqualified.stderr
+
+    # Valid Git filenames are arbitrary byte strings (except NUL and '/').
+    # Repo can produce a correct %FF Git-ref from a 0xFF filename, so the
+    # Composition input boundary must accept its precise surrogateescape
+    # sourcePaths value while still rejecting arbitrary JSON surrogates.
+    import os
+
+    exact_path = b"a/" + bytes([0xFF]) + b".bin"
+    raw_name = os.fsencode(subject) + b"/" + exact_path
+    descriptor = os.open(raw_name, os.O_CREAT | os.O_WRONLY, 0o644)
+    os.write(descriptor, b"valid Git byte pathname\\n")
+    os.close(descriptor)
+    git("add", ".")
+    git("commit", "-qm", "raw byte Git filename")
+    byte_cut = git("rev-parse", "HEAD")
+    source = subprocess.check_output(
+        [
+            sys.executable,
+            str(source_repo / "tools/repo/source_history_legos.py"),
+            "--repo",
+            str(subject),
+            "--left",
+            current,
+            "--right",
+            byte_cut,
+            "--impact-prefix",
+            "a/",
+        ],
+        text=True,
+    )
+    byte_delta = json.loads(source)
+    assert byte_delta["gitSourceQueryComplete"] is True
+    assert any("%FF" in ref for ref in byte_delta["changedRefs"])
+    delta_file.write_text(source, encoding="utf-8")
+    evidence_file.write_text(
+        json.dumps(
+            {
+                "kind": "ordivon.source-readset-evidence",
+                "truthRole": "test-owner-positive-source-readsets",
+                "sourceCut": byte_cut,
+                "scopePrefix": "a/",
+                "items": [
+                    {
+                        "id": "proof:test:git-byte-path",
+                        "sourcePaths": [os.fsdecode(exact_path)],
+                        "dependenciesComplete": False,
+                    }
+                ],
+                "dependencyQualification": "TEST_OWNER_DECLARED_NOT_CLOSED",
+                "proofReuseAdmissible": False,
+            },
+            ensure_ascii=True,
+        ),
+        encoding="utf-8",
+    )
+    byte_proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ordivon_composition.verification_obligation_r1",
+            "impact-readsets",
+            str(delta_file),
+            str(evidence_file),
+            "--repo",
+            str(subject),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert byte_proc.returncode == 0, byte_proc.stderr
+    byte_selection = json.loads(byte_proc.stdout)
+    assert byte_selection["selection"]["standingByObligation"] == [
+        {"id": "proof:test:git-byte-path", "standing": "RECHECK_REQUIRED"}
+    ]
+    assert byte_selection["proofReuseAdmissible"] is False
+
 
 def _digest(label: str) -> str:
     return canonical_digest({"fixture": label})
