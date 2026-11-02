@@ -9,7 +9,8 @@ import sys
 from pathlib import Path
 
 HERE=Path(__file__).resolve().parent
-ROOT=HERE.parents[1]
+ROOT=HERE.parents[3]
+PROFILE=ROOT/'profiles/domains/game'
 sys.path.insert(0,str(HERE))
 
 import evaluator_reference as er
@@ -18,8 +19,8 @@ import renderer_reference as rr
 import study_runner_reference as hr
 import build_manifest_reference as bm
 
-SCHEMA=ROOT/'domains/game/game-autonomous-interest-model-r7.schema.json'
-PROTOCOL=ROOT/'domains/game/game-autonomous-interest-protocol-r7.json'
+SCHEMA=PROFILE/'game-autonomous-interest-model-r7.schema.json'
+PROTOCOL=PROFILE/'game-autonomous-interest-protocol-r7.json'
 MODEL=HERE/'selftest_model.json'
 CHECK_JSONSCHEMA='/root/.local/bin/check-jsonschema'
 
@@ -273,7 +274,7 @@ def sha256_file(path): return 'sha256:'+hashlib.sha256(Path(path).read_bytes()).
 def test_reference_digest_bindings_if_frozen():
     p=json.loads(PROTOCOL.read_text())
     if not p.get('state',{}).get('protocolFrozen',False): return
-    paths={'evaluator':HERE/'evaluator_reference.py','selection':HERE/'selection_reference.py','renderer':HERE/'renderer_reference.py','studyRunner':HERE/'study_runner_reference.py','buildManifest':HERE/'build_manifest_reference.py','selftest':HERE/'protocol_selftest.py','selftestModel':MODEL,'modelSchema':SCHEMA,'protocolMarkdown':ROOT/'domains/game/GAME_AUTONOMOUS_INTEREST_PROTOCOL_R7.md'}
+    paths={'evaluator':HERE/'evaluator_reference.py','selection':HERE/'selection_reference.py','renderer':HERE/'renderer_reference.py','studyRunner':HERE/'study_runner_reference.py','buildManifest':HERE/'build_manifest_reference.py','selftest':HERE/'protocol_selftest.py','selftestModel':MODEL,'modelSchema':SCHEMA,'protocolMarkdown':PROFILE/'GAME_AUTONOMOUS_INTEREST_PROTOCOL_R7.md'}
     assert set(p['referenceImplementationDigests'])==set(paths)
     for k,path in paths.items(): assert p['referenceImplementationDigests'][k]==sha256_file(path),(k,p['referenceImplementationDigests'][k],sha256_file(path))
 
