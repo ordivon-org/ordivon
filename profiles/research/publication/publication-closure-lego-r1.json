@@ -43,7 +43,7 @@
   "dogfood": {
     "study": "Paper3",
     "pdfSha256": "sha256:e2412d9aeb8f1fff72fd8fca925cb042efa06b8f334984fba0146f9f48c08f60",
-    "contract": "meta/research/venues/fse-2027-research-r1.json",
+    "contract": "catalogs/authorities/venues/fse-2027-research-r1.json",
     "machineStanding": "PASS",
     "standing": "PENDING_HUMAN",
     "falsificationFound": "acmart review line numbers required text-layer heading normalization"
