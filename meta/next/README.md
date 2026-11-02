@@ -48,7 +48,6 @@ meta/next/
 ├── authorities/     # external-authority records, observations and rebuildable discovery index
 See `catalogs/capabilities/` for non-authoritative capability/provider routing knowledge and task-local inventories.
 ├── domains/         # domain-native life-cycle profiles
-├── policies/        # native OPA/Rego policy artifacts where declarative policy is justified
 ├── tests/           # behavior, integration, architecture and historical-integrity regression tests
 ├── scripts/         # current commands/validators only; historical reproducers do not live here
 ├── schemas/         # minimal cross-domain contracts after demonstrated reuse
@@ -75,7 +74,7 @@ See `docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` for the current cross-do
 
 ## Authority and policy composition
 
-See `knowledge/lessons/authority-mature-substrate-decomposition-r1.md` for the current cross-disciplinary authority map. Ordivon does not claim a novel authority theory: institutional governance, evidence-to-decision, decision science, delegation, IAM/policy engines and adaptive/institutional learning remain externally owned mature substrates. `policies/` keeps only the thin task-local composition boundary and must not become a custom policy language, IAM system, generic Human gate or universal risk gate.
+See `knowledge/lessons/authority-mature-substrate-decomposition-r1.md` for the current cross-disciplinary authority map. Ordivon does not claim a novel authority theory: institutional governance, evidence-to-decision, decision science, delegation, IAM/policy engines and adaptive/institutional learning remain externally owned mature substrates. packages/composition/policies/ keeps only the thin task-local composition boundary and must not become a custom policy language, IAM system, generic Human gate or universal risk gate.
 
 ## Enterprise work routing
 
