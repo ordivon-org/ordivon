@@ -19,6 +19,7 @@ DEPLOYED = ROOT / "docs" / "architecture" / "deployed-architecture-r1.json"
 PLUGIN = ROOT / "extensions" / "ordivon-control-plane" / "mcp.json"
 ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routing.py"
 GATEWAY_MCP = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "mcp_server.py"
+GATEWAY_HOST_TOOLS = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "host_tools.py"
 GATEWAY_SURFACE_MANIFEST = ROOT / "services" / "gateway" / "mcp-surface.json"
 HOST_NORTHBOUND_ACCEPTANCE = ROOT / "docs" / "architecture" / "gateway-swf-northbound-acceptance-20260924.json"
 METHOD_ROUTER = ROOT / ".agents" / "skills" / "method-router" / "SKILL.md"
@@ -2298,6 +2299,7 @@ def validate_repository(root: Path = ROOT) -> None:
     plugin = root / PLUGIN.relative_to(ROOT)
     routes = root / ROUTES.relative_to(ROOT)
     gateway_mcp = root / GATEWAY_MCP.relative_to(ROOT)
+    gateway_host_tools = root / GATEWAY_HOST_TOOLS.relative_to(ROOT)
     host_northbound_acceptance = root / HOST_NORTHBOUND_ACCEPTANCE.relative_to(ROOT)
     method_router = root / METHOD_ROUTER.relative_to(ROOT)
     readme = root / README.relative_to(ROOT)
@@ -2319,7 +2321,12 @@ def validate_repository(root: Path = ROOT) -> None:
             f"Gateway route source differs from deployed graph: {sorted(observed)}"
         )
 
-    observed_tools = gateway_tools(gateway_mcp.read_text(encoding="utf-8"))
+    gateway_source = gateway_mcp.read_text(encoding="utf-8")
+    if "register_host_tools(server, gateway, _owner_boundary)" not in gateway_source:
+        raise ArchitectureDocsError("Gateway Host tool registry is not composed by build_server")
+    observed_tools = gateway_tools(
+        gateway_source + "\n" + gateway_host_tools.read_text(encoding="utf-8")
+    )
     source_tools = validate_source_tool_surface(
         observed_tools,
         _load_json(root / GATEWAY_SURFACE_MANIFEST.relative_to(ROOT)),
