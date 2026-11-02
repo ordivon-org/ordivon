@@ -22,8 +22,7 @@
       "id": "historical-next-migration-records",
       "globs": [
         "meta/next/migrations/records/**",
-        "meta/next/planning/**",
-        "meta/next/docs/superpowers/plans/**"
+        "meta/next/planning/**"
       ],
       "reason": "Migration/planning snapshots preserve historical repository topology."
     },
@@ -37,10 +36,6 @@
     }
   ],
   "allowedExactPaths": [
-    {
-      "path": "meta/next/docs/MONOREPO_M0_ARCHITECTURE.md",
-      "reason": "The M0 architecture document records the pre-cutover live-source census."
-    },
     {
       "path": "meta/next/capabilities/providers/temporal.md",
       "reason": "The old path appears only in an explicitly dated 2026-09-14 historical observation."

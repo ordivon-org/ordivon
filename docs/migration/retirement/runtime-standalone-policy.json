@@ -19,14 +19,6 @@
       "reason": "Migration acceptances and receipts preserve exact historical Runtime source coordinates."
     },
     {
-      "id": "m0-planning-snapshots",
-      "globs": [
-        "meta/next/docs/superpowers/plans/2026-09-20-monorepo-m0-migration.md",
-        "meta/next/planning/monorepo-migration-baseline-r1.json"
-      ],
-      "reason": "The frozen M0 migration plan and baseline record the pre-retirement repository topology."
-    },
-    {
       "id": "frozen-production-topology",
       "globs": [
         "capabilities/media/productions/*/source/**",
