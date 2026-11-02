@@ -11,6 +11,14 @@ func _ready() -> void:
     view = view_scene.instantiate()
     view.name = "View"
     add_child(view)
+    # The view owns presentation. This root connects optional player input
+    # to the existing rules; sound stays in the already-owned MovementAudio.
+    var move_right_button: TextureButton = view.get_node_or_null("MoveRightButton")
+    if move_right_button != null:
+        var image: Image = Image.load_from_file("res://assets/kenney-ui-art/button_rectangle_depth_border.png")
+        if image != null and not image.is_empty():
+            move_right_button.texture_normal = ImageTexture.create_from_image(image)
+        move_right_button.pressed.connect(func() -> void: rules.move(1))
     rules.state_changed.connect(view.render_state)
     movement_audio.stream = AudioStreamWAV.load_from_file("res://assets/kenney-ui-audio/click1.wav")
     movement_audio.bind_rules(rules)

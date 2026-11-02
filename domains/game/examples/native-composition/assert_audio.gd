@@ -44,6 +44,18 @@ func run_native_audio_consumer() -> void:
     var before = rules.snapshot()
     expect(not rules.move(100), "invalid action after substitution is rejected")
     expect(feedback.observed_play_count == 2 and rules.snapshot() == before, "invalid action produces neither rules nor audio effect")
+    # Reuse the existing native MovementAudio; no competing audio manager.
+    var button: TextureButton = scene.get_node("View/MoveRightButton")
+    expect(button.texture_normal is ImageTexture, "pinned Kenney UI sprite is a native TextureButton texture")
+    if button.texture_normal is ImageTexture:
+        expect(button.texture_normal.get_size() == Vector2(192.0, 64.0), "source-licensed Kenney sprite has pinned native size")
+    var before_button: Dictionary = rules.snapshot()
+    var board_before: String = scene.get_node("View/Board").text
+    var audio_before: int = feedback.observed_play_count
+    button.pressed.emit()
+    expect(rules.snapshot()["x"] == before_button["x"] + 1, "native Kenney button action enters actual existing grid rules")
+    expect(feedback.observed_play_count == audio_before + 1, "button-driven rule transition reuses existing MovementAudio feedback")
+    expect(scene.get_node("View/Board").text != board_before, "button-driven rule transition updates native visible board")
     print("GAME_NATIVE_AUDIO_COMPOSITION_%s assertions=%d played=%d" % ["PASS" if failures.is_empty() else "FAIL", assertions, feedback.observed_play_count])
     feedback.stop()
     feedback.stream = null

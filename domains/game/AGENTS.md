@@ -200,6 +200,12 @@ Existing method Skills `compositional-contracts`,
 `recursive-lego-calculus` are sufficient until a recurring, actually
 demonstrated Game-specific gap justifies another Skill.
 
+**Executed third-party Game media seam:** `examples/native-composition`
+consumes a pinned Kenney CC0 UI button via native TextureButton and reuses
+the **single existing** MovementAudio component with its two CC0 clips.
+Do not re-add the duplicate audio controller or copy a full asset pack:
+source-asset provenance and actual consumer are documented next to the scene.
+
 ### 3.3 Compose through native interfaces and explicit obligations
 
 For a real product requirement, choose ONE primary engine/product environment

@@ -19,6 +19,14 @@ test("composition candidates resolve genuine external source evidence and expose
   }
   const native = result.items.find((recipe) => recipe.id === "native-action-loop");
   assert.equal(native?.standing, "NATIVE_SUBSET_EXECUTED");
+  const artSlot = native?.components.find((component) => component.role === "ui-art");
+  const audioSlot = native?.components.find((component) => component.role === "ui-audio");
+  assert.equal(artSlot?.standing, "EXECUTED_NATIVE");
+  assert.equal(audioSlot?.standing, "EXECUTED_NATIVE");
+  const png = readFileSync(new URL("../examples/native-composition/assets/kenney-ui-art/button_rectangle_depth_border.png", import.meta.url));
+  assert.equal(png.toString("ascii", 1, 4), "PNG");
+  assert.ok(existsSync(new URL("../examples/native-composition/assets/kenney-ui-audio/click1.wav", import.meta.url)));
+  assert.ok(existsSync(new URL("../examples/native-composition/assert_audio.gd", import.meta.url)));
   assert.ok(native?.currentConsumer);
   assert.ok(existsSync(new URL("../" + native.currentConsumer, import.meta.url)));
   const bevy = result.items.find((recipe) => recipe.id === "rust-ecs-sandbox");
