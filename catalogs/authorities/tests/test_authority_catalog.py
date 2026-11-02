@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import importlib
 import json
+import sys
 import unittest
 from pathlib import Path
 
-from scripts import authority_catalog as catalog
-
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+catalog = importlib.import_module("authority_catalog")
 
 
 class AuthorityCatalogTests(unittest.TestCase):

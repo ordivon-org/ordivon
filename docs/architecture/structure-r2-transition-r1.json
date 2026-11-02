@@ -396,6 +396,30 @@
       "wave": "S5"
     },
     {
+      "id": "authority-catalog-native-consumers",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/scripts/authority_catalog.py",
+        "meta/next/scripts/authority_catalog_sources.py",
+        "meta/next/scripts/authority_catalog_search.py",
+        "meta/next/scripts/check_authority_catalog_r1.py",
+        "meta/next/tests/test_authority_catalog.py"
+      ],
+      "targetPaths": [
+        "catalogs/authorities/scripts/",
+        "catalogs/authorities/tests/"
+      ],
+      "verifyTasks": [
+        "next:verify",
+        "repo:ci"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "SOURCE-only natural-owner authority catalog CLI and deterministic source/index validator/test migration. Does not grant standards applicability, authority currentness or installed state."
+    },
+    {
       "disposition": "SOURCE-only retained knowledge and evidence catalog placement. Historical Git SourceCut naming/provenance remains unchanged. No authority, installed deployment state or new skill registry is conferred by this physical move; remaining S5 mappings stay open.",
       "id": "knowledge-catalog",
       "mode": "move",

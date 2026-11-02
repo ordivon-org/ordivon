@@ -9,25 +9,24 @@ from pathlib import Path
 
 import authority_catalog as catalog
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 
 RECORD_SCHEMA = (
-    ROOT.parents[1]
-    / "catalogs/authorities/schemas/external-authority-record-v1.schema.json"
+    ROOT / "catalogs/authorities/schemas/external-authority-record-v1.schema.json"
 )
 OBS_SCHEMA = (
-    ROOT.parents[1]
-    / "catalogs/authorities/schemas/external-authority-observation-v1.schema.json"
+    ROOT / "catalogs/authorities/schemas/external-authority-observation-v1.schema.json"
 )
 INDEX_SCHEMA = (
-    ROOT.parents[1]
-    / "catalogs/authorities/schemas/external-authority-index-v1.schema.json"
+    ROOT / "catalogs/authorities/schemas/external-authority-index-v1.schema.json"
 )
 DOGFOOD = (
-    ROOT / "evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json"
+    ROOT
+    / "meta/next/evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json"
 )
 ENTERPRISE = (
-    ROOT / "evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
+    ROOT
+    / "meta/next/evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
 )
 
 
@@ -127,7 +126,7 @@ def main() -> int:
     refresh = subprocess.check_output(
         [
             sys.executable,
-            str(ROOT / "scripts/authority_catalog.py"),
+            str(Path(__file__).with_name("authority_catalog.py")),
             "refresh",
             "iso-31000-2018",
         ],
