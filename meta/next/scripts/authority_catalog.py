@@ -142,11 +142,12 @@ def write_index(index: dict, path: Path = INDEX) -> None:
 
 
 def load_index() -> dict:
-    if not INDEX.is_file():
-        raise SystemExit(
-            f"generated index missing: {INDEX}; run authority_catalog.py build"
-        )
-    return read_json(INDEX)
+    """Derive Level-0 discovery from authoritative records and observations.
+
+    The optional CLI build artifact is a cache/projection, never an admitted
+    repository source or a prerequisite for list/find.
+    """
+    return build_index()
 
 
 def emit(value: object) -> None:

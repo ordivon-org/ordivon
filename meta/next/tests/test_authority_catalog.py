@@ -18,17 +18,11 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(ids, sorted(ids))
         self.assertEqual(first["recordCount"], len(ids))
 
-    def test_committed_generated_index_matches_deterministic_rebuild(self):
-        expected = (
-            json.dumps(
-                catalog.build_index(),
-                indent=2,
-                ensure_ascii=False,
-                sort_keys=True,
-            )
-            + "\n"
-        ).encode("utf-8")
-        self.assertEqual(catalog.INDEX.read_bytes(), expected)
+    def test_discovery_does_not_require_a_generated_file(self):
+        from unittest.mock import patch
+
+        with patch.object(catalog, "INDEX", ROOT / "missing-index.json"):
+            self.assertEqual(catalog.load_index(), catalog.build_index())
 
     def test_progressive_disclosure_keeps_source_out_of_index(self):
         index = catalog.build_index()
