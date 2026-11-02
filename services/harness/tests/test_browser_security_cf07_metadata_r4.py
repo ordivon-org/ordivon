@@ -6,7 +6,7 @@ from pathlib import Path
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
-    / "experiments/browser-security-r4/cf07_metadata_snapshot.py"
+    / "research/experiments/browser-security-r4/cf07_metadata_snapshot.py"
 )
 SPEC = importlib.util.spec_from_file_location("cf07_metadata_snapshot", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None

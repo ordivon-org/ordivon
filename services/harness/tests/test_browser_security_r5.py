@@ -6,7 +6,7 @@ from unittest import mock
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
-    / "experiments/browser-security-r5/container_direct_differential.py"
+    / "research/experiments/browser-security-r5/container_direct_differential.py"
 )
 SPEC = importlib.util.spec_from_file_location(
     "container_direct_differential", MODULE_PATH

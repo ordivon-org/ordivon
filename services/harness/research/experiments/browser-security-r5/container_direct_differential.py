@@ -42,8 +42,8 @@ from agent_automation_browserless import (  # noqa: E402
     _read_json,
 )
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
-R3_PATH = ROOT / "experiments/browser-security-r3/neutral_differential.py"
+ROOT = pathlib.Path(__file__).resolve().parents[3]
+R3_PATH = ROOT / "research/experiments/browser-security-r3/neutral_differential.py"
 R3_SPEC = importlib.util.spec_from_file_location("browser_security_r3_neutral", R3_PATH)
 if R3_SPEC is None or R3_SPEC.loader is None:
     raise RuntimeError(f"cannot load R3 observation module: {R3_PATH}")

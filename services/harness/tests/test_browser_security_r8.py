@@ -7,7 +7,7 @@ from unittest import mock
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
-    / "experiments/browser-security-r8/fresh_service_attribution.py"
+    / "research/experiments/browser-security-r8/fresh_service_attribution.py"
 )
 SPEC = importlib.util.spec_from_file_location("fresh_service_attribution", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
