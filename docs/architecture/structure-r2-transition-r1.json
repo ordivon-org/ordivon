@@ -394,6 +394,7 @@
     {
       "id": "domain-profiles",
       "mode": "move",
+      "standing": "DEPLOYED",
       "owner": "next",
       "semanticTypeClaim": "none",
       "sourcePaths": [
