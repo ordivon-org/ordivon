@@ -67,7 +67,7 @@ def test_candidate_retains_epoch5_client_tool_names_when_schema_epoch_advances()
 
 
 def test_capability_resolve_implementation_comes_from_real_gateway():
-    from ordivon_gateway.routes import default_routes
+    from ordivon_gateway.routing import default_routes
     from ordivon_gateway.service import GatewayService
 
     assert callable(getattr(GatewayService, "capability_resolve", None))

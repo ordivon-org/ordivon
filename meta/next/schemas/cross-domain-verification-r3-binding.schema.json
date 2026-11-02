@@ -48,14 +48,16 @@
             "nativeE2e",
             "requestSource",
             "admissionSource",
-            "storeSource"
+            "storeSource",
+            "schemaSource"
           ],
           "properties": {
             "dependencyContracts": {"$ref": "#/$defs/repoRelativePath"},
             "nativeE2e": {"$ref": "#/$defs/repoRelativePath"},
             "requestSource": {"$ref": "#/$defs/repoRelativePath"},
             "admissionSource": {"$ref": "#/$defs/repoRelativePath"},
-            "storeSource": {"$ref": "#/$defs/repoRelativePath"}
+            "storeSource": {"$ref": "#/$defs/repoRelativePath"},
+            "schemaSource": {"$ref": "#/$defs/repoRelativePath"}
           }
         },
         "requiredSeams": {

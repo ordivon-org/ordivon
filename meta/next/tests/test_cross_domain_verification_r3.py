@@ -22,6 +22,7 @@ from scripts.research_artifact_gate_r3 import (
     build_gate_result as research_artifact_gate,
 )
 from scripts.web_security_gate_r3 import build_gate_result as web_security_gate
+from scripts.web_security_gate_r3 import read_linked_store_sources
 
 ROOT = Path(__file__).resolve().parents[3]
 NEXT_ROOT = Path(__file__).resolve().parents[1]
@@ -249,7 +250,7 @@ def _web_inputs() -> tuple[dict, dict, dict, str, str, str]:
         _load_json(resolve_repo_file(ROOT, paths["nativeE2e"])),
         resolve_repo_file(ROOT, paths["requestSource"]).read_text(encoding="utf-8"),
         resolve_repo_file(ROOT, paths["admissionSource"]).read_text(encoding="utf-8"),
-        resolve_repo_file(ROOT, paths["storeSource"]).read_text(encoding="utf-8"),
+        read_linked_store_sources(ROOT, binding),
     )
 
 

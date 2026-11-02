@@ -38,6 +38,28 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def read_linked_store_sources(repo_root: Path, binding: dict[str, Any]) -> str:
+    """Bind the existing WebStore to its directly imported schema initializer.
+
+    A task-local source projection, not installed database evidence. It covers
+    both current source files without reintroducing duplicate DDL into store.ts.
+    """
+    section = _binding_section(binding)
+    paths = section["paths"]
+    store_path = resolve_repo_file(repo_root, paths["storeSource"])
+    schema_path = resolve_repo_file(repo_root, paths["schemaSource"])
+    store_text = _read(store_path)
+    if (
+        schema_path.parent != store_path.parent
+        or f'from "./{schema_path.name}"' not in store_text
+        or "initializeWebStoreSchema(this.db)" not in store_text
+    ):
+        raise CircuitContractError(
+            "WebStore must directly consume its bound schema source"
+        )
+    return store_text + "\n" + _read(schema_path)
+
+
 def _binding_section(binding: dict[str, Any]) -> dict[str, Any]:
     validate_binding(binding)
     section = binding.get("webSecurity")
@@ -52,6 +74,7 @@ def _binding_section(binding: dict[str, Any]) -> dict[str, Any]:
         "requestSource",
         "admissionSource",
         "storeSource",
+        "schemaSource",
     ):
         if not isinstance(paths.get(key), str) or not paths[key]:
             raise CircuitContractError(f"binding webSecurity path is missing: {key}")
@@ -227,7 +250,7 @@ def main() -> int:
             _load_json(resolve_repo_file(args.repo_root, paths["nativeE2e"])),
             _read(resolve_repo_file(args.repo_root, paths["requestSource"])),
             _read(resolve_repo_file(args.repo_root, paths["admissionSource"])),
-            _read(resolve_repo_file(args.repo_root, paths["storeSource"])),
+            read_linked_store_sources(args.repo_root, binding),
         )
     except (
         OSError,

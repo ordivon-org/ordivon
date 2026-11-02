@@ -9,9 +9,9 @@ from ordivon_studio.grounded_meaning import (
     canonical_digest,
     narration_evidence,
     parse_runtime_scenes,
-    score_provider_receipt,
     validate_grounded_result,
 )
+from ordivon_studio.grounded_scoring import score_provider_receipt
 
 ROOT = Path(__file__).resolve().parents[1]
 

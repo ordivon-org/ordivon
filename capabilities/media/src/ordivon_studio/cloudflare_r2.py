@@ -1,3 +1,5 @@
+"""Cloudflare R2 exact-digest blob replication and restore provider."""
+
 from __future__ import annotations
 
 import json

@@ -17,7 +17,7 @@ from contextlib import closing
 from pathlib import Path
 from urllib.parse import quote
 
-from ordivon_studio.grounded_meaning import canonical_digest
+from ordivon_studio.grounded_contracts import canonical_digest
 from ordivon_studio.research_validity import TrialLedger
 
 

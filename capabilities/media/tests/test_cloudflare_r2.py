@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from ordivon_studio.assets import hash_file, r2_object_key
-from ordivon_studio.r2 import replicate_r2_blob, restore_r2_blob
+from ordivon_studio.cloudflare_r2 import replicate_r2_blob, restore_r2_blob
 
 
 class R2Tests(unittest.TestCase):
@@ -38,8 +38,8 @@ class R2Tests(unittest.TestCase):
                 return 200, target
 
             with (
-                patch("ordivon_studio.r2._verified_remote_download", side_effect=download),
-                patch("ordivon_studio.r2._curl_upload") as upload,
+                patch("ordivon_studio.cloudflare_r2._verified_remote_download", side_effect=download),
+                patch("ordivon_studio.cloudflare_r2._curl_upload") as upload,
             ):
                 result = replicate_r2_blob(source, bucket="bucket-one", credentials_path=credentials)
 
@@ -65,8 +65,8 @@ class R2Tests(unittest.TestCase):
                 return 200, target
 
             with (
-                patch("ordivon_studio.r2._verified_remote_download", side_effect=download),
-                patch("ordivon_studio.r2._curl_upload", return_value=200) as upload,
+                patch("ordivon_studio.cloudflare_r2._verified_remote_download", side_effect=download),
+                patch("ordivon_studio.cloudflare_r2._curl_upload", return_value=200) as upload,
             ):
                 result = replicate_r2_blob(source, bucket="bucket-one", credentials_path=credentials)
 
@@ -85,7 +85,7 @@ class R2Tests(unittest.TestCase):
             def download(**kwargs: object) -> tuple[int, Path | None]:
                 raise RuntimeError("R2 digest address contains different bytes")
 
-            with patch("ordivon_studio.r2._verified_remote_download", side_effect=download):
+            with patch("ordivon_studio.cloudflare_r2._verified_remote_download", side_effect=download):
                 with self.assertRaisesRegex(RuntimeError, "different bytes"):
                     replicate_r2_blob(source, bucket="bucket-one", credentials_path=credentials)
 
@@ -104,7 +104,7 @@ class R2Tests(unittest.TestCase):
                 target.write_bytes(payload)
                 return 200, target
 
-            with patch("ordivon_studio.r2._verified_remote_download", side_effect=download):
+            with patch("ordivon_studio.cloudflare_r2._verified_remote_download", side_effect=download):
                 first = restore_r2_blob(blob.digest, cache, bucket="bucket-one", credentials_path=credentials)
                 second = restore_r2_blob(blob.digest, cache, bucket="bucket-one", credentials_path=credentials)
 
@@ -132,7 +132,7 @@ class R2Tests(unittest.TestCase):
                 target.write_bytes(payload)
                 return 200, target
 
-            with patch("ordivon_studio.r2._verified_remote_download", side_effect=download):
+            with patch("ordivon_studio.cloudflare_r2._verified_remote_download", side_effect=download):
                 with self.assertRaisesRegex(RuntimeError, "local digest address contains different bytes"):
                     restore_r2_blob(blob.digest, cache, bucket="bucket-one", credentials_path=credentials)
 
@@ -142,7 +142,7 @@ class R2Tests(unittest.TestCase):
             credentials = self._credentials(root)
             digest = "sha256:" + "1" * 64
 
-            with patch("ordivon_studio.r2._verified_remote_download", return_value=(404, None)):
+            with patch("ordivon_studio.cloudflare_r2._verified_remote_download", return_value=(404, None)):
                 with self.assertRaises(FileNotFoundError):
                     restore_r2_blob(digest, root / "cache", bucket="bucket-one", credentials_path=credentials)
 
