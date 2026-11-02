@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 import tempfile
+from importlib.resources import files
 from pathlib import Path
 
 import authority_catalog as catalog
@@ -20,9 +21,8 @@ OBS_SCHEMA = (
 INDEX_SCHEMA = (
     ROOT / "catalogs/authorities/schemas/external-authority-index-v1.schema.json"
 )
-DOGFOOD = (
-    ROOT
-    / "meta/next/evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json"
+DOGFOOD = files("ordivon_composition").joinpath(
+    "evidence", "standard-native-enterprise-r2-dogfood-20260914.json"
 )
 ENTERPRISE = (
     ROOT

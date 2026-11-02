@@ -95,7 +95,6 @@ uv run --locked python -m pytest
 uv run --locked --group quality ruff check scripts tests
 uv run --locked --group quality ruff format --check scripts tests
 uv run --locked --group authority python ../../catalogs/authorities/scripts/check_authority_catalog_r1.py
-uv run --locked --group authority python scripts/check_standard_native_enterprise_r2.py
 uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
 ```
 

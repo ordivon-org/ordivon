@@ -45,7 +45,7 @@
       "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
     },
     {
-      "path": "meta/next/evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json",
+      "path": "packages/composition/src/ordivon_composition/evidence/standard-native-enterprise-r2-dogfood-20260914.json",
       "reason": "Dated acceptance evidence records the original standalone repository observed on 2026-09-14."
     },
     {
