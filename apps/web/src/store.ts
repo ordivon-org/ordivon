@@ -1147,24 +1147,9 @@ export class WebStore {
     content: string,
     now: number,
   ): { receipt: AgentEffectReceipt; replayed: boolean } {
-    const existing = this.getAgentEffect(effect.effectId);
+    // Reuse the same exact actor/digest replay contract as the admission surface.
+    const existing = this.resolveAgentEffectReplay(agentId, effect);
     if (existing !== null) {
-      if (existing.agentId !== agentId) {
-        throw new WebProblem(
-          403,
-          "effect-actor-mismatch",
-          "Effect actor mismatch",
-          "The committed effect belongs to a different Agent.",
-        );
-      }
-      if (existing.effectDigest !== effect.effectDigest) {
-        throw new WebProblem(
-          409,
-          "effect-conflict",
-          "Effect conflict",
-          "The effect identifier is already bound to different content.",
-        );
-      }
       return { receipt: existing, replayed: true };
     }
 
@@ -1245,24 +1230,9 @@ export class WebStore {
     noteId: string,
     now: number,
   ): { receipt: AgentEffectReceipt; replayed: boolean } {
-    const existing = this.getAgentEffect(effect.effectId);
+    // Reuse the same exact actor/digest replay contract as the admission surface.
+    const existing = this.resolveAgentEffectReplay(agentId, effect);
     if (existing !== null) {
-      if (existing.agentId !== agentId) {
-        throw new WebProblem(
-          403,
-          "effect-actor-mismatch",
-          "Effect actor mismatch",
-          "The committed effect belongs to a different Agent.",
-        );
-      }
-      if (existing.effectDigest !== effect.effectDigest) {
-        throw new WebProblem(
-          409,
-          "effect-conflict",
-          "Effect conflict",
-          "The effect identifier is already bound to different content.",
-        );
-      }
       return { receipt: existing, replayed: true };
     }
 

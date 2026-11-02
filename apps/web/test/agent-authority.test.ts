@@ -280,3 +280,58 @@ test("Agent routes fail closed when Security-owned Agent verification is absent"
   await app.close();
   store.close();
 });
+
+
+for (const kind of ["create", "publish"] as const) {
+  test("WebStore " + kind + " effect commit preserves exact replay identity and one-write fence", async () => {
+    const f = await fixture();
+    const note = kind === "publish"
+      ? f.store.createCanaryNote("principal:test", "draft for replay", f.now())
+      : null;
+    const effect = {
+      effectId: effectId("store-" + kind + "-replay"),
+      effectDigest: effectId("store-" + kind + "-content"),
+      action: kind === "create" ? "canary.note.create" : "canary.note.publish",
+      resource: note === null ? "/canary/notes" : "/canary/notes/" + note.noteId,
+      audience: config.origin,
+      riskClass: "R2" as const,
+      effectType: "write",
+    };
+    if (kind === "publish") {
+      f.store.putEffectApproval(
+        "principal:test", "credential:test", effect.effectId, effect.effectDigest, f.now(),
+      );
+    }
+    const commit = (agentId: string, proposal: typeof effect) => kind === "create"
+      ? f.store.commitAgentCanaryCreate(f.grant, agentId, proposal, "immutable draft", f.now())
+      : f.store.commitAgentCanaryPublish(f.grant, agentId, proposal, note!.noteId, f.now());
+
+    const first = commit(f.agent.agentId, effect);
+    assert.equal(first.replayed, false);
+    const second = commit(f.agent.agentId, effect);
+    assert.equal(second.replayed, true);
+    assert.deepEqual(second.receipt, first.receipt);
+
+    for (const [agentId, proposal, code, status] of [
+      ["oauth-client:other", effect, "effect-actor-mismatch", 403],
+      [f.agent.agentId, { ...effect, effectDigest: effectId("forged-content") }, "effect-conflict", 409],
+    ] as const) {
+      assert.throws(() => commit(agentId, proposal), (error: unknown) =>
+        error instanceof Error &&
+        (error as Error & { code?: string; status?: number }).code === code &&
+        (error as Error & { code?: string; status?: number }).status === status,
+      );
+    }
+
+    const grant = f.store.getAgentGrant(f.grant.grantId);
+    assert.equal(grant.remainingEffects, f.grant.remainingEffects - 1);
+    assert.equal(grant.revision, f.grant.revision + 1);
+    const effectRows = f.store.db.prepare(
+      "SELECT COUNT(*) AS n FROM agent_effects WHERE effect_id = ?",
+    ).get(effect.effectId) as { n: number };
+    assert.equal(effectRows.n, 1);
+
+    await f.app.close();
+    f.store.close();
+  });
+}
