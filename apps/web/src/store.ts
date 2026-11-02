@@ -1,6 +1,7 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
+import { grantDigest, hashToken, normalizeStrings, stableDigest } from "./identity-digests.ts";
 import { WebProblem } from "./errors.ts";
 import { initializeWebStoreSchema } from "./store_schema.ts";
 import type {
@@ -34,32 +35,6 @@ import type {
   SessionRow,
   NoteRow,
 } from "./store-row-projections.ts";
-
-function stableDigest(value: unknown): string {
-  return "sha256:" + createHash("sha256").update(JSON.stringify(value)).digest("hex");
-}
-
-function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-function normalizeStrings(values: readonly string[]): string[] {
-  return [...new Set(values)].sort();
-}
-
-function grantDigest(input: AgentGrantCreate): string {
-  return stableDigest({
-    grantId: input.grantId,
-    principalId: input.principalId,
-    agentId: input.agentId,
-    audience: input.audience,
-    allowedActions: normalizeStrings(input.allowedActions),
-    resourcePrefixes: normalizeStrings(input.resourcePrefixes),
-    expiresAtEpochSeconds: input.expiresAtEpochSeconds,
-    maxRiskClass: input.maxRiskClass,
-    stepUpAtOrAbove: input.stepUpAtOrAbove,
-  });
-}
 
 function randomToken(): string {
   return randomBytes(32).toString("base64url");
@@ -531,7 +506,7 @@ export class WebStore {
         "The DPoP proof identity is invalid.",
       );
     }
-    const proofHash = createHash("sha256").update(proofId).digest("hex");
+    const proofHash = hashToken(proofId);
     this.db.exec("BEGIN IMMEDIATE");
     try {
       this.db
