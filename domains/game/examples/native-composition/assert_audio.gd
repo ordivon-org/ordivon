@@ -28,22 +28,51 @@ func run_native_audio_consumer() -> void:
     expect(feedback.observed_play_count == 0, "initial state notification does not mint movement feedback")
     expect(not rules.move(0), "invalid action is rejected by existing rules")
     expect(feedback.observed_play_count == 0, "rejected action produces no sound effect")
+    expect(InputMap.has_action("move_right") and InputMap.has_action("move_left"), "project-native InputMap defines gameplay actions")
     var right = InputEventKey.new()
     right.pressed = true
-    right.keycode = KEY_RIGHT
-    scene._unhandled_key_input(right)
-    expect(rules.snapshot()["turn"] == 1, "actual RIGHT key enters existing scene and advances game rules")
+    right.physical_keycode = KEY_RIGHT
+    Input.parse_input_event(right)
+    await process_frame
+    expect(rules.snapshot()["turn"] == 1, "physical RIGHT key traverses native input dispatch to game rules")
     expect(feedback.observed_play_count == 1, "actual rule state signal triggers native audio")
     expect(feedback.playing, "AudioStreamPlayer playback starts")
     feedback.stream = alternate_clip
     expect(feedback.stream == alternate_clip, "source-licensed audio can be substituted independently")
-    scene._unhandled_key_input(right)
-    expect(rules.snapshot()["turn"] == 2, "audio substitution leaves actual RIGHT key behavior unchanged")
+    Input.parse_input_event(right)
+    await process_frame
+    expect(rules.snapshot()["turn"] == 2, "audio substitution leaves mapped RIGHT action unchanged")
     expect(feedback.observed_play_count == 2, "second state transition is observed")
     expect(feedback.stream == alternate_clip and feedback.playing, "new audio resource is used by the same player")
     var before = rules.snapshot()
     expect(not rules.move(100), "invalid action after substitution is rejected")
     expect(feedback.observed_play_count == 2 and rules.snapshot() == before, "invalid action produces neither rules nor audio effect")
+    # Change the actual engine InputMap, not any Rule/View/Audio script.
+    var d_key = InputEventKey.new()
+    d_key.pressed = true
+    d_key.physical_keycode = KEY_D
+    InputMap.action_erase_events("move_right")
+    InputMap.action_add_event("move_right", d_key)
+    var before_remap = rules.snapshot()
+    var audio_before_remap = feedback.observed_play_count
+    Input.parse_input_event(right)
+    await process_frame
+    expect(rules.snapshot() == before_remap and feedback.observed_play_count == audio_before_remap, "removed key binding no longer changes game/audio")
+    Input.parse_input_event(d_key)
+    await process_frame
+    expect(rules.snapshot()["turn"] == before_remap["turn"] + 1, "remapped physical D key enters same gameplay rule")
+    expect(feedback.observed_play_count == audio_before_remap + 1, "remapped action retains native sound feedback")
+    InputMap.load_from_project_settings()
+    var left = InputEventKey.new()
+    left.pressed = true
+    left.physical_keycode = KEY_LEFT
+    var before_left = rules.snapshot()
+    var audio_before_left = feedback.observed_play_count
+    Input.parse_input_event(left)
+    await process_frame
+    expect(rules.snapshot()["x"] == before_left["x"] - 1 and rules.snapshot()["turn"] == before_left["turn"] + 1, "native LEFT action uses same rule port after input mapping restoration")
+    expect(feedback.observed_play_count == audio_before_left + 1, "native LEFT action reuses one movement audio consumer")
+
     # Reuse the existing native MovementAudio; no competing audio manager.
     var button: TextureButton = scene.get_node("View/MoveRightButton")
     expect(button.texture_normal is ImageTexture, "pinned Kenney UI sprite is a native TextureButton texture")
