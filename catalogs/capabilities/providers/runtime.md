@@ -23,7 +23,7 @@ Temporal owns generic durable-workflow semantics such as Event History/replay, d
 
 The preferred composition for long-lived orchestration is `Temporal Workflow -> Activity -> Runtime` only when that Activity requires Runtime's exact local effect/evidence boundary; ordinary idempotent provider Activities should call their provider directly.
 
-See `capabilities/providers/mcp.md`, `knowledge/lessons/mcp-interoperability-kernel.md`, `capabilities/providers/temporal.md`, and `knowledge/lessons/temporal-durable-execution-kernel.md`.
+See `catalogs/capabilities/providers/mcp.md`, `meta/next/knowledge/lessons/mcp-interoperability-kernel.md`, `catalogs/capabilities/providers/temporal.md`, and `meta/next/knowledge/lessons/temporal-durable-execution-kernel.md`.
 
 ## Activation
 

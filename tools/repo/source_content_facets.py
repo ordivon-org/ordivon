@@ -169,25 +169,43 @@ def compile_projection(repo: Path, cut: str) -> dict:
     zones=[dict(zone) for zone in seed["sourceRegions"]]
     relocation=json.loads(git("show",cut+":docs/architecture/structure-r2-transition-r1.json",repo=repo))
     current_paths={row["path"] for row in rows}
+    moves={}
     for mapping in relocation["mappings"]:
         if mapping.get("mode")!="move" or mapping.get("standing")!="DEPLOYED":
             continue
         if len(mapping["sourcePaths"])!=1 or len(mapping["targetPaths"])!=1:
             continue
         old,new=mapping["sourcePaths"][0],mapping["targetPaths"][0]
-        if not any(z.get("sourcePrefix")==old for z in zones):
-            continue
         if any(path.startswith(old) for path in current_paths) or not any(
             path.startswith(new) for path in current_paths
         ):
             raise ValueError("Deployed source relocation contradicts Git SourceCut: "+old)
-        for zone in zones:
-            if zone.get("sourcePrefix")==old:
-                zone["sourcePrefix"]=new
+        moves[old]=new
+        exact=[z for z in zones if z.get("sourcePrefix")==old]
+        if exact:
+            for zone in exact:zone["sourcePrefix"]=new
+        elif not any(z.get("sourcePrefix")==new for z in zones):
+            # One nested S5 catalog moved out of a still-populated historical
+            # region. Reuse the narrowest existing lexical label, not a new
+            # semantic zone, Owner, or routing registry. A current target that
+            # already has a lexical zone must not be duplicated.
+            parents=[z for z in zones if z.get("sourcePrefix")
+                     and old.startswith(z["sourcePrefix"])]
+            if parents:
+                parent=max(parents,key=lambda z:len(z["sourcePrefix"]))
+                zones.append({**parent,"sourcePrefix":new})
+
     dense=seed["denseCellAliases"]
     specific=seed["specificPathDisplayAliases"]
-    if len(dense)!=60 or len(zones)!=30 or len(specific)!=26:
+    if len(dense)!=60 or len(seed["sourceRegions"])!=30 or len(specific)!=26:
         raise ValueError("SourceCut must provide 30 zones, 60 dense and 26 specific alias candidates")
+
+    def current_prefix(historical: str) -> str:
+        for old,new in sorted(moves.items(),key=lambda pair:len(pair[0]),reverse=True):
+            if historical.startswith(old):
+                return new+historical[len(old):]
+        return historical
+
     if len({v["candidateName"] for v in specific})!=26:
         raise ValueError("duplicate scoped source display aliases")
     for v in specific:
@@ -213,7 +231,7 @@ def compile_projection(repo: Path, cut: str) -> dict:
         inspected[content_info["readStanding"]]+=1
         match=[]
         for label in dense:
-            prefix=label["sourcePrefix"]
+            prefix=current_prefix(label["sourcePrefix"])
             direct=label["directOnly"]
             if path.startswith(prefix) and (not direct or "/" not in path[len(prefix):]):
                 match.append(label["proposedName"])
@@ -231,7 +249,8 @@ def compile_projection(repo: Path, cut: str) -> dict:
     scoped_summary=[]
     for alias in specific:
         prefix=alias["sourcePrefix"]
-        members=[row for row in path_rows if row["path"].startswith(prefix)]
+        active_prefix=current_prefix(prefix)
+        members=[row for row in path_rows if row["path"].startswith(active_prefix)]
         contents=collections.Counter(row["contentProbe"]["contentForm"] for row in members)
         # A kind field is a syntactic self-description, not verification
         # of a live authority, producer, consumer or executable behavior.
@@ -241,6 +260,7 @@ def compile_projection(repo: Path, cut: str) -> dict:
         )
         scoped_summary.append({
             "oldSourcePrefix":prefix,
+            "currentSourcePrefix":active_prefix,
             "proposedAgentDisplayName":alias["candidateName"],
             "priorSourceCutCount":alias["priorTrackedCount"],
             "observedCurrentCount":len(members),

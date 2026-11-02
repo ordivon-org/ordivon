@@ -34,7 +34,7 @@ The sequence is risk-adaptive, not mandatory. Small low-risk work may use `FRAME
 
 Testing is conditional; **verification is mandatory**.
 
-Detailed rules and provenance are recorded in `knowledge/lessons/spec-kit-engineering-kernel.md`; complementary coding-agent discipline lessons are recorded in `knowledge/lessons/superpowers-engineering-discipline-kernel.md`.
+Detailed rules and provenance are recorded in `meta/next/knowledge/lessons/spec-kit-engineering-kernel.md`; complementary coding-agent discipline lessons are recorded in `meta/next/knowledge/lessons/superpowers-engineering-discipline-kernel.md`.
 
 ## Observed local capability
 
