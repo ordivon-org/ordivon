@@ -449,6 +449,24 @@
       "wave": "S5"
     },
     {
+      "id": "experimental-episode-store-study",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/experiments/episode-store-r1/"
+      ],
+      "targetPaths": [
+        "studies/experimental-episode/episode-store/"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "Native self-contained Python/PostgreSQL experiment consumer moved to existing studies domain. Package, migration, current evidence and executable behavior unchanged. No Runtime/Host owner transfer."
+    },
+    {
       "disposition": "No wholesale move; planning/evidence/experiments/migrations/docs are individually retained, relocated, test-fixtured, or retired according to live consumers.",
       "id": "next-residual",
       "mode": "split",

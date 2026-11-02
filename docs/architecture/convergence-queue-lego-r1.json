@@ -334,7 +334,7 @@
         "convergence-ci-observation-v1"
       ],
       "episodeContract": "packages/composition/src/ordivon_composition/schemas/experimental-episode-binding-r1.schema.json",
-      "postgresConsumer": "meta/next/experimental/episode-store-r1",
+      "postgresConsumer": "studies/experimental-episode/episode-store",
       "acceptanceEvidence": "docs/architecture/evidence/CONVERGENCE_OBSERVATION_DATASET_R1.json",
       "authority": "rebuildable analytical materialization only",
       "schemaChangeRequired": false,
