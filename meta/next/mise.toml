@@ -8,7 +8,9 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 export ORDIVON_AGENT_AUTOMATION_SOURCE_ROOT="${ORDIVON_AGENT_AUTOMATION_SOURCE_ROOT:-$repo_root/services/harness}"
 uv lock --check
-uv sync --locked
+# Rebuild the path dependency from the current SourceCut: uv may otherwise
+# retain an already installed 0.1.0 wheel missing newly relocated schemas.
+uv sync --locked --reinstall-package ordivon-composition
 uv run --locked python -m pytest ../../catalogs/capabilities/tests
 uv run --locked --group quality ruff check scripts tests ../../catalogs/capabilities/routing ../../catalogs/capabilities/tests
 uv run --locked --group quality ruff format --check scripts tests ../../catalogs/capabilities/routing ../../catalogs/capabilities/tests
