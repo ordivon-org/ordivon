@@ -1328,11 +1328,42 @@ def test_git_qualified_harness_h01_syntax_importers_are_real_source_edges(
     )
     trace = imports["services/harness/src/ordivon_harness/ordivon/loop.py"]
     assert {entry["name"] for entry in trace["importSyntax"]} == {
-        "HarnessRunEvent", "HarnessTrace", "TraceRecorder",
+        "HarnessRunEvent", "TraceRecorder",
     }
     assert all(
         entry["targetDefinitionStanding"] == "SOURCE_TOP_LEVEL_DEFINED"
         for entry in trace["importSyntax"]
+    )
+    # The H01 run representation moved out of Loop: actual Git-qualified
+    # syntax edges must follow the new natural Owner, not preserve a ghost
+    # HarnessTrace import only to make the old assertion pass.
+    contract_path = "services/harness/src/ordivon_harness/ordivon/run_contract.py"
+    contract = imports[contract_path]
+    assert {entry["name"] for entry in contract["importSyntax"]} == {
+        "HarnessTrace",
+    }
+    assert all(
+        entry["targetDefinitionStanding"] == "SOURCE_TOP_LEVEL_DEFINED"
+        for entry in contract["importSyntax"]
+    )
+    contract_projection = module.project_node_python_import_syntax(
+        source_revision=rev,
+        node_ref=result["declaredNodeRef"],
+        target_source=contract_path,
+    )
+    assert contract_projection["targetGitBlobIdentity"] == current_tree(ROOT, rev)[contract_path]
+    contract_consumers = {
+        row["sourcePath"]: row for row in contract_projection["candidateImporters"]
+    }
+    loop_contract = contract_consumers[
+        "services/harness/src/ordivon_harness/ordivon/loop.py"
+    ]
+    assert {entry["name"] for entry in loop_contract["importSyntax"]} == {
+        "AgentLoopResult", "RunBudget", "RunStopCode",
+    }
+    assert all(
+        entry["targetDefinitionStanding"] == "SOURCE_TOP_LEVEL_DEFINED"
+        for entry in loop_contract["importSyntax"]
     )
     assert "externalConsumersCovered" in result["scanBoundary"]
     assert result["scanBoundary"]["externalConsumersCovered"] is False

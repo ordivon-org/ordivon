@@ -30,6 +30,7 @@
         "README.md",
         "ARCHITECTURE.md",
         "src/ordivon_harness/ordivon/events.py",
+        "src/ordivon_harness/ordivon/run_contract.py",
         "tests/test_trace_type_refinement.py"
       ],
       "dependencies": [],
