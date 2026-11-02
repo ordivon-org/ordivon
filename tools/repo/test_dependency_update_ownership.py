@@ -72,7 +72,15 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
         # Do not confuse an unconsumed Mise version pin with Artifact's actual
         # OCI release policy: the production carrier is an explicit external
         # executable whose path and SHA-256 enter the release evidence.
-        carrier = (ROOT / "capabilities/artifact/scripts/artifact_oci_package.py").read_text(encoding="utf-8")
+        # The external carrier owns tool location and material identity;
+        # the release CLI only consumes that adapter.
+        cli = (ROOT / "capabilities/artifact/scripts/artifact_oci_package.py").read_text(
+            encoding="utf-8"
+        )
+        carrier = (
+            ROOT / "capabilities/artifact/artifact_operations/providers/oci_toolchain.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("from artifact_operations.providers.oci_toolchain import (", cli)
         self.assertIn('os.environ.get("ARTIFACT_OPA"', carrier)
         self.assertIn('sha256_file(DEFAULT_OPA)', carrier)
         active_security = tomllib.loads(
