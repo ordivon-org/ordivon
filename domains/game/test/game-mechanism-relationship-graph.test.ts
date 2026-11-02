@@ -103,6 +103,29 @@ test("generated relationship graph exactly rebuilds from spec plus Experience Li
   assert.deepEqual(buildMechanismRelationshipGraph(), graph);
 });
 
+test("pure relationship projection takes source bytes without filesystem or CLI access", async () => {
+  const { buildMechanismRelationshipGraphFromSources } = await import("../src/mechanism-relationship-graph.ts");
+  const libraryRaw = readFileSync(new URL("../standards/game_mechanism_experience_library_r1.json", import.meta.url), "utf8");
+  const specRaw = readFileSync(new URL("../standards/game_mechanism_relationship_spec_r1.json", import.meta.url), "utf8");
+  assert.deepEqual(
+    buildMechanismRelationshipGraphFromSources(
+      { raw: libraryRaw, value: JSON.parse(libraryRaw) },
+      { raw: specRaw, value: JSON.parse(specRaw) },
+    ),
+    graph,
+  );
+
+  const corruptedSpec = structuredClone(spec);
+  corruptedSpec.retrievalFacets[0].experienceRefs[0] = "nonexistent-experience-ref";
+  assert.throws(
+    () => buildMechanismRelationshipGraphFromSources(
+      { raw: libraryRaw, value: library },
+      { raw: JSON.stringify(corruptedSpec), value: corruptedSpec },
+    ),
+    /references unknown experience nonexistent-experience-ref/,
+  );
+});
+
 test("derived relationship graph is linked from owner-native LEGO registration", () => {
   const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
   const project = readFileSync(new URL("../.ordivon/project.yaml", import.meta.url), "utf8");

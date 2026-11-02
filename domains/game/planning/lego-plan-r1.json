@@ -98,7 +98,8 @@
       ],
       "evidence": [
         "standards/game_mechanism_relationship_graph_r1.json",
-        "scripts/build-mechanism-relationship-graph.ts"
+        "scripts/build-mechanism-relationship-graph.ts",
+        "src/mechanism-relationship-graph.ts"
       ],
       "dependencies": [],
       "sharedRefs": [],
