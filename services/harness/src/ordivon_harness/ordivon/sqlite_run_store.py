@@ -58,6 +58,13 @@ from .model import (
     AgentTurnRequest,
     AgentTurnResult,
 )
+from .provider_state_guards import (
+    _require_provider_request_matches,
+    _require_provider_outcome_state,
+    _require_provider_safe_retry_state,
+    _require_provider_time_monotonic,
+    _require_failure_matches,
+)
 from .run_store_port import (
     HarnessDispatchFenceView,
     HarnessProviderCallRecordView,
@@ -1916,7 +1923,7 @@ class SQLiteHarnessRunContinuityStore:
             and active_before_lease.record.provider_call_id == provider_call_id
         ):
             previous_before_lease = active_before_lease.record
-            self._require_provider_request_matches(
+            _require_provider_request_matches(
                 previous_before_lease,
                 source=source,
                 turn_id=turn_id,
@@ -1957,7 +1964,7 @@ class SQLiteHarnessRunContinuityStore:
             if active is not None:
                 previous = active.record
                 if previous.provider_call_id == provider_call_id:
-                    self._require_provider_request_matches(
+                    _require_provider_request_matches(
                         previous,
                         source=source,
                         turn_id=turn_id,
@@ -1987,7 +1994,7 @@ class SQLiteHarnessRunContinuityStore:
                             raise HarnessProviderCallClaimHeld(
                                 "Provider Call is claimed by another Harness execution"
                             )
-                        self._require_provider_outcome_state(
+                        _require_provider_outcome_state(
                             active.state,
                             state,
                             label="expired Provider Call claim",
@@ -2009,7 +2016,7 @@ class SQLiteHarnessRunContinuityStore:
                     and previous.source_object_digest == source.object_digest
                     and turn_sequence == previous.turn_sequence + 1
                 ):
-                    self._require_provider_time_monotonic(
+                    _require_provider_time_monotonic(
                         active.state,
                         state,
                         label="next-turn Provider Call",
@@ -2086,7 +2093,7 @@ class SQLiteHarnessRunContinuityStore:
                     "Provider Call claim expired before physical dispatch"
                 )
             state = self._require_state()
-            self._require_provider_outcome_state(
+            _require_provider_outcome_state(
                 current.state,
                 state,
                 label="Provider Call dispatch admission",
@@ -2162,7 +2169,7 @@ class SQLiteHarnessRunContinuityStore:
                     "Provider result arrived without a current dispatch record"
                 )
             state = self._require_state()
-            self._require_provider_outcome_state(current.state, state)
+            _require_provider_outcome_state(current.state, state)
             state_object = self._put_state(state)
             retain_result = self.contract.privacy.allow_model_content and (
                 self.contract.privacy.allow_tool_content or not result.tool_calls
@@ -2232,9 +2239,9 @@ class SQLiteHarnessRunContinuityStore:
                 raise HarnessProviderCallRecoveryRequired(
                     "Provider failure arrived without a current dispatch record"
                 )
-            self._require_failure_matches(current.record, failure)
+            _require_failure_matches(current.record, failure)
             state = self._require_state()
-            self._require_provider_outcome_state(current.state, state)
+            _require_provider_outcome_state(current.state, state)
             state_object = self._put_state(state)
             failure_object = self.store.put_object(
                 failure.to_dict(), kind="harness-provider-call-failure"
@@ -2295,13 +2302,13 @@ class SQLiteHarnessRunContinuityStore:
                 raise HarnessProviderCallRecoveryRequired(
                     "pre-dispatch Provider failure requires a current claim"
                 )
-            self._require_failure_matches(current.record, failure)
+            _require_failure_matches(current.record, failure)
             if failure.dispatch_safety != "pre_dispatch_safe":
                 raise HarnessProviderCallRequestMismatch(
                     "pre-dispatch Provider failure is not proven safe"
                 )
             state = self._require_state()
-            self._require_provider_outcome_state(current.state, state)
+            _require_provider_outcome_state(current.state, state)
             state_object = self._put_state(state)
             failure_object = self.store.put_object(
                 failure.to_dict(), kind="harness-provider-call-failure"
@@ -2361,7 +2368,7 @@ class SQLiteHarnessRunContinuityStore:
                     "Provider failure does not prove that redispatch is safe"
                 )
             state = self._require_state()
-            self._require_provider_safe_retry_state(current.state, state)
+            _require_provider_safe_retry_state(current.state, state)
             state_object = self._put_state(state)
             previous = current.record
             record = self._provider_call_record(
@@ -3560,34 +3567,6 @@ class SQLiteHarnessRunContinuityStore:
         ):
             raise HarnessSuperseded("Provider Call Snapshot source is no longer current")
 
-    def _require_provider_request_matches(
-        self,
-        record,
-        *,
-        source: HarnessProviderCallSourceRef,
-        turn_id: str,
-        turn_sequence: int,
-        request_digest: str,
-        provider_request_digest: str,
-        request_object_digest: str | None,
-        adapter_id: str,
-        requested_model_id: str,
-    ) -> None:
-        if (
-            record.source_kind is not source.kind
-            or record.source_digest != source.digest
-            or record.source_object_digest != source.object_digest
-            or record.turn_id != turn_id
-            or record.turn_sequence != turn_sequence
-            or record.request_digest != request_digest
-            or record.provider_request_digest != provider_request_digest
-            or getattr(record, "request_object_digest", None) != request_object_digest
-            or record.adapter_id != adapter_id
-            or record.requested_model_id != requested_model_id
-        ):
-            raise HarnessProviderCallRequestMismatch(
-                "Provider Call identity was reused with different immutable input"
-            )
 
     def _require_provider_record(self, record: HarnessProviderCallRecordView) -> None:
         if (
@@ -3633,7 +3612,7 @@ class SQLiteHarnessRunContinuityStore:
             raise HarnessProviderCallRequestMismatch(
                 "Provider Call state is not a continuation of the resume Snapshot"
             )
-        self._require_provider_time_monotonic(
+        _require_provider_time_monotonic(
             snapshot_state,
             provider_state,
             label="Provider Call continuation",
@@ -3686,115 +3665,10 @@ class SQLiteHarnessRunContinuityStore:
                     "Provider Call budget is not a continuation of the Snapshot"
                 )
 
-    @classmethod
-    def _require_provider_settlement_state(
-        cls,
-        previous: HarnessRunState,
-        current: HarnessRunState,
-        *,
-        label: str,
-        consume_retry: bool,
-    ) -> None:
-        """One settlement invariant; only a safe retry consumes retry budget."""
-        if (
-            previous.messages_digest != current.messages_digest
-            or previous.observation_digests != current.observation_digests
-            or previous.requested_model_id != current.requested_model_id
-            or previous.effective_model_id != current.effective_model_id
-            or previous.seen_model_call_ids != current.seen_model_call_ids
-            or previous.seen_tool_call_ids != current.seen_tool_call_ids
-            or previous.provider_usage != current.provider_usage
-            or previous.effective_model_ids != current.effective_model_ids
-            or set(previous.remaining_budget) != set(current.remaining_budget)
-        ):
-            scope = "retry accounting" if consume_retry else "active time"
-            raise HarnessProviderCallRequestMismatch(
-                f"{label} state changed outside {scope}"
-            )
-        if consume_retry:
-            previous_retries = previous.remaining_budget.get("modelRetries")
-            current_retries = current.remaining_budget.get("modelRetries")
-            if (
-                type(previous_retries) is not int
-                or type(current_retries) is not int
-                or current_retries != previous_retries - 1
-            ):
-                raise HarnessProviderCallRequestMismatch(
-                    "Provider Call safe retry did not consume exactly one retry"
-                )
-        for field, previous_value in previous.remaining_budget.items():
-            if consume_retry and field == "modelRetries":
-                continue
-            current_value = current.remaining_budget[field]
-            if field == "wallTimeMs":
-                if (
-                    type(previous_value) is not int
-                    or type(current_value) is not int
-                    or current_value > previous_value
-                ):
-                    raise HarnessProviderCallRequestMismatch(
-                        f"{label} revived its wall-time budget"
-                    )
-            elif current_value != previous_value:
-                raise HarnessProviderCallRequestMismatch(
-                    f"{label} changed a non-time budget"
-                )
-        cls._require_provider_time_monotonic(previous, current, label=label)
 
-    @classmethod
-    def _require_provider_outcome_state(
-        cls,
-        previous: HarnessRunState,
-        current: HarnessRunState,
-        *,
-        label: str = "Provider Call outcome",
-    ) -> None:
-        cls._require_provider_settlement_state(
-            previous, current, label=label, consume_retry=False
-        )
 
-    @classmethod
-    def _require_provider_safe_retry_state(
-        cls,
-        previous: HarnessRunState,
-        current: HarnessRunState,
-    ) -> None:
-        cls._require_provider_settlement_state(
-            previous, current, label="Provider Call safe retry", consume_retry=True
-        )
 
-    @staticmethod
-    def _require_provider_time_monotonic(
-        previous: HarnessRunState,
-        current: HarnessRunState,
-        *,
-        label: str,
-    ) -> None:
-        previous_elapsed = previous.active_elapsed_ms
-        current_elapsed = current.active_elapsed_ms
-        if previous_elapsed is not None and (
-            current_elapsed is None or current_elapsed < previous_elapsed
-        ):
-            raise HarnessProviderCallRequestMismatch(f"{label} active elapsed time decreased")
-        previous_wall = previous.remaining_budget.get("wallTimeMs")
-        current_wall = current.remaining_budget.get("wallTimeMs")
-        if (
-            type(previous_wall) is not int
-            or type(current_wall) is not int
-            or current_wall > previous_wall
-        ):
-            raise HarnessProviderCallRequestMismatch(f"{label} remaining wall time increased")
 
-    @staticmethod
-    def _require_failure_matches(record, failure) -> None:
-        if (
-            failure.provider_call_id != record.provider_call_id
-            or failure.request_digest != record.request_digest
-            or failure.provider_request_digest != record.provider_request_digest
-        ):
-            raise HarnessProviderCallRequestMismatch(
-                "Provider failure receipt differs from the current attempt"
-            )
 
     def _require_intent(self, intent: HarnessToolStepIntent) -> None:
         if (

@@ -22,6 +22,10 @@ from ordivon_harness.ordivon.run_store_port import (
     HarnessProviderCallRecoveryRequired,
     HarnessProviderCallRequestMismatch,
 )
+from ordivon_harness.ordivon.provider_state_guards import (
+    _require_provider_outcome_state,
+    _require_provider_safe_retry_state,
+)
 from ordivon_harness.ordivon.sqlite_run_store import (
     SQLiteHarnessRunContinuityStore,
 )
@@ -155,7 +159,6 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
     def test_provider_settlement_distinguishes_only_retry_budget_and_time(self) -> None:
         """One state machine invariant, with two distinct effect permissions."""
         previous = state(elapsed=10, wall_time_ms=29_990, retries=2)
-        store = SQLiteHarnessRunContinuityStore
 
         def altered(*, elapsed: int = 11, wall: object = 29_989, retries: int = 2,
                     model_calls: int = 4, messages=None):
@@ -170,8 +173,8 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
                 messages=previous.messages if messages is None else messages,
             )
 
-        store._require_provider_outcome_state(previous, altered())
-        store._require_provider_safe_retry_state(previous, altered(retries=1))
+        _require_provider_outcome_state(previous, altered())
+        _require_provider_safe_retry_state(previous, altered(retries=1))
         for current, error in (
             (altered(retries=1), "changed a non-time budget"),
             (altered(model_calls=3), "changed a non-time budget"),
@@ -183,7 +186,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
         ):
             with self.subTest(transition="outcome", error=error):
                 with self.assertRaisesRegex(HarnessProviderCallRequestMismatch, error):
-                    store._require_provider_outcome_state(previous, current)
+                    _require_provider_outcome_state(previous, current)
         for current, error in (
             (altered(retries=2), "consume exactly one retry"),
             (altered(retries=0), "consume exactly one retry"),
@@ -196,7 +199,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
         ):
             with self.subTest(transition="safe_retry", error=error):
                 with self.assertRaisesRegex(HarnessProviderCallRequestMismatch, error):
-                    store._require_provider_safe_retry_state(previous, current)
+                    _require_provider_safe_retry_state(previous, current)
 
     def prepare(
         self,
