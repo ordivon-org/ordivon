@@ -206,6 +206,37 @@ def compile_projection(repo: Path, cut: str) -> dict:
                 return new+historical[len(old):]
         return historical
 
+    # Split relocation aliases only map physical paths onto an EXISTING source
+    # region. They cannot invent semantic Owner identities or modify the frozen
+    # name seeds. Both mapping and current files come from the exact Git cut.
+    for mapping in relocation["mappings"]:
+        if mapping.get("mode")!="split" or mapping.get("standing")!="DEPLOYED":
+            continue
+        if len(mapping.get("sourcePaths",[]))!=1:
+            continue  # multi-root partial source splits are not the bounded S5 mapping
+        old=mapping["sourcePaths"][0]
+        seeds=[z for z in zones if z.get("sourcePrefix")==old]
+        if len(seeds)!=1:
+            continue  # no matching historical source region, no borrowed label
+        if any(path.startswith(old) for path in current_paths):
+            raise ValueError("deployed source split retains old tracked SourceCut: "+old)
+        placements=mapping.get("currentPlacementPaths")
+        if not isinstance(placements,list) or not placements:
+            raise ValueError("deployed source split missing placed prefixes: "+old)
+        for placed in placements:
+            if (not isinstance(placed,str) or not placed.endswith("/")
+                or placed.startswith("/") or ".." in placed.split("/")
+                or not any(placed.startswith(t) for t in mapping["targetPaths"])
+                or not any(path.startswith(placed) for path in current_paths)):
+                raise ValueError("deployed source split placement not grounded: "+str(placed))
+            if any(z["sourcePrefix"]==placed for z in zones):
+                # Reuse an exact existing source region. For Research,
+                # profiles/research already has a historically seeded label;
+                # adding a duplicate would make the classification ambiguous.
+                continue
+            alias=dict(seeds[0])
+            alias["sourcePrefix"]=placed
+            zones.append(alias)
     if len({v["candidateName"] for v in specific})!=26:
         raise ValueError("duplicate scoped source display aliases")
     for v in specific:
