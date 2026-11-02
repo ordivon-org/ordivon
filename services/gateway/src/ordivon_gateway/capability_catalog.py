@@ -3,17 +3,15 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import re
 from importlib.metadata import version as package_version
 from typing import Any
 
-from .capability_projection import project_execution_capability
+from .capability_projection import project_capability_search, project_execution_capability
 from .contracts import (
     CapabilityDescriptor,
     CapabilityInvocationRecipe,
     CapabilityProjection,
     CapabilityResolution,
-    CapabilitySearchMatch,
     CapabilitySearchProjection,
     CapabilitySkillBinding,
     OwnerDescriptor,
@@ -352,57 +350,13 @@ class CapabilityCatalog:
             raise GatewayError("includeUnavailable must be boolean")
 
         projection = await self.capability_describe()
-        normalized = query.casefold()
-        query_tokens = set(re.findall(r"[a-z0-9]+", normalized))
-        priority = {"exact": 0, "prefix": 1, "token": 2, "substring": 3}
-        ranked: list[tuple[int, str, CapabilitySearchMatch]] = []
-
-        for item in projection.capabilities:
-            if category is not None and item.category != category:
-                continue
-            if owner_id is not None and item.owner_id != owner_id:
-                continue
-            # An observation error is UNKNOWN owner observation, not proof of owner unavailability.
-            if not include_unavailable and not item.available and item.observation_error is None:
-                continue
-
-            capability_name = item.capability.casefold()
-            corpus_values = [
-                item.capability,
-                item.category,
-                item.owner_id,
-                item.description,
-                *item.tags,
-            ]
-            corpus = " ".join(value.casefold() for value in corpus_values if value)
-            corpus_tokens = set(re.findall(r"[a-z0-9]+", corpus))
-
-            match_kind: str | None = None
-            if normalized == capability_name:
-                match_kind = "exact"
-            elif capability_name.startswith(normalized):
-                match_kind = "prefix"
-            elif query_tokens and query_tokens.issubset(corpus_tokens):
-                match_kind = "token"
-            elif normalized in corpus:
-                match_kind = "substring"
-            if match_kind is None:
-                continue
-
-            match = CapabilitySearchMatch(
-                match_kind=match_kind,  # type: ignore[arg-type]
-                capability=item,
-            )
-            ranked.append((priority[match_kind], item.capability, match))
-
-        ranked.sort(key=lambda row: (row[0], row[1]))
-        total_matches = len(ranked)
-        matches = [row[2] for row in ranked[:limit]]
-        return CapabilitySearchProjection(
+        return project_capability_search(
+            projection,
             query=query,
-            projection_digest=projection.projection_digest,
-            total_matches=total_matches,
-            matches=matches,
+            category=category,
+            owner_id=owner_id,
+            limit=limit,
+            include_unavailable=include_unavailable,
         )
 
     async def capability_resolve(

@@ -30,13 +30,18 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 - **Gateway application facade** (src/ordivon_gateway/service.py):
   stable public signatures, execution dispatch, artifact reads and Host delegation.
   Its discovery methods delegate rather than duplicating catalog rules.
+- **Execution Coordinator** (src/ordivon_gateway/execution_coordinator.py):
+  submit, resolve, observe, cancel and artifact forwarding to Runtime or
+  external pull workers. Owns neither Job state nor terminal truth.
 - **Owner protocol** (src/ordivon_gateway/owner_protocol.py):
   owner response validation and configuration probes. The canonical execution
   reference grammar stays in execution_refs.py; the service.py compatibility
   import of parse_execution_ref remains available.
 
-Dependencies point from service to capability_catalog and owner_protocol;
-capability_catalog itself depends on owner_protocol, not on service. Catalog
+Dependencies point from service to capability_catalog, execution_coordinator,
+and execution_refs. Both specialized modules use owner_protocol for response
+validation and reuse the existing execution_refs wire grammar; neither imports
+service. Catalog
 inputs are the owner caller, copied route map, optional external-worker
 projection and timeout. Extraction preserves the public route and JSON
 contracts. Behavioral tests establish observed compatibility, not proof
