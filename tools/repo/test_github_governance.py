@@ -1534,5 +1534,20 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), "workstation:ci")
 
 
+    def test_security_and_decision_index_reuse_current_repo_governance(self) -> None:
+        """Missing root security and ADR navigation are checked without duplicating peer templates."""
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
+        decisions = (ROOT / "docs/architecture/DECISIONS.md").read_text(encoding="utf-8")
+        self.assertIn("SECURITY.md", readme)
+        self.assertIn("docs/architecture/DECISIONS.md", readme)
+        self.assertIn("https://github.com/ordivon-org/ordivon/security/advisories/new", security)
+        self.assertIn("private vulnerability reporting", security)
+        for target in ("CURRENT_ARCHITECTURE.md", "STRUCTURE_R2.md", "OWNER_DEPENDENCY_BOUNDARY_R1.md"):
+            self.assertIn(target, decisions)
+            self.assertTrue((ROOT / "docs/architecture" / target).is_file())
+        self.assertIn("not a new architectural authority", decisions)
+
+
 if __name__ == "__main__":
     unittest.main()
