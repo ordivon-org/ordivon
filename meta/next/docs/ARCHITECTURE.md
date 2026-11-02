@@ -107,7 +107,7 @@ Terms such as Domain Life-Cycle Profile, Cross-Cutting Discipline and Enabling C
 
 For example, Network may be an enabling capability in one task and the Entity of Interest in another. Security may be a cross-cutting concern in one task and a security service life cycle in another. Classification is contextual and may change with the problem boundary.
 
-See `docs/CLASSIFICATION.md`.
+See [classification](../../../docs/architecture/classification.md) for the current contextual architectural kind decision test.
 
 ## 6. E2E definition
 
