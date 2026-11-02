@@ -119,7 +119,7 @@ sufficiency is requested.
 
 ## First executable reform candidates
 
-1. Improve existing `method-router` to ask complexity-removal questions before selecting a method; use native `meta/next/tests/test_method_router_skill.py` to check navigation integrity (not semantic proof).
+1. Improve existing `method-router` to ask complexity-removal questions before selecting a method; use native `extensions/chatgpt-skills-mcp/tests/test_method_router_skill.py` to check navigation integrity (not semantic proof).
 2. Select one Runtime Workspace lifecycle invariant; relate its finite formal model to the actual code and a failing/negative regression case.
 3. Select one Git/LEGO deletion candidate; gather static **and** dynamic consumers, distinguish `used` / `unused with bounded proof` / `unknown`, and qualify deletion through native tests.
 4. Select one Golden Path traversing real owner boundaries; bind CDC, telemetry, replay, fault injection and consumer acceptance to the **same** obligation.
