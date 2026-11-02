@@ -279,7 +279,7 @@ class LiveRecursiveCellsTests(unittest.TestCase):
         inventory = M.classification(ROOT, sha)
         queries = [
             "extensions/ordivon-control-plane/plugin.json",
-            "meta/next/authorities/records/iso/",
+            "catalogs/authorities/records/iso/",
             "tools/formal/LatentInputReachability.lean",
             "/etc/ordivon/secret",
             "meta/next/../tools/repo/exhaustive_coverage.py",

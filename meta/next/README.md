@@ -22,7 +22,7 @@ Ordivon does not attempt to re-own mature disciplines, algorithms, tools, workfl
 
 ## Responsibilities retained in this subtree
 
-- profiles and mappings that expose mature human knowledge and capabilities in a common usable form;
+- profiles and mappings that expose mature human knowledge and capabilities in a common usable form (discovery records now live in catalogs/authorities/);
 - domain life-cycle profiles;
 - mappings from problem classes to mature methods, standards, algorithms, tools and validators;
 - repository-specific semantic/integration code only where a mature external owner does not already own the responsibility;
@@ -47,20 +47,20 @@ The transitional Next tree retains current implementation, experiments, evidence
 
 ```text
 meta/next/
-├── authorities/     # external-authority records and dated observations
-├── domains/         # profiles awaiting consumer-safe S5 relocation
-├── policies/        # task-local OPA/Rego artifacts
-├── tests/           # Next-owned verification
-├── scripts/         # maintained validators and adapters
-├── schemas/         # cross-domain contracts
-├── experiments/     # experiment-owned source
-├── evidence/        # point-in-time evidence, not runtime state
-├── planning/        # current and disposable work
-├── migrations/      # retirement and provenance
-└── docs/            # maintained explanatory documents
+meta/next/
+├── domains/         # domain profiles pending consumer-qualified S5 relocation
+├── policies/        # remaining task-local policy source pending S5 split
+├── tests/           # remaining Next verification consumers
+├── scripts/         # remaining native commands/validators pending natural-owner move
+├── schemas/         # remaining cross-domain contracts
+├── experiments/     # bounded, source-qualified experiments and their history
+├── evidence/        # dated observations; not runtime configuration
+├── planning/        # current/disposable task-specific plans
+├── migrations/      # remaining retirement and cutover records
+└── docs/            # remaining explanatory/reference documentation
 ```
 
-Capability/provider discovery is now at `catalogs/capabilities/`; knowledge/provenance mappings are at `catalogs/knowledge/`. These catalogs do not grant semantic authority or runtime registration.
+Capability/provider discovery is at `catalogs/capabilities/`; external authority records and observations are at `catalogs/authorities/`; non-authoritative knowledge/provenance mappings are at `catalogs/knowledge/`. These catalogs do not grant semantic authority or runtime registration.
 
 ## Rebuild rule
 

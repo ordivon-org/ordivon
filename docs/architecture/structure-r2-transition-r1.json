@@ -355,7 +355,9 @@
       "verifyTasks": [
         "next:verify"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "S5 source-only discovery metadata relocated to catalogs/authorities with exact JSON contents preserved and authority native source loader and JSON Schemas relocated. Does not imply external standards applicability, currentness validation, runtime installation, or domain acceptance."
     },
     {
       "id": "capability-catalog",
