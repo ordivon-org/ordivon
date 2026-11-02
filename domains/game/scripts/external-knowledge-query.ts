@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { boundedQueryLimit, cliArgument, normalizeQueryFilter } from "../src/query-input.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -34,17 +35,12 @@ function text(value: unknown): string {
   return JSON.stringify(value).toLowerCase();
 }
 
-function normalize(value?: string): string | undefined {
-  const result = value?.trim();
-  return result ? result.toLowerCase() : undefined;
-}
-
 export function queryExternalKnowledge(query: ExternalKnowledgeQuery): ExternalKnowledgeQueryResult {
-  const q = normalize(query.q);
-  const category = normalize(query.category);
-  const authority = normalize(query.authority);
-  const status = normalize(query.status);
-  const limit = Number.isInteger(query.limit) && (query.limit ?? 0) > 0 ? Math.min(query.limit!, 200) : 50;
+  const q = normalizeQueryFilter(query.q);
+  const category = normalizeQueryFilter(query.category);
+  const authority = normalizeQueryFilter(query.authority);
+  const status = normalizeQueryFilter(query.status);
+  const limit = boundedQueryLimit(query.limit, 200);
 
   let items: any[];
   if (query.type === "sources") {
@@ -80,20 +76,15 @@ export function queryExternalKnowledge(query: ExternalKnowledgeQuery): ExternalK
   };
 }
 
-function arg(name: string): string | undefined {
-  const i = process.argv.indexOf(name);
-  return i >= 0 ? process.argv[i + 1] : undefined;
-}
-
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const query: ExternalKnowledgeQuery = {
-    type: (arg("--type") ?? "sources") as QueryType,
+    type: (cliArgument("--type") ?? "sources") as QueryType,
   };
-  const q = arg("--q");
-  const category = arg("--category");
-  const authority = arg("--authority");
-  const status = arg("--status");
-  const rawLimit = arg("--limit");
+  const q = cliArgument("--q");
+  const category = cliArgument("--category");
+  const authority = cliArgument("--authority");
+  const status = cliArgument("--status");
+  const rawLimit = cliArgument("--limit");
   if (q !== undefined) query.q = q;
   if (category !== undefined) query.category = category;
   if (authority !== undefined) query.authority = authority;

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { boundedQueryLimit, cliArgument, normalizeQueryFilter } from "../src/query-input.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const COUNTEREXAMPLE_SYNTHESIS_PATH = "standards/game_counterexample_synthesis_r1.json";
@@ -54,11 +55,6 @@ function readJson(root: string, path: string): any {
   return JSON.parse(readFileSync(resolve(root, path), "utf8"));
 }
 
-function normalize(value?: string): string | undefined {
-  const result = value?.trim().toLowerCase();
-  return result || undefined;
-}
-
 export function loadCounterexampleSynthesis(root = ROOT): any {
   return readJson(root, COUNTEREXAMPLE_SYNTHESIS_PATH);
 }
@@ -98,11 +94,11 @@ export function enrichCounterexampleThemes(root = ROOT): EnrichedCounterexampleT
 }
 
 export function queryCounterexampleSynthesis(query: CounterexampleSynthesisQuery): CounterexampleSynthesisQueryResult {
-  const q = normalize(query.q);
-  const theme = normalize(query.theme);
-  const mechanism = normalize(query.mechanism);
-  const counterexample = normalize(query.counterexample);
-  const limit = Number.isInteger(query.limit) && (query.limit ?? 0) > 0 ? Math.min(query.limit!, 100) : 50;
+  const q = normalizeQueryFilter(query.q);
+  const theme = normalizeQueryFilter(query.theme);
+  const mechanism = normalizeQueryFilter(query.mechanism);
+  const counterexample = normalizeQueryFilter(query.counterexample);
+  const limit = boundedQueryLimit(query.limit, 100);
 
   const matched = enrichCounterexampleThemes()
     .map((item) => ({
@@ -143,18 +139,13 @@ export function queryCounterexampleSynthesis(query: CounterexampleSynthesisQuery
   };
 }
 
-function arg(name: string): string | undefined {
-  const index = process.argv.indexOf(name);
-  return index >= 0 ? process.argv[index + 1] : undefined;
-}
-
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const query: CounterexampleSynthesisQuery = {};
-  const q = arg("--q");
-  const theme = arg("--theme");
-  const mechanism = arg("--mechanism");
-  const counterexample = arg("--counterexample");
-  const rawLimit = arg("--limit");
+  const q = cliArgument("--q");
+  const theme = cliArgument("--theme");
+  const mechanism = cliArgument("--mechanism");
+  const counterexample = cliArgument("--counterexample");
+  const rawLimit = cliArgument("--limit");
   if (q !== undefined) query.q = q;
   if (theme !== undefined) query.theme = theme;
   if (mechanism !== undefined) query.mechanism = mechanism;
