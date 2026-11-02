@@ -3,7 +3,7 @@ import { readGameKnowledge } from "../src/knowledge-file.ts";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { boundedQueryLimit, normalizeQueryFilter } from "../src/query-input.ts";
-import { cliArgument } from "./cli-argument.ts";
+import { cliQueryArguments } from "./cli-argument.ts";
 
 const MEMORY_PATH = "knowledge/game_design_counterexample_memory_r1.json";
 const EXPERIENCE_PATH = "knowledge/game_mechanism_experience_library_r1.json";
@@ -74,16 +74,6 @@ export function queryDesignCounterexamples(query: DesignCounterexampleQuery): De
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const query: DesignCounterexampleQuery = {};
-  const q = cliArgument("--q");
-  const mechanism = cliArgument("--mechanism");
-  const game = cliArgument("--game");
-  const kind = cliArgument("--kind");
-  const rawLimit = cliArgument("--limit");
-  if (q !== undefined) query.q = q;
-  if (mechanism !== undefined) query.mechanism = mechanism;
-  if (game !== undefined) query.game = game;
-  if (kind !== undefined) query.kind = kind;
-  if (rawLimit !== undefined) query.limit = Number(rawLimit);
+  const query: DesignCounterexampleQuery = cliQueryArguments(["q", "mechanism", "game", "kind"]);
   process.stdout.write(`${JSON.stringify(queryDesignCounterexamples(query), null, 2)}\n`);
 }
