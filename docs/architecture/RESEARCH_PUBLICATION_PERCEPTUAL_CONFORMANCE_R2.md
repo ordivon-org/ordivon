@@ -156,10 +156,10 @@ Reusable modules:
 
 Schemas:
 
-- `meta/research/publication/finding-r1.schema.json`
-- `meta/research/publication/observer-report-r1.schema.json`
-- `meta/research/publication/perceptual-conformance-r1.schema.json`
-- `meta/research/publication/carrier-attestation-r1.schema.json`
+- `profiles/research/publication/finding-r1.schema.json`
+- `profiles/research/publication/observer-report-r1.schema.json`
+- `profiles/research/publication/perceptual-conformance-r1.schema.json`
+- `profiles/research/publication/carrier-attestation-r1.schema.json`
 
 Profiles/planning:
 
