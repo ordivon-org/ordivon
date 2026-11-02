@@ -6,7 +6,7 @@ import { queryPrototypeCompositions } from "../scripts/prototype-composition-que
 test("composition candidates resolve genuine external source evidence and expose execution limits", () => {
   const result = queryPrototypeCompositions();
   assert.equal(result.verifiedGameProducts, 0);
-  assert.equal(result.items.length, 4);
+  assert.equal(result.items.length, 6);
   const ids = result.items.map((recipe) => recipe.id);
   assert.equal(new Set(ids).size, ids.length);
   for (const recipe of result.items) {
@@ -25,16 +25,29 @@ test("composition candidates resolve genuine external source evidence and expose
   assert.equal(bevy?.standing, "NATIVE_SOURCE_COMPILED");
   assert.ok(bevy?.currentConsumer);
   assert.ok(existsSync(new URL("../" + bevy.currentConsumer, import.meta.url)));
-  const other = result.items.filter((recipe) => recipe.id !== native?.id && recipe.id !== bevy?.id);
+  const encounter = result.items.find((recipe) => recipe.id === "room-encounter");
+  const avatar = result.items.find((recipe) => recipe.id === "kenney-avatar-appearance");
+  assert.equal(encounter?.standing, "NATIVE_SUBSET_EXECUTED");
+  assert.equal(avatar?.standing, "NATIVE_COMPONENT_EXECUTED");
+  assert.ok(encounter?.currentConsumer);
+  assert.ok(avatar?.currentConsumer);
+  assert.ok(existsSync(new URL("../" + encounter.currentConsumer, import.meta.url)));
+  assert.ok(existsSync(new URL("../" + avatar.currentConsumer, import.meta.url)));
+  assert.ok(encounter?.components.every((slot) => slot.standing === "EXECUTED_NATIVE"));
+  assert.ok(avatar?.components.every((slot) => slot.standing === "EXECUTED_NATIVE"));
+  assert.ok(avatar?.explicitGaps.some((gap) => gap.includes("no player input")));
+  const other = result.items.filter((recipe) =>
+    !["native-action-loop", "rust-ecs-sandbox", "room-encounter", "kenney-avatar-appearance"].includes(recipe.id)
+  );
   assert.ok(other.every((recipe) => recipe.standing === "DESIGN_CANDIDATE"));
-  assert.ok(result.items.filter((recipe) => recipe.id !== native?.id)
+  assert.ok(result.items.filter((recipe) => recipe.standing === "DESIGN_CANDIDATE" || recipe.standing === "NATIVE_SOURCE_COMPILED")
     .every((recipe) => recipe.components.every((component) => component.standing === "SOURCE_DOCUMENTED")));
 });
 
 test("source-backed candidate selection preserves engine constraints and does not invent implementation state", () => {
   const godot = queryPrototypeCompositions({ engine: "GoDot" });
   const bevy = queryPrototypeCompositions({ engine: "bevy" });
-  assert.equal(godot.items.length, 3);
+  assert.equal(godot.items.length, 5);
   assert.equal(bevy.items.length, 1);
   assert.ok(godot.items.every((item) => item.engine === "godot"));
   assert.ok(bevy.items.every((item) => item.engine === "bevy"));

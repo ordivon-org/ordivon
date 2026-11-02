@@ -17,7 +17,7 @@ readiness: ACTIVE_EXPANDING
 
 ## 1. Purpose
 
-This is an **external knowledge substrate**, not a second Game constitution. External knowledge may **never become a Game constitution** merely because it is famous, formal, popular, or useful elsewhere. The current R1 corpus contains **155 source records**, **56 teardown targets**, **37 source-bound targets**, and **12 external Skill/tooling candidates**. Fine-grained transfer hypotheses extracted from those sources live separately in the Mechanism Experience Library so source registry and derived design memory remain distinct.
+This is an **external knowledge substrate**, not a second Game constitution. External knowledge may **never become a Game constitution** merely because it is famous, formal, popular, or useful elsewhere. The current R1 corpus contains **156 source records**, **56 teardown targets**, **37 source-bound targets**, and **12 external Skill/tooling candidates**. Fine-grained transfer hypotheses extracted from those sources live separately in the Mechanism Experience Library so source registry and derived design memory remain distinct.
 
 The ingestion rule is deliberately Creative-Open:
 
@@ -155,3 +155,21 @@ Source records also carry a coarse `sourceStrength` class such as `NATIVE_HIGH`,
 The explicit next-wave gaps include more non-Western primary developer archives, sports/racing feel, horror/fear, MMO institutions/economies, ethical mobile live-ops, failed/cancelled projects, and exact primary sources for several queued games. These gaps remain search targets rather than inferred knowledge.
 
 These are discovery/evidence surfaces. They do not select a product, rank games, close creative search, or mint Human evidence.
+
+
+## Current Game-native composition inventory (2026-11-02)
+
+The owner query has been synchronized to three existing, concrete Godot
+execution consumers: `examples/native-composition` for rule/Resource/view
+and audio assembly, `examples/room-encounter` for room combat/alternate
+native HUD/CC0 audio and `examples/kenney-visual-composition` for two
+source-licensed Kenney Abstract Platformer appearance resources. The last
+one is appearance-only and must not be interpreted as a standalone game.
+The project-source mirror revision and exact two PNG digests are in its
+README; original licensing authority is Kenney's CC0 pack page.
+
+There are also a Bevy native Rust source/compiled-game candidate and two
+uninstalled Godot AI/narrative proposals. The source ledger has 156 records.
+`src/prototype-composition.ts` projects provider references and exact
+source-supplied evidence states; the CLI merely loads evidence and prints
+results. No second registry or source authority exists.

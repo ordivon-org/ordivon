@@ -22,11 +22,24 @@ decomposition, (2) directory/naming representation, (3) upstream Game LEGO
 discovery and consumer-verified prototype composition. Do not confuse an
 upstream addon listing or a proposed composition with an installed Game.
 
-Inspect four evidence-bound composition proposals without installing them:
+Inspect six source-backed composition hypotheses without installing anything.
+Two additional existing native consumers now appear directly in query results:
+a three-room Godot encounter with rules/HUD/CC0 audio, and an avatar
+appearance-only PackedScene swap. The latter is an executed **component**,
+not an independently playable game:
 
     pnpm composition:inspect
     pnpm composition:inspect -- --id native-action-loop
     pnpm composition:inspect -- --engine bevy
+    pnpm composition:inspect -- --id room-encounter
+    pnpm composition:inspect -- --id kenney-avatar-appearance
+
+The query source resolver is a **pure function** in
+`src/prototype-composition.ts`; the original stable CLI remains an I/O
+adapter in `scripts/prototype-composition-query.ts`. Component status is
+source-supplied, not a synthetic verification certificate: `NATIVE_SUBSET_EXECUTED`
+means a bounded game slice; `NATIVE_COMPONENT_EXECUTED` means only one
+replaceable presentation component.
 
 Plans are in `planning/prototype-composition-candidates-r1.json`; provider
 source evidence is already in the Game knowledge index. One Godot-native
