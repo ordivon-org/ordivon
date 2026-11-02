@@ -352,24 +352,30 @@ def _command_equipment_inventory(args: argparse.Namespace) -> int:
 
 
 def _command_equipment_select(args: argparse.Namespace) -> int:
+    from . import equipment_capabilities
+
     module = _equipment_module()
     world = module.load_equipment_world(Path(args.world))
     inventory = module.discover_equipment_for_capability(world, args.capability) if args.local else None
-    _write_json({"capability": args.capability, "matches": module.select_for_capability(world, args.capability, inventory=inventory)})
+    _write_json({"capability": args.capability, "matches": equipment_capabilities.select_for_capability(world, args.capability, inventory=inventory)})
     return 0
 
 
 def _command_equipment_coverage(args: argparse.Namespace) -> int:
+    from . import equipment_capabilities
+
     module = _equipment_module()
     world = module.load_equipment_world(Path(args.world))
-    _write_json(module.capability_coverage(world))
+    _write_json(equipment_capabilities.capability_coverage(world))
     return 0
 
 
 def _command_equipment_providers(args: argparse.Namespace) -> int:
+    from . import equipment_capabilities
+
     module = _equipment_module()
     world = module.load_equipment_world(Path(args.world))
-    _write_json(module.local_provider_surface(world))
+    _write_json(equipment_capabilities.local_provider_surface(world))
     return 0
 
 

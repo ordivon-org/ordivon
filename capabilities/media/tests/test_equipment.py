@@ -9,18 +9,20 @@ from unittest import mock
 
 from ordivon_studio.equipment import (
     EquipmentPlan,
-    capability_coverage,
     compile_operation,
     discover_equipment,
     discover_equipment_for_capability,
     load_equipment_world,
+    propose_operation,
+)
+from ordivon_studio.equipment_capabilities import (
+    capability_coverage,
     local_provider_surface,
     operation_support,
-    propose_operation,
     select_for_capability,
-    summarize_trial,
     verification_contract,
 )
+from ordivon_studio.equipment_evaluation import summarize_trial
 
 ROOT = Path(__file__).resolve().parents[1]
 
