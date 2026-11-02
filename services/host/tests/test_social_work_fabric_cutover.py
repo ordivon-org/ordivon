@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from ordivon_host_v2.canonical import canonical_digest
+from ordivon_host_v2.canonical_json import canonical_digest
 from ordivon_host_v2.legacy_cutover import (
     compile_cutover_plan,
 )

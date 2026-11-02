@@ -1,3 +1,5 @@
+# Standalone Network reference repository template, not active Monorepo Actions.
+# Install in .github/workflows only in a qualified extracted Network repo.
 name: network-reference-linux
 on:
   workflow_dispatch:

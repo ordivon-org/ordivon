@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 
-from .canonical import canonical_bytes
+from .canonical_json import canonical_bytes
 
 DEFAULT_COLLECTION_MAX_BYTES = 262_144
 DEFAULT_MESSAGE_COLLECTION_MAX_BYTES = 524_288

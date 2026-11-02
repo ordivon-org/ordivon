@@ -7,7 +7,7 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .canonical import canonical_digest
+from .canonical_json import canonical_digest
 
 CUTOVER_KIND = "ordivon.host-social-work-fabric-cutover-plan-r1"
 MIGRATOR_ACTOR_REF = "actor:service:swf-legacy-cutover-r1"

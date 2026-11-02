@@ -992,7 +992,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(next_owners[0]["verify_task"], "next:verify")
         top = tomllib.loads((ROOT / "mise.toml").read_text())
         route = top["tasks"]["next:verify"]["run"]
-        for fragment in ("cd meta/next", "mise run verify", "cd experimental/episode-store-r1"):
+        for fragment in ("cd meta/next", "mise run verify", "cd experiments/episode-store-r1"):
             self.assertIn(fragment, route)
         native = tomllib.loads((ROOT / "meta/next/mise.toml").read_text())
         checks = native["tasks"]["verify"]["run"]
@@ -1039,10 +1039,14 @@ class GovernanceAcceptanceTests(unittest.TestCase):
 
         nested = ROOT / "capabilities/media/.github/workflows/ci.yml"
         self.assertFalse(nested.exists(), "nested Media CI is not a root GitHub Action")
-        self.assertTrue(
-            (ROOT / "capabilities/media/.github/workflows/codeql.yml").is_file(),
-            "distinct Media CodeQL source must not be deleted as a side effect",
+        self.assertFalse(
+            (ROOT / "capabilities/media/.github/workflows/codeql.yml").exists(),
+            "inactive Media CodeQL workflow must be retired after root CodeQL activation",
         )
+        root_codeql = ROOT / ".github/workflows/codeql.yml"
+        self.assertTrue(root_codeql.is_file(), "live root-loaded CodeQL is missing")
+        from tools.repo.check_github_governance import validate_monorepo_codeql
+        validate_monorepo_codeql(root_codeql.read_text(encoding="utf-8"))
         owners = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())
         media = [o for o in owners["owners"] if o["name"] == "media"]
         self.assertEqual(len(media), 1)

@@ -3,7 +3,7 @@
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from ordivon_host_v2.canonical import canonical_bytes, canonical_digest
+from ordivon_host_v2.canonical_json import canonical_bytes, canonical_digest
 
 
 @settings(max_examples=55, deadline=None)

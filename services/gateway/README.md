@@ -20,6 +20,28 @@ execute any Runtime or Host effect.
 
 Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run truth, OAuth/credential authority, Plugin/Skill semantics, or domain completion.
 
+
+### Source boundaries
+
+- **Capability Catalog** (src/ordivon_gateway/capability_catalog.py):
+  read-only system description, capability description, search and resolution.
+  Observes natural owners; never executes effects or claims domain completion.
+  Reuses the canonical capability_projection.project_execution_capability operator.
+- **Gateway application facade** (src/ordivon_gateway/service.py):
+  stable public signatures, execution dispatch, artifact reads and Host delegation.
+  Its discovery methods delegate rather than duplicating catalog rules.
+- **Owner protocol** (src/ordivon_gateway/owner_protocol.py):
+  owner response validation and configuration probes. The canonical execution
+  reference grammar stays in execution_refs.py; the service.py compatibility
+  import of parse_execution_ref remains available.
+
+Dependencies point from service to capability_catalog and owner_protocol;
+capability_catalog itself depends on owner_protocol, not on service. Catalog
+inputs are the owner caller, copied route map, optional external-worker
+projection and timeout. Extraction preserves the public route and JSON
+contracts. Behavioral tests establish observed compatibility, not proof
+of implementation-level semantic equivalence.
+
 **Execution cancellation identity contract (Gateway B01 / Runtime owner):** the
 `execution.cancel` adapter forwards the exact Runtime Job identity from the
 northbound operation reference. Before returning an `ExecutionReceipt`, it
