@@ -109,6 +109,20 @@ set -euo pipefail
 tools/repo/migration/check-publication-main.sh /root/projects/ordivon
 """
 
+# Authority Catalog is the natural code owner; Next currently lends its locked
+# Python environment until the remaining Next consumers are independently retired.
+[tasks."authority:verify"]
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root/meta/next"
+uv lock --check
+PYTHONPATH="$repo_root" uv run --locked python -m pytest -q ../../catalogs/authorities/tests
+uv run --locked --group authority python ../../catalogs/authorities/scripts/check_authority_catalog_r1.py
+uv run --locked --group quality ruff check ../../catalogs/authorities/scripts ../../catalogs/authorities/tests
+uv run --locked --group quality ruff format --check ../../catalogs/authorities/scripts ../../catalogs/authorities/tests
+"""
+
 [tasks."next:verify"]
 run = """
 set -euo pipefail

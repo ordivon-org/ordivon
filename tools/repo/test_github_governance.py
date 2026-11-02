@@ -1001,7 +1001,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             "uv run --locked python -m pytest",
             "uv run --locked --group quality ruff check scripts tests",
             "uv run --locked --group quality ruff format --check scripts tests",
-            "scripts/check_authority_catalog_r1.py",
+            "../../catalogs/authorities/scripts/check_authority_catalog_r1.py",
             "scripts/check_standard_native_enterprise_r2.py",
             "scripts/check_reasoning_waist_r1.py",
             "bandit -r scripts", "pip-audit",

@@ -6,7 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 
-# Accept both direct CLI invocation and import as scripts.authority_catalog.
+# Support both direct CLI invocation and import from catalogs.authorities.scripts.
 if __package__:
     from .authority_catalog_search import score_entry
     from .authority_catalog_sources import (
@@ -160,7 +160,7 @@ def cmd_build(_: argparse.Namespace) -> int:
     emit(
         {
             "standing": "BUILT",
-            "path": str(INDEX.relative_to(ROOT.parents[1])),
+            "path": str(INDEX.relative_to(ROOT)),
             "recordCount": index["recordCount"],
             "recordsDigest": index["recordsDigest"],
         }
@@ -207,9 +207,9 @@ def cmd_show(args: argparse.Namespace) -> int:
     latest = latest_observation(args.id)
     emit(
         {
-            "recordPath": str(path.relative_to(ROOT.parents[1])),
+            "recordPath": str(path.relative_to(ROOT)),
             "record": record,
-            "latestObservationPath": str(latest[0].relative_to(ROOT.parents[1]))
+            "latestObservationPath": str(latest[0].relative_to(ROOT))
             if latest
             else None,
             "latestObservation": latest[1] if latest else None,
@@ -226,7 +226,7 @@ def cmd_refresh(args: argparse.Namespace) -> int:
         {
             "kind": "ordivon.external-authority-refresh-plan",
             "authorityId": args.id,
-            "recordPath": str(path.relative_to(ROOT.parents[1])),
+            "recordPath": str(path.relative_to(ROOT)),
             "officialSource": record["identity"]["officialSource"],
             "latestObservation": latest[1] if latest else None,
             "requiredAction": [

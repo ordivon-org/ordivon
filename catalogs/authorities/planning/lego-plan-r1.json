@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-external-authority-catalog-r1",
+    "purpose": "Source-grounded external authority records and observations, source and currentness validation, pure lexical lookup, rebuildable index projection; task-local method authority remains with consumers.",
+    "sourceEvidence": [
+      "README.md",
+      "scripts/authority_catalog.py",
+      "scripts/authority_catalog_sources.py",
+      "scripts/authority_catalog_search.py",
+      "scripts/check_authority_catalog_r1.py",
+      "tests/test_authority_catalog.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "AC01",
+      "label": "ExternalAuthorityRecordAndObservationCatalog",
+      "kind": "knowledge_projection",
+      "responsibility": "Validate versioned external-authority identity records and independently supplied currentness observations, and derive a disposable, source-provenanced discovery index for task-local method and source selection.",
+      "authority": "catalogs/authorities owns source identity/discovery; external issuers retain normative truth",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "versioned authority identity records",
+        "independently supplied authority observations",
+        "bounded lexical authority query"
+      ],
+      "outputs": [
+        "validated source/revision-aware external authority records and a rebuildable discovery projection",
+        "source-qualified failure/UNKNOWN when an observation is missing"
+      ],
+      "behavioralContract": "The index is reproducible from current admitted authority records; it cannot invent task-specific applicability, issue permissions, lift observation freshness to installed execution truth, or overwrite external normative authority.",
+      "acceptance": [
+        "Native check_authority_catalog_r1.py consumes authority_catalog records, validation and index regeneration, and tests exercise deterministic index, discovery and currentness cases."
+      ],
+      "evidence": [
+        "scripts/authority_catalog.py",
+        "scripts/authority_catalog_sources.py",
+        "scripts/authority_catalog_search.py",
+        "scripts/check_authority_catalog_r1.py",
+        "tests/test_authority_catalog.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "institutional normative authority",
+        "external provider permission",
+        "a permanent second knowledge registry",
+        "production environment currentness"
+      ],
+      "consumerBindings": [
+        {
+          "path": "scripts/check_authority_catalog_r1.py",
+          "symbols": [
+            "catalog"
+          ],
+          "standing": "SOURCE_STATIC_IMPORT_AND_CALL_REPLAYED"
+        },
+        {
+          "path": "tests/test_authority_catalog.py",
+          "symbols": [
+            "catalog"
+          ],
+          "standing": "NATIVE_SOURCE_TEST_EXECUTED"
+        }
+      ],
+      "formalObligations": [
+        "Latest indexed record and observed-currentness inputs must remain distinct from current authority/provider truth.",
+        "Authority candidate existence must not imply consumer-specific applicability, consent or formal satisfaction."
+      ],
+      "replacements": [
+        "Reuse standards-native authority discovery or external KB solutions if they preserve deterministic source/provenance/observation separation."
+      ]
+    }
+  ],
+  "edges": [],
+  "slices": [
+    {
+      "id": "AC_DISCOVERY",
+      "label": "ExternalAuthorityDiscovery",
+      "nodeIds": [
+        "AC01"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Native Authority Catalog checker and catalog-owned tests execute against current records and source observations."
+      ]
+    }
+  ],
+  "nonClaims": [
+    "Discovery index does not establish task applicability, external source currentness outside its dated observations, installed compliance or source normative truth."
+  ]
+}

@@ -1882,7 +1882,7 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
 
     def qualify(candidate: dict) -> None:
         assert candidate["kind"] == "ordivon.project-lego-plan"
-        assert {row["id"] for row in candidate["nodes"]} == {"NX01", "NX02", "NX03", "NX04"}
+        assert {row["id"] for row in candidate["nodes"]} == {"NX02", "NX03", "NX04"}
         for node in candidate["nodes"]:
             for key in ("responsibility", "inputs", "outputs", "behavioralContract", "acceptance", "formalObligations"):
                 assert node[key], (node["id"], key)
