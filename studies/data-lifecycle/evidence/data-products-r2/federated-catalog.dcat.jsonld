@@ -100,7 +100,7 @@
           "@id": "urn:uuid:4664e208-2cdc-5d4f-a83d-e70e187b046a",
           "@type": "dcat:Distribution",
           "dcat:accessURL": {
-            "@id": "file://meta/next/evidence/experimental-episode/corpus-r1/manifest.json"
+            "@id": "file://studies/experimental-episodes/evidence/corpus-r1/manifest.json"
           },
           "dct:format": "application/json",
           "dct:identifier": "sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
