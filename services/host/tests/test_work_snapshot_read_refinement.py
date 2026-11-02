@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from ordivon_host_v2.canonical import canonical_digest
+from ordivon_host_v2.canonical_json import canonical_digest
 from ordivon_host_v2.work_store import WorkStore
 
 _TIME = datetime(2026, 10, 25, tzinfo=UTC)

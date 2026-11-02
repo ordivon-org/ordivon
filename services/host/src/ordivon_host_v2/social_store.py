@@ -6,9 +6,8 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .canonical import canonical_bytes, canonical_digest
-from .errors import ConflictError
-from .social_bounds import (
+from .canonical_json import canonical_bytes, canonical_digest
+from .collection_pagination import (
     DEFAULT_COLLECTION_MAX_BYTES,
     DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
     DEFAULT_SPACE_MAX_BYTES,
@@ -17,6 +16,7 @@ from .social_bounds import (
     bounded_prefix,
     validate_max_bytes,
 )
+from .errors import ConflictError
 from .social_graph import (
     CoordinationIntentInput,
     IntentStanding,
@@ -388,7 +388,9 @@ class SocialStore:
                     "direction": direction,
                     "relations": page,
                     "hasMore": True,
-                    "nextAfterChangeSequence": after_change_sequence if not page else page[-1]["changeSequence"],
+                    "nextAfterChangeSequence": after_change_sequence
+                    if not page
+                    else page[-1]["changeSequence"],
                     "rankingApplied": False,
                     "truthBoundary": "explicit collaboration relations only; opaque targets are references, not existence or authority proof",
                 }
@@ -740,7 +742,9 @@ class SocialStore:
         }
         request_digest = canonical_digest(request)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
-            replay = self._claim_receipt(conn, client_request_id, "topic.cursor.ack", request_digest)
+            replay = self._claim_receipt(
+                conn, client_request_id, "topic.cursor.ack", request_digest
+            )
             if replay is not None:
                 return replay
             self._require_actor(conn, actor_ref)
@@ -779,7 +783,9 @@ class SocialStore:
                 "topicHighSequence": high,
                 "truthBoundary": "topic navigation acknowledgement only; not semantic acceptance",
             }
-            self._record_receipt(conn, client_request_id, "topic.cursor.ack", request_digest, result)
+            self._record_receipt(
+                conn, client_request_id, "topic.cursor.ack", request_digest, result
+            )
             return result
 
     def list_spaces(
@@ -810,7 +816,16 @@ class SocialStore:
                 "AND (%s::text IS NULL OR EXISTS (SELECT 1 FROM space_subjects ss WHERE ss.space_ref=s.space_ref AND ss.subject_ref=%s)) "
                 "AND (%s::timestamptz IS NULL OR (s.created_at,s.space_ref) < (%s::timestamptz,%s)) "
                 "ORDER BY s.created_at DESC,s.space_ref DESC LIMIT %s",
-                (actor_ref, actor_ref, subject_ref, subject_ref, before_created_at, before_created_at, before_space_ref, limit + 1),
+                (
+                    actor_ref,
+                    actor_ref,
+                    subject_ref,
+                    subject_ref,
+                    before_created_at,
+                    before_created_at,
+                    before_space_ref,
+                    limit + 1,
+                ),
             ).fetchall()
             sql_more = len(rows) > limit
             candidates = [
@@ -825,10 +840,14 @@ class SocialStore:
             ]
 
             def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
-                cursor = None if not page else {
-                    "beforeCreatedAt": page[-1]["createdAt"],
-                    "beforeSpaceRef": page[-1]["spaceRef"],
-                }
+                cursor = (
+                    None
+                    if not page
+                    else {
+                        "beforeCreatedAt": page[-1]["createdAt"],
+                        "beforeSpaceRef": page[-1]["spaceRef"],
+                    }
+                )
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-space-list",
@@ -930,16 +949,17 @@ class SocialStore:
             raise ValueError("query must be non-empty")
         if type(limit) is not int or not 1 <= limit <= 200:
             raise ValueError("limit must be in [1,200]")
-        if before_sequence is not None and (type(before_sequence) is not int or before_sequence < 1):
+        if before_sequence is not None and (
+            type(before_sequence) is not int or before_sequence < 1
+        ):
             raise ValueError("before_sequence must be positive")
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         # PostgreSQL 'simple' FTS does not segment Chinese words. Match a
         # single unspaced CJK phrase literally so it can occur within a
         # longer Chinese token; preserve historical FTS for other queries.
         # The predicate is fixed SQL and query bytes stay parameter-bound.
-        cjk_literal = (
-            any("\u3400" <= char <= "\u9fff" for char in query)
-            and not any(char.isspace() for char in query.strip())
+        cjk_literal = any("\u3400" <= char <= "\u9fff" for char in query) and not any(
+            char.isspace() for char in query.strip()
         )
         search_predicate = (
             "strpos(body,%s)>0"
@@ -964,7 +984,16 @@ class SocialStore:
                 "FROM messages WHERE " + search_predicate + " "
                 "AND (%s::text IS NULL OR space_ref=%s) AND (%s::text IS NULL OR topic_ref=%s) "
                 "AND (%s::bigint IS NULL OR sequence<%s) ORDER BY sequence DESC LIMIT %s",
-                (query, space_ref, space_ref, topic_ref, topic_ref, before_sequence, before_sequence, limit + 1),
+                (
+                    query,
+                    space_ref,
+                    space_ref,
+                    topic_ref,
+                    topic_ref,
+                    before_sequence,
+                    before_sequence,
+                    limit + 1,
+                ),
             ).fetchall()
             sql_more = len(rows) > limit
             for row in rows[:limit]:
@@ -995,7 +1024,8 @@ class SocialStore:
                     "nextBeforeSequence": None if not page else int(page[-1]["sequence"]),
                     "rankingApplied": False,
                     "ordering": "sequence_desc",
-                    "truthBoundary": search_boundary + " ordered by message sequence, not relevance/priority; message claims require owner-native verification",
+                    "truthBoundary": search_boundary
+                    + " ordered by message sequence, not relevance/priority; message claims require owner-native verification",
                 }
 
             page, byte_more = bounded_prefix(
@@ -1014,7 +1044,8 @@ class SocialStore:
                 "nextBeforeSequence": int(page[-1]["sequence"]) if has_more and page else None,
                 "rankingApplied": False,
                 "ordering": "sequence_desc",
-                "truthBoundary": search_boundary + " ordered by message sequence, not relevance/priority; message claims require owner-native verification",
+                "truthBoundary": search_boundary
+                + " ordered by message sequence, not relevance/priority; message claims require owner-native verification",
             }
 
     def resume_topic(
@@ -1107,9 +1138,21 @@ class SocialStore:
         ).fetchone()
         if space is None:
             raise SpaceNotFound(space_ref)
-        subject_count = int(conn.execute("SELECT count(*) AS n FROM space_subjects WHERE space_ref=%s", (space_ref,)).fetchone()["n"])
-        participant_count = int(conn.execute("SELECT count(*) AS n FROM participations WHERE space_ref=%s", (space_ref,)).fetchone()["n"])
-        topic_count = int(conn.execute("SELECT count(*) AS n FROM topics WHERE space_ref=%s", (space_ref,)).fetchone()["n"])
+        subject_count = int(
+            conn.execute(
+                "SELECT count(*) AS n FROM space_subjects WHERE space_ref=%s", (space_ref,)
+            ).fetchone()["n"]
+        )
+        participant_count = int(
+            conn.execute(
+                "SELECT count(*) AS n FROM participations WHERE space_ref=%s", (space_ref,)
+            ).fetchone()["n"]
+        )
+        topic_count = int(
+            conn.execute(
+                "SELECT count(*) AS n FROM topics WHERE space_ref=%s", (space_ref,)
+            ).fetchone()["n"]
+        )
         subject_rows = conn.execute(
             "SELECT subject_ref FROM space_subjects WHERE space_ref=%s ORDER BY subject_ref LIMIT 129",
             (space_ref,),
@@ -1240,11 +1283,8 @@ class SocialStore:
                 and target["topic_ref"] != source["topic_ref"]
             ):
                 raise ConflictError("reply_to cannot cross topics")
-            if (
-                value.relation == MessageRelationKind.REPLY_TO
-                and not _reply_target_precedes_source(
-                    source["sequence"], target["sequence"]
-                )
+            if value.relation == MessageRelationKind.REPLY_TO and not _reply_target_precedes_source(
+                source["sequence"], target["sequence"]
             ):
                 # Immutable identity ordinals form a strict descending rank
                 # for every reply edge, so its transitive closure is acyclic.
