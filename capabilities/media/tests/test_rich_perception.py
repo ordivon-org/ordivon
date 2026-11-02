@@ -8,18 +8,18 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from ordivon_studio.rich_perception import (
+from ordivon_studio.guardian_article import (
     ARTICLE_RICH_FEATURES,
-    _correlation,
     article_structure_features,
+    paired_discrimination,
+)
+from ordivon_studio.perception_profiles import _correlation, canonical_digest, profile_signature
+from ordivon_studio.rich_perception import (
     audio_structure_features,
-    canonical_digest,
     crossmodal_circular_shift_null,
     crossmodal_profile_coupling,
     cue_boundary_silence_score,
     media_intervention_report,
-    paired_discrimination,
-    profile_signature,
     structural_distance,
     video_structure_features,
 )
