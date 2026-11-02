@@ -16,6 +16,7 @@ from .ordivon.sqlite_agent_bridge import (
     NO_TOOL_AGENT_SURFACE_DIGEST,
     SQLiteHarnessAgentBridge,
 )
+from .ordivon.run_store_port import HarnessRunContinuityStore
 from .ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
 from .ordivon.sqlite_runtime_bridge import (
     INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
@@ -46,7 +47,7 @@ class HarnessToolBridgeFactory(Protocol):
     def build(
         self,
         contract: HarnessRunContract,
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: HarnessRunContinuityStore,
         *,
         provider_source=None,
     ) -> ToolBridge: ...

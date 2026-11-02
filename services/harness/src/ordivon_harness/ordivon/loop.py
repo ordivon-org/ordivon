@@ -258,6 +258,35 @@ class RunBudget:
         }
 
 
+def _soft_observation_gate_reason(
+    budget: RunBudget, no_progress_turns: int, observation_only_turns: int
+) -> str | None:
+    """Pure decision for the persisted observation counters.
+
+    Preserve the existing order: no-progress exhaustion wins when both
+    thresholds are reached. Zero disables that specific soft gate.
+    """
+    if (
+        budget.max_no_progress_turns > 0
+        and no_progress_turns >= budget.max_no_progress_turns
+    ):
+        return (
+            "external observation gate closed after "
+            f"{no_progress_turns} consecutive turns without a mutation, "
+            "check, materially new bounded observation, or conclusion"
+        )
+    if (
+        budget.max_observation_only_turns > 0
+        and observation_only_turns >= budget.max_observation_only_turns
+    ):
+        return (
+            "external observation gate closed after "
+            f"{observation_only_turns} consecutive observation-only turns "
+            "without a mutation, check, or conclusion"
+        )
+    return None
+
+
 @dataclass(frozen=True, slots=True)
 class AgentLoopResult:
     harness_run_id: str
@@ -607,29 +636,9 @@ class OrdivonAgentLoop:
         post_caller_tool_exchange_messages: list[dict[str, JsonValue]] = []
         transient_working_set_digest: str | None = None
 
-        def soft_observation_gate_reason() -> str | None:
-            if (
-                self.budget.max_no_progress_turns > 0
-                and no_progress_turns >= self.budget.max_no_progress_turns
-            ):
-                return (
-                    "external observation gate closed after "
-                    f"{no_progress_turns} consecutive turns without a mutation, "
-                    "check, materially new bounded observation, or conclusion"
-                )
-            if (
-                self.budget.max_observation_only_turns > 0
-                and observation_only_turns
-                >= self.budget.max_observation_only_turns
-            ):
-                return (
-                    "external observation gate closed after "
-                    f"{observation_only_turns} consecutive observation-only turns "
-                    "without a mutation, check, or conclusion"
-                )
-            return None
-
-        external_observation_gate_reason = soft_observation_gate_reason()
+        external_observation_gate_reason = _soft_observation_gate_reason(
+            self.budget, no_progress_turns, observation_only_turns
+        )
 
         retained_calls = _retained_tool_calls(messages)
         evidence_signatures: set[str] = set()
@@ -1238,7 +1247,9 @@ class OrdivonAgentLoop:
                     "noProgressTurns": no_progress_turns,
                 },
             )
-            gate_reason = soft_observation_gate_reason()
+            gate_reason = _soft_observation_gate_reason(
+                self.budget, no_progress_turns, observation_only_turns
+            )
             if gate_reason is not None:
                 newly_closed = external_observation_gate_reason is None
                 external_observation_gate_reason = gate_reason
