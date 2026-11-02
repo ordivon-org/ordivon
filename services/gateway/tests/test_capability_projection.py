@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from ordivon_gateway.capability_projection import project_execution_capability
+from ordivon_gateway.routes import default_routes
 from ordivon_gateway.service import GatewayService
 
 
@@ -291,3 +293,67 @@ def test_capability_search_rejects_invalid_bounds_without_owner_calls() -> None:
     with pytest.raises(Exception, match="between 1 and 50"):
         asyncio.run(service.capability_search(query="linux", limit=0))
     assert caller.calls == []
+
+
+def test_execution_descriptor_is_pure_and_preserves_owner_observation() -> None:
+    route = default_routes()["execution.windows"]
+    owner_response = {
+        "node": {"nodeId": "Windows-A"},
+        "targets": [
+            {
+                "target": "windows_native",
+                "configured": True,
+                "available": True,
+                "windowsContexts": [{"identity": "active_user", "privilege": "limited"}, "invalid"],
+                "windowsAuthorities": ["limited"],
+            }
+        ],
+    }
+    original = {
+        "node": dict(owner_response["node"]),
+        "targets": [
+            {
+                key: (list(value) if isinstance(value, list) else value)
+                for key, value in owner_response["targets"][0].items()
+            }
+        ],
+    }
+    descriptor = project_execution_capability(
+        route,
+        configured_at_gateway=True,
+        owner_response=owner_response,
+    )
+    assert descriptor.available is True
+    assert descriptor.context_mode == "provider-defined-json"
+    assert descriptor.contexts == [{"identity": "active_user", "privilege": "limited"}]
+    assert descriptor.owner_node_id == "Windows-A"
+    assert owner_response == original
+
+
+def test_projection_preserves_unconfigured_and_missing_target_distinction() -> None:
+    route = default_routes()["execution.linux"]
+    unconfigured = project_execution_capability(
+        route,
+        configured_at_gateway=False,
+        owner_response={"targets": [{"target": "local_linux", "available": True}]},
+        configuration_error="not installed",
+    )
+    assert not unconfigured.configured
+    assert not unconfigured.available
+    assert unconfigured.observation_error == "not installed"
+    unavailable = project_execution_capability(
+        route,
+        configured_at_gateway=True,
+        owner_response=None,
+        observation_error="read timeout",
+    )
+    assert unavailable.configured
+    assert not unavailable.available
+    assert unavailable.observation_error == "read timeout"
+    mismatched = project_execution_capability(
+        route,
+        configured_at_gateway=True,
+        owner_response={"targets": [{"target": "windows_native"}]},
+    )
+    assert not mismatched.configured
+    assert mismatched.observation_error == "owner did not advertise the routed execution target"

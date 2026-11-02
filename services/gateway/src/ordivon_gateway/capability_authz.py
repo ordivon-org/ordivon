@@ -9,8 +9,7 @@ from typing import Any, Protocol
 from mcp.server.context import CallNext, HandlerResult, ServerRequestContext
 from mcp_types import CallToolResult, TextContent
 
-from .errors import GatewayError
-from .routing import parse_execution_ref
+from .execution_refs import GatewayError, parse_execution_ref
 
 
 class CapabilityAuthorizer(Protocol):

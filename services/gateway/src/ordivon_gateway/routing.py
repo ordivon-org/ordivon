@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .errors import GatewayError
 from .research_routes import research_capabilities
 
 
@@ -81,21 +80,3 @@ def default_routes() -> dict[str, CapabilityRoute]:
             )
         )
     return {route.capability: route for route in routes}
-
-
-def format_execution_ref(owner_id: str, native_id: str) -> str:
-    return f"ordivon-exec:v1:{owner_id}:{native_id}"
-
-
-def parse_execution_ref(value: str) -> tuple[str, str]:
-    prefix = "ordivon-exec:v1:"
-    if not value.startswith(prefix):
-        raise GatewayError("invalid execution operationRef")
-    rest = value[len(prefix) :]
-    try:
-        owner_id, native_id = rest.rsplit(":", 1)
-    except ValueError as exc:
-        raise GatewayError("invalid execution operationRef") from exc
-    if owner_id not in {"runtime.linux", "runtime.windows", "external.pull"} or not native_id:
-        raise GatewayError("unsupported execution operationRef owner")
-    return owner_id, native_id
