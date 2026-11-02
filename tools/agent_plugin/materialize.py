@@ -10,80 +10,39 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = ROOT.parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+ROOT = REPO_ROOT
 DEFAULT_PLUGIN = REPO_ROOT / "extensions" / "ordivon-control-plane"
 DEFAULT_SKILLS = REPO_ROOT / ".agents" / "skills"
-# Keep the previous public names from the native release entrypoint.
+# Native package consumers and direct CLI both reuse the same source identity.
 if __package__:
-    from .agent_plugin_source import (
+    from .source import (
         MCP_SCHEMA as MCP_SCHEMA,
-    )
-    from .agent_plugin_source import (
         PLUGIN_SCHEMA as PLUGIN_SCHEMA,
-    )
-    from .agent_plugin_source import (
         assert_regular_tree,
         canonical_bytes,
         discover_skills,
+        read_json_object as read_json_object,
         sha256_bytes,
+        tree_digest as tree_digest,
         tree_manifest,
         validate_plugin_skeleton,
         validate_plugin_skeleton_without_source_rule,
     )
-    from .agent_plugin_source import (
-        read_json_object as read_json_object,
-    )
-    from .agent_plugin_source import (
-        tree_digest as tree_digest,
-    )
 else:
-    try:
-        from scripts.agent_plugin_source import (
-            MCP_SCHEMA as MCP_SCHEMA,
-        )
-        from scripts.agent_plugin_source import (
-            PLUGIN_SCHEMA as PLUGIN_SCHEMA,
-        )
-        from scripts.agent_plugin_source import (
-            assert_regular_tree,
-            canonical_bytes,
-            discover_skills,
-            sha256_bytes,
-            tree_manifest,
-            validate_plugin_skeleton,
-            validate_plugin_skeleton_without_source_rule,
-        )
-        from scripts.agent_plugin_source import (
-            read_json_object as read_json_object,
-        )
-        from scripts.agent_plugin_source import (
-            tree_digest as tree_digest,
-        )
-    except ModuleNotFoundError as exc:
-        if exc.name != "scripts":
-            raise
-        from agent_plugin_source import (
-            MCP_SCHEMA as MCP_SCHEMA,
-        )
-        from agent_plugin_source import (
-            PLUGIN_SCHEMA as PLUGIN_SCHEMA,
-        )
-        from agent_plugin_source import (
-            assert_regular_tree,
-            canonical_bytes,
-            discover_skills,
-            sha256_bytes,
-            tree_manifest,
-            validate_plugin_skeleton,
-            validate_plugin_skeleton_without_source_rule,
-        )
-        from agent_plugin_source import (
-            read_json_object as read_json_object,
-        )
-        from agent_plugin_source import (
-            tree_digest as tree_digest,
-        )
+    from source import (
+        MCP_SCHEMA as MCP_SCHEMA,
+        PLUGIN_SCHEMA as PLUGIN_SCHEMA,
+        assert_regular_tree,
+        canonical_bytes,
+        discover_skills,
+        read_json_object as read_json_object,
+        sha256_bytes,
+        tree_digest as tree_digest,
+        tree_manifest,
+        validate_plugin_skeleton,
+        validate_plugin_skeleton_without_source_rule,
+    )
 
 
 def git_head() -> str | None:

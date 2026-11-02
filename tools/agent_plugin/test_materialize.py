@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 import shutil
 import tempfile
@@ -8,17 +7,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "scripts" / "materialize_agent_plugin.py"
-SPEC = importlib.util.spec_from_file_location("materialize_agent_plugin", SCRIPT)
-assert SPEC and SPEC.loader
-MODULE = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(MODULE)
+ROOT = Path(__file__).resolve().parents[2]
+from tools.agent_plugin import materialize as MODULE
 
 
 class AgentPluginMaterializationTests(unittest.TestCase):
     def test_default_plugin_source_is_repository_extension(self) -> None:
-        expected = ROOT.parents[1] / "extensions" / "ordivon-control-plane"
+        expected = ROOT / "extensions" / "ordivon-control-plane"
         self.assertEqual(MODULE.DEFAULT_PLUGIN, expected)
         MODULE.validate_plugin_skeleton(MODULE.DEFAULT_PLUGIN)
 
