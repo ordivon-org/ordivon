@@ -9,7 +9,7 @@
     "sha256": "sha256:e2412d9aeb8f1fff72fd8fca925cb042efa06b8f334984fba0146f9f48c08f60"
   },
   "venueContract": {
-    "path": "meta/research/venues/fse-2027-research-r1.json",
+    "path": "profiles/research/publication/venues/fse-2027-research-r1.json",
     "sha256": "sha256:aae4178a0d533a6af9f7b88ebfdf12e93efecd0206ac9124158a783153eb41ed"
   },
   "evaluation": {

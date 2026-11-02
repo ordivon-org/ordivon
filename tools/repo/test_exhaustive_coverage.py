@@ -148,8 +148,8 @@ class FullCoverageTests(unittest.TestCase):
                                              policy)["standing"], "UNASSIGNED")
 
     def test_unlisted_region_overlap_fails_to_classify(self):
-        regions = [{"name": s, "paths": ["meta/research/"]} for s in ("one", "two")]
-        self.assertEqual(M.source_partition("meta/research/foo", {
+        regions = [{"name": s, "paths": ["profiles/research/"]} for s in ("one", "two")]
+        self.assertEqual(M.source_partition("profiles/research/foo", {
             "owners": [], "source_regions": regions})["standing"], "AMBIGUOUS")
 
     def test_scope_local_id_and_no_runtime_promotion(self):

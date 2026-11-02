@@ -161,11 +161,10 @@ Schemas:
 - `profiles/research/publication/perceptual-conformance-r1.schema.json`
 - `profiles/research/publication/carrier-attestation-r1.schema.json`
 
-Profiles/planning:
+Current publication profiles:
 
 - `profiles/research/publication/perceptual-conformance-r1.json`
 - `profiles/research/publication/publication-closure-r2.json`
-- `meta/research/planning/publication-perceptual-conformance-lego-r1.json`
 
 ## Legacy migration
 

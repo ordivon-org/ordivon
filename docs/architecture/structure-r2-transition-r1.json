@@ -453,7 +453,7 @@
       "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
-        "meta/research/"
+        "profiles/research/"
       ],
       "targetPaths": [
         "profiles/research/",
