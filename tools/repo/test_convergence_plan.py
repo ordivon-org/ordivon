@@ -1147,7 +1147,7 @@ class ConvergencePlanTests(unittest.TestCase):
         MODULE.validate_queue_task_selection(all_owners, all_tasks)
 
     def test_every_real_single_and_pair_owner_source_change_rejects_queue_omissions(self) -> None:
-        """R2.1 finite source-consumer closure: all 18 owner roots, every pair.
+        """R2.1 finite source-consumer closure: all 19 owner roots, every pair.
 
         This is a test of the actual native policy and tracked Git inputs,
         not a proof that unknown dynamic/installed consumers are complete.
@@ -1169,10 +1169,10 @@ class ConvergencePlanTests(unittest.TestCase):
                 and "/test" not in path
             ]
             samples[owner.name] = (code_paths or real_paths)[0]
-        self.assertEqual(len(samples), 18)
+        self.assertEqual(len(samples), 19)
         self.assertEqual(len(samples), len(set(samples.values())))
         groups = [(name,) for name in samples] + list(combinations(samples, 2))
-        self.assertEqual(len(groups), 18 + 153)
+        self.assertEqual(len(groups), 19 + 171)
         checks = 0
         for group in groups:
             changed = [samples[name] for name in group]
@@ -1493,7 +1493,7 @@ class ConvergencePlanTests(unittest.TestCase):
                 and "/test" not in path
             ]
             samples[owner.name] = (code_paths or paths)[0]
-        self.assertEqual(len(samples), 18)
+        self.assertEqual(len(samples), 19)
         cohorts = [(name,) for name in samples] + list(combinations(samples, 2))
         self.assertEqual(len(cohorts), 171)
         original_cases = len(examples)
