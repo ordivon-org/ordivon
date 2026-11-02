@@ -111,7 +111,7 @@ Canonical authorities recorded for R1:
 ## Prospective validation standing
 
 Detailed evidence:
-- `knowledge/lessons/lego-wave2-prospective-validation-r1.md`
+- `catalogs/knowledge/lessons/lego-wave2-prospective-validation-r1.md`
 - `evidence/acceptance/lego-theory-wave2-prospective-r1.json`
 
 Observed first-wave results:
@@ -137,6 +137,6 @@ Cross-domain validation adds adjacent control/effect questions that Information 
 - effect reconciliation oracle.
 
 Reference:
-- `knowledge/lessons/agent-security-cross-domain-destroyer-r1.md`
+- `catalogs/knowledge/lessons/agent-security-cross-domain-destroyer-r1.md`
 
 These are promoted as optional shared analytical laws, not Wave 2 replacement lenses and not common schema fields.

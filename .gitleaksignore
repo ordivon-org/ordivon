@@ -36,7 +36,7 @@
 7e635194fade9ae57d0774472aac8cc288116b6c:services/runtime/tests/unit/finance/test_paper_dogfood_boundaries.py:generic-api-key:175
 7e635194fade9ae57d0774472aac8cc288116b6c:services/runtime/tests/unit/finance/test_paper_dogfood_boundaries.py:generic-api-key:191
 7e635194fade9ae57d0774472aac8cc288116b6c:services/runtime/tests/unit/finance/test_paper_dogfood_boundaries.py:generic-api-key:207
-8dd646d524aea53097e376763a6b7c9c85de4405:meta/next/knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
+8dd646d524aea53097e376763a6b7c9c85de4405:catalogs/knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
 ab1ff4d671aeff42081d8d5a3c773a0ef4c7cc8a:evidence/harness-r3-static-composition-admission-4e9d4b9.json:generic-api-key:67
 ace0aee2b28d8f5dfcc8ebf41d1cea7d1ee36a93:domains/game/test/provider-preflight.test.ts:generic-api-key:67
 b2e4d37828e0ea6d6f423a8835202e0ddf786c5a:crates/ordivon-runtime-mcp/src/access_auth.rs:private-key:143
@@ -61,7 +61,7 @@ fbdc008cb18ff4d9d4828f963851572601ec65c5:platform/security/labs/agent-admission-
 fbdc008cb18ff4d9d4828f963851572601ec65c5:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:81
 fd50471332622dda90f1bea23962333b8f2cd6a1:migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
 knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
-meta/next/knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
+catalogs/knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
 meta/next/migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
 migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
 platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-E2E-R1.json:generic-api-key:107

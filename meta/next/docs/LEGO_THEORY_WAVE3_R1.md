@@ -100,9 +100,9 @@ A theory earns retention only through corrected decisions, falsifiable experimen
 ## Prospective validation result
 
 Canonical evidence:
-- knowledge/lessons/lego-wave3-prospective-validation-r1.md
+- catalogs/knowledge/lessons/lego-wave3-prospective-validation-r1.md
 - evidence/acceptance/lego-theory-wave3-prospective-r1.json
-- knowledge/lessons/lego-wave23-self-audit-r1.md
+- catalogs/knowledge/lessons/lego-wave23-self-audit-r1.md
 
 Standing:
 - exploration policy: PROSPECTIVELY_VALIDATED_SCOPE_GUARD; concrete bandit algorithms remain conditional on repeated comparable feedback;

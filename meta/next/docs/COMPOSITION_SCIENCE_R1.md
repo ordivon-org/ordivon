@@ -831,7 +831,7 @@ External sources are intellectual substrates, not Ordivon authority replacements
 - NASA assume-guarantee / compositional verification: https://ntrs.nasa.gov/citations/20030017771
 - NASA CoCoSim compositional verification tutorial: https://ntrs.nasa.gov/citations/20220009652
 - Pascal Le Masson, Armand Hatchuel, Benoit Weil, C-K Design Theory overview, MINES Paris: https://www.tmci.minesparis.psl.eu/wp-content/uploads/2021/01/1.2.pdf
-- Existing Ordivon source map: knowledge/lessons/lego-theory-foundations-r1.md
+- Existing Ordivon source map: catalogs/knowledge/lessons/lego-theory-foundations-r1.md
 - Existing LEGO theory: docs/LEGO_THEORY_WAVE2_R1.md and docs/LEGO_THEORY_WAVE3_R1.md
 
 ## 21. Current standing

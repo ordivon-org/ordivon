@@ -29,4 +29,4 @@ Current project skills:
 
 The previous private `registry/` JSON experiment is retired. Its useful content was migrated into standard Agent Skills and repository guidance.
 
-See `knowledge/lessons/agent-skills-kernel.md` for the extracted design rules, prototype boundary, and project-study acceptance record.
+See `catalogs/knowledge/lessons/agent-skills-kernel.md` for the extracted design rules, prototype boundary, and project-study acceptance record.

@@ -61,4 +61,4 @@ Promote only a reviewed architecture decision. The DSM itself remains derived an
 Stop when the remaining coupling is either intentional and contractually bounded, or additional matrix refinement would not change a decomposition decision.
 
 Canonical local reference:
-- knowledge/lessons/lego-theory-foundations-r1.md
+- catalogs/knowledge/lessons/lego-theory-foundations-r1.md

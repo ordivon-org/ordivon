@@ -456,6 +456,6 @@ The record preserves the article as a useful structural hypothesis and converts 
 
 ## 15. Machine-readable companion
 
-See knowledge/graphs/ai-miracle-material-lego-case-r1.json.
+See catalogs/knowledge/graphs/ai-miracle-material-lego-case-r1.json.
 
 The JSON companion records nodes, typed edges, recomposed layers, missing components, and Ordivon mappings for graph analysis and later LEGO tooling.

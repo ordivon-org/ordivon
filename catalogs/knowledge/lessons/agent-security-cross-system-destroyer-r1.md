@@ -3,7 +3,7 @@
 Date: 2026-09-18
 Status: CROSS-SYSTEM PROSPECTIVE VALIDATION R1
 Systems: ZCode, OpenAI Codex, Anthropic Claude Code, Cursor, OpenCode, OpenClaw
-Parent lens: knowledge/lessons/agent-security-lego-r1.md
+Parent lens: catalogs/knowledge/lessons/agent-security-lego-r1.md
 
 ## 1. Question
 
@@ -63,8 +63,8 @@ Observed public sources checked on 2026-09-18:
 - https://docs.openclaw.ai/releases/2026.8.1/security-and-privacy
 
 ZCode remains the public reverse-engineering case already recorded in:
-- knowledge/lessons/zcode-workspace-snapshot-security-lego-r1.md
-- knowledge/graphs/zcode-workspace-snapshot-security-lego-r1.json
+- catalogs/knowledge/lessons/zcode-workspace-snapshot-security-lego-r1.md
+- catalogs/knowledge/graphs/zcode-workspace-snapshot-security-lego-r1.json
 
 No product is treated as globally "secure" or "insecure." Evidence applies to the documented execution regime and version window.
 

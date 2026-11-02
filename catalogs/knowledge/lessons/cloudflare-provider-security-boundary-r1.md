@@ -2,7 +2,7 @@
 
 Date: 2026-09-17
 Status: **REGISTERED DIAGNOSTIC MODEL**
-Graph: `knowledge/graphs/cloudflare-provider-security-boundary-r1.json`
+Graph: `catalogs/knowledge/graphs/cloudflare-provider-security-boundary-r1.json`
 
 ## Kernel
 

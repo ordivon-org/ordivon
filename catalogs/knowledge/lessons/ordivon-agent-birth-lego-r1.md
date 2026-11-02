@@ -4,7 +4,7 @@ Status: **CURRENT SOURCE DECOMPOSED / MIGRATION-READY / PROVIDER-BOUNDARY DIAGNO
 Date: 2026-09-18
 Current source examined: `/root/projects/ordivon-harness` @ `3f10f7bb7cb732e3b873fcc2aacb6ae7e9cf52f4`
 Observed production Agent Automation release: `3f10f7bb7cb732e3b873fcc2aacb6ae7e9cf52f4` (Provider Boundary R1 active)
-Node graph: `knowledge/graphs/ordivon-agent-birth-r1.json`
+Node graph: `catalogs/knowledge/graphs/ordivon-agent-birth-r1.json`
 
 ## 1. One-sentence kernel
 
@@ -262,7 +262,7 @@ provider root cause    not established
 
 Only narrow carrier/transport-local pre-SEND standings may fail over to another candidate. The Browser Security R9 result is carried only as `REFERENCE_ONLY_NOT_LIVE_ASSERTION`; preflight does not claim to re-run R1-R9 on every observation.
 
-Detailed evidence and routing law: `knowledge/lessons/agent-birth-provider-boundary-r1.md`.
+Detailed evidence and routing law: `catalogs/knowledge/lessons/agent-birth-provider-boundary-r1.md`.
 
 ## 8. Birth effect state machine
 
