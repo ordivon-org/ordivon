@@ -4,9 +4,9 @@ import json
 import unittest
 from pathlib import Path
 
-from scripts import authority_catalog as catalog
+from catalogs.authorities.scripts import authority_catalog as catalog
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 
 
 class AuthorityCatalogTests(unittest.TestCase):

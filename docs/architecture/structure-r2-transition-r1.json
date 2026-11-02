@@ -535,6 +535,31 @@
         "repo:ci"
       ],
       "wave": "S5"
+    },
+    {
+      "id": "authority-catalog-implementation",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/scripts/authority_catalog.py",
+        "meta/next/scripts/authority_catalog_sources.py",
+        "meta/next/scripts/authority_catalog_search.py",
+        "meta/next/scripts/check_authority_catalog_r1.py",
+        "meta/next/tests/test_authority_catalog.py"
+      ],
+      "targetPaths": [
+        "catalogs/authorities/scripts/",
+        "catalogs/authorities/tests/",
+        "catalogs/authorities/planning/"
+      ],
+      "verifyTasks": [
+        "next:verify",
+        "repo:ci"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "External authority source, observation, search, native CLI/validator/test, and NX01 owner LEGO are co-located in the existing catalogs/authorities natural source responsibility, without a new registry service."
     }
   ],
   "openSlices": [
