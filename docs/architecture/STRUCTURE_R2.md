@@ -107,6 +107,7 @@ wholesale:
   - S5 capability-catalog source placement completed at `catalogs/capabilities/`; other S5 splits remain open.
 - domain/composition profiles -> `profiles/`;
 - reusable knowledge mappings -> non-authoritative catalog/profile data;
+  S5 knowledge-catalog source placement: `catalogs/knowledge/`; other S5 work remains open.
 - experiments, evidence, planning, and migrations -> only to their real owner, study,
   test fixture, or repository history when a concrete consumer justifies retention.
 

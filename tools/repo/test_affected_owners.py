@@ -44,6 +44,17 @@ class AffectedOwnersTests(unittest.TestCase):
         )
         self.assertEqual(self.names("docs/agent-skills-example.md"), [])
 
+    def test_relocated_knowledge_selects_existing_next_consumer(self) -> None:
+        self.assertEqual(
+            self.names("catalogs/knowledge/lessons/temporal-durable-execution-kernel.md"),
+            ["next"],
+        )
+        self.assertEqual(
+            self.queue_tasks("catalogs/knowledge/graphs/ordivon-agent-birth-r1.json"),
+            ["next:verify"],
+        )
+        self.assertEqual(self.names("catalogs/unknown.md"), [])
+
     def test_runtime_release_workflow_selects_actual_runtime_verifier(self) -> None:
         # Tagged release workflow builds Runtime binary, SBOM and attestations.
         source = ".github/workflows/runtime-release.yml"

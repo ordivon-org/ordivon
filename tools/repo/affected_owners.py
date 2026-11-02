@@ -178,6 +178,9 @@ def owners_for_paths(
     project_skill_consumer_changed = any(
         path.startswith(".agents/skills/") for path in normalized
     )
+    knowledge_catalog_consumer_changed = any(
+        path.startswith("catalogs/knowledge/") for path in normalized
+    )
     selected: list[Owner] = []
     for owner in owners:
         if (
@@ -190,6 +193,7 @@ def owners_for_paths(
             )
             or (history_consumer_changed and owner.name == "composition")
             or (project_skill_consumer_changed and owner.name == "skills")
+            or (knowledge_catalog_consumer_changed and owner.name == "next")
             # Tagged Runtime release builds and attests Runtime artifacts.
             or (
                 owner.name == "runtime"
