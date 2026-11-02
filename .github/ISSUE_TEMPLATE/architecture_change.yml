@@ -1,0 +1,28 @@
+name: Architecture change
+description: Propose a change to a public contract or authority boundary.
+title: "[Architecture]: "
+body:
+  - type: textarea
+    id: failure
+    attributes:
+      label: Observed architecture failure
+    validations:
+      required: true
+  - type: textarea
+    id: boundary
+    attributes:
+      label: Existing authority, interface and consumers
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Minimal alternative and rejected approaches
+    validations:
+      required: true
+  - type: textarea
+    id: falsify
+    attributes:
+      label: Falsification, migration and rollback gates
+    validations:
+      required: true

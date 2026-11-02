@@ -12,6 +12,10 @@ See `docs/architecture/CURRENT_ARCHITECTURE.md` for the canonical deployed archi
 
 The non-deployed source-layout transition target is `docs/architecture/STRUCTURE_R2.md`. It does not override current owner paths until each relocation wave is independently accepted.
 
+Contributing? Start with [CONTRIBUTING](CONTRIBUTING.md). Report security
+issues privately via [SECURITY](SECURITY.md). See the
+[decision index](docs/decisions/README.md) for current architecture records.
+
 ## Where to start
 
 Choose the **current natural owner** by the fact or effect it controls; the repository path is a navigation aid, not a new authority or a permanent LEGO identity.

@@ -123,6 +123,33 @@ def main() -> int:
     assert WORKFLOW.is_file(), "missing root required workflow"
     assert RUNTIME_RELEASE_WORKFLOW.is_file(), "missing Runtime tagged-release workflow"
     assert CODEOWNERS.is_file(), "missing root CODEOWNERS"
+    for relative in (
+        "CONTRIBUTING.md",
+        "SECURITY.md",
+        "CODE_OF_CONDUCT.md",
+        ".github/pull_request_template.md",
+        "docs/decisions/README.md",
+    ):
+        assert (ROOT / relative).is_file(), f"missing root contributor entrypoint: {relative}"
+    template_directory = ROOT / ".github" / "ISSUE_TEMPLATE"
+    assert (template_directory / "config.yml").is_file(), "missing issue form configuration"
+    config = yaml.safe_load((template_directory / "config.yml").read_text(encoding="utf-8"))
+    assert isinstance(config, dict) and config.get("contact_links"), (
+        "security and support links must be explicit"
+    )
+    assert any(
+        "security/advisories/new" in str(link.get("url", ""))
+        for link in config["contact_links"]
+        if isinstance(link, dict)
+    ), "issue form must route vulnerabilities to private reporting"
+    for name in ("bug_report.yml", "capability_request.yml", "architecture_change.yml"):
+        document = yaml.safe_load((template_directory / name).read_text(encoding="utf-8"))
+        assert isinstance(document, dict) and document.get("name"), name
+        assert document.get("description") and isinstance(document.get("body"), list), name
+        assert any(
+            isinstance(item, dict) and item.get("validations", {}).get("required") is True
+            for item in document["body"]
+        ), f"issue form has no mandatory problem statement: {name}"
 
     config = yaml.safe_load(DEPENDABOT.read_text(encoding="utf-8"))
     assert config["version"] == 2

@@ -1,0 +1,23 @@
+name: Capability request
+description: A bounded requirement not served by existing mature capabilities.
+title: "[Capability]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal and measurable acceptance conditions
+    validations:
+      required: true
+  - type: textarea
+    id: reuse
+    attributes:
+      label: Existing providers and DELETE / REUSE / COMPOSE alternatives
+    validations:
+      required: true
+  - type: textarea
+    id: consumer
+    attributes:
+      label: Exact consumer, verification and risks
+    validations:
+      required: true
