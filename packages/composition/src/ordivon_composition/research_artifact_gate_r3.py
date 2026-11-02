@@ -20,11 +20,7 @@ from ordivon_composition import (
     compile_manifest,
     validate_gate_result,
 )
-
-try:
-    from scripts.cross_domain_binding_r3 import resolve_repo_file, validate_binding
-except ModuleNotFoundError:
-    from cross_domain_binding_r3 import resolve_repo_file, validate_binding
+from ordivon_composition.cross_domain_binding_r3 import resolve_repo_file, validate_binding
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -46,9 +42,7 @@ def _binding_section(binding: dict[str, Any]) -> dict[str, Any]:
         "expectedCarrierMechanics",
         "expectedDistributionEffect",
     )
-    if any(
-        not isinstance(section.get(key), str) or not section[key] for key in required
-    ):
+    if any(not isinstance(section.get(key), str) or not section[key] for key in required):
         raise CircuitContractError("binding researchArtifact section is incomplete")
     return section
 
@@ -86,9 +80,7 @@ def _dogfood_boundary_ok(dogfood: dict[str, Any]) -> bool:
     standing = evaluation.get("standing")
     human_gate_consistent = standing in {"PASS", "PENDING_HUMAN"}
     if standing == "PENDING_HUMAN":
-        human_gate_consistent = "HUMAN_PERCEPTUAL_SIGNOFF" in evaluation.get(
-            "humanGates", []
-        )
+        human_gate_consistent = "HUMAN_PERCEPTUAL_SIGNOFF" in evaluation.get("humanGates", [])
     return (
         dogfood.get("schemaVersion") == 1
         and dogfood.get("kind") == "research-publication-carrier-dogfood-receipt"
