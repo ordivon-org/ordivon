@@ -8,7 +8,7 @@ shell = "bash -c"
 config_roots = [
   "meta/next",
   "tools/formal",
-  "meta/next/experimental/episode-store-r1",
+  "meta/next/experiments/episode-store-r1",
   "packages/composition",
   "services/runtime",
   "services/host",
@@ -115,7 +115,7 @@ set -euo pipefail
 cd meta/next
 mise install
 mise run verify
-cd experimental/episode-store-r1
+cd experiments/episode-store-r1
 mise install
 mise run verify
 """
