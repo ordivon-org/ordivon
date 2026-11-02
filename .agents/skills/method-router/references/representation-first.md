@@ -88,4 +88,4 @@ or sufficiency proof, or create a new solver, registry or workflow.
 
 No record needed when an existing deterministic tool directly resolves the issue. Prefer deleting an obsolete mechanism over preserving it as a compatibility layer, **after** proving the consumer-visible requirement is met. Stop once the decision is evidence-backed; delete this reference if it does not improve real reform decisions.
 
-Read `meta/next/docs/META_THINKING_REPRESENTATION_R1.md` for authority boundaries and targeted pilots. For mature method disambiguation use `method-map.md`.
+Read `docs/architecture/COUNTEREXAMPLE_GUIDED_REPRESENTATION_R1.md` for authority boundaries and targeted pilots. For mature method disambiguation use `method-map.md`.
