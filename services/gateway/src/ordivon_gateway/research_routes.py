@@ -78,7 +78,7 @@ _PROJECTED = [
         "semantic_owner": "study.bibliographic-policy-and-source-authorities",
         "source_refs": [
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
-            "meta/research/publication-closure-profile-r2.json",
+            "profiles/research/publication/publication-closure-r2.json",
         ],
         "study_types": ["all"],
         "tags": ["research", "citation", "doi", "crossref", "bibtex", "csl"],
@@ -187,7 +187,7 @@ _PROJECTED = [
         "semantic_owner": "study.figure-and-claim-authority",
         "source_refs": [
             "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
-            "meta/research/publication/perceptual-conformance-profile-r1.json",
+            "profiles/research/publication/perceptual-conformance-r1.json",
         ],
         "study_types": ["all"],
         "tags": ["research", "figure", "visualization", "publication", "matplotlib"],
@@ -325,7 +325,7 @@ _PROJECTED = [
         "preferred_skills": ["research-publication-closure"],
         "semantic_owner": "study.publication-authority",
         "source_refs": [
-            "meta/research/publication-closure-profile-r2.json",
+            "profiles/research/publication/publication-closure-r2.json",
             ".agents/skills/research-publication-closure/SKILL.md",
         ],
         "study_types": ["all"],
@@ -353,7 +353,7 @@ _PROJECTED = [
         "preferred_skills": ["research-publication-perceptual-conformance"],
         "semantic_owner": "publication-perceptual-observer-protocol",
         "source_refs": [
-            "meta/research/publication/perceptual-conformance-profile-r1.json",
+            "profiles/research/publication/perceptual-conformance-r1.json",
             ".agents/skills/research-publication-perceptual-conformance/SKILL.md",
         ],
         "study_types": ["all"],
