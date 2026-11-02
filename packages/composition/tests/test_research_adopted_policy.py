@@ -33,10 +33,10 @@ class ResearchAdoptedPolicyTests(unittest.TestCase):
         self.assertIn('input.delegation.decision == "ALLOW"', policy)
 
     def test_policy_engine_is_not_declared_global_authority_waist(self) -> None:
-        boundary = (ROOT / "policies" / "CONSUMPTION_BOUNDARY_R1.md").read_text()
+        boundary = (ROOT.parents[1] / "docs/architecture/CONSUMPTION_BOUNDARY_R1.md").read_text()
         self.assertIn(
             "OPA is not a new global waist",
-            (ROOT / "policies" / "README.md").read_text(),
+            (ROOT.parents[1] / "docs/architecture/POLICY_BOUNDARIES.md").read_text(),
         )
         self.assertIn("global `can_act()`", boundary)
         self.assertIn("Runtime", boundary)

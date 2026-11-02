@@ -411,17 +411,19 @@
       "disposition": "Move maintained task-local composition policy artifacts only; historical policy evidence stays with its provenance owner.",
       "id": "composition-policies",
       "mode": "split",
-      "owner": "next",
+      "owner": "composition",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/policies/"
       ],
       "targetPaths": [
-        "packages/composition/policies/"
+        "packages/composition/policies/",
+        "docs/architecture/"
       ],
       "verifyTasks": [
         "next:verify"
       ],
+      "standing": "DEPLOYED",
       "wave": "S5"
     },
     {
