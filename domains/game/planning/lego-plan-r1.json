@@ -394,80 +394,83 @@
     },
     {
       "id": "G09",
-      "label": "GodotNativeBranchingDialogue",
+      "label": "GodotRoomNarrativeGate",
       "kind": "native_narrative_adapter",
-      "responsibility": "Use upstream Dialogue Manager v4.2.0 as a native .dialogue compiler and branching renderer consumer while game-owned state and UI retain their authority",
-      "authority": "Game state owns token and gate legality; upstream Dialogue Manager owns text grammar, importing and branch evaluation; Godot owns scene/button/event runtime",
+      "responsibility": "Source-pinned upstream Dialogue Manager supplies branches inside real room gameplay while EncounterRules alone owns phase and room state",
+      "authority": "EncounterRules owns legal room transitions; upstream addon owns grammar and response evaluation; native adapter has no independent token ledger",
       "state": "IMPLEMENTED",
       "inputs": [
-        "imported source-pinned .dialogue Resource",
-        "game-owned gate state and native Button choices"
+        "native EncounterRules snapshot and cleared-phase derived token",
+        "imported DialogueResource and Button choice"
       ],
       "outputs": [
-        "native dialogue and conditional response choices",
-        "game-owned state transition with UI feedback"
+        "narrative choice projection",
+        "legal room advancement through existing rules or preserved state"
       ],
-      "behavioralContract": "Upstream addon selects responses and executes a permitted game state method through injected state. It never owns token legality or gate state; selecting leave and a disabled option preserve rules.",
+      "behavioralContract": "Unlock delegates solely to EncounterRules.advance on cleared room; Leave preserves rules; reset hides transient narrative; no duplicate authoritative token state",
       "acceptance": [
-        "Pinned Godot 4.7.2 editor imports the real upstream .dialogue source.",
-        "Real Button choice invokes Dialogue Manager and game-owned spend_token, producing native state_changed UI feedback.",
-        "Leave branch and zero-token conditional preserve state; real scene boots and native headless acceptance exits clean."
+        "Room clear triggers actual Dialogue Manager response; Unlock progresses real gameplay",
+        "Leave/door button do not bypass narrative; audio and save remain rule-owned",
+        "Godot 4.7.2 imports addon and runs actual integrated scene"
       ],
       "evidence": [
-        "examples/dialogue-composition/README.md",
-        "examples/dialogue-composition/addons/dialogue_manager/plugin.cfg",
-        "examples/dialogue-composition/addons/dialogue_manager/LICENSE",
-        "examples/dialogue-composition/gate.dialogue"
+        "examples/room-encounter/addons/dialogue_manager/plugin.cfg",
+        "examples/room-encounter/addons/dialogue_manager/LICENSE",
+        "examples/room-encounter/narrative/gate.dialogue"
       ],
       "dependencies": [],
       "sharedRefs": [],
       "mustNotOwn": [
-        "third-party upstream compiler/editor or a new dialogue DSL",
-        "game-owned rules, remote room encounter product, human enjoyment authority"
+        "upstream compiler",
+        "a second authoritative token/quest ledger",
+        "human enjoyment or universal game engine"
       ],
       "consumerEvidence": [
-        "examples/dialogue-composition/main.tscn",
-        "examples/dialogue-composition/story_root.gd",
-        "examples/dialogue-composition/gate_state.gd",
-        "examples/dialogue-composition/acceptance.gd",
+        "examples/room-encounter/main.tscn",
+        "examples/room-encounter/encounter_root.gd",
+        "examples/room-encounter/narrative/encounter_dialogue.gd",
+        "examples/room-encounter/narrative/gate_state.gd",
+        "examples/room-encounter/narrative/acceptance.gd",
         "mise.toml"
       ],
       "recursiveLegoR21": {
         "I": [
-          "imported DialogueResource, Button choice, injected game state"
+          "EncounterRules snapshot, DialogueResource, native input choice"
         ],
         "O": [
-          "dialogue response projection and authorized game state mutation"
+          "narrative response UI and legal room advancement"
         ],
         "S": [
-          "game.tokens and game.unlocked, never authoritative in the addon"
+          "transient UI choice state; token derived from real cleared phase"
         ],
         "pre": [
-          "Godot 4.7.2 and upstream addon v4.2.0 exact SHA bbf9d2a5f6a9eaa276310eea8b1379a936239d2e",
-          "native .dialogue import succeeds; unlock response requires tokens > 0"
+          "Godot 4.7.2 and pinned Dialogue Manager v4.2.0",
+          "Game room initialized; unlock only when cleared"
         ],
         "post": [
-          "unlock response spends one token and opens the gate; leave response keeps state"
+          "Unlock invokes legal EncounterRules.advance; Leave preserves real state"
         ],
         "inv": [
-          "only the game-owned Node changes token and gate legality",
-          "independent scene instances have independent game rules"
+          "EncounterRules alone owns gameplay state",
+          "narrative has no second token ledger",
+          "sound only on legitimate combat"
         ],
         "eff": [
-          "native resource import, Button.pressed, external game method call and state_changed observation"
+          "native source-pinned import, UI Button, rule transition and Signal projection"
         ],
-        "c": "Per-line traversal bounded by scenario size; general narrative compiler cost unmeasured",
-        "epsilon": "Physical UI, input latency, localization, narrative quality and human enjoyment remain UNKNOWN",
+        "c": "O(number of responses) native choice render; actual engine latency unmeasured",
+        "epsilon": "Human enjoyment, localization and accessibility UNKNOWN",
         "prov": [
           "upstream nathanhoad/godot_dialogue_manager v4.2.0 commit bbf9d2a5f6a9eaa276310eea8b1379a936239d2e",
           "vendored upstream MIT LICENSE retained verbatim",
           "Godot version locked in mise.toml"
         ],
         "unfold": [
-          "examples/dialogue-composition/main.tscn",
-          "examples/dialogue-composition/story_root.gd",
-          "examples/dialogue-composition/gate_state.gd",
-          "examples/dialogue-composition/acceptance.gd"
+          "examples/room-encounter/addons/dialogue_manager",
+          "examples/room-encounter/narrative/encounter_dialogue.gd",
+          "examples/room-encounter/narrative/gate_state.gd",
+          "examples/room-encounter/narrative/acceptance.gd",
+          "examples/room-encounter/main.tscn"
         ]
       }
     },
@@ -679,6 +682,20 @@
       ],
       "acceptance": [
         "Actual native ConfigFile save/readback; different tuning/invalid saved values reject atomically; legitimate action alone plays sound"
+      ]
+    },
+    {
+      "id": "GS8",
+      "objective": "Merge actual narrative consumer into native Room Encounter and retire standalone duplicate Godot project",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G09",
+        "G10"
+      ],
+      "acceptance": [
+        "Native combat-to-dialogue-to-room transition",
+        "Leave preserves room state; direct Door routes to choices",
+        "Upstream addon git moved unchanged and old demo removed"
       ]
     }
   ]
