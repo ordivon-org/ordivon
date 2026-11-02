@@ -9,7 +9,7 @@ from psycopg.types.json import Jsonb
 from .canonical_json import canonical_digest
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .errors import ConflictError
-from .social_work import (
+from .work_inputs import (
     ActorRefInput,
     WorkCreateInput,
     WorkRelationInput,

@@ -8,9 +8,9 @@ from uuid import uuid4
 import psycopg
 import pytest
 
-from ordivon_host_v2.social_graph import MessageInput, MessageKind, SpaceInput, TopicInput
+from ordivon_host_v2.collaboration_inputs import MessageInput, MessageKind, SpaceInput, TopicInput
 from ordivon_host_v2.social_store import SocialStore
-from ordivon_host_v2.social_work import ActorKind, ActorRefInput
+from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput
 from ordivon_host_v2.work_store import WorkStore
 
 DSN = os.getenv("ORDIVON_HOST_V2_TEST_DSN")
