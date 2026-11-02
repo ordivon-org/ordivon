@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
 import { WebProblem } from "./errors.ts";
-import { initializeWebStoreSchema } from "./store_schema.ts";
+import { initializeWebStoreSchema } from "./store-schema.ts";
 import type {
   AgentEffectReceipt,
   AgentEffectRequest,

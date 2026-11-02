@@ -16,7 +16,7 @@
       "requestSource": "apps/web/src/security-agent-verifier.ts",
       "admissionSource": "apps/web/src/agent-authority.ts",
       "storeSource": "apps/web/src/store.ts",
-      "schemaSource": "apps/web/src/store_schema.ts"
+      "schemaSource": "apps/web/src/store-schema.ts"
     },
     "requiredSeams": [
       {
