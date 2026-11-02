@@ -227,6 +227,17 @@ G07 is the separate Bevy ECS/Plugin game example (`cargo test --locked` and
 Neither is a launched indie game. A future playable 5-minute product must
 have its own playable build and product evidence; never promote fixture PASS.
 
+**Narrative native consumer G09:** `examples/dialogue-composition/`
+uses the current upstream MIT Dialogue Manager v4.2.0 with an exact source
+pin, its ordinary `.dialogue` importer and runtime, and one Godot 4.7.2
+project. The scene Control/Buttons own choice presentation; a separate
+game-state Node owns token and gate rules, projecting changes through a
+native `state_changed` Signal. The addon supplies branch and condition
+evaluation; `mise run test:dialogue-native` checks native import,
+accepted mutation, alternate branch and unavailable choice. Do **not**
+introduce an Ordivon dialogue DSL, duplicate renderer/backend or claim
+story quality, accessibility and a shipped product from a headless test.
+
 **Composition criterion:** for required property P and components A,B,
 the environment must discharge each required precondition/assumption, their
 outputs and effects must be compatible, and observable composed behavior must

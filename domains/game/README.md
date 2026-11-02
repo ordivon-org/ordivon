@@ -31,7 +31,7 @@ Inspect four evidence-bound composition proposals without installing them:
 Plans are in `planning/prototype-composition-candidates-r1.json`; provider
 source evidence is already in the Game knowledge index. One Godot-native
 micro-loop is executable today via `mise run test:native`; external
-art/AI/dialogue/audio additions remain uninstalled candidate slots.
+art and AI additions remain independent candidates; native sound and Dialogue Manager narrative have executable example consumers.
 
 ## Directly reusable LEGO
 
@@ -92,6 +92,15 @@ feedback and resource/scene replacement. The executable example lives in
 examples/native-composition with its own acceptance test. It has a composition
 root, grid rules, configuration Resource and interchangeable state-view scenes.
 No historical product or generic game framework was restored.
+
+## Native narrative LEGO
+
+G09: `examples/dialogue-composition/` installs upstream Dialogue Manager
+v4.2.0 under Godot 4.7.2. This native addon imports real `.dialogue`
+source; Control buttons select branches, while a separate Godot game-state
+Node is the only authority for tokens and gate rules. Run
+`mise run test:dialogue-native`. Its scope is an executed two-branch
+consumer, not a completed or human-tested narrative game.
 
 ## Owner operating contract
 

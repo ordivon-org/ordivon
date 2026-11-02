@@ -386,6 +386,85 @@
           "examples/native-composition/assert_audio.gd"
         ]
       }
+    },
+    {
+      "id": "G09",
+      "label": "GodotNativeBranchingDialogue",
+      "kind": "native_narrative_adapter",
+      "responsibility": "Use upstream Dialogue Manager v4.2.0 as a native .dialogue compiler and branching renderer consumer while game-owned state and UI retain their authority",
+      "authority": "Game state owns token and gate legality; upstream Dialogue Manager owns text grammar, importing and branch evaluation; Godot owns scene/button/event runtime",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "imported source-pinned .dialogue Resource",
+        "game-owned gate state and native Button choices"
+      ],
+      "outputs": [
+        "native dialogue and conditional response choices",
+        "game-owned state transition with UI feedback"
+      ],
+      "behavioralContract": "Upstream addon selects responses and executes a permitted game state method through injected state. It never owns token legality or gate state; selecting leave and a disabled option preserve rules.",
+      "acceptance": [
+        "Pinned Godot 4.7.2 editor imports the real upstream .dialogue source.",
+        "Real Button choice invokes Dialogue Manager and game-owned spend_token, producing native state_changed UI feedback.",
+        "Leave branch and zero-token conditional preserve state; real scene boots and native headless acceptance exits clean."
+      ],
+      "evidence": [
+        "examples/dialogue-composition/README.md",
+        "examples/dialogue-composition/addons/dialogue_manager/plugin.cfg",
+        "examples/dialogue-composition/addons/dialogue_manager/LICENSE",
+        "examples/dialogue-composition/gate.dialogue"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "third-party upstream compiler/editor or a new dialogue DSL",
+        "game-owned rules, remote room encounter product, human enjoyment authority"
+      ],
+      "consumerEvidence": [
+        "examples/dialogue-composition/main.tscn",
+        "examples/dialogue-composition/story_root.gd",
+        "examples/dialogue-composition/gate_state.gd",
+        "examples/dialogue-composition/acceptance.gd",
+        "mise.toml"
+      ],
+      "recursiveLegoR21": {
+        "I": [
+          "imported DialogueResource, Button choice, injected game state"
+        ],
+        "O": [
+          "dialogue response projection and authorized game state mutation"
+        ],
+        "S": [
+          "game.tokens and game.unlocked, never authoritative in the addon"
+        ],
+        "pre": [
+          "Godot 4.7.2 and upstream addon v4.2.0 exact SHA bbf9d2a5f6a9eaa276310eea8b1379a936239d2e",
+          "native .dialogue import succeeds; unlock response requires tokens > 0"
+        ],
+        "post": [
+          "unlock response spends one token and opens the gate; leave response keeps state"
+        ],
+        "inv": [
+          "only the game-owned Node changes token and gate legality",
+          "independent scene instances have independent game rules"
+        ],
+        "eff": [
+          "native resource import, Button.pressed, external game method call and state_changed observation"
+        ],
+        "c": "Per-line traversal bounded by scenario size; general narrative compiler cost unmeasured",
+        "epsilon": "Physical UI, input latency, localization, narrative quality and human enjoyment remain UNKNOWN",
+        "prov": [
+          "upstream nathanhoad/godot_dialogue_manager v4.2.0 commit bbf9d2a5f6a9eaa276310eea8b1379a936239d2e",
+          "vendored upstream MIT LICENSE retained verbatim",
+          "Godot version locked in mise.toml"
+        ],
+        "unfold": [
+          "examples/dialogue-composition/main.tscn",
+          "examples/dialogue-composition/story_root.gd",
+          "examples/dialogue-composition/gate_state.gd",
+          "examples/dialogue-composition/acceptance.gd"
+        ]
+      }
     }
   ],
   "edges": [
@@ -493,6 +572,19 @@
       "acceptance": [
         "The ordinary main.tscn boots with actual audio resource and rule binding.",
         "Real right-key transition, invalid action and substitute WAV pass native Godot execution; no claim of physical audio quality."
+      ]
+    },
+    {
+      "id": "GS6",
+      "objective": "Install and execute mature upstream Godot dialogue as native game-owned state consumer with branching and no custom compiler",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G09"
+      ],
+      "acceptance": [
+        "Exact latest stable Dialogue Manager v4.2.0 imports on Godot 4.7.2.",
+        "Two native branch outcomes and conditional unavailability preserve external rule authority.",
+        "No standalone product or human-playtest claim."
       ]
     }
   ]

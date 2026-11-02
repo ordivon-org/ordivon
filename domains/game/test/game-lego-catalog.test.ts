@@ -9,12 +9,13 @@ test('Game registers source-bound knowledge, native composition and effect respo
   const plan=load('planning/lego-plan-r1.json');
   assert.equal(plan.project.id,'ordivon-game');
   assert.equal(new Set(plan.nodes.map((n: any) => n.id)).size, plan.nodes.length);
-  for (const id of ['G01','G02','G03','G04','G05','G06','G07','G08'])
+  for (const id of ['G01','G02','G03','G04','G05','G06','G07','G08','G09'])
     assert.ok(plan.nodes.some((n: any) => n.id === id), 'missing observed responsibility '+id);
   assert.ok(plan.nodes.some((n: any) => n.id === 'G05' && n.kind === 'interface_adapter'));
   assert.ok(plan.nodes.some((n: any) => n.id === 'G06' && n.kind === 'verifier'));
   assert.ok(plan.nodes.some((n: any) => n.id === 'G07' && n.kind === 'native_composition_capability'));
   assert.ok(plan.nodes.some((n: any) => n.id === 'G08' && n.kind === 'native_effect_adapter'));
+  assert.ok(plan.nodes.some((n: any) => n.id === 'G09' && n.kind === 'native_narrative_adapter'));
   for(const n of plan.nodes) {
     for(const f of ['id','responsibility','inputs','outputs','behavioralContract','acceptance'])
       assert.ok(n[f]&&(!Array.isArray(n[f])||n[f].length),n.id+':'+f);
@@ -47,6 +48,7 @@ function validateNativeGameConsumerClaims(plan: any): void {
     G06: ['mise.toml', 'examples/native-composition/assert.gd', 'examples/native-composition/main.tscn'],
     G07: ['examples/bevy-native-composition/src/main.rs', 'examples/bevy-native-composition/src/gameplay.rs', 'examples/bevy-native-composition/Cargo.toml'],
     G08: ['examples/native-composition/composition_root.gd', 'examples/native-composition/main.tscn', 'examples/native-composition/assert_audio.gd'],
+    G09: ['examples/dialogue-composition/story_root.gd', 'examples/dialogue-composition/gate_state.gd', 'examples/dialogue-composition/main.tscn', 'examples/dialogue-composition/acceptance.gd', 'mise.toml'],
   };
   for (const id of Object.keys(required))
     assert.ok(plan.nodes.some((n: any) => n.id === id), id + ': known native consumer missing');

@@ -16,11 +16,12 @@ assembly path. It does not supersede `../AGENTS.md` or
 | G06 native composition acceptance | `examples/native-composition` | Godot Resource, PackedScene, action rules and Signal-bound presentation substitution |
 | G07 Bevy native product assembly | `examples/bevy-native-composition` | Rust pure rules -> Bevy ECS/Plugin/graphics source, locked cargo build + bounded native tests |
 | G08 Godot movement audio effect | `examples/native-composition/movement_audio_feedback.gd`, original main scene, asset-local CC0 provenance | Actual GridRules Signal -> native AudioStreamPlayer, replaceable AudioStream and Godot execution |
+| G09 native branching narrative | `examples/dialogue-composition/` vendored upstream Dialogue Manager v4.2.0, `gate.dialogue` and separate `gate_state.gd` | Upstream editor/compiler/conditions can change independently from game state, scene and UI |
 
 **Observed edges:** G01/G02 source knowledge is read by G05 CLI
 consumers; G02 feeds G03 derived graph and contextual G04 counterexamples;
 G03 and G04 have independent CLI readers; G06 exercises engine-native
-composition independently from read-only knowledge. G07 and G08 have their
+composition independently from read-only knowledge. G07, G08 and G09 have their
 own installed native consumers and do not acquire G01-G05 as fake runtime
 dependencies. G08 observes the Godot G06 example's *actual* rule Signal; G07
 runs a separate Bevy ECS App rather than an adapter between engines. The Game graph/experience

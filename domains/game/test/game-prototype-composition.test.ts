@@ -27,8 +27,22 @@ test("composition candidates resolve genuine external source evidence and expose
   assert.ok(existsSync(new URL("../" + bevy.currentConsumer, import.meta.url)));
   const other = result.items.filter((recipe) => recipe.id !== native?.id && recipe.id !== bevy?.id);
   assert.ok(other.every((recipe) => recipe.standing === "DESIGN_CANDIDATE"));
-  assert.ok(result.items.filter((recipe) => recipe.id !== native?.id)
-    .every((recipe) => recipe.components.every((component) => component.standing === "SOURCE_DOCUMENTED")));
+  // A native subcomponent can be executed without qualifying a whole game.
+  for (const recipe of result.items.filter((recipe) => recipe.id !== native?.id)) {
+    for (const component of recipe.components) {
+      if (recipe.id === "dialogue-led-exploration" && component.role === "dialogue") {
+        assert.equal(component.standing, "EXECUTED_NATIVE");
+      } else {
+        assert.equal(component.standing, "SOURCE_DOCUMENTED", recipe.id + "/" + component.role);
+      }
+    }
+  }
+  const plan = JSON.parse(readFileSync(new URL("../planning/prototype-composition-candidates-r1.json", import.meta.url), "utf8"));
+  const dialogue = plan.recipes.find((recipe: any) => recipe.id === "dialogue-led-exploration");
+  assert.equal(dialogue.standing, "DESIGN_CANDIDATE");
+  const nativeDialogue = dialogue.components.find((component: any) => component.role === "dialogue");
+  assert.equal(nativeDialogue.standing, "EXECUTED_NATIVE");
+  assert.ok(existsSync(new URL("../" + nativeDialogue.currentConsumer, import.meta.url)));
 });
 
 test("source-backed candidate selection preserves engine constraints and does not invent implementation state", () => {
