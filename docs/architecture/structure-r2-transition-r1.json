@@ -418,6 +418,7 @@
       "mode": "move",
       "owner": "next",
       "semanticTypeClaim": "none",
+      "standing": "DEPLOYED",
       "sourcePaths": [
         "meta/next/domains/"
       ],

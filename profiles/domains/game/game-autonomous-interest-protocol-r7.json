@@ -192,7 +192,7 @@
       "R7SELFTEST02",
       "R7SELFTEST03"
     ],
-    "schema": "domains/game/game-autonomous-interest-model-r7.schema.json",
+    "schema": "profiles/domains/game/game-autonomous-interest-model-r7.schema.json",
     "schemaValidator": {
       "executable": "/root/.local/bin/check-jsonschema",
       "sha256": "sha256:95ceb8a922618479d4d9b73fc55a979013290f160922e5fc6e747dfd759a2e9a",
