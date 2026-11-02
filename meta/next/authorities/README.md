@@ -36,7 +36,7 @@ Currentness is append-only evidence separate from authority identity. A newer ob
 authorities/generated/authority-index.json
 ```
 
-The index is disposable and reproducible. It contains only Level-0 discovery metadata and exact source digests. Delete it and rebuild it at any time.
+The index is disposable and reproducible. CLI discovery (list / find) derives it from records and dated observations, so no committed materialized copy or pre-build is required. The optional build command writes an ignored cache/export at the path above. It contains only Level-0 discovery metadata and exact source digests.
 
 ### Progressive loading
 

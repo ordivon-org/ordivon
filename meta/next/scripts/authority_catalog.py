@@ -208,11 +208,8 @@ def write_index(index: dict, path: Path = INDEX) -> None:
 
 
 def load_index() -> dict:
-    if not INDEX.is_file():
-        raise SystemExit(
-            f"generated index missing: {INDEX}; run authority_catalog.py build"
-        )
-    return read_json(INDEX)
+    """Derive discovery truth from current records/observations, not stale cache bytes."""
+    return build_index()
 
 
 def tokens(text: str) -> list[str]:
