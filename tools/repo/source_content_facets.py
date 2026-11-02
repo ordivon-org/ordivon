@@ -347,13 +347,17 @@ def compile_projection(repo: Path, cut: str) -> dict:
     dense_summary=[]
     for label in dense:
         name=label["proposedName"];paths=sorted(dense_hits[name])
-        if not paths: raise ValueError("prior dense label became empty: "+name)
+        # Historical naming seeds are not an active-path authority. Source
+        # relocation or retirement can legitimately leave a lexical seed
+        # with no current physical members; report zero instead of requiring
+        # an obsolete directory or inventing a second relocation registry.
         byform=collections.Counter(r["contentProbe"]["contentForm"] for r in path_rows if r["path"] in set(paths))
         dense_summary.append({"cellRef":label["sourceCell"],"label":name,
                               "oldCount":label["baselineCount"],"newCount":len(paths),
                               "sourceCutDrift":len(paths)-label["baselineCount"],
                               "observedForms":dict(sorted(byform.items())),
-                              "scopeStanding":"DENSE_LABEL_CONTENT_SYNTAX_REFINEMENT_ONLY"})
+                              "scopeStanding":"DENSE_LABEL_CONTENT_SYNTAX_REFINEMENT_ONLY" if paths
+                              else "HISTORICAL_LABEL_NO_CURRENT_PHYSICAL_MATCH"})
     payload={
       "kind":"ordivon.phase1.source-content-facets-r4",
       "sourceCut":cut,"sourceTree":git("rev-parse",cut+"^{tree}",repo=repo).decode().strip(),
