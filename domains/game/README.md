@@ -73,6 +73,13 @@ actual scene/resource configuration, action transitions, native Signal-to-UI
 feedback and resource/scene replacement. The fixture lives at
 test/fixtures/native-godot-assembly. No products or experiments were added.
 
+## Owner operating contract
+
+The detailed three-track Game engineering program, representation rules, native
+composition criteria and publication loop live in [AGENTS.md](AGENTS.md).
+The current boundary and external-reference decisions live in
+[architecture-and-composition.md](docs/architecture-and-composition.md).
+
 ## Assembly
 
 Choose a real consumer and target behavior. Reuse mature game engines,
