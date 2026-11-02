@@ -40,6 +40,12 @@ Their shared, pure input parsing policy lives in `src/query-input.ts`:
 individual queries still own their source datasets, filter semantics and result caps.
 The internal module does not claim Game design authority or create a query registry.
 
+G03 relationship projection separates `src/mechanism-relationship-graph.ts`
+(pure derivation from the exact library/spec source bytes) from the stable
+`scripts/build-mechanism-relationship-graph.ts` command (file I/O and JSON
+publication). Use the existing `pnpm build:relationship-graph` to rebuild the
+committed derived graph; source digests and retrieval semantics are unchanged.
+
 ## Native composition acceptance
 
 G06 in planning/lego-plan-r1.json registers a bounded native-Godot
