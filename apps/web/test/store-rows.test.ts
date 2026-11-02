@@ -8,7 +8,7 @@ import {
   grantFromRow,
   principalFromRow,
   sessionFromRow,
-} from "../src/store_rows.ts";
+} from "../src/store-row-projections.ts";
 
 test("row projections preserve principal and session identities without DB access", () => {
   assert.deepEqual(principalFromRow({
