@@ -30,16 +30,23 @@ func run_acceptance() -> void:
     root.add_child(game)
     var rules = game.get_node("Rules")
     var view = game.get_node("View")
+    var audio = game.get_node("EncounterAudio")
+    expect(audio.stream is AudioStream, "installed CC0 audio decodes as native AudioStream")
+    expect(audio.observed_play_count == 0, "initial scene does not sound")
     var first = rules.snapshot()
     expect(first["phase"] == "fighting" and first["foes"] == 1, "native encounter starts")
     expect(view.get_node("Status").text.contains("ROOM 1/3"), "native UI observes initial state")
     expect(not rules.advance(), "closed room rejects door")
+    expect(audio.observed_play_count == 0, "illegal door action produces no audio")
     expect(rules.snapshot() == first, "illegal transition preserves state")
     view.get_node("Actions/Attack").pressed.emit()
     expect(rules.snapshot()["phase"] == "cleared", "native button input reaches authoritative rules")
+    expect(audio.observed_play_count == 1 and audio.playing, "button input to rules to sound")
     expect(view.get_node("Encounter").text.contains("CLEARED"), "UI observes clear by Signal")
     expect(not rules.attack(), "cleared room cannot be attacked")
+    expect(audio.observed_play_count == 1, "rejected combat action is silent")
     expect(rules.advance(), "advance enters next room")
+    expect(audio.observed_play_count == 1, "door transition is silent")
     expect(rules.snapshot()["room"] == 2, "room index advances")
     expect(rules.attack() and rules.attack(), "second room has two defeatable enemies")
     expect(rules.snapshot()["phase"] == "cleared", "second room cleared")
@@ -56,7 +63,11 @@ func run_acceptance() -> void:
     expect(not rules.guard(), "terminal rules reject combat action")
 
     var variant = load("res://configs/variant.tres")
+    var replacement_clip = load("res://assets/click2.wav")
+    expect(replacement_clip is AudioStream, "alternative licensed sound is available")
+    audio.stream = replacement_clip
     expect(rules.reset_run(variant), "user resource replaces native tuning")
+    expect(audio.stream == replacement_clip, "audio substitution keeps rule contract unchanged")
     expect(rules.snapshot()["total_rooms"] == 2, "user tuning changes room count")
     var before = rules.snapshot()
     var invalid = variant.duplicate(true)
@@ -77,6 +88,7 @@ func run_acceptance() -> void:
     expect(replacement_view.modulate.g > 0.9, "alternative Godot scene has independent rendering")
     replacement_view.get_node("Actions/Attack").pressed.emit()
     expect(alternate.get_node("Rules").snapshot()["phase"] == "cleared", "alternate button invokes unchanged rule action")
+    expect(alternate.get_node("EncounterAudio").observed_play_count == 1, "alternate HUD retains sound consumer")
     expect(replacement_view.get_node("Encounter").text.contains("CLEARED"),
         "alternative view consumes native Signal")
 
@@ -95,8 +107,15 @@ func run_acceptance() -> void:
                 rules.advance()
             invariant(rules.snapshot())
 
-    game.queue_free()
-    alternate.queue_free()
+    audio.stop()
+    audio.stream = null
+    var alternate_audio: AudioStreamPlayer = alternate.get_node("EncounterAudio")
+    alternate_audio.stop()
+    alternate_audio.stream = null
+    game.free()
+    alternate.free()
+    replacement_clip = null
+    await create_timer(0.15).timeout
     if failures.is_empty():
         print("GAME_ROOM_ENCOUNTER_PASS assertions=%d traces=243" % checks)
         quit(0)
