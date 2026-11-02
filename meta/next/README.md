@@ -51,7 +51,6 @@ meta/next/
 ├── policies/        # remaining task-local policy source pending S5 split
 ├── tests/           # remaining Next verification consumers
 ├── scripts/         # remaining native commands/validators pending natural-owner move
-├── schemas/         # remaining cross-domain contracts
 ├── experiments/     # bounded, source-qualified experiments and their history
 ├── evidence/        # dated observations; not runtime configuration
 ├── planning/        # current/disposable task-specific plans

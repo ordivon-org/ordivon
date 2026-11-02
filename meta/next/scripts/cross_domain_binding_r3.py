@@ -4,16 +4,15 @@
 from __future__ import annotations
 
 import json
+from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
 from ordivon_composition import CircuitContractError
 
-BINDING_SCHEMA = (
-    Path(__file__).resolve().parents[1]
-    / "schemas"
-    / "cross-domain-verification-r3-binding.schema.json"
+BINDING_SCHEMA = files("ordivon_composition").joinpath(
+    "schemas", "cross-domain-verification-r3-binding.schema.json"
 )
 
 
