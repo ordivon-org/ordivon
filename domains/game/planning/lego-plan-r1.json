@@ -92,13 +92,13 @@
       "outputs": [
         "conditional relations"
       ],
-      "behavioralContract": "Rebuildable view; never a closed game ontology.",
+      "behavioralContract": "Source-byte derived view via read-only CLI; never a closed game ontology.",
       "acceptance": [
-        "Graph rebuild and retrieval equivalence."
+        "On-demand pure projection and retrieval equivalence from exact source bytes."
       ],
       "evidence": [
-        "knowledge/game_mechanism_relationship_graph_r1.json",
-        "scripts/build-mechanism-relationship-graph.ts",
+        "knowledge/game_mechanism_experience_library_r1.json",
+        "knowledge/game_mechanism_relationship_spec_r1.json",
         "src/mechanism-relationship-graph.ts"
       ],
       "dependencies": [],
@@ -109,7 +109,7 @@
         "human enjoyment authority"
       ],
       "consumerEvidence": [
-        "scripts/build-mechanism-relationship-graph.ts",
+        "scripts/mechanism-relationship-query.ts",
         "test/game-mechanism-relationship-graph.test.ts",
         "package.json"
       ]
@@ -197,20 +197,23 @@
       "inputs": [
         "Godot PackedScene",
         "native Resource configuration",
-        "legal and illegal player actions"
+        "named Godot InputMap actions (move_left/move_right) and legal/illegal player actions"
       ],
       "outputs": [
         "playable scene",
         "test evidence for bounded transitions and component substitution"
       ],
-      "behavioralContract": "Only the configured finite scene, resource contract and tested native signal/scene seams are validated. No universal game, player-value or third-party script safety proof.",
+      "behavioralContract": "Native InputMap maps physical inputs to move_left/move_right; composition root translates actions into bounded grid rule calls, where only accepted transitions emit state_changed for view/audio. A rebound physical key preserves those rule/feedback consumers without changing the rules. Valid only for this tested finite scene/resource/input contract; no universal game, player-value or third-party script safety proof.",
       "acceptance": [
         "Pinned Godot headless example boots as a real PackedScene.",
         "Bounded action exhaustions preserve state invariants and goal behavior.",
-        "Player Resource and alternate presentation PackedScene substitute without changing rules; invalid configuration is rejected atomically."
+        "Player Resource and alternate presentation PackedScene substitute without changing rules; invalid configuration is rejected atomically.",
+        "Engine-native physical InputEvent dispatch and live InputMap rebinding preserve rule, view, and licensed-audio consumers; removed bindings do not cause state changes."
       ],
       "evidence": [
         "examples/native-composition/main.tscn",
+        "examples/native-composition/project.godot",
+        "examples/native-composition/assert_audio.gd",
         "examples/native-composition/assert.gd",
         "examples/native-composition/configs/player_variant.tres"
       ],
@@ -225,7 +228,9 @@
       "consumerEvidence": [
         "mise.toml",
         "examples/native-composition/assert.gd",
-        "examples/native-composition/main.tscn"
+        "examples/native-composition/main.tscn",
+        "examples/native-composition/composition_root.gd",
+        "examples/native-composition/assert_audio.gd"
       ]
     },
     {

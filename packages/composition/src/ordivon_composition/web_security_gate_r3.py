@@ -20,11 +20,7 @@ from ordivon_composition import (
     compile_manifest,
     validate_gate_result,
 )
-
-try:
-    from scripts.cross_domain_binding_r3 import resolve_repo_file, validate_binding
-except ModuleNotFoundError:
-    from cross_domain_binding_r3 import resolve_repo_file, validate_binding
+from ordivon_composition.cross_domain_binding_r3 import resolve_repo_file, validate_binding
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -54,9 +50,7 @@ def read_linked_store_sources(repo_root: Path, binding: dict[str, Any]) -> str:
         or f'from "./{schema_path.name}"' not in store_text
         or "initializeWebStoreSchema(this.db)" not in store_text
     ):
-        raise CircuitContractError(
-            "WebStore must directly consume its bound schema source"
-        )
+        raise CircuitContractError("WebStore must directly consume its bound schema source")
     return store_text + "\n" + _read(schema_path)
 
 
@@ -143,9 +137,7 @@ def _source_boundary_ok(
     if any(token in combined for token in forbidden):
         return False
 
-    required_store_markers = tuple(
-        str(item) for item in section["requiredStoreMarkers"]
-    )
+    required_store_markers = tuple(str(item) for item in section["requiredStoreMarkers"])
     return (
         section["requestContractImport"] in request_source
         and section["admissionContractImport"] in admission_source
@@ -238,9 +230,7 @@ def main() -> int:
         binding = _load_json(args.binding)
         section = _binding_section(binding)
         paths = section["paths"]
-        dependency_path = resolve_repo_file(
-            args.repo_root, paths["dependencyContracts"]
-        )
+        dependency_path = resolve_repo_file(args.repo_root, paths["dependencyContracts"])
         with dependency_path.open("rb") as handle:
             dependencies = tomllib.load(handle)
         result = build_gate_result(

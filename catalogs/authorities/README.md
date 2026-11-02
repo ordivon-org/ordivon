@@ -82,7 +82,7 @@ Do **not** add a record merely because a standard, framework, provider, taxonomy
 
 Discovery is fail-closed for multi-token semantic queries: every meaningful query token must be represented by a candidate. Generic modifiers such as `latest`, `official`, or `standard` do not relax semantic identity. An empty result means **not registered / not resolved**, not that a vaguely similar authority should be substituted.
 
-Frozen seed closure evidence (retained original source path): `evidence/acceptance/authority-catalog-seed-closure-20260914.json`.
+Frozen seed closure evidence: `evidence/acceptance/authority-catalog-seed-closure-20260914.json`.
 
 ## Non-goals
 

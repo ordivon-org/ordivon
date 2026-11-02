@@ -43,3 +43,20 @@ cannot trigger a false attack sound. Source-to-native acceptance checks
 checkpoint readback, incompatible tuning and a damaged stored value.
 Cloud sync, migration across changed tuning, real sound hardware and
 human playtest remain unverified.
+
+
+## Real process-restart contract (one native storage port)
+
+`mise run test:encounter` includes a two-process headless acceptance using
+`assert_process_restart.gd`: the first Godot process saves a second-room,
+turn-2 checkpoint through the existing rule-owned checkpoint and built-in
+`ConfigFile`, exits, then a fresh independent Godot process loads the same
+temporary file. This new scene must render ROOM 2/3, remain silent on
+restore, and continue a legal attack with exactly one accepted-action
+sound. The test uses a unique temporary directory and cleans the slot
+after both process exits; no file is committed or retained.
+
+This is materially stronger than same-SceneTree save/load and demonstrates
+the process lifecycle seam without new game storage code. A packaged
+Linux/Windows build, cross-version migration, cloud sync and human player
+acceptance remain unverified.

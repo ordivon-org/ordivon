@@ -24,11 +24,14 @@ func _ready() -> void:
     movement_audio.bind_rules(rules)
     rules.reset_game()
 
-func _unhandled_key_input(event: InputEvent) -> void:
-    if event is InputEventKey and event.pressed and not event.echo:
-        if event.keycode == KEY_RIGHT:
-            rules.move(1)
-            get_viewport().set_input_as_handled()
-        elif event.keycode == KEY_LEFT:
-            rules.move(-1)
-            get_viewport().set_input_as_handled()
+# Godot InputMap owns device bindings. This root only translates named actions
+# into the game-specific, engine-independent rule port; view/audio stay separate.
+func _unhandled_input(event: InputEvent) -> void:
+    if event is InputEventKey and event.echo:
+        return
+    if event.is_action_pressed("move_right"):
+        rules.move(1)
+        get_viewport().set_input_as_handled()
+    elif event.is_action_pressed("move_left"):
+        rules.move(-1)
+        get_viewport().set_input_as_handled()

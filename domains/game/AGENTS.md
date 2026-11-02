@@ -54,9 +54,18 @@ Current owner seams:
 | Relationship inference | `src/mechanism-relationship-graph.ts` | G03 deterministic derived graph + CLI |
 | Counterexample enrichment | `src/counterexample-projection.ts` | G04; failure-context and source fidelity |
 | CLI parsing and file boundary | `src/query-input.ts`, `src/knowledge-file.ts`, `scripts/cli-argument.ts` | G05 bounded read-only CLI entrypoints |
-| Native game state / rule / view composition | `examples/native-composition` | G06 real PackedScene/Resource/Signal acceptance |
+| Native input / rule / view / feedback composition | `examples/native-composition` | G06 Godot InputMap actions -> rule port -> state_changed -> view/audio; key bindings replaceable |
 | Bevy rules and native ECS app | `examples/orbit-collector/{src,Cargo.toml,Cargo.lock}` | G07 rule/Plugin system tests and native build; GPU runtime UNKNOWN |
 | Source-licensed Godot audio effects | `examples/native-composition/{main.tscn,movement_audio_feedback.gd,assets/kenney-ui-audio}` | G08 actual state Signal -> AudioStreamPlayer and replaceable WAV |
+
+**G03 source-only composition:** The canonical Experience Library and authored
+Relationship Spec are the only stored relationship inputs. The existing pure
+`src/mechanism-relationship-graph.ts` deterministically projects their raw
+bytes and source SHA-256 provenance; the stable read-only CLI builds its view
+on demand. Do not restore the 17,184-line checked-in derived JSON or its
+manual publication adapter without a demonstrated new consumer. Treat
+co-occurrence as retrieval evidence, not causal compatibility or playable-game
+authority.
 
 **Allowed dependency direction:** evidence source -> pure projection ->
 application/CLI adapter -> native consumer. The engine/runtime owns physics,
@@ -185,6 +194,17 @@ promoted to a playable game outcome. Inspect with the **existing**
 `src/prototype-composition.ts` behind its existing CLI entrypoint. Do not
 invent an engine-neutral execution registry or a new gameplay product.
 
+**Save/resume is an independent lifecycle contract, not a persistence
+framework.** The existing `examples/room-encounter` Godot Rules owns
+checkpoint validity and restores state; `SaveSlot` owns built-in `ConfigFile`
+I/O, and the scene remains the UI/audio consumer. `mise run test:encounter`
+now runs the same room game in *two separate Godot processes* on one
+temporary slot: first save a nontrivial room state, then start a fresh
+SceneTree, reload, observe UI and continue legal gameplay with exactly one
+new sound. This proves the named local process boundary, not export,
+cloud-sync, schema migration, or player experience. Do not introduce a
+custom Game persistence subsystem or a second source-of-truth store.
+
 For directly inspectable, **source-backed prototype assembly candidates**, use
 `pnpm composition:inspect` and
 `planning/prototype-composition-candidates-r1.json`. These are Game's
@@ -232,6 +252,16 @@ A candidate assembly must describe:
 6. **Substitution:** replace at least one real component or asset through the
    native interface, then check invariants and visible output. Mark unproven
    assumptions UNKNOWN; do not veto novel mechanics from advisory records.
+
+**Current G06 native input port:** `project.godot` owns the named Godot
+`move_left` / `move_right` InputMap actions. `composition_root.gd` translates
+those actions to `grid_rules.gd` `move(-1|1)`; rules do not know device
+bindings, and view/audio are consumers of accepted rule transitions. Rebind
+the engine InputMap instead of adding a custom keyboard dispatcher.
+`assert_audio.gd` exercises actual `Input.parse_input_event` dispatch,
+input rebinding, Kenney sound replacement and UI button composition.
+This is evidence for a bounded G06 source implementation, not a general
+input-accessibility certification or human playtest.
 
 **Minimal assembly demonstration already in the repo:**
 `mise run test:native` exercises real Godot gameplay and sound PackedScenes, Resource-configured

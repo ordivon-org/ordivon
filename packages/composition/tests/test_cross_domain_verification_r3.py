@@ -6,29 +6,27 @@ import tomllib
 from pathlib import Path
 
 import pytest
+
 from ordivon_composition import (
     CircuitContractError,
     canonical_digest,
     evaluate_gate_results,
     validate_manifest,
 )
-
-from scripts.cross_domain_binding_r3 import (
+from ordivon_composition.cross_domain_binding_r3 import (
     load_binding,
     resolve_repo_file,
     validate_binding,
 )
-from scripts.research_artifact_gate_r3 import (
+from ordivon_composition.research_artifact_gate_r3 import (
     build_gate_result as research_artifact_gate,
 )
-from scripts.web_security_gate_r3 import build_gate_result as web_security_gate
-from scripts.web_security_gate_r3 import read_linked_store_sources
+from ordivon_composition.web_security_gate_r3 import build_gate_result as web_security_gate
+from ordivon_composition.web_security_gate_r3 import read_linked_store_sources
 
 ROOT = Path(__file__).resolve().parents[3]
-NEXT_ROOT = Path(__file__).resolve().parents[1]
-BINDING_PATH = (
-    NEXT_ROOT / "evidence" / "acceptance" / "cross-domain-verification-r3-bindings.json"
-)
+NEXT_ROOT = ROOT / "meta" / "next"
+BINDING_PATH = NEXT_ROOT / "evidence" / "acceptance" / "cross-domain-verification-r3-bindings.json"
 
 
 def _digest(label: str) -> str:
@@ -173,8 +171,7 @@ def web_security_manifest() -> dict:
                 "id": "stage:web-effect",
                 "ownerId": "web",
                 "responsibility": (
-                    "Own local replay, Grant, approval, effect transaction, and "
-                    "receipt semantics."
+                    "Own local replay, Grant, approval, effect transaction, and receipt semantics."
                 ),
                 "dependsOn": ["stage:security-contract"],
                 "methodBindings": [],
@@ -345,9 +342,7 @@ def test_research_artifact_missing_truth_boundary_nonclaims_is_unsatisfied() -> 
 
 
 def test_web_security_real_native_e2e_satisfies_bounded_gate() -> None:
-    binding, dependencies, e2e, request_source, admission_source, store_source = (
-        _web_inputs()
-    )
+    binding, dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
     manifest = web_security_manifest()
 
     result = web_security_gate(
@@ -367,9 +362,7 @@ def test_web_security_real_native_e2e_satisfies_bounded_gate() -> None:
 
 
 def test_web_security_missing_public_seam_declaration_is_unsatisfied() -> None:
-    binding, dependencies, e2e, request_source, admission_source, store_source = (
-        _web_inputs()
-    )
+    binding, dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
     dependencies = copy.deepcopy(dependencies)
     target = binding["webSecurity"]["requiredSeams"][1]["sourceGlob"]
     dependencies["seams"] = [
@@ -390,9 +383,7 @@ def test_web_security_missing_public_seam_declaration_is_unsatisfied() -> None:
 
 
 def test_web_security_direct_policy_import_is_unsatisfied() -> None:
-    binding, dependencies, e2e, request_source, admission_source, store_source = (
-        _web_inputs()
-    )
+    binding, dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
     forbidden = binding["webSecurity"]["forbiddenSourceFragments"][0]
     admission_source += f"\n// {forbidden}\n"
 
@@ -410,9 +401,7 @@ def test_web_security_direct_policy_import_is_unsatisfied() -> None:
 
 
 def test_web_security_binding_contract_marker_drift_is_unsatisfied() -> None:
-    binding, dependencies, e2e, request_source, admission_source, store_source = (
-        _web_inputs()
-    )
+    binding, dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
     binding = copy.deepcopy(binding)
     binding["webSecurity"]["admissionContractImport"] = "missing-contract-marker"
 
@@ -430,9 +419,7 @@ def test_web_security_binding_contract_marker_drift_is_unsatisfied() -> None:
 
 
 def test_web_security_missing_local_replay_owner_is_unsatisfied() -> None:
-    binding, dependencies, e2e, request_source, admission_source, store_source = (
-        _web_inputs()
-    )
+    binding, dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
     store_source = store_source.replace("consumeDpopProof(", "removedReplayMethod(")
 
     result = web_security_gate(
@@ -449,9 +436,7 @@ def test_web_security_missing_local_replay_owner_is_unsatisfied() -> None:
 
 
 def test_web_security_e2e_failure_matrix_drift_is_unsatisfied() -> None:
-    binding, dependencies, e2e, request_source, admission_source, store_source = (
-        _web_inputs()
-    )
+    binding, dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
     e2e = copy.deepcopy(e2e)
     e2e["matrix"]["proofReplay"] = 200
 
@@ -469,9 +454,7 @@ def test_web_security_e2e_failure_matrix_drift_is_unsatisfied() -> None:
 
 
 def test_web_security_production_claim_cannot_be_smuggled_into_dogfood() -> None:
-    binding, dependencies, e2e, request_source, admission_source, store_source = (
-        _web_inputs()
-    )
+    binding, dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
     e2e = copy.deepcopy(e2e)
     e2e["productionEligible"] = True
 
@@ -541,7 +524,12 @@ def test_research_artifact_gate_runs_through_verification_obligation_r1() -> Non
         _task_local_verifier_binding_set(
             obligations,
             verifier_id="verifier:research-artifact-gate-r3",
-            verifier_path=NEXT_ROOT / "scripts" / "research_artifact_gate_r3.py",
+            verifier_path=ROOT
+            / "packages"
+            / "composition"
+            / "src"
+            / "ordivon_composition"
+            / "research_artifact_gate_r3.py",
         ),
     )
     result = research_artifact_gate(manifest, binding, profile, dogfood)
@@ -560,9 +548,7 @@ def test_web_security_gate_runs_through_verification_obligation_r1() -> None:
         resolve_verifier_bindings,
     )
 
-    binding, dependencies, e2e, request_source, admission_source, store_source = (
-        _web_inputs()
-    )
+    binding, dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
     manifest = web_security_manifest()
     obligations = compile_verification_obligations(manifest)
     resolution = resolve_verifier_bindings(
@@ -570,7 +556,12 @@ def test_web_security_gate_runs_through_verification_obligation_r1() -> None:
         _task_local_verifier_binding_set(
             obligations,
             verifier_id="verifier:web-security-gate-r3",
-            verifier_path=NEXT_ROOT / "scripts" / "web_security_gate_r3.py",
+            verifier_path=ROOT
+            / "packages"
+            / "composition"
+            / "src"
+            / "ordivon_composition"
+            / "web_security_gate_r3.py",
         ),
     )
     result = web_security_gate(
