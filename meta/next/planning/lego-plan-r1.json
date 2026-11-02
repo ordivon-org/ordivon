@@ -13,6 +13,8 @@
       "schemas/cross-domain-verification-r3-binding.schema.json",
       "tests/test_cross_domain_verification_r3.py",
       "scripts/authority_catalog.py",
+      "scripts/authority_catalog_sources.py",
+      "scripts/authority_catalog_search.py",
       "scripts/check_authority_catalog_r1.py",
       "tests/test_authority_catalog.py"
     ]
@@ -40,6 +42,8 @@
       ],
       "evidence": [
         "scripts/authority_catalog.py",
+        "scripts/authority_catalog_sources.py",
+        "scripts/authority_catalog_search.py",
         "scripts/check_authority_catalog_r1.py",
         "tests/test_authority_catalog.py"
       ],

@@ -4,25 +4,70 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-AUTH = ROOT / "authorities"
-RECORDS = AUTH / "records"
-OBS = AUTH / "observations"
+# Accept both direct CLI invocation and import as scripts.authority_catalog.
+if __package__:
+    from .authority_catalog_search import score_entry
+    from .authority_catalog_sources import (
+        AUTH,
+        FORBIDDEN_TASK_FIELDS,
+        OBS,
+        RECORDS,
+        ROOT,
+        forbidden_fields,
+        latest_observation,
+        observation_paths,
+        read_json,
+        record_paths,
+        records,
+        validate_catalog_semantics,
+    )
+else:
+    from authority_catalog_search import score_entry
+    from authority_catalog_sources import (
+        AUTH,
+        FORBIDDEN_TASK_FIELDS,
+        OBS,
+        RECORDS,
+        ROOT,
+        forbidden_fields,
+        latest_observation,
+        observation_paths,
+        read_json,
+        record_paths,
+        records,
+        validate_catalog_semantics,
+    )
+
 INDEX = AUTH / "generated" / "authority-index.json"
 
-FORBIDDEN_TASK_FIELDS = {
-    "applicability",
-    "appliesto",
-    "disposition",
-    "required",
-    "role",
-    "rationale",
-    "verdict",
-    "workflow",
-}
+# Retain source-inspection API for existing importers, while keeping its implementation
+# within the source boundary. The CLI and index projection live in this module.
+__all__ = [
+    "AUTH",
+    "OBS",
+    "RECORDS",
+    "ROOT",
+    "INDEX",
+    "FORBIDDEN_TASK_FIELDS",
+    "forbidden_fields",
+    "latest_observation",
+    "observation_paths",
+    "read_json",
+    "record_paths",
+    "records",
+    "validate_catalog_semantics",
+    "score_entry",
+    "build_index",
+    "write_index",
+    "load_index",
+    "get_record",
+    "canonical_bytes",
+    "sha256_bytes",
+    "parser",
+    "main",
+]
 
 
 def canonical_bytes(value: object) -> bytes:
@@ -34,117 +79,6 @@ def canonical_bytes(value: object) -> bytes:
 
 def sha256_bytes(raw: bytes) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
-
-
-def read_json(path: Path) -> dict:
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except Exception as exc:
-        raise SystemExit(f"invalid JSON {path}: {exc}") from exc
-    if not isinstance(value, dict):
-        raise SystemExit(f"expected JSON object: {path}")
-    return value
-
-
-def record_paths() -> list[Path]:
-    return sorted(RECORDS.glob("**/*.json"))
-
-
-def observation_paths(authority_id: str) -> list[Path]:
-    return sorted((OBS / authority_id).glob("*.json"))
-
-
-def records() -> dict[str, tuple[Path, dict]]:
-    out: dict[str, tuple[Path, dict]] = {}
-    for path in record_paths():
-        value = read_json(path)
-        authority_id = value.get("id")
-        if not isinstance(authority_id, str) or not authority_id:
-            raise SystemExit(f"record has no id: {path}")
-        if authority_id in out:
-            raise SystemExit(
-                f"duplicate authority id {authority_id}: {path} and {out[authority_id][0]}"
-            )
-        out[authority_id] = (path, value)
-    return out
-
-
-def latest_observation(authority_id: str) -> tuple[Path, dict] | None:
-    found: list[tuple[str, Path, dict]] = []
-    for path in observation_paths(authority_id):
-        value = read_json(path)
-        if value.get("authorityId") != authority_id:
-            raise SystemExit(f"observation authorityId mismatch: {path}")
-        date = value.get("observedDate")
-        if not isinstance(date, str):
-            raise SystemExit(f"observation has no observedDate: {path}")
-        found.append((date, path, value))
-    if not found:
-        return None
-    _, path, value = sorted(found, key=lambda x: (x[0], str(x[1])))[-1]
-    return path, value
-
-
-def forbidden_fields(value: object, prefix: str = "") -> list[str]:
-    hits: list[str] = []
-    if isinstance(value, dict):
-        for key, child in value.items():
-            normalized = re.sub(r"[^a-z0-9]", "", key.lower())
-            here = f"{prefix}.{key}" if prefix else key
-            if normalized in FORBIDDEN_TASK_FIELDS:
-                hits.append(here)
-            hits.extend(forbidden_fields(child, here))
-    elif isinstance(value, list):
-        for i, child in enumerate(value):
-            hits.extend(forbidden_fields(child, f"{prefix}[{i}]"))
-    return hits
-
-
-def validate_catalog_semantics(catalog: dict[str, tuple[Path, dict]]) -> None:
-    ids = set(catalog)
-    for authority_id, (path, value) in catalog.items():
-        if (
-            value.get("kind") != "ordivon.external-authority-record"
-            or value.get("schemaVersion") != 1
-        ):
-            raise SystemExit(f"wrong record kind/schema: {path}")
-        identity = value.get("identity", {})
-        mode = identity.get("identityMode")
-        version = identity.get("versionLabel")
-        if mode == "versioned" and not version:
-            raise SystemExit(
-                f"versioned authority must have versionLabel: {authority_id}"
-            )
-        if mode == "rolling-source" and version is not None:
-            raise SystemExit(
-                f"rolling-source authority must use null versionLabel: {authority_id}"
-            )
-        hits = forbidden_fields(value)
-        if hits:
-            raise SystemExit(
-                f"task-local semantics leaked into authority record {authority_id}: {hits}"
-            )
-        for relation in ("supersedes", "supersededBy", "related"):
-            for target in value.get("relations", {}).get(relation, []):
-                if target == authority_id:
-                    raise SystemExit(f"self relation {relation}: {authority_id}")
-                if target not in ids:
-                    raise SystemExit(
-                        f"unresolved relation {authority_id} {relation} {target}"
-                    )
-        previous_date = None
-        for obs_path in observation_paths(authority_id):
-            obs = read_json(obs_path)
-            if obs.get("authorityId") != authority_id:
-                raise SystemExit(f"observation mismatch: {obs_path}")
-            date = obs.get("observedDate")
-            if previous_date is not None and date < previous_date:
-                raise SystemExit(f"observation order regression: {obs_path}")
-            previous_date = date
-            if obs.get("officialSource") != identity.get("officialSource"):
-                raise SystemExit(
-                    f"observation source differs from record officialSource: {obs_path}"
-                )
 
 
 def build_index() -> dict:
@@ -213,107 +147,6 @@ def load_index() -> dict:
             f"generated index missing: {INDEX}; run authority_catalog.py build"
         )
     return read_json(INDEX)
-
-
-def tokens(text: str) -> list[str]:
-    # Discovery treats punctuation and taxonomy separators as token boundaries.
-    # Exact identifiers/aliases are scored separately, so semantic lookup benefits
-    # from matching `bill-of-materials` with `bill of materials` and similar forms.
-    return re.findall(r"[a-z0-9]+", text.casefold())
-
-
-def normalized_text(text: str) -> str:
-    return " ".join(tokens(text))
-
-
-QUERY_MODIFIERS = {
-    "current",
-    "latest",
-    "official",
-    "standard",
-    "standards",
-    "specification",
-    "specifications",
-    "spec",
-    "framework",
-    "version",
-    "edition",
-    "guideline",
-    "guidelines",
-    "guidance",
-}
-
-
-def significant_query_tokens(query: str) -> list[str]:
-    raw = tokens(query)
-    meaningful = [token for token in raw if token not in QUERY_MODIFIERS]
-    return meaningful or raw
-
-
-def score_entry(entry: dict, query: str) -> int:
-    q = query.casefold().strip()
-    qtokens = significant_query_tokens(query)
-    if not qtokens:
-        return 0
-
-    identifier = entry["id"].casefold()
-    title = entry["title"].casefold()
-    aliases = [x.casefold() for x in entry["aliases"]]
-    topics = [x.casefold() for x in entry["topics"]]
-    domains = [x.casefold() for x in entry["domains"]]
-    issuer = entry["issuer"].casefold()
-
-    qnorm = normalized_text(query)
-    title_norm = normalized_text(title)
-    alias_norms = [normalized_text(x) for x in aliases]
-    field_tokens = {
-        "identifier": set(tokens(identifier)),
-        "title": set(tokens(title)),
-        "aliases": set(t for value in aliases for t in tokens(value)),
-        "topics": set(t for value in topics for t in tokens(value)),
-        "domains": set(t for value in domains for t in tokens(value)),
-        "issuer": set(tokens(issuer)),
-    }
-    all_tokens = set().union(*field_tokens.values())
-    matched = {token for token in qtokens if token in all_tokens}
-    coverage = len(matched) / len(set(qtokens))
-
-    # Discovery fails closed for multi-token semantic queries: every meaningful
-    # query token must be represented by the candidate. Generic query modifiers
-    # such as `latest` or `standard` are ignored for this gate. This prevents
-    # unknown named entities from receiving plausible-looking partial matches.
-    if len(set(qtokens)) > 1 and coverage < 1.0:
-        return 0
-
-    score = 0
-    if q == identifier:
-        score += 1000
-    if qnorm in alias_norms:
-        score += 700
-    if qnorm and qnorm in title_norm:
-        score += 350
-    if qnorm and any(qnorm in value for value in alias_norms):
-        score += 250
-
-    for token in qtokens:
-        if token in field_tokens["identifier"]:
-            score += 90
-        if token in field_tokens["title"]:
-            score += 55
-        if token in field_tokens["aliases"]:
-            score += 45
-        if token in field_tokens["topics"]:
-            score += 60
-        if token in field_tokens["domains"]:
-            score += 25
-        if token in field_tokens["issuer"]:
-            score += 15
-        if token not in all_tokens:
-            score -= 80
-
-    if coverage == 1.0 and len(set(qtokens)) > 1:
-        score += 200
-    return max(score, 0)
 
 
 def emit(value: object) -> None:
