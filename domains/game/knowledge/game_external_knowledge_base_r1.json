@@ -4073,6 +4073,32 @@
       "canCreateGameHardConstraint": false,
       "retrievedOn": "2026-11-02",
       "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "kenney-abstract-platformer",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Kenney Abstract Platformer — original CC0 player-sprite artwork",
+      "organization": "Kenney",
+      "url": "https://kenney.nl/assets/abstract-platformer",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "real 2D sprite media",
+        "native Godot Texture2D and Sprite2D",
+        "blue/green appearance substitution"
+      ],
+      "extractedIdeas": [
+        "Kenney publishes the Abstract Platformer pack as CC0 art",
+        "Game native sample tests two exact player avatar PNG files with independently recorded Git delivery mirror commit and SHA256, not an entire installed pack"
+      ],
+      "candidateUses": [
+        "source-licensed native Godot sprite appearance replacement",
+        "separate presentation from game rules"
+      ],
+      "evidenceLimit": "Original CC0 license is on the Kenney asset page. Mirror source hash and native Godot execution are proven in examples/kenney-visual-composition/README.md. No byte equality to the official zip, game-play behavior, export packaging, or artistic quality inferred.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
     }
   ],
   "gaps": {
