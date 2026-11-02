@@ -389,7 +389,9 @@
       "verifyTasks": [
         "next:verify"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "SOURCE-only retained knowledge and evidence catalog placement. Historical Git SourceCut naming/provenance remains unchanged. No authority, installed deployment state or new skill registry is conferred by this physical move; remaining S5 mappings stay open."
     },
     {
       "id": "domain-profiles",

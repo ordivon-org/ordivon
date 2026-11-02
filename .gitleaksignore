@@ -61,7 +61,7 @@ fbdc008cb18ff4d9d4828f963851572601ec65c5:platform/security/labs/agent-admission-
 fbdc008cb18ff4d9d4828f963851572601ec65c5:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:81
 fd50471332622dda90f1bea23962333b8f2cd6a1:migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
 knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
-meta/next/knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
+catalogs/knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
 meta/next/migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
 migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
 platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-E2E-R1.json:generic-api-key:107
