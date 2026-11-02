@@ -51,6 +51,7 @@ from .continuity_records import (
     HarnessDispatchFenceV2,
     HarnessProviderCallRecordV3,
     HarnessProviderCallRecordV4,
+    build_provider_call_record_v4,
 )
 from .model import (
     AgentCallerIngressRef,
@@ -2022,9 +2023,13 @@ class SQLiteHarnessRunContinuityStore:
                 now_ms,
                 previous_recorded_at_ms=(None if previous is None else previous.recorded_at_ms),
             )
-            record = self._provider_call_record(
+            record = build_provider_call_record_v4(
                 provider_call_id=provider_call_id,
-                source=source,
+                harness_run_id=self.harness_run_id,
+                binding_digest=self.binding.digest,
+                source_kind=source.kind,
+                source_digest=source.digest,
+                source_object_digest=source.object_digest,
                 state_object_digest=state_object.digest,
                 turn_id=turn_id,
                 turn_sequence=turn_sequence,
@@ -2364,13 +2369,13 @@ class SQLiteHarnessRunContinuityStore:
             self._require_provider_safe_retry_state(current.state, state)
             state_object = self._put_state(state)
             previous = current.record
-            record = self._provider_call_record(
+            record = build_provider_call_record_v4(
                 provider_call_id=previous.provider_call_id,
-                source=HarnessProviderCallSourceRef(
-                    previous.source_kind,
-                    previous.source_digest,
-                    previous.source_object_digest,
-                ),
+                harness_run_id=self.harness_run_id,
+                binding_digest=self.binding.digest,
+                source_kind=previous.source_kind,
+                source_digest=previous.source_digest,
+                source_object_digest=previous.source_object_digest,
                 state_object_digest=state_object.digest,
                 turn_id=previous.turn_id,
                 turn_sequence=previous.turn_sequence,
@@ -3298,76 +3303,6 @@ class SQLiteHarnessRunContinuityStore:
             self.store.inspect_object(state_object_digest),
         )
 
-    def _provider_call_record(
-        self,
-        *,
-        provider_call_id: str,
-        source: HarnessProviderCallSourceRef,
-        state_object_digest: str,
-        turn_id: str,
-        turn_sequence: int,
-        request_digest: str,
-        request_object_digest: str | None,
-        provider_request_digest: str,
-        adapter_id: str,
-        requested_model_id: str,
-        holder_id: str,
-        generation: int,
-        status: HarnessProviderCallStatus,
-        result_digest: str | None,
-        result_object_digest: str | None,
-        failure_digest: str | None,
-        failure_object_digest: str | None,
-        previous_record_digest: str | None,
-        issued_at_ms: int,
-        expires_at_ms: int,
-        recorded_at_ms: int,
-    ) -> HarnessProviderCallRecordV4:
-        record_token = canonical_digest(
-            {
-                "providerCallId": provider_call_id,
-                "holderId": holder_id,
-                "claimGeneration": generation,
-                "status": status.value,
-                "providerRequestDigest": provider_request_digest,
-                "requestObjectDigest": request_object_digest,
-                "resultDigest": result_digest,
-                "failureDigest": failure_digest,
-                "previousRecordDigest": previous_record_digest,
-                "recordedAtMs": recorded_at_ms,
-            }
-        )[7:31]
-        # New writes use one current schema. V3 remains a read-only historical codec.
-        record_kwargs = dict(
-            record_id=f"harness-provider-call-record:{record_token}",
-            provider_call_id=provider_call_id,
-            harness_run_id=self.harness_run_id,
-            binding_digest=self.binding.digest,
-            source_kind=source.kind,
-            source_digest=source.digest,
-            source_object_digest=source.object_digest,
-            state_object_digest=state_object_digest,
-            turn_id=turn_id,
-            turn_sequence=turn_sequence,
-            request_digest=request_digest,
-            provider_request_digest=provider_request_digest,
-            adapter_id=adapter_id,
-            requested_model_id=requested_model_id,
-            holder_id=holder_id,
-            claim_generation=generation,
-            status=status,
-            result_digest=result_digest,
-            result_object_digest=result_object_digest,
-            failure_digest=failure_digest,
-            failure_object_digest=failure_object_digest,
-            previous_record_digest=previous_record_digest,
-            issued_at_ms=issued_at_ms,
-            expires_at_ms=expires_at_ms,
-            recorded_at_ms=recorded_at_ms,
-            request_object_digest=request_object_digest,
-        )
-        return HarnessProviderCallRecordV4(**record_kwargs)
-
     def _transition_provider_call(
         self,
         previous,
@@ -3380,13 +3315,13 @@ class SQLiteHarnessRunContinuityStore:
         failure_digest: str | None = None,
         failure_object_digest: str | None = None,
     ) -> HarnessProviderCallRecordV4:
-        return self._provider_call_record(
+        return build_provider_call_record_v4(
             provider_call_id=previous.provider_call_id,
-            source=HarnessProviderCallSourceRef(
-                previous.source_kind,
-                previous.source_digest,
-                previous.source_object_digest,
-            ),
+            harness_run_id=self.harness_run_id,
+            binding_digest=self.binding.digest,
+            source_kind=previous.source_kind,
+            source_digest=previous.source_digest,
+            source_object_digest=previous.source_object_digest,
             state_object_digest=state_object_digest,
             turn_id=previous.turn_id,
             turn_sequence=previous.turn_sequence,
