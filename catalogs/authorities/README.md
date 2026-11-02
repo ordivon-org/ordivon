@@ -51,7 +51,7 @@ The index is disposable and reproducible. It contains only Level-0 discovery met
 - `scripts/authority_catalog_search.py` is pure, deterministic lexical candidate scoring over index entries; a positive score never confers applicability.
 - `scripts/authority_catalog.py` owns the rebuildable index projection, stable CLI entrypoint and current Python import surface used by the native validator and tests.
 
-The modules live in the existing Next source package until their real consumers justify a wider source relocation. No registry service, extra state store or cross-owner authority is introduced.
+Canonical authority identity and dated observation source files live under `catalogs/authorities/`. The existing CLI and validation consumers currently reside in `meta/next/scripts/`; their source-reading boundary points here, and they do not own or duplicate the catalog records. No registry service, extra state store or task-local authority is introduced.
 
 ## Commands
 
