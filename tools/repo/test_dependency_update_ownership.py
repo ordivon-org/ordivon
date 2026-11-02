@@ -209,7 +209,7 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
         cargo = by_ecosystem["cargo"]
         self.assertEqual(
             set(cargo["directories"]),
-            {"/services/runtime"},
+            {"/domains/game/examples/bevy-native-composition", "/services/runtime"},
         )
         self.assertEqual(
             cargo["groups"]["same-dependency"], {"group-by": "dependency-name"}
