@@ -96,7 +96,7 @@ uv run --locked --group quality ruff check scripts tests
 uv run --locked --group quality ruff format --check scripts tests
 uv run --locked --group authority python ../../catalogs/authorities/scripts/check_authority_catalog_r1.py
 uv run --locked --group authority python scripts/check_standard_native_enterprise_r2.py
-uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
+uv run --locked --group reasoning python ../../catalogs/capabilities/scripts/verify_reasoning_providers.py
 ```
 
 PEP 621 project dependencies are the runtime/deployment dependency authority. The default `test` group adds only test-time dependencies. Lint/format quality, authority-catalog validation, security auditing, coverage analysis and heavier reasoning dependencies are separate groups and are installed only when their validation surface is invoked.
