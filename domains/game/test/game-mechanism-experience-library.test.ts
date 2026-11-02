@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const library = JSON.parse(readFileSync(new URL("../standards/game_mechanism_experience_library_r1.json", import.meta.url), "utf8")) as any;
-const kb = JSON.parse(readFileSync(new URL("../standards/game_external_knowledge_base_r1.json", import.meta.url), "utf8")) as any;
+const library = JSON.parse(readFileSync(new URL("../knowledge/game_mechanism_experience_library_r1.json", import.meta.url), "utf8")) as any;
+const kb = JSON.parse(readFileSync(new URL("../knowledge/game_external_knowledge_base_r1.json", import.meta.url), "utf8")) as any;
 const doc = readFileSync(new URL("../docs/GAME_MECHANISM_EXPERIENCE_LIBRARY_R1.md", import.meta.url), "utf8");
 
 const unique = (values: string[]) => new Set(values).size === values.length;
@@ -99,7 +99,7 @@ test("mechanism experience is registered in the owner LEGO plan without a second
   const node = plan.nodes.find((x: any) => x.id === "G02");
   assert.ok(node);
   assert.match(readme, /knowledge:mechanisms/);
-  assert.match(project, /standards\/game_mechanism_experience_library_r1\.json/);
+  assert.match(project, /knowledge\/game_mechanism_experience_library_r1\.json/);
   assert.ok(node.evidence.includes("scripts/mechanism-experience-query.ts"));
   assert.match(node.behavioralContract, /novel compositions/i);
   assert.equal(plan.nodes.some((x: any) => x.label === "GameFramework"), false);

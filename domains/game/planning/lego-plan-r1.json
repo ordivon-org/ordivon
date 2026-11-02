@@ -29,7 +29,7 @@
         "Source class and provenance retained."
       ],
       "evidence": [
-        "standards/game_external_knowledge_base_r1.json",
+        "knowledge/game_external_knowledge_base_r1.json",
         "scripts/external-knowledge-query.ts"
       ],
       "dependencies": [],
@@ -63,7 +63,7 @@
         "Falsifier, source and transfer scope recoverable."
       ],
       "evidence": [
-        "standards/game_mechanism_experience_library_r1.json",
+        "knowledge/game_mechanism_experience_library_r1.json",
         "scripts/mechanism-experience-query.ts"
       ],
       "dependencies": [],
@@ -97,7 +97,7 @@
         "Graph rebuild and retrieval equivalence."
       ],
       "evidence": [
-        "standards/game_mechanism_relationship_graph_r1.json",
+        "knowledge/game_mechanism_relationship_graph_r1.json",
         "scripts/build-mechanism-relationship-graph.ts",
         "src/mechanism-relationship-graph.ts"
       ],
@@ -132,7 +132,7 @@
         "Sources and failure context retained."
       ],
       "evidence": [
-        "standards/game_design_counterexample_memory_r1.json",
+        "knowledge/game_design_counterexample_memory_r1.json",
         "scripts/design-counterexample-query.ts"
       ],
       "dependencies": [],

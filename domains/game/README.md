@@ -46,6 +46,14 @@ G03 relationship projection separates `src/mechanism-relationship-graph.ts`
 publication). Use the existing `pnpm build:relationship-graph` to rebuild the
 committed derived graph; source digests and retrieval semantics are unchanged.
 
+## Knowledge layout
+
+`knowledge/` holds source-grounded datasets, experience records, conditional
+relationship projections and counterexamples. These are **evidence and advisory
+retrieval data, not normative standards**. Existing `scripts/*-query.ts` CLI
+entrypoints remain stable; their shared filesystem reading is implemented by
+`src/knowledge-file.ts`, while each query owns its matching semantics.
+
 ## Native composition acceptance
 
 G06 in planning/lego-plan-r1.json registers a bounded native-Godot

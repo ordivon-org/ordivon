@@ -109,9 +109,9 @@ No layer inherits another layer's authority automatically.
 
 ## 8. Machine surfaces
 
-- `standards/game_external_knowledge_base_r1.json` — source registry with scope, authority, extracted ideas, candidate uses and evidence limits.
-- `standards/game_teardown_queue_r1.json` — large cross-genre teardown queue with axes, primary-source targets, questions and transfer risks.
-- `standards/game_external_skill_watchlist_r1.json` — external Skill/Tool/MCP patterns and adoption risks.
+- `knowledge/game_external_knowledge_base_r1.json` — source registry with scope, authority, extracted ideas, candidate uses and evidence limits.
+- `knowledge/game_teardown_queue_r1.json` — large cross-genre teardown queue with axes, primary-source targets, questions and transfer risks.
+- `knowledge/game_external_skill_watchlist_r1.json` — external Skill/Tool/MCP patterns and adoption risks.
 - `pnpm knowledge:external -- --type sources|teardowns|skills [--q ...] [--authority ...] [--status ...]` — bounded retrieval over those records; it never ranks, recommends, approves or rejects a game idea.
 
 Source records also carry a coarse `sourceStrength` class such as `NATIVE_HIGH`, `PRIMARY_PROJECT_HIGH`, `EVIDENCE_HIGH`, `EVIDENCE_MEDIUM_HIGH`, `IMPLEMENTATION_MEDIUM` or `COMMUNITY_DISCOVERY`. This is an evidence-routing aid, not a universal quality score: a high-strength source outside its native scope still cannot create Game semantic authority.

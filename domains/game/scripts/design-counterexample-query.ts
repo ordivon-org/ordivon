@@ -1,11 +1,10 @@
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { readGameKnowledge } from "../src/knowledge-file.ts";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { boundedQueryLimit, cliArgument, normalizeQueryFilter } from "../src/query-input.ts";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const MEMORY_PATH = "standards/game_design_counterexample_memory_r1.json";
-const EXPERIENCE_PATH = "standards/game_mechanism_experience_library_r1.json";
+const MEMORY_PATH = "knowledge/game_design_counterexample_memory_r1.json";
+const EXPERIENCE_PATH = "knowledge/game_mechanism_experience_library_r1.json";
 
 export type DesignCounterexampleQuery = {
   q?: string;
@@ -29,7 +28,7 @@ export type DesignCounterexampleQueryResult = {
 };
 
 function readJson(path: string): any {
-  return JSON.parse(readFileSync(resolve(ROOT, path), "utf8"));
+  return readGameKnowledge(path);
 }
 
 function enrichCounterexamples(): any[] {
