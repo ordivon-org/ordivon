@@ -37,16 +37,16 @@ from agent_automation_browserless import (  # noqa: E402
     _read_json,
 )
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
+ROOT = pathlib.Path(__file__).resolve().parents[3]
 
-R3_PATH = ROOT / "experiments/browser-security-r3/neutral_differential.py"
+R3_PATH = ROOT / "research/experiments/browser-security-r3/neutral_differential.py"
 R3_SPEC = importlib.util.spec_from_file_location("browser_security_r3_neutral", R3_PATH)
 if R3_SPEC is None or R3_SPEC.loader is None:
     raise RuntimeError(f"cannot load R3 module: {R3_PATH}")
 r3 = importlib.util.module_from_spec(R3_SPEC)
 R3_SPEC.loader.exec_module(r3)
 
-R5_PATH = ROOT / "experiments/browser-security-r5/container_direct_differential.py"
+R5_PATH = ROOT / "research/experiments/browser-security-r5/container_direct_differential.py"
 R5_SPEC = importlib.util.spec_from_file_location("browser_security_r5_container_direct", R5_PATH)
 if R5_SPEC is None or R5_SPEC.loader is None:
     raise RuntimeError(f"cannot load R5 module: {R5_PATH}")

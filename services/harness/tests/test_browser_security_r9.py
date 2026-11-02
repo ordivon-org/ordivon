@@ -7,7 +7,7 @@ from unittest import mock
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
-    / "experiments/browser-security-r9/window_placement_attribution.py"
+    / "research/experiments/browser-security-r9/window_placement_attribution.py"
 )
 SPEC = importlib.util.spec_from_file_location(
     "window_placement_attribution", MODULE_PATH

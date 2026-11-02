@@ -67,7 +67,7 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     'platform/workstation/scripts/host_historical_projection.py': 2,
     'platform/workstation/scripts/host_retirement_snapshot.py': 3,
     # Experimental stand-alone local sources, not admitted production PG state.
-    'meta/next/experiments/browser-security-r4/cf07_metadata_snapshot.py': 1,
+    'services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py': 1,
     'meta/next/experiments/chaoxing-autosign-mvp/chaoxing_mvp/ledger.py': 1,
     'services/harness/scripts/agent_automation_browserless.py': 1,
     'services/harness/scripts/agent_automation_ledger_reconcile.py': 1,
