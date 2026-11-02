@@ -992,7 +992,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(next_owners[0]["verify_task"], "next:verify")
         top = tomllib.loads((ROOT / "mise.toml").read_text())
         route = top["tasks"]["next:verify"]["run"]
-        for fragment in ("cd meta/next", "mise run verify", "cd experimental/episode-store-r1"):
+        for fragment in ("cd meta/next", "mise run verify", "cd experiments/episode-store-r1"):
             self.assertIn(fragment, route)
         native = tomllib.loads((ROOT / "meta/next/mise.toml").read_text())
         checks = native["tasks"]["verify"]["run"]
