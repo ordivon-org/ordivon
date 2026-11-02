@@ -598,6 +598,31 @@
         "next:verify"
       ],
       "disposition": "Thirty-eight original study evidence files retained byte-identically at the Study source owner, together with six method/consumer checks moved to studies/data-lifecycle/tests and enrolled in existing repository pytest CI. Historical evidence source/path references remain dated observations, not current active pointers."
+    },
+    {
+      "id": "r5c-episode-study-native-projection",
+      "mode": "move",
+      "owner": "studies",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/scripts/experimental_episode_r1.py",
+        "meta/next/scripts/experimental_episode_projection_r1.py",
+        "meta/next/scripts/experimental_episode_r5c_source_r1.sql",
+        "meta/next/tests/test_experimental_episode_r1.py"
+      ],
+      "targetPaths": [
+        "studies/experimental-episodes/episode-store/src/ordivon_experimental_episode_store/r5c_backfill.py",
+        "studies/experimental-episodes/episode-store/src/ordivon_experimental_episode_store/r5c_projection.py",
+        "studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql",
+        "studies/experimental-episodes/episode-store/tests/test_r5c_projection.py"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Move R5C historical query, deterministic Episode projection, backfill CLI and real consumers into existing native Experimental Episode Study package. Repository SQL dialect source readset and native dependencies rebound; frozen historical material untouched.",
+      "verifyTasks": [
+        "repo:ci",
+        "next:verify"
+      ],
+      "wave": "S5"
     }
   ],
   "openSlices": [

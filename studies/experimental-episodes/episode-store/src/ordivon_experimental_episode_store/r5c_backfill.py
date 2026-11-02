@@ -16,19 +16,11 @@ from typing import Any, TextIO
 
 from ordivon_composition import canonical_digest
 
-# Same semantic projection is imported when run as a package or as a direct CLI.
-if __package__:
-    from .experimental_episode_projection_r1 import (
-        EpisodeProjectionError,
-        project_r5c_record,
-        validate_episode,
-    )
-else:
-    from experimental_episode_projection_r1 import (
-        EpisodeProjectionError,
-        project_r5c_record,
-        validate_episode,
-    )
+from ordivon_experimental_episode_store.r5c_projection import (
+    EpisodeProjectionError,
+    project_r5c_record,
+    validate_episode,
+)
 
 
 def backfill(

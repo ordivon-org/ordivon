@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.experimental_episode_r1 import (
+from ordivon_experimental_episode_store.r5c_backfill import (
     EpisodeProjectionError,
     backfill,
     project_r5c_record,
@@ -238,7 +238,7 @@ def test_repeated_source_execution_identity_is_reported_as_collision() -> None:
 
 def test_standalone_episode_cli_uses_identical_projection(tmp_path: Path) -> None:
     # The frozen corpus manifest consumes the script as a direct Python CLI,
-    # whereas Next tests import its projection API as an ordinary module.
+    # whereas native Study tests import its projection API as an ordinary module.
     root = Path(__file__).resolve().parents[1]
     source = tmp_path / "source.jsonl"
     episodes = tmp_path / "episodes.jsonl"
@@ -249,7 +249,8 @@ def test_standalone_episode_cli_uses_identical_projection(tmp_path: Path) -> Non
     subprocess.run(
         [
             sys.executable,
-            str(root / "scripts" / "experimental_episode_r1.py"),
+            "-m",
+            "ordivon_experimental_episode_store.r5c_backfill",
             "project-r5c",
             str(source),
             str(episodes),
@@ -268,7 +269,8 @@ def test_standalone_episode_cli_uses_identical_projection(tmp_path: Path) -> Non
     subprocess.run(
         [
             sys.executable,
-            str(root / "scripts" / "experimental_episode_r1.py"),
+            "-m",
+            "ordivon_experimental_episode_store.r5c_backfill",
             "validate",
             str(episodes),
         ],
