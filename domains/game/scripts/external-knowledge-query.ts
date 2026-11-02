@@ -1,7 +1,8 @@
 import { readGameKnowledge } from "../src/knowledge-file.ts";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { boundedQueryLimit, cliArgument, normalizeQueryFilter } from "../src/query-input.ts";
+import { boundedQueryLimit, normalizeQueryFilter } from "../src/query-input.ts";
+import { cliArgument } from "./cli-argument.ts";
 
 
 type QueryType = "sources" | "teardowns" | "skills";

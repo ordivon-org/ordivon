@@ -54,6 +54,15 @@ retrieval data, not normative standards**. Existing `scripts/*-query.ts` CLI
 entrypoints remain stable; their shared filesystem reading is implemented by
 `src/knowledge-file.ts`, while each query owns its matching semantics.
 
+## Counterexample projection boundary
+
+`src/counterexample-projection.ts` resolves Experience → Counterexample →
+Theme references as a pure projection from supplied records. The existing
+counterexample query CLIs own data loading, filters and result claims. Unknown
+references remain failures, not fabricated evidence. `src/query-input.ts`
+holds pure query filter policy while `scripts/cli-argument.ts` reads
+`process.argv` only for existing CLI entrypoints.
+
 ## Native composition acceptance
 
 G06 in planning/lego-plan-r1.json registers a bounded native-Godot

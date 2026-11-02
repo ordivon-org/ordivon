@@ -1,33 +1,19 @@
 import { readGameKnowledge } from "../src/knowledge-file.ts";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { boundedQueryLimit, cliArgument, normalizeQueryFilter } from "../src/query-input.ts";
+import { boundedQueryLimit, normalizeQueryFilter } from "../src/query-input.ts";
+import { cliArgument } from "./cli-argument.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const COUNTEREXAMPLE_SYNTHESIS_PATH = "knowledge/game_counterexample_synthesis_r1.json";
 const MEMORY_PATH = "knowledge/game_design_counterexample_memory_r1.json";
 const EXPERIENCE_PATH = "knowledge/game_mechanism_experience_library_r1.json";
 
-export type CounterexampleTheme = {
-  id: string;
-  label: string;
-  summary: string;
-  counterexampleRefs: string[];
-  retrievalQuestions: string[];
-  falseUniversalizations: string[];
-  authority: "ADVISORY_RETRIEVAL_THEME";
-  exhaustive: false;
-  canRankDesigns: false;
-  canBlockNovelCombination: false;
-  canMintRecommendation: false;
-};
-
-export type EnrichedCounterexampleTheme = CounterexampleTheme & {
-  mechanisms: string[];
-  referenceGames: string[];
-  sourceRefs: string[];
-  counterexampleMechanisms: Array<{ counterexampleRef: string; mechanisms: string[] }>;
-};
+export type { CounterexampleTheme, EnrichedCounterexampleTheme } from "../src/counterexample-projection.ts";
+import {
+  projectCounterexampleThemes,
+  type EnrichedCounterexampleTheme,
+} from "../src/counterexample-projection.ts";
 
 export type CounterexampleSynthesisQuery = {
   q?: string;
@@ -60,37 +46,11 @@ export function loadCounterexampleSynthesis(root = ROOT): any {
 }
 
 export function enrichCounterexampleThemes(root = ROOT): EnrichedCounterexampleTheme[] {
-  const synthesis = loadCounterexampleSynthesis(root);
-  const memory = readJson(root, MEMORY_PATH);
-  const library = readJson(root, EXPERIENCE_PATH);
-  const counterexamples = new Map(memory.counterexamples.map((item: any) => [item.id, item]));
-  const experiences = new Map(library.experiences.map((item: any) => [item.id, item]));
-
-  return synthesis.themes.map((theme: CounterexampleTheme) => {
-    const resolvedCounterexamples = theme.counterexampleRefs.map((ref) => {
-      const item = counterexamples.get(ref) as any;
-      if (!item) throw new Error(`${theme.id} references unknown Counterexample ${ref}`);
-      return item;
-    });
-    const counterexampleMechanisms = resolvedCounterexamples.map((counterexample: any) => {
-      const resolvedExperiences = counterexample.experienceRefs.map((ref: string) => {
-        const item = experiences.get(ref) as any;
-        if (!item) throw new Error(`${counterexample.id} references unknown Experience ${ref}`);
-        return item;
-      });
-      return {
-        counterexampleRef: counterexample.id,
-        mechanisms: [...new Set(resolvedExperiences.flatMap((item: any) => item.mechanisms))].sort() as string[],
-      };
-    });
-    return {
-      ...theme,
-      mechanisms: [...new Set(counterexampleMechanisms.flatMap((item) => item.mechanisms))].sort(),
-      referenceGames: [...new Set(resolvedCounterexamples.flatMap((item: any) => item.referenceGames))].sort() as string[],
-      sourceRefs: [...new Set(resolvedCounterexamples.flatMap((item: any) => item.sourceRefs))].sort() as string[],
-      counterexampleMechanisms,
-    };
-  });
+  return projectCounterexampleThemes(
+    loadCounterexampleSynthesis(root).themes,
+    readJson(root, MEMORY_PATH).counterexamples,
+    readJson(root, EXPERIENCE_PATH).experiences,
+  );
 }
 
 export function queryCounterexampleSynthesis(query: CounterexampleSynthesisQuery): CounterexampleSynthesisQueryResult {
