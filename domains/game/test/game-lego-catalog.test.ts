@@ -48,7 +48,7 @@ function validateNativeGameConsumerClaims(plan: any): void {
     G06: ['mise.toml', 'examples/native-composition/assert.gd', 'examples/native-composition/main.tscn'],
     G07: ['examples/orbit-collector/src/main.rs', 'examples/orbit-collector/src/gameplay.rs', 'examples/orbit-collector/Cargo.toml'],
     G08: ['examples/native-composition/composition_root.gd', 'examples/native-composition/main.tscn', 'examples/native-composition/assert_audio.gd'],
-    G09: ['examples/dialogue-composition/story_root.gd', 'examples/dialogue-composition/gate_state.gd', 'examples/dialogue-composition/main.tscn', 'examples/dialogue-composition/acceptance.gd', 'mise.toml'],
+    G09: ['examples/room-encounter/narrative/encounter_dialogue.gd', 'examples/room-encounter/narrative/gate_state.gd', 'examples/room-encounter/main.tscn', 'examples/room-encounter/narrative/acceptance.gd', 'mise.toml'],
   };
   for (const id of Object.keys(required))
     assert.ok(plan.nodes.some((n: any) => n.id === id), id + ': known native consumer missing');

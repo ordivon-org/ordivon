@@ -53,7 +53,7 @@ test("composition candidates resolve genuine external source evidence and expose
     ["dialogue-runtime", "game-state", "choice-ui"],
   );
   assert.ok(dialogueClosure?.components.every((slot) => slot.standing === "EXECUTED_NATIVE"));
-  assert.ok(dialogueClosure?.explicitGaps.some((gap) => gap.includes("not been integrated")));
+  assert.ok(dialogueClosure?.explicitGaps.some((gap) => gap.includes("human playtest")));
   const other = result.items.filter((recipe) =>
     !["native-action-loop", "rust-ecs-sandbox", "room-encounter", "kenney-avatar-appearance", "branching-dialogue-gate"].includes(recipe.id)
   );

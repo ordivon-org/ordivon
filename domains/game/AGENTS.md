@@ -243,26 +243,25 @@ G07 is the separate Bevy ECS/Plugin game example (`cargo test --locked` and
 Neither is a launched indie game. A future playable 5-minute product must
 have its own playable build and product evidence; never promote fixture PASS.
 
-****Reusable dialogue LEGO assembly:** the already-installed 4.2.0 upstream
+**Reusable dialogue LEGO assembly:** the already-installed 4.2.0 upstream
 Dialogue Manager provides branch/condition evaluation, while
-`examples/dialogue-composition/gate_state.gd` owns tokens and gate
-effects and native Control/Buttons own presentation. Inspect the
+`examples/room-encounter/narrative/gate_state.gd` derives room-clear eligibility and calls only EncounterRules.advance;
+native Control/Buttons own presentation. Inspect the
 `branching-dialogue-gate` record through the **existing**
 `pnpm composition:inspect -- --id branching-dialogue-gate`.
-That is an executed **component closure**, not a full exploration game.
+That is a native integrated consumer, not a human-playtested full game.
 The separate `dialogue-led-exploration` remains DESIGN_CANDIDATE:
-an installed dialogue runtime alone cannot claim connected rooms, save
-state, content, music, or player experience. Never create a second DSL,
+a connected room narrative does not prove art, music, localization or player value. Never create a second DSL,
 story-state database or duplicate Game G09.
 
-Narrative native consumer G09:** `examples/dialogue-composition/`
+Narrative native consumer G09:** `examples/room-encounter/narrative/`
 uses the current upstream MIT Dialogue Manager v4.2.0 with an exact source
 pin, its ordinary `.dialogue` importer and runtime, and one Godot 4.7.2
 project. The scene Control/Buttons own choice presentation; a separate
-game-state Node owns token and gate rules, projecting changes through a
+game-state adapter only derives eligibility from EncounterRules, projecting through a
 native `state_changed` Signal. The addon supplies branch and condition
 evaluation; `mise run test:dialogue-native` checks native import,
-accepted mutation, alternate branch and unavailable choice. Do **not**
+legal room advance, leave branch and native door routing. Do **not**
 introduce an Ordivon dialogue DSL, duplicate renderer/backend or claim
 story quality, accessibility and a shipped product from a headless test.
 
@@ -313,3 +312,7 @@ unreviewed third-party assets into source; presuming "fun" from a design
 score; rebuilding physics/renderer/ECS/license tools; preserving dead game
 archives; broad reroutes of historical frozen protocols; tests whose only
 purpose is asserting that a documentation paragraph exists.
+
+## Native Room Encounter composition (2026-11-03)
+
+G09 narrative and G10 ConfigFile now run in one Godot 4.7.2 product scene with rules, input, audio, and replaceable HUD. Upstream pinned MIT Dialogue Manager was relocated using git mv (no duplicate vendor source); unused standalone narrative project removed. Dialogue GateState derives its only token from EncounterRules.phase=cleared and requests only EncounterRules.advance. Door UI and N/Enter request dialogue choices rather than bypassing them. mise run test:dialogue-native exercises the actual combined consumer. Human narrative quality and final indie-game shipment remain unverified. Prefer native scene composition over new orchestrators or duplicated engine wrappers.

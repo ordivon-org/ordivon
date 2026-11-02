@@ -21,4 +21,4 @@ run = "godot --headless --path examples/kenney-visual-composition --editor --imp
 
 [tasks."test:dialogue-native"]
 description = "Run source-locked Dialogue Manager 4.2.0 under pinned Godot: import, branches and game state"
-run = "godot --headless --path examples/dialogue-composition --editor --import && godot --headless --path examples/dialogue-composition --script res://acceptance.gd && godot --headless --path examples/dialogue-composition --quit-after 2"
+run = "godot --headless --path examples/room-encounter --editor --import && godot --headless --path examples/room-encounter --script res://narrative/acceptance.gd && godot --headless --path examples/room-encounter --quit-after 2"

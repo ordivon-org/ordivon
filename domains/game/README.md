@@ -114,7 +114,7 @@ PNG and exact provenance are stored alongside the scene.
 
 ## Native narrative LEGO
 
-G09: `examples/dialogue-composition/` installs upstream Dialogue Manager
+G09: `examples/room-encounter/narrative/` installs upstream Dialogue Manager
 v4.2.0 under Godot 4.7.2. The addon imports real `.dialogue` source;
 native Control buttons select branches, while the game-state Node remains
 the authority for tokens and gate rules. Run `mise run test:dialogue-native`.

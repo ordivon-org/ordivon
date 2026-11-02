@@ -177,7 +177,7 @@ results. No second registry or source authority exists.
 
 ## Native dialogue branch evidence (2026-11-03)
 
-The existing `examples/dialogue-composition` Godot 4.7.2 consumer now
+The existing `examples/room-encounter/narrative` Godot 4.7.2 consumer now
 has its own `branching-dialogue-gate` composition entry. It composes the
 MIT-licensed, source-pinned upstream Dialogue Manager v4.2.0 runtime with a
 separate game-authoritative gate/tokens state Node and native response UI.

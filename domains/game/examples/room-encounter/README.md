@@ -43,3 +43,7 @@ cannot trigger a false attack sound. Source-to-native acceptance checks
 checkpoint readback, incompatible tuning and a damaged stored value.
 Cloud sync, migration across changed tuning, real sound hardware and
 human playtest remain unverified.
+
+## Native branching room narrative
+
+Clear the room to trigger source-pinned Dialogue Manager 4.2.0 in the same Godot project. Unlock delegates to EncounterRules.advance; Leave changes no combat state; native Open Door and N/Enter show choices. The token derives from cleared phase, not an independent ledger. Pinned MIT upstream code resides in addons/dialogue_manager, real consumer in narrative/. Run test:dialogue-native and test:encounter.

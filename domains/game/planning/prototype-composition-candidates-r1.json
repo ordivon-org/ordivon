@@ -69,7 +69,7 @@
           "integrationSeam": "Godot addon/dialogue runtime",
           "standing": "EXECUTED_NATIVE",
           "required": true,
-          "currentConsumer": "examples/dialogue-composition/story_root.gd"
+          "currentConsumer": "examples/room-encounter/narrative/encounter_dialogue.gd"
         },
         {
           "role": "ui-art",
@@ -299,11 +299,11 @@
     },
     {
       "id": "branching-dialogue-gate",
-      "name": "Native branching dialogue and authoritative gate state",
+      "name": "Native room-integrated branching gate",
       "engine": "godot",
-      "intent": "Compose a source-pinned upstream Dialogue Manager 4.2.0 runtime with game-owned token and gate rules and native UI responses, without a custom dialogue grammar or duplicate state store.",
+      "intent": "Upstream dialogue choice acts on real EncounterRules without an independent quest/token state",
       "standing": "NATIVE_COMPONENT_EXECUTED",
-      "currentConsumer": "examples/dialogue-composition/acceptance.gd",
+      "currentConsumer": "examples/room-encounter/narrative/acceptance.gd",
       "components": [
         {
           "role": "dialogue-runtime",
@@ -315,7 +315,7 @@
         {
           "role": "game-state",
           "sourceRef": "godot-native-resource-composition",
-          "integrationSeam": "game-owned gate_state.gd Node / tokens and unlocked status / native state_changed signal",
+          "integrationSeam": "Derived cleared room token from EncounterRules; no separate authority",
           "standing": "EXECUTED_NATIVE",
           "required": true
         },
@@ -328,11 +328,10 @@
         }
       ],
       "explicitGaps": [
-        "Dialogue Manager 4.2.0 is executed only in a bounded narrative gate; it has not been integrated into the existing three-room encounter product or a shipped narrative game.",
-        "No save/resume, localization, audio, accessibility, actual keyboard input or human narrative experience has been independently verified.",
-        "The upstream MIT addon is the owner of the dialogue syntax/compiler; the game alone owns the effects and state. No Ordivon-specific dialogue parser is needed."
+        "Actual Game room integration executed; no human playtest or quality evidence",
+        "Additional art/music/localization not yet product-qualified"
       ],
-      "nextFalsifier": "Run the existing Godot 4.7.2 test:dialogue-native, verify accepted mutation / alternate leave choice / zero-token disabled choice; integrate the native dialog component into a real product quest state before claiming product-level play."
+      "nextFalsifier": "Actual player observation of battle-to-gate experience, art and indie publication"
     }
   ]
 }
