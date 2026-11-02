@@ -128,7 +128,7 @@ def main() -> int:
         "SECURITY.md",
         "CODE_OF_CONDUCT.md",
         ".github/pull_request_template.md",
-        "docs/decisions/README.md",
+        "docs/architecture/DECISIONS_INDEX.md",
     ):
         assert (ROOT / relative).is_file(), f"missing root contributor entrypoint: {relative}"
     template_directory = ROOT / ".github" / "ISSUE_TEMPLATE"

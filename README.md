@@ -14,7 +14,7 @@ The non-deployed source-layout transition target is `docs/architecture/STRUCTURE
 
 Contributing? Start with [CONTRIBUTING](CONTRIBUTING.md). Report security
 issues privately via [SECURITY](SECURITY.md). See the
-[decision index](docs/decisions/README.md) for current architecture records.
+[decision index](docs/architecture/DECISIONS_INDEX.md) for current architecture records.
 
 ## Where to start
 
