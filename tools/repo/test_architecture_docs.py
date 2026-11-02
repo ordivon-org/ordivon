@@ -706,7 +706,13 @@ def test_formal_issue_census_rejects_undeclared_natural_owner(owner: str) -> Non
 
 
 def test_historical_migrated_owner_remains_valid_without_rewriting_evidence() -> None:
-    census, plans = formal_issue_inputs()
+    census = json.loads(
+        (ROOT / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json").read_text(encoding="utf-8")
+    )
+    plans = {
+        row["ownerPlan"]: json.loads((ROOT / row["ownerPlan"]).read_text(encoding="utf-8"))
+        for row in census["registrations"]
+    }
     historical = next(row for row in census["issues"] if row["id"] == "SKILL-DISCOVERY-SCIENCE-20261026")
     assert historical["naturalOwner"] == "platform/skills"
     module.validate_formal_issue_census(census, plans)
