@@ -73,7 +73,7 @@ python3 -m unittest tools/repo/test_workspace_ready.py
 python3 -m unittest tools/repo/test_external_ownership_boundary.py
 uv run --with pyyaml==6.0.3 python -m unittest tools/repo/test_dependency_update_ownership.py
 python3 -m unittest tools/repo/test_sql_dialects.py
-python3 -m unittest discover -s apps/chaoxing-autosign/tests -p "test_*.py"
+mise run chaoxing:verify
 uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 python3 tools/repo/test_affected_owners.py
 python3 tools/repo/test_convergence_plan.py
@@ -300,6 +300,12 @@ uv run ruff format --check .
 uv run python -m pytest -q
 """
 
+
+[tasks."chaoxing:verify"]
+run = """
+set -euo pipefail
+python3 -m unittest discover -s apps/chaoxing-autosign/tests -p "test_*.py"
+"""
 
 [tasks."web:verify"]
 run = """
