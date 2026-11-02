@@ -29,12 +29,12 @@ class AffectedOwnersTests(unittest.TestCase):
 
     def test_owner_local_change_selects_only_that_owner(self) -> None:
         self.assertEqual(
-            self.names("platform/skills/src/ordivon_skills/catalog.py"),
+            self.names("extensions/chatgpt-skills-mcp/src/ordivon_skills/catalog.py"),
             ["skills"],
         )
 
     def test_project_agent_skill_changes_select_existing_skills_consumer(self) -> None:
-        # Real Skills test reads this canonical project Skill, not just platform/skills source.
+        # Real Skills test reads this canonical project Skill, not just extensions/chatgpt-skills-mcp source.
         source = ".agents/skills/recursive-lego-calculus/SKILL.md"
         self.assertEqual(self.names(source), ["skills"])
         self.assertEqual(self.queue_tasks(source), ["skills:verify"])

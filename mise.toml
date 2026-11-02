@@ -13,7 +13,7 @@ config_roots = [
   "services/runtime",
   "services/host",
   "services/harness",
-  "platform/skills",
+  "extensions/chatgpt-skills-mcp",
   "platform/security",
   "platform/workstation",
   "platform/network",
@@ -187,7 +187,7 @@ mise run verify
 [tasks."skills:verify"]
 run = """
 set -euo pipefail
-cd platform/skills
+cd extensions/chatgpt-skills-mcp
 mise install
 mise run verify
 """

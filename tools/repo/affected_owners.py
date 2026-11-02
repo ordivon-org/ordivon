@@ -136,8 +136,8 @@ def owners_for_paths(
     # consumer: Composition select-impact executes this exact producer.
     # Do not expand unrelated repo producer edits to all 18 domain queues.
     history_consumer_changed = "tools/repo/source_history_legos.py" in normalized
-    # Existing platform/skills consumers discover and read actual project
-    # Skills under .agents/skills, outside the platform/skills code root.
+    # Existing extensions/chatgpt-skills-mcp consumers discover and read actual project
+    # Skills under .agents/skills, outside the extensions/chatgpt-skills-mcp code root.
     project_skill_consumer_changed = any(
         path.startswith(".agents/skills/") for path in normalized
     )

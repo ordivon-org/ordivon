@@ -1,7 +1,7 @@
 # Ordivon Repository Structure R2
 
 Date: 2026-09-22
-Status: **PARTIALLY DEPLOYED — S0 + S1A + S1B + S2A + S2B**
+Status: **PARTIALLY DEPLOYED — S0 + S1A + S1B + S2A + S2B + S2C**
 
 Machine-readable companion: `docs/architecture/structure-r2-transition-r1.json`.
 
@@ -152,8 +152,8 @@ No universal verifier or global evidence registry is introduced.
   `ordivon-composition` package API and retire facades only when no real consumer requires them.
 - **S2A — Control Plugin edge:** portable control Plugin source -> `extensions/ordivon-control-plane`.
 - **S2B — Canonical Skill source:** **DEPLOYED** — project Skills -> root `.agents/skills`.
-- **S2C — ChatGPT Skills compatibility edge:** temporary Skills MCP owner ->
-  `extensions/chatgpt-skills-mcp`.
+- **S2C — ChatGPT Skills compatibility edge:** the temporary Skills MCP owner is located at
+  `extensions/chatgpt-skills-mcp`; the installed service remains release-snapshot-bound.
 - **S3 — Durable owners:** Gateway, Runtime, Host, Harness -> `packages/`, one at a time.
 - **S4 — Security/Network/deployment:** bounded reusable source -> `packages/`; Workstation
   deployment realization -> `deploy/workstation`.
@@ -183,8 +183,8 @@ consumers to the declared public `ordivon_composition` package API and retired t
 Python compatibility facades after repository-wide inventory found no external path callers.
 R3 seam-specific verifiers, Admission dogfood, and task-local bindings remain with Next.
 S2A relocates only the portable control Plugin package bytes to the repository extension
-boundary; Next remains its release/materialization consumer. Therefore S1 and S2A are closed,
-while S2B-S9 remain open.
+boundary; Next remains its release/materialization consumer. Therefore S1 and S2A/S2B/S2C are closed at the repository source-layout level,
+while S3-S9 remain open. An installed Skills MCP release is not updated by a source move.
 
 For every still-unmigrated owner, current paths in `CURRENT_ARCHITECTURE.md`,
 `tools/repo/owners.toml`, `dependency_contracts.toml`, root `mise.toml`, and owner deployment

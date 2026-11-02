@@ -24,6 +24,7 @@ Choose the **current natural owner** by the fact or effect it controls; the repo
 | Run a bounded Agent turn, tool call or browser session | [`services/harness/`](services/harness/README.md) | Harness cognition/tool continuity |
 | Evaluate generic Cognitive Circuit and composition contracts | [`packages/composition/`](packages/composition/README.md) | Portable composition mechanics |
 | Work on the product-facing web application | [`apps/web/`](apps/web/README.md) | Application surface |
+| Maintain the temporary Agent Skills MCP compatibility bridge | [`extensions/chatgpt-skills-mcp/`](extensions/chatgpt-skills-mcp/README.md) | Agent Plugins/MCP adapter only, not Skill authority |
 | Select a method or reusable Agent Skill | [`.agents/skills/method-router/`](.agents/skills/method-router/SKILL.md) | Advisory method, not execution authorization |
 | Check dependency ownership and allowed cross-owner seams | [`tools/repo/owners.toml`](tools/repo/owners.toml), [`dependency_contracts.toml`](tools/repo/dependency_contracts.toml) | Repository mechanics; owner-native contracts remain authoritative |
 

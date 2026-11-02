@@ -228,7 +228,7 @@ OWNER_LEGO_PLANS = (
     "services/host/planning/lego-plan-r1.json",
     "services/harness/planning/lego-plan-r1.json",
     "platform/network/planning/lego-plan-r1.json",
-    "platform/skills/planning/lego-plan-r1.json",
+    "extensions/chatgpt-skills-mcp/planning/lego-plan-r1.json",
     "platform/security/planning/lego-plan-r1.json",
     "domains/game/planning/lego-plan-r1.json",
     "capabilities/media/planning/lego-plan-r1.json",
@@ -1838,6 +1838,15 @@ def validate_formal_issue_census(
         )
     )
     known_owners = {row["root"].removesuffix("/") for row in owner_manifest["owners"]}
+    # A dated issue census names the source Owner at its original SourceCut.
+    # Reuse the already validated Structure R2 relocation map rather than
+    # rewriting historical evidence or inventing a second owner alias registry.
+    transition_path = root / "docs/architecture/structure-r2-transition-r1.json"
+    if transition_path.is_file():
+        transition = _load_json(transition_path)
+        for relocation in transition.get("mappings", []):
+            if relocation.get("mode") == "move" and relocation.get("standing") == "DEPLOYED":
+                known_owners.update(path.removesuffix("/") for path in relocation["sourcePaths"])
     known_owners.add("tools/repo")  # Repository mechanics, not a domain owner.
     issue_ids: set[str] = set()
     for issue in issues:

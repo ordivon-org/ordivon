@@ -162,7 +162,7 @@ def test_oct26_new_cross_owner_frontiers_remain_explicitly_unknown() -> None:
     census = json.loads((root / "docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261025_R1.json").read_text(encoding="utf-8"))
     cases = {
         "RT-CONSUMER-CLAIM-20261026": "services/runtime",
-        "SKILL-DISCOVERY-SCIENCE-20261026": "platform/skills",
+        "SKILL-DISCOVERY-SCIENCE-20261026": "extensions/chatgpt-skills-mcp",
         "COMPOSITION-IMPLEMENTATION-BRIDGE-20261026": "packages/composition",
     }
     plans = {

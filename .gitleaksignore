@@ -71,7 +71,7 @@ platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-
 platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:40
 platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:60
 platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:81
-platform/skills/tests/test_skill_catalog_r2.py:private-key:256
+extensions/chatgpt-skills-mcp/tests/test_skill_catalog_r2.py:private-key:256
 services/harness/evidence/harness-r3-static-composition-admission-4e9d4b9.json:generic-api-key:67
 services/harness/evidence/harness-r3-supported-agent-surface-fe6fc1a.json:generic-api-key:78
 services/runtime/crates/ordivon-runtime-mcp/src/access_auth.rs:private-key:167
