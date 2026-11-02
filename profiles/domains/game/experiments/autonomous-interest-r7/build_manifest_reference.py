@@ -12,7 +12,7 @@ import selection_reference as sr
 import renderer_reference as rr
 import study_runner_reference as hr
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[5]
 MANIFEST_KIND = "ordivon.game-autonomous-interest-r7-human-build-manifest"
 
 
