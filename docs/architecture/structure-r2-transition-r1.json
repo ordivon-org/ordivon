@@ -533,6 +533,28 @@
         "repo:ci"
       ],
       "wave": "S5"
+    },
+    {
+      "currentPlacementPaths": [
+        "studies/experimental-episodes/"
+      ],
+      "disposition": "Move the current analytical Episode Store package and its owner-native tests to study-local sources while other frozen Next experiments remain untouched.",
+      "id": "next-experimental-episode-studies",
+      "mode": "split",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/experiments/"
+      ],
+      "standing": "PARTIALLY_DEPLOYED",
+      "targetPaths": [
+        "studies/"
+      ],
+      "verifyTasks": [
+        "next:verify",
+        "repo:ci"
+      ],
+      "wave": "S5"
     }
   ],
   "openSlices": [
