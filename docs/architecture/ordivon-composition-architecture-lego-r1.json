@@ -156,7 +156,7 @@
       "responsibility": "Rename and constrain the static capability declaration surface so it is visibly a route table, not a mutable capability registry.",
       "files": [
         "services/gateway/src/ordivon_gateway/registry.py",
-        "services/gateway/src/ordivon_gateway/routes.py",
+        "services/gateway/src/ordivon_gateway/routing.py",
         "services/gateway/src/ordivon_gateway/service.py",
         "services/gateway/tests/test_capability_projection.py"
       ],

@@ -8,7 +8,7 @@
     "sourceEvidence": [
       "README.md",
       "src/ordivon_gateway/service.py",
-      "src/ordivon_gateway/routes.py",
+      "src/ordivon_gateway/routing.py",
       "src/ordivon_gateway/mcp_server.py",
       "tests/test_gateway_service.py"
     ],
@@ -77,7 +77,7 @@
         "test_explicit_empty_routes_do_not_expand_gateway_capabilities and test_gateway_rejects_mismatched_route_and_capability_identity pass."
       ],
       "evidence": [
-        "src/ordivon_gateway/routes.py",
+        "src/ordivon_gateway/routing.py",
         "src/ordivon_gateway/service.py",
         "tests/test_gateway_service.py",
         "tests/test_research_capability_resolution.py"

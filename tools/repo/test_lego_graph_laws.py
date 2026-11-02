@@ -2063,7 +2063,7 @@ def test_agent_native_source_path_to_owner_to_single_contract() -> None:
     revision = subprocess.check_output(
         ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
     ).strip()
-    path = "services/gateway/src/ordivon_gateway/routes.py"
+    path = "services/gateway/src/ordivon_gateway/routing.py"
     result = module.inspect_owner_source_path(
         source_revision=revision, source_path=path, root=ROOT,
     )
@@ -2116,7 +2116,7 @@ def test_agent_native_repo_navigation_fallback_is_not_registered_authority() -> 
 
     real = module.inspect_owner_source_path(
         source_revision=revision,
-        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        source_path="services/gateway/src/ordivon_gateway/routing.py",
         root=ROOT,
     )
     assert real["ownerPartitions"][0]["registrationStanding"] == (
@@ -2231,7 +2231,7 @@ def test_agent_native_json_schema_source_query_never_infers_consumers() -> None:
     ).strip()
     plain = module.inspect_owner_source_path(
         source_revision=cut,
-        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        source_path="services/gateway/src/ordivon_gateway/routing.py",
         root=ROOT,
     )
     assert plain["nativeContractCarrier"] is None

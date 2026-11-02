@@ -23,7 +23,7 @@
     },
     "capabilityRouter": {
       "kind": "gateway-static-owner-projection",
-      "path": "services/gateway/src/ordivon_gateway/routes.py",
+      "path": "services/gateway/src/ordivon_gateway/routing.py",
       "status": "deployed",
       "authority": "non-authoritative-routing-projection",
       "capabilities": [
