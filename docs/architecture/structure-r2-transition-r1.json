@@ -511,6 +511,25 @@
       "wave": "S5",
       "standing": "DEPLOYED",
       "disposition": "Source-only move of the ten Next-owned migration and retirement state records into the existing migration/retirement documentation region. Frozen SourceCut evidence remains historical and unchanged; outstanding external cleanup remains OPEN until actual external verification."
+    },
+    {
+      "id": "chaoxing-autosign-mvp",
+      "mode": "move",
+      "owner": "apps/chaoxing-autosign",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/experiments/chaoxing-autosign-mvp/"
+      ],
+      "targetPaths": [
+        "apps/chaoxing-autosign/"
+      ],
+      "verifyTasks": [
+        "next:verify",
+        "repo:ci"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "Move retained experimental sign-in MVP with its test consumer under an application owner. Historical source cuts remain provenance only; no remote provider installation, account login or presence-proof bypass is asserted."
     }
   ],
   "openSlices": [
