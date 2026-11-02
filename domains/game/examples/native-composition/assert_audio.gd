@@ -1,0 +1,58 @@
+extends SceneTree
+
+const AudioFeedback = preload("res://movement_audio_feedback.gd")
+
+var failures: Array[String] = []
+var assertions: int = 0
+
+func expect(ok: bool, description: String) -> void:
+    assertions += 1
+    if not ok:
+        failures.append(description)
+        push_error(description)
+
+func _initialize() -> void:
+    call_deferred("run_native_audio_consumer")
+
+func run_native_audio_consumer() -> void:
+    var scene = load("res://main.tscn").instantiate()
+    root.add_child(scene)
+    var rules: Node = scene.get_node("Rules")
+    var feedback = AudioFeedback.new()
+    feedback.name = "MovementAudio"
+    scene.add_child(feedback)
+    var initial_clip = AudioStreamWAV.load_from_file("res://assets/kenney-ui-audio/click1.wav")
+    var alternate_clip = AudioStreamWAV.load_from_file("res://assets/kenney-ui-audio/click2.wav")
+    expect(initial_clip != null and alternate_clip != null, "source-licensed Kenney WAV clips load via native Godot")
+    if initial_clip == null or alternate_clip == null:
+        quit(1)
+        return
+    feedback.stream = initial_clip
+    feedback.bind_rules(rules)
+    expect(feedback.observed_play_count == 0, "initial state notification does not mint movement feedback")
+    expect(not rules.move(0), "invalid action is rejected by existing rules")
+    expect(feedback.observed_play_count == 0, "rejected action produces no sound effect")
+    var right = InputEventKey.new()
+    right.pressed = true
+    right.keycode = KEY_RIGHT
+    scene._unhandled_key_input(right)
+    expect(rules.snapshot()["turn"] == 1, "actual RIGHT key enters existing scene and advances game rules")
+    expect(feedback.observed_play_count == 1, "actual rule state signal triggers native audio")
+    expect(feedback.playing, "AudioStreamPlayer playback starts")
+    feedback.stream = alternate_clip
+    expect(feedback.stream == alternate_clip, "source-licensed audio can be substituted independently")
+    scene._unhandled_key_input(right)
+    expect(rules.snapshot()["turn"] == 2, "audio substitution leaves actual RIGHT key behavior unchanged")
+    expect(feedback.observed_play_count == 2, "second state transition is observed")
+    expect(feedback.stream == alternate_clip and feedback.playing, "new audio resource is used by the same player")
+    var before = rules.snapshot()
+    expect(not rules.move(100), "invalid action after substitution is rejected")
+    expect(feedback.observed_play_count == 2 and rules.snapshot() == before, "invalid action produces neither rules nor audio effect")
+    print("GAME_NATIVE_AUDIO_COMPOSITION_%s assertions=%d played=%d" % ["PASS" if failures.is_empty() else "FAIL", assertions, feedback.observed_play_count])
+    feedback.stop()
+    feedback.stream = null
+    scene.free()
+    initial_clip = null
+    alternate_clip = null
+    await process_frame
+    quit(0 if failures.is_empty() else 1)
