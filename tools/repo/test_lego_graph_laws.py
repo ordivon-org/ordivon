@@ -2344,8 +2344,13 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     actual_host = _mcp_decorated_route_functions(
         ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py", "mcp")
     actual_gateway = _mcp_decorated_route_functions(
-        ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py", "server",
+        ROOT / "services/gateway/src/ordivon_gateway/host_tools.py", "server",
         source_override=gateway_text)
+    # Bind real registrar composition to the northbound entry point, not
+    # detached source declarations that happen to mention tool names.
+    assert "register_host_tools(server, gateway, _owner_boundary)" in (
+        ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py"
+    ).read_text()
     dispatches = {
         "work.create": ("work", "create_work"),
         "work.get": ("work", "get_work"),
@@ -2412,7 +2417,7 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
 def test_host_core_parent_lego_consumer_refinement_is_bound_to_real_calls() -> None:
     plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
     host_text = (ROOT / "services/host/src/ordivon_host_v2/service.py").read_text()
-    gateway_text = (ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py").read_text()
+    gateway_text = (ROOT / "services/gateway/src/ordivon_gateway/host_tools.py").read_text()
     _host_core_parent_consumer_contract(plan, host_text, gateway_text)
     # These are formerly unqualified *declarations*, not a formal proof or
     # evidence that current installed Windows/Linux binaries match Git.
@@ -2431,7 +2436,7 @@ def test_host_parent_refinement_fails_on_lost_consumption_or_false_proof(
 ) -> None:
     plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
     host_text = (ROOT / "services/host/src/ordivon_host_v2/service.py").read_text()
-    gateway_text = (ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py").read_text()
+    gateway_text = (ROOT / "services/gateway/src/ordivon_gateway/host_tools.py").read_text()
     if mutation == "consumer":
         next(n for n in plan["nodes"] if n["id"] == "O01")["consumers"] = [
             "social_work_mcp:work.does_not_exist"]
