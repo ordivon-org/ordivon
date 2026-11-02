@@ -16,17 +16,17 @@ Select by problem:
 - systemd and container/runtime mechanisms for local service lifecycle;
 - Ansible for host/configuration automation where appropriate;
 - OpenTofu for declarative external/cloud infrastructure state;
-- Temporal for durable workflows that must survive failures and resume; use `capabilities/providers/temporal.md` for the provider boundary and `knowledge/lessons/temporal-durable-execution-kernel.md` for the extracted kernel;
-- n8n for API/app integration automation and human-facing workflow edges; use `capabilities/providers/n8n.md` for the provider boundary and `knowledge/lessons/n8n-integration-kernel.md` for the extracted method kernel;
-- OpenTelemetry + OTLP for vendor-neutral traces, metrics, logs and context propagation; use `capabilities/providers/opentelemetry.md` and `knowledge/lessons/otel-openinference-observability-kernel.md`;
-- OTel GenAI semantic conventions as the preferred standards-native AI telemetry direction when supported; use OpenInference selectively when its instrumentors/richer AI semantics/backend compatibility materially help, via `capabilities/providers/openinference.md`;
+- Temporal for durable workflows that must survive failures and resume; use `catalogs/capabilities/providers/temporal.md` for the provider boundary and `meta/next/knowledge/lessons/temporal-durable-execution-kernel.md` for the extracted kernel;
+- n8n for API/app integration automation and human-facing workflow edges; use `catalogs/capabilities/providers/n8n.md` for the provider boundary and `meta/next/knowledge/lessons/n8n-integration-kernel.md` for the extracted method kernel;
+- OpenTelemetry + OTLP for vendor-neutral traces, metrics, logs and context propagation; use `catalogs/capabilities/providers/opentelemetry.md` and `meta/next/knowledge/lessons/otel-openinference-observability-kernel.md`;
+- OTel GenAI semantic conventions as the preferred standards-native AI telemetry direction when supported; use OpenInference selectively when its instrumentors/richer AI semantics/backend compatibility materially help, via `catalogs/capabilities/providers/openinference.md`;
 - mature metrics/log/trace/backup/storage systems as required by the target service.
 
 Do not collapse these different responsibilities into a new Ordivon operations daemon or private telemetry ontology.
 
 ## Observed local capability
 
-Current local implementation/owner record: `capabilities/providers/workstation-v2.md`.
+Current local implementation/owner record: `catalogs/capabilities/providers/workstation-v2.md`.
 
 - Workstation v2 (`/root/projects/ordivon@a003ca18b7e43ea4012d62db8d8d71198d68d961`, owner path `platform/workstation`);
 - Runtime execution/evidence (`/root/projects/ordivon/services/runtime@7741c2e9e53fc4954ce16b692cfe19b27703caee`);
@@ -47,7 +47,7 @@ No generic Operations framework gap is proven.
 
 A real workload that requires durable orchestration across crashes, long timers/waits, retryable Activities or interactive Workflow state may justify activating Temporal. Until such a workload exists, do not create installation/cluster debt merely to satisfy the capability catalog.
 
-A real workload that requires causal trace queries may justify admitting a trace backend or AI-engineering product. For lightweight internal Agent/eval work, Phoenix is the first candidate; for shared production AI engineering with collaborative prompt/eval/annotation workflows, Langfuse is the first candidate. Their overlap is high, so deploy at most one unless distinct measured workloads justify both. See `capabilities/providers/phoenix.md`, `capabilities/providers/langfuse.md`, and `knowledge/lessons/langfuse-phoenix-ai-engineering-platform-kernel.md`. Until such a workload exists, the current deliberate no-trace-storage boundary is valid; do not install tracing infrastructure for diagram completeness.
+A real workload that requires causal trace queries may justify admitting a trace backend or AI-engineering product. For lightweight internal Agent/eval work, Phoenix is the first candidate; for shared production AI engineering with collaborative prompt/eval/annotation workflows, Langfuse is the first candidate. Their overlap is high, so deploy at most one unless distinct measured workloads justify both. See `catalogs/capabilities/providers/phoenix.md`, `catalogs/capabilities/providers/langfuse.md`, and `meta/next/knowledge/lessons/langfuse-phoenix-ai-engineering-platform-kernel.md`. Until such a workload exists, the current deliberate no-trace-storage boundary is valid; do not install tracing infrastructure for diagram completeness.
 
 Cloud/Kubernetes, scheduler, backup, HA, SLO, secret-management or monitoring components become gaps only when the operated workload actually requires them.
 

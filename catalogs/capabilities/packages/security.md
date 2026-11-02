@@ -51,7 +51,7 @@ A scan completing successfully is not security acceptance by itself.
 
 Agent/web automation creates a moving security-observability boundary that should be treated as a Security measurement and adaptation problem rather than a one-time browser setting.
 
-Current external-first study: `knowledge/lessons/browser-automation-dynamic-defense-r1.md`.
+Current external-first study: `meta/next/knowledge/lessons/browser-automation-dynamic-defense-r1.md`.
 
 The Security package should be able to support authorized laboratory workloads that produce:
 
@@ -71,12 +71,12 @@ Browser substrate health and security-boundary admissibility are separate states
 Agent Security LEGO is the current reusable security/control lens for systems with ambient authority, hidden or multiple egress planes, persistent state, delegated execution, or consequential external effects.
 
 Canonical lens:
-- `knowledge/lessons/agent-security-lego-r1.md`.
+- `meta/next/knowledge/lessons/agent-security-lego-r1.md`.
 
 Validation:
-- `knowledge/lessons/zcode-workspace-snapshot-security-lego-r1.md`;
-- `knowledge/lessons/agent-security-cross-system-destroyer-r1.md`;
-- `knowledge/lessons/agent-security-cross-domain-destroyer-r1.md`.
+- `meta/next/knowledge/lessons/zcode-workspace-snapshot-security-lego-r1.md`;
+- `meta/next/knowledge/lessons/agent-security-cross-system-destroyer-r1.md`;
+- `meta/next/knowledge/lessons/agent-security-cross-domain-destroyer-r1.md`.
 
 For applicable workloads, Security may derive:
 - READ / WRITE / DERIVE / NETWORK / PERSIST sets;
