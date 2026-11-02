@@ -611,6 +611,9 @@
       "id": "risk-portfolio-observation-and-statistics",
       "sourcePatterns": [
         "src/ordivon_capital/risk/portfolio_risk.py",
+        "src/ordivon_capital/risk/dependence_analysis.py",
+        "src/ordivon_capital/risk/tail_risk.py",
+        "src/ordivon_capital/risk/risk_values.py",
         "src/ordivon_capital/risk/risk_budget_validation.py"
       ],
       "ownerClasses": [
@@ -903,7 +906,7 @@
       "contractId": "historical-expected-shortfall",
       "scope": "descriptive empirical one-period VaR/expected-shortfall statistic from an explicit return sequence",
       "localBaseline": {
-        "implementation": "src/ordivon_capital/risk/portfolio_risk.py::historical_expected_shortfall",
+        "implementation": "src/ordivon_capital/risk/tail_risk.py::historical_expected_shortfall",
         "primitiveOwner": "NumPy",
         "character": "thin deterministic calculation"
       },

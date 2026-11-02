@@ -9,7 +9,7 @@
   "components": [
     {
       "id": "portfolio-dependence-analysis",
-      "implementation": "src/ordivon_capital/risk/portfolio_risk.py::analyze_dependence",
+      "implementation": "src/ordivon_capital/risk/dependence_analysis.py::analyze_dependence",
       "classification": "QUANTITATIVE_MODEL",
       "sr26ModelStanding": "MODEL",
       "status": "VALIDATION_REQUIRED",
@@ -285,7 +285,7 @@
     },
     {
       "id": "historical-expected-shortfall",
-      "implementation": "src/ordivon_capital/risk/portfolio_risk.py::historical_expected_shortfall",
+      "implementation": "src/ordivon_capital/risk/tail_risk.py::historical_expected_shortfall",
       "classification": "NON_MODEL_CALCULATION",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
