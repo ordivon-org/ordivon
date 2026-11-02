@@ -79,8 +79,8 @@ This is a concrete improvement over API-shape compatibility.
 ## Case B — Browser/provider security / Causal Intervention
 
 Evidence:
-- `knowledge/lessons/cloudflare-provider-security-boundary-r1.md`
-- `knowledge/lessons/cloudflare-provider-security-exp-r5.md`
+- `catalogs/knowledge/lessons/cloudflare-provider-security-boundary-r1.md`
+- `catalogs/knowledge/lessons/cloudflare-provider-security-exp-r5.md`
 
 ### Causal question split
 

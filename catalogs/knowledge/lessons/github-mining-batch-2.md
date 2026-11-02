@@ -30,7 +30,7 @@ Verdict:
 Registered:
 
 - `capabilities/providers/mcp.md`
-- `knowledge/lessons/mcp-interoperability-kernel.md`
+- `catalogs/knowledge/lessons/mcp-interoperability-kernel.md`
 
 ### 2. Temporal — PASS
 
@@ -43,7 +43,7 @@ Verdict:
 Registered:
 
 - `capabilities/providers/temporal.md`
-- `knowledge/lessons/temporal-durable-execution-kernel.md`
+- `catalogs/knowledge/lessons/temporal-durable-execution-kernel.md`
 
 ### 3. LiteLLM — PASS
 
@@ -56,7 +56,7 @@ Verdict:
 Registered:
 
 - `capabilities/providers/litellm.md`
-- `knowledge/lessons/litellm-model-gateway-kernel.md`
+- `catalogs/knowledge/lessons/litellm-model-gateway-kernel.md`
 
 ### 4. OpenTelemetry + OpenInference — PASS
 
@@ -70,7 +70,7 @@ Registered:
 
 - `capabilities/providers/opentelemetry.md`
 - `capabilities/providers/openinference.md`
-- `knowledge/lessons/otel-openinference-observability-kernel.md`
+- `catalogs/knowledge/lessons/otel-openinference-observability-kernel.md`
 
 ### 5. Langfuse vs Phoenix — PASS / alternatives
 
@@ -89,7 +89,7 @@ Registered:
 
 - `capabilities/providers/langfuse.md`
 - `capabilities/providers/phoenix.md`
-- `knowledge/lessons/langfuse-phoenix-ai-engineering-platform-kernel.md`
+- `catalogs/knowledge/lessons/langfuse-phoenix-ai-engineering-platform-kernel.md`
 
 ### 6. LlamaIndex vs Haystack — PASS / on-demand frameworks
 
@@ -108,7 +108,7 @@ Registered:
 
 - `capabilities/providers/llamaindex.md`
 - `capabilities/providers/haystack.md`
-- `knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md`
+- `catalogs/knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md`
 
 ### 7. Qdrant — PASS
 
@@ -125,7 +125,7 @@ Routing heuristic:
 Registered:
 
 - `capabilities/providers/qdrant.md`
-- `knowledge/lessons/qdrant-vector-search-kernel.md`
+- `catalogs/knowledge/lessons/qdrant-vector-search-kernel.md`
 
 ### 8. Dagster — PASS
 
@@ -147,7 +147,7 @@ Dagster   -> persistent data-product/asset lifecycle
 Registered:
 
 - `capabilities/providers/dagster.md`
-- `knowledge/lessons/dagster-asset-orchestration-kernel.md`
+- `catalogs/knowledge/lessons/dagster-asset-orchestration-kernel.md`
 
 ### 9. LangGraph — PASS
 
@@ -160,7 +160,7 @@ Verdict:
 Registered:
 
 - `capabilities/providers/langgraph.md`
-- `knowledge/lessons/langgraph-agent-state-machine-kernel.md`
+- `catalogs/knowledge/lessons/langgraph-agent-state-machine-kernel.md`
 
 ### 10. Dify — PASS
 
@@ -173,7 +173,7 @@ Verdict:
 Registered:
 
 - `capabilities/providers/dify.md`
-- `knowledge/lessons/dify-ai-application-platform-kernel.md`
+- `catalogs/knowledge/lessons/dify-ai-application-platform-kernel.md`
 
 ## Batch-level architectural result
 

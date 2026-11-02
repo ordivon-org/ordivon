@@ -16,7 +16,7 @@ MAS is highly popular and technically sophisticated enough that future Agents/op
 
 This study is intentionally architectural and defensive. It does not preserve or reproduce operational bypass instructions.
 
-A full project-level teardown is now registered in `knowledge/lessons/microsoft-activation-scripts-deep-architecture-study.md`. That study applies the same one-sentence/prototype gates used for adopted mature projects and extracts the project's architecture, method boundaries, reliability model, compatibility strategy and transferable engineering lessons.
+A full project-level teardown is now registered in `catalogs/knowledge/lessons/microsoft-activation-scripts-deep-architecture-study.md`. That study applies the same one-sentence/prototype gates used for adopted mature projects and extracts the project's architecture, method boundaries, reliability model, compatibility strategy and transferable engineering lessons.
 
 ## Current upstream observation
 

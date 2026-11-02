@@ -45,7 +45,7 @@ Local evidence was intentionally split by lineage:
 
 - `docs/AGENT_PLUGIN_CORE_R3.md`;
 - `docs/ARCHITECTURE.md`;
-- `knowledge/lessons/ordivon-agent-birth-lego-r1.md`.
+- `catalogs/knowledge/lessons/ordivon-agent-birth-lego-r1.md`.
 
 Research-side records are evidence for the catalog but are **not** relabeled as current-main authorities until their own integration path lands.
 

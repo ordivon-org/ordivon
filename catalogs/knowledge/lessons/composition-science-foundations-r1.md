@@ -63,7 +63,7 @@ Existing LEGO Theory already records Systems Engineering, DSM, feedback/state-sp
 Adopted implication: components, relations, dynamics, environment and control constraints must remain distinguishable.
 
 Source:
-- knowledge/lessons/lego-theory-foundations-r1.md
+- catalogs/knowledge/lessons/lego-theory-foundations-r1.md
 
 ## Ordivon synthesis boundary
 
