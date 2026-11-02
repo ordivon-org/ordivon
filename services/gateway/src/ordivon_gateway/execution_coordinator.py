@@ -12,7 +12,7 @@ from .execution_refs import GatewayError, parse_execution_ref
 from .execution_refs import format_execution_ref as _execution_ref
 from .external_worker import ExternalPullWorkerTransport, WorkerConflict
 from .owner_protocol import _required_bool, _required_str
-from .routes import CapabilityRoute
+from .routing import CapabilityRoute
 from .upstream import OwnerToolCaller
 
 

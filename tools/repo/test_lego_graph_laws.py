@@ -93,7 +93,7 @@ def test_gateway_recursive_source_contracts_are_non_authoritative_and_consumer_b
     assert identities == {"G00", "G01", "G02", "G03", "G04", "G05", "G06", "G07", "G08", "G09"}
     assert plan["truthRole"] == "planning-projection-not-project-truth"
     checks = {
-        "G01": ("routes.py", "test_gateway_service.py"),
+        "G01": ("routing.py", "test_gateway_service.py"),
         "G02": ("service.py", "test_capability_projection.py"),
         "G03": ("service.py", "test_gateway_service.py"),
         "G04": ("service.py", "test_gateway_service.py"),
@@ -2063,7 +2063,7 @@ def test_agent_native_source_path_to_owner_to_single_contract() -> None:
     revision = subprocess.check_output(
         ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
     ).strip()
-    path = "services/gateway/src/ordivon_gateway/routes.py"
+    path = "services/gateway/src/ordivon_gateway/routing.py"
     result = module.inspect_owner_source_path(
         source_revision=revision, source_path=path, root=ROOT,
     )
@@ -2116,7 +2116,7 @@ def test_agent_native_repo_navigation_fallback_is_not_registered_authority() -> 
 
     real = module.inspect_owner_source_path(
         source_revision=revision,
-        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        source_path="services/gateway/src/ordivon_gateway/routing.py",
         root=ROOT,
     )
     assert real["ownerPartitions"][0]["registrationStanding"] == (
@@ -2231,7 +2231,7 @@ def test_agent_native_json_schema_source_query_never_infers_consumers() -> None:
     ).strip()
     plain = module.inspect_owner_source_path(
         source_revision=cut,
-        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        source_path="services/gateway/src/ordivon_gateway/routing.py",
         root=ROOT,
     )
     assert plain["nativeContractCarrier"] is None

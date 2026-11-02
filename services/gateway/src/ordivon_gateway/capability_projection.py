@@ -15,7 +15,7 @@ from .contracts import (
     CapabilitySearchMatch,
     CapabilitySearchProjection,
 )
-from .routes import CapabilityRoute
+from .routing import CapabilityRoute
 
 
 def project_execution_capability(

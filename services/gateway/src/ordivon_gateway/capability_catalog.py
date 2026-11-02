@@ -21,7 +21,7 @@ from .execution_refs import GatewayError
 from .external_worker import ExternalPullWorkerTransport
 from .owner_protocol import _configuration_error, _configured, _required_str
 from .research_routes import research_capabilities
-from .routes import CapabilityRoute
+from .routing import CapabilityRoute
 from .upstream import OwnerToolCaller
 
 _OWNER_ROLES = {

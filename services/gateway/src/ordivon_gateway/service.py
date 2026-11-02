@@ -18,7 +18,7 @@ from .execution_coordinator import ExecutionCoordinator
 from .execution_refs import GatewayError
 from .execution_refs import parse_execution_ref as parse_execution_ref
 from .external_worker import ExternalPullWorkerTransport
-from .routes import CapabilityRoute, default_routes
+from .routing import CapabilityRoute, default_routes
 from .upstream import OwnerToolCaller
 
 _SOCIAL_WORK_HOST_TOOLS = frozenset(

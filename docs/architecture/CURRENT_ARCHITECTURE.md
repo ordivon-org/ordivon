@@ -116,7 +116,7 @@ It does **not**:
 The **Capability Router** is the Gateway's static owner-routing projection in:
 
 ```text
-services/gateway/src/ordivon_gateway/routes.py
+services/gateway/src/ordivon_gateway/routing.py
 ```
 
 It chooses **which natural owner implements one already-named stable capability**.
