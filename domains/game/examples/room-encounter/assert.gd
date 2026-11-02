@@ -1,0 +1,104 @@
+extends SceneTree
+
+var failures: Array[String] = []
+var checks: int = 0
+
+func expect(ok: bool, label: String) -> void:
+    checks += 1
+    if not ok:
+        failures.append(label)
+        push_error(label)
+
+func invariant(s: Dictionary) -> void:
+    expect(s["room"] >= 1 and s["room"] <= s["total_rooms"], "room bounded")
+    expect(s["foes"] >= 0, "foes nonnegative")
+    expect(s["player_health"] >= 0, "player health bounded")
+    expect(s["stamina"] >= 0, "stamina nonnegative")
+    expect(s["enemy_health"] >= 0, "enemy health nonnegative")
+    expect(s["phase"] in ["fighting", "cleared", "won", "lost"], "phase valid")
+
+func _initialize() -> void:
+    call_deferred("run_acceptance")
+
+func run_acceptance() -> void:
+    var packed = load("res://main.tscn")
+    expect(packed is PackedScene, "real packed scene loads")
+    if not packed is PackedScene:
+        quit(1)
+        return
+    var game = packed.instantiate()
+    root.add_child(game)
+    var rules = game.get_node("Rules")
+    var view = game.get_node("View")
+    var first = rules.snapshot()
+    expect(first["phase"] == "fighting" and first["foes"] == 1, "native encounter starts")
+    expect(view.get_node("Status").text.contains("ROOM 1/3"), "native UI observes initial state")
+    expect(not rules.advance(), "closed room rejects door")
+    expect(rules.snapshot() == first, "illegal transition preserves state")
+    expect(rules.attack(), "first enemy can be attacked")
+    expect(rules.snapshot()["phase"] == "cleared", "first room becomes cleared")
+    expect(view.get_node("Encounter").text.contains("CLEARED"), "UI observes clear by Signal")
+    expect(not rules.attack(), "cleared room cannot be attacked")
+    expect(rules.advance(), "advance enters next room")
+    expect(rules.snapshot()["room"] == 2, "room index advances")
+    expect(rules.attack() and rules.attack(), "second room has two defeatable enemies")
+    expect(rules.snapshot()["phase"] == "cleared", "second room cleared")
+    expect(rules.advance(), "third room entered")
+    var guard_count: int = 0
+    while rules.snapshot()["phase"] == "fighting" and guard_count < 8:
+        if not rules.attack():
+            expect(rules.guard(), "guard restores attack resource")
+            guard_count += 1
+    expect(rules.snapshot()["phase"] == "cleared", "default three-room run winnable")
+    expect(rules.advance(), "final cleared door opens")
+    expect(rules.snapshot()["phase"] == "won", "three room win achieved")
+    expect(view.get_node("Encounter").text.contains("VICTORY"), "victory observed in UI")
+    expect(not rules.guard(), "terminal rules reject combat action")
+
+    var variant = load("res://configs/variant.tres")
+    expect(rules.reset_run(variant), "user resource replaces native tuning")
+    expect(rules.snapshot()["total_rooms"] == 2, "user tuning changes room count")
+    var before = rules.snapshot()
+    var invalid = variant.duplicate(true)
+    invalid.enemies_per_room = PackedInt32Array([0])
+    var observed: Array[Dictionary] = []
+    rules.state_changed.connect(func(s: Dictionary) -> void: observed.append(s))
+    expect(not rules.reset_run(invalid), "invalid native resource is rejected")
+    expect(rules.snapshot() == before and observed.is_empty(), "bad resource rejection is atomic")
+    var owned = variant.duplicate(true)
+    expect(rules.reset_run(owned), "valid caller-owned tuning accepted")
+    owned.enemies_per_room = PackedInt32Array([9, 9, 9])
+    expect(rules.snapshot()["total_rooms"] == 2, "active state is independent of mutated caller resource")
+
+    var alternate = packed.instantiate()
+    alternate.view_scene = load("res://encounter_view_variant.tscn")
+    root.add_child(alternate)
+    var replacement_view = alternate.get_node("View")
+    expect(replacement_view.modulate.g > 0.9, "alternative Godot scene has independent rendering")
+    expect(alternate.get_node("Rules").attack(), "same rules run with alternative scene")
+    expect(replacement_view.get_node("Encounter").text.contains("CLEARED"),
+        "alternative view consumes native Signal")
+
+    # 3^5 = 243 distinct bounded action sequences through the real rule node.
+    for trace in range(243):
+        expect(rules.reset_run(), "reset canonical resource")
+        var code: int = trace
+        for step in range(5):
+            var action: int = code % 3
+            code = floori(float(code) / 3.0)
+            if action == 0:
+                rules.attack()
+            elif action == 1:
+                rules.guard()
+            else:
+                rules.advance()
+            invariant(rules.snapshot())
+
+    game.queue_free()
+    alternate.queue_free()
+    if failures.is_empty():
+        print("GAME_ROOM_ENCOUNTER_PASS assertions=%d traces=243" % checks)
+        quit(0)
+    else:
+        print("GAME_ROOM_ENCOUNTER_FAIL failures=%d checks=%d" % [failures.size(), checks])
+        quit(1)
