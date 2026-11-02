@@ -131,14 +131,13 @@ mise run verify
 [tasks."control-plugin:verify"]
 run = """
 set -euo pipefail
-cd meta/next
-mise install
-mise exec -- uv sync --locked
-mise exec -- uv run --locked python -m pytest -q tests/test_agent_plugin_materialization.py
-mise exec -- uv run --locked python - <<'PY'
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+python3 -m unittest discover -s tools/repo/agent_plugin -p test_materialize.py
+python3 - <<'PY'
 import json
 from pathlib import Path
-root = Path('../..') / 'extensions' / 'ordivon-control-plane'
+root = Path('extensions') / 'ordivon-control-plane'
 names = {p.name for p in root.iterdir()}
 assert names == {'plugin.json', 'mcp.json'}, names
 plugin = json.loads((root / 'plugin.json').read_text())
