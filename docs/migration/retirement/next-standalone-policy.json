@@ -36,10 +36,6 @@
       "reason": "Historical acceptance evidence records the source repository observed at evidence creation."
     },
     {
-      "path": "meta/next/evidence/analysis/local-capability-pack-r1-20260913.md",
-      "reason": "Historical capability census records the then-current local Skill source."
-    },
-    {
       "path": "meta/next/evidence/data-lifecycle/preservation-r1/acceptance.json",
       "reason": "Historical preservation acceptance records the then-current source repository."
     },
