@@ -4,7 +4,7 @@ pnpm = "12.16.1"
 godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check && mise run test:native && mise run test:encounter && mise run test:visual-native"
+run = "pnpm install --frozen-lockfile && pnpm check && mise run test:native && mise run test:encounter && mise run test:visual-native && mise run test:dialogue-native"
 
 
 [tasks."test:native"]
@@ -18,3 +18,7 @@ run = "godot --headless --editor --import --path examples/room-encounter && godo
 [tasks."test:visual-native"]
 description = "Import a real CC0 sprite pack and verify Godot PackedScene appearance substitution"
 run = "godot --headless --path examples/kenney-visual-composition --editor --import && godot --headless --path examples/kenney-visual-composition --script res://acceptance.gd && godot --headless --path examples/kenney-visual-composition --quit-after 2"
+
+[tasks."test:dialogue-native"]
+description = "Run source-locked Dialogue Manager 4.2.0 under pinned Godot: import, branches and game state"
+run = "godot --headless --path examples/dialogue-composition --editor --import && godot --headless --path examples/dialogue-composition --script res://acceptance.gd && godot --headless --path examples/dialogue-composition --quit-after 2"

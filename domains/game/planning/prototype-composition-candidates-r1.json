@@ -67,8 +67,9 @@
           "role": "dialogue",
           "sourceRef": "godot-dialogue-manager",
           "integrationSeam": "Godot addon/dialogue runtime",
-          "standing": "SOURCE_DOCUMENTED",
-          "required": true
+          "standing": "EXECUTED_NATIVE",
+          "required": true,
+          "currentConsumer": "examples/dialogue-composition/story_root.gd"
         },
         {
           "role": "ui-art",
@@ -100,11 +101,11 @@
         }
       ],
       "explicitGaps": [
-        "Dialogue Manager v4 not installed or executed in this fixture.",
+        "Upstream Dialogue Manager 4.2.0 runs in the native example and mutates example-owned game state, but has not been connected to the room-encounter product.",
         "Dialogue condition -> Game state effects need a product-owned binding.",
         "Original soundtrack and character writing are not yet available."
       ],
-      "nextFalsifier": "Start from the native Godot fixture; install one version-pinned Dialogue Manager build and verify a branching dialogue changes a real state flag while preserving save/load semantics."
+      "nextFalsifier": "Connect the verified source-locked native dialogue to real product quest state without inventing a dialogue compiler, then independently evaluate save/resume and actual player decisions."
     },
     {
       "id": "reactive-2d-arena",

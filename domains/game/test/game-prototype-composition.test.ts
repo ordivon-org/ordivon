@@ -40,8 +40,23 @@ test("composition candidates resolve genuine external source evidence and expose
     !["native-action-loop", "rust-ecs-sandbox", "room-encounter", "kenney-avatar-appearance"].includes(recipe.id)
   );
   assert.ok(other.every((recipe) => recipe.standing === "DESIGN_CANDIDATE"));
-  assert.ok(result.items.filter((recipe) => recipe.standing === "DESIGN_CANDIDATE" || recipe.standing === "NATIVE_SOURCE_COMPILED")
-    .every((recipe) => recipe.components.every((component) => component.standing === "SOURCE_DOCUMENTED")));
+  // Do not infer complete game status from one executed capability.
+  const documentedRecipes = result.items.filter((recipe) =>
+    recipe.standing === "DESIGN_CANDIDATE" || recipe.standing === "NATIVE_SOURCE_COMPILED"
+  );
+  for (const recipe of documentedRecipes) {
+    for (const component of recipe.components) {
+      const expected = recipe.id === "dialogue-led-exploration" && component.role === "dialogue"
+        ? "EXECUTED_NATIVE" : "SOURCE_DOCUMENTED";
+      assert.equal(component.standing, expected, recipe.id + "/" + component.role);
+    }
+  }
+  const snapshot = JSON.parse(readFileSync(new URL("../planning/prototype-composition-candidates-r1.json", import.meta.url), "utf8"));
+  const dialogue = snapshot.recipes.find((recipe: any) => recipe.id === "dialogue-led-exploration");
+  assert.equal(dialogue.standing, "DESIGN_CANDIDATE");
+  const nativeDialogue = dialogue.components.find((component: any) => component.role === "dialogue");
+  assert.equal(nativeDialogue.standing, "EXECUTED_NATIVE");
+  assert.ok(existsSync(new URL("../" + nativeDialogue.currentConsumer, import.meta.url)));
 });
 
 test("source-backed candidate selection preserves engine constraints and does not invent implementation state", () => {
