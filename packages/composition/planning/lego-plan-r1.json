@@ -149,7 +149,7 @@
       ],
       "consumerBindings": [
         {
-          "path": "meta/next/scripts/pacti_timeout_obligation_r1.py",
+          "path": "packages/composition/scripts/pacti_timeout_obligation_r1.py",
           "standing": "STATIC_IMPORTED_INTERFACE_NOT_INSTALLED"
         }
       ],

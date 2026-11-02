@@ -7,26 +7,20 @@ import tomllib
 from pathlib import Path
 
 import pytest
+
 from ordivon_composition import (
     CircuitContractError,
     compile_verification_obligations,
     resolve_verifier_bindings,
 )
-
 from scripts.pacti_timeout_obligation_r1 import (
     build_binding_set,
     build_manifest,
     validate_spec,
 )
 
-NEXT_ROOT = Path(__file__).resolve().parents[1]
-SPEC = (
-    NEXT_ROOT
-    / "evidence"
-    / "acceptance"
-    / "verified-reintegration-external-owner-dogfood-r1"
-    / "pacti-timeout-obligation-spec-r2.json"
-)
+COMPOSITION_ROOT = Path(__file__).resolve().parents[1]
+SPEC = COMPOSITION_ROOT / "tests" / "fixtures" / "pacti" / "pacti-timeout-obligation-spec-r2.json"
 
 
 def _spec() -> dict:
@@ -49,8 +43,8 @@ def test_pacti_timeout_spec_builds_exact_obligation_and_binding() -> None:
     assert resolution["domainAcceptanceEstablished"] is False
 
 
-def test_pacti_remains_outside_project_dependencies() -> None:
-    project = tomllib.loads((NEXT_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+def test_pacti_remains_outside_composition_default_dependencies() -> None:
+    project = tomllib.loads((COMPOSITION_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     dependencies = project["project"]["dependencies"]
     all_groups = project.get("dependency-groups", {})
     flattened = [item for values in all_groups.values() for item in values]
@@ -62,11 +56,7 @@ def test_frozen_pacti_shadow_acceptance_preserves_boundaries() -> None:
     from ordivon_composition import canonical_digest
 
     evidence_path = (
-        NEXT_ROOT
-        / "evidence"
-        / "acceptance"
-        / "verified-reintegration-external-owner-dogfood-r1"
-        / "pacti-timeout-obligation-r2.json"
+        COMPOSITION_ROOT / "tests" / "fixtures" / "pacti" / "pacti-timeout-obligation-r2.json"
     )
     evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
     run = evidence["run"]
@@ -85,8 +75,8 @@ def test_frozen_pacti_shadow_acceptance_preserves_boundaries() -> None:
 
 def test_owner_timeout_envelope_fails_closed_on_unknown_or_invalid_status() -> None:
     import pytest
-    from ordivon_composition import CircuitContractError
 
+    from ordivon_composition import CircuitContractError
     from scripts.pacti_timeout_obligation_r1 import evaluate_owner_timeout_envelope
 
     grant = {
@@ -122,9 +112,7 @@ def test_owner_timeout_envelope_uses_real_pacti_and_scopes_live_claims() -> None
     # project/default CI dependency. Explicit provider runs must execute this
     # integration test; normal CI reports a visible SKIP rather than falsely
     # claiming the external algebra passed.
-    pytest.importorskip(
-        "pacti", reason="run explicitly with uv run --with pacti==0.3.1"
-    )
+    pytest.importorskip("pacti", reason="run explicitly with uv run --with pacti==0.3.1")
     from scripts.pacti_timeout_obligation_r1 import evaluate_owner_timeout_envelope
 
     grant = {
@@ -156,9 +144,7 @@ def test_owner_timeout_envelope_uses_real_pacti_and_scopes_live_claims() -> None
         ("deliberateMismatch", "runtimeMaxMs"),
     ],
 )
-def test_pacti_formal_timeout_spec_rejects_boolean_as_integer(
-    case: str, field: str
-) -> None:
+def test_pacti_formal_timeout_spec_rejects_boolean_as_integer(case: str, field: str) -> None:
     """Every formal input bound must reject JSON true rather than alias 1 ms."""
     spec = _spec()
     spec[case][field] = True
@@ -223,13 +209,11 @@ def test_agent_cli_observes_actual_owner_contract_via_native_pacti(
         ),
         encoding="utf-8",
     )
-    runtime.write_text(
-        json.dumps({"config": {"maxRuntimeMs": 86400000}}), encoding="utf-8"
-    )
+    runtime.write_text(json.dumps({"config": {"maxRuntimeMs": 86400000}}), encoding="utf-8")
     completed = subprocess.run(
         [
             sys.executable,
-            str(NEXT_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
+            str(COMPOSITION_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
             "--owner-grant",
             str(grant),
             "--runtime-status",
@@ -271,13 +255,11 @@ def test_agent_cli_reports_real_pacti_incompatibility_and_boundary(
         ),
         encoding="utf-8",
     )
-    status.write_text(
-        json.dumps({"config": {"maxRuntimeMs": max_ms}}), encoding="utf-8"
-    )
+    status.write_text(json.dumps({"config": {"maxRuntimeMs": max_ms}}), encoding="utf-8")
     result = subprocess.run(
         [
             sys.executable,
-            str(NEXT_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
+            str(COMPOSITION_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
             "--owner-grant",
             str(grant),
             "--runtime-status",
@@ -294,9 +276,7 @@ def test_agent_cli_reports_real_pacti_incompatibility_and_boundary(
     assert body["grantMaxMs"] == 300_000
 
 
-@pytest.mark.parametrize(
-    "runtime_status", [{}, {"config": {}}, {"config": {"maxRuntimeMs": True}}]
-)
+@pytest.mark.parametrize("runtime_status", [{}, {"config": {}}, {"config": {"maxRuntimeMs": True}}])
 def test_agent_cli_refuses_unknown_owner_runtime_input(
     tmp_path: Path,
     runtime_status: dict,
@@ -317,7 +297,7 @@ def test_agent_cli_refuses_unknown_owner_runtime_input(
     result = subprocess.run(
         [
             sys.executable,
-            str(NEXT_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
+            str(COMPOSITION_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
             "--owner-grant",
             str(grant),
             "--runtime-status",
@@ -337,7 +317,7 @@ def test_agent_cli_keeps_existing_frozen_spec_entrypoint() -> None:
     completed = subprocess.run(
         [
             sys.executable,
-            str(NEXT_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
+            str(COMPOSITION_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
             str(SPEC),
         ],
         capture_output=True,
@@ -345,10 +325,7 @@ def test_agent_cli_keeps_existing_frozen_spec_entrypoint() -> None:
         check=False,
     )
     assert completed.returncode == 0, completed.stderr
-    assert (
-        json.loads(completed.stdout)["kind"]
-        == "ordivon.verification-obligation-pacti-shadow-r2"
-    )
+    assert json.loads(completed.stdout)["kind"] == "ordivon.verification-obligation-pacti-shadow-r2"
 
 
 @pytest.mark.parametrize(
@@ -363,7 +340,7 @@ def test_agent_cli_rejects_partial_or_mixed_authority_inputs(args: list[str]) ->
     completed = subprocess.run(
         [
             sys.executable,
-            str(NEXT_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
+            str(COMPOSITION_ROOT / "scripts/pacti_timeout_obligation_r1.py"),
             *args,
         ],
         capture_output=True,

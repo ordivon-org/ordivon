@@ -37,10 +37,7 @@ def validate_spec(spec: dict[str, Any]) -> None:
             raise CircuitContractError(f"{key}.runtimeMaxMs must be a positive integer")
     if spec["acceptedCase"]["grantMaxMs"] > spec["acceptedCase"]["runtimeMaxMs"]:
         raise CircuitContractError("acceptedCase must be algebraically admissible")
-    if (
-        spec["deliberateMismatch"]["grantMaxMs"]
-        <= spec["deliberateMismatch"]["runtimeMaxMs"]
-    ):
+    if spec["deliberateMismatch"]["grantMaxMs"] <= spec["deliberateMismatch"]["runtimeMaxMs"]:
         raise CircuitContractError("deliberateMismatch must exceed the Runtime bound")
     if not isinstance(spec.get("supportScope"), str) or not spec["supportScope"]:
         raise CircuitContractError("supportScope is required")
@@ -158,9 +155,7 @@ def build_binding_set(
                     "digest": canonical_digest(spec),
                 },
                 "supportScope": obligation["supportScope"],
-                "nonClaims": [
-                    "Pacti is a scoped algebra provider, not Ordivon domain truth."
-                ],
+                "nonClaims": ["Pacti is a scoped algebra provider, not Ordivon domain truth."],
             }
         ],
         "nonClaims": [
