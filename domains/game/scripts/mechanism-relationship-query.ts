@@ -2,7 +2,7 @@ import { readGameKnowledge } from "../src/knowledge-file.ts";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { boundedQueryLimit, normalizeQueryFilter } from "../src/query-input.ts";
-import { cliArgument } from "./cli-argument.ts";
+import { cliArgument, cliQueryArguments } from "./cli-argument.ts";
 
 const GRAPH_PATH = "knowledge/game_mechanism_relationship_graph_r1.json";
 
@@ -98,16 +98,7 @@ export function queryMechanismRelationships(query: MechanismRelationshipQuery): 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const query: MechanismRelationshipQuery = {
     type: (cliArgument("--type") ?? "conditionalities") as MechanismRelationshipQueryType,
+    ...cliQueryArguments(["q", "mechanism", "game", "facet"]),
   };
-  const q = cliArgument("--q");
-  const mechanism = cliArgument("--mechanism");
-  const game = cliArgument("--game");
-  const facet = cliArgument("--facet");
-  const rawLimit = cliArgument("--limit");
-  if (q !== undefined) query.q = q;
-  if (mechanism !== undefined) query.mechanism = mechanism;
-  if (game !== undefined) query.game = game;
-  if (facet !== undefined) query.facet = facet;
-  if (rawLimit !== undefined) query.limit = Number(rawLimit);
   process.stdout.write(`${JSON.stringify(queryMechanismRelationships(query), null, 2)}\n`);
 }

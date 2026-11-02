@@ -2,7 +2,7 @@ import { readGameKnowledge } from "../src/knowledge-file.ts";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { boundedQueryLimit, normalizeQueryFilter } from "../src/query-input.ts";
-import { cliArgument } from "./cli-argument.ts";
+import { cliQueryArguments } from "./cli-argument.ts";
 
 const LIBRARY_PATH = "knowledge/game_mechanism_experience_library_r1.json";
 
@@ -66,18 +66,6 @@ export function queryMechanismExperiences(query: MechanismExperienceQuery): Mech
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const query: MechanismExperienceQuery = {};
-  const q = cliArgument("--q");
-  const mechanism = cliArgument("--mechanism");
-  const reference = cliArgument("--reference");
-  const kind = cliArgument("--kind");
-  const tag = cliArgument("--tag");
-  const rawLimit = cliArgument("--limit");
-  if (q !== undefined) query.q = q;
-  if (mechanism !== undefined) query.mechanism = mechanism;
-  if (reference !== undefined) query.reference = reference;
-  if (kind !== undefined) query.kind = kind;
-  if (tag !== undefined) query.tag = tag;
-  if (rawLimit !== undefined) query.limit = Number(rawLimit);
+  const query: MechanismExperienceQuery = cliQueryArguments(["q", "mechanism", "reference", "kind", "tag"]);
   process.stdout.write(`${JSON.stringify(queryMechanismExperiences(query), null, 2)}\n`);
 }

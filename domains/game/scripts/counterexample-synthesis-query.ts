@@ -2,7 +2,7 @@ import { readGameKnowledge } from "../src/knowledge-file.ts";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { boundedQueryLimit, normalizeQueryFilter } from "../src/query-input.ts";
-import { cliArgument } from "./cli-argument.ts";
+import { cliQueryArguments } from "./cli-argument.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const COUNTEREXAMPLE_SYNTHESIS_PATH = "knowledge/game_counterexample_synthesis_r1.json";
@@ -100,16 +100,6 @@ export function queryCounterexampleSynthesis(query: CounterexampleSynthesisQuery
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const query: CounterexampleSynthesisQuery = {};
-  const q = cliArgument("--q");
-  const theme = cliArgument("--theme");
-  const mechanism = cliArgument("--mechanism");
-  const counterexample = cliArgument("--counterexample");
-  const rawLimit = cliArgument("--limit");
-  if (q !== undefined) query.q = q;
-  if (theme !== undefined) query.theme = theme;
-  if (mechanism !== undefined) query.mechanism = mechanism;
-  if (counterexample !== undefined) query.counterexample = counterexample;
-  if (rawLimit !== undefined) query.limit = Number(rawLimit);
+  const query: CounterexampleSynthesisQuery = cliQueryArguments(["q", "theme", "mechanism", "counterexample"]);
   process.stdout.write(`${JSON.stringify(queryCounterexampleSynthesis(query), null, 2)}\n`);
 }

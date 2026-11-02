@@ -2,7 +2,7 @@ import { readGameKnowledge } from "../src/knowledge-file.ts";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { boundedQueryLimit, normalizeQueryFilter } from "../src/query-input.ts";
-import { cliArgument } from "./cli-argument.ts";
+import { cliArgument, cliQueryArguments } from "./cli-argument.ts";
 
 
 type QueryType = "sources" | "teardowns" | "skills";
@@ -79,17 +79,8 @@ export function queryExternalKnowledge(query: ExternalKnowledgeQuery): ExternalK
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const query: ExternalKnowledgeQuery = {
     type: (cliArgument("--type") ?? "sources") as QueryType,
+    ...cliQueryArguments(["q", "category", "authority", "status"]),
   };
-  const q = cliArgument("--q");
-  const category = cliArgument("--category");
-  const authority = cliArgument("--authority");
-  const status = cliArgument("--status");
-  const rawLimit = cliArgument("--limit");
-  if (q !== undefined) query.q = q;
-  if (category !== undefined) query.category = category;
-  if (authority !== undefined) query.authority = authority;
-  if (status !== undefined) query.status = status;
-  if (rawLimit !== undefined) query.limit = Number(rawLimit);
   const result = queryExternalKnowledge(query);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
