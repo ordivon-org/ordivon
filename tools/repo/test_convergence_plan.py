@@ -220,6 +220,20 @@ class CandidateSourceRedundancyTests(unittest.TestCase):
         repo = MODULE_PATH.parents[2]
         main = MODULE._git("rev-parse", "HEAD")
         parent = MODULE._git("rev-parse", "HEAD^")
+        # A real first-parent change can legitimately exceed the CLI's 256-path
+        # independent-review budget (for example an entire S5 catalog move).
+        # Select the nearest actual bounded historical pair instead of treating
+        # that correct fail-closed budget rejection as a retirement outcome.
+        for _ in range(32):
+            candidate_base = MODULE._git("rev-parse", f"{parent}^")
+            source_paths = MODULE._git(
+                "diff", "--no-renames", "--name-only", candidate_base, parent
+            )
+            if len(source_paths.splitlines()) <= 256:
+                break
+            main, parent = parent, candidate_base
+        else:
+            self.fail("no bounded historical Git SourceCut pair available")
         output = subprocess.check_output(
             [sys.executable, str(MODULE_PATH),
              "--retirement-candidate", parent, "--retirement-main", main],
