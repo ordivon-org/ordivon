@@ -28,18 +28,6 @@
   ],
   "allowedExactPaths": [
     {
-      "path": "meta/next/docs/MONOREPO_M0_ARCHITECTURE.md",
-      "reason": "M0 architecture records the pre-cutover Skills/Next source census."
-    },
-    {
-      "path": "meta/next/docs/superpowers/plans/2026-09-16-agent-plugin-release-reconciliation.md",
-      "reason": "Frozen pre-monorepo release reconciliation plan."
-    },
-    {
-      "path": "meta/next/docs/superpowers/plans/2026-09-20-monorepo-m0-migration.md",
-      "reason": "Frozen M0 migration plan naming the original standalone source."
-    },
-    {
       "path": "meta/next/evidence/acceptance/agent-architecture-lego-catalog-r1.json",
       "reason": "Historical acceptance evidence records the source repository observed at evidence creation."
     },
@@ -56,15 +44,11 @@
       "reason": "Historical preservation acceptance records the then-current source repository."
     },
     {
-      "path": "meta/next/planning/monorepo-migration-baseline-r1.json",
-      "reason": "Frozen M0 baseline records the original source path and old Skills path."
-    },
-    {
       "path": "meta/next/tests/test_web_provider_routing_skill.py",
       "reason": "Negative regression assertion forbidding the retired web-provider-routing script path."
     },
     {
-      "path": "platform/skills/tests/test_owner_boundary.py",
+      "path": "extensions/chatgpt-skills-mcp/tests/test_owner_boundary.py",
       "reason": "Negative regression assertion forbidding the retired Next source path in live Skills ownership."
     }
   ]

@@ -93,7 +93,7 @@ def test_gateway_recursive_source_contracts_are_non_authoritative_and_consumer_b
     assert identities == {"G00", "G01", "G02", "G03", "G04", "G05", "G06", "G07", "G08", "G09"}
     assert plan["truthRole"] == "planning-projection-not-project-truth"
     checks = {
-        "G01": ("routes.py", "test_gateway_service.py"),
+        "G01": ("routing.py", "test_gateway_service.py"),
         "G02": ("service.py", "test_capability_projection.py"),
         "G03": ("service.py", "test_gateway_service.py"),
         "G04": ("service.py", "test_gateway_service.py"),
@@ -1744,7 +1744,7 @@ def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
     import copy
 
     plan = json.loads(
-        (ROOT / "platform/skills/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+        (ROOT / "extensions/chatgpt-skills-mcp/planning/lego-plan-r1.json").read_text(encoding="utf-8")
     )
 
     def qualify_source_symbols(candidate: dict) -> None:
@@ -1757,7 +1757,7 @@ def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
             for consumer in node["actualConsumers"]:
                 relative = Path(consumer["path"])
                 assert not relative.is_absolute() and ".." not in relative.parts
-                path = ROOT / "platform/skills" / relative
+                path = ROOT / "extensions/chatgpt-skills-mcp" / relative
                 assert path.is_file()
                 names = {
                     ast_node.name for ast_node in ast.walk(
@@ -2063,7 +2063,7 @@ def test_agent_native_source_path_to_owner_to_single_contract() -> None:
     revision = subprocess.check_output(
         ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
     ).strip()
-    path = "services/gateway/src/ordivon_gateway/routes.py"
+    path = "services/gateway/src/ordivon_gateway/routing.py"
     result = module.inspect_owner_source_path(
         source_revision=revision, source_path=path, root=ROOT,
     )
@@ -2116,7 +2116,7 @@ def test_agent_native_repo_navigation_fallback_is_not_registered_authority() -> 
 
     real = module.inspect_owner_source_path(
         source_revision=revision,
-        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        source_path="services/gateway/src/ordivon_gateway/routing.py",
         root=ROOT,
     )
     assert real["ownerPartitions"][0]["registrationStanding"] == (
@@ -2231,7 +2231,7 @@ def test_agent_native_json_schema_source_query_never_infers_consumers() -> None:
     ).strip()
     plain = module.inspect_owner_source_path(
         source_revision=cut,
-        source_path="services/gateway/src/ordivon_gateway/routes.py",
+        source_path="services/gateway/src/ordivon_gateway/routing.py",
         root=ROOT,
     )
     assert plain["nativeContractCarrier"] is None
@@ -2282,7 +2282,7 @@ def test_one_lego_inspection_preserves_all_existing_consumer_claim_carriers() ->
         ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
     ).strip()
     cases = [
-        ("platform/skills/planning/lego-plan-r1.json#SK03", "actualConsumers", "skills_resolve"),
+        ("extensions/chatgpt-skills-mcp/planning/lego-plan-r1.json#SK03", "actualConsumers", "skills_resolve"),
         ("packages/composition/planning/lego-plan-r1.json#C01", "consumerBindings", None),
         ("services/gateway/planning/lego-plan-r1.json#G01", "consumerEvidence", None),
     ]

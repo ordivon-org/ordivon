@@ -16,7 +16,22 @@ from typing import Any
 from artifact_core.contracts import file_fact, sha256_file
 from artifact_core.json_validation import load_json, validate_json_document
 from artifact_core.profile_v1 import validate_profile_v1 as validate_profile
-from artifact_trust.provenance import IN_TOTO_STATEMENT_V1, utc_now
+from artifact_trust.provenance import IN_TOTO_STATEMENT_V1 as IN_TOTO_STATEMENT_V1
+from artifact_trust.verification_summary import (
+    SLSA_VERIFICATION_SUMMARY_V1 as SLSA_VERIFICATION_SUMMARY_V1,
+)
+from artifact_trust.verification_summary import (
+    SLSA_VERSION as SLSA_VERSION,
+)
+from artifact_trust.verification_summary import (
+    ni_sha256_uri as ni_sha256_uri,
+)
+from artifact_trust.verification_summary import (
+    verification_summary_statement as verification_summary_statement,
+)
+from artifact_trust.verification_summary import (
+    verify_verification_summary as verify_verification_summary,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(os.environ.get("ARTIFACT_TOOLCHAIN_ROOT", "/opt/ordivon/external/artifact-toolchain"))
@@ -24,8 +39,6 @@ GLOBAL_COSIGN = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/bin/cosign"
 GLOBAL_COSIGN_ARCH_PACKAGE = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/provenance/cosign-3.1.3-1-x86_64.pkg.tar.zst"
 GLOBAL_COSIGN_ARCH_PACKAGE_SIGNATURE = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/provenance/cosign-3.1.3-1-x86_64.pkg.tar.zst.sig"
 DEFAULT_VSA_TRUST_POLICY_SCHEMA = ROOT / "artifact-delivery/vsa-trust-policy-v1.schema.json"
-SLSA_VERIFICATION_SUMMARY_V1 = "https://slsa.dev/verification_summary/v1"
-SLSA_VERSION = "1.2"
 LOCAL_VSA_VERIFIER_ID = "https://ordivon.local/verifiers/artifact-delivery-v1"
 SIGSTORE_BUNDLE_V03 = "application/vnd.dev.sigstore.bundle.v0.3+json"
 INTOTO_DSSE_PAYLOAD_TYPE = "application/vnd.in-toto+json"
@@ -73,110 +86,6 @@ def default_trust_toolchain_config() -> TrustToolchainConfig:
         arch_package_signature=COSIGN_ARCH_PACKAGE_SIGNATURE,
     )
 
-
-def _require_uri(value: str, field: str) -> str:
-    if not urllib.parse.urlparse(value).scheme:
-        raise RuntimeError(f"{field} must be a URI")
-    return value
-
-
-def ni_sha256_uri(path: Path) -> str:
-    digest = hashlib.sha256(path.read_bytes()).digest()
-    value = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
-    return f"ni:///sha-256;{value}"
-
-
-def verification_summary_statement(
-    subject: Path,
-    profile_path: Path,
-    verifier_id: str,
-    verifier_versions: dict[str, str],
-    passed: bool,
-) -> dict[str, Any]:
-    verifier_id = _require_uri(verifier_id, "verifier-id")
-    profile_uri = profile_path.resolve().as_uri()
-    subject_uri = ni_sha256_uri(subject)
-    return {
-        "_type": IN_TOTO_STATEMENT_V1,
-        "subject": [{"name": subject.name, "digest": {"sha256": sha256_file(subject)}}],
-        "predicateType": SLSA_VERIFICATION_SUMMARY_V1,
-        "predicate": {
-            "verifier": {"id": verifier_id, "version": dict(sorted(verifier_versions.items()))},
-            "timeVerified": utc_now(),
-            "resourceUri": subject_uri,
-            "policy": {
-                "uri": profile_uri,
-                "digest": {"sha256": sha256_file(profile_path)},
-            },
-            "verificationResult": "PASSED" if passed else "FAILED",
-            "verifiedLevels": ["SLSA_BUILD_LEVEL_UNEVALUATED" if passed else "FAILED"],
-            "slsaVersion": SLSA_VERSION,
-        },
-    }
-
-
-def verify_verification_summary(
-    statement_path: Path,
-    subject: Path,
-    profile_path: Path,
-    allowed_verifiers: Iterable[str] = (),
-) -> dict[str, Any]:
-    value = load_json(statement_path)
-    failures: list[str] = []
-    expected_subject = {subject.name: sha256_file(subject)}
-    observed_subject: dict[str, str] = {}
-    if value.get("_type") != IN_TOTO_STATEMENT_V1:
-        failures.append("verification summary is not an in-toto Statement v1")
-    if value.get("predicateType") != SLSA_VERIFICATION_SUMMARY_V1:
-        failures.append("predicateType is not SLSA Verification Summary v1")
-    for item in value.get("subject", []) if isinstance(value.get("subject"), list) else []:
-        if isinstance(item, dict) and isinstance(item.get("name"), str):
-            digest = item.get("digest", {}).get("sha256") if isinstance(item.get("digest"), dict) else None
-            if isinstance(digest, str):
-                observed_subject[item["name"]] = digest
-    if observed_subject != expected_subject:
-        failures.append("verification summary subject does not exactly bind the artifact")
-    predicate = value.get("predicate", {}) if isinstance(value.get("predicate"), dict) else {}
-    verifier = predicate.get("verifier", {}) if isinstance(predicate.get("verifier"), dict) else {}
-    verifier_id = verifier.get("id")
-    if not isinstance(verifier_id, str) or not urllib.parse.urlparse(verifier_id).scheme:
-        failures.append("verification summary verifier.id is absent or not a URI")
-    allowed = set(allowed_verifiers)
-    if allowed and verifier_id not in allowed:
-        failures.append("verification summary verifier.id is not allowed for this gate")
-    policy = predicate.get("policy", {}) if isinstance(predicate.get("policy"), dict) else {}
-    if policy.get("uri") != profile_path.resolve().as_uri():
-        failures.append("verification summary policy URI does not bind the selected delivery profile")
-    if policy.get("digest", {}).get("sha256") != sha256_file(profile_path):
-        failures.append("verification summary policy digest does not bind the selected delivery profile")
-    if predicate.get("resourceUri") != ni_sha256_uri(subject):
-        failures.append("verification summary resourceUri does not bind the artifact content via RFC 6920 ni URI")
-    input_attestations = predicate.get("inputAttestations")
-    if input_attestations not in (None, []):
-        failures.append("local v1 verification summaries must not misuse inputAttestations for raw validator output")
-
-    verification_result = predicate.get("verificationResult")
-    if verification_result not in {"PASSED", "FAILED"}:
-        failures.append("verificationResult must be PASSED or FAILED")
-    levels = predicate.get("verifiedLevels")
-    if not isinstance(levels, list) or not levels:
-        failures.append("verifiedLevels is absent or empty")
-    elif verification_result == "PASSED" and "SLSA_BUILD_LEVEL_UNEVALUATED" not in levels:
-        failures.append("PASSED non-SLSA policy verification must remain BUILD_LEVEL_UNEVALUATED")
-    if predicate.get("slsaVersion") != SLSA_VERSION:
-        failures.append(f"unexpected slsaVersion; expected {SLSA_VERSION}")
-    return {
-        "status": "PASS" if not failures else "FAIL",
-        "statement": file_fact(statement_path),
-        "subject": file_fact(subject),
-        "profile": file_fact(profile_path),
-        "verifier": verifier,
-        "verificationResult": verification_result,
-        "inputAttestations": input_attestations,
-        "authenticity": "NOT_VERIFIED",
-        "failures": failures,
-        "boundary": "This validates unsigned in-toto/SLSA VSA structure and exact local digest bindings. External trust still requires signature/root-of-trust verification; do not treat this result as cryptographic authenticity.",
-    }
 
 
 def _resolve_policy_path(policy_path: Path, value: str) -> Path:

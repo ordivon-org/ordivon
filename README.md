@@ -8,7 +8,7 @@ The root owns repository mechanics only. It does not define a Universal Task, St
 
 The physical primary checkout at /root/projects/ordivon is a shared integration surface, not an agent scratch workspace. Candidate work belongs in detached/branch worktrees. Main integration must be serialized through tools/repo/migration/integrate-main.sh; the helper fails closed if the primary index/worktree is stale or dirty and never auto-stashes or resets shared bytes. Owner-native verification remains outside this Git integration helper.
 
-See `docs/architecture/CURRENT_ARCHITECTURE.md` for the canonical deployed architecture, `meta/next/docs/MONOREPO_M0_ARCHITECTURE.md` for the imported M0 design, and `docs/migration/acceptance/SOURCE_MIGRATION_STANDING.md` for current source standing.
+See `docs/architecture/CURRENT_ARCHITECTURE.md` for canonical deployed architecture and `docs/migration/acceptance/SOURCE_MIGRATION_STANDING.md` for source migration standing.
 
 The non-deployed source-layout transition target is `docs/architecture/STRUCTURE_R2.md`. It does not override current owner paths until each relocation wave is independently accepted.
 
@@ -24,6 +24,7 @@ Choose the **current natural owner** by the fact or effect it controls; the repo
 | Run a bounded Agent turn, tool call or browser session | [`services/harness/`](services/harness/README.md) | Harness cognition/tool continuity |
 | Evaluate generic Cognitive Circuit and composition contracts | [`packages/composition/`](packages/composition/README.md) | Portable composition mechanics |
 | Work on the product-facing web application | [`apps/web/`](apps/web/README.md) | Application surface |
+| Maintain the temporary Agent Skills MCP compatibility bridge | [`extensions/chatgpt-skills-mcp/`](extensions/chatgpt-skills-mcp/README.md) | Agent Plugins/MCP adapter only, not Skill authority |
 | Select a method or reusable Agent Skill | [`.agents/skills/method-router/`](.agents/skills/method-router/SKILL.md) | Advisory method, not execution authorization |
 | Check dependency ownership and allowed cross-owner seams | [`tools/repo/owners.toml`](tools/repo/owners.toml), [`dependency_contracts.toml`](tools/repo/dependency_contracts.toml) | Repository mechanics; owner-native contracts remain authoritative |
 

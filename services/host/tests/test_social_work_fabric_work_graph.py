@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ordivon_host_v2.social_work import (
+from ordivon_host_v2.work_inputs import (
     ActorKind,
     ActorRefInput,
     WorkCreateInput,

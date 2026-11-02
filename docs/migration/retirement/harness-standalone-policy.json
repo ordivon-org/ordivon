@@ -41,7 +41,7 @@
   ],
   "allowedExactPaths": [
     {
-      "path": "platform/skills/tests/test_owner_boundary.py",
+      "path": "extensions/chatgpt-skills-mcp/tests/test_owner_boundary.py",
       "reason": "Negative fence proving the Skills systemd unit no longer uses the former standalone Harness source."
     }
   ]

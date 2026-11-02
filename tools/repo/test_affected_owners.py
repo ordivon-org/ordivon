@@ -29,12 +29,12 @@ class AffectedOwnersTests(unittest.TestCase):
 
     def test_owner_local_change_selects_only_that_owner(self) -> None:
         self.assertEqual(
-            self.names("platform/skills/src/ordivon_skills/catalog.py"),
+            self.names("extensions/chatgpt-skills-mcp/src/ordivon_skills/catalog.py"),
             ["skills"],
         )
 
     def test_project_agent_skill_changes_select_existing_skills_consumer(self) -> None:
-        # Real Skills test reads this canonical project Skill, not just platform/skills source.
+        # Real Skills test reads this canonical project Skill, not just extensions/chatgpt-skills-mcp source.
         source = ".agents/skills/recursive-lego-calculus/SKILL.md"
         self.assertEqual(self.names(source), ["skills"])
         self.assertEqual(self.queue_tasks(source), ["skills:verify"])
@@ -246,6 +246,25 @@ class AffectedOwnersTests(unittest.TestCase):
         MODULE.require_registered_execution_paths(
             ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
         )
+
+    def test_deployed_s2c_source_removal_keeps_skills_owner_selected(self) -> None:
+        # The PR diff legitimately contains both sides of the 100%-identical
+        # relocation, but the present tree owns only the extension target.
+        previous = "platform/skills/src/ordivon_skills/catalog.py"
+        current = "extensions/chatgpt-skills-mcp/src/ordivon_skills/catalog.py"
+        assert not (MODULE.MANIFEST_PATH.resolve().parents[2] / previous).exists()
+        MODULE.require_registered_execution_paths([previous, current])
+        self.assertEqual(self.names(previous), ["skills"])
+        self.assertEqual(self.names(previous, current), ["skills"])
+
+        for unknown in (
+            "platform/skills-other/injected.py",
+            "platform/unregistered/injected.py",
+        ):
+            with self.subTest(unknown=unknown):
+                with self.assertRaisesRegex(ValueError, "unregistered owner path"):
+                    MODULE.require_registered_execution_paths([unknown])
+
 
     def test_noncanonical_paths_cannot_bypass_owner_verification(self) -> None:
         malformed = (

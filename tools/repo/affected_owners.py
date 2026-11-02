@@ -100,6 +100,40 @@ def _normalize(path: str) -> str:
 OWNERS: tuple[Owner, ...] = load_owners()
 
 
+def _deployed_relocation_origins(owners: tuple[Owner, ...]) -> tuple[tuple[str, Owner], ...]:
+    """Route deleted former source locators through the existing Structure R2 map.
+
+    The current Owner manifest still owns verification; historical source
+    names are not new owners. Only an exact deployed move whose origin is
+    absent and whose target matches a current Owner can qualify old paths.
+    """
+    root = MANIFEST_PATH.resolve().parents[2]
+    mapping = json.loads(
+        (root / "docs/architecture/structure-r2-transition-r1.json").read_text(encoding="utf-8")
+    )
+    by_root = {owner.root: owner for owner in owners}
+    aliases: list[tuple[str, Owner]] = []
+    for row in mapping["mappings"]:
+        if row.get("mode") != "move" or row.get("standing") != "DEPLOYED":
+            continue
+        sources = row.get("sourcePaths")
+        targets = row.get("targetPaths")
+        if not isinstance(sources, list) or not isinstance(targets, list):
+            continue
+        if len(sources) != 1 or len(targets) != 1:
+            continue
+        old, new = sources[0], targets[0]
+        if not isinstance(old, str) or not isinstance(new, str):
+            continue
+        owner = by_root.get(new)
+        if owner is None or owner.name != row.get("owner"):
+            continue
+        if (root / old).exists() or not (root / new).is_dir():
+            continue
+        aliases.append((old, owner))
+    return tuple(aliases)
+
+
 # Verification admission is strict for executable owners. Read-only owner
 # discovery stays permissive so unknown paths remain inspectable.
 EXECUTABLE_OWNER_ROOTS = (
@@ -116,10 +150,12 @@ EXECUTABLE_OWNER_ROOTS = (
 def require_registered_execution_paths(
     paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS
 ) -> None:
+    relocated = _deployed_relocation_origins(owners)
     unregistered = sorted({
         path for raw in paths
         if (path := _normalize(raw)).startswith(EXECUTABLE_OWNER_ROOTS)
         and not any(path.startswith(owner.root) for owner in owners)
+        and not any(path.startswith(source) for source, _ in relocated)
     })
     if unregistered:
         raise ValueError(f"unregistered owner path: {', '.join(unregistered)}")
@@ -129,6 +165,7 @@ def owners_for_paths(
     paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS
 ) -> tuple[Owner, ...]:
     normalized = tuple(_normalize(path) for path in paths if path.strip())
+    relocated = _deployed_relocation_origins(owners)
     if any(path in CROSS_CUTTING_PATHS for path in normalized):
         return owners
     # Repo mechanics (repo:ci) runs unconditionally before owner-task
@@ -136,8 +173,8 @@ def owners_for_paths(
     # consumer: Composition select-impact executes this exact producer.
     # Do not expand unrelated repo producer edits to all 18 domain queues.
     history_consumer_changed = "tools/repo/source_history_legos.py" in normalized
-    # Existing platform/skills consumers discover and read actual project
-    # Skills under .agents/skills, outside the platform/skills code root.
+    # Existing extensions/chatgpt-skills-mcp consumers discover and read actual project
+    # Skills under .agents/skills, outside the extensions/chatgpt-skills-mcp code root.
     project_skill_consumer_changed = any(
         path.startswith(".agents/skills/") for path in normalized
     )
@@ -145,6 +182,12 @@ def owners_for_paths(
     for owner in owners:
         if (
             any(path.startswith(owner.root) for path in normalized)
+            or any(
+                path.startswith(source)
+                for source, previous_owner in relocated
+                for path in normalized
+                if previous_owner.name == owner.name
+            )
             or (history_consumer_changed and owner.name == "composition")
             or (project_skill_consumer_changed and owner.name == "skills")
             # Tagged Runtime release builds and attests Runtime artifacts.

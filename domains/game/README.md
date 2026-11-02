@@ -35,6 +35,11 @@ Use from this directory:
     pnpm knowledge:counterexample-themes -- --q local
     pnpm check
 
+The five `scripts/*-query.ts` files remain stable CLI and consumer entrypoints.
+Their shared, pure input parsing policy lives in `src/query-input.ts`:
+individual queries still own their source datasets, filter semantics and result caps.
+The internal module does not claim Game design authority or create a query registry.
+
 ## Native composition acceptance
 
 G06 in planning/lego-plan-r1.json registers a bounded native-Godot

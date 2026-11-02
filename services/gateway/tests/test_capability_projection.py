@@ -8,7 +8,7 @@ from ordivon_gateway.capability_projection import (
     project_execution_capability,
 )
 from ordivon_gateway.contracts import CapabilityDescriptor, CapabilityProjection
-from ordivon_gateway.routes import default_routes
+from ordivon_gateway.routing import default_routes
 from ordivon_gateway.service import GatewayService
 
 

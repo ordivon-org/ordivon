@@ -1,6 +1,6 @@
-# Ordivon Next
+# Ordivon Next — imported knowledge and experiments
 
-Ordivon Next is a greenfield rebuild focused on one outcome: turning mature human knowledge and existing capabilities into verified real-world results.
+`meta/next/` is an **imported, transitional subtree** within the Ordivon monorepo, not an independent deployed system or a second architecture authority. The original Next design focused on turning mature knowledge and existing capabilities into verified outcomes. Its live validators, reference data, experiments, and frozen evidence remain here until consumer-verified relocation or retirement. Current system boundaries belong to [`docs/architecture/CURRENT_ARCHITECTURE.md`](../../docs/architecture/CURRENT_ARCHITECTURE.md); relocation rules belong to [`docs/architecture/STRUCTURE_R2.md`](../../docs/architecture/STRUCTURE_R2.md).
 
 ## One-sentence definition
 
@@ -20,7 +20,7 @@ The fuller common loop below expands this kernel when problem definition and exp
 
 Ordivon does not attempt to re-own mature disciplines, algorithms, tools, workflow engines, databases, network stacks, or domain science. It organizes and composes them.
 
-## What this repository owns
+## Responsibilities retained in this subtree
 
 - profiles and mappings that expose mature human knowledge and capabilities in a common usable form;
 - domain life-cycle profiles;
@@ -29,7 +29,7 @@ Ordivon does not attempt to re-own mature disciplines, algorithms, tools, workfl
 - task-local policy, evidence and provider bindings needed to prove real outcomes;
 - migration/disposition records for historical Ordivon components.
 
-## What this repository does not own
+## Responsibilities this subtree does not own
 
 - KM, DSS/OR, Systems Engineering, BPM, V&V as disciplines;
 - domain science;
@@ -44,7 +44,7 @@ Canonical repository Agent Skills now live at `../../.agents/skills/`; Next cons
 ## Structure
 
 ```text
-ordivon-next/
+meta/next/
 ├── authorities/     # external-authority records, observations and rebuildable discovery index
 ├── capabilities/    # capability/provider routing knowledge and task-local inventories
 ├── domains/         # domain-native life-cycle profiles
@@ -88,9 +88,9 @@ See `docs/CAPABILITY_PACKAGES_R1.md` for the current high-frequency Capability P
 
 ## Repository validation
 
-This repository is managed as a non-package Python project. Standard PEP 621 metadata pins `requires-python ==3.14.7` and owns the runtime dependencies; `.python-version` selects the same interpreter, task-local validation dependencies live in dependency groups, and exact resolutions are recorded in `uv.lock`. The virtual-project metadata version `0.0.0` is not a release/versioning authority and the repository is not built or published as a Python package.
+This subtree is managed as a non-package Python project. Standard PEP 621 metadata pins `requires-python ==3.15.1` and owns the runtime dependencies; `.python-version` selects the same interpreter, task-local validation dependencies live in dependency groups, and exact resolutions are recorded in `uv.lock`. The virtual-project metadata version `0.0.0` is not a release/versioning authority and the repository is not built or published as a Python package.
 
-Core validation from a clean checkout:
+Run the registered owner verification from the monorepo root with `mise run next:verify`. The following individual checks run from `meta/next/` when investigating specific failures:
 
 ```bash
 uv run --locked python -m pytest

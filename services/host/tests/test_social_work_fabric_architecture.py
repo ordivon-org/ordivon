@@ -64,7 +64,7 @@ def test_swf_preserves_measured_useful_legacy_legos_only_as_capabilities() -> No
 
 
 def test_actor_kind_can_preserve_unknown_without_identity_inference() -> None:
-    model = (ROOT / "src" / "ordivon_host_v2" / "social_work.py").read_text()
+    model = (ROOT / "src" / "ordivon_host_v2" / "work_inputs.py").read_text()
     migration = (
         ROOT / "migrations" / "versions" / "0006_social_work_fabric_work_graph.py"
     ).read_text()

@@ -13,7 +13,8 @@
     "S1A",
     "S1B",
     "S2A",
-    "S2B"
+    "S2B",
+    "S2C"
   ],
   "forbiddenSemanticRoots": [
     "services/",
@@ -177,6 +178,7 @@
       "sourcePaths": [
         "platform/skills/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "extensions/chatgpt-skills-mcp/"
       ],
@@ -303,6 +305,7 @@
       "wave": "S1A"
     },
     {
+      "disposition": "Canonical Agent Skill bytes relocated to repository-root .agents/skills; semantics and advisory authority unchanged.",
       "id": "canonical-skills",
       "mode": "move",
       "owner": "next",
@@ -310,17 +313,17 @@
       "sourcePaths": [
         "meta/next/.agents/skills/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         ".agents/skills/"
       ],
       "verifyTasks": [
         "next:verify"
       ],
-      "wave": "S2B",
-      "standing": "DEPLOYED",
-      "disposition": "Canonical Agent Skill bytes relocated to repository-root .agents/skills; semantics and advisory authority unchanged."
+      "wave": "S2B"
     },
     {
+      "disposition": "Portable Agent Plugins 1.0 package bytes are repository-level extension source; Next remains the release/materialization consumer and owns no Plugin semantics.",
       "id": "control-plugin",
       "mode": "move",
       "owner": "control-plugin",
@@ -328,6 +331,7 @@
       "sourcePaths": [
         "meta/next/plugins/ordivon-control-plane/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "extensions/ordivon-control-plane/"
       ],
@@ -335,9 +339,7 @@
         "control-plugin:verify",
         "next:verify"
       ],
-      "wave": "S2A",
-      "standing": "DEPLOYED",
-      "disposition": "Portable Agent Plugins 1.0 package bytes are repository-level extension source; Next remains the release/materialization consumer and owns no Plugin semantics."
+      "wave": "S2A"
     },
     {
       "id": "authority-catalog",
@@ -464,7 +466,6 @@
     }
   ],
   "openSlices": [
-    "S2C",
     "S3",
     "S4",
     "S5",
