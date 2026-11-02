@@ -1890,7 +1890,13 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
             for row in node["consumerBindings"]:
                 relative = Path(row["path"])
                 assert not relative.is_absolute() and ".." not in relative.parts
-                source = ROOT / "meta/next" / relative
+                # Consumer path is either native Next or the explicitly relocated
+                # Authority Catalog owner; preserve AST symbol/call qualification.
+                source = (
+                    ROOT / relative
+                    if relative.parts[:2] == ("catalogs", "authorities")
+                    else ROOT / "meta/next" / relative
+                )
                 tree = ast.parse(source.read_text(encoding="utf-8"))
                 defined = {
                     n.name for n in ast.walk(tree)

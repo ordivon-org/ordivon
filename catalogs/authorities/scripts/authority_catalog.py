@@ -6,7 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 
-# Accept both direct CLI invocation and import as scripts.authority_catalog.
+# Accept both direct CLI invocation and import as catalogs.authorities.scripts.authority_catalog.
 if __package__:
     from .authority_catalog_search import score_entry
     from .authority_catalog_sources import (

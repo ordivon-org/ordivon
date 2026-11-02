@@ -47,20 +47,20 @@ The index is disposable and reproducible. It contains only Level-0 discovery met
 
 ## Implementation boundaries
 
-- `meta/next/scripts/authority_catalog_sources.py` owns source-file loading, identity and append-only observation validation; external issuers still own normative truth.
-- `meta/next/scripts/authority_catalog_search.py` is pure, deterministic lexical candidate scoring over index entries; a positive score never confers applicability.
-- `meta/next/scripts/authority_catalog.py` owns the rebuildable index projection, stable CLI entrypoint and current Python import surface used by the native validator and tests.
+- `catalogs/authorities/scripts/authority_catalog_sources.py` owns source-file loading, identity and append-only observation validation; external issuers still own normative truth.
+- `catalogs/authorities/scripts/authority_catalog_search.py` is pure, deterministic lexical candidate scoring over index entries; a positive score never confers applicability.
+- `catalogs/authorities/scripts/authority_catalog.py` owns the rebuildable index projection, stable CLI entrypoint and current Python import surface used by the native validator and tests.
 
-The metadata and schemas now live in catalogs/authorities/; the existing Next command implementation remains a transitional consumer until its CLI/test ownership is migrated. No registry service, extra state store or cross-owner authority is introduced.
+Identity records, schemas, native CLI and source validation now live together in `catalogs/authorities/`. Next mise environment is only a transitional test runner; no registry service, extra state store or cross-owner authority is introduced.
 
 ## Commands
 
 ```bash
-python meta/next/scripts/authority_catalog.py build
-python meta/next/scripts/authority_catalog.py list
-python meta/next/scripts/authority_catalog.py find "risk management"
-python meta/next/scripts/authority_catalog.py show iso-31000-2018
-python meta/next/scripts/authority_catalog.py refresh iso-31000-2018
+python catalogs/authorities/scripts/authority_catalog.py build
+python catalogs/authorities/scripts/authority_catalog.py list
+python catalogs/authorities/scripts/authority_catalog.py find "risk management"
+python catalogs/authorities/scripts/authority_catalog.py show iso-31000-2018
+python catalogs/authorities/scripts/authority_catalog.py refresh iso-31000-2018
 ```
 
 `refresh` is intentionally read-only. It emits the exact official source and latest observation plus instructions for a semantic currentness check. It does not infer status from HTTP reachability and does not mutate records.
