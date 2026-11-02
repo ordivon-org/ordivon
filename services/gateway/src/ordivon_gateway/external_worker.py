@@ -15,6 +15,8 @@ from typing import Any
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
+from .worker_signatures import parse_signed_worker_headers, verify_worker_signature
+
 
 class WorkerError(RuntimeError):
     pass
@@ -814,43 +816,29 @@ class ExternalPullWorkerTransport:
         body: dict[str, Any],
         headers: Mapping[str, str],
     ) -> tuple[str, int]:
-        normalized = {key.lower(): value for key, value in headers.items()}
         try:
-            worker_id = normalized["x-ordivon-worker"]
-            generation = int(normalized["x-ordivon-generation"])
-            timestamp_ms = int(normalized["x-ordivon-timestamp-ms"])
-            nonce = normalized["x-ordivon-nonce"]
-            signature_b64 = normalized["x-ordivon-signature"]
+            signature = parse_signed_worker_headers(headers)
         except (KeyError, ValueError) as exc:
             raise WorkerAuthError("missing or invalid worker signature headers") from exc
         now = self._clock_ms()
-        if abs(now - timestamp_ms) > self.signature_window_ms:
+        if abs(now - signature.timestamp_ms) > self.signature_window_ms:
             raise WorkerAuthError("worker signature timestamp outside allowed window")
         with self._connect() as db:
-            worker = self._worker(db, worker_id, generation)
-            digest = _digest(body)
-            canonical = "\n".join(
-                [
-                    worker_id,
-                    str(generation),
-                    str(timestamp_ms),
-                    nonce,
-                    method.upper(),
-                    path,
-                    digest,
-                ]
-            ).encode("utf-8")
+            worker = self._worker(db, signature.worker_id, signature.generation)
             try:
-                public = Ed25519PublicKey.from_public_bytes(
-                    base64.b64decode(worker["public_key_b64"], validate=True)
+                verify_worker_signature(
+                    headers=signature,
+                    method=method,
+                    path=path,
+                    body_digest=_digest(body),
+                    public_key_b64=worker["public_key_b64"],
                 )
-                public.verify(base64.b64decode(signature_b64, validate=True), canonical)
             except (InvalidSignature, ValueError) as exc:
                 raise WorkerAuthError("invalid worker request signature") from exc
             try:
                 db.execute(
                     "INSERT INTO nonces(worker_id, nonce, timestamp_ms) VALUES(?,?,?)",
-                    (worker_id, nonce, timestamp_ms),
+                    (signature.worker_id, signature.nonce, signature.timestamp_ms),
                 )
             except sqlite3.IntegrityError as exc:
                 raise WorkerAuthError("worker request replay detected") from exc
@@ -858,7 +846,7 @@ class ExternalPullWorkerTransport:
                 "DELETE FROM nonces WHERE timestamp_ms < ?",
                 (now - self.signature_window_ms * 2,),
             )
-        return worker_id, generation
+        return signature.worker_id, signature.generation
 
     def _operation_from_row(self, db: sqlite3.Connection, row: sqlite3.Row) -> ExternalOperation:
         artifacts = [
