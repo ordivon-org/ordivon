@@ -10,7 +10,12 @@
       "src/ordivon_gateway/service.py",
       "src/ordivon_gateway/routes.py",
       "src/ordivon_gateway/mcp_server.py",
-      "tests/test_gateway_service.py"
+      "tests/test_gateway_service.py",
+      "src/ordivon_gateway/capability_catalog.py",
+      "src/ordivon_gateway/execution_coordinator.py",
+      "src/ordivon_gateway/execution_refs.py",
+      "src/ordivon_gateway/capability_projection.py",
+      "src/ordivon_gateway/owner_protocol.py"
     ],
     "consumerLeadExternalSource": "extensions/ordivon-control-plane/mcp.json"
   },
@@ -41,7 +46,9 @@
         "src/ordivon_gateway/mcp_server.py",
         "src/ordivon_gateway/service.py",
         "tests/test_gateway_service.py",
-        "extensions/ordivon-control-plane/mcp.json"
+        "extensions/ordivon-control-plane/mcp.json",
+        "src/ordivon_gateway/capability_catalog.py",
+        "src/ordivon_gateway/execution_coordinator.py"
       ],
       "consumerEvidence": [
         "extensions/ordivon-control-plane/mcp.json",
@@ -80,7 +87,8 @@
         "src/ordivon_gateway/routes.py",
         "src/ordivon_gateway/service.py",
         "tests/test_gateway_service.py",
-        "tests/test_research_capability_resolution.py"
+        "tests/test_research_capability_resolution.py",
+        "src/ordivon_gateway/capability_catalog.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/service.py",
@@ -117,7 +125,10 @@
         "src/ordivon_gateway/service.py",
         "src/ordivon_gateway/contracts.py",
         "tests/test_capability_projection.py",
-        "tests/test_projection_concurrency.py"
+        "tests/test_projection_concurrency.py",
+        "src/ordivon_gateway/capability_catalog.py",
+        "src/ordivon_gateway/capability_projection.py",
+        "src/ordivon_gateway/owner_protocol.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
@@ -156,7 +167,10 @@
         "src/ordivon_gateway/service.py",
         "src/ordivon_gateway/contracts.py",
         "tests/test_gateway_service.py",
-        "tests/test_execution_principal_request_namespace.py"
+        "tests/test_execution_principal_request_namespace.py",
+        "src/ordivon_gateway/execution_coordinator.py",
+        "src/ordivon_gateway/execution_refs.py",
+        "src/ordivon_gateway/owner_protocol.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
@@ -206,7 +220,9 @@
         "src/ordivon_gateway/service.py",
         "src/ordivon_gateway/contracts.py",
         "tests/test_gateway_service.py",
-        "tests/test_capability_authz_middleware.py"
+        "tests/test_capability_authz_middleware.py",
+        "src/ordivon_gateway/execution_coordinator.py",
+        "src/ordivon_gateway/execution_refs.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
@@ -284,7 +300,8 @@
         "src/ordivon_gateway/capability_authz.py",
         "src/ordivon_gateway/authzen_authorizer.py",
         "tests/test_capability_authz_middleware.py",
-        "tests/test_authzen_authorizer.py"
+        "tests/test_authzen_authorizer.py",
+        "src/ordivon_gateway/execution_refs.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
@@ -379,7 +396,8 @@
         "src/ordivon_gateway/research_routes.py",
         "src/ordivon_gateway/service.py",
         "src/ordivon_gateway/mcp_server.py",
-        "tests/test_research_capability_resolution.py"
+        "tests/test_research_capability_resolution.py",
+        "src/ordivon_gateway/capability_catalog.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
@@ -435,7 +453,8 @@
         "src/ordivon_gateway/worker_http.py",
         "src/ordivon_gateway/mcp_server.py",
         "tests/test_external_pull_worker.py",
-        "tests/test_external_worker_precommit_readback.py"
+        "tests/test_external_worker_precommit_readback.py",
+        "src/ordivon_gateway/execution_coordinator.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/service.py",
