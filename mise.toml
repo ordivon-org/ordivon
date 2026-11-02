@@ -67,6 +67,8 @@ uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 run = """
 set -euo pipefail
 python3 -m unittest tools/repo/test_tracked_secrets.py
+python3 -m unittest tools/repo/test_check_large_files.py
+python3 tools/repo/check_large_files.py
 python3 -m unittest tools/repo/test_source_history_legos.py
 python3 -m unittest tools/repo/test_formal_source_contract.py
 python3 -m unittest tools/repo/test_workspace_ready.py
