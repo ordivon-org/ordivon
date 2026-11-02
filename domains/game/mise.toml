@@ -12,8 +12,16 @@ description = "Run source-bound native Godot composition acceptance (requires in
 run = "godot --headless --path examples/native-composition --script res://assert.gd && godot --headless --path examples/native-composition --script res://assert_audio.gd"
 
 [tasks."test:encounter"]
-description = "Run native room-encounter gameplay, Resource and PackedScene consumer acceptance"
-run = "godot --headless --editor --import --path examples/room-encounter && godot --headless --path examples/room-encounter --script res://assert.gd"
+description = "Run native room gameplay, save/restore, and separate-process restart acceptance"
+run = """
+set -eu
+godot --headless --editor --import --path examples/room-encounter
+godot --headless --path examples/room-encounter --script res://assert.gd
+room_restart_slot_dir="$(mktemp -d)"
+trap 'rm -rf "$room_restart_slot_dir"' EXIT
+godot --headless --path examples/room-encounter --script res://assert_process_restart.gd -- --phase save --slot "$room_restart_slot_dir/run.cfg"
+godot --headless --path examples/room-encounter --script res://assert_process_restart.gd -- --phase load --slot "$room_restart_slot_dir/run.cfg"
+"""
 
 [tasks."test:visual-native"]
 description = "Import a real CC0 sprite pack and verify Godot PackedScene appearance substitution"

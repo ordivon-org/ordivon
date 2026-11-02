@@ -185,6 +185,17 @@ promoted to a playable game outcome. Inspect with the **existing**
 `src/prototype-composition.ts` behind its existing CLI entrypoint. Do not
 invent an engine-neutral execution registry or a new gameplay product.
 
+**Save/resume is an independent lifecycle contract, not a persistence
+framework.** The existing `examples/room-encounter` Godot Rules owns
+checkpoint validity and restores state; `SaveSlot` owns built-in `ConfigFile`
+I/O, and the scene remains the UI/audio consumer. `mise run test:encounter`
+now runs the same room game in *two separate Godot processes* on one
+temporary slot: first save a nontrivial room state, then start a fresh
+SceneTree, reload, observe UI and continue legal gameplay with exactly one
+new sound. This proves the named local process boundary, not export,
+cloud-sync, schema migration, or player experience. Do not introduce a
+custom Game persistence subsystem or a second source-of-truth store.
+
 For directly inspectable, **source-backed prototype assembly candidates**, use
 `pnpm composition:inspect` and
 `planning/prototype-composition-candidates-r1.json`. These are Game's
