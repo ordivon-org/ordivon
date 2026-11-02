@@ -7,7 +7,10 @@ Analyzed implementation: `0721009237365ea61cd975bd187be5171f1dcd52` (Agent Servi
 Historical experiment runner at acceptance time: `scripts/run_agent_service_control_stability_r1.py` (preserved in Git history)
 Current regression support: `tests/agent_service_control_stability_support.py`
 Current regression tests: `tests/test_agent_service_control_stability.py`
-Evidence: `evidence/analysis/agent-service-control-stability-r1.json`
+Evidence: `catalogs/knowledge/evidence/analysis/agent-service-control-stability-r1.json`
+Acceptance record: `catalogs/knowledge/evidence/acceptance/agent-service-control-stability-r1.json`
+
+The acceptance record is a frozen 2026-09-18 observation; its internal relative source paths document the historical SourceCut, not current active file locations.
 
 ## One-sentence result
 

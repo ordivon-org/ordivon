@@ -5,7 +5,7 @@ import test from "node:test";
 const kb = JSON.parse(readFileSync(new URL("../knowledge/game_external_knowledge_base_r1.json", import.meta.url), "utf8")) as any;
 const library = JSON.parse(readFileSync(new URL("../knowledge/game_mechanism_experience_library_r1.json", import.meta.url), "utf8")) as any;
 const memory = JSON.parse(readFileSync(new URL("../knowledge/game_design_counterexample_memory_r1.json", import.meta.url), "utf8")) as any;
-const doc = readFileSync(new URL("../docs/GAME_DESIGN_COUNTEREXAMPLE_MEMORY_R1.md", import.meta.url), "utf8");
+const doc = readFileSync(new URL("../docs/design-counterexample-memory-r1.md", import.meta.url), "utf8");
 
 const unique = (items: string[]) => new Set(items).size === items.length;
 

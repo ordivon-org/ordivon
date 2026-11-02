@@ -31,23 +31,23 @@
         {
           "role": "ui-art",
           "sourceRef": "kenney-ui-pack",
-          "integrationSeam": "Godot Control theme / Sprite2D",
-          "standing": "SOURCE_DOCUMENTED",
+          "integrationSeam": "Kenney CC0 PNG -> native ImageTexture / TextureButton -> Rules.move(1)",
+          "standing": "EXECUTED_NATIVE",
           "required": false
         },
         {
           "role": "ui-audio",
           "sourceRef": "kenney-ui-audio",
-          "integrationSeam": "Godot AudioStreamPlayer",
-          "standing": "SOURCE_DOCUMENTED",
+          "integrationSeam": "Kenney CC0 click1/click2.wav -> existing MovementAudio and Rules.state_changed",
+          "standing": "EXECUTED_NATIVE",
           "required": false
         }
       ],
       "explicitGaps": [
-        "Native fixture does not install Kenney assets, create soundtrack, or validate a third-party plugin.",
-        "Gameplay is a bounded rule-system fixture, not a shipped game."
+        "Only one pinned Kenney UI sprite and two previously installed CC0 audio clips are consumed; this is not a complete UI/soundtrack or game package.",
+        "Headless source-asset loading verifies the bounded Godot scene, not an exported game binary, human UX or packaged asset import."
       ],
-      "nextFalsifier": "Import one source-licensed UI + audio pack and compare actual input-to-signal and visual/audio feedback using the native scene."
+      "nextFalsifier": "Swap the Kenney button texture and run native real-click-to-rules-to-sound acceptance with unchanged gameplay state/goal contracts; package/build behavior still needs a real product consumer."
     },
     {
       "id": "dialogue-led-exploration",
@@ -250,6 +250,14 @@
           "integrationSeam": "EncounterAudio observes accepted attack/guard events and plays two license-recorded CC0 AudioStreams",
           "standing": "EXECUTED_NATIVE",
           "required": false
+        },
+        {
+          "role": "save-resume",
+          "sourceRef": "godot-configfile-built-in",
+          "integrationSeam": "Rules checkpoint/restore + native ConfigFile/Signal",
+          "standing": "EXECUTED_NATIVE",
+          "required": false,
+          "currentConsumer": "examples/room-encounter/encounter_save_slot.gd"
         }
       ],
       "explicitGaps": [
@@ -257,7 +265,7 @@
         "Combat has no authored character sprites, soundtrack, animation pipeline, platform package or independent human playtest.",
         "Kenney audio is game-local because Godot resource paths are project-relative, not an Ordivon audio engine."
       ],
-      "nextFalsifier": "Run the existing Godot 4.7 test:encounter and substitute native HUD/tuning/audio while checking a three-room win/loss and actual action feedback; then evaluate an actual packaged product."
+      "nextFalsifier": "Integrate actual narrative/visual providers into the room game, verify recovery after process restart and test with human players."
     },
     {
       "id": "kenney-avatar-appearance",
@@ -288,6 +296,43 @@
         "Renderer/UI quality and human usability are not measured."
       ],
       "nextFalsifier": "Run existing test:visual-native and replace native Sprite2D by PackedScene with different PNG dimensions while preserving node identity and world position; consume it inside a playable product before claiming Game execution."
+    },
+    {
+      "id": "branching-dialogue-gate",
+      "name": "Native branching dialogue and authoritative gate state",
+      "engine": "godot",
+      "intent": "Compose a source-pinned upstream Dialogue Manager 4.2.0 runtime with game-owned token and gate rules and native UI responses, without a custom dialogue grammar or duplicate state store.",
+      "standing": "NATIVE_COMPONENT_EXECUTED",
+      "currentConsumer": "examples/dialogue-composition/acceptance.gd",
+      "components": [
+        {
+          "role": "dialogue-runtime",
+          "sourceRef": "godot-dialogue-manager",
+          "integrationSeam": "vendored MIT Dialogue Manager 4.2.0 addon; import gate.dialogue and evaluate branches/conditions",
+          "standing": "EXECUTED_NATIVE",
+          "required": true
+        },
+        {
+          "role": "game-state",
+          "sourceRef": "godot-native-resource-composition",
+          "integrationSeam": "game-owned gate_state.gd Node / tokens and unlocked status / native state_changed signal",
+          "standing": "EXECUTED_NATIVE",
+          "required": true
+        },
+        {
+          "role": "choice-ui",
+          "sourceRef": "godot-native-resource-composition",
+          "integrationSeam": "Godot Control + Buttons display choices and invoke upstream dialogue while observing game state",
+          "standing": "EXECUTED_NATIVE",
+          "required": true
+        }
+      ],
+      "explicitGaps": [
+        "Dialogue Manager 4.2.0 is executed only in a bounded narrative gate; it has not been integrated into the existing three-room encounter product or a shipped narrative game.",
+        "No save/resume, localization, audio, accessibility, actual keyboard input or human narrative experience has been independently verified.",
+        "The upstream MIT addon is the owner of the dialogue syntax/compiler; the game alone owns the effects and state. No Ordivon-specific dialogue parser is needed."
+      ],
+      "nextFalsifier": "Run the existing Godot 4.7.2 test:dialogue-native, verify accepted mutation / alternate leave choice / zero-token disabled choice; integrate the native dialog component into a real product quest state before claiming product-level play."
     }
   ]
 }

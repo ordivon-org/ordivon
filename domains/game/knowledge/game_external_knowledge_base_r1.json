@@ -957,6 +957,7 @@
     },
     {
       "id": "godot-best-practices",
+      "nativeEngines": ["godot"],
       "category": "ENGINE_AND_PRODUCTION_PRACTICE",
       "title": "Godot Best Practices — Introduction",
       "organization": "Godot Engine",
@@ -983,6 +984,7 @@
     },
     {
       "id": "godot-scene-organization",
+      "nativeEngines": ["godot"],
       "category": "ENGINE_AND_PRODUCTION_PRACTICE",
       "title": "Godot Scene Organization",
       "organization": "Godot Engine",
@@ -3684,6 +3686,7 @@
     },
     {
       "id": "godot-asset-store-2026",
+      "nativeEngines": ["godot"],
       "category": "ENGINE_AND_PRODUCTION_PRACTICE",
       "title": "Godot Asset Store — official 4.7 native plugin and asset discovery",
       "organization": "Godot Foundation",
@@ -3710,6 +3713,7 @@
     },
     {
       "id": "godot-native-resource-composition",
+      "nativeEngines": ["godot"],
       "category": "ENGINE_AND_PRODUCTION_PRACTICE",
       "title": "Godot — Resources, PackedScene and native composition",
       "organization": "Godot Foundation",
@@ -3736,6 +3740,7 @@
     },
     {
       "id": "bevy-plugins-modularity",
+      "nativeEngines": ["bevy"],
       "category": "ENGINE_AND_PRODUCTION_PRACTICE",
       "title": "Bevy — Plugin architecture",
       "organization": "Bevy Foundation",
@@ -3762,6 +3767,7 @@
     },
     {
       "id": "bevy-community-assets",
+      "nativeEngines": ["bevy"],
       "category": "ENGINE_AND_PRODUCTION_PRACTICE",
       "title": "Bevy Assets — community plugins and game resources",
       "organization": "Bevy Foundation",
@@ -3789,6 +3795,7 @@
     },
     {
       "id": "limboai-godot",
+      "nativeEngines": ["godot"],
       "category": "ENGINE_AND_PRODUCTION_PRACTICE",
       "title": "LimboAI — behavior trees and state machines for Godot",
       "organization": "limbonaut",
@@ -3815,6 +3822,7 @@
     },
     {
       "id": "godot-dialogue-manager",
+      "nativeEngines": ["godot"],
       "category": "ENGINE_AND_PRODUCTION_PRACTICE",
       "title": "Dialogue Manager 4 — nonlinear Godot dialogue",
       "organization": "Nathan Hoad",
@@ -3841,6 +3849,7 @@
     },
     {
       "id": "dialogic2-godot",
+      "nativeEngines": ["godot"],
       "category": "ENGINE_AND_PRODUCTION_PRACTICE",
       "title": "Dialogic 2 — Godot narrative and visual novel toolkit",
       "organization": "Dialogic team",
@@ -3867,6 +3876,7 @@
     },
     {
       "id": "godot-animationtree",
+      "nativeEngines": ["godot"],
       "category": "ENGINE_AND_PRODUCTION_PRACTICE",
       "title": "Godot AnimationPlayer and AnimationTree — native animation composition",
       "organization": "Godot Foundation",
@@ -4099,6 +4109,31 @@
       "canCreateGameHardConstraint": false,
       "retrievedOn": "2026-11-02",
       "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "godot-configfile-built-in",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Godot ConfigFile class (native Variant persistence)",
+      "organization": "Godot Engine",
+      "url": "https://docs.godotengine.org/en/stable/classes/class_configfile.html",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "Godot native INI-style Variant serialization",
+        "user:// stored game state"
+      ],
+      "extractedIdeas": [
+        "native ConfigFile set_value/save/load/get_value",
+        "persist plain Variant values rather than implementing another serializer"
+      ],
+      "candidateUses": [
+        "room encounter checkpoint IO adapter",
+        "non-cloud local gameplay progress"
+      ],
+      "evidenceLimit": "Documents Godot API behavior only; gameplay legality, atomic restore, power loss and player experience must be proven by actual Game consumers.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-03",
+      "sourceStrength": "NATIVE_HIGH"
     }
   ],
   "gaps": {
@@ -4126,5 +4161,5 @@
       "tabletop-to-digital transfer"
     ]
   },
-  "updatedOn": "2026-11-02"
+  "updatedOn": "2026-11-03"
 }

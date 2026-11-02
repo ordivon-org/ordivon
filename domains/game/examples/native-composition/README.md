@@ -50,6 +50,7 @@ wiring new packages. No universal rules registry was created.
 | Configuration | grid_config.gd + configs/base.tres | Typed, validated bounds/energy/goal parameters | configs/player_variant.tres |
 | Presentation | grid_state_view.gd + grid_state_view.tscn | render_state(Dictionary) | grid_state_view_variant.tscn |
 | Native audio feedback | main.tscn + movement_audio_feedback.gd + two Kenney CC0 WAV clips | accepted turn via state_changed -> AudioStreamPlayer.play() | swap AudioStream without editing grid_rules.gd |
+| Native source-licensed UI action | grid_state_view.tscn + one Kenney CC0 PNG + composition_root.gd | TextureButton.pressed -> grid_rules.move(1) -> existing state/audio consumers | swap button visual/scene without editing rules or MovementAudio |
 | Consumer falsifier | assert.gd | Native scenario/state/Resource/view substitution checks | Extend only for a real changed contract |
 
 This is an executable end-to-end **input -> state transition -> Signal -> UI**
@@ -73,3 +74,30 @@ the ordinary interactive scene. `assert_audio.gd` verifies actual keyboard
 input, sound routing, rejection and clip replacement. A future game can
 replace remaining rules, scenes, artwork and writing through mature providers;
 this example still is not a shipped game.
+
+
+## Real external media composition without duplicate subsystem
+
+One 192 x 64 PNG from the **Kenney UI Pack 2.0**, CC0 at
+https://kenney.nl/assets/ui-pack, is obtained from the public source mirror
+https://github.com/shorepine/kenney at immutable Git commit
+`3694c6879e487c108f55677be7dd2ca75b07cc3b`, upstream relative path
+`ui/UI Pack/Blue/button_rectangle_depth_border.png`. Local source:
+`assets/kenney-ui-art/button_rectangle_depth_border.png`, SHA256
+`19dd881d5c38d58e93db451152356a8ecb1375b247615d4e340b678233398b01`.
+The original author is Kenney; source mirror packaging and credit do not
+transfer artistic ownership.
+
+The existing native `MovementAudio` system and its pinned Kenney CC0 clips
+(`click1.wav`, `click2.wav`) remain the **only** audio feedback producer.
+The default view owns one `TextureButton`. The existing composition root
+binds its pressed event to existing grid rules, which notify both the view
+and existing `MovementAudio` through the state-change signal. Alternate
+presentation may omit the button. There is no duplicate AudioStreamPlayer,
+audio file, rules provider or Game UI engine.
+
+The existing `assert_audio.gd` exercises native button press → game-state
+change → rendered board → existing audio feedback, with real Godot resources.
+`Image.load_from_file` supports source/headless fixture tests; Godot's 4.7
+docs recommend properly imported textures for exported packaged games, which
+are not established here. This is not a shipped game or human UX result.

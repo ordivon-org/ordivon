@@ -11,6 +11,8 @@ export type CompositionSource = {
   title: string;
   url: string;
   currentness: string;
+  /** Explicit native compatibility for engine-bound sources; omitted means unclassified. */
+  nativeEngines?: readonly ("godot" | "bevy")[];
 };
 
 export type CompositionSlot = {
@@ -19,6 +21,8 @@ export type CompositionSlot = {
   integrationSeam: string;
   standing: "SOURCE_DOCUMENTED" | "EXECUTED_NATIVE";
   required: boolean;
+  /** Direct native reader for an executed slot within an advisory recipe. */
+  currentConsumer?: string;
 };
 
 export type CompositionRecipe = {
@@ -52,6 +56,24 @@ export function projectPrototypeCompositions(
     sources.set(source.id, source);
   }
 
+  // This is a structural consistency check, NOT execution proof.
+  // Real effects remain owned by the named native consumer and its tests.
+  const ids = new Set<string>();
+  for (const recipe of plan.recipes) {
+    if (ids.has(recipe.id)) throw new Error(`duplicate Game composition ${recipe.id}`);
+    ids.add(recipe.id);
+    if (recipe.standing !== "DESIGN_CANDIDATE" && !recipe.currentConsumer)
+      throw new Error(`${recipe.id}: non-candidate composition missing named consumer`);
+    if ((recipe.standing === "NATIVE_SUBSET_EXECUTED" || recipe.standing === "NATIVE_COMPONENT_EXECUTED")
+        && !recipe.components.some((item) => item.standing === "EXECUTED_NATIVE"))
+      throw new Error(`${recipe.id}: native execution standing without an executed component`);
+    for (const component of recipe.components) {
+      if (component.standing === "EXECUTED_NATIVE" &&
+          recipe.standing === "DESIGN_CANDIDATE" && !component.currentConsumer?.trim())
+        throw new Error(`${recipe.id}: executed candidate slot missing scoped consumer`);
+    }
+  }
+
   const requestedId = normalizeQueryFilter(options.id);
   const requestedEngine = normalizeQueryFilter(options.engine);
   const items = plan.recipes.filter((recipe) =>
@@ -62,10 +84,10 @@ export function projectPrototypeCompositions(
     components: recipe.components.map((component) => {
       const source = sources.get(component.sourceRef);
       if (!source) throw new Error(`${recipe.id}: unknown source reference ${component.sourceRef}`);
-      if (recipe.engine === "bevy" && /^(godot-|limboai-|dialogic2-)/.test(source.id))
-        throw new Error(`${recipe.id}: Godot-only provider cannot be native Bevy plugin: ${source.id}`);
-      if (recipe.engine === "godot" && /^bevy-/.test(source.id))
-        throw new Error(`${recipe.id}: Bevy-only provider cannot be native Godot addon: ${source.id}`);
+      // An identifier is not an interface contract: renaming a provider
+      // must never change its native compatibility.
+      if (source.nativeEngines && !source.nativeEngines.includes(recipe.engine))
+        throw new Error(recipe.id + ": provider " + source.id + " supports " + source.nativeEngines.join(", ") + ", not " + recipe.engine);
       return {
         ...component,
         provider: { title: source.title, url: source.url, currentness: source.currentness },

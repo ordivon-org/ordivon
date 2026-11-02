@@ -22,7 +22,7 @@ decomposition, (2) directory/naming representation, (3) upstream Game LEGO
 discovery and consumer-verified prototype composition. Do not confuse an
 upstream addon listing or a proposed composition with an installed Game.
 
-Inspect six source-backed composition hypotheses without installing anything.
+Inspect seven source-backed composition hypotheses without installing anything.
 Two additional existing native consumers now appear directly in query results:
 a three-room Godot encounter with rules/HUD/CC0 audio, and an avatar
 appearance-only PackedScene swap. The latter is an executed **component**,
@@ -33,6 +33,7 @@ not an independently playable game:
     pnpm composition:inspect -- --engine bevy
     pnpm composition:inspect -- --id room-encounter
     pnpm composition:inspect -- --id kenney-avatar-appearance
+    pnpm composition:inspect -- --id branching-dialogue-gate
 
 The query source resolver is a **pure function** in
 `src/prototype-composition.ts`; the original stable CLI remains an I/O
@@ -106,14 +107,19 @@ examples/native-composition with its own acceptance test. It has a composition
 root, grid rules, configuration Resource and interchangeable state-view scenes.
 No historical product or generic game framework was restored.
 
+The current Godot Grid scene also consumes one Kenney CC0 TextureButton,
+which changes existing rules, view and the **existing** MovementAudio. It
+does not add a second audio backend. Run `mise run test:native`; source
+PNG and exact provenance are stored alongside the scene.
+
 ## Native narrative LEGO
 
 G09: `examples/dialogue-composition/` installs upstream Dialogue Manager
-v4.2.0 under Godot 4.7.2. This native addon imports real `.dialogue`
-source; Control buttons select branches, while a separate Godot game-state
-Node is the only authority for tokens and gate rules. Run
-`mise run test:dialogue-native`. Its scope is an executed two-branch
-consumer, not a completed or human-tested narrative game.
+v4.2.0 under Godot 4.7.2. The addon imports real `.dialogue` source;
+native Control buttons select branches, while the game-state Node remains
+the authority for tokens and gate rules. Run `mise run test:dialogue-native`.
+An executed branching gate component does not prove a completed exploration
+game, human narrative quality or shipped product.
 
 ## Owner operating contract
 

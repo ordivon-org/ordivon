@@ -8,13 +8,11 @@ from __future__ import annotations
 
 import json
 from importlib.resources import files
-from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
 from ordivon_composition import canonical_digest
 
-ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = files("ordivon_composition").joinpath(
     "schemas", "experimental-episode-binding-r1.schema.json"
 )

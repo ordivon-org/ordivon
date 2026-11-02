@@ -7,6 +7,7 @@ dependencies = [
   "alembic==1.18.5",
   "psycopg[binary]==3.3.6",
   "sqlalchemy>=2.0,<3",
+  "ordivon-composition",
 ]
 
 [dependency-groups]
@@ -16,6 +17,7 @@ quality = ["ruff==0.17.2"]
 [project.scripts]
 ordivon-episode-store = "ordivon_experimental_episode_store.ingest:main"
 ordivon-episode-analyze = "ordivon_experimental_episode_store.analysis:main"
+ordivon-episode-r5c-backfill = "ordivon_experimental_episode_store.r5c_backfill:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -23,6 +25,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ordivon_experimental_episode_store"]
+
+[tool.uv.sources]
+ordivon-composition = { path = "../../../packages/composition" }
 
 [tool.uv]
 default-groups = ["test", "quality"]

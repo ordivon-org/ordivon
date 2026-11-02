@@ -6,7 +6,7 @@ import { queryPrototypeCompositions } from "../scripts/prototype-composition-que
 test("composition candidates resolve genuine external source evidence and expose execution limits", () => {
   const result = queryPrototypeCompositions();
   assert.equal(result.verifiedGameProducts, 0);
-  assert.equal(result.items.length, 6);
+  assert.equal(result.items.length, 7);
   const ids = result.items.map((recipe) => recipe.id);
   assert.equal(new Set(ids).size, ids.length);
   for (const recipe of result.items) {
@@ -19,6 +19,14 @@ test("composition candidates resolve genuine external source evidence and expose
   }
   const native = result.items.find((recipe) => recipe.id === "native-action-loop");
   assert.equal(native?.standing, "NATIVE_SUBSET_EXECUTED");
+  const artSlot = native?.components.find((component) => component.role === "ui-art");
+  const audioSlot = native?.components.find((component) => component.role === "ui-audio");
+  assert.equal(artSlot?.standing, "EXECUTED_NATIVE");
+  assert.equal(audioSlot?.standing, "EXECUTED_NATIVE");
+  const png = readFileSync(new URL("../examples/native-composition/assets/kenney-ui-art/button_rectangle_depth_border.png", import.meta.url));
+  assert.equal(png.toString("ascii", 1, 4), "PNG");
+  assert.ok(existsSync(new URL("../examples/native-composition/assets/kenney-ui-audio/click1.wav", import.meta.url)));
+  assert.ok(existsSync(new URL("../examples/native-composition/assert_audio.gd", import.meta.url)));
   assert.ok(native?.currentConsumer);
   assert.ok(existsSync(new URL("../" + native.currentConsumer, import.meta.url)));
   const bevy = result.items.find((recipe) => recipe.id === "rust-ecs-sandbox");
@@ -36,8 +44,18 @@ test("composition candidates resolve genuine external source evidence and expose
   assert.ok(encounter?.components.every((slot) => slot.standing === "EXECUTED_NATIVE"));
   assert.ok(avatar?.components.every((slot) => slot.standing === "EXECUTED_NATIVE"));
   assert.ok(avatar?.explicitGaps.some((gap) => gap.includes("no player input")));
+  const dialogueClosure = result.items.find((recipe) => recipe.id === "branching-dialogue-gate");
+  assert.equal(dialogueClosure?.standing, "NATIVE_COMPONENT_EXECUTED");
+  assert.ok(dialogueClosure?.currentConsumer);
+  assert.ok(existsSync(new URL("../" + dialogueClosure.currentConsumer, import.meta.url)));
+  assert.deepEqual(
+    dialogueClosure?.components.map((slot) => slot.role),
+    ["dialogue-runtime", "game-state", "choice-ui"],
+  );
+  assert.ok(dialogueClosure?.components.every((slot) => slot.standing === "EXECUTED_NATIVE"));
+  assert.ok(dialogueClosure?.explicitGaps.some((gap) => gap.includes("not been integrated")));
   const other = result.items.filter((recipe) =>
-    !["native-action-loop", "rust-ecs-sandbox", "room-encounter", "kenney-avatar-appearance"].includes(recipe.id)
+    !["native-action-loop", "rust-ecs-sandbox", "room-encounter", "kenney-avatar-appearance", "branching-dialogue-gate"].includes(recipe.id)
   );
   assert.ok(other.every((recipe) => recipe.standing === "DESIGN_CANDIDATE"));
   // Do not infer complete game status from one executed capability.
@@ -62,7 +80,7 @@ test("composition candidates resolve genuine external source evidence and expose
 test("source-backed candidate selection preserves engine constraints and does not invent implementation state", () => {
   const godot = queryPrototypeCompositions({ engine: "GoDot" });
   const bevy = queryPrototypeCompositions({ engine: "bevy" });
-  assert.equal(godot.items.length, 5);
+  assert.equal(godot.items.length, 6);
   assert.equal(bevy.items.length, 1);
   assert.ok(godot.items.every((item) => item.engine === "godot"));
   assert.ok(bevy.items.every((item) => item.engine === "bevy"));

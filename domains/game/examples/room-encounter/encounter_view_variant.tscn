@@ -27,3 +27,13 @@ text = "Door"
 [node name="Restart" type="Button" parent="Actions"]
 layout_mode = 2
 text = "Reset"
+
+[node name="Save" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Save [S]"
+[node name="Load" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Load [L]"
+[node name="Storage" type="Label" parent="."]
+layout_mode = 2
+text = "No saved run loaded."

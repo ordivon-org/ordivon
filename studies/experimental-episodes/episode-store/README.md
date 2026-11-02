@@ -40,3 +40,7 @@ Alembic is the sole schema authority. The ingest program never creates or migrat
 An ingest is bound to exact corpus ID, profile ID, source file SHA-256, projection-set digest, Episode schema digest, and adapter digest.
 
 The deterministic ingest ID makes replay idempotent. Replaying an accepted ingest returns the retained receipt instead of writing a second ingest or mutating owner truth.
+
+## Historical R5C projection adapter
+
+The existing native Study distribution owns the deterministic R5C-to-Episode projection and backfill CLI as ordivon-episode-r5c-backfill. Its read-only PostgreSQL source query is sql/runtime_r5c_export.sql; this does not assign Runtime database authority to the Study. The CLI and tests import existing Composition-owned schema/digest contracts rather than keeping an executable Next adapter or path alias.

@@ -9,7 +9,7 @@ const specRaw = readFileSync(new URL("../knowledge/game_mechanism_relationship_s
 const library = JSON.parse(libraryRaw) as any;
 const spec = JSON.parse(specRaw) as any;
 const graph = buildMechanismRelationshipGraphFromSources({ raw: libraryRaw, value: library }, { raw: specRaw, value: spec });
-const doc = readFileSync(new URL("../docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md", import.meta.url), "utf8");
+const doc = readFileSync(new URL("../docs/mechanism-relationship-graph-r1.md", import.meta.url), "utf8");
 
 const unique = (items: string[]) => new Set(items).size === items.length;
 
@@ -141,7 +141,7 @@ test("derived relationship graph is linked from owner-native LEGO registration",
   assert.ok(node);
   assert.match(readme, /knowledge:relationships/);
   for (const path of [
-    "docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md",
+    "docs/mechanism-relationship-graph-r1.md",
     "knowledge/game_mechanism_relationship_spec_r1.json",
     "src/mechanism-relationship-graph.ts",
     "knowledge/game_mechanism_experience_library_r1.json",

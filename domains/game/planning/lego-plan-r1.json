@@ -465,6 +465,84 @@
           "examples/dialogue-composition/acceptance.gd"
         ]
       }
+    },
+    {
+      "id": "G10",
+      "label": "GodotNativeRunCheckpoint",
+      "kind": "native_state_persistence_adapter",
+      "responsibility": "Native ConfigFile save/load of the room run, with independent EncounterRules state validation and explicit action audio",
+      "authority": "EncounterRules owns gameplay validity; Godot ConfigFile owns persistence; SaveSlot only adapts UI",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "active tuning/game checkpoint",
+        "native Save/Load input and user:// slot"
+      ],
+      "outputs": [
+        "stored checkpoint or validated restore verdict",
+        "state_changed update without false action_accepted audio"
+      ],
+      "behavioralContract": "Matching saved state roundtrips; invalid schema/tuning/values reject without mutation; restore never represents a new combat action",
+      "acceptance": [
+        "Real PackedScene Save/Load reads back after reset",
+        "Existing audio and alternative HUD work; resume is silent",
+        "Native consumer rejects mismatched tuning and damaged values"
+      ],
+      "evidence": [
+        "examples/room-encounter/encounter_rules.gd",
+        "examples/room-encounter/encounter_save_slot.gd"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "generic storage engine",
+        "cloud sync or version migration",
+        "player experience evidence"
+      ],
+      "consumerEvidence": [
+        "examples/room-encounter/main.tscn",
+        "examples/room-encounter/encounter_root.gd",
+        "examples/room-encounter/assert.gd",
+        "mise.toml"
+      ],
+      "recursiveLegoR21": {
+        "I": [
+          "native live Game state, tuning, Save/Load action"
+        ],
+        "O": [
+          "persisted ConfigFile or authoritative restored snapshot"
+        ],
+        "S": [
+          "versioned disk slot and live rules state"
+        ],
+        "pre": [
+          "initialized room rules",
+          "matching tuning and valid state for successful restore"
+        ],
+        "post": [
+          "save/readback equality",
+          "rejected load does not mutate state or trigger combat audio"
+        ],
+        "inv": [
+          "Rules only state authority",
+          "audio consumes accepted combat actions"
+        ],
+        "eff": [
+          "native file read/write and UI Signal"
+        ],
+        "c": "O(number of configured rooms) state-identity checks plus native serialization; latency unmeasured",
+        "epsilon": "Power-loss durability, migration, player value UNKNOWN",
+        "prov": [
+          "Godot 4.7.2 built-in ConfigFile and native consumer",
+          "domains/game/mise.toml"
+        ],
+        "unfold": [
+          "examples/room-encounter/encounter_rules.gd",
+          "examples/room-encounter/encounter_save_slot.gd",
+          "examples/room-encounter/encounter_root.gd",
+          "examples/room-encounter/encounter_audio_feedback.gd",
+          "examples/room-encounter/assert.gd"
+        ]
+      }
     }
   ],
   "edges": [
@@ -585,6 +663,17 @@
         "Exact latest stable Dialogue Manager v4.2.0 imports on Godot 4.7.2.",
         "Two native branch outcomes and conditional unavailability preserve external rule authority.",
         "No standalone product or human-playtest claim."
+      ]
+    },
+    {
+      "id": "GS7",
+      "objective": "Compose native saved-game state and explicit accepted-action audio in existing playable room scene",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G10"
+      ],
+      "acceptance": [
+        "Actual native ConfigFile save/readback; different tuning/invalid saved values reject atomically; legitimate action alone plays sound"
       ]
     }
   ]

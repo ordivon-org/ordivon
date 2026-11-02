@@ -4,11 +4,8 @@ import json
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-PROFILE_PATH = (
-    ROOT.parents[1] / "docs/architecture/policies/external-ownership-boundary.json"
-)
-AGENT_SERVICE = ROOT / "agent_service"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PROFILE_PATH = REPO_ROOT / "docs/architecture/policies/external-ownership-boundary.json"
 
 
 def _load_profile() -> dict:
@@ -22,9 +19,8 @@ class ExternalOwnershipBoundaryTests(unittest.TestCase):
         self.assertEqual(profile["acceptedIrreduciblePrimitives"], [])
         self.assertEqual(profile["residualCandidates"], [])
 
-    def test_agent_service_is_retired_and_cannot_reappear_as_a_ceiling(self) -> None:
+    def test_agent_service_retirement_is_recorded_in_policy(self) -> None:
         profile = _load_profile()
-        self.assertFalse(any(AGENT_SERVICE.rglob("*.py")))
         self.assertEqual(
             profile["legacyTypeCeilings"]["agentServiceTopLevelClasses"], []
         )

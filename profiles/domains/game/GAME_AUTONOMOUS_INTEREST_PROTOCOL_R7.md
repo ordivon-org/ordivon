@@ -67,7 +67,7 @@ No preimplementation quality rank, QD curator, weighted global score or Human ti
 
 Normative schema:
 
-`domains/game/game-autonomous-interest-model-r7.schema.json`
+`profiles/domains/game/game-autonomous-interest-model-r7.schema.json`
 
 Each model contains only:
 
