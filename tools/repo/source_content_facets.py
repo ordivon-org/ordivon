@@ -162,7 +162,28 @@ def compile_projection(repo: Path, cut: str) -> dict:
     seed=json.loads(git("show",cut+":"+SEED_PATH,repo=repo))
     if seed.get("truthRole")!="NON_AUTHORITATIVE_SOURCE_LABEL_EVIDENCE_NOT_IMPLEMENTATION":
         raise ValueError("source naming seed cannot grant functional authority")
-    zones=seed["sourceRegions"]
+    # Source naming seeds are historical, content-addressed observations.
+    # Reuse the Structure R2 relocation contract at this exact Git cut to
+    # project a retired physical prefix onto its current location. The source
+    # region identity remains unchanged: a move is not a semantic renaming.
+    zones=[dict(zone) for zone in seed["sourceRegions"]]
+    relocation=json.loads(git("show",cut+":docs/architecture/structure-r2-transition-r1.json",repo=repo))
+    current_paths={row["path"] for row in rows}
+    for mapping in relocation["mappings"]:
+        if mapping.get("mode")!="move" or mapping.get("standing")!="DEPLOYED":
+            continue
+        if len(mapping["sourcePaths"])!=1 or len(mapping["targetPaths"])!=1:
+            continue
+        old,new=mapping["sourcePaths"][0],mapping["targetPaths"][0]
+        if not any(z.get("sourcePrefix")==old for z in zones):
+            continue
+        if any(path.startswith(old) for path in current_paths) or not any(
+            path.startswith(new) for path in current_paths
+        ):
+            raise ValueError("Deployed source relocation contradicts Git SourceCut: "+old)
+        for zone in zones:
+            if zone.get("sourcePrefix")==old:
+                zone["sourcePrefix"]=new
     dense=seed["denseCellAliases"]
     specific=seed["specificPathDisplayAliases"]
     if len(dense)!=60 or len(zones)!=30 or len(specific)!=26:

@@ -1744,7 +1744,7 @@ def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
     import copy
 
     plan = json.loads(
-        (ROOT / "platform/skills/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+        (ROOT / "extensions/chatgpt-skills-mcp/planning/lego-plan-r1.json").read_text(encoding="utf-8")
     )
 
     def qualify_source_symbols(candidate: dict) -> None:
@@ -1757,7 +1757,7 @@ def test_skills_r21_semantic_node_consumer_source_falsification() -> None:
             for consumer in node["actualConsumers"]:
                 relative = Path(consumer["path"])
                 assert not relative.is_absolute() and ".." not in relative.parts
-                path = ROOT / "platform/skills" / relative
+                path = ROOT / "extensions/chatgpt-skills-mcp" / relative
                 assert path.is_file()
                 names = {
                     ast_node.name for ast_node in ast.walk(
@@ -2282,7 +2282,7 @@ def test_one_lego_inspection_preserves_all_existing_consumer_claim_carriers() ->
         ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
     ).strip()
     cases = [
-        ("platform/skills/planning/lego-plan-r1.json#SK03", "actualConsumers", "skills_resolve"),
+        ("extensions/chatgpt-skills-mcp/planning/lego-plan-r1.json#SK03", "actualConsumers", "skills_resolve"),
         ("packages/composition/planning/lego-plan-r1.json#C01", "consumerBindings", None),
         ("services/gateway/planning/lego-plan-r1.json#G01", "consumerEvidence", None),
     ]

@@ -551,7 +551,7 @@ class ConvergencePlanTests(unittest.TestCase):
         )
 
     def test_real_project_skill_change_retains_skills_verification_consumer(self) -> None:
-        # platform/skills/tests/test_recursive_lego_math_discovery.py reads this source.
+        # extensions/chatgpt-skills-mcp/tests/test_recursive_lego_math_discovery.py reads this source.
         path = ".agents/skills/recursive-lego-calculus/SKILL.md"
         plan = MODULE.build_plan(changed_files=[path])
         self.assertIn("skills", plan["verificationOwners"])
