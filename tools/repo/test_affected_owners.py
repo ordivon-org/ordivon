@@ -247,6 +247,25 @@ class AffectedOwnersTests(unittest.TestCase):
             ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
         )
 
+    def test_deployed_s2c_source_removal_keeps_skills_owner_selected(self) -> None:
+        # The PR diff legitimately contains both sides of the 100%-identical
+        # relocation, but the present tree owns only the extension target.
+        previous = "platform/skills/src/ordivon_skills/catalog.py"
+        current = "extensions/chatgpt-skills-mcp/src/ordivon_skills/catalog.py"
+        assert not (MODULE.MANIFEST_PATH.resolve().parents[2] / previous).exists()
+        MODULE.require_registered_execution_paths([previous, current])
+        self.assertEqual(self.names(previous), ["skills"])
+        self.assertEqual(self.names(previous, current), ["skills"])
+
+        for unknown in (
+            "platform/skills-other/injected.py",
+            "platform/unregistered/injected.py",
+        ):
+            with self.subTest(unknown=unknown):
+                with self.assertRaisesRegex(ValueError, "unregistered owner path"):
+                    MODULE.require_registered_execution_paths([unknown])
+
+
     def test_noncanonical_paths_cannot_bypass_owner_verification(self) -> None:
         malformed = (
             "../services/runtime/src/lib.rs",
