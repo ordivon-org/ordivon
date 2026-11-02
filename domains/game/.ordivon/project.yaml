@@ -9,12 +9,12 @@ managed_paths:
   - README.md
   - AGENTS.md
   - docs/authority.md
-  - docs/GAME_EXTERNAL_KNOWLEDGE_BASE_R1.md
-  - docs/GAME_MECHANISM_EXPERIENCE_LIBRARY_R1.md
-  - docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md
-  - docs/GAME_DESIGN_COUNTEREXAMPLE_MEMORY_R1.md
-  - docs/GAME_COUNTEREXAMPLE_SYNTHESIS_R1.md
-  - docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md
+  - docs/external-knowledge-base-r1.md
+  - docs/mechanism-experience-library-r1.md
+  - docs/mechanism-relationship-graph-r1.md
+  - docs/design-counterexample-memory-r1.md
+  - docs/counterexample-synthesis-r1.md
+  - docs/player-evidence-programme.md
   - knowledge/game_external_knowledge_base_r1.json
   - knowledge/game_external_skill_watchlist_r1.json
   - knowledge/game_teardown_queue_r1.json
