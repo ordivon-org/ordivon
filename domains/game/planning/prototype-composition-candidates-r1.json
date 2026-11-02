@@ -250,6 +250,14 @@
           "integrationSeam": "EncounterAudio observes accepted attack/guard events and plays two license-recorded CC0 AudioStreams",
           "standing": "EXECUTED_NATIVE",
           "required": false
+        },
+        {
+          "role": "save-resume",
+          "sourceRef": "godot-configfile-built-in",
+          "integrationSeam": "Rules checkpoint/restore + native ConfigFile/Signal",
+          "standing": "EXECUTED_NATIVE",
+          "required": false,
+          "currentConsumer": "examples/room-encounter/encounter_save_slot.gd"
         }
       ],
       "explicitGaps": [
@@ -257,7 +265,7 @@
         "Combat has no authored character sprites, soundtrack, animation pipeline, platform package or independent human playtest.",
         "Kenney audio is game-local because Godot resource paths are project-relative, not an Ordivon audio engine."
       ],
-      "nextFalsifier": "Run the existing Godot 4.7 test:encounter and substitute native HUD/tuning/audio while checking a three-room win/loss and actual action feedback; then evaluate an actual packaged product."
+      "nextFalsifier": "Integrate actual narrative/visual providers into the room game, verify recovery after process restart and test with human players."
     },
     {
       "id": "kenney-avatar-appearance",

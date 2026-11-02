@@ -3,6 +3,7 @@ extends Node
 # Single owner of encounter state; UI is a read-only observer.
 const Tuning = preload("res://encounter_tuning.gd")
 signal state_changed(state: Dictionary)
+signal action_accepted(action: String)
 @export var tuning: Resource = preload("res://configs/default.tres")
 
 var active: Resource
@@ -59,6 +60,7 @@ func attack() -> bool:
     if phase == "fighting":
         _retaliate(0)
     state_changed.emit(snapshot())
+    action_accepted.emit("attack")
     return true
 
 func guard() -> bool:
@@ -68,6 +70,7 @@ func guard() -> bool:
     turn += 1
     _retaliate(active.guard_block)
     state_changed.emit(snapshot())
+    action_accepted.emit("guard")
     return true
 
 func advance() -> bool:
@@ -100,3 +103,72 @@ func snapshot() -> Dictionary:
         "turn": turn,
         "phase": phase
     }
+
+# Rule-owned checkpoint contract; ConfigFile alone owns storage bytes.
+func checkpoint() -> Dictionary:
+    return {"tuning": {
+        "enemies_per_room": active.enemies_per_room,
+        "player_health": active.player_health,
+        "enemy_health": active.enemy_health,
+        "attack_damage": active.attack_damage,
+        "enemy_damage": active.enemy_damage,
+        "stamina_capacity": active.stamina_capacity,
+        "attack_cost": active.attack_cost,
+        "guard_restore": active.guard_restore,
+        "guard_block": active.guard_block
+    }, "state": snapshot()}
+
+func restore_checkpoint(saved: Variant) -> bool:
+    if active == null or not saved is Dictionary:
+        return false
+    if not saved.has("tuning") or not saved.has("state"):
+        return false
+    if saved["tuning"] != checkpoint()["tuning"]:
+        return false
+    var s: Variant = saved["state"]
+    if not s is Dictionary:
+        return false
+    for key in ["room", "total_rooms", "foes", "enemy_health",
+            "player_health", "stamina", "attack_cost", "turn"]:
+        if not s.has(key) or typeof(s[key]) != TYPE_INT:
+            return false
+    if not s.has("phase") or typeof(s["phase"]) != TYPE_STRING:
+        return false
+    var new_phase: String = s["phase"]
+    if new_phase not in ["fighting", "cleared", "won", "lost"]:
+        return false
+    var new_room: int = s["room"]
+    var new_foes: int = s["foes"]
+    var new_enemy_health: int = s["enemy_health"]
+    var new_player_health: int = s["player_health"]
+    var new_stamina: int = s["stamina"]
+    if new_room < 1 or new_room > active.enemies_per_room.size():
+        return false
+    if s["total_rooms"] != active.enemies_per_room.size() or s["attack_cost"] != active.attack_cost:
+        return false
+    if new_foes < 0 or new_foes > active.enemies_per_room[new_room - 1]:
+        return false
+    if new_enemy_health < 0 or new_enemy_health > active.enemy_health:
+        return false
+    if new_player_health < 0 or new_player_health > active.player_health:
+        return false
+    if new_stamina < 0 or new_stamina > active.stamina_capacity or s["turn"] < 0:
+        return false
+    if new_phase == "fighting" and (new_foes == 0 or new_enemy_health == 0 or new_player_health == 0):
+        return false
+    if new_phase == "cleared" and (new_foes != 0 or new_enemy_health != 0 or new_player_health == 0):
+        return false
+    if new_phase == "won" and (new_room != active.enemies_per_room.size() or
+            new_foes != 0 or new_enemy_health != 0 or new_player_health == 0):
+        return false
+    if new_phase == "lost" and (new_player_health != 0 or new_foes == 0 or new_enemy_health == 0):
+        return false
+    room = new_room
+    foes = new_foes
+    enemy_health = new_enemy_health
+    player_health = new_player_health
+    stamina = new_stamina
+    turn = s["turn"]
+    phase = new_phase
+    state_changed.emit(snapshot())
+    return true
