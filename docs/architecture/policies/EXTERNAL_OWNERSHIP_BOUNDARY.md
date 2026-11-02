@@ -27,7 +27,7 @@ The policy is a repository-specific architecture boundary, not a new cross-domai
 - canonical external owners used by the boundary;
 - behavioral deletion gates that prevent class-count reduction from overriding correctness.
 
-`tests/test_external_ownership_boundary.py` enforces the machine profile.
+The machine profile records declared policy rather than proving implementation behavior. The existing source Owner boundary checker (`tools/repo/check_owner_boundaries.py`) independently checks source-level dependency contracts; it does not certify all policy statements. Actual consumers and runtime effects must be qualified at their natural Owners.
 
 Agent Service deletion is complete. Reintroducing any equivalent top-level subsystem or semantic type requires a new concrete workload, a demonstrated failure of mature external ownership, a non-authoritative narrow integration role, and an explicit canonical external owner; restoring the historical subsystem is not an accepted path.
 
