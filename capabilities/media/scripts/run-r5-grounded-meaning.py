@@ -4,11 +4,9 @@ import argparse
 import json
 from pathlib import Path
 
-from ordivon_studio.grounded_meaning import (
-    build_provider_bundle,
-    canonical_digest,
-    score_provider_receipt,
-)
+from ordivon_studio.grounded_contracts import canonical_digest
+from ordivon_studio.grounded_meaning import build_provider_bundle
+from ordivon_studio.grounded_scoring import score_provider_receipt
 
 
 def _write(path: Path, value: object) -> None:

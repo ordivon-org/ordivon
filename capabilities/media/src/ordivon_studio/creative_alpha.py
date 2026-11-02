@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from .grounded_meaning import canonical_digest
+from .grounded_contracts import canonical_digest
 from .research_validity import seed_commitment
 
 VARIANTS = ("explicit-chain", "fragmented", "evidence-delayed")

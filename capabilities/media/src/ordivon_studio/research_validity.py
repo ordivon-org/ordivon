@@ -10,7 +10,7 @@ from typing import Any
 
 import psycopg
 
-from .grounded_meaning import canonical_digest
+from .grounded_contracts import canonical_digest
 
 OUTCOME_ROLES = ("primary", "guardrail", "secondary", "exploratory")
 EVENT_TYPES = (
