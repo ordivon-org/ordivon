@@ -876,8 +876,8 @@ class ConvergencePlanTests(unittest.TestCase):
         evidence = MODULE.explain_source_impacts(
             plan, source_cut=MODULE._git("rev-parse", "HEAD")
         )
-        self.assertEqual(len(evidence["verificationOwners"]), 18)
-        self.assertEqual(len(evidence["queueVerifyTasks"]), 19)
+        self.assertEqual(len(evidence["verificationOwners"]), 19)
+        self.assertEqual(len(evidence["queueVerifyTasks"]), 20)
         self.assertEqual(evidence["queueVerifyTasks"].count("formal:verify"), 1)
         self.assertEqual(evidence["queueVerifyTasks"], plan["queueVerifyTasks"])
         self.assertEqual(
@@ -1199,16 +1199,16 @@ class ConvergencePlanTests(unittest.TestCase):
                             selected, requested, changed
                         )
                 checks += 1
-        # 171 real source cohorts, 1191 exact positive/negative obligations
-        # at the present 18-Owner source cut; no global coverage inference.
-        self.assertEqual(checks, 1191)
+        # 190 real source cohorts, 1323 exact positive/negative obligations
+        # at the present 19-Owner source cut; no global coverage inference.
+        self.assertEqual(checks, 1323)
 
     def test_root_and_formal_selection_reject_each_individual_missing_task(self) -> None:
         root_path = ["mise.toml"]
         root_plan = MODULE.build_plan(changed_files=root_path)
         all_tasks = root_plan["queueVerifyTasks"]
         # Current root policy can gain scoped Formal selection independently
-        # of the 18-owner population. Derive the optional source obligation
+        # of the 19-owner population. Derive the optional source obligation
         # instead of freezing a command-count implementation detail.
         formal_root = MODULE.affected_owners.requires_core_formal_verification(root_path)
         self.assertEqual(
@@ -1477,7 +1477,7 @@ class ConvergencePlanTests(unittest.TestCase):
              ["tools/formal/Proof.qnt"], False),
         )
         # Validate the *actual* GitHub inline consumer as well as the Python
-        # producer for every tracked 18-Owner one-/two-owner source cohort.
+        # producer for every tracked 19-Owner one-/two-owner source cohort.
         # This is still only a bounded source task contract, not runtime proof.
         git_paths = subprocess.check_output(
             ["git", "--no-replace-objects", "ls-tree", "-r", "--name-only", "HEAD"],
@@ -1495,7 +1495,7 @@ class ConvergencePlanTests(unittest.TestCase):
             samples[owner.name] = (code_paths or paths)[0]
         self.assertEqual(len(samples), 19)
         cohorts = [(name,) for name in samples] + list(combinations(samples, 2))
-        self.assertEqual(len(cohorts), 171)
+        self.assertEqual(len(cohorts), 190)
         original_cases = len(examples)
         for group in cohorts:
             changed = [samples[name] for name in group]
@@ -1504,7 +1504,7 @@ class ConvergencePlanTests(unittest.TestCase):
                 (selected["verificationOwners"], selected["queueVerifyTasks"], changed, True),
                 ([], [], changed, False),
             )
-        self.assertEqual(len(examples) - original_cases, 342)
+        self.assertEqual(len(examples) - original_cases, 380)
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             owners_path = folder / "owners.txt"
