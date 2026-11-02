@@ -4,11 +4,11 @@ from typing import Any, Literal
 
 import psycopg
 from psycopg.rows import dict_row
-from psycopg.types.json import Jsonb
 
 from .attention_queries import ATTENTION_DELTA_SQL
 from .canonical_json import canonical_bytes, canonical_digest
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
+from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ConflictError
 from .social_store import SpaceNotFound, TopicNotFound
 from .work_store import ActorRefNotFound, WorkNotFound
@@ -375,7 +375,7 @@ class AttentionStore:
         request = {"operation": "attention.ack", "actorRef": actor_ref, "cursor": cursor}
         request_digest = canonical_digest(request)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
-            replay = self._claim_receipt(conn, client_request_id, "attention.ack", request_digest)
+            replay = claim_command_receipt(conn, client_request_id, "attention.ack", request_digest)
             if replay is not None:
                 return replay
             self._require_actor(conn, actor_ref)
@@ -412,7 +412,7 @@ class AttentionStore:
                 "cursor": cursor,
                 "truthBoundary": "navigation acknowledgement only; not evidence that message content was semantically accepted",
             }
-            self._record_receipt(conn, client_request_id, "attention.ack", request_digest, result)
+            record_command_receipt(conn, client_request_id, "attention.ack", request_digest, result)
             return result
 
     @staticmethod
@@ -438,50 +438,3 @@ class AttentionStore:
             if target_kind == "space":
                 raise SpaceNotFound(target_ref)
             raise TopicNotFound(target_ref)
-
-    @staticmethod
-    def _claim_receipt(
-        conn: psycopg.Connection[dict[str, Any]],
-        client_request_id: str,
-        operation: str,
-        request_digest: str,
-    ) -> dict[str, Any] | None:
-        claimed = conn.execute(
-            "INSERT INTO command_receipts(client_request_id,operation,request_digest,response) "
-            "VALUES (%s,%s,%s,NULL) ON CONFLICT (client_request_id) DO NOTHING RETURNING client_request_id",
-            (client_request_id, operation, request_digest),
-        ).fetchone()
-        if claimed is not None:
-            return None
-        row = conn.execute(
-            "SELECT operation,request_digest,response FROM command_receipts WHERE client_request_id=%s",
-            (client_request_id,),
-        ).fetchone()
-        if row is None:
-            raise RuntimeError("idempotency claim disappeared")
-        if row["operation"] != operation or row["request_digest"] != request_digest:
-            raise ConflictError("client_request_id was already used for different content")
-        response = row["response"]
-        if response is None:
-            raise RuntimeError("committed idempotency claim is missing its response")
-        if not isinstance(response, dict):
-            raise RuntimeError("idempotency response is not a PostgreSQL jsonb object")
-        replay = dict(response)
-        replay["admission"] = "existing"
-        return replay
-
-    @staticmethod
-    def _record_receipt(
-        conn: psycopg.Connection[dict[str, Any]],
-        client_request_id: str,
-        operation: str,
-        request_digest: str,
-        result: dict[str, Any],
-    ) -> None:
-        updated = conn.execute(
-            "UPDATE command_receipts SET response=%s WHERE client_request_id=%s AND operation=%s "
-            "AND request_digest=%s AND response IS NULL RETURNING client_request_id",
-            (Jsonb(result), client_request_id, operation, request_digest),
-        ).fetchone()
-        if updated is None:
-            raise RuntimeError("idempotency claim could not be finalized")
