@@ -9,8 +9,8 @@ import json
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-AUTH = ROOT.parents[1] / "catalogs" / "authorities"
+ROOT = Path(__file__).resolve().parents[3]
+AUTH = ROOT / "catalogs" / "authorities"
 RECORDS = AUTH / "records"
 OBS = AUTH / "observations"
 
