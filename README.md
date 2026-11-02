@@ -34,3 +34,5 @@ For source vs deployed state, start with [`CURRENT_ARCHITECTURE.md`](docs/archit
 - Verify repository mechanics with `mise install && mise run repo:ci`; CI runs the same tasks (see `mise.toml`).
 - Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - License: [Apache-2.0](LICENSE).
+- Security: [private vulnerability reporting and policy](SECURITY.md).
+- Architecture decisions: [current and superseded decision index](docs/architecture/DECISIONS.md).
