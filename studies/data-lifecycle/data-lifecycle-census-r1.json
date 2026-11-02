@@ -1,0 +1,280 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.data-lifecycle-census",
+  "asOf": "2026-09-20",
+  "scope": {
+    "workspaceId": "ws-data-lifecycle-census-r1-20260920",
+    "baseRevision": "b8ed8399f9411249c30f3b140e7e53741358878b",
+    "roots": [
+      "/root/projects",
+      "/root/workstation-lab"
+    ],
+    "repositoryCountObserved": 16
+  },
+  "standing": "PARTIAL_CROSS_DOMAIN_LIFECYCLE",
+  "thesis": "Strong domain-local data capabilities exist; the proven gap is the cross-domain catalog/contract/lineage/rights/outcome-feedback spine, not another generic database.",
+  "localSubstrate": [
+    {
+      "component": "DuckDB",
+      "standing": "KEEP",
+      "evidence": "/usr/bin/duckdb 1.5.5; Artifact independent Parquet reader; Finance witness query"
+    },
+    {
+      "component": "PostgreSQL",
+      "standing": "KEEP",
+      "evidence": "postgresql.service running; psql 18.6"
+    },
+    {
+      "component": "Prometheus",
+      "standing": "KEEP",
+      "evidence": "Prometheus 3.14.0; network-v2-prometheus.service running"
+    },
+    {
+      "component": "Pandera",
+      "standing": "KEEP",
+      "evidence": "Research >=0.26; Market Capital ==0.33.1"
+    },
+    {
+      "component": "PyArrow",
+      "standing": "KEEP",
+      "evidence": "Research >=17; Market Capital ==25.0.1; Artifact frozen 25.0.1 reader"
+    },
+    {
+      "component": "Parquet",
+      "standing": "KEEP",
+      "evidence": "Artifact dataset-parquet-flat-r1; Market Capital witness Parquet"
+    },
+    {
+      "component": "WARC/warcio",
+      "standing": "KEEP",
+      "evidence": "Artifact web archive profile; warcio>=1,<2"
+    },
+    {
+      "component": "OpenTelemetry",
+      "standing": "KEEP_PARTIAL",
+      "evidence": "Artifact OTel API/SDK 1.44.0"
+    },
+    {
+      "component": "OpenLineage",
+      "standing": "ACTIVATE",
+      "evidence": "authority/design present; no emitter/backend observed"
+    },
+    {
+      "component": "Redpanda",
+      "standing": "WORKLOAD_GATED",
+      "evidence": "Finance optional compose only"
+    },
+    {
+      "component": "QuestDB",
+      "standing": "WORKLOAD_GATED",
+      "evidence": "Finance optional compose only"
+    },
+    {
+      "component": "Grafana",
+      "standing": "WORKLOAD_GATED",
+      "evidence": "Workstation config/generated unit; not observed running"
+    },
+    {
+      "component": "Dagster",
+      "standing": "WORKLOAD_GATED",
+      "evidence": "provider research only; no executable/package/project observed"
+    },
+    {
+      "component": "ClickHouse",
+      "standing": "WORKLOAD_GATED",
+      "evidence": "references only; no executable/service observed"
+    },
+    {
+      "component": "Kafka",
+      "standing": "WORKLOAD_GATED",
+      "evidence": "references only; no executable/service observed"
+    },
+    {
+      "component": "Apache Iceberg",
+      "standing": "WORKLOAD_GATED",
+      "evidence": "no grounded local implementation observed"
+    },
+    {
+      "component": "Great Expectations",
+      "standing": "DO_NOT_ADD",
+      "evidence": "reference/comparison only; current dataframe validation is Pandera"
+    }
+  ],
+  "lifecycle": [
+    {
+      "id": 0,
+      "name": "information-decision-requirement",
+      "standing": "PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 1,
+      "name": "source-discovery",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 2,
+      "name": "acquisition",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 3,
+      "name": "ingestion",
+      "standing": "PARTIAL",
+      "priority": "P2"
+    },
+    {
+      "id": 4,
+      "name": "raw-preservation",
+      "standing": "PARTIAL",
+      "priority": "P0"
+    },
+    {
+      "id": 5,
+      "name": "parse-normalize",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 6,
+      "name": "clean-validate",
+      "standing": "KEEP",
+      "priority": "P0"
+    },
+    {
+      "id": 7,
+      "name": "integration-entity-resolution",
+      "standing": "MISSING",
+      "priority": "P2"
+    },
+    {
+      "id": 8,
+      "name": "metadata-catalog",
+      "standing": "MISSING",
+      "priority": "P0",
+      "externalOwner": "W3C DCAT 3"
+    },
+    {
+      "id": 9,
+      "name": "provenance-lineage",
+      "standing": "PARTIAL",
+      "priority": "P0",
+      "externalOwners": [
+        "OpenLineage",
+        "W3C PROV"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "data-contract-product",
+      "standing": "PARTIAL",
+      "priority": "P0",
+      "externalOwners": [
+        "Bitol ODCS 3.2",
+        "Bitol ODPS 1.1"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "exploration-analytics",
+      "standing": "KEEP",
+      "priority": "P1"
+    },
+    {
+      "id": 12,
+      "name": "modeling-synthesis",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 13,
+      "name": "serving-retrieval",
+      "standing": "PARTIAL",
+      "priority": "P2"
+    },
+    {
+      "id": 14,
+      "name": "decision-action",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 15,
+      "name": "outcome-measurement",
+      "standing": "PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 16,
+      "name": "feedback-recollection",
+      "standing": "MISSING",
+      "priority": "P0"
+    }
+  ],
+  "fabrics": [
+    {
+      "name": "governance-rights",
+      "standing": "PARTIAL"
+    },
+    {
+      "name": "metadata-catalog",
+      "standing": "MISSING",
+      "externalOwner": "W3C DCAT 3"
+    },
+    {
+      "name": "quality",
+      "standing": "KEEP_PARTIAL"
+    },
+    {
+      "name": "provenance-lineage",
+      "standing": "PARTIAL",
+      "externalOwners": [
+        "OpenLineage",
+        "W3C PROV"
+      ]
+    },
+    {
+      "name": "security-privacy",
+      "standing": "PARTIAL"
+    },
+    {
+      "name": "observability",
+      "standing": "PARTIAL"
+    }
+  ],
+  "firstPilots": [
+    {
+      "domain": "research",
+      "flow": "source API response -> immutable raw -> normalized record -> quality gate -> analytical dataset -> statistical/LLM transform -> evidence/claim"
+    },
+    {
+      "domain": "finance",
+      "flow": "provider observation -> raw witness -> same-cut validation -> Parquet -> quality/contract -> DuckDB/model -> decision-support output"
+    }
+  ],
+  "activationPolicy": {
+    "redpandaKafka": "only after measured replay/fan-out/streaming need",
+    "iceberg": "only after snapshots/schema-partition evolution/multi-writer need exceeds plain Parquet",
+    "clickhouse": "only after measured DuckDB/PostgreSQL analytical limits",
+    "questdb": "only after measured high-frequency time-series need",
+    "dagster": "only after persistent asset graph needs partitions/backfills/freshness/materialization state",
+    "grafana": "only after actionable data-observability metrics exist",
+    "greatExpectations": "only if Pandera cannot satisfy a proven suite/validation-store requirement"
+  },
+  "nextActions": [
+    "Add current DCAT 3 and Bitol ODCS/ODPS authority records with observations.",
+    "Map existing Artifact Dataset Contract fields to ODCS without replacing proven Artifact validation.",
+    "Implement a minimal OpenLineage emitter at real Research and Finance transformation boundaries.",
+    "Catalog one Research and one Finance data product with source/version/rights/quality/lineage pointers.",
+    "Bind downstream claim/decision/action to exact consumed data-product version.",
+    "Persist outcome-driven changes back to source/collection/quality/model policy."
+  ],
+  "nonGoals": [
+    "No new ordivon-data repository in R1.",
+    "No generic Ordivon ETL engine.",
+    "No Ordivon-specific dataset ontology, lineage protocol, or data-contract language.",
+    "No infrastructure installation merely to fill an architecture box."
+  ]
+}

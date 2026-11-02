@@ -210,16 +210,29 @@ def compile_projection(repo: Path, cut: str) -> dict:
     # region. They cannot invent semantic Owner identities or modify the frozen
     # name seeds. Both mapping and current files come from the exact Git cut.
     for mapping in relocation["mappings"]:
-        if mapping.get("mode")!="split" or mapping.get("standing")!="DEPLOYED":
+        if mapping.get("mode")!="split" or mapping.get("standing") not in {
+            "DEPLOYED","PARTIALLY_DEPLOYED"
+        }:
             continue
         if len(mapping.get("sourcePaths",[]))!=1:
-            continue  # multi-root partial source splits are not the bounded S5 mapping
+            continue
         old=mapping["sourcePaths"][0]
         seeds=[z for z in zones if z.get("sourcePrefix")==old]
+        if not seeds and mapping.get("standing")=="PARTIALLY_DEPLOYED":
+            # Retained source and relocated studies share the old lexical zone;
+            # this is source placement, never semantic or Owner admission.
+            parents=[z for z in zones if z.get("sourcePrefix")
+                     and old.startswith(z["sourcePrefix"])]
+            if parents:
+                specificity=max(len(z["sourcePrefix"]) for z in parents)
+                seeds=[z for z in parents if len(z["sourcePrefix"])==specificity]
         if len(seeds)!=1:
-            continue  # no matching historical source region, no borrowed label
-        if any(path.startswith(old) for path in current_paths):
+            continue
+        old_still_present=any(path.startswith(old) for path in current_paths)
+        if mapping.get("standing")=="DEPLOYED" and old_still_present:
             raise ValueError("deployed source split retains old tracked SourceCut: "+old)
+        if mapping.get("standing")=="PARTIALLY_DEPLOYED" and not old_still_present:
+            raise ValueError("partial source split has no current source: "+old)
         placements=mapping.get("currentPlacementPaths")
         if not isinstance(placements,list) or not placements:
             raise ValueError("deployed source split missing placed prefixes: "+old)

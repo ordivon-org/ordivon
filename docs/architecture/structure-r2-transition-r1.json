@@ -342,6 +342,7 @@
       "wave": "S2A"
     },
     {
+      "disposition": "S5 source-only discovery metadata relocated to catalogs/authorities with exact JSON contents preserved and authority native source loader and JSON Schemas relocated. Does not imply external standards applicability, currentness validation, runtime installation, or domain acceptance.",
       "id": "authority-catalog",
       "mode": "move",
       "owner": "next",
@@ -349,17 +350,17 @@
       "sourcePaths": [
         "meta/next/authorities/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "catalogs/authorities/"
       ],
       "verifyTasks": [
         "next:verify"
       ],
-      "wave": "S5",
-      "standing": "DEPLOYED",
-      "disposition": "S5 source-only discovery metadata relocated to catalogs/authorities with exact JSON contents preserved and authority native source loader and JSON Schemas relocated. Does not imply external standards applicability, currentness validation, runtime installation, or domain acceptance."
+      "wave": "S5"
     },
     {
+      "disposition": "SOURCE-only S5 capability discovery/catalog placement. Maintained non-authoritative Markdown records are under catalogs/capabilities; historical authority registrationBasis remains source-cut provenance. Other S5 mappings remain open; provider availability and installed state not implied.",
       "id": "capability-catalog",
       "mode": "move",
       "owner": "next",
@@ -367,17 +368,17 @@
       "sourcePaths": [
         "meta/next/capabilities/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "catalogs/capabilities/"
       ],
       "verifyTasks": [
         "next:verify"
       ],
-      "wave": "S5",
-      "standing": "DEPLOYED",
-      "disposition": "SOURCE-only S5 capability discovery/catalog placement. Maintained non-authoritative Markdown records are under catalogs/capabilities; historical authority registrationBasis remains source-cut provenance. Other S5 mappings remain open; provider availability and installed state not implied."
+      "wave": "S5"
     },
     {
+      "disposition": "SOURCE-only non-authoritative ODPS/ODCS/ODRL Episode catalog placement. Historical data-lifecycle receipts retain original exact-cut path; no installed data-product authority or consumer deployment implied.",
       "id": "episode-data-product-catalog",
       "mode": "move",
       "owner": "next",
@@ -385,17 +386,17 @@
       "sourcePaths": [
         "meta/next/data-products/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "catalogs/data-products/"
       ],
       "verifyTasks": [
         "next:verify"
       ],
-      "wave": "S5",
-      "standing": "DEPLOYED",
-      "disposition": "SOURCE-only non-authoritative ODPS/ODCS/ODRL Episode catalog placement. Historical data-lifecycle receipts retain original exact-cut path; no installed data-product authority or consumer deployment implied."
+      "wave": "S5"
     },
     {
+      "disposition": "SOURCE-only retained knowledge and evidence catalog placement. Historical Git SourceCut naming/provenance remains unchanged. No authority, installed deployment state or new skill registry is conferred by this physical move; remaining S5 mappings stay open.",
       "id": "knowledge-catalog",
       "mode": "move",
       "owner": "next",
@@ -403,15 +404,14 @@
       "sourcePaths": [
         "meta/next/knowledge/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "catalogs/knowledge/"
       ],
       "verifyTasks": [
         "next:verify"
       ],
-      "wave": "S5",
-      "standing": "DEPLOYED",
-      "disposition": "SOURCE-only retained knowledge and evidence catalog placement. Historical Git SourceCut naming/provenance remains unchanged. No authority, installed deployment state or new skill registry is conferred by this physical move; remaining S5 mappings stay open."
+      "wave": "S5"
     },
     {
       "id": "domain-profiles",
@@ -471,20 +471,20 @@
       "wave": "S5"
     },
     {
-      "disposition": "Publication profiles go to profiles; venue authority metadata to catalogs; study evidence to its Study; dogfood-only evidence may become a bounded test fixture.",
-      "id": "research-meta",
-      "mode": "split",
-      "standing": "DEPLOYED",
       "currentPlacementPaths": [
         "profiles/research/",
         "catalogs/authorities/venues/",
         "tests/fixtures/research/"
       ],
+      "disposition": "Publication profiles go to profiles; venue authority metadata to catalogs; study evidence to its Study; dogfood-only evidence may become a bounded test fixture.",
+      "id": "research-meta",
+      "mode": "split",
       "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/research/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "profiles/research/",
         "catalogs/authorities/",
@@ -497,6 +497,7 @@
       "wave": "S5"
     },
     {
+      "disposition": "Source-only move of the ten Next-owned migration and retirement state records into the existing migration/retirement documentation region. Frozen SourceCut evidence remains historical and unchanged; outstanding external cleanup remains OPEN until actual external verification.",
       "id": "next-migration-disposition-records",
       "mode": "move",
       "owner": "next",
@@ -504,15 +505,36 @@
       "sourcePaths": [
         "meta/next/migrations/records/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "docs/migration/retirement/"
       ],
       "verifyTasks": [
         "next:verify"
       ],
-      "wave": "S5",
-      "standing": "DEPLOYED",
-      "disposition": "Source-only move of the ten Next-owned migration and retirement state records into the existing migration/retirement documentation region. Frozen SourceCut evidence remains historical and unchanged; outstanding external cleanup remains OPEN until actual external verification."
+      "wave": "S5"
+    },
+    {
+      "currentPlacementPaths": [
+        "studies/data-lifecycle/"
+      ],
+      "disposition": "Preserve six historical data-lifecycle census records byte-for-byte as non-authoritative studies; remaining planning is not migrated.",
+      "id": "data-lifecycle-census-studies",
+      "mode": "split",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/planning/"
+      ],
+      "standing": "PARTIALLY_DEPLOYED",
+      "targetPaths": [
+        "studies/"
+      ],
+      "verifyTasks": [
+        "next:verify",
+        "repo:ci"
+      ],
+      "wave": "S5"
     }
   ],
   "openSlices": [

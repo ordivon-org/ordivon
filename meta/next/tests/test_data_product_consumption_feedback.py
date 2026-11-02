@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+CENSUS = ROOT.parents[1] / "studies" / "data-lifecycle"
 BASE = ROOT / "evidence/data-lifecycle/data-products-r1"
 
 
@@ -52,7 +53,7 @@ def test_semantic_and_operational_provenance_are_separate():
 
 
 def test_r5_has_no_selected_p0_but_remains_cross_domain_partial():
-    r5 = json.loads((ROOT / "planning/data-lifecycle-census-r5.json").read_text())
+    r5 = json.loads((CENSUS / "data-lifecycle-census-r5.json").read_text())
     assert r5["standing"] == "PARTIAL_CROSS_DOMAIN_LIFECYCLE_R5_SELECTED_P0_CLOSED"
     assert r5["p0Queue"] == []
     by = {x["name"]: x for x in r5["lifecycle"]}
