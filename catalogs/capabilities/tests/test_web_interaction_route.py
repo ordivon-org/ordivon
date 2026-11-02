@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import sys
 import unittest
+from importlib import import_module
 from pathlib import Path
 from unittest import mock
 
-from scripts import web_interaction_route as R
-from scripts import web_provider_census as CENSUS
+REPOSITORY = Path(__file__).resolve().parents[3]
+if str(REPOSITORY) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY))
 
-ROOT = Path(__file__).resolve().parents[1]
+R = import_module("catalogs.capabilities.routing.web_interaction_route")
+CENSUS = import_module("catalogs.capabilities.routing.web_provider_census")
 
 AVAILABLE = {
     "native_connector": {"state": "caller_bound", "reason": "x"},
