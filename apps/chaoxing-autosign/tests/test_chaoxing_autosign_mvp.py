@@ -8,8 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-PKG_ROOT = ROOT / "experiments" / "chaoxing-autosign-mvp"
+PKG_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PKG_ROOT))
 
 from chaoxing_mvp.adapters import (

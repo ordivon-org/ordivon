@@ -82,7 +82,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             "platform/workstation/scripts/host_historical_projection.py",
             "platform/workstation/scripts/host_retirement_snapshot.py",
             "meta/next/experiments/browser-security-r4/cf07_metadata_snapshot.py",
-            "meta/next/experiments/chaoxing-autosign-mvp/chaoxing_mvp/ledger.py",
+            "apps/chaoxing-autosign/chaoxing_mvp/ledger.py",
         ):
             with self.subTest(path=name):
                 self.assertIn(name, current)
