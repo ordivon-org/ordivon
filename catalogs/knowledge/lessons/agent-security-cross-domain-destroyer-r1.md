@@ -3,8 +3,8 @@
 Date: 2026-09-18
 Status: CROSS-DOMAIN VALIDATION COMPLETE
 Parent:
-- knowledge/lessons/agent-security-lego-r1.md
-- knowledge/lessons/agent-security-cross-system-destroyer-r1.md
+- catalogs/knowledge/lessons/agent-security-lego-r1.md
+- catalogs/knowledge/lessons/agent-security-cross-system-destroyer-r1.md
 
 Domains:
 1. Browser automation / Agent Birth
@@ -30,9 +30,9 @@ The question is not whether every AS node appears as the same component. The que
 
 ### Browser / Agent Birth
 Local canonical evidence:
-- knowledge/lessons/ordivon-agent-birth-lego-r1.md
-- knowledge/graphs/ordivon-agent-birth-r1.json
-- knowledge/lessons/cloudflare-provider-security-boundary-r1.md
+- catalogs/knowledge/lessons/ordivon-agent-birth-lego-r1.md
+- catalogs/knowledge/graphs/ordivon-agent-birth-r1.json
+- catalogs/knowledge/lessons/cloudflare-provider-security-boundary-r1.md
 - user-agents/web-provider-routing Skill
 
 ### Artifact

@@ -60,4 +60,4 @@ A candidate constraint enters the architecture only after it is tied to a projec
 Stop when the high-consequence losses relevant to the current design have constraints and testable scenarios, or when further analysis requires missing domain evidence.
 
 Canonical local reference:
-- knowledge/lessons/lego-theory-foundations-r1.md
+- catalogs/knowledge/lessons/lego-theory-foundations-r1.md

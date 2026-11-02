@@ -2,7 +2,7 @@
 
 Status: **PROVISIONAL_AFTER_C01 / C02-C03 PENDING**
 Registered: 2026-09-14
-Parent synthesis: `knowledge/lessons/agent-product-common-structure-r1.md`
+Parent synthesis: `catalogs/knowledge/lessons/agent-product-common-structure-r1.md`
 Destroyer campaign: `campaign:agent-common-structure-destroyer-20260914-r1`
 Captured destroyer evidence: `evidence/agent-campaigns/agent-common-structure-destroyer-r1-C01.md`
 

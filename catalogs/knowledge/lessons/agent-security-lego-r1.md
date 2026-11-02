@@ -461,8 +461,8 @@ Do not continue adding security vocabulary after the model stops changing decisi
 ## 15. First prospective validation
 
 Reference case:
-- `knowledge/lessons/zcode-workspace-snapshot-security-lego-r1.md`
-- `knowledge/graphs/zcode-workspace-snapshot-security-lego-r1.json`
+- `catalogs/knowledge/lessons/zcode-workspace-snapshot-security-lego-r1.md`
+- `catalogs/knowledge/graphs/zcode-workspace-snapshot-security-lego-r1.json`
 
 The ZCode case is used to test whether the lens captures a hidden workspace-snapshot/egress pipeline without relying on motive attribution.
 
@@ -470,8 +470,8 @@ The ZCode case is used to test whether the lens captures a hidden workspace-snap
 ## 16. Cross-system and cross-domain extension
 
 Validation records:
-- `knowledge/lessons/agent-security-cross-system-destroyer-r1.md`
-- `knowledge/lessons/agent-security-cross-domain-destroyer-r1.md`
+- `catalogs/knowledge/lessons/agent-security-cross-system-destroyer-r1.md`
+- `catalogs/knowledge/lessons/agent-security-cross-domain-destroyer-r1.md`
 
 The original AS01-AS12 model survived six coding-agent products and five unrelated execution/effect domains. Cross-domain validation adds six stable analytical dimensions.
 
