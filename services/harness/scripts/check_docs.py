@@ -244,18 +244,29 @@ def validate_public_contracts() -> list[str]:
     if canonical_guides.count("scripts/check_wheel.py") < 3:
         errors.append("canonical setup omits isolated wheel verification")
 
-    ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    # Owner-local CI YAML was never registered by Monorepo GitHub Actions.
+    # The live root CI consumes the native queue task; the standalone release
+    # source is still an intentional, separate extracted-repository contract.
+    import tomllib
+
+    native = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
     release = (ROOT / ".github/workflows/release-acceptance.yml").read_text(encoding="utf-8")
-    for label, workflow in (("CI", ci), ("release acceptance", release)):
-        if "scripts/check_wheel.py" not in workflow:
+    if (ROOT / ".github/workflows/ci.yml").exists():
+        errors.append("retired, undiscovered owner CI workflow reappeared")
+    for label, source in (
+        ("native queue", native["queue"]["run"]),
+        ("native verify", native["verify"]["run"]),
+        ("release acceptance", release),
+    ):
+        if "scripts/check_wheel.py" not in source:
             errors.append(f"{label} does not verify the built wheel")
-        if "requirements-audit.txt" in workflow:
+        if "requirements-audit.txt" in source:
             errors.append(f"{label} still references the retired dependency snapshot")
         audit_export = "uv export --locked --no-default-groups --no-emit-project --format requirements-txt"
         audit_check = 'uvx pip-audit --disable-pip --require-hashes -r "$tmp/runtime-requirements.txt" --strict --progress-spinner off'
-        if audit_export not in workflow or audit_check not in workflow:
+        if audit_export not in source or audit_check not in source:
             errors.append(f"{label} must audit the locked hashed runtime closure")
-        if "uv run --locked ruff check src tests scripts" not in workflow:
+        if "uv run --locked ruff check src tests scripts" not in source:
             errors.append(f"{label} must use the locked Ruff owner")
 
     if 'tags:\n      - "v*"' not in release:
