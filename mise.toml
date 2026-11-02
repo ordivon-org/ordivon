@@ -133,7 +133,7 @@ run = """
 set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
-python3 -m unittest discover -s tools/agent_plugin -p test_materialize.py
+python3 -m unittest discover -s tools/repo/agent_plugin -p test_materialize.py
 python3 - <<'PY'
 import json
 from pathlib import Path

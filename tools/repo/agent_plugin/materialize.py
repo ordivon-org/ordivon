@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 ROOT = REPO_ROOT
 DEFAULT_PLUGIN = REPO_ROOT / "extensions" / "ordivon-control-plane"
 DEFAULT_SKILLS = REPO_ROOT / ".agents" / "skills"

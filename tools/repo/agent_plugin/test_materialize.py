@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-ROOT = Path(__file__).resolve().parents[2]
-from tools.agent_plugin import materialize as MODULE
+ROOT = Path(__file__).resolve().parents[3]
+from tools.repo.agent_plugin import materialize as MODULE
 
 
 class AgentPluginMaterializationTests(unittest.TestCase):
