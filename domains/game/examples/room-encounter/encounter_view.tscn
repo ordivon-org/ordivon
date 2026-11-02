@@ -1,5 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 [ext_resource type="Script" path="res://encounter_view.gd" id="1_view"]
+[ext_resource type="Texture2D" path="res://assets/kenney/player_blue_stand.png" id="2_blue"]
+[ext_resource type="Texture2D" path="res://assets/kenney/player_green_stand.png" id="3_green"]
 [node name="Hud" type="VBoxContainer"]
 offset_right = 630.0
 offset_bottom = 220.0
@@ -11,6 +13,15 @@ text = "ORIGINAL GRAYBOX | ROOM ENCOUNTER"
 [node name="Status" type="Label" parent="."]
 layout_mode = 2
 text = "..."
+[node name="Actors" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 14
+[node name="PlayerPortrait" type="TextureRect" parent="Actors"]
+layout_mode = 2
+texture = ExtResource("2_blue")
+[node name="FoePortrait" type="TextureRect" parent="Actors"]
+layout_mode = 2
+texture = ExtResource("3_green")
 [node name="Encounter" type="Label" parent="."]
 layout_mode = 2
 text = "..."
