@@ -14,7 +14,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 # The current-admission probe is isolated from task semantics. Both call
-# modes are real consumers: scripts.web_interaction_route and the direct CLI.
+# modes are real consumers: catalogs.capabilities.routing.web_interaction_route and the direct CLI.
 if __package__:
     from .web_provider_census import census
 else:
