@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import io
+import json
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -230,3 +234,46 @@ def test_repeated_source_execution_identity_is_reported_as_collision() -> None:
     assert summary["projectedEpisodes"] == 2
     assert summary["episodeIdentityCollisions"] == 1
     assert summary["standing"] == "FAIL_IDENTITY_OR_CARDINALITY"
+
+
+def test_standalone_episode_cli_uses_identical_projection(tmp_path: Path) -> None:
+    # The frozen corpus manifest consumes the script as a direct Python CLI,
+    # whereas Next tests import its projection API as an ordinary module.
+    root = Path(__file__).resolve().parents[1]
+    source = tmp_path / "source.jsonl"
+    episodes = tmp_path / "episodes.jsonl"
+    summary_path = tmp_path / "summary.json"
+    original = record()
+    source.write_text(json.dumps(original) + "\n", encoding="utf-8")
+
+    subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "experimental_episode_r1.py"),
+            "project-r5c",
+            str(source),
+            str(episodes),
+            str(summary_path),
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert json.loads(episodes.read_text(encoding="utf-8")) == project_r5c_record(
+        original
+    )
+    expected_summary = backfill([original])
+    assert json.loads(summary_path.read_text(encoding="utf-8")) == expected_summary
+    subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "experimental_episode_r1.py"),
+            "validate",
+            str(episodes),
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
