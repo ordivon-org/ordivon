@@ -12,7 +12,8 @@ from fractions import Fraction
 import pytest
 from pydantic import ValidationError
 
-from ordivon_host_v2.social_graph import CoordinationIntentInput, MessageInput
+from ordivon_host_v2.collaboration_inputs import MessageInput
+from ordivon_host_v2.coordination_inputs import CoordinationIntentInput
 
 BIGINT_MAX = (1 << 63) - 1
 VALID_INPUTS = (

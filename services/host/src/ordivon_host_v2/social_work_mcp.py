@@ -9,6 +9,15 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field, ValidationError
 
 from .canonical_json import canonical_digest
+from .collaboration_inputs import (
+    MessageInput,
+    MessageKind,
+    MessageRelationInput,
+    MessageRelationKind,
+    ParticipationStanding,
+    SpaceInput,
+    TopicInput,
+)
 from .errors import ConflictError
 from .social_attention import AttentionStore
 from .social_contracts import (
@@ -35,17 +44,8 @@ from .social_contracts import (
     WorkListResponse,
     WorkResponse,
 )
-from .social_graph import (
-    MessageInput,
-    MessageKind,
-    MessageRelationInput,
-    MessageRelationKind,
-    ParticipationStanding,
-    SpaceInput,
-    TopicInput,
-)
 from .social_store import MessageNotFound, SocialStore, SpaceNotFound, TopicNotFound
-from .social_work import (
+from .work_inputs import (
     ActorKind,
     ActorRefInput,
     WorkCreateInput,

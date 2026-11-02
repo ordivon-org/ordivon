@@ -8,7 +8,7 @@
     "sourceEvidence": [
       "README.md",
       "src/ordivon_host_v2/service.py",
-      "src/ordivon_host_v2/social_work.py",
+      "src/ordivon_host_v2/work_inputs.py",
       "src/ordivon_host_v2/work_store.py",
       "src/ordivon_host_v2/social_store.py",
       "src/ordivon_host_v2/social_attention.py",
@@ -31,7 +31,7 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/work_store.py",
-        "src/ordivon_host_v2/social_work.py",
+        "src/ordivon_host_v2/work_inputs.py",
         "tests/test_social_work_fabric_work_graph.py"
       ],
       "dependencies": [
@@ -88,7 +88,7 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "src/ordivon_host_v2/social_graph.py",
+        "src/ordivon_host_v2/collaboration_inputs.py",
         "src/ordivon_host_v2/social_store.py",
         "tests/test_social_work_fabric_social_graph.py"
       ],
@@ -285,7 +285,7 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/work_store.py",
-        "src/ordivon_host_v2/social_work.py",
+        "src/ordivon_host_v2/work_inputs.py",
         "tests/test_social_work_fabric_postgres.py::test_work_snapshot_cas_race_has_one_winner",
         "tests/test_social_work_fabric_postgres.py::test_work_snapshot_response_loss_replay_with_new_request_id_is_existing",
         "tests/test_social_work_fabric_postgres.py::test_work_read_rejects_postgres_modified_snapshot_payload",

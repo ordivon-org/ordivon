@@ -7,6 +7,14 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from .canonical_json import canonical_bytes, canonical_digest
+from .collaboration_inputs import (
+    MessageInput,
+    MessageRelationInput,
+    MessageRelationKind,
+    ParticipationStanding,
+    SpaceInput,
+    TopicInput,
+)
 from .collection_pagination import (
     DEFAULT_COLLECTION_MAX_BYTES,
     DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
@@ -16,17 +24,8 @@ from .collection_pagination import (
     bounded_prefix,
     validate_max_bytes,
 )
+from .coordination_inputs import CoordinationIntentInput, IntentStanding
 from .errors import ConflictError
-from .social_graph import (
-    CoordinationIntentInput,
-    IntentStanding,
-    MessageInput,
-    MessageRelationInput,
-    MessageRelationKind,
-    ParticipationStanding,
-    SpaceInput,
-    TopicInput,
-)
 from .work_store import ActorRefNotFound, WorkNotFound
 
 

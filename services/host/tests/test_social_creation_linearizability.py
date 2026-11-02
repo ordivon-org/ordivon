@@ -7,10 +7,11 @@ from uuid import uuid4
 
 import pytest
 
+from ordivon_host_v2.collaboration_inputs import SpaceInput
+from ordivon_host_v2.coordination_inputs import CoordinationIntentInput
 from ordivon_host_v2.errors import ConflictError
-from ordivon_host_v2.social_graph import CoordinationIntentInput, SpaceInput
 from ordivon_host_v2.social_store import SocialStore
-from ordivon_host_v2.social_work import ActorKind, ActorRefInput
+from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput
 from ordivon_host_v2.work_store import WorkStore
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")

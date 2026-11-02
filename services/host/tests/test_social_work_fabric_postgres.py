@@ -10,10 +10,7 @@ import psycopg
 import pytest
 from psycopg.types.json import Jsonb
 
-from ordivon_host_v2.errors import ConflictError
-from ordivon_host_v2.social_attention import AttentionStore
-from ordivon_host_v2.social_graph import (
-    CoordinationIntentInput,
+from ordivon_host_v2.collaboration_inputs import (
     MessageInput,
     MessageKind,
     MessageRelationInput,
@@ -22,8 +19,11 @@ from ordivon_host_v2.social_graph import (
     SpaceInput,
     TopicInput,
 )
+from ordivon_host_v2.coordination_inputs import CoordinationIntentInput
+from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.social_attention import AttentionStore
 from ordivon_host_v2.social_store import SocialStore
-from ordivon_host_v2.social_work import (
+from ordivon_host_v2.work_inputs import (
     ActorKind,
     ActorRefInput,
     WorkCreateInput,
