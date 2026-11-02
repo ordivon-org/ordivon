@@ -6,7 +6,7 @@ import {
   type CompositionSourceIndex,
 } from "../src/prototype-composition.ts";
 
-const source = { id: "godot-native-resource-composition", title: "Native Godot", url: "https://godotengine.org", currentness: "CURRENT_WITH_VERSION" };
+const source = { id: "godot-native-resource-composition", title: "Native Godot", url: "https://godotengine.org", currentness: "CURRENT_WITH_VERSION", nativeEngines: ["godot"] as const };
 const plan: CompositionPlan = {
   recipes: [{
     id: "native",
@@ -46,7 +46,7 @@ test("pure source relation fails on ungrounded provider or engine mismatch", () 
   };
   assert.throws(
     () => projectPrototypeCompositions(changed, index),
-    /Godot-only provider cannot be native Bevy plugin/,
+    /provider godot-native-resource-composition supports godot, not bevy/,
   );
 });
 
@@ -66,4 +66,38 @@ test("pure projection rejects unconsumed execution claims without fabricating an
 
   const duplicated: CompositionPlan = { recipes: [plan.recipes[0]!, plan.recipes[0]!] };
   assert.throws(() => projectPrototypeCompositions(duplicated, index), /duplicate Game composition/);
+});
+
+test("provider compatibility is declared by native interface, not ID naming", () => {
+  const renamedProvider: CompositionSourceIndex = {
+    sources: [{ ...source, id: "bevy-looking-provider", nativeEngines: ["godot"] }],
+  };
+  const renamedPlan: CompositionPlan = {
+    recipes: [{
+      ...plan.recipes[0]!,
+      components: [{
+        ...plan.recipes[0]!.components[0]!,
+        sourceRef: "bevy-looking-provider",
+      }],
+    }],
+  };
+  assert.equal(projectPrototypeCompositions(renamedPlan, renamedProvider).items.length, 1);
+  assert.throws(
+    () => projectPrototypeCompositions({ recipes: [{ ...renamedPlan.recipes[0]!, engine: "bevy" }] }, renamedProvider),
+    /provider bevy-looking-provider supports godot, not bevy/,
+  );
+});
+
+test("executed slot in candidate requires a real scoped consumer", () => {
+  const recipe = plan.recipes[0]!;
+  assert.throws(
+    () => projectPrototypeCompositions({
+      recipes: [{
+        ...recipe,
+        standing: "DESIGN_CANDIDATE",
+        components: [{ ...recipe.components[0]!, currentConsumer: " " }],
+      }],
+    }, index),
+    /executed candidate slot missing scoped consumer/,
+  );
 });
