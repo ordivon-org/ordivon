@@ -1,5 +1,5 @@
 [package]
-name = "ordivon-bevy-native-composition"
+name = "ordivon-orbit-collector"
 version = "0.1.0"
 edition = "2024"
 publish = false
