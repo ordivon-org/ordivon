@@ -21,7 +21,7 @@ Existing Runtime, Network, Artifact, Distribution and other systems should be ex
 
 For cross-provider routing, use `docs/CAPABILITY_AUTHORITY_MAP_R1.md`. It maps primitives to their natural authorities, mature provider candidates, activation triggers, do-not-build boundaries and verification boundaries. It is a catalog/routing view, not a permanent dependency topology.
 
-For web/browser/desktop interaction specifically, `capabilities/profiles/web-interaction-r1.json` is the machine-readable thin-first routing profile and `scripts/web_interaction_route.py` overlays current local/caller-bound availability. Natural-language task interpretation remains Agent/caller-owned; the resolver never treats provider documentation as availability truth. The reusable Agent procedure lives at `.agents/skills/web-provider-routing/SKILL.md`.
+For web/browser/desktop interaction specifically, `capabilities/profiles/web-interaction-r1.json` is the machine-readable thin-first routing profile and `scripts/web_provider_census.py` observes bounded local provider availability, while `scripts/web_interaction_route.py` combines that observation with task needs and caller-bound availability. Natural-language task interpretation remains Agent/caller-owned; the resolver never treats provider documentation as availability truth. The reusable Agent procedure lives at `.agents/skills/web-provider-routing/SKILL.md`.
 
 
 ## Provider currentness
