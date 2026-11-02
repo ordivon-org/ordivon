@@ -227,6 +227,165 @@
         "examples/native-composition/assert.gd",
         "examples/native-composition/main.tscn"
       ]
+    },
+    {
+      "id": "G07",
+      "label": "BevyNativeProductAssembly",
+      "kind": "native_composition_capability",
+      "responsibility": "Compose one game-specific engine-independent Rust rule machine with upstream Bevy ECS, Plugin, input, sprite and text systems",
+      "authority": "Game product rules owner; Bevy upstream engine owns ECS, renderer, schedules and input",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "keyboard input",
+        "Bevy ECS world and schedule",
+        "game-specific collection and damage rules"
+      ],
+      "outputs": [
+        "native Bevy App assembly",
+        "bounded Rust rule and Bevy system test evidence"
+      ],
+      "behavioralContract": "Goal collection, hazard damage and restart are game-owned transitions; Bevy-native systems consume those rules. Cargo compile and test do not prove rendered GPU output or human enjoyment.",
+      "acceptance": [
+        "Pin the actual Bevy version and Cargo.lock.",
+        "Native Rust rule and Bevy Plugin/system tests pass.",
+        "Compile Bevy application with cargo check --locked --all-targets; physical player input/output remains unverified without a graphical run."
+      ],
+      "evidence": [
+        "examples/bevy-native-composition/Cargo.toml",
+        "examples/bevy-native-composition/Cargo.lock",
+        "examples/bevy-native-composition/src/rules.rs",
+        "examples/bevy-native-composition/src/gameplay.rs"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "upstream engine/ECS",
+        "generic game framework",
+        "human enjoyment authority",
+        "Godot runtime state"
+      ],
+      "consumerEvidence": [
+        "examples/bevy-native-composition/src/main.rs",
+        "examples/bevy-native-composition/src/gameplay.rs",
+        "examples/bevy-native-composition/README.md",
+        "examples/bevy-native-composition/Cargo.toml"
+      ],
+      "recursiveLegoR21": {
+        "I": [
+          "Bevy app schedule and keyboard events",
+          "product-owned RunState and scene recipe"
+        ],
+        "O": [
+          "Bevy ECS changes, Sprite/Text projections and compiled application"
+        ],
+        "S": [
+          "RunState phase, collected goals, lives and last-hit time"
+        ],
+        "pre": [
+          "Bevy =0.20.1 and Cargo.lock source dependencies available",
+          "target and initial lives are positive"
+        ],
+        "post": [
+          "collect-all leads to Won; exhausted lives lead to Lost; restart makes a fresh run in the bounded tested rule domain"
+        ],
+        "inv": [
+          "terminal rules do not mutate collected/lives",
+          "engine-native ECS and rendering retain upstream ownership"
+        ],
+        "eff": [
+          "Bevy ECS world state, native window and graphics effects when launched; current source verifies compile/tests but not an installed graphical session"
+        ],
+        "c": "Rule transitions O(1); ECS/frame scheduling and renderer cost depend on runtime/scene and are not measured",
+        "epsilon": "Graphical runtime, frame rate, input latency and human experience are UNKNOWN; compile PASS is not graphical execution proof",
+        "prov": [
+          "examples/bevy-native-composition/Cargo.toml pins =0.20.1",
+          "examples/bevy-native-composition/Cargo.lock",
+          "examples/bevy-native-composition/README.md"
+        ],
+        "unfold": [
+          "examples/bevy-native-composition/src/rules.rs",
+          "examples/bevy-native-composition/src/gameplay.rs",
+          "examples/bevy-native-composition/src/main.rs"
+        ]
+      }
+    },
+    {
+      "id": "G08",
+      "label": "GodotMovementAudioFeedback",
+      "kind": "native_effect_adapter",
+      "responsibility": "Subscribe to real native Godot gameplay turn transitions and play source-licensed replaceable WAV feedback without owning gameplay state",
+      "authority": "Game effect adapter owns event-to-play mapping; Godot owns AudioStreamPlayer and lifecycle; Kenney owns licensed source assets",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "actual GridRules.state_changed snapshots",
+        "AudioStreamWAV loaded from a source-qualified asset"
+      ],
+      "outputs": [
+        "AudioStreamPlayer playback request on accepted turn advance",
+        "bounded native clip-substitution evidence"
+      ],
+      "behavioralContract": "Only a turn strictly advancing from the last observed turn requests audio; resets and rejected actions do not trigger audio; substituting AudioStream leaves rules unchanged.",
+      "acceptance": [
+        "main.tscn owns the audio node and ordinary scene startup binds its actual rule signal.",
+        "Real key input advances state and initiates playback; rejected input has no rule or audio effect.",
+        "Another actual WAV replaces the resource without changing GridRules; headless verification produces no leaked audio resources."
+      ],
+      "evidence": [
+        "examples/native-composition/main.tscn",
+        "examples/native-composition/movement_audio_feedback.gd",
+        "examples/native-composition/assets/kenney-ui-audio/README.md"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "gameplay rule state",
+        "game engine",
+        "universal audio service",
+        "claims about audible physical output or player enjoyment"
+      ],
+      "consumerEvidence": [
+        "examples/native-composition/composition_root.gd",
+        "examples/native-composition/main.tscn",
+        "examples/native-composition/assert_audio.gd",
+        "mise.toml"
+      ],
+      "recursiveLegoR21": {
+        "I": [
+          "native state_changed snapshot containing turn",
+          "Godot AudioStream resource"
+        ],
+        "O": [
+          "AudioStreamPlayer.play request when turn advances"
+        ],
+        "S": [
+          "last_turn and bounded observed_play_count"
+        ],
+        "pre": [
+          "a live Godot AudioStreamPlayer, loaded stream and bound GridRules signal"
+        ],
+        "post": [
+          "strict increase of turn causes one playback call; no increase causes none"
+        ],
+        "inv": [
+          "GridRules alone owns legal-action admission and game state",
+          "AudioStream replacement leaves rule transitions unchanged"
+        ],
+        "eff": [
+          "native AudioStreamPlayer.play and resource lifecycle"
+        ],
+        "c": "Constant work per state-change notification; actual audio-device scheduling cost not measured",
+        "epsilon": "Physical speaker rendering, perceptual latency, accessibility and player-value effects UNKNOWN",
+        "prov": [
+          "examples/native-composition/assets/kenney-ui-audio/README.md with pinned original CC0 source and two WAV SHA-256 hashes",
+          "examples/native-composition/assets/kenney-ui-audio/LICENSE.txt"
+        ],
+        "unfold": [
+          "examples/native-composition/main.tscn",
+          "examples/native-composition/composition_root.gd",
+          "examples/native-composition/movement_audio_feedback.gd",
+          "examples/native-composition/assert_audio.gd"
+        ]
+      }
     }
   ],
   "edges": [
@@ -310,6 +469,30 @@
       "acceptance": [
         "Native Godot headless acceptance passes and the project main scene boots.",
         "No old game product or new general-purpose mod framework is added."
+      ]
+    },
+    {
+      "id": "GS4",
+      "objective": "Use real source-locked Bevy Plugin/ECS for one bounded game-specific Rust ruleset, not a generic engine",
+      "status": "PARTIAL",
+      "nodeIds": [
+        "G07"
+      ],
+      "acceptance": [
+        "Cargo rule tests and Bevy compilation pass.",
+        "Physical renderer/window and human play remain explicitly UNKNOWN."
+      ]
+    },
+    {
+      "id": "GS5",
+      "objective": "Compose source-licensed native audio feedback into the ordinary Godot game scene through its real state-change signal",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G08"
+      ],
+      "acceptance": [
+        "The ordinary main.tscn boots with actual audio resource and rule binding.",
+        "Real right-key transition, invalid action and substitute WAV pass native Godot execution; no claim of physical audio quality."
       ]
     }
   ]

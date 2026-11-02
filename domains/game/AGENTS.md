@@ -15,8 +15,10 @@ capabilities and native engine primitives do not satisfy the desired behavior.
 **Existing evidence (2026-11-02; inspect current main again before work):**
 - G01 source-grounded external references; G02 mechanism experiences;
   G03 rebuildable relationship projection; G04 counterexample memory;
-  G05 read-only query consumers; G06 a bounded *native Godot* assembly
-  acceptance fixture. The authoritative inventory is
+  G05 read-only query consumers; G06 bounded *native Godot* acceptance;
+  G07 a Bevy-native product assembly; G08 native Godot movement audio feedback.
+  G07/G08 are source/consumer-qualified but not human-playtest proofs.
+  The authoritative inventory is
   `planning/lego-plan-r1.json`, not this prose.
 - `src/` contains query input policy, knowledge file reading, pure graph
   derivation and counterexample projection. `scripts/` are CLI/File-I/O
@@ -53,6 +55,8 @@ Current owner seams:
 | Counterexample enrichment | `src/counterexample-projection.ts` | G04; failure-context and source fidelity |
 | CLI parsing and file boundary | `src/query-input.ts`, `src/knowledge-file.ts`, `scripts/cli-argument.ts` | G05 bounded read-only CLI entrypoints |
 | Native game state / rule / view composition | `examples/native-composition` | G06 real PackedScene/Resource/Signal acceptance |
+| Bevy rules and native ECS app | `examples/bevy-native-composition/{src,Cargo.toml,Cargo.lock}` | G07 rule/Plugin system tests and native build; GPU runtime UNKNOWN |
+| Source-licensed Godot audio effects | `examples/native-composition/{main.tscn,movement_audio_feedback.gd,assets/kenney-ui-audio}` | G08 actual state Signal -> AudioStreamPlayer and replaceable WAV |
 
 **Allowed dependency direction:** evidence source -> pure projection ->
 application/CLI adapter -> native consumer. The engine/runtime owns physics,
@@ -214,10 +218,13 @@ A candidate assembly must describe:
    assumptions UNKNOWN; do not veto novel mechanics from advisory records.
 
 **Minimal assembly demonstration already in the repo:**
-`mise run test:native` exercises a real Godot PackedScene, Resource-configured
+`mise run test:native` exercises real Godot gameplay and sound PackedScenes, Resource-configured
 player variants, legal/illegal actions, finite-state rules, Signal-driven
 feedback and presentation scene substitution. It establishes only G06's bounded
-contract, not a launched indie game. A future playable 5-minute product must
+contract; G08 adds a source-qualified, user-input-driven AudioStream effect.
+G07 is the separate Bevy ECS/Plugin game example (`cargo test --locked` and
+`cargo check --locked --all-targets` in its own Cargo root), not a new engine.
+Neither is a launched indie game. A future playable 5-minute product must
 have its own playable build and product evidence; never promote fixture PASS.
 
 **Composition criterion:** for required property P and components A,B,
