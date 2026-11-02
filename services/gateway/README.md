@@ -70,6 +70,17 @@ semantically completed effect. Owner-native fault injection and the
 `python -O` negative control live in
 `tests/test_external_worker_precommit_readback.py`.
 
+## Internal module boundaries
+
+The supported Gateway package keeps public schemas in `contracts.py`,
+provider-neutral route definitions in `routes.py`, and real owner/transport
+observation in `service.py`. The deterministic, effect-free conversion of
+Runtime description payloads to public capability descriptors lives in
+`capability_projection.py` (Python snake_case, package-local). Its results
+are non-authoritative projections: `configured` does not imply physical
+availability, and any actual execution remains Runtime-owned. This is an
+internal refactor; it creates no new service, persistent truth or registry.
+
 ## Capability observation lifecycle
 
 Independent read-only Runtime and Host capability observations run concurrently, once per required owner per request. Projection ordering stays deterministic, and observations are not cached across requests. A failed or timed-out owner observation remains UNKNOWN through the existing observation error; healthy owners remain visible.
