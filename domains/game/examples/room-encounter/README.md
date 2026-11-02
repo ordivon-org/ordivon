@@ -44,7 +44,6 @@ checkpoint readback, incompatible tuning and a damaged stored value.
 Cloud sync, migration across changed tuning, real sound hardware and
 human playtest remain unverified.
 
-
 ## Real process-restart contract (one native storage port)
 
 `mise run test:encounter` includes a two-process headless acceptance using
@@ -60,3 +59,14 @@ This is materially stronger than same-SceneTree save/load and demonstrates
 the process lifecycle seam without new game storage code. A packaged
 Linux/Windows build, cross-version migration, cloud sync and human player
 acceptance remain unverified.
+
+## Real visual LEGO product consumer
+
+Godot TextureRect and Texture2D are the native components. Two actual Kenney
+Abstract Platformer CC0 PNG assets, provenance and exact hashes are under
+assets/kenney/. The player/foe portraits in both PackedScene HUD variants
+display these assets; enemy visibility follows the rule phase through the
+same existing state_changed Signal. The alternative HUD swaps blue/green
+appearances, and runtime Texture2D replacement leaves authoritative rules
+unchanged. Engine import and native acceptance are part of the preexisting
+Game test:encounter task; this is not a universal rendering/asset registry.

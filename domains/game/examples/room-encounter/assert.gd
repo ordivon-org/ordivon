@@ -39,6 +39,22 @@ func run_acceptance() -> void:
     var first = rules.snapshot()
     expect(first["phase"] == "fighting" and first["foes"] == 1, "native encounter starts")
     expect(view.get_node("Status").text.contains("ROOM 1/3"), "native UI observes initial state")
+    var player_portrait = view.get_node("Actors/PlayerPortrait")
+    var foe_portrait = view.get_node("Actors/FoePortrait")
+    expect(player_portrait.texture is Texture2D and foe_portrait.texture is Texture2D,
+        "real source-licensed Kenney images are engine Texture2D resources")
+    var blue_image: Image = player_portrait.texture.get_image()
+    var green_image: Image = foe_portrait.texture.get_image()
+    expect(blue_image.get_width() > 0 and green_image.get_height() > 0,
+        "real PNG payloads import with valid pixels")
+    expect(blue_image.get_data() != green_image.get_data(),
+        "different source pixel assets are not semantic equivalents")
+    expect(foe_portrait.visible, "live enemy portrait displays during combat")
+    var prior_art_swap: Dictionary = rules.snapshot()
+    player_portrait.texture = foe_portrait.texture
+    expect(rules.snapshot() == prior_art_swap,
+        "appearance substitution never changes authoritative combat state")
+    player_portrait.texture = load("res://assets/kenney/player_blue_stand.png")
     expect(not rules.advance(), "closed room rejects door")
     expect(audio.observed_play_count == 0, "illegal door action produces no audio")
     expect(rules.snapshot() == first, "illegal transition preserves state")
@@ -46,6 +62,7 @@ func run_acceptance() -> void:
     expect(rules.snapshot()["phase"] == "cleared", "native button input reaches authoritative rules")
     expect(audio.observed_play_count == 1 and audio.playing, "button input to rules to sound")
     expect(view.get_node("Encounter").text.contains("CLEARED"), "UI observes clear by Signal")
+    expect(not foe_portrait.visible, "enemy portrait hides when room is clear")
     var first_clear: Dictionary = rules.snapshot().duplicate(true)
     view.get_node("Actions/Save").pressed.emit()
     expect(FileAccess.file_exists(save_slot.slot_path), "native ConfigFile saved current run")
@@ -61,6 +78,7 @@ func run_acceptance() -> void:
     expect(rules.advance(), "advance enters next room")
     expect(audio.observed_play_count == 1, "door transition is silent")
     expect(rules.snapshot()["room"] == 2, "room index advances")
+    expect(foe_portrait.visible, "portrait reappears for next room encounter")
     expect(rules.attack() and rules.attack(), "second room has two defeatable enemies")
     expect(rules.snapshot()["phase"] == "cleared", "second room cleared")
     expect(rules.advance(), "third room entered")
@@ -73,6 +91,7 @@ func run_acceptance() -> void:
     expect(rules.advance(), "final cleared door opens")
     expect(rules.snapshot()["phase"] == "won", "three room win achieved")
     expect(view.get_node("Encounter").text.contains("VICTORY"), "victory observed in UI")
+    expect(not foe_portrait.visible, "victory leaves no live enemy portrait")
     expect(not rules.guard(), "terminal rules reject combat action")
 
     var variant = load("res://configs/variant.tres")
@@ -102,6 +121,8 @@ func run_acceptance() -> void:
     root.add_child(alternate)
     var replacement_view = alternate.get_node("View")
     expect(replacement_view.modulate.g > 0.9, "alternative Godot scene has independent rendering")
+    expect(replacement_view.get_node("Actors/PlayerPortrait").texture.get_image().get_data() == green_image.get_data(),
+        "alternate HUD really uses green appearance while player state is unchanged")
     replacement_view.get_node("Actions/Attack").pressed.emit()
     expect(alternate.get_node("Rules").snapshot()["phase"] == "cleared", "alternate button invokes unchanged rule action")
     expect(alternate.get_node("EncounterAudio").observed_play_count == 1, "alternate HUD retains sound consumer")

@@ -19,3 +19,4 @@ func render_state(state: Dictionary) -> void:
     $Actions/Attack.disabled = state["phase"] != "fighting" or state["stamina"] < state["attack_cost"]
     $Actions/Guard.disabled = state["phase"] != "fighting"
     $Actions/Next.disabled = state["phase"] != "cleared"
+    $Actors/FoePortrait.visible = state["phase"] == "fighting"
