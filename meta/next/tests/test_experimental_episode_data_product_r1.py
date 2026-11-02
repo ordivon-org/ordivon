@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ROOT.parents[1]
 PRODUCT = REPO_ROOT / "catalogs/data-products/experimental-episode-corpus-r1"
 EVIDENCE = ROOT / "evidence/data-products/experimental-episode-analysis-r1"
-FEDERATION = ROOT / "evidence/data-lifecycle/data-products-r2"
-STANDARDS = ROOT / "evidence/data-lifecycle/github-pilot-r1/standards"
+FEDERATION = REPO_ROOT / "studies/data-lifecycle/evidence/data-products-r2"
+STANDARDS = REPO_ROOT / "studies/data-lifecycle/evidence/github-pilot-r1/standards"
 RW5_BINDINGS = ROOT / "evidence/acceptance/experimental-episode-rw5-bindings.json"
 
 
@@ -102,7 +102,9 @@ def test_openlineage_events_validate_and_bind_analysis() -> None:
 
 
 def test_federation_r2_adds_product_without_rewriting_r1() -> None:
-    r1 = load(ROOT / "evidence/data-lifecycle/data-products-r1/acceptance.json")
+    r1 = load(
+        REPO_ROOT / "studies/data-lifecycle/evidence/data-products-r1/acceptance.json"
+    )
     r2 = load(FEDERATION / "acceptance.json")
     catalog = load(FEDERATION / "federated-catalog.dcat.jsonld")
     assert r1["standing"] == "PASS_TWO_DOMAIN_ODPS_ODCS_DCAT_PROV"

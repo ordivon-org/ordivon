@@ -579,6 +579,25 @@
         "repo:ci"
       ],
       "wave": "S5"
+    },
+    {
+      "id": "data-lifecycle-study-evidence",
+      "mode": "move",
+      "wave": "S5",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/evidence/data-lifecycle/"
+      ],
+      "targetPaths": [
+        "studies/data-lifecycle/evidence/"
+      ],
+      "standing": "DEPLOYED",
+      "verifyTasks": [
+        "repo:ci",
+        "next:verify"
+      ],
+      "disposition": "Thirty-eight original study evidence files retained byte-identically at the Study source owner, together with six method/consumer checks moved to studies/data-lifecycle/tests and enrolled in existing repository pytest CI. Historical evidence source/path references remain dated observations, not current active pointers."
     }
   ],
   "openSlices": [
