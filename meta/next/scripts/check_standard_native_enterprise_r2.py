@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import json
+from importlib.resources import files
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHEMA = ROOT / "schemas/standard-native-profile-projection-v1.schema.json"
+SCHEMA = files("ordivon_composition").joinpath(
+    "schemas", "standard-native-profile-projection-v1.schema.json"
+)
 RECEIPT = (
     ROOT / "evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json"
 )

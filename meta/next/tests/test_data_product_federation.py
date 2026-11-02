@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+CENSUS = ROOT.parents[1] / "studies" / "data-lifecycle"
 P = ROOT / "evidence/data-lifecycle/data-products-r1"
 
 
@@ -57,7 +58,7 @@ def test_acceptance_and_census_do_not_overclaim():
         "post-registration consumption remains unproven"
         not in a["claimBoundary"].lower()
     )
-    r3 = json.loads((ROOT / "planning/data-lifecycle-census-r3.json").read_text())
+    r3 = json.loads((CENSUS / "data-lifecycle-census-r3.json").read_text())
     by = {x["name"]: x for x in r3["lifecycle"]}
     assert by["metadata-catalog"]["standing"] == "PASS_TWO_DOMAIN_FEDERATED_DCAT"
     assert (

@@ -179,7 +179,7 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
                     f"{mapping_id}: target root is not admitted by Structure R2: {target_root}"
                 )
 
-        if mode == "split" and mapping.get("standing") == "DEPLOYED" and "currentPlacementPaths" in mapping:
+        if mode == "split" and mapping.get("standing") in {"DEPLOYED", "PARTIALLY_DEPLOYED"} and "currentPlacementPaths" in mapping:
             placements = mapping.get("currentPlacementPaths")
             if not isinstance(placements, list) or not placements:
                 raise StructureR2Error(

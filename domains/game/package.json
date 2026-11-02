@@ -17,7 +17,8 @@
     "knowledge:relationships": "node scripts/mechanism-relationship-query.ts",
     "knowledge:counterexamples": "node scripts/design-counterexample-query.ts",
     "knowledge:counterexample-themes": "node scripts/counterexample-synthesis-query.ts",
-    "build:relationship-graph": "node scripts/build-mechanism-relationship-graph.ts"
+    "build:relationship-graph": "node scripts/build-mechanism-relationship-graph.ts",
+    "composition:inspect": "node scripts/prototype-composition-query.ts"
   },
   "license": "Apache-2.0",
   "devDependencies": {

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from anc_canonical import JsonValue
+
 from ..run_state import HarnessRunState
 from .run_store_port import HarnessProviderCallRequestMismatch, HarnessProviderCallSourceRef
 
@@ -139,3 +141,88 @@ def _require_failure_matches(record, failure) -> None:
         raise HarnessProviderCallRequestMismatch(
             "Provider failure receipt differs from the current attempt"
         )
+
+
+def require_provider_continuation_state(
+    record,
+    *,
+    snapshot_state: HarnessRunState,
+    provider_state: HarnessRunState,
+    additional_messages: tuple[dict[str, JsonValue], ...],
+    max_model_calls: JsonValue,
+) -> None:
+    expected_prefix = snapshot_state.messages + tuple(
+        dict(message) for message in additional_messages
+    )
+    ordered_sequences = (
+        (snapshot_state.observations, provider_state.observations),
+        (snapshot_state.provider_usage, provider_state.provider_usage),
+        (snapshot_state.effective_model_ids, provider_state.effective_model_ids),
+    )
+    if (
+        provider_state.requested_model_id != snapshot_state.requested_model_id
+        or provider_state.requested_model_id != record.requested_model_id
+        or provider_state.messages[: len(expected_prefix)] != expected_prefix
+        or any(current[: len(previous)] != previous for previous, current in ordered_sequences)
+        or not set(snapshot_state.seen_model_call_ids).issubset(
+            provider_state.seen_model_call_ids
+        )
+        or not set(snapshot_state.seen_tool_call_ids).issubset(
+            provider_state.seen_tool_call_ids
+        )
+    ):
+        raise HarnessProviderCallRequestMismatch(
+            "Provider Call state is not a continuation of the resume Snapshot"
+        )
+    _require_provider_time_monotonic(
+        snapshot_state,
+        provider_state,
+        label="Provider Call continuation",
+    )
+    max_calls = max_model_calls
+    snapshot_remaining = snapshot_state.remaining_budget.get("modelCalls")
+    provider_remaining = provider_state.remaining_budget.get("modelCalls")
+    if (
+        type(max_calls) is not int
+        or type(snapshot_remaining) is not int
+        or type(provider_remaining) is not int
+    ):
+        raise HarnessProviderCallRequestMismatch(
+            "Provider Call state omitted its model-call budget"
+        )
+    snapshot_calls = max_calls - snapshot_remaining
+    provider_calls = max_calls - provider_remaining
+    if (
+        snapshot_calls < 0
+        or provider_calls < snapshot_calls
+        or record.turn_sequence != provider_calls + 1
+    ):
+        raise HarnessProviderCallRequestMismatch(
+            "Provider Call turn differs from its saved Run state"
+        )
+    durable_caller_ingress = False
+    if provider_state.messages[: len(snapshot_state.messages)] == snapshot_state.messages:
+        for message in provider_state.messages[len(snapshot_state.messages) :]:
+            if (
+                set(message) == {"role", "content"}
+                and message.get("role") == "user"
+                and isinstance(message.get("content"), str)
+            ):
+                durable_caller_ingress = True
+                continue
+            break
+    resettable = (
+        {"observationOnlyTurns", "noProgressTurns"}
+        if additional_messages or durable_caller_ingress
+        else set()
+    )
+    for field, snapshot_value in snapshot_state.remaining_budget.items():
+        if field in resettable:
+            continue
+        provider_value = provider_state.remaining_budget.get(field)
+        if type(snapshot_value) is int and (
+            type(provider_value) is not int or provider_value > snapshot_value
+        ):
+            raise HarnessProviderCallRequestMismatch(
+                "Provider Call budget is not a continuation of the Snapshot"
+            )

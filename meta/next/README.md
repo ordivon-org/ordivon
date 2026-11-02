@@ -27,7 +27,7 @@ Ordivon does not attempt to re-own mature disciplines, algorithms, tools, workfl
 - mappings from problem classes to mature methods, standards, algorithms, tools and validators;
 - repository-specific semantic/integration code only where a mature external owner does not already own the responsibility;
 - task-local policy, evidence and provider bindings needed to prove real outcomes;
-- migration/disposition records for historical Ordivon components.
+- migration and disposition records are maintained by the repository documentation owner at docs/migration/retirement/.
 
 ## Responsibilities this subtree does not own
 
@@ -43,20 +43,16 @@ Canonical repository Agent Skills now live at `../../.agents/skills/`; Next cons
 
 ## Structure
 
-The transitional Next tree retains current implementation, experiments, evidence and migrations; standalone catalogs are no longer nested under Next.
+The transitional Next tree retains implementation, experiments, and evidence pending consumer-qualified relocation. Migration/retirement records now live under docs/migration/retirement/.
 
 ```text
 meta/next/
-meta/next/
 ├── domains/         # domain profiles pending consumer-qualified S5 relocation
-├── policies/        # remaining task-local policy source pending S5 split
 ├── tests/           # remaining Next verification consumers
 ├── scripts/         # remaining native commands/validators pending natural-owner move
-├── schemas/         # remaining cross-domain contracts
 ├── experiments/     # bounded, source-qualified experiments and their history
 ├── evidence/        # dated observations; not runtime configuration
 ├── planning/        # current/disposable task-specific plans
-├── migrations/      # remaining retirement and cutover records
 └── docs/            # remaining explanatory/reference documentation
 ```
 
@@ -71,17 +67,17 @@ The common core is capability-neutral. Mature disciplines, domains, standards, t
 
 ## Standard-native enterprise environment
 
-See `docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` for the current cross-domain operating contract for binding external authorities, applicability, stable trace identities, evidence, currentness, claim boundaries and domain-owned verdicts. It is an interoperability environment, not an Ordivon replacement for external standards.
+See `../../docs/architecture/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` for the current cross-domain operating contract for binding external authorities, applicability, stable trace identities, evidence, currentness, claim boundaries and domain-owned verdicts. It is an interoperability environment, not an Ordivon replacement for external standards.
 
-`authorities/` provides the lightweight discovery layer in front of that environment: version-aware authority identity records, append-only currentness observations and a disposable generated index. It helps find/load authorities cheaply; task-local profiles still decide applicability.
+`catalogs/authorities/` provides the lightweight discovery layer in front of that environment: version-aware authority identity records, append-only currentness observations and a disposable generated index. It helps find/load authorities cheaply; task-local profiles still decide applicability.
 
 ## Authority and policy composition
 
-See `knowledge/lessons/authority-mature-substrate-decomposition-r1.md` for the current cross-disciplinary authority map. Ordivon does not claim a novel authority theory: institutional governance, evidence-to-decision, decision science, delegation, IAM/policy engines and adaptive/institutional learning remain externally owned mature substrates. `policies/` keeps only the thin task-local composition boundary and must not become a custom policy language, IAM system, generic Human gate or universal risk gate.
+See `../../catalogs/knowledge/lessons/authority-mature-substrate-decomposition-r1.md` for the current cross-disciplinary authority map. Ordivon does not claim a novel authority theory: institutional governance, evidence-to-decision, decision science, delegation, IAM/policy engines and adaptive/institutional learning remain externally owned mature substrates. `../../docs/architecture/policies/` records repository architecture boundaries; `../../packages/composition/policies/` houses the bounded OPA reference and must not become a custom policy language, IAM system, generic Human gate or universal risk gate.
 
 ## Enterprise work routing
 
-The optional `.agents/skills/enterprise-work/` Skill is a thin router from consequential work to current external authorities and natural providers. `docs/ENTERPRISE_OPERATING_MODEL_R1.md` remains the detailed provider/currentness and historical dogfood reference. There is no universal Ordivon enterprise-work lifecycle or mandatory provider composition.
+The optional `.agents/skills/enterprise-work/` Skill is a thin router from consequential work to current external authorities and natural providers. `../../docs/architecture/ENTERPRISE_OPERATING_MODEL_R1.md` remains the detailed provider/currentness and historical dogfood reference. There is no universal Ordivon enterprise-work lifecycle or mandatory provider composition.
 
 ## Current common capability coverage
 

@@ -49,6 +49,7 @@ wiring new packages. No universal rules registry was created.
 | Rule/state | grid_rules.gd | reset_game(Resource), move(int), snapshot(), state_changed(Dictionary) | Replace rules with another valid game contract |
 | Configuration | grid_config.gd + configs/base.tres | Typed, validated bounds/energy/goal parameters | configs/player_variant.tres |
 | Presentation | grid_state_view.gd + grid_state_view.tscn | render_state(Dictionary) | grid_state_view_variant.tscn |
+| Native audio feedback | main.tscn + movement_audio_feedback.gd + two Kenney CC0 WAV clips | accepted turn via state_changed -> AudioStreamPlayer.play() | swap AudioStream without editing grid_rules.gd |
 | Consumer falsifier | assert.gd | Native scenario/state/Resource/view substitution checks | Extend only for a real changed contract |
 
 This is an executable end-to-end **input -> state transition -> Signal -> UI**
@@ -67,8 +68,8 @@ bounded invariants and observable behavior while substituting source-native
 data and presentation; this demonstrates modularity without maintaining a
 parallel wrapper or copy of the game logic.
 
-**Next actual consumer:** a new game may reuse the composition boundary and
-replace rules, scene, artwork, audio and writing with native Godot providers.
-Do not describe that future combination as implemented until its own scene,
-resources and actual integration have executed. Do not import speculative
-third-party packages into this example merely to grow the inventory.
+**Now executed:** `main.tscn` installs native source-licensed audio feedback in
+the ordinary interactive scene. `assert_audio.gd` verifies actual keyboard
+input, sound routing, rejection and clip replacement. A future game can
+replace remaining rules, scenes, artwork and writing through mature providers;
+this example still is not a shipped game.

@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.prototype-composition-candidates",
+  "authority": "ADVISORY_SOURCE_BOUND_NOT_A_GAME_PRODUCT",
+  "sourceIndex": "knowledge/game_external_knowledge_base_r1.json",
+  "owner": "ordivon-game",
+  "observedOn": "2026-11-02",
+  "recipes": [
+    {
+      "id": "native-action-loop",
+      "name": "Native action / state / presentation composition",
+      "engine": "godot",
+      "intent": "Run a bounded playable mechanics carrier from engine-native scene, resource, action and signal responsibilities.",
+      "standing": "NATIVE_SUBSET_EXECUTED",
+      "currentConsumer": "examples/native-composition/assert.gd",
+      "components": [
+        {
+          "role": "gameplay-foundation",
+          "sourceRef": "godot-native-resource-composition",
+          "integrationSeam": "PackedScene + Resource + Node + Signal",
+          "standing": "EXECUTED_NATIVE",
+          "required": true
+        },
+        {
+          "role": "presentation-swap",
+          "sourceRef": "godot-native-resource-composition",
+          "integrationSeam": "View PackedScene replacement",
+          "standing": "EXECUTED_NATIVE",
+          "required": true
+        },
+        {
+          "role": "ui-art",
+          "sourceRef": "kenney-ui-pack",
+          "integrationSeam": "Godot Control theme / Sprite2D",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": false
+        },
+        {
+          "role": "ui-audio",
+          "sourceRef": "kenney-ui-audio",
+          "integrationSeam": "Godot AudioStreamPlayer",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": false
+        }
+      ],
+      "explicitGaps": [
+        "Native fixture does not install Kenney assets, create soundtrack, or validate a third-party plugin.",
+        "Gameplay is a bounded rule-system fixture, not a shipped game."
+      ],
+      "nextFalsifier": "Import one source-licensed UI + audio pack and compare actual input-to-signal and visual/audio feedback using the native scene."
+    },
+    {
+      "id": "dialogue-led-exploration",
+      "name": "Narrative exploration vertical slice",
+      "engine": "godot",
+      "intent": "Combine a small room/state loop with native dialogue provider, presentation, and sound rather than writing a new narrative DSL.",
+      "standing": "DESIGN_CANDIDATE",
+      "components": [
+        {
+          "role": "gameplay-foundation",
+          "sourceRef": "godot-native-resource-composition",
+          "integrationSeam": "PackedScene + Resource",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": true
+        },
+        {
+          "role": "dialogue",
+          "sourceRef": "godot-dialogue-manager",
+          "integrationSeam": "Godot addon/dialogue runtime",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": true
+        },
+        {
+          "role": "ui-art",
+          "sourceRef": "kenney-ui-pack",
+          "integrationSeam": "Godot Control",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": true
+        },
+        {
+          "role": "ui-audio",
+          "sourceRef": "kenney-ui-audio",
+          "integrationSeam": "AudioStreamPlayer",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": true
+        },
+        {
+          "role": "music-authoring",
+          "sourceRef": "lmms-composition",
+          "integrationSeam": "exported and licensed audio asset",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": false
+        },
+        {
+          "role": "animation",
+          "sourceRef": "godot-animationtree",
+          "integrationSeam": "AnimationPlayer / AnimationTree",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": false
+        }
+      ],
+      "explicitGaps": [
+        "Dialogue Manager v4 not installed or executed in this fixture.",
+        "Dialogue condition -> Game state effects need a product-owned binding.",
+        "Original soundtrack and character writing are not yet available."
+      ],
+      "nextFalsifier": "Start from the native Godot fixture; install one version-pinned Dialogue Manager build and verify a branching dialogue changes a real state flag while preserving save/load semantics."
+    },
+    {
+      "id": "reactive-2d-arena",
+      "name": "Reactive 2D arena prototype substrate",
+      "engine": "godot",
+      "intent": "Assemble a small enemy combat loop with off-the-shelf AI, placeholder art and audio before bespoke systems.",
+      "standing": "DESIGN_CANDIDATE",
+      "components": [
+        {
+          "role": "gameplay-foundation",
+          "sourceRef": "godot-native-resource-composition",
+          "integrationSeam": "PackedScene / Resource",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": true
+        },
+        {
+          "role": "npc-ai",
+          "sourceRef": "limboai-godot",
+          "integrationSeam": "GDExtension behavior tree / HSM",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": true
+        },
+        {
+          "role": "animation",
+          "sourceRef": "godot-animationtree",
+          "integrationSeam": "AnimationPlayer / AnimationTree",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": true
+        },
+        {
+          "role": "sprite-art",
+          "sourceRef": "kenney-platformer-art-pixel",
+          "integrationSeam": "Sprite2D / TileMapLayer",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": true
+        },
+        {
+          "role": "ui-audio",
+          "sourceRef": "kenney-ui-audio",
+          "integrationSeam": "AudioStreamPlayer",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": true
+        },
+        {
+          "role": "music-authoring",
+          "sourceRef": "lmms-composition",
+          "integrationSeam": "exported OST",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": false
+        }
+      ],
+      "explicitGaps": [
+        "LimboAI GDExtension and build/architecture compatibility are not installed or validated.",
+        "Physics/hitboxes, actual player-control contract and NPC blackboard bindings are not tested.",
+        "Sprite scale and animation timing are currently unbound."
+      ],
+      "nextFalsifier": "Install exact compatible LimboAI extension in a disposable Godot project; verify NPC signal-to-damage trace under real headless game state."
+    },
+    {
+      "id": "rust-ecs-sandbox",
+      "name": "Bevy ECS mechanics prototype",
+      "engine": "bevy",
+      "intent": "Compose Rust-native gameplay plugins and art imports from the Bevy ecosystem without routing through a Godot compatibility adapter.",
+      "standing": "NATIVE_SOURCE_COMPILED",
+      "components": [
+        {
+          "role": "gameplay-foundation",
+          "sourceRef": "bevy-plugins-modularity",
+          "integrationSeam": "Bevy App/Plugin/ECS",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": true
+        },
+        {
+          "role": "ecosystem-discovery",
+          "sourceRef": "bevy-community-assets",
+          "integrationSeam": "third-party crate / Bevy plugin",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": true
+        },
+        {
+          "role": "art-authoring",
+          "sourceRef": "blender-authoring",
+          "integrationSeam": "glTF export into Bevy asset loader",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": false
+        },
+        {
+          "role": "prototype-art",
+          "sourceRef": "kenney-development-essentials",
+          "integrationSeam": "texture import",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": false
+        },
+        {
+          "role": "cinematics-authoring",
+          "sourceRef": "kdenlive-cinematics",
+          "integrationSeam": "video export to compatible playback provider",
+          "standing": "SOURCE_DOCUMENTED",
+          "required": false
+        }
+      ],
+      "explicitGaps": [
+        "The original product-specific Bevy 0.20.1 App and Rust rules are now present in the real Game source and must pass its locked cargo test/check; GUI play and human acceptance have not been verified.",
+        "Third-party Bevy ecosystem plugins, imported art, music and cinematics have not been selected, installed or validated.",
+        "Godot addons cannot be treated as Bevy plugins; contract and runtime constraints are engine-specific."
+      ],
+      "nextFalsifier": "Run the pinned Bevy Cargo.lock tests/check and exercise the desktop App against an actual display/input consumer; then bind a proven community plugin only for a missing mechanic.",
+      "currentConsumer": "examples/bevy-native-composition/src/main.rs"
+    }
+  ]
+}

@@ -81,7 +81,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             "capabilities/media/scripts/migrate-r6-trials.py",
             "platform/workstation/scripts/host_historical_projection.py",
             "platform/workstation/scripts/host_retirement_snapshot.py",
-            "meta/next/experiments/browser-security-r4/cf07_metadata_snapshot.py",
+            "services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py",
             "meta/next/experiments/chaoxing-autosign-mvp/chaoxing_mvp/ledger.py",
         ):
             with self.subTest(path=name):

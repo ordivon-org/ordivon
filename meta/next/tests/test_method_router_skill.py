@@ -49,9 +49,9 @@ def test_representation_first_routes_are_complete_and_non_authoritative() -> Non
     reference = (ROUTER / "references" / "representation-first.md").read_text(
         encoding="utf-8"
     )
-    charter = (ROOT / "docs" / "META_THINKING_REPRESENTATION_R1.md").read_text(
-        encoding="utf-8"
-    )
+    charter = (
+        ROOT.parents[1] / "docs/architecture/COUNTEREXAMPLE_GUIDED_REPRESENTATION_R1.md"
+    ).read_text(encoding="utf-8")
     assert "references/representation-first.md" in skill
     assert "before" in skill.lower()
     for lens in (
@@ -82,9 +82,9 @@ def test_representation_first_routes_are_complete_and_non_authoritative() -> Non
 
 def test_cegar_retired_msr_method_routes_real_spurious_and_unknown() -> None:
     """Navigation contract only, NOT a claim of model/implementation refinement."""
-    charter = (ROOT / "docs" / "META_THINKING_REPRESENTATION_R1.md").read_text(
-        encoding="utf-8"
-    )
+    charter = (
+        ROOT.parents[1] / "docs/architecture/COUNTEREXAMPLE_GUIDED_REPRESENTATION_R1.md"
+    ).read_text(encoding="utf-8")
     router = (ROUTER / "references" / "representation-first.md").read_text(
         encoding="utf-8"
     )

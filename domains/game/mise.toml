@@ -9,7 +9,7 @@ run = "pnpm install --frozen-lockfile && pnpm check && mise run test:native && m
 
 [tasks."test:native"]
 description = "Run source-bound native Godot composition acceptance (requires installed Godot)"
-run = "godot --headless --path examples/native-composition --script res://assert.gd"
+run = "godot --headless --path examples/native-composition --script res://assert.gd && godot --headless --path examples/native-composition --script res://assert_audio.gd"
 
 [tasks."test:visual-native"]
 description = "Import a real CC0 sprite pack and verify Godot PackedScene appearance substitution"
