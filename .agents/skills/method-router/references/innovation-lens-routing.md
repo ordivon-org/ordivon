@@ -1,4 +1,4 @@
-# Innovation Lens Routing R1
+# Innovation Lens Routing — mature theory selection
 
 Date: 2026-09-21
 Status: ACTIVE METHODOLOGY ROUTER / EXTERNAL LENSES FIRST
