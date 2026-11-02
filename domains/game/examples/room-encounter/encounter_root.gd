@@ -3,6 +3,7 @@ extends Control
 @export var view_scene: PackedScene = preload("res://encounter_view.tscn")
 @onready var rules: Node = $Rules
 @onready var feedback: AudioStreamPlayer = $EncounterAudio
+@onready var save_slot: Node = $SaveSlot
 var view: VBoxContainer
 
 func _ready() -> void:
@@ -13,6 +14,8 @@ func _ready() -> void:
     view.get_node("Actions/Guard").pressed.connect(func(): rules.guard())
     view.get_node("Actions/Next").pressed.connect(func(): rules.advance())
     view.get_node("Actions/Restart").pressed.connect(func(): rules.reset_run())
+    view.get_node("Actions/Save").pressed.connect(save_run)
+    view.get_node("Actions/Load").pressed.connect(load_run)
     rules.state_changed.connect(view.render_state)
     feedback.bind_rules(rules)
     rules.reset_run()
@@ -29,6 +32,16 @@ func _unhandled_key_input(event: InputEvent) -> void:
             rules.advance()
         KEY_R:
             rules.reset_run()
+        KEY_S:
+            save_run()
+        KEY_L:
+            load_run()
         _:
             return
     get_viewport().set_input_as_handled()
+
+func save_run() -> void:
+    view.get_node("Storage").text = "Run saved." if save_slot.save_rules(rules) else "Save failed."
+
+func load_run() -> void:
+    view.get_node("Storage").text = "Run resumed." if save_slot.load_rules(rules) else "No compatible save."

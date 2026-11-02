@@ -14,6 +14,7 @@ assembly path. It does not supersede `../AGENTS.md` or
 | G04 counterexamples | `src/counterexample-projection.ts` + query | Contextual failure enrichment and false transfer rejection |
 | G05 native read-only CLI contract | `src/query-input.ts`, `src/knowledge-file.ts`, `scripts/cli-argument.ts` | Input normalization and read boundary without duplicating each query |
 | G06 native composition acceptance | `examples/native-composition` | Godot Resource, PackedScene, action rules and Signal-bound presentation substitution |
+| G10 native persistence | Room Encounter rules + ConfigFile SaveSlot | Storage side effects separate from authoritative rules and accepted-action audio |
 | G07 Bevy native product assembly | `examples/orbit-collector` | Rust pure rules -> Bevy ECS/Plugin/graphics source, locked cargo build + bounded native tests |
 | G08 Godot movement audio effect | `examples/native-composition/movement_audio_feedback.gd`, original main scene, asset-local CC0 provenance | Actual GridRules Signal -> native AudioStreamPlayer, replaceable AudioStream and Godot execution |
 | G09 native branching narrative | `examples/dialogue-composition/` vendored upstream Dialogue Manager v4.2.0, `gate.dialogue` and separate `gate_state.gd` | Upstream editor/compiler/conditions can change independently from game state, scene and UI |
@@ -103,3 +104,11 @@ quality -> observed product playtest. No one check substitutes for the others.
 To retrieve the actual owner contract, use the current
 `planning/lego-plan-r1.json` and `mise run game:verify`, not a snapshot
 in this note. Pending external provider adoption is explicitly UNKNOWN.
+
+## Native save and audio refinement (2026-11-03)
+
+Room Encounter is the actual consumer of ConfigFile and action_accepted.
+Rules owns checkpoint validity, the native save-slot node only handles file
+I/O, and audio no longer guesses combat input from changed turn counts.
+Native test:encounter verifies readback and rejected load atomicity. This is
+not a new storage framework or evidence of human playtest/production release.

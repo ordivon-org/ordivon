@@ -266,6 +266,15 @@ accepted mutation, alternate branch and unavailable choice. Do **not**
 introduce an Ordivon dialogue DSL, duplicate renderer/backend or claim
 story quality, accessibility and a shipped product from a headless test.
 
+**Native Game save/resume G10:** the actual examples/room-encounter
+scene composes Godot ConfigFile with a separate rule-owned checkpoint
+validation contract and UI Save/Load buttons/keys. Audio consumes explicit
+action_accepted signals, not state changes or inferred turn increments:
+a restored run cannot sound like an attack. The real test:encounter
+consumer verifies native readback and atomic rejection. Extend the existing
+consumer rather than building another generic save service. Human playtest,
+power-loss durability, migration and shipped quality remain UNKNOWN.
+
 **Composition criterion:** for required property P and components A,B,
 the environment must discharge each required precondition/assumption, their
 outputs and effects must be compatible, and observable composed behavior must

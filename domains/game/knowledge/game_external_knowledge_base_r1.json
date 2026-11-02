@@ -4099,6 +4099,31 @@
       "canCreateGameHardConstraint": false,
       "retrievedOn": "2026-11-02",
       "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "godot-configfile-built-in",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Godot ConfigFile class (native Variant persistence)",
+      "organization": "Godot Engine",
+      "url": "https://docs.godotengine.org/en/stable/classes/class_configfile.html",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "Godot native INI-style Variant serialization",
+        "user:// stored game state"
+      ],
+      "extractedIdeas": [
+        "native ConfigFile set_value/save/load/get_value",
+        "persist plain Variant values rather than implementing another serializer"
+      ],
+      "candidateUses": [
+        "room encounter checkpoint IO adapter",
+        "non-cloud local gameplay progress"
+      ],
+      "evidenceLimit": "Documents Godot API behavior only; gameplay legality, atomic restore, power loss and player experience must be proven by actual Game consumers.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-03",
+      "sourceStrength": "NATIVE_HIGH"
     }
   ],
   "gaps": {
@@ -4126,5 +4151,5 @@
       "tabletop-to-digital transfer"
     ]
   },
-  "updatedOn": "2026-11-02"
+  "updatedOn": "2026-11-03"
 }

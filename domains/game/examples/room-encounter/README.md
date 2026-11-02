@@ -27,3 +27,19 @@ and can swap between two AudioStream resources without changing game logic.
 This extends the real product input -> rules -> audio/player feedback
 consumer, not a new Ordivon sound engine; no physical speaker output or
 human enjoyment measurement is asserted by the headless test.
+
+## Save/resume composition using Godot native ConfigFile
+
+Save [S] and Load [L] are real keyboard/button inputs of this runnable
+room-encounter consumer. The SaveSlot node delegates all storage to the
+built-in Godot ConfigFile API, while authoritative EncounterRules alone
+validates the active tuning and checkpoint before restoring state. The
+default native slot is user://room_encounter_run.cfg; acceptance uses a
+separate temporary slot. No new generic persistence engine is added.
+
+Audio now observes an explicit action_accepted Signal rather than inferring
+combat turns from state changes. A restored turn, a reset or alternate HUD
+cannot trigger a false attack sound. Source-to-native acceptance checks
+checkpoint readback, incompatible tuning and a damaged stored value.
+Cloud sync, migration across changed tuning, real sound hardware and
+human playtest remain unverified.
