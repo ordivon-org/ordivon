@@ -40,7 +40,7 @@ creating a Queue-specific database:
 - historical adapter: `meta/next/scripts/experimental_episode_convergence_r1.py` (source retired from current HEAD after no first-party runtime/task/CLI consumer was identified; remains in the dated Git SourceCut);
 - queue profile: `convergence-queue-observation-v1`;
 - CI profile: `convergence-ci-observation-v1`;
-- shared contract: `meta/next/schemas/experimental-episode-binding-r1.schema.json`;
+- shared contract: `packages/composition/src/ordivon_composition/schemas/experimental-episode-binding-r1.schema.json`;
 - PostgreSQL consumer: `meta/next/experimental/episode-store-r1`.
 
 In the dated isolated replay, the adapter emitted stable Episode identities plus exact projection digests and binds only

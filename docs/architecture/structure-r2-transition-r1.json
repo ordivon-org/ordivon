@@ -284,7 +284,7 @@
       "wave": "S7"
     },
     {
-      "disposition": "Generic Cognitive Circuit and Interface R2 implementation, five public schemas, owner docs, and owner-native tests are extracted. Remaining Next consumers import the public ordivon_composition package directly; historical Python facades are retired. Seam-specific R3/Admission/dogfood semantics remain with Next.",
+      "disposition": "Generic composition and interface contracts plus three cross-domain binding/projection JSON Schemas reside in the existing public ordivon_composition package. Next's seam-specific consumers load package resources directly instead of retaining a duplicate schema root; historical Python facades remain retired.",
       "id": "composition-mechanics",
       "mode": "split",
       "owner": "next",

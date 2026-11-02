@@ -277,7 +277,7 @@ Represent these as unresolved external assertions or explicit external-authority
 
 ## 10. Minimal machine-actionable bridge
 
-After three-domain proof, `schemas/standard-native-profile-projection-v1.schema.json` is admitted as a **projection schema**.
+After three-domain proof, `packages/composition/src/ordivon_composition/schemas/standard-native-profile-projection-v1.schema.json` is admitted as a **projection schema**.
 
 It is intentionally not a source-of-truth schema. It projects only:
 

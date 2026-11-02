@@ -10,7 +10,6 @@
       "scripts/cross_domain_binding_r3.py",
       "scripts/web_security_gate_r3.py",
       "scripts/research_artifact_gate_r3.py",
-      "schemas/cross-domain-verification-r3-binding.schema.json",
       "tests/test_cross_domain_verification_r3.py",
       "scripts/authority_catalog.py",
       "scripts/authority_catalog_sources.py",
@@ -84,7 +83,7 @@
       "label": "TaskLocalCrossDomainBinding",
       "kind": "typed_binding",
       "responsibility": "Qualify per-task Web/Security and Research/Artifact cross-domain verification bindings and source-file references while keeping all external providers' semantic authority outside Next.",
-      "authority": "Next task-local cross-domain binding profile; underlying files/Git retain source truth",
+      "authority": "Next consumes the published ordivon-composition typed binding schema; underlying files/Git retain source truth",
       "state": "IMPLEMENTED",
       "inputs": [
         "cross-domain R3 JSON binding envelope",
@@ -100,8 +99,7 @@
       ],
       "evidence": [
         "scripts/cross_domain_binding_r3.py",
-        "schemas/cross-domain-verification-r3-binding.schema.json",
-        "tests/test_cross_domain_verification_r3.py"
+          "tests/test_cross_domain_verification_r3.py"
       ],
       "dependencies": [],
       "sharedRefs": [],

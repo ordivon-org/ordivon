@@ -41,7 +41,7 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "schemas/standard-native-profile-projection-v1.schema.json",
+      "packages/composition/src/ordivon_composition/schemas/standard-native-profile-projection-v1.schema.json",
       "JSON Schema official specification checked 2026-09-14"
     ]
   },

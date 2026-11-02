@@ -7,6 +7,7 @@ All nonclaims and exact canonical digests remain identical to the original.
 from __future__ import annotations
 
 import json
+from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +15,9 @@ from jsonschema import Draft202012Validator
 from ordivon_composition import canonical_digest
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHEMA = ROOT / "schemas" / "experimental-episode-binding-r1.schema.json"
+SCHEMA = files("ordivon_composition").joinpath(
+    "schemas", "experimental-episode-binding-r1.schema.json"
+)
 
 FORBIDDEN_OUTPUT_KEYS = {
     "workspace_snapshot",
