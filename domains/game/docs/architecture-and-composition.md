@@ -14,15 +14,20 @@ assembly path. It does not supersede `../AGENTS.md` or
 | G04 counterexamples | `src/counterexample-projection.ts` + query | Contextual failure enrichment and false transfer rejection |
 | G05 native read-only CLI contract | `src/query-input.ts`, `src/knowledge-file.ts`, `scripts/cli-argument.ts` | Input normalization and read boundary without duplicating each query |
 | G06 native composition acceptance | `examples/native-composition` | Godot Resource, PackedScene, action rules and Signal-bound presentation substitution |
+| G07 Bevy native product assembly | `examples/bevy-native-composition` | Rust pure rules -> Bevy ECS/Plugin/graphics source, locked cargo build + bounded native tests |
+| G08 Godot movement audio effect | `examples/native-composition/movement_audio_feedback.gd`, original main scene, asset-local CC0 provenance | Actual GridRules Signal -> native AudioStreamPlayer, replaceable AudioStream and Godot execution |
 
 **Observed edges:** G01/G02 source knowledge is read by G05 CLI
 consumers; G02 feeds G03 derived graph and contextual G04 counterexamples;
 G03 and G04 have independent CLI readers; G06 exercises engine-native
-composition independently from read-only knowledge. The Game graph/experience
+composition independently from read-only knowledge. G07 and G08 have their
+own installed native consumers and do not acquire G01-G05 as fake runtime
+dependencies. G08 observes the Godot G06 example's *actual* rule Signal; G07
+runs a separate Bevy ECS App rather than an adapter between engines. The Game graph/experience
 outputs are advisory and have no authority to permit/reject a player design.
 
-These are responsibility labels, **not** a list of six physical plugins or
-six formally proven eleven-coordinate LEGOs. Query code already separates
+These are responsibility labels, **not** a list of physical plugins or
+formally proven eleven-coordinate LEGOs. Query code already separates
 pure source transforms from CLI I/O where it improves substitution. Do not
 multiply modules for aesthetic symmetry.
 

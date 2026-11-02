@@ -5,12 +5,16 @@ import {queryExternalKnowledge} from '../scripts/external-knowledge-query.ts';
 import {queryMechanismExperiences} from '../scripts/mechanism-experience-query.ts';
 
 const load=(p:string)=>JSON.parse(readFileSync(new URL('../'+p,import.meta.url),'utf8'));
-test('Game registers actual source-bound LEGO with six responsibilities',()=>{
+test('Game registers source-bound knowledge, native composition and effect responsibilities',()=>{
   const plan=load('planning/lego-plan-r1.json');
   assert.equal(plan.project.id,'ordivon-game');
-  assert.equal(plan.nodes.length,6);
+  assert.equal(new Set(plan.nodes.map((n: any) => n.id)).size, plan.nodes.length);
+  for (const id of ['G01','G02','G03','G04','G05','G06','G07','G08'])
+    assert.ok(plan.nodes.some((n: any) => n.id === id), 'missing observed responsibility '+id);
   assert.ok(plan.nodes.some((n: any) => n.id === 'G05' && n.kind === 'interface_adapter'));
   assert.ok(plan.nodes.some((n: any) => n.id === 'G06' && n.kind === 'verifier'));
+  assert.ok(plan.nodes.some((n: any) => n.id === 'G07' && n.kind === 'native_composition_capability'));
+  assert.ok(plan.nodes.some((n: any) => n.id === 'G08' && n.kind === 'native_effect_adapter'));
   for(const n of plan.nodes) {
     for(const f of ['id','responsibility','inputs','outputs','behavioralContract','acceptance'])
       assert.ok(n[f]&&(!Array.isArray(n[f])||n[f].length),n.id+':'+f);
@@ -30,7 +34,7 @@ test('mature sources and mechanic LEGO are immediately consumable',()=>{
   assert.ok(mechanics.items.length>0);
 });
 
-// Phase1 native consumer closure for the six existing Game LEGO nodes.
+// Real consumer closure for the Game owner's admitted capabilities.
 // This binds source-facing CLI/tests to their consumers; it does not qualify
 // installed game effects, dynamic consumers, or Formal proof obligations.
 function validateNativeGameConsumerClaims(plan: any): void {
@@ -41,14 +45,16 @@ function validateNativeGameConsumerClaims(plan: any): void {
     G04: ['scripts/design-counterexample-query.ts', 'test/game-design-counterexample-memory.test.ts'],
     G05: ['package.json', 'scripts/mechanism-relationship-query.ts', 'scripts/counterexample-synthesis-query.ts'],
     G06: ['mise.toml', 'examples/native-composition/assert.gd', 'examples/native-composition/main.tscn'],
+    G07: ['examples/bevy-native-composition/src/main.rs', 'examples/bevy-native-composition/src/gameplay.rs', 'examples/bevy-native-composition/Cargo.toml'],
+    G08: ['examples/native-composition/composition_root.gd', 'examples/native-composition/main.tscn', 'examples/native-composition/assert_audio.gd'],
   };
-  assert.deepEqual(plan.nodes.map((n: any) => n.id), Object.keys(required));
+  for (const id of Object.keys(required))
+    assert.ok(plan.nodes.some((n: any) => n.id === id), id + ': known native consumer missing');
   for (const node of plan.nodes) {
     const declared = node.consumerEvidence;
     assert.ok(Array.isArray(declared) && declared.length, node.id + ': missing consumer declaration');
     assert.equal(new Set(declared).size, declared.length, node.id + ': duplicate declaration');
-    const expected = required[node.id];
-    assert.ok(expected, node.id + ': missing canonical consumer mapping');
+    const expected = required[node.id] ?? [];
     for (const path of expected) {
       assert.ok(declared.includes(path), node.id + ': missing actual consumer ' + path);
     }
@@ -57,6 +63,12 @@ function validateNativeGameConsumerClaims(plan: any): void {
         node.id + ': unsafe consumer locator');
       assert.ok(existsSync(new URL('../' + path, import.meta.url)),
         node.id + ': consumer locator absent from Git checkout ' + path);
+    }
+    if (node.recursiveLegoR21) {
+      assert.deepEqual(Object.keys(node.recursiveLegoR21),
+        ['I','O','S','pre','post','inv','eff','c','epsilon','prov','unfold'], node.id + ': R2.1 tuple must not drop an assumption');
+      assert.ok(node.recursiveLegoR21.unfold.every((path: string) => existsSync(new URL('../' + path, import.meta.url))),
+        node.id + ': contract unfolding must resolve to a real native consumer');
     }
     assert.notEqual(node.formalQualification, 'VERIFIED');
     assert.notEqual(node.proofReuseAdmissible, true);
@@ -94,7 +106,7 @@ function validateNativeGameConsumerClaims(plan: any): void {
   assert.ok(godotTest.includes('load("res://main.tscn")'));
 }
 
-test('Game native six consumer identities have actual CLI, test and fixture readers', () => {
+test('Game registered consumers resolve to native CLI, Godot and Bevy source ports', () => {
   const plan = load('planning/lego-plan-r1.json');
   validateNativeGameConsumerClaims(plan);
 });
