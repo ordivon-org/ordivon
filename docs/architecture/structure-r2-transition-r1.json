@@ -376,6 +376,24 @@
       "disposition": "SOURCE-only S5 capability discovery/catalog placement. Maintained non-authoritative Markdown records are under catalogs/capabilities; historical authority registrationBasis remains source-cut provenance. Other S5 mappings remain open; provider availability and installed state not implied."
     },
     {
+      "id": "episode-data-product-catalog",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/data-products/"
+      ],
+      "targetPaths": [
+        "catalogs/data-products/"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "SOURCE-only non-authoritative ODPS/ODCS/ODRL Episode catalog placement. Historical data-lifecycle receipts retain original exact-cut path; no installed data-product authority or consumer deployment implied."
+    },
+    {
       "id": "knowledge-catalog",
       "mode": "move",
       "owner": "next",
