@@ -136,7 +136,7 @@ Whole-product compositions      R1_ACTIVE_3
 PC01 evidence                   F0_SURVIVES + F1_MECHANICAL_INTERACTIVE_PASS
 PC02 evidence                   F0_DURABLE_STRUCTURAL_SURVIVES
 PC03 evidence                   F0_MECHANICAL_STRUCTURAL_SURVIVES
-Autonomous-interest experiment  R1_PROTOCOL_FROZEN
+Autonomous-interest experiment  R7_PRE_GENERATION_HOLD
 Candidate generation            NOT_STARTED
 Live Human judgment             FORBIDDEN_UNTIL_BUILD_FREEZE
 Product selected                false
@@ -157,8 +157,8 @@ Canonical local crosswalks:
 - [`game-product-composition-r1.json`](game-product-composition-r1.json) — machine-readable original product-composition slate and execution order;
 - [`GAME_PRODUCT_COMPOSITION_VOI_R1.md`](GAME_PRODUCT_COMPOSITION_VOI_R1.md) — post-F0 Value-of-Information comparison that supersedes only the next experiment-allocation decision;
 - [`game-product-composition-voi-r1.json`](game-product-composition-voi-r1.json) — machine-readable post-F0 allocation decision and PC03-F0 minimum carrier contract;
-- [`GAME_AUTONOMOUS_INTEREST_PROTOCOL_R1.md`](GAME_AUTONOMOUS_INTEREST_PROTOCOL_R1.md) — frozen no-live-Human-judgment autonomous whole-product synthesis and sealed-holdout protocol;
-- [`game-autonomous-interest-protocol-r1.json`](game-autonomous-interest-protocol-r1.json) — machine-readable R1 search budget, surrogate/anti-Goodhart contract, freeze rules and Human endpoint;
+- [`GAME_AUTONOMOUS_INTEREST_PROTOCOL_R7.md`](GAME_AUTONOMOUS_INTEREST_PROTOCOL_R7.md) — current blinded-evaluation protocol; generation remains forbidden until its exact pre-generation review passes;
+- [`game-autonomous-interest-protocol-r7.json`](game-autonomous-interest-protocol-r7.json) — current machine-readable R7 specification and evidence obligations;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R1.md`](GAME_TOP_MECHANISM_SPECIMENS_R1.md) — 16 elite/canonical game decompositions and 12 recurring structural motifs;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R2.md`](GAME_TOP_MECHANISM_SPECIMENS_R2.md) — current cumulative 27-specimen / 23-motif mechanism map, with R2 gap-filling coverage;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R3.md`](GAME_TOP_MECHANISM_SPECIMENS_R3.md) — current cumulative 37-specimen / 33-motif map, coverage-guided but not coverage-optimized;
@@ -177,6 +177,8 @@ Canonical local crosswalks:
 - [`game-top-motif-bridge-r1.json`](game-top-motif-bridge-r1.json) — machine-readable external↔local motif evidence bridge.
 
 PC01 and PC02 now have whole-composition survival evidence at different depths, and the post-F0 VoI decision allocates the next bounded experiment to **PC03 Loop Cartographer** as the orthogonal anti-system-bias control. PC03 must reuse PGP-A rather than reopen infrastructure: build one interactive whole-composition falsifier that couples stable movement, reusable rule knowledge, route choice, fast retry and retained execution demand. Apparatus-valid evidence upgrades only the claim it actually identifies: Human felt/experienced Player Value requires relevant Human participant evidence, while structural, behavioural, causal and population claims use their own admissible evidence carriers. Product commitment remains a domain decision over scoped findings, objectives, consequences, uncertainty and remaining information value; it is not a generic Human approval gate.
+
+Superseded autonomous-interest R1–R6 protocols and R2–R6 self-test experiments are retired from the active tree. Their immutable research source is available in Git history (R6 source cut `b0adf5534d202dcc79b5571da2841a7324d5ac8e`); R7 does not execute or import those experiments.
 
 ## External references
 

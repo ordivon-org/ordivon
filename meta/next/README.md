@@ -43,21 +43,24 @@ Canonical repository Agent Skills now live at `../../.agents/skills/`; Next cons
 
 ## Structure
 
+The transitional Next tree retains current implementation, experiments, evidence and migrations; standalone catalogs are no longer nested under Next.
+
 ```text
 meta/next/
-See `catalogs/capabilities/` for non-authoritative capability/provider routing knowledge and task-local inventories.
-├── domains/         # domain-native life-cycle profiles
-├── policies/        # native OPA/Rego policy artifacts where declarative policy is justified
-├── tests/           # behavior, integration, architecture and historical-integrity regression tests
-├── scripts/         # current commands/validators only; historical reproducers do not live here
-├── schemas/         # minimal cross-domain contracts after demonstrated reuse
-├── experiments/     # bounded experiments and experiment-owned artifacts
-├── evidence/        # point-in-time observations/receipts; never runtime configuration
-├── planning/        # active/prospective work and explicitly disposable migration ratchets
-├── migrations/      # retirement, cutover and historical disposition records
-├── knowledge/       # reusable knowledge/provenance dependencies, not a construction diary
-└── docs/            # maintained explanatory/reference documentation
+meta/next/
+├── domains/         # domain profiles pending consumer-qualified S5 relocation
+├── policies/        # remaining task-local policy source pending S5 split
+├── tests/           # remaining Next verification consumers
+├── scripts/         # remaining native commands/validators pending natural-owner move
+├── schemas/         # remaining cross-domain contracts
+├── experiments/     # bounded, source-qualified experiments and their history
+├── evidence/        # dated observations; not runtime configuration
+├── planning/        # current/disposable task-specific plans
+├── migrations/      # remaining retirement and cutover records
+└── docs/            # remaining explanatory/reference documentation
 ```
+
+Capability/provider discovery is at `catalogs/capabilities/`; external authority records and observations are at `catalogs/authorities/`; non-authoritative knowledge/provenance mappings are at `catalogs/knowledge/`. These catalogs do not grant semantic authority or runtime registration.
 
 ## Rebuild rule
 

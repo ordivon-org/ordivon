@@ -8,7 +8,7 @@ import {
 } from "../src/mechanism-relationship-graph.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const OUTPUT_PATH = "standards/game_mechanism_relationship_graph_r1.json";
+const OUTPUT_PATH = "knowledge/game_mechanism_relationship_graph_r1.json";
 
 function read(path: string): { raw: string; value: any } {
   const raw = readFileSync(resolve(ROOT, path), "utf8");

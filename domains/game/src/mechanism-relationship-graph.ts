@@ -5,8 +5,8 @@ an advisory retrieval view, not a ranking, causal claim, or closed ontology.
 */
 import { createHash } from "node:crypto";
 
-export const LIBRARY_PATH = "standards/game_mechanism_experience_library_r1.json";
-export const SPEC_PATH = "standards/game_mechanism_relationship_spec_r1.json";
+export const LIBRARY_PATH = "knowledge/game_mechanism_experience_library_r1.json";
+export const SPEC_PATH = "knowledge/game_mechanism_relationship_spec_r1.json";
 
 type JsonSource = { raw: string; value: any };
 

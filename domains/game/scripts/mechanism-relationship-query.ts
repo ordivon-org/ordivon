@@ -1,10 +1,10 @@
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { boundedQueryLimit, cliArgument, normalizeQueryFilter } from "../src/query-input.ts";
+import { readGameKnowledge } from "../src/knowledge-file.ts";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { boundedQueryLimit, normalizeQueryFilter } from "../src/query-input.ts";
+import { cliArgument } from "./cli-argument.ts";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const GRAPH_PATH = "standards/game_mechanism_relationship_graph_r1.json";
+const GRAPH_PATH = "knowledge/game_mechanism_relationship_graph_r1.json";
 
 export type MechanismRelationshipQueryType = "mechanisms" | "edges" | "facets" | "conditionalities";
 
@@ -31,7 +31,7 @@ export type MechanismRelationshipQueryResult = {
 };
 
 function graph(): any {
-  return JSON.parse(readFileSync(resolve(ROOT, GRAPH_PATH), "utf8"));
+  return readGameKnowledge(GRAPH_PATH);
 }
 
 export function queryMechanismRelationships(query: MechanismRelationshipQuery): MechanismRelationshipQueryResult {

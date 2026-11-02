@@ -10,7 +10,7 @@ It answers a limited question:
 
 It is **not a taxonomy, ontology, risk model, scorecard, anti-pattern catalog, development methodology, or design law**.
 
-The machine source is `standards/game_counterexample_synthesis_r1.json`. Query it with:
+The machine source is `knowledge/game_counterexample_synthesis_r1.json`. Query it with:
 
 ```bash
 pnpm knowledge:counterexample-themes -- --mechanism legacy-product-vision

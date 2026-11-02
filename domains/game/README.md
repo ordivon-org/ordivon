@@ -39,12 +39,31 @@ The five `scripts/*-query.ts` files remain stable CLI and consumer entrypoints.
 Their shared, pure input parsing policy lives in `src/query-input.ts`:
 individual queries still own their source datasets, filter semantics and result caps.
 The internal module does not claim Game design authority or create a query registry.
+G05 is a read-only interface adapter, not a verifier: retrieving a record does
+not establish a Game behavior or proof. G06 owns bounded native-Godot tests.
 
 G03 relationship projection separates `src/mechanism-relationship-graph.ts`
 (pure derivation from the exact library/spec source bytes) from the stable
 `scripts/build-mechanism-relationship-graph.ts` command (file I/O and JSON
 publication). Use the existing `pnpm build:relationship-graph` to rebuild the
 committed derived graph; source digests and retrieval semantics are unchanged.
+
+## Knowledge layout
+
+`knowledge/` holds source-grounded datasets, experience records, conditional
+relationship projections and counterexamples. These are **evidence and advisory
+retrieval data, not normative standards**. Existing `scripts/*-query.ts` CLI
+entrypoints remain stable; their shared filesystem reading is implemented by
+`src/knowledge-file.ts`, while each query owns its matching semantics.
+
+## Counterexample projection boundary
+
+`src/counterexample-projection.ts` resolves Experience → Counterexample →
+Theme references as a pure projection from supplied records. The existing
+counterexample query CLIs own data loading, filters and result claims. Unknown
+references remain failures, not fabricated evidence. `src/query-input.ts`
+holds pure query filter policy while `scripts/cli-argument.ts` reads
+`process.argv` only for existing CLI entrypoints.
 
 ## Native composition acceptance
 

@@ -44,6 +44,9 @@ Do not activate every method merely because it exists. Do not turn the method ca
 - project-native decomposition into responsibilities/contracts/evidence -> project-kernel-decomposition
 
 See references/method-map.md for disambiguation and multi-method combinations.
+For innovation/search questions requiring a comparative theory lens, consult
+references/innovation-lens-routing.md only after the basic method route is insufficient.
+This external-theory map is a source reference, not new authority or a mandatory stage.
 
 ## Anti-patterns
 

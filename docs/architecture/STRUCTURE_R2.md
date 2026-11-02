@@ -107,6 +107,7 @@ wholesale:
   - S5 capability discovery lives in `catalogs/capabilities/`; external authority identity records, dated observations, and schemas now live in `catalogs/authorities/`. Remaining S5 splits are open.
 - domain/composition profiles -> `profiles/`;
 - reusable knowledge mappings -> non-authoritative catalog/profile data;
+  S5 knowledge-catalog source placement: `catalogs/knowledge/`; other S5 work remains open.
 - experiments, evidence, planning, and migrations -> only to their real owner, study,
   test fixture, or repository history when a concrete consumer justifies retention.
 

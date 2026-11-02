@@ -45,7 +45,7 @@ Proven project-scoped substrate includes:
 - ODCS 3.2.0 contracts owned by real Research and Finance products;
 - **legacy-consumed ODPS 1.1.0**, not current upstream ODPS: Capital
   `domains/capital/data-products/crypto-public-shadow-r2/odps.json` and
-  Experimental Episode `meta/next/data-products/experimental-episode-corpus-r1/odps.json`
+  Experimental Episode `catalogs/data-products/experimental-episode-corpus-r1/odps.json`
   have bounded existing code/test consumers and SHA-bound acceptances.
   ODPS 4.2 (2026-10-26) requires `schema`/`version`/`product` at the root
   plus a different `dataAccess` model, so treat it as the mature external

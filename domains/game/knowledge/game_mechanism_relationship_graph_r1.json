@@ -3,13 +3,13 @@
   "graphId": "ordivon-game-mechanism-relationship-graph-r1",
   "generatedOn": "2026-09-18",
   "sourceLibrary": {
-    "path": "standards/game_mechanism_experience_library_r1.json",
+    "path": "knowledge/game_mechanism_experience_library_r1.json",
     "digest": "sha256:8337e678811fc93b6dc6e34047c99e5cda427f213a5533737ced814fae6fc431",
     "libraryId": "ordivon-game-mechanism-experience-library-r1"
   },
   "sourceSpec": {
-    "path": "standards/game_mechanism_relationship_spec_r1.json",
-    "digest": "sha256:2bacd3f0cf61962fb75718b64f77d3b072ceff59727645e70d6787a17d67f6fa",
+    "path": "knowledge/game_mechanism_relationship_spec_r1.json",
+    "digest": "sha256:96add0857151e261ae1a0dddef25e2b695259940dd6b89974a9339e8dce9e859",
     "specId": "ordivon-game-mechanism-relationship-spec-r1"
   },
   "policy": {

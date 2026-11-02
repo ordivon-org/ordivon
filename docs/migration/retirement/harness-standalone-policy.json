@@ -26,7 +26,7 @@
     },
     {
       "id": "knowledge-snapshots",
-      "globs": ["meta/next/knowledge/**"],
+      "globs": ["catalogs/knowledge/**"],
       "reason": "Knowledge graphs and lessons record historical Harness observations; they are not executable source locators."
     },
     {

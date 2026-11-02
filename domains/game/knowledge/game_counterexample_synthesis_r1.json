@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "synthesisId": "ordivon-game-counterexample-synthesis-r1",
-  "sourceMemory": "standards/game_design_counterexample_memory_r1.json",
+  "sourceMemory": "knowledge/game_design_counterexample_memory_r1.json",
   "policy": {
     "purpose": "Overlapping retrieval themes across source-grounded Counterexamples for finding recurring failure structures and cheap discriminators.",
     "themesAreOntology": false,

@@ -3,7 +3,7 @@
 Status: Counterexample-guided reform ADOPTED AS COLLABORATION, NOT deployment or new authority. Minimum Sufficient Representation (MSR) as a **DEFAULT**: RETIRED (2026-10-25). MSR remains an **optional, consumer-scoped Skill LEGO**, not a general minimum/sufficiency/safety theorem. Preserve this source path for existing method-router consumers.
 Date: 2026-10-24
 Coordination: `space:ordivon-meta-thinking-r1:20261024`
-Existing implementations: `meta/next/docs/COMPOSITION_SCIENCE_R1.md`, `meta/next/docs/INNOVATION_LENS_ROUTING_R1.md`, `.agents/skills/method-router`, and each natural owner's tests and formal models.
+Existing implementations: `meta/next/docs/COMPOSITION_SCIENCE_R1.md`, `.agents/skills/method-router/references/innovation-lens-routing.md`, `.agents/skills/method-router`, and each natural owner's tests and formal models.
 
 ## Why this exists
 
