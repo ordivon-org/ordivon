@@ -64,8 +64,6 @@ def main() -> int:
             encoding="utf-8",
         )
         run("check-jsonschema", "--schemafile", str(INDEX_SCHEMA), str(temp_index))
-        if temp_index.read_bytes() != catalog.INDEX.read_bytes():
-            fail("committed generated index differs from deterministic rebuild")
 
     dogfood = json.loads(DOGFOOD.read_text(encoding="utf-8"))
     required_ids = set()
@@ -82,7 +80,7 @@ def main() -> int:
     if missing:
         fail(f"structured non-deferred authority ids missing from catalog: {missing}")
 
-    index = json.loads(catalog.INDEX.read_text(encoding="utf-8"))
+    index = built
     if index["recordCount"] != len(records):
         fail("index recordCount mismatch")
     forbidden_index_keys = {
@@ -141,7 +139,7 @@ def main() -> int:
         ),
         "structuredNonDeferredDogfoodIdsResolved": len(required_ids),
         "deferredTaskLocalIdsNotRequiredToResolve": sorted(deferred_ids),
-        "discoveryIndex": "authorities/generated/authority-index.json",
+        "discoveryIndex": "derived-from-authority-records-and-observations",
         "validator": run("check-jsonschema", "--version").strip(),
         "boundary": "Acceptance proves catalog registration/discovery/loading mechanics and migration of already-verified authority metadata. It does not prove catalog completeness, task applicability, standards conformance, certification or semantic currentness beyond recorded observations.",
     }

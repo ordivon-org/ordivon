@@ -6,3 +6,6 @@ __pycache__/
 .coverage.*
 htmlcov/
 .ruff_cache/
+
+# Rebuildable Level-0 projection; records and observations are authoritative.
+authorities/generated/authority-index.json
