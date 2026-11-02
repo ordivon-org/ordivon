@@ -45,7 +45,7 @@ Canonical repository Agent Skills now live at `../../.agents/skills/`; Next cons
 
 ```text
 meta/next/
-├── authorities/     # external-authority records, observations and rebuildable discovery index
+
 See `catalogs/capabilities/` for non-authoritative capability/provider routing knowledge and task-local inventories.
 ├── domains/         # domain-native life-cycle profiles
 ├── policies/        # native OPA/Rego policy artifacts where declarative policy is justified
@@ -59,6 +59,8 @@ See `catalogs/capabilities/` for non-authoritative capability/provider routing k
 ├── knowledge/       # reusable knowledge/provenance dependencies, not a construction diary
 └── docs/            # maintained explanatory/reference documentation
 ```
+
+External standards and provider authority discovery records are now at `catalogs/authorities/`. This directory is not a second institutional authority.
 
 ## Rebuild rule
 

@@ -17,7 +17,7 @@ Do not collapse these stages.
 ### Source of truth
 
 ```text
-authorities/records/<issuer>/<authority-id>.json
+catalogs/authorities/records/<issuer>/<authority-id>.json
 ```
 
 Each record contains stable identity/discovery metadata only. Versioned standards use version-specific IDs. Rolling provider/policy pages use `identityMode=rolling-source`.
@@ -25,7 +25,7 @@ Each record contains stable identity/discovery metadata only. Versioned standard
 ### Currentness observations
 
 ```text
-authorities/observations/<authority-id>/<YYYY-MM-DD>.json
+catalogs/authorities/observations/<authority-id>/<YYYY-MM-DD>.json
 ```
 
 Currentness is append-only evidence separate from authority identity. A newer observation does not rewrite the historical observation.
@@ -33,7 +33,7 @@ Currentness is append-only evidence separate from authority identity. A newer ob
 ### Generated discovery index
 
 ```text
-authorities/generated/authority-index.json
+catalogs/authorities/generated/authority-index.json
 ```
 
 The index is disposable and reproducible. It contains only Level-0 discovery metadata and exact source digests. `list` and `find` derive it from records/observations at call time; no committed generated file is required. The explicit `build` command can write a local, ignored file for downstream tools that need a materialized projection.
@@ -47,20 +47,20 @@ The index is disposable and reproducible. It contains only Level-0 discovery met
 
 ## Implementation boundaries
 
-- `scripts/authority_catalog_sources.py` owns source-file loading, identity and append-only observation validation; external issuers still own normative truth.
-- `scripts/authority_catalog_search.py` is pure, deterministic lexical candidate scoring over index entries; a positive score never confers applicability.
-- `scripts/authority_catalog.py` owns the rebuildable index projection, stable CLI entrypoint and current Python import surface used by the native validator and tests.
+- `meta/next/scripts/authority_catalog_sources.py` owns source-file loading, identity and append-only observation validation; external issuers still own normative truth.
+- `meta/next/scripts/authority_catalog_search.py` is pure, deterministic lexical candidate scoring over index entries; a positive score never confers applicability.
+- `meta/next/scripts/authority_catalog.py` owns the rebuildable index projection, stable CLI entrypoint and current Python import surface used by the native validator and tests.
 
 The modules live in the existing Next source package until their real consumers justify a wider source relocation. No registry service, extra state store or cross-owner authority is introduced.
 
 ## Commands
 
 ```bash
-python scripts/authority_catalog.py build
-python scripts/authority_catalog.py list
-python scripts/authority_catalog.py find "risk management"
-python scripts/authority_catalog.py show iso-31000-2018
-python scripts/authority_catalog.py refresh iso-31000-2018
+python meta/next/scripts/authority_catalog.py build
+python meta/next/scripts/authority_catalog.py list
+python meta/next/scripts/authority_catalog.py find "risk management"
+python meta/next/scripts/authority_catalog.py show iso-31000-2018
+python meta/next/scripts/authority_catalog.py refresh iso-31000-2018
 ```
 
 `refresh` is intentionally read-only. It emits the exact official source and latest observation plus instructions for a semantic currentness check. It does not infer status from HTTP reachability and does not mutate records.
@@ -82,7 +82,7 @@ Do **not** add a record merely because a standard, framework, provider, taxonomy
 
 Discovery is fail-closed for multi-token semantic queries: every meaningful query token must be represented by a candidate. Generic modifiers such as `latest`, `official`, or `standard` do not relax semantic identity. An empty result means **not registered / not resolved**, not that a vaguely similar authority should be substituted.
 
-Seed closure evidence: `evidence/acceptance/authority-catalog-seed-closure-20260914.json`.
+Seed closure evidence: `meta/next/evidence/acceptance/authority-catalog-seed-closure-20260914.json`.
 
 ## Non-goals
 

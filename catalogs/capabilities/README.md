@@ -34,6 +34,6 @@ At task time, prefer the provider's natural currentness source:
 - container/image identity: container runtime image inspection and digest;
 - installed release/binding: the release manager or owner-native binding/profile command;
 - remote service: its authenticated health/version/capability surface when such a query is semantically valid;
-- external standard/provider version knowledge: append-only records under `authorities/observations/` where appropriate.
+- external standard/provider version knowledge: append-only records under `catalogs/authorities/observations/` where appropriate.
 
 If no trustworthy current probe exists, treat the local availability statement as a dated observation and revalidate before relying on it. Do not create a durable Ordivon ProviderStatus database merely to centralize facts already owned by package managers, container runtimes, services, or other natural providers.

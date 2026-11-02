@@ -355,7 +355,9 @@
       "verifyTasks": [
         "next:verify"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "SOURCE-only authority discovery metadata relocation. Only Next owner-local reader paths and read-only discovery change; official issuers retain standards authority. Historic source cuts remain unchanged and other S5 splits remain open."
     },
     {
       "id": "capability-catalog",

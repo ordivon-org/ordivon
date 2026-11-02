@@ -104,6 +104,7 @@ wholesale:
 - canonical Agent Skills -> `.agents/skills`;
 - portable control Plugin -> `extensions/ordivon-control-plane`;
 - authority and capability discovery metadata -> `catalogs/`;
+  - S5 authority discovery now resides at `catalogs/authorities/`; this is not semantic authority or complete S5.
   - S5 capability-catalog source placement completed at `catalogs/capabilities/`; other S5 splits remain open.
 - domain/composition profiles -> `profiles/`;
 - reusable knowledge mappings -> non-authoritative catalog/profile data;

@@ -160,7 +160,7 @@ def cmd_build(_: argparse.Namespace) -> int:
     emit(
         {
             "standing": "BUILT",
-            "path": str(INDEX.relative_to(ROOT)),
+            "path": str(INDEX.relative_to(ROOT.parent.parent)),
             "recordCount": index["recordCount"],
             "recordsDigest": index["recordsDigest"],
         }
@@ -207,9 +207,9 @@ def cmd_show(args: argparse.Namespace) -> int:
     latest = latest_observation(args.id)
     emit(
         {
-            "recordPath": str(path.relative_to(ROOT)),
+            "recordPath": str(path.relative_to(ROOT.parent.parent)),
             "record": record,
-            "latestObservationPath": str(latest[0].relative_to(ROOT))
+            "latestObservationPath": str(latest[0].relative_to(ROOT.parent.parent))
             if latest
             else None,
             "latestObservation": latest[1] if latest else None,
@@ -226,12 +226,12 @@ def cmd_refresh(args: argparse.Namespace) -> int:
         {
             "kind": "ordivon.external-authority-refresh-plan",
             "authorityId": args.id,
-            "recordPath": str(path.relative_to(ROOT)),
+            "recordPath": str(path.relative_to(ROOT.parent.parent)),
             "officialSource": record["identity"]["officialSource"],
             "latestObservation": latest[1] if latest else None,
             "requiredAction": [
                 "Check the official source semantically; HTTP reachability alone is insufficient.",
-                "If lifecycle/version/currentness changed, append a new dated observation under authorities/observations/<id>/.",
+                "If lifecycle/version/currentness changed, append a new dated observation under catalogs/authorities/observations/<id>/.",
                 "Do not rewrite historical observations.",
                 "Do not update task-local profiles automatically; reassess applicability/currentness in the affected Work.",
             ],

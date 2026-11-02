@@ -107,8 +107,13 @@ class FullCoverageTests(unittest.TestCase):
             if line.strip() and not line.lstrip().startswith("#")
         ]
         self.assertTrue(executable_lines)
-        self.assertEqual(executable_lines[-1], "python3 verify.py")
-        self.assertEqual(executable_lines.count("python3 verify.py"), 1)
+        # The Formal verifier's Python-isolated invocation preserves the
+        # same contract while intentionally disabling user-site imports.
+        self.assertIn(executable_lines[-1], ("python3 verify.py", "python3 -I verify.py"))
+        self.assertEqual(
+            sum(x in ("python3 verify.py", "python3 -I verify.py") for x in executable_lines),
+            1,
+        )
         self.assertEqual(M.source_partition("tools/unknown_script.py", policy)
                          ["standing"], "UNASSIGNED")
 
@@ -279,7 +284,7 @@ class LiveRecursiveCellsTests(unittest.TestCase):
         inventory = M.classification(ROOT, sha)
         queries = [
             "extensions/ordivon-control-plane/plugin.json",
-            "meta/next/authorities/records/iso/",
+            "catalogs/authorities/records/iso/",
             "tools/formal/LatentInputReachability.lean",
             "/etc/ordivon/secret",
             "meta/next/../tools/repo/exhaustive_coverage.py",
