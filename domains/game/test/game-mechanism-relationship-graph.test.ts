@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const library = JSON.parse(readFileSync(new URL("../standards/game_mechanism_experience_library_r1.json", import.meta.url), "utf8")) as any;
-const graph = JSON.parse(readFileSync(new URL("../standards/game_mechanism_relationship_graph_r1.json", import.meta.url), "utf8")) as any;
-const spec = JSON.parse(readFileSync(new URL("../standards/game_mechanism_relationship_spec_r1.json", import.meta.url), "utf8")) as any;
+const library = JSON.parse(readFileSync(new URL("../knowledge/game_mechanism_experience_library_r1.json", import.meta.url), "utf8")) as any;
+const graph = JSON.parse(readFileSync(new URL("../knowledge/game_mechanism_relationship_graph_r1.json", import.meta.url), "utf8")) as any;
+const spec = JSON.parse(readFileSync(new URL("../knowledge/game_mechanism_relationship_spec_r1.json", import.meta.url), "utf8")) as any;
 const doc = readFileSync(new URL("../docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md", import.meta.url), "utf8");
 
 const unique = (items: string[]) => new Set(items).size === items.length;
@@ -12,7 +12,7 @@ const unique = (items: string[]) => new Set(items).size === items.length;
 test("relationship graph is a derived memory projection rather than a mechanic ontology", () => {
   assert.equal(graph.schemaVersion, 1);
   assert.equal(graph.graphId, "ordivon-game-mechanism-relationship-graph-r1");
-  assert.equal(graph.sourceLibrary.path, "standards/game_mechanism_experience_library_r1.json");
+  assert.equal(graph.sourceLibrary.path, "knowledge/game_mechanism_experience_library_r1.json");
   assert.equal(graph.policy.closedOntology, false);
   assert.equal(graph.policy.canBlockNovelCombination, false);
   assert.equal(graph.policy.recommendationAuthority, "NONE");
@@ -105,8 +105,8 @@ test("generated relationship graph exactly rebuilds from spec plus Experience Li
 
 test("pure relationship projection takes source bytes without filesystem or CLI access", async () => {
   const { buildMechanismRelationshipGraphFromSources } = await import("../src/mechanism-relationship-graph.ts");
-  const libraryRaw = readFileSync(new URL("../standards/game_mechanism_experience_library_r1.json", import.meta.url), "utf8");
-  const specRaw = readFileSync(new URL("../standards/game_mechanism_relationship_spec_r1.json", import.meta.url), "utf8");
+  const libraryRaw = readFileSync(new URL("../knowledge/game_mechanism_experience_library_r1.json", import.meta.url), "utf8");
+  const specRaw = readFileSync(new URL("../knowledge/game_mechanism_relationship_spec_r1.json", import.meta.url), "utf8");
   assert.deepEqual(
     buildMechanismRelationshipGraphFromSources(
       { raw: libraryRaw, value: JSON.parse(libraryRaw) },
@@ -135,11 +135,11 @@ test("derived relationship graph is linked from owner-native LEGO registration",
   assert.match(readme, /knowledge:relationships/);
   for (const path of [
     "docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md",
-    "standards/game_mechanism_relationship_spec_r1.json",
-    "standards/game_mechanism_relationship_graph_r1.json",
+    "knowledge/game_mechanism_relationship_spec_r1.json",
+    "knowledge/game_mechanism_relationship_graph_r1.json",
     "scripts/build-mechanism-relationship-graph.ts",
     "scripts/mechanism-relationship-query.ts",
   ]) assert.match(project, new RegExp(path.replaceAll("/", "\\/")));
-  assert.ok(node.evidence.includes("standards/game_mechanism_relationship_graph_r1.json"));
+  assert.ok(node.evidence.includes("knowledge/game_mechanism_relationship_graph_r1.json"));
   assert.match(node.behavioralContract, /never a closed game ontology/i);
 });

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "specId": "ordivon-game-mechanism-relationship-spec-r1",
-  "sourceLibrary": "standards/game_mechanism_experience_library_r1.json",
+  "sourceLibrary": "knowledge/game_mechanism_experience_library_r1.json",
   "policy": {
     "purpose": "Authored semantic retrieval groupings and cross-game conditional hypotheses over exact Experience records.",
     "retrievalFacetsAreOntology": false,

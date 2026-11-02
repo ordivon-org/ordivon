@@ -1,12 +1,12 @@
-import { readFileSync } from "node:fs";
+import { readGameKnowledge } from "../src/knowledge-file.ts";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { boundedQueryLimit, cliArgument, normalizeQueryFilter } from "../src/query-input.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-export const COUNTEREXAMPLE_SYNTHESIS_PATH = "standards/game_counterexample_synthesis_r1.json";
-const MEMORY_PATH = "standards/game_design_counterexample_memory_r1.json";
-const EXPERIENCE_PATH = "standards/game_mechanism_experience_library_r1.json";
+export const COUNTEREXAMPLE_SYNTHESIS_PATH = "knowledge/game_counterexample_synthesis_r1.json";
+const MEMORY_PATH = "knowledge/game_design_counterexample_memory_r1.json";
+const EXPERIENCE_PATH = "knowledge/game_mechanism_experience_library_r1.json";
 
 export type CounterexampleTheme = {
   id: string;
@@ -52,7 +52,7 @@ export type CounterexampleSynthesisQueryResult = {
 };
 
 function readJson(root: string, path: string): any {
-  return JSON.parse(readFileSync(resolve(root, path), "utf8"));
+  return readGameKnowledge(path, root);
 }
 
 export function loadCounterexampleSynthesis(root = ROOT): any {

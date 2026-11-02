@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "memoryId": "ordivon-game-design-counterexample-memory-r1",
   "createdOn": "2026-09-18",
-  "sourceExperienceLibrary": "standards/game_mechanism_experience_library_r1.json",
+  "sourceExperienceLibrary": "knowledge/game_mechanism_experience_library_r1.json",
   "policy": {
     "failureIsUniversalLaw": false,
     "canBlockNovelCombination": false,

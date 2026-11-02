@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const kb = JSON.parse(readFileSync(new URL("../standards/game_external_knowledge_base_r1.json", import.meta.url), "utf8")) as any;
-const library = JSON.parse(readFileSync(new URL("../standards/game_mechanism_experience_library_r1.json", import.meta.url), "utf8")) as any;
-const memory = JSON.parse(readFileSync(new URL("../standards/game_design_counterexample_memory_r1.json", import.meta.url), "utf8")) as any;
+const kb = JSON.parse(readFileSync(new URL("../knowledge/game_external_knowledge_base_r1.json", import.meta.url), "utf8")) as any;
+const library = JSON.parse(readFileSync(new URL("../knowledge/game_mechanism_experience_library_r1.json", import.meta.url), "utf8")) as any;
+const memory = JSON.parse(readFileSync(new URL("../knowledge/game_design_counterexample_memory_r1.json", import.meta.url), "utf8")) as any;
 const doc = readFileSync(new URL("../docs/GAME_DESIGN_COUNTEREXAMPLE_MEMORY_R1.md", import.meta.url), "utf8");
 
 const unique = (items: string[]) => new Set(items).size === items.length;
@@ -91,8 +91,8 @@ test("counterexamples are registered as reusable Game LEGO, not a domain law", (
   const node = plan.nodes.find((x: any) => x.id === "G04");
   assert.ok(node);
   assert.match(readme, /knowledge:counterexamples/);
-  assert.match(project, /standards\/game_design_counterexample_memory_r1\.json/);
-  assert.ok(node.evidence.includes("standards/game_design_counterexample_memory_r1.json"));
+  assert.match(project, /knowledge\/game_design_counterexample_memory_r1\.json/);
+  assert.ok(node.evidence.includes("knowledge/game_design_counterexample_memory_r1.json"));
   assert.match(node.behavioralContract, /blacklist|recommendation/i);
   assert.equal(plan.nodes.some((x: any) => x.kind === "product"), false);
 });

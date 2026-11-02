@@ -1,10 +1,9 @@
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { readGameKnowledge } from "../src/knowledge-file.ts";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { boundedQueryLimit, cliArgument, normalizeQueryFilter } from "../src/query-input.ts";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const LIBRARY_PATH = "standards/game_mechanism_experience_library_r1.json";
+const LIBRARY_PATH = "knowledge/game_mechanism_experience_library_r1.json";
 
 export type MechanismExperienceQuery = {
   q?: string;
@@ -28,7 +27,7 @@ export type MechanismExperienceQueryResult = {
 };
 
 function library(): any {
-  return JSON.parse(readFileSync(resolve(ROOT, LIBRARY_PATH), "utf8"));
+  return readGameKnowledge(LIBRARY_PATH);
 }
 
 export function queryMechanismExperiences(query: MechanismExperienceQuery): MechanismExperienceQueryResult {

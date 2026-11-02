@@ -16,14 +16,16 @@ managed_paths:
   - docs/GAME_DESIGN_COUNTEREXAMPLE_MEMORY_R1.md
   - docs/GAME_COUNTEREXAMPLE_SYNTHESIS_R1.md
   - docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md
-  - standards/game_external_knowledge_base_r1.json
-  - standards/game_external_skill_watchlist_r1.json
-  - standards/game_teardown_queue_r1.json
-  - standards/game_mechanism_experience_library_r1.json
-  - standards/game_mechanism_relationship_spec_r1.json
-  - standards/game_mechanism_relationship_graph_r1.json
-  - standards/game_design_counterexample_memory_r1.json
-  - standards/game_counterexample_synthesis_r1.json
+  - knowledge/game_external_knowledge_base_r1.json
+  - knowledge/game_external_skill_watchlist_r1.json
+  - knowledge/game_teardown_queue_r1.json
+  - knowledge/game_mechanism_experience_library_r1.json
+  - knowledge/game_mechanism_relationship_spec_r1.json
+  - knowledge/game_mechanism_relationship_graph_r1.json
+  - knowledge/game_design_counterexample_memory_r1.json
+  - knowledge/game_counterexample_synthesis_r1.json
+  - src/query-input.ts
+  - src/knowledge-file.ts
   - scripts/external-knowledge-query.ts
   - scripts/mechanism-experience-query.ts
   - scripts/mechanism-relationship-query.ts

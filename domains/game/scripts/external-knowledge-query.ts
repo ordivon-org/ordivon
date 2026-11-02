@@ -1,9 +1,8 @@
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { readGameKnowledge } from "../src/knowledge-file.ts";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { boundedQueryLimit, cliArgument, normalizeQueryFilter } from "../src/query-input.ts";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 type QueryType = "sources" | "teardowns" | "skills";
 
@@ -28,7 +27,7 @@ export type ExternalKnowledgeQueryResult = {
 };
 
 function json(path: string): any {
-  return JSON.parse(readFileSync(resolve(ROOT, path), "utf8"));
+  return readGameKnowledge(path);
 }
 
 function text(value: unknown): string {
@@ -44,11 +43,11 @@ export function queryExternalKnowledge(query: ExternalKnowledgeQuery): ExternalK
 
   let items: any[];
   if (query.type === "sources") {
-    items = json("standards/game_external_knowledge_base_r1.json").sources;
+    items = json("knowledge/game_external_knowledge_base_r1.json").sources;
   } else if (query.type === "teardowns") {
-    items = json("standards/game_teardown_queue_r1.json").targets;
+    items = json("knowledge/game_teardown_queue_r1.json").targets;
   } else if (query.type === "skills") {
-    items = json("standards/game_external_skill_watchlist_r1.json").skills;
+    items = json("knowledge/game_external_skill_watchlist_r1.json").skills;
   } else {
     throw new Error(`Unknown knowledge query type: ${String(query.type)}`);
   }
