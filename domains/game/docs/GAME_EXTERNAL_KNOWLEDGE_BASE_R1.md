@@ -173,3 +173,16 @@ uninstalled Godot AI/narrative proposals. The source ledger has 156 records.
 `src/prototype-composition.ts` projects provider references and exact
 source-supplied evidence states; the CLI merely loads evidence and prints
 results. No second registry or source authority exists.
+
+
+## Native dialogue branch evidence (2026-11-03)
+
+The existing `examples/dialogue-composition` Godot 4.7.2 consumer now
+has its own `branching-dialogue-gate` composition entry. It composes the
+MIT-licensed, source-pinned upstream Dialogue Manager v4.2.0 runtime with a
+separate game-authoritative gate/tokens state Node and native response UI.
+Its import/branch/condition/state-effect consumer is the existing
+`acceptance.gd`; no new parser, asset pack, registry or service was created.
+This is an executed component-level closure, not proof of an exploration
+game. The larger `dialogue-led-exploration` still lacks integration into
+rooms/world, content, soundtrack, save/resume and human evaluation.
