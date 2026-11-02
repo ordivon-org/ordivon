@@ -21,7 +21,7 @@ EXPECTED = {
 SQLITE_MIGRATION = "services/runtime/crates/ordivon-runtime-core/migrations/runtime/"
 SQLITE_STORAGE = "services/runtime/crates/ordivon-runtime-core/src/runtime/"
 OSQUERY_PREFIX = "platform/workstation/inventory/queries/"
-POSTGRESQL_FILE = "meta/next/scripts/experimental_episode_r5c_source_r1.sql"
+POSTGRESQL_FILE = "studies/experimental-episodes/episode-store/queries/runtime_r5c_source.sql"
 POSTGRESQL_RUNTIME_EPOCH = "services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
 
 # Exact full-host inventories can traverse thousands of installed Python/npm

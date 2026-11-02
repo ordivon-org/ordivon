@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.experimental_episode_r1 import (
+from ordivon_experimental_episode_store.runtime_backfill import (
     EpisodeProjectionError,
     backfill,
     project_r5c_record,
@@ -249,7 +249,8 @@ def test_standalone_episode_cli_uses_identical_projection(tmp_path: Path) -> Non
     subprocess.run(
         [
             sys.executable,
-            str(root / "scripts" / "experimental_episode_r1.py"),
+            "-m",
+            "ordivon_experimental_episode_store.runtime_backfill",
             "project-r5c",
             str(source),
             str(episodes),
@@ -268,7 +269,8 @@ def test_standalone_episode_cli_uses_identical_projection(tmp_path: Path) -> Non
     subprocess.run(
         [
             sys.executable,
-            str(root / "scripts" / "experimental_episode_r1.py"),
+            "-m",
+            "ordivon_experimental_episode_store.runtime_backfill",
             "validate",
             str(episodes),
         ],
