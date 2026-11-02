@@ -28,3 +28,9 @@ Choose the **current natural owner** by the fact or effect it controls; the repo
 | Check dependency ownership and allowed cross-owner seams | [`tools/repo/owners.toml`](tools/repo/owners.toml), [`dependency_contracts.toml`](tools/repo/dependency_contracts.toml) | Repository mechanics; owner-native contracts remain authoritative |
 
 For source vs deployed state, start with [`CURRENT_ARCHITECTURE.md`](docs/architecture/CURRENT_ARCHITECTURE.md). For the **proposed, only partially deployed** physical package layout and migration gates, read [`STRUCTURE_R2.md`](docs/architecture/STRUCTURE_R2.md). Do not move source solely to match that target: first identify its real consumers, public seam, deployment files and native verification, and keep source relocation separate from semantic changes.
+
+## Verify, contribute, report
+
+- Verify repository mechanics with `mise install && mise run repo:ci`; CI runs the same tasks (see `mise.toml`).
+- Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+- License: [Apache-2.0](LICENSE).
