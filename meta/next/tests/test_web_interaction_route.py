@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest import mock
 
 from scripts import web_interaction_route as R
+from scripts import web_provider_census as CENSUS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -97,8 +98,8 @@ class WebInteractionRouteTests(unittest.TestCase):
                 '#!/bin/sh\necho \'{"state":"AVAILABLE","bindingDigest":"sha256:x","commandPrefix":["/usr/bin/node","/opt/pw.js"],"environment":{"PLAYWRIGHT_BROWSERS_PATH":"/cache"},"identity":{"browserExecutableDigest":"sha256:b","cliEntrypointDigest":"sha256:c"}}\'\n'
             )
             tool.chmod(0o755)
-            with mock.patch.object(R, "PLAYWRIGHT_BINDING", tool):
-                value = R._playwright_health()
+            with mock.patch.object(CENSUS, "PLAYWRIGHT_BINDING", tool):
+                value = CENSUS._playwright_health()
         self.assertEqual(value["state"], "available")
         self.assertEqual(value["bindingTool"], str(tool))
 
