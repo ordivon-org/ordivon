@@ -1,7 +1,5 @@
 extends SceneTree
 
-const AudioFeedback = preload("res://movement_audio_feedback.gd")
-
 var failures: Array[String] = []
 var assertions: int = 0
 
@@ -18,17 +16,15 @@ func run_native_audio_consumer() -> void:
     var scene = load("res://main.tscn").instantiate()
     root.add_child(scene)
     var rules: Node = scene.get_node("Rules")
-    var feedback = AudioFeedback.new()
-    feedback.name = "MovementAudio"
-    scene.add_child(feedback)
+    var feedback: AudioStreamPlayer = scene.get_node("MovementAudio")
     var initial_clip = AudioStreamWAV.load_from_file("res://assets/kenney-ui-audio/click1.wav")
     var alternate_clip = AudioStreamWAV.load_from_file("res://assets/kenney-ui-audio/click2.wav")
     expect(initial_clip != null and alternate_clip != null, "source-licensed Kenney WAV clips load via native Godot")
     if initial_clip == null or alternate_clip == null:
         quit(1)
         return
-    feedback.stream = initial_clip
-    feedback.bind_rules(rules)
+    expect(feedback.stream != null, "real startup scene installs its own audio resource and event binding")
+    expect(feedback.stream.get_data() == initial_clip.get_data(), "startup uses exact source-licensed click WAV")
     expect(feedback.observed_play_count == 0, "initial state notification does not mint movement feedback")
     expect(not rules.move(0), "invalid action is rejected by existing rules")
     expect(feedback.observed_play_count == 0, "rejected action produces no sound effect")
@@ -54,5 +50,5 @@ func run_native_audio_consumer() -> void:
     scene.free()
     initial_clip = null
     alternate_clip = null
-    await process_frame
+    await create_timer(0.15).timeout
     quit(0 if failures.is_empty() else 1)

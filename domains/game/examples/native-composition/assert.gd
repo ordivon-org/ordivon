@@ -150,7 +150,8 @@ func run_acceptance() -> void:
     expect(alternate.get_node("Title").text.contains("Player UI"), "native scene replacement changes UI")
     expect(alternate_scene.get_node("Rules").move(1), "rules execute under swapped UI")
     expect(alternate.get_node("Board").text.begins_with(". P"), "alternate UI receives rule signals")
-    alternate_scene.queue_free()
+    alternate_scene.get_node("MovementAudio").stop()
+    alternate_scene.free()
 
     var base = load("res://configs/base.tres")
     for sequence in range(1 << base.turn_limit):
@@ -162,7 +163,9 @@ func run_acceptance() -> void:
             if rules.snapshot()["phase"] != "playing":
                 break
 
-    scene.queue_free()
+    scene.get_node("MovementAudio").stop()
+    scene.free()
+    await create_timer(0.15).timeout
     if failures.size() == 0:
         print("GAME_NATIVE_COMPOSITION_PASS assertions=", assertions, " sequences=", 1 << base.turn_limit)
         quit(0)
