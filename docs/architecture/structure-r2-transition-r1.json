@@ -624,6 +624,24 @@
         "next:verify"
       ],
       "wave": "S5"
+    },
+    {
+      "disposition": "Move the frozen R7 Game autonomous-interest reference implementation to the Study owner with unchanged evaluator/model semantics; rebind the exact game protocol and content digests without a compatibility alias.",
+      "id": "game-autonomous-interest-r7-study",
+      "mode": "move",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/experiments/autonomous-interest-r7/"
+      ],
+      "standing": "DEPLOYED",
+      "targetPaths": [
+        "studies/game-autonomous-interest/"
+      ],
+      "verifyTasks": [
+        "repo:ci"
+      ],
+      "wave": "S5"
     }
   ],
   "openSlices": [

@@ -111,7 +111,7 @@ Candidate transitions contain no executable callback, RNG, wall clock, environme
 
 Reference evaluator:
 
-`experiments/autonomous-interest-r7/evaluator_reference.py`
+`studies/game-autonomous-interest/evaluator_reference.py`
 
 Maximum episode length: 96 decisions.
 
@@ -153,7 +153,7 @@ Tournament admission also independently requires no candidate reward/RNG/policy 
 
 Reference selector:
 
-`experiments/autonomous-interest-r7/selection_reference.py`
+`studies/game-autonomous-interest/selection_reference.py`
 
 Its authoritative inputs are exact candidate models, never caller-created score rows.
 
@@ -211,7 +211,7 @@ Raw observation-label renaming and state-ID renaming do not change the semantic 
 
 Reference:
 
-`experiments/autonomous-interest-r7/build_manifest_reference.py`
+`studies/game-autonomous-interest/build_manifest_reference.py`
 
 The build manifest canonicalizes the exact three models by candidate ID, recomputes tournament + matched ablation, and binds:
 
@@ -233,7 +233,7 @@ Caller order cannot change the manifest. Human serving rejects caller-edited man
 
 Reference:
 
-`experiments/autonomous-interest-r7/renderer_reference.py`
+`studies/game-autonomous-interest/renderer_reference.py`
 
 Renderer ID: `ORDIVON_R7_BLINDED_TOKEN_UI_V1`.
 
@@ -256,7 +256,7 @@ Renderer conformance checks every reachable view/action edge and both arms befor
 
 Reference:
 
-`experiments/autonomous-interest-r7/study_runner_reference.py`
+`studies/game-autonomous-interest/study_runner_reference.py`
 
 Study runner ID: `ORDIVON_R7_HOLDOUT_RUNNER_V1`.
 
