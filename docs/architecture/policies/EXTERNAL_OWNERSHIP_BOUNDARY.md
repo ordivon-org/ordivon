@@ -19,7 +19,7 @@ The policy is a repository-specific architecture boundary, not a new cross-domai
 
 ## Mechanical contract
 
-`policies/external-ownership-boundary.json` records:
+`docs/architecture/policies/external-ownership-boundary.json` records:
 
 - the empty Agent Service reintroduction ceiling and completed retirement evidence;
 - already retired legacy types and persistence surfaces;

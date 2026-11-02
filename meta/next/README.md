@@ -48,7 +48,6 @@ The transitional Next tree retains implementation, experiments, and evidence pen
 ```text
 meta/next/
 ├── domains/         # domain profiles pending consumer-qualified S5 relocation
-├── policies/        # remaining task-local policy source pending S5 split
 ├── tests/           # remaining Next verification consumers
 ├── scripts/         # remaining native commands/validators pending natural-owner move
 ├── schemas/         # remaining cross-domain contracts
@@ -75,7 +74,7 @@ See `docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` for the current cross-do
 
 ## Authority and policy composition
 
-See `knowledge/lessons/authority-mature-substrate-decomposition-r1.md` for the current cross-disciplinary authority map. Ordivon does not claim a novel authority theory: institutional governance, evidence-to-decision, decision science, delegation, IAM/policy engines and adaptive/institutional learning remain externally owned mature substrates. `policies/` keeps only the thin task-local composition boundary and must not become a custom policy language, IAM system, generic Human gate or universal risk gate.
+See `../../catalogs/knowledge/lessons/authority-mature-substrate-decomposition-r1.md` for the current cross-disciplinary authority map. Ordivon does not claim a novel authority theory: institutional governance, evidence-to-decision, decision science, delegation, IAM/policy engines and adaptive/institutional learning remain externally owned mature substrates. `../../docs/architecture/policies/` records repository architecture boundaries; `../../packages/composition/policies/` houses the bounded OPA reference and must not become a custom policy language, IAM system, generic Human gate or universal risk gate.
 
 ## Enterprise work routing
 

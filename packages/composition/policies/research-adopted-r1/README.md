@@ -31,7 +31,7 @@ The example policy is deliberately narrow: it adopts a Game research result allo
 Run the mature evaluator directly:
 
 ```bash
-opa test policies/research-adopted-r1 -v
+opa test packages/composition/policies/research-adopted-r1 -v
 ```
 
 The tests establish that:
