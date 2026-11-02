@@ -20,11 +20,10 @@ from ordivon_composition import (
     compile_manifest,
     validate_gate_result,
 )
-
-try:
-    from scripts.cross_domain_binding_r3 import resolve_repo_file, validate_binding
-except ModuleNotFoundError:
-    from cross_domain_binding_r3 import resolve_repo_file, validate_binding
+from ordivon_composition.cross_domain_binding_r3 import (
+    resolve_repo_file,
+    validate_binding,
+)
 
 
 def _load(path: Path) -> dict[str, Any]:

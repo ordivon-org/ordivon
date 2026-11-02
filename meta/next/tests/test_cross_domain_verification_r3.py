@@ -12,12 +12,12 @@ from ordivon_composition import (
     evaluate_gate_results,
     validate_manifest,
 )
-
-from scripts.cross_domain_binding_r3 import (
+from ordivon_composition.cross_domain_binding_r3 import (
     load_binding,
     resolve_repo_file,
     validate_binding,
 )
+
 from scripts.research_artifact_gate_r3 import (
     build_gate_result as research_artifact_gate,
 )

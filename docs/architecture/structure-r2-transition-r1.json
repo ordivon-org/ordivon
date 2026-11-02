@@ -624,6 +624,26 @@
         "next:verify"
       ],
       "wave": "S5"
+    },
+    {
+      "id": "next-r3-composition-binding",
+      "mode": "move",
+      "wave": "S5",
+      "owner": "composition",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/scripts/cross_domain_binding_r3.py"
+      ],
+      "targetPaths": [
+        "packages/composition/src/ordivon_composition/cross_domain_binding_r3.py"
+      ],
+      "standing": "DEPLOYED",
+      "verifyTasks": [
+        "composition:verify",
+        "next:verify",
+        "repo:ci"
+      ],
+      "disposition": "Move the generic typed R3 JSON Schema binding and repository path confinement helper into its existing installable Composition distribution beside the schema; Next Web/Research gate consumers now import that public package module. Domain-specific gate semantics remain at consumer boundary; no fallback or alias."
     }
   ],
   "openSlices": [
