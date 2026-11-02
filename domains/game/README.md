@@ -22,7 +22,7 @@ decomposition, (2) directory/naming representation, (3) upstream Game LEGO
 discovery and consumer-verified prototype composition. Do not confuse an
 upstream addon listing or a proposed composition with an installed Game.
 
-Inspect six source-backed composition hypotheses without installing anything.
+Inspect seven source-backed composition hypotheses without installing anything.
 Two additional existing native consumers now appear directly in query results:
 a three-room Godot encounter with rules/HUD/CC0 audio, and an avatar
 appearance-only PackedScene swap. The latter is an executed **component**,
@@ -33,6 +33,7 @@ not an independently playable game:
     pnpm composition:inspect -- --engine bevy
     pnpm composition:inspect -- --id room-encounter
     pnpm composition:inspect -- --id kenney-avatar-appearance
+    pnpm composition:inspect -- --id branching-dialogue-gate
 
 The query source resolver is a **pure function** in
 `src/prototype-composition.ts`; the original stable CLI remains an I/O

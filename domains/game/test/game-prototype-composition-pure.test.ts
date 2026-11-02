@@ -49,3 +49,21 @@ test("pure source relation fails on ungrounded provider or engine mismatch", () 
     /Godot-only provider cannot be native Bevy plugin/,
   );
 });
+
+
+test("pure projection rejects unconsumed execution claims without fabricating an engine proof", () => {
+  const executedWithoutConsumer: CompositionPlan = {
+    recipes: [{ ...plan.recipes[0]!, currentConsumer: "" }],
+  };
+  assert.throws(() => projectPrototypeCompositions(executedWithoutConsumer, index), /missing named consumer/);
+
+  const unproven: CompositionPlan = {
+    recipes: [{ ...plan.recipes[0]!, components: [
+      { ...plan.recipes[0]!.components[0]!, standing: "SOURCE_DOCUMENTED" },
+    ] }],
+  };
+  assert.throws(() => projectPrototypeCompositions(unproven, index), /without an executed component/);
+
+  const duplicated: CompositionPlan = { recipes: [plan.recipes[0]!, plan.recipes[0]!] };
+  assert.throws(() => projectPrototypeCompositions(duplicated, index), /duplicate Game composition/);
+});

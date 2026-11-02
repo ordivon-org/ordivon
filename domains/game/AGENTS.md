@@ -237,7 +237,19 @@ G07 is the separate Bevy ECS/Plugin game example (`cargo test --locked` and
 Neither is a launched indie game. A future playable 5-minute product must
 have its own playable build and product evidence; never promote fixture PASS.
 
-**Narrative native consumer G09:** `examples/dialogue-composition/`
+****Reusable dialogue LEGO assembly:** the already-installed 4.2.0 upstream
+Dialogue Manager provides branch/condition evaluation, while
+`examples/dialogue-composition/gate_state.gd` owns tokens and gate
+effects and native Control/Buttons own presentation. Inspect the
+`branching-dialogue-gate` record through the **existing**
+`pnpm composition:inspect -- --id branching-dialogue-gate`.
+That is an executed **component closure**, not a full exploration game.
+The separate `dialogue-led-exploration` remains DESIGN_CANDIDATE:
+an installed dialogue runtime alone cannot claim connected rooms, save
+state, content, music, or player experience. Never create a second DSL,
+story-state database or duplicate Game G09.
+
+Narrative native consumer G09:** `examples/dialogue-composition/`
 uses the current upstream MIT Dialogue Manager v4.2.0 with an exact source
 pin, its ordinary `.dialogue` importer and runtime, and one Godot 4.7.2
 project. The scene Control/Buttons own choice presentation; a separate
