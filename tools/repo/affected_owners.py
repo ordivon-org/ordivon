@@ -171,7 +171,7 @@ def owners_for_paths(
     # Repo mechanics (repo:ci) runs unconditionally before owner-task
     # selection. Only source-history also has an observed native Owner
     # consumer: Composition select-impact executes this exact producer.
-    # Do not expand unrelated repo producer edits to all 18 domain queues.
+    # Do not expand unrelated repo producer edits to all 19 registered owner queues.
     history_consumer_changed = "tools/repo/source_history_legos.py" in normalized
     # Existing extensions/chatgpt-skills-mcp consumers discover and read actual project
     # Skills under .agents/skills, outside the extensions/chatgpt-skills-mcp code root.

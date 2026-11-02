@@ -560,6 +560,24 @@
       "wave": "S5",
       "standing": "DEPLOYED",
       "disposition": "External authority source, observation, search, native CLI/validator/test, and NX01 owner LEGO are co-located in the existing catalogs/authorities natural source responsibility, without a new registry service."
+    },
+    {
+      "id": "episode-store-analytical-consumer",
+      "wave": "S5",
+      "mode": "move",
+      "owner": "episode-store",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/experiments/episode-store-r1/"
+      ],
+      "targetPaths": [
+        "studies/experimental-episode/store/"
+      ],
+      "verifyTasks": [
+        "episode-store:verify"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Source-only relocation of a standalone PostgreSQL analytical projection into a natural Study Owner with its own native verification task. This does not confer production PostgreSQL deployment authority; historical source coordinates remain immutable evidence."
     }
   ],
   "openSlices": [

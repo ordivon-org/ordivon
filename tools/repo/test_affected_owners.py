@@ -33,6 +33,11 @@ class AffectedOwnersTests(unittest.TestCase):
             ["skills"],
         )
 
+    def test_experimental_episode_study_selects_natural_analytical_owner(self) -> None:
+        path = "studies/experimental-episode/store/src/ordivon_experimental_episode_store/ingest.py"
+        self.assertEqual(self.names(path), ["episode-store"])
+        self.assertEqual(self.queue_tasks(path), ["episode-store:verify"])
+
     def test_project_agent_skill_changes_select_existing_skills_consumer(self) -> None:
         # Real Skills test reads this canonical project Skill, not just extensions/chatgpt-skills-mcp source.
         source = ".agents/skills/recursive-lego-calculus/SKILL.md"

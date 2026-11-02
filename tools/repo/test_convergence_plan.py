@@ -876,8 +876,8 @@ class ConvergencePlanTests(unittest.TestCase):
         evidence = MODULE.explain_source_impacts(
             plan, source_cut=MODULE._git("rev-parse", "HEAD")
         )
-        self.assertEqual(len(evidence["verificationOwners"]), 18)
-        self.assertEqual(len(evidence["queueVerifyTasks"]), 19)
+        self.assertEqual(len(evidence["verificationOwners"]), 19)
+        self.assertEqual(len(evidence["queueVerifyTasks"]), 20)
         self.assertEqual(evidence["queueVerifyTasks"].count("formal:verify"), 1)
         self.assertEqual(evidence["queueVerifyTasks"], plan["queueVerifyTasks"])
         self.assertEqual(
@@ -1147,7 +1147,7 @@ class ConvergencePlanTests(unittest.TestCase):
         MODULE.validate_queue_task_selection(all_owners, all_tasks)
 
     def test_every_real_single_and_pair_owner_source_change_rejects_queue_omissions(self) -> None:
-        """R2.1 finite source-consumer closure: all 18 owner roots, every pair.
+        """R2.1 finite source-consumer closure: all 19 owner roots, every pair.
 
         This is a test of the actual native policy and tracked Git inputs,
         not a proof that unknown dynamic/installed consumers are complete.
@@ -1169,10 +1169,10 @@ class ConvergencePlanTests(unittest.TestCase):
                 and "/test" not in path
             ]
             samples[owner.name] = (code_paths or real_paths)[0]
-        self.assertEqual(len(samples), 18)
+        self.assertEqual(len(samples), 19)
         self.assertEqual(len(samples), len(set(samples.values())))
         groups = [(name,) for name in samples] + list(combinations(samples, 2))
-        self.assertEqual(len(groups), 18 + 153)
+        self.assertEqual(len(groups), 19 + 171)
         checks = 0
         for group in groups:
             changed = [samples[name] for name in group]
@@ -1199,9 +1199,9 @@ class ConvergencePlanTests(unittest.TestCase):
                             selected, requested, changed
                         )
                 checks += 1
-        # 171 real source cohorts, 1191 exact positive/negative obligations
-        # at the present 18-Owner source cut; no global coverage inference.
-        self.assertEqual(checks, 1191)
+        # 190 real source cohorts, 1323 exact positive/negative obligations
+        # at the present 19-Owner source cut; no global coverage inference.
+        self.assertEqual(checks, 1323)
 
     def test_root_and_formal_selection_reject_each_individual_missing_task(self) -> None:
         root_path = ["mise.toml"]
@@ -1477,7 +1477,7 @@ class ConvergencePlanTests(unittest.TestCase):
              ["tools/formal/Proof.qnt"], False),
         )
         # Validate the *actual* GitHub inline consumer as well as the Python
-        # producer for every tracked 18-Owner one-/two-owner source cohort.
+        # producer for every tracked 19-Owner one-/two-owner source cohort.
         # This is still only a bounded source task contract, not runtime proof.
         git_paths = subprocess.check_output(
             ["git", "--no-replace-objects", "ls-tree", "-r", "--name-only", "HEAD"],
@@ -1493,9 +1493,9 @@ class ConvergencePlanTests(unittest.TestCase):
                 and "/test" not in path
             ]
             samples[owner.name] = (code_paths or paths)[0]
-        self.assertEqual(len(samples), 18)
+        self.assertEqual(len(samples), 19)
         cohorts = [(name,) for name in samples] + list(combinations(samples, 2))
-        self.assertEqual(len(cohorts), 171)
+        self.assertEqual(len(cohorts), 190)
         original_cases = len(examples)
         for group in cohorts:
             changed = [samples[name] for name in group]
@@ -1504,7 +1504,7 @@ class ConvergencePlanTests(unittest.TestCase):
                 (selected["verificationOwners"], selected["queueVerifyTasks"], changed, True),
                 ([], [], changed, False),
             )
-        self.assertEqual(len(examples) - original_cases, 342)
+        self.assertEqual(len(examples) - original_cases, 380)
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             owners_path = folder / "owners.txt"

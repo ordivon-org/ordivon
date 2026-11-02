@@ -1,6 +1,6 @@
 # Experimental Episode PostgreSQL Store R1
 
-Source placement: `meta/next/experiments/episode-store-r1` (current). The former `meta/next/experimental/episode-store-r1` path is a dated source coordinate, not a supported import or install path. This move changes no Python distribution name, Alembic schema, source semantics or PostgreSQL authority.
+Source placement: `studies/experimental-episode/store/` (current). The former `meta/next/experiments/episode-store-r1/` and `meta/next/experimental/episode-store-r1/` locations are retired source coordinates, not supported import or installation paths. The move does not modify the Python distribution, Alembic schema, analytical semantics or PostgreSQL authority.
 
 Status: **task-local analytical consumer / not deployed owner truth**
 

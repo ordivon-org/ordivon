@@ -992,8 +992,16 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(next_owners[0]["verify_task"], "next:verify")
         top = tomllib.loads((ROOT / "mise.toml").read_text())
         route = top["tasks"]["next:verify"]["run"]
-        for fragment in ("cd meta/next", "mise run verify", "cd experiments/episode-store-r1"):
+        for fragment in ("cd meta/next", "mise run verify"):
             self.assertIn(fragment, route)
+        episode_owner = next(
+            o for o in manifest["owners"] if o["name"] == "episode-store"
+        )
+        self.assertEqual(episode_owner["root"], "studies/experimental-episode/store/")
+        self.assertEqual(episode_owner["verify_task"], "episode-store:verify")
+        episode_route = top["tasks"]["episode-store:verify"]["run"]
+        self.assertIn("cd studies/experimental-episode/store", episode_route)
+        self.assertIn("mise run verify", episode_route)
         native = tomllib.loads((ROOT / "meta/next/mise.toml").read_text())
         checks = native["tasks"]["verify"]["run"]
         for obligation in (
