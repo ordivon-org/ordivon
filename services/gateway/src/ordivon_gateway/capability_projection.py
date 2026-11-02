@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from .contracts import CapabilityDescriptor
-from .routes import CapabilityRoute
+from .routing import CapabilityRoute
 
 
 def project_execution_capability(
