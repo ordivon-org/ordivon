@@ -35,7 +35,9 @@ managed_paths:
   - scripts/build-mechanism-relationship-graph.ts
   - planning/lego-plan-r1.json
   - planning/prototype-composition-candidates-r1.json
+  - src/prototype-composition.ts
   - scripts/prototype-composition-query.ts
+  - test/game-prototype-composition-pure.test.ts
   - test/game-prototype-composition.test.ts
   - examples/native-composition/README.md
   - examples/native-composition/assert.gd
