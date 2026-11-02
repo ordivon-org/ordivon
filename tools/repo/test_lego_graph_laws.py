@@ -93,7 +93,7 @@ def test_gateway_recursive_source_contracts_are_non_authoritative_and_consumer_b
     assert identities == {"G00", "G01", "G02", "G03", "G04", "G05", "G06", "G07", "G08", "G09"}
     assert plan["truthRole"] == "planning-projection-not-project-truth"
     checks = {
-        "G01": ("routes.py", "test_gateway_service.py"),
+        "G01": ("routing.py", "test_gateway_service.py"),
         "G02": ("service.py", "test_capability_projection.py"),
         "G03": ("service.py", "test_gateway_service.py"),
         "G04": ("service.py", "test_gateway_service.py"),
