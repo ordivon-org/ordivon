@@ -7,13 +7,12 @@ ORAS/OCI 1.1. This module deliberately does not implement a registry, OCI manife
 serializer, Artifact build/verification facade, or a second package-index/release-
 manifest format.
 """
+
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
-import subprocess
 import sys
 from collections.abc import Iterable
 from pathlib import Path
@@ -31,14 +30,22 @@ from artifact_core.contracts import file_fact, sha256_file
 from artifact_core.json_validation import validate_json_document
 from artifact_core.profile_v1 import validate_profile_v1
 from artifact_evidence.delivery import verify_file_fact
+from artifact_operations.providers.oci_toolchain import (
+    DEFAULT_OPA as DEFAULT_OPA,
+)
+from artifact_operations.providers.oci_toolchain import (
+    DEFAULT_ORAS,
+    evaluate_release_policy,
+    run_oras,
+)
+from artifact_operations.providers.oci_toolchain import (
+    DEFAULT_RELEASE_POLICY as DEFAULT_RELEASE_POLICY,
+)
 from artifact_trust.provenance import slsa_statement, verify_release_provenance
 from artifact_trust.vsa import (
     aggregate_vsa_gates,
 )
 
-DEFAULT_ORAS = Path(os.environ.get("ARTIFACT_ORAS", "/opt/ordivon/external/oras/1.3.4/bin/oras"))
-DEFAULT_OPA = Path(os.environ.get("ARTIFACT_OPA", "/opt/ordivon/external/opa/1.20.2/bin/opa"))
-DEFAULT_RELEASE_POLICY = Path(os.environ.get("ARTIFACT_RELEASE_POLICY", str(SCRIPT_DIR.parent / "artifact-delivery/policy/release.rego")))
 RELEASE_ARTIFACT_TYPE = "application/vnd.ordivon.release.v2"
 GATE_ARTIFACT_TYPE = "application/vnd.ordivon.verification.v1+json"
 VERIFY_RUN_ARTIFACT_TYPE = "application/vnd.ordivon.verification-run.v1+json"
@@ -113,74 +120,9 @@ def media_type(path: Path) -> str:
     return FORMAT_MEDIA_TYPES.get(path.suffix.casefold(), "application/octet-stream")
 
 
-def run_oras(args: list[str], *, cwd: Path, timeout: int = 120) -> dict[str, Any]:
-    if not DEFAULT_ORAS.is_file() or not os.access(DEFAULT_ORAS, os.X_OK):
-        raise RuntimeError(f"ORAS carrier is unavailable: {DEFAULT_ORAS}")
-    proc = subprocess.run(
-        [str(DEFAULT_ORAS), *args],
-        cwd=cwd,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-        timeout=timeout,
-        env=dict(os.environ),
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(
-            f"ORAS command failed ({proc.returncode}): {' '.join(args)}\n"
-            f"stdout={proc.stdout[-4000:]}\nstderr={proc.stderr[-4000:]}"
-        )
-    text = proc.stdout.strip()
-    if not text:
-        return {}
-    try:
-        value = json.loads(text)
-    except json.JSONDecodeError as error:
-        raise RuntimeError(f"ORAS returned non-JSON output: {error}: {text[-4000:]}") from error
-    if not isinstance(value, dict):
-        raise RuntimeError("ORAS JSON output is not an object")
-    return value
-
-
-def evaluate_release_policy(policy_input: dict[str, Any]) -> dict[str, Any]:
-    if not DEFAULT_OPA.is_file() or not os.access(DEFAULT_OPA, os.X_OK):
-        raise RuntimeError(f"OPA carrier is unavailable: {DEFAULT_OPA}")
-    if not DEFAULT_RELEASE_POLICY.is_file():
-        raise RuntimeError(f"Artifact release policy is unavailable: {DEFAULT_RELEASE_POLICY}")
-    proc = subprocess.run(
-        [
-            str(DEFAULT_OPA), "eval", "--format", "raw",
-            "--data", str(DEFAULT_RELEASE_POLICY), "--stdin-input",
-            "data.artifact.release.ready",
-        ],
-        input=json.dumps(policy_input, separators=(",", ":")),
-        text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        check=False, timeout=30, env=dict(os.environ),
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(f"OPA release policy evaluation failed ({proc.returncode}): {proc.stderr[-4000:]}")
-    raw = proc.stdout.strip()
-    if raw not in {"true", "false"}:
-        raise RuntimeError(f"OPA release policy returned unexpected result: {raw!r}")
-    return {
-        "status": "PASS",
-        "ready": raw == "true",
-        "query": "data.artifact.release.ready",
-        "input": policy_input,
-        "policy": {
-            "path": str(DEFAULT_RELEASE_POLICY.resolve()),
-            "sha256": sha256_file(DEFAULT_RELEASE_POLICY),
-        },
-        "tool": {
-            "path": str(DEFAULT_OPA.resolve()),
-            "sha256": sha256_file(DEFAULT_OPA),
-            "version": "1.20.2",
-        },
-    }
-
-
-def copy_exact(source: Path, destination: Path, expected: dict[str, Any] | None = None) -> dict[str, Any]:
+def copy_exact(
+    source: Path, destination: Path, expected: dict[str, Any] | None = None
+) -> dict[str, Any]:
     before = file_fact(source)
     if expected is not None:
         if expected.get("name") != before.get("name"):
@@ -239,7 +181,9 @@ def execute_oci_package_stage(
     signer_ids: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     failures: list[str] = []
-    profile_result = validate_profile_v1(profile_path, ROOT / "artifact-delivery/profile-v1.schema.json")
+    profile_result = validate_profile_v1(
+        profile_path, ROOT / "artifact-delivery/profile-v1.schema.json"
+    )
     profile = profile_result.get("profile", {})
     if profile_result.get("status") != "PASS":
         failures.append("delivery profile did not PASS validation")
@@ -248,20 +192,31 @@ def execute_oci_package_stage(
     if not verify_report_path.is_file():
         failures.append("verify report is absent")
     if failures:
-        return {"schemaVersion": 1, "kind": "artifact-oci-package-stage", "status": "FAIL", "failures": failures, "packageCreated": False, "releaseReady": False}
+        return {
+            "schemaVersion": 1,
+            "kind": "artifact-oci-package-stage",
+            "status": "FAIL",
+            "failures": failures,
+            "packageCreated": False,
+            "releaseReady": False,
+        }
 
     verify_report_fact = file_fact(verify_report_path)
     verify_report = json.loads(verify_report_path.read_text(encoding="utf-8"))
     if verify_report.get("kind") != "artifact-delivery-verify-stage":
         failures.append("verify report kind is not artifact-delivery-verify-stage")
-    report_artifact = verify_report.get("artifact", {}) if isinstance(verify_report.get("artifact"), dict) else {}
+    report_artifact = (
+        verify_report.get("artifact", {}) if isinstance(verify_report.get("artifact"), dict) else {}
+    )
     primary_fact = file_fact(primary)
     if report_artifact.get("digest", {}).get("sha256") != primary_fact["digest"]["sha256"]:
         failures.append("verify report artifact digest does not bind the primary artifact")
     if report_artifact.get("name") != primary.name:
         failures.append("verify report artifact name does not bind the primary artifact")
 
-    receipts = verify_report.get("receipts", {}) if isinstance(verify_report.get("receipts"), dict) else {}
+    receipts = (
+        verify_report.get("receipts", {}) if isinstance(verify_report.get("receipts"), dict) else {}
+    )
     raw_paths: dict[str, Path] = {}
     vsa_paths: dict[str, Path] = {}
     raw_facts: dict[str, dict[str, Any]] = {}
@@ -271,7 +226,9 @@ def execute_oci_package_stage(
         if not isinstance(receipt, dict):
             failures.append(f"invalid verify receipt object: {gate}")
             continue
-        raw_fact = receipt.get("rawEvidence", {}) if isinstance(receipt.get("rawEvidence"), dict) else {}
+        raw_fact = (
+            receipt.get("rawEvidence", {}) if isinstance(receipt.get("rawEvidence"), dict) else {}
+        )
         vsa_fact = receipt.get("vsa", {}) if isinstance(receipt.get("vsa"), dict) else {}
         raw_check = verify_file_fact(raw_fact)
         vsa_check = verify_file_fact(vsa_fact)
@@ -320,19 +277,30 @@ def execute_oci_package_stage(
             failures.extend(f"release provenance: {item}" for item in checked.get("failures", []))
     elif profile.get("gates", {}).get("releaseProvenance") is True:
         if request_path is None:
-            failures.append("release provenance required but neither request nor provenance was supplied")
+            failures.append(
+                "release provenance required but neither request nor provenance was supplied"
+            )
         else:
             request_validation = validate_delivery_request(request_path)
             if request_validation.get("status") != "PASS":
-                failures.append("delivery request did not PASS validation for provenance generation")
+                failures.append(
+                    "delivery request did not PASS validation for provenance generation"
+                )
             else:
                 request = request_validation["request"]
                 profile_ref = request.get("profile", {})
-                if profile_ref.get("id") != profile.get("id") or profile_ref.get("sha256") != sha256_file(profile_path):
-                    failures.append("delivery request profile binding does not match package profile")
+                if profile_ref.get("id") != profile.get("id") or profile_ref.get(
+                    "sha256"
+                ) != sha256_file(profile_path):
+                    failures.append(
+                        "delivery request profile binding does not match package profile"
+                    )
                 else:
                     materials = [Path(request_validation["resolved"]["source"]["path"])]
-                    materials.extend(Path(item["path"]) for item in request_validation["resolved"].get("materials", []))
+                    materials.extend(
+                        Path(item["path"])
+                        for item in request_validation["resolved"].get("materials", [])
+                    )
                     generated_provenance = slsa_statement(
                         [primary, *companion_paths],
                         materials,
@@ -389,7 +357,11 @@ def execute_oci_package_stage(
         elif generated_provenance is not None:
             provenance_staged = staging / "provenance" / "slsa-provenance.json"
             provenance_staged.parent.mkdir(parents=True, exist_ok=True)
-            provenance_staged.write_text(json.dumps(generated_provenance, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+            provenance_staged.write_text(
+                json.dumps(generated_provenance, indent=2, sort_keys=True, ensure_ascii=False)
+                + "\n",
+                encoding="utf-8",
+            )
 
         gate_staged: dict[str, dict[str, Path]] = {}
         for gate in sorted(vsa_paths):
@@ -491,7 +463,14 @@ def execute_oci_package_stage(
             cwd=staging,
         )
         discover = run_oras(
-            ["discover", OCI_REFERENCE, "--oci-layout-path", str(layout.resolve()), "--format", "json"],
+            [
+                "discover",
+                OCI_REFERENCE,
+                "--oci-layout-path",
+                str(layout.resolve()),
+                "--format",
+                "json",
+            ],
             cwd=staging,
         )
 
@@ -504,24 +483,37 @@ def execute_oci_package_stage(
         for source in expected_release_files:
             observed = layer_by_title.get(source.name)
             expected_digest = "sha256:" + sha256_file(source)
-            if not isinstance(observed, dict) or observed.get("digest") != expected_digest or observed.get("size") != source.stat().st_size:
-                raise RuntimeError(f"OCI subject layer does not exactly bind release file: {source.name}")
+            if (
+                not isinstance(observed, dict)
+                or observed.get("digest") != expected_digest
+                or observed.get("size") != source.stat().st_size
+            ):
+                raise RuntimeError(
+                    f"OCI subject layer does not exactly bind release file: {source.name}"
+                )
 
         expected_referrers = len(gate_staged) + 1 + (1 if provenance_referrer is not None else 0)
         refs = discover.get("referrers", []) if isinstance(discover.get("referrers"), list) else []
         if len(refs) != expected_referrers:
-            raise RuntimeError(f"OCI referrer count mismatch: expected {expected_referrers}, observed {len(refs)}")
+            raise RuntimeError(
+                f"OCI referrer count mismatch: expected {expected_referrers}, observed {len(refs)}"
+            )
 
         required_assembly = sorted(set(gate_aggregation.get("assemblyGates", [])))
         satisfied_assembly: list[str] = []
-        if "companionPdf" in required_assembly and any(p.suffix.casefold() == ".pdf" for p in companion_paths):
+        if "companionPdf" in required_assembly and any(
+            p.suffix.casefold() == ".pdf" for p in companion_paths
+        ):
             satisfied_assembly.append("companionPdf")
         if "releaseProvenance" in required_assembly and provenance_staged is not None:
             satisfied_assembly.append("releaseProvenance")
         unresolved_assembly = sorted(set(required_assembly) - set(satisfied_assembly))
-        trust_standing = "LOCAL_UNSIGNED_DEVELOPMENT" if allow_local_unsigned else "CRYPTOGRAPHICALLY_VERIFIED"
+        trust_standing = (
+            "LOCAL_UNSIGNED_DEVELOPMENT" if allow_local_unsigned else "CRYPTOGRAPHICALLY_VERIFIED"
+        )
         verified_gates = sorted(
-            gate for gate, component in gate_aggregation.get("components", {}).items()
+            gate
+            for gate, component in gate_aggregation.get("components", {}).items()
             if isinstance(component, dict)
             and component.get("status") == "PASS"
             and component.get("authenticity") == "VERIFIED"
@@ -607,8 +599,12 @@ def main() -> int:
     parser.add_argument("--companion", type=Path, action="append", default=[])
     parser.add_argument("--request", type=Path)
     parser.add_argument("--provenance", type=Path)
-    parser.add_argument("--gate-bundle", action="append", default=[], help="gateName=path/to/sigstore-bundle.json")
-    parser.add_argument("--gate-signer", action="append", default=[], help="gateName=trusted-signer-id")
+    parser.add_argument(
+        "--gate-bundle", action="append", default=[], help="gateName=path/to/sigstore-bundle.json"
+    )
+    parser.add_argument(
+        "--gate-signer", action="append", default=[], help="gateName=trusted-signer-id"
+    )
     parser.add_argument("--trust-policy", type=Path)
     parser.add_argument("--allow-local-unsigned", action="store_true")
     parser.add_argument("--output", type=Path)
@@ -630,7 +626,10 @@ def main() -> int:
         emit(result, args.output)
         return 0 if result.get("status") == "PASS" else 1
     except Exception as error:
-        print(json.dumps({"status": "ERROR", "error": str(error)}, ensure_ascii=False), file=sys.stderr)
+        print(
+            json.dumps({"status": "ERROR", "error": str(error)}, ensure_ascii=False),
+            file=sys.stderr,
+        )
         return 2
 
 
