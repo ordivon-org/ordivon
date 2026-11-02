@@ -450,6 +450,12 @@
       "disposition": "Publication profiles go to profiles; venue authority metadata to catalogs; study evidence to its Study; dogfood-only evidence may become a bounded test fixture.",
       "id": "research-meta",
       "mode": "split",
+      "standing": "DEPLOYED",
+      "currentPlacementPaths": [
+        "profiles/research/",
+        "catalogs/authorities/venues/",
+        "tests/fixtures/research/"
+      ],
       "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
