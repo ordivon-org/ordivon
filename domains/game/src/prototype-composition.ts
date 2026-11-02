@@ -52,6 +52,24 @@ export function projectPrototypeCompositions(
     sources.set(source.id, source);
   }
 
+  // This is a structural consistency check, NOT execution proof.
+  // Real effects remain owned by the named native consumer and its tests.
+  const ids = new Set<string>();
+  for (const recipe of plan.recipes) {
+    if (ids.has(recipe.id)) throw new Error(`duplicate Game composition ${recipe.id}`);
+    ids.add(recipe.id);
+    if (recipe.standing !== "DESIGN_CANDIDATE" && !recipe.currentConsumer)
+      throw new Error(`${recipe.id}: non-candidate composition missing named consumer`);
+    if ((recipe.standing === "NATIVE_SUBSET_EXECUTED" || recipe.standing === "NATIVE_COMPONENT_EXECUTED")
+        && !recipe.components.some((item) => item.standing === "EXECUTED_NATIVE"))
+      throw new Error(`${recipe.id}: native execution standing without an executed component`);
+    for (const component of recipe.components) {
+      if (component.standing === "EXECUTED_NATIVE" &&
+          recipe.standing === "DESIGN_CANDIDATE" && !("currentConsumer" in component))
+        throw new Error(`${recipe.id}: executed candidate slot missing scoped consumer`);
+    }
+  }
+
   const requestedId = normalizeQueryFilter(options.id);
   const requestedEngine = normalizeQueryFilter(options.engine);
   const items = plan.recipes.filter((recipe) =>
