@@ -261,7 +261,7 @@ Draft 2020-12 JSON Schema before either verifier consumes it.
 cross-domain-verification-r3-bindings.json
         |
         v
-cross-domain-verification-r3-binding.schema.json
+packages/composition/schemas/cross-domain-verification-r3-binding.schema.json
         |
         v
 shared repo-relative resolver

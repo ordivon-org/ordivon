@@ -7,6 +7,9 @@
     "purpose": "Bind the source-implemented task-local LEGO contracts and verifier/consumer seams to the existing Git-backed graph without turning Composition into another execution, proof or domain authority.",
     "sourceEvidence": [
       "README.md",
+      "schemas/cross-domain-verification-r3-binding.schema.json",
+      "schemas/experimental-episode-binding-r1.schema.json",
+      "schemas/standard-native-profile-projection-v1.schema.json",
       "src/ordivon_composition/__init__.py",
       "src/ordivon_composition/cognitive_circuit_r1.py",
       "src/ordivon_composition/interface_contract_r2.py",

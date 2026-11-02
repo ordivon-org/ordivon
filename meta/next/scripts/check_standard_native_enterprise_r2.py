@@ -7,7 +7,10 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHEMA = ROOT / "schemas/standard-native-profile-projection-v1.schema.json"
+SCHEMA = (
+    ROOT.parents[1]
+    / "packages/composition/schemas/standard-native-profile-projection-v1.schema.json"
+)
 RECEIPT = (
     ROOT / "evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json"
 )

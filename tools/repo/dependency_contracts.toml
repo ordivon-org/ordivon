@@ -179,3 +179,29 @@ source_glob = "packages/composition/tests/test_verification_obligation_r1.py"
 allowed_fragment = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
+
+# Next consumers use Composition-owned public, byte-pinned JSON Schema source
+# as a lexical validation contract. This does not transfer domain authority.
+[[seams]]
+from_owner = "next"
+to_owner = "composition"
+source_glob = "meta/next/scripts/cross_domain_binding_r3.py"
+allowed_fragment = "packages/composition/schemas/cross-domain-verification-r3-binding.schema.json"
+kind = "PUBLIC_SOURCE_CONTRACT"
+contract_ref = "packages/composition/README.md"
+
+[[seams]]
+from_owner = "next"
+to_owner = "composition"
+source_glob = "meta/next/scripts/experimental_episode_projection_r1.py"
+allowed_fragment = "packages/composition/schemas/experimental-episode-binding-r1.schema.json"
+kind = "PUBLIC_SOURCE_CONTRACT"
+contract_ref = "packages/composition/README.md"
+
+[[seams]]
+from_owner = "next"
+to_owner = "composition"
+source_glob = "meta/next/scripts/check_standard_native_enterprise_r2.py"
+allowed_fragment = "packages/composition/schemas/standard-native-profile-projection-v1.schema.json"
+kind = "PUBLIC_SOURCE_CONTRACT"
+contract_ref = "packages/composition/README.md"

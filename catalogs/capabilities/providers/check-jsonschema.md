@@ -17,7 +17,7 @@ R2 uses it only for the thin `standard-native-profile-projection-v1` bridge. Res
 Version `0.38.0` is currently available both as a host executable and through the repository-native locked command `uv run --locked --group authority check-jsonschema`. The locked validator successfully checked the three R2 projections against:
 
 ```text
-schemas/standard-native-profile-projection-v1.schema.json
+packages/composition/schemas/standard-native-profile-projection-v1.schema.json
 ```
 
 The three instances were generated read-only from the current Research, Runtime and Game standard-native profiles.

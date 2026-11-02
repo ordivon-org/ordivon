@@ -10,10 +10,10 @@ from typing import Any
 from jsonschema import Draft202012Validator
 from ordivon_composition import CircuitContractError
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
 BINDING_SCHEMA = (
-    Path(__file__).resolve().parents[1]
-    / "schemas"
-    / "cross-domain-verification-r3-binding.schema.json"
+    REPO_ROOT
+    / "packages/composition/schemas/cross-domain-verification-r3-binding.schema.json"
 )
 
 

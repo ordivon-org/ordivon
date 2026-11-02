@@ -396,6 +396,60 @@
       "disposition": "SOURCE-only non-authoritative ODPS/ODCS/ODRL Episode catalog placement. Historical data-lifecycle receipts retain original exact-cut path; no installed data-product authority or consumer deployment implied."
     },
     {
+      "id": "schema-move-cross-domain-verification-r3-binding",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/schemas/cross-domain-verification-r3-binding.schema.json"
+      ],
+      "targetPaths": [
+        "packages/composition/schemas/cross-domain-verification-r3-binding.schema.json"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "SOURCE-only immutable schema relocation into its existing natural contract/authority projection; no new verifier, permission or installed claim."
+    },
+    {
+      "id": "schema-move-experimental-episode-binding-r1",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/schemas/experimental-episode-binding-r1.schema.json"
+      ],
+      "targetPaths": [
+        "packages/composition/schemas/experimental-episode-binding-r1.schema.json"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "SOURCE-only immutable schema relocation into its existing natural contract/authority projection; no new verifier, permission or installed claim."
+    },
+    {
+      "id": "schema-move-standard-native-profile-projection-v1",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/schemas/standard-native-profile-projection-v1.schema.json"
+      ],
+      "targetPaths": [
+        "packages/composition/schemas/standard-native-profile-projection-v1.schema.json"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "SOURCE-only immutable schema relocation into its existing natural contract/authority projection; no new verifier, permission or installed claim."
+    },
+    {
       "id": "knowledge-catalog",
       "mode": "move",
       "owner": "next",
