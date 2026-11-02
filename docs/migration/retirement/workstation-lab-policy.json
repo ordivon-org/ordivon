@@ -34,7 +34,7 @@
       "globs": [
         "meta/next/authorities/records/**",
         "meta/next/planning/**",
-        "meta/next/migrations/records/**"
+        "docs/migration/retirement/*.md"
       ],
       "reason": "Authority observations, planning snapshots, and migration records are historical records, not forward executors."
     }
