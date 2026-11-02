@@ -23,7 +23,7 @@ import {
   noteFromRow,
   grantFromRow,
   effectReceiptFromRow,
-} from "./store_rows.ts";
+} from "./store-row-projections.ts";
 import type {
   PrincipalRow,
   CredentialRow,
@@ -32,7 +32,7 @@ import type {
   AgentEffectRow,
   SessionRow,
   NoteRow,
-} from "./store_rows.ts";
+} from "./store-row-projections.ts";
 
 function stableDigest(value: unknown): string {
   return "sha256:" + createHash("sha256").update(JSON.stringify(value)).digest("hex");
