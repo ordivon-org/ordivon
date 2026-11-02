@@ -23,15 +23,11 @@ from .contracts import (
     OwnerDescriptor,
     SystemDescription,
 )
+from .errors import GatewayError
 from .external_worker import ExternalPullWorkerTransport, WorkerConflict
 from .research_routes import research_capabilities
-from .routes import CapabilityRoute, default_routes
+from .routing import CapabilityRoute, default_routes, format_execution_ref, parse_execution_ref
 from .upstream import OwnerToolCaller
-
-
-class GatewayError(RuntimeError):
-    pass
-
 
 _OWNER_ROLES = {
     "runtime.linux": "physical execution owner",
@@ -89,24 +85,6 @@ def _configuration_error(caller: OwnerToolCaller, owner_id: str) -> str | None:
         value = probe(owner_id)
         return str(value) if value else None
     return None
-
-
-def _execution_ref(owner_id: str, native_id: str) -> str:
-    return f"ordivon-exec:v1:{owner_id}:{native_id}"
-
-
-def parse_execution_ref(value: str) -> tuple[str, str]:
-    prefix = "ordivon-exec:v1:"
-    if not value.startswith(prefix):
-        raise GatewayError("invalid execution operationRef")
-    rest = value[len(prefix) :]
-    try:
-        owner_id, native_id = rest.rsplit(":", 1)
-    except ValueError as exc:
-        raise GatewayError("invalid execution operationRef") from exc
-    if owner_id not in {"runtime.linux", "runtime.windows", "external.pull"} or not native_id:
-        raise GatewayError("unsupported execution operationRef owner")
-    return owner_id, native_id
 
 
 def _required_str(payload: dict[str, Any], key: str) -> str:
@@ -747,7 +725,7 @@ class GatewayService:
                 except WorkerConflict as exc:
                     raise GatewayError(str(exc)) from exc
                 return ExecutionReceipt(
-                    operation_ref=_execution_ref("external.pull", operation.operation_id),
+                    operation_ref=format_execution_ref("external.pull", operation.operation_id),
                     capability=capability,
                     owner_id="external.pull",
                     native_id=operation.operation_id,
@@ -811,7 +789,7 @@ class GatewayService:
         result = await self._caller.call_tool(route.owner_id, route.owner_tool, payload)
         native_id = _required_str(result, "jobId")
         return ExecutionReceipt(
-            operation_ref=_execution_ref(route.owner_id, native_id),
+            operation_ref=format_execution_ref(route.owner_id, native_id),
             capability=capability,
             owner_id=route.owner_id,
             native_id=native_id,
@@ -847,7 +825,7 @@ class GatewayService:
                 capability=capability,
                 owner_id="external.pull",
                 resolution="found",
-                operation_ref=_execution_ref("external.pull", operation.operation_id),
+                operation_ref=format_execution_ref("external.pull", operation.operation_id),
                 native_id=operation.operation_id,
                 workspace_id=operation.workspace_id,
             )
@@ -895,7 +873,7 @@ class GatewayService:
             capability=capability,
             owner_id=route.owner_id,
             resolution="found",
-            operation_ref=_execution_ref(route.owner_id, native_id),
+            operation_ref=format_execution_ref(route.owner_id, native_id),
             native_id=native_id,
             workspace_id=workspace_id,
         )
