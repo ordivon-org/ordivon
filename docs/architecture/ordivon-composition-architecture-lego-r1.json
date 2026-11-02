@@ -421,7 +421,7 @@
       "responsibility": "Prove three independent Skill consumption modes and record which consumers still require the remote bridge.",
       "files": [
         "extensions/chatgpt-skills-mcp/docs/skills-standards-alignment.md",
-        "meta/next/docs/AGENT_PLUGINS_ADOPTION_R1.md",
+        "docs/architecture/AGENT_PLUGINS_ADOPTION_R1.md",
         "acceptance evidence"
       ],
       "dependsOn": [
