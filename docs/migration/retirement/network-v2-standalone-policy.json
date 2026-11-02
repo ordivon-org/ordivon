@@ -21,7 +21,7 @@
     {
       "id": "historical-next-migration-records",
       "globs": [
-        "meta/next/migrations/records/network-*.md"
+        "docs/migration/retirement/network-*.md"
       ],
       "reason": "Dated Network migration records preserve pre-retirement topology."
     },

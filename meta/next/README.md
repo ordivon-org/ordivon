@@ -55,7 +55,6 @@ See `catalogs/capabilities/` for non-authoritative capability/provider routing k
 ├── experiments/     # bounded experiments and experiment-owned artifacts
 ├── evidence/        # point-in-time observations/receipts; never runtime configuration
 ├── planning/        # active/prospective work and explicitly disposable migration ratchets
-├── migrations/      # retirement, cutover and historical disposition records
 ├── knowledge/       # reusable knowledge/provenance dependencies, not a construction diary
 └── docs/            # maintained explanatory/reference documentation
 ```
