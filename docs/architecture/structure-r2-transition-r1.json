@@ -345,6 +345,8 @@
       "id": "authority-catalog",
       "mode": "move",
       "owner": "next",
+      "standing": "DEPLOYED",
+      "disposition": "S5 identity/currentness records and generated index moved to catalogs/authorities; validation/CLI remain in transitional Next environment, external authority and installed state unchanged.",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/authorities/"
