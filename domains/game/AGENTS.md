@@ -175,6 +175,16 @@ Known external references:
 - https://kenney.nl/support
 - https://doi.org/10.1145/361598.361623
 
+Current Game composition evidence now includes three distinct native cases:
+`examples/native-composition/` (Grid scene + native audio),
+`examples/room-encounter/` (three-room combat with tunable rules/HUD and
+native audio), and `examples/kenney-visual-composition/` (two-image
+appearance substitution only). `NATIVE_COMPONENT_EXECUTED` must never be
+promoted to a playable game outcome. Inspect with the **existing**
+`pnpm composition:inspect`, which now uses a pure, source-bound projection
+`src/prototype-composition.ts` behind its existing CLI entrypoint. Do not
+invent an engine-neutral execution registry or a new gameplay product.
+
 For directly inspectable, **source-backed prototype assembly candidates**, use
 `pnpm composition:inspect` and
 `planning/prototype-composition-candidates-r1.json`. These are Game's

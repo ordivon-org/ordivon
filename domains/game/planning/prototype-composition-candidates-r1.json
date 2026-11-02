@@ -214,6 +214,80 @@
       ],
       "nextFalsifier": "Run the pinned Bevy Cargo.lock tests/check and exercise the desktop App against an actual display/input consumer; then bind a proven community plugin only for a missing mechanic.",
       "currentConsumer": "examples/bevy-native-composition/src/main.rs"
+    },
+    {
+      "id": "room-encounter",
+      "name": "Three-room combat and HUD native vertical slice",
+      "engine": "godot",
+      "intent": "Compose a bounded combat/guard/door/win-loss loop using native scenes, state resources, input, replaceable HUD, and existing Kenney CC0 sound without a universal combat framework.",
+      "standing": "NATIVE_SUBSET_EXECUTED",
+      "currentConsumer": "examples/room-encounter/assert.gd",
+      "components": [
+        {
+          "role": "rules-and-state",
+          "sourceRef": "godot-native-resource-composition",
+          "integrationSeam": "EncounterRules Node + typed encounter_tuning Resource + state_changed",
+          "standing": "EXECUTED_NATIVE",
+          "required": true
+        },
+        {
+          "role": "player-commands",
+          "sourceRef": "godot-native-resource-composition",
+          "integrationSeam": "native Buttons and keyboard input to attack/guard/advance/restart",
+          "standing": "EXECUTED_NATIVE",
+          "required": true
+        },
+        {
+          "role": "replaceable-hud",
+          "sourceRef": "godot-native-resource-composition",
+          "integrationSeam": "encounter_view PackedScene replacement preserving rule state",
+          "standing": "EXECUTED_NATIVE",
+          "required": true
+        },
+        {
+          "role": "feedback-sfx",
+          "sourceRef": "kenney-ui-audio",
+          "integrationSeam": "EncounterAudio observes accepted attack/guard events and plays two license-recorded CC0 AudioStreams",
+          "standing": "EXECUTED_NATIVE",
+          "required": false
+        }
+      ],
+      "explicitGaps": [
+        "This is the native, headless-accepted three-room graybox only: no genuine player usability or full game release measurement.",
+        "Combat has no authored character sprites, soundtrack, animation pipeline, platform package or independent human playtest.",
+        "Kenney audio is game-local because Godot resource paths are project-relative, not an Ordivon audio engine."
+      ],
+      "nextFalsifier": "Run the existing Godot 4.7 test:encounter and substitute native HUD/tuning/audio while checking a three-room win/loss and actual action feedback; then evaluate an actual packaged product."
+    },
+    {
+      "id": "kenney-avatar-appearance",
+      "name": "CC0 two-avatar native appearance substitution",
+      "engine": "godot",
+      "intent": "Replace one Sprite2D appearance inside a PackedScene using pinned source-licensed PNG textures, independent of gameplay rules.",
+      "standing": "NATIVE_COMPONENT_EXECUTED",
+      "currentConsumer": "examples/kenney-visual-composition/acceptance.gd",
+      "components": [
+        {
+          "role": "presentation-interface",
+          "sourceRef": "godot-native-resource-composition",
+          "integrationSeam": "PackedScene + Sprite2D + Texture2D native interface",
+          "standing": "EXECUTED_NATIVE",
+          "required": true
+        },
+        {
+          "role": "avatar-art",
+          "sourceRef": "kenney-abstract-platformer",
+          "integrationSeam": "two SHA256-pinned CC0 blue/green avatar PNGs -> Godot imported Texture2D",
+          "standing": "EXECUTED_NATIVE",
+          "required": true
+        }
+      ],
+      "explicitGaps": [
+        "Only a single visual-component swap is executed; this sample has no player input, game rules, world progression, soundtrack or product win state.",
+        "Exact source is a Git-pinned delivery mirror, while CC0 licensing authority remains Kenney original package; archive byte identity is not asserted.",
+        "Renderer/UI quality and human usability are not measured."
+      ],
+      "nextFalsifier": "Run existing test:visual-native and replace native Sprite2D by PackedScene with different PNG dimensions while preserving node identity and world position; consume it inside a playable product before claiming Game execution."
     }
   ]
 }
