@@ -26,6 +26,7 @@ updates:
 
   - package-ecosystem: cargo
     directories:
+      - "/domains/game/examples/bevy-native-composition"
       - "/services/runtime"
     schedule:
       interval: weekly
