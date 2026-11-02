@@ -3,7 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 
 import { grantDigest, hashToken, normalizeStrings, stableDigest } from "./identity-digests.ts";
 import { WebProblem } from "./errors.ts";
-import { initializeWebStoreSchema } from "./store_schema.ts";
+import { initializeWebStoreSchema } from "./store-schema.ts";
 import type {
   AgentEffectReceipt,
   AgentEffectRequest,
