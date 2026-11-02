@@ -19,6 +19,8 @@ ordivon-circuit = "ordivon_composition.cognitive_circuit_r1:main"
 ordivon-interface-contract = "ordivon_composition.interface_contract_r2:main"
 ordivon-verification-obligations = "ordivon_composition.verification_obligation_r1:main"
 ordivon-successor = "ordivon_composition.successor_contract_r1:main"
+ordivon-web-security-gate = "ordivon_composition.web_security_gate_r3:main"
+ordivon-research-artifact-gate = "ordivon_composition.research_artifact_gate_r3:main"
 
 [build-system]
 requires = ["uv_build>=0.13.5,<0.14.0"]

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
+
 from ordivon_composition import CircuitContractError
 
 BINDING_SCHEMA = files("ordivon_composition").joinpath(
@@ -55,9 +56,7 @@ def resolve_repo_file(repo_root: Path, relative: str) -> Path:
     try:
         candidate.relative_to(root)
     except ValueError as exc:
-        raise CircuitContractError(
-            f"binding path escapes repository: {relative}"
-        ) from exc
+        raise CircuitContractError(f"binding path escapes repository: {relative}") from exc
     if not candidate.is_file():
         raise CircuitContractError(f"binding path is not a file: {relative}")
     return candidate

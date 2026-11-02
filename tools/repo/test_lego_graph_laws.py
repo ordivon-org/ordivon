@@ -1867,8 +1867,8 @@ def test_gateway_new_recipes_and_optional_worker_have_distinct_native_consumers(
     )
 
 
-def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
-    """Qualify declared Next cross-domain consumers against source syntax.
+def test_composition_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
+    """Qualify Composition-owned cross-domain consumers against source syntax.
 
     Names in strings, missing aliases, or fabricated functions must not
     receive even SOURCE_STATIC qualification. This is not execution proof.
@@ -1877,7 +1877,7 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
     import copy
 
     plan = json.loads(
-        (ROOT / "meta/next/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+        (ROOT / "packages/composition/planning/lego-plan-r1.json").read_text(encoding="utf-8")
     )
 
     authority_plan = json.loads(
@@ -1919,12 +1919,13 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
                     assert name in called, (row["path"], f"not syntactically called: {name}")
                 assert "SOURCE" in row["standing"]
 
-    qualify(plan, "meta/next", {"NX02", "NX03", "NX04"})
+    scoped = {"kind": plan["kind"], "nodes": [v for v in plan["nodes"] if v["id"] in {"C07", "C08", "C09"}]}
+    qualify(scoped, "packages/composition", {"C07", "C08", "C09"})
     qualify(authority_plan, "catalogs/authorities", {"NX01"})
-    forged = copy.deepcopy(plan)
+    forged = copy.deepcopy(scoped)
     forged["nodes"][1]["consumerBindings"][0]["symbols"] = ["made_up_lego_consumer"]
     with pytest.raises(AssertionError):
-        qualify(forged, "meta/next", {"NX02", "NX03", "NX04"})
+        qualify(forged, "packages/composition", {"C07", "C08", "C09"})
 
 
 
