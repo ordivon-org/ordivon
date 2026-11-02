@@ -12,6 +12,15 @@ from .interface_contract_r2 import (
     currentness_standing,
     evaluate_interface,
 )
+from .semantic_refinement_r1 import (
+    Action,
+    ActionTrace,
+    GoalObservation,
+    Obligation,
+    SemanticResult,
+    Standing,
+    examine_semantic_refinement,
+)
 from .successor_contract_r1 import (
     compile_successor_contract,
     evaluate_successor_gates,
@@ -26,6 +35,13 @@ from .verification_obligation_r1 import (
 )
 
 __all__ = [
+    "Action",
+    "ActionTrace",
+    "GoalObservation",
+    "Obligation",
+    "SemanticResult",
+    "Standing",
+    "examine_semantic_refinement",
     "CircuitContractError",
     "canonical_digest",
     "compile_manifest",
