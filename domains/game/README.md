@@ -39,6 +39,8 @@ The five `scripts/*-query.ts` files remain stable CLI and consumer entrypoints.
 Their shared, pure input parsing policy lives in `src/query-input.ts`:
 individual queries still own their source datasets, filter semantics and result caps.
 The internal module does not claim Game design authority or create a query registry.
+G05 is a read-only interface adapter, not a verifier: retrieving a record does
+not establish a Game behavior or proof. G06 owns bounded native-Godot tests.
 
 G03 relationship projection separates `src/mechanism-relationship-graph.ts`
 (pure derivation from the exact library/spec source bytes) from the stable

@@ -9,6 +9,7 @@ test('Game registers actual source-bound LEGO with six responsibilities',()=>{
   const plan=load('planning/lego-plan-r1.json');
   assert.equal(plan.project.id,'ordivon-game');
   assert.equal(plan.nodes.length,6);
+  assert.ok(plan.nodes.some((n: any) => n.id === 'G05' && n.kind === 'interface_adapter'));
   assert.ok(plan.nodes.some((n: any) => n.id === 'G06' && n.kind === 'verifier'));
   for(const n of plan.nodes) {
     for(const f of ['id','responsibility','inputs','outputs','behavioralContract','acceptance'])
