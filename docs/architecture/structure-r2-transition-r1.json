@@ -408,16 +408,18 @@
       "wave": "S5"
     },
     {
-      "disposition": "Move maintained task-local composition policy artifacts only; historical policy evidence stays with its provenance owner.",
       "id": "composition-policies",
-      "mode": "split",
+      "mode": "move",
       "owner": "next",
+      "standing": "DEPLOYED",
+      "disposition": "Executable Research-to-adopted-policy OPA example lives in packages/composition/policies; repository external-ownership and policy-consumption constraints live in docs/architecture/policies. Existing Next native test consumers resolve their new physical paths. External OPA and provider/IAM retain authorization authority.",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/policies/"
       ],
       "targetPaths": [
-        "packages/composition/policies/"
+        "packages/composition/policies/",
+        "docs/architecture/policies/"
       ],
       "verifyTasks": [
         "next:verify"

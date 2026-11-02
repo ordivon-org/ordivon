@@ -92,15 +92,21 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
         )
 
     def test_active_opa_policy_owners_consume_one_current_version(self):
-        """Actual Security and Next OPA consumers converge; no unused Distribution pin."""
-        owners = ("platform/security", "meta/next")
+        """Actual Security and Composition consumers converge; Next no longer owns OPA."""
+        owners = ("platform/security", "packages/composition")
         versions = {
             owner: tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
             ["tools"]["opa"]
             for owner in owners
         }
         self.assertEqual(len(set(versions.values())), 1, versions)
-        self.assertTrue((ROOT / "meta/next/tests/test_research_adopted_policy.py").is_file())
+        next_tools = tomllib.loads(
+            (ROOT / "meta/next/mise.toml").read_text(encoding="utf-8")
+        )["tools"]
+        self.assertNotIn("opa", next_tools)
+        self.assertTrue(
+            (ROOT / "packages/composition/tests/test_research_adopted_policy.py").is_file()
+        )
 
     def test_python_uv_lock_has_one_updater(self):
         renovate = json.loads((ROOT / "renovate.json").read_text(encoding="utf-8"))

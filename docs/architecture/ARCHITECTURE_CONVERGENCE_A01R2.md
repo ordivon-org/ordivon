@@ -36,7 +36,7 @@ Those invariants survive only where current owners need them. The old SQLite con
 
 ## Current-source non-regression rule
 
-Per `meta/next/policies/external-ownership-boundary.json`:
+Per `docs/architecture/policies/external-ownership-boundary.json`:
 
 - Agent Service type ceiling is empty;
 - reintroduction requires a new externally owned, non-authoritative integration justification;
