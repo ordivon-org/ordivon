@@ -22,7 +22,9 @@
       "formal/EffectReplayFence.cfg",
       "scripts/verify_effect_replay_formal.sh",
       "tests/test_identity_token_grammar.py",
-      "docs/IDENTITY_TOKEN_GRAMMAR_20261031.md"
+      "docs/IDENTITY_TOKEN_GRAMMAR_20261031.md",
+      "src/ordivon_composition/cross_domain_binding_r3.py",
+      "src/ordivon_composition/schemas/cross-domain-verification-r3-binding.schema.json"
     ]
   },
   "nodes": [
@@ -301,6 +303,63 @@
         "Model satisfaction is NOT implementation refinement or observed effect truth: finite concrete input test covers 72 abstract combinations, but arbitrary Python/real Gateway transport, environment, absent dependencies, and provider effects remain UNKNOWN."
       ],
       "qualification": "FINITE_TLA_MODEL_VERIFIED_WITH_MUTATION_PROBE; SOURCE_FINITE_CORRESPONDENCE_TESTED; IMPLEMENTATION_REFINEMENT_INSTALLED_EFFECT_UNKNOWN"
+    },
+    {
+      "id": "C07",
+      "label": "TypedTaskLocalCrossDomainBinding",
+      "kind": "typed_composition_contract",
+      "responsibility": "Use the canonical JSON Schema shipped with Composition to validate task-local Cross-domain Verification R3 bindings and confine referenced source paths to a requested repository root.",
+      "authority": "Composition source and schema contract only; repository Git, Web/Security, Research/Artifact, Runtime and external effects retain their own truth.",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "task-local binding JSON object and Composition-shipped Draft 2020-12 Schema",
+        "caller-selected repository root and relative source file reference"
+      ],
+      "outputs": [
+        "validated binding object/source-relative existing file path",
+        "CircuitContractError on malformed/schema-invalid input, missing or escaping source location"
+      ],
+      "behavioralContract": "Bounded JSON Schema validation rejects invalid declarations; source resolution rejects root-escaping and missing inputs. A successful resolved path is mutable source existence, never immutable SourceCut, owner permission, installed provider effect, Web identity, Research scientific truth or proof of any external side effect.",
+      "acceptance": [
+        "Existing cross-domain R3 tests under meta/next/tests/test_cross_domain_verification_r3.py exercise schema rejection and path confinement through the public Composition distribution (16 test cases).",
+        "Existing experimental-episode data product consumer tests under meta/next/tests/test_experimental_episode_data_product_r1.py use the same Composition module; no import shim."
+      ],
+      "evidence": [
+        "src/ordivon_composition/cross_domain_binding_r3.py",
+        "src/ordivon_composition/schemas/cross-domain-verification-r3-binding.schema.json",
+        "meta/next/tests/test_cross_domain_verification_r3.py",
+        "meta/next/tests/test_experimental_episode_data_product_r1.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Web/Security policy or live Agent admission",
+        "Research/Artifact publication completion and scientific claims",
+        "real Git immutable SourceCut certification merely from Path.resolve",
+        "generic framework or registry for all cross-domain effects"
+      ],
+      "consumerBindings": [
+        {
+          "path": "meta/next/scripts/web_security_gate_r3.py",
+          "operation": "direct Python import of typed validator in Web/Security seam adapter",
+          "standing": "SOURCE_NATIVE_TESTED_NOT_INSTALLED_PROVIDER"
+        },
+        {
+          "path": "meta/next/scripts/research_artifact_gate_r3.py",
+          "operation": "direct Python import of typed validator in Research/Artifact seam adapter",
+          "standing": "SOURCE_NATIVE_TESTED_NOT_INSTALLED_PROVIDER"
+        },
+        {
+          "path": "meta/next/tests/test_experimental_episode_data_product_r1.py",
+          "operation": "source-root confinement tests consume Composition helper",
+          "standing": "SOURCE_NATIVE_TESTED_NOT_PRODUCTION_EFFECT"
+        }
+      ],
+      "formalObligations": [
+        "Schema syntactic validity does not establish the true applicability of external domain standards, identity or permissions.",
+        "TOCTOU of mutable paths and changing repository contents is not proven equivalent to immutable Git SourceCut; installed/executed/provider semantics remain UNKNOWN."
+      ],
+      "qualification": "SOURCE_PACKAGE_VERIFIED_IN_NATIVE_NEXT_AND_COMPOSITION_TESTS; FORMAL_BRIDGE_INSTALLED_PROVIDER_EFFECT_UNKNOWN"
     }
   ],
   "edges": [

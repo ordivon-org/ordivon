@@ -7,7 +7,6 @@
     "purpose": "Task-local cross-domain bindings and two domain-separated machine gate verifiers. External Authority Catalog discovery has moved to its natural catalogs/authorities source owner, without changing domain permission, truth or verification claims.",
     "sourceEvidence": [
       "README.md",
-      "packages/composition/src/ordivon_composition/cross_domain_binding_r3.py",
       "scripts/web_security_gate_r3.py",
       "scripts/research_artifact_gate_r3.py",
       "tests/test_cross_domain_verification_r3.py"
@@ -18,8 +17,8 @@
       "id": "NX02",
       "label": "TaskLocalCrossDomainBinding",
       "kind": "typed_binding",
-      "responsibility": "Qualify per-task Web/Security and Research/Artifact cross-domain verification bindings and source-file references while keeping all external providers' semantic authority outside Next.",
-      "authority": "Next task-local cross-domain binding profile; underlying files/Git retain source truth",
+      "responsibility": "Consume the public Composition R3 typed binding contract in task-local Web/Security and Research/Artifact gate adapters; qualify requested source-file references without taking over domain truth.",
+      "authority": "Composition owns binding Schema/source contract; Next task-local consumer profile owns only its current cross-domain invocation and observations, never external provider effects.",
       "state": "IMPLEMENTED",
       "inputs": [
         "cross-domain R3 JSON binding envelope",
@@ -44,7 +43,8 @@
         "file authority outside the selected repository root",
         "real consumer installation",
         "Web or Research domain truth",
-        "a new cross-domain registry"
+        "a new cross-domain registry",
+        "generic JSON Schema validator implementation now owned by packages/composition/"
       ],
       "consumerBindings": [
         {
