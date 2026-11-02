@@ -35,8 +35,8 @@ func run_acceptance() -> void:
     expect(view.get_node("Status").text.contains("ROOM 1/3"), "native UI observes initial state")
     expect(not rules.advance(), "closed room rejects door")
     expect(rules.snapshot() == first, "illegal transition preserves state")
-    expect(rules.attack(), "first enemy can be attacked")
-    expect(rules.snapshot()["phase"] == "cleared", "first room becomes cleared")
+    view.get_node("Actions/Attack").pressed.emit()
+    expect(rules.snapshot()["phase"] == "cleared", "native button input reaches authoritative rules")
     expect(view.get_node("Encounter").text.contains("CLEARED"), "UI observes clear by Signal")
     expect(not rules.attack(), "cleared room cannot be attacked")
     expect(rules.advance(), "advance enters next room")
@@ -75,7 +75,8 @@ func run_acceptance() -> void:
     root.add_child(alternate)
     var replacement_view = alternate.get_node("View")
     expect(replacement_view.modulate.g > 0.9, "alternative Godot scene has independent rendering")
-    expect(alternate.get_node("Rules").attack(), "same rules run with alternative scene")
+    replacement_view.get_node("Actions/Attack").pressed.emit()
+    expect(alternate.get_node("Rules").snapshot()["phase"] == "cleared", "alternate button invokes unchanged rule action")
     expect(replacement_view.get_node("Encounter").text.contains("CLEARED"),
         "alternative view consumes native Signal")
 
