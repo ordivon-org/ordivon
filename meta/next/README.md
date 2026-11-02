@@ -50,7 +50,6 @@ meta/next/
 ├── domains/         # domain profiles pending consumer-qualified S5 relocation
 ├── tests/           # remaining Next verification consumers
 ├── scripts/         # remaining native commands/validators pending natural-owner move
-├── schemas/         # remaining cross-domain contracts
 ├── experiments/     # bounded, source-qualified experiments and their history
 ├── evidence/        # dated observations; not runtime configuration
 ├── planning/        # current/disposable task-specific plans
