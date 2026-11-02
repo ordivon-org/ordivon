@@ -174,7 +174,7 @@ class OwnerBoundaryTests(unittest.TestCase):
 
     def test_meta_next_domain_knowledge_is_navigation_not_runtime_edges(self) -> None:
         self.assertFalse(MODULE.is_active_path(
-            "meta/next/domains/game/game-autonomous-interest-protocol-r7.json"
+            "profiles/domains/game/game-autonomous-interest-protocol-r7.json"
         ))
 
     def test_real_web_source_is_scanned(self) -> None:
