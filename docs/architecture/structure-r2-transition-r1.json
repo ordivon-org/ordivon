@@ -358,6 +358,7 @@
       "wave": "S5"
     },
     {
+      "disposition": "SOURCE-only S5 capability discovery/catalog placement. Maintained non-authoritative Markdown records are under catalogs/capabilities; historical authority registrationBasis remains source-cut provenance. Other S5 mappings remain open; provider availability and installed state not implied.",
       "id": "capability-catalog",
       "mode": "move",
       "owner": "next",
@@ -365,15 +366,14 @@
       "sourcePaths": [
         "meta/next/capabilities/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "catalogs/capabilities/"
       ],
       "verifyTasks": [
         "next:verify"
       ],
-      "wave": "S5",
-      "standing": "DEPLOYED",
-      "disposition": "SOURCE-only S5 capability discovery/catalog placement. Maintained non-authoritative Markdown records are under catalogs/capabilities; historical authority registrationBasis remains source-cut provenance. Other S5 mappings remain open; provider availability and installed state not implied."
+      "wave": "S5"
     },
     {
       "id": "knowledge-catalog",
@@ -410,12 +410,13 @@
     {
       "disposition": "Move maintained task-local composition policy artifacts only; historical policy evidence stays with its provenance owner.",
       "id": "composition-policies",
-      "mode": "split",
+      "mode": "move",
       "owner": "next",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/policies/"
       ],
+      "standing": "DEPLOYED",
       "targetPaths": [
         "packages/composition/policies/"
       ],

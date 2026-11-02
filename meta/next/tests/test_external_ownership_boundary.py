@@ -5,7 +5,13 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PROFILE_PATH = ROOT / "policies" / "external-ownership-boundary.json"
+PROFILE_PATH = (
+    ROOT.parents[1]
+    / "packages"
+    / "composition"
+    / "policies"
+    / "external-ownership-boundary.json"
+)
 AGENT_SERVICE = ROOT / "agent_service"
 
 
