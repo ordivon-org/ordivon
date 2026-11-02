@@ -26,6 +26,8 @@ managed_paths:
   - knowledge/game_counterexample_synthesis_r1.json
   - src/query-input.ts
   - src/knowledge-file.ts
+  - src/counterexample-projection.ts
+  - scripts/cli-argument.ts
   - scripts/external-knowledge-query.ts
   - scripts/mechanism-experience-query.ts
   - scripts/mechanism-relationship-query.ts

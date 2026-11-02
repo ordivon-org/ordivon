@@ -1,7 +1,9 @@
+import { projectCounterexamples } from "../src/counterexample-projection.ts";
 import { readGameKnowledge } from "../src/knowledge-file.ts";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { boundedQueryLimit, cliArgument, normalizeQueryFilter } from "../src/query-input.ts";
+import { boundedQueryLimit, normalizeQueryFilter } from "../src/query-input.ts";
+import { cliArgument } from "./cli-argument.ts";
 
 const MEMORY_PATH = "knowledge/game_design_counterexample_memory_r1.json";
 const EXPERIENCE_PATH = "knowledge/game_mechanism_experience_library_r1.json";
@@ -32,21 +34,10 @@ function readJson(path: string): any {
 }
 
 function enrichCounterexamples(): any[] {
-  const memory = readJson(MEMORY_PATH);
-  const library = readJson(EXPERIENCE_PATH);
-  const experiences = new Map(library.experiences.map((experience: any) => [experience.id, experience]));
-
-  return memory.counterexamples.map((counterexample: any) => {
-    const resolved = counterexample.experienceRefs.map((ref: string) => {
-      const experience = experiences.get(ref) as any;
-      if (!experience) throw new Error(`${counterexample.id} references unknown Experience ${ref}`);
-      return experience;
-    });
-    return {
-      ...counterexample,
-      mechanisms: [...new Set(resolved.flatMap((experience: any) => experience.mechanisms))].sort(),
-    };
-  });
+  return projectCounterexamples(
+    readJson(MEMORY_PATH).counterexamples,
+    readJson(EXPERIENCE_PATH).experiences,
+  );
 }
 
 export function queryDesignCounterexamples(query: DesignCounterexampleQuery): DesignCounterexampleQueryResult {

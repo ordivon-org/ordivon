@@ -144,6 +144,7 @@
       ],
       "consumerEvidence": [
         "scripts/design-counterexample-query.ts",
+        "src/counterexample-projection.ts",
         "test/game-design-counterexample-memory.test.ts",
         "package.json"
       ]
