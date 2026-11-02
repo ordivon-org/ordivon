@@ -32,7 +32,7 @@
     {
       "id": "authority-and-planning-snapshots",
       "globs": [
-        "meta/next/authorities/records/**",
+        "catalogs/authorities/records/**",
         "meta/next/planning/**",
         "meta/next/migrations/records/**"
       ],

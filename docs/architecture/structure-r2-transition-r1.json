@@ -344,7 +344,7 @@
     {
       "id": "authority-catalog",
       "mode": "move",
-      "owner": "next",
+      "owner": "catalogs",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/authorities/"
@@ -355,6 +355,7 @@
       "verifyTasks": [
         "next:verify"
       ],
+      "standing": "DEPLOYED",
       "wave": "S5"
     },
     {

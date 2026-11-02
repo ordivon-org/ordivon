@@ -51,7 +51,7 @@ The index is disposable and reproducible. It contains only Level-0 discovery met
 - `scripts/authority_catalog_search.py` is pure, deterministic lexical candidate scoring over index entries; a positive score never confers applicability.
 - `scripts/authority_catalog.py` owns the rebuildable index projection, stable CLI entrypoint and current Python import surface used by the native validator and tests.
 
-The modules live in the existing Next source package until their real consumers justify a wider source relocation. No registry service, extra state store or cross-owner authority is introduced.
+The records and observations live in catalogs/authorities. The existing Next scripts still load them pending separate script migration; no new registry service, extra state store, or cross-owner authority is introduced.
 
 ## Commands
 
@@ -82,7 +82,7 @@ Do **not** add a record merely because a standard, framework, provider, taxonomy
 
 Discovery is fail-closed for multi-token semantic queries: every meaningful query token must be represented by a candidate. Generic modifiers such as `latest`, `official`, or `standard` do not relax semantic identity. An empty result means **not registered / not resolved**, not that a vaguely similar authority should be substituted.
 
-Seed closure evidence: `evidence/acceptance/authority-catalog-seed-closure-20260914.json`.
+Seed closure evidence: `meta/next/evidence/acceptance/authority-catalog-seed-closure-20260914.json`.
 
 ## Non-goals
 

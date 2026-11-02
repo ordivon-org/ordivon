@@ -45,7 +45,6 @@ Canonical repository Agent Skills now live at `../../.agents/skills/`; Next cons
 
 ```text
 meta/next/
-├── authorities/     # external-authority records, observations and rebuildable discovery index
 See `catalogs/capabilities/` for non-authoritative capability/provider routing knowledge and task-local inventories.
 ├── domains/         # domain-native life-cycle profiles
 ├── policies/        # native OPA/Rego policy artifacts where declarative policy is justified
@@ -71,7 +70,7 @@ The common core is capability-neutral. Mature disciplines, domains, standards, t
 
 See `docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` for the current cross-domain operating contract for binding external authorities, applicability, stable trace identities, evidence, currentness, claim boundaries and domain-owned verdicts. It is an interoperability environment, not an Ordivon replacement for external standards.
 
-`authorities/` provides the lightweight discovery layer in front of that environment: version-aware authority identity records, append-only currentness observations and a disposable generated index. It helps find/load authorities cheaply; task-local profiles still decide applicability.
+`catalogs/authorities/` provides the lightweight discovery layer in front of that environment: version-aware authority identity records, append-only currentness observations and a disposable generated index. It helps find/load authorities cheaply; task-local profiles still decide applicability.
 
 ## Authority and policy composition
 
