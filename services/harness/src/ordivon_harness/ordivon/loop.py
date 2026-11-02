@@ -34,8 +34,8 @@ from .model import (
 )
 from .provider_lifecycle import ProviderCallLifecycle, ProviderLifecycleError
 from .run_recovery import (
+    _advance_turn_evidence,
     _observation_evidence_signature,
-    _path_subsumes,
     _recover_tool_batch,
     _retained_tool_calls,
     _search_evidence,
@@ -1179,46 +1179,19 @@ class OrdivonAgentLoop:
             turn_id: str,
         ) -> AgentLoopResult | None:
             nonlocal external_observation_gate_reason, no_progress_turns, observation_only_turns
-            observed_tool_names = {
-                observation.tool_name
-                for observation in turn_observations
-                if observation.status == "observed"
-            }
-            observation_only = bool(
-                observed_tool_names
-            ) and observed_tool_names.issubset(self.observation_only_tool_names)
-            action_progress = bool(
-                observed_tool_names - self.observation_only_tool_names
+            nonlocal evidence_signatures, search_evidence
+            assessment = _advance_turn_evidence(
+                calls,
+                tuple(turn_observations),
+                self.observation_only_tool_names,
+                evidence_signatures,
+                search_evidence,
             )
-            new_evidence = False
-            calls_by_id = {call.tool_call_id: call for call in calls}
-            for observation in turn_observations:
-                if observation.status != "observed":
-                    continue
-                call = calls_by_id.get(observation.tool_call_id)
-                if observation.tool_name == "search_workspace" and call is not None:
-                    for search_key, matches in _search_evidence(call, observation):
-                        query, relative_path = search_key
-                        subsuming = [
-                            retained_matches
-                            for (
-                                retained_query,
-                                retained_path,
-                            ), retained_matches in search_evidence.items()
-                            if retained_query == query
-                            and _path_subsumes(retained_path, relative_path)
-                        ]
-                        if not subsuming or not any(
-                            matches.issubset(retained_matches)
-                            for retained_matches in subsuming
-                        ):
-                            new_evidence = True
-                        search_evidence.setdefault(search_key, set()).update(matches)
-                    continue
-                signature = _observation_evidence_signature(observation)
-                if signature not in evidence_signatures:
-                    new_evidence = True
-                    evidence_signatures.add(signature)
+            evidence_signatures = assessment.evidence_signatures
+            search_evidence = assessment.search_evidence
+            observation_only = assessment.observation_only
+            action_progress = assessment.action_progress
+            new_evidence = assessment.new_evidence
             observation_only_turns = (
                 observation_only_turns + 1 if observation_only else 0
             )
