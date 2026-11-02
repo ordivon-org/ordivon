@@ -4,8 +4,8 @@ import pytest
 
 from ordivon_host_v2 import social_attention
 from ordivon_host_v2.attention_queries import ATTENTION_DELTA_SQL
+from ordivon_host_v2.collection_pagination import validate_max_bytes
 from ordivon_host_v2.social_attention import AttentionStore
-from ordivon_host_v2.social_bounds import validate_max_bytes
 
 ROOT = Path(__file__).parents[1]
 ATTENTION = ROOT / "src" / "ordivon_host_v2" / "social_attention.py"
@@ -78,6 +78,7 @@ def test_subscription_horizon_does_not_replay_pre_follow_history() -> None:
     compact = "".join(sql.split())
     assert compact.count("change_sequence>s.change_sequence") >= 6
 
+
 @pytest.mark.parametrize("limit", [True, False, 1.0, 100.0, "100"])
 @pytest.mark.parametrize("operation", ["list_subscriptions", "delta", "reentry"])
 def test_attention_limit_is_exact_integer_before_store_effect(
@@ -112,6 +113,7 @@ def test_attention_cursor_is_exact_integer_before_store_effect(
 def test_collection_byte_budget_requires_exact_integer(invalid_max_bytes: object) -> None:
     with pytest.raises(ValueError, match="max_bytes"):
         validate_max_bytes(invalid_max_bytes)
+
 
 @pytest.mark.parametrize("operation", ["list_subscriptions", "delta", "reentry"])
 def test_exact_valid_attention_limit_retains_native_owner_db_path(

@@ -6,9 +6,9 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .canonical import canonical_digest
+from .canonical_json import canonical_digest
+from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .errors import ConflictError
-from .social_bounds import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .social_work import (
     ActorRefInput,
     WorkCreateInput,

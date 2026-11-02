@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 import pytest
 
 import ordivon_host_v2.social_store as social_store
-from ordivon_host_v2.canonical import canonical_digest
+from ordivon_host_v2.canonical_json import canonical_digest
 from ordivon_host_v2.errors import ConflictError
 from ordivon_host_v2.social_store import SocialStore
 

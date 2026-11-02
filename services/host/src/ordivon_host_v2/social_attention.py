@@ -7,9 +7,9 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from .attention_queries import ATTENTION_DELTA_SQL
-from .canonical import canonical_bytes, canonical_digest
+from .canonical_json import canonical_bytes, canonical_digest
+from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .errors import ConflictError
-from .social_bounds import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .social_store import SpaceNotFound, TopicNotFound
 from .work_store import ActorRefNotFound, WorkNotFound
 
@@ -198,7 +198,9 @@ class AttentionStore:
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_actor(conn, actor_ref)
             high = int(
-                conn.execute("SELECT value FROM swf_change_clock WHERE singleton").fetchone()["value"]
+                conn.execute("SELECT value FROM swf_change_clock WHERE singleton").fetchone()[
+                    "value"
+                ]
             )
             if after_sequence > high:
                 raise ConflictError("after_sequence cannot exceed current change horizon")
@@ -236,9 +238,7 @@ class AttentionStore:
             )
             candidates = []
             for row in rows[:limit]:
-                reasons = sorted(
-                    reason for column, reason in reason_columns if bool(row[column])
-                )
+                reasons = sorted(reason for column, reason in reason_columns if bool(row[column]))
                 candidates.append(
                     {
                         "changeSequence": int(row["change_sequence"]),
@@ -334,9 +334,7 @@ class AttentionStore:
 
             items = list(groups.values())
             topic_refs = [
-                str(item["navigationRef"])
-                for item in items
-                if item["navigationKind"] == "topic"
+                str(item["navigationRef"]) for item in items if item["navigationKind"] == "topic"
             ]
             cursors: dict[str, int] = {}
             if topic_refs:

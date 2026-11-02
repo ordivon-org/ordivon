@@ -8,7 +8,7 @@ from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field, ValidationError
 
-from .canonical import canonical_digest
+from .canonical_json import canonical_digest
 from .errors import ConflictError
 from .social_attention import AttentionStore
 from .social_contracts import (

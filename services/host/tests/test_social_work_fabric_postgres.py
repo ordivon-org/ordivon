@@ -1072,7 +1072,7 @@ def test_r2_topic_cursor_relation_readback_reasons_and_reentry() -> None:
 
 def test_r2_message_page_respects_canonical_byte_budget() -> None:
     assert DSN is not None
-    from ordivon_host_v2.canonical import canonical_bytes
+    from ordivon_host_v2.canonical_json import canonical_bytes
 
     work = WorkStore(DSN)
     social = SocialStore(DSN)
