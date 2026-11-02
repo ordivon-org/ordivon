@@ -31,23 +31,23 @@
         {
           "role": "ui-art",
           "sourceRef": "kenney-ui-pack",
-          "integrationSeam": "Godot Control theme / Sprite2D",
-          "standing": "SOURCE_DOCUMENTED",
+          "integrationSeam": "Kenney CC0 PNG -> native ImageTexture / TextureButton -> Rules.move(1)",
+          "standing": "EXECUTED_NATIVE",
           "required": false
         },
         {
           "role": "ui-audio",
           "sourceRef": "kenney-ui-audio",
-          "integrationSeam": "Godot AudioStreamPlayer",
-          "standing": "SOURCE_DOCUMENTED",
+          "integrationSeam": "Kenney CC0 click1/click2.wav -> existing MovementAudio and Rules.state_changed",
+          "standing": "EXECUTED_NATIVE",
           "required": false
         }
       ],
       "explicitGaps": [
-        "Native fixture does not install Kenney assets, create soundtrack, or validate a third-party plugin.",
-        "Gameplay is a bounded rule-system fixture, not a shipped game."
+        "Only one pinned Kenney UI sprite and two previously installed CC0 audio clips are consumed; this is not a complete UI/soundtrack or game package.",
+        "Headless source-asset loading verifies the bounded Godot scene, not an exported game binary, human UX or packaged asset import."
       ],
-      "nextFalsifier": "Import one source-licensed UI + audio pack and compare actual input-to-signal and visual/audio feedback using the native scene."
+      "nextFalsifier": "Swap the Kenney button texture and run native real-click-to-rules-to-sound acceptance with unchanged gameplay state/goal contracts; package/build behavior still needs a real product consumer."
     },
     {
       "id": "dialogue-led-exploration",

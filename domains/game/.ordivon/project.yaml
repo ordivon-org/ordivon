@@ -43,6 +43,7 @@ managed_paths:
   - examples/native-composition/assert.gd
   - examples/room-encounter/README.md
   - examples/room-encounter/assert.gd
+  - examples/native-composition/assets/kenney-ui-art/button_rectangle_depth_border.png
 enforcement: strict
 maintainers: [zycxfyh]
 public_projection: ord

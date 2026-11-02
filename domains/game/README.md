@@ -106,14 +106,19 @@ examples/native-composition with its own acceptance test. It has a composition
 root, grid rules, configuration Resource and interchangeable state-view scenes.
 No historical product or generic game framework was restored.
 
+The current Godot Grid scene also consumes one Kenney CC0 TextureButton,
+which changes existing rules, view and the **existing** MovementAudio. It
+does not add a second audio backend. Run `mise run test:native`; source
+PNG and exact provenance are stored alongside the scene.
+
 ## Native narrative LEGO
 
 G09: `examples/dialogue-composition/` installs upstream Dialogue Manager
-v4.2.0 under Godot 4.7.2. This native addon imports real `.dialogue`
-source; Control buttons select branches, while a separate Godot game-state
-Node is the only authority for tokens and gate rules. Run
-`mise run test:dialogue-native`. Its scope is an executed two-branch
-consumer, not a completed or human-tested narrative game.
+v4.2.0 under Godot 4.7.2. The addon imports real `.dialogue` source;
+native Control buttons select branches, while the game-state Node remains
+the authority for tokens and gate rules. Run `mise run test:dialogue-native`.
+An executed branching gate component does not prove a completed exploration
+game, human narrative quality or shipped product.
 
 ## Owner operating contract
 
