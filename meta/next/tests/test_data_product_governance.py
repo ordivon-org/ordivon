@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+CENSUS = ROOT.parents[1] / "studies" / "data-lifecycle"
 BASE = ROOT / "evidence/data-lifecycle/data-products-r1"
 
 
@@ -50,7 +51,7 @@ def test_domain_governance_references_follow_current_domain_revisions():
 
 
 def test_r4_moves_safe_binding_out_of_p0_without_claiming_resolution():
-    r4 = json.loads((ROOT / "planning/data-lifecycle-census-r4.json").read_text())
+    r4 = json.loads((CENSUS / "data-lifecycle-census-r4.json").read_text())
     assert {x["id"] for x in r4["p0Queue"]} == {
         "semantic-provenance",
         "decision-outcome-feedback",

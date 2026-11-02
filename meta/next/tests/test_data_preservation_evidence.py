@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+CENSUS = ROOT.parents[1] / "studies" / "data-lifecycle"
 PRES = ROOT / "evidence/data-lifecycle/preservation-r1"
 
 
@@ -72,7 +73,7 @@ def test_ndsa_projection_is_gap_based_not_a_score() -> None:
 
 
 def test_census_r2_promotes_preservation_but_keeps_cross_domain_p0s() -> None:
-    d = load(ROOT / "planning/data-lifecycle-census-r2.json")
+    d = load(CENSUS / "data-lifecycle-census-r2.json")
     by_name = {x["name"]: x for x in d["lifecycle"]}
     assert by_name["raw-preservation"]["standing"] == "PASS_LOCAL_DURABLE_PRESERVATION"
     assert by_name["raw-preservation"]["priority"] == "P1"
@@ -94,7 +95,7 @@ def test_census_r2_promotes_preservation_but_keeps_cross_domain_p0s() -> None:
 
 
 def test_heavy_substrates_stay_workload_gated() -> None:
-    d = load(ROOT / "planning/data-lifecycle-census-r2.json")
+    d = load(CENSUS / "data-lifecycle-census-r2.json")
     gated = set(d["workloadGated"])
     assert {"Apache Iceberg", "Debezium", "Kafka/Redpanda", "Dagster", "OCFL"} <= gated
 

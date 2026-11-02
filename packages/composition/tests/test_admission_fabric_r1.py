@@ -6,10 +6,11 @@ from pathlib import Path
 from ordivon_composition import compile_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
+PROFILE = ROOT / "profiles" / "admission"
 
 
 def _load(name: str) -> dict:
-    return json.loads((ROOT / "planning" / name).read_text(encoding="utf-8"))
+    return json.loads((PROFILE / name).read_text(encoding="utf-8"))
 
 
 def test_interactive_admission_keeps_authn_authz_and_owner_truth_separate() -> None:
@@ -24,13 +25,8 @@ def test_interactive_admission_keeps_authn_authz_and_owner_truth_separate() -> N
         "stage:gateway-route",
         "stage:natural-owner",
     ]
-    assert "capability-scoped authorization" in " ".join(
-        manifest["unresolvedAssumptions"]
-    )
-    assert any(
-        gate["id"] == "gate:authn-authz-separation"
-        for gate in manifest["gateRequirements"]
-    )
+    assert "capability-scoped authorization" in " ".join(manifest["unresolvedAssumptions"])
+    assert any(gate["id"] == "gate:authn-authz-separation" for gate in manifest["gateRequirements"])
 
 
 def test_workload_admission_has_no_browser_or_human_stage() -> None:
@@ -71,5 +67,5 @@ def test_h2_debug_port_is_not_architectural_identity() -> None:
         "admission-interactive-circuit-r1.json",
         "admission-workload-circuit-r1.json",
     ):
-        text = (ROOT / "planning" / name).read_text(encoding="utf-8")
+        text = (PROFILE / name).read_text(encoding="utf-8")
         assert "28765" not in text

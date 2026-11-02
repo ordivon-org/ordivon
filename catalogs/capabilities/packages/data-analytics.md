@@ -65,7 +65,7 @@ Preservation evidence is bounded: the current master and replica occupy distinct
 
 Authoritative current projection:
 
-- `planning/data-lifecycle-census-r5.json`
+- `studies/data-lifecycle/data-lifecycle-census-r5.json`
 - `docs/DATA_PRODUCT_CONSUMPTION_FEEDBACK_R1.md`
 - `docs/DATA_PRODUCTS_FEDERATION_R1.md`
 - `docs/DATA_DURABLE_PRESERVATION_R1.md`
