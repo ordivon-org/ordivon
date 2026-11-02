@@ -15,8 +15,10 @@ capabilities and native engine primitives do not satisfy the desired behavior.
 **Existing evidence (2026-11-02; inspect current main again before work):**
 - G01 source-grounded external references; G02 mechanism experiences;
   G03 rebuildable relationship projection; G04 counterexample memory;
-  G05 read-only query consumers; G06 a bounded *native Godot* assembly
-  acceptance fixture. The authoritative inventory is
+  G05 read-only query consumers; G06 bounded *native Godot* acceptance;
+  G07 a Bevy-native product assembly; G08 native Godot movement audio feedback.
+  G07/G08 are source/consumer-qualified but not human-playtest proofs.
+  The authoritative inventory is
   `planning/lego-plan-r1.json`, not this prose.
 - `src/` contains query input policy, knowledge file reading, pure graph
   derivation and counterexample projection. `scripts/` are CLI/File-I/O
@@ -53,6 +55,17 @@ Current owner seams:
 | Counterexample enrichment | `src/counterexample-projection.ts` | G04; failure-context and source fidelity |
 | CLI parsing and file boundary | `src/query-input.ts`, `src/knowledge-file.ts`, `scripts/cli-argument.ts` | G05 bounded read-only CLI entrypoints |
 | Native game state / rule / view composition | `examples/native-composition` | G06 real PackedScene/Resource/Signal acceptance |
+| Bevy rules and native ECS app | `examples/orbit-collector/{src,Cargo.toml,Cargo.lock}` | G07 rule/Plugin system tests and native build; GPU runtime UNKNOWN |
+| Source-licensed Godot audio effects | `examples/native-composition/{main.tscn,movement_audio_feedback.gd,assets/kenney-ui-audio}` | G08 actual state Signal -> AudioStreamPlayer and replaceable WAV |
+
+**G03 source-only composition:** The canonical Experience Library and authored
+Relationship Spec are the only stored relationship inputs. The existing pure
+`src/mechanism-relationship-graph.ts` deterministically projects their raw
+bytes and source SHA-256 provenance; the stable read-only CLI builds its view
+on demand. Do not restore the 17,184-line checked-in derived JSON or its
+manual publication adapter without a demonstrated new consumer. Treat
+co-occurrence as retrieval evidence, not causal compatibility or playable-game
+authority.
 
 **Allowed dependency direction:** evidence source -> pure projection ->
 application/CLI adapter -> native consumer. The engine/runtime owns physics,
@@ -171,12 +184,33 @@ Known external references:
 - https://kenney.nl/support
 - https://doi.org/10.1145/361598.361623
 
+Current Game composition evidence now includes three distinct native cases:
+`examples/native-composition/` (Grid scene + native audio),
+`examples/room-encounter/` (three-room combat with tunable rules/HUD and
+native audio), and `examples/kenney-visual-composition/` (two-image
+appearance substitution only). `NATIVE_COMPONENT_EXECUTED` must never be
+promoted to a playable game outcome. Inspect with the **existing**
+`pnpm composition:inspect`, which now uses a pure, source-bound projection
+`src/prototype-composition.ts` behind its existing CLI entrypoint. Do not
+invent an engine-neutral execution registry or a new gameplay product.
+
+**Save/resume is an independent lifecycle contract, not a persistence
+framework.** The existing `examples/room-encounter` Godot Rules owns
+checkpoint validity and restores state; `SaveSlot` owns built-in `ConfigFile`
+I/O, and the scene remains the UI/audio consumer. `mise run test:encounter`
+now runs the same room game in *two separate Godot processes* on one
+temporary slot: first save a nontrivial room state, then start a fresh
+SceneTree, reload, observe UI and continue legal gameplay with exactly one
+new sound. This proves the named local process boundary, not export,
+cloud-sync, schema migration, or player experience. Do not introduce a
+custom Game persistence subsystem or a second source-of-truth store.
+
 For directly inspectable, **source-backed prototype assembly candidates**, use
 `pnpm composition:inspect` and
 `planning/prototype-composition-candidates-r1.json`. These are Game's
 advisory composition hypotheses and not a second provider registry.
 The native Godot path is now `examples/native-composition/`; Bevy's
-`examples/bevy-native-composition/` is a separately owned native Rust App.
+`examples/orbit-collector/` is a separately owned native Rust App.
 A compiled Bevy prototype is not evidence of actual desktop play or human fun.
 
 Use `knowledge/game_external_skill_watchlist_r1.json` for optional method
@@ -185,6 +219,12 @@ Existing method Skills `compositional-contracts`,
 `design-structure-matrix`, `ck-design`, `causal-intervention`, and
 `recursive-lego-calculus` are sufficient until a recurring, actually
 demonstrated Game-specific gap justifies another Skill.
+
+**Executed third-party Game media seam:** `examples/native-composition`
+consumes a pinned Kenney CC0 UI button via native TextureButton and reuses
+the **single existing** MovementAudio component with its two CC0 clips.
+Do not re-add the duplicate audio controller or copy a full asset pack:
+source-asset provenance and actual consumer are documented next to the scene.
 
 ### 3.3 Compose through native interfaces and explicit obligations
 
@@ -214,11 +254,46 @@ A candidate assembly must describe:
    assumptions UNKNOWN; do not veto novel mechanics from advisory records.
 
 **Minimal assembly demonstration already in the repo:**
-`mise run test:native` exercises a real Godot PackedScene, Resource-configured
+`mise run test:native` exercises real Godot gameplay and sound PackedScenes, Resource-configured
 player variants, legal/illegal actions, finite-state rules, Signal-driven
 feedback and presentation scene substitution. It establishes only G06's bounded
-contract, not a launched indie game. A future playable 5-minute product must
+contract; G08 adds a source-qualified, user-input-driven AudioStream effect.
+G07 is the separate Bevy ECS/Plugin game example (`cargo test --locked` and
+`cargo check --locked --all-targets` in its own Cargo root), not a new engine.
+Neither is a launched indie game. A future playable 5-minute product must
 have its own playable build and product evidence; never promote fixture PASS.
+
+****Reusable dialogue LEGO assembly:** the already-installed 4.2.0 upstream
+Dialogue Manager provides branch/condition evaluation, while
+`examples/dialogue-composition/gate_state.gd` owns tokens and gate
+effects and native Control/Buttons own presentation. Inspect the
+`branching-dialogue-gate` record through the **existing**
+`pnpm composition:inspect -- --id branching-dialogue-gate`.
+That is an executed **component closure**, not a full exploration game.
+The separate `dialogue-led-exploration` remains DESIGN_CANDIDATE:
+an installed dialogue runtime alone cannot claim connected rooms, save
+state, content, music, or player experience. Never create a second DSL,
+story-state database or duplicate Game G09.
+
+Narrative native consumer G09:** `examples/dialogue-composition/`
+uses the current upstream MIT Dialogue Manager v4.2.0 with an exact source
+pin, its ordinary `.dialogue` importer and runtime, and one Godot 4.7.2
+project. The scene Control/Buttons own choice presentation; a separate
+game-state Node owns token and gate rules, projecting changes through a
+native `state_changed` Signal. The addon supplies branch and condition
+evaluation; `mise run test:dialogue-native` checks native import,
+accepted mutation, alternate branch and unavailable choice. Do **not**
+introduce an Ordivon dialogue DSL, duplicate renderer/backend or claim
+story quality, accessibility and a shipped product from a headless test.
+
+**Native Game save/resume G10:** the actual examples/room-encounter
+scene composes Godot ConfigFile with a separate rule-owned checkpoint
+validation contract and UI Save/Load buttons/keys. Audio consumes explicit
+action_accepted signals, not state changes or inferred turn increments:
+a restored run cannot sound like an attack. The real test:encounter
+consumer verifies native readback and atomic rejection. Extend the existing
+consumer rather than building another generic save service. Human playtest,
+power-loss durability, migration and shipped quality remain UNKNOWN.
 
 **Composition criterion:** for required property P and components A,B,
 the environment must discharge each required precondition/assumption, their

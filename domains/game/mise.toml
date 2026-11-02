@@ -4,9 +4,29 @@ pnpm = "12.16.1"
 godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check && mise run test:native"
+run = "pnpm install --frozen-lockfile && pnpm check && mise run test:native && mise run test:encounter && mise run test:visual-native && mise run test:dialogue-native"
 
 
 [tasks."test:native"]
 description = "Run source-bound native Godot composition acceptance (requires installed Godot)"
 run = "godot --headless --path examples/native-composition --script res://assert.gd && godot --headless --path examples/native-composition --script res://assert_audio.gd"
+
+[tasks."test:encounter"]
+description = "Run native room gameplay, save/restore, and separate-process restart acceptance"
+run = """
+set -eu
+godot --headless --editor --import --path examples/room-encounter
+godot --headless --path examples/room-encounter --script res://assert.gd
+room_restart_slot_dir="$(mktemp -d)"
+trap 'rm -rf "$room_restart_slot_dir"' EXIT
+godot --headless --path examples/room-encounter --script res://assert_process_restart.gd -- --phase save --slot "$room_restart_slot_dir/run.cfg"
+godot --headless --path examples/room-encounter --script res://assert_process_restart.gd -- --phase load --slot "$room_restart_slot_dir/run.cfg"
+"""
+
+[tasks."test:visual-native"]
+description = "Import a real CC0 sprite pack and verify Godot PackedScene appearance substitution"
+run = "godot --headless --path examples/kenney-visual-composition --editor --import && godot --headless --path examples/kenney-visual-composition --script res://acceptance.gd && godot --headless --path examples/kenney-visual-composition --quit-after 2"
+
+[tasks."test:dialogue-native"]
+description = "Run source-locked Dialogue Manager 4.2.0 under pinned Godot: import, branches and game state"
+run = "godot --headless --path examples/dialogue-composition --editor --import && godot --headless --path examples/dialogue-composition --script res://acceptance.gd && godot --headless --path examples/dialogue-composition --quit-after 2"

@@ -41,6 +41,10 @@
   ],
   "allowedExactPaths": [
     {
+      "path": "studies/data-lifecycle/data-lifecycle-census-r1.json",
+      "reason": "Dated Study census preserves the Workstation Lab path observed at collection time."
+    },
+    {
       "path": "capabilities/media/creative-library/SOURCE_BOUNDARY.json",
       "reason": "The extraction boundary names its historical source."
     },

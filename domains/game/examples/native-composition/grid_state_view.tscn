@@ -16,3 +16,6 @@ text = "Game LEGO assembly: Left / Right"
 [node name="Board" type="Label" parent="."]
 
 [node name="Status" type="Label" parent="."]
+
+[node name="MoveRightButton" type="TextureButton" parent="."]
+tooltip_text = "Move one step right"

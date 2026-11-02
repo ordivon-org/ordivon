@@ -1,0 +1,42 @@
+{
+  "artifact": {
+    "byteReplay": "PASS_IDENTICAL",
+    "parquetSha256": "sha256:7c0747db4f0568a83e444cbf46e61aed93bd8d5fa66eb5eedb0ad2af98db233d",
+    "profile": "dataset-parquet-flat-r1",
+    "readerCanonicalRowsSha256": "sha256:7fc89298fbf4c197015edc339f410e56de8f832c8c81dcfce9bfb4d24c632c9f",
+    "rowCount": 10007,
+    "standing": "PASS"
+  },
+  "dcat": {
+    "standing": "PASS_RDF_PARSE",
+    "triples": 66,
+    "version": "3"
+  },
+  "kind": "ordivon.experimental-episode-rw5-standard-validation",
+  "observability": {
+    "standing": "PASS_BOUNDED_OTLP_PROMETHEUS_READBACK_COLD_STATE_RESTORED"
+  },
+  "odcs": {
+    "standing": "PASS_FROZEN_OFFICIAL_JSON_SCHEMA",
+    "version": "3.2.0"
+  },
+  "odps": {
+    "standing": "PASS_PRODUCT_SHAPE_AND_OWNER_BINDING",
+    "version": "1.1.0"
+  },
+  "odrl": {
+    "standing": "PASS_FAIL_CLOSED_POLICY_SHAPE",
+    "version": "2.2"
+  },
+  "openLineage": {
+    "standing": "PASS_RUN_EVENT_SCHEMA",
+    "version": "2.0.2"
+  },
+  "prov": {
+    "episodeTriples": 34,
+    "federatedTriples": 82,
+    "standing": "PASS_RDF_PARSE"
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_STANDARD_NATIVE_BINDINGS"
+}

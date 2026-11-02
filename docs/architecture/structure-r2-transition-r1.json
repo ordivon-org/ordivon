@@ -418,6 +418,7 @@
       "mode": "move",
       "owner": "next",
       "semanticTypeClaim": "none",
+      "standing": "DEPLOYED",
       "sourcePaths": [
         "meta/next/domains/"
       ],
@@ -533,6 +534,94 @@
       "verifyTasks": [
         "next:verify",
         "repo:ci"
+      ],
+      "wave": "S5"
+    },
+    {
+      "id": "authority-catalog-implementation",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/scripts/authority_catalog.py",
+        "meta/next/scripts/authority_catalog_sources.py",
+        "meta/next/scripts/authority_catalog_search.py",
+        "meta/next/scripts/check_authority_catalog_r1.py",
+        "meta/next/tests/test_authority_catalog.py"
+      ],
+      "targetPaths": [
+        "catalogs/authorities/scripts/",
+        "catalogs/authorities/tests/",
+        "catalogs/authorities/planning/"
+      ],
+      "verifyTasks": [
+        "next:verify",
+        "repo:ci"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "External authority source, observation, search, native CLI/validator/test, and NX01 owner LEGO are co-located in the existing catalogs/authorities natural source responsibility, without a new registry service."
+    },
+    {
+      "disposition": "Twelve tracked package files relocated byte-identically except README source owner pointer; native Python distribution/CLI, Alembic migration, PostgreSQL projection and actual Study consumer tests retained. No alias or shadow package.",
+      "id": "experimental-episode-study-store",
+      "mode": "move",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/experiments/episode-store-r1/"
+      ],
+      "standing": "DEPLOYED",
+      "targetPaths": [
+        "studies/experimental-episodes/episode-store/"
+      ],
+      "verifyTasks": [
+        "next:verify",
+        "repo:ci"
+      ],
+      "wave": "S5"
+    },
+    {
+      "id": "data-lifecycle-study-evidence",
+      "mode": "move",
+      "wave": "S5",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/evidence/data-lifecycle/"
+      ],
+      "targetPaths": [
+        "studies/data-lifecycle/evidence/"
+      ],
+      "standing": "DEPLOYED",
+      "verifyTasks": [
+        "repo:ci",
+        "next:verify"
+      ],
+      "disposition": "Thirty-eight original study evidence files retained byte-identically at the Study source owner, together with six method/consumer checks moved to studies/data-lifecycle/tests and enrolled in existing repository pytest CI. Historical evidence source/path references remain dated observations, not current active pointers."
+    },
+    {
+      "id": "r5c-episode-study-native-projection",
+      "mode": "move",
+      "owner": "studies",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/scripts/experimental_episode_r1.py",
+        "meta/next/scripts/experimental_episode_projection_r1.py",
+        "meta/next/scripts/experimental_episode_r5c_source_r1.sql",
+        "meta/next/tests/test_experimental_episode_r1.py"
+      ],
+      "targetPaths": [
+        "studies/experimental-episodes/episode-store/src/ordivon_experimental_episode_store/r5c_backfill.py",
+        "studies/experimental-episodes/episode-store/src/ordivon_experimental_episode_store/r5c_projection.py",
+        "studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql",
+        "studies/experimental-episodes/episode-store/tests/test_r5c_projection.py"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Move R5C historical query, deterministic Episode projection, backfill CLI and real consumers into existing native Experimental Episode Study package. Repository SQL dialect source readset and native dependencies rebound; frozen historical material untouched.",
+      "verifyTasks": [
+        "repo:ci",
+        "next:verify"
       ],
       "wave": "S5"
     }

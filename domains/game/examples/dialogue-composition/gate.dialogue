@@ -1,0 +1,13 @@
+~ start
+Guide: The passage needs one token.
+- Unlock the passage [if game.tokens > 0 /] => unlock
+- Leave without unlocking => leave
+
+~ unlock
+$> game.spend_token()
+Guide: Passage unlocked.
+=> END
+
+~ leave
+Guide: Maybe another time.
+=> END

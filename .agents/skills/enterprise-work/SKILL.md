@@ -44,7 +44,7 @@ These are task facts, not fields in a universal Ordivon Work schema.
 
 When a mature authority/practice may apply:
 
-1. query the Authority Catalog with `scripts/authority_catalog.py find`;
+1. query the Authority Catalog with `catalogs/authorities/scripts/authority_catalog.py find`;
 2. inspect the exact record with `show`;
 3. check the official source when freshness/scope matters;
 4. bind/exclude/defer it in the current task only;

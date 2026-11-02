@@ -1,0 +1,40 @@
+[gd_scene load_steps=2 format=3]
+[ext_resource type="Script" path="res://encounter_view.gd" id="1_view"]
+[node name="Hud" type="VBoxContainer"]
+offset_right = 630.0
+offset_bottom = 220.0
+theme_override_constants/separation = 20
+script = ExtResource("1_view")
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+text = "ORIGINAL GRAYBOX | ROOM ENCOUNTER"
+[node name="Status" type="Label" parent="."]
+layout_mode = 2
+text = "..."
+[node name="Encounter" type="Label" parent="."]
+layout_mode = 2
+text = "..."
+[node name="Actions" type="HBoxContainer" parent="."]
+layout_mode = 2
+[node name="Attack" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Attack [A/Space]"
+[node name="Guard" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Guard [G]"
+[node name="Next" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Open Door [N]"
+[node name="Restart" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Restart [R]"
+
+[node name="Save" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Save [S]"
+[node name="Load" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Load [L]"
+[node name="Storage" type="Label" parent="."]
+layout_mode = 2
+text = "No saved run loaded."
