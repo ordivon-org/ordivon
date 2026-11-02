@@ -474,7 +474,7 @@
     {
       "id": "GS4",
       "objective": "Use real source-locked Bevy Plugin/ECS for one bounded game-specific Rust ruleset, not a generic engine",
-      "status": "PARTIAL",
+      "status": "IMPLEMENTED",
       "nodeIds": [
         "G07"
       ],
