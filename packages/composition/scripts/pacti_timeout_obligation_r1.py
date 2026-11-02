@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-# Keep both production caller forms: direct CLI and scripts.* imports.
+# Preserve both existing invocation forms: direct CLI and Composition scripts.* imports.
 # Only the representation layer is reusable; actual Pacti execution remains
 # deliberately opt-in and bound to the explicit external provider.
 if __package__:
@@ -262,11 +262,7 @@ def main() -> int:
     args = parser.parse_args()
     observed = args.owner_grant is not None or args.runtime_status is not None
     if observed:
-        if (
-            args.spec is not None
-            or args.owner_grant is None
-            or args.runtime_status is None
-        ):
+        if args.spec is not None or args.owner_grant is None or args.runtime_status is None:
             parser.error(
                 "owner observation requires both --owner-grant and --runtime-status, without spec"
             )

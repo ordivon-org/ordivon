@@ -10,8 +10,8 @@ set -euo pipefail
 export UV_PYTHON="$(mise which python)"
 uv lock --check
 uv sync --locked
-uv run ruff check src tests
-uv run ruff format --check src tests
+uv run ruff check src tests scripts
+uv run ruff format --check src tests scripts
 uv run python -m pytest -q
 mise run formal:verify
 mise run formal:effect:verify
