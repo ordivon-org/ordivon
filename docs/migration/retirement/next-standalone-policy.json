@@ -36,15 +36,11 @@
       "reason": "Historical acceptance evidence records the source repository observed at evidence creation."
     },
     {
-      "path": "meta/next/evidence/analysis/local-capability-pack-r1-20260913.md",
-      "reason": "Historical capability census records the then-current local Skill source."
-    },
-    {
-      "path": "meta/next/evidence/data-lifecycle/preservation-r1/acceptance.json",
+      "path": "studies/data-lifecycle/evidence/preservation-r1/acceptance.json",
       "reason": "Historical preservation acceptance records the then-current source repository."
     },
     {
-      "path": "meta/next/tests/test_web_provider_routing_skill.py",
+      "path": "catalogs/capabilities/tests/test_web_provider_routing_skill.py",
       "reason": "Negative regression assertion forbidding the retired web-provider-routing script path."
     },
     {
