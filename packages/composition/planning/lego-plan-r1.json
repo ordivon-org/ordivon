@@ -104,7 +104,7 @@
       ],
       "consumerBindings": [
         {
-          "path": "meta/next/tests/test_interface_contract_r2.py",
+          "path": "packages/composition/tests/test_interface_contract_r2.py",
           "operation": "evaluate_interface/currentness_standing via native tests",
           "standing": "SOURCE_IMPORTED_TEST_CONSUMER_NOT_INSTALLED"
         }
