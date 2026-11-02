@@ -29,7 +29,7 @@ with current Media consumers, not preservation-format authority.
 - **Inputs:** Owner-tracked R10 Compose overlay, Fixity R7 Service/Timer, credential environment-file reference (not private bytes).
 - **Outputs:** positive or fail-closed source-profile contract standing; no provider effect.
 - **Contract:** Compose must publish only 127.0.0.1:62081:8000. The Timer Unit must name the exact Fixity Service. Service ConditionPathExists and EnvironmentFile must agree on the credential binding. ExecStart must invoke its pinned working-directory fixity scanall --force-local provider.
-- **Consumer:** The existing verify_source.py main path consumes both systemd files and Compose through verify_fixity_consumer_binding; the registered preservation:verify task and Repo Owner verification consume acceptance. Native negative tests exercise ordinary and optimized Python.
+- **Consumer:** The existing verify_source.py main path consumes both systemd files and Compose; the pure scripts/fixity_consumer_contract.py module checks supplied Timer/Service text via verify_fixity_consumer_binding; the registered preservation:verify task and Repo Owner verification consume acceptance. Native negative tests exercise ordinary and optimized Python.
 - **Formal/installed boundary:** SOURCE acceptance only. Private STORAGE_SERVICE_URL contents, active Compose overlay, installed Service/Timer, live connectivity, completed fixity and archive acceptance are UNKNOWN without their independent native evidence.
 - **Replacement:** Reuse existing systemd, Docker Compose and Artefactual Fixity. Retire only when no qualified real consumer retains this exact binding.
 
