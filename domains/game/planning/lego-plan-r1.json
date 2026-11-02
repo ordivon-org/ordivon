@@ -92,13 +92,13 @@
       "outputs": [
         "conditional relations"
       ],
-      "behavioralContract": "Rebuildable view; never a closed game ontology.",
+      "behavioralContract": "Source-byte derived view via read-only CLI; never a closed game ontology.",
       "acceptance": [
-        "Graph rebuild and retrieval equivalence."
+        "On-demand pure projection and retrieval equivalence from exact source bytes."
       ],
       "evidence": [
-        "knowledge/game_mechanism_relationship_graph_r1.json",
-        "scripts/build-mechanism-relationship-graph.ts",
+        "knowledge/game_mechanism_experience_library_r1.json",
+        "knowledge/game_mechanism_relationship_spec_r1.json",
         "src/mechanism-relationship-graph.ts"
       ],
       "dependencies": [],
@@ -109,7 +109,7 @@
         "human enjoyment authority"
       ],
       "consumerEvidence": [
-        "scripts/build-mechanism-relationship-graph.ts",
+        "scripts/mechanism-relationship-query.ts",
         "test/game-mechanism-relationship-graph.test.ts",
         "package.json"
       ]

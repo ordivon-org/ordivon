@@ -74,11 +74,11 @@ The internal module does not claim Game design authority or create a query regis
 G05 is a read-only interface adapter, not a verifier: retrieving a record does
 not establish a Game behavior or proof. G06 owns bounded native-Godot tests.
 
-G03 relationship projection separates `src/mechanism-relationship-graph.ts`
-(pure derivation from the exact library/spec source bytes) from the stable
-`scripts/build-mechanism-relationship-graph.ts` command (file I/O and JSON
-publication). Use the existing `pnpm build:relationship-graph` to rebuild the
-committed derived graph; source digests and retrieval semantics are unchanged.
+G03 relationship queries derive from the authoritative Experience Library and
+authored Relationship Spec using the existing pure source-byte projector. The
+stable knowledge:relationships CLI loads these inputs on demand, preserving
+source digests and query results. The redundant 17,184-line generated snapshot
+and manual publication command are retired; no new registry replaces them.
 
 ## Knowledge layout
 

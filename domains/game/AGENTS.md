@@ -58,6 +58,15 @@ Current owner seams:
 | Bevy rules and native ECS app | `examples/orbit-collector/{src,Cargo.toml,Cargo.lock}` | G07 rule/Plugin system tests and native build; GPU runtime UNKNOWN |
 | Source-licensed Godot audio effects | `examples/native-composition/{main.tscn,movement_audio_feedback.gd,assets/kenney-ui-audio}` | G08 actual state Signal -> AudioStreamPlayer and replaceable WAV |
 
+**G03 source-only composition:** The canonical Experience Library and authored
+Relationship Spec are the only stored relationship inputs. The existing pure
+`src/mechanism-relationship-graph.ts` deterministically projects their raw
+bytes and source SHA-256 provenance; the stable read-only CLI builds its view
+on demand. Do not restore the 17,184-line checked-in derived JSON or its
+manual publication adapter without a demonstrated new consumer. Treat
+co-occurrence as retrieval evidence, not causal compatibility or playable-game
+authority.
+
 **Allowed dependency direction:** evidence source -> pure projection ->
 application/CLI adapter -> native consumer. The engine/runtime owns physics,
 nodes, scenes, assets, ECS, input, scheduling and lifecycle by default. Do not
