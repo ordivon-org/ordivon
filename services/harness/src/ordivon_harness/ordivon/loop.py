@@ -34,8 +34,8 @@ from .model import (
 )
 from .provider_lifecycle import ProviderCallLifecycle, ProviderLifecycleError
 from .run_recovery import (
+    _evaluate_observation_progress,
     _observation_evidence_signature,
-    _path_subsumes,
     _recover_tool_batch,
     _retained_tool_calls,
     _search_evidence,
@@ -223,6 +223,30 @@ class RunBudget:
                 )
             if claimed != execution[field]:
                 raise ValueError(f"Standalone Runner budget differs at {field}")
+
+    def observation_gate_reason(
+        self, *, no_progress_turns: int, observation_only_turns: int
+    ) -> str | None:
+        """Derive a soft external-Tool gate without granting any effect authority."""
+        if (
+            self.max_no_progress_turns > 0
+            and no_progress_turns >= self.max_no_progress_turns
+        ):
+            return (
+                "external observation gate closed after "
+                f"{no_progress_turns} consecutive turns without a mutation, "
+                "check, materially new bounded observation, or conclusion"
+            )
+        if (
+            self.max_observation_only_turns > 0
+            and observation_only_turns >= self.max_observation_only_turns
+        ):
+            return (
+                "external observation gate closed after "
+                f"{observation_only_turns} consecutive observation-only turns "
+                "without a mutation, check, or conclusion"
+            )
+        return None
 
     def remaining(
         self,
@@ -607,29 +631,10 @@ class OrdivonAgentLoop:
         post_caller_tool_exchange_messages: list[dict[str, JsonValue]] = []
         transient_working_set_digest: str | None = None
 
-        def soft_observation_gate_reason() -> str | None:
-            if (
-                self.budget.max_no_progress_turns > 0
-                and no_progress_turns >= self.budget.max_no_progress_turns
-            ):
-                return (
-                    "external observation gate closed after "
-                    f"{no_progress_turns} consecutive turns without a mutation, "
-                    "check, materially new bounded observation, or conclusion"
-                )
-            if (
-                self.budget.max_observation_only_turns > 0
-                and observation_only_turns
-                >= self.budget.max_observation_only_turns
-            ):
-                return (
-                    "external observation gate closed after "
-                    f"{observation_only_turns} consecutive observation-only turns "
-                    "without a mutation, check, or conclusion"
-                )
-            return None
-
-        external_observation_gate_reason = soft_observation_gate_reason()
+        external_observation_gate_reason = self.budget.observation_gate_reason(
+            no_progress_turns=no_progress_turns,
+            observation_only_turns=observation_only_turns,
+        )
 
         retained_calls = _retained_tool_calls(messages)
         evidence_signatures: set[str] = set()
@@ -1179,46 +1184,16 @@ class OrdivonAgentLoop:
             turn_id: str,
         ) -> AgentLoopResult | None:
             nonlocal external_observation_gate_reason, no_progress_turns, observation_only_turns
-            observed_tool_names = {
-                observation.tool_name
-                for observation in turn_observations
-                if observation.status == "observed"
-            }
-            observation_only = bool(
-                observed_tool_names
-            ) and observed_tool_names.issubset(self.observation_only_tool_names)
-            action_progress = bool(
-                observed_tool_names - self.observation_only_tool_names
+            progress = _evaluate_observation_progress(
+                calls,
+                turn_observations,
+                observation_only_tool_names=self.observation_only_tool_names,
+                evidence_signatures=evidence_signatures,
+                search_evidence=search_evidence,
             )
-            new_evidence = False
-            calls_by_id = {call.tool_call_id: call for call in calls}
-            for observation in turn_observations:
-                if observation.status != "observed":
-                    continue
-                call = calls_by_id.get(observation.tool_call_id)
-                if observation.tool_name == "search_workspace" and call is not None:
-                    for search_key, matches in _search_evidence(call, observation):
-                        query, relative_path = search_key
-                        subsuming = [
-                            retained_matches
-                            for (
-                                retained_query,
-                                retained_path,
-                            ), retained_matches in search_evidence.items()
-                            if retained_query == query
-                            and _path_subsumes(retained_path, relative_path)
-                        ]
-                        if not subsuming or not any(
-                            matches.issubset(retained_matches)
-                            for retained_matches in subsuming
-                        ):
-                            new_evidence = True
-                        search_evidence.setdefault(search_key, set()).update(matches)
-                    continue
-                signature = _observation_evidence_signature(observation)
-                if signature not in evidence_signatures:
-                    new_evidence = True
-                    evidence_signatures.add(signature)
+            observation_only = progress.observation_only
+            action_progress = progress.action_progress
+            new_evidence = progress.new_evidence
             observation_only_turns = (
                 observation_only_turns + 1 if observation_only else 0
             )
@@ -1238,7 +1213,10 @@ class OrdivonAgentLoop:
                     "noProgressTurns": no_progress_turns,
                 },
             )
-            gate_reason = soft_observation_gate_reason()
+            gate_reason = self.budget.observation_gate_reason(
+                no_progress_turns=no_progress_turns,
+                observation_only_turns=observation_only_turns,
+            )
             if gate_reason is not None:
                 newly_closed = external_observation_gate_reason is None
                 external_observation_gate_reason = gate_reason

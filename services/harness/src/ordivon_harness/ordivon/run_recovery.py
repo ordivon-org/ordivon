@@ -29,6 +29,69 @@ def _observation_evidence_signature(observation: HarnessToolObservation) -> str:
         }
     )
 
+@dataclass(frozen=True, slots=True)
+class _ObservationProgress:
+    observation_only: bool
+    action_progress: bool
+    new_evidence: bool
+
+
+def _evaluate_observation_progress(
+    calls: tuple[AgentToolCall, ...],
+    observations: list[HarnessToolObservation],
+    *,
+    observation_only_tool_names: frozenset[str],
+    evidence_signatures: set[str],
+    search_evidence: dict[tuple[str, str], set[str]],
+) -> _ObservationProgress:
+    """Update in-memory evidence indexes; never dispatch tools or commit a Run."""
+    observed_tool_names = {
+        observation.tool_name
+        for observation in observations
+        if observation.status == "observed"
+    }
+    observation_only = bool(
+        observed_tool_names
+    ) and observed_tool_names.issubset(observation_only_tool_names)
+    action_progress = bool(
+        observed_tool_names - observation_only_tool_names
+    )
+    new_evidence = False
+    calls_by_id = {call.tool_call_id: call for call in calls}
+    for observation in observations:
+        if observation.status != "observed":
+            continue
+        call = calls_by_id.get(observation.tool_call_id)
+        if observation.tool_name == "search_workspace" and call is not None:
+            for search_key, matches in _search_evidence(call, observation):
+                query, relative_path = search_key
+                subsuming = [
+                    retained_matches
+                    for (
+                        retained_query,
+                        retained_path,
+                    ), retained_matches in search_evidence.items()
+                    if retained_query == query
+                    and _path_subsumes(retained_path, relative_path)
+                ]
+                if not subsuming or not any(
+                    matches.issubset(retained_matches)
+                    for retained_matches in subsuming
+                ):
+                    new_evidence = True
+                search_evidence.setdefault(search_key, set()).update(matches)
+            continue
+        signature = _observation_evidence_signature(observation)
+        if signature not in evidence_signatures:
+            new_evidence = True
+            evidence_signatures.add(signature)
+    return _ObservationProgress(
+        observation_only=observation_only,
+        action_progress=action_progress,
+        new_evidence=new_evidence,
+    )
+
+
 def _retained_tool_calls(
     messages: list[dict[str, JsonValue]],
 ) -> dict[str, AgentToolCall]:
