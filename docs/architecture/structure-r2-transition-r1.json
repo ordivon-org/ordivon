@@ -493,6 +493,24 @@
         "repo:ci"
       ],
       "wave": "S5"
+    },
+    {
+      "id": "next-migration-disposition-records",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/migrations/records/"
+      ],
+      "targetPaths": [
+        "docs/migration/retirement/"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "Source-only move of the ten Next-owned migration and retirement state records into the existing migration/retirement documentation region. Frozen SourceCut evidence remains historical and unchanged; outstanding external cleanup remains OPEN until actual external verification."
     }
   ],
   "openSlices": [

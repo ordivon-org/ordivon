@@ -21,7 +21,7 @@
     {
       "id": "historical-next-migration-records",
       "globs": [
-        "meta/next/migrations/records/**",
+        "docs/migration/retirement/*.md",
         "meta/next/planning/**"
       ],
       "reason": "Migration/planning snapshots preserve historical repository topology."

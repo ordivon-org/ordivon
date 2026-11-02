@@ -21,7 +21,7 @@
     {
       "id": "historical-next-migration-records",
       "globs": [
-        "meta/next/migrations/records/host-*.md"
+        "docs/migration/retirement/host-*.md"
       ],
       "reason": "Dated Host migration records preserve repository topology observed before monorepo retirement."
     },

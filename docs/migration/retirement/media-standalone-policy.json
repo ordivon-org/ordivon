@@ -28,7 +28,7 @@
       "id": "migration-and-planning-records",
       "globs": [
         "meta/next/planning/**",
-        "meta/next/migrations/records/**",
+        "docs/migration/retirement/*.md",
         "docs/migration/**"
       ],
       "reason": "Migration and planning records preserve historical topology."
