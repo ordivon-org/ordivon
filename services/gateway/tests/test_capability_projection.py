@@ -3,7 +3,11 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from ordivon_gateway.capability_projection import project_execution_capability
+from ordivon_gateway.capability_projection import (
+    project_capability_search,
+    project_execution_capability,
+)
+from ordivon_gateway.contracts import CapabilityDescriptor, CapabilityProjection
 from ordivon_gateway.routes import default_routes
 from ordivon_gateway.service import GatewayService
 
@@ -357,3 +361,97 @@ def test_projection_preserves_unconfigured_and_missing_target_distinction() -> N
     )
     assert not mismatched.configured
     assert mismatched.observation_error == "owner did not advertise the routed execution target"
+
+
+def test_pure_search_projection_preserves_ranked_contract_and_unknown_truth() -> None:
+    def descriptor(
+        name: str,
+        *,
+        description: str = "",
+        available: bool = True,
+        observation_error: str | None = None,
+    ) -> CapabilityDescriptor:
+        return CapabilityDescriptor(
+            capability=name,
+            owner_id="runtime.linux",
+            category="execution",
+            configured=True,
+            available=available,
+            context_mode="none",
+            truth_boundary="non-authoritative-test-observation",
+            description=description,
+            observation_error=observation_error,
+        )
+
+    projection = CapabilityProjection(
+        projection_digest="sha256:" + "a" * 64,
+        capabilities=[
+            descriptor("service.record", description="linuxish"),
+            descriptor("linux-unknown", available=False, observation_error="observer timed out"),
+            descriptor("plugin.audit", description="needs linux agent"),
+            descriptor("linux"),
+            descriptor("linux-prefix"),
+            descriptor("linux-rejected", available=False),
+        ],
+    )
+    original_bytes = projection.model_dump_json()
+    result = project_capability_search(
+        projection,
+        query="linux",
+        category="execution",
+        owner_id="runtime.linux",
+        limit=4,
+        include_unavailable=False,
+    )
+
+    assert result.total_matches == 5
+    assert [(m.match_kind, m.capability.capability) for m in result.matches] == [
+        ("exact", "linux"),
+        ("prefix", "linux-prefix"),
+        ("prefix", "linux-unknown"),
+        ("token", "plugin.audit"),
+    ]
+    assert result.matches[2].capability.available is False
+    assert result.matches[2].capability.observation_error == "observer timed out"
+    assert result.projection_digest == projection.projection_digest
+    assert projection.model_dump_json() == original_bytes
+    assert (
+        project_capability_search(
+            projection,
+            query="linux",
+            category="execution",
+            owner_id=None,
+            limit=10,
+            include_unavailable=True,
+        ).total_matches
+        == 6
+    )
+
+
+def test_pure_search_projection_does_not_confer_execution_authority() -> None:
+    projection = CapabilityProjection(
+        projection_digest="sha256:" + "b" * 64,
+        capabilities=[
+            CapabilityDescriptor(
+                capability="execution.linux",
+                owner_id="runtime.linux",
+                category="execution",
+                configured=False,
+                available=False,
+                context_mode="none",
+                truth_boundary="projection only",
+                observation_error="owner unavailable",
+            )
+        ],
+    )
+    result = project_capability_search(
+        projection,
+        query="execution.linux",
+        category=None,
+        owner_id=None,
+        limit=10,
+        include_unavailable=False,
+    )
+    assert result.total_matches == 1
+    assert result.truth_role == "rebuildable-non-authoritative-discovery-projection"
+    assert result.matches[0].capability.observation_error == "owner unavailable"
