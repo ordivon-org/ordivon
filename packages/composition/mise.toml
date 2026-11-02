@@ -15,6 +15,7 @@ uv run ruff format --check src tests
 uv run python -m pytest -q
 mise run formal:verify
 mise run formal:effect:verify
+mise run formal:semantic:verify
 """
 
 # Composition owns the model; Runtime exposes only pinned upstream TLA+ tools.
@@ -213,3 +214,41 @@ PY_FOREIGN_RECOVERY_RED
 [tasks."formal:effect:verify"]
 description = "Check C06 task-local effect uncertainty invariants using pinned upstream TLC"
 run = "bash scripts/verify_effect_replay_formal.sh ../../services/runtime"
+
+[tasks."formal:semantic:verify"]
+description = "Bounded semantic-refinement model and counterexample probe, using existing TLC"
+run = '''
+set -euo pipefail
+runtime_root="$(realpath ../../services/runtime)"
+jar="$(python3 - "$runtime_root" <<'PY_TLC_PATH'
+import json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+lock = json.loads((root / "formal/toolchain.lock.json").read_text())
+print(root / lock["cacheRelativePath"])
+PY_TLC_PATH
+)"
+if printenv ORDIVON_TLA_TOOLS_JAR >/dev/null; then
+    jar="$(printenv ORDIVON_TLA_TOOLS_JAR)"
+elif [ ! -f "$jar" ]; then
+    "$runtime_root/scripts/tla-formal" bootstrap
+fi
+python3 - "$jar" "$runtime_root/formal/toolchain.lock.json" <<'PY_VERIFY_PIN'
+import hashlib, json, pathlib, sys
+jar = pathlib.Path(sys.argv[1])
+lock = json.loads(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
+actual = hashlib.file_digest(jar.open("rb"), "sha256").hexdigest()
+if actual != lock["sha256"]:
+    raise SystemExit("semantic TLC model checker digest does not match Runtime owner lock")
+PY_VERIFY_PIN
+cd formal
+java -cp "$jar" tla2sany.SANY SemanticRefinementR1.tla
+java -cp "$jar" tlc2.TLC -deadlock -workers 1 -config SemanticRefinementR1.cfg SemanticRefinementR1.tla
+probe="$(mktemp)"
+trap 'rm -f "$probe"' EXIT
+if java -cp "$jar" tlc2.TLC -deadlock -workers 1 -config SemanticRefinementR1.reachability-probe.cfg SemanticRefinementR1.tla >"$probe" 2>&1; then
+  echo "Model probe vacuously passed; expected reachable evidence-backed acceptance" >&2
+  exit 1
+fi
+grep -Fq "Invariant NoAcceptedStateReachable is violated" "$probe" || { cat "$probe"; exit 1; }
+echo "Evidence-backed acceptance reachable; model self-claim cannot promote it."
+'''

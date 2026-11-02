@@ -37,3 +37,13 @@ promotion, release, or Git authority into this package.
 ## Verification
 
 Run \`mise run verify\` from this directory.
+
+## Conditional semantic-refinement witness comparator (R1 prototype)
+
+`ordivon_composition.examine_semantic_refinement` composes an execution
+owner's closed action trace, action-time authorization oracle and independent
+domain owner observation on one exact Work/SourceCut/Goal/Consumer/Attempt.
+It does not discover trusted owners, enforce grants, prove completeness or
+accept model self-reports. See the existing
+`recursive-lego-calculus/references/semantic-refinement.md` thought LEGO and
+`tests/test_semantic_refinement_r1.py` for the scoped negative oracles.

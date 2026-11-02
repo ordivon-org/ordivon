@@ -66,6 +66,13 @@ premises; retain UNKNOWN until a separate concrete Owner witness closes
 them. This conditional R2.1 pre/inv/prov law is neither a new LEGO nor
 permission to delete a Workspace.
 
+### End-to-end semantic refinement thought LEGO
+
+For Agent goal/authorization/observed effect/completion-truth drift, use
+[references/semantic-refinement.md](references/semantic-refinement.md). This
+declares four scoped Problem LEGO instances, one method LEGO and one
+conditional Composition capability; it grants no execution authority.
+
 ## Practical rule
 
 A LEGO is one **goal-conditioned, replaceable responsibility** with identity, inputs, outputs, behavioral contract and acceptance. It is not a file, Agent, Skill, Tool or required runtime object.
