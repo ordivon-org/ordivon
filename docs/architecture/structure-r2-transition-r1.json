@@ -560,6 +560,25 @@
       "wave": "S5",
       "standing": "DEPLOYED",
       "disposition": "External authority source, observation, search, native CLI/validator/test, and NX01 owner LEGO are co-located in the existing catalogs/authorities natural source responsibility, without a new registry service."
+    },
+    {
+      "disposition": "Twelve tracked package files relocated byte-identically except README source owner pointer; native Python distribution/CLI, Alembic migration, PostgreSQL projection and actual Study consumer tests retained. No alias or shadow package.",
+      "id": "experimental-episode-study-store",
+      "mode": "move",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/experiments/episode-store-r1/"
+      ],
+      "standing": "DEPLOYED",
+      "targetPaths": [
+        "studies/experimental-episodes/episode-store/"
+      ],
+      "verifyTasks": [
+        "next:verify",
+        "repo:ci"
+      ],
+      "wave": "S5"
     }
   ],
   "openSlices": [
