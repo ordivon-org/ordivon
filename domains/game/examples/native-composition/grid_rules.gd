@@ -2,7 +2,7 @@ extends Node
 
 # The game-specific rule connection consumes Godot Resources and emits
 # a native signal. No generic Game state or event framework is introduced.
-const ConfigType = preload("res://config.gd")
+const ConfigType = preload("res://grid_config.gd")
 
 signal state_changed(state: Dictionary)
 

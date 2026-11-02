@@ -67,11 +67,13 @@ holds pure query filter policy while `scripts/cli-argument.ts` reads
 
 ## Native composition acceptance
 
-G06 in planning/lego-plan-r1.json registers a bounded native-Godot
-assembly verifier, not a new game or engine. Run mise run test:native for
-actual scene/resource configuration, action transitions, native Signal-to-UI
-feedback and resource/scene replacement. The fixture lives at
-test/fixtures/native-godot-assembly. No products or experiments were added.
+G06 in planning/lego-plan-r1.json registers a bounded **runnable Godot
+composition example**, not a registered game or engine. Run mise run test:native
+for actual scene/resource configuration, action transitions, native Signal-to-UI
+feedback and resource/scene replacement. The executable example lives in
+examples/native-composition with its own acceptance test. It has a composition
+root, grid rules, configuration Resource and interchangeable state-view scenes.
+No historical product or generic game framework was restored.
 
 ## Owner operating contract
 

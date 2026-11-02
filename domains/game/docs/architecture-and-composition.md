@@ -13,7 +13,7 @@ assembly path. It does not supersede `../AGENTS.md` or
 | G03 derived relationships | `src/mechanism-relationship-graph.ts` + build CLI | Projection algorithm without changing source evidence |
 | G04 counterexamples | `src/counterexample-projection.ts` + query | Contextual failure enrichment and false transfer rejection |
 | G05 native read-only CLI contract | `src/query-input.ts`, `src/knowledge-file.ts`, `scripts/cli-argument.ts` | Input normalization and read boundary without duplicating each query |
-| G06 native composition acceptance | `test/fixtures/native-godot-assembly` | Godot Resource, PackedScene, action rules and Signal-bound presentation substitution |
+| G06 native composition acceptance | `examples/native-composition` | Godot Resource, PackedScene, action rules and Signal-bound presentation substitution |
 
 **Observed edges:** G01/G02 source knowledge is read by G05 CLI
 consumers; G02 feeds G03 derived graph and contextual G04 counterexamples;
@@ -30,7 +30,7 @@ multiply modules for aesthetic symmetry.
 
 - **KEEP** `domains/game/` as natural owner, `src/` pure policy,
   `scripts/` command adapters, `knowledge/` source and projection,
-  `test/fixtures/native-godot-assembly/` native effect acceptance.
+  `examples/native-composition/` native effect acceptance.
 - **KEEP** existing external CLI names and bound JSON identities until a
   consumer-preserving new source cut exists; cosmetic all-at-once rename is
   negative value and breaks versioned protocol readers.
@@ -64,7 +64,7 @@ not a statement that the prototype is currently shipped.
    by the new component.
 
 Godot existing source fixture:
-`test/fixtures/native-godot-assembly/{main.tscn,view.tscn,view_variant.tscn,configs/*.tres,assert.gd}`.
+`examples/native-composition/{main.tscn,grid_state_view.tscn,grid_state_view_variant.tscn,configs/*.tres,assert.gd}`.
 It demonstrates rules/view/resource composition but is **not** sufficient
 evidence of playable room-gated roguelite quality or independent publication.
 

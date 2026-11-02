@@ -205,14 +205,14 @@
       ],
       "behavioralContract": "Only the configured finite scene, resource contract and tested native signal/scene seams are validated. No universal game, player-value or third-party script safety proof.",
       "acceptance": [
-        "Godot 4.7.1 headless fixture boots as a real PackedScene.",
+        "Pinned Godot headless example boots as a real PackedScene.",
         "Bounded action exhaustions preserve state invariants and goal behavior.",
         "Player Resource and alternate presentation PackedScene substitute without changing rules; invalid configuration is rejected atomically."
       ],
       "evidence": [
-        "test/fixtures/native-godot-assembly/main.tscn",
-        "test/fixtures/native-godot-assembly/assert.gd",
-        "test/fixtures/native-godot-assembly/configs/player_variant.tres"
+        "examples/native-composition/main.tscn",
+        "examples/native-composition/assert.gd",
+        "examples/native-composition/configs/player_variant.tres"
       ],
       "dependencies": [],
       "sharedRefs": [],
@@ -224,8 +224,8 @@
       ],
       "consumerEvidence": [
         "mise.toml",
-        "test/fixtures/native-godot-assembly/assert.gd",
-        "test/fixtures/native-godot-assembly/main.tscn"
+        "examples/native-composition/assert.gd",
+        "examples/native-composition/main.tscn"
       ]
     }
   ],

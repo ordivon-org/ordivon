@@ -7,16 +7,16 @@ class MalformedConfig extends Resource:
         return true
 
 # A user variant that *does* refine the actual native Resource type is allowed.
-class DerivedConfig extends "res://config.gd":
+class DerivedConfig extends "res://grid_config.gd":
     pass
 
 # Subclasses are legitimate consumers, but cannot be their own certificate
 # of the base behavior/parameter invariant.
-class ForgedDerivedConfig extends "res://config.gd":
+class ForgedDerivedConfig extends "res://grid_config.gd":
     func is_valid() -> bool:
         return true
 
-class RequiredInitConfig extends "res://config.gd":
+class RequiredInitConfig extends "res://grid_config.gd":
     func _init(required_value: int) -> void:
         starting_energy = required_value
 
@@ -144,7 +144,7 @@ func run_acceptance() -> void:
     # A second composition uses the exact same rules and native scene scripts
     # while selecting another presentation PackedScene before entering the tree.
     var alternate_scene = packed.instantiate()
-    alternate_scene.view_scene = load("res://view_variant.tscn")
+    alternate_scene.view_scene = load("res://grid_state_view_variant.tscn")
     root.add_child(alternate_scene)
     var alternate = alternate_scene.get_node("View")
     expect(alternate.get_node("Title").text.contains("Player UI"), "native scene replacement changes UI")
