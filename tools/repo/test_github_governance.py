@@ -115,6 +115,36 @@ def _qualified_formal_test_receipt(
     }
 
 
+class MonorepoCodeQLTests(unittest.TestCase):
+    def test_active_root_matrix_and_negative_falsifiers(self) -> None:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("github_governance_codeql", SCRIPT)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        sys.path.insert(0, str(SCRIPT.parent))
+        try:
+            spec.loader.exec_module(module)
+        finally:
+            sys.path.pop(0)
+        source = (ROOT / ".github/workflows/codeql.yml").read_text(encoding="utf-8")
+        module.validate_monorepo_codeql(source)
+        corruptions = (
+            source.replace("python, javascript-typescript, rust", "python, javascript-typescript", 1),
+            source.replace("  merge_group:\n", "  skipped_merge_group:\n", 1),
+            source.replace("security-events: write", "security-events: read", 1),
+            source.replace(
+                "github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd",
+                "github/codeql-action/analyze@v4", 1
+            ),
+        )
+        for corrupt in corruptions:
+            self.assertNotEqual(corrupt, source)
+            with self.subTest(mutant=corrupt[:120]):
+                with self.assertRaises(AssertionError):
+                    module.validate_monorepo_codeql(corrupt)
+
+
 class GovernanceAcceptanceTests(unittest.TestCase):
     def run_contract(
         self,
