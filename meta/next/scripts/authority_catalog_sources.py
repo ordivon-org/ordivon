@@ -10,7 +10,8 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-AUTH = ROOT / "authorities"
+REPO_ROOT = ROOT.parents[1]
+AUTH = REPO_ROOT / "catalogs" / "authorities"
 RECORDS = AUTH / "records"
 OBS = AUTH / "observations"
 

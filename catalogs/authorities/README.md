@@ -17,7 +17,7 @@ Do not collapse these stages.
 ### Source of truth
 
 ```text
-authorities/records/<issuer>/<authority-id>.json
+catalogs/authorities/records/<issuer>/<authority-id>.json
 ```
 
 Each record contains stable identity/discovery metadata only. Versioned standards use version-specific IDs. Rolling provider/policy pages use `identityMode=rolling-source`.
@@ -25,7 +25,7 @@ Each record contains stable identity/discovery metadata only. Versioned standard
 ### Currentness observations
 
 ```text
-authorities/observations/<authority-id>/<YYYY-MM-DD>.json
+catalogs/authorities/observations/<authority-id>/<YYYY-MM-DD>.json
 ```
 
 Currentness is append-only evidence separate from authority identity. A newer observation does not rewrite the historical observation.
@@ -33,7 +33,7 @@ Currentness is append-only evidence separate from authority identity. A newer ob
 ### Generated discovery index
 
 ```text
-authorities/generated/authority-index.json
+catalogs/authorities/generated/authority-index.json
 ```
 
 The index is disposable and reproducible. It contains only Level-0 discovery metadata and exact source digests. `list` and `find` derive it from records/observations at call time; no committed generated file is required. The explicit `build` command can write a local, ignored file for downstream tools that need a materialized projection.
@@ -51,7 +51,7 @@ The index is disposable and reproducible. It contains only Level-0 discovery met
 - `scripts/authority_catalog_search.py` is pure, deterministic lexical candidate scoring over index entries; a positive score never confers applicability.
 - `scripts/authority_catalog.py` owns the rebuildable index projection, stable CLI entrypoint and current Python import surface used by the native validator and tests.
 
-The modules live in the existing Next source package until their real consumers justify a wider source relocation. No registry service, extra state store or cross-owner authority is introduced.
+The legacy Python CLI and validator still live in the Next source package while their consumers are migrated. The catalog data itself is at its declared Structure R2 location. No registry service, extra state store or cross-owner authority is introduced.
 
 ## Commands
 

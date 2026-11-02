@@ -344,6 +344,7 @@
     {
       "id": "authority-catalog",
       "mode": "move",
+      "standing": "DEPLOYED",
       "owner": "next",
       "semanticTypeClaim": "none",
       "sourcePaths": [
