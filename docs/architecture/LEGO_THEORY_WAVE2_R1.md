@@ -112,7 +112,7 @@ Canonical authorities recorded for R1:
 
 Detailed evidence:
 - `knowledge/lessons/lego-wave2-prospective-validation-r1.md`
-- `evidence/acceptance/lego-theory-wave2-prospective-r1.json`
+- `docs/architecture/evidence/lego-theory-wave2-prospective-r1.json`
 
 Observed first-wave results:
 
