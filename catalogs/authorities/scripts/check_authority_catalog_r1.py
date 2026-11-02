@@ -26,7 +26,7 @@ DOGFOOD = (
 )
 ENTERPRISE = (
     ROOT
-    / "meta/next/evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
+    / "catalogs/authorities/evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
 )
 
 
