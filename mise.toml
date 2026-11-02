@@ -109,6 +109,18 @@ set -euo pipefail
 tools/repo/migration/check-publication-main.sh /root/projects/ordivon
 """
 
+[tasks."authority:verify"]
+run = """
+set -euo pipefail
+cd meta/next
+uv lock --check
+uv sync --locked
+PYTHONPATH=../.. uv run --locked python -m pytest ../../catalogs/authorities/tests
+uv run --locked --group quality ruff check ../../catalogs/authorities/scripts ../../catalogs/authorities/tests
+uv run --locked --group quality ruff format --check ../../catalogs/authorities/scripts ../../catalogs/authorities/tests
+uv run --locked --group authority python ../../catalogs/authorities/scripts/check_authority_catalog_r1.py
+"""
+
 [tasks."next:verify"]
 run = """
 set -euo pipefail

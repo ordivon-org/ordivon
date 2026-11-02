@@ -876,8 +876,8 @@ class ConvergencePlanTests(unittest.TestCase):
         evidence = MODULE.explain_source_impacts(
             plan, source_cut=MODULE._git("rev-parse", "HEAD")
         )
-        self.assertEqual(len(evidence["verificationOwners"]), 18)
-        self.assertEqual(len(evidence["queueVerifyTasks"]), 19)
+        self.assertEqual(len(evidence["verificationOwners"]), len(MODULE.affected_owners.OWNERS))
+        self.assertEqual(len(evidence["queueVerifyTasks"]), len(MODULE.affected_owners.OWNERS) + 1)
         self.assertEqual(evidence["queueVerifyTasks"].count("formal:verify"), 1)
         self.assertEqual(evidence["queueVerifyTasks"], plan["queueVerifyTasks"])
         self.assertEqual(
@@ -1008,7 +1008,7 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], ["media"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["artifact", "distribution", "game", "media", "workstation"],
+            ["artifact", "authority-catalog", "distribution", "game", "media", "workstation"],
         )
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])
@@ -1147,7 +1147,7 @@ class ConvergencePlanTests(unittest.TestCase):
         MODULE.validate_queue_task_selection(all_owners, all_tasks)
 
     def test_every_real_single_and_pair_owner_source_change_rejects_queue_omissions(self) -> None:
-        """R2.1 finite source-consumer closure: all 18 owner roots, every pair.
+        """R2.1 finite source-consumer closure: all registered owner roots, every pair.
 
         This is a test of the actual native policy and tracked Git inputs,
         not a proof that unknown dynamic/installed consumers are complete.
@@ -1169,11 +1169,12 @@ class ConvergencePlanTests(unittest.TestCase):
                 and "/test" not in path
             ]
             samples[owner.name] = (code_paths or real_paths)[0]
-        self.assertEqual(len(samples), 18)
+        self.assertEqual(len(samples), len(MODULE.affected_owners.OWNERS))
         self.assertEqual(len(samples), len(set(samples.values())))
         groups = [(name,) for name in samples] + list(combinations(samples, 2))
-        self.assertEqual(len(groups), 18 + 153)
+        self.assertEqual(len(groups), len(samples) + len(samples) * (len(samples) - 1) // 2)
         checks = 0
+        multi_task_groups = 0
         for group in groups:
             changed = [samples[name] for name in group]
             plan = MODULE.build_plan(changed_files=changed)
@@ -1191,6 +1192,7 @@ class ConvergencePlanTests(unittest.TestCase):
                 "omit-first-owner": (owners[1:], tasks),
             }
             if len(tasks) > 1:
+                multi_task_groups += 1
                 invalid["reorder"] = (owners, list(reversed(tasks)))
             for case, (selected, requested) in invalid.items():
                 with self.subTest(owner_group=group, case=case):
@@ -1199,16 +1201,17 @@ class ConvergencePlanTests(unittest.TestCase):
                             selected, requested, changed
                         )
                 checks += 1
-        # 171 real source cohorts, 1191 exact positive/negative obligations
-        # at the present 18-Owner source cut; no global coverage inference.
-        self.assertEqual(checks, 1191)
+        # One positive and five negative obligations per owner cohort, plus an
+        # ordering rejection when the native plan selects multiple tasks.
+        # Scale with the owner manifest, not a frozen repository census.
+        self.assertEqual(checks, 6 * len(groups) + multi_task_groups)
 
     def test_root_and_formal_selection_reject_each_individual_missing_task(self) -> None:
         root_path = ["mise.toml"]
         root_plan = MODULE.build_plan(changed_files=root_path)
         all_tasks = root_plan["queueVerifyTasks"]
         # Current root policy can gain scoped Formal selection independently
-        # of the 18-owner population. Derive the optional source obligation
+        # of the registered Owner population. Derive the optional source obligation
         # instead of freezing a command-count implementation detail.
         formal_root = MODULE.affected_owners.requires_core_formal_verification(root_path)
         self.assertEqual(
@@ -1477,7 +1480,7 @@ class ConvergencePlanTests(unittest.TestCase):
              ["tools/formal/Proof.qnt"], False),
         )
         # Validate the *actual* GitHub inline consumer as well as the Python
-        # producer for every tracked 18-Owner one-/two-owner source cohort.
+        # producer for every tracked registered-Owner one-/two-owner source cohort.
         # This is still only a bounded source task contract, not runtime proof.
         git_paths = subprocess.check_output(
             ["git", "--no-replace-objects", "ls-tree", "-r", "--name-only", "HEAD"],
@@ -1493,9 +1496,9 @@ class ConvergencePlanTests(unittest.TestCase):
                 and "/test" not in path
             ]
             samples[owner.name] = (code_paths or paths)[0]
-        self.assertEqual(len(samples), 18)
+        self.assertEqual(len(samples), len(MODULE.affected_owners.OWNERS))
         cohorts = [(name,) for name in samples] + list(combinations(samples, 2))
-        self.assertEqual(len(cohorts), 171)
+        self.assertEqual(len(cohorts), len(samples) + len(samples) * (len(samples) - 1) // 2)
         original_cases = len(examples)
         for group in cohorts:
             changed = [samples[name] for name in group]
@@ -1504,7 +1507,7 @@ class ConvergencePlanTests(unittest.TestCase):
                 (selected["verificationOwners"], selected["queueVerifyTasks"], changed, True),
                 ([], [], changed, False),
             )
-        self.assertEqual(len(examples) - original_cases, 342)
+        self.assertEqual(len(examples) - original_cases, 2 * len(cohorts))
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             owners_path = folder / "owners.txt"

@@ -24,10 +24,12 @@ INDEX_SCHEMA = (
     / "catalogs/authorities/schemas/external-authority-index-v1.schema.json"
 )
 DOGFOOD = (
-    ROOT / "evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json"
+    ROOT.parents[1]
+    / "meta/next/evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json"
 )
 ENTERPRISE = (
-    ROOT / "evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
+    ROOT.parents[1]
+    / "meta/next/evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
 )
 
 

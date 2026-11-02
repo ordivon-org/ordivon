@@ -8,6 +8,11 @@ root = "meta/next/"
 verify_task = "next:verify"
 
 [[owners]]
+name = "authority-catalog"
+root = "catalogs/authorities/"
+verify_task = "authority:verify"
+
+[[owners]]
 name = "composition"
 root = "packages/composition/"
 verify_task = "composition:verify"

@@ -1880,9 +1880,9 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
         (ROOT / "meta/next/planning/lego-plan-r1.json").read_text(encoding="utf-8")
     )
 
-    def qualify(candidate: dict) -> None:
+    def qualify(candidate: dict, owner_root: str, expected_nodes: set[str]) -> None:
         assert candidate["kind"] == "ordivon.project-lego-plan"
-        assert {row["id"] for row in candidate["nodes"]} == {"NX01", "NX02", "NX03", "NX04"}
+        assert {row["id"] for row in candidate["nodes"]} == expected_nodes
         for node in candidate["nodes"]:
             for key in ("responsibility", "inputs", "outputs", "behavioralContract", "acceptance", "formalObligations"):
                 assert node[key], (node["id"], key)
@@ -1890,7 +1890,7 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
             for row in node["consumerBindings"]:
                 relative = Path(row["path"])
                 assert not relative.is_absolute() and ".." not in relative.parts
-                source = ROOT / "meta/next" / relative
+                source = ROOT / owner_root / relative
                 tree = ast.parse(source.read_text(encoding="utf-8"))
                 defined = {
                     n.name for n in ast.walk(tree)
@@ -1915,11 +1915,15 @@ def test_next_r21_crossdomain_consumers_are_actual_source_symbols() -> None:
                     assert name in called, (row["path"], f"not syntactically called: {name}")
                 assert "SOURCE" in row["standing"]
 
-    qualify(plan)
-    forged = copy.deepcopy(plan)
-    forged["nodes"][1]["consumerBindings"][0]["symbols"] = ["made_up_lego_consumer"]
+    qualify(plan, "meta/next", {"NX02", "NX03", "NX04"})
+    authority_plan = json.loads(
+        (ROOT / "catalogs/authorities/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    qualify(authority_plan, "catalogs/authorities", {"NX01"})
+    forged = copy.deepcopy(authority_plan)
+    forged["nodes"][0]["consumerBindings"][0]["symbols"] = ["made_up_lego_consumer"]
     with pytest.raises(AssertionError):
-        qualify(forged)
+        qualify(forged, "catalogs/authorities", {"NX01"})
 
 
 

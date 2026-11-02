@@ -994,6 +994,13 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         route = top["tasks"]["next:verify"]["run"]
         for fragment in ("cd meta/next", "mise run verify", "cd experiments/episode-store-r1"):
             self.assertIn(fragment, route)
+        catalog_owners = [o for o in manifest["owners"] if o["name"] == "authority-catalog"]
+        self.assertEqual(len(catalog_owners), 1)
+        self.assertEqual(catalog_owners[0]["root"], "catalogs/authorities/")
+        self.assertEqual(catalog_owners[0]["verify_task"], "authority:verify")
+        catalog_route = top["tasks"]["authority:verify"]["run"]
+        for expected in ("catalogs/authorities/tests", "catalogs/authorities/scripts/check_authority_catalog_r1.py"):
+            self.assertIn(expected, catalog_route)
         native = tomllib.loads((ROOT / "meta/next/mise.toml").read_text())
         checks = native["tasks"]["verify"]["run"]
         for obligation in (
@@ -1001,7 +1008,6 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             "uv run --locked python -m pytest",
             "uv run --locked --group quality ruff check scripts tests",
             "uv run --locked --group quality ruff format --check scripts tests",
-            "scripts/check_authority_catalog_r1.py",
             "scripts/check_standard_native_enterprise_r2.py",
             "scripts/check_reasoning_waist_r1.py",
             "bandit -r scripts", "pip-audit",

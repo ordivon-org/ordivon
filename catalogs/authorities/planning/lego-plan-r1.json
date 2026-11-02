@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-authority-catalog-r1",
+    "purpose": "External authority source/observation identity and deterministic discovery, owned by the existing Authority Catalog and not by Next. SOURCE qualification is not normative or installed truth.",
+    "sourceEvidence": [
+      "scripts/authority_catalog.py",
+      "scripts/authority_catalog_sources.py",
+      "scripts/authority_catalog_search.py",
+      "scripts/check_authority_catalog_r1.py",
+      "tests/test_authority_catalog.py"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "NX01",
+      "label": "ExternalAuthorityRecordAndObservationCatalog",
+      "kind": "knowledge_projection",
+      "responsibility": "Validate versioned external-authority identity records and independently supplied currentness observations, and derive a disposable, source-provenanced discovery index for task-local method and source selection.",
+      "authority": "Authority Catalog current source/observation index; external institutions own normative truth and permissions",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "versioned authority identity records",
+        "independently supplied authority observations",
+        "bounded lexical authority query"
+      ],
+      "outputs": [
+        "validated source/revision-aware external authority records and a rebuildable discovery projection",
+        "source-qualified failure/UNKNOWN when an observation is missing"
+      ],
+      "behavioralContract": "The index is reproducible from current admitted authority records; it cannot invent task-specific applicability, issue permissions, lift observation freshness to installed execution truth, or overwrite external normative authority.",
+      "acceptance": [
+        "Native check_authority_catalog_r1.py consumes authority_catalog records, validation and index regeneration, and tests exercise deterministic index, discovery and currentness cases."
+      ],
+      "evidence": [
+        "scripts/authority_catalog.py",
+        "scripts/authority_catalog_sources.py",
+        "scripts/authority_catalog_search.py",
+        "scripts/check_authority_catalog_r1.py",
+        "tests/test_authority_catalog.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "institutional normative authority",
+        "external provider permission",
+        "a permanent second knowledge registry",
+        "production environment currentness"
+      ],
+      "consumerBindings": [
+        {
+          "path": "scripts/check_authority_catalog_r1.py",
+          "symbols": [
+            "catalog"
+          ],
+          "standing": "SOURCE_STATIC_IMPORT_AND_CALL_NOT_EXECUTED"
+        },
+        {
+          "path": "tests/test_authority_catalog.py",
+          "symbols": [
+            "catalog"
+          ],
+          "standing": "SOURCE_TEST_IMPORT_NOT_INSTALLED"
+        }
+      ],
+      "formalObligations": [
+        "Latest indexed record and observed-currentness inputs must remain distinct from current authority/provider truth.",
+        "Authority candidate existence must not imply consumer-specific applicability, consent or formal satisfaction."
+      ],
+      "replacements": [
+        "Reuse standards-native authority discovery or external KB solutions if they preserve deterministic source/provenance/observation separation."
+      ]
+    }
+  ],
+  "edges": [],
+  "slices": [
+    {
+      "id": "NX_AUTHORITY",
+      "label": "SourceQualifiedExternalAuthorityDiscovery",
+      "nodeIds": [
+        "NX01"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Independent authority source/observation catalog consumer identified; no production/installed authority claim."
+      ]
+    }
+  ],
+  "nonClaims": [
+    "Discovery/observations are not institutional normative truth or task-specific applicability.",
+    "Native source/consumer verification does not establish installed external authority or current legal status."
+  ]
+}

@@ -179,3 +179,11 @@ source_glob = "packages/composition/tests/test_verification_obligation_r1.py"
 allowed_fragment = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "services/runtime/formal/RuntimeDispatchR1.trace-r1.json"
+
+[[seams]]
+from_owner = "artifact"
+to_owner = "authority-catalog"
+source_glob = "capabilities/artifact/tests/test_artifact_publication_carrier_r1.py"
+allowed_fragment = "catalogs/authorities/venues/fse-2027-research-r1.json"
+kind = "TEST_ONLY_EXTERNAL_VENUE_AUTHORITY_PROFILE"
+contract_ref = "catalogs/authorities/README.md"

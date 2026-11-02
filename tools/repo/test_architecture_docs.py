@@ -1679,8 +1679,8 @@ def test_git01_retired_standalone_catalog_checker_has_next_owner_consumer() -> N
     assert row["sourceQualification"]["protectedMain"] == "78895b2291830be75fa472f3621fc24ebd2e67f3"
     assert row["sourceQualification"]["branchDeletionAllowed"] is False
     assert not (ROOT / "tools/catalog/check_authority_catalog.py").exists()
-    assert (ROOT / "meta/next/scripts/check_authority_catalog_r1.py").is_file()
-    assert (ROOT / "meta/next/tests/test_authority_catalog.py").is_file()
+    assert (ROOT / "catalogs/authorities/scripts/check_authority_catalog_r1.py").is_file()
+    assert (ROOT / "catalogs/authorities/tests/test_authority_catalog.py").is_file()
     module.validate_formal_issue_census(census, plans)
 
 

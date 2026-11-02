@@ -222,6 +222,7 @@ LEGO_RELATION_KINDS = frozenset({
 
 OWNER_LEGO_PLANS = (
     "apps/web/planning/lego-plan-r1.json",
+    "catalogs/authorities/planning/lego-plan-r1.json",
     "meta/next/planning/lego-plan-r1.json",
     "domains/capital/planning/lego-plan-r1.json",
     "packages/composition/planning/lego-plan-r1.json",
