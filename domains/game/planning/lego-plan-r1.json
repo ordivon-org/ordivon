@@ -152,7 +152,7 @@
     {
       "id": "G05",
       "label": "KnowledgeQueries",
-      "kind": "verifier",
+      "kind": "interface_adapter",
       "responsibility": "Use existing source-bound retrieval interfaces without a Game service",
       "authority": "Game knowledge owner",
       "state": "IMPLEMENTED",

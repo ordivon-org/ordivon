@@ -9,7 +9,6 @@ managed_paths:
   - README.md
   - AGENTS.md
   - docs/authority.md
-  - docs/GAME_E2E_OWNERSHIP_BOUNDARY.md
   - docs/GAME_EXTERNAL_KNOWLEDGE_BASE_R1.md
   - docs/GAME_MECHANISM_EXPERIENCE_LIBRARY_R1.md
   - docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md
