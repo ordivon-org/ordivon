@@ -28,10 +28,9 @@
     {
       "id": "m0-planning-snapshots",
       "globs": [
-        "meta/next/docs/superpowers/plans/2026-09-20-monorepo-m0-migration.md",
         "meta/next/planning/monorepo-migration-baseline-r1.json"
       ],
-      "reason": "Frozen migration plan and baseline intentionally record the original standalone source."
+      "reason": "The frozen M0 baseline records original pre-retirement repository topology."
     },
     {
       "id": "frozen-production-topology",

@@ -32,14 +32,6 @@
       "reason": "M0 architecture records the pre-cutover Skills/Next source census."
     },
     {
-      "path": "meta/next/docs/superpowers/plans/2026-09-16-agent-plugin-release-reconciliation.md",
-      "reason": "Frozen pre-monorepo release reconciliation plan."
-    },
-    {
-      "path": "meta/next/docs/superpowers/plans/2026-09-20-monorepo-m0-migration.md",
-      "reason": "Frozen M0 migration plan naming the original standalone source."
-    },
-    {
       "path": "meta/next/evidence/acceptance/agent-architecture-lego-catalog-r1.json",
       "reason": "Historical acceptance evidence records the source repository observed at evidence creation."
     },
