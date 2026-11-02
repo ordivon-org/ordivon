@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = ROOT / "evidence/data-lifecycle/github-pilot-r1"
+BASE = ROOT / "evidence/github-pilot-r1"
 
 
 def load_json(path: Path):

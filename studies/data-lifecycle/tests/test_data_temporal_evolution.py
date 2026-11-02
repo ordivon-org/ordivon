@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = ROOT / "evidence/data-lifecycle/temporal-evolution-r1"
+BASE = ROOT / "evidence/temporal-evolution-r1"
 
 
 def load(name: str):

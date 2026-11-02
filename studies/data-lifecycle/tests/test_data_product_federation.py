@@ -3,7 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CENSUS = ROOT.parents[1] / "studies" / "data-lifecycle"
-P = ROOT / "evidence/data-lifecycle/data-products-r1"
+P = ROOT / "evidence/data-products-r1"
 
 
 def load(name):
