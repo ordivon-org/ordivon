@@ -17,3 +17,13 @@ encounter_view.tscn may be substituted by encounter_view_variant.tscn.
 The native assert.gd consumer loads the actual PackedScene and explores
 bounded transitions, loss/win and replacements. No external asset was copied.
 Real art, music, navigation and human playtest belong to follow-on consumers.
+
+## Native sound as a consumer
+
+Original Kenney CC0 sound files and exact license/provenance are recorded
+under assets/. The EncounterAudio AudioStreamPlayer observes the existing
+authoritative state_changed signal, plays only accepted attack/guard turns,
+and can swap between two AudioStream resources without changing game logic.
+This extends the real product input -> rules -> audio/player feedback
+consumer, not a new Ordivon sound engine; no physical speaker output or
+human enjoyment measurement is asserted by the headless test.

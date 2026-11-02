@@ -2,6 +2,7 @@ extends Control
 
 @export var view_scene: PackedScene = preload("res://encounter_view.tscn")
 @onready var rules: Node = $Rules
+@onready var feedback: AudioStreamPlayer = $EncounterAudio
 var view: VBoxContainer
 
 func _ready() -> void:
@@ -13,6 +14,7 @@ func _ready() -> void:
     view.get_node("Actions/Next").pressed.connect(func(): rules.advance())
     view.get_node("Actions/Restart").pressed.connect(func(): rules.reset_run())
     rules.state_changed.connect(view.render_state)
+    feedback.bind_rules(rules)
     rules.reset_run()
 
 func _unhandled_key_input(event: InputEvent) -> void:

@@ -13,7 +13,7 @@ run = "godot --headless --path examples/native-composition --script res://assert
 
 [tasks."test:encounter"]
 description = "Run native room-encounter gameplay, Resource and PackedScene consumer acceptance"
-run = "godot --headless --path examples/room-encounter --script res://assert.gd"
+run = "godot --headless --editor --import --path examples/room-encounter && godot --headless --path examples/room-encounter --script res://assert.gd"
 
 [tasks."test:visual-native"]
 description = "Import a real CC0 sprite pack and verify Godot PackedScene appearance substitution"
