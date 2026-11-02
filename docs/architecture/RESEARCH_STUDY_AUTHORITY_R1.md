@@ -100,7 +100,7 @@ archive
   Paper1 frozen ref + verified bundle
 ```
 
-A future `meta/research/` machine-readable profile may be admitted only after it can be generated from authority bindings without becoming a second copy of Study scientific state.
+A machine-readable `profiles/research/` composition profile is admissible only when it is bound to external Study authority and does not duplicate scientific state. Publication carrier profiles, evidence and dated venue observations are distinct from Study truth.
 
 ## Migration rules
 
