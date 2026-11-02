@@ -47,6 +47,14 @@ from ..store import (
     StoredHarnessObject,
     new_execution_owner_id,
 )
+from .continuity_guards import (
+    continuity_event_id,
+    required_event_digest,
+    require_active_budget_consistency,
+    require_run_snapshot_binding,
+    require_tool_intent_binding,
+    validate_snapshot_state,
+)
 from .continuity_records import (
     HarnessDispatchFenceV2,
     HarnessProviderCallRecordV3,
@@ -200,7 +208,7 @@ class SQLiteHarnessRunContinuityStore:
         return value
 
     def bind_state(self, state: HarnessRunState) -> None:
-        self._require_active_time_budget_consistent(state)
+        require_active_budget_consistency(state, self.contract)
         self._bound_state = state
 
     def assignment_provider_source(self) -> HarnessProviderCallSourceRef:
@@ -296,7 +304,7 @@ class SQLiteHarnessRunContinuityStore:
             # this caller waited for the Run lease.
             if self._validate_working_set_transition(spec):
                 return HarnessEventAdmission.EXISTING
-            event_id = self._event_id("working-set", spec.digest)
+            event_id = continuity_event_id("working-set", spec.digest)
             events = self.store.list_run_events(self.harness_run_id)
             return self.store.append_event(
                 event_id=event_id,
@@ -545,7 +553,7 @@ class SQLiteHarnessRunContinuityStore:
             writes: list[HarnessEventWrite] = []
             caused_by = prior_event_id
             for spec, spec_object in zip(chain, spec_objects, strict=True):
-                event_id = self._event_id("working-set", spec.digest)
+                event_id = continuity_event_id("working-set", spec.digest)
                 refs = (spec_object, proposal_object)
                 if spec.pins:
                     refs += source_objects
@@ -812,7 +820,7 @@ class SQLiteHarnessRunContinuityStore:
             caused_by = self._latest_event_id()
             writes: list[HarnessEventWrite] = []
             for spec, spec_object in zip(chain, spec_objects, strict=True):
-                event_id = self._event_id("working-set", spec.digest)
+                event_id = continuity_event_id("working-set", spec.digest)
                 writes.append(
                     HarnessEventWrite(
                         event_id=event_id,
@@ -1157,7 +1165,7 @@ class SQLiteHarnessRunContinuityStore:
             if attempt_id not in validated_attempts:
                 self._validate_caller_ingress_promotion_attempt(attempt_id)
                 validated_attempts.add(attempt_id)
-            proposal_object_digest = self._required_digest(
+            proposal_object_digest = required_event_digest(
                 event.data, "callerIngressPromotionProposalObjectDigest"
             )
             raw_proposal = self.store.get_object(
@@ -1260,7 +1268,7 @@ class SQLiteHarnessRunContinuityStore:
                 expected_kind="harness-tool-step-receipt",
             )
             raw_intent = self.store.get_object(
-                self._required_digest(event.data, "toolStepIntentObjectDigest"),
+                required_event_digest(event.data, "toolStepIntentObjectDigest"),
                 expected_kind="harness-tool-step-intent",
             )
             raw_observation = self.store.get_object(
@@ -1423,7 +1431,7 @@ class SQLiteHarnessRunContinuityStore:
     def _working_set_from_event(
         self, event: HarnessRunEventRecord
     ) -> HarnessWorkingSetSpec:
-        object_digest = self._required_digest(event.data, "workingSetObjectDigest")
+        object_digest = required_event_digest(event.data, "workingSetObjectDigest")
         raw = self.store.get_object(
             object_digest,
             expected_kind="harness-working-set-spec",
@@ -1475,19 +1483,19 @@ class SQLiteHarnessRunContinuityStore:
             return
         if not fields.issubset(event.data):
             raise ValueError("caller ingress promotion evidence is incomplete")
-        proposal_digest = self._required_digest(
+        proposal_digest = required_event_digest(
             event.data, "callerIngressPromotionProposalDigest"
         )
-        proposal_object_digest = self._required_digest(
+        proposal_object_digest = required_event_digest(
             event.data, "callerIngressPromotionProposalObjectDigest"
         )
-        source_working_set_digest = self._required_digest(
+        source_working_set_digest = required_event_digest(
             event.data, "sourceWorkingSetDigest"
         )
-        source_model_view_digest = self._required_digest(
+        source_model_view_digest = required_event_digest(
             event.data, "sourceModelViewDigest"
         )
-        promoted_source_object_digest = self._required_digest(
+        promoted_source_object_digest = required_event_digest(
             event.data, "promotedSourceObjectDigest"
         )
         pause_sequence = event.data.get("callerIngressPauseSequence")
@@ -1656,10 +1664,10 @@ class SQLiteHarnessRunContinuityStore:
             return
         if current_fields.issubset(event.data) and "sourceWorkingViewDigest" not in event.data:
             fields = current_fields
-            source_working_set_digest = self._required_digest(
+            source_working_set_digest = required_event_digest(
                 event.data, "sourceWorkingSetDigest"
             )
-            source_model_view_digest = self._required_digest(
+            source_model_view_digest = required_event_digest(
                 event.data, "sourceModelViewDigest"
             )
             legacy = False
@@ -1669,16 +1677,16 @@ class SQLiteHarnessRunContinuityStore:
         } & set(event.data):
             fields = legacy_fields
             source_working_set_digest = None
-            source_model_view_digest = self._required_digest(
+            source_model_view_digest = required_event_digest(
                 event.data, "sourceWorkingViewDigest"
             )
             legacy = True
         else:
             raise ValueError("Working Set transition evidence is incomplete")
-        proposal_digest = self._required_digest(
+        proposal_digest = required_event_digest(
             event.data, "transitionProposalDigest"
         )
-        proposal_object_digest = self._required_digest(
+        proposal_object_digest = required_event_digest(
             event.data, "transitionProposalObjectDigest"
         )
         raw = self.store.get_object(
@@ -2470,7 +2478,7 @@ class SQLiteHarnessRunContinuityStore:
         return active.state
 
     def prepare_tool_step(self, intent: HarnessToolStepIntent) -> StoredHarnessRunSnapshot:
-        self._require_intent(intent)
+        require_tool_intent_binding(intent, self.harness_run_id, self.binding)
         state = self._require_state()
         observed_revision = self.store.load_run(self.harness_run_id).revision
         try:
@@ -2529,7 +2537,7 @@ class SQLiteHarnessRunContinuityStore:
             self._append_event(
                 lease=lease,
                 event_kind="harness.tool-step-prepared",
-                event_id=self._event_id("tool-prepared", intent.digest),
+                event_id=continuity_event_id("tool-prepared", intent.digest),
                 data=data,
                 recorded_at_ms=snapshot.created_at_ms,
                 referenced_objects=(
@@ -2628,7 +2636,7 @@ class SQLiteHarnessRunContinuityStore:
             self._append_event(
                 lease=lease,
                 event_kind=event_kind,
-                event_id=self._event_id("tool-receipt", receipt.digest),
+                event_id=continuity_event_id("tool-receipt", receipt.digest),
                 data=data,
                 recorded_at_ms=self._recorded_time(
                     receipt.created_at_ms,
@@ -2645,7 +2653,7 @@ class SQLiteHarnessRunContinuityStore:
         if event is None:
             raise KeyError("Harness Run has no current Tool Step")
         data = event.data
-        intent_object_digest = self._required_digest(data, "toolStepIntentObjectDigest")
+        intent_object_digest = required_event_digest(data, "toolStepIntentObjectDigest")
         raw_intent = self.store.get_object(
             intent_object_digest,
             expected_kind="harness-tool-step-intent",
@@ -2653,7 +2661,7 @@ class SQLiteHarnessRunContinuityStore:
         if not isinstance(raw_intent, dict):
             raise TypeError("Harness Tool Step Intent object is invalid")
         intent = HarnessToolStepIntent.from_dict(raw_intent)
-        self._require_intent(intent)
+        require_tool_intent_binding(intent, self.harness_run_id, self.binding)
         intent_object = self.store.inspect_object(intent_object_digest)
         if data.get("toolStepIntentDigest") != intent.digest:
             raise ValueError("Harness Tool Step Intent digest differs")
@@ -2791,7 +2799,7 @@ class SQLiteHarnessRunContinuityStore:
             self._append_event(
                 lease=lease,
                 event_kind="harness.run-paused",
-                event_id=self._event_id("run-paused", snapshot.digest),
+                event_id=continuity_event_id("run-paused", snapshot.digest),
                 data={
                     "snapshotDigest": snapshot.digest,
                     "snapshotObjectDigest": retained.snapshot_object.digest,
@@ -2814,8 +2822,8 @@ class SQLiteHarnessRunContinuityStore:
         if event is None:
             raise KeyError("Harness Run has no current Snapshot")
         data = event.data
-        snapshot_object_digest = self._required_digest(data, "snapshotObjectDigest")
-        state_object_digest = self._required_digest(data, "stateObjectDigest")
+        snapshot_object_digest = required_event_digest(data, "snapshotObjectDigest")
+        state_object_digest = required_event_digest(data, "stateObjectDigest")
         raw_snapshot = self.store.get_object(
             snapshot_object_digest,
             expected_kind="harness-run-snapshot",
@@ -2825,7 +2833,7 @@ class SQLiteHarnessRunContinuityStore:
         snapshot = HarnessRunSnapshot.from_dict(raw_snapshot)
         if data.get("snapshotDigest") != snapshot.digest:
             raise ValueError("Harness Run Snapshot semantic digest differs")
-        self._require_snapshot(snapshot)
+        require_run_snapshot_binding(snapshot, self.harness_run_id, self.binding, self.contract)
         raw_state = self.store.get_object(
             state_object_digest,
             expected_kind="harness-run-state",
@@ -2833,7 +2841,7 @@ class SQLiteHarnessRunContinuityStore:
         if not isinstance(raw_state, dict):
             raise TypeError("Harness Run State object is invalid")
         state = state_from_dict(raw_state, harness_run_id=self.harness_run_id)
-        self._validate_snapshot_state(snapshot, state)
+        validate_snapshot_state(snapshot, state)
         return StoredHarnessRunSnapshot(
             snapshot,
             self.store.inspect_object(snapshot_object_digest),
@@ -2929,7 +2937,7 @@ class SQLiteHarnessRunContinuityStore:
         self._append_event(
             lease=lease,
             event_kind=event_kind,
-            event_id=self._event_id("provider", stored.record.digest),
+            event_id=continuity_event_id("provider", stored.record.digest),
             data={
                 "providerCallRecordDigest": stored.record.digest,
                 "providerCallRecordObjectDigest": stored.record_object.digest,
@@ -3099,7 +3107,7 @@ class SQLiteHarnessRunContinuityStore:
 
     def _load_provider_from_event(self, event: HarnessRunEventRecord) -> StoredHarnessProviderCall:
         data = event.data
-        record_object_digest = self._required_digest(data, "providerCallRecordObjectDigest")
+        record_object_digest = required_event_digest(data, "providerCallRecordObjectDigest")
         raw_record = self.store.get_object(
             record_object_digest,
             expected_kind="harness-provider-call-record",
@@ -3116,7 +3124,7 @@ class SQLiteHarnessRunContinuityStore:
         self._require_provider_record(record)
         if data.get("providerCallRecordDigest") != record.digest:
             raise ValueError("Harness Provider Call record digest differs")
-        state_object_digest = self._required_digest(data, "stateObjectDigest")
+        state_object_digest = required_event_digest(data, "stateObjectDigest")
         if state_object_digest != record.state_object_digest:
             raise ValueError("Harness Provider Call state reference differs")
         raw_state = self.store.get_object(
@@ -3216,7 +3224,7 @@ class SQLiteHarnessRunContinuityStore:
 
     def _validate_tool_event(self, event: HarnessRunEventRecord) -> None:
         data = event.data
-        intent_object_digest = self._required_digest(data, "toolStepIntentObjectDigest")
+        intent_object_digest = required_event_digest(data, "toolStepIntentObjectDigest")
         raw_intent = self.store.get_object(
             intent_object_digest,
             expected_kind="harness-tool-step-intent",
@@ -3224,7 +3232,7 @@ class SQLiteHarnessRunContinuityStore:
         if not isinstance(raw_intent, dict):
             raise ValueError("Harness Tool Step Intent event object is invalid")
         intent = HarnessToolStepIntent.from_dict(raw_intent)
-        self._require_intent(intent)
+        require_tool_intent_binding(intent, self.harness_run_id, self.binding)
         if data.get("toolStepIntentDigest") != intent.digest:
             raise ValueError("Harness Tool Step Intent event digest differs")
         fence_object_digest = data.get("dispatchFenceObjectDigest")
@@ -3285,8 +3293,8 @@ class SQLiteHarnessRunContinuityStore:
 
     def _load_snapshot_from_event(self, event: HarnessRunEventRecord) -> StoredHarnessRunSnapshot:
         data = event.data
-        snapshot_object_digest = self._required_digest(data, "snapshotObjectDigest")
-        state_object_digest = self._required_digest(data, "stateObjectDigest")
+        snapshot_object_digest = required_event_digest(data, "snapshotObjectDigest")
+        state_object_digest = required_event_digest(data, "stateObjectDigest")
         raw_snapshot = self.store.get_object(
             snapshot_object_digest,
             expected_kind="harness-run-snapshot",
@@ -3299,8 +3307,8 @@ class SQLiteHarnessRunContinuityStore:
             raise ValueError("Harness Snapshot event objects are invalid")
         snapshot = HarnessRunSnapshot.from_dict(raw_snapshot)
         state = state_from_dict(raw_state, harness_run_id=self.harness_run_id)
-        self._require_snapshot(snapshot)
-        self._validate_snapshot_state(snapshot, state)
+        require_run_snapshot_binding(snapshot, self.harness_run_id, self.binding, self.contract)
+        validate_snapshot_state(snapshot, state)
         if data.get("snapshotDigest") != snapshot.digest:
             raise ValueError("Harness Snapshot event digest differs")
         return StoredHarnessRunSnapshot(
@@ -3441,7 +3449,7 @@ class SQLiteHarnessRunContinuityStore:
         state: HarnessRunState,
     ) -> StoredHarnessRunSnapshot:
         persistent = self._persistent_state(state)
-        self._validate_snapshot_state(snapshot, persistent)
+        validate_snapshot_state(snapshot, persistent)
         snapshot_object = self.store.put_object(snapshot.to_dict(), kind="harness-run-snapshot")
         state_object = self.store.put_object(
             persistent.to_dict(self.harness_run_id),
@@ -3605,60 +3613,14 @@ class SQLiteHarnessRunContinuityStore:
 
 
 
-    def _require_intent(self, intent: HarnessToolStepIntent) -> None:
-        if (
-            intent.harness_run_id != self.harness_run_id
-            or intent.assignment_id != self.binding.assignment_id
-            or intent.assignment_generation != self.binding.assignment_generation
-            or intent.assignment_digest != self.binding.assignment_digest
-        ):
-            raise ValueError("Tool Step Intent differs from the current Run binding")
 
-    def _require_snapshot(self, snapshot: HarnessRunSnapshot) -> None:
-        if (
-            snapshot.harness_run_id != self.harness_run_id
-            or snapshot.assignment_id != self.binding.assignment_id
-            or snapshot.assignment_generation != self.binding.assignment_generation
-            or snapshot.assignment_digest != self.binding.assignment_digest
-            or snapshot.tool_catalog_digest != self.contract.tool_catalog_digest
-        ):
-            raise ValueError("Harness Run Snapshot differs from the current Run binding")
 
     def _require_state(self) -> HarnessRunState:
         if self._bound_state is None:
             raise RuntimeError("Harness Run state was not bound before persistence")
         return self._bound_state
 
-    def _require_active_time_budget_consistent(self, state: HarnessRunState) -> None:
-        if state.active_elapsed_ms is None:
-            return
-        max_wall_time_ms = self.contract.budget.get("maxWallTimeMs")
-        if max_wall_time_ms is None:
-            return
-        remaining = state.remaining_budget.get("wallTimeMs")
-        if (
-            type(max_wall_time_ms) is not int
-            or max_wall_time_ms < 1
-            or type(remaining) is not int
-            or remaining != max(0, max_wall_time_ms - state.active_elapsed_ms)
-        ):
-            raise ValueError(
-                "Harness Run active elapsed time differs from its committed wall-time budget"
-            )
 
-    @staticmethod
-    def _validate_snapshot_state(
-        snapshot: HarnessRunSnapshot,
-        state: HarnessRunState,
-    ) -> None:
-        if (
-            snapshot.messages_digest != state.messages_digest
-            or snapshot.observation_digests != state.observation_digests
-            or snapshot.remaining_budget != state.remaining_budget
-            or snapshot.requested_model_id != state.requested_model_id
-            or snapshot.effective_model_id != state.effective_model_id
-        ):
-            raise ValueError("Harness Run Snapshot differs from its bounded state")
 
     def _provider_call_id(
         self,
@@ -3717,14 +3679,3 @@ class SQLiteHarnessRunContinuityStore:
         if previous_recorded_at_ms is not None:
             values.append(previous_recorded_at_ms + 1)
         return max(values)
-
-    @staticmethod
-    def _event_id(label: str, digest: str) -> str:
-        return f"event:harness-continuity:{label}:{digest[7:31]}"
-
-    @staticmethod
-    def _required_digest(data: dict[str, JsonValue], field: str) -> str:
-        value = data.get(field)
-        if not isinstance(value, str):
-            raise ValueError(f"Harness continuity Event field is missing: {field}")
-        return value
