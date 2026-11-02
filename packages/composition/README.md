@@ -37,3 +37,10 @@ promotion, release, or Git authority into this package.
 ## Verification
 
 Run \`mise run verify\` from this directory.
+
+## Bounded OPA policy example
+
+The mature OPA/Rego example at `policies/research-adopted-r1/` models an
+explicitly adopted domain decision composed with current provider delegation.
+It is a non-authoritative reference, not a global policy engine or a new
+Research-to-permission API. Native `mise run verify` runs its OPA tests.
