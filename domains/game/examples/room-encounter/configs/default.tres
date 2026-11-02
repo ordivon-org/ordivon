@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://encounter_tuning.gd" id="1_tuning"]
+[resource]
+script = ExtResource("1_tuning")
+enemies_per_room = PackedInt32Array(1, 2, 2)
+player_health = 14
+enemy_health = 3
+attack_damage = 3
+enemy_damage = 2
+stamina_capacity = 6
+attack_cost = 2
+guard_restore = 3
+guard_block = 1

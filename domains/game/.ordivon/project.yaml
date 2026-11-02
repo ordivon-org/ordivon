@@ -39,6 +39,8 @@ managed_paths:
   - test/game-prototype-composition.test.ts
   - examples/native-composition/README.md
   - examples/native-composition/assert.gd
+  - examples/room-encounter/README.md
+  - examples/room-encounter/assert.gd
 enforcement: strict
 maintainers: [zycxfyh]
 public_projection: ord
