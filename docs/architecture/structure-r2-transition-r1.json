@@ -563,6 +563,28 @@
       "disposition": "External authority source, observation, search, native CLI/validator/test, and NX01 owner LEGO are co-located in the existing catalogs/authorities natural source responsibility, without a new registry service."
     },
     {
+      "id": "experimental-episode-corpus-native-evidence",
+      "mode": "split",
+      "wave": "S5",
+      "owner": "studies",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/evidence/"
+      ],
+      "targetPaths": [
+        "studies/experimental-episodes/evidence/"
+      ],
+      "currentPlacementPaths": [
+        "studies/experimental-episodes/evidence/"
+      ],
+      "standing": "PARTIALLY_DEPLOYED",
+      "verifyTasks": [
+        "repo:ci",
+        "next:verify"
+      ],
+      "disposition": "Three byte-identical Episode study evidence records migrated from Next to the existing Studies source responsibility; current ODPS, Data Lifecycle DCAT, RW5 acceptance and Episode test consumers rebound. The parent Next evidence area still contains separate task-owned historical sources, so this is a partial source-placement relation, not semantic or runtime authority transfer."
+    },
+    {
       "disposition": "Twelve tracked package files relocated byte-identically except README source owner pointer; native Python distribution/CLI, Alembic migration, PostgreSQL projection and actual Study consumer tests retained. No alias or shadow package.",
       "id": "experimental-episode-study-store",
       "mode": "move",
