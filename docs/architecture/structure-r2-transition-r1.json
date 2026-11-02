@@ -624,6 +624,25 @@
         "next:verify"
       ],
       "wave": "S5"
+    },
+    {
+      "id": "experimental-episode-analysis-study-evidence",
+      "mode": "move",
+      "owner": "studies",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/evidence/data-products/experimental-episode-analysis-r1/"
+      ],
+      "targetPaths": [
+        "studies/experimental-episodes/evidence/data-products/experimental-episode-analysis-r1/"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Four original data product evidence bytes moved into existing Experimental Episode Study; live test locator updated, dated data-lifecycle source-cut evidence remains immutable. No second authority or archive.",
+      "verifyTasks": [
+        "next:verify",
+        "repo:ci"
+      ],
+      "wave": "S5"
     }
   ],
   "openSlices": [
