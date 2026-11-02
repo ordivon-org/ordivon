@@ -45,6 +45,14 @@ The index is disposable and reproducible. It contains only Level-0 discovery met
 - **Level 2 — task-local Standard-Native profile:** BOUND/EXCLUDED/DEFERRED role, applicability rationale, requirements, claim boundary and evidence expectations.
 - **Level 3 — external source/full text:** official web source or lawfully accessed licensed material. The catalog does not copy standards text.
 
+## Implementation boundaries
+
+- `scripts/authority_catalog_sources.py` owns source-file loading, identity and append-only observation validation; external issuers still own normative truth.
+- `scripts/authority_catalog_search.py` is pure, deterministic lexical candidate scoring over index entries; a positive score never confers applicability.
+- `scripts/authority_catalog.py` owns the rebuildable index projection, stable CLI entrypoint and current Python import surface used by the native validator and tests.
+
+The modules live in the existing Next source package until their real consumers justify a wider source relocation. No registry service, extra state store or cross-owner authority is introduced.
+
 ## Commands
 
 ```bash
