@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 from ordivon_composition import (
     CircuitContractError,
     canonical_digest,
@@ -14,12 +15,10 @@ from ordivon_composition import (
     validate_manifest,
 )
 
-ROOT = Path(__file__).resolve().parents[1]
 DOGFOOD = (
-    ROOT
-    / "evidence"
-    / "acceptance"
-    / "interface-contract-r2-gateway-client-dogfood-20260922.json"
+    Path(__file__).resolve().parent
+    / "fixtures"
+    / "gateway-client-interface-contract-r2-dogfood.json"
 )
 
 
@@ -191,9 +190,7 @@ def _manifest_circuit_ref(manifest: dict) -> dict:
 
 def test_real_gateway_connector_dogfood_reproduces_mismatch() -> None:
     case = dogfood()
-    assert case["ownerSurface"]["digest"] == canonical_digest(
-        case["ownerSurface"]["tools"]
-    )
+    assert case["ownerSurface"]["digest"] == canonical_digest(case["ownerSurface"]["tools"])
     assert case["clientEffectiveSurface"]["digest"] == canonical_digest(
         case["clientEffectiveSurface"]["tools"]
     )
@@ -224,9 +221,7 @@ def test_real_gateway_connector_dogfood_reproduces_mismatch() -> None:
     assert result["admissibilityReasonCode"] == expected["admissibilityReasonCode"]
 
 
-def test_r2_result_can_carry_evidence_into_r1_gate_without_lifting_domain_truth() -> (
-    None
-):
+def test_r2_result_can_carry_evidence_into_r1_gate_without_lifting_domain_truth() -> None:
     case = dogfood()
     manifest = gateway_connector_manifest()
     compiled = compile_manifest(manifest)
@@ -239,9 +234,7 @@ def test_r2_result_can_carry_evidence_into_r1_gate_without_lifting_domain_truth(
         digest=case["ownerSurface"]["digest"],
         circuit_ref=circuit_ref,
     )
-    owner_observation["sourceRef"] = (
-        "docs:architecture:GATEWAY_HOST_NORTHBOUND_ACCEPTANCE_20260922"
-    )
+    owner_observation["sourceRef"] = "docs:architecture:GATEWAY_HOST_NORTHBOUND_ACCEPTANCE_20260922"
     owner_observation["sourceDigest"] = case["ownerSurface"]["digest"]
 
     evaluation = evaluate_interface(owner_observation, exp)
@@ -404,9 +397,7 @@ def test_retained_projection_currentness_is_orthogonal_to_compatibility() -> Non
     assert unknown["admissibilityReasonCode"] == "CURRENTNESS_UNKNOWN"
 
 
-def test_explicit_compatibility_can_remain_true_while_retained_evidence_is_stale() -> (
-    None
-):
+def test_explicit_compatibility_can_remain_true_while_retained_evidence_is_stale() -> None:
     version = _digest("authority-version")
     alternate = _digest("compatible-alternate")
     exp = expectation()
