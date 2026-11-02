@@ -53,6 +53,9 @@
     ],
     "risk": [
       "portfolio_risk.py",
+      "dependence_analysis.py",
+      "tail_risk.py",
+      "risk_values.py",
       "risk_budget_validation.py"
     ],
     "research": [
