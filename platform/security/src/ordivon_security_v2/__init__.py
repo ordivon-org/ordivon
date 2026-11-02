@@ -1,11 +1,11 @@
 """Thin semantic waist for Ordivon Security v2."""
 
-from .browser_security_assessment import (
-    classify_browser_security_observation_validity,
+from .browser_security_comparison import (
     compare_browser_security_bundles,
-    compare_browser_security_pool,
     compare_browser_security_witnesses,
 )
+from .browser_security_observation import classify_browser_security_observation_validity
+from .browser_security_pool import compare_browser_security_pool
 from .browser_security_witness import (
     BrowserSecurityWitness,
     BrowserSecurityWitnessBundle,
