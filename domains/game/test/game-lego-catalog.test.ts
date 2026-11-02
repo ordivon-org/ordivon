@@ -40,7 +40,7 @@ function validateNativeGameConsumerClaims(plan: any): void {
     G03: ['scripts/build-mechanism-relationship-graph.ts', 'test/game-mechanism-relationship-graph.test.ts'],
     G04: ['scripts/design-counterexample-query.ts', 'test/game-design-counterexample-memory.test.ts'],
     G05: ['package.json', 'scripts/mechanism-relationship-query.ts', 'scripts/counterexample-synthesis-query.ts'],
-    G06: ['mise.toml', 'test/fixtures/native-godot-assembly/assert.gd', 'test/fixtures/native-godot-assembly/main.tscn'],
+    G06: ['mise.toml', 'examples/native-composition/assert.gd', 'examples/native-composition/main.tscn'],
   };
   assert.deepEqual(plan.nodes.map((n: any) => n.id), Object.keys(required));
   for (const node of plan.nodes) {
@@ -81,7 +81,7 @@ function validateNativeGameConsumerClaims(plan: any): void {
   const memoryTest = readFileSync(new URL('./game-design-counterexample-memory.test.ts', import.meta.url), 'utf8');
   assert.ok(memoryTest.includes('../knowledge/game_design_counterexample_memory_r1.json'));
 
-  // G06 is a native Godot fixture, not shipped Bevy gameplay. Its REAL
+  // G06 is a runnable native Godot example, not shipped Bevy gameplay. Its REAL
   // consumer must nevertheless run under the Game Owner verification task.
   const nativeMise = readFileSync(new URL('../mise.toml', import.meta.url), 'utf8');
   assert.ok(nativeMise.includes('godot = "4.7.2-stable"'),
@@ -89,8 +89,8 @@ function validateNativeGameConsumerClaims(plan: any): void {
   assert.ok(nativeMise.includes('&& mise run test:native'),
     'Game Owner verify must execute the native Godot consumer');
   assert.ok(nativeMise.includes('[tasks."test:native"]'));
-  assert.ok(nativeMise.includes('godot --headless --path test/fixtures/native-godot-assembly --script res://assert.gd'));
-  const godotTest = readFileSync(new URL('../test/fixtures/native-godot-assembly/assert.gd', import.meta.url), 'utf8');
+  assert.ok(nativeMise.includes('godot --headless --path examples/native-composition --script res://assert.gd'));
+  const godotTest = readFileSync(new URL('../examples/native-composition/assert.gd', import.meta.url), 'utf8');
   assert.ok(godotTest.includes('load("res://main.tscn")'));
 }
 

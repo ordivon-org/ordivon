@@ -2,7 +2,7 @@ extends Control
 
 # Native PackedScene is the swappable presentation LEGO.
 # Game rules know nothing about the chosen presentation.
-@export var view_scene: PackedScene = preload("res://view.tscn")
+@export var view_scene: PackedScene = preload("res://grid_state_view.tscn")
 @onready var rules: Node = $Rules
 var view: VBoxContainer
 

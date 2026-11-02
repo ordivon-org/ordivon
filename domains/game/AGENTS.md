@@ -52,7 +52,7 @@ Current owner seams:
 | Relationship inference | `src/mechanism-relationship-graph.ts` | G03 deterministic derived graph + CLI |
 | Counterexample enrichment | `src/counterexample-projection.ts` | G04; failure-context and source fidelity |
 | CLI parsing and file boundary | `src/query-input.ts`, `src/knowledge-file.ts`, `scripts/cli-argument.ts` | G05 bounded read-only CLI entrypoints |
-| Native game state / rule / view composition | `test/fixtures/native-godot-assembly` | G06 real PackedScene/Resource/Signal acceptance |
+| Native game state / rule / view composition | `examples/native-composition` | G06 real PackedScene/Resource/Signal acceptance |
 
 **Allowed dependency direction:** evidence source -> pure projection ->
 application/CLI adapter -> native consumer. The engine/runtime owns physics,
