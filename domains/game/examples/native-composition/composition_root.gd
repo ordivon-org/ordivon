@@ -4,6 +4,7 @@ extends Control
 # Game rules know nothing about the chosen presentation.
 @export var view_scene: PackedScene = preload("res://grid_state_view.tscn")
 @onready var rules: Node = $Rules
+@onready var movement_audio: AudioStreamPlayer = $MovementAudio
 var view: VBoxContainer
 
 func _ready() -> void:
@@ -11,6 +12,8 @@ func _ready() -> void:
     view.name = "View"
     add_child(view)
     rules.state_changed.connect(view.render_state)
+    movement_audio.stream = AudioStreamWAV.load_from_file("res://assets/kenney-ui-audio/click1.wav")
+    movement_audio.bind_rules(rules)
     rules.reset_game()
 
 func _unhandled_key_input(event: InputEvent) -> void:
