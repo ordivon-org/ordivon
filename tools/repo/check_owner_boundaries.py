@@ -22,7 +22,7 @@ IGNORED_COMPONENTS = {
 IGNORED_PREFIXES = (
     "meta/next/authorities/",
     "meta/next/knowledge/",
-    "meta/next/domains/",
+    "profiles/domains/",
 )
 
 
