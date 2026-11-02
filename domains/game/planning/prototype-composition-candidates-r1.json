@@ -254,10 +254,10 @@
         {
           "role": "save-resume",
           "sourceRef": "godot-configfile-built-in",
-          "integrationSeam": "Rules checkpoint/restore + native ConfigFile/Signal",
+          "integrationSeam": "Rules checkpoint/restore + Godot ConfigFile, saved on disk in one process and resumed by a fresh Godot SceneTree",
           "standing": "EXECUTED_NATIVE",
           "required": false,
-          "currentConsumer": "examples/room-encounter/encounter_save_slot.gd"
+          "currentConsumer": "examples/room-encounter/assert_process_restart.gd"
         }
       ],
       "explicitGaps": [
@@ -265,7 +265,7 @@
         "Combat has no authored character sprites, soundtrack, animation pipeline, platform package or independent human playtest.",
         "Kenney audio is game-local because Godot resource paths are project-relative, not an Ordivon audio engine."
       ],
-      "nextFalsifier": "Integrate actual narrative/visual providers into the room game, verify recovery after process restart and test with human players."
+      "nextFalsifier": "Verify complete physical export and a human-controlled session; separate-process Godot restart now has native ConfigFile read/write, resumed UI and continued gameplay evidence, but product packaging and cloud sync remain UNKNOWN."
     },
     {
       "id": "kenney-avatar-appearance",
