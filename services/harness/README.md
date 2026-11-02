@@ -178,7 +178,7 @@ If a new shared mechanism cannot survive deletion against Agent-owned choice, ca
 
 ## Requirements
 
-- Python 3.14.7 (current exact owner environment; newest stable GA Python line);
+- Python 3.15.1 (exact owner environment, pinned by pyproject.toml and mise.toml);
 - the owner-local `anc_canonical` compatibility shim for already-issued Harness identities (see [`docs/CANONICAL_COMPATIBILITY.md`](docs/CANONICAL_COMPATIBILITY.md));
 - `uv` for repository workflows;
 - the `harness.execution.runtime-search.v1` physical profile requires `/bin/bash`, `/usr/bin/awk`, and `/usr/bin/rg` on the Runtime execution target; these are target executables, not Python dependencies or authority grants;

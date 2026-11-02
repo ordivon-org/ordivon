@@ -98,8 +98,8 @@ evidence/HUMAN-RAIL-BROWSER-E2E-R1.json
 
 Accepted owner toolchain:
 
-- Node 26.9.0;
-- pnpm 12.5.1;
+- Node 26.12.1;
+- pnpm 12.16.1;
 - TypeScript 7.0.2.
 
 `skipLibCheck` is enabled because the current
