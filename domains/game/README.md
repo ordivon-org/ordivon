@@ -15,6 +15,24 @@ Current first-party games: NONE. Station Zero, Causal Lag, Veilwild, Casefile,
 old playable experiments and generic prototypes are retired from active source.
 They remain recoverable from Git history only, not product dependencies.
 
+## Current three Game workstreams
+
+The active agent operating contract is [AGENTS.md](AGENTS.md): (1) semantic
+decomposition, (2) directory/naming representation, (3) upstream Game LEGO
+discovery and consumer-verified prototype composition. Do not confuse an
+upstream addon listing or a proposed composition with an installed Game.
+
+Inspect four evidence-bound composition proposals without installing them:
+
+    pnpm composition:inspect
+    pnpm composition:inspect -- --id native-action-loop
+    pnpm composition:inspect -- --engine bevy
+
+Plans are in `planning/prototype-composition-candidates-r1.json`; provider
+source evidence is already in the Game knowledge index. One Godot-native
+micro-loop is executable today via `mise run test:native`; external
+art/AI/dialogue/audio additions remain uninstalled candidate slots.
+
 ## Directly reusable LEGO
 
 The natural-owner planning/lego-plan-r1.json records the existing source-bound

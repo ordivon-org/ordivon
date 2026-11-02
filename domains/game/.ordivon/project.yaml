@@ -34,6 +34,9 @@ managed_paths:
   - scripts/counterexample-synthesis-query.ts
   - scripts/build-mechanism-relationship-graph.ts
   - planning/lego-plan-r1.json
+  - planning/prototype-composition-candidates-r1.json
+  - scripts/prototype-composition-query.ts
+  - test/game-prototype-composition.test.ts
   - examples/native-composition/README.md
   - examples/native-composition/assert.gd
 enforcement: strict

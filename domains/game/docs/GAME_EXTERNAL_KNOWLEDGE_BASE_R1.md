@@ -8,7 +8,7 @@ source_role: derived-navigation
 visibility: public
 owners:
   - ordivon-game
-updated: 2026-09-18
+updated: 2026-11-02
 summary: First large external knowledge corpus for creative-open Game research: standards, accessibility, design theory, player research, engine practice, developer teardowns, platform feedback and Agent Skills.
 evidence_status: source-grounded-first-wave
 readiness: ACTIVE_EXPANDING
@@ -17,7 +17,7 @@ readiness: ACTIVE_EXPANDING
 
 ## 1. Purpose
 
-This is an **external knowledge substrate**, not a second Game constitution. External knowledge may **never become a Game constitution** merely because it is famous, formal, popular, or useful elsewhere. The current R1 corpus contains **140 source records**, **56 teardown targets**, **37 source-bound targets**, and **12 external Skill/tooling candidates**. Fine-grained transfer hypotheses extracted from those sources live separately in the Mechanism Experience Library so source registry and derived design memory remain distinct.
+This is an **external knowledge substrate**, not a second Game constitution. External knowledge may **never become a Game constitution** merely because it is famous, formal, popular, or useful elsewhere. The current R1 corpus contains **155 source records**, **56 teardown targets**, **37 source-bound targets**, and **12 external Skill/tooling candidates**. Fine-grained transfer hypotheses extracted from those sources live separately in the Mechanism Experience Library so source registry and derived design memory remain distinct.
 
 The ingestion rule is deliberately Creative-Open:
 
@@ -52,6 +52,41 @@ never
 - Distribution/feedback: Steam Playtest and Steam User Reviews.
 - Primary teardowns: FTL, Into the Breach, Celeste, Baba Is You, DOOM, Slay the Spire, Dead Cells, Subnautica, Mooncrash, Cultist Simulator, DMC5, Halo Wars 2, Heaven's Vault, Hades, Factorio, Zelda TOTK, Pikmin 4, Mario Wonder, Game Builder Garage.
 - Agent Skills/tooling: abagames Agentic Gamedev Skills, Epic Unreal Skills/Toolsets/MCP, gda Godot Skill+CLI+MCP, current sickn33 game Skills as lower-confidence comparison material.
+
+## 3.1 Component and content-production backfill (2026-11-02)
+
+The original 140 source records focused on game mechanisms, postmortems,
+standards and methods, so they were **not** a ready-to-compose Game components
+inventory. We added 15 upstream-grounded candidates: Godot 4.7 Asset Store,
+native Resource/PackedScene composition, Bevy plugins and official Bevy Assets
+index, LimboAI, Dialogue Manager 4, Dialogic 2, Godot AnimationTree,
+Kenney pixel art/UI/audio/prototype materials, Blender, LMMS and Kdenlive.
+
+They cover **gameplay engine/plugins, narrative, NPC logic, 2D/UI, audio/music,
+3D authoring and cinematics**. Their native artifacts have different semantics:
+an addon or ECS plugin is executable capability; a CC0 texture is a content
+asset; Blender/LMMS/Kdenlive are authoring tools, not installed gameplay
+features. Store presence, upstream docs and creator licensing are source
+evidence only. No third-party module, art pack or music pack was installed
+or integrated by this source backfill.
+
+- **Game-first engine composability:** Godot Scene/Resource/Signal and Bevy
+  App/Plugin/ECS remain natural owners of engine behaviors; use official
+  compatibility/currentness disclosures rather than assuming cross-engine
+  portability.
+- **Content ownership:** choose legally usable packs and import as native
+  textures, audio or scene components; authoring application licenses do not
+  automatically grant rights to samples, fonts or external source content.
+- **Evidence-bound prototype plans:** see
+  `planning/prototype-composition-candidates-r1.json` and
+  `pnpm composition:inspect`. Four examples share one source index; only the
+  existing Godot action-loop fixture has local executed native standing.
+- **Missing executable product:** external add-ons, music/art and complete
+  story/combat integrations are still candidate dependencies, not completed
+  Game products.
+
+This is a deliberately small, decision-led source wave, not a complete
+marketplace, quality ranking or new category ontology.
 
 ## 4. Mechanism Combination Experience Library
 
@@ -112,6 +147,7 @@ No layer inherits another layer's authority automatically.
 - `knowledge/game_external_knowledge_base_r1.json` — source registry with scope, authority, extracted ideas, candidate uses and evidence limits.
 - `knowledge/game_teardown_queue_r1.json` — large cross-genre teardown queue with axes, primary-source targets, questions and transfer risks.
 - `knowledge/game_external_skill_watchlist_r1.json` — external Skill/Tool/MCP patterns and adoption risks.
+- `pnpm composition:inspect` — source-backed prototype component/replacement seam inventory and explicit unimplemented gaps.
 - `pnpm knowledge:external -- --type sources|teardowns|skills [--q ...] [--authority ...] [--status ...]` — bounded retrieval over those records; it never ranks, recommends, approves or rejects a game idea.
 
 Source records also carry a coarse `sourceStrength` class such as `NATIVE_HIGH`, `PRIMARY_PROJECT_HIGH`, `EVIDENCE_HIGH`, `EVIDENCE_MEDIUM_HIGH`, `IMPLEMENTATION_MEDIUM` or `COMMUNITY_DISCOVERY`. This is an evidence-routing aid, not a universal quality score: a high-strength source outside its native scope still cannot create Game semantic authority.

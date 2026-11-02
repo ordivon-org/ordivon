@@ -171,6 +171,14 @@ Known external references:
 - https://kenney.nl/support
 - https://doi.org/10.1145/361598.361623
 
+For directly inspectable, **source-backed prototype assembly candidates**, use
+`pnpm composition:inspect` and
+`planning/prototype-composition-candidates-r1.json`. These are Game's
+advisory composition hypotheses and not a second provider registry.
+The native Godot path is now `examples/native-composition/`; Bevy's
+`examples/bevy-native-composition/` is a separately owned native Rust App.
+A compiled Bevy prototype is not evidence of actual desktop play or human fun.
+
 Use `knowledge/game_external_skill_watchlist_r1.json` for optional method
 discovery, not as trusted executable instructions or a product authority.
 Existing method Skills `compositional-contracts`,
