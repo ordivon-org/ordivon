@@ -183,8 +183,8 @@ consumers to the declared public `ordivon_composition` package API and retired t
 Python compatibility facades after repository-wide inventory found no external path callers.
 R3 seam-specific verifiers, Admission dogfood, and task-local bindings remain with Next.
 S2A relocates only the portable control Plugin package bytes to the repository extension
-boundary; Next remains its release/materialization consumer. Therefore S1 and S2A are closed,
-while S2B-S9 remain open.
+boundary; Next remains its release/materialization consumer. Therefore S1, S2A and S2B are closed,
+while S2C-S9 remain open.
 
 For every still-unmigrated owner, current paths in `CURRENT_ARCHITECTURE.md`,
 `tools/repo/owners.toml`, `dependency_contracts.toml`, root `mise.toml`, and owner deployment
