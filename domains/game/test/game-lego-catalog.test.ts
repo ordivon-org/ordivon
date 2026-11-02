@@ -45,7 +45,7 @@ function validateNativeGameConsumerClaims(plan: any): void {
     G04: ['scripts/design-counterexample-query.ts', 'test/game-design-counterexample-memory.test.ts'],
     G05: ['package.json', 'scripts/mechanism-relationship-query.ts', 'scripts/counterexample-synthesis-query.ts'],
     G06: ['mise.toml', 'examples/native-composition/assert.gd', 'examples/native-composition/main.tscn'],
-    G07: ['examples/bevy-native-composition/src/main.rs', 'examples/bevy-native-composition/src/gameplay.rs', 'examples/bevy-native-composition/Cargo.toml'],
+    G07: ['examples/orbit-collector/src/main.rs', 'examples/orbit-collector/src/gameplay.rs', 'examples/orbit-collector/Cargo.toml'],
     G08: ['examples/native-composition/composition_root.gd', 'examples/native-composition/main.tscn', 'examples/native-composition/assert_audio.gd'],
   };
   for (const id of Object.keys(required))

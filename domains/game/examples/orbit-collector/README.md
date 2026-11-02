@@ -25,7 +25,7 @@ engine, generic Mod runtime, reusable framework, or a revival of retired Game pr
 ## Use
 
 ```sh
-cd domains/game/examples/bevy-native-composition
+cd domains/game/examples/orbit-collector
 cargo test --locked
 cargo check --locked --all-targets
 cargo run --locked

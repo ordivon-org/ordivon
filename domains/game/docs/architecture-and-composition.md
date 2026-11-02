@@ -14,7 +14,7 @@ assembly path. It does not supersede `../AGENTS.md` or
 | G04 counterexamples | `src/counterexample-projection.ts` + query | Contextual failure enrichment and false transfer rejection |
 | G05 native read-only CLI contract | `src/query-input.ts`, `src/knowledge-file.ts`, `scripts/cli-argument.ts` | Input normalization and read boundary without duplicating each query |
 | G06 native composition acceptance | `examples/native-composition` | Godot Resource, PackedScene, action rules and Signal-bound presentation substitution |
-| G07 Bevy native product assembly | `examples/bevy-native-composition` | Rust pure rules -> Bevy ECS/Plugin/graphics source, locked cargo build + bounded native tests |
+| G07 Bevy native product assembly | `examples/orbit-collector` | Rust pure rules -> Bevy ECS/Plugin/graphics source, locked cargo build + bounded native tests |
 | G08 Godot movement audio effect | `examples/native-composition/movement_audio_feedback.gd`, original main scene, asset-local CC0 provenance | Actual GridRules Signal -> native AudioStreamPlayer, replaceable AudioStream and Godot execution |
 
 **Observed edges:** G01/G02 source knowledge is read by G05 CLI

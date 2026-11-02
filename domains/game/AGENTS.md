@@ -55,7 +55,7 @@ Current owner seams:
 | Counterexample enrichment | `src/counterexample-projection.ts` | G04; failure-context and source fidelity |
 | CLI parsing and file boundary | `src/query-input.ts`, `src/knowledge-file.ts`, `scripts/cli-argument.ts` | G05 bounded read-only CLI entrypoints |
 | Native game state / rule / view composition | `examples/native-composition` | G06 real PackedScene/Resource/Signal acceptance |
-| Bevy rules and native ECS app | `examples/bevy-native-composition/{src,Cargo.toml,Cargo.lock}` | G07 rule/Plugin system tests and native build; GPU runtime UNKNOWN |
+| Bevy rules and native ECS app | `examples/orbit-collector/{src,Cargo.toml,Cargo.lock}` | G07 rule/Plugin system tests and native build; GPU runtime UNKNOWN |
 | Source-licensed Godot audio effects | `examples/native-composition/{main.tscn,movement_audio_feedback.gd,assets/kenney-ui-audio}` | G08 actual state Signal -> AudioStreamPlayer and replaceable WAV |
 
 **Allowed dependency direction:** evidence source -> pure projection ->
@@ -180,7 +180,7 @@ For directly inspectable, **source-backed prototype assembly candidates**, use
 `planning/prototype-composition-candidates-r1.json`. These are Game's
 advisory composition hypotheses and not a second provider registry.
 The native Godot path is now `examples/native-composition/`; Bevy's
-`examples/bevy-native-composition/` is a separately owned native Rust App.
+`examples/orbit-collector/` is a separately owned native Rust App.
 A compiled Bevy prototype is not evidence of actual desktop play or human fun.
 
 Use `knowledge/game_external_skill_watchlist_r1.json` for optional method

@@ -251,10 +251,10 @@
         "Compile Bevy application with cargo check --locked --all-targets; physical player input/output remains unverified without a graphical run."
       ],
       "evidence": [
-        "examples/bevy-native-composition/Cargo.toml",
-        "examples/bevy-native-composition/Cargo.lock",
-        "examples/bevy-native-composition/src/rules.rs",
-        "examples/bevy-native-composition/src/gameplay.rs"
+        "examples/orbit-collector/Cargo.toml",
+        "examples/orbit-collector/Cargo.lock",
+        "examples/orbit-collector/src/rules.rs",
+        "examples/orbit-collector/src/gameplay.rs"
       ],
       "dependencies": [],
       "sharedRefs": [],
@@ -265,10 +265,10 @@
         "Godot runtime state"
       ],
       "consumerEvidence": [
-        "examples/bevy-native-composition/src/main.rs",
-        "examples/bevy-native-composition/src/gameplay.rs",
-        "examples/bevy-native-composition/README.md",
-        "examples/bevy-native-composition/Cargo.toml"
+        "examples/orbit-collector/src/main.rs",
+        "examples/orbit-collector/src/gameplay.rs",
+        "examples/orbit-collector/README.md",
+        "examples/orbit-collector/Cargo.toml"
       ],
       "recursiveLegoR21": {
         "I": [
@@ -298,14 +298,14 @@
         "c": "Rule transitions O(1); ECS/frame scheduling and renderer cost depend on runtime/scene and are not measured",
         "epsilon": "Graphical runtime, frame rate, input latency and human experience are UNKNOWN; compile PASS is not graphical execution proof",
         "prov": [
-          "examples/bevy-native-composition/Cargo.toml pins =0.20.1",
-          "examples/bevy-native-composition/Cargo.lock",
-          "examples/bevy-native-composition/README.md"
+          "examples/orbit-collector/Cargo.toml pins =0.20.1",
+          "examples/orbit-collector/Cargo.lock",
+          "examples/orbit-collector/README.md"
         ],
         "unfold": [
-          "examples/bevy-native-composition/src/rules.rs",
-          "examples/bevy-native-composition/src/gameplay.rs",
-          "examples/bevy-native-composition/src/main.rs"
+          "examples/orbit-collector/src/rules.rs",
+          "examples/orbit-collector/src/gameplay.rs",
+          "examples/orbit-collector/src/main.rs"
         ]
       }
     },

@@ -212,7 +212,7 @@
         "Godot addons cannot be treated as Bevy plugins; contract and runtime constraints are engine-specific."
       ],
       "nextFalsifier": "Run the pinned Bevy Cargo.lock tests/check and exercise the desktop App against an actual display/input consumer; then bind a proven community plugin only for a missing mechanic.",
-      "currentConsumer": "examples/bevy-native-composition/src/main.rs"
+      "currentConsumer": "examples/orbit-collector/src/main.rs"
     }
   ]
 }
