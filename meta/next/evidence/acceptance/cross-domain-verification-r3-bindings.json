@@ -3,7 +3,7 @@
   "kind": "ordivon.cross-domain-verification-r3-binding",
   "truthRole": "task-local-acceptance-binding-not-owner-truth",
   "researchArtifact": {
-    "profilePath": "meta/research/publication-closure-profile-r1.json",
+    "profilePath": "profiles/research/publication/publication-closure-r1.json",
     "dogfoodPath": "tests/fixtures/research/publication-carrier-paper3-dogfood-r1.json",
     "expectedScientificTruth": "Study authority",
     "expectedCarrierMechanics": "capabilities/artifact",
