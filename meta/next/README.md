@@ -22,7 +22,7 @@ Ordivon does not attempt to re-own mature disciplines, algorithms, tools, workfl
 
 ## Responsibilities retained in this subtree
 
-- profiles and mappings that expose mature human knowledge and capabilities in a common usable form;
+- profiles and mappings that expose mature human knowledge and capabilities in a common usable form (discovery records now live in catalogs/authorities/);
 - domain life-cycle profiles;
 - mappings from problem classes to mature methods, standards, algorithms, tools and validators;
 - repository-specific semantic/integration code only where a mature external owner does not already own the responsibility;
@@ -45,7 +45,6 @@ Canonical repository Agent Skills now live at `../../.agents/skills/`; Next cons
 
 ```text
 meta/next/
-├── authorities/     # external-authority records, observations and rebuildable discovery index
 See `catalogs/capabilities/` for non-authoritative capability/provider routing knowledge and task-local inventories.
 ├── domains/         # domain-native life-cycle profiles
 ├── policies/        # native OPA/Rego policy artifacts where declarative policy is justified
