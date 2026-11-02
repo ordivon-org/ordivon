@@ -4,7 +4,7 @@ from pathlib import Path
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
-    / "experiments/browser-security-r7/launcher_default_ablation.py"
+    / "research/experiments/browser-security-r7/launcher_default_ablation.py"
 )
 SPEC = importlib.util.spec_from_file_location("launcher_default_ablation", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None

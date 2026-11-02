@@ -23,7 +23,7 @@ import sys
 import tempfile
 from typing import Any
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
+ROOT = pathlib.Path(__file__).resolve().parents[3]
 HARNESS_CURRENT = pathlib.Path(
     os.environ.get("ORDIVON_AGENT_AUTOMATION_SOURCE_ROOT", "/opt/ordivon/agent-automation/current")
 )
@@ -33,8 +33,8 @@ if str(HARNESS_SCRIPTS) not in sys.path:
 
 from browserless_substrate import BrowserlessPool  # noqa: E402
 
-R3_PATH = ROOT / 'experiments/browser-security-r3/neutral_differential.py'
-R7_PATH = ROOT / 'experiments/browser-security-r7/launcher_default_ablation.py'
+R3_PATH = ROOT / 'research/experiments/browser-security-r3/neutral_differential.py'
+R7_PATH = ROOT / 'research/experiments/browser-security-r7/launcher_default_ablation.py'
 CANARY_PATH = HARNESS_SCRIPTS / 'browser_security_browserless_canary.py'
 
 

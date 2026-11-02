@@ -10,7 +10,7 @@ differences.
 Run inside the production Browserless network namespace:
 
   nsenter --net=/run/netns/nv2-browserless-prod \
-    <playwright-python> experiments/browser-security-r3/neutral_differential.py \
+    <playwright-python> research/experiments/browser-security-r3/neutral_differential.py \
     --output evidence/browser-security/cloudflare-provider-security-exp-r3-20260918.json
 """
 
