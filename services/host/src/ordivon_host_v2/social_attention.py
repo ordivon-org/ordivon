@@ -9,9 +9,8 @@ from .attention_queries import ATTENTION_DELTA_SQL
 from .canonical_json import canonical_bytes, canonical_digest
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .command_receipts import claim_command_receipt, record_command_receipt
-from .errors import ConflictError
-from .social_store import SpaceNotFound, TopicNotFound
-from .work_store import ActorRefNotFound, WorkNotFound
+from .errors import ActorRefNotFound, ConflictError, WorkNotFound
+from .social_errors import SpaceNotFound, TopicNotFound
 
 TargetKind = Literal["work", "space", "topic"]
 
