@@ -69,6 +69,20 @@ A platform rank is an attention-world observation. It is not direct evidence tha
 
 This is deliberately not a universal media object. A cultural observation is evidence about how an external artifact was encountered and selected. If exact audiovisual or text bytes are ever admitted, their rights and byte authority must be established independently.
 
+The native source-collection LEGO boundaries are replaceable by provider,
+not by inventing a generic scraping or ranking engine:
+
+- `observatory_hacker_news.py`: official Firebase top/new lists, linked story metadata and source-specific rank/control identity;
+- `observatory_apple_music.py`: official Marketing Tools RSS chart metadata and storefront-specific rank;
+- `observatory_guardian.py`: official Open Platform section most-viewed, editorial picks and newest controls;
+- `observatory_http.py`: common bounded JSON HTTP GET and metadata-only Observation structure;
+- `observatory.py`: unchanged cultural-source capabilities, snapshot composition, CLI and failure aggregation; `observatory_analysis.py` owns independent noncausal structural analysis.
+
+Only actually admitted source interfaces execute. YouTube, Douyin, TikTok
+and Trends remain *capability-only* until their own real access/consumer
+conditions exist. A source failure becomes a bounded snapshot failure record;
+it must not be rewritten as empty observations or a false negative finding.
+
 ## Winner/control discipline
 
 A useful corpus contains more than successful examples. Depending on the surface it should seek:
