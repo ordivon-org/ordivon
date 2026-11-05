@@ -270,6 +270,7 @@
       "sharedRefs": [],
       "evidence": [
         "src/ordivon_studio/resolve_editorial.py",
+        "src/ordivon_studio/resolve_operations.py",
         "src/ordivon_studio/resolve_adapter.py",
         "src/ordivon_studio/assets.py",
         "tests/test_resolve_adapter.py",
@@ -308,7 +309,7 @@
             "source-bound conform parameters",
             "Resolve-facing OTIO document"
           ],
-          "consumer": "resolve_adapter.build_assembly_conform_operation"
+          "consumer": "resolve_operations.build_assembly_conform_operation"
         },
         "S": {
           "type": "Unit",
@@ -368,6 +369,7 @@
           "type": "source_paths",
           "paths": [
             "src/ordivon_studio/resolve_editorial.py",
+            "src/ordivon_studio/resolve_operations.py",
             "src/ordivon_studio/resolve_adapter.py",
             "processing/bin/probe-otio.sh",
             "tests/test_resolve_adapter.py"
@@ -378,6 +380,7 @@
           "type": "owner_native_code",
           "sourcePaths": [
             "src/ordivon_studio/resolve_editorial.py",
+            "src/ordivon_studio/resolve_operations.py",
             "src/ordivon_studio/resolve_adapter.py"
           ],
           "providerPaths": [
@@ -521,6 +524,164 @@
           ]
         }
       }
+    },
+    {
+      "id": "V09",
+      "label": "ResolveOperationBridge",
+      "kind": "capability_adapter",
+      "responsibility": "Compose a source-fenced Resolve operation, Windows host path and native Runner receipt using the existing one-file Blackmagic scripting deployment; keep command construction, environment acquisition, effectful preparation and independent receipt readback replaceable.",
+      "authority": "Media Resolve operation preparation and native result projection; Blackmagic Resolve owns actual project/timeline effects",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/resolve_contracts.py",
+        "src/ordivon_studio/resolve_host.py",
+        "src/ordivon_studio/resolve_operations.py",
+        "src/ordivon_studio/resolve_adapter.py",
+        "src/ordivon_studio/resolve_results.py",
+        "src/ordivon_studio/resolve_runner_menu.py",
+        "tests/test_resolve_adapter.py"
+      ],
+      "dependencies": [
+        "V07"
+      ],
+      "mustNotOwn": [
+        "DaVinci Resolve native project or timeline authority",
+        "general purpose OTIO parsing and media decoding",
+        "new cross-Owner state registry or result database",
+        "media Production/Asset truth",
+        "unobserved proof of native Windows Resolve 21 effects"
+      ],
+      "acceptance": [
+        "The Resolve Runner remains a one-file embedded Python script with exact SHA-256 unchanged.",
+        "All current probe/smoke/compatibility operation shapes are identical before/after and accepted by the real Runner operation validator.",
+        "A staged successful native receipt cannot silently match a different current operation digest.",
+        "Existing native Resolve adapter unit tests and official OTIO media owner smokes pass; actual Windows NLE acceptance remains explicitly UNKNOWN."
+      ],
+      "r21": {
+        "I": {
+          "type": "ResolveOperationIntent",
+          "fields": [
+            "operation action and exact operationId",
+            "selected media/Production/OTIO source identity and byte digest",
+            "caller supplied or Windows-discovered control and script paths",
+            "optional expected readback operationId"
+          ],
+          "consumers": [
+            "ordivon_studio.cli_handlers.resolve",
+            "ordivon_studio.resolve_editorial"
+          ]
+        },
+        "O": {
+          "type": "ResolvePreparedOperationAndReceipt",
+          "fields": [
+            "operation JSON with source-bound operationDigest",
+            "installed standalone script path when requested",
+            "source-side prepared result",
+            "native Runner result validated against operation identity and current staged source digest if present"
+          ],
+          "consumers": [
+            "Resolve Runner script-menu operation",
+            "Media CLI result and downstream review/QC"
+          ]
+        },
+        "S": {
+          "type": "CurrentControlFilePair",
+          "fields": [
+            "resolve-operation.json",
+            "resolve-result.json"
+          ],
+          "owner": "caller-selected Windows/WSL control directory",
+          "mutation": "one staged current operation; stale result removed at stage; Runner overwrites result when invoked",
+          "note": "Not a durable Media control database or long-lived state registry"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "valid operation identity and selected source media digests",
+            "configured Windows/WSL script-menu and control directory for installation or execution",
+            "OpenTimelineIO extra only when preparing native editorial conform",
+            "existing Resolve host binary and scripting API when actual NLE effect is requested"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "source-side operation stage writes exact canonical operation and returns digest",
+            "success receipt is checked for allowed action/status, expected ID and digest of any current staged operation",
+            "Runner itself enforces ID + digest on replay and remains installed as one standalone menu script"
+          ],
+          "limitations": [
+            "reading a syntactically valid result cannot establish external Windows Resolve currentness or domain editorial acceptance without a native host execution receipt"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "source-owned Production/Asset truth is not changed by planning or result read",
+            "native Resolve Runner remains single-file and self-contained",
+            "a staged operation changed under an existing result cannot return a successful matched receipt",
+            "no new generic NLE/OTIO engine or duplicate result authority is introduced"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "Windows/WSL environment lookup and source media probe",
+            "copy standalone Runner and config on explicit install",
+            "atomically write one staged operation and remove its stale prior result",
+            "write Resolve-private OTIO handoff file on assembly conform preparation",
+            "read and verify one native result"
+          ],
+          "excluded": [
+            "start DaVinci Resolve or edit a project during source-side preparation",
+            "publish media",
+            "mutate Host/Runtime or shared source authority"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "actual Windows Resolve host script, media decode, import, playback/render latency",
+          "reason": "current source-side tests and disabled native host do not benchmark a physical Resolve run",
+          "obligation": "measure only when a selected real NLE consumer invokes and records an exact operation receipt"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "unobserved native Resolve edit, timeline fidelity, GUI playback and final rendered media acceptance",
+          "reason": "the same Runner byte digest and deterministic fake-host consumer cannot prove a currently installed and invoked Windows Resolve binary performed the effect",
+          "obligation": "execute and read back a real current Windows Resolve host session with exact operation/source digests before domain acceptance"
+        },
+        "prov": {
+          "type": "source_and_native_consumer_evidence",
+          "sourcePaths": [
+            "src/ordivon_studio/resolve_contracts.py",
+            "src/ordivon_studio/resolve_host.py",
+            "src/ordivon_studio/resolve_operations.py",
+            "src/ordivon_studio/resolve_adapter.py",
+            "src/ordivon_studio/resolve_results.py",
+            "src/ordivon_studio/resolve_runner_menu.py"
+          ],
+          "runnerSha256": "02d5b4524127bb22b95d9d94bdd08d311c2f6a64ba07b2d8f2e0c1441f376f6f",
+          "standing": "CODE_CONTRACT_TESTED__NATIVE_HOST_EFFECT_UNKNOWN",
+          "comparison": "operation and receipt fixtures identical for all three pre/post operation builders and Runner validator"
+        },
+        "unfold": {
+          "type": "owner_native_code",
+          "sourcePaths": [
+            "src/ordivon_studio/resolve_contracts.py",
+            "src/ordivon_studio/resolve_host.py",
+            "src/ordivon_studio/resolve_operations.py",
+            "src/ordivon_studio/resolve_adapter.py",
+            "src/ordivon_studio/resolve_results.py"
+          ],
+          "hostProvider": "src/ordivon_studio/resolve_runner_menu.py",
+          "externalProviders": [
+            "DaVinci Resolve native scripting",
+            "OpenTimelineIO pinned toolkit",
+            "ffprobe"
+          ]
+        }
+      }
     }
   ],
   "edges": [
@@ -556,9 +717,15 @@
     },
     {
       "from": "V07",
+      "to": "V09",
+      "type": "DATA",
+      "label": "selected-Asset conform and OTIO evidence to operation-bound Resolve Runner intent"
+    },
+    {
+      "from": "V09",
       "to": "V04",
       "type": "EVIDENCE",
-      "label": "source-bound OTIO candidate for native review/QC"
+      "label": "exact staged operation and matched native Resolve receipt to downstream review/QC"
     }
   ],
   "slices": [
@@ -644,6 +811,7 @@
       ],
       "evidence": [
         "src/ordivon_studio/resolve_editorial.py",
+        "src/ordivon_studio/resolve_operations.py",
         "tests/test_resolve_adapter.py",
         "processing/tests/otio-smoke.sh"
       ],
@@ -668,6 +836,30 @@
       ],
       "blockers": [],
       "nextAction": "Only invoke/scoring actual provider when a named research consumer needs inference; never promote synthetic source fixtures to real model or human comprehension evidence."
+    },
+    {
+      "id": "VS6",
+      "objective": "Isolate Resolve protocol/Windows host discovery/native operation construction/staging/receipt interpretation without modifying the standalone script-menu Runner, and keep source-to-host proof grades separate.",
+      "status": "IMPLEMENTED",
+      "nodeIds": [
+        "V07",
+        "V09",
+        "V04"
+      ],
+      "acceptance": [
+        "All existing Resolve contract tests plus official OTIO smoke, full Media owner and protected root CI pass.",
+        "Original standalone Runner SHA-256 remains identical.",
+        "Successful receipt readback does not accept stale staged operation digest.",
+        "Native Windows NLE editing effects remain UNKNOWN unless a current host execution and readback is witnessed."
+      ],
+      "evidence": [
+        "src/ordivon_studio/resolve_adapter.py",
+        "src/ordivon_studio/resolve_operations.py",
+        "src/ordivon_studio/resolve_results.py",
+        "tests/test_resolve_adapter.py"
+      ],
+      "blockers": [],
+      "nextAction": "Only if an actual Resolve production needs host editing, use the current installed native Runner from Workspace Scripts > Utility, invoke a source-bound operation and read back exact matched result before promoting DOMAIN_ACCEPTED."
     }
   ],
   "gaps": [

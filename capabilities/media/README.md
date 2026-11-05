@@ -77,11 +77,16 @@ explicit acquisition **plans** without installing anything;
 guess the Agent's currently intended Production. The runtime/tool-execution
 authority and production/source truth remain outside the Agent adapter.
 
-Resolve-private editorial interchange and selected-asset binding live in
-`ordivon_studio.resolve_editorial`. The existing `resolve_adapter` remains
-the Windows/operation bridge and the embedded Resolve Runner remains one
-self-contained deployable script. OpenTimelineIO and existing Media Blob
-hashing are reused instead of reimplementing timeline or digest engines.
+Resolve-private editorial interchange and exact asset binding live in
+`ordivon_studio.resolve_editorial`, with `resolve_operations` owning typed
+on-wire action construction, `resolve_host` consuming Windows/WSL path and
+ffprobe providers, and `resolve_results` independently validating receipts.
+`resolve_contracts` contains shared protocol identity and Resolve profile;
+`resolve_adapter` owns only effectful Runner installation and operation-file
+preparation. The embedded `resolve_runner_menu.py` remains a **single**
+self-contained DaVinci Resolve script with identical bytes and unchanged
+native script-menu location. OpenTimelineIO and Media Blob hashing are reused
+rather than reimplementing timeline or digest engines.
 
 ## Studio capability plane
 

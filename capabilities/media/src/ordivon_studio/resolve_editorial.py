@@ -16,8 +16,8 @@ from typing import Any
 import opentimelineio as otio
 
 from .assets import hash_file
+from .resolve_contracts import COMPATIBILITY_VERSION_STRING
 
-COMPATIBILITY_VERSION_STRING = "21.0.3.7"
 ASSEMBLY_PROJECT_NAME = "Ordivon Runtime Introduction"
 ASSEMBLY_TIMELINE_NAME = "Assembly v0"
 _SEGMENT_ID = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$")

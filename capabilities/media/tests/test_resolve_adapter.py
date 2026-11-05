@@ -13,21 +13,25 @@ import opentimelineio as otio
 
 import ordivon_studio.resolve_runner_menu as runner_menu
 from ordivon_studio.resolve_adapter import (
+    install_runner,
+    prepare_assembly_conform,
+    prepare_probe,
+    prepare_smoke,
+)
+from ordivon_studio.resolve_contracts import (
     ASSEMBLY_CONFORM_PROJECT_PREFIX,
     ASSEMBLY_CONFORM_TIMELINE_NAME,
     CONFIG_FILENAME,
     OPERATION_FILENAME,
     RUNNER_FILENAME,
+)
+from ordivon_studio.resolve_operations import (
     build_assembly_conform_operation,
     build_compatibility_operation,
     build_probe_operation,
     build_smoke_operation,
-    install_runner,
-    prepare_assembly_conform,
-    prepare_probe,
-    prepare_smoke,
-    validate_result,
 )
+from ordivon_studio.resolve_results import read_result, validate_result
 from ordivon_studio.resolve_runner_menu import execute_operation, validate_operation
 
 ASSEMBLY_LAYOUT = [
@@ -862,6 +866,32 @@ class ResolveAdapterTests(unittest.TestCase):
             )
             self.assertFalse((control / "resolve-result.json").exists())
             self.assertEqual(smoke["operation"]["action"], "create-smoke-project")
+
+    def test_success_receipt_binds_exact_staged_operation_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            control = Path(directory) / "control"
+            prepared = prepare_probe(control_directory=control, operation_id="resolve-probe-bound-r6")
+            receipt = {
+                "schemaVersion": 1,
+                "adapter": "resolve",
+                "operationId": "resolve-probe-bound-r6",
+                "operationDigest": prepared["operationDigest"],
+                "action": "probe",
+                "status": "succeeded",
+                "probe": {"capabilities": {}},
+            }
+            receipt_file = control / "resolve-result.json"
+            receipt_file.write_text(json.dumps(receipt), encoding="utf-8")
+            self.assertEqual(read_result(control_directory=control), receipt)
+
+            # A staged replacement with the same operationId but altered
+            # requestedAt cannot be misreported as that earlier native success.
+            operation_file = control / OPERATION_FILENAME
+            staged = json.loads(operation_file.read_text(encoding="utf-8"))
+            staged["requestedAt"] = "2099-01-01T00:00:00Z"
+            operation_file.write_text(json.dumps(staged), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "operationDigest does not match staged"):
+                read_result(control_directory=control)
 
     def test_result_validator_rejects_identity_drift_and_private_path(self) -> None:
         result = {

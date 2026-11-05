@@ -104,7 +104,9 @@ def _command_resolve_prepare_assembly_conform(args: argparse.Namespace) -> int:
 
 
 def _command_resolve_result(args: argparse.Namespace) -> int:
-    result = _resolve_adapter().read_result(
+    from ..resolve_results import read_result
+
+    result = read_result(
         control_directory=_optional_path(args.control_directory),
         expected_operation_id=args.operation_id,
     )
