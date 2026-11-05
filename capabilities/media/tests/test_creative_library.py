@@ -179,6 +179,23 @@ class CreativeLibraryHttpTests(unittest.TestCase):
                 self.assertEqual(res.status, 400)
                 res.read()
                 conn.close()
+
+                # Real frozen Game/Web sources can disappear from the local
+                # checkout while the catalog is still a valid archive.
+                work["sourceRepo"] = str(repo / "unavailable-historical-git")
+                conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                conn.request("GET", f"/raw/{wid}/artifact.txt")
+                res = conn.getresponse()
+                self.assertEqual(res.status, 503)
+                self.assertEqual(res.read(), b"source revision unavailable\n")
+                conn.close()
+
+                conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                conn.request("GET", "/api/health")
+                res = conn.getresponse()
+                self.assertEqual(res.status, 200)
+                self.assertEqual(__import__("json").loads(res.read())["workCount"], 1)
+                conn.close()
             finally:
                 server.shutdown()
                 server.server_close()
