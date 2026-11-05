@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .contracts import (
     ArtifactChunk,
@@ -10,10 +10,13 @@ from .contracts import (
 )
 from .execution_refs import GatewayError, parse_execution_ref
 from .execution_refs import format_execution_ref as _execution_ref
-from .external_worker import ExternalPullWorkerTransport, WorkerConflict
+from .external_worker_contracts import WorkerConflict
 from .owner_protocol import _required_bool, _required_str
 from .routing import CapabilityRoute
 from .upstream import OwnerToolCaller
+
+if TYPE_CHECKING:
+    from .external_worker import ExternalPullWorkerTransport
 
 
 class ExecutionCoordinator:

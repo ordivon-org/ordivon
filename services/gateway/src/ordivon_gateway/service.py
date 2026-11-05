@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .capability_catalog import CapabilityCatalog
 from .contracts import (
@@ -17,9 +17,12 @@ from .contracts import (
 from .execution_coordinator import ExecutionCoordinator
 from .execution_refs import GatewayError
 from .execution_refs import parse_execution_ref as parse_execution_ref
-from .external_worker import ExternalPullWorkerTransport
 from .routing import CapabilityRoute, default_routes
 from .upstream import OwnerToolCaller
+
+if TYPE_CHECKING:
+    from .external_worker import ExternalPullWorkerTransport
+
 
 _SOCIAL_WORK_HOST_TOOLS = frozenset(
     {
