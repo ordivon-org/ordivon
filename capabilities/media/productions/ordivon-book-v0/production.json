@@ -130,6 +130,9 @@
     ],
     "receipts": [
       "portable/portable-pdf.receipt.json"
+    ],
+    "sourceDocuments": [
+      "future-horizon-laboratory.mdx"
     ]
   },
   "outputs": [
@@ -181,7 +184,8 @@
       "kind": "article",
       "status": "rendered",
       "profile": "writing",
-      "blobDigest": "sha256:4fdf905e5e759232e48c1dc5090a7ddc34cb015e631595380d66ae010815f89a"
+      "blobDigest": "sha256:22ba47ac9c66514dcd0c20520db9fa6b4d377d912dd1cc5aa3c90306ad70f3a9",
+      "sourceCarrier": "future-horizon-laboratory.mdx"
     },
     {
       "id": "ordivon-book-v0-chapter-6-zh",
