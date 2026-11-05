@@ -95,6 +95,11 @@ name = "web"
 root = "apps/web/"
 verify_task = "web:verify"
 
+[[owners]]
+name = "chaoxing-autosign"
+root = "apps/chaoxing-autosign/"
+verify_task = "chaoxing:verify"
+
 # Mechanical source navigation only; not a semantic Owner or proof authority.
 [[source_regions]]
 name = "formal-verification-source"

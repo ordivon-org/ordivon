@@ -6,14 +6,9 @@ import argparse
 import json
 from pathlib import Path
 
-from ..ecology import (
-    collection_feed_item,
-    compose_board_source_set,
-    derive_activity_feed,
-    derive_board_threads,
-    thread_feed_items,
-    validate_collection,
-)
+from ..ecology.board import compose_board_source_set, derive_board_threads
+from ..ecology.collection import collection_feed_item, validate_collection
+from ..ecology.feed import derive_activity_feed, thread_feed_items
 from ..production_context import build_production_context
 from . import _write_json
 

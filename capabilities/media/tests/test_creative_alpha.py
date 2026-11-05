@@ -7,7 +7,7 @@ from ordivon_studio.research.creative_alpha import (
     build_holdout_protocol,
     build_visible_protocol,
 )
-from ordivon_studio.research.research_validity import seed_commitment
+from ordivon_studio.research.trial_registration import seed_commitment
 
 
 class CreativeAlphaTest(unittest.TestCase):

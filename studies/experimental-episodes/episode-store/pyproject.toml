@@ -11,7 +11,10 @@ dependencies = [
 ]
 
 [dependency-groups]
-test = ["pytest==9.1.1"]
+test = [
+    "jsonschema>=4.26,<5",
+    "pytest==9.1.1",
+]
 quality = ["ruff==0.17.2"]
 
 [project.scripts]

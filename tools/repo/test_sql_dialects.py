@@ -82,7 +82,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             "platform/workstation/scripts/host_historical_projection.py",
             "platform/workstation/scripts/host_retirement_snapshot.py",
             "services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py",
-            "meta/next/experiments/chaoxing-autosign-mvp/chaoxing_mvp/ledger.py",
+            "apps/chaoxing-autosign/chaoxing_mvp/ledger.py",
         ):
             with self.subTest(path=name):
                 self.assertIn(name, current)
@@ -125,7 +125,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
 
     def test_pg_media_retires_ledger_sqlite_but_keeps_verified_importer(self):
         observed = tracked_owner_sqlite_calls(ROOT)
-        retired = "capabilities/media/src/ordivon_studio/research/research_validity.py"
+        retired = "capabilities/media/src/ordivon_studio/research/trial_ledger.py"
         self.assertTrue((ROOT / retired).is_file())
         importer = "capabilities/media/scripts/migrate-r6-trials.py"
         self.assertNotIn(retired, observed)

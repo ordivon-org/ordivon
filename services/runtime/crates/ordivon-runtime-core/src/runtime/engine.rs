@@ -449,8 +449,13 @@ include!("engine/admission.rs");
 include!("engine/release.rs");
 include!("engine/workspace.rs");
 include!("engine/execution.rs");
+include!("engine/provider_commitments.rs");
+include!("engine/execution_preparation.rs");
+include!("engine/launch_identity.rs");
 include!("engine/reconciliation.rs");
 include!("engine/control_query.rs");
+include!("engine/input_bindings.rs");
+include!("engine/admission_validation.rs");
 include!("engine/artifact_projection.rs");
 #[derive(Debug)]
 struct OutputView {

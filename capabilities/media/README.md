@@ -54,6 +54,29 @@ creative-alpha, grounded-meaning and article/foundational studies live in
 `ordivon_studio.research`. Research scripts import that subpackage directly;
 there are no redundant compatibility shims or separate research truth store.
 
+Equipment follows a three-stage, source-readable contract:
+`equipment_discovery.py` observes physical Workstation/tool candidates;
+`equipment_capabilities.py` projects selectable actions and verification;
+`equipment_plan.py` compiles exact native-tool arguments without execution.
+`equipment.py` remains the stable Studio/Agent entry point. Selection, planning,
+process execution (Runtime), and output acceptance (the source/Artifact owner)
+are **distinct**; no new equipment engine or parallel asset authority is admitted.
+
+Creative navigation follows the same source-of-truth rule:
+`creative_index.py` orchestrates a rebuildable projection over Media's native
+equipment, productions and collections; `creative_index_sources.py` reads
+Artifact-owned delivery evidence and Creative Library snapshots. Graph nodes
+and edges are derived navigation only. Query results never mutate or replace
+the original owner records.
+
+The Agent entry point follows the existing ports-and-adapters boundary:
+`agent_surface.py` advertises and validates stable JSON Schema tools;
+`agent_dependencies.py` observes exact Python/pnpm materialization and emits
+explicit acquisition **plans** without installing anything;
+`agent_productions.py` reads owner-native Production identity and does not
+guess the Agent's currently intended Production. The runtime/tool-execution
+authority and production/source truth remain outside the Agent adapter.
+
 Resolve-private editorial interchange and selected-asset binding live in
 `ordivon_studio.resolve_editorial`. The existing `resolve_adapter` remains
 the Windows/operation bridge and the embedded Resolve Runner remains one
@@ -198,3 +221,19 @@ Studio CLI command processing is organized by domain under
 The public `ordivon-studio` console entry, `argparse` grammar and result
 exit codes remain owned by `cli.py`; this source-only split adds neither
 another command registry nor another operational authority.
+
+The R6 experiment core has three source/consumer boundaries under
+`src/ordivon_studio/research/`: `trial_registration.py` (typed registration,
+seed seal), `trial_ledger.py` (PostgreSQL-native append-only history), and
+`search_calibration.py` (search/replay/holdout and null calibration).
+No legacy `research_validity.py` facade or second database authority is
+retained. The research CLIs and test consumers import the natural boundary.
+
+The R5 Grounded Meaning research method is implemented by
+`research/grounded_evidence.py` (evidence and result contracts),
+`research/grounded_text_tasks.py` (controlled writing and comprehension tasks),
+`research/grounded_av_tasks.py` (source-semantic video, timed transcript,
+speech and crossmodal tasks), and `research/grounded_provider.py` (the
+existing bundled experiment entry point). `grounded_scoring.py` independently
+scores provider receipts. The former `grounded_meaning.py` is retired rather
+than retained as a forwarding module.
