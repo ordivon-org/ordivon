@@ -46,6 +46,14 @@ the experiment, do not copy the event chain into PostgreSQL.
 Run the PG acceptance via mise run pg:verify using a disposable
 ORDIVON_MEDIA_TRIAL_TEST_DSN. Skipped tests do not prove the PG boundary.
 
+## Source responsibility layout
+
+The published `ordivon_studio` package keeps production, equipment, asset,
+review and presentation capabilities at its root. Experimental validity,
+creative-alpha, grounded-meaning and article/foundational studies live in
+`ordivon_studio.research`. Research scripts import that subpackage directly;
+there are no redundant compatibility shims or separate research truth store.
+
 ## Studio capability plane
 
 A Runtime fact is true at revision `R`. Studio turns it into a film. Runtime later changes.
