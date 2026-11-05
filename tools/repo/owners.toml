@@ -3,9 +3,9 @@ kind = "ordivon.repo-owner-manifest"
 truth_role = "repository-mechanics-only-not-domain-authority"
 
 [[owners]]
-name = "next"
-root = "meta/next/"
-verify_task = "next:verify"
+name = "authority-catalog"
+root = "catalogs/authorities/"
+verify_task = "authority-catalog:verify"
 
 [[owners]]
 name = "composition"

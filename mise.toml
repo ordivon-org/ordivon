@@ -6,9 +6,8 @@ shell = "bash -c"
 
 [monorepo]
 config_roots = [
-  "meta/next",
   "tools/formal",
-  "meta/next/experiments/episode-store-r1",
+  "studies/data-lifecycle/episode-store-r1",
   "packages/composition",
   "services/runtime",
   "services/host",
@@ -80,6 +79,9 @@ python3 tools/repo/check_owner_boundaries.py
 python3 tools/repo/check_composition_architecture.py
 python3 tools/repo/check_structure_r2.py
 python3 tools/repo/check_architecture_docs.py
+mise run authority-catalog:verify
+mise run learning:verify
+mise run data-lifecycle:verify
 uv run --with pytest==9.1.1 --with jsonschema==4.26.0 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py tools/repo/test_issue_owner_registration.py tools/repo/test_lego_graph_laws.py tests/catalogs/test_research_tool_and_mechanical_component_contracts.py
 tools/repo/migration/test-integrate-main.sh
 tools/repo/migration/test-check-publication-main.sh
@@ -109,15 +111,35 @@ set -euo pipefail
 tools/repo/migration/check-publication-main.sh /root/projects/ordivon
 """
 
-[tasks."next:verify"]
+[tasks."authority-catalog:verify"]
 run = """
 set -euo pipefail
-cd meta/next
+cd catalogs/authorities
+python3 -m unittest discover -s tests -p 'test_authority_catalog.py'
+uv run --with check-jsonschema==0.38.0 --with jsonschema==4.26.0 python scripts/check_authority_catalog_r1.py
+"""
+
+[tasks."learning:verify"]
+run = """
+set -euo pipefail
+python3 -m unittest discover -s studies/learning/tests -p 'test_chaoxing_autosign_mvp.py'
+"""
+
+[tasks."episode-store:verify"]
+run = """
+set -euo pipefail
+cd studies/data-lifecycle/episode-store-r1
 mise install
 mise run verify
-cd experiments/episode-store-r1
-mise install
-mise run verify
+"""
+
+[tasks."data-lifecycle:verify"]
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+export PYTHONPATH="$repo_root:$repo_root/studies/data-lifecycle:$repo_root/packages/composition/src"
+uv run --with pytest==9.1.1 --with jsonschema==4.26.0 python -m pytest -q studies/data-lifecycle/tests
 """
 
 [tasks."composition:verify"]

@@ -82,7 +82,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             "platform/workstation/scripts/host_historical_projection.py",
             "platform/workstation/scripts/host_retirement_snapshot.py",
             "services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py",
-            "meta/next/experiments/chaoxing-autosign-mvp/chaoxing_mvp/ledger.py",
+            "studies/learning/chaoxing-autosign-mvp/chaoxing_mvp/ledger.py",
         ):
             with self.subTest(path=name):
                 self.assertIn(name, current)
@@ -266,7 +266,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/migrations/runtime/0001_runtime.sql"), "sqlite")
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/src/runtime/attempt_supervisor_owner_storage.sql"), "sqlite")
         self.assertEqual(classify("platform/workstation/inventory/queries/uptime.sql"), "osquery")
-        self.assertEqual(classify("meta/next/scripts/experimental_episode_r5c_source_r1.sql"), "postgresql")
+        self.assertEqual(classify("studies/data-lifecycle/sql/experimental_episode_r5c_source_r1.sql"), "postgresql")
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"), "postgresql")
 
     def test_full_host_package_queries_are_bounded_and_not_downgraded(self):

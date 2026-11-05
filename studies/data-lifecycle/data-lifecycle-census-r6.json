@@ -1,7 +1,7 @@
 {
   "asOf": "2026-09-22",
   "dataProductEvidence": "evidence/data-lifecycle/data-products-r1/acceptance.json",
-  "experimentalEpisodeEvidence": "meta/next/evidence/data-lifecycle/experimental-episode-rw5/acceptance.json",
+  "experimentalEpisodeEvidence": "studies/data-lifecycle/evidence/experimental-episode-rw5/acceptance.json",
   "fabrics": [
     {
       "name": "governance-rights-retention",

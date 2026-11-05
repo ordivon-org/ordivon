@@ -996,10 +996,10 @@ class ConvergencePlanTests(unittest.TestCase):
             "NOT_ESTABLISHED_BY_THIS_PROJECTION",
         )
 
-    def test_next_queue_projection_uses_full_portable_verification(self) -> None:
-        plan = MODULE.build_plan(changed_files=["meta/next/README.md"])
-        self.assertIn("next:verify", plan["verifyTasks"])
-        self.assertIn("next:verify", plan["queueVerifyTasks"])
+    def test_authority_catalog_queue_projection_uses_its_native_verification(self) -> None:
+        plan = MODULE.build_plan(changed_files=["catalogs/authorities/README.md"])
+        self.assertIn("authority-catalog:verify", plan["verifyTasks"])
+        self.assertIn("authority-catalog:verify", plan["queueVerifyTasks"])
 
     def test_media_change_expands_to_declared_interaction_component(self) -> None:
         plan = MODULE.build_plan(
@@ -1008,7 +1008,7 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], ["media"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["artifact", "distribution", "game", "media", "workstation"],
+            ["artifact", "authority-catalog", "composition", "distribution", "game", "media", "workstation"],
         )
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])
@@ -1018,7 +1018,7 @@ class ConvergencePlanTests(unittest.TestCase):
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["composition", "harness", "next", "security", "skills", "web"],
+            ["harness", "security", "web"],
         )
         self.assertIn("harness:verify", plan["verifyTasks"])
         self.assertIn("harness:queue", plan["queueVerifyTasks"])
@@ -1174,6 +1174,7 @@ class ConvergencePlanTests(unittest.TestCase):
         groups = [(name,) for name in samples] + list(combinations(samples, 2))
         self.assertEqual(len(groups), 18 + 153)
         checks = 0
+        multi_task_cohorts = 0
         for group in groups:
             changed = [samples[name] for name in group]
             plan = MODULE.build_plan(changed_files=changed)
@@ -1191,6 +1192,7 @@ class ConvergencePlanTests(unittest.TestCase):
                 "omit-first-owner": (owners[1:], tasks),
             }
             if len(tasks) > 1:
+                multi_task_cohorts += 1
                 invalid["reorder"] = (owners, list(reversed(tasks)))
             for case, (selected, requested) in invalid.items():
                 with self.subTest(owner_group=group, case=case):
@@ -1199,9 +1201,10 @@ class ConvergencePlanTests(unittest.TestCase):
                             selected, requested, changed
                         )
                 checks += 1
-        # 171 real source cohorts, 1191 exact positive/negative obligations
-        # at the present 18-Owner source cut; no global coverage inference.
-        self.assertEqual(checks, 1191)
+        # Exact observed obligations: one positive and five negative cases
+        # per group, plus one reorder counterexample for multi-task scopes.
+        # Owner graph changes must not freeze a stale literal test count.
+        self.assertEqual(checks, len(groups) * 6 + multi_task_cohorts)
 
     def test_root_and_formal_selection_reject_each_individual_missing_task(self) -> None:
         root_path = ["mise.toml"]
@@ -1566,7 +1569,7 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertNotIn("runtime", graph["harness"])
         self.assertNotIn("harness", graph["runtime"])
         # Existing public code/data dependencies must still propagate.
-        self.assertIn("composition", graph["next"])
+        self.assertIn("composition", graph["authority-catalog"])
         runtime = MODULE.build_plan(changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"])
         # The direct test witness is selected without merging the operational
         # composition/harness/security/web owner component into Runtime.

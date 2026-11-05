@@ -22,7 +22,8 @@ IGNORED_COMPONENTS = {
 IGNORED_PREFIXES = (
     "catalogs/authorities/",
     "catalogs/knowledge/",
-    "meta/next/domains/",
+    "catalogs/authorities/records/",
+    "catalogs/authorities/observations/",
 )
 
 

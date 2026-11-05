@@ -287,7 +287,7 @@
       "disposition": "Generic Cognitive Circuit and Interface R2 implementation, five public schemas, owner docs, and owner-native tests are extracted. Remaining Next consumers import the public ordivon_composition package directly; historical Python facades are retired. Seam-specific R3/Admission/dogfood semantics remain with Next.",
       "id": "composition-mechanics",
       "mode": "split",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/schemas/",
@@ -300,7 +300,7 @@
       ],
       "verifyTasks": [
         "composition:verify",
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S1A"
     },
@@ -308,7 +308,7 @@
       "disposition": "Canonical Agent Skill bytes relocated to repository-root .agents/skills; semantics and advisory authority unchanged.",
       "id": "canonical-skills",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/.agents/skills/"
@@ -318,7 +318,7 @@
         ".agents/skills/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S2B"
     },
@@ -337,7 +337,7 @@
       ],
       "verifyTasks": [
         "control-plugin:verify",
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S2A"
     },
@@ -345,7 +345,7 @@
       "disposition": "S5 source-only discovery metadata relocated to catalogs/authorities with exact JSON contents preserved and authority native source loader and JSON Schemas relocated. Does not imply external standards applicability, currentness validation, runtime installation, or domain acceptance.",
       "id": "authority-catalog",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/authorities/"
@@ -355,7 +355,7 @@
         "catalogs/authorities/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S5"
     },
@@ -363,7 +363,7 @@
       "disposition": "SOURCE-only S5 capability discovery/catalog placement. Maintained non-authoritative Markdown records are under catalogs/capabilities; historical authority registrationBasis remains source-cut provenance. Other S5 mappings remain open; provider availability and installed state not implied.",
       "id": "capability-catalog",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/capabilities/"
@@ -373,7 +373,7 @@
         "catalogs/capabilities/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S5"
     },
@@ -381,7 +381,7 @@
       "disposition": "SOURCE-only non-authoritative ODPS/ODCS/ODRL Episode catalog placement. Historical data-lifecycle receipts retain original exact-cut path; no installed data-product authority or consumer deployment implied.",
       "id": "episode-data-product-catalog",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/data-products/"
@@ -391,7 +391,7 @@
         "catalogs/data-products/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S5"
     },
@@ -399,7 +399,7 @@
       "disposition": "SOURCE-only retained knowledge and evidence catalog placement. Historical Git SourceCut naming/provenance remains unchanged. No authority, installed deployment state or new skill registry is conferred by this physical move; remaining S5 mappings stay open.",
       "id": "knowledge-catalog",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/knowledge/"
@@ -409,14 +409,14 @@
         "catalogs/knowledge/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S5"
     },
     {
       "id": "domain-profiles",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/domains/"
@@ -425,14 +425,16 @@
         "profiles/domains/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "Retired Meta/Next at this SourceCut; remaining source histories remain discoverable by Git provenance."
     },
     {
       "id": "composition-policies",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "standing": "DEPLOYED",
       "disposition": "Executable Research-to-adopted-policy OPA example lives in packages/composition/policies; repository external-ownership and policy-consumption constraints live in docs/architecture/policies. Existing Next native test consumers resolve their new physical paths. External OPA and provider/IAM retain authorization authority.",
       "semanticTypeClaim": "none",
@@ -444,15 +446,15 @@
         "docs/architecture/policies/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S5"
     },
     {
-      "disposition": "No wholesale move; planning/evidence/experiments/migrations/docs are individually retained, relocated, test-fixtured, or retired according to live consumers.",
+      "disposition": "No wholesale move; planning/evidence/experiments/migrations/docs are individually retained, relocated, test-fixtured, or retired according to live consumers. Retired Meta/Next at this SourceCut; remaining source histories remain discoverable by Git provenance.",
       "id": "next-residual",
       "mode": "split",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/"
@@ -463,12 +465,23 @@
         "profiles/",
         "extensions/",
         "docs/",
-        "tests/"
+        "tests/",
+        "studies/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "currentPlacementPaths": [
+        "packages/composition/",
+        "catalogs/",
+        "profiles/",
+        "extensions/",
+        "docs/",
+        "tests/",
+        "studies/"
+      ]
     },
     {
       "currentPlacementPaths": [
@@ -500,7 +513,7 @@
       "disposition": "Source-only move of the ten Next-owned migration and retirement state records into the existing migration/retirement documentation region. Frozen SourceCut evidence remains historical and unchanged; outstanding external cleanup remains OPEN until actual external verification.",
       "id": "next-migration-disposition-records",
       "mode": "move",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/migrations/records/"
@@ -510,7 +523,7 @@
         "docs/migration/retirement/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
       "wave": "S5"
     },
@@ -518,20 +531,20 @@
       "currentPlacementPaths": [
         "studies/data-lifecycle/"
       ],
-      "disposition": "Preserve six historical data-lifecycle census records byte-for-byte as non-authoritative studies; remaining planning is not migrated.",
+      "disposition": "Preserve six historical data-lifecycle census records byte-for-byte as non-authoritative studies; remaining planning is not migrated. Retired Meta/Next at this SourceCut; remaining source histories remain discoverable by Git provenance.",
       "id": "data-lifecycle-census-studies",
       "mode": "split",
-      "owner": "next",
+      "owner": "repository",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/planning/"
       ],
-      "standing": "PARTIALLY_DEPLOYED",
+      "standing": "DEPLOYED",
       "targetPaths": [
         "studies/"
       ],
       "verifyTasks": [
-        "next:verify",
+        "repo:ci",
         "repo:ci"
       ],
       "wave": "S5"

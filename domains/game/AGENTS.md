@@ -27,7 +27,7 @@ capabilities and native engine primitives do not satisfy the desired behavior.
 - Mechanism relationships and external examples are **hypotheses**, not
   recommendations, player preference evidence, engine standards or proof
   of game-quality transfer.
-- Other agents may be relocating `meta/next/domains/game` frozen protocol
+- Frozen protocol evidence has moved to `profiles/domains/game`
   material. That is not an invitation to move version-bound R7 inputs:
   first inspect real experiment consumers, SourceCuts and open PRs.
 

@@ -222,7 +222,6 @@ LEGO_RELATION_KINDS = frozenset({
 
 OWNER_LEGO_PLANS = (
     "apps/web/planning/lego-plan-r1.json",
-    "meta/next/planning/lego-plan-r1.json",
     "domains/capital/planning/lego-plan-r1.json",
     "packages/composition/planning/lego-plan-r1.json",
     "services/runtime/planning/lego-plan-r1.json",
@@ -1936,6 +1935,9 @@ def validate_formal_issue_census(
             owner = entry.get("owner")
             if not isinstance(owner, str) or (
                 owner not in known_owners
+                # Historical Git selection records refer to the immutable SourceCut
+                # predating retirement. This never registers an executable Owner.
+                and owner != "meta/next"
                 and not (
                     owner == "ROOT_UNOWNED"
                     and entry.get("disposition") == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"

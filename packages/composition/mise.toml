@@ -14,6 +14,7 @@ uv sync --locked
 uv run ruff check src tests scripts
 uv run ruff format --check src tests scripts
 uv run python -m pytest -q
+uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
 mise run formal:verify
 mise run formal:effect:verify
 """

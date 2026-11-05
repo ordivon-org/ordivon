@@ -13,6 +13,14 @@ dev = [
   "pytest==9.1.1",
   "ruff==0.17.2",
 ]
+reasoning = [
+  "scipy>=1.18.1,<2",
+  "pyshacl",
+  "rdflib",
+  "unified-planning",
+  "up-pyperplan",
+  "z3-solver>=5.3.2.0,<6",
+]
 
 [project.scripts]
 ordivon-circuit = "ordivon_composition.cognitive_circuit_r1:main"

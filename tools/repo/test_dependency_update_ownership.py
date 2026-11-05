@@ -108,10 +108,7 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
             for owner in owners
         }
         self.assertEqual(len(set(versions.values())), 1, versions)
-        next_tools = tomllib.loads(
-            (ROOT / "meta/next/mise.toml").read_text(encoding="utf-8")
-        )["tools"]
-        self.assertNotIn("opa", next_tools)
+        self.assertFalse((ROOT / "meta").exists())
         self.assertTrue(
             (ROOT / "packages/composition/tests/test_research_adopted_policy.py").is_file()
         )

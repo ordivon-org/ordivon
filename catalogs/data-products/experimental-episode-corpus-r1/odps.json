@@ -68,7 +68,7 @@
   "customProperties": [
     {
       "property": "corpusManifestRelativePath",
-      "value": "meta/next/evidence/experimental-episode/corpus-r1/manifest.json"
+      "value": "studies/data-lifecycle/evidence/experimental-episode/corpus-r1/manifest.json"
     },
     {
       "property": "corpusManifestSha256",

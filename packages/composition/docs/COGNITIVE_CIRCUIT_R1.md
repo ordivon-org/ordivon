@@ -32,9 +32,9 @@ This closes a representation gap. It does **not** add an Agent Service, workflow
 planner, scheduler, Task database, capability registry, retry controller, semantic verifier,
 or domain verdict owner.
 
-## Why the owner is Ordivon Next rather than Harness
+## Why composition is not a Harness responsibility
 
-`meta/next` already owns task-local mappings from problems to mature methods, capabilities,
+`packages/composition` supplies the mechanical layer; task-local research and knowledge catalogs provide mappings to methods, capabilities,
 providers, evidence and validators. Harness begins at one exact caller-authored
 `HarnessRunContract` and deliberately does not own cross-Run strategy selection or generic
 capability discovery.
