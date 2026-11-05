@@ -27,3 +27,11 @@ identity-exclusive.sh and the systemd recovery units live under systemd/.
 Credentials stay outside Git. The native Gluetun healthchecker handles
 in-tunnel reconnects; Network systemd reconciliation handles cold-start units.
 Use task provider:gluetun:verify to inspect installed source and consumer result.
+
+## Optional IPinfo witness
+
+`task provider:gluetun:observe-exit` performs a single explicitly proxied
+HTTPS request to IPinfo and reports IP, country and ASN organization. It
+requires proxy CONNECT=200 and origin HTTP=200 but is not a VPN lifecycle
+health check or a server-ranking algorithm. This avoids creating another
+background poller and preserves Gluetun-native health recovery.

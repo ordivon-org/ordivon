@@ -246,31 +246,47 @@ tasks:
           test "$(yq -p=ini -o=json -r '.Interface.DNS // ""' "$profile")" = ''
         done <"$manifest"
 
+
   consumer:browserless:provider-carrier:materialize:
-    desc: Materialize the internal shared carrier bytes without changing the current WireGuard endpoint
+    desc: Reconcile mode-independent shared-provider readiness without changing the selected VPN identity
     deps: [consumer:browserless:provider-carrier:validate]
     cmds:
-      - test ! -e /etc/network-v2/gluetun/m4-owned-mode.selected
-      - install -d -m 0755 /etc/network-v2/browserless /usr/local/libexec/network-v2
-      - install -m 0644 consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
-      - install -m 0644 consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
-      - install -m 0644 consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
-      - install -m 0755 consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
-      - install -m 0755 consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
-      - install -m 0755 consumers/browserless/acceptance/production-path.sh /usr/local/libexec/network-v2/browserless-production-path
-      - systemctl daemon-reload
-      - systemctl enable network-v2-browserless.target
+      - |
+        if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
+          # The selected Gluetun Provider owns the physical session and adapter.
+          # Never reinstall/enable the inactive legacy WireGuard units.
+          systemctl is-active --quiet network-v2-gluetun-owned.service
+          systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
+          install -d -m 0755 /usr/local/libexec/network-v2
+          install -m 0755 consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+        else
+          install -d -m 0755 /etc/network-v2/browserless /usr/local/libexec/network-v2
+          install -m 0644 consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
+          install -m 0644 consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
+          install -m 0644 consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+          install -m 0755 consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+          install -m 0755 consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
+          install -m 0755 consumers/browserless/acceptance/production-path.sh /usr/local/libexec/network-v2/browserless-production-path
+          systemctl daemon-reload
+          systemctl enable network-v2-browserless.target
+        fi
 
   consumer:browserless:provider-carrier:ready:
     desc: Prove the selected one-identity provider carrier across OpenAI, OKX, OCI and Anthropic consequences
     cmds:
       - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
 
+
   consumer:browserless:provider-carrier:converge:
-    desc: Materialize and restart only the internal carrier over the already-selected Browserless WireGuard session
+    desc: Reconcile the readiness SourceCut; restart only the selected legacy carrier when applicable
     cmds:
       - task: consumer:browserless:provider-carrier:materialize
-      - systemctl restart network-v2-browserless-provider-carrier.service
+      - |
+        if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
+          systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
+        else
+          systemctl restart network-v2-browserless-provider-carrier.service
+        fi
       - task: consumer:browserless:provider-carrier:ready
 
   consumer:browserless:provider-carrier:select:
@@ -279,15 +295,24 @@ tasks:
     cmds:
       - /usr/local/libexec/network-v2/browserless-provider-switch th-bkk
 
+
   consumer:browserless:provider-carrier:verify:
-    desc: Verify exact shared-carrier deployed bytes and live cross-consumer consequence readiness
+    desc: Check current owned/legacy SourceCut and real provider consequence, not inactive legacy artifacts
     cmds:
-      - cmp -s consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
-      - cmp -s consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
-      - cmp -s consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
       - cmp -s consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
-      - cmp -s consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
-      - cmp -s consumers/browserless/acceptance/production-path.sh /usr/local/libexec/network-v2/browserless-production-path
+      - |
+        if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
+          systemctl is-active --quiet network-v2-gluetun-owned.service
+          systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
+          cmp -s providers/gluetun/quadlet/network-v2-gluetun-owned.container /etc/containers/systemd/network-v2-gluetun-owned.container
+          cmp -s providers/gluetun/config/carrier-adapter.json /etc/network-v2/browserless/provider-carrier-gluetun-candidate.json
+        else
+          cmp -s consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
+          cmp -s consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
+          cmp -s consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+          cmp -s consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
+          cmp -s consumers/browserless/acceptance/production-path.sh /usr/local/libexec/network-v2/browserless-production-path
+        fi
       - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
 
   consumer:finance:materialize:
@@ -720,6 +745,19 @@ tasks:
       - systemd-analyze verify providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.service providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer
       - grep -q '^EnvironmentFile=/etc/network-v2/gluetun/serialized-candidate.env$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
       - grep -q '^Volume=/etc/network-v2/browserless/nv2blwg.conf:/gluetun/wireguard/wg0.conf:ro$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
+
+  provider:gluetun:observe-exit:
+    desc: Optional one-shot IPinfo public egress observation through selected Gluetun proxy; not health or provider selection
+    cmds:
+      - |
+        test -e /etc/network-v2/gluetun/m4-owned-mode.selected
+        tmp=$(mktemp)
+        trap 'rm -f "$tmp"' EXIT
+        receipt=$(curl -q -4 --noproxy '' -fsS           -x http://10.252.246.2:19680           --connect-timeout 6 --max-time 15 -o "$tmp"           -w '%{http_code} %{http_connect}' https://ipinfo.io/json)
+        read -r code tunnel extra <<< "$receipt"
+        test "$code" = 200 && test "$tunnel" = 200 && test -z "$extra"
+        jq -ce '(.ip|type=="string") and (.country|type=="string")' "$tmp" >/dev/null
+        jq -c '{kind:"ordivon.network-v2.provider-egress-observation",standing:"OBSERVED_NOT_READINESS",source:"ipinfo.io",ip,country,org}' "$tmp"
 
   provider:gluetun:verify:
     desc: Verify deployed Gluetun SourceCut and real shared-provider HTTPS path
