@@ -51,7 +51,7 @@
         "responsibility": "Workspace projection issues",
         "locations": [
           "engine.rs workspace_issue mapper",
-          "engine/control_query.rs",
+          "engine/job_control.rs",
           "inspection/operator.rs"
         ],
         "migration": "Consolidate projection/error vocabulary only if it reduces duplicate semantics."
@@ -113,7 +113,7 @@
       },
       {
         "phase": "control/query",
-        "location": "engine/control_query.rs"
+        "location": "engine/job_control.rs"
       },
       {
         "phase": "Registry admission",
@@ -148,7 +148,7 @@
           "types.rs",
           "registry/lifecycle.rs",
           "registry/query.rs",
-          "engine/control_query.rs"
+          "engine/job_control.rs"
         ],
         "target": "JobState contract"
       },
@@ -166,8 +166,8 @@
         "law": "terminal commit + capacity release",
         "locations": [
           "registry/lifecycle.rs",
-          "engine/control_query.rs",
-          "engine/reconciliation.rs"
+          "engine/terminal_evidence.rs",
+          "engine/terminal_commit.rs"
         ],
         "target": "Attempt/Reservation transactional transition contract"
       },
@@ -194,7 +194,7 @@
         "law": "Artifact attribution to Job/Attempt",
         "locations": [
           "types.rs",
-          "engine/control_query.rs",
+          "engine/job_control.rs",
           "registry/query.rs"
         ],
         "target": "ArtifactState contract"
