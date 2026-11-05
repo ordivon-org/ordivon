@@ -1,5 +1,55 @@
 version: '3'
 
+includes:
+  browserless:
+    taskfile: ./consumers/browserless/Taskfile.yml
+    flatten: true
+  supply-chain:
+    taskfile: ./consumers/supply-chain/Taskfile.yml
+    flatten: true
+  claude:
+    taskfile: ./consumers/claude/Taskfile.yml
+    flatten: true
+  chat-ingress:
+    taskfile: ./consumers/chat-ingress/Taskfile.yml
+    flatten: true
+  surfshark:
+    taskfile: ./providers/surfshark/Taskfile.yml
+    flatten: true
+  finance:
+    taskfile: ./consumers/finance/Taskfile.yml
+    flatten: true
+  x-reality:
+    taskfile: ./consumers/x-reality/Taskfile.yml
+    flatten: true
+  wireguard:
+    taskfile: ./capabilities/wireguard/Taskfile.yml
+    flatten: true
+  failover:
+    taskfile: ./capabilities/failover/Taskfile.yml
+    flatten: true
+  linux-reference:
+    taskfile: ./reference/linux/Taskfile.yml
+    flatten: true
+  gluetun:
+    taskfile: ./providers/gluetun/Taskfile.yml
+    flatten: true
+  codex:
+    taskfile: ./consumers/codex/Taskfile.yml
+    flatten: true
+  mobile-tailnet-exit:
+    taskfile: ./consumers/mobile-tailnet-exit/Taskfile.yml
+    flatten: true
+  discord:
+    taskfile: ./consumers/discord/Taskfile.yml
+    flatten: true
+  model-provider:
+    taskfile: ./consumers/model-provider/Taskfile.yml
+    flatten: true
+  windows-real-chrome:
+    taskfile: ./consumers/windows-real-chrome/Taskfile.yml
+    flatten: true
+
 tasks:
   core:validate:
     desc: Validate only the generic Network v2 R0 platform, independent of consumer-specific profiles
@@ -10,45 +60,6 @@ tasks:
       - python3 scripts/monitoring-sourcecut-preflight.py --source config --check-edges
       - /usr/bin/systemd-analyze verify systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
 
-  provider:surfshark:validate:
-    desc: Validate only the Surfshark provider profile layer
-    cmds:
-      - sing-box check -c providers/surfshark/config/carrier.json
-
-  consumer:browserless:provider-carrier:validate:
-    desc: Validate the one-identity shared provider carrier without changing live state
-    cmds:
-      - /usr/bin/sing-box check -c consumers/browserless/config/provider-carrier.json
-      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-netns.service consumers/browserless/systemd/network-v2-browserless-forward.service consumers/browserless/systemd/network-v2-browserless-wireguard.service consumers/browserless/systemd/network-v2-browserless-dns.service consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/browserless/systemd/network-v2-browserless.target
-      - /usr/bin/bash -n consumers/browserless/provider-carrier-ready.sh consumers/browserless/provider-switch.sh consumers/browserless/production-cutover.sh
-      - grep -F 'PROVIDER_SITE=${PROVIDER_SITE:-th-bkk}' consumers/browserless/production-cutover.sh >/dev/null
-
-  consumer:finance:validate:
-    desc: Validate nine scoped Finance authorities over the shared provider carrier plus explicit direct macro lanes
-    cmds:
-      - /usr/bin/sing-box check -c consumers/finance/config/egress.json
-      - jq -e '.inbounds|length==9' consumers/finance/config/egress.json >/dev/null
-      - jq -e 'any(.inbounds[]; .tag=="finance-binance-wallet" and .listen=="127.0.0.1" and .listen_port==19290) and any(.route.rules[]; (.inbound? // [])==["finance-binance-wallet"] and .domain=="api.binance.com" and .port==443 and .action=="route" and .outbound=="provider-carrier")' consumers/finance/config/egress.json >/dev/null
-      - jq -e 'any(.route.rules[]; (.inbound? // [])==["finance-us-treasury-public"] and .domain=="home.treasury.gov" and .outbound=="public-direct") and any(.route.rules[]; (.inbound? // [])==["finance-fred-public-csv"] and .domain=="fred.stlouisfed.org" and .outbound=="public-direct")' consumers/finance/config/egress.json >/dev/null
-      - jq -e '.outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680},{"type":"direct","tag":"public-direct"}] and (has("dns")|not) and (has("services")|not)' consumers/finance/config/egress.json >/dev/null
-      - jq -e 'all(.route.rules[]; ((.outbound? // "") != "provider-auto"))' consumers/finance/config/egress.json >/dev/null
-      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
-      - /usr/bin/bash -n consumers/finance/ready.sh consumers/finance/acceptance/production-smoke.sh
-      - jq -e '.kind=="ordivon.network-v2.scoped-egress-authority" and .directFallback==false and (.proxy|startswith("http://127.0.0.1:"))' consumers/finance/config/*-authority.json >/dev/null
-      - '! grep -R -F "provider-auto" consumers/finance/config'
-
-  consumer:supply-chain:validate:
-    desc: Validate the scoped OCI authority over the shared provider carrier without changing Docker
-    deps: [consumer:browserless:provider-carrier:validate]
-    cmds:
-      - /usr/bin/sing-box check -c consumers/supply-chain/config/egress.json
-      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.supply-chain-egress" and .listen=={"host":"127.0.0.1","port":19581,"protocol":"http"} and .networkAuthority.carrierService=="network-v2-browserless-provider-carrier.service" and .networkAuthority.providerSite=="th-bkk" and .directFallback==false' consumers/supply-chain/config/authority.json >/dev/null
-      - jq -e '.inbounds==[{"type":"http","tag":"supply-chain-oci","listen":"127.0.0.1","listen_port":19581}] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and .route.rules[-1].action=="reject" and (has("dns")|not) and (has("services")|not)' consumers/supply-chain/config/egress.json >/dev/null
-      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/supply-chain/systemd/network-v2-supply-chain-egress.service consumers/supply-chain/systemd/network-v2-supply-chain.target
-      - /usr/bin/bash -n consumers/supply-chain/ready.sh consumers/supply-chain/acceptance/docker-rebind-smoke.sh
-      - grep -F '127.0.0.1:19581' consumers/supply-chain/systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf >/dev/null
-      - '! grep -R -F "10.254.177.2:19381" consumers/supply-chain'
-      - '! grep -R -F "provider-auto" consumers/supply-chain/config'
 
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
@@ -115,20 +126,6 @@ tasks:
       - task: core:install
       - task: core:verify
 
-  capability:wireguard:materialize:
-    desc: Build the pinned official wireguard-go source and install it only inside Network v2 libexec
-    cmds:
-      - rm -rf /tmp/network-v2-wireguard-go-build
-      - git init -q /tmp/network-v2-wireguard-go-build
-      - git -C /tmp/network-v2-wireguard-go-build remote add origin {{.WIREGUARD_GO_REPO}}
-      - git -C /tmp/network-v2-wireguard-go-build fetch --quiet --depth 1 origin {{.WIREGUARD_GO_REVISION}}
-      - git -C /tmp/network-v2-wireguard-go-build checkout --quiet --detach FETCH_HEAD
-      - test "$(git -C /tmp/network-v2-wireguard-go-build rev-parse HEAD)" = "{{.WIREGUARD_GO_REVISION}}"
-      - make -C /tmp/network-v2-wireguard-go-build
-      - install -d -m 0755 /usr/local/libexec/network-v2
-      - install -m 0755 /tmp/network-v2-wireguard-go-build/wireguard-go /usr/local/libexec/network-v2/wireguard-go
-      - /usr/local/libexec/network-v2/wireguard-go --version 2>&1 | grep -F "{{.WIREGUARD_GO_VERSION}}"
-
   accept:connectivity:
     cmds:
       - ./acceptance/connectivity/direct-chain.sh
@@ -145,280 +142,15 @@ tasks:
     cmds:
       - ./acceptance/topology/netns.sh
 
-  provider:surfshark:carrier:
-    desc: Prove sing-box can consume one already-existing WireGuard provider namespace without admitting ownership of that provider substrate
-    cmds:
-      - ./providers/surfshark/acceptance/carrier-smoke.sh
-
-  capability:wireguard:accept:
-    desc: Prove wg-quick + pinned official wireguard-go can create, fail, and recover a v2-owned userspace WireGuard lifecycle
-    cmds:
-      - task: capability:wireguard:materialize
-      - ./capabilities/wireguard/acceptance/userspace-lifecycle.sh
-
   accept:process-recovery:
     desc: Kill the live R0 sing-box process and prove functional plus observed automatic recovery
     cmds:
       - ./acceptance/lifecycle/process-recovery.sh
 
-  capability:failover:accept:
-    desc: Prove HAProxy TCP primary/backup failover across mature sing-box provider/direct carriers without mutating the provider tunnel
-    cmds:
-      - ./capabilities/failover/acceptance/priority-failover-smoke.sh
-
   test:r4:
     internal: true
     desc: Prove the external-provider carrier and deterministic mature primary/backup failover/failback mechanism
     deps: [provider:surfshark:validate, provider:surfshark:carrier, capability:failover:accept]
-
-  provider:surfshark:catalog:
-    desc: Materialize the pinned Gluetun Surfshark server catalog used as provider endpoint/public-key authority
-    cmds:
-      - rm -rf /tmp/network-v2-gluetun-servers
-      - git init -q /tmp/network-v2-gluetun-servers
-      - git -C /tmp/network-v2-gluetun-servers remote add origin {{.GLUETUN_SERVERS_REPO}}
-      - git -C /tmp/network-v2-gluetun-servers fetch --quiet --depth 1 origin {{.GLUETUN_SERVERS_REVISION}}
-      - git -C /tmp/network-v2-gluetun-servers checkout --quiet --detach FETCH_HEAD
-      - test "$(git -C /tmp/network-v2-gluetun-servers rev-parse HEAD)" = "{{.GLUETUN_SERVERS_REVISION}}"
-      - test "$(sha256sum /tmp/network-v2-gluetun-servers/{{.GLUETUN_SERVERS_FILE}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
-      - install -d -m 0755 "$(dirname {{.GLUETUN_SERVERS_INSTALL}})"
-      - install -m 0644 /tmp/network-v2-gluetun-servers/{{.GLUETUN_SERVERS_FILE}} {{.GLUETUN_SERVERS_INSTALL}}
-      - test "$(sha256sum {{.GLUETUN_SERVERS_INSTALL}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
-
-  provider:surfshark:profiles:
-    desc: Convert v2-owned standard Surfshark WireGuard configs into static numeric-endpoint wg-quick profiles using yq and the pinned Gluetun catalog
-    deps: [provider:surfshark:catalog]
-    cmds:
-      - |
-        set -eu
-        src=/etc/network-v2/providers
-        catalog={{.GLUETUN_SERVERS_INSTALL}}
-        out="$src/catalog-profiles"
-        test -f "$src/kr-seo.conf"
-        test -f "$src/th-bkk.conf"
-        rm -rf "$out"
-        mkdir -p "$out"
-        chmod 0700 "$out"
-        : >"$out/MANIFEST.tsv"
-        chmod 0600 "$out/MANIFEST.tsv"
-        for spec in "kr-seo nv2r6a kr" "th-bkk nv2r6b th"; do
-          set -- $spec
-          node=$1
-          iface=$2
-          prefix=$3
-          host="$node.prod.surfshark.com"
-          i=0
-          jq -r --arg h "$host" '.servers[] | select(.vpn=="wireguard" and .hostname==$h) | .ips[]' "$catalog" | while IFS= read -r ip; do
-            i=$((i + 1))
-            dir="$out/$prefix-$i"
-            mkdir -p "$dir"
-            chmod 0700 "$dir"
-            dst="$dir/$iface.conf"
-            EP="$ip:51820" yq -p=ini -o=ini 'del(.Interface.DNS) | .Interface.Table="off" | .Interface.MTU="1280" | .Peer.Endpoint=strenv(EP)' "$src/$node.conf" >"$dst"
-            chmod 0600 "$dst"
-            WG_QUICK_USERSPACE_IMPLEMENTATION=/usr/local/libexec/network-v2/wireguard-go wg-quick strip "$dst" >/dev/null
-            digest=$(sha256sum "$dst" | awk '{print $1}')
-            printf '%s\t%s\t%s\t%s\tsha256:%s\n' "$node" "$ip" "$iface" "$dst" "$digest" >>"$out/MANIFEST.tsv"
-          done
-        done
-        test "$(find "$out" -mindepth 2 -maxdepth 2 -type f -name '*.conf' | wc -l)" -eq 6
-
-  provider:surfshark:verify-local:
-    desc: Verify the already-graduated local R6 provider inputs without re-fetching external sources
-    deps: [provider:surfshark:validate]
-    cmds:
-      - /usr/local/libexec/network-v2/wireguard-go --version 2>&1 | grep -F "{{.WIREGUARD_GO_VERSION}}"
-      - test "$(sha256sum {{.GLUETUN_SERVERS_INSTALL}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
-      - |
-        set -eu
-        manifest=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv
-        test -f "$manifest"
-        test "$(awk 'NF{c++}END{print c+0}' "$manifest")" -eq 6
-        tab=$(printf '\t')
-        while IFS="$tab" read -r node endpoint iface profile digest; do
-          test -n "$node"; test -n "$endpoint"; test -n "$iface"; test -f "$profile"
-          case "$(stat -c %a "$profile")" in 600|400) ;; *) exit 21;; esac
-          test "sha256:$(sha256sum "$profile" | awk '{print $1}')" = "$digest"
-          WG_QUICK_USERSPACE_IMPLEMENTATION=/usr/local/libexec/network-v2/wireguard-go wg-quick strip "$profile" >/dev/null
-          test "$(yq -p=ini -o=json -r '.Peer.Endpoint' "$profile")" = "$endpoint:51820"
-          test "$(yq -p=ini -o=json -r '.Interface.Table' "$profile")" = off
-          test "$(yq -p=ini -o=json -r '.Interface.MTU' "$profile")" = 1280
-          test "$(yq -p=ini -o=json -r '.Interface.DNS // ""' "$profile")" = ''
-        done <"$manifest"
-
-
-  consumer:browserless:provider-carrier:materialize:
-    desc: Reconcile mode-independent shared-provider readiness without changing the selected VPN identity
-    deps: [consumer:browserless:provider-carrier:validate]
-    cmds:
-      - |
-        if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
-          # The selected Gluetun Provider owns the physical session and adapter.
-          # Never reinstall/enable the inactive legacy WireGuard units.
-          systemctl is-active --quiet network-v2-gluetun-owned.service
-          systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
-          install -d -m 0755 /usr/local/libexec/network-v2
-          install -m 0755 consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
-        else
-          install -d -m 0755 /etc/network-v2/browserless /usr/local/libexec/network-v2
-          install -m 0644 consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
-          install -m 0644 consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
-          install -m 0644 consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
-          install -m 0755 consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
-          install -m 0755 consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
-          install -m 0755 consumers/browserless/acceptance/production-path.sh /usr/local/libexec/network-v2/browserless-production-path
-          systemctl daemon-reload
-          systemctl enable network-v2-browserless.target
-        fi
-
-  consumer:browserless:provider-carrier:ready:
-    desc: Prove the selected one-identity provider carrier across OpenAI, OKX, OCI and Anthropic consequences
-    cmds:
-      - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
-
-
-  consumer:browserless:provider-carrier:converge:
-    desc: Reconcile the readiness SourceCut; restart only the selected legacy carrier when applicable
-    cmds:
-      - task: consumer:browserless:provider-carrier:materialize
-      - |
-        if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
-          systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
-        else
-          systemctl restart network-v2-browserless-provider-carrier.service
-        fi
-      - task: consumer:browserless:provider-carrier:ready
-
-  consumer:browserless:provider-carrier:select:
-    desc: Switch the sole shared WireGuard identity to one catalog provider without recreating the Browserless namespace
-    deps: [consumer:browserless:provider-carrier:materialize, provider:surfshark:verify-local]
-    cmds:
-      - /usr/local/libexec/network-v2/browserless-provider-switch th-bkk
-
-
-  consumer:browserless:provider-carrier:verify:
-    desc: Check current owned/legacy SourceCut and real provider consequence, not inactive legacy artifacts
-    cmds:
-      - cmp -s consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
-      - |
-        if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
-          systemctl is-active --quiet network-v2-gluetun-owned.service
-          systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
-          cmp -s providers/gluetun/quadlet/network-v2-gluetun-owned.container /etc/containers/systemd/network-v2-gluetun-owned.container
-          cmp -s providers/gluetun/config/carrier-adapter.json /etc/network-v2/browserless/provider-carrier-gluetun-candidate.json
-        else
-          cmp -s consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
-          cmp -s consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
-          cmp -s consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
-          cmp -s consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
-          cmp -s consumers/browserless/acceptance/production-path.sh /usr/local/libexec/network-v2/browserless-production-path
-        fi
-      - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
-
-  consumer:finance:materialize:
-    desc: Materialize nine Finance authorities over the shared provider carrier without creating another WireGuard session
-    deps: [consumer:browserless:provider-carrier:materialize, consumer:finance:validate]
-    cmds:
-      - install -d -m 0755 /etc/network-v2/finance /usr/local/libexec/network-v2
-      - install -m 0644 consumers/finance/config/egress.json /etc/network-v2/finance/egress.json
-      - install -m 0644 consumers/finance/config/*-authority.json /etc/network-v2/finance/
-      - rm -f /etc/network-v2/finance/provider-endpoints.json
-      - for: { var: FINANCE_SYSTEMD_UNITS }
-        cmd: install -m 0644 {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
-      - install -m 0755 consumers/finance/ready.sh /usr/local/libexec/network-v2/finance-ready
-      - systemctl daemon-reload
-      - systemctl enable network-v2-finance.target
-
-  consumer:finance:start:
-    desc: Start the materialized Finance authorities over the one shared provider carrier
-    cmds:
-      - systemctl start network-v2-finance.target
-
-  consumer:finance:ready:
-    desc: Wait for bounded public read-only consequence readiness through the admitted Finance authorities
-    cmds:
-      - /usr/local/libexec/network-v2/finance-ready public 90
-
-  consumer:finance:converge:
-    desc: Materialize, restart and prove Finance consequences without external financial writes or provider identity mutation
-    cmds:
-      - task: consumer:finance:materialize
-      - systemctl restart network-v2-finance.target
-      - task: consumer:finance:ready
-
-  consumer:finance:verify:
-    desc: Prove exact authority fencing, shared-carrier fail-closed behavior, direct macro independence and recovery
-    cmds:
-      - cmp -s consumers/finance/config/egress.json /etc/network-v2/finance/egress.json
-      - test ! -e /etc/network-v2/finance/provider-endpoints.json
-      - ./consumers/finance/acceptance/production-smoke.sh
-
-  consumer:finance:stop:
-    desc: Stop only Finance northbound authorities; do not stop the shared provider carrier
-    cmds:
-      - systemctl stop network-v2-finance.target
-
-  consumer:supply-chain:materialize:
-    desc: Materialize OCI authority and Docker proxy binding over the shared provider carrier without restarting Docker
-    deps: [consumer:browserless:provider-carrier:materialize, consumer:supply-chain:validate]
-    cmds:
-      - install -d -m 0755 /etc/network-v2/supply-chain /etc/systemd/system/docker.service.d /usr/local/libexec/network-v2
-      - install -m 0644 consumers/supply-chain/config/authority.json /etc/network-v2/supply-chain/authority.json
-      - install -m 0644 consumers/supply-chain/config/egress.json /etc/network-v2/supply-chain/egress.json
-      - rm -f /etc/network-v2/supply-chain/provider-endpoints.json
-      - install -m 0644 consumers/supply-chain/systemd/network-v2-supply-chain-egress.service /etc/systemd/system/network-v2-supply-chain-egress.service
-      - install -m 0644 consumers/supply-chain/systemd/network-v2-supply-chain.target /etc/systemd/system/network-v2-supply-chain.target
-      - install -m 0755 consumers/supply-chain/ready.sh /usr/local/libexec/network-v2/supply-chain-ready
-      - install -m 0644 consumers/supply-chain/systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf /etc/systemd/system/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf
-      - rm -f /etc/systemd/system/docker.service.d/ordivon-preservation-vpn-proxy.conf
-      - systemctl daemon-reload
-      - systemctl enable network-v2-supply-chain.target
-
-  consumer:supply-chain:start:
-    desc: Start only the scoped Supply-Chain proxy; Docker remains untouched
-    deps: [consumer:supply-chain:materialize]
-    cmds:
-      - systemctl start network-v2-supply-chain.target
-
-  consumer:supply-chain:ready:
-    desc: Prove admitted OCI registry families and unknown-domain rejection without changing Docker
-    cmds:
-      - /usr/local/libexec/network-v2/supply-chain-ready
-
-  consumer:supply-chain:converge:
-    desc: Converge exact Supply-Chain proxy bytes without restarting Docker
-    cmds:
-      - task: consumer:supply-chain:materialize
-      - systemctl restart network-v2-supply-chain.target
-      - task: consumer:supply-chain:ready
-
-  consumer:supply-chain:docker-rebind:
-    desc: Rebind Docker from the retired Public-Web proxy, prove container recovery, and replay the pinned OPA pull
-    cmds:
-      - task: consumer:supply-chain:converge
-      - ./consumers/supply-chain/acceptance/docker-rebind-smoke.sh
-
-  consumer:supply-chain:verify:
-    desc: Verify deployed bytes, retired proxy absence, live scoped consequence, Docker binding, and pinned OPA availability
-    cmds:
-      - cmp -s consumers/supply-chain/config/authority.json /etc/network-v2/supply-chain/authority.json
-      - cmp -s consumers/supply-chain/config/egress.json /etc/network-v2/supply-chain/egress.json
-      - cmp -s consumers/supply-chain/systemd/network-v2-supply-chain-egress.service /etc/systemd/system/network-v2-supply-chain-egress.service
-      - cmp -s consumers/supply-chain/systemd/network-v2-supply-chain.target /etc/systemd/system/network-v2-supply-chain.target
-      - cmp -s consumers/supply-chain/systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf /etc/systemd/system/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf
-      - test ! -e /etc/systemd/system/docker.service.d/ordivon-preservation-vpn-proxy.conf
-      - test ! -e /etc/network-v2/supply-chain/provider-endpoints.json
-      - systemctl is-enabled --quiet network-v2-supply-chain.target
-      - /usr/local/libexec/network-v2/supply-chain-ready
-      - |
-        docker info 2>/dev/null | grep -F 'HTTP Proxy: http://127.0.0.1:19581' >/dev/null
-        docker info 2>/dev/null | grep -F 'HTTPS Proxy: http://127.0.0.1:19581' >/dev/null
-      - docker image inspect 'openpolicyagent/opa@sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f' >/dev/null
-
-  consumer:supply-chain:stop:
-    desc: Stop the Supply-Chain proxy only; callers must not stop it while Docker remains proxy-bound
-    cmds:
-      - systemctl stop network-v2-supply-chain.target
 
   accept:cold-start:
     desc: Stop and cold-start the whole generic R0 target while proving control-plane independence and dual-stack readiness
@@ -512,358 +244,6 @@ tasks:
       - task: accept:local
       - task: evidence:verify-local
 
-  reference:linux:preflight:
-    desc: Require a non-WSL Linux runner with netem, Docker, containerlab, and kernel WireGuard
-    cmds:
-      - ./reference/linux/preflight.sh
-
-  reference:linux:netem:
-    desc: Prove deterministic packet loss plus delay/reorder on the reference Linux kernel
-    cmds:
-      - ./reference/linux/netem-smoke.sh
-
-  reference:linux:containerlab:
-    desc: Prove a real two-node Linux containerlab data topology
-    cmds:
-      - ./reference/linux/containerlab-smoke.sh
-
-  reference:linux:wireguard-kernel:
-    desc: Prove kernel-WireGuard creation, failure, and recovery
-    cmds:
-      - ./reference/linux/wireguard-kernel-smoke.sh
-
-  reference:linux:wireguard-userspace:
-    desc: Prove the pinned wireguard-go implementation directly as userspace TUN/UAPI, including failure and recovery
-    cmds:
-      - ./reference/linux/wireguard-userspace-smoke.sh
-
-  reference:linux:wireguard-differential:
-    desc: Prove kernel WireGuard and pinned wireguard-go as distinct implementations on one standard-Linux runner
-    cmds:
-      - task: capability:wireguard:materialize
-      - task: reference:linux:wireguard-kernel
-      - task: reference:linux:wireguard-userspace
-
-  reference:linux:accept:
-    desc: Close the external-fidelity gates on an explicitly provisioned standard-Linux reference runner
-    cmds:
-      - task: reference:linux:preflight
-      - task: reference:linux:netem
-      - task: reference:linux:containerlab
-      - task: reference:linux:wireguard-differential
-
-  consumer:browserless:validate:
-    desc: Validate the serialized Browserless migration gate without changing production
-    deps: [provider:surfshark:validate, consumer:browserless:provider-carrier:validate]
-    cmds:
-      - /usr/bin/bash -n consumers/browserless/acceptance/serial-browserless.sh
-      - test -x consumers/browserless/acceptance/serial-browserless.sh
-
-  consumer:browserless:serial-accept:
-    desc: Serialize the shared provider identity, prove real Browserless over Network v2, then restore legacy production
-    deps: [consumer:browserless:validate, provider:surfshark:verify-local]
-    cmds:
-      - ./consumers/browserless/acceptance/serial-browserless.sh
-
-
-  consumer:chat-ingress:validate:
-    desc: Validate the scoped ChatIngress proxy over the existing Browserless Network v2 authority
-    cmds:
-      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.chat-ingress-egress" and .listen.host=="127.0.0.1" and .listen.port==19081 and .networkAuthority.namespace=="nv2-browserless-prod" and .networkAuthority.serviceUnit=="network-v2-browserless.target" and .directFallback==false' consumers/chat-ingress/config/egress.json >/dev/null
-      - /usr/bin/sing-box check -c consumers/chat-ingress/config/sing-box.json
-      - /usr/bin/systemd-analyze verify consumers/chat-ingress/systemd/network-v2-chat-ingress-proxy.service consumers/chat-ingress/systemd/network-v2-chat-ingress-relay.service consumers/chat-ingress/systemd/network-v2-chat-ingress.target
-      - /usr/bin/bash -n consumers/chat-ingress/ready.sh
-
-  consumer:chat-ingress:materialize:
-    desc: Materialize ChatIngress source into /etc without changing host routing or starting the target
-    deps: [consumer:chat-ingress:validate]
-    cmds:
-      - install -d -m 0755 /etc/network-v2/chat-ingress
-      - install -m 0644 consumers/chat-ingress/config/egress.json /etc/network-v2/chat-ingress/egress.json
-      - install -m 0644 consumers/chat-ingress/config/sing-box.json /etc/network-v2/chat-ingress/sing-box.json
-      - install -m 0644 consumers/chat-ingress/systemd/network-v2-chat-ingress-proxy.service /etc/systemd/system/network-v2-chat-ingress-proxy.service
-      - install -m 0644 consumers/chat-ingress/systemd/network-v2-chat-ingress-relay.service /etc/systemd/system/network-v2-chat-ingress-relay.service
-      - install -m 0644 consumers/chat-ingress/systemd/network-v2-chat-ingress.target /etc/systemd/system/network-v2-chat-ingress.target
-      - install -m 0755 consumers/chat-ingress/ready.sh /usr/local/libexec/network-v2/chat-ingress-ready
-      - systemctl daemon-reload
-      - systemctl enable network-v2-chat-ingress.target
-
-  consumer:chat-ingress:start:
-    desc: Start the scoped ChatIngress proxy
-    deps: [consumer:chat-ingress:materialize]
-    cmds:
-      - systemctl start network-v2-chat-ingress.target
-
-  consumer:chat-ingress:ready:
-    desc: Prove ChatIngress loopback relay and provider reachability without provider SEND
-    cmds:
-      - /usr/local/libexec/network-v2/chat-ingress-ready
-
-  consumer:chat-ingress:stop:
-    desc: Stop the scoped ChatIngress proxy without touching the shared Browserless Network v2 authority
-    cmds:
-      - systemctl stop network-v2-chat-ingress.target
-
-  consumer:claude:validate:
-    desc: Validate the Claude Code Anthropic-only HTTPS authority plus isolated client namespace
-    cmds:
-      - /usr/bin/sing-box check -c consumers/claude/config/sing-box.json
-      - /usr/bin/systemd-analyze verify consumers/claude/systemd/network-v2-claude-proxy.service consumers/claude/systemd/network-v2-claude-relay.service consumers/claude/systemd/network-v2-claude.target consumers/claude/systemd/network-v2-claude-client-netns.service consumers/claude/systemd/network-v2-claude-client-bridge.service consumers/claude/systemd/network-v2-claude-client.target
-      - /usr/bin/bash -n consumers/claude/ready.sh
-      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.claude-egress" and .listen=={"host":"127.0.0.1","port":19481,"protocol":"http"} and .networkAuthority.namespace=="nv2-browserless-prod" and .networkAuthority.serviceUnit=="network-v2-browserless.target" and .directFallback==false' consumers/claude/config/authority.json >/dev/null
-      - |
-        set -eu
-        declared=$(jq -cS '.allowedHttpsDomains|sort' consumers/claude/config/authority.json)
-        enforced=$(jq -cS '.route.rules[] | select(.action=="route") | .domain|sort' consumers/claude/config/sing-box.json)
-        test "$declared" = "$enforced"
-        jq -e '.route.rules[-1].action=="reject" and (.route.rules[] | select(.action=="route") | .port)==[443] and (.route.rules[] | select(.action=="route") | .network)==["tcp"]' consumers/claude/config/sing-box.json >/dev/null
-
-  consumer:claude:materialize:
-    desc: Materialize the Claude scoped egress and no-direct-route client namespace without restarting the shared Browserless VPN carrier
-    deps: [consumer:claude:validate]
-    cmds:
-      - install -d -m 0755 /etc/network-v2/claude
-      - install -m 0644 consumers/claude/config/authority.json /etc/network-v2/claude/authority.json
-      - install -m 0644 consumers/claude/config/sing-box.json /etc/network-v2/claude/sing-box.json
-      - install -m 0644 consumers/claude/systemd/network-v2-claude-proxy.service /etc/systemd/system/network-v2-claude-proxy.service
-      - install -m 0644 consumers/claude/systemd/network-v2-claude-relay.service /etc/systemd/system/network-v2-claude-relay.service
-      - install -m 0644 consumers/claude/systemd/network-v2-claude.target /etc/systemd/system/network-v2-claude.target
-      - install -m 0644 consumers/claude/systemd/network-v2-claude-client-netns.service /etc/systemd/system/network-v2-claude-client-netns.service
-      - install -m 0644 consumers/claude/systemd/network-v2-claude-client-bridge.service /etc/systemd/system/network-v2-claude-client-bridge.service
-      - install -m 0644 consumers/claude/systemd/network-v2-claude-client.target /etc/systemd/system/network-v2-claude-client.target
-      - install -m 0755 consumers/claude/ready.sh /usr/local/libexec/network-v2/claude-ready
-      - systemctl daemon-reload
-      - systemctl enable network-v2-claude.target network-v2-claude-client.target
-
-  consumer:claude:start:
-    desc: Start the isolated Claude client path without changing host default routing
-    deps: [consumer:claude:materialize]
-    cmds:
-      - systemctl start network-v2-claude-client.target
-
-  consumer:claude:ready:
-    desc: Prove no direct client route, admitted Anthropic HTTPS, unknown-domain rejection and no IPv6 escape
-    cmds:
-      - /usr/local/libexec/network-v2/claude-ready
-
-  consumer:claude:converge:
-    desc: Materialize, restart only Claude-owned network units and prove fail-closed readiness
-    cmds:
-      - task: consumer:claude:materialize
-      - systemctl restart network-v2-claude.target
-      - systemctl restart network-v2-claude-client.target
-      - task: consumer:claude:verify
-
-  consumer:claude:verify:
-    desc: Verify exact deployed Claude authority/client bytes and live consequence readiness
-    cmds:
-      - test "$(systemctl show --value -p PartOf network-v2-claude-proxy.service)" = network-v2-claude.target
-      - test "$(systemctl show --value -p NeedDaemonReload network-v2-claude-proxy.service)" = no
-      - test "$(systemctl show --value -p PartOf network-v2-claude-relay.service)" = network-v2-claude.target
-      - test "$(systemctl show --value -p NeedDaemonReload network-v2-claude-relay.service)" = no
-      - cmp -s consumers/claude/config/authority.json /etc/network-v2/claude/authority.json
-      - cmp -s consumers/claude/config/sing-box.json /etc/network-v2/claude/sing-box.json
-      - cmp -s consumers/claude/systemd/network-v2-claude-proxy.service /etc/systemd/system/network-v2-claude-proxy.service
-      - cmp -s consumers/claude/systemd/network-v2-claude-relay.service /etc/systemd/system/network-v2-claude-relay.service
-      - cmp -s consumers/claude/systemd/network-v2-claude.target /etc/systemd/system/network-v2-claude.target
-      - cmp -s consumers/claude/systemd/network-v2-claude-client-netns.service /etc/systemd/system/network-v2-claude-client-netns.service
-      - cmp -s consumers/claude/systemd/network-v2-claude-client-bridge.service /etc/systemd/system/network-v2-claude-client-bridge.service
-      - cmp -s consumers/claude/systemd/network-v2-claude-client.target /etc/systemd/system/network-v2-claude-client.target
-      - systemctl is-enabled --quiet network-v2-claude.target
-      - systemctl is-enabled --quiet network-v2-claude-client.target
-      - /usr/local/libexec/network-v2/claude-ready
-
-  consumer:claude:stop:
-    desc: Stop only Claude-owned network units; the shared Browserless VPN carrier remains untouched
-    cmds:
-      - systemctl stop network-v2-claude-client.target network-v2-claude.target
-
-  consumer:x-reality:validate:
-    desc: Validate exact X API transport authority without reading or materializing authentication credentials
-    deps: [consumer:browserless:provider-carrier:validate]
-    cmds:
-      - /usr/bin/sing-box check -c consumers/x-reality/config/egress.json
-      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.x-reality-egress" and .listen=={"host":"127.0.0.1","port":19681,"protocol":"http"} and .allowedHttpsDomains==["api.x.com"] and .directFallback==false and .authenticationAuthority.separate==true and .authenticationAuthority.transportConsumerOwnsCredential==false and .authenticationAuthority.userContextProven==false' consumers/x-reality/config/authority.json >/dev/null
-      - jq -e '.inbounds==[{"type":"http","tag":"x-reality-api","listen":"127.0.0.1","listen_port":19681}] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and .route.rules[-1].action=="reject"' consumers/x-reality/config/egress.json >/dev/null
-      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/x-reality/systemd/network-v2-x-reality-egress.service consumers/x-reality/systemd/network-v2-x-reality.target
-      - /usr/bin/bash -n consumers/x-reality/ready.sh consumers/x-reality/acceptance/fault-smoke.sh
-
-  consumer:x-reality:materialize:
-    desc: Materialize bounded X API transport without credential effects
-    deps: [consumer:x-reality:validate]
-    cmds:
-      - install -d -m 0755 /etc/network-v2/x-reality /usr/local/libexec/network-v2
-      - install -m 0644 consumers/x-reality/config/authority.json /etc/network-v2/x-reality/authority.json
-      - install -m 0644 consumers/x-reality/config/egress.json /etc/network-v2/x-reality/egress.json
-      - install -m 0644 consumers/x-reality/systemd/network-v2-x-reality-egress.service /etc/systemd/system/network-v2-x-reality-egress.service
-      - install -m 0644 consumers/x-reality/systemd/network-v2-x-reality.target /etc/systemd/system/network-v2-x-reality.target
-      - install -m 0755 consumers/x-reality/ready.sh /usr/local/libexec/network-v2/x-reality-ready
-      - install -m 0755 consumers/x-reality/acceptance/fault-smoke.sh /usr/local/libexec/network-v2/x-reality-fault-smoke
-      - systemctl daemon-reload
-      - systemctl enable network-v2-x-reality.target
-
-  consumer:x-reality:start:
-    desc: Start only the bounded X transport authority
-    deps: [consumer:x-reality:materialize]
-    cmds:
-      - systemctl start network-v2-x-reality.target
-
-  consumer:x-reality:ready:
-    desc: Prove X destination transport by expected unauthenticated HTTP 401 and unknown-domain rejection
-    cmds:
-      - /usr/local/libexec/network-v2/x-reality-ready
-
-  consumer:x-reality:converge:
-    desc: Materialize, restart and prove X transport without authentication effects
-    cmds:
-      - task: consumer:x-reality:materialize
-      - systemctl restart network-v2-x-reality.target
-      - task: consumer:x-reality:ready
-
-  consumer:x-reality:verify:
-    desc: Verify deployed X authority bytes, live transport consequence and carrier fail-closed semantics
-    cmds:
-      - cmp -s consumers/x-reality/config/authority.json /etc/network-v2/x-reality/authority.json
-      - cmp -s consumers/x-reality/config/egress.json /etc/network-v2/x-reality/egress.json
-      - cmp -s consumers/x-reality/systemd/network-v2-x-reality-egress.service /etc/systemd/system/network-v2-x-reality-egress.service
-      - cmp -s consumers/x-reality/systemd/network-v2-x-reality.target /etc/systemd/system/network-v2-x-reality.target
-      - /usr/local/libexec/network-v2/x-reality-ready
-      - /usr/local/libexec/network-v2/x-reality-fault-smoke
-
-  consumer:x-reality:stop:
-    desc: Stop only X semantic transport; leave the shared physical carrier untouched
-    cmds:
-      - systemctl stop network-v2-x-reality.target
-
-
-
-  provider:gluetun:validate:
-    desc: Validate existing Quadlet-owned single-session provider and recovery lifecycle without effects
-    cmds:
-      - bash -n providers/gluetun/identity-exclusive.sh
-      - sing-box check -c providers/gluetun/config/carrier-adapter.json
-      - systemd-analyze verify providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.service providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer
-      - grep -q '^EnvironmentFile=/etc/network-v2/gluetun/serialized-candidate.env$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
-      - grep -q '^Volume=/etc/network-v2/browserless/nv2blwg.conf:/gluetun/wireguard/wg0.conf:ro$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
-
-  provider:gluetun:observe-exit:
-    desc: Optional one-shot IPinfo public egress observation through selected Gluetun proxy; not health or provider selection
-    cmds:
-      - |
-        test -e /etc/network-v2/gluetun/m4-owned-mode.selected
-        tmp=$(mktemp)
-        trap 'rm -f "$tmp"' EXIT
-        receipt=$(curl -q -4 --noproxy '' -fsS           -x http://10.252.246.2:19680           --connect-timeout 6 --max-time 15 -o "$tmp"           -w '%{http_code} %{http_connect}' https://ipinfo.io/json)
-        read -r code tunnel extra <<< "$receipt"
-        test "$code" = 200 && test "$tunnel" = 200 && test -z "$extra"
-        jq -ce '(.ip|type=="string") and (.country|type=="string")' "$tmp" >/dev/null
-        jq -c '{kind:"ordivon.network-v2.provider-egress-observation",standing:"OBSERVED_NOT_READINESS",source:"ipinfo.io",ip,country,org}' "$tmp"
-
-  provider:gluetun:verify:
-    desc: Verify deployed Gluetun SourceCut and real shared-provider HTTPS path
-    deps: [provider:gluetun:validate]
-    cmds:
-      - cmp -s providers/gluetun/identity-exclusive.sh /usr/local/libexec/network-v2/provider-identity-exclusive
-      - cmp -s providers/gluetun/config/carrier-adapter.json /etc/network-v2/browserless/provider-carrier-gluetun-candidate.json
-      - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned.target /etc/systemd/system/network-v2-gluetun-owned.target
-      - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned-adapter.service /etc/systemd/system/network-v2-gluetun-owned-adapter.service
-      - cmp -s providers/gluetun/quadlet/network-v2-gluetun-owned.container /etc/containers/systemd/network-v2-gluetun-owned.container
-      - cmp -s providers/gluetun/quadlet/network-v2-gluetun-owned.network /etc/containers/systemd/network-v2-gluetun-owned.network
-      - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.service /etc/systemd/system/network-v2-gluetun-owned-reconcile.service
-      - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer /etc/systemd/system/network-v2-gluetun-owned-reconcile.timer
-      - systemctl is-active --quiet network-v2-gluetun-owned.target
-      - systemctl is-active --quiet network-v2-gluetun-owned-reconcile.timer
-      - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
-
-  consumer:codex:validate:
-    desc: Validate Codex destination-scoped fail-closed HTTP egress policy without effects
-    cmds:
-      - sing-box check -c consumers/codex/config/sing-box.json
-      - bash -n consumers/codex/ready.sh
-      - systemd-analyze verify consumers/codex/systemd/network-v2-codex.target consumers/codex/systemd/network-v2-codex-proxy.service consumers/codex/systemd/network-v2-codex-relay.service
-
-  consumer:codex:verify:
-    desc: Verify installed Codex byte identity and real ChatGPT success/unknown-domain denial
-    deps: [consumer:codex:validate]
-    cmds:
-      - cmp -s consumers/codex/config/sing-box.json /etc/network-v2/codex/sing-box.json
-      - cmp -s consumers/codex/ready.sh /usr/local/libexec/network-v2/codex-ready
-      - cmp -s consumers/codex/systemd/network-v2-codex.target /etc/systemd/system/network-v2-codex.target
-      - cmp -s consumers/codex/systemd/network-v2-codex-proxy.service /etc/systemd/system/network-v2-codex-proxy.service
-      - cmp -s consumers/codex/systemd/network-v2-codex-relay.service /etc/systemd/system/network-v2-codex-relay.service
-      - /usr/local/libexec/network-v2/codex-ready
-
-  consumer:mobile-tailnet-exit:validate:
-    desc: Validate Tailscale userspace exit route/namespace source and systemd recovery configuration
-    cmds:
-      - bash -n consumers/mobile-tailnet-exit/run.sh
-      - python3 -c 'import ast; ast.parse(open("consumers/mobile-tailnet-exit/ready.py").read())'
-      - systemd-analyze verify consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service
-
-  consumer:mobile-tailnet-exit:verify:
-    desc: Verify installed Mobile Exit SourceCut, Tailscale approval and provider consequence
-    deps: [consumer:mobile-tailnet-exit:validate]
-    cmds:
-      - cmp -s consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run
-      - cmp -s consumers/mobile-tailnet-exit/ready.py /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
-      - cmp -s consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service /etc/systemd/system/network-v2-mobile-tailnet-exit.service
-      - /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
-
-
-  consumer:discord:validate:
-    desc: Validate exact Discord HTTPS/Gateway policy from deployed consumer source
-    cmds:
-      - sing-box check -c consumers/discord/config/egress.json
-      - bash -n consumers/discord/ready.sh
-      - systemd-analyze verify consumers/discord/systemd/network-v2-discord-egress.service consumers/discord/systemd/network-v2-discord.target
-
-  consumer:discord:verify:
-    desc: Verify installed Discord consumer source and real Gateway HTTPS consequence
-    deps: [consumer:discord:validate]
-    cmds:
-      - cmp -s consumers/discord/config/egress.json /etc/network-v2/discord/egress.json
-      - cmp -s consumers/discord/config/authority.json /etc/network-v2/discord/authority.json
-      - cmp -s consumers/discord/systemd/network-v2-discord-egress.service /etc/systemd/system/network-v2-discord-egress.service
-      - cmp -s consumers/discord/systemd/network-v2-discord.target /etc/systemd/system/network-v2-discord.target
-      - cmp -s consumers/discord/ready.sh /usr/local/libexec/network-v2/discord-ready
-      - /usr/local/libexec/network-v2/discord-ready
-
-  consumer:model-provider:validate:
-    desc: Validate shared Model Provider egress authority without reading credentials
-    cmds:
-      - sing-box check -c consumers/model-provider/config/egress.json
-      - bash -n consumers/model-provider/ready.sh
-      - systemd-analyze verify consumers/model-provider/systemd/network-v2-model-provider-egress.service consumers/model-provider/systemd/network-v2-model-provider.target
-
-  consumer:model-provider:verify:
-    desc: Verify installed Model Provider source and exact provider HTTPS admission
-    deps: [consumer:model-provider:validate]
-    cmds:
-      - cmp -s consumers/model-provider/config/egress.json /etc/network-v2/model-provider/egress.json
-      - cmp -s consumers/model-provider/config/authority.json /etc/network-v2/model-provider/authority.json
-      - cmp -s consumers/model-provider/systemd/network-v2-model-provider-egress.service /etc/systemd/system/network-v2-model-provider-egress.service
-      - cmp -s consumers/model-provider/systemd/network-v2-model-provider.target /etc/systemd/system/network-v2-model-provider.target
-      - cmp -s consumers/model-provider/ready.sh /usr/local/libexec/network-v2/model-provider-ready
-      - /usr/local/libexec/network-v2/model-provider-ready
-
-  consumer:windows-real-chrome:validate:
-    desc: Validate Windows Chrome Linux-side proxy, relay and public-web policy
-    cmds:
-      - sing-box check -c consumers/windows-real-chrome/config/sing-box.json
-      - bash -n consumers/windows-real-chrome/ready.sh
-      - systemd-analyze verify consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-proxy.service consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-relay.service consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome.target
-
-  consumer:windows-real-chrome:verify:
-    desc: Verify Chrome proxy SourceCut and real public/ChatGPT HTTP consequences
-    deps: [consumer:windows-real-chrome:validate]
-    cmds:
-      - cmp -s consumers/windows-real-chrome/config/sing-box.json /etc/network-v2/windows-real-chrome/sing-box.json
-      - cmp -s consumers/windows-real-chrome/config/authority.json /etc/network-v2/windows-real-chrome/authority.json
-      - cmp -s consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-proxy.service /etc/systemd/system/network-v2-windows-real-chrome-proxy.service
-      - cmp -s consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-relay.service /etc/systemd/system/network-v2-windows-real-chrome-relay.service
-      - cmp -s consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome.target /etc/systemd/system/network-v2-windows-real-chrome.target
-      - cmp -s consumers/windows-real-chrome/ready.sh /usr/local/libexec/network-v2/windows-real-chrome-ready
-      - /usr/local/libexec/network-v2/windows-real-chrome-ready
 
 vars:
   SYSTEMD_UNITS:

@@ -199,7 +199,7 @@ def test_cross_config_monitoring_consumer_counterexamples_fail_closed(
 
 def test_core_validation_invokes_cross_config_consumer_gate():
     taskfile = (ROOT / "Taskfile.yml").read_text()
-    native = taskfile.split("  core:validate:", 1)[1].split("  provider:surfshark:validate:", 1)[0]
+    native = taskfile.split("  core:validate:", 1)[1].split("  all:validate:", 1)[0]
     assert "monitoring-sourcecut-preflight.py --source config --check-edges" in native
 
 @pytest.mark.parametrize(
