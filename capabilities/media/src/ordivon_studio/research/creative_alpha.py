@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from .grounded_contracts import canonical_digest
-from .research_validity import seed_commitment
+from .trial_registration import seed_commitment
 
 VARIANTS = ("explicit-chain", "fragmented", "evidence-delayed")
 PRIMARY_TREATMENT = "explicit-chain"

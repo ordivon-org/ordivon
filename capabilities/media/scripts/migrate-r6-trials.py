@@ -18,7 +18,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from ordivon_studio.research.grounded_contracts import canonical_digest
-from ordivon_studio.research.research_validity import TrialLedger
+from ordivon_studio.research.trial_ledger import TrialLedger
 
 
 def migrate(

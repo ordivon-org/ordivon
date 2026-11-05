@@ -198,3 +198,10 @@ Studio CLI command processing is organized by domain under
 The public `ordivon-studio` console entry, `argparse` grammar and result
 exit codes remain owned by `cli.py`; this source-only split adds neither
 another command registry nor another operational authority.
+
+The R6 experiment core has three source/consumer boundaries under
+`src/ordivon_studio/research/`: `trial_registration.py` (typed registration,
+seed seal), `trial_ledger.py` (PostgreSQL-native append-only history), and
+`search_calibration.py` (search/replay/holdout and null calibration).
+No legacy `research_validity.py` facade or second database authority is
+retained. The research CLIs and test consumers import the natural boundary.
