@@ -6,9 +6,9 @@ from uuid import uuid4
 import psycopg
 import pytest
 
+from ordivon_host_v2.attention_store import AttentionStore
 from ordivon_host_v2.canonical_json import canonical_digest
 from ordivon_host_v2.collaboration_inputs import ParticipationStanding, SpaceInput, TopicInput
-from ordivon_host_v2.social_attention import AttentionStore
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput, WorkCreateInput, WorkSnapshotInput
 from ordivon_host_v2.work_store import WorkStore

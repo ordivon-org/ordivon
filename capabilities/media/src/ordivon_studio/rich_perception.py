@@ -10,12 +10,12 @@ from pathlib import Path
 from typing import Any
 
 from .assets import probe_media
-from .perception import analyze_temporal_change
 from .perception_profiles import (
     _bin_series,
     _z_profile,
     profile_signature,
 )
+from .perception_video_io import analyze_temporal_change
 from .rich_perception_comparison import (
     crossmodal_circular_shift_null as crossmodal_circular_shift_null,
 )

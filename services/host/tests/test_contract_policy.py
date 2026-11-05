@@ -121,7 +121,7 @@ def test_psycopg_owns_jsonb_adaptation_in_active_stores() -> None:
     root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
     text = "\n".join(
         (root / name).read_text()
-        for name in ("work_store.py", "social_store.py", "social_attention.py")
+        for name in ("work_store.py", "social_store.py", "attention_store.py")
     )
     assert "Jsonb(" in text
     assert "%s::jsonb" not in text

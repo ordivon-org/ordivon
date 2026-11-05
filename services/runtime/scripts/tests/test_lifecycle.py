@@ -960,6 +960,83 @@ class LifecycleTests(unittest.TestCase):
                     wrong_database, runtime, env_file
                 )
 
+    def test_native_consumer_continuation_rejection_is_retained_not_failure(self) -> None:
+        from contextlib import contextmanager
+        from mcp_probe import McpToolError
+
+        attempt = self.module["_attempt_prepared_close"]
+        state = attempt.__globals__
+        owned = (
+            "exclusive_admission_fence",
+            "load_environment_file",
+            "validate_runtime_authority_snapshot",
+            "runtime_client_from_environment",
+            "revalidate_prepared_item_under_fence",
+            "close_workspace_once",
+        )
+        originals = {name: state[name] for name in owned}
+
+        @contextmanager
+        def admission_fence(_database):
+            yield
+
+        rejection = {
+            "code": "WORKSPACE_STATE_MISMATCH",
+            "field": "consumerReleased",
+            "commitState": "not_committed",
+        }
+        prepared = {
+            "workspaceId": "ws-consumer-still-using",
+            "classification": "closable",
+            "expectedSourceStateDigest": "sha256:" + "a" * 64,
+        }
+        args = argparse.Namespace(
+            database=Path("/unused/registry.sqlite3"),
+            env_file=Path("/unused/runtime.env"),
+            runtime_store_root=Path("/unused/store"),
+        )
+        try:
+            state["exclusive_admission_fence"] = admission_fence
+            state["load_environment_file"] = lambda _path: {}
+            state["validate_runtime_authority_snapshot"] = lambda *_args: None
+            state["runtime_client_from_environment"] = lambda *_args, **_kw: object()
+            state["revalidate_prepared_item_under_fence"] = (
+                lambda *_args: (None, {"sourceCurrent": True})
+            )
+
+            def denied(*_args, **_kwargs):
+                raise McpToolError(
+                    "workspace.close",
+                    {"isError": True, "structuredContent": {"error": rejection}},
+                )
+
+            state["close_workspace_once"] = denied
+            status, action = attempt(args, prepared)
+            self.assertEqual(status, "retained")
+            self.assertEqual(action["action"], "workspace_retained_consumer_continuation")
+            self.assertEqual(action["reason"], "explicit_consumer_release_required")
+            self.assertEqual(action["sourceStateDigest"], prepared["expectedSourceStateDigest"])
+            self.assertFalse(action["semanticCompletionEvaluated"])
+
+            for field, value in (
+                ("code", "UNAVAILABLE"),
+                ("field", "workspaceId"),
+                ("commitState", "committed"),
+            ):
+                changed = dict(rejection, **{field: value})
+
+                def other_rejection(*_args, **_kwargs):
+                    raise McpToolError(
+                        "workspace.close",
+                        {"isError": True, "structuredContent": {"error": changed}},
+                    )
+
+                state["close_workspace_once"] = other_rejection
+                with self.assertRaises(McpToolError):
+                    attempt(args, prepared)
+        finally:
+            state.update(originals)
+
     def test_r54_close_passes_exact_source_digest_for_clean_and_force(self) -> None:
         close_once = self.module["close_workspace_once"]
         globals_ = close_once.__globals__

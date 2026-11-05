@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from ordivon_host_v2 import social_attention
+from ordivon_host_v2 import attention_store
 from ordivon_host_v2.attention_queries import ATTENTION_DELTA_SQL
+from ordivon_host_v2.attention_store import AttentionStore
 from ordivon_host_v2.collection_pagination import validate_max_bytes
-from ordivon_host_v2.social_attention import AttentionStore
 
 ROOT = Path(__file__).parents[1]
-ATTENTION = ROOT / "src" / "ordivon_host_v2" / "social_attention.py"
+ATTENTION = ROOT / "src" / "ordivon_host_v2" / "attention_store.py"
 ATTENTION_QUERY = ROOT / "src" / "ordivon_host_v2" / "attention_queries.py"
 MIGRATION = ROOT / "migrations" / "versions" / "0008_social_work_fabric_attention.py"
 
@@ -87,7 +87,7 @@ def test_attention_limit_is_exact_integer_before_store_effect(
     def forbid_connection(*args, **kwargs):
         raise AssertionError("invalid limit must never reach PostgreSQL")
 
-    monkeypatch.setattr(social_attention.psycopg, "connect", forbid_connection)
+    monkeypatch.setattr(attention_store.psycopg, "connect", forbid_connection)
     store = AttentionStore("postgresql://unused.invalid/host")
     method = getattr(store, operation)
     extras = {"after_sequence": 1} if operation == "delta" else {}
@@ -103,7 +103,7 @@ def test_attention_cursor_is_exact_integer_before_store_effect(
     def forbid_connection(*args, **kwargs):
         raise AssertionError("invalid attention cursor must never reach PostgreSQL")
 
-    monkeypatch.setattr(social_attention.psycopg, "connect", forbid_connection)
+    monkeypatch.setattr(attention_store.psycopg, "connect", forbid_connection)
     store = AttentionStore("postgresql://unused.invalid/host")
     with pytest.raises(ValueError, match="after_sequence"):
         getattr(store, operation)("actor:agent:test", after_sequence=sequence)
@@ -125,7 +125,7 @@ def test_exact_valid_attention_limit_retains_native_owner_db_path(
     def witnessed_connection(*args, **kwargs):
         raise ConnectionReached("legal typed attention request reached natural owner")
 
-    monkeypatch.setattr(social_attention.psycopg, "connect", witnessed_connection)
+    monkeypatch.setattr(attention_store.psycopg, "connect", witnessed_connection)
     store = AttentionStore("postgresql://unused.invalid/host")
     kwargs = {"after_sequence": 1} if operation in {"delta", "reentry"} else {}
     with pytest.raises(ConnectionReached):

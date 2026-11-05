@@ -16,6 +16,7 @@ if str(SCRIPTS) not in sys.path:
 from mcp_probe import (
     McpClient,
     McpProbeError,
+    McpToolError,
     PROBE_USER_AGENT,
     _read_bounded_regular_file_text,
     load_bearer_token,
@@ -45,6 +46,24 @@ class _Response:
 
 
 class RuntimeProbeWireContractTests(unittest.TestCase):
+    def test_native_tool_error_preserves_structured_rejection(self) -> None:
+        client = McpClient("http://127.0.0.1:1/mcp", "test", "typed-error")
+        error = {
+            "code": "WORKSPACE_STATE_MISMATCH",
+            "field": "consumerReleased",
+            "commitState": "not_committed",
+        }
+        with mock.patch.object(
+            McpClient,
+            "request",
+            return_value={"isError": True, "structuredContent": {"error": error}},
+        ):
+            with self.assertRaises(McpToolError) as result:
+                client.call_tool("workspace.close", {"workspaceId": "ws-clean"})
+        self.assertEqual(result.exception.tool_name, "workspace.close")
+        self.assertEqual(result.exception.error, error)
+        self.assertIsInstance(result.exception, McpProbeError)
+
     def test_sse_progress_multiline_payload_and_unicode_are_one_response(self) -> None:
         payload = (
             b": keepalive\r\n\r\n"
