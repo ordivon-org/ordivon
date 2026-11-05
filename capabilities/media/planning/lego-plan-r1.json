@@ -715,7 +715,9 @@
         "The three original native provider functions and seven-observation combined snapshot are byte/structure-equivalent before and after source refactoring for fixed provider responses and timestamps.",
         "Observation acquisition mode stays metadata-reference with bytesOwned=false; winner, new-control and editor-selection labels remain distinct.",
         "The CLI parser four help surfaces are unchanged, existing R4 Guardian article consumer imports its natural provider owner, and official Media unit suite plus wheel pass.",
-        "Provider current live access, legal acquisition and human cultural response are not inferred from source-level test equivalence."
+        "Provider current live access, legal acquisition and human cultural response are not inferred from source-level test equivalence.",
+        "Real 2026-11-05 bounded native provider probe: Hacker News 2 and Apple Music 1 metadata observations; unauthenticated Guardian was HTTP 401 and must not be promoted to live acceptance.",
+        "Configured Guardian API key is used only in the request URL; persisted provenance never contains the key."
       ],
       "r21": {
         "I": {
@@ -764,7 +766,8 @@
             "caller chooses admitted official public provider and explicit bounds",
             "responses are interpreted as metadata, never full audiovisual/text ownership",
             "time and source URLs recorded with each observation",
-            "unsupported private provider APIs remain capability-only rather than fabricated live acceptance"
+            "unsupported private provider APIs remain capability-only rather than fabricated live acceptance",
+            "Guardian requires a caller-authorized GUARDIAN_API_KEY or an explicit per-call key; no anonymous test key fallback"
           ]
         },
         "post": {
@@ -773,7 +776,8 @@
             "each successfully parsed observation is source-labelled with selection basis and bytesOwned=false",
             "source output failures are explicit and do not overwrite successful observations from independent providers",
             "snapshot canonical digest is stable for a fixed source response set and observation timestamp",
-            "CLI public command identity and options stay unchanged"
+            "CLI public command identity and options stay unchanged",
+            "unconfigured Guardian is recorded as an independent provider failure while other public collectors still succeed"
           ]
         },
         "inv": {
@@ -782,7 +786,8 @@
             "not a universal quality/winner oracle: rankings, control sampling and editor picks remain distinct",
             "no raw third-party media byte ownership or provider source truth is claimed",
             "cross-provider collection errors remain representable and non-successful rather than silently promoted",
-            "cultural observations do not mutate Media Production, research trial history or publish assets"
+            "cultural observations do not mutate Media Production, research trial history or publish assets",
+            "Guardian API key is never included in shareable sourceUrl or the persisted observation/snapshot"
           ]
         },
         "eff": {
@@ -797,7 +802,8 @@
             "write provider-owned source records",
             "post to third-party platform",
             "publish Media content",
-            "claim audience comprehension or real-world causality"
+            "claim audience comprehension or real-world causality",
+            "persist or publish API query credentials in sourceUrl"
           ]
         },
         "c": {
@@ -823,7 +829,13 @@
             "src/ordivon_studio/research/guardian_article.py"
           ],
           "evidence": "before/after canonical provider outputs and seven-observation snapshot digest sha256:d590f97a0c6a4fdf4d9801bf492d09059f66ed86b8dd3e36174786d37d539775; exact CLI parser parity; 212 Media owner tests run",
-          "standing": "SOURCE_AND_CONSUMER_TESTED_NOT_LIVE_PLATFORM_OR_HUMAN_OUTCOME_VERIFIED"
+          "standing": "SOURCE_CONSUMER_TESTED__PARTIAL_LIVE_HN_APPLE__GUARDIAN_CREDENTIAL_REQUIRED__HUMAN_OUTCOMES_UNKNOWN",
+          "liveProbe20261105": {
+            "hackerNews": 2,
+            "appleMusic": 1,
+            "guardian": "HTTP 401 unauthorized with previous public test key",
+            "standing": "PARTIAL_LIVE; registered Guardian credential required for future live proof"
+          }
         },
         "unfold": {
           "type": "owner_native_code",
@@ -907,7 +919,8 @@
       ],
       "acceptance": [
         "At least one non-Studio observer projection is produced/verified without creating unnecessary Production state.",
-        "Official public metadata provider outputs are equivalent and combined into a bounded non-Studio observer snapshot; Guardian R4 experimental consumer and pinned CLI paths remain live consumers."
+        "Official public metadata provider outputs are equivalent and combined into a bounded non-Studio observer snapshot; Guardian R4 experimental consumer and pinned CLI paths remain live consumers.",
+        "Live Guardian provider status stays credential-required after HTTP 401; Media observer projection remains non-Studio with independent source failures."
       ],
       "evidence": [
         "src/ordivon_studio/observatory_source.py",

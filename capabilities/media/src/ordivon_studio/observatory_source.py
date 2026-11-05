@@ -16,6 +16,7 @@ from .observatory_contracts import OBSERVATION_KIND
 
 USER_AGENT = "Ordivon-Studio-Cultural-Observatory/0.1 (+https://ordivon.com/)"
 
+
 @dataclass(frozen=True)
 class SourceCapability:
     provider: str
@@ -56,10 +57,10 @@ CAPABILITIES = (
     SourceCapability(
         "guardian",
         "Open Platform section mostViewed/editorsPicks/newest",
-        "official API; public test developer key works for bounded research probes",
+        "official API requires a configured GUARDIAN_API_KEY; public test key not assumed",
         "metadata/reference only by default",
-        "live",
-        "Most-viewed, editorial selection, and newest controls remain distinct selection mechanisms.",
+        "credential-required",
+        "Most-viewed, editorial selection, and newest controls remain distinct; live acceptance requires an authorized provider response.",
     ),
     SourceCapability(
         "youtube",
@@ -108,7 +109,7 @@ def _fetch_json(url: str, *, timeout: float = 20.0) -> Any:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         if response.status != 200:
-            raise RuntimeError(f"GET {url}: HTTP {response.status}")
+            raise RuntimeError(f"Official JSON source returned HTTP {response.status}")
         return json.load(response)
 
 

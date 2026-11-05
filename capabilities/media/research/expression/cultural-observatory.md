@@ -63,7 +63,11 @@ acquisition owners are `observatory_hacker_news.py`,
 `observatory_apple_music.py`, and `observatory_guardian.py`;
 `observatory_source.py` defines the shared metadata-only observation shape and
 admitted provider capability descriptions, while `observatory_analysis.py`
-owns controls and noncausal analysis. These observations contain:
+owns controls and noncausal analysis. Guardian's official Open Platform API
+requires `GUARDIAN_API_KEY` in the execution environment; the prior public
+test key returned 401 on a 2026-11-05 live bounded probe, so the adapter will
+not claim anonymous Guardian access. API keys never enter an observation's
+shareable `sourceUrl`. These observations contain:
 
 - provider and volatile platform surface;
 - encounter form;

@@ -64,9 +64,26 @@ class CulturalObservatoryTest(unittest.TestCase):
             }
         }
         with patch("ordivon_studio.observatory_guardian._fetch_json", return_value=response):
-            observations = collect_guardian(sections=["world"], newest_per_section=2)
+            observations = collect_guardian(sections=["world"], newest_per_section=2, api_key="fixture-key")
         self.assertEqual([item["selection"]["basis"] for item in observations], ["most-viewed", "editors-pick", "newest-control"])
         self.assertEqual(observations[-1]["artifact"]["externalId"], "c")
+
+    def test_guardian_authorized_query_never_persists_api_key_as_provenance(self) -> None:
+        from unittest.mock import patch
+
+        secret = "fixture-secret-guardian-key"
+        response = {"response": {"mostViewed": [{"id": "g1", "webTitle": "Ranking"}], "results": []}}
+        with patch("ordivon_studio.observatory_guardian._fetch_json", return_value=response) as fetch:
+            observations = collect_guardian(sections=["world"], newest_per_section=1, api_key=secret)
+        self.assertIn("api-key=fixture-secret-guardian-key", fetch.call_args.args[0])
+        self.assertEqual(len(observations), 1)
+        self.assertNotIn(secret, str(observations))
+        self.assertNotIn("api-key", observations[0]["acquisition"]["sourceUrl"])
+
+    def test_guardian_requires_explicit_provider_credential(self) -> None:
+        with patch.dict("os.environ", {"GUARDIAN_API_KEY": ""}):
+            with self.assertRaisesRegex(RuntimeError, "GUARDIAN_API_KEY"):
+                collect_guardian(sections=["world"], newest_per_section=1)
 
     def test_matched_analysis_is_explicitly_noncausal(self) -> None:
         def item(provider: str, basis: str, external_id: str, title: str, section: str = "") -> dict:

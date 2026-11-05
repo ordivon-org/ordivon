@@ -1,11 +1,13 @@
 """Guardian official section most-viewed, editorial and newest-control adapter.
 
 These are distinct selection mechanisms, not equivalent quality labels.
-The official API test key is only an existing bounded observation input.
+An actual authorized Guardian Open Platform API key is required. No fallback
+to undocumented scraping or an unverified public test key is attempted.
 """
 
 from __future__ import annotations
 
+import os
 import urllib.parse
 from collections.abc import Iterable
 from typing import Any
@@ -21,7 +23,13 @@ def collect_guardian(
     sections: Iterable[str] = DEFAULT_GUARDIAN_SECTIONS,
     newest_per_section: int = 40,
     timeout: float = 20.0,
+    api_key: str | None = None,
 ) -> list[dict[str, Any]]:
+    # The prior anonymous test key returned HTTP 401 in a real provider probe.
+    # Do not pretend it is a currently accepted provider capability.
+    api_key = api_key or os.environ.get("GUARDIAN_API_KEY")
+    if not api_key or not api_key.strip():
+        raise RuntimeError("Guardian API requires a configured GUARDIAN_API_KEY")
     observed_at = _utc_now()
     observations: list[dict[str, Any]] = []
     for section in sections:
@@ -30,7 +38,6 @@ def collect_guardian(
             continue
         query = urllib.parse.urlencode(
             {
-                "api-key": "test",
                 "show-most-viewed": "true",
                 "show-editors-picks": "true",
                 "page-size": max(1, min(int(newest_per_section), 50)),
@@ -38,7 +45,14 @@ def collect_guardian(
             }
         )
         source_url = f"https://content.guardianapis.com/{urllib.parse.quote(section)}?{query}"
-        document = _fetch_json(source_url, timeout=timeout)
+        # Provenance is shareable; the actual HTTP URL is not.
+        request_url = source_url + "&api-key=" + urllib.parse.quote(api_key, safe="")
+        try:
+            document = _fetch_json(request_url, timeout=timeout)
+        except Exception as error:
+            if api_key in str(error):
+                raise RuntimeError("Guardian API request failed; auth query omitted") from None
+            raise
         response = document.get("response", {}) if isinstance(document, dict) else {}
         groups = (
             ("most-viewed", response.get("mostViewed", [])),
