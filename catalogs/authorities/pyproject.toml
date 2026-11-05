@@ -1,0 +1,30 @@
+[project]
+name = "ordivon-authority-catalog-workspace"
+version = "0.1.0"
+description = "Source-local verification environment for the external authority catalog."
+requires-python = "==3.15.1"
+dependencies = ["ordivon-composition"]
+
+[dependency-groups]
+test = ["pytest==9.1.1"]
+quality = ["ruff==0.17.2"]
+authority = ["check-jsonschema==0.38.0"]
+security = ["bandit==1.9.4"]
+
+[tool.uv.sources]
+ordivon-composition = { path = "../../packages/composition" }
+
+[tool.uv]
+package = false
+default-groups = ["test", "quality", "authority", "security"]
+required-version = "==0.13.5"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py315"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP"]

@@ -55,6 +55,9 @@ Source records, currentness observations, validation, deterministic lexical disc
 
 ## Commands
 
+Run the catalog source-local locked verifier with `mise run authority-catalog:verify` from the monorepo root. Its environment is owned by `catalogs/authorities` and does not borrow the Composition toolchain or require Meta/Next.
+
+
 ```bash
 python catalogs/authorities/scripts/authority_catalog.py build
 python catalogs/authorities/scripts/authority_catalog.py list
