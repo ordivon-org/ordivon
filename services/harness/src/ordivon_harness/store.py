@@ -35,6 +35,38 @@ class HarnessRunStatus(StrEnum):
         }
 
 
+def harness_run_status_after_event(
+    event_kind: str, current_status: HarnessRunStatus | None = None
+) -> HarnessRunStatus:
+    """Pure domain Run transition shared by journal admission and replay."""
+    if event_kind == "harness.run-created":
+        return HarnessRunStatus.CREATED
+    if event_kind == "harness.run-paused":
+        return HarnessRunStatus.PAUSED
+    if event_kind == "harness.run-stopped":
+        return HarnessRunStatus.STOPPED
+    if event_kind == "harness.run-completed":
+        return HarnessRunStatus.COMPLETED
+    if event_kind == "harness.run-failed":
+        return HarnessRunStatus.FAILED
+    if event_kind == "harness.trace-recorded":
+        if current_status is None:
+            raise ValueError("status-preserving Harness Event requires current status")
+        return current_status
+    return HarnessRunStatus.ACTIVE
+
+
+def validate_harness_event_identity(event_id: str) -> None:
+    """Canonical Run Event identity, independent of SQLite storage."""
+    if (
+        not isinstance(event_id, str)
+        or not event_id.startswith("event:")
+        or event_id != event_id.strip()
+        or len(event_id.encode("utf-8")) > 500
+    ):
+        raise ValueError("Harness Event identity must start with event:")
+
+
 class HarnessEventAdmission(StrEnum):
     CREATED = "created"
     EXISTING = "existing"
