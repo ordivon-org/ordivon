@@ -1,0 +1,18 @@
+version: '3'
+
+tasks:
+  consumer:mobile-tailnet-exit:validate:
+    desc: Validate Tailscale userspace exit route/namespace source and systemd recovery configuration
+    cmds:
+      - bash -n consumers/mobile-tailnet-exit/run.sh
+      - python3 -c 'import ast; ast.parse(open("consumers/mobile-tailnet-exit/ready.py").read())'
+      - systemd-analyze verify consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service
+
+  consumer:mobile-tailnet-exit:verify:
+    desc: Verify installed Mobile Exit SourceCut, Tailscale approval and provider consequence
+    deps: [consumer:mobile-tailnet-exit:validate]
+    cmds:
+      - cmp -s consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run
+      - cmp -s consumers/mobile-tailnet-exit/ready.py /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
+      - cmp -s consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service /etc/systemd/system/network-v2-mobile-tailnet-exit.service
+      - /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
