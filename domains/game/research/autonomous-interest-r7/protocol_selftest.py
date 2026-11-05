@@ -22,7 +22,7 @@ import build_manifest_reference as bm
 SCHEMA=PROFILE/'game-autonomous-interest-model-r7.schema.json'
 PROTOCOL=PROFILE/'game-autonomous-interest-protocol-r7.json'
 MODEL=HERE/'selftest_model.json'
-CHECK_JSONSCHEMA='/root/.local/bin/check-jsonschema'
+CHECK_JSONSCHEMA='check-jsonschema'
 
 
 def schema_validate(path=MODEL):
