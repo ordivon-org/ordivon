@@ -8,7 +8,7 @@ from jsonschema import Draft201909Validator, Draft202012Validator, FormatChecker
 from ordivon_composition.cross_domain_binding_r3 import resolve_repo_file
 
 ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = ROOT.parents[1]
+REPO_ROOT = ROOT.parents[2]
 PRODUCT = REPO_ROOT / "catalogs/data-products/experimental-episode-corpus-r1"
 EVIDENCE = (
     REPO_ROOT
