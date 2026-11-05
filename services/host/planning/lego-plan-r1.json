@@ -217,7 +217,7 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/service.py",
-        "src/ordivon_host_v2/canonical.py",
+        "src/ordivon_host_v2/canonical_json.py",
         "migrations/versions/0009_retire_legacy_task_board.py",
         "migrations/versions/0010_social_work_fabric_r2.py"
       ],
@@ -419,7 +419,7 @@
       "evidence": [
         "src/ordivon_host_v2/social_store.py",
         "src/ordivon_host_v2/social_queries.py",
-        "src/ordivon_host_v2/social_bounds.py",
+        "src/ordivon_host_v2/collection_pagination.py",
         "tests/test_social_work_fabric_postgres.py::test_r2_topic_cursor_relation_readback_reasons_and_reentry",
         "tests/test_social_work_fabric_postgres.py::test_r2_message_page_respects_canonical_byte_budget"
       ],
