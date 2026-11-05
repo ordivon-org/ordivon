@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from mcp.server import MCPServer
 
+from .attention_store import AttentionStore
 from .canonical_json import canonical_digest
 from .mcp_attention_tools import register_attention_tools
 from .mcp_social_tools import register_social_tools
 from .mcp_work_tools import register_work_tools
-from .social_attention import AttentionStore
 from .social_store import SocialStore
 from .work_store import WorkStore
 

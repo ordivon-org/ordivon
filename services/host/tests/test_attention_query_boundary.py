@@ -4,7 +4,7 @@ import ast
 from pathlib import Path
 
 from ordivon_host_v2.attention_projections import AttentionReadProjections
-from ordivon_host_v2.social_attention import AttentionStore, TargetKind
+from ordivon_host_v2.attention_store import AttentionStore, TargetKind
 
 
 def test_attention_reads_inherited_by_stable_host_store() -> None:
