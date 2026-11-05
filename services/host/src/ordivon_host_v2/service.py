@@ -8,7 +8,7 @@ from psycopg.rows import dict_row
 
 from .canonical_json import canonical_digest
 
-REQUIRED_SCHEMA_VERSION = 10
+REQUIRED_SCHEMA_VERSION = 11
 
 
 class HostV2:

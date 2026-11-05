@@ -27,10 +27,21 @@ def test_active_service_has_no_legacy_storage_references() -> None:
     text = (SRC / "service.py").read_text()
     for fragment in ("board_messages", "task_events", "FROM tasks", "FROM checkpoints"):
         assert fragment not in text
-    assert "REQUIRED_SCHEMA_VERSION = 10" in text
+    assert "REQUIRED_SCHEMA_VERSION = 11" in text
 
 
 def test_historical_cutover_reader_is_not_active_host_authority() -> None:
     mcp = (SRC / "mcp_server.py").read_text() + (SRC / "social_work_mcp.py").read_text()
     assert "legacy_cutover" not in mcp
     assert "register_social_work_tools" in mcp
+
+def test_external_news_schema_retirement_uses_native_alembic() -> None:
+    migration = ROOT / "migrations" / "versions" / "0011_retire_external_news.py"
+    text = migration.read_text()
+    assert 'revision = "0011"' in text
+    assert 'down_revision = "0010"' in text
+    assert "DROP TABLE news_publications" in text
+    assert "schema_version=11" in text
+    active = "\n".join(p.read_text() for p in SRC.glob("*.py"))
+    assert "FROM news_publications" not in active
+    assert "INTO news_publications" not in active
