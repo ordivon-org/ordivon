@@ -21,9 +21,14 @@ def test_egress_uses_shared_carrier_and_rejects_unknown():
 
 def test_semantic_service_soft_depends_on_carrier():
     u = (X / "systemd" / "network-v2-x-reality-egress.service").read_text()
-    assert "Wants=network-v2-browserless-provider-carrier.service" in u
-    assert "Requires=network-v2-browserless-provider-carrier.service" not in u
-    assert "After=network-v2-browserless-provider-carrier.service" in u
+    assert "Wants=network-v2-gluetun-owned-adapter.service" in u
+    assert "Requires=network-v2-gluetun-owned-adapter.service" not in u
+    assert "After=network-v2-gluetun-owned-adapter.service" in u
+    assert "network-v2-browserless-provider-carrier.service" not in u
+    authority = json.loads((X / "config/authority.json").read_text())
+    assert authority["networkAuthority"]["carrierService"] == "network-v2-gluetun-owned-adapter.service"
+    assert authority["networkAuthority"]["namespace"] == "nv2-browserless-prod"
+    assert "providerSite" not in authority["networkAuthority"]
 
 def test_readiness_has_no_credential_surface():
     r = (X / "ready.sh").read_text()
