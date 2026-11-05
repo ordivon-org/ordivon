@@ -9,7 +9,7 @@ tasks:
       - systemd-analyze verify consumers/codex/systemd/network-v2-codex.target consumers/codex/systemd/network-v2-codex-proxy.service consumers/codex/systemd/network-v2-codex-relay.service
 
   consumer:codex:verify:
-    desc: Verify installed Codex byte identity and real ChatGPT success/unknown-domain denial
+    desc: Verify installed Codex bytes plus ChatGPT and Codex CDN HTTPS success/unknown-domain denial
     deps: [consumer:codex:validate]
     cmds:
       - cmp -s consumers/codex/config/sing-box.json /etc/network-v2/codex/sing-box.json

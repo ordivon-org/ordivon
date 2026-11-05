@@ -28,6 +28,7 @@
         ],
         "domain": [
           "chatgpt.com",
+          "persistent.oaistatic.com",
           "auth.openai.com",
           "gateway-mcp.ordivon.com",
           "falling-union-c376.cloudflareaccess.com"
