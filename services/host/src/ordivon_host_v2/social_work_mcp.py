@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Literal
 
 from mcp.server import MCPServer
-from pydantic import Field
 
 from .canonical_json import canonical_digest
 from .collaboration_inputs import (
@@ -17,9 +16,9 @@ from .collaboration_inputs import (
 )
 from .mcp_attention_tools import register_attention_tools
 from .mcp_domain_errors import _project_domain_errors
+from .mcp_work_tools import register_work_tools
 from .social_attention import AttentionStore
 from .social_contracts import (
-    ActorRefResponse,
     MessageReadResponse,
     MessageRelationResponse,
     MessageRelationsResponse,
@@ -34,25 +33,9 @@ from .social_contracts import (
     TopicListResponse,
     TopicResponse,
     TopicResumeResponse,
-    WorkListResponse,
-    WorkResponse,
 )
 from .social_store import SocialStore
-from .work_inputs import (
-    ActorKind,
-    ActorRefInput,
-    WorkCreateInput,
-    WorkSnapshotInput,
-    WorkState,
-)
 from .work_store import WorkStore
-
-# A revision is an exact Host CAS identity, never a coerced bool/float/string.
-# Use the existing provider's strict bounded integer instead of a custom DSL.
-PositiveWorkRevision = Annotated[int, Field(strict=True, ge=1)]
-# Work inventory pagination is a bounded exact integer at the wire boundary.
-# Do not let MCP normalize bool, float or string into a valid Host limit.
-PositiveWorkListLimit = Annotated[int, Field(strict=True, ge=1, le=200)]
 
 
 def _request_id(prefix: str, payload: object) -> str:
@@ -70,87 +53,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
     social = SocialStore(dsn)
     attention = AttentionStore(dsn)
 
-    @mcp.tool(name="actor.declare")
-    @_project_domain_errors
-    def actor_declare(
-        actorRef: str,
-        actorKind: Literal["unknown", "human", "agent", "service", "organization"],
-    ) -> ActorRefResponse:
-        value = ActorRefInput(actor_ref=actorRef, actor_kind=ActorKind(actorKind))
-        request = value.model_dump(mode="json")
-        return work.declare_actor(
-            value,
-            client_request_id=_request_id("actor-declare", request),
-        )
-
-    @mcp.tool(name="work.create")
-    @_project_domain_errors
-    def work_create(
-        workRef: str,
-        workKind: str,
-        actorRef: str,
-        initialSnapshot: WorkSnapshotInput,
-    ) -> WorkResponse:
-        value = WorkCreateInput(
-            work_ref=workRef,
-            kind=workKind,
-            actor_ref=actorRef,
-            initial_snapshot=initialSnapshot,
-        )
-        request = value.model_dump(mode="json")
-        return work.create_work(value, client_request_id=_request_id("work-create", request))
-
-    @mcp.tool(name="work.get")
-    @_project_domain_errors
-    def work_get(workRef: str, revision: PositiveWorkRevision | None = None) -> WorkResponse:
-        return work.get_work(workRef, revision)
-
-    @mcp.tool(name="work.list")
-    @_project_domain_errors
-    def work_list(
-        state: Literal["open", "completed", "abandoned"] | None = None,
-        limit: PositiveWorkListLimit = 50,
-        beforeUpdatedAt: str | None = None,
-        beforeWorkRef: str | None = None,
-        maxBytes: int = 262_144,
-    ) -> WorkListResponse:
-        return work.list_works(
-            state=state,
-            limit=limit,
-            before_updated_at=beforeUpdatedAt,
-            before_work_ref=beforeWorkRef,
-            max_bytes=maxBytes,
-        )
-
-    @mcp.tool(name="work.snapshot.commit")
-    @_project_domain_errors
-    def work_snapshot_commit(
-        workRef: str,
-        expectedRevision: PositiveWorkRevision,
-        snapshot: WorkSnapshotInput,
-        actorRef: str,
-        continuityDisposition: Literal["continue", "complete", "abandon"] = "continue",
-    ) -> WorkResponse:
-        state = {
-            "continue": WorkState.OPEN,
-            "complete": WorkState.COMPLETED,
-            "abandon": WorkState.ABANDONED,
-        }[continuityDisposition]
-        request = {
-            "workRef": workRef,
-            "expectedRevision": expectedRevision,
-            "snapshot": snapshot.canonical_payload(),
-            "actorRef": actorRef,
-            "continuityDisposition": continuityDisposition,
-        }
-        return work.commit_snapshot(
-            workRef,
-            expected_revision=expectedRevision,
-            snapshot=snapshot,
-            actor_ref=actorRef,
-            state=state,
-            client_request_id=_request_id("work-snapshot-commit", request),
-        )
+    register_work_tools(mcp, work, _request_id)
 
     @mcp.tool(name="space.create")
     @_project_domain_errors

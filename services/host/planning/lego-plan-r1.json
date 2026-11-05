@@ -55,12 +55,13 @@
         "O09"
       ],
       "consumers": [
-        "social_work_mcp:work.create",
-        "social_work_mcp:work.get",
-        "social_work_mcp:work.snapshot.commit",
+        "mcp_work_tools:work.create",
+        "mcp_work_tools:work.get",
+        "mcp_work_tools:work.snapshot.commit",
         "Gateway Host adapter:work.get"
       ],
       "consumerEvidence": [
+        "src/ordivon_host_v2/mcp_work_tools.py",
         "src/ordivon_host_v2/social_work_mcp.py",
         "tests/test_social_work_fabric_work_graph.py::test_host_work_cas_revision_is_exact_positive_integer_before_db",
         "tests/test_social_work_fabric_postgres.py::test_work_snapshot_cas_race_has_one_winner",
