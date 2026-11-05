@@ -11,6 +11,8 @@
       "src/ordivon_host_v2/work_inputs.py",
       "src/ordivon_host_v2/work_store.py",
       "src/ordivon_host_v2/social_store.py",
+      "src/ordivon_host_v2/social_queries.py",
+      "src/ordivon_host_v2/social_errors.py",
       "src/ordivon_host_v2/social_attention.py",
       "src/ordivon_host_v2/social_work_mcp.py",
       "tests/test_social_work_fabric_postgres.py",
@@ -91,6 +93,9 @@
       "evidence": [
         "src/ordivon_host_v2/collaboration_inputs.py",
         "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_queries.py",
+        "src/ordivon_host_v2/social_errors.py",
+        "tests/test_social_query_boundary.py",
         "tests/test_social_work_fabric_social_graph.py"
       ],
       "dependencies": [
@@ -351,6 +356,7 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_queries.py",
         "src/ordivon_host_v2/social_contracts.py",
         "tests/test_social_message_digest_postgres.py",
         "tests/test_message_get_contract.py"
@@ -412,6 +418,7 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_queries.py",
         "src/ordivon_host_v2/social_bounds.py",
         "tests/test_social_work_fabric_postgres.py::test_r2_topic_cursor_relation_readback_reasons_and_reentry",
         "tests/test_social_work_fabric_postgres.py::test_r2_message_page_respects_canonical_byte_budget"
