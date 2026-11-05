@@ -29,7 +29,7 @@
     "stalling": "mean same-state transition fraction across P2+P3 eval episodes <=0.25"
   },
   "buildManifest": {
-    "authority": "experiments/autonomous-interest-r7/build_manifest_reference.py",
+    "authority": "domains/game/research/autonomous-interest-r7/build_manifest_reference.py",
     "binds": [
       "winnerCandidateId",
       "winnerModelDigest",
@@ -271,22 +271,22 @@
     "any two-compliant-implementation counterexample affecting winner, ablation, Human build, presentation, or endpoint terminates R7"
   ],
   "referenceImplementation": {
-    "buildManifest": "experiments/autonomous-interest-r7/build_manifest_reference.py",
-    "evaluator": "experiments/autonomous-interest-r7/evaluator_reference.py",
-    "renderer": "experiments/autonomous-interest-r7/renderer_reference.py",
-    "selection": "experiments/autonomous-interest-r7/selection_reference.py",
-    "selftest": "experiments/autonomous-interest-r7/protocol_selftest.py",
-    "selftestModel": "experiments/autonomous-interest-r7/selftest_model.json",
-    "studyRunner": "experiments/autonomous-interest-r7/study_runner_reference.py"
+    "buildManifest": "domains/game/research/autonomous-interest-r7/build_manifest_reference.py",
+    "evaluator": "domains/game/research/autonomous-interest-r7/evaluator_reference.py",
+    "renderer": "domains/game/research/autonomous-interest-r7/renderer_reference.py",
+    "selection": "domains/game/research/autonomous-interest-r7/selection_reference.py",
+    "selftest": "domains/game/research/autonomous-interest-r7/protocol_selftest.py",
+    "selftestModel": "domains/game/research/autonomous-interest-r7/selftest_model.json",
+    "studyRunner": "domains/game/research/autonomous-interest-r7/study_runner_reference.py"
   },
   "referenceImplementationDigests": {
     "buildManifest": "sha256:270f88074670eef48f0dff1decc2ca2218c7e2c7c977dcfd179c638463cc6c34",
     "evaluator": "sha256:009467f6d27b892edc7eb26630b9b8fa76e686f85b482a10d21251f212b29962",
     "modelSchema": "sha256:34fd3da5cea99eae3c35ea9d06b706a0f702fd0a8010030ec6255c6e3e262b3b",
-    "protocolMarkdown": "sha256:e300271aae27f2138452a621f2e39addf94b77cec5633f6037b7fe1d462af4f0",
+    "protocolMarkdown": "sha256:2d6ca85ccd3dbf3a641a547f129d1b4cb420a8e46078008e0bb4068f45402f77",
     "renderer": "sha256:3ad0516869d0fe73b46e0859365c0180541ace15cb05ef8a56d8d0d977fcf295",
     "selection": "sha256:889df47bcb12b18be55ebb4644c12130d0f214fca827281afcc36cd98bde80af",
-    "selftest": "sha256:c23694ece52488912b935c01f21bd7e26a7cc663e5034e66cfc9d2979159a4f0",
+    "selftest": "sha256:68c2291710151174b58dc6a897a88c70d252c3eb776ea74da634ea0efb3bf8af",
     "selftestModel": "sha256:afd197d6d3c7e17e1e3445e489fd3a2d0cfbed0aed512ce12d28db17c03ef403",
     "studyRunner": "sha256:24ec4540a9c2125b63a67f86b93778b9eb56db6f4d3cf28b8777629389993a41"
   },

@@ -47,11 +47,11 @@ class AffectedOwnersTests(unittest.TestCase):
     def test_relocated_knowledge_selects_existing_next_consumer(self) -> None:
         self.assertEqual(
             self.names("catalogs/knowledge/lessons/temporal-durable-execution-kernel.md"),
-            ["next"],
+            ["composition"],
         )
         self.assertEqual(
             self.queue_tasks("catalogs/knowledge/graphs/ordivon-agent-birth-r1.json"),
-            ["next:verify"],
+            ["composition:verify"],
         )
         self.assertEqual(self.names("catalogs/unknown.md"), [])
 
@@ -102,9 +102,9 @@ class AffectedOwnersTests(unittest.TestCase):
             "services/harness/README.md",
         )))
 
-    def test_next_queue_verification_defaults_to_full_verify(self) -> None:
-        self.assertEqual(self.tasks("meta/next/README.md"), ["next:verify"])
-        self.assertEqual(self.queue_tasks("meta/next/README.md"), ["next:verify"])
+    def test_authority_catalog_queue_verification_defaults_to_full_verify(self) -> None:
+        self.assertEqual(self.tasks("catalogs/authorities/README.md"), ["authority-catalog:verify"])
+        self.assertEqual(self.queue_tasks("catalogs/authorities/README.md"), ["authority-catalog:verify"])
 
     def test_host_has_explicit_postgres_queue_verification(self) -> None:
         self.assertEqual(self.tasks("services/host/README.md"), ["host:verify"])
@@ -423,7 +423,7 @@ verify_task = "y:verify"
 
     def test_manifest_rejects_parent_traversal_root(self) -> None:
         content = MODULE.MANIFEST_PATH.read_text(encoding="utf-8").replace(
-            'root = "meta/next/"', 'root = "meta/../next/"', 1
+            'root = "catalogs/authorities/"', 'root = "catalogs/../authorities/"', 1
         )
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "owners.toml"

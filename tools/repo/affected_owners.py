@@ -193,7 +193,7 @@ def owners_for_paths(
             )
             or (history_consumer_changed and owner.name == "composition")
             or (project_skill_consumer_changed and owner.name == "skills")
-            or (knowledge_catalog_consumer_changed and owner.name == "next")
+            or (knowledge_catalog_consumer_changed and owner.name == "composition")
             # Tagged Runtime release builds and attests Runtime artifacts.
             or (
                 owner.name == "runtime"

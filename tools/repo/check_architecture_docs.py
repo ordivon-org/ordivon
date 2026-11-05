@@ -1939,6 +1939,7 @@ def validate_formal_issue_census(
             owner = entry.get("owner")
             if not isinstance(owner, str) or (
                 owner not in known_owners
+                and owner != "meta/next"  # immutable historical Git SourceCut, not an active Owner
                 and not (
                     owner == "ROOT_UNOWNED"
                     and entry.get("disposition") == "NO_PORT_WITHOUT_VERIFIED_LIVE_CONSUMER"

@@ -29,9 +29,9 @@ capabilities and native engine primitives do not satisfy the desired behavior.
 - Mechanism relationships and external examples are **hypotheses**, not
   recommendations, player preference evidence, engine standards or proof
   of game-quality transfer.
-- Other agents may be relocating `meta/next/domains/game` frozen protocol
-  material. That is not an invitation to move version-bound R7 inputs:
-  first inspect real experiment consumers, SourceCuts and open PRs.
+- Frozen R7 protocol profiles live in profiles/domains/game/, and the source-qualified
+  study experiment lives in domains/game/research/autonomous-interest-r7/.
+  Check source digests and consumers before editing the frozen protocol.
 
 **Natural truth owners:** Git for source/commits; the current engine and
 dependency lock for executable behavior; original provider and license for
