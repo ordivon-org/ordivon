@@ -2,13 +2,13 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
-work="$root/.tmp/media-v2-timedtext-smoke"
+work="$root/.tmp/processing-timedtext-smoke"
 rm -rf "$work"
 mkdir -p "$work"
 trap 'rm -rf "$work"' EXIT
 
-ttconv="$root/media-v2/bin/ttconv-pinned.sh"
-probe="$root/media-v2/bin/probe-timed-text.sh"
+ttconv="$root/processing/bin/ttconv-pinned.sh"
+probe="$root/processing/bin/probe-timed-text.sh"
 
 cat > "$work/good.vtt" <<'EOF'
 WEBVTT
@@ -73,4 +73,4 @@ if bash "$probe" "$work/malformed.ttml" "$work/profile.json" "$work/malformed-ev
   exit 1
 fi
 
-echo 'media-v2 timed-text smoke: PASS (round-trip preserved; negative duration, overflow, malformed XML rejected)'
+echo 'processing timed-text smoke: PASS (round-trip preserved; negative duration, overflow, malformed XML rejected)'

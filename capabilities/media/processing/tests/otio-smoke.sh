@@ -2,12 +2,12 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
-work="$root/.tmp/media-v2-otio-smoke"
+work="$root/.tmp/processing-otio-smoke"
 rm -rf "$work"
 mkdir -p "$work"
 trap 'rm -rf "$work"' EXIT
 
-probe="$root/media-v2/bin/probe-otio.sh"
+probe="$root/processing/bin/probe-otio.sh"
 
 /usr/bin/mise -C "$root" exec -- uv run --no-project --with 'opentimelineio==0.18.1' python - "$work/good.otio" "$work/bad-range.otio" <<'PY'
 import sys
@@ -66,4 +66,4 @@ if bash "$probe" "$work/malformed.otio" "$work/profile.json" "$work/malformed-ev
   exit 1
 fi
 
-echo 'media-v2 OTIO smoke: PASS (official OTIO inspection accepted good timeline; range/count/malformed negatives rejected)'
+echo 'processing OTIO smoke: PASS (official OTIO inspection accepted good timeline; range/count/malformed negatives rejected)'

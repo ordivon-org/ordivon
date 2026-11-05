@@ -2,13 +2,13 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
-work="$root/.tmp/media-v2-audio-smoke"
+work="$root/.tmp/processing-audio-smoke"
 rm -rf "$work"
 mkdir -p "$work"
 trap 'rm -rf "$work"' EXIT
 
-profile="$root/media-v2/profiles/audio-program-48k-mono-lufs23.json"
-probe="$root/media-v2/bin/probe-audio.sh"
+profile="$root/processing/profiles/audio-program-48k-mono-lufs23.json"
+probe="$root/processing/bin/probe-audio.sh"
 
 # FFmpeg's sine source is about -21 LUFS here. Reduce by 2 dB for a bounded -23 LUFS fixture.
 ffmpeg -hide_banner -loglevel error -y \
@@ -46,4 +46,4 @@ if bash "$probe" "$work/good.wav" "$work/codec-negative-profile.json" "$work/bad
 fi
 grep -q 'FAIL audio.codec' "$work/bad-codec.stderr"
 
-echo 'media-v2 audio smoke: PASS (target accepted; loudness, peak, and codec negatives rejected)'
+echo 'processing audio smoke: PASS (target accepted; loudness, peak, and codec negatives rejected)'
