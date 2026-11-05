@@ -252,19 +252,5 @@ vars:
     sh: printf '%s ' systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
   FINANCE_SYSTEMD_UNITS:
     sh: printf '%s ' consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
-  WIREGUARD_GO_REPO:
-    sh: awk -F= '$1=="repository"{print $2}' capabilities/wireguard/external/wireguard-go.lock
-  WIREGUARD_GO_REVISION:
-    sh: awk -F= '$1=="revision"{print $2}' capabilities/wireguard/external/wireguard-go.lock
   WIREGUARD_GO_VERSION:
     sh: awk -F= '$1=="version"{print $2}' capabilities/wireguard/external/wireguard-go.lock
-  GLUETUN_SERVERS_REPO:
-    sh: awk -F= '$1=="repository"{print $2}' providers/surfshark/external/gluetun-servers.lock
-  GLUETUN_SERVERS_REVISION:
-    sh: awk -F= '$1=="revision"{print $2}' providers/surfshark/external/gluetun-servers.lock
-  GLUETUN_SERVERS_FILE:
-    sh: awk -F= '$1=="file"{print $2}' providers/surfshark/external/gluetun-servers.lock
-  GLUETUN_SERVERS_SHA256:
-    sh: awk -F= '$1=="sha256"{print $2}' providers/surfshark/external/gluetun-servers.lock
-  GLUETUN_SERVERS_INSTALL:
-    sh: awk -F= '$1=="install"{print $2}' providers/surfshark/external/gluetun-servers.lock

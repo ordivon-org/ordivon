@@ -84,3 +84,15 @@ tasks:
           test "$(yq -p=ini -o=json -r '.Interface.MTU' "$profile")" = 1280
           test "$(yq -p=ini -o=json -r '.Interface.DNS // ""' "$profile")" = ''
         done <"$manifest"
+
+vars:
+  GLUETUN_SERVERS_REPO:
+    sh: awk -F= '$1=="repository"{print $2}' providers/surfshark/external/gluetun-servers.lock
+  GLUETUN_SERVERS_REVISION:
+    sh: awk -F= '$1=="revision"{print $2}' providers/surfshark/external/gluetun-servers.lock
+  GLUETUN_SERVERS_FILE:
+    sh: awk -F= '$1=="file"{print $2}' providers/surfshark/external/gluetun-servers.lock
+  GLUETUN_SERVERS_SHA256:
+    sh: awk -F= '$1=="sha256"{print $2}' providers/surfshark/external/gluetun-servers.lock
+  GLUETUN_SERVERS_INSTALL:
+    sh: awk -F= '$1=="install"{print $2}' providers/surfshark/external/gluetun-servers.lock
