@@ -1009,7 +1009,7 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], ["media"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["artifact", "authority-catalog", "composition", "distribution", "game", "media", "workstation"],
+            ["artifact", "authority-catalog", "distribution", "game", "media", "workstation"],
         )
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])
@@ -1571,8 +1571,9 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertNotIn("composition", graph["runtime"])
         self.assertNotIn("runtime", graph["harness"])
         self.assertNotIn("harness", graph["runtime"])
-        # Existing public code/data dependencies must still propagate.
-        self.assertIn("authority-catalog", graph["composition"])
+        # The retired Next catalog-to-composition shim is gone. No
+        # synthetic cross-owner edge should be inherited from that shim.
+        self.assertNotIn("authority-catalog", graph["composition"])
         runtime = MODULE.build_plan(changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"])
         # The direct test witness is selected without merging the operational
         # composition/harness/security/web owner component into Runtime.
