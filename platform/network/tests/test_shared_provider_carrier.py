@@ -61,11 +61,18 @@ def test_finance_provider_lanes_share_carrier_and_macro_lanes_remain_direct():
 
 
 def test_semantic_consumers_survive_physical_carrier_loss():
-    for directory, name in ((FINANCE, "finance"), (SUPPLY, "supply-chain")):
+    for directory, name, carrier in (
+        (FINANCE, "finance", "network-v2-browserless-provider-carrier.service"),
+        (SUPPLY, "supply-chain", "network-v2-gluetun-owned-adapter.service"),
+    ):
         unit = (directory / "systemd" / f"network-v2-{name}-egress.service").read_text()
-        assert "Wants=network-v2-browserless-provider-carrier.service" in unit
-        assert "Requires=network-v2-browserless-provider-carrier.service" not in unit
-        assert "After=network-v2-browserless-provider-carrier.service" in unit
+        assert f"Wants={carrier}" in unit
+        assert f"Requires={carrier}" not in unit
+        assert f"After={carrier}" in unit
+    # Migrated Supply Chain must never implicitly start the legacy physical
+    # provider. Finance is a separate Owner migration obligation.
+    supply = (SUPPLY / "systemd/network-v2-supply-chain-egress.service").read_text()
+    assert "network-v2-browserless-provider-carrier.service" not in supply
 
 
 def test_no_current_consumer_materializes_duplicate_provider_identity():

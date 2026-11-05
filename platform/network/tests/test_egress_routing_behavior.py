@@ -7,6 +7,7 @@ services, credentials, VPN identities, netns, or global routes are modified.
 from __future__ import annotations
 
 import json
+import os
 import queue
 import shutil
 import socket
@@ -57,7 +58,18 @@ def _free_port() -> int:
 @contextmanager
 def _consumer_proxy(consumer: str, *, disable_terminal_reject: bool = False):
     filename = "sing-box.json" if consumer == "codex" else "egress.json"
-    config = json.loads((CONSUMERS / consumer / "config" / filename).read_text())
+    source = CONSUMERS / consumer / "config" / filename
+    mode = os.environ.get("ORDIVON_NETWORK_POLICY_SOURCE", "source")
+    assert mode in ("source", "installed"), "Unknown native policy probe mode"
+    policy = source
+    if mode == "installed":
+        # Real installed bytes re-executed by native sing-box in isolated listener.
+        # Deployed-but-divergent SourceCut is a failure, not a passed witness.
+        policy = Path("/etc/network-v2") / consumer / filename
+        assert policy.read_bytes() == source.read_bytes(), (
+            f"{consumer}: source/installed policy diverged"
+        )
+    config = json.loads(policy.read_text())
     assert len(config["inbounds"]) == 1
     assert len(config["outbounds"]) == 1
     assert config["outbounds"][0]["type"] == "http", "No direct Internet egress in the probe"
@@ -129,7 +141,7 @@ def _connect(port: int, target: str) -> None:
     ("consumer", "allowed"),
     [
         ("x-reality", ("api.x.com:443",)),
-        ("supply-chain", ("registry-1.docker.io:443", "image.pkg.dev:443")),
+        ("supply-chain", ("registry-1.docker.io:443", "image.pkg.dev:443", "production.cloudfront.docker.com:443")),
         ("codex", ("chatgpt.com:443", "persistent.oaistatic.com:443")),
         ("discord", ("discord.com:443", "gateway.discord.gg:443")),
         ("model-provider", ("api.deepseek.com:443", "generativelanguage.googleapis.com:443")),

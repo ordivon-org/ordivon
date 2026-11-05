@@ -12,8 +12,9 @@ def test_supply_chain_authority_matches_enforced_destination_policy():
     egress = json.loads((CONSUMER / "config" / "egress.json").read_text())
     assert authority["listen"] == {"host": "127.0.0.1", "port": 19581, "protocol": "http"}
     assert authority["directFallback"] is False
-    assert authority["networkAuthority"]["carrierService"] == "network-v2-browserless-provider-carrier.service"
-    assert authority["networkAuthority"]["providerSite"] == "th-bkk"
+    assert authority["networkAuthority"]["carrierService"] == "network-v2-gluetun-owned-adapter.service"
+    assert authority["networkAuthority"]["namespace"] == "nv2-browserless-prod"
+    assert "providerSite" not in authority["networkAuthority"]
     route = next(r for r in egress["route"]["rules"] if r.get("inbound") == ["supply-chain-oci"])
     assert sorted(route["domain"]) == sorted(authority["allowedHttpsDomains"])
     assert sorted(route["domain_suffix"]) == sorted(authority["allowedHttpsDomainSuffixes"])
@@ -31,8 +32,10 @@ def test_supply_chain_reuses_one_shared_carrier_without_vpn_identity():
     assert "dns" not in egress
     assert "services" not in egress
     unit = (CONSUMER / "systemd" / "network-v2-supply-chain-egress.service").read_text()
-    assert "Wants=network-v2-browserless-provider-carrier.service" in unit
-    assert "Requires=network-v2-browserless-provider-carrier.service" not in unit
+    assert "Wants=network-v2-gluetun-owned-adapter.service" in unit
+    assert "After=network-v2-gluetun-owned-adapter.service" in unit
+    assert "Requires=network-v2-gluetun-owned-adapter.service" not in unit
+    assert "network-v2-browserless-provider-carrier.service" not in unit
     assert "provider-endpoints.json" not in unit
     taskfile = (CONSUMER / "Taskfile.yml").read_text()
     assert "rm -f /etc/network-v2/supply-chain/provider-endpoints.json" in taskfile
