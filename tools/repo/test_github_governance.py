@@ -999,12 +999,12 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         for obligation in (
             "uv lock --check", "uv sync --locked",
             "uv run --locked python -m pytest",
-            "uv run --locked --group quality ruff check scripts tests",
-            "uv run --locked --group quality ruff format --check scripts tests",
+            "uv run --locked --group quality ruff check tests",
+            "uv run --locked --group quality ruff format --check tests",
             "../../catalogs/authorities/scripts/check_authority_catalog_r1.py",
             
             "../../catalogs/capabilities/scripts/verify_reasoning_providers.py",
-            "bandit -r scripts", "pip-audit",
+            "bandit -r ../../catalogs/authorities/scripts", "pip-audit",
         ):
             self.assertIn(obligation, checks)
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())

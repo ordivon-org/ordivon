@@ -91,8 +91,8 @@ Run the registered owner verification from the monorepo root with `mise run next
 
 ```bash
 uv run --locked python -m pytest
-uv run --locked --group quality ruff check scripts tests
-uv run --locked --group quality ruff format --check scripts tests
+uv run --locked --group quality ruff check tests ../../catalogs/authorities/scripts ../../catalogs/authorities/tests ../../catalogs/capabilities/routing ../../catalogs/capabilities/scripts ../../catalogs/capabilities/tests
+uv run --locked --group quality ruff format --check tests ../../catalogs/authorities/scripts ../../catalogs/authorities/tests ../../catalogs/capabilities/routing ../../catalogs/capabilities/scripts ../../catalogs/capabilities/tests
 uv run --locked --group authority python ../../catalogs/authorities/scripts/check_authority_catalog_r1.py
 uv run --locked --group reasoning python ../../catalogs/capabilities/scripts/verify_reasoning_providers.py
 ```
@@ -102,7 +102,7 @@ PEP 621 project dependencies are the runtime/deployment dependency authority. Th
 Security uses external tools directly rather than a repository-specific scanner. Bandit covers source heuristics, PyPA `pip-audit` checks known Python dependency vulnerabilities, and Gitleaks scans both repository history and the current tree for credential material. Gitleaks is a system-level external tool rather than a Python project dependency, so it is not mirrored into `uv.lock`. Reviewed false positives live only as exact fingerprints in `.gitleaksignore`; do not replace them with path-wide or rule-wide exclusions.
 
 ```bash
-uv run --locked --group security bandit -r scripts -q -s B404,B603
+uv run --locked --group security bandit -r ../../catalogs/authorities/scripts ../../catalogs/capabilities/scripts -q -s B404,B603
 
 gitleaks git --no-banner --redact=100 --timeout 120 .
 gitleaks dir --no-banner --redact=100 .
