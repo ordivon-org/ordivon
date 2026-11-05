@@ -51,7 +51,8 @@
         "responsibility": "Workspace projection issues",
         "locations": [
           "engine.rs workspace_issue mapper",
-          "engine/job_control.rs",
+          "engine/workspace.rs",
+          "engine/workspace_evidence.rs",
           "inspection/operator.rs"
         ],
         "migration": "Consolidate projection/error vocabulary only if it reduces duplicate semantics."
@@ -194,7 +195,7 @@
         "law": "Artifact attribution to Job/Attempt",
         "locations": [
           "types.rs",
-          "engine/job_control.rs",
+          "engine/artifact_projection.rs",
           "registry/query.rs"
         ],
         "target": "ArtifactState contract"
