@@ -21,12 +21,11 @@ from .collection_pagination import (
 )
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .coordination_inputs import CoordinationIntentInput, IntentStanding
-from .errors import ConflictError
+from .errors import ActorRefNotFound, ConflictError, WorkNotFound
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
 from .social_queries import SocialReadQueries
-from .work_store import ActorRefNotFound, WorkNotFound
 
 
 def _reply_target_precedes_source(source_sequence: int, target_sequence: int) -> bool:

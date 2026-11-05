@@ -6,9 +6,8 @@ from functools import wraps
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import ValidationError
 
-from .errors import ConflictError
-from .social_store import MessageNotFound, SpaceNotFound, TopicNotFound
-from .work_store import ActorRefNotFound, WorkNotFound
+from .errors import ActorRefNotFound, ConflictError, WorkNotFound
+from .social_errors import MessageNotFound, SpaceNotFound, TopicNotFound
 
 
 def _domain_error_payload(exc: Exception) -> dict[str, object]:

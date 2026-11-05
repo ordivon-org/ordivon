@@ -9,9 +9,8 @@ from .attention_projections import AttentionReadProjections
 from .attention_projections import TargetKind as TargetKind
 from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
-from .errors import ConflictError
-from .social_store import SpaceNotFound, TopicNotFound
-from .work_store import ActorRefNotFound, WorkNotFound
+from .errors import ActorRefNotFound, ConflictError, WorkNotFound
+from .social_errors import SpaceNotFound, TopicNotFound
 
 
 class AttentionStore(AttentionReadProjections):
