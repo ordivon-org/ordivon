@@ -16,8 +16,9 @@ PublishPort=10.252.246.1:19682:8888/tcp
 AddCapability=NET_ADMIN
 AddCapability=NET_RAW
 AddDevice=/dev/net/tun
-EnvironmentFile=/etc/network-v2/gluetun/serialized-candidate.env
-Volume=/etc/network-v2/browserless/nv2blwg.conf:/gluetun/wireguard/wg0.conf:ro
+EnvironmentFile=/etc/network-v2/gluetun/serialized-native.env
+Secret=network-v2-gluetun-surfshark-wgkey,type=mount,target=surfshark-wgkey
+Environment=WIREGUARD_PRIVATE_KEY_SECRETFILE=/run/secrets/surfshark-wgkey
 
 [Service]
 ExecStartPre=/usr/local/libexec/network-v2/provider-identity-exclusive gluetun
