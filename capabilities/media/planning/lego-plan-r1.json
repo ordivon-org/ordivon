@@ -386,6 +386,141 @@
           ]
         }
       }
+    },
+    {
+      "id": "V08",
+      "label": "GroundedEvidenceExperiment",
+      "kind": "method_contract",
+      "responsibility": "Compose bounded R5 Agent-observer text, time-coded video/narration and crossmodal evidence tasks from source-grounded claims; expose counterexample, paraphrase and omission variants without claiming real-world model understanding.",
+      "authority": "Media experimental research method; source and model providers retain their own truth",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/research/grounded_contracts.py",
+        "src/ordivon_studio/research/grounded_evidence.py",
+        "src/ordivon_studio/research/grounded_text_tasks.py",
+        "src/ordivon_studio/research/grounded_av_tasks.py",
+        "src/ordivon_studio/research/grounded_provider.py",
+        "src/ordivon_studio/research/grounded_scoring.py",
+        "scripts/run-r5-grounded-meaning.py",
+        "tests/test_grounded_meaning.py"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "provider network/model runtime",
+        "raw pixel/audio inference",
+        "unobserved semantic Task completion",
+        "Media Production source revisions",
+        "independent publication or editorial selection"
+      ],
+      "acceptance": [
+        "Exact R5 14-task provider bundle remains byte-equivalent under the source cut.",
+        "The R5 scored receipt consumer still accepts the refactored task/provider boundary.",
+        "Grounding is limited to supplied evidence identities and exact source/timing; negative omissions and meaning-changing perturbations remain representable.",
+        "Provider model or domain acceptance is not inferred from source-level test success."
+      ],
+      "r21": {
+        "I": {
+          "type": "GroundedR5ExperimentInput",
+          "fields": [
+            "source composition TSX",
+            "timecoded narration JSON",
+            "experimental fictitious text/crossmodal fixtures",
+            "replicate count 1..8"
+          ],
+          "consumer": "scripts/run-r5-grounded-meaning.py build"
+        },
+        "O": {
+          "type": "GroundedR5ProviderBundle",
+          "fields": [
+            "14 typed tasks across 5 task families",
+            "source-scoped evidenceIds",
+            "provider-visible schemas",
+            "separate private oracle values",
+            "canonical bundleDigest"
+          ],
+          "consumer": "R5 independent scoring via grounded_scoring.score_provider_receipt"
+        },
+        "S": {
+          "type": "Unit",
+          "justification": "Task building is a pure deterministic representation; no durable writes or model execution within the method."
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "caller supplies exact accessible source-composition and timed narration fixtures",
+            "narration has a supported timeBase and cues",
+            "all evidenceIDs and locators satisfy grounded contracts",
+            "valid positive bounded replicate count at CLI admission"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "14 source-bound tasks with stable canonical digest for fixed inputs",
+            "task userPayload does not expose oracle answers",
+            "meaning-changing and omission fixtures remain available as independent counterexamples"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "evidence identity and locator are validated before use",
+            "semantic truth is never invented from missing source evidence",
+            "source and provider currentness remain external",
+            "task score is evaluated independently from provider bundle assembly"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read exact caller-specified local source/timed text files during bundle build"
+          ],
+          "excluded": [
+            "invoke AI provider",
+            "write source Production",
+            "publish media",
+            "mutate Host messages or Task truth",
+            "persist hidden state"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "actual provider inference expense and latency",
+          "reason": "the bounded source experiment does not execute or benchmark an external LLM",
+          "obligation": "measure provider cost only for a real selected consumer and exact provider run"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "human comprehension, live grounded semantics, visual/audio-world accuracy",
+          "reason": "synthetic labels and source-semantic fixtures cannot establish human or pixel-level outcomes",
+          "obligation": "real provider receipts and source-specific independent evaluator before domain acceptance"
+        },
+        "prov": {
+          "type": "source_and_consumer",
+          "sourcePaths": [
+            "src/ordivon_studio/research/grounded_evidence.py",
+            "src/ordivon_studio/research/grounded_text_tasks.py",
+            "src/ordivon_studio/research/grounded_av_tasks.py",
+            "src/ordivon_studio/research/grounded_provider.py"
+          ],
+          "consumerProof": "identical 14-task R5 provider-bundle digest sha256:90857cc48766c837b81f226b5abd2c6731a8276679b307d7602d196887c255a4 before/after at source cut",
+          "standing": "implementation-equivalence, NOT external provider/domain acceptance"
+        },
+        "unfold": {
+          "type": "owner_native_code",
+          "sourcePaths": [
+            "src/ordivon_studio/research/grounded_evidence.py",
+            "src/ordivon_studio/research/grounded_text_tasks.py",
+            "src/ordivon_studio/research/grounded_av_tasks.py",
+            "src/ordivon_studio/research/grounded_provider.py"
+          ],
+          "reusedMethods": [
+            "grounded_contracts canonical_digest/RELATION_LABELS",
+            "grounded_scoring.score_provider_receipt"
+          ]
+        }
+      }
     }
   ],
   "edges": [
@@ -514,6 +649,25 @@
       ],
       "blockers": [],
       "nextAction": "Native Windows Resolve readback only when a current production needs a real host conform; do not expand generic timeline adapters."
+    },
+    {
+      "id": "VS5",
+      "objective": "Replace a monolithic R5 Grounded Meaning source with independently replaceable evidence contract, text and AV task families and source-bound provider assembly; preserve complete real consumer bundle semantics.",
+      "status": "IMPLEMENTED",
+      "nodeIds": [
+        "V08"
+      ],
+      "acceptance": [
+        "No extra engine, provider facade or missing-source truth claim.",
+        "Exact 14 task bundle digest before/after, all Media Owner regression tests and root native governance CI."
+      ],
+      "evidence": [
+        "src/ordivon_studio/research/grounded_provider.py",
+        "tests/test_grounded_meaning.py",
+        "scripts/run-r5-grounded-meaning.py"
+      ],
+      "blockers": [],
+      "nextAction": "Only invoke/scoring actual provider when a named research consumer needs inference; never promote synthetic source fixtures to real model or human comprehension evidence."
     }
   ],
   "gaps": [
