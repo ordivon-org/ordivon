@@ -39,7 +39,7 @@ def test_attention_mentions_and_replies_route_without_global_scan() -> None:
 
 
 def test_attention_cursor_is_monotonic_and_horizon_bounded() -> None:
-    source = ATTENTION.read_text()
+    source = ATTENTION.read_text() + (ATTENTION.parent / "attention_projections.py").read_text()
     assert "attention cursor cannot move backwards" in source
     assert "cannot acknowledge beyond current change horizon" in source
     assert "WHERE attention_cursors.cursor <= EXCLUDED.cursor" in source
@@ -48,7 +48,7 @@ def test_attention_cursor_is_monotonic_and_horizon_bounded() -> None:
 
 
 def test_attention_never_ranks() -> None:
-    source = ATTENTION.read_text()
+    source = (ATTENTION.parent / "attention_projections.py").read_text()
     assert '"rankingApplied": False' in source
     assert "ORDER BY change_sequence,event_kind,source_ref" in ATTENTION_DELTA_SQL
     assert "ORDER BY priority" not in source
