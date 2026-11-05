@@ -140,7 +140,7 @@ class AgentSurfaceTests(unittest.TestCase):
     def test_dependency_observation_never_acquires_and_detects_exact_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)
-            with mock.patch("ordivon_studio.agent_surface.subprocess.run", return_value=mock.Mock(returncode=0)):
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", return_value=mock.Mock(returncode=0)):
                 state = dependency_status(root)
                 self.assertTrue(state["js"]["ready"])
                 self.assertTrue(state["js"]["resolverChecked"])
@@ -154,7 +154,7 @@ class AgentSurfaceTests(unittest.TestCase):
     def test_js_status_delegates_currentness_to_project_pinned_pnpm_resolver(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)
-            with mock.patch("ordivon_studio.agent_surface.subprocess.run", return_value=mock.Mock(returncode=2)) as probe:
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", return_value=mock.Mock(returncode=2)) as probe:
                 state = dependency_status(root)
             self.assertFalse(state["js"]["ready"])
             self.assertEqual(state["js"]["reason"], "JS_DEPENDENCIES_STALE_OR_UNAVAILABLE")
