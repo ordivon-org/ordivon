@@ -418,15 +418,15 @@
         "mode": "read-only-census-and-cutover-obligation-not-live-migration"
       },
       "latestRequalification": {
-        "observedAt": "2026-11-05T10:06:48+08:00",
-        "sourceCut": "88e245ee605aac93e18da05d4023ddda14299d55",
+        "observedAt": "2026-11-05T13:47:32+08:00",
+        "sourceCut": "d9df40e1d8156a18bca1b31b5ef2640731d47acc",
         "standing": "PG_NATIVE_IMPLEMENTATION_PRESENT_LIVE_CUTOVER_NOT_AUDITED",
         "cutoverAdmission": "NOT_ADMITTED",
         "nativeConsumerEvidence": [
-          "capabilities/media/src/ordivon_studio/research/research_validity.py"
+          "capabilities/media/src/ordivon_studio/research/trial_ledger.py"
         ],
-        "remainingUnknown": "The current PostgreSQL TrialLedger implementation and bounded tests do not independently establish live writer quiescence, historical-import need, running consumer switchover, or rollback/recovery admission.",
-        "proofScope": "Current SourceCut presence of owner-native PostgreSQL source and bounded unit tests only; no independent live cutover proof."
+        "remainingUnknown": "Current cutover state of any active external TrialLedger writer/reader, historical SQLite retention consumer, rollback/recovery and deployed process source revision remains unverified.",
+        "proofScope": "SourceCut presence of the isolated PostgreSQL TrialLedger and actual disposable PostgreSQL 18.6 R6 tests (14/14), plus Media Owner tests (211/211); does not establish active external writer cutover, historical-import need or live production acceptance."
       }
     },
     {
