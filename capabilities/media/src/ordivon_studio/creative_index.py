@@ -6,11 +6,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from .creative_index_sources import (
-    _json,
-    project_artifact_source,
-    project_creative_library_source,
-)
+from .creative_index_artifact import project_artifact_source
+from .creative_index_library import project_creative_library_source
+from .creative_index_source_utils import _json
 
 INDEX_KIND = "ordivon.media.creative-index"
 

@@ -71,10 +71,11 @@ are **distinct**; no new equipment engine or parallel asset authority is admitte
 
 Creative navigation follows the same source-of-truth rule:
 `creative_index.py` orchestrates a rebuildable projection over Media's native
-equipment, productions and collections; `creative_index_sources.py` reads
-Artifact-owned delivery evidence and Creative Library snapshots. Graph nodes
-and edges are derived navigation only. Query results never mutate or replace
-the original owner records.
+equipment, productions and collections. `creative_index_artifact.py` reads
+Artifact delivery evidence, and `creative_index_library.py` reads source-owned
+Creative Library catalogs and generated evidence. `creative_index_source_utils.py`
+retains only shared JSON reads and nonrecursive metadata traversal. All nodes
+and relations remain derived navigation; queries do not mutate owner records.
 
 The Agent entry point follows the existing ports-and-adapters boundary:
 `agent_surface.py` advertises and validates stable JSON Schema tools;

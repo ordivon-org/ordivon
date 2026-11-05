@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from ordivon_studio.creative_index import build_creative_index, query_creative_index
-from ordivon_studio.creative_index_sources import _first_string, _walk_values
+from ordivon_studio.creative_index_source_utils import _first_string, _walk_values
 
 ROOT = Path(__file__).resolve().parents[1]
 
