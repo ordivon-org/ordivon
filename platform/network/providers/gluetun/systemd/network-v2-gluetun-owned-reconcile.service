@@ -1,0 +1,13 @@
+[Unit]
+Description=Network-v2 reconcile selected Gluetun provider after transient boot dependencies
+ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected
+After=network-online.target
+
+[Service]
+Type=oneshot
+# An explicitly disabled provider target means operator maintenance, not recovery.
+ExecCondition=/usr/bin/systemctl is-enabled --quiet network-v2-gluetun-owned.target
+# Forbid a second physical WireGuard identity while legacy mode is still active.
+ExecStartPre=/usr/local/libexec/network-v2/provider-identity-exclusive gluetun
+ExecStart=/usr/bin/systemctl start network-v2-gluetun-owned.target
+TimeoutStartSec=1min

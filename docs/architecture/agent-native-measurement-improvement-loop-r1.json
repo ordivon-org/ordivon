@@ -6,11 +6,12 @@
   "truthRole": "architecture-profile-not-owner-truth-or-promotion-authority",
   "sourceTrigger": "Anthropic claude.dev performance sprint and related agent-engineering series",
   "reusedSubstrate": [
+    "meta/next/docs/IMPROVEMENT_CIRCUIT_PROFILE_R1.md",
     "packages/composition/docs/VERIFICATION_OBLIGATION_R1.md",
     "docs/architecture/CROSS_DOMAIN_VERIFICATION_R3.md",
     "docs/architecture/EVIDENCE_BOUNDARY_CENSUS_R1.md",
     "docs/architecture/LEARNING_DATA_OWNERSHIP_CENSUS_R1.md",
-    "docs/architecture/EXPERIMENTAL_EPISODE_R1.md",
+    "docs/architecture/experimental-episode-r1.md",
     "docs/architecture/DATA_PRODUCT_CONSUMPTION_FEEDBACK_R1.md",
     "services/runtime/formal/README.md",
     "capabilities/artifact/docs/ARTIFACT_VERIFICATION_SERVICE_R1.md"

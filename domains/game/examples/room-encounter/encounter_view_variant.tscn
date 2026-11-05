@@ -1,0 +1,39 @@
+[gd_scene load_steps=2 format=3]
+[ext_resource type="Script" path="res://encounter_view.gd" id="1_view"]
+[node name="Hud" type="VBoxContainer"]
+modulate = Color(0.58, 0.95, 0.74, 1)
+offset_right = 630.0
+offset_bottom = 220.0
+theme_override_constants/separation = 12
+script = ExtResource("1_view")
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+text = "ALTERNATE PLAYER PRESENTATION"
+[node name="Status" type="Label" parent="."]
+layout_mode = 2
+[node name="Encounter" type="Label" parent="."]
+layout_mode = 2
+[node name="Actions" type="HBoxContainer" parent="."]
+layout_mode = 2
+[node name="Attack" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Strike"
+[node name="Guard" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Defend"
+[node name="Next" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Door"
+[node name="Restart" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Reset"
+
+[node name="Save" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Save [S]"
+[node name="Load" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Load [L]"
+[node name="Storage" type="Label" parent="."]
+layout_mode = 2
+text = "No saved run loaded."

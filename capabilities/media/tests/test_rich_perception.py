@@ -8,12 +8,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from ordivon_studio.guardian_article import (
+from ordivon_studio.perception_profiles import _correlation, canonical_digest, profile_signature
+from ordivon_studio.research.guardian_article import (
     ARTICLE_RICH_FEATURES,
     article_structure_features,
     paired_discrimination,
 )
-from ordivon_studio.perception_profiles import _correlation, canonical_digest, profile_signature
 from ordivon_studio.rich_perception import (
     audio_structure_features,
     crossmodal_circular_shift_null,

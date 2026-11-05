@@ -48,13 +48,10 @@ The transitional Next tree retains implementation, experiments, and evidence pen
 ```text
 meta/next/
 ├── domains/         # domain profiles pending consumer-qualified S5 relocation
-├── policies/        # remaining task-local policy source pending S5 split
 ├── tests/           # remaining Next verification consumers
 ├── scripts/         # remaining native commands/validators pending natural-owner move
-├── schemas/         # remaining cross-domain contracts
 ├── experiments/     # bounded, source-qualified experiments and their history
 ├── evidence/        # dated observations; not runtime configuration
-├── planning/        # current/disposable task-specific plans
 └── docs/            # remaining explanatory/reference documentation
 ```
 
@@ -75,7 +72,7 @@ See `../../docs/architecture/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` for t
 
 ## Authority and policy composition
 
-See `knowledge/lessons/authority-mature-substrate-decomposition-r1.md` for the current cross-disciplinary authority map. Ordivon does not claim a novel authority theory: institutional governance, evidence-to-decision, decision science, delegation, IAM/policy engines and adaptive/institutional learning remain externally owned mature substrates. `policies/` keeps only the thin task-local composition boundary and must not become a custom policy language, IAM system, generic Human gate or universal risk gate.
+See `../../catalogs/knowledge/lessons/authority-mature-substrate-decomposition-r1.md` for the current cross-disciplinary authority map. Ordivon does not claim a novel authority theory: institutional governance, evidence-to-decision, decision science, delegation, IAM/policy engines and adaptive/institutional learning remain externally owned mature substrates. `../../docs/architecture/policies/` records repository architecture boundaries; `../../packages/composition/policies/` houses the bounded OPA reference and must not become a custom policy language, IAM system, generic Human gate or universal risk gate.
 
 ## Enterprise work routing
 
@@ -96,9 +93,9 @@ Run the registered owner verification from the monorepo root with `mise run next
 uv run --locked python -m pytest
 uv run --locked --group quality ruff check scripts tests
 uv run --locked --group quality ruff format --check scripts tests
-uv run --locked --group authority python scripts/check_authority_catalog_r1.py
+uv run --locked --group authority python ../../catalogs/authorities/scripts/check_authority_catalog_r1.py
 uv run --locked --group authority python scripts/check_standard_native_enterprise_r2.py
-uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
+uv run --locked --group reasoning python ../../catalogs/capabilities/scripts/verify_reasoning_providers.py
 ```
 
 PEP 621 project dependencies are the runtime/deployment dependency authority. The default `test` group adds only test-time dependencies. Lint/format quality, authority-catalog validation, security auditing, coverage analysis and heavier reasoning dependencies are separate groups and are installed only when their validation surface is invoked.

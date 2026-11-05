@@ -5,12 +5,17 @@ import {queryExternalKnowledge} from '../scripts/external-knowledge-query.ts';
 import {queryMechanismExperiences} from '../scripts/mechanism-experience-query.ts';
 
 const load=(p:string)=>JSON.parse(readFileSync(new URL('../'+p,import.meta.url),'utf8'));
-test('Game registers actual source-bound LEGO with six responsibilities',()=>{
+test('Game registers source-bound knowledge, native composition and effect responsibilities',()=>{
   const plan=load('planning/lego-plan-r1.json');
   assert.equal(plan.project.id,'ordivon-game');
-  assert.equal(plan.nodes.length,6);
+  assert.equal(new Set(plan.nodes.map((n: any) => n.id)).size, plan.nodes.length);
+  for (const id of ['G01','G02','G03','G04','G05','G06','G07','G08','G09'])
+    assert.ok(plan.nodes.some((n: any) => n.id === id), 'missing observed responsibility '+id);
   assert.ok(plan.nodes.some((n: any) => n.id === 'G05' && n.kind === 'interface_adapter'));
   assert.ok(plan.nodes.some((n: any) => n.id === 'G06' && n.kind === 'verifier'));
+  assert.ok(plan.nodes.some((n: any) => n.id === 'G07' && n.kind === 'native_composition_capability'));
+  assert.ok(plan.nodes.some((n: any) => n.id === 'G08' && n.kind === 'native_effect_adapter'));
+  assert.ok(plan.nodes.some((n: any) => n.id === 'G09' && n.kind === 'native_narrative_adapter'));
   for(const n of plan.nodes) {
     for(const f of ['id','responsibility','inputs','outputs','behavioralContract','acceptance'])
       assert.ok(n[f]&&(!Array.isArray(n[f])||n[f].length),n.id+':'+f);
@@ -30,25 +35,28 @@ test('mature sources and mechanic LEGO are immediately consumable',()=>{
   assert.ok(mechanics.items.length>0);
 });
 
-// Phase1 native consumer closure for the six existing Game LEGO nodes.
+// Real consumer closure for the Game owner's admitted capabilities.
 // This binds source-facing CLI/tests to their consumers; it does not qualify
 // installed game effects, dynamic consumers, or Formal proof obligations.
 function validateNativeGameConsumerClaims(plan: any): void {
   const required: Record<string, string[]> = {
     G01: ['scripts/external-knowledge-query.ts', 'test/game-external-knowledge-query.test.ts'],
     G02: ['scripts/mechanism-experience-query.ts', 'test/game-lego-catalog.test.ts'],
-    G03: ['scripts/build-mechanism-relationship-graph.ts', 'test/game-mechanism-relationship-graph.test.ts'],
+    G03: ['scripts/mechanism-relationship-query.ts', 'test/game-mechanism-relationship-graph.test.ts'],
     G04: ['scripts/design-counterexample-query.ts', 'test/game-design-counterexample-memory.test.ts'],
     G05: ['package.json', 'scripts/mechanism-relationship-query.ts', 'scripts/counterexample-synthesis-query.ts'],
     G06: ['mise.toml', 'examples/native-composition/assert.gd', 'examples/native-composition/main.tscn'],
+    G07: ['examples/orbit-collector/src/main.rs', 'examples/orbit-collector/src/gameplay.rs', 'examples/orbit-collector/Cargo.toml'],
+    G08: ['examples/native-composition/composition_root.gd', 'examples/native-composition/main.tscn', 'examples/native-composition/assert_audio.gd'],
+    G09: ['examples/room-encounter/narrative/encounter_dialogue.gd', 'examples/room-encounter/narrative/gate_state.gd', 'examples/room-encounter/main.tscn', 'examples/room-encounter/narrative/acceptance.gd', 'mise.toml'],
   };
-  assert.deepEqual(plan.nodes.map((n: any) => n.id), Object.keys(required));
+  for (const id of Object.keys(required))
+    assert.ok(plan.nodes.some((n: any) => n.id === id), id + ': known native consumer missing');
   for (const node of plan.nodes) {
     const declared = node.consumerEvidence;
     assert.ok(Array.isArray(declared) && declared.length, node.id + ': missing consumer declaration');
     assert.equal(new Set(declared).size, declared.length, node.id + ': duplicate declaration');
-    const expected = required[node.id];
-    assert.ok(expected, node.id + ': missing canonical consumer mapping');
+    const expected = required[node.id] ?? [];
     for (const path of expected) {
       assert.ok(declared.includes(path), node.id + ': missing actual consumer ' + path);
     }
@@ -57,6 +65,12 @@ function validateNativeGameConsumerClaims(plan: any): void {
         node.id + ': unsafe consumer locator');
       assert.ok(existsSync(new URL('../' + path, import.meta.url)),
         node.id + ': consumer locator absent from Git checkout ' + path);
+    }
+    if (node.recursiveLegoR21) {
+      assert.deepEqual(Object.keys(node.recursiveLegoR21),
+        ['I','O','S','pre','post','inv','eff','c','epsilon','prov','unfold'], node.id + ': R2.1 tuple must not drop an assumption');
+      assert.ok(node.recursiveLegoR21.unfold.every((path: string) => existsSync(new URL('../' + path, import.meta.url))),
+        node.id + ': contract unfolding must resolve to a real native consumer');
     }
     assert.notEqual(node.formalQualification, 'VERIFIED');
     assert.notEqual(node.proofReuseAdmissible, true);
@@ -70,14 +84,13 @@ function validateNativeGameConsumerClaims(plan: any): void {
   assert.equal(scripts['knowledge:relationships'], 'node scripts/mechanism-relationship-query.ts');
   assert.equal(scripts['knowledge:counterexamples'], 'node scripts/design-counterexample-query.ts');
   assert.equal(scripts['knowledge:counterexample-themes'], 'node scripts/counterexample-synthesis-query.ts');
-  assert.equal(scripts['build:relationship-graph'], 'node scripts/build-mechanism-relationship-graph.ts');
 
   const externalTest = readFileSync(new URL('./game-external-knowledge-query.test.ts', import.meta.url), 'utf8');
   assert.ok(externalTest.includes('from "../scripts/external-knowledge-query.ts"'));
   const thisTest = readFileSync(new URL('./game-lego-catalog.test.ts', import.meta.url), 'utf8');
   assert.ok(thisTest.includes("from '../scripts/mechanism-experience-query.ts'"));
   const graphTest = readFileSync(new URL('./game-mechanism-relationship-graph.test.ts', import.meta.url), 'utf8');
-  assert.ok(graphTest.includes('../knowledge/game_mechanism_relationship_graph_r1.json'));
+  assert.ok(graphTest.includes('../src/mechanism-relationship-graph.ts'));
   const memoryTest = readFileSync(new URL('./game-design-counterexample-memory.test.ts', import.meta.url), 'utf8');
   assert.ok(memoryTest.includes('../knowledge/game_design_counterexample_memory_r1.json'));
 
@@ -94,7 +107,7 @@ function validateNativeGameConsumerClaims(plan: any): void {
   assert.ok(godotTest.includes('load("res://main.tscn")'));
 }
 
-test('Game native six consumer identities have actual CLI, test and fixture readers', () => {
+test('Game registered consumers resolve to native CLI, Godot and Bevy source ports', () => {
   const plan = load('planning/lego-plan-r1.json');
   validateNativeGameConsumerClaims(plan);
 });

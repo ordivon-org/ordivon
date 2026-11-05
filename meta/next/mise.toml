@@ -1,7 +1,6 @@
 [tools]
 python = "3.15.1"
 uv = "0.13.5"
-opa = "1.21.4"
 
 [tasks.verify]
 run = """
@@ -9,29 +8,15 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 export ORDIVON_AGENT_AUTOMATION_SOURCE_ROOT="${ORDIVON_AGENT_AUTOMATION_SOURCE_ROOT:-$repo_root/services/harness}"
 uv lock --check
-uv sync --locked
-uv run --locked python -m pytest \
-  --ignore=tests/test_browser_security_cf07_metadata_r4.py \
-  --ignore=tests/test_browser_security_r5.py \
-  --ignore=tests/test_browser_security_r7.py \
-  --ignore=tests/test_browser_security_r8.py \
-  --ignore=tests/test_browser_security_r9.py \
-  ../../catalogs/capabilities/tests
-(
-  cd "$repo_root/services/harness"
-  ORDIVON_AGENT_AUTOMATION_SOURCE_ROOT="$PWD" uv run --locked python -m pytest -q \
-    "$repo_root/meta/next/tests/test_browser_security_cf07_metadata_r4.py" \
-    "$repo_root/meta/next/tests/test_browser_security_r5.py" \
-    "$repo_root/meta/next/tests/test_browser_security_r7.py" \
-    "$repo_root/meta/next/tests/test_browser_security_r8.py" \
-    "$repo_root/meta/next/tests/test_browser_security_r9.py"
-)
-uv run --locked --group quality ruff check scripts tests ../../catalogs/capabilities/routing ../../catalogs/capabilities/tests
-uv run --locked --group quality ruff format --check scripts tests ../../catalogs/capabilities/routing ../../catalogs/capabilities/tests
-uv run --locked --group authority python scripts/check_authority_catalog_r1.py
+# Refresh the local path dependency from this committed SourceCut rather than reuse a stale installed wheel.
+uv sync --locked --reinstall-package ordivon-composition
+PYTHONPATH="$repo_root" uv run --locked python -m pytest ../../catalogs/authorities/tests ../../catalogs/capabilities/tests
+uv run --locked --group quality ruff check scripts tests ../../catalogs/authorities/scripts ../../catalogs/authorities/tests ../../catalogs/capabilities/routing ../../catalogs/capabilities/scripts ../../catalogs/capabilities/tests
+uv run --locked --group quality ruff format --check scripts tests ../../catalogs/authorities/scripts ../../catalogs/authorities/tests ../../catalogs/capabilities/routing ../../catalogs/capabilities/scripts ../../catalogs/capabilities/tests
+uv run --locked --group authority python ../../catalogs/authorities/scripts/check_authority_catalog_r1.py
 uv run --locked --group authority python scripts/check_standard_native_enterprise_r2.py
-uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
-uv run --locked --group security bandit -r scripts -q -s B404,B603
+uv run --locked --group reasoning python ../../catalogs/capabilities/scripts/verify_reasoning_providers.py
+uv run --locked --group security bandit -r scripts ../../catalogs/authorities/scripts ../../catalogs/capabilities/scripts -q -s B404,B603
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 uv export --locked --all-groups --no-group security --format pylock.toml --output-file "$tmp/pylock.audit.toml"

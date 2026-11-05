@@ -957,6 +957,7 @@
     },
     {
       "id": "godot-best-practices",
+      "nativeEngines": ["godot"],
       "category": "ENGINE_AND_PRODUCTION_PRACTICE",
       "title": "Godot Best Practices — Introduction",
       "organization": "Godot Engine",
@@ -983,6 +984,7 @@
     },
     {
       "id": "godot-scene-organization",
+      "nativeEngines": ["godot"],
       "category": "ENGINE_AND_PRODUCTION_PRACTICE",
       "title": "Godot Scene Organization",
       "organization": "Godot Engine",
@@ -3681,6 +3683,457 @@
         "premature pipeline convergence counterexample"
       ],
       "evidenceLimit": "Primary technical postmortem by Ubisoft AI programmer Simon Girard; lessons are grounded in Odyssey/Immortals production and do not establish GOAP or unified AI pipelines as generally good or bad."
+    },
+    {
+      "id": "godot-asset-store-2026",
+      "nativeEngines": ["godot"],
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Godot Asset Store — official 4.7 native plugin and asset discovery",
+      "organization": "Godot Foundation",
+      "url": "https://godotengine.org/article/introducing-the-godot-asset-store/",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "Godot plugin discovery",
+        "asset package versions",
+        "addon selection"
+      ],
+      "extractedIdeas": [
+        "Godot Foundation launched the newer Asset Store in 2026 for Godot 4.7",
+        "legacy Asset Library is retained mainly for older engine compatibility"
+      ],
+      "candidateUses": [
+        "discover source-specific Godot add-ons",
+        "choose maintained add-on versions"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "godot-native-resource-composition",
+      "nativeEngines": ["godot"],
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Godot — Resources, PackedScene and native composition",
+      "organization": "Godot Foundation",
+      "url": "https://docs.godotengine.org/en/stable/tutorials/scripting/resources.html",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "Godot Resource serialization",
+        "PackedScene reuse",
+        "native scene composition"
+      ],
+      "extractedIdeas": [
+        "Resource describes data while Nodes own behavior",
+        "PackedScene instances compose reusable scene graphs"
+      ],
+      "candidateUses": [
+        "reusable state configuration and player presentation",
+        "native composition baseline"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "bevy-plugins-modularity",
+      "nativeEngines": ["bevy"],
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Bevy — Plugin architecture",
+      "organization": "Bevy Foundation",
+      "url": "https://bevy.org/learn/quick-start/getting-started/plugins/",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "Rust Bevy App plugins",
+        "ECS composition",
+        "replaceable feature modules"
+      ],
+      "extractedIdeas": [
+        "Bevy features and games are composed as plugins",
+        "plugins register systems resources and ECS components"
+      ],
+      "candidateUses": [
+        "Rust-native gameplay prototype base",
+        "avoid reinventing core engine systems"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "bevy-community-assets",
+      "nativeEngines": ["bevy"],
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Bevy Assets — community plugins and game resources",
+      "organization": "Bevy Foundation",
+      "url": "https://bevy.org/assets/",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "Bevy plugin catalogue",
+        "physics",
+        "navigation",
+        "UI tooling"
+      ],
+      "extractedIdeas": [
+        "community index includes third-party physics navigation AI and asset import plugins",
+        "plugin compatibility must be checked against the chosen Bevy engine release"
+      ],
+      "candidateUses": [
+        "discover ecosystem LEGO candidates",
+        "select narrow Bevy plugins before custom implementation"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "limboai-godot",
+      "nativeEngines": ["godot"],
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "LimboAI — behavior trees and state machines for Godot",
+      "organization": "limbonaut",
+      "url": "https://github.com/limbonaut/limboai",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "Godot 4 NPC AI",
+        "behavior trees",
+        "hierarchical state machine"
+      ],
+      "extractedIdeas": [
+        "supports behavior trees and hierarchical state machines",
+        "1.8.x plugin releases target Godot 4.6+ and module builds for 4.7"
+      ],
+      "candidateUses": [
+        "optional Godot enemy AI and NPC behaviors",
+        "compose actions without writing custom behavior-tree engine"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "godot-dialogue-manager",
+      "nativeEngines": ["godot"],
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Dialogue Manager 4 — nonlinear Godot dialogue",
+      "organization": "Nathan Hoad",
+      "url": "https://github.com/nathanhoad/godot_dialogue_manager",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "Godot branching dialogue",
+        "story state",
+        "localization"
+      ],
+      "extractedIdeas": [
+        "provides stateless branching dialogue editor and runtime",
+        "v4 targets Godot 4.6+ and can be installed through Asset Store"
+      ],
+      "candidateUses": [
+        "dialogue and narrative system prototype",
+        "NPC conversational scenes"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "dialogic2-godot",
+      "nativeEngines": ["godot"],
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Dialogic 2 — Godot narrative and visual novel toolkit",
+      "organization": "Dialogic team",
+      "url": "https://github.com/dialogic-godot/dialogic",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "Godot dialogue",
+        "visual novel",
+        "characters"
+      ],
+      "extractedIdeas": [
+        "provides character and dialogue tooling for Godot",
+        "Dialogic 2 states minimum Godot 4.5"
+      ],
+      "candidateUses": [
+        "alternative to Dialogue Manager",
+        "narrative-heavy prototyping"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "godot-animationtree",
+      "nativeEngines": ["godot"],
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Godot AnimationPlayer and AnimationTree — native animation composition",
+      "organization": "Godot Foundation",
+      "url": "https://docs.godotengine.org/en/stable/tutorials/animation/animation_tree.html",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "animation playback",
+        "2D/3D state transitions",
+        "animation blending"
+      ],
+      "extractedIdeas": [
+        "AnimationTree composes and blends animations owned by AnimationPlayer",
+        "reuse engine animation resources instead of writing an animator"
+      ],
+      "candidateUses": [
+        "native character animation",
+        "presentation and scene variants"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "kenney-platformer-art-pixel",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Kenney — Platformer Art Pixel pack (CC0)",
+      "organization": "Kenney",
+      "url": "https://kenney.nl/assets/platformer-art-pixel",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "2D game art",
+        "pixel tiles",
+        "platformer prototype"
+      ],
+      "extractedIdeas": [
+        "original page lists a 900-file CC0 platformer pack",
+        "art can be imported as sprites and tile sources"
+      ],
+      "candidateUses": [
+        "placeholder world and character art",
+        "rapid 2D mechanics validation"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "kenney-ui-pack",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Kenney — UI Pack (CC0)",
+      "organization": "Kenney",
+      "url": "https://kenney.nl/assets/ui-pack",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "interface sprites",
+        "buttons and panels",
+        "UI prototype"
+      ],
+      "extractedIdeas": [
+        "pack provides CC0 UI elements",
+        "usable for rapid presentation and menus"
+      ],
+      "candidateUses": [
+        "reusable UI skin",
+        "menus and interaction affordances"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "kenney-ui-audio",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Kenney — UI Audio (CC0)",
+      "organization": "Kenney",
+      "url": "https://kenney.nl/assets/ui-audio",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "interface feedback sound",
+        "click sound effects",
+        "audio UX"
+      ],
+      "extractedIdeas": [
+        "pack provides CC0 short UI sound effects",
+        "game can import sounds into engine audio playback"
+      ],
+      "candidateUses": [
+        "feedback layer for UI actions",
+        "confirmations and menus"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "kenney-development-essentials",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Kenney — Development Essentials (CC0)",
+      "organization": "Kenney",
+      "url": "https://kenney.nl/assets/development-essentials",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "prototype materials",
+        "blockout textures",
+        "greybox"
+      ],
+      "extractedIdeas": [
+        "pack provides CC0 development textures",
+        "use cheap placeholders before buying bespoke art"
+      ],
+      "candidateUses": [
+        "visual blockout for game prototype",
+        "temporary mechanics carrier"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "blender-authoring",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Blender — native 3D authoring and animation tool",
+      "organization": "Blender Foundation",
+      "url": "https://www.blender.org/features/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "3D geometry",
+        "rigging",
+        "animation",
+        "cinematic authoring"
+      ],
+      "extractedIdeas": [
+        "open-source suite provides modeling rigging animation rendering and video composition",
+        "authoring tool does not grant rights to third-party source assets"
+      ],
+      "candidateUses": [
+        "produce original meshes and animation",
+        "build reusable art asset exports"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "lmms-composition",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "LMMS — open music composition workstation",
+      "organization": "LMMS",
+      "url": "https://www.lmms.io/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "original music composition",
+        "sound design",
+        "audio export"
+      ],
+      "extractedIdeas": [
+        "LMMS is a free open-source music sequencing and mixing workstation",
+        "instrument samples and plugins may have independent licensing"
+      ],
+      "candidateUses": [
+        "produce original soundtracks",
+        "compose musical layers separately from game rules"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "kdenlive-cinematics",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Kdenlive — open-source video editor",
+      "organization": "KDE",
+      "url": "https://github.com/KDE/kdenlive",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "cutscene editing",
+        "trailers",
+        "video postproduction"
+      ],
+      "extractedIdeas": [
+        "Kdenlive is a free and open-source video editor",
+        "rendered assets and incorporated third-party content retain their own rights"
+      ],
+      "candidateUses": [
+        "build pre-rendered cutscenes or trailers",
+        "edit game presentation videos"
+      ],
+      "evidenceLimit": "Official upstream or creator documentation supports the stated ability only; does not prove plugin installation, interoperability, commercial asset rights, quality, or that a runnable game has been composed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "kenney-abstract-platformer",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Kenney Abstract Platformer — original CC0 player-sprite artwork",
+      "organization": "Kenney",
+      "url": "https://kenney.nl/assets/abstract-platformer",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "real 2D sprite media",
+        "native Godot Texture2D and Sprite2D",
+        "blue/green appearance substitution"
+      ],
+      "extractedIdeas": [
+        "Kenney publishes the Abstract Platformer pack as CC0 art",
+        "Game native sample tests two exact player avatar PNG files with independently recorded Git delivery mirror commit and SHA256, not an entire installed pack"
+      ],
+      "candidateUses": [
+        "source-licensed native Godot sprite appearance replacement",
+        "separate presentation from game rules"
+      ],
+      "evidenceLimit": "Original CC0 license is on the Kenney asset page. Mirror source hash and native Godot execution are proven in examples/kenney-visual-composition/README.md. No byte equality to the official zip, game-play behavior, export packaging, or artistic quality inferred.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-02",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "godot-configfile-built-in",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Godot ConfigFile class (native Variant persistence)",
+      "organization": "Godot Engine",
+      "url": "https://docs.godotengine.org/en/stable/classes/class_configfile.html",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "Godot native INI-style Variant serialization",
+        "user:// stored game state"
+      ],
+      "extractedIdeas": [
+        "native ConfigFile set_value/save/load/get_value",
+        "persist plain Variant values rather than implementing another serializer"
+      ],
+      "candidateUses": [
+        "room encounter checkpoint IO adapter",
+        "non-cloud local gameplay progress"
+      ],
+      "evidenceLimit": "Documents Godot API behavior only; gameplay legality, atomic restore, power loss and player experience must be proven by actual Game consumers.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-11-03",
+      "sourceStrength": "NATIVE_HIGH"
     }
   ],
   "gaps": {
@@ -3707,5 +4160,6 @@
       "failed/cancelled projects",
       "tabletop-to-digital transfer"
     ]
-  }
+  },
+  "updatedOn": "2026-11-03"
 }

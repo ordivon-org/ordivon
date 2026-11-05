@@ -21,7 +21,7 @@ EXPECTED = {
 SQLITE_MIGRATION = "services/runtime/crates/ordivon-runtime-core/migrations/runtime/"
 SQLITE_STORAGE = "services/runtime/crates/ordivon-runtime-core/src/runtime/"
 OSQUERY_PREFIX = "platform/workstation/inventory/queries/"
-POSTGRESQL_FILE = "meta/next/scripts/experimental_episode_r5c_source_r1.sql"
+POSTGRESQL_FILE = "studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql"
 POSTGRESQL_RUNTIME_EPOCH = "services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
 
 # Exact full-host inventories can traverse thousands of installed Python/npm
@@ -67,7 +67,7 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     'platform/workstation/scripts/host_historical_projection.py': 2,
     'platform/workstation/scripts/host_retirement_snapshot.py': 3,
     # Experimental stand-alone local sources, not admitted production PG state.
-    'meta/next/experiments/browser-security-r4/cf07_metadata_snapshot.py': 1,
+    'services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py': 1,
     'meta/next/experiments/chaoxing-autosign-mvp/chaoxing_mvp/ledger.py': 1,
     'services/harness/scripts/agent_automation_browserless.py': 1,
     'services/harness/scripts/agent_automation_ledger_reconcile.py': 1,

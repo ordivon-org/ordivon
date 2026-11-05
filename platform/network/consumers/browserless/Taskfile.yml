@@ -1,0 +1,91 @@
+version: '3'
+
+tasks:
+  consumer:browserless:provider-carrier:validate:
+    desc: Validate the one-identity shared provider carrier without changing live state
+    cmds:
+      - /usr/bin/sing-box check -c consumers/browserless/config/provider-carrier.json
+      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-netns.service consumers/browserless/systemd/network-v2-browserless-forward.service consumers/browserless/systemd/network-v2-browserless-wireguard.service consumers/browserless/systemd/network-v2-browserless-dns.service consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/browserless/systemd/network-v2-browserless.target
+      - /usr/bin/bash -n consumers/browserless/provider-carrier-ready.sh consumers/browserless/provider-switch.sh consumers/browserless/production-cutover.sh
+      - grep -F 'PROVIDER_SITE=${PROVIDER_SITE:-th-bkk}' consumers/browserless/production-cutover.sh >/dev/null
+
+  consumer:browserless:provider-carrier:materialize:
+    desc: Reconcile mode-independent shared-provider readiness without changing the selected VPN identity
+    deps: [consumer:browserless:provider-carrier:validate]
+    cmds:
+      - |
+        if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
+          # The selected Gluetun Provider owns the physical session and adapter.
+          # Never reinstall/enable the inactive legacy WireGuard units.
+          systemctl is-active --quiet network-v2-gluetun-owned.service
+          systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
+          install -d -m 0755 /usr/local/libexec/network-v2
+          install -m 0755 consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+        else
+          install -d -m 0755 /etc/network-v2/browserless /usr/local/libexec/network-v2
+          install -m 0644 consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
+          install -m 0644 consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
+          install -m 0644 consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+          install -m 0755 consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+          install -m 0755 consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
+          install -m 0755 consumers/browserless/acceptance/production-path.sh /usr/local/libexec/network-v2/browserless-production-path
+          systemctl daemon-reload
+          systemctl enable network-v2-browserless.target
+        fi
+
+  consumer:browserless:provider-carrier:ready:
+    desc: Prove the selected one-identity provider carrier across OpenAI, OKX, OCI and Anthropic consequences
+    cmds:
+      - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+
+
+  consumer:browserless:provider-carrier:converge:
+    desc: Reconcile the readiness SourceCut; restart only the selected legacy carrier when applicable
+    cmds:
+      - task: consumer:browserless:provider-carrier:materialize
+      - |
+        if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
+          systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
+        else
+          systemctl restart network-v2-browserless-provider-carrier.service
+        fi
+      - task: consumer:browserless:provider-carrier:ready
+
+  consumer:browserless:provider-carrier:select:
+    desc: Switch the sole shared WireGuard identity to one catalog provider without recreating the Browserless namespace
+    deps: [consumer:browserless:provider-carrier:materialize, provider:surfshark:verify-local]
+    cmds:
+      - /usr/local/libexec/network-v2/browserless-provider-switch th-bkk
+
+
+  consumer:browserless:provider-carrier:verify:
+    desc: Check current owned/legacy SourceCut and real provider consequence, not inactive legacy artifacts
+    cmds:
+      - cmp -s consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+      - |
+        if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
+          systemctl is-active --quiet network-v2-gluetun-owned.service
+          systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
+          cmp -s providers/gluetun/quadlet/network-v2-gluetun-owned.container /etc/containers/systemd/network-v2-gluetun-owned.container
+          cmp -s providers/gluetun/config/carrier-adapter.json /etc/network-v2/browserless/provider-carrier-gluetun-candidate.json
+        else
+          cmp -s consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
+          cmp -s consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
+          cmp -s consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+          cmp -s consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
+          cmp -s consumers/browserless/acceptance/production-path.sh /usr/local/libexec/network-v2/browserless-production-path
+        fi
+      - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+
+  consumer:browserless:validate:
+    desc: Validate the serialized Browserless migration gate without changing production
+    deps: [provider:surfshark:validate, consumer:browserless:provider-carrier:validate]
+    cmds:
+      - /usr/bin/bash -n consumers/browserless/acceptance/serial-browserless.sh
+      - test -x consumers/browserless/acceptance/serial-browserless.sh
+
+  consumer:browserless:serial-accept:
+    desc: Serialize the shared provider identity, prove real Browserless over Network v2, then restore legacy production
+    deps: [consumer:browserless:validate, provider:surfshark:verify-local]
+    cmds:
+      - ./consumers/browserless/acceptance/serial-browserless.sh

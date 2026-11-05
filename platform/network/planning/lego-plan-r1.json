@@ -88,7 +88,9 @@
         "README.md",
         "docs/ACCEPTANCE_MATRIX.md",
         "evidence/current-capabilities.json",
-        "tests/test_prometheus_singbox_witness.py"
+        "tests/test_prometheus_singbox_witness.py",
+        "consumers/browserless/provider-carrier-ready.sh",
+        "tests/test_shared_provider_carrier.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -132,13 +134,19 @@
         "README.md",
         "consumers/developer-egress/profile.sh",
         "tests/test_developer_egress_profile.py",
-        "Historical consumer selection, source-bound: local 83fb2956e051ad9c27c091e96631a842f8eebcc7 (legacy consumers/model-provider/ready.sh TLS/proxy readiness) versus protected Main 7b51fd3e033f964db551c127e2e910ae3bc88ef8. The legacy script is absent; tools/repo/workspace-ready consumes consumers/developer-egress/profile.sh instead. tests/test_developer_egress_profile.py exercises proxy routing/fail-closed behavior; legacy TLS readiness semantic parity and live provider reachability remain UNPROVED. No legacy daemon may be resurrected based on commit uniqueness alone.",
-        "Historical merge consumer selection: local Main merge 77c36033da05586dbd965d407f35bf2fece578ef (parents 7b2603ebbfcf5513ea2f015a6f50f3f2407d6969, 628029537f4201847599bd187e2985fdd1e2a329) was a Discord user-read Provider resolution, with 10 result paths distinct from both parents under Network/Workstation; observed against protected main a56afcf30aafd8d5bcd0f41adb950504f5724267. NO_CURRENT_CONSUMER: platform/network/consumers/discord/systemd/network-v2-discord-egress.service and platform/workstation/workstation/discord_user_provider.py are absent; the selected Network owner profiles remain existing active consumers (developer-egress/browserless/etc). Do not cherry-pick the merged historical daemon solely due SHA/merge path uniqueness. Discord user-read parity, archived data, live authentication and egress are UNPROVED; preserve source Git ancestry pending explicit Owner consumer admission.",
         "consumers/claude/ready.sh",
         "tests/test_claude_egress_readiness_consumer.py",
         "consumers/browserless/provider-switch.sh",
         "tests/test_shared_provider_carrier.py::test_legacy_provider_switch_rejects_m4_before_any_mutation",
-        "tests/test_shared_provider_carrier.py::test_legacy_carrier_materialization_rejects_m4_before_file_writes"
+        "tests/test_shared_provider_carrier.py::test_legacy_carrier_materialization_rejects_m4_before_file_writes",
+        "consumers/discord/ready.sh",
+        "consumers/model-provider/ready.sh",
+        "consumers/windows-real-chrome/ready.sh",
+        "providers/gluetun/quadlet/network-v2-gluetun-owned.container",
+        "consumers/codex/ready.sh",
+        "consumers/mobile-tailnet-exit/ready.py",
+        "consumers/browserless/provider-carrier-ready.sh",
+        "Taskfile.yml"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -174,7 +182,10 @@
         "consumers/supply-chain/config/egress.json",
         "tests/test_egress_routing_behavior.py",
         "tests/test_x_reality_consumer.py",
-        "Taskfile.yml"
+        "Taskfile.yml",
+        "consumers/model-provider/config/egress.json",
+        "consumers/discord/config/egress.json",
+        "consumers/codex/config/sing-box.json"
       ],
       "consumerEvidence": [
         "consumers/x-reality/ready.sh",
@@ -274,7 +285,10 @@
         "consumers/claude/ready.sh",
         "consumers/chat-ingress/ready.sh",
         "tests/test_readiness_shared_budget.py",
-        "tests/test_claude_egress_readiness_consumer.py"
+        "tests/test_claude_egress_readiness_consumer.py",
+        "consumers/model-provider/ready.sh",
+        "consumers/discord/ready.sh",
+        "consumers/mobile-tailnet-exit/ready.py"
       ],
       "consumerEvidence": [
         "consumers/supply-chain/ready.sh",
@@ -516,9 +530,9 @@
     "custom network stack"
   ],
   "review": {
-    "sourceRevision": "299ee0449a1b98468d7954df53b20138ee4771ee",
-    "updatedAt": "2026-10-25",
+    "sourceRevision": "6e6e8872fde9dd31b79dd27b1cbe025d9d1e6f7d",
+    "updatedAt": "2026-11-05",
     "standing": "NS1_UNCONSUMED_RETIRED_NS2_RETAINED",
-    "notes": "Zero-base consumer trace: NS1 was an unregistered proposed future profile slice with no tracked code, test, issue registration or independent outcome consumer. Its optionality constraint is already enforced by retained N05 ProviderConsumerProfiles. Retire only the redundant NS1 projection; preserve N01 and N05 actual responsibilities and NS2 registered Network egress falsification. No runtime policy, route, DNS or readiness effect changed."
+    "notes": "Observed active Network consumers (Discord, Model Provider, Windows Chrome, Codex, Mobile Exit) reattached to their source and native readiness contracts. Generic core remains provider-independent. Source/installed/consumer truth are independent. Earlier archived merge-only non-consumer allegations are superseded by the 2026-11-05 live consumer census. 2026-11-05: repaired current Gluetun-owned Browserless SourceCut drift; installed source parity plus selected-mode immutable legacy units and real origin CONNECT 200 are qualified independently. Remote iPad client use remains UNKNOWN."
   }
 }

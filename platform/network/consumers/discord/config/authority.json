@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.discord-egress",
+  "listen": {
+    "host": "127.0.0.1",
+    "port": 19981,
+    "protocol": "http"
+  },
+  "allowedHttpsDomains": [
+    "discord.com",
+    "gateway.discord.gg",
+    "cdn.discordapp.com",
+    "media.discordapp.net"
+  ],
+  "directFallback": false,
+  "networkAuthority": {
+    "kind": "network-v2",
+    "name": "provider-egress",
+    "providerProfileId": "surfshark:th-bkk"
+  },
+  "authenticationAuthority": {
+    "separate": true,
+    "transportConsumerOwnsCredential": false
+  }
+}

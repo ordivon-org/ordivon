@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const kb = JSON.parse(readFileSync(new URL("../knowledge/game_external_knowledge_base_r1.json", import.meta.url), "utf8")) as any;
-const doc = readFileSync(new URL("../docs/GAME_EXTERNAL_KNOWLEDGE_BASE_R1.md", import.meta.url), "utf8");
+const doc = readFileSync(new URL("../docs/external-knowledge-base-r1.md", import.meta.url), "utf8");
 const queue = JSON.parse(readFileSync(new URL("../knowledge/game_teardown_queue_r1.json", import.meta.url), "utf8")) as any;
 const skills = JSON.parse(readFileSync(new URL("../knowledge/game_external_skill_watchlist_r1.json", import.meta.url), "utf8")) as any;
 

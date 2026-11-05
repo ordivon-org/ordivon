@@ -992,7 +992,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(next_owners[0]["verify_task"], "next:verify")
         top = tomllib.loads((ROOT / "mise.toml").read_text())
         route = top["tasks"]["next:verify"]["run"]
-        for fragment in ("cd meta/next", "mise run verify", "cd experiments/episode-store-r1"):
+        for fragment in ("cd meta/next", "mise run verify", "cd ../../studies/experimental-episodes/episode-store"):
             self.assertIn(fragment, route)
         native = tomllib.loads((ROOT / "meta/next/mise.toml").read_text())
         checks = native["tasks"]["verify"]["run"]
@@ -1001,9 +1001,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             "uv run --locked python -m pytest",
             "uv run --locked --group quality ruff check scripts tests",
             "uv run --locked --group quality ruff format --check scripts tests",
-            "scripts/check_authority_catalog_r1.py",
+            "../../catalogs/authorities/scripts/check_authority_catalog_r1.py",
             "scripts/check_standard_native_enterprise_r2.py",
-            "scripts/check_reasoning_waist_r1.py",
+            "../../catalogs/capabilities/scripts/verify_reasoning_providers.py",
             "bandit -r scripts", "pip-audit",
         ):
             self.assertIn(obligation, checks)

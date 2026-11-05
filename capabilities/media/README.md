@@ -46,6 +46,20 @@ the experiment, do not copy the event chain into PostgreSQL.
 Run the PG acceptance via mise run pg:verify using a disposable
 ORDIVON_MEDIA_TRIAL_TEST_DSN. Skipped tests do not prove the PG boundary.
 
+## Source responsibility layout
+
+The published `ordivon_studio` package keeps production, equipment, asset,
+review and presentation capabilities at its root. Experimental validity,
+creative-alpha, grounded-meaning and article/foundational studies live in
+`ordivon_studio.research`. Research scripts import that subpackage directly;
+there are no redundant compatibility shims or separate research truth store.
+
+Resolve-private editorial interchange and selected-asset binding live in
+`ordivon_studio.resolve_editorial`. The existing `resolve_adapter` remains
+the Windows/operation bridge and the embedded Resolve Runner remains one
+self-contained deployable script. OpenTimelineIO and existing Media Blob
+hashing are reused instead of reimplementing timeline or digest engines.
+
 ## Studio capability plane
 
 A Runtime fact is true at revision `R`. Studio turns it into a film. Runtime later changes.
@@ -178,3 +192,9 @@ scripts/owner-environment test-resolve
 ## License
 
 Apache-2.0. Production assets may carry their own rights and usage records in Asset metadata.
+
+Studio CLI command processing is organized by domain under
+`src/ordivon_studio/cli_handlers/` (media, ecology, equipment, Resolve).
+The public `ordivon-studio` console entry, `argparse` grammar and result
+exit codes remain owned by `cli.py`; this source-only split adds neither
+another command registry nor another operational authority.

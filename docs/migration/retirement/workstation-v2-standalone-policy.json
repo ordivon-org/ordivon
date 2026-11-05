@@ -37,7 +37,7 @@
   ],
   "allowedExactPaths": [
     {
-      "path": "meta/next/capabilities/providers/temporal.md",
+      "path": "catalogs/capabilities/providers/temporal.md",
       "reason": "The old path appears only in an explicitly dated 2026-09-14 historical observation."
     },
     {

@@ -1,0 +1,9 @@
+[package]
+name = "ordivon-orbit-collector"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Playable Game product consumer of Bevy native ECS, input, sprites, text and lifecycle"
+
+[dependencies]
+bevy = "=0.20.1"

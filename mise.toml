@@ -8,7 +8,7 @@ shell = "bash -c"
 config_roots = [
   "meta/next",
   "tools/formal",
-  "meta/next/experiments/episode-store-r1",
+  "studies/experimental-episodes/episode-store",
   "packages/composition",
   "services/runtime",
   "services/host",
@@ -80,7 +80,7 @@ python3 tools/repo/check_owner_boundaries.py
 python3 tools/repo/check_composition_architecture.py
 python3 tools/repo/check_structure_r2.py
 python3 tools/repo/check_architecture_docs.py
-uv run --with pytest==9.1.1 --with jsonschema==4.26.0 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py tools/repo/test_issue_owner_registration.py tools/repo/test_lego_graph_laws.py tests/catalogs/test_research_tool_and_mechanical_component_contracts.py
+uv run --with pytest==9.1.1 --with jsonschema==4.26.0 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py tools/repo/test_issue_owner_registration.py tools/repo/test_lego_graph_laws.py tests/catalogs/test_research_tool_and_mechanical_component_contracts.py studies/data-lifecycle/tests
 tools/repo/migration/test-integrate-main.sh
 tools/repo/migration/test-check-publication-main.sh
 uv run --with pyyaml==6.0.3 python -m unittest tools/repo/test_github_governance.py
@@ -115,7 +115,7 @@ set -euo pipefail
 cd meta/next
 mise install
 mise run verify
-cd experiments/episode-store-r1
+cd ../../studies/experimental-episodes/episode-store
 mise install
 mise run verify
 """
@@ -131,14 +131,13 @@ mise run verify
 [tasks."control-plugin:verify"]
 run = """
 set -euo pipefail
-cd meta/next
-mise install
-mise exec -- uv sync --locked
-mise exec -- uv run --locked python -m pytest -q tests/test_agent_plugin_materialization.py
-mise exec -- uv run --locked python - <<'PY'
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+python3 -m unittest discover -s tools/repo/agent_plugin -p test_materialize.py
+python3 - <<'PY'
 import json
 from pathlib import Path
-root = Path('../..') / 'extensions' / 'ordivon-control-plane'
+root = Path('extensions') / 'ordivon-control-plane'
 names = {p.name for p in root.iterdir()}
 assert names == {'plugin.json', 'mcp.json'}, names
 plugin = json.loads((root / 'plugin.json').read_text())

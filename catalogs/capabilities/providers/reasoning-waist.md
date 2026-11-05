@@ -1,7 +1,7 @@
 # Provider: Reasoning Waist
 
 Status: **REPOSITORY-NATIVE SMOKE PASS / THIN COMPOSITION PROVIDER**
-Current validation environment: Python 3.14.7 selected by `.python-version`, dependencies resolved by `uv.lock`.
+Current validated environment: Python 3.15.1 via `meta/next/mise.toml`, with dependencies resolved by `meta/next/uv.lock` until the remaining Next toolchain is retired.
 
 ## Role
 
@@ -22,7 +22,7 @@ It is not a universal Ordivon ontology, planner, workflow engine, decision truth
 The reproducible smoke is:
 
 ```bash
-uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
+uv run --locked --group reasoning python ../../catalogs/capabilities/scripts/verify_reasoning_providers.py
 ```
 
 There is no second reasoning-specific requirements/lock file. `pyproject.toml` declares the group and `uv.lock` owns the exact resolution.

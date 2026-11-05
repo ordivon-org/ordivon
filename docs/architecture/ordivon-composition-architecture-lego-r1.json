@@ -336,8 +336,8 @@
       "kind": "package-verification",
       "responsibility": "Update materialization/conformance tests so MCP-only, selected-Skill, and all-Skills compatibility releases all preserve the one-Gateway contract.",
       "files": [
-        "meta/next/scripts/materialize_agent_plugin.py",
-        "meta/next/tests/test_agent_plugin_materialization.py",
+        "tools/repo/agent_plugin/materialize.py",
+        "tools/repo/agent_plugin/test_materialize.py",
         "extensions/chatgpt-skills-mcp/tests/test_agent_plugins_conformance.py"
       ],
       "dependsOn": [
@@ -421,7 +421,7 @@
       "responsibility": "Prove three independent Skill consumption modes and record which consumers still require the remote bridge.",
       "files": [
         "extensions/chatgpt-skills-mcp/docs/skills-standards-alignment.md",
-        "docs/architecture/AGENT_PLUGINS_ADOPTION_R1.md",
+        "docs/architecture/agent-plugin-adoption-r1.md",
         "acceptance evidence"
       ],
       "dependsOn": [

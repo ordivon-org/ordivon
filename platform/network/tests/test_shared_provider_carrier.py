@@ -69,11 +69,12 @@ def test_semantic_consumers_survive_physical_carrier_loss():
 
 
 def test_no_current_consumer_materializes_duplicate_provider_identity():
-    taskfile = (ROOT / "Taskfile.yml").read_text()
-    assert "rm -f /etc/network-v2/finance/provider-endpoints.json" in taskfile
-    assert "rm -f /etc/network-v2/supply-chain/provider-endpoints.json" in taskfile
-    assert "provider-endpoints.json -c /etc/network-v2/finance" not in taskfile
-    assert "provider-endpoints.json -c /etc/network-v2/supply-chain" not in taskfile
+    finance = (FINANCE / "Taskfile.yml").read_text()
+    supply = (SUPPLY / "Taskfile.yml").read_text()
+    assert "rm -f /etc/network-v2/finance/provider-endpoints.json" in finance
+    assert "rm -f /etc/network-v2/supply-chain/provider-endpoints.json" in supply
+    assert "provider-endpoints.json -c /etc/network-v2/finance" not in finance
+    assert "provider-endpoints.json -c /etc/network-v2/supply-chain" not in supply
     for directory in (FINANCE / "config", SUPPLY / "config"):
         for path in directory.glob("*.json"):
             assert "provider-auto" not in path.read_text()
@@ -134,15 +135,22 @@ def test_legacy_provider_switch_rejects_m4_before_any_mutation(tmp_path: Path) -
     assert not state.exists(), "legacy switch created state before checking M4"
 
 
-def test_legacy_carrier_materialization_rejects_m4_before_file_writes() -> None:
-    """The root Taskfile must reject old Carrier materialization in M4 mode."""
-    taskfile = (ROOT / "Taskfile.yml").read_text()
-    materialize = taskfile.split(
-        "  consumer:browserless:provider-carrier:materialize:", 1
-    )[1].split("\n  consumer:", 1)[0]
-    guard = "test ! -e /etc/network-v2/gluetun/m4-owned-mode.selected"
-    assert materialize.index(guard) < materialize.index("install -d")
 
+def test_selected_gluetun_materialization_is_readiness_only():
+    """The selected physical Provider must not be replaced by inactive legacy units."""
+    taskfile = (BROWSERLESS / "Taskfile.yml").read_text()
+    block = taskfile.split(
+        "  consumer:browserless:provider-carrier:materialize:", 1
+    )[1].split("\n  consumer:browserless:provider-carrier:ready:", 1)[0]
+    selected = block.split(
+        "if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then", 1
+    )[1].split("\n        else", 1)[0]
+    assert "network-v2-gluetun-owned.service" in selected
+    assert "network-v2-gluetun-owned-adapter.service" in selected
+    assert "provider-carrier-ready.sh" in selected
+    assert "systemctl daemon-reload" not in selected
+    assert "network-v2-browserless-provider-carrier.service" not in selected
+    assert "provider-switch.sh" not in selected
 
 def test_production_path_uses_application_consequence_not_30s_handshake_age():
     script = (BROWSERLESS / "acceptance" / "production-path.sh").read_text()
@@ -183,23 +191,19 @@ def test_browserless_shared_provider_requires_real_tunnel_and_origin_evidence(
     import subprocess
 
     script = (BROWSERLESS / "provider-carrier-ready.sh").read_text()
-    provider = tmp_path / "provider.env"
-    provider.write_text("PROVIDER_SITE=th-bkk\nENDPOINT=198.51.100.1\n")
-    manifest = tmp_path / "MANIFEST.tsv"
-    manifest.write_text("th-bkk\t198.51.100.1\n")
-    script = script.replace(
-        "/etc/network-v2/browserless/provider.env", str(provider)
-    ).replace(
-        "/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv", str(manifest)
-    )
-    assert str(provider) in script and str(manifest) in script
+    # Keep the physical provider session external; substitute only the
+    # presence of its namespace and the systemd/ip/curl witnesses.
+    namespace = tmp_path / "network-namespace"
+    namespace.touch()
+    script = script.replace("/run/netns/$NS", str(namespace))
+    assert str(namespace) in script
     selected = tmp_path / "ready.sh"
     selected.write_text(script)
     tools = tmp_path / "bin"
     tools.mkdir()
     for name, body in {
         "systemctl": "#!/bin/sh\nexit 0\n",
-        "ip": "#!/bin/sh\necho 'LISTEN 10.252.246.2:19680'\n",
+        "ip": "#!/bin/sh\ncase \"$*\" in\n  *\"ss -ltn\"*) echo 'LISTEN 10.252.246.2:19680';;\n  *) :;;\nesac\n",
         "sleep": "#!/bin/sh\nexit 0\n",
         "curl": (
             "#!/usr/bin/env python3\n"
@@ -238,7 +242,11 @@ def test_browserless_shared_provider_requires_real_tunnel_and_origin_evidence(
         receipt, process.stdout, process.stderr
     )
     if expected_ready:
-        assert json.loads(process.stdout)["standing"] == "READY"
+        result = json.loads(process.stdout)
+        assert result["standing"] == "READY"
+        assert result["mechanism"] == "gluetun"
+        assert result["ipv4DefaultRoute"] == "ABSENT"
+        assert result["ipv6DefaultRoute"] == "ABSENT"
     else:
         assert '"standing":"READY"' not in process.stdout
     calls = curl_log.read_text()

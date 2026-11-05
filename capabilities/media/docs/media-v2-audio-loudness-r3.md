@@ -23,7 +23,7 @@ A passing receipt establishes bounded technical stream facts and the measured lo
 
 ## Destructive acceptance
 
-`media-v2/tests/audio-smoke.sh` requires all three conditions:
+`processing/tests/audio-smoke.sh` requires all three conditions:
 
 1. a 48 kHz mono PCM fixture around -23 LUFS passes;
 2. an otherwise equivalent intentionally over-loud fixture fails `loudness.integratedLufs`;
