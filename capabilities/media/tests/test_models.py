@@ -32,8 +32,20 @@ class ModelTests(unittest.TestCase):
                 self.assertEqual(_validate_production_semantics(path, production, claims, None), [])
                 self.assertEqual(
                     len([out for out in production["outputs"] if "sourceCarrier" in out]),
-                    1,
+                    2 if name == "ordivon-book-v0" else 1,
                 )
+
+    def test_future_horizon_output_is_bound_to_real_repository_bytes(self) -> None:
+        root = ROOT / "productions/ordivon-book-v0"
+        path = root / "production.json"
+        production = json.loads(path.read_text(encoding="utf-8"))
+        claims = json.loads((root / "claims.json").read_text(encoding="utf-8"))
+        output = next(row for row in production["outputs"] if row["id"] == "ordivon-book-v0-future-horizon-laboratory-zh")
+        self.assertEqual(output["sourceCarrier"], "future-horizon-laboratory.mdx")
+        self.assertEqual(_validate_production_semantics(path, production, claims, None), [])
+        incorrect = copy.deepcopy(production)
+        next(row for row in incorrect["outputs"] if row["id"] == output["id"])["blobDigest"] = "sha256:" + "0" * 64
+        self.assertTrue(any("digest mismatch" in reason for reason in _validate_production_semantics(path, incorrect, claims, None)))
 
     def test_exact_source_carrier_refines_schema_only_check(self) -> None:
         root = ROOT / "productions/fishing-fable-lego-study-r1"

@@ -98,7 +98,7 @@ class CreativeIndexTests(unittest.TestCase):
         index = build_creative_index(ROOT)
         examples = {
             "7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430": "runtime-introduction",
-            "4fdf905e5e759232e48c1dc5090a7ddc34cb015e631595380d66ae010815f89a": "ordivon-book-v0",
+            "22ba47ac9c66514dcd0c20520db9fa6b4d377d912dd1cc5aa3c90306ad70f3a9": "ordivon-book-v0",
             "174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7": "ordivon-book-v0",
         }
         for digest_hex, production_id in examples.items():
