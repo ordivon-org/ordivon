@@ -95,6 +95,16 @@ readback, rejecting success receipts bound to a different staged operation.
 The embedded Resolve Runner remains the same self-contained deployable file.
 OpenTimelineIO and existing Media Blob hashing are reused, not reimplemented.
 
+Video perception follows the same native-tool composition:
+`perception_video_io.py` invokes FFmpeg's built-in `select`, `tblend`,
+`signalstats` and `xstack` filters to observe frames and assemble a real
+contact sheet; `perception_selection.py` purely selects a bounded set of
+diagnostic frames using coverage, user requests and observed change peaks.
+`perception.py` composes the review bundle, and `rich_perception.py` consumes
+the native observer directly. Neither module claims to infer visual meaning,
+scene importance or creative approval. The source video and exact frame bytes
+remain with their natural asset/production owner.
+
 ## Studio capability plane
 
 A Runtime fact is true at revision `R`. Studio turns it into a film. Runtime later changes.

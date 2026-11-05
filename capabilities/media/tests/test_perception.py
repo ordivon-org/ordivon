@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from ordivon_studio.perception import _parse_change_metadata, select_perception_frames
+from ordivon_studio.perception_selection import select_perception_frames
+from ordivon_studio.perception_video_io import _parse_change_metadata
 
 
 class PerceptionTests(unittest.TestCase):
