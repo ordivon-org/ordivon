@@ -2381,6 +2381,7 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     host_mcp_path = ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py"
     attention_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_attention_tools.py"
     work_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_work_tools.py"
+    social_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_social_tools.py"
     host_registrar = ast.parse(host_mcp_path.read_text(encoding="utf-8"))
     # The source graph must prove the new registrar is actually invoked by the
     # public Host composition root; a detached decorated function is insufficient.
@@ -2416,12 +2417,29 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
         == ["mcp", "work", "_request_id"]
         for n in ast.walk(register)
     ), "Work tools are detached from the Host northbound registrar"
+    # The SocialStore remains the sole Space/Topic/Message authority. An
+    # unconsumed detached registrar is not a current semantic consumer.
+    assert any(
+        isinstance(n, ast.ImportFrom) and n.level == 1
+        and n.module == "mcp_social_tools"
+        and any(a.name == "register_social_tools" for a in n.names)
+        for n in host_registrar.body
+    )
+    assert any(
+        isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+        and n.func.id == "register_social_tools"
+        and [a.id if isinstance(a, ast.Name) else None for a in n.args]
+        == ["mcp", "social", "_request_id"]
+        for n in ast.walk(register)
+    ), "Social tools are detached from the Host northbound registrar"
     direct_routes = _mcp_decorated_route_functions(host_mcp_path, "mcp")
     work_routes = _mcp_decorated_route_functions(work_mcp_path, "mcp")
+    social_routes = _mcp_decorated_route_functions(social_mcp_path, "mcp")
     attention_routes = _mcp_decorated_route_functions(attention_mcp_path, "mcp")
-    assert not (direct_routes.keys() & (work_routes.keys() | attention_routes.keys()))
-    assert not (work_routes.keys() & attention_routes.keys())
-    actual_host = {**direct_routes, **work_routes, **attention_routes}
+    assert not direct_routes, "The top-level Host registrar must only compose native owners"
+    assert not (work_routes.keys() & (social_routes.keys() | attention_routes.keys()))
+    assert not (social_routes.keys() & attention_routes.keys())
+    actual_host = {**work_routes, **social_routes, **attention_routes}
     actual_gateway = _mcp_decorated_route_functions(
         ROOT / "services/gateway/src/ordivon_gateway/host_tools.py", "server",
         source_override=gateway_text)
@@ -2463,10 +2481,10 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
                                if isinstance(entry, (ast.FunctionDef, ast.AsyncFunctionDef))}
                 assert symbol in definitions, f"missing current test {identity} {witness}"
     for identity, routes in expected.items():
-        source = {"O01": work_routes, "O02": direct_routes, "O03": attention_routes}[identity]
+        source = {"O01": work_routes, "O02": social_routes, "O03": attention_routes}[identity]
         source_name = {
             "O01": "mcp_work_tools:",
-            "O02": "social_work_mcp:",
+            "O02": "mcp_social_tools:",
             "O03": "mcp_attention_tools:",
         }[identity]
         declared = {x.split(":", 1)[1] for x in nodes[identity]["consumers"]
