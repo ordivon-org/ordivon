@@ -152,6 +152,133 @@
         "Real PostgreSQL tests run with disposable DSN; an absent DSN does not authorize PostgreSQL acceptance.",
         "Legacy trial-history migration is not automatic retention: require a current consumer purpose, exact experiment search identity and independently attested writer-stop before source reads or PG writes; no demonstrated consumer implies no import. The old source remains outside importer deletion authority and requires independent post-cutover retirement."
       ]
+    },
+    {
+      "id": "V07",
+      "label": "ResolveEditorialConform",
+      "kind": "capability_adapter",
+      "responsibility": "Compose mature OpenTimelineIO interchange with exact Media Blob identity into Resolve-private, operation-bound editorial conform inputs; leave actual editing and native API effects to Resolve Runner.",
+      "authority": "Studio editorial preparation",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/resolve_editorial.py",
+        "src/ordivon_studio/resolve_adapter.py",
+        "src/ordivon_studio/assets.py",
+        "tests/test_resolve_adapter.py",
+        "processing/bin/probe-otio.sh"
+      ],
+      "dependencies": [
+        "V03"
+      ],
+      "mustNotOwn": [
+        "general-purpose OTIO schema/parsers",
+        "codec or audio DSP",
+        "Resolve embedded Python runtime",
+        "source Production or Blob truth",
+        "unobserved Windows Resolve acceptance"
+      ],
+      "acceptance": [
+        "A current Production and OTIO snapshot bind exact selected Asset identities and bytes before conform operation preparation.",
+        "The external OTIO gate remains responsible for generic timeline inspection; no replacement media engine is introduced.",
+        "Resolve operation consumer and existing tests accept the moved source-to-conform composition without a compatibility copy.",
+        "Native Resolve 21 effect/currentness remains UNKNOWN until the Windows owner actually executes and reads back that conform."
+      ],
+      "r21": {
+        "I": {
+          "type": "ResolveEditorialInput",
+          "fields": [
+            "Production JSON",
+            "Asset manifest",
+            "OTIO timeline",
+            "selected media file bytes",
+            "exact Windows media path"
+          ]
+        },
+        "O": {
+          "type": "ResolveEditorialProjection",
+          "fields": [
+            "source-bound conform parameters",
+            "Resolve-facing OTIO document"
+          ],
+          "consumer": "resolve_adapter.build_assembly_conform_operation"
+        },
+        "S": {
+          "type": "Unit",
+          "justification": "No durable mutable editorial ledger; source files and write destinations are caller-owned."
+        },
+        "pre": {
+          "type": "predicate",
+          "claims": [
+            "Production and Asset IDs agree",
+            "single supported timeline and track",
+            "every selected file exists and digest/size/duration agree",
+            "fixed Resolve v21 profile constraints"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "claims": [
+            "operation parameters carry exact selection and source digests",
+            "OTIO output references the selected Resolve-readable file URIs",
+            "caller operation may prepare Resolve conform or reject incompatible selection"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "claims": [
+            "source-owned truth is not rewritten",
+            "no implicit NLE execution or publication",
+            "file digest is computed by existing Media assets.hash_file",
+            "generic editorial interchange is owned by OpenTimelineIO"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read selected local source and media bytes",
+            "write an explicit Resolve OTIO preparation file"
+          ],
+          "excluded": [
+            "edit Resolve project",
+            "publish media",
+            "mutate source Production/Asset manifest"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "external tool CPU/IO and NLE latency",
+          "reason": "not benchmarked for this extracted boundary",
+          "obligation": "measure only if real consumer cost requires optimization"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "native Resolve 21 edit/render fidelity outside modeled OTIO payload",
+          "reason": "no current embedded-Resolve replay receipt in this source cut",
+          "obligation": "Windows Resolve read-back via existing adapter before claiming domain acceptance"
+        },
+        "prov": {
+          "type": "source_paths",
+          "paths": [
+            "src/ordivon_studio/resolve_editorial.py",
+            "src/ordivon_studio/resolve_adapter.py",
+            "processing/bin/probe-otio.sh",
+            "tests/test_resolve_adapter.py"
+          ],
+          "standing": "bounded source/consumer tests, not a native Resolve acceptance receipt"
+        },
+        "unfold": {
+          "type": "owner_native_code",
+          "sourcePaths": [
+            "src/ordivon_studio/resolve_editorial.py",
+            "src/ordivon_studio/resolve_adapter.py"
+          ],
+          "providerPaths": [
+            "processing/bin/otiotool-pinned.sh",
+            "processing/bin/probe-otio.sh"
+          ]
+        }
+      }
     }
   ],
   "edges": [
@@ -178,6 +305,18 @@
       "to": "V05",
       "type": "EVIDENCE",
       "label": "selected output standing"
+    },
+    {
+      "from": "V03",
+      "to": "V07",
+      "type": "DATA",
+      "label": "selected Production/Asset source to editorial conform"
+    },
+    {
+      "from": "V07",
+      "to": "V04",
+      "type": "EVIDENCE",
+      "label": "source-bound OTIO candidate for native review/QC"
     }
   ],
   "slices": [
@@ -247,6 +386,27 @@
       ],
       "blockers": [],
       "nextAction": "Publish the scoped PG change through GitHub required CI; do not remove live SQLite historical files until their read/write consumers and source snapshot hashes are reconciled."
+    },
+    {
+      "id": "VS4",
+      "objective": "Reuse OpenTimelineIO and Media Blob identity for a replaceable, Resolve-private editorial conform without retaining duplicate generic timeline or hashing implementations.",
+      "status": "IMPLEMENTED",
+      "nodeIds": [
+        "V03",
+        "V07",
+        "V04"
+      ],
+      "acceptance": [
+        "Conform preparation is implemented by one cohesive module with current native Resolve adapter consumption.",
+        "The existing Resolve contract tests and official OTIO probe pass; actual Windows NLE result remains external/unknown."
+      ],
+      "evidence": [
+        "src/ordivon_studio/resolve_editorial.py",
+        "tests/test_resolve_adapter.py",
+        "processing/tests/otio-smoke.sh"
+      ],
+      "blockers": [],
+      "nextAction": "Native Windows Resolve readback only when a current production needs a real host conform; do not expand generic timeline adapters."
     }
   ],
   "gaps": [

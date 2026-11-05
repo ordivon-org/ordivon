@@ -54,6 +54,12 @@ creative-alpha, grounded-meaning and article/foundational studies live in
 `ordivon_studio.research`. Research scripts import that subpackage directly;
 there are no redundant compatibility shims or separate research truth store.
 
+Resolve-private editorial interchange and selected-asset binding live in
+`ordivon_studio.resolve_editorial`. The existing `resolve_adapter` remains
+the Windows/operation bridge and the embedded Resolve Runner remains one
+self-contained deployable script. OpenTimelineIO and existing Media Blob
+hashing are reused instead of reimplementing timeline or digest engines.
+
 ## Studio capability plane
 
 A Runtime fact is true at revision `R`. Studio turns it into a film. Runtime later changes.
