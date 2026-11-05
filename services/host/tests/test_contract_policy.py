@@ -60,7 +60,7 @@ def test_legacy_task_board_runtime_modules_are_physically_retired() -> None:
 def test_unclaimed_work_standing_ontology_is_retired_from_active_source() -> None:
     root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
     text = "\n".join(
-        source.read_text() for source in root.glob("*.py") if source.name != "legacy_cutover.py"
+        source.read_text() for source in root.glob("*.py")
     )
     for retired in (
         "workStanding",
