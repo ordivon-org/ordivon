@@ -6,7 +6,9 @@ from typing import Any
 
 import pytest
 
+from ordivon_gateway.research_resolution import resolve_research_capability
 from ordivon_gateway.research_routes import research_capabilities
+from ordivon_gateway.routing import default_routes
 from ordivon_gateway.service import GatewayError, GatewayService
 
 
@@ -106,6 +108,27 @@ def test_research_resolve_binds_exact_current_skill_without_executing_it() -> No
             },
         )
     ]
+
+
+def test_research_resolution_owner_seam_matches_public_gateway_contract() -> None:
+    """Composition may move out of the catalog, but exact Skill bytes and digest do not."""
+    owner_responses = {("skills", "skills.resolve"): skill_resolution("paper-lookup")}
+    facade_caller = ResolverCaller(owner_responses, {"skills"})
+    adapter_caller = ResolverCaller(owner_responses, {"skills"})
+    arguments = {
+        "capability": "research.literature.discovery",
+        "workspace_id": "workspace-source-cut",
+        "agent_id": "agent-research-owner",
+    }
+
+    via_gateway = asyncio.run(GatewayService(facade_caller).capability_resolve(**arguments))
+    via_adapter = asyncio.run(
+        resolve_research_capability(adapter_caller, default_routes(), **arguments)
+    )
+    assert via_gateway.model_dump(mode="json") == via_adapter.model_dump(mode="json")
+    assert via_gateway.resolution_digest == via_adapter.resolution_digest
+    assert facade_caller.calls == adapter_caller.calls
+    assert len(facade_caller.calls) == 1
 
 
 def test_research_resolve_preserves_unknown_skills_owner_as_observation_gap() -> None:
