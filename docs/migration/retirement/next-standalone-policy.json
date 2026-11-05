@@ -28,7 +28,7 @@
   ],
   "allowedExactPaths": [
     {
-      "path": "meta/next/evidence/acceptance/agent-architecture-lego-catalog-r1.json",
+      "path": "catalogs/knowledge/evidence/acceptance/agent-architecture-lego-catalog-r1.json",
       "reason": "Historical acceptance evidence records the source repository observed at evidence creation."
     },
     {
