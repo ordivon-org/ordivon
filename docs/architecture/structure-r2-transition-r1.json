@@ -519,15 +519,15 @@
       "currentPlacementPaths": [
         "studies/data-lifecycle/"
       ],
-      "disposition": "Preserve six historical data-lifecycle census records byte-for-byte as non-authoritative studies; remaining planning is not migrated.",
+      "disposition": "Six historical data-lifecycle census records remain in the native studies source; the unconsumed Next planning folder was retired rather than copied or preserved as an owner.",
       "id": "data-lifecycle-census-studies",
       "mode": "split",
-      "owner": "next",
+      "owner": "studies",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/planning/"
       ],
-      "standing": "PARTIALLY_DEPLOYED",
+      "standing": "DEPLOYED",
       "targetPaths": [
         "studies/"
       ],
