@@ -19,3 +19,11 @@ health; downstream consumer readiness must be separately verified.
 
 Install this timer only after source tests and live owner preflight; disabling
 the timer stops periodic recovery without changing a currently working provider.
+
+## Source and installed closure
+
+Quadlet configuration lives under quadlet/, the physical identity guard is
+identity-exclusive.sh and the systemd recovery units live under systemd/.
+Credentials stay outside Git. The native Gluetun healthchecker handles
+in-tunnel reconnects; Network systemd reconciliation handles cold-start units.
+Use task provider:gluetun:verify to inspect installed source and consumer result.

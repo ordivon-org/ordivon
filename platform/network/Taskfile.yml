@@ -52,7 +52,7 @@ tasks:
 
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate]
+    deps: [core:validate, provider:surfshark:validate, provider:gluetun:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate, consumer:codex:validate, consumer:mobile-tailnet-exit:validate, consumer:discord:validate, consumer:model-provider:validate, consumer:windows-real-chrome:validate]
 
   core:install:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
@@ -710,6 +710,122 @@ tasks:
     cmds:
       - systemctl stop network-v2-x-reality.target
 
+
+
+  provider:gluetun:validate:
+    desc: Validate existing Quadlet-owned single-session provider and recovery lifecycle without effects
+    cmds:
+      - bash -n providers/gluetun/identity-exclusive.sh
+      - sing-box check -c providers/gluetun/config/carrier-adapter.json
+      - systemd-analyze verify providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.service providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer
+      - grep -q '^EnvironmentFile=/etc/network-v2/gluetun/serialized-candidate.env$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
+      - grep -q '^Volume=/etc/network-v2/browserless/nv2blwg.conf:/gluetun/wireguard/wg0.conf:ro$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
+
+  provider:gluetun:verify:
+    desc: Verify deployed Gluetun SourceCut and real shared-provider HTTPS path
+    deps: [provider:gluetun:validate]
+    cmds:
+      - cmp -s providers/gluetun/identity-exclusive.sh /usr/local/libexec/network-v2/provider-identity-exclusive
+      - cmp -s providers/gluetun/config/carrier-adapter.json /etc/network-v2/browserless/provider-carrier-gluetun-candidate.json
+      - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned.target /etc/systemd/system/network-v2-gluetun-owned.target
+      - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned-adapter.service /etc/systemd/system/network-v2-gluetun-owned-adapter.service
+      - cmp -s providers/gluetun/quadlet/network-v2-gluetun-owned.container /etc/containers/systemd/network-v2-gluetun-owned.container
+      - cmp -s providers/gluetun/quadlet/network-v2-gluetun-owned.network /etc/containers/systemd/network-v2-gluetun-owned.network
+      - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.service /etc/systemd/system/network-v2-gluetun-owned-reconcile.service
+      - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer /etc/systemd/system/network-v2-gluetun-owned-reconcile.timer
+      - systemctl is-active --quiet network-v2-gluetun-owned.target
+      - systemctl is-active --quiet network-v2-gluetun-owned-reconcile.timer
+      - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+
+  consumer:codex:validate:
+    desc: Validate Codex destination-scoped fail-closed HTTP egress policy without effects
+    cmds:
+      - sing-box check -c consumers/codex/config/sing-box.json
+      - bash -n consumers/codex/ready.sh
+      - systemd-analyze verify consumers/codex/systemd/network-v2-codex.target consumers/codex/systemd/network-v2-codex-proxy.service consumers/codex/systemd/network-v2-codex-relay.service
+
+  consumer:codex:verify:
+    desc: Verify installed Codex byte identity and real ChatGPT success/unknown-domain denial
+    deps: [consumer:codex:validate]
+    cmds:
+      - cmp -s consumers/codex/config/sing-box.json /etc/network-v2/codex/sing-box.json
+      - cmp -s consumers/codex/ready.sh /usr/local/libexec/network-v2/codex-ready
+      - cmp -s consumers/codex/systemd/network-v2-codex.target /etc/systemd/system/network-v2-codex.target
+      - cmp -s consumers/codex/systemd/network-v2-codex-proxy.service /etc/systemd/system/network-v2-codex-proxy.service
+      - cmp -s consumers/codex/systemd/network-v2-codex-relay.service /etc/systemd/system/network-v2-codex-relay.service
+      - /usr/local/libexec/network-v2/codex-ready
+
+  consumer:mobile-tailnet-exit:validate:
+    desc: Validate Tailscale userspace exit route/namespace source and systemd recovery configuration
+    cmds:
+      - bash -n consumers/mobile-tailnet-exit/run.sh
+      - python3 -c 'import ast; ast.parse(open("consumers/mobile-tailnet-exit/ready.py").read())'
+      - systemd-analyze verify consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service
+
+  consumer:mobile-tailnet-exit:verify:
+    desc: Verify installed Mobile Exit SourceCut, Tailscale approval and provider consequence
+    deps: [consumer:mobile-tailnet-exit:validate]
+    cmds:
+      - cmp -s consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run
+      - cmp -s consumers/mobile-tailnet-exit/ready.py /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
+      - cmp -s consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service /etc/systemd/system/network-v2-mobile-tailnet-exit.service
+      - /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
+
+
+  consumer:discord:validate:
+    desc: Validate exact Discord HTTPS/Gateway policy from deployed consumer source
+    cmds:
+      - sing-box check -c consumers/discord/config/egress.json
+      - bash -n consumers/discord/ready.sh
+      - systemd-analyze verify consumers/discord/systemd/network-v2-discord-egress.service consumers/discord/systemd/network-v2-discord.target
+
+  consumer:discord:verify:
+    desc: Verify installed Discord consumer source and real Gateway HTTPS consequence
+    deps: [consumer:discord:validate]
+    cmds:
+      - cmp -s consumers/discord/config/egress.json /etc/network-v2/discord/egress.json
+      - cmp -s consumers/discord/config/authority.json /etc/network-v2/discord/authority.json
+      - cmp -s consumers/discord/systemd/network-v2-discord-egress.service /etc/systemd/system/network-v2-discord-egress.service
+      - cmp -s consumers/discord/systemd/network-v2-discord.target /etc/systemd/system/network-v2-discord.target
+      - cmp -s consumers/discord/ready.sh /usr/local/libexec/network-v2/discord-ready
+      - /usr/local/libexec/network-v2/discord-ready
+
+  consumer:model-provider:validate:
+    desc: Validate shared Model Provider egress authority without reading credentials
+    cmds:
+      - sing-box check -c consumers/model-provider/config/egress.json
+      - bash -n consumers/model-provider/ready.sh
+      - systemd-analyze verify consumers/model-provider/systemd/network-v2-model-provider-egress.service consumers/model-provider/systemd/network-v2-model-provider.target
+
+  consumer:model-provider:verify:
+    desc: Verify installed Model Provider source and exact provider HTTPS admission
+    deps: [consumer:model-provider:validate]
+    cmds:
+      - cmp -s consumers/model-provider/config/egress.json /etc/network-v2/model-provider/egress.json
+      - cmp -s consumers/model-provider/config/authority.json /etc/network-v2/model-provider/authority.json
+      - cmp -s consumers/model-provider/systemd/network-v2-model-provider-egress.service /etc/systemd/system/network-v2-model-provider-egress.service
+      - cmp -s consumers/model-provider/systemd/network-v2-model-provider.target /etc/systemd/system/network-v2-model-provider.target
+      - cmp -s consumers/model-provider/ready.sh /usr/local/libexec/network-v2/model-provider-ready
+      - /usr/local/libexec/network-v2/model-provider-ready
+
+  consumer:windows-real-chrome:validate:
+    desc: Validate Windows Chrome Linux-side proxy, relay and public-web policy
+    cmds:
+      - sing-box check -c consumers/windows-real-chrome/config/sing-box.json
+      - bash -n consumers/windows-real-chrome/ready.sh
+      - systemd-analyze verify consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-proxy.service consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-relay.service consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome.target
+
+  consumer:windows-real-chrome:verify:
+    desc: Verify Chrome proxy SourceCut and real public/ChatGPT HTTP consequences
+    deps: [consumer:windows-real-chrome:validate]
+    cmds:
+      - cmp -s consumers/windows-real-chrome/config/sing-box.json /etc/network-v2/windows-real-chrome/sing-box.json
+      - cmp -s consumers/windows-real-chrome/config/authority.json /etc/network-v2/windows-real-chrome/authority.json
+      - cmp -s consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-proxy.service /etc/systemd/system/network-v2-windows-real-chrome-proxy.service
+      - cmp -s consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-relay.service /etc/systemd/system/network-v2-windows-real-chrome-relay.service
+      - cmp -s consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome.target /etc/systemd/system/network-v2-windows-real-chrome.target
+      - cmp -s consumers/windows-real-chrome/ready.sh /usr/local/libexec/network-v2/windows-real-chrome-ready
+      - /usr/local/libexec/network-v2/windows-real-chrome-ready
 
 vars:
   SYSTEMD_UNITS:

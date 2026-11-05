@@ -1,0 +1,47 @@
+{
+  "$schema": "https://sing-box.sagernet.org/schema.json",
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "http",
+      "tag": "discord-api",
+      "listen": "127.0.0.1",
+      "listen_port": 19981
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "http",
+      "tag": "provider-carrier",
+      "server": "10.252.246.2",
+      "server_port": 19680
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "inbound": [
+          "discord-api"
+        ],
+        "domain": [
+          "discord.com",
+          "gateway.discord.gg",
+          "cdn.discordapp.com",
+          "media.discordapp.net"
+        ],
+        "port": 443,
+        "network": [
+          "tcp"
+        ],
+        "action": "route",
+        "outbound": "provider-carrier"
+      },
+      {
+        "action": "reject"
+      }
+    ]
+  }
+}
