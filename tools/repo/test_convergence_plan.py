@@ -997,10 +997,10 @@ class ConvergencePlanTests(unittest.TestCase):
             "NOT_ESTABLISHED_BY_THIS_PROJECTION",
         )
 
-    def test_next_queue_projection_uses_full_portable_verification(self) -> None:
-        plan = MODULE.build_plan(changed_files=["meta/next/README.md"])
-        self.assertIn("next:verify", plan["verifyTasks"])
-        self.assertIn("next:verify", plan["queueVerifyTasks"])
+    def test_authority_catalog_queue_projection_uses_native_verification(self) -> None:
+        plan = MODULE.build_plan(changed_files=["catalogs/authorities/README.md"])
+        self.assertIn("authority-catalog:verify", plan["verifyTasks"])
+        self.assertIn("authority-catalog:verify", plan["queueVerifyTasks"])
 
     def test_media_change_expands_to_declared_interaction_component(self) -> None:
         plan = MODULE.build_plan(
@@ -1009,7 +1009,7 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], ["media"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["artifact", "distribution", "game", "media", "workstation"],
+            ["artifact", "authority-catalog", "composition", "distribution", "game", "media", "workstation"],
         )
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])
@@ -1019,7 +1019,7 @@ class ConvergencePlanTests(unittest.TestCase):
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["composition", "harness", "next", "security", "skills", "web"],
+            ["harness", "security", "web"],
         )
         self.assertIn("harness:verify", plan["verifyTasks"])
         self.assertIn("harness:queue", plan["queueVerifyTasks"])
@@ -1572,7 +1572,7 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertNotIn("runtime", graph["harness"])
         self.assertNotIn("harness", graph["runtime"])
         # Existing public code/data dependencies must still propagate.
-        self.assertIn("composition", graph["next"])
+        self.assertIn("authority-catalog", graph["composition"])
         runtime = MODULE.build_plan(changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"])
         # The direct test witness is selected without merging the operational
         # composition/harness/security/web owner component into Runtime.

@@ -975,59 +975,47 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "host:queue")
 
-    def test_next_root_queue_replaces_non_discovered_nested_ci(self) -> None:
-        """Next's root queue and root security scan replace nested CI.
+    def test_retired_next_delegates_to_native_catalog_queue(self) -> None:
+        """Current Owner routing has no standalone Meta/Next source or task."""
 
-        This is a repository source/CI contract, not an installed provider proof.
-        """
         import tomllib
         import yaml
 
-        nested = ROOT / "meta/next/.github/workflows/ci.yml"
-        self.assertFalse(nested.exists(), "nested Next CI is not root-discovered")
+        self.assertFalse((ROOT / "meta").exists())
         manifest = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())
-        next_owners = [o for o in manifest["owners"] if o["name"] == "next"]
-        self.assertEqual(len(next_owners), 1)
-        self.assertEqual(next_owners[0]["root"], "meta/next/")
-        self.assertEqual(next_owners[0]["verify_task"], "next:verify")
+        owners = {o["name"]: o for o in manifest["owners"]}
+        self.assertNotIn("next", owners)
+        self.assertEqual(
+            owners["authority-catalog"]["root"], "catalogs/authorities/"
+        )
+        self.assertEqual(
+            owners["capability-catalog"]["root"], "catalogs/capabilities/"
+        )
         top = tomllib.loads((ROOT / "mise.toml").read_text())
-        route = top["tasks"]["next:verify"]["run"]
-        for fragment in ("cd meta/next", "mise run verify", "cd ../../studies/experimental-episodes/episode-store"):
-            self.assertIn(fragment, route)
-        native = tomllib.loads((ROOT / "meta/next/mise.toml").read_text())
-        checks = native["tasks"]["verify"]["run"]
-        for obligation in (
-            "uv lock --check", "uv sync --locked",
-            "uv run --locked python -m pytest",
-            "uv run --locked --group quality ruff check tests",
-            "uv run --locked --group quality ruff format --check tests",
-            "../../catalogs/authorities/scripts/check_authority_catalog_r1.py",
-            
-            "../../catalogs/capabilities/scripts/verify_reasoning_providers.py",
-            "bandit -r ../../catalogs/authorities/scripts", "pip-audit",
-        ):
-            self.assertIn(obligation, checks)
+        self.assertNotIn("next:verify", top["tasks"])
+        self.assertIn("check_authority_catalog_r1.py",
+                      top["tasks"]["authority-catalog:verify"]["run"])
+        self.assertIn("verify_reasoning_providers.py",
+                      top["tasks"]["capability-catalog:verify"]["run"])
+        self.assertIn("episode-store",
+                      top["tasks"]["experimental-episodes:verify"]["run"])
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         steps = workflow["jobs"]["root-verification"]["steps"]
         scripts = {step.get("name"): step.get("run", "") for step in steps}
         self.assertIn("tools/repo/convergence_plan.py", scripts["Select affected owners"])
         self.assertIn("queueVerifyTasks", scripts["Select affected owners"])
         self.assertIn('mise run "$task"', scripts["Verify affected owners"])
-        self.assertIn("mise run repo:secrets:verify", scripts["Repository-wide secret scan"])
-        self.assertIn(
-            "tools/repo/check_tracked_secrets.sh",
-            scripts["Current committed-source secret scan"],
-        )
+        self.assertIn("tools/repo/check_tracked_secrets.sh",
+                      scripts["Current committed-source secret scan"])
+
         selected = subprocess.run(
-            [
-                sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
-                "--changed-file", "meta/next/.github/workflows/ci.yml",
-                "--format", "queue-tasks",
-            ],
+            [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
+             "--changed-file", "catalogs/authorities/README.md",
+             "--format", "queue-tasks"],
             cwd=ROOT, capture_output=True, text=True, timeout=20, check=False,
         )
         self.assertEqual(selected.returncode, 0, selected.stderr)
-        self.assertEqual(selected.stdout.strip(), "next:verify")
+        self.assertEqual(selected.stdout.strip(), "authority-catalog:verify")
 
     def test_media_root_queue_replaces_non_discovered_nested_ci(self) -> None:
         """Media's live root-queue contract supersedes its old nested CI YAML.
