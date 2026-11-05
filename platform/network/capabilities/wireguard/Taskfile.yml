@@ -20,3 +20,9 @@ tasks:
     cmds:
       - task: capability:wireguard:materialize
       - ./capabilities/wireguard/acceptance/userspace-lifecycle.sh
+
+vars:
+  WIREGUARD_GO_REPO:
+    sh: awk -F= '$1=="repository"{print $2}' capabilities/wireguard/external/wireguard-go.lock
+  WIREGUARD_GO_REVISION:
+    sh: awk -F= '$1=="revision"{print $2}' capabilities/wireguard/external/wireguard-go.lock
