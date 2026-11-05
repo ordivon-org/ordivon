@@ -2378,8 +2378,32 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     import ast
     nodes = {n["id"]: n for n in plan["nodes"]}
     parents = {"O01", "O02", "O03", "O04"}
-    actual_host = _mcp_decorated_route_functions(
-        ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py", "mcp")
+    host_mcp_path = ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py"
+    attention_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_attention_tools.py"
+    host_registrar = ast.parse(host_mcp_path.read_text(encoding="utf-8"))
+    # The source graph must prove the new registrar is actually invoked by the
+    # public Host composition root; a detached decorated function is insufficient.
+    assert any(
+        isinstance(n, ast.ImportFrom) and n.level == 1
+        and n.module == "mcp_attention_tools"
+        and any(a.name == "register_attention_tools" for a in n.names)
+        for n in host_registrar.body
+    )
+    register = next(
+        n for n in host_registrar.body
+        if isinstance(n, ast.FunctionDef) and n.name == "register_social_work_tools"
+    )
+    assert any(
+        isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+        and n.func.id == "register_attention_tools"
+        and [a.id if isinstance(a, ast.Name) else None for a in n.args]
+        == ["mcp", "attention", "_request_id"]
+        for n in ast.walk(register)
+    ), "Attention tools are detached from the Host northbound registrar"
+    direct_routes = _mcp_decorated_route_functions(host_mcp_path, "mcp")
+    attention_routes = _mcp_decorated_route_functions(attention_mcp_path, "mcp")
+    assert not (direct_routes.keys() & attention_routes.keys())
+    actual_host = {**direct_routes, **attention_routes}
     actual_gateway = _mcp_decorated_route_functions(
         ROOT / "services/gateway/src/ordivon_gateway/host_tools.py", "server",
         source_override=gateway_text)
@@ -2421,9 +2445,12 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
                                if isinstance(entry, (ast.FunctionDef, ast.AsyncFunctionDef))}
                 assert symbol in definitions, f"missing current test {identity} {witness}"
     for identity, routes in expected.items():
+        source = attention_routes if identity == "O03" else direct_routes
+        source_name = "mcp_attention_tools:" if identity == "O03" else "social_work_mcp:"
         declared = {x.split(":", 1)[1] for x in nodes[identity]["consumers"]
-                    if x.startswith("social_work_mcp:")}
+                    if x.startswith(source_name)}
         assert declared == routes
+        assert routes <= source.keys(), (identity, routes - source.keys())
         for route in routes:
             assert route in actual_host
             node = actual_host[route]

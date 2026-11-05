@@ -173,11 +173,12 @@
         "O12"
       ],
       "consumers": [
-        "social_work_mcp:attention.delta",
-        "social_work_mcp:attention.reentry",
+        "mcp_attention_tools:attention.delta",
+        "mcp_attention_tools:attention.reentry",
         "Gateway Host adapter:attention.delta"
       ],
       "consumerEvidence": [
+        "src/ordivon_host_v2/mcp_attention_tools.py",
         "src/ordivon_host_v2/social_work_mcp.py",
         "tests/test_social_work_fabric_attention.py::test_attention_cursor_is_monotonic_and_horizon_bounded",
         "tests/test_social_work_fabric_postgres.py::test_attention_first_ack_concurrency_cannot_regress_cursor",
