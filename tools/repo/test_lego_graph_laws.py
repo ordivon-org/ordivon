@@ -688,7 +688,7 @@ def test_owner_project_source_evidence_rejects_traversal_and_duplicate_carriers(
     (
         "services/host/README.md",
         "./README.md",
-        "docs//HOST_V2_R6_CLEANUP.md",
+        "docs//SOCIAL_WORK_FABRIC_R2_SPEC.md",
     ),
 )
 def test_owner_evidence_alias_cannot_mint_duplicate_provenance(alias: str) -> None:
