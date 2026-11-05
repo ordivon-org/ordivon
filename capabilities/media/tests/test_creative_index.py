@@ -6,12 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_studio.creative_index import (
-    _first_string,
-    _walk_values,
-    build_creative_index,
-    query_creative_index,
-)
+from ordivon_studio.creative_index import build_creative_index, query_creative_index
+from ordivon_studio.creative_index_sources import _first_string, _walk_values
 
 ROOT = Path(__file__).resolve().parents[1]
 

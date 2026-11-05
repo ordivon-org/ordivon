@@ -62,6 +62,13 @@ Equipment follows a three-stage, source-readable contract:
 process execution (Runtime), and output acceptance (the source/Artifact owner)
 are **distinct**; no new equipment engine or parallel asset authority is admitted.
 
+Creative navigation follows the same source-of-truth rule:
+`creative_index.py` orchestrates a rebuildable projection over Media's native
+equipment, productions and collections; `creative_index_sources.py` reads
+Artifact-owned delivery evidence and Creative Library snapshots. Graph nodes
+and edges are derived navigation only. Query results never mutate or replace
+the original owner records.
+
 Resolve-private editorial interchange and selected-asset binding live in
 `ordivon_studio.resolve_editorial`. The existing `resolve_adapter` remains
 the Windows/operation bridge and the embedded Resolve Runner remains one
