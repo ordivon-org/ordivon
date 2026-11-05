@@ -16,6 +16,25 @@ vision-capable Agent
 semantic / expressive audit
 ```
 
+## Implementation boundary (source-owned LEGO)
+
+The video review path now composes three existing capabilities instead of
+putting algorithms, process I/O and packaging in one file:
+
+- `perception_selection.py` owns the pure bounded coverage/change-peak
+  selection. It chooses *where* to observe, not the semantic importance of a
+  scene.
+- `perception_video_io.py` delegates real pixel extraction, luma-difference
+  sampling and contact-sheet composition to FFmpeg. PNG identity is obtained
+  through the existing Media Blob hashing capability.
+- `perception.py` combines those inputs into the existing source-bound,
+  rebuildable Perception Bundle. `rich_perception.py` consumes the native
+  temporal sampler directly rather than depending on the bundle coordinator.
+
+No new scene model, rendering engine, review authority or persistent frame
+index is introduced. The exact frame PNGs and contact sheet stay disposable
+outputs derived from the source video, not competing masters.
+
 ## Three layers
 
 ### L1 — mechanical observation
