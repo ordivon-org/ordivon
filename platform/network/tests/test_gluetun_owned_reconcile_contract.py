@@ -8,7 +8,8 @@ def test_recovery_requires_selected_mode_and_operator_enabled_target():
     assert "ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected" in service
     assert "ExecCondition=/usr/bin/systemctl is-enabled --quiet network-v2-gluetun-owned.target" in service
     assert "ExecStartPre=/usr/local/libexec/network-v2/provider-identity-exclusive gluetun" in service
-    assert "ExecStart=/usr/bin/systemctl start network-v2-gluetun-owned.target" in service
+    assert "ExecStart=/usr/bin/systemctl start network-v2-gluetun-owned.service network-v2-gluetun-owned-adapter.service" in service
+    assert "ExecStart=/usr/bin/systemctl start network-v2-gluetun-owned.target" not in service
     assert "Restart=always" not in service
     assert "network-v2-browserless-wireguard.service" not in service
 

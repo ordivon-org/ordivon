@@ -1,9 +1,10 @@
 # Gluetun owned provider cold-start reconciliation
 
 This is a native systemd timer and oneshot service, not a custom polling loop.
-It periodically tries to start the already-selected
-network-v2-gluetun-owned.target if the selected mode is installed and the
-target remains enabled. Starting an active target is an idempotent no-op.
+When the selected mode and enabled Provider target authorize recovery, it
+starts the actual Gluetun container service and the compatibility adapter.
+Starting an already-active target alone would not recover a failed child
+service; starting the actual healthy services is an idempotent no-op.
 
 It fixes the observed failure mode where an early Podman storage error
 prevented the generated provider-network unit from starting during WSL boot.
