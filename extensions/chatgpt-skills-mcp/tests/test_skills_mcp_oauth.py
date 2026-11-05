@@ -8,6 +8,8 @@ from types import SimpleNamespace
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+from ordivon_skills.http_auth import CloudflareAccessVerifier as NativeAccessVerifier
+from ordivon_skills.http_auth import HybridAuthApp as NativeHybridAuthApp
 from scripts.skills_mcp import CloudflareAccessVerifier, HybridAuthApp, McpSettings
 
 
@@ -106,6 +108,35 @@ class SkillsMcpOAuthTests(unittest.TestCase):
             _request(app, [(b"cf-access-jwt-assertion", b"valid-access-assertion")])
         )
         self.assertEqual(status, 401)
+
+    def test_transport_auth_is_the_one_native_skill_owner_implementation(self) -> None:
+        self.assertIs(CloudflareAccessVerifier, NativeAccessVerifier)
+        self.assertIs(HybridAuthApp, NativeHybridAuthApp)
+
+    def test_unauthorized_oversized_request_is_rejected_without_dispatch(self) -> None:
+        dispatched = []
+        events = []
+
+        async def downstream(_scope, _receive, _send):
+            dispatched.append(True)
+
+        async def exercise():
+            async def receive():
+                return {"type": "http.request", "body": b"x" * 65, "more_body": False}
+
+            async def send(message):
+                events.append(message)
+
+            app = HybridAuthApp(downstream, "x" * 64, body_limit_bytes=64)
+            await app(
+                {"type": "http", "method": "POST", "path": "/mcp", "headers": []},
+                receive,
+                send,
+            )
+
+        asyncio.run(exercise())
+        self.assertEqual(events[0]["status"], 413)
+        self.assertFalse(dispatched)
 
     def test_settings_fail_closed_when_access_configuration_is_incomplete(self) -> None:
         with self.assertRaisesRegex(ValueError, "issuer"):
