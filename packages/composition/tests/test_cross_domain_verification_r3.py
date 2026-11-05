@@ -25,8 +25,9 @@ from ordivon_composition.web_security_gate_r3 import build_gate_result as web_se
 from ordivon_composition.web_security_gate_r3 import read_linked_store_sources
 
 ROOT = Path(__file__).resolve().parents[3]
-NEXT_ROOT = ROOT / "meta" / "next"
-BINDING_PATH = NEXT_ROOT / "evidence" / "acceptance" / "cross-domain-verification-r3-bindings.json"
+BINDING_PATH = (
+    ROOT / "packages/composition/tests/fixtures/cross-domain-verification-r3-bindings.json"
+)
 
 
 def _digest(label: str) -> str:

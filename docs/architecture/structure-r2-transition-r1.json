@@ -677,12 +677,14 @@
         "meta/next/scripts/research_artifact_gate_r3.py",
         "meta/next/scripts/web_security_gate_r3.py",
         "meta/next/tests/test_cross_domain_verification_r3.py",
-        "meta/next/planning/lego-plan-r1.json"
+        "meta/next/planning/lego-plan-r1.json",
+        "meta/next/evidence/acceptance/cross-domain-verification-r3-bindings.json"
       ],
       "targetPaths": [
         "packages/composition/src/ordivon_composition/",
         "packages/composition/tests/",
-        "packages/composition/planning/lego-plan-r1.json"
+        "packages/composition/planning/lego-plan-r1.json",
+        "packages/composition/tests/fixtures/cross-domain-verification-r3-bindings.json"
       ],
       "standing": "DEPLOYED",
       "disposition": "Relocate bounded R3 gates, consumers and C07-C09 LEGO nodes to native Composition owner. Historical SourceCut coordinates retained; no duplicate authority or aliases.",
