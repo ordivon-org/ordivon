@@ -642,7 +642,9 @@
         "Concurrent PostgreSQL event writes retain one complete hash chain with source-defined event identity.",
         "Legacy SQLite migration verifies every source event and commits exact equivalent PostgreSQL history or does not proceed.",
         "Real PostgreSQL tests run with disposable DSN; an absent DSN does not authorize PostgreSQL acceptance.",
-        "Legacy trial-history migration is not automatic retention: require a current consumer purpose, exact experiment search identity and independently attested writer-stop before source reads or PG writes; no demonstrated consumer implies no import. The old source remains outside importer deletion authority and requires independent post-cutover retirement."
+        "Legacy trial-history migration is not automatic retention: require a current consumer purpose, exact experiment search identity and independently attested writer-stop before source reads or PG writes; no demonstrated consumer implies no import. The old source remains outside importer deletion authority and requires independent post-cutover retirement.",
+        "An altered selected winner with stale digest is rejected by replay and holdout; a forged rehashed winner is rejected against the PG trial.selected source row and cannot append a reveal.",
+        "R6 final score rejects semantically altered holdout/calibration proof artifacts even when the original digest field is copied unchanged."
       ],
       "r21": {
         "I": {
@@ -677,7 +679,8 @@
           "requirements": [
             "a real PostgreSQL DSN, not a local SQLite path",
             "valid canonical search/attempt/candidate/event identifiers",
-            "the current PostgreSQL catalog satisfies expected table, unique keys and mutation trigger"
+            "the current PostgreSQL catalog satisfies expected table, unique keys and mutation trigger",
+            "if a frozen winner declares a PG trialLedger witness, holdout must use the matching real PG search history"
           ],
           "externalAssumptions": [
             "the PostgreSQL instance and its current administrator policy remain trustworthy for the execution"
@@ -688,7 +691,8 @@
           "guarantees": [
             "successful append yields an identity derived from the exact committed event payload and previous event hash",
             "failed transaction is not a successful event append",
-            "summary is derived from exact search-scoped PG rows; verify recomputes the chain"
+            "summary is derived from exact search-scoped PG rows; verify recomputes the chain",
+            "holdout verifies the declared frozen winner digest and selected candidate against source PG rows before one recorded reveal"
           ]
         },
         "inv": {
@@ -698,7 +702,9 @@
             "PG event identity uniqueness",
             "base table UPDATE/DELETE rejected under the active trigger",
             "R6 registration and holdout seed authority remains separate",
-            "no local SQLite active writer or shadow ledger"
+            "no local SQLite active writer or shadow ledger",
+            "selected winner verification and sealed holdout reveal share one PostgreSQL per-search advisory-locked transaction; replay of already-revealed source is rejected",
+            "final R6 scoring refuses mismatched correction, holdout or calibration source digest, not just a shared registration ID"
           ]
         },
         "eff": {
@@ -738,7 +744,7 @@
           ],
           "sourceCut": "d9df40e1d8156a18bca1b31b5ef2640731d47acc",
           "execution": "Disposable local PostgreSQL 18.6, 14/14 R6 native tests, 211/211 Media tests; ephemeral fixture removed",
-          "standing": "CODE_TESTED_PG_DISPOSABLE_NOT_LIVE_CUTOVER"
+          "standing": "CODE_TESTED_PG_DISPOSABLE__FROZEN_WINNER_SOURCE_FENCE__NOT_LIVE_CUTOVER"
         },
         "unfold": {
           "type": "owner_native_code",
@@ -1468,15 +1474,17 @@
       ],
       "acceptance": [
         "Media pg:verify runs against disposable PostgreSQL 18 and proves append, concurrent identity, history immutability and migration without implicit skips.",
-        "GitHub protected Owner CI admits the exact source change, and actual historical writers are quiesced before physical cutover."
+        "GitHub protected Owner CI admits the exact source change, and actual historical writers are quiesced before physical cutover.",
+        "A persisted winner cannot silently reveal holdout without its original PG source, and a changed/rehashed winner cannot pass the exact committed trial.selected evidence."
       ],
       "evidence": [
         "src/ordivon_studio/research/trial_ledger.py",
         "tests/test_research_validity.py",
-        "mise.toml"
+        "mise.toml",
+        "src/ordivon_studio/research/search_calibration.py"
       ],
       "blockers": [],
-      "nextAction": "Publish the scoped PG change through GitHub required CI; do not remove live SQLite historical files until their read/write consumers and source snapshot hashes are reconciled."
+      "nextAction": "PG-native ledger and frozen-winner source binding published after native suite; verify exact deployed R6 consumer DSN and any historical SQLite writers before admitting production cutover or old-source retirement. If no current consumer, do not create a duplicate empty production ledger or migrate history."
     },
     {
       "id": "VS4",

@@ -24,7 +24,13 @@ Use [`OMPC-v0`](research/media/engineering-consumption/OMPC-v0.md) as an optiona
 ### R6 Trial Ledger — PostgreSQL transition
 
 The R6 search-history ledger now uses PostgreSQL instead of creating new
-SQLite files. Set ORDIVON_MEDIA_TRIAL_PG_DSN for search and optional holdout.
+SQLite files. Set ORDIVON_MEDIA_TRIAL_PG_DSN for search. When the frozen
+winner contains a PostgreSQL trial-ledger witness, the sealed holdout **must**
+reuse the same search ledger: the native per-search transaction verifies the
+exact frozen source/selected candidate before appending one reveal event.
+Pure in-memory reasoning without a ledger remains available for independently
+constructed research fixtures, but it cannot silently upgrade to a recorded
+search or drop a recorded search's history.
 The one-time SQLite importer now **defaults to no historical import**.
 Only import a stopped legacy experiment when a current registered-search replay
 or sealed-holdout audit actually consumes its history. Bind the exact consumer

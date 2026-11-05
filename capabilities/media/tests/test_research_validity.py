@@ -17,6 +17,7 @@ from ordivon_studio.research.search_calibration import (
     calibration_experiment,
     evaluate_sealed_holdout,
     run_registered_search,
+    score_null_attack,
     search_replay_correction,
 )
 from ordivon_studio.research.trial_ledger import TrialLedger
@@ -331,6 +332,65 @@ class ResearchValidityTest(unittest.TestCase):
         self.assertEqual(winner["attemptBudget"], 300)
         self.assertLessEqual(winner["naiveOneSidedP"], 1.0)
 
+    def test_frozen_winner_mutation_is_rejected_by_both_consumers(self) -> None:
+        """Counterexample: a reselected candidate cannot inherit the old digest."""
+        registration = self.registration(budget=12)
+        winner = run_registered_search(registration)
+        forged = dict(winner)
+        forged["candidateId"] = "creative-candidate://forged-without-winner-rehash"
+        with self.assertRaisesRegex(ValueError, "frozen winner digest mismatch"):
+            evaluate_sealed_holdout(registration, forged, holdout_seed="sealed-fixture")
+        with self.assertRaisesRegex(ValueError, "frozen winner digest mismatch"):
+            search_replay_correction(
+                registration, forged, replay_seed="replay-fixture", replay_count=100
+            )
+
+    @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
+    def test_sealed_holdout_reuses_same_frozen_pg_selection_atomically(self) -> None:
+        """No orphan reveal, missing-ledger fallback or second holdout replay."""
+        from ordivon_studio.research.grounded_contracts import canonical_digest
+
+        registration = build_null_registration(
+            mode="static",
+            attempt_budget=12,
+            visible_seed="pg-frozen-visible",
+            holdout_seed_commitment=seed_commitment("sealed-fixture"),
+            experiment_id=f"experiment:pg-frozen:{uuid4().hex}",
+        )
+        ledger = TrialLedger(PG_DSN, search_id=registration["experimentId"])
+        try:
+            winner = run_registered_search(registration, ledger)
+            before = ledger.summary()
+            with self.assertRaisesRegex(ValueError, "requires its original PostgreSQL ledger"):
+                evaluate_sealed_holdout(registration, winner, holdout_seed="sealed-fixture")
+            self.assertEqual(ledger.summary(), before)
+
+            # Even rehashing a forged winner cannot pass the native PostgreSQL
+            # selected-event/source identity, which is checked under the lock.
+            forged = dict(winner)
+            forged["candidateId"] = "creative-candidate://forged-and-rehashed"
+            forged["winnerDigest"] = canonical_digest(
+                {key: value for key, value in forged.items() if key != "winnerDigest"}
+            )
+            with self.assertRaisesRegex(ValueError, "selected candidate differs"):
+                evaluate_sealed_holdout(
+                    registration, forged, holdout_seed="sealed-fixture", ledger=ledger
+                )
+            self.assertEqual(ledger.summary(), before)
+
+            result = evaluate_sealed_holdout(
+                registration, winner, holdout_seed="sealed-fixture", ledger=ledger
+            )
+            self.assertTrue(result["trialLedger"]["eventChainValid"])
+            self.assertEqual(result["trialLedger"]["eventCounts"]["trial.holdout_revealed"], 1)
+            with self.assertRaisesRegex(ValueError, "no longer matches frozen winner"):
+                evaluate_sealed_holdout(
+                    registration, winner, holdout_seed="sealed-fixture", ledger=ledger
+                )
+            self.assertEqual(ledger.summary()["eventCounts"]["trial.holdout_revealed"], 1)
+        finally:
+            ledger.close()
+
     def test_holdout_requires_exact_committed_seed(self) -> None:
         registration = self.registration()
         winner = run_registered_search(registration)
@@ -348,6 +408,41 @@ class ResearchValidityTest(unittest.TestCase):
         self.assertEqual(correction["attemptBudget"], 200)
         self.assertGreater(correction["searchCorrectedP"], 0.0)
         self.assertLessEqual(correction["searchCorrectedP"], 1.0)
+
+    def test_score_rejects_changed_calibration_or_holdout_source(self) -> None:
+        """Score must consume the actual frozen proof artifacts, not edited JSON."""
+        registration = self.registration(budget=12)
+        winner = run_registered_search(registration)
+        correction = search_replay_correction(
+            registration, winner, replay_seed="source-score-replay", replay_count=100
+        )
+        holdout = evaluate_sealed_holdout(
+            registration, winner, holdout_seed="sealed-fixture"
+        )
+        calibration = calibration_experiment(
+            mode="static", budgets=[12], worlds=100, reference_replays=400,
+            seed="source-score-calibration",
+        )
+        input_args = {
+            "registration": registration, "winner": winner, "correction": correction,
+            "holdout": holdout, "calibration": calibration,
+        }
+        score = score_null_attack(**input_args)
+        self.assertEqual(score["registrationDigest"], registration["registrationDigest"])
+
+        forged_holdout = {**holdout, "holdoutOneSidedP": 0.00001}
+        with self.assertRaisesRegex(ValueError, "sealed holdout source digest mismatch"):
+            score_null_attack(**{**input_args, "holdout": forged_holdout})
+
+        forged_calibration = {
+            **calibration,
+            "rows": {
+                **calibration["rows"],
+                "12": {**calibration["rows"]["12"], "naiveFalsePositiveRate": 1.0},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "calibration source digest mismatch"):
+            score_null_attack(**{**input_args, "calibration": forged_calibration})
 
     def test_null_calibration_exposes_best_of_n_and_corrects_it(self) -> None:
         result = calibration_experiment(
