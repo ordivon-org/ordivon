@@ -133,7 +133,7 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "src/ordivon_studio/research/research_validity.py",
+        "src/ordivon_studio/research/trial_ledger.py",
         "scripts/run-r6-creative-validity.py",
         "scripts/migrate-r6-trials.py",
         "tests/test_research_validity.py::ResearchValidityTest.test_parallel_trial_appends_commit_one_complete_hash_chain",
@@ -151,7 +151,114 @@
         "Legacy SQLite migration verifies every source event and commits exact equivalent PostgreSQL history or does not proceed.",
         "Real PostgreSQL tests run with disposable DSN; an absent DSN does not authorize PostgreSQL acceptance.",
         "Legacy trial-history migration is not automatic retention: require a current consumer purpose, exact experiment search identity and independently attested writer-stop before source reads or PG writes; no demonstrated consumer implies no import. The old source remains outside importer deletion authority and requires independent post-cutover retirement."
-      ]
+      ],
+      "r21": {
+        "I": {
+          "type": "TrialLedgerRequest",
+          "fields": [
+            "PostgreSQL DSN",
+            "exact searchId",
+            "attemptId",
+            "candidateId",
+            "registered eventType",
+            "JSON payload"
+          ],
+          "consumer": "R6 registered experiment and sealed holdout"
+        },
+        "O": {
+          "type": "TrialLedgerObservation",
+          "fields": [
+            "content-derived eventId",
+            "event summary and counts",
+            "full search hash-chain verification"
+          ],
+          "error": "invalid input or PostgreSQL transaction/database failure"
+        },
+        "S": {
+          "type": "PostgreSQLSearchEventSequence",
+          "partition": "search_id",
+          "order": "server-side generated seq",
+          "mutation": "append-only with UPDATE/DELETE rejection and per-search advisory transaction lock"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "a real PostgreSQL DSN, not a local SQLite path",
+            "valid canonical search/attempt/candidate/event identifiers",
+            "the current PostgreSQL catalog satisfies expected table, unique keys and mutation trigger"
+          ],
+          "externalAssumptions": [
+            "the PostgreSQL instance and its current administrator policy remain trustworthy for the execution"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "successful append yields an identity derived from the exact committed event payload and previous event hash",
+            "failed transaction is not a successful event append",
+            "summary is derived from exact search-scoped PG rows; verify recomputes the chain"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "serialized, per-search hash predecessor relation",
+            "PG event identity uniqueness",
+            "base table UPDATE/DELETE rejected under the active trigger",
+            "R6 registration and holdout seed authority remains separate",
+            "no local SQLite active writer or shadow ledger"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "open PostgreSQL connection",
+            "create/verify private trial ledger schema/table/index/trigger",
+            "append serialized PG events",
+            "read back PG rows and integrity"
+          ],
+          "excluded": [
+            "write legacy SQLite source",
+            "delete historical files",
+            "mutate Host or Runtime journals",
+            "infer external physical cutover completion"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "real workload database latency, lock contention and storage growth",
+          "reason": "disposable PostgreSQL contract fixture is not a representative production benchmark",
+          "obligation": "measure on a named production consumer only if required"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "domain-level live writer cutover and historic import equivalence",
+          "reason": "disposable PG behavior proves implementation contracts but not the actual deployed process source or live historical dataset",
+          "obligation": "identify active writers, current consumer and read-back receipts before domain cutover acceptance"
+        },
+        "prov": {
+          "type": "source_and_execution_evidence",
+          "sourcePaths": [
+            "src/ordivon_studio/research/trial_ledger.py",
+            "src/ordivon_studio/research/trial_registration.py",
+            "tests/test_research_validity.py",
+            "scripts/migrate-r6-trials.py"
+          ],
+          "sourceCut": "d9df40e1d8156a18bca1b31b5ef2640731d47acc",
+          "execution": "Disposable local PostgreSQL 18.6, 14/14 R6 native tests, 211/211 Media tests; ephemeral fixture removed",
+          "standing": "CODE_TESTED_PG_DISPOSABLE_NOT_LIVE_CUTOVER"
+        },
+        "unfold": {
+          "type": "owner_native_code",
+          "sourcePaths": [
+            "src/ordivon_studio/research/trial_ledger.py",
+            "src/ordivon_studio/research/trial_registration.py",
+            "src/ordivon_studio/research/search_calibration.py",
+            "tests/test_research_validity.py"
+          ],
+          "provider": "PostgreSQL 18 built-in transactions/advisory locks/catalog/trigger"
+        }
+      }
     },
     {
       "id": "V07",
@@ -380,7 +487,7 @@
         "GitHub protected Owner CI admits the exact source change, and actual historical writers are quiesced before physical cutover."
       ],
       "evidence": [
-        "src/ordivon_studio/research/research_validity.py",
+        "src/ordivon_studio/research/trial_ledger.py",
         "tests/test_research_validity.py",
         "mise.toml"
       ],
