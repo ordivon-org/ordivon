@@ -207,7 +207,7 @@ R3.1 removes that coupling without changing either seam's semantic standing.
 The exact task-local binding is:
 
 ```text
-meta/next/evidence/acceptance/cross-domain-verification-r3-bindings.json
+packages/composition/tests/fixtures/cross-domain-verification-r3-bindings.json
 byteDigest =
   sha256:fc83cd8977a69d309283522d23042605de2d0db2685188acd6a57a79648c5964
 canonicalBindingDigest =
