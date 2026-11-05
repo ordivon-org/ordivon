@@ -69,6 +69,14 @@ Artifact-owned delivery evidence and Creative Library snapshots. Graph nodes
 and edges are derived navigation only. Query results never mutate or replace
 the original owner records.
 
+The Agent entry point follows the existing ports-and-adapters boundary:
+`agent_surface.py` advertises and validates stable JSON Schema tools;
+`agent_dependencies.py` observes exact Python/pnpm materialization and emits
+explicit acquisition **plans** without installing anything;
+`agent_productions.py` reads owner-native Production identity and does not
+guess the Agent's currently intended Production. The runtime/tool-execution
+authority and production/source truth remain outside the Agent adapter.
+
 Resolve-private editorial interchange and selected-asset binding live in
 `ordivon_studio.resolve_editorial`. The existing `resolve_adapter` remains
 the Windows/operation bridge and the embedded Resolve Runner remains one
