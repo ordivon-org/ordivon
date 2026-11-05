@@ -10,14 +10,14 @@ tasks:
       - jq -e 'any(.route.rules[]; (.inbound? // [])==["finance-us-treasury-public"] and .domain=="home.treasury.gov" and .outbound=="public-direct") and any(.route.rules[]; (.inbound? // [])==["finance-fred-public-csv"] and .domain=="fred.stlouisfed.org" and .outbound=="public-direct")' consumers/finance/config/egress.json >/dev/null
       - jq -e '.outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680},{"type":"direct","tag":"public-direct"}] and (has("dns")|not) and (has("services")|not)' consumers/finance/config/egress.json >/dev/null
       - jq -e 'all(.route.rules[]; ((.outbound? // "") != "provider-auto"))' consumers/finance/config/egress.json >/dev/null
-      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
-      - /usr/bin/bash -n consumers/finance/ready.sh consumers/finance/acceptance/production-smoke.sh
+      - /usr/bin/systemd-analyze verify consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
+      - /usr/bin/bash -n consumers/finance/ready.sh
       - jq -e '.kind=="ordivon.network-v2.scoped-egress-authority" and .directFallback==false and (.proxy|startswith("http://127.0.0.1:"))' consumers/finance/config/*-authority.json >/dev/null
       - '! grep -R -F "provider-auto" consumers/finance/config'
 
   consumer:finance:materialize:
     desc: Materialize nine Finance authorities over the shared provider carrier without creating another WireGuard session
-    deps: [consumer:browserless:provider-carrier:materialize, consumer:finance:validate]
+    deps: [consumer:finance:validate]
     cmds:
       - install -d -m 0755 /etc/network-v2/finance /usr/local/libexec/network-v2
       - install -m 0644 consumers/finance/config/egress.json /etc/network-v2/finance/egress.json
@@ -47,11 +47,20 @@ tasks:
       - task: consumer:finance:ready
 
   consumer:finance:verify:
-    desc: Prove exact authority fencing, shared-carrier fail-closed behavior, direct macro independence and recovery
+    desc: Prove deployed nine-lane policy and real read-only Finance consequences without restarting shared Provider
+    deps: [consumer:finance:validate]
     cmds:
       - cmp -s consumers/finance/config/egress.json /etc/network-v2/finance/egress.json
+      - for: { var: FINANCE_SYSTEMD_UNITS }
+        cmd: cmp -s {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
+      - |
+        for source in consumers/finance/config/*-authority.json; do
+          cmp -s "$source" "/etc/network-v2/finance/$(basename "$source")"
+        done
       - test ! -e /etc/network-v2/finance/provider-endpoints.json
-      - ./consumers/finance/acceptance/production-smoke.sh
+      - test -e /etc/network-v2/gluetun/m4-owned-mode.selected
+      - systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
+      - /usr/local/libexec/network-v2/finance-ready all 90
 
   consumer:finance:stop:
     desc: Stop only Finance northbound authorities; do not stop the shared provider carrier
