@@ -13,20 +13,24 @@ import opentimelineio as otio
 
 import ordivon_studio.resolve_runner_menu as runner_menu
 from ordivon_studio.resolve_adapter import (
-    ASSEMBLY_CONFORM_PROJECT_PREFIX,
-    ASSEMBLY_CONFORM_TIMELINE_NAME,
     CONFIG_FILENAME,
     OPERATION_FILENAME,
     RUNNER_FILENAME,
-    build_assembly_conform_operation,
-    build_compatibility_operation,
-    build_probe_operation,
-    build_smoke_operation,
     install_runner,
     prepare_assembly_conform,
     prepare_probe,
     prepare_smoke,
+)
+from ordivon_studio.resolve_contracts import (
+    ASSEMBLY_CONFORM_PROJECT_PREFIX,
+    ASSEMBLY_CONFORM_TIMELINE_NAME,
     validate_result,
+)
+from ordivon_studio.resolve_operations import (
+    build_assembly_conform_operation,
+    build_compatibility_operation,
+    build_probe_operation,
+    build_smoke_operation,
 )
 from ordivon_studio.resolve_runner_menu import execute_operation, validate_operation
 
@@ -862,6 +866,31 @@ class ResolveAdapterTests(unittest.TestCase):
             )
             self.assertFalse((control / "resolve-result.json").exists())
             self.assertEqual(smoke["operation"]["action"], "create-smoke-project")
+
+    def test_receipt_success_requires_current_staged_operation_content(self) -> None:
+        from ordivon_studio.resolve_adapter import read_result
+
+        with tempfile.TemporaryDirectory() as directory:
+            control = Path(directory)
+            staged = prepare_probe(control_directory=control, operation_id="resolve-probe-digest-bound-r6")
+            receipt = {
+                "schemaVersion": 1,
+                "adapter": "resolve",
+                "action": "probe",
+                "status": "succeeded",
+                "operationId": staged["operation"]["operationId"],
+                "operationDigest": staged["operationDigest"],
+                "probe": {"capabilities": {}},
+            }
+            receipt_path = control / "resolve-result.json"
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            self.assertEqual(read_result(control_directory=control), receipt)
+            operation_path = control / OPERATION_FILENAME
+            altered = json.loads(operation_path.read_text(encoding="utf-8"))
+            altered["requestedAt"] = "2099-01-01T00:00:00Z"
+            operation_path.write_text(json.dumps(altered), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "operationDigest does not match staged"):
+                read_result(control_directory=control)
 
     def test_result_validator_rejects_identity_drift_and_private_path(self) -> None:
         result = {

@@ -86,13 +86,14 @@ guess the Agent's currently intended Production. The runtime/tool-execution
 authority and production/source truth remain outside the Agent adapter.
 
 Resolve-private editorial interchange and selected-asset binding live in
-`ordivon_studio.resolve_editorial`. `resolve_discovery` observes native
-Windows/WSL paths and FFprobe source-media properties; `resolve_contracts`
-owns pure operation-identity and result validation; `resolve_adapter` prepares
-explicit operations, installs the menu entry, and reads the bound result.
-The embedded Resolve Runner remains one **self-contained deployable script**.
-OpenTimelineIO, FFprobe and existing Media Blob hashing remain the native
-implementation sources rather than duplicated Studio engines.
+`ordivon_studio.resolve_editorial`. `resolve_discovery` owns Windows/WSL
+and FFprobe observations; the already-existing `resolve_contracts` owns
+the pure native result contract and operation identity. `resolve_operations`
+constructs the operation payloads without side effects; `resolve_adapter`
+owns the existing Windows operation stage, Runner installation and result
+readback, rejecting success receipts bound to a different staged operation.
+The embedded Resolve Runner remains the same self-contained deployable file.
+OpenTimelineIO and existing Media Blob hashing are reused, not reimplemented.
 
 ## Studio capability plane
 
