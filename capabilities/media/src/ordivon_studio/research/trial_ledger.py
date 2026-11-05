@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from typing import Any
 
 import psycopg
@@ -191,17 +192,24 @@ class TrialLedger:
         ).fetchone()
         return str(row[0]) if row else None
 
+    @contextmanager
+    def search_transaction(self) -> Iterator[None]:
+        """Use the same native per-search lock for verification and append."""
+        key = int.from_bytes(
+            hashlib.sha256(self.search_id.encode("utf-8")).digest()[:8],
+            "big", signed=True,
+        )
+        with self.db.transaction():
+            self.db.execute("SELECT pg_advisory_xact_lock(%s)", (key,))
+            yield
+
     def append(self, attempt_id: str, candidate_id: str, event_type: str, payload: Mapping[str, Any]) -> str:
         _strict_text(attempt_id, "attempt_id")
         _strict_text(candidate_id, "candidate_id")
         if event_type not in EVENT_TYPES:
             raise ValueError(f"unsupported trial event type: {event_type}")
-        key = int.from_bytes(
-            hashlib.sha256(self.search_id.encode("utf-8")).digest()[:8], "big", signed=True
-        )
-        with self.db.transaction():
+        with self.search_transaction():
             # Serialized per search, including independent concurrent connections.
-            self.db.execute("SELECT pg_advisory_xact_lock(%s)", (key,))
             previous = self._last_hash()
             semantic = {
                 "searchId": self.search_id,

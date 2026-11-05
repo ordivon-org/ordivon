@@ -8,6 +8,7 @@ source-independent calibration and sealed-holdout reasoning.
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import random
 from collections.abc import Iterable, Mapping, Sequence
@@ -218,6 +219,18 @@ def _quantile(values: Sequence[float], q: float) -> float:
     return float(ordered[low] * (1.0 - weight) + ordered[high] * weight)
 
 
+def _admit_frozen_winner(registration: Mapping[str, Any], winner: Mapping[str, Any]) -> None:
+    """Reject changed or cross-registration selections before their consumption."""
+    if (
+        winner.get("registrationDigest") != registration["registrationDigest"]
+        or winner.get("experimentId") != registration["experimentId"]
+    ):
+        raise ValueError("winner is not bound to this registration")
+    frozen = {key: value for key, value in winner.items() if key != "winnerDigest"}
+    if winner.get("winnerDigest") != canonical_digest(frozen):
+        raise ValueError("frozen winner digest mismatch")
+
+
 def search_replay_correction(
     registration: Mapping[str, Any],
     winner: Mapping[str, Any],
@@ -226,8 +239,7 @@ def search_replay_correction(
     replay_count: int = 2000,
 ) -> dict[str, Any]:
     registered = validate_registration(registration)
-    if winner.get("registrationDigest") != registered["registrationDigest"]:
-        raise ValueError("winner is not bound to this registration")
+    _admit_frozen_winner(registered, winner)
     if replay_count < 100:
         raise ValueError("replay_count must be >= 100")
     mode = str(registered["search"]["mode"])
@@ -270,8 +282,7 @@ def evaluate_sealed_holdout(
     ledger: TrialLedger | None = None,
 ) -> dict[str, Any]:
     registered = validate_registration(registration)
-    if winner.get("registrationDigest") != registered["registrationDigest"]:
-        raise ValueError("winner is not bound to this registration")
+    _admit_frozen_winner(registered, winner)
     if seed_commitment(holdout_seed) != registered["holdout"]["seedCommitment"]:
         raise ValueError("holdout seed does not satisfy the sealed commitment")
     candidate_id = str(winner["candidateId"])
@@ -293,20 +304,43 @@ def evaluate_sealed_holdout(
         "holdoutStatus": "revealed-contaminated-for-future-tuning",
         "interpretationLaw": "This holdout is independent of visible search and is evidence only for the already-frozen candidate. Its raw seed was not present in registration or search execution.",
     }
+    frozen_ledger = winner.get("trialLedger")
+    if (frozen_ledger is None) != (ledger is None):
+        raise ValueError("a persisted winner requires its original PostgreSQL ledger for holdout")
     if ledger is not None:
-        budget = int(registered["search"]["attemptBudget"])
-        _record(
-            ledger,
-            sequence=budget + 2,
-            candidate_id=candidate_id,
-            event_type="trial.holdout_revealed",
-            payload={
-                "holdoutStatisticZ": z,
-                "holdoutOneSidedP": result["holdoutOneSidedP"],
-                "holdoutSeedCommitment": result["holdoutSeedCommitment"],
-            },
-        )
-        result["trialLedger"] = ledger.summary()
+        if ledger.search_id != registered["experimentId"]:
+            raise ValueError("holdout ledger search identity differs from registration")
+        # Keep the source-check and sealed reveal inside one PostgreSQL
+        # per-search critical section; no separate state authority.
+        with ledger.search_transaction():
+            current = ledger.summary()
+            if not current["eventChainValid"] or current != frozen_ledger:
+                raise ValueError("holdout ledger no longer matches frozen winner history")
+            selected = ledger.db.execute(
+                "SELECT candidate_id,payload_json FROM ordivon_media_trial.trial_events "
+                "WHERE search_id=%s AND event_type='trial.selected' ORDER BY seq DESC LIMIT 1",
+                (ledger.search_id,),
+            ).fetchone()
+            expected_selection = {
+                "visibleStatisticZ": winner["visibleStatisticZ"],
+                "naiveOneSidedP": winner["naiveOneSidedP"],
+                "attemptBudget": registered["search"]["attemptBudget"],
+            }
+            if not selected or selected[0] != candidate_id or json.loads(selected[1]) != expected_selection:
+                raise ValueError("PostgreSQL selected candidate differs from frozen winner")
+            budget = int(registered["search"]["attemptBudget"])
+            _record(
+                ledger,
+                sequence=budget + 2,
+                candidate_id=candidate_id,
+                event_type="trial.holdout_revealed",
+                payload={
+                    "holdoutStatisticZ": z,
+                    "holdoutOneSidedP": result["holdoutOneSidedP"],
+                    "holdoutSeedCommitment": result["holdoutSeedCommitment"],
+                },
+            )
+            result["trialLedger"] = ledger.summary()
     result["holdoutDigest"] = canonical_digest(result)
     return result
 
@@ -391,6 +425,18 @@ def score_null_attack(
     digest = registered["registrationDigest"]
     if any(item.get("registrationDigest") != digest for item in (winner, correction, holdout)):
         raise ValueError("R6-A artifacts do not share one registration")
+    _admit_frozen_winner(registered, winner)
+    if correction.get("winnerDigest") != winner["winnerDigest"] or holdout.get("winnerDigest") != winner["winnerDigest"]:
+        raise ValueError("R6-A correction/holdout does not consume the frozen winner")
+    for label, artifact, digest_field in (
+        ("search correction", correction, "correctionDigest"),
+        ("sealed holdout", holdout, "holdoutDigest"),
+        ("calibration", calibration, "calibrationDigest"),
+    ):
+        observed = artifact.get(digest_field)
+        source = {key: value for key, value in artifact.items() if key != digest_field}
+        if observed != canonical_digest(source):
+            raise ValueError(f"R6-A {label} source digest mismatch")
     rows = calibration.get("rows")
     if not isinstance(rows, dict) or not rows:
         raise ValueError("calibration rows missing")
