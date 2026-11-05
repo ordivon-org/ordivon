@@ -1,0 +1,28 @@
+[Unit]
+Description=Network v2 mobile Tailscale exit over the owned Gluetun provider namespace
+After=network-v2-gluetun-owned.service network-online.target
+ConditionPathExists=/etc/network-v2/gluetun/m4-owned-mode.selected
+
+[Service]
+Type=simple
+Environment=MOBILE_TAILNET_RUNTIME_DIR=/run/ordivon-mobile-surfshark-tailnet-r1
+Environment=MOBILE_TAILNET_STATE_DIR=/var/lib/ordivon-mobile-surfshark-tailnet-r1
+ExecStart=/usr/local/libexec/network-v2/mobile-tailnet-exit-run
+Restart=always
+# Native bounded exponential retry, avoiding provider-outage restart storms.
+RestartSec=3s
+RestartSteps=5
+RestartMaxDelaySec=2min
+RuntimeDirectory=ordivon-mobile-surfshark-tailnet-r1
+RuntimeDirectoryMode=0700
+StateDirectory=ordivon-mobile-surfshark-tailnet-r1
+StateDirectoryMode=0700
+UMask=0077
+KillMode=control-group
+TimeoutStopSec=15s
+NoNewPrivileges=true
+PrivateTmp=true
+BindReadOnlyPaths=/etc/network-v2/mobile-tailnet-exit/resolv.conf:/etc/resolv.conf
+
+[Install]
+WantedBy=multi-user.target

@@ -34,12 +34,14 @@ acceptance/    generic capability acceptance
 capabilities/  optional reusable mechanisms such as WireGuard/failover
 providers/     provider-specific profiles and evidence
 consumers/     consumer-specific policy and migration artifacts
-history/       archived evolution/round evidence
 docs/          current architecture, decisions and acceptance matrix
 evidence/      current capability standing
 ```
 
 Generic core tasks do not depend on provider or consumer profiles.
+Old round evidence is recoverable in Git and is not retained as current documentation.
+The selected Gluetun Quadlet owns the single physical provider session.
+Codex and mobile Tailscale Exit Node keep separate readiness contracts.
 
 ## Public workflow
 
@@ -60,7 +62,7 @@ task accept:live
 task accept:local
 ```
 
-Optional provider and consumer surfaces use their own namespaces, for example `provider:surfshark:*` and `consumer:finance:*`. They are not generic Network graduation prerequisites.
+Optional provider and consumer surfaces use their own namespaces, for example `provider:gluetun:*, provider:surfshark:*` and `consumer:finance:*, consumer:codex:* and consumer:mobile-tailnet-exit:*`. They are not generic Network graduation prerequisites.
 
 ## Current standing
 
