@@ -10,7 +10,10 @@ from ordivon_composition.cross_domain_binding_r3 import resolve_repo_file
 ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ROOT.parents[1]
 PRODUCT = REPO_ROOT / "catalogs/data-products/experimental-episode-corpus-r1"
-EVIDENCE = ROOT / "evidence/data-products/experimental-episode-analysis-r1"
+EVIDENCE = (
+    REPO_ROOT
+    / "studies/experimental-episodes/evidence/data-products/experimental-episode-analysis-r1"
+)
 FEDERATION = REPO_ROOT / "studies/data-lifecycle/evidence/data-products-r2"
 STANDARDS = REPO_ROOT / "studies/data-lifecycle/evidence/github-pilot-r1/standards"
 RW5_BINDINGS = (
