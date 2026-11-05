@@ -27,8 +27,14 @@ def test_browserless_owns_one_internal_provider_carrier():
     assert "Requires=network-v2-browserless-dns.service network-v2-browserless-forward.service" in unit
     assert "provider-endpoints.json" not in unit
     target = (BROWSERLESS / "systemd" / "network-v2-browserless.target").read_text()
-    assert "Wants=network-v2-browserless-dns.service network-v2-browserless-forward.service network-v2-browserless-provider-carrier.service" in target
-    assert "Requires=network-v2-browserless-dns.service" not in target
+    assert "Wants=network-v2-browserless-netns.service network-v2-browserless-forward.service" in target
+    assert "network-v2-browserless-provider-carrier.service" not in target
+    assert "network-v2-browserless-wireguard.service" not in target
+    assert "network-v2-browserless-dns.service" not in target
+    legacy = (BROWSERLESS / "systemd/network-v2-browserless-legacy-provider.target").read_text()
+    assert "Requires=network-v2-browserless.target" in legacy
+    assert "Wants=network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service" in legacy
+    assert "ConditionPathExists=!/etc/network-v2/gluetun/m4-owned-mode.selected" in legacy
 
 
 def test_production_provider_defaults_to_cross_consumer_qualified_site():
@@ -36,6 +42,9 @@ def test_production_provider_defaults_to_cross_consumer_qualified_site():
     assert "PROVIDER_SITE=${PROVIDER_SITE:-th-bkk}" in cutover
     assert "consumers/browserless/config/provider-carrier.json" in cutover
     assert "network-v2-browserless-provider-carrier.service" in cutover
+    assert "systemctl start network-v2-browserless-legacy-provider.target" in cutover
+    assert "if [[ -e /etc/network-v2/gluetun/m4-owned-mode.selected ]]; then" in cutover
+    assert cutover.index("if [[ -e /etc/network-v2/gluetun/m4-owned-mode.selected ]]; then") < cutover.index("SCRIPT=$(readlink")
 
 
 def test_finance_provider_lanes_share_carrier_and_macro_lanes_remain_direct():
@@ -143,7 +152,7 @@ def test_legacy_provider_switch_rejects_m4_before_any_mutation(tmp_path: Path) -
 
 
 
-def test_selected_gluetun_materialization_is_readiness_only():
+def test_selected_gluetun_materialization_only_installs_compat_targets_and_readiness():
     """The selected physical Provider must not be replaced by inactive legacy units."""
     taskfile = (BROWSERLESS / "Taskfile.yml").read_text()
     block = taskfile.split(
@@ -155,8 +164,12 @@ def test_selected_gluetun_materialization_is_readiness_only():
     assert "network-v2-gluetun-owned.service" in selected
     assert "network-v2-gluetun-owned-adapter.service" in selected
     assert "provider-carrier-ready.sh" in selected
-    assert "systemctl daemon-reload" not in selected
+    assert "systemctl daemon-reload" in selected
+    assert "install -m 0644 consumers/browserless/systemd/network-v2-browserless.target" in selected
+    assert "install -m 0644 consumers/browserless/systemd/network-v2-browserless-legacy-provider.target" in selected
     assert "network-v2-browserless-provider-carrier.service" not in selected
+    assert "network-v2-browserless-wireguard.service" not in selected
+    assert "systemctl restart" not in selected
     assert "provider-switch.sh" not in selected
 
 def test_production_path_uses_application_consequence_not_30s_handshake_age():

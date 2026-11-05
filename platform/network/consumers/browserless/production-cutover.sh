@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Deliberate legacy-only cold cutover; never seize the selected Gluetun identity.
+if [[ -e /etc/network-v2/gluetun/m4-owned-mode.selected ]]; then
+  echo 'M4 Gluetun selected; legacy Browserless cutover forbidden' >&2
+  exit 78
+fi
 
 SCRIPT=$(readlink -f "$0")
 ROOT=$(cd "$(dirname "$SCRIPT")/../.." && pwd)
@@ -185,10 +190,11 @@ for f in "$ROOT"/consumers/browserless/systemd/network-v2-browserless-netns.serv
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-wireguard.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-dns.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-provider-carrier.service \
-         "$ROOT"/consumers/browserless/systemd/network-v2-browserless.target; do
+         "$ROOT"/consumers/browserless/systemd/network-v2-browserless.target \
+         "$ROOT"/consumers/browserless/systemd/network-v2-browserless-legacy-provider.target; do
   install -m 0644 "$f" "/etc/systemd/system/$(basename "$f")"
 done
-systemd-analyze verify "$ROOT"/consumers/browserless/systemd/network-v2-browserless-*.service "$ROOT"/consumers/browserless/systemd/network-v2-browserless.target
+systemd-analyze verify "$ROOT"/consumers/browserless/systemd/network-v2-browserless-*.service "$ROOT"/consumers/browserless/systemd/network-v2-browserless.target "$ROOT"/consumers/browserless/systemd/network-v2-browserless-legacy-provider.target
 systemctl daemon-reload
 
 # Fence the legacy auto-recovery before releasing its exact generation.
@@ -215,6 +221,9 @@ echo legacy_browserless_generation_released=PASS
 
 # Start the mature Network v2 production data plane over the host's normal underlay.
 systemctl start network-v2-browserless.target
+# The compatibility Target never starts WireGuard implicitly. Explicit legacy
+# selection is guarded by ConditionPathExists=!M4, and is rollback-only.
+systemctl start network-v2-browserless-legacy-provider.target
 "$ROOT/consumers/browserless/acceptance/production-path.sh"
 
 GEN="sha256:$(cat "$PROFILE" "$ROOT"/consumers/browserless/systemd/network-v2-browserless-* | sha256sum | awk '{print $1}')"
