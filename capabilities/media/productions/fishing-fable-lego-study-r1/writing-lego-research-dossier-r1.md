@@ -29,7 +29,7 @@
 - capabilities/media/docs/creative-capability-core.md：Creative Index 是可重建投影，不复制 owner-native 事实真源。
 - capabilities/media/productions/browser-perception-note/story.mdx：真实案例证明构建通过≠读者首屏语义传达通过；此前已删除不适合写作媒介的帧率等伪共性字段。
 - capabilities/media/productions/ordivon-book-v0/story.mdx：已存在关于有限认知、Reality≠Representation 的长文消费者。
-- capabilities/media/src/ordivon_studio/research/creative_alpha.py 与 tests/test_creative_alpha.py：同一事实集合的不同排序、冻结对照与留出条件的局部实验；不能当作文学质量验证。
+- capabilities/media/src/ordivon_studio/research/creative_protocol.py 与 capabilities/media/src/ordivon_studio/research/creative_analysis.py 与 tests/test_creative_alpha.py：同一事实集合的不同排序、冻结对照与留出条件的局部实验；不能当作文学质量验证。
 - .agents/skills/recursive-lego-calculus/SKILL.md：LEGO 是目标条件化、可替换的责任，不等于文件、Agent、Skill、Tool；最小字段 identity/responsibility/inputs/outputs/contract/acceptance。
 - .agents/skills/method-router/SKILL.md：路由最少改变决策的方法，严禁无差别启用所有方法。
 - .agents/skills/ck-design/SKILL.md：明确分离概念空间 C 与知识空间 K，审查 C→C、C→K、K→C、K→K。
