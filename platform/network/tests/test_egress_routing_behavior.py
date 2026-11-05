@@ -56,7 +56,8 @@ def _free_port() -> int:
 
 @contextmanager
 def _consumer_proxy(consumer: str, *, disable_terminal_reject: bool = False):
-    config = json.loads((CONSUMERS / consumer / "config" / "egress.json").read_text())
+    filename = "sing-box.json" if consumer == "codex" else "egress.json"
+    config = json.loads((CONSUMERS / consumer / "config" / filename).read_text())
     assert len(config["inbounds"]) == 1
     assert len(config["outbounds"]) == 1
     assert config["outbounds"][0]["type"] == "http", "No direct Internet egress in the probe"
@@ -129,6 +130,9 @@ def _connect(port: int, target: str) -> None:
     [
         ("x-reality", ("api.x.com:443",)),
         ("supply-chain", ("registry-1.docker.io:443", "image.pkg.dev:443")),
+        ("codex", ("chatgpt.com:443", "persistent.oaistatic.com:443")),
+        ("discord", ("discord.com:443", "gateway.discord.gg:443")),
+        ("model-provider", ("api.deepseek.com:443", "generativelanguage.googleapis.com:443")),
     ],
 )
 def test_declared_destinations_reach_spy_but_unknown_or_wrong_port_do_not(
@@ -146,8 +150,17 @@ def test_declared_destinations_reach_spy_but_unknown_or_wrong_port_do_not(
                 observed.get(timeout=0.4)
 
 
-def test_terminal_reject_negative_control_is_observable() -> None:
-    with _consumer_proxy("x-reality", disable_terminal_reject=True) as (port, observed):
+@pytest.mark.parametrize(
+    "consumer",
+    ("x-reality", "supply-chain", "codex", "discord", "model-provider"),
+)
+def test_terminal_reject_negative_control_is_observable(consumer: str) -> None:
+    """Deliberately break a temporary policy and detect forbidden delivery.
+
+    This is a falsification control, not evidence that a production namespace
+    currently runs the same bytes or that all indirect egress is impossible.
+    """
+    with _consumer_proxy(consumer, disable_terminal_reject=True) as (port, observed):
         _connect(port, "example.com:443")
         assert observed.get(timeout=3) == b"CONNECT example.com:443 HTTP/1.1"
 
