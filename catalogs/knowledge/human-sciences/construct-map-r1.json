@@ -1,0 +1,431 @@
+{
+  "documentKind": "curated-human-sciences-research-map",
+  "revision": "r1",
+  "language": "en",
+  "sourceCut": "edc1a81f82a4e0bc46b2f26a796a217af62edf1e",
+  "scope": "Non-clinical, adult-centered interdisciplinary research map; not a human-subject dataset or a universal theory of persons.",
+  "naturalOwners": {
+    "knowledge": "ordivon-monorepo/catalogs/knowledge",
+    "studyAdmission": "ordivon-research-v2 Study Birth",
+    "researchEvidence": "study-local source/evidence",
+    "execution": "ordivon Runtime",
+    "collaboration": "ordivon Host"
+  },
+  "epistemicRule": "Definitions and question candidates are not empirical findings; cross-level bridges remain UNKNOWN pending source-bounded evaluation.",
+  "constructs": [
+    {
+      "id": "body-physiology",
+      "label": "Human anatomy and physiological regulation",
+      "description": "解剖结构、器官功能、肌肉及神经内分泌调节",
+      "boundary": "器官与生理指标；不把主观同意或心理动机归因于单个激素",
+      "referenceIds": [
+        "who-icf"
+      ],
+      "status": "research-construct-not-independent-lego"
+    },
+    {
+      "id": "motor-action",
+      "label": "Sensorimotor control and action",
+      "description": "运动控制、动作计划、反射、身体可塑性",
+      "boundary": "动作表现和运动系统；不等同于社会自主权",
+      "referenceIds": [
+        "who-icf"
+      ],
+      "status": "research-construct-not-independent-lego"
+    },
+    {
+      "id": "exteroception",
+      "label": "Exteroception and multisensory perception",
+      "description": "视觉、听觉、嗅觉、味觉、体感输入与多感官整合",
+      "boundary": "环境信息的感知和整合；不将感觉缺失者视为能力单一受损",
+      "referenceIds": [
+        "nimh-rdoc",
+        "who-icf"
+      ],
+      "status": "research-construct-not-independent-lego"
+    },
+    {
+      "id": "interoception",
+      "label": "Interoception and bodily state",
+      "description": "内感受、疼痛、前庭、本体感觉与身体状态推断",
+      "boundary": "身体内部信号；不把身体唤醒判定为欲望或同意",
+      "referenceIds": [
+        "nimh-rdoc",
+        "who-icf"
+      ],
+      "status": "research-construct-not-independent-lego"
+    },
+    {
+      "id": "self-agency",
+      "label": "Body ownership, agency and self-model",
+      "description": "身体归属感、自我表征、主动性、控制感",
+      "boundary": "主体体验；区分身体控制与拥有拒绝选择的社会条件",
+      "referenceIds": [
+        "nimh-rdoc"
+      ],
+      "status": "research-construct-not-independent-lego"
+    },
+    {
+      "id": "cognition",
+      "label": "Cognition and learning",
+      "description": "注意、记忆、预期、信念更新、习惯学习",
+      "boundary": "认知机制；不以单次行为推断稳定人格",
+      "referenceIds": [
+        "nimh-rdoc"
+      ],
+      "status": "research-construct-not-independent-lego"
+    },
+    {
+      "id": "affect-motivation",
+      "label": "Affect, reward and motivation",
+      "description": "奖赏、恐惧、情绪、压力与动机",
+      "boundary": "情绪和动机；不把复杂社会行为简化成一种奖赏回路",
+      "referenceIds": [
+        "nimh-rdoc"
+      ],
+      "status": "research-construct-not-independent-lego"
+    },
+    {
+      "id": "attachment-intimacy",
+      "label": "Affiliation, attachment and intimacy",
+      "description": "浪漫吸引、依恋、亲密、信任与关系维系",
+      "boundary": "自愿的亲密关系与依恋；不把性行为与爱情混为一谈",
+      "referenceIds": [
+        "nimh-rdoc"
+      ],
+      "status": "research-construct-not-independent-lego"
+    },
+    {
+      "id": "norms-identity",
+      "label": "Social norms, identity and bodily meaning",
+      "description": "裸露、羞耻、文化规范、社会身份、被观看感",
+      "boundary": "社会解释与身份意义；不设定单一跨文化裸露含义",
+      "referenceIds": [
+        "who-icf",
+        "apa-jars"
+      ],
+      "status": "research-construct-not-independent-lego"
+    },
+    {
+      "id": "power-consent",
+      "label": "Power, coercion and autonomous consent",
+      "description": "权力差异、自由选择、知情条件、拒绝与退出成本",
+      "boundary": "同意与权力结构；不将口头顺从自动视为有效同意",
+      "referenceIds": [
+        "belmont",
+        "apa-jars"
+      ],
+      "status": "research-construct-not-independent-lego"
+    },
+    {
+      "id": "development-context",
+      "label": "Development, culture and contextual change",
+      "description": "生命历程、社会化、文化差异、长期适应与神经可塑性",
+      "boundary": "时间/文化/社会情境的调节作用；不将成人样本外推给所有人",
+      "referenceIds": [
+        "nimh-rdoc",
+        "who-icf",
+        "apa-jars"
+      ],
+      "status": "research-construct-not-independent-lego"
+    }
+  ],
+  "bridges": [
+    {
+      "from": "exteroception",
+      "to": "self-agency",
+      "relationType": "cross-level-research-question",
+      "interpretation": "sensory evidence may contribute to body ownership; mechanism depends on task",
+      "evidenceStanding": "UNVERIFIED_HYPOTHESIS"
+    },
+    {
+      "from": "interoception",
+      "to": "affect-motivation",
+      "relationType": "cross-level-research-question",
+      "interpretation": "internal bodily signals may interact with affect; not evidence of desire/consent",
+      "evidenceStanding": "UNVERIFIED_HYPOTHESIS"
+    },
+    {
+      "from": "cognition",
+      "to": "norms-identity",
+      "relationType": "cross-level-research-question",
+      "interpretation": "beliefs and expectations may shape social interpretations",
+      "evidenceStanding": "UNVERIFIED_HYPOTHESIS"
+    },
+    {
+      "from": "attachment-intimacy",
+      "to": "power-consent",
+      "relationType": "cross-level-research-question",
+      "interpretation": "closeness does not substitute for consent",
+      "evidenceStanding": "UNVERIFIED_HYPOTHESIS"
+    },
+    {
+      "from": "power-consent",
+      "to": "norms-identity",
+      "relationType": "cross-level-research-question",
+      "interpretation": "social evaluation and institutional power can modify refusal costs",
+      "evidenceStanding": "UNVERIFIED_HYPOTHESIS"
+    },
+    {
+      "from": "development-context",
+      "to": "attachment-intimacy",
+      "relationType": "cross-level-research-question",
+      "interpretation": "life stage and culture can moderate relationship norms",
+      "evidenceStanding": "UNVERIFIED_HYPOTHESIS"
+    },
+    {
+      "from": "motor-action",
+      "to": "self-agency",
+      "relationType": "cross-level-research-question",
+      "interpretation": "motor control and subjective agency are related but nonidentical",
+      "evidenceStanding": "UNVERIFIED_HYPOTHESIS"
+    },
+    {
+      "from": "body-physiology",
+      "to": "affect-motivation",
+      "relationType": "cross-level-research-question",
+      "interpretation": "physiological state is one interacting level, not a complete psychological explanation",
+      "evidenceStanding": "UNVERIFIED_HYPOTHESIS"
+    }
+  ],
+  "questions": [
+    {
+      "id": "nude-meaning",
+      "title": "How do autonomy, audience, norms and privacy change the meaning of nudity?",
+      "constructIds": [
+        "norms-identity",
+        "self-agency",
+        "power-consent",
+        "affect-motivation"
+      ],
+      "claimType": "associational-or-descriptive",
+      "methods": [
+        "cross-cultural literature synthesis",
+        "voluntary non-explicit anonymous surveys",
+        "fictional adult vignettes"
+      ],
+      "measureCandidates": [
+        "perceived privacy",
+        "agency",
+        "shame",
+        "body acceptance"
+      ],
+      "rivalExplanations": [
+        "selection into social setting",
+        "prior experience",
+        "culture and measurement non-invariance"
+      ],
+      "humanSubjects": "review-before-recruitment"
+    },
+    {
+      "id": "sensory-integration",
+      "title": "How do sensory modalities interact with body ownership and spatial orientation?",
+      "constructIds": [
+        "exteroception",
+        "interoception",
+        "self-agency",
+        "motor-action"
+      ],
+      "claimType": "mechanistic-candidate",
+      "methods": [
+        "literature synthesis",
+        "public secondary datasets",
+        "validated non-harmful perception tasks only after ethics review"
+      ],
+      "measureCandidates": [
+        "multisensory congruence",
+        "perceived body ownership",
+        "task accuracy"
+      ],
+      "rivalExplanations": [
+        "attentional effects",
+        "practice effects",
+        "participant selection"
+      ],
+      "humanSubjects": "no prolonged or forced deprivation"
+    },
+    {
+      "id": "romantic-attachment",
+      "title": "What differentiates desire, romantic attraction and attachment?",
+      "constructIds": [
+        "attachment-intimacy",
+        "affect-motivation",
+        "cognition",
+        "development-context"
+      ],
+      "claimType": "descriptive-or-associational",
+      "methods": [
+        "systematic review",
+        "existing consented survey datasets"
+      ],
+      "measureCandidates": [
+        "attachment",
+        "relationship satisfaction",
+        "desire"
+      ],
+      "rivalExplanations": [
+        "cultural scripts",
+        "relationship duration",
+        "self-report bias"
+      ],
+      "humanSubjects": "privacy-sensitive"
+    },
+    {
+      "id": "first-sexual-experience",
+      "title": "How do consent, information, power and context relate to adults' retrospective interpretations of first sexual experiences?",
+      "constructIds": [
+        "power-consent",
+        "attachment-intimacy",
+        "norms-identity",
+        "affect-motivation",
+        "development-context"
+      ],
+      "claimType": "descriptive-or-associational",
+      "methods": [
+        "peer-reviewed retrospective studies",
+        "approved secondary de-identified datasets",
+        "fictional adult consent vignettes"
+      ],
+      "measureCandidates": [
+        "perceived autonomy",
+        "trust",
+        "self-evaluation",
+        "reported distress"
+      ],
+      "rivalExplanations": [
+        "recall and selection bias",
+        "pre-existing support and trauma history",
+        "co-occurring power dynamics"
+      ],
+      "humanSubjects": "no real coercion, deception, sexual act, or nonconsensual exposure"
+    },
+    {
+      "id": "coercive-control",
+      "title": "How do authority, social pressure and exit costs affect perceived freedom and reported compliance?",
+      "constructIds": [
+        "power-consent",
+        "cognition",
+        "norms-identity",
+        "development-context"
+      ],
+      "claimType": "associational-or-causal-only-with-identified-ethical-design",
+      "methods": [
+        "observational literature review",
+        "anonymized existing data",
+        "fictional non-explicit vignettes"
+      ],
+      "measureCandidates": [
+        "perceived freedom to refuse",
+        "trust",
+        "institutional power imbalance",
+        "wellbeing"
+      ],
+      "rivalExplanations": [
+        "resource scarcity",
+        "self-selection",
+        "social desirability bias"
+      ],
+      "humanSubjects": "never induce actual coercive control or sexual pressure"
+    },
+    {
+      "id": "cross-level-bridge",
+      "title": "Where do biological, psychological and social accounts disagree about behavior?",
+      "constructIds": [
+        "body-physiology",
+        "cognition",
+        "affect-motivation",
+        "power-consent",
+        "development-context"
+      ],
+      "claimType": "comparative-theoretical",
+      "methods": [
+        "registered evidence synthesis",
+        "rival-hypothesis matrix"
+      ],
+      "measureCandidates": [
+        "construct validity",
+        "evidence quality",
+        "cross-population invariance"
+      ],
+      "rivalExplanations": [
+        "measurement mismatch",
+        "cross-level confounding",
+        "reverse causality"
+      ],
+      "humanSubjects": "no participant contact"
+    }
+  ],
+  "sourceAuthorities": [
+    {
+      "id": "nimh-rdoc",
+      "title": "NIMH Research Domain Criteria (RDoC)",
+      "url": "https://www.nimh.nih.gov/research/research-funded-by-nimh/rdoc/about-rdoc",
+      "applicability": "cross-level constructs of emotion, cognition, motivation, and social processes",
+      "checkedOn": "2026-11-05"
+    },
+    {
+      "id": "who-icf",
+      "title": "WHO International Classification of Functioning, Disability and Health",
+      "url": "https://www.who.int/Standards/Classifications/International-Classification-of-Functioning-Disability-and-Health",
+      "applicability": "body functions, activities, participation, environmental factors",
+      "checkedOn": "2026-11-05"
+    },
+    {
+      "id": "fair",
+      "title": "FAIR Guiding Principles",
+      "url": "https://doi.org/10.1038/sdata.2016.18",
+      "applicability": "discoverability/interoperability/reusability of scientific digital objects",
+      "checkedOn": "2026-11-05"
+    },
+    {
+      "id": "apa-jars",
+      "title": "APA Journal Article Reporting Standards",
+      "url": "https://apastyle.apa.org/jars",
+      "applicability": "quantitative/qualitative/mixed-method reporting",
+      "checkedOn": "2026-11-05"
+    },
+    {
+      "id": "bids",
+      "title": "Brain Imaging Data Structure",
+      "url": "https://bids-specification.readthedocs.io/en/stable/",
+      "applicability": "only where actual neuroimaging or supported behavioral/physiological modalities warrant it",
+      "checkedOn": "2026-11-05"
+    },
+    {
+      "id": "ro-crate",
+      "title": "RO-Crate 1.3 specification",
+      "url": "https://www.researchobject.org/ro-crate/specification.html",
+      "applicability": "scientific research object packaging when a study actually exists",
+      "checkedOn": "2026-11-05"
+    },
+    {
+      "id": "prov-o",
+      "title": "W3C PROV-O",
+      "url": "https://www.w3.org/TR/prov-o/",
+      "applicability": "provenance interchange when study producer-consumer requires it",
+      "checkedOn": "2026-11-05"
+    },
+    {
+      "id": "belmont",
+      "title": "HHS Belmont Report",
+      "url": "https://www.hhs.gov/ohrp/regulations-and-policy/belmont-report/read-the-belmont-report/index.html",
+      "applicability": "respect for persons, beneficence, justice, informed consent",
+      "checkedOn": "2026-11-05"
+    }
+  ],
+  "handling": {
+    "personalDataPresent": false,
+    "participantRecruitmentAuthorized": false,
+    "interventionAuthorized": false,
+    "studyAdmitted": false,
+    "sensitiveDomainNotes": "No identifying records; reuse source citations/metadata only. Adults-only vignette candidates are non-explicit and do not simulate actual abuse.",
+    "sourceRetention": "Do not delete original data or legal/provenance dependencies without verified consumers, permissions and restoration obligations."
+  },
+  "retirement": {
+    "inventoryAtSourceCut": "No topical human-sciences data/directory discovered in catalog or Research-v2 tracked files; research-v2 historical HUMAN approval/handoff files are unrelated.",
+    "candidateFilesForDeletion": [],
+    "deletedFiles": [],
+    "unknownLiveConsumers": "UNKNOWN outside inspected source roots; no assertion of global absence."
+  },
+  "use": "Start with a scoped question, identify constructs, compare opposing hypotheses, bind external standards and study-native evidence; if a new Study is required use Research-v2 Study Birth."
+}
