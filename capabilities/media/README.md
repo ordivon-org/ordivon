@@ -186,3 +186,9 @@ scripts/owner-environment test-resolve
 ## License
 
 Apache-2.0. Production assets may carry their own rights and usage records in Asset metadata.
+
+Studio CLI command processing is organized by domain under
+`src/ordivon_studio/cli_handlers/` (media, ecology, equipment, Resolve).
+The public `ordivon-studio` console entry, `argparse` grammar and result
+exit codes remain owned by `cli.py`; this source-only split adds neither
+another command registry nor another operational authority.
