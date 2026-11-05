@@ -62,6 +62,9 @@ The credential JSON remains outside Git and supplies `account_id` and `api_token
 
 `r2 restore` downloads the remote digest key to a temporary local file, verifies SHA-256, then admits it into the local CAS without overwriting divergent local bytes. The restored CAS object can then be passed through ordinary `materialize`.
 
+`cloudflare_r2.py` owns the exact-copy and restore decision; `cloudflare_r2_transport.py` owns the existing Cloudflare REST/curl transport, short-lived bearer-header file and staged remote digest check. The transport removes a partial download if curl, HTTP, or hashing fails; success passes the verified temporary bytes to the caller for local admission. The provider is not a generic asset database, and no media source ownership moves to R2.
+
+
 ### Current write-semantics boundary
 
 The Cloudflare Account Object API path exercised in P4 did **not** enforce `If-None-Match: *` on PUT: a probe against an existing exact object returned HTTP 200 rather than a create-only precondition failure. Therefore the current adapter is explicitly **single-writer**:
