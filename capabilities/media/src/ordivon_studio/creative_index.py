@@ -103,6 +103,11 @@ def build_creative_index(
             continue
         work_id = f"work:media:{production_id}"
         output_kinds = sorted({o.get("kind") for o in production.get("outputs", []) if isinstance(o, dict) and isinstance(o.get("kind"), str)})
+        declared_output_digests = sorted({
+            output["blobDigest"]
+            for output in production.get("outputs", [])
+            if isinstance(output, dict) and isinstance(output.get("blobDigest"), str)
+        })
         add_node(
             work_id,
             "Work",
@@ -111,6 +116,7 @@ def build_creative_index(
             title=production.get("title", production_id),
             status=production.get("status"),
             outputKinds=output_kinds,
+            declaredOutputDigests=declared_output_digests,
             sourcePath=str(production_path.relative_to(media_root)),
             collections=[],
         )
