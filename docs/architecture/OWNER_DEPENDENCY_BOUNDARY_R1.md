@@ -27,11 +27,12 @@ Test and E2E variants are declared separately. A production source file cannot i
 
 ## Explicit non-edges
 
-The following Next trees are navigation or knowledge projections rather than executable dependency edges:
+The following catalog/profile trees are navigation or knowledge projections rather than executable dependency edges:
 
 - meta/next/authorities/
+- catalogs/authorities/
 - catalogs/knowledge/
-- meta/next/domains/
+- profiles/domains/
 
 Historical docs, evidence, planning, research, experiments, fixtures, and retained artifacts are also excluded from active-source dependency truth.
 

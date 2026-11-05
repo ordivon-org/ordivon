@@ -1002,7 +1002,8 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             "uv run --locked --group quality ruff check scripts tests",
             "uv run --locked --group quality ruff format --check scripts tests",
             "../../catalogs/authorities/scripts/check_authority_catalog_r1.py",
-            "scripts/check_reasoning_waist_r1.py",
+            
+            "../../catalogs/capabilities/scripts/verify_reasoning_providers.py",
             "bandit -r scripts", "pip-audit",
         ):
             self.assertIn(obligation, checks)

@@ -17,7 +17,7 @@ retired local subsystem -> must not be reconstructed
 
 The policy is a repository-specific architecture boundary, not a new cross-domain standard. External authorities retain their native semantics.
 
-## Mechanical contract
+## Policy declaration and verification boundaries
 
 `docs/architecture/policies/external-ownership-boundary.json` records:
 
@@ -27,7 +27,7 @@ The policy is a repository-specific architecture boundary, not a new cross-domai
 - canonical external owners used by the boundary;
 - behavioral deletion gates that prevent class-count reduction from overriding correctness.
 
-`tests/test_external_ownership_boundary.py` enforces the machine profile.
+The profile is a **declaration**, not independent verification that running software satisfies these statements. Self-checking its own status fields cannot detect an undeclared implementation. Actual source dependency boundaries are checked by `tools/repo/check_owner_boundaries.py` and `tools/repo/check_structure_r2.py`; effect and installed-consumer claims require their natural Owner's verification. No separate JSON self-assertion test is retained.
 
 Agent Service deletion is complete. Reintroducing any equivalent top-level subsystem or semantic type requires a new concrete workload, a demonstrated failure of mature external ownership, a non-authoritative narrow integration role, and an explicit canonical external owner; restoring the historical subsystem is not an accepted path.
 

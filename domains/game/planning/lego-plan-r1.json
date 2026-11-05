@@ -92,13 +92,13 @@
       "outputs": [
         "conditional relations"
       ],
-      "behavioralContract": "Rebuildable view; never a closed game ontology.",
+      "behavioralContract": "Source-byte derived view via read-only CLI; never a closed game ontology.",
       "acceptance": [
-        "Graph rebuild and retrieval equivalence."
+        "On-demand pure projection and retrieval equivalence from exact source bytes."
       ],
       "evidence": [
-        "knowledge/game_mechanism_relationship_graph_r1.json",
-        "scripts/build-mechanism-relationship-graph.ts",
+        "knowledge/game_mechanism_experience_library_r1.json",
+        "knowledge/game_mechanism_relationship_spec_r1.json",
         "src/mechanism-relationship-graph.ts"
       ],
       "dependencies": [],
@@ -109,7 +109,7 @@
         "human enjoyment authority"
       ],
       "consumerEvidence": [
-        "scripts/build-mechanism-relationship-graph.ts",
+        "scripts/mechanism-relationship-query.ts",
         "test/game-mechanism-relationship-graph.test.ts",
         "package.json"
       ]
@@ -197,20 +197,23 @@
       "inputs": [
         "Godot PackedScene",
         "native Resource configuration",
-        "legal and illegal player actions"
+        "named Godot InputMap actions (move_left/move_right) and legal/illegal player actions"
       ],
       "outputs": [
         "playable scene",
         "test evidence for bounded transitions and component substitution"
       ],
-      "behavioralContract": "Only the configured finite scene, resource contract and tested native signal/scene seams are validated. No universal game, player-value or third-party script safety proof.",
+      "behavioralContract": "Native InputMap maps physical inputs to move_left/move_right; composition root translates actions into bounded grid rule calls, where only accepted transitions emit state_changed for view/audio. A rebound physical key preserves those rule/feedback consumers without changing the rules. Valid only for this tested finite scene/resource/input contract; no universal game, player-value or third-party script safety proof.",
       "acceptance": [
         "Pinned Godot headless example boots as a real PackedScene.",
         "Bounded action exhaustions preserve state invariants and goal behavior.",
-        "Player Resource and alternate presentation PackedScene substitute without changing rules; invalid configuration is rejected atomically."
+        "Player Resource and alternate presentation PackedScene substitute without changing rules; invalid configuration is rejected atomically.",
+        "Engine-native physical InputEvent dispatch and live InputMap rebinding preserve rule, view, and licensed-audio consumers; removed bindings do not cause state changes."
       ],
       "evidence": [
         "examples/native-composition/main.tscn",
+        "examples/native-composition/project.godot",
+        "examples/native-composition/assert_audio.gd",
         "examples/native-composition/assert.gd",
         "examples/native-composition/configs/player_variant.tres"
       ],
@@ -225,7 +228,9 @@
       "consumerEvidence": [
         "mise.toml",
         "examples/native-composition/assert.gd",
-        "examples/native-composition/main.tscn"
+        "examples/native-composition/main.tscn",
+        "examples/native-composition/composition_root.gd",
+        "examples/native-composition/assert_audio.gd"
       ]
     },
     {
@@ -251,10 +256,10 @@
         "Compile Bevy application with cargo check --locked --all-targets; physical player input/output remains unverified without a graphical run."
       ],
       "evidence": [
-        "examples/bevy-native-composition/Cargo.toml",
-        "examples/bevy-native-composition/Cargo.lock",
-        "examples/bevy-native-composition/src/rules.rs",
-        "examples/bevy-native-composition/src/gameplay.rs"
+        "examples/orbit-collector/Cargo.toml",
+        "examples/orbit-collector/Cargo.lock",
+        "examples/orbit-collector/src/rules.rs",
+        "examples/orbit-collector/src/gameplay.rs"
       ],
       "dependencies": [],
       "sharedRefs": [],
@@ -265,10 +270,10 @@
         "Godot runtime state"
       ],
       "consumerEvidence": [
-        "examples/bevy-native-composition/src/main.rs",
-        "examples/bevy-native-composition/src/gameplay.rs",
-        "examples/bevy-native-composition/README.md",
-        "examples/bevy-native-composition/Cargo.toml"
+        "examples/orbit-collector/src/main.rs",
+        "examples/orbit-collector/src/gameplay.rs",
+        "examples/orbit-collector/README.md",
+        "examples/orbit-collector/Cargo.toml"
       ],
       "recursiveLegoR21": {
         "I": [
@@ -298,14 +303,14 @@
         "c": "Rule transitions O(1); ECS/frame scheduling and renderer cost depend on runtime/scene and are not measured",
         "epsilon": "Graphical runtime, frame rate, input latency and human experience are UNKNOWN; compile PASS is not graphical execution proof",
         "prov": [
-          "examples/bevy-native-composition/Cargo.toml pins =0.20.1",
-          "examples/bevy-native-composition/Cargo.lock",
-          "examples/bevy-native-composition/README.md"
+          "examples/orbit-collector/Cargo.toml pins =0.20.1",
+          "examples/orbit-collector/Cargo.lock",
+          "examples/orbit-collector/README.md"
         ],
         "unfold": [
-          "examples/bevy-native-composition/src/rules.rs",
-          "examples/bevy-native-composition/src/gameplay.rs",
-          "examples/bevy-native-composition/src/main.rs"
+          "examples/orbit-collector/src/rules.rs",
+          "examples/orbit-collector/src/gameplay.rs",
+          "examples/orbit-collector/src/main.rs"
         ]
       }
     },
@@ -384,6 +389,166 @@
           "examples/native-composition/composition_root.gd",
           "examples/native-composition/movement_audio_feedback.gd",
           "examples/native-composition/assert_audio.gd"
+        ]
+      }
+    },
+    {
+      "id": "G09",
+      "label": "GodotRoomNarrativeGate",
+      "kind": "native_narrative_adapter",
+      "responsibility": "Source-pinned upstream Dialogue Manager supplies branches inside real room gameplay while EncounterRules alone owns phase and room state",
+      "authority": "EncounterRules owns legal room transitions; upstream addon owns grammar and response evaluation; native adapter has no independent token ledger",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "native EncounterRules snapshot and cleared-phase derived token",
+        "imported DialogueResource and Button choice"
+      ],
+      "outputs": [
+        "narrative choice projection",
+        "legal room advancement through existing rules or preserved state"
+      ],
+      "behavioralContract": "Unlock delegates solely to EncounterRules.advance on cleared room; Leave preserves rules; reset hides transient narrative; no duplicate authoritative token state",
+      "acceptance": [
+        "Room clear triggers actual Dialogue Manager response; Unlock progresses real gameplay",
+        "Leave/door button do not bypass narrative; audio and save remain rule-owned",
+        "Godot 4.7.2 imports addon and runs actual integrated scene"
+      ],
+      "evidence": [
+        "examples/room-encounter/addons/dialogue_manager/plugin.cfg",
+        "examples/room-encounter/addons/dialogue_manager/LICENSE",
+        "examples/room-encounter/narrative/gate.dialogue"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "upstream compiler",
+        "a second authoritative token/quest ledger",
+        "human enjoyment or universal game engine"
+      ],
+      "consumerEvidence": [
+        "examples/room-encounter/main.tscn",
+        "examples/room-encounter/encounter_root.gd",
+        "examples/room-encounter/narrative/encounter_dialogue.gd",
+        "examples/room-encounter/narrative/gate_state.gd",
+        "examples/room-encounter/narrative/acceptance.gd",
+        "mise.toml"
+      ],
+      "recursiveLegoR21": {
+        "I": [
+          "EncounterRules snapshot, DialogueResource, native input choice"
+        ],
+        "O": [
+          "narrative response UI and legal room advancement"
+        ],
+        "S": [
+          "transient UI choice state; token derived from real cleared phase"
+        ],
+        "pre": [
+          "Godot 4.7.2 and pinned Dialogue Manager v4.2.0",
+          "Game room initialized; unlock only when cleared"
+        ],
+        "post": [
+          "Unlock invokes legal EncounterRules.advance; Leave preserves real state"
+        ],
+        "inv": [
+          "EncounterRules alone owns gameplay state",
+          "narrative has no second token ledger",
+          "sound only on legitimate combat"
+        ],
+        "eff": [
+          "native source-pinned import, UI Button, rule transition and Signal projection"
+        ],
+        "c": "O(number of responses) native choice render; actual engine latency unmeasured",
+        "epsilon": "Human enjoyment, localization and accessibility UNKNOWN",
+        "prov": [
+          "upstream nathanhoad/godot_dialogue_manager v4.2.0 commit bbf9d2a5f6a9eaa276310eea8b1379a936239d2e",
+          "vendored upstream MIT LICENSE retained verbatim",
+          "Godot version locked in mise.toml"
+        ],
+        "unfold": [
+          "examples/room-encounter/addons/dialogue_manager",
+          "examples/room-encounter/narrative/encounter_dialogue.gd",
+          "examples/room-encounter/narrative/gate_state.gd",
+          "examples/room-encounter/narrative/acceptance.gd",
+          "examples/room-encounter/main.tscn"
+        ]
+      }
+    },
+    {
+      "id": "G10",
+      "label": "GodotNativeRunCheckpoint",
+      "kind": "native_state_persistence_adapter",
+      "responsibility": "Native ConfigFile save/load of the room run, with independent EncounterRules state validation and explicit action audio",
+      "authority": "EncounterRules owns gameplay validity; Godot ConfigFile owns persistence; SaveSlot only adapts UI",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "active tuning/game checkpoint",
+        "native Save/Load input and user:// slot"
+      ],
+      "outputs": [
+        "stored checkpoint or validated restore verdict",
+        "state_changed update without false action_accepted audio"
+      ],
+      "behavioralContract": "Matching saved state roundtrips; invalid schema/tuning/values reject without mutation; restore never represents a new combat action",
+      "acceptance": [
+        "Real PackedScene Save/Load reads back after reset",
+        "Existing audio and alternative HUD work; resume is silent",
+        "Native consumer rejects mismatched tuning and damaged values"
+      ],
+      "evidence": [
+        "examples/room-encounter/encounter_rules.gd",
+        "examples/room-encounter/encounter_save_slot.gd"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "generic storage engine",
+        "cloud sync or version migration",
+        "player experience evidence"
+      ],
+      "consumerEvidence": [
+        "examples/room-encounter/main.tscn",
+        "examples/room-encounter/encounter_root.gd",
+        "examples/room-encounter/assert.gd",
+        "mise.toml"
+      ],
+      "recursiveLegoR21": {
+        "I": [
+          "native live Game state, tuning, Save/Load action"
+        ],
+        "O": [
+          "persisted ConfigFile or authoritative restored snapshot"
+        ],
+        "S": [
+          "versioned disk slot and live rules state"
+        ],
+        "pre": [
+          "initialized room rules",
+          "matching tuning and valid state for successful restore"
+        ],
+        "post": [
+          "save/readback equality",
+          "rejected load does not mutate state or trigger combat audio"
+        ],
+        "inv": [
+          "Rules only state authority",
+          "audio consumes accepted combat actions"
+        ],
+        "eff": [
+          "native file read/write and UI Signal"
+        ],
+        "c": "O(number of configured rooms) state-identity checks plus native serialization; latency unmeasured",
+        "epsilon": "Power-loss durability, migration, player value UNKNOWN",
+        "prov": [
+          "Godot 4.7.2 built-in ConfigFile and native consumer",
+          "domains/game/mise.toml"
+        ],
+        "unfold": [
+          "examples/room-encounter/encounter_rules.gd",
+          "examples/room-encounter/encounter_save_slot.gd",
+          "examples/room-encounter/encounter_root.gd",
+          "examples/room-encounter/encounter_audio_feedback.gd",
+          "examples/room-encounter/assert.gd"
         ]
       }
     }
@@ -493,6 +658,44 @@
       "acceptance": [
         "The ordinary main.tscn boots with actual audio resource and rule binding.",
         "Real right-key transition, invalid action and substitute WAV pass native Godot execution; no claim of physical audio quality."
+      ]
+    },
+    {
+      "id": "GS6",
+      "objective": "Install and execute mature upstream Godot dialogue as native game-owned state consumer with branching and no custom compiler",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G09"
+      ],
+      "acceptance": [
+        "Exact latest stable Dialogue Manager v4.2.0 imports on Godot 4.7.2.",
+        "Two native branch outcomes and conditional unavailability preserve external rule authority.",
+        "No standalone product or human-playtest claim."
+      ]
+    },
+    {
+      "id": "GS7",
+      "objective": "Compose native saved-game state and explicit accepted-action audio in existing playable room scene",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G10"
+      ],
+      "acceptance": [
+        "Actual native ConfigFile save/readback; different tuning/invalid saved values reject atomically; legitimate action alone plays sound"
+      ]
+    },
+    {
+      "id": "GS8",
+      "objective": "Merge actual narrative consumer into native Room Encounter and retire standalone duplicate Godot project",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G09",
+        "G10"
+      ],
+      "acceptance": [
+        "Native combat-to-dialogue-to-room transition",
+        "Leave preserves room state; direct Door routes to choices",
+        "Upstream addon git moved unchanged and old demo removed"
       ]
     }
   ]

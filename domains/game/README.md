@@ -22,16 +22,30 @@ decomposition, (2) directory/naming representation, (3) upstream Game LEGO
 discovery and consumer-verified prototype composition. Do not confuse an
 upstream addon listing or a proposed composition with an installed Game.
 
-Inspect four evidence-bound composition proposals without installing them:
+Inspect seven source-backed composition hypotheses without installing anything.
+Two additional existing native consumers now appear directly in query results:
+a three-room Godot encounter with rules/HUD/CC0 audio, and an avatar
+appearance-only PackedScene swap. The latter is an executed **component**,
+not an independently playable game:
 
     pnpm composition:inspect
     pnpm composition:inspect -- --id native-action-loop
     pnpm composition:inspect -- --engine bevy
+    pnpm composition:inspect -- --id room-encounter
+    pnpm composition:inspect -- --id kenney-avatar-appearance
+    pnpm composition:inspect -- --id branching-dialogue-gate
+
+The query source resolver is a **pure function** in
+`src/prototype-composition.ts`; the original stable CLI remains an I/O
+adapter in `scripts/prototype-composition-query.ts`. Component status is
+source-supplied, not a synthetic verification certificate: `NATIVE_SUBSET_EXECUTED`
+means a bounded game slice; `NATIVE_COMPONENT_EXECUTED` means only one
+replaceable presentation component.
 
 Plans are in `planning/prototype-composition-candidates-r1.json`; provider
 source evidence is already in the Game knowledge index. One Godot-native
 micro-loop is executable today via `mise run test:native`; external
-art/AI/dialogue/audio additions remain uninstalled candidate slots.
+art and AI additions remain independent candidates; native sound and Dialogue Manager narrative have executable example consumers.
 
 ## Directly reusable LEGO
 
@@ -60,11 +74,11 @@ The internal module does not claim Game design authority or create a query regis
 G05 is a read-only interface adapter, not a verifier: retrieving a record does
 not establish a Game behavior or proof. G06 owns bounded native-Godot tests.
 
-G03 relationship projection separates `src/mechanism-relationship-graph.ts`
-(pure derivation from the exact library/spec source bytes) from the stable
-`scripts/build-mechanism-relationship-graph.ts` command (file I/O and JSON
-publication). Use the existing `pnpm build:relationship-graph` to rebuild the
-committed derived graph; source digests and retrieval semantics are unchanged.
+G03 relationship queries derive from the authoritative Experience Library and
+authored Relationship Spec using the existing pure source-byte projector. The
+stable knowledge:relationships CLI loads these inputs on demand, preserving
+source digests and query results. The redundant 17,184-line generated snapshot
+and manual publication command are retired; no new registry replaces them.
 
 ## Knowledge layout
 
@@ -92,6 +106,20 @@ feedback and resource/scene replacement. The executable example lives in
 examples/native-composition with its own acceptance test. It has a composition
 root, grid rules, configuration Resource and interchangeable state-view scenes.
 No historical product or generic game framework was restored.
+
+The current Godot Grid scene also consumes one Kenney CC0 TextureButton,
+which changes existing rules, view and the **existing** MovementAudio. It
+does not add a second audio backend. Run `mise run test:native`; source
+PNG and exact provenance are stored alongside the scene.
+
+## Native narrative LEGO
+
+G09: `examples/room-encounter/narrative/` installs upstream Dialogue Manager
+v4.2.0 under Godot 4.7.2. The addon imports real `.dialogue` source;
+native Control buttons select branches, while the game-state Node remains
+the authority for tokens and gate rules. Run `mise run test:dialogue-native`.
+An executed branching gate component does not prove a completed exploration
+game, human narrative quality or shipped product.
 
 ## Owner operating contract
 

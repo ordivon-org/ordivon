@@ -55,12 +55,13 @@
         "O09"
       ],
       "consumers": [
-        "social_work_mcp:work.create",
-        "social_work_mcp:work.get",
-        "social_work_mcp:work.snapshot.commit",
+        "mcp_work_tools:work.create",
+        "mcp_work_tools:work.get",
+        "mcp_work_tools:work.snapshot.commit",
         "Gateway Host adapter:work.get"
       ],
       "consumerEvidence": [
+        "src/ordivon_host_v2/mcp_work_tools.py",
         "src/ordivon_host_v2/social_work_mcp.py",
         "tests/test_social_work_fabric_work_graph.py::test_host_work_cas_revision_is_exact_positive_integer_before_db",
         "tests/test_social_work_fabric_postgres.py::test_work_snapshot_cas_race_has_one_winner",
@@ -114,12 +115,13 @@
         "O11"
       ],
       "consumers": [
-        "social_work_mcp:space.create",
-        "social_work_mcp:message.post",
-        "social_work_mcp:topic.resume",
+        "mcp_social_tools:space.create",
+        "mcp_social_tools:message.post",
+        "mcp_social_tools:topic.resume",
         "Gateway Host adapter:topic.resume"
       ],
       "consumerEvidence": [
+        "src/ordivon_host_v2/mcp_social_tools.py",
         "src/ordivon_host_v2/social_work_mcp.py",
         "tests/test_social_work_fabric_postgres.py::test_space_can_link_multiple_works_without_becoming_work_container",
         "tests/test_social_work_fabric_postgres.py::test_topic_message_reply_and_mention_are_structured",
@@ -173,11 +175,12 @@
         "O12"
       ],
       "consumers": [
-        "social_work_mcp:attention.delta",
-        "social_work_mcp:attention.reentry",
+        "mcp_attention_tools:attention.delta",
+        "mcp_attention_tools:attention.reentry",
         "Gateway Host adapter:attention.delta"
       ],
       "consumerEvidence": [
+        "src/ordivon_host_v2/mcp_attention_tools.py",
         "src/ordivon_host_v2/social_work_mcp.py",
         "tests/test_social_work_fabric_attention.py::test_attention_cursor_is_monotonic_and_horizon_bounded",
         "tests/test_social_work_fabric_postgres.py::test_attention_first_ack_concurrency_cannot_regress_cursor",

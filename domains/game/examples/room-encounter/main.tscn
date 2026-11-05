@@ -1,9 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=8 format=3]
 [ext_resource type="Script" path="res://encounter_root.gd" id="1_root"]
 [ext_resource type="Script" path="res://encounter_rules.gd" id="2_rules"]
 [ext_resource type="Resource" path="res://configs/default.tres" id="3_default"]
 [ext_resource type="Script" path="res://encounter_audio_feedback.gd" id="4_audio"]
 [ext_resource type="AudioStream" path="res://assets/click1.wav" id="5_clip"]
+[ext_resource type="Script" path="res://encounter_save_slot.gd" id="6_save"]
+[ext_resource type="PackedScene" path="res://narrative/encounter_dialogue.tscn" id="7_dialogue"]
 [node name="RoomEncounter" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -19,3 +21,8 @@ tuning = ExtResource("3_default")
 [node name="EncounterAudio" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("5_clip")
 script = ExtResource("4_audio")
+
+[node name="SaveSlot" type="Node" parent="."]
+script = ExtResource("6_save")
+
+[node name="GateDialogue" parent="." instance=ExtResource("7_dialogue")]

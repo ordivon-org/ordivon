@@ -12,7 +12,7 @@ import selection_reference as sr
 import renderer_reference as rr
 import study_runner_reference as hr
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[4]
 MANIFEST_KIND = "ordivon.game-autonomous-interest-r7-human-build-manifest"
 
 
@@ -39,8 +39,8 @@ def source_bindings() -> dict:
         "renderer": source_digest(rr),
         "studyRunner": source_digest(hr),
         "buildManifestReference": file_digest(Path(__file__).resolve()),
-        "modelSchema": file_digest(ROOT / "domains/game/game-autonomous-interest-model-r7.schema.json"),
-        "machineProtocol": file_digest(ROOT / "domains/game/game-autonomous-interest-protocol-r7.json"),
+        "modelSchema": file_digest(ROOT / "profiles/domains/game/game-autonomous-interest-model-r7.schema.json"),
+        "machineProtocol": file_digest(ROOT / "profiles/domains/game/game-autonomous-interest-protocol-r7.json"),
     }
 
 

@@ -1,17 +1,12 @@
 extends AudioStreamPlayer
 
-# Product-owned feedback; authoritative encounter state stays in Rules.
-var previous_turn: int = 0
+# Explicit action event: restoration cannot masquerade as a new combat turn.
 var observed_play_count: int = 0
 
 func bind_rules(rules: Node) -> void:
-    previous_turn = int(rules.snapshot()["turn"])
-    rules.state_changed.connect(_on_state_changed)
+    rules.action_accepted.connect(_on_action_accepted)
 
-func _on_state_changed(next_state: Dictionary) -> void:
-    var current_turn: int = int(next_state["turn"])
-    var accepted_action: bool = current_turn > previous_turn
-    previous_turn = current_turn
-    if accepted_action and stream != null:
+func _on_action_accepted(_action: String) -> void:
+    if stream != null:
         play()
         observed_play_count += 1

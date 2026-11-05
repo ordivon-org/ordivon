@@ -1,0 +1,12 @@
+[Unit]
+Description=Network-v2 periodic provider self-reconciliation
+
+[Timer]
+OnBootSec=1min
+OnCalendar=*-*-* *:0/2:00
+RandomizedDelaySec=10s
+AccuracySec=5s
+Unit=network-v2-gluetun-owned-reconcile.service
+
+[Install]
+WantedBy=timers.target

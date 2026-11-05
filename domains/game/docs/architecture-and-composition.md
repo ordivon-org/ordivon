@@ -14,13 +14,15 @@ assembly path. It does not supersede `../AGENTS.md` or
 | G04 counterexamples | `src/counterexample-projection.ts` + query | Contextual failure enrichment and false transfer rejection |
 | G05 native read-only CLI contract | `src/query-input.ts`, `src/knowledge-file.ts`, `scripts/cli-argument.ts` | Input normalization and read boundary without duplicating each query |
 | G06 native composition acceptance | `examples/native-composition` | Godot Resource, PackedScene, action rules and Signal-bound presentation substitution |
-| G07 Bevy native product assembly | `examples/bevy-native-composition` | Rust pure rules -> Bevy ECS/Plugin/graphics source, locked cargo build + bounded native tests |
+| G10 native persistence | Room Encounter rules + ConfigFile SaveSlot | Storage side effects separate from authoritative rules and accepted-action audio |
+| G07 Bevy native product assembly | `examples/orbit-collector` | Rust pure rules -> Bevy ECS/Plugin/graphics source, locked cargo build + bounded native tests |
 | G08 Godot movement audio effect | `examples/native-composition/movement_audio_feedback.gd`, original main scene, asset-local CC0 provenance | Actual GridRules Signal -> native AudioStreamPlayer, replaceable AudioStream and Godot execution |
+| G09 native branching narrative | `examples/room-encounter/narrative/` vendored upstream Dialogue Manager v4.2.0, `gate.dialogue` and separate `gate_state.gd` | Upstream editor/compiler/conditions can change independently from game state, scene and UI |
 
 **Observed edges:** G01/G02 source knowledge is read by G05 CLI
 consumers; G02 feeds G03 derived graph and contextual G04 counterexamples;
 G03 and G04 have independent CLI readers; G06 exercises engine-native
-composition independently from read-only knowledge. G07 and G08 have their
+composition independently from read-only knowledge. G07, G08 and G09 have their
 own installed native consumers and do not acquire G01-G05 as fake runtime
 dependencies. G08 observes the Godot G06 example's *actual* rule Signal; G07
 runs a separate Bevy ECS App rather than an adapter between engines. The Game graph/experience
@@ -102,3 +104,15 @@ quality -> observed product playtest. No one check substitutes for the others.
 To retrieve the actual owner contract, use the current
 `planning/lego-plan-r1.json` and `mise run game:verify`, not a snapshot
 in this note. Pending external provider adoption is explicitly UNKNOWN.
+
+## Native save and audio refinement (2026-11-03)
+
+Room Encounter is the actual consumer of ConfigFile and action_accepted.
+Rules owns checkpoint validity, the native save-slot node only handles file
+I/O, and audio no longer guesses combat input from changed turn counts.
+Native test:encounter verifies readback and rejected load atomicity. This is
+not a new storage framework or evidence of human playtest/production release.
+
+## Integrated room-narrative boundary (2026-11-03)
+
+G09 uses the same executable Room Encounter as G10, with upstream Dialogue Manager controlling text/choices and native Rules alone controlling combat/room state. The old standalone demo is retired; the upstream package is git-moved byte-identically, not duplicated. No extra quest state or runtime registry.

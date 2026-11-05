@@ -69,7 +69,7 @@ Authoritative current projection:
 - `docs/DATA_PRODUCT_CONSUMPTION_FEEDBACK_R1.md`
 - `docs/DATA_PRODUCTS_FEDERATION_R1.md`
 - `docs/DATA_DURABLE_PRESERVATION_R1.md`
-- `evidence/data-lifecycle/preservation-r1/acceptance.json`
+- `studies/data-lifecycle/evidence/preservation-r1/acceptance.json`
 
 R1–R4 census files remain historical evidence; R5 is current.
 

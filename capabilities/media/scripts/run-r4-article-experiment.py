@@ -4,8 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
-from ordivon_studio.guardian_article import run_guardian_article_experiment
 from ordivon_studio.perception_profiles import canonical_digest
+from ordivon_studio.research.guardian_article import run_guardian_article_experiment
 
 DEFAULT_SECTIONS = ("world", "technology", "culture", "business", "science", "lifeandstyle")
 

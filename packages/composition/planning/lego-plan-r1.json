@@ -22,7 +22,11 @@
       "formal/EffectReplayFence.cfg",
       "scripts/verify_effect_replay_formal.sh",
       "tests/test_identity_token_grammar.py",
-      "docs/IDENTITY_TOKEN_GRAMMAR_20261031.md"
+      "docs/IDENTITY_TOKEN_GRAMMAR_20261031.md",
+      "packages/composition/src/ordivon_composition/cross_domain_binding_r3.py",
+      "packages/composition/src/ordivon_composition/web_security_gate_r3.py",
+      "packages/composition/src/ordivon_composition/research_artifact_gate_r3.py",
+      "tests/test_cross_domain_verification_r3.py"
     ]
   },
   "nodes": [
@@ -60,7 +64,7 @@
       ],
       "consumerBindings": [
         {
-          "path": "meta/next/scripts/research_artifact_gate_r3.py",
+          "path": "packages/composition/src/ordivon_composition/research_artifact_gate_r3.py",
           "standing": "STATIC_IMPORTED_INTERFACE_NOT_INSTALLED"
         }
       ],
@@ -104,7 +108,7 @@
       ],
       "consumerBindings": [
         {
-          "path": "meta/next/tests/test_interface_contract_r2.py",
+          "path": "packages/composition/tests/test_interface_contract_r2.py",
           "operation": "evaluate_interface/currentness_standing via native tests",
           "standing": "SOURCE_IMPORTED_TEST_CONSUMER_NOT_INSTALLED"
         }
@@ -301,6 +305,214 @@
         "Model satisfaction is NOT implementation refinement or observed effect truth: finite concrete input test covers 72 abstract combinations, but arbitrary Python/real Gateway transport, environment, absent dependencies, and provider effects remain UNKNOWN."
       ],
       "qualification": "FINITE_TLA_MODEL_VERIFIED_WITH_MUTATION_PROBE; SOURCE_FINITE_CORRESPONDENCE_TESTED; IMPLEMENTATION_REFINEMENT_INSTALLED_EFFECT_UNKNOWN"
+    },
+    {
+      "id": "C07",
+      "label": "TaskLocalCrossDomainBinding",
+      "kind": "typed_binding",
+      "responsibility": "Qualify per-task Web/Security and Research/Artifact cross-domain verification bindings and source-file references while keeping all external providers' semantic authority outside Composition.",
+      "authority": "Composition task-local cross-domain binding profile; underlying files/Git retain source truth",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "cross-domain R3 JSON binding envelope",
+        "repository root and referenced source relative paths"
+      ],
+      "outputs": [
+        "validated binding or typed contract rejection",
+        "repository-contained existing source file reference or typed rejection"
+      ],
+      "behavioralContract": "JSON Schema violations and missing/escaping source paths fail closed. Successful source path resolution means a bounded file exists under the chosen repository root, not that it is source-cut authenticated, installed, executed or a proof of provider semantics.",
+      "acceptance": [
+        "Cross-domain R3 native tests reject malformed binding and parent traversal, and supply scoped Web/Security and Research/Artifact consumer fixtures."
+      ],
+      "evidence": [
+        "src/ordivon_composition/cross_domain_binding_r3.py",
+        "packages/composition/src/ordivon_composition/schemas/cross-domain-verification-r3-binding.schema.json",
+        "tests/test_cross_domain_verification_r3.py"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "file authority outside the selected repository root",
+        "real consumer installation",
+        "Web or Research domain truth",
+        "a new cross-domain registry"
+      ],
+      "consumerBindings": [
+        {
+          "path": "src/ordivon_composition/web_security_gate_r3.py",
+          "symbols": [
+            "resolve_repo_file",
+            "validate_binding"
+          ],
+          "standing": "SOURCE_STATIC_IMPORT_AND_CALL_NOT_EXECUTED"
+        },
+        {
+          "path": "src/ordivon_composition/research_artifact_gate_r3.py",
+          "symbols": [
+            "resolve_repo_file",
+            "validate_binding"
+          ],
+          "standing": "SOURCE_STATIC_IMPORT_AND_CALL_NOT_EXECUTED"
+        },
+        {
+          "path": "tests/test_cross_domain_verification_r3.py",
+          "symbols": [
+            "load_binding",
+            "validate_binding"
+          ],
+          "standing": "SOURCE_TEST_IMPORT_NOT_DOMAIN_ACCEPTANCE"
+        }
+      ],
+      "formalObligations": [
+        "A symlink or changed target after Path.resolve()/is_file() must not be presented as immutable SourceCut or safe file-content evidence.",
+        "Schema acceptance is distinct from provider authorization or output soundness."
+      ],
+      "replacements": [
+        "A mature JSON Schema implementation can replace the current validation adapter if the exact task-local binding behavior is preserved; path confinement remains a separate native file authority obligation."
+      ]
+    },
+    {
+      "id": "C08",
+      "label": "DelegatedWebSecuritySeamGate",
+      "kind": "consumer_verification",
+      "responsibility": "Qualify a task-local Web delegated-Agent security seam from Web/Security dependency contracts, request/admission/store source and bounded browser E2E receipts without promoting result to production Human presence.",
+      "authority": "Composition verifier composition; Web/Security owners retain code, identity and effect acceptance authority",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "typed cognitive circuit manifest",
+        "external binding profile Web/Security binding",
+        "source texts and cross-owner dependency contracts",
+        "bounded native E2E receipt"
+      ],
+      "outputs": [
+        "typed composition-gate-result SATISFIED/UNSATISFIED or contract rejection with evidence refs"
+      ],
+      "behavioralContract": "Success requires the declared gate, exact source boundary markers, necessary typed dependency seams and bounded non-production E2E fields. An admissible machine gate cannot assert human physical presence, deployed credential correctness or production eligibility.",
+      "acceptance": [
+        "Cross-domain tests consume the result and inject missing dependency seams, missing source markers and contradictory native E2E fields to obtain rejection/UNSATISFIED."
+      ],
+      "evidence": [
+        "src/ordivon_composition/web_security_gate_r3.py",
+        "tests/test_cross_domain_verification_r3.py",
+        "meta/next/evidence/acceptance/cross-domain-verification-r3-bindings.json"
+      ],
+      "dependencies": [
+        "C07"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "Web live authorization state",
+        "security policy or OAuth/DPoP protocol truth",
+        "actual effect execution",
+        "Human physical presence"
+      ],
+      "consumerBindings": [
+        {
+          "path": "tests/test_cross_domain_verification_r3.py",
+          "symbols": [
+            "web_security_gate"
+          ],
+          "standing": "SOURCE_TEST_IMPORT_NOT_INSTALLED"
+        },
+        {
+          "path": "src/ordivon_composition/web_security_gate_r3.py",
+          "symbols": [
+            "main"
+          ],
+          "standing": "SOURCE_CLI_ENTRY_NOT_LIVE_EXECUTION"
+        }
+      ],
+      "externalSeams": [
+        {
+          "owner": "Web",
+          "path": "apps/web/src/app.ts",
+          "standing": "DECLARED_BINDING_ONLY_SOURCE_CONSUMER_CURRENTNESS_UNKNOWN"
+        },
+        {
+          "owner": "Security",
+          "path": "platform/security/contracts/agent-admission-v1/evaluate.py",
+          "standing": "DECLARED_BINDING_ONLY_SOURCE_CONSUMER_CURRENTNESS_UNKNOWN"
+        }
+      ],
+      "formalObligations": [
+        "A true predicate over selected source marker strings is not a formal refinement of real Web authorization behavior.",
+        "E2E receipt must be version-qualified against the installed consumer before stronger claims."
+      ],
+      "replacements": [
+        "Use a consumer-native Web/Security contract verifier if it can preserve bounded required seams and negative cases."
+      ]
+    },
+    {
+      "id": "C09",
+      "label": "ResearchArtifactCarrierSeamGate",
+      "kind": "consumer_verification",
+      "responsibility": "Qualify a task-local Research publication carrier agreement with Artifact mechanics while preserving scientific, human-perceptual, venue and submission authority outside this gate.",
+      "authority": "Composition verifier composition; Research and Artifact own their respective domain verdicts",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "typed cognitive circuit manifest",
+        "external binding profile Research/Artifact binding",
+        "research-publication closure profile",
+        "Artifact publication carrier dogfood receipt"
+      ],
+      "outputs": [
+        "typed composition-gate-result SATISFIED/UNSATISFIED or contract rejection with evidence refs"
+      ],
+      "behavioralContract": "Carrier SATISFIED requires exact profile-owner bindings and a bounded machine-positive dogfood receipt with explicit nonclaims; incomplete Human perceptual signoff and scientific truth can never be upgraded by carrier-mechanical PASS.",
+      "acceptance": [
+        "Cross-domain R3 tests consume Research/Artifact gate evidence and reject falsified profile authority or dogfood contradiction."
+      ],
+      "evidence": [
+        "src/ordivon_composition/research_artifact_gate_r3.py",
+        "tests/test_cross_domain_verification_r3.py",
+        "meta/next/evidence/acceptance/cross-domain-verification-r3-bindings.json"
+      ],
+      "dependencies": [
+        "C07"
+      ],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "publication scientific truth",
+        "Human perceptual signoff",
+        "venue approval or submission",
+        "provider deployment"
+      ],
+      "consumerBindings": [
+        {
+          "path": "tests/test_cross_domain_verification_r3.py",
+          "symbols": [
+            "research_artifact_gate"
+          ],
+          "standing": "SOURCE_TEST_IMPORT_NOT_INSTALLED"
+        },
+        {
+          "path": "src/ordivon_composition/research_artifact_gate_r3.py",
+          "symbols": [
+            "main"
+          ],
+          "standing": "SOURCE_CLI_ENTRY_NOT_LIVE_EXECUTION"
+        }
+      ],
+      "externalSeams": [
+        {
+          "owner": "Artifact",
+          "path": "capabilities/artifact/README.md",
+          "standing": "CONTRACT_PROFILE_LEAD_NOT_ACTUAL_DYNAMIC_CONSUMER"
+        },
+        {
+          "owner": "Research",
+          "path": "studies/research",
+          "standing": "LOGICAL_OWNER_SCOPE_NOT_SOURCE_IDENTITY"
+        }
+      ],
+      "formalObligations": [
+        "Synthetic carrier machine PASS cannot prove domain acceptance, scientific correctness, or a live venue effect.",
+        "A change in publication profile, receipt format or exact carrier evidence must invalidate corresponding prior admission."
+      ],
+      "replacements": [
+        "Replace this task-local adapter with native Research/Artifact acceptance once it preserves explicit authority separation and negative tests."
+      ]
     }
   ],
   "edges": [
@@ -339,6 +551,16 @@
       "to": "C06",
       "type": "DATA",
       "label": "existing selective proof obligation impact supplies scoped UNKNOWN propagation to effect reconciliation"
+    },
+    {
+      "from": "C07",
+      "to": "C08",
+      "type": "DATA"
+    },
+    {
+      "from": "C07",
+      "to": "C09",
+      "type": "DATA"
     }
   ],
   "slices": [
@@ -360,12 +582,39 @@
         "Existing Lean/TLA+/TLC/Dafny/Quint/Kani/source/native consumers remain replaceable proof carriers bound to exact model/source/config identities; declaration completeness or verifier PASS never grants runtime invocation, installed currentness or domain acceptance.",
         "Repository-native negative controls reject an unknown free-text Problem LEGO class and a forged CR21 registration. Full R2.1 coordinates and proof/currentness non-promotion remain requirements in the established Skill, source, and Lean formal carriers; they are not a second inspector CLI."
       ]
+    },
+    {
+      "id": "CROSS_DOMAIN_NX_SOURCE",
+      "label": "TaskLocalBinding",
+      "nodeIds": [
+        "C07"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Actual consumer imports and invalid schema/path cases observed in source/test; source bytes do not certify deployed effects."
+      ]
+    },
+    {
+      "id": "CROSS_DOMAIN_NX_GATE",
+      "label": "BoundedCrossDomainVerifier",
+      "nodeIds": [
+        "C08",
+        "C09"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Separate Web/Security and Research/Artifact acceptance bounded to declared source/fixture contract only."
+      ]
     }
   ],
   "knownGaps": [
     "Confirmed imports from meta/next at Git SourceCut; runtime installation and external consumers not attested.",
     "Refinement from formal verifier target psi to domain target phi not inferred from source-only contract projection.",
     "Cross-owner dynamic calls and provider native effects remain UNKNOWN outside these local source contracts.",
-    "C06 consumes only Gateway-shaped, caller supplied observations; no owner-authenticated provider completion receipt or live/installed consumer qualification."
+    "C06 consumes only Gateway-shaped, caller supplied observations; no owner-authenticated provider completion receipt or live/installed consumer qualification.",
+    "This is a bounded Composition cross-domain seam set, NOT total Next owner coverage.",
+    "The 39 experimental-learning LEGO records have different truth and lifecycle semantics and are not imported into this R1 graph.",
+    "SOURCE imports, test consumption, Model PASS and installed domain behavior remain separate qualifications.",
+    "The Authority Catalog is an external source dependency owned at catalogs/authorities, not another Composition LEGO and not a prerequisite edge invented from co-location."
   ]
 }

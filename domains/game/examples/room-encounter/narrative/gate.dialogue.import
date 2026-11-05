@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://dy8jfemwu6voy"
+path="res://.godot/imported/gate.dialogue-fc42fdc9e986f6ea9127e363d28c1803.tres"
+
+[deps]
+
+source_file="res://narrative/gate.dialogue"
+dest_files=["res://.godot/imported/gate.dialogue-fc42fdc9e986f6ea9127e363d28c1803.tres"]
+
+[params]
+
+defaults=true

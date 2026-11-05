@@ -1,0 +1,59 @@
+version: '3'
+
+tasks:
+  consumer:finance:validate:
+    desc: Validate nine scoped Finance authorities over the shared provider carrier plus explicit direct macro lanes
+    cmds:
+      - /usr/bin/sing-box check -c consumers/finance/config/egress.json
+      - jq -e '.inbounds|length==9' consumers/finance/config/egress.json >/dev/null
+      - jq -e 'any(.inbounds[]; .tag=="finance-binance-wallet" and .listen=="127.0.0.1" and .listen_port==19290) and any(.route.rules[]; (.inbound? // [])==["finance-binance-wallet"] and .domain=="api.binance.com" and .port==443 and .action=="route" and .outbound=="provider-carrier")' consumers/finance/config/egress.json >/dev/null
+      - jq -e 'any(.route.rules[]; (.inbound? // [])==["finance-us-treasury-public"] and .domain=="home.treasury.gov" and .outbound=="public-direct") and any(.route.rules[]; (.inbound? // [])==["finance-fred-public-csv"] and .domain=="fred.stlouisfed.org" and .outbound=="public-direct")' consumers/finance/config/egress.json >/dev/null
+      - jq -e '.outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680},{"type":"direct","tag":"public-direct"}] and (has("dns")|not) and (has("services")|not)' consumers/finance/config/egress.json >/dev/null
+      - jq -e 'all(.route.rules[]; ((.outbound? // "") != "provider-auto"))' consumers/finance/config/egress.json >/dev/null
+      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
+      - /usr/bin/bash -n consumers/finance/ready.sh consumers/finance/acceptance/production-smoke.sh
+      - jq -e '.kind=="ordivon.network-v2.scoped-egress-authority" and .directFallback==false and (.proxy|startswith("http://127.0.0.1:"))' consumers/finance/config/*-authority.json >/dev/null
+      - '! grep -R -F "provider-auto" consumers/finance/config'
+
+  consumer:finance:materialize:
+    desc: Materialize nine Finance authorities over the shared provider carrier without creating another WireGuard session
+    deps: [consumer:browserless:provider-carrier:materialize, consumer:finance:validate]
+    cmds:
+      - install -d -m 0755 /etc/network-v2/finance /usr/local/libexec/network-v2
+      - install -m 0644 consumers/finance/config/egress.json /etc/network-v2/finance/egress.json
+      - install -m 0644 consumers/finance/config/*-authority.json /etc/network-v2/finance/
+      - rm -f /etc/network-v2/finance/provider-endpoints.json
+      - for: { var: FINANCE_SYSTEMD_UNITS }
+        cmd: install -m 0644 {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
+      - install -m 0755 consumers/finance/ready.sh /usr/local/libexec/network-v2/finance-ready
+      - systemctl daemon-reload
+      - systemctl enable network-v2-finance.target
+
+  consumer:finance:start:
+    desc: Start the materialized Finance authorities over the one shared provider carrier
+    cmds:
+      - systemctl start network-v2-finance.target
+
+  consumer:finance:ready:
+    desc: Wait for bounded public read-only consequence readiness through the admitted Finance authorities
+    cmds:
+      - /usr/local/libexec/network-v2/finance-ready public 90
+
+  consumer:finance:converge:
+    desc: Materialize, restart and prove Finance consequences without external financial writes or provider identity mutation
+    cmds:
+      - task: consumer:finance:materialize
+      - systemctl restart network-v2-finance.target
+      - task: consumer:finance:ready
+
+  consumer:finance:verify:
+    desc: Prove exact authority fencing, shared-carrier fail-closed behavior, direct macro independence and recovery
+    cmds:
+      - cmp -s consumers/finance/config/egress.json /etc/network-v2/finance/egress.json
+      - test ! -e /etc/network-v2/finance/provider-endpoints.json
+      - ./consumers/finance/acceptance/production-smoke.sh
+
+  consumer:finance:stop:
+    desc: Stop only Finance northbound authorities; do not stop the shared provider carrier
+    cmds:
+      - systemctl stop network-v2-finance.target
