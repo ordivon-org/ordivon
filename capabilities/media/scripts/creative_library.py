@@ -410,7 +410,13 @@ class LibraryHandler(BaseHTTPRequestHandler):
         if not work or not carrier:
             self._error(404, "carrier is not in the frozen work tree", head_only=head_only)
             return
-        body = _run_git(work["sourceRepo"], ["cat-file", "blob", f"{work['sourceRevision']}:{carrier['gitPath']}"], binary=True)
+        try:
+            body = _run_git(work["sourceRepo"], ["cat-file", "blob", f"{work['sourceRevision']}:{carrier['gitPath']}"], binary=True)
+        except RuntimeError:
+            # A frozen catalog may outlive its historical Git source checkout.
+            # Fail this carrier only; keep other Library and derived views usable.
+            self._error(HTTPStatus.SERVICE_UNAVAILABLE, "source revision unavailable", head_only=head_only)
+            return
         assert isinstance(body, bytes)
         if hashlib.sha1(b"blob " + str(len(body)).encode() + b"\0" + body).hexdigest() != carrier["objectId"]:
             self._error(409, "Git blob identity mismatch", head_only=head_only)
