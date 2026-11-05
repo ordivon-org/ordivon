@@ -10,7 +10,7 @@ input=$(realpath "$1")
 profile=$(realpath "$2")
 out=$3
 root=$(cd "$(dirname "$0")/../.." && pwd)
-ttconv="$root/media-v2/bin/ttconv-pinned.sh"
+ttconv="$root/processing/bin/ttconv-pinned.sh"
 
 [[ -f "$input" ]] || { echo "timed text not found: $input" >&2; exit 66; }
 [[ -f "$profile" ]] || { echo "profile not found: $profile" >&2; exit 66; }

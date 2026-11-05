@@ -17,7 +17,7 @@ from typing import Any
 import opentimelineio as otio
 
 # Media v2 R5 boundary: generic editorial inspection/range validation is owned by
-# the external-first OpenTimelineIO gate under media-v2/, using pinned otiotool.
+# the external-first OpenTimelineIO gate under processing/, using pinned otiotool.
 # The OTIO traversal/writer helpers retained in this module are legacy compatibility
 # for the proven Resolve 21 host bridge and fixture/conform operations. Do not add
 # new generic timeline validation here; keep only Resolve-private deltas.

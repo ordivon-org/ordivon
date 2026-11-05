@@ -10,7 +10,7 @@ input=$(realpath "$1")
 profile=$(realpath "$2")
 out=$3
 root=$(cd "$(dirname "$0")/../.." && pwd)
-otiotool="$root/media-v2/bin/otiotool-pinned.sh"
+otiotool="$root/processing/bin/otiotool-pinned.sh"
 
 [[ -f "$input" ]] || { echo "timeline not found: $input" >&2; exit 66; }
 [[ -f "$profile" ]] || { echo "profile not found: $profile" >&2; exit 66; }

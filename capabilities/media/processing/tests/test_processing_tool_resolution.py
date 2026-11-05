@@ -6,10 +6,10 @@ import unittest
 from pathlib import Path
 
 MEDIA = Path(__file__).resolve().parents[2]
-MEDIA_V2 = MEDIA / "media-v2"
+PROCESSING = MEDIA / "processing"
 
 
-class MediaV2OwnerToolResolutionTests(unittest.TestCase):
+class ProcessingOwnerToolResolutionTests(unittest.TestCase):
     def test_probe_and_smoke_scripts_resolve_media_owner_from_any_cwd(self) -> None:
         for relative in (
             "bin/probe-otio.sh",
@@ -19,7 +19,7 @@ class MediaV2OwnerToolResolutionTests(unittest.TestCase):
             "tests/audio-smoke.sh",
             "tests/smoke.sh",
         ):
-            path = MEDIA_V2 / relative
+            path = PROCESSING / relative
             line = next(
                 (item for item in path.read_text().splitlines() if item.startswith("root=")),
                 None,
@@ -43,7 +43,7 @@ class MediaV2OwnerToolResolutionTests(unittest.TestCase):
 
     def test_tool_wrappers_use_media_owner_uv_not_host_uv(self) -> None:
         for relative in ("bin/otiotool-pinned.sh", "bin/ttconv-pinned.sh"):
-            path = MEDIA_V2 / relative
+            path = PROCESSING / relative
             data = path.read_text()
             line = next(
                 (item for item in data.splitlines() if item.startswith("owner=")),
@@ -70,13 +70,13 @@ class MediaV2OwnerToolResolutionTests(unittest.TestCase):
 
     def test_smoke_fixtures_use_owner_uv_without_project_discovery(self) -> None:
         for relative in ("tests/otio-smoke.sh", "tests/timedtext-smoke.sh"):
-            source = (MEDIA_V2 / relative).read_text()
+            source = (PROCESSING / relative).read_text()
             with self.subTest(script=relative):
                 self.assertNotIn("/usr/bin/uv", source)
                 if relative == "tests/otio-smoke.sh":
                     self.assertIn('/usr/bin/mise -C "$root" exec -- uv run --no-project ', source)
                 else:
-                    self.assertIn('ttconv="$root/media-v2/bin/ttconv-pinned.sh"', source)
+                    self.assertIn('ttconv="$root/processing/bin/ttconv-pinned.sh"', source)
                     self.assertIn('"$ttconv" convert ', source)
 
 

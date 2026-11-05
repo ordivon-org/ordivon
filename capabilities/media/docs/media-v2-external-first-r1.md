@@ -17,7 +17,7 @@ The slice is deliberately independent of the legacy Python media stack. It prove
 
 ## Destructive acceptance
 
-`media-v2/tests/smoke.sh` generates two files using FFmpeg:
+`processing/tests/smoke.sh` generates two files using FFmpeg:
 
 1. a 1920x1080, 30 fps, H.264, yuv420p, BT.709, no-audio positive fixture that must pass;
 2. a 1280x720 otherwise-equivalent negative fixture that must fail closed on width and height.
@@ -50,9 +50,9 @@ No legacy implementation is admitted into v2 merely for parity convenience.
 The repository now exposes the v2 path directly:
 
 ```bash
-pnpm media:v2:smoke
-pnpm media:v2:render:introduction
-pnpm media:v2:probe:introduction
+pnpm processing:smoke
+pnpm processing:render:introduction
+pnpm processing:probe:introduction
 ```
 
-`media:v2:render:introduction` composes the existing mature Remotion backend with the new external evidence gate. It does not invoke legacy `ordivon-studio qc-video`, `normalize-h264-bt709`, review packets, or perception code.
+`processing:render:introduction` composes the existing mature Remotion backend with the new external evidence gate. It does not invoke legacy `ordivon-studio qc-video`, `normalize-h264-bt709`, review packets, or perception code.

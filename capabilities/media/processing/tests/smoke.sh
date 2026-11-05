@@ -2,13 +2,13 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
-work="$root/.tmp/media-v2-smoke"
+work="$root/.tmp/processing-smoke"
 rm -rf "$work"
 mkdir -p "$work"
 trap 'rm -rf "$work"' EXIT
 
-profile="$root/media-v2/profiles/av-sdr-web-1080p30-noaudio.json"
-probe="$root/media-v2/bin/probe-av.sh"
+profile="$root/processing/profiles/av-sdr-web-1080p30-noaudio.json"
+probe="$root/processing/bin/probe-av.sh"
 
 ffmpeg -hide_banner -loglevel error -y \
   -f lavfi -i 'testsrc2=size=1920x1080:rate=30:duration=1' \
@@ -35,4 +35,4 @@ jq -e '.technicalQc.ok == false' "$work/bad-evidence/evidence.json" >/dev/null
 grep -q 'FAIL video.width' "$work/bad.stderr"
 grep -q 'FAIL video.height' "$work/bad.stderr"
 
-echo 'media-v2 smoke: PASS (positive accepted, wrong-resolution negative rejected)'
+echo 'processing smoke: PASS (positive accepted, wrong-resolution negative rejected)'

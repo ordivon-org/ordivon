@@ -11,8 +11,8 @@ The first slice delegates media inspection to FFprobe, keeps the raw machine out
 ## Run
 
 ```bash
-bash media-v2/tests/smoke.sh
-bash media-v2/bin/probe-av.sh <artifact.mp4> media-v2/profiles/av-sdr-web-1080p30-noaudio.json <evidence-dir>
+bash processing/tests/smoke.sh
+bash processing/bin/probe-av.sh <artifact.mp4> processing/profiles/av-sdr-web-1080p30-noaudio.json <evidence-dir>
 ```
 
 ## Planned external replacements
@@ -33,8 +33,8 @@ R1 intentionally does not install every candidate dependency. New dependencies r
 The audio path is also external-first:
 
 ```bash
-pnpm media:v2:audio:smoke
-bash media-v2/bin/probe-audio.sh <artifact> media-v2/profiles/audio-program-48k-mono-lufs23.json <evidence-dir>
+pnpm processing:audio:smoke
+bash processing/bin/probe-audio.sh <artifact> processing/profiles/audio-program-48k-mono-lufs23.json <evidence-dir>
 ```
 
 FFprobe supplies stream facts. FFmpeg `loudnorm` supplies the BS.1770-family loudness and true-peak measurement. The adapter retains raw tool evidence and applies only explicit profile thresholds; it does not implement DSP or infer listening quality.
