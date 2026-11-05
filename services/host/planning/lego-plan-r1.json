@@ -115,12 +115,13 @@
         "O11"
       ],
       "consumers": [
-        "social_work_mcp:space.create",
-        "social_work_mcp:message.post",
-        "social_work_mcp:topic.resume",
+        "mcp_social_tools:space.create",
+        "mcp_social_tools:message.post",
+        "mcp_social_tools:topic.resume",
         "Gateway Host adapter:topic.resume"
       ],
       "consumerEvidence": [
+        "src/ordivon_host_v2/mcp_social_tools.py",
         "src/ordivon_host_v2/social_work_mcp.py",
         "tests/test_social_work_fabric_postgres.py::test_space_can_link_multiple_works_without_becoming_work_container",
         "tests/test_social_work_fabric_postgres.py::test_topic_message_reply_and_mention_are_structured",
