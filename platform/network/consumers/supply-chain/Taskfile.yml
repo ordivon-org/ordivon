@@ -69,7 +69,6 @@ tasks:
       - |
         docker info 2>/dev/null | grep -F 'HTTP Proxy: http://127.0.0.1:19581' >/dev/null
         docker info 2>/dev/null | grep -F 'HTTPS Proxy: http://127.0.0.1:19581' >/dev/null
-      - docker image inspect 'openpolicyagent/opa@sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f' >/dev/null
 
   consumer:supply-chain:stop:
     desc: Stop the Supply-Chain proxy only; callers must not stop it while Docker remains proxy-bound

@@ -16,6 +16,8 @@ retired fixed th-bkk providerSite.
 
 This removes the former Supply-Chain `provider-endpoints.json`, URLTest and duplicated provider-DNS/WireGuard ownership. The physical carrier is shared; Supply-Chain semantic authority is not.
 
+Routine `consumer:supply-chain:verify` checks live scoped network behavior and Docker proxy binding, not whether a historical OPA image happens to be cached. The pinned OPA Docker pull belongs only to explicit `consumer:supply-chain:docker-rebind` recovery acceptance, where it exercises an actual image pull rather than inferring transport health from local cache.
+
 Docker daemon binding remains source-owned by `systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf`. Docker restart is intentionally separated into `acceptance/docker-rebind-smoke.sh`; it verifies restart-policy recovery and the pinned OPA image pull.
 
 
