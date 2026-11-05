@@ -1,6 +1,6 @@
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1] / "providers" / "gluetun-owned" / "systemd"
+ROOT = Path(__file__).resolve().parents[1] / "providers" / "gluetun" / "systemd"
 
 
 def test_recovery_requires_selected_mode_and_operator_enabled_target():
