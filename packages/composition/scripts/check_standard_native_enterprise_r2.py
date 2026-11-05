@@ -3,16 +3,14 @@ from __future__ import annotations
 
 import json
 from importlib.resources import files
-from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = files("ordivon_composition").joinpath(
     "schemas", "standard-native-profile-projection-v1.schema.json"
 )
-RECEIPT = (
-    ROOT / "evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json"
+RECEIPT = files("ordivon_composition").joinpath(
+    "evidence", "standard-native-enterprise-r2-dogfood-20260914.json"
 )
 
 
@@ -27,10 +25,7 @@ def main() -> int:
     Draft202012Validator.check_schema(schema)
     validator = Draft202012Validator(schema)
 
-    if (
-        receipt.get("kind")
-        != "ordivon.standard-native.enterprise-r2-cross-domain-dogfood"
-    ):
+    if receipt.get("kind") != "ordivon.standard-native.enterprise-r2-cross-domain-dogfood":
         fail("wrong dogfood receipt kind")
 
     cases = receipt.get("cases", [])
@@ -62,9 +57,7 @@ def main() -> int:
     if obs.get("universalVerdictNormalizationApplied") is not False:
         fail("universal verdict normalization must remain false")
     if obs.get("sharedVerdictStatuses") != ["PASS"]:
-        fail(
-            f"unexpected cross-domain verdict intersection: {obs.get('sharedVerdictStatuses')}"
-        )
+        fail(f"unexpected cross-domain verdict intersection: {obs.get('sharedVerdictStatuses')}")
 
     union = set(obs.get("unionVerdictStatuses", []))
     expected_distinctive = {

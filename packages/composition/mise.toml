@@ -14,6 +14,7 @@ uv sync --locked
 uv run ruff check src tests scripts
 uv run ruff format --check src tests scripts
 uv run python -m pytest -q
+uv run python scripts/check_standard_native_enterprise_r2.py
 mise run formal:verify
 mise run formal:effect:verify
 """
