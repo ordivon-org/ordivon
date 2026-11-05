@@ -9,5 +9,8 @@ Type=oneshot
 ExecCondition=/usr/bin/systemctl is-enabled --quiet network-v2-gluetun-owned.target
 # Forbid a second physical WireGuard identity while legacy mode is still active.
 ExecStartPre=/usr/local/libexec/network-v2/provider-identity-exclusive gluetun
-ExecStart=/usr/bin/systemctl start network-v2-gluetun-owned.target
+# Starting an already-active target alone will NOT heal a failed required service.
+# systemctl start is idempotent for healthy services; restore the actual
+# physical Provider and its internal compatibility adapter independently.
+ExecStart=/usr/bin/systemctl start network-v2-gluetun-owned.service network-v2-gluetun-owned-adapter.service
 TimeoutStartSec=1min
