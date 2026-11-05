@@ -17,7 +17,7 @@ assembly path. It does not supersede `../AGENTS.md` or
 | G10 native persistence | Room Encounter rules + ConfigFile SaveSlot | Storage side effects separate from authoritative rules and accepted-action audio |
 | G07 Bevy native product assembly | `examples/orbit-collector` | Rust pure rules -> Bevy ECS/Plugin/graphics source, locked cargo build + bounded native tests |
 | G08 Godot movement audio effect | `examples/native-composition/movement_audio_feedback.gd`, original main scene, asset-local CC0 provenance | Actual GridRules Signal -> native AudioStreamPlayer, replaceable AudioStream and Godot execution |
-| G09 native branching narrative | `examples/dialogue-composition/` vendored upstream Dialogue Manager v4.2.0, `gate.dialogue` and separate `gate_state.gd` | Upstream editor/compiler/conditions can change independently from game state, scene and UI |
+| G09 native branching narrative | `examples/room-encounter/narrative/` vendored upstream Dialogue Manager v4.2.0, `gate.dialogue` and separate `gate_state.gd` | Upstream editor/compiler/conditions can change independently from game state, scene and UI |
 
 **Observed edges:** G01/G02 source knowledge is read by G05 CLI
 consumers; G02 feeds G03 derived graph and contextual G04 counterexamples;
@@ -112,3 +112,7 @@ Rules owns checkpoint validity, the native save-slot node only handles file
 I/O, and audio no longer guesses combat input from changed turn counts.
 Native test:encounter verifies readback and rejected load atomicity. This is
 not a new storage framework or evidence of human playtest/production release.
+
+## Integrated room-narrative boundary (2026-11-03)
+
+G09 uses the same executable Room Encounter as G10, with upstream Dialogue Manager controlling text/choices and native Rules alone controlling combat/room state. The old standalone demo is retired; the upstream package is git-moved byte-identically, not duplicated. No extra quest state or runtime registry.

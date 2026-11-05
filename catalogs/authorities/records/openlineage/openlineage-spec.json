@@ -39,7 +39,7 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "evidence/acceptance/capability-packages-r1-20260913.md",
+      "catalogs/capabilities/evidence/capability-packages-r1-20260913.md",
       "OpenLineage official docs checked 2026-09-14"
     ]
   },

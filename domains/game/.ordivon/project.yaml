@@ -20,7 +20,7 @@ managed_paths:
   - knowledge/game_teardown_queue_r1.json
   - knowledge/game_mechanism_experience_library_r1.json
   - knowledge/game_mechanism_relationship_spec_r1.json
-  - knowledge/game_mechanism_relationship_graph_r1.json
+  - src/mechanism-relationship-graph.ts
   - knowledge/game_design_counterexample_memory_r1.json
   - knowledge/game_counterexample_synthesis_r1.json
   - src/query-input.ts
@@ -32,7 +32,6 @@ managed_paths:
   - scripts/mechanism-relationship-query.ts
   - scripts/design-counterexample-query.ts
   - scripts/counterexample-synthesis-query.ts
-  - scripts/build-mechanism-relationship-graph.ts
   - planning/lego-plan-r1.json
   - planning/prototype-composition-candidates-r1.json
   - src/prototype-composition.ts
@@ -43,6 +42,7 @@ managed_paths:
   - examples/native-composition/assert.gd
   - examples/room-encounter/README.md
   - examples/room-encounter/assert.gd
+  - examples/room-encounter/assert_process_restart.gd
   - examples/native-composition/assets/kenney-ui-art/button_rectangle_depth_border.png
 enforcement: strict
 maintainers: [zycxfyh]

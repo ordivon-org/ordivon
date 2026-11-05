@@ -1,0 +1,7 @@
+[Unit]
+Description=Network v2 Discord scoped provider egress
+Wants=network-v2-discord-egress.service
+After=network-v2-discord-egress.service
+
+[Install]
+WantedBy=multi-user.target

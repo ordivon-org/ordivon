@@ -2,58 +2,75 @@
 set -euo pipefail
 NS=nv2-browserless-prod
 PROXY=http://10.252.246.2:19680
-ENV_FILE=/etc/network-v2/browserless/provider.env
-MANIFEST=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv
-for u in network-v2-browserless.target network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service; do
-  systemctl is-active --quiet "$u"
-done
+TARGET=network-v2-browserless.target
+LEGACY_WG=network-v2-browserless-wireguard.service
+LEGACY_CARRIER=network-v2-browserless-provider-carrier.service
+OWNED=network-v2-gluetun-owned.service
+OWNED_ADAPTER=network-v2-gluetun-owned-adapter.service
+
+systemctl is-active --quiet "$TARGET"
+test -e "/run/netns/$NS"
 ip netns exec "$NS" ss -ltn | grep -q '10.252.246.2:19680'
-site=$(awk -F= '$1=="PROVIDER_SITE"{print $2}' "$ENV_FILE")
-endpoint=$(awk -F= '$1=="ENDPOINT"{print $2}' "$ENV_FILE")
-test "$site" = th-bkk
-expected=$(awk -F '\t' -v site="$site" '$1==site{print $2; exit}' "$MANIFEST")
-test -n "$expected"
-test "$endpoint" = "$expected"
+
+if ip netns exec "$NS" ip -4 route show default | grep -q .; then
+  echo "consumer namespace unexpectedly has an IPv4 default route" >&2
+  exit 42
+fi
+if ip netns exec "$NS" ip -6 route show default | grep -q .; then
+  echo "consumer namespace unexpectedly has an IPv6 default route" >&2
+  exit 43
+fi
+
+if systemctl is-active --quiet "$OWNED" && systemctl is-active --quiet "$OWNED_ADAPTER"; then
+  mechanism=gluetun
+elif systemctl is-active --quiet "$LEGACY_WG" && systemctl is-active --quiet "$LEGACY_CARRIER"; then
+  mechanism=legacy-wireguard
+else
+  echo "shared provider carrier has no recognized physical realization" >&2
+  exit 41
+fi
+
 probe_code() {
-  local url=$1 receipt='' code='' connect='' extra=''
+  local url=$1 allowed=$2 code=000 tunnel=000 extra="" result=""
   for _ in 1 2 3; do
-    # For HTTPS over an HTTP proxy, application status alone does not
-    # establish the tunnel. Both statuses belong to this one curl effect.
-    receipt=$(curl -q -4 --noproxy '' -x "$PROXY" -I -sS \
+    code=000 tunnel=000 extra=""
+    # curl -q must be first to ignore user curlrc. A recognized origin status
+    # alone is not proof that HTTPS CONNECT reached the actual Provider.
+    if result=$(curl -q -4 --noproxy "" -x "$PROXY" -I -sS \
       --connect-timeout 6 --max-time 15 -o /dev/null \
-      -w '%{http_code} %{http_connect}' "$url") || receipt=
-    read -r code connect extra <<< "$receipt"
-    if [[ "$connect" == 200 && -z "$extra" \
-      && "$code" =~ ^(2[0-9]{2}|3[0-9]{2}|400|401|403|404|405)$ ]]; then
-      printf '%s' "$code"
-      return 0
+      -w '%{http_code} %{http_connect}' "$url" 2>/dev/null); then
+      read -r code tunnel extra <<< "$result"
+      if [[ $tunnel == 200 && -z $extra && $code =~ ^($allowed)$ ]]; then
+        printf '%s' "$code"
+        return 0
+      fi
     fi
     sleep 1
   done
+  echo "provider CONNECT or origin status invalid (http=$code, connect=$tunnel)" >&2
   return 1
 }
-
-openai=$(probe_code https://api.openai.com/v1/models)
-registry=$(probe_code https://registry-1.docker.io/v2/)
-anthropic=$(probe_code https://api.anthropic.com/)
+openai=$(probe_code https://api.openai.com/v1/models '401|403')
+registry=$(probe_code https://registry-1.docker.io/v2/ '200|401')
+anthropic=$(probe_code https://api.anthropic.com/ '401|403|404|405')
 okx_json=$(mktemp)
 trap 'rm -f "$okx_json"' EXIT
+okx_ready=0
 for _ in 1 2 3; do
-  receipt=$(curl -q -4 --noproxy '' -fsS -x "$PROXY" \
-    --connect-timeout 6 --max-time 15 \
+  receipt=
+  code=000 tunnel=000 extra=
+  if receipt=$(curl -q -4 --noproxy "" -fsS -x "$PROXY" \
+    --connect-timeout 6 --max-time 15 -o "$okx_json" \
     -w '%{http_code} %{http_connect}' \
-    https://openapi.okx.com/api/v5/public/time -o "$okx_json" 2>/dev/null) || receipt=
-  read -r code connect extra <<< "$receipt"
-  if [[ "$code" == 200 && "$connect" == 200 && -z "$extra" ]] \
-    && jq -e '.code=="0" and (.data|type)=="array" and (.data|length>=1)' "$okx_json" >/dev/null 2>&1; then
-    break
+    https://openapi.okx.com/api/v5/public/time 2>/dev/null); then
+    read -r code tunnel extra <<< "$receipt"
+    if [[ $code == 200 && $tunnel == 200 && -z $extra ]] \
+      && jq -e '.code=="0" and (.data|type)=="array" and (.data|length>=1)' "$okx_json" >/dev/null 2>&1; then
+      okx_ready=1
+      break
+    fi
   fi
   sleep 1
 done
-[[ "$code" == 200 && "$connect" == 200 && -z "$extra" ]] || {
-  echo 'Shared provider OKX CONNECT/origin proof failed' >&2
-  exit 1
-}
-jq -e '.code=="0" and (.data|type)=="array" and (.data|length>=1)' "$okx_json" >/dev/null
-
-printf '{"schemaVersion":1,"kind":"ordivon.network-v2.shared-provider-readiness","standing":"READY","providerSite":"%s","endpoint":"%s","openaiHttp":%s,"registryHttp":%s,"anthropicHttp":%s,"okx":"PASS"}\n' "$site" "$endpoint" "$openai" "$registry" "$anthropic"
+test "$okx_ready" = 1
+printf '{"schemaVersion":1,"kind":"ordivon.network-v2.shared-provider-readiness","standing":"READY","mechanism":"%s","openaiHttp":%s,"registryHttp":%s,"anthropicHttp":%s,"okx":"PASS","proxy":"%s","ipv4DefaultRoute":"ABSENT","ipv6DefaultRoute":"ABSENT"}\n' "$mechanism" "$openai" "$registry" "$anthropic" "$PROXY"

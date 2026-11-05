@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 
-from ordivon_studio.research_validity import (
+from ordivon_studio.research.research_validity import (
     TrialLedger,
     build_null_registration,
     calibration_experiment,

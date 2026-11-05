@@ -5,8 +5,7 @@ import json
 from pathlib import Path
 
 from jsonschema import Draft201909Validator, Draft202012Validator, FormatChecker
-
-from scripts.cross_domain_binding_r3 import resolve_repo_file
+from ordivon_composition.cross_domain_binding_r3 import resolve_repo_file
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ROOT.parents[1]
@@ -17,7 +16,10 @@ EVIDENCE = (
 )
 FEDERATION = REPO_ROOT / "studies/data-lifecycle/evidence/data-products-r2"
 STANDARDS = REPO_ROOT / "studies/data-lifecycle/evidence/github-pilot-r1/standards"
-RW5_BINDINGS = ROOT / "evidence/acceptance/experimental-episode-rw5-bindings.json"
+RW5_BINDINGS = (
+    REPO_ROOT
+    / "studies/experimental-episodes/evidence/acceptance/experimental-episode-rw5-bindings.json"
+)
 
 
 def load(path: Path):
@@ -32,7 +34,9 @@ def test_episode_product_binds_replay_manifest_and_contract() -> None:
     product = load(PRODUCT / "odps.json")
     contract = load(PRODUCT / "odcs.json")
     acceptance = load(PRODUCT / "acceptance.json")
-    manifest = ROOT / "evidence/experimental-episode/corpus-r1/manifest.json"
+    manifest = (
+        REPO_ROOT / "studies/experimental-episodes/evidence/corpus-r1/manifest.json"
+    )
 
     assert product["apiVersion"] == "v1.1.0"
     assert product["kind"] == "DataProduct"

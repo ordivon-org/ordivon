@@ -1,0 +1,45 @@
+{
+  "$schema": "https://sing-box.sagernet.org/schema.json",
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "http",
+      "tag": "model-provider-api",
+      "listen": "127.0.0.1",
+      "listen_port": 19881
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "http",
+      "tag": "provider-carrier",
+      "server": "10.252.246.2",
+      "server_port": 19680
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "inbound": ["model-provider-api"],
+        "domain": [
+          "api.deepseek.com",
+          "generativelanguage.googleapis.com",
+          "openrouter.ai",
+          "api.cerebras.ai",
+          "integrate.api.nvidia.com",
+          "open.bigmodel.cn"
+        ],
+        "port": 443,
+        "network": ["tcp"],
+        "action": "route",
+        "outbound": "provider-carrier"
+      },
+      {
+        "action": "reject"
+      }
+    ]
+  }
+}

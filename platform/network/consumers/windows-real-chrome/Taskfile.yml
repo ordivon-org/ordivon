@@ -1,0 +1,21 @@
+version: '3'
+
+tasks:
+  consumer:windows-real-chrome:validate:
+    desc: Validate Windows Chrome Linux-side proxy, relay and public-web policy
+    cmds:
+      - sing-box check -c consumers/windows-real-chrome/config/sing-box.json
+      - bash -n consumers/windows-real-chrome/ready.sh
+      - systemd-analyze verify consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-proxy.service consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-relay.service consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome.target
+
+  consumer:windows-real-chrome:verify:
+    desc: Verify Chrome proxy SourceCut and real public/ChatGPT HTTP consequences
+    deps: [consumer:windows-real-chrome:validate]
+    cmds:
+      - cmp -s consumers/windows-real-chrome/config/sing-box.json /etc/network-v2/windows-real-chrome/sing-box.json
+      - cmp -s consumers/windows-real-chrome/config/authority.json /etc/network-v2/windows-real-chrome/authority.json
+      - cmp -s consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-proxy.service /etc/systemd/system/network-v2-windows-real-chrome-proxy.service
+      - cmp -s consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome-relay.service /etc/systemd/system/network-v2-windows-real-chrome-relay.service
+      - cmp -s consumers/windows-real-chrome/systemd/network-v2-windows-real-chrome.target /etc/systemd/system/network-v2-windows-real-chrome.target
+      - cmp -s consumers/windows-real-chrome/ready.sh /usr/local/libexec/network-v2/windows-real-chrome-ready
+      - /usr/local/libexec/network-v2/windows-real-chrome-ready

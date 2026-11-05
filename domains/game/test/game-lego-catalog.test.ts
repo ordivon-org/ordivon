@@ -42,13 +42,13 @@ function validateNativeGameConsumerClaims(plan: any): void {
   const required: Record<string, string[]> = {
     G01: ['scripts/external-knowledge-query.ts', 'test/game-external-knowledge-query.test.ts'],
     G02: ['scripts/mechanism-experience-query.ts', 'test/game-lego-catalog.test.ts'],
-    G03: ['scripts/build-mechanism-relationship-graph.ts', 'test/game-mechanism-relationship-graph.test.ts'],
+    G03: ['scripts/mechanism-relationship-query.ts', 'test/game-mechanism-relationship-graph.test.ts'],
     G04: ['scripts/design-counterexample-query.ts', 'test/game-design-counterexample-memory.test.ts'],
     G05: ['package.json', 'scripts/mechanism-relationship-query.ts', 'scripts/counterexample-synthesis-query.ts'],
     G06: ['mise.toml', 'examples/native-composition/assert.gd', 'examples/native-composition/main.tscn'],
     G07: ['examples/orbit-collector/src/main.rs', 'examples/orbit-collector/src/gameplay.rs', 'examples/orbit-collector/Cargo.toml'],
     G08: ['examples/native-composition/composition_root.gd', 'examples/native-composition/main.tscn', 'examples/native-composition/assert_audio.gd'],
-    G09: ['examples/dialogue-composition/story_root.gd', 'examples/dialogue-composition/gate_state.gd', 'examples/dialogue-composition/main.tscn', 'examples/dialogue-composition/acceptance.gd', 'mise.toml'],
+    G09: ['examples/room-encounter/narrative/encounter_dialogue.gd', 'examples/room-encounter/narrative/gate_state.gd', 'examples/room-encounter/main.tscn', 'examples/room-encounter/narrative/acceptance.gd', 'mise.toml'],
   };
   for (const id of Object.keys(required))
     assert.ok(plan.nodes.some((n: any) => n.id === id), id + ': known native consumer missing');
@@ -84,14 +84,13 @@ function validateNativeGameConsumerClaims(plan: any): void {
   assert.equal(scripts['knowledge:relationships'], 'node scripts/mechanism-relationship-query.ts');
   assert.equal(scripts['knowledge:counterexamples'], 'node scripts/design-counterexample-query.ts');
   assert.equal(scripts['knowledge:counterexample-themes'], 'node scripts/counterexample-synthesis-query.ts');
-  assert.equal(scripts['build:relationship-graph'], 'node scripts/build-mechanism-relationship-graph.ts');
 
   const externalTest = readFileSync(new URL('./game-external-knowledge-query.test.ts', import.meta.url), 'utf8');
   assert.ok(externalTest.includes('from "../scripts/external-knowledge-query.ts"'));
   const thisTest = readFileSync(new URL('./game-lego-catalog.test.ts', import.meta.url), 'utf8');
   assert.ok(thisTest.includes("from '../scripts/mechanism-experience-query.ts'"));
   const graphTest = readFileSync(new URL('./game-mechanism-relationship-graph.test.ts', import.meta.url), 'utf8');
-  assert.ok(graphTest.includes('../knowledge/game_mechanism_relationship_graph_r1.json'));
+  assert.ok(graphTest.includes('../src/mechanism-relationship-graph.ts'));
   const memoryTest = readFileSync(new URL('./game-design-counterexample-memory.test.ts', import.meta.url), 'utf8');
   assert.ok(memoryTest.includes('../knowledge/game_design_counterexample_memory_r1.json'));
 
