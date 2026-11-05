@@ -1,0 +1,18 @@
+[Unit]
+Description=Network v2 Codex scoped ChatGPT HTTPS proxy inside shared provider authority
+BindsTo=network-v2-browserless.target
+After=network-v2-browserless.target
+PartOf=network-v2-codex.target
+
+[Service]
+Type=simple
+NetworkNamespacePath=/run/netns/nv2-browserless-prod
+ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/codex/sing-box.json
+ExecStart=/usr/bin/sing-box run -c /etc/network-v2/codex/sing-box.json
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_UNIX AF_NETLINK

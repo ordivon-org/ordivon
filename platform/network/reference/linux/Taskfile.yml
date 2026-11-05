@@ -1,0 +1,42 @@
+version: '3'
+
+tasks:
+  reference:linux:preflight:
+    desc: Require a non-WSL Linux runner with netem, Docker, containerlab, and kernel WireGuard
+    cmds:
+      - ./reference/linux/preflight.sh
+
+  reference:linux:netem:
+    desc: Prove deterministic packet loss plus delay/reorder on the reference Linux kernel
+    cmds:
+      - ./reference/linux/netem-smoke.sh
+
+  reference:linux:containerlab:
+    desc: Prove a real two-node Linux containerlab data topology
+    cmds:
+      - ./reference/linux/containerlab-smoke.sh
+
+  reference:linux:wireguard-kernel:
+    desc: Prove kernel-WireGuard creation, failure, and recovery
+    cmds:
+      - ./reference/linux/wireguard-kernel-smoke.sh
+
+  reference:linux:wireguard-userspace:
+    desc: Prove the pinned wireguard-go implementation directly as userspace TUN/UAPI, including failure and recovery
+    cmds:
+      - ./reference/linux/wireguard-userspace-smoke.sh
+
+  reference:linux:wireguard-differential:
+    desc: Prove kernel WireGuard and pinned wireguard-go as distinct implementations on one standard-Linux runner
+    cmds:
+      - task: capability:wireguard:materialize
+      - task: reference:linux:wireguard-kernel
+      - task: reference:linux:wireguard-userspace
+
+  reference:linux:accept:
+    desc: Close the external-fidelity gates on an explicitly provisioned standard-Linux reference runner
+    cmds:
+      - task: reference:linux:preflight
+      - task: reference:linux:netem
+      - task: reference:linux:containerlab
+      - task: reference:linux:wireguard-differential

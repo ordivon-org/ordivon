@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { buildMechanismRelationshipGraphFromSources } from "../src/mechanism-relationship-graph.ts";
+import { queryMechanismRelationships } from "../scripts/mechanism-relationship-query.ts";
 
-const library = JSON.parse(readFileSync(new URL("../knowledge/game_mechanism_experience_library_r1.json", import.meta.url), "utf8")) as any;
-const graph = JSON.parse(readFileSync(new URL("../knowledge/game_mechanism_relationship_graph_r1.json", import.meta.url), "utf8")) as any;
-const spec = JSON.parse(readFileSync(new URL("../knowledge/game_mechanism_relationship_spec_r1.json", import.meta.url), "utf8")) as any;
+const libraryRaw = readFileSync(new URL("../knowledge/game_mechanism_experience_library_r1.json", import.meta.url), "utf8");
+const specRaw = readFileSync(new URL("../knowledge/game_mechanism_relationship_spec_r1.json", import.meta.url), "utf8");
+const library = JSON.parse(libraryRaw) as any;
+const spec = JSON.parse(specRaw) as any;
+const graph = buildMechanismRelationshipGraphFromSources({ raw: libraryRaw, value: library }, { raw: specRaw, value: spec });
 const doc = readFileSync(new URL("../docs/mechanism-relationship-graph-r1.md", import.meta.url), "utf8");
 
 const unique = (items: string[]) => new Set(items).size === items.length;
@@ -98,15 +102,18 @@ test("human guide explains co-occurrence, facet and conditionality without turni
 });
 
 
-test("generated relationship graph exactly rebuilds from spec plus Experience Library", async () => {
-  const { buildMechanismRelationshipGraph } = await import("../scripts/build-mechanism-relationship-graph.ts");
-  assert.deepEqual(buildMechanismRelationshipGraph(), graph);
+test("on-demand CLI consumes the source-derived relationship graph", () => {
+  for (const [type, items] of Object.entries({
+    mechanisms: graph.mechanismNodes, edges: graph.withinExperienceEdges,
+    facets: graph.retrievalFacets, conditionalities: graph.conditionalities,
+  })) {
+    const result = queryMechanismRelationships({ type: type as "mechanisms" | "edges" | "facets" | "conditionalities", limit: 200 });
+    assert.equal(result.totalMatched, (items as any[]).length);
+    assert.deepEqual(result.items, (items as any[]).slice(0, 200));
+  }
 });
 
 test("pure relationship projection takes source bytes without filesystem or CLI access", async () => {
-  const { buildMechanismRelationshipGraphFromSources } = await import("../src/mechanism-relationship-graph.ts");
-  const libraryRaw = readFileSync(new URL("../knowledge/game_mechanism_experience_library_r1.json", import.meta.url), "utf8");
-  const specRaw = readFileSync(new URL("../knowledge/game_mechanism_relationship_spec_r1.json", import.meta.url), "utf8");
   assert.deepEqual(
     buildMechanismRelationshipGraphFromSources(
       { raw: libraryRaw, value: JSON.parse(libraryRaw) },
@@ -136,10 +143,10 @@ test("derived relationship graph is linked from owner-native LEGO registration",
   for (const path of [
     "docs/mechanism-relationship-graph-r1.md",
     "knowledge/game_mechanism_relationship_spec_r1.json",
-    "knowledge/game_mechanism_relationship_graph_r1.json",
-    "scripts/build-mechanism-relationship-graph.ts",
+    "src/mechanism-relationship-graph.ts",
+    "knowledge/game_mechanism_experience_library_r1.json",
     "scripts/mechanism-relationship-query.ts",
   ]) assert.match(project, new RegExp(path.replaceAll("/", "\\/")));
-  assert.ok(node.evidence.includes("knowledge/game_mechanism_relationship_graph_r1.json"));
+  assert.ok(node.evidence.includes("src/mechanism-relationship-graph.ts"));
   assert.match(node.behavioralContract, /never a closed game ontology/i);
 });

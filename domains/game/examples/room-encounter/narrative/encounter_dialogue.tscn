@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+[ext_resource type="Script" path="res://narrative/encounter_dialogue.gd" id="1_adapter"]
+[ext_resource type="Script" path="res://narrative/gate_state.gd" id="2_gate"]
+[node name="GateDialogue" type="VBoxContainer"]
+visible = false
+offset_top = 260.0
+offset_right = 780.0
+offset_bottom = 430.0
+theme_override_constants/separation = 9
+script = ExtResource("1_adapter")
+[node name="GameState" type="Node" parent="."]
+script = ExtResource("2_gate")
+[node name="Line" type="Label" parent="."]
+layout_mode = 2
+text = "..."
+[node name="Status" type="Label" parent="."]
+layout_mode = 2
+text = "No gate"
+[node name="Choices" type="HBoxContainer" parent="."]
+layout_mode = 2

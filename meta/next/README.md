@@ -52,7 +52,6 @@ meta/next/
 ├── scripts/         # remaining native commands/validators pending natural-owner move
 ├── experiments/     # bounded, source-qualified experiments and their history
 ├── evidence/        # dated observations; not runtime configuration
-├── planning/        # current/disposable task-specific plans
 └── docs/            # remaining explanatory/reference documentation
 ```
 
