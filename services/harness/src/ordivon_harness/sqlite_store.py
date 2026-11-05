@@ -31,6 +31,8 @@ from .store import (
     HarnessRunProjection,
     HarnessRunStatus,
     StoredHarnessObject,
+    harness_run_status_after_event,
+    validate_harness_event_identity,
 )
 
 _SCHEMA_VERSION = 1
@@ -428,7 +430,7 @@ class SQLiteHarnessStore:
 
         prepared: list[tuple[HarnessEventWrite, StoredHarnessObject]] = []
         for event in events:
-            self._validate_event_identity(event.event_id)
+            validate_harness_event_identity(event.event_id)
             if (
                 event.event_kind not in HARNESS_STORE_EVENT_KINDS
                 or event.event_kind == "harness.run-created"
@@ -525,7 +527,7 @@ class SQLiteHarnessStore:
                             "Harness caused-by Event is absent, later in the batch, "
                             "or belongs to another Run"
                         )
-                status = self._status_after(event.event_kind, status)
+                status = harness_run_status_after_event(event.event_kind, status)
                 if status.terminal:
                     terminal_event_id = event.event_id
                     if index != len(prepared) - 1:
@@ -837,7 +839,7 @@ class SQLiteHarnessStore:
                     f"Harness Run Event time regressed: {harness_run_id}"
                 )
             previous_time = event.recorded_at_ms
-            status = self._status_after(event.event_kind, status)
+            status = harness_run_status_after_event(event.event_kind, status)
             if terminal_event_id is not None:
                 raise HarnessJournalCorruption(
                     f"Harness Run has Events after terminal state: {harness_run_id}"
@@ -1018,36 +1020,6 @@ class SQLiteHarnessStore:
             raise HarnessJournalCorruption(
                 f"Harness Run projection is invalid: {harness_run_id}"
             ) from error
-
-    @staticmethod
-    def _status_after(
-        event_kind: str, current_status: HarnessRunStatus | None = None
-    ) -> HarnessRunStatus:
-        if event_kind == "harness.run-created":
-            return HarnessRunStatus.CREATED
-        if event_kind == "harness.run-paused":
-            return HarnessRunStatus.PAUSED
-        if event_kind == "harness.run-stopped":
-            return HarnessRunStatus.STOPPED
-        if event_kind == "harness.run-completed":
-            return HarnessRunStatus.COMPLETED
-        if event_kind == "harness.run-failed":
-            return HarnessRunStatus.FAILED
-        if event_kind == "harness.trace-recorded":
-            if current_status is None:
-                raise ValueError("status-preserving Harness Event requires current status")
-            return current_status
-        return HarnessRunStatus.ACTIVE
-
-    @staticmethod
-    def _validate_event_identity(event_id: str) -> None:
-        if (
-            not isinstance(event_id, str)
-            or not event_id.startswith("event:")
-            or event_id != event_id.strip()
-            or len(event_id.encode("utf-8")) > 500
-        ):
-            raise ValueError("Harness Event identity must start with event:")
 
     @contextmanager
     def _transaction(self) -> Iterator[None]:
