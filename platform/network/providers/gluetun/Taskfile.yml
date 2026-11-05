@@ -5,15 +5,23 @@ tasks:
     desc: Validate existing Quadlet-owned single-session provider and recovery lifecycle without effects
     cmds:
       - bash -n providers/gluetun/identity-exclusive.sh
+      - python3 -c 'import ast; ast.parse(open("providers/gluetun/native_profile.py").read())'
+      - grep -q '^Environment=WIREGUARD_PRIVATE_KEY_SECRETFILE=/run/secrets/surfshark-wgkey$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
       - sing-box check -c providers/gluetun/config/carrier-adapter.json
       - systemd-analyze verify providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.service providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer
-      - grep -q '^EnvironmentFile=/etc/network-v2/gluetun/serialized-candidate.env$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
-      - grep -q '^Volume=/etc/network-v2/browserless/nv2blwg.conf:/gluetun/wireguard/wg0.conf:ro$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
+      - grep -q '^EnvironmentFile=/etc/network-v2/gluetun/serialized-native.env$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
+      - grep -q '^Secret=network-v2-gluetun-surfshark-wgkey,type=mount,target=surfshark-wgkey$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
+
+  provider:gluetun:native:prepare:
+    desc: Materialize Surfshark native inputs using Podman Secret without restarting the VPN
+    cmds:
+      - python3 providers/gluetun/native_profile.py --apply
 
   provider:gluetun:verify:
     desc: Verify deployed Gluetun SourceCut and real shared-provider HTTPS path
     deps: [provider:gluetun:validate]
     cmds:
+      - python3 providers/gluetun/native_profile.py --verify
       - cmp -s providers/gluetun/identity-exclusive.sh /usr/local/libexec/network-v2/provider-identity-exclusive
       - cmp -s providers/gluetun/config/carrier-adapter.json /etc/network-v2/browserless/provider-carrier-gluetun-candidate.json
       - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned.target /etc/systemd/system/network-v2-gluetun-owned.target
