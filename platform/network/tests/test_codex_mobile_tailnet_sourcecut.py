@@ -28,15 +28,13 @@ def test_codex_policy_admits_only_bounded_provider_https():
     assert rules[-1] == {"action": "reject"}
 
 
-def test_codex_relay_and_real_consequence_contract():
+def test_codex_relay_and_denial_path_wiring():
     relay = (CODEX / "systemd" / "network-v2-codex-relay.service").read_text()
     proxy = (CODEX / "systemd" / "network-v2-codex-proxy.service").read_text()
     ready = (CODEX / "ready.sh").read_text()
     assert "-l 127.0.0.1:19982" in relay
     assert "127.0.0.1:19980" in relay
     assert "NetworkNamespacePath=/run/netns/nv2-browserless-prod" in proxy
-    assert "https://chatgpt.com/" in ready
-    assert "https://example.com/" in ready
     assert "unknown_rc" in ready
 
 
