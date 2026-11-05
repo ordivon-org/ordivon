@@ -54,10 +54,10 @@
 |---|---|---|---|
 | H1（已完成） | Host | PR #1553 中 Schema 11 及 PostgreSQL 队列断言已经修复，经 GitHub Merge Queue 合并 | 合并提交 cb640db5613d；root-verification 和全部 CodeQL 通过 |
 | H2（已完成） | Host + Workstation | 已停止旧写入，安装不可变 Host release cb640db5613d，执行生产 Alembic 0011，启动 systemd | 安装 SHA、Schema 11、doctor=healthy、Host 与 Gateway 双消费者均通过；旧 news 表已无；无双写 |
-| H3 | Host | 复核最近清理后的 Work/Snapshot/Receipt/Message relation，追踪开放 Work 当前快照、Topic/Space/Subscription、消息游标和 Actor 引用 | 不再存在悬空结构化边；无开放 Work 消费被删除对象；执行 bounded SQL 与 doctor |
+| H3（进行中） | Host | 复核最近清理后的 Work/Snapshot/Receipt/Message relation，追踪开放 Work 当前快照、Topic/Space/Subscription、消息游标和 Actor 引用 | 不再存在悬空结构化边；无开放 Work 消费被删除对象；执行 bounded SQL 与 doctor |
 | R1（进行中） | Runtime | 获取 Linux/Windows Workspace、Job、Attempt、Artifact、Worktree/分支当前真值，合并当前 Host 开放 Work、GitHub PR、进程及已部署 SourceCut | 每个候选有 LIVE / REPLACED / HISTORICAL_ONLY / ORPHAN / UNKNOWN 明确证据 |
 | R2（进行中） | Runtime | 对无消费者 clean Workspace 用原生 close；Dirty 差量按有效性迁入自然 Owner 或删除；清理悬空 Job/Attempt/Artifact；合并 Git 分支与 worktree 管理 | 不能只看干净、年龄或独立 SHA；当前真实 PR 和运行中的 Job 不受损 |
-| D1 | Host | 终结 Work、幂等回执、失效 Topic/Space、subscription、Message Graph 的消费闭包清查与真实事务删除 | 同一事务删主体+确切关联；消息正文独立判断；PostgreSQL 原生 VACUUM ANALYZE |
+| D1（进行中） | Host | 终结 Work、幂等回执、失效 Topic/Space、subscription、Message Graph 的消费闭包清查与真实事务删除 | 同一事务删主体+确切关联；消息正文独立判断；PostgreSQL 原生 VACUUM ANALYZE |
 | D2（进行中） | Repo/Workstation | 已合并 worktree、临时 Workspace、缓存、过期 release、无消费文件和重复资料清理 | Git/Runtime/systemd/OS 原生工具，无手写删除框架 |
 
 当前观测仅作基线：Host 生产于 2026-11-06 完成 Schema 11 切换，切换后为 384 Work、44 Space、233 Topic，doctor 健康；Runtime 仍有大量 Dirty Workspace，不能沿用旧数量直接删除。历史已删除的数据不得因重新盘点而再次执行过期批处理。
@@ -68,6 +68,11 @@
 - R1/R2：通过 Runtime 原生 MCP 的完整当前摘要比较和显式消费者释放，清除 11 个无活跃消费者的旧 Workspace；当前提交仍由 Git 或自然 Owner 保存的对象不因关闭物理 Workspace 丢失业务能力。Browser 未合并 PR 与当前开放 Work 消费者仍需保留。
 - D2：已验证后移除旧 Host release 2c36b98aefa7 和 a1a0a6998906 两个无运行消费者的安装目录；约 133.5 MB 为表观文件大小，非保证的实际释放空间。首次切换时安装了 cb640db5613d；随后 PR #1559 的更新版本 b979fb0a0649 已被其他 Agent 安装并验证为 Schema 11、healthy=true。后续 current 以实时 systemd/符号链接和 doctor 为准，cb640db5613d 当前为可回退的 Schema 11 版本。
 - 计划自身已通过 GitHub PR #1558 合并至 main；当前事实更新不另建治理系统。
+- H3/D1：2026-10-03～10-16 的 28 条已无消息关系实体、无开放 Work 当前快照或近期消息消费的历史 message.relation.add 回执，已在一笔 PostgreSQL 事务中删除；未删消息正文和有效关系，Host Schema 11 doctor 仍 healthy。
+- R2：旧 Dirty Workspace ws-gpt6-pg1210-ci-symlink-regression-fix-20261101-r1 的两份文件（Rust 测试与 Cargo Kani cfg）经当前 main 等价测试上下文和 TOML 语义核验、开放 Work 核验后，通过 Runtime 原生精确摘要 compare-and-close 并显式 consumerReleased=true 移除。此前已关闭 15 个 Workspace，本轮再关闭 1 个；并发其他 Agent 清理不计入。对当时 93 个 Dirty Workspace 小规模差量扫描未发现逐文件 Git Blob 全部等价的其他可批量删除候选。
+- M4 Gateway：PR #1572（尚待 GitHub Merge Queue）提取 Research/Skills 解析至自然 Gateway Owner 的 research_resolution.py；Gateway 全量 Owner 测试和公开 API/解析摘要等价测试通过。本地整套 repo:ci 后续阶段达到 Runtime 时限，不能当作全项 PASS，仍以 GitHub 必需检查为发布依据。
+- M7 Skills：PR #1576（尚待 GitHub Merge Queue）提取 JWT/Bearer/ASGI 身份验证至 Skills Owner 的 http_auth.py，保留旧入口同一实现对象；157 项测试、51 子测试、Wheel 打包及 413 拒绝下游调用负向测试通过。合并后仍需核对实际安装 SourceCut，不以 PR 代替部署。
+- C5/P2 消费者审计：ordivon-control-plane 两个 Plugin Manifest 有原生打包工具、Harness 和仓库验证消费者，不能仅按文件少就删除。
 
 
 ### P1：核心服务与平台拆解
