@@ -1,7 +1,7 @@
 [Unit]
 Description=Network v2 X Reality exact API egress authority
-Wants=network-v2-browserless-provider-carrier.service
-After=network-v2-browserless-provider-carrier.service
+Wants=network-v2-gluetun-owned-adapter.service
+After=network-v2-gluetun-owned-adapter.service
 
 [Service]
 Type=simple
