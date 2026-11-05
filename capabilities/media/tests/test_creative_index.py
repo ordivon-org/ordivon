@@ -92,6 +92,25 @@ class CreativeIndexTests(unittest.TestCase):
         self.assertIn("work:media:runtime-introduction", nodes)
         self.assertIn("work:media:gesture-orrery", nodes)
 
+    def test_declared_output_digest_finds_source_work_without_claiming_storage(self) -> None:
+        # Real consumers need to navigate a digest to its declaring Work even
+        # when the bytes live in external CAS/R2 rather than this Git tree.
+        index = build_creative_index(ROOT)
+        examples = {
+            "7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430": "runtime-introduction",
+            "4fdf905e5e759232e48c1dc5090a7ddc34cb015e631595380d66ae010815f89a": "ordivon-book-v0",
+            "174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7": "ordivon-book-v0",
+        }
+        for digest_hex, production_id in examples.items():
+            expected_id = f"work:media:{production_id}"
+            result = query_creative_index(index, "sha256:" + digest_hex)
+            nodes = {node["id"]: node for node in result["nodes"]}
+            self.assertIn(expected_id, nodes)
+            self.assertIn("sha256:" + digest_hex, nodes[expected_id]["declaredOutputDigests"])
+            self.assertEqual(nodes[expected_id]["sourcePath"], f"productions/{production_id}/production.json")
+            # This projection binds an owner *declaration*, not blob availability.
+            self.assertEqual(result["truthRole"], "rebuildable-derived-navigation-not-source-authority")
+
     def test_zero_to_one_delivery_bridges_are_declared(self) -> None:
         bridges=json.loads((ROOT / "research/media/creative-delivery-bridges.json").read_text())
         pairs={(row["capability"],row["profileId"]) for row in bridges["relations"]}

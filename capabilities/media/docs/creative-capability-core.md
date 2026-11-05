@@ -59,6 +59,14 @@ There is deliberately no mutable `PROVEN=true` field. A caller derives standing 
 
 Physical availability remains a fresh Workstation/Runtime observation and is not frozen into this durable projection.
 
+Media Production Work nodes additionally project sorted `declaredOutputDigests`
+from their own `production.json` output declarations. This lets a caller find the
+declaring Work with a content digest even when the bytes are not in the Git
+Production tree. A match is a **declaration-level source link only**, not proof
+of CAS/R2 presence, executable consumption, independent verification, approval
+or publication. Refresh physical availability through the native Blob/Runtime
+owner and consult the exact Production source and Receipt before making claims.
+
 ## Commands
 
 ```bash
