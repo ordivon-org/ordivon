@@ -66,7 +66,7 @@
 - H1：GitHub PR #1553 合并至 main，原生 Root Verification / CodeQL 通过。
 - H2：Host 安装 release cb640db5613d667479f5bd050883fb71e23a99ee；Alembic 0011、Journal Schema 11，Host 与 Gateway 的 integrity 均 healthy。
 - R1/R2：通过 Runtime 原生 MCP 的完整当前摘要比较和显式消费者释放，清除 11 个无活跃消费者的旧 Workspace；当前提交仍由 Git 或自然 Owner 保存的对象不因关闭物理 Workspace 丢失业务能力。Browser 未合并 PR 与当前开放 Work 消费者仍需保留。
-- D2：已验证后移除旧 Host release 2c36b98aefa7 和 a1a0a6998906 两个无运行消费者的安装目录；约 133.5 MB 为表观文件大小，非保证的实际释放空间。当前只有 cb640db5613d 的 Host release 在运行。
+- D2：已验证后移除旧 Host release 2c36b98aefa7 和 a1a0a6998906 两个无运行消费者的安装目录；约 133.5 MB 为表观文件大小，非保证的实际释放空间。首次切换时安装了 cb640db5613d；随后 PR #1559 的更新版本 b979fb0a0649 已被其他 Agent 安装并验证为 Schema 11、healthy=true。后续 current 以实时 systemd/符号链接和 doctor 为准，cb640db5613d 当前为可回退的 Schema 11 版本。
 - 计划自身已通过 GitHub PR #1558 合并至 main；当前事实更新不另建治理系统。
 
 
