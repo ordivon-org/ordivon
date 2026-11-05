@@ -459,6 +459,7 @@
         "meta/next/"
       ],
       "targetPaths": [
+        "apps/",
         "packages/composition/",
         "catalogs/",
         "profiles/",
@@ -690,6 +691,42 @@
         "repo:ci"
       ],
       "wave": "S5"
+    },
+    {
+      "id": "chaoxing-app-native-owner",
+      "mode": "move",
+      "wave": "S5",
+      "owner": "chaoxing-autosign",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/experiments/chaoxing-autosign-mvp/"
+      ],
+      "targetPaths": [
+        "apps/chaoxing-autosign/"
+      ],
+      "standing": "DEPLOYED",
+      "verifyTasks": [
+        "repo:ci"
+      ],
+      "disposition": "Application implementation and README moved to native apps owner; import surface, disabled submission behavior and SQLite debt consumer remain source-qualified. No installed/runtime effect inferred."
+    },
+    {
+      "id": "chaoxing-app-native-tests",
+      "mode": "move",
+      "wave": "S5",
+      "owner": "chaoxing-autosign",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/tests/test_chaoxing_autosign_mvp.py"
+      ],
+      "targetPaths": [
+        "apps/chaoxing-autosign/tests/test_chaoxing_autosign_mvp.py"
+      ],
+      "standing": "DEPLOYED",
+      "verifyTasks": [
+        "repo:ci"
+      ],
+      "disposition": "Retained existing app behavioral test under native app owner; root repo:ci now invokes its 11 cases and SQL dialect source consumers use new path."
     }
   ],
   "openSlices": [

@@ -18,7 +18,7 @@ The default build intentionally ships with a disabled remote submit adapter. It 
 ## Demo
 
 ```bash
-PYTHONPATH=experiments/chaoxing-autosign-mvp python -m chaoxing_mvp.cli
+PYTHONPATH=apps/chaoxing-autosign python -m chaoxing_mvp.cli
 ```
 
 The demo uses an in-memory/fake provider and a temporary SQLite database.
@@ -26,5 +26,5 @@ The demo uses an in-memory/fake provider and a temporary SQLite database.
 ## Tests
 
 ```bash
-python -m unittest tests.test_chaoxing_autosign_mvp
+python -m unittest discover -s apps/chaoxing-autosign/tests -p "test_*.py"
 ```

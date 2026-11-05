@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-# The recovered MVP is intentionally an experiment-local package, so the test
-# adds that package root before importing it.
+# The application source is intentionally imported from its native app root.
 # ruff: noqa: E402
 import sys
 import tempfile
@@ -9,7 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PKG_ROOT = ROOT / "experiments" / "chaoxing-autosign-mvp"
+PKG_ROOT = ROOT
 sys.path.insert(0, str(PKG_ROOT))
 
 from chaoxing_mvp.adapters import (

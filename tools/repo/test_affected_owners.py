@@ -145,6 +145,17 @@ class AffectedOwnersTests(unittest.TestCase):
     def test_web_is_a_first_class_owner(self) -> None:
         self.assertEqual(self.tasks("apps/web/src/app.ts"), ["web:verify"])
 
+    def test_chaoxing_is_an_independent_registered_app_owner(self) -> None:
+        self.assertEqual(
+            self.tasks("apps/chaoxing-autosign/chaoxing_mvp/ledger.py"),
+            ["chaoxing:verify"],
+        )
+        MODULE.require_registered_execution_paths(
+            ["apps/chaoxing-autosign/chaoxing_mvp/ledger.py"]
+        )
+        with self.assertRaisesRegex(ValueError, "unregistered owner path"):
+            MODULE.require_registered_execution_paths(["apps/unregistered/unclaimed.py"])
+
     def test_preservation_is_a_first_class_owner(self) -> None:
         self.assertEqual(
             self.tasks("capabilities/preservation/SOURCE_BOUNDARY.json"),
