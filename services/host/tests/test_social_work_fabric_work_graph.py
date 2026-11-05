@@ -152,7 +152,10 @@ def test_work_graph_migration_has_no_legacy_task_or_board_dependency() -> None:
 
 
 def test_work_store_contract_never_claims_priority_assignment_or_effect_authority() -> None:
-    text = (ROOT / "src" / "ordivon_host_v2" / "work_store.py").read_text()
+    text = "\n".join(
+        (ROOT / "src" / "ordivon_host_v2" / name).read_text()
+        for name in ("work_store.py", "work_queries.py")
+    )
     forbidden_sql_fields = ("priority", "assignee", "winner", "vote_count", "effect_authority")
     sql_lines = [
         line.lower()
@@ -226,7 +229,6 @@ def test_work_list_limit_property_rejects_noninteger_numeric_aliases(monkeypatch
             store.list_works(limit=limit)
 
     check_noninteger()
-
 
 
 def test_unconsumed_work_relation_query_is_not_production_api() -> None:
