@@ -9,6 +9,7 @@ config_roots = [
   "tools/formal",
   "studies/experimental-episodes/episode-store",
   "packages/composition",
+  "catalogs/authorities",
   "services/runtime",
   "services/host",
   "services/harness",
@@ -110,12 +111,7 @@ tools/repo/migration/check-publication-main.sh /root/projects/ordivon
 """
 
 [tasks."authority-catalog:verify"]
-run = """
-set -euo pipefail
-python3 -m unittest discover -s catalogs/authorities/tests -p 'test_*.py'
-cd packages/composition
-uv run --locked --with check-jsonschema==0.38.0 python ../../catalogs/authorities/scripts/check_authority_catalog_r1.py
-"""
+run = "cd catalogs/authorities && mise run verify"
 
 [tasks."capability-catalog:verify"]
 run = """

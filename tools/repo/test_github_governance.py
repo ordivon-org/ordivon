@@ -993,8 +993,21 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         )
         top = tomllib.loads((ROOT / "mise.toml").read_text())
         self.assertNotIn("next:verify", top["tasks"])
-        self.assertIn("check_authority_catalog_r1.py",
-                      top["tasks"]["authority-catalog:verify"]["run"])
+        self.assertIn(
+            "cd catalogs/authorities",
+            top["tasks"]["authority-catalog:verify"]["run"],
+        )
+        authority_native = tomllib.loads(
+            (ROOT / "catalogs/authorities/mise.toml").read_text()
+        )
+        checks = authority_native["tasks"]["verify"]["run"]
+        for requirement in (
+            "uv lock --check",
+            "python -m pytest -q tests",
+            "python scripts/check_authority_catalog_r1.py",
+            "bandit -r scripts",
+        ):
+            self.assertIn(requirement, checks)
         self.assertIn("verify_reasoning_providers.py",
                       top["tasks"]["capability-catalog:verify"]["run"])
         self.assertIn("episode-store",
