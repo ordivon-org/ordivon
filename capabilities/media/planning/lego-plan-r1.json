@@ -683,9 +683,175 @@
           ]
         }
       }
+    },
+    {
+      "id": "V10",
+      "label": "CulturalReferenceObservation",
+      "kind": "capability_adapter",
+      "responsibility": "Collect bounded public official platform metadata as source-bound observations, preserving ranked winners vs contemporary/control/curated selection mechanisms and composing a replaceable non-Studio cultural snapshot.",
+      "authority": "Media observer metadata projection only; external Hacker News, Apple Music, and Guardian platforms retain source and rights/currentness authority",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/observatory_source.py",
+        "src/ordivon_studio/observatory_hacker_news.py",
+        "src/ordivon_studio/observatory_apple_music.py",
+        "src/ordivon_studio/observatory_guardian.py",
+        "src/ordivon_studio/observatory.py",
+        "src/ordivon_studio/observatory_analysis.py",
+        "src/ordivon_studio/research/guardian_article.py",
+        "tests/test_observatory.py",
+        "tests/test_rich_perception.py",
+        "research/expression/cultural-observatory.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "external platform truth, source material bytes and source currentness",
+        "generic social scraping, protected/private API access and provider credentials",
+        "universal content quality ranking or causal conclusion",
+        "Media Production state, publication, Human editorial approval or Agent model execution"
+      ],
+      "acceptance": [
+        "The three original native provider functions and seven-observation combined snapshot are byte/structure-equivalent before and after source refactoring for fixed provider responses and timestamps.",
+        "Observation acquisition mode stays metadata-reference with bytesOwned=false; winner, new-control and editor-selection labels remain distinct.",
+        "The CLI parser four help surfaces are unchanged, existing R4 Guardian article consumer imports its natural provider owner, and official Media unit suite plus wheel pass.",
+        "Provider current live access, legal acquisition and human cultural response are not inferred from source-level test equivalence."
+      ],
+      "r21": {
+        "I": {
+          "type": "BoundedCulturalProviderObservationRequest",
+          "fields": [
+            "admitted public provider surfaces and bounded section/rank limits",
+            "public official JSON responses",
+            "request timeout and observation timestamp",
+            "optional snapshot file output"
+          ],
+          "consumers": [
+            "observatory.collect_snapshot",
+            "research.guardian_article.run_guardian_article_experiment"
+          ]
+        },
+        "O": {
+          "type": "MetadataReferenceSnapshot",
+          "fields": [
+            "provider",
+            "surface",
+            "external artifact identity and title",
+            "selection basis including top-ranked/new-control/most-viewed/editors-pick/chart-ranked",
+            "signals and context",
+            "acquisition mode metadata-reference and bytesOwned=false",
+            "per-provider counts and failures",
+            "canonical snapshotDigest"
+          ],
+          "consumers": [
+            "observatory_analysis.analyze_snapshot",
+            "research.guardian_article",
+            "Media cultural observation experiments"
+          ]
+        },
+        "S": {
+          "type": "EphemeralCollectorState",
+          "fields": [
+            "bounded in-memory public JSON response and observations",
+            "per-provider failure list"
+          ],
+          "owner": "caller invocation",
+          "note": "No persistent authoritative provider record; optional snapshot file is caller-owned output"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "caller chooses admitted official public provider and explicit bounds",
+            "responses are interpreted as metadata, never full audiovisual/text ownership",
+            "time and source URLs recorded with each observation",
+            "unsupported private provider APIs remain capability-only rather than fabricated live acceptance"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "each successfully parsed observation is source-labelled with selection basis and bytesOwned=false",
+            "source output failures are explicit and do not overwrite successful observations from independent providers",
+            "snapshot canonical digest is stable for a fixed source response set and observation timestamp",
+            "CLI public command identity and options stay unchanged"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "not a universal quality/winner oracle: rankings, control sampling and editor picks remain distinct",
+            "no raw third-party media byte ownership or provider source truth is claimed",
+            "cross-provider collection errors remain representable and non-successful rather than silently promoted",
+            "cultural observations do not mutate Media Production, research trial history or publish assets"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "HTTP GET official public API JSON for configured Hacker News, Apple Music and Guardian metadata",
+            "bounded concurrent Hacker News fetch with Python ThreadPoolExecutor",
+            "optional write of caller-selected snapshot/analysis JSON"
+          ],
+          "excluded": [
+            "download media bytes or private API bypass",
+            "write provider-owned source records",
+            "post to third-party platform",
+            "publish Media content",
+            "claim audience comprehension or real-world causality"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "actual provider latency, quota, API service currentness and real-time request cost",
+          "reason": "offline native provider fixture parity does not benchmark current external API or changing usage/quota",
+          "obligation": "record exact official provider response, source timestamp and actual timings only when real admitted consumer requests them"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "public attention proxy bias, selection effects, editorial/artistic utility, actual audience consequences",
+          "reason": "provider rank/metadata and mocked source responses do not establish cross-cultural causal validity or ownership of source media bytes",
+          "obligation": "independent selection-aware human/outcome studies and source provenance when a downstream claim requires domain acceptance"
+        },
+        "prov": {
+          "type": "source_and_real_consumer_contract",
+          "sourcePaths": [
+            "src/ordivon_studio/observatory_source.py",
+            "src/ordivon_studio/observatory_hacker_news.py",
+            "src/ordivon_studio/observatory_apple_music.py",
+            "src/ordivon_studio/observatory_guardian.py",
+            "src/ordivon_studio/observatory.py",
+            "src/ordivon_studio/research/guardian_article.py"
+          ],
+          "evidence": "before/after canonical provider outputs and seven-observation snapshot digest sha256:d590f97a0c6a4fdf4d9801bf492d09059f66ed86b8dd3e36174786d37d539775; exact CLI parser parity; 212 Media owner tests run",
+          "standing": "SOURCE_AND_CONSUMER_TESTED_NOT_LIVE_PLATFORM_OR_HUMAN_OUTCOME_VERIFIED"
+        },
+        "unfold": {
+          "type": "owner_native_code",
+          "sourcePaths": [
+            "src/ordivon_studio/observatory_source.py",
+            "src/ordivon_studio/observatory_hacker_news.py",
+            "src/ordivon_studio/observatory_apple_music.py",
+            "src/ordivon_studio/observatory_guardian.py",
+            "src/ordivon_studio/observatory.py"
+          ],
+          "reusedProviders": [
+            "official Hacker News Firebase API",
+            "official Apple Music Marketing Tools RSS API",
+            "official Guardian Open Platform",
+            "Python stdlib urllib and concurrent.futures",
+            "existing observatory_contracts and observatory_analysis"
+          ]
+        }
+      }
     }
   ],
   "edges": [
+    {
+      "from": "V10",
+      "to": "V01",
+      "type": "DATA",
+      "label": "bounded external source reference and selection basis as Media observer projection, not source truth"
+    },
     {
       "from": "V01",
       "to": "V02",
@@ -733,17 +899,27 @@
     {
       "id": "VS1",
       "objective": "Pressure-test Media-owner projection paths that do not require Studio Production, preserving Studio as optional lowering.",
-      "status": "PROPOSED",
+      "status": "IMPLEMENTED",
       "nodeIds": [
         "V01",
-        "V03"
+        "V03",
+        "V10"
       ],
       "acceptance": [
-        "At least one non-Studio observer projection is produced/verified without creating unnecessary Production state."
+        "At least one non-Studio observer projection is produced/verified without creating unnecessary Production state.",
+        "Official public metadata provider outputs are equivalent and combined into a bounded non-Studio observer snapshot; Guardian R4 experimental consumer and pinned CLI paths remain live consumers."
       ],
-      "evidence": [],
+      "evidence": [
+        "src/ordivon_studio/observatory_source.py",
+        "src/ordivon_studio/observatory_hacker_news.py",
+        "src/ordivon_studio/observatory_apple_music.py",
+        "src/ordivon_studio/observatory_guardian.py",
+        "src/ordivon_studio/observatory.py",
+        "tests/test_observatory.py",
+        "tests/test_rich_perception.py"
+      ],
       "blockers": [],
-      "nextAction": "Use an existing status/tool-result representation as the first bounded case."
+      "nextAction": "Only expand live provider input or study results when a current source-bound research consumer needs them; never elevate rank to aesthetic or causal truth."
     },
     {
       "id": "VS2",

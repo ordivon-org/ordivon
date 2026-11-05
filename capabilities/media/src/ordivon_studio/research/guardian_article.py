@@ -19,8 +19,8 @@ from datetime import UTC, datetime
 from html.parser import HTMLParser
 from typing import Any
 
-from ..observatory import collect_guardian
 from ..observatory_analysis import TITLE_FEATURES, build_matched_pairs, title_features
+from ..observatory_guardian import collect_guardian
 from ..perception_profiles import _cv, _mean, _resample_profile, profile_signature
 
 RICH_ARTICLE_KIND = "ordivon.studio-rich-article-experiment"

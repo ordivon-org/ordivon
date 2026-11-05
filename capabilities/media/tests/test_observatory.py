@@ -3,15 +3,15 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from ordivon_studio.observatory import (
-    CAPABILITIES,
+from ordivon_studio.observatory_analysis import (
     analyze_snapshot,
     build_matched_pairs,
-    collect_apple_music,
-    collect_guardian,
-    collect_hacker_news,
     title_features,
 )
+from ordivon_studio.observatory_apple_music import collect_apple_music
+from ordivon_studio.observatory_guardian import collect_guardian
+from ordivon_studio.observatory_hacker_news import collect_hacker_news
+from ordivon_studio.observatory_source import CAPABILITIES
 
 
 class CulturalObservatoryTest(unittest.TestCase):
@@ -31,7 +31,7 @@ class CulturalObservatoryTest(unittest.TestCase):
             "https://hacker-news.firebaseio.com/v0/item/3.json": {"id": 3, "type": "story", "title": "Fresh control", "time": 102, "score": 1, "descendants": 0, "url": "https://example.com/c"},
             "https://hacker-news.firebaseio.com/v0/item/4.json": {"id": 4, "type": "story", "title": "Another fresh control", "time": 103, "score": 1, "descendants": 0, "url": "https://example.net/d"},
         }
-        with patch("ordivon_studio.observatory._fetch_json", side_effect=lambda url, timeout=20.0: values[url]):
+        with patch("ordivon_studio.observatory_hacker_news._fetch_json", side_effect=lambda url, timeout=20.0: values[url]):
             observations = collect_hacker_news(top_limit=2, new_limit=2)
         self.assertEqual([item["artifact"]["externalId"] for item in observations], ["1", "2", "3", "4"])
         self.assertEqual([item["selection"]["basis"] for item in observations], ["top-ranked", "top-ranked", "new-control", "new-control"])
@@ -46,7 +46,7 @@ class CulturalObservatoryTest(unittest.TestCase):
                 ]
             }
         }
-        with patch("ordivon_studio.observatory._fetch_json", return_value=document):
+        with patch("ordivon_studio.observatory_apple_music._fetch_json", return_value=document):
             observations = collect_apple_music(limit=2)
         self.assertEqual([item["selection"]["rank"] for item in observations], [1, 2])
         self.assertTrue(all(item["selection"]["basis"] == "chart-ranked" for item in observations))
@@ -63,7 +63,7 @@ class CulturalObservatoryTest(unittest.TestCase):
                 ],
             }
         }
-        with patch("ordivon_studio.observatory._fetch_json", return_value=response):
+        with patch("ordivon_studio.observatory_guardian._fetch_json", return_value=response):
             observations = collect_guardian(sections=["world"], newest_per_section=2)
         self.assertEqual([item["selection"]["basis"] for item in observations], ["most-viewed", "editors-pick", "newest-control"])
         self.assertEqual(observations[-1]["artifact"]["externalId"], "c")

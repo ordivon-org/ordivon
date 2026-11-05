@@ -57,7 +57,13 @@ A platform rank is an attention-world observation. It is not direct evidence tha
 
 ## Observation contract
 
-`src/ordivon_studio/observatory.py` emits bounded reference/metadata observations with explicit fields for:
+The orchestration entry `src/ordivon_studio/observatory.py` emits
+bounded snapshots of reference/metadata observations. The provider-specific
+acquisition owners are `observatory_hacker_news.py`,
+`observatory_apple_music.py`, and `observatory_guardian.py`;
+`observatory_source.py` defines the shared metadata-only observation shape and
+admitted provider capability descriptions, while `observatory_analysis.py`
+owns controls and noncausal analysis. These observations contain:
 
 - provider and volatile platform surface;
 - encounter form;
