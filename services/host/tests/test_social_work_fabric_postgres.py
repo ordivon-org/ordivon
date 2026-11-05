@@ -1135,7 +1135,7 @@ def test_r2_schema_indexes_and_cursor_table_exist() -> None:
         ).fetchone()[0]
         assert (
             conn.execute("SELECT schema_version FROM host_v2_schema WHERE singleton").fetchone()[0]
-            == 10
+            == 11
         )
 
 def test_work_read_rejects_postgres_modified_snapshot_payload() -> None:
