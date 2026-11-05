@@ -10,3 +10,10 @@ Acceptance is organized by network capability, not by historical round.
 - `fault/` — deterministic L4 faults
 - `topology/` — namespace/veth topology
 - `lifecycle/` — process recovery and whole-platform cold start
+
+- `egress/` — opt-in live NS2 witness: real installed config byte equality,
+  per-consumer positive/negative HTTP CONNECT observed independently on host
+  and provider namespace, bounded by time and exact provider/process PID.
+  Run `mise run behavior-live` as an eligible local Network operator.
+  No raw capture files are retained. This proves only sampled IPv4 HTTPS
+  Carrier forwarding, not all possible DNS, IPv6 or direct paths.
