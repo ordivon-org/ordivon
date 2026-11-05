@@ -3,16 +3,15 @@ from __future__ import annotations
 import hmac
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from .external_worker import (
-    ExternalPullWorkerTransport,
-    WorkerAuthError,
-    WorkerConflict,
-)
+from .external_worker_contracts import WorkerAuthError, WorkerConflict
+
+if TYPE_CHECKING:
+    from .external_worker import ExternalPullWorkerTransport
 
 
 def _json_error(message: str, status: int) -> JSONResponse:

@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 import json
 from importlib.metadata import version as package_version
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .capability_projection import project_capability_search, project_execution_capability
 from .contracts import (
@@ -18,11 +18,14 @@ from .contracts import (
     SystemDescription,
 )
 from .execution_refs import GatewayError
-from .external_worker import ExternalPullWorkerTransport
 from .owner_protocol import _configuration_error, _configured, _required_str
 from .research_routes import research_capabilities
 from .routing import CapabilityRoute
 from .upstream import OwnerToolCaller
+
+if TYPE_CHECKING:
+    from .external_worker import ExternalPullWorkerTransport
+
 
 _OWNER_ROLES = {
     "runtime.linux": "physical execution owner",

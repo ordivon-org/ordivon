@@ -8,26 +8,21 @@ import time
 import uuid
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import closing, contextmanager
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
+from .external_worker_contracts import (
+    ExternalOperation,
+    WorkerAuthError,
+    WorkerConflict,
+)
+from .external_worker_contracts import (
+    WorkerError as WorkerError,
+)
 from .worker_signatures import parse_signed_worker_headers, verify_worker_signature
-
-
-class WorkerError(RuntimeError):
-    pass
-
-
-class WorkerAuthError(WorkerError):
-    pass
-
-
-class WorkerConflict(WorkerError):
-    pass
 
 
 def require_qualified_legacy_sqlite() -> None:
@@ -37,20 +32,6 @@ def require_qualified_legacy_sqlite() -> None:
             "legacy external worker requires SQLite 3.54.0 until its "
             "PG consumer cutover is independently qualified"
         )
-
-
-@dataclass(frozen=True)
-class ExternalOperation:
-    operation_id: str
-    capability: str
-    request_id: str
-    state: str
-    terminal: bool
-    desired_state: str
-    exit_code: int | None
-    artifact_ids: list[str]
-    # Existing durable admitted parcel: owner-observed Workspace or UNKNOWN.
-    workspace_id: str | None = None
 
 
 def _canonical_json(value: Any) -> str:
