@@ -52,15 +52,23 @@
 
 | WP | 所属 | 操作顺序 | 完成条件 / 下一节点 |
 |---|---|---|---|
-| H1（进行中） | Host | 修复 PR #1553 的 Schema 11 PostgreSQL 队列断言，完整 CI / GitHub Merge Queue 收敛 | 修复提交 64282d3f0726 已推送；仅以 PR 已合并为 SOURCE 成功 |
-| H2（依赖 H1） | Host + Workstation | 生产 Host Schema 10 → 11：校验当前二进制、Git SHA、Alembic 0010；停止旧写入；部署不可变新 release；执行原生 Alembic 0011；切换 current；启动 systemd；验证 Host doctor 与真实客户端 | 安装 SHA 与已合并源相符；Alembic 0011；journalSchema=11；healthy=true；网关/消费者可用；无需双写和旧新闻表 |
+| H1（已完成） | Host | PR #1553 中 Schema 11 及 PostgreSQL 队列断言已经修复，经 GitHub Merge Queue 合并 | 合并提交 cb640db5613d；root-verification 和全部 CodeQL 通过 |
+| H2（已完成） | Host + Workstation | 已停止旧写入，安装不可变 Host release cb640db5613d，执行生产 Alembic 0011，启动 systemd | 安装 SHA、Schema 11、doctor=healthy、Host 与 Gateway 双消费者均通过；旧 news 表已无；无双写 |
 | H3 | Host | 复核最近清理后的 Work/Snapshot/Receipt/Message relation，追踪开放 Work 当前快照、Topic/Space/Subscription、消息游标和 Actor 引用 | 不再存在悬空结构化边；无开放 Work 消费被删除对象；执行 bounded SQL 与 doctor |
-| R1 | Runtime | 获取 Linux/Windows Workspace、Job、Attempt、Artifact、Worktree/分支当前真值，合并当前 Host 开放 Work、GitHub PR、进程及已部署 SourceCut | 每个候选有 LIVE / REPLACED / HISTORICAL_ONLY / ORPHAN / UNKNOWN 明确证据 |
-| R2（依赖 R1） | Runtime | 对无消费者 clean Workspace 用原生 close；Dirty 差量按有效性迁入自然 Owner 或删除；清理悬空 Job/Attempt/Artifact；合并 Git 分支与 worktree 管理 | 不能只看干净、年龄或独立 SHA；当前真实 PR 和运行中的 Job 不受损 |
+| R1（进行中） | Runtime | 获取 Linux/Windows Workspace、Job、Attempt、Artifact、Worktree/分支当前真值，合并当前 Host 开放 Work、GitHub PR、进程及已部署 SourceCut | 每个候选有 LIVE / REPLACED / HISTORICAL_ONLY / ORPHAN / UNKNOWN 明确证据 |
+| R2（进行中） | Runtime | 对无消费者 clean Workspace 用原生 close；Dirty 差量按有效性迁入自然 Owner 或删除；清理悬空 Job/Attempt/Artifact；合并 Git 分支与 worktree 管理 | 不能只看干净、年龄或独立 SHA；当前真实 PR 和运行中的 Job 不受损 |
 | D1 | Host | 终结 Work、幂等回执、失效 Topic/Space、subscription、Message Graph 的消费闭包清查与真实事务删除 | 同一事务删主体+确切关联；消息正文独立判断；PostgreSQL 原生 VACUUM ANALYZE |
-| D2 | Repo/Workstation | 已合并 worktree、临时 Workspace、缓存、过期 release、无消费文件和重复资料清理 | Git/Runtime/systemd/OS 原生工具，无手写删除框架 |
+| D2（进行中） | Repo/Workstation | 已合并 worktree、临时 Workspace、缓存、过期 release、无消费文件和重复资料清理 | Git/Runtime/systemd/OS 原生工具，无手写删除框架 |
 
-当前观测仅作基线：Host 最近约 392 个 Work、44 个 Space、233 个 Topic，Schema 10 且 doctor 健康；Runtime 历史有大量 Dirty Workspace，不能沿用旧数量直接删除。历史已删除的数据不得因重新盘点而再次执行过期批处理。
+当前观测仅作基线：Host 生产于 2026-11-06 完成 Schema 11 切换，切换后为 384 Work、44 Space、233 Topic，doctor 健康；Runtime 仍有大量 Dirty Workspace，不能沿用旧数量直接删除。历史已删除的数据不得因重新盘点而再次执行过期批处理。
+
+**2026-11-06 已实现的执行证据：**
+- H1：GitHub PR #1553 合并至 main，原生 Root Verification / CodeQL 通过。
+- H2：Host 安装 release cb640db5613d667479f5bd050883fb71e23a99ee；Alembic 0011、Journal Schema 11，Host 与 Gateway 的 integrity 均 healthy。
+- R1/R2：通过 Runtime 原生 MCP 的完整当前摘要比较和显式消费者释放，清除 11 个无活跃消费者的旧 Workspace；当前提交仍由 Git 或自然 Owner 保存的对象不因关闭物理 Workspace 丢失业务能力。Browser 未合并 PR 与当前开放 Work 消费者仍需保留。
+- D2：已验证后移除旧 Host release 2c36b98aefa7 和 a1a0a6998906 两个无运行消费者的安装目录；约 133.5 MB 为表观文件大小，非保证的实际释放空间。当前只有 cb640db5613d 的 Host release 在运行。
+- 计划自身已通过 GitHub PR #1558 合并至 main；当前事实更新不另建治理系统。
+
 
 ### P1：核心服务与平台拆解
 
