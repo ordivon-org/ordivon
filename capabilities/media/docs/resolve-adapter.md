@@ -6,6 +6,16 @@ The Resolve adapter is a DaVinci Resolve-specific bridge inside Ordivon Studio. 
 
 Studio owns cross-tool production facts. The adapter compiles one bounded Resolve operation, installs one internal menu script, and reads one structured result. Resolve remains the editable editorial, color, Fusion, and Fairlight master.
 
+The source responsibilities are explicit: `resolve_discovery.py` reads native
+PowerShell/WSL and FFprobe observations without installing or editing anything;
+`resolve_contracts.py` checks operation identity and Result shape without
+calling Resolve or acquiring provider state; `resolve_adapter.py` owns operation
+preparation, Runner installation and result readback. `resolve_editorial.py`
+uses existing OpenTimelineIO adapters and exact source-byte bindings. The copied
+`resolve_runner_menu.py` remains one self-contained Python file because Resolve
+runs it from the internal Scripts menu. Never split that deployment file into
+imports that cannot be resolved in the embedded interpreter.
+
 The first operation is deliberately read-only:
 
 ```text
