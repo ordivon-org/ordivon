@@ -54,6 +54,14 @@ creative-alpha, grounded-meaning and article/foundational studies live in
 `ordivon_studio.research`. Research scripts import that subpackage directly;
 there are no redundant compatibility shims or separate research truth store.
 
+Equipment follows a three-stage, source-readable contract:
+`equipment_discovery.py` observes physical Workstation/tool candidates;
+`equipment_capabilities.py` projects selectable actions and verification;
+`equipment_plan.py` compiles exact native-tool arguments without execution.
+`equipment.py` remains the stable Studio/Agent entry point. Selection, planning,
+process execution (Runtime), and output acceptance (the source/Artifact owner)
+are **distinct**; no new equipment engine or parallel asset authority is admitted.
+
 Resolve-private editorial interchange and selected-asset binding live in
 `ordivon_studio.resolve_editorial`. The existing `resolve_adapter` remains
 the Windows/operation bridge and the embedded Resolve Runner remains one
