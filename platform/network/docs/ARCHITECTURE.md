@@ -64,7 +64,6 @@ acceptance/             generic capability acceptance
 capabilities/           optional reusable mechanisms
 providers/              provider-specific profiles and evidence
 consumers/              consumer-specific network policy and shadow migration
-history/                prior round/evolution evidence
 ```
 
 The generic core must not import provider- or consumer-specific configuration.

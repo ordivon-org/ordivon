@@ -43,7 +43,7 @@ def test_chat_ingress_units_relay_only_to_namespace_local_proxy_and_do_not_chang
 
 
 def test_chat_ingress_has_standard_network_v2_lifecycle_tasks_and_readiness():
-    taskfile = (ROOT / 'Taskfile.yml').read_text()
+    taskfile = (CONSUMER / 'Taskfile.yml').read_text()
     for task in (
         'consumer:chat-ingress:validate:',
         'consumer:chat-ingress:materialize:',

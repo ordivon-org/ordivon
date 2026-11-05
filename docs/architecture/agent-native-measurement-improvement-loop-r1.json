@@ -12,7 +12,7 @@
     "docs/architecture/EVIDENCE_BOUNDARY_CENSUS_R1.md",
     "docs/architecture/LEARNING_DATA_OWNERSHIP_CENSUS_R1.md",
     "docs/architecture/experimental-episode-r1.md",
-    "meta/next/docs/DATA_PRODUCT_CONSUMPTION_FEEDBACK_R1.md",
+    "docs/architecture/DATA_PRODUCT_CONSUMPTION_FEEDBACK_R1.md",
     "services/runtime/formal/README.md",
     "capabilities/artifact/docs/ARTIFACT_VERIFICATION_SERVICE_R1.md"
   ],

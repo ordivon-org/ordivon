@@ -33,6 +33,8 @@ func run_native_audio_consumer() -> void:
     right.pressed = true
     right.physical_keycode = KEY_RIGHT
     Input.parse_input_event(right)
+    # The native input buffer may not dispatch before process_frame in headless CI.
+    Input.flush_buffered_events()
     await process_frame
     expect(rules.snapshot()["turn"] == 1, "physical RIGHT key traverses native input dispatch to game rules")
     expect(feedback.observed_play_count == 1, "actual rule state signal triggers native audio")

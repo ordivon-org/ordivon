@@ -218,9 +218,10 @@ def compile_projection(repo: Path, cut: str) -> dict:
             continue
         old=mapping["sourcePaths"][0]
         seeds=[z for z in zones if z.get("sourcePrefix")==old]
-        if not seeds and mapping.get("standing")=="PARTIALLY_DEPLOYED":
-            # Retained source and relocated studies share the old lexical zone;
-            # this is source placement, never semantic or Owner admission.
+        if not seeds:
+            # A split can outlive its original source directory after retirement.
+            # Reuse the nearest seeded parent for both partial and fully deployed
+            # placements: lexical classification is not Owner admission.
             parents=[z for z in zones if z.get("sourcePrefix")
                      and old.startswith(z["sourcePrefix"])]
             if parents:

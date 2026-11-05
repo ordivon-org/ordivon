@@ -12,7 +12,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from ordivon_studio.foundational_media import (  # noqa: E402
+from ordivon_studio.research.foundational_media import (  # noqa: E402
     M7_EVIDENCE_KIND,
     ProfileArm,
     RegisteredCase,

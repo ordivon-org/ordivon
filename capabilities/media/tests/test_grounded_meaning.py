@@ -4,14 +4,14 @@ import json
 import unittest
 from pathlib import Path
 
-from ordivon_studio.grounded_meaning import (
+from ordivon_studio.research.grounded_meaning import (
     build_provider_bundle,
     canonical_digest,
     narration_evidence,
     parse_runtime_scenes,
     validate_grounded_result,
 )
-from ordivon_studio.grounded_scoring import score_provider_receipt
+from ordivon_studio.research.grounded_scoring import score_provider_receipt
 
 ROOT = Path(__file__).resolve().parents[1]
 

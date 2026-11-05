@@ -13,7 +13,7 @@ from uuid import uuid4
 
 import psycopg
 
-from ordivon_studio.research_validity import (
+from ordivon_studio.research.research_validity import (
     TrialLedger,
     build_null_registration,
     calibration_experiment,
@@ -223,7 +223,7 @@ class ResearchValidityTest(unittest.TestCase):
                 "candidate_id TEXT, event_type TEXT, payload_json TEXT, prev_hash TEXT,"
                 "event_hash TEXT)"
             )
-            from ordivon_studio.grounded_meaning import canonical_digest
+            from ordivon_studio.research.grounded_meaning import canonical_digest
 
             search_id = f"experiment:legacy:{uuid4().hex}"
             prior = None
@@ -276,7 +276,7 @@ class ResearchValidityTest(unittest.TestCase):
         migrate = runpy.run_path(
             str(Path(__file__).resolve().parents[1] / "scripts" / "migrate-r6-trials.py")
         )["migrate"]
-        from ordivon_studio.grounded_meaning import canonical_digest
+        from ordivon_studio.research.grounded_meaning import canonical_digest
 
         search_id = f"experiment:rollback:{uuid4().hex}"
         with tempfile.TemporaryDirectory() as temporary:

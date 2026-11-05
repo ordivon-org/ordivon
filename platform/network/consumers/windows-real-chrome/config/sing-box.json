@@ -1,0 +1,14 @@
+{
+  "$schema": "https://sing-box.sagernet.org/schema.json",
+  "log": {"level": "warn", "timestamp": true},
+  "inbounds": [{"type": "mixed", "tag": "windows-real-chrome", "listen": "127.0.0.1", "listen_port": 19780}],
+  "outbounds": [{"type": "http", "tag": "provider-carrier", "server": "10.252.246.2", "server_port": 19680}],
+  "route": {
+    "rules": [
+      {"domain_regex": ["(?i)(^|\\.)localhost(?:\\.localdomain)?\\.?$", "(?i)(^|\\.)internal\\.?$", "(?i)^127(?:\\.[0-9]{1,3}){1,3}\\.?$", "(?i)^0x[0-9a-f]+\\.?$", "^[0-9]{7,10}\\.?$"], "action": "reject"},
+      {"ip_is_private": true, "action": "reject"},
+      {"ip_version": 6, "action": "reject"}
+    ],
+    "final": "provider-carrier"
+  }
+}
