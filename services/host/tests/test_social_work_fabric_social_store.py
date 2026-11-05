@@ -54,7 +54,6 @@ def test_topic_resume_is_bounded_and_cursor_based() -> None:
     assert '"nextAfterSequence"' in resume
 
 
-
 def test_causal_reply_pure_decision_covers_signed_bigint_edges() -> None:
     """The native Host consumer uses the same signed-order pure decision."""
     from ordivon_host_v2.social_store import _reply_target_precedes_source
@@ -70,7 +69,6 @@ def test_causal_reply_pure_decision_covers_signed_bigint_edges() -> None:
         (upper, upper, False),
     ):
         assert _reply_target_precedes_source(src, dst) is expected
-
 
 
 def test_reply_symbolic_contract_is_bound_to_actual_host_consumer() -> None:
@@ -92,7 +90,11 @@ def test_reply_symbolic_contract_is_bound_to_actual_host_consumer() -> None:
     assert declared == normative_post
 
     source = ast.parse(STORE.read_text())
-    owner = next(node for node in source.body if isinstance(node, ast.ClassDef) and node.name == "SocialStore")
+    owner = next(
+        node
+        for node in source.body
+        if isinstance(node, ast.ClassDef) and node.name == "SocialStore"
+    )
     validator = next(
         node
         for node in owner.body
@@ -123,12 +125,14 @@ def test_message_sequence_follows_same_topic_commit_visibility() -> None:
     This is a source-level guard, not a live multi-transaction proof.
     """
     text = STORE.read_text()
-    post = text.split('    def post_message', 1)[1].split('    def add_message_relation', 1)[0]
-    assert 'self._require_topic(conn, value.topic_ref, for_no_key_update=True)' in post
-    helper = text.split('    def _require_topic(', 1)[1].split('    def _require_message(', 1)[0]
-    assert 'FOR NO KEY UPDATE' in helper
+    post = text.split("    def post_message", 1)[1].split("    def add_message_relation", 1)[0]
+    assert "self._require_topic(conn, value.topic_ref, for_no_key_update=True)" in post
+    helper = text.split("    def _require_topic(", 1)[1].split(
+        "    def _validate_relation_target(", 1
+    )[0]
+    assert "FOR NO KEY UPDATE" in helper
     # This lock mode does not conflict with FK KEY SHARE on topics.
-    assert 'FOR UPDATE' not in helper
+    assert "FOR UPDATE" not in helper
 
 
 def test_two_writer_committed_prefix_interleaving_exhaustive() -> None:

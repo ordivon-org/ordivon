@@ -5,7 +5,7 @@ from typing import Any
 import psycopg
 from psycopg.rows import dict_row
 
-from .canonical_json import canonical_bytes, canonical_digest
+from .canonical_json import canonical_digest
 from .collaboration_inputs import (
     MessageInput,
     MessageRelationInput,
@@ -13,11 +13,6 @@ from .collaboration_inputs import (
     ParticipationStanding,
     SpaceInput,
     TopicInput,
-)
-from .collection_pagination import (
-    DEFAULT_SPACE_MAX_BYTES,
-    MIN_SPACE_MAX_BYTES,
-    validate_max_bytes,
 )
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .coordination_inputs import CoordinationIntentInput, IntentStanding
@@ -423,31 +418,6 @@ class SocialStore(SocialReadQueries):
             )
             return result
 
-    def get_topic_cursor(self, *, actor_ref: str, topic_ref: str) -> dict[str, Any]:
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
-            conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            self._require_actor(conn, actor_ref)
-            self._require_topic(conn, topic_ref)
-            row = conn.execute(
-                "SELECT cursor FROM topic_consumption_cursors WHERE actor_ref=%s AND topic_ref=%s",
-                (actor_ref, topic_ref),
-            ).fetchone()
-            high = int(
-                conn.execute(
-                    "SELECT COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=%s",
-                    (topic_ref,),
-                ).fetchone()["high"]
-            )
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-topic-cursor",
-                "actorRef": actor_ref,
-                "topicRef": topic_ref,
-                "cursor": 0 if row is None else int(row["cursor"]),
-                "topicHighSequence": high,
-                "truthBoundary": "topic navigation cursor only; not evidence of semantic acceptance",
-            }
-
     def ack_topic_cursor(
         self,
         *,
@@ -512,104 +482,6 @@ class SocialStore(SocialReadQueries):
             )
             return result
 
-    def _get_space_in_tx(
-        self,
-        conn: psycopg.Connection[dict[str, Any]],
-        space_ref: str,
-        *,
-        participant_limit: int = 200,
-        topic_limit: int = 200,
-        max_bytes: int = DEFAULT_SPACE_MAX_BYTES,
-    ) -> dict[str, Any]:
-        validate_max_bytes(max_bytes, minimum=MIN_SPACE_MAX_BYTES)
-        space = conn.execute(
-            "SELECT space_ref,purpose,created_by_actor_ref,created_at FROM spaces WHERE space_ref=%s",
-            (space_ref,),
-        ).fetchone()
-        if space is None:
-            raise SpaceNotFound(space_ref)
-        subject_count = int(
-            conn.execute(
-                "SELECT count(*) AS n FROM space_subjects WHERE space_ref=%s", (space_ref,)
-            ).fetchone()["n"]
-        )
-        participant_count = int(
-            conn.execute(
-                "SELECT count(*) AS n FROM participations WHERE space_ref=%s", (space_ref,)
-            ).fetchone()["n"]
-        )
-        topic_count = int(
-            conn.execute(
-                "SELECT count(*) AS n FROM topics WHERE space_ref=%s", (space_ref,)
-            ).fetchone()["n"]
-        )
-        subject_rows = conn.execute(
-            "SELECT subject_ref FROM space_subjects WHERE space_ref=%s ORDER BY subject_ref LIMIT 129",
-            (space_ref,),
-        ).fetchall()
-        participant_rows = conn.execute(
-            "SELECT actor_ref,standing,updated_at FROM participations WHERE space_ref=%s ORDER BY actor_ref LIMIT %s",
-            (space_ref, participant_limit + 1),
-        ).fetchall()
-        topic_rows = conn.execute(
-            "SELECT topic_ref,title,state,created_by_actor_ref,created_at,updated_at FROM topics "
-            "WHERE space_ref=%s ORDER BY topic_ref LIMIT %s",
-            (space_ref, topic_limit + 1),
-        ).fetchall()
-        subjects = [row["subject_ref"] for row in subject_rows[:128]]
-        participants = [
-            {
-                "actorRef": row["actor_ref"],
-                "standing": row["standing"],
-                "updatedAt": row["updated_at"].isoformat(),
-            }
-            for row in participant_rows[:participant_limit]
-        ]
-        topics = [
-            {
-                "topicRef": row["topic_ref"],
-                "title": row["title"],
-                "state": row["state"],
-                "createdByActorRef": row["created_by_actor_ref"],
-                "createdAt": row["created_at"].isoformat(),
-                "updatedAt": row["updated_at"].isoformat(),
-            }
-            for row in topic_rows[:topic_limit]
-        ]
-
-        def build() -> dict[str, Any]:
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-space",
-                "spaceRef": space["space_ref"],
-                "purpose": space["purpose"],
-                "createdByActorRef": space["created_by_actor_ref"],
-                "createdAt": space["created_at"].isoformat(),
-                "subjectRefs": subjects,
-                "subjectCount": subject_count,
-                "subjectHasMore": len(subjects) < subject_count,
-                "participants": participants,
-                "participantCount": participant_count,
-                "participantHasMore": len(participants) < participant_count,
-                "topics": topics,
-                "topicCount": topic_count,
-                "topicHasMore": len(topics) < topic_count,
-                "truthBoundary": "social organization record only; participation does not imply identity, authority, ownership, or assignment",
-            }
-
-        result = build()
-        while len(canonical_bytes(result)) > max_bytes:
-            if topics:
-                topics.pop()
-            elif participants:
-                participants.pop()
-            elif subjects:
-                subjects.pop()
-            else:
-                raise ValueError("max_bytes cannot fit the Space response envelope")
-            result = build()
-        return result
-
     @staticmethod
     def _require_actor(conn: psycopg.Connection[dict[str, Any]], actor_ref: str) -> None:
         if (
@@ -639,19 +511,6 @@ class SocialStore(SocialReadQueries):
         ).fetchone()
         if row is None:
             raise TopicNotFound(topic_ref)
-        return row
-
-    @staticmethod
-    def _require_message(
-        conn: psycopg.Connection[dict[str, Any]], message_ref: str
-    ) -> dict[str, Any]:
-        row = conn.execute(
-            "SELECT message_ref,sequence,space_ref,topic_ref,author_actor_ref "
-            "FROM messages WHERE message_ref=%s",
-            (message_ref,),
-        ).fetchone()
-        if row is None:
-            raise MessageNotFound(message_ref)
         return row
 
     def _validate_relation_target(
