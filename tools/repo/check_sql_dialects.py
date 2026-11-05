@@ -65,7 +65,6 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     'services/runtime/scripts/postgres_registry_stage.py': 1,
     # Retired Host v1 historical read/projection tools, not current Host v2 state.
     'platform/workstation/scripts/host_historical_projection.py': 2,
-    'platform/workstation/scripts/host_retirement_snapshot.py': 3,
     # Experimental stand-alone local sources, not admitted production PG state.
     'services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py': 1,
     'apps/chaoxing-autosign/chaoxing_mvp/ledger.py': 1,

@@ -80,7 +80,6 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
             "capabilities/media/scripts/migrate-r6-trials.py",
             "platform/workstation/scripts/host_historical_projection.py",
-            "platform/workstation/scripts/host_retirement_snapshot.py",
             "services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py",
             "apps/chaoxing-autosign/chaoxing_mvp/ledger.py",
         ):
