@@ -20,7 +20,7 @@
     "note": "shared carrier liveness is necessary but destination consequence remains authoritative"
   },
   "providers": [
-    "network-v2-browserless/provider-b"
+    "network-v2-gluetun-owned"
   ],
   "selectionPolicy": "fixed-shared-provider-carrier",
   "healthAuthority": "consumer-consequence-readiness",
@@ -31,9 +31,8 @@
   "groupTag": "provider-carrier",
   "networkAuthority": {
     "kind": "network-v2",
-    "name": "browserless-prod",
+    "name": "provider-egress",
     "namespace": "nv2-browserless-prod",
-    "carrierService": "network-v2-browserless-provider-carrier.service",
-    "providerSite": "th-bkk"
+    "carrierService": "network-v2-gluetun-owned-adapter.service"
   }
 }
