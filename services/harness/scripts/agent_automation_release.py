@@ -25,8 +25,11 @@ CURRENT = Path("/opt/ordivon/agent-automation/current")
 TEMPORAL = Path("/opt/ordivon/external/temporal-cli/1.8.3/temporal")
 TEMPORAL_ADDRESS = "127.0.0.1:17233"
 MCP_PY = Path("/root/.local/share/ordivon-workstation/agent-automation-mcp-v1/.venv/bin/python")
+# Consume the release-owned Temporal worker interpreter, not the retired
+# standalone .venv. This path must match the native worker source unit and
+# temporal_agent_automation_deploy.VENV_PY; the source test enforces that seam.
 WORKER_PY = Path(
-    "/root/.local/share/ordivon-workstation/temporal-agent-automation/.venv/bin/python"
+    "/root/.local/share/ordivon-workstation/temporal-agent-automation/py315-sqlite354-r19-release/bin/python"
 )
 BROWSER_SECURITY_PY = Path(
     "/root/.local/share/ordivon-workstation/conversation-relay-playwright-r4/.venv/bin/python"

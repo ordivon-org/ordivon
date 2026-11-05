@@ -145,6 +145,16 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn("scripts/browser_security_browserless_canary.py", r.RELEASE_PATHS)
         self.assertIn("scripts/browserless_image_promotion.py", r.RELEASE_PATHS)
 
+    def test_worker_interpreter_contract_matches_native_owner_deployment(self):
+        # Worker importability must be checked in the same interpreter that
+        # the next immutable source unit will execute, not the retired one.
+        worker_python = str(r.WORKER_PY)
+        unit = (ROOT / "systemd/ordivon-agent-temporal-worker.service").read_text()
+        deployer = (ROOT / "scripts/temporal_agent_automation_deploy.py").read_text()
+        self.assertIn("ExecStart=" + worker_python + " ", unit)
+        self.assertIn(worker_python, deployer)
+        self.assertNotIn("/temporal-agent-automation/.venv/bin/python", worker_python)
+
     def test_worker_runtime_import_preflight_uses_exact_temporal_worker_python(self):
         with tempfile.TemporaryDirectory() as td:
             release = Path(td)
