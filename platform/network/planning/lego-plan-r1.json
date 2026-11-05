@@ -146,7 +146,10 @@
         "consumers/codex/ready.sh",
         "consumers/mobile-tailnet-exit/ready.py",
         "consumers/browserless/provider-carrier-ready.sh",
-        "Taskfile.yml"
+        "Taskfile.yml",
+        "providers/gluetun/native_profile.py",
+        "providers/gluetun/Taskfile.yml",
+        "tests/test_gluetun_native_provider.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -533,6 +536,6 @@
     "sourceRevision": "6e6e8872fde9dd31b79dd27b1cbe025d9d1e6f7d",
     "updatedAt": "2026-11-05",
     "standing": "NS1_UNCONSUMED_RETIRED_NS2_RETAINED",
-    "notes": "Observed active Network consumers (Discord, Model Provider, Windows Chrome, Codex, Mobile Exit) reattached to their source and native readiness contracts. Generic core remains provider-independent. Source/installed/consumer truth are independent. Earlier archived merge-only non-consumer allegations are superseded by the 2026-11-05 live consumer census. 2026-11-05: repaired current Gluetun-owned Browserless SourceCut drift; installed source parity plus selected-mode immutable legacy units and real origin CONNECT 200 are qualified independently. Remote iPad client use remains UNKNOWN."
+    "notes": "Observed active Network consumers (Discord, Model Provider, Windows Chrome, Codex, Mobile Exit) reattached to their source and native readiness contracts. Generic core remains provider-independent. Source/installed/consumer truth are independent. Earlier archived merge-only non-consumer allegations are superseded by the 2026-11-05 live consumer census. 2026-11-05: repaired current Gluetun-owned Browserless SourceCut drift; installed source parity plus selected-mode immutable legacy units and real origin CONNECT 200 are qualified independently. Remote iPad client use remains UNKNOWN. 2026-11-05: selected native Surfshark WireGuard via existing single Gluetun Quadlet; Podman Secret materialization replaces fixed peer endpoint. Bounded countries Singapore/Japan satisfy 12 observed Network consumer readiness checks; native broad Asia Pacific choice falsified by Claude installer redirect. This is an empirical consumer qualification, not a mathematical proof, long-duration reliability proof, or remote iOS selection proof."
   }
 }
