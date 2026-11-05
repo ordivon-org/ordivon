@@ -2380,6 +2380,7 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     parents = {"O01", "O02", "O03", "O04"}
     host_mcp_path = ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py"
     attention_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_attention_tools.py"
+    work_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_work_tools.py"
     host_registrar = ast.parse(host_mcp_path.read_text(encoding="utf-8"))
     # The source graph must prove the new registrar is actually invoked by the
     # public Host composition root; a detached decorated function is insufficient.
@@ -2400,10 +2401,27 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
         == ["mcp", "attention", "_request_id"]
         for n in ast.walk(register)
     ), "Attention tools are detached from the Host northbound registrar"
+    # WorkStore remains the single authoritative Work transaction owner. Prove
+    # its extracted registrar is imported AND invoked by the public composition.
+    assert any(
+        isinstance(n, ast.ImportFrom) and n.level == 1
+        and n.module == "mcp_work_tools"
+        and any(a.name == "register_work_tools" for a in n.names)
+        for n in host_registrar.body
+    )
+    assert any(
+        isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+        and n.func.id == "register_work_tools"
+        and [a.id if isinstance(a, ast.Name) else None for a in n.args]
+        == ["mcp", "work", "_request_id"]
+        for n in ast.walk(register)
+    ), "Work tools are detached from the Host northbound registrar"
     direct_routes = _mcp_decorated_route_functions(host_mcp_path, "mcp")
+    work_routes = _mcp_decorated_route_functions(work_mcp_path, "mcp")
     attention_routes = _mcp_decorated_route_functions(attention_mcp_path, "mcp")
-    assert not (direct_routes.keys() & attention_routes.keys())
-    actual_host = {**direct_routes, **attention_routes}
+    assert not (direct_routes.keys() & (work_routes.keys() | attention_routes.keys()))
+    assert not (work_routes.keys() & attention_routes.keys())
+    actual_host = {**direct_routes, **work_routes, **attention_routes}
     actual_gateway = _mcp_decorated_route_functions(
         ROOT / "services/gateway/src/ordivon_gateway/host_tools.py", "server",
         source_override=gateway_text)
@@ -2445,8 +2463,12 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
                                if isinstance(entry, (ast.FunctionDef, ast.AsyncFunctionDef))}
                 assert symbol in definitions, f"missing current test {identity} {witness}"
     for identity, routes in expected.items():
-        source = attention_routes if identity == "O03" else direct_routes
-        source_name = "mcp_attention_tools:" if identity == "O03" else "social_work_mcp:"
+        source = {"O01": work_routes, "O02": direct_routes, "O03": attention_routes}[identity]
+        source_name = {
+            "O01": "mcp_work_tools:",
+            "O02": "social_work_mcp:",
+            "O03": "mcp_attention_tools:",
+        }[identity]
         declared = {x.split(":", 1)[1] for x in nodes[identity]["consumers"]
                     if x.startswith(source_name)}
         assert declared == routes
@@ -2503,7 +2525,7 @@ def test_host_parent_refinement_fails_on_lost_consumption_or_false_proof(
     gateway_text = (ROOT / "services/gateway/src/ordivon_gateway/host_tools.py").read_text()
     if mutation == "consumer":
         next(n for n in plan["nodes"] if n["id"] == "O01")["consumers"] = [
-            "social_work_mcp:work.does_not_exist"]
+            "mcp_work_tools:work.does_not_exist"]
     elif mutation == "formal":
         next(n for n in plan["nodes"] if n["id"] == "O02")["formalObligations"] = []
     elif mutation == "proof":
