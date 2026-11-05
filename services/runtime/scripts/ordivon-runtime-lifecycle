@@ -23,7 +23,7 @@ from urllib.parse import quote
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
-from mcp_probe import connect_compatible, load_bearer_token, load_environment_file
+from mcp_probe import McpToolError, connect_compatible, load_bearer_token, load_environment_file
 
 SCHEMA_VERSION = 1
 SWEEP_CONFIRMATION = "APPLY_WORKSPACE_RETENTION_POLICY"
@@ -1506,6 +1506,29 @@ def _attempt_prepared_close(
             )
         except WorkspaceCloseDeliveryUncertain as error:
             return "uncertain", error
+        except McpToolError as error:
+            # The Runtime Core, not operator retention age, owns the physical
+            # close precondition. A typed, not-committed continuation refusal
+            # is a retained Workspace, never a failed deletion or a forged
+            # consumerReleased=true assertion. Other tool errors still fail.
+            rejection = error.error
+            if (
+                error.tool_name != "workspace.close"
+                or rejection is None
+                or rejection.get("code") != "WORKSPACE_STATE_MISMATCH"
+                or rejection.get("field") != "consumerReleased"
+                or rejection.get("commitState") != "not_committed"
+            ):
+                raise
+            return "retained", {
+                "workspaceId": str(prepared_item["workspaceId"]),
+                "classification": classification,
+                "action": "workspace_retained_consumer_continuation",
+                "reason": "explicit_consumer_release_required",
+                "sourceStateDigest": expected_digest,
+                "lifecycleCurrentness": currentness,
+                "semanticCompletionEvaluated": False,
+            }
         return "closed", _close_action(
             prepared_item,
             result,
