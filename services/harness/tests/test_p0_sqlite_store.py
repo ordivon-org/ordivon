@@ -11,6 +11,7 @@ from ordivon_harness.core_contracts import (
     HarnessBoundReference,
     HarnessRunContract,
 )
+from ordivon_harness.object_store import _ContentAddressedStore
 from ordivon_harness.sqlite_store import (
     HarnessEventConflict,
     HarnessJournalCorruption,
@@ -19,7 +20,6 @@ from ordivon_harness.sqlite_store import (
     HarnessRevisionConflict,
     HarnessTerminalConflict,
     SQLiteHarnessStore,
-    _ContentAddressedStore,
 )
 from ordivon_harness.store import (
     HarnessEventAdmission,
