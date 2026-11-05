@@ -133,7 +133,7 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "src/ordivon_studio/research_validity.py",
+        "src/ordivon_studio/research/research_validity.py",
         "scripts/run-r6-creative-validity.py",
         "scripts/migrate-r6-trials.py",
         "tests/test_research_validity.py::ResearchValidityTest.test_parallel_trial_appends_commit_one_complete_hash_chain",
@@ -241,7 +241,7 @@
         "GitHub protected Owner CI admits the exact source change, and actual historical writers are quiesced before physical cutover."
       ],
       "evidence": [
-        "src/ordivon_studio/research_validity.py",
+        "src/ordivon_studio/research/research_validity.py",
         "tests/test_research_validity.py",
         "mise.toml"
       ],

@@ -418,15 +418,15 @@
         "mode": "read-only-census-and-cutover-obligation-not-live-migration"
       },
       "latestRequalification": {
-        "observedAt": "2026-10-26T03:34:00+08:00",
-        "sourceCut": "cb80b5017f3ca861f63bf0aa7c0802a958614f62",
-        "standing": "PG_PR_OPEN_SQLITE_SOURCE_CONSUMED_CUTOVER_UNVERIFIED",
+        "observedAt": "2026-11-05T10:06:48+08:00",
+        "sourceCut": "88e245ee605aac93e18da05d4023ddda14299d55",
+        "standing": "PG_NATIVE_IMPLEMENTATION_PRESENT_LIVE_CUTOVER_NOT_AUDITED",
         "cutoverAdmission": "NOT_ADMITTED",
         "nativeConsumerEvidence": [
-          "capabilities/media/src/ordivon_studio/research_validity.py"
+          "capabilities/media/src/ordivon_studio/research/research_validity.py"
         ],
-        "remainingUnknown": "Open PR744 trial ledger requires protected merge, source digest/import reconciliation, append-only/concurrent head proofs and Media consumer switchover.",
-        "proofScope": "Source presence and already reported Owner-native tests; not live PostgreSQL writer/consumer cutover."
+        "remainingUnknown": "The current PostgreSQL TrialLedger implementation and bounded tests do not independently establish live writer quiescence, historical-import need, running consumer switchover, or rollback/recovery admission.",
+        "proofScope": "Current SourceCut presence of owner-native PostgreSQL source and bounded unit tests only; no independent live cutover proof."
       }
     },
     {
