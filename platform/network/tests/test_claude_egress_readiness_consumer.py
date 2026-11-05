@@ -255,7 +255,7 @@ def test_n08_source_consumer_contract_matches_install_and_proxy_policy() -> None
     plan = json.loads((ROOT / "planning/lego-plan-r1.json").read_text())
     n08 = next(row for row in plan["nodes"] if row["id"] == "N08")
     consumers = "/".join(n08["consumers"])
-    taskfile = (ROOT / "Taskfile.yml").read_text()
+    taskfile = (ROOT / "consumers/claude/Taskfile.yml").read_text()
     readiness = SCRIPT.read_text()
     assert "consumer:claude:materialize" in taskfile
     assert (

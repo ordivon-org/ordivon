@@ -34,14 +34,14 @@ def test_supply_chain_reuses_one_shared_carrier_without_vpn_identity():
     assert "Wants=network-v2-browserless-provider-carrier.service" in unit
     assert "Requires=network-v2-browserless-provider-carrier.service" not in unit
     assert "provider-endpoints.json" not in unit
-    taskfile = (ROOT / "Taskfile.yml").read_text()
+    taskfile = (CONSUMER / "Taskfile.yml").read_text()
     assert "rm -f /etc/network-v2/supply-chain/provider-endpoints.json" in taskfile
 
 
 def test_docker_binding_retires_old_public_web_proxy_and_restart_is_guarded():
     dropin = (CONSUMER / "systemd" / "docker.service.d" / "ordivon-network-v2-supply-chain-proxy.conf").read_text()
     smoke = (CONSUMER / "acceptance" / "docker-rebind-smoke.sh").read_text()
-    taskfile = (ROOT / "Taskfile.yml").read_text()
+    taskfile = (CONSUMER / "Taskfile.yml").read_text()
     assert "127.0.0.1:19581" in dropin
     assert "10.254.177.2:19381" not in dropin
     assert "always|unless-stopped" in smoke
@@ -51,7 +51,7 @@ def test_docker_binding_retires_old_public_web_proxy_and_restart_is_guarded():
 
 
 def test_supply_chain_has_standard_network_v2_lifecycle_tasks():
-    taskfile = (ROOT / "Taskfile.yml").read_text()
+    taskfile = (CONSUMER / "Taskfile.yml").read_text()
     for task in (
         "consumer:supply-chain:validate:",
         "consumer:supply-chain:materialize:",
