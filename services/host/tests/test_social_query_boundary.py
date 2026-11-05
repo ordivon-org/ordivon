@@ -19,6 +19,9 @@ def test_social_queries_are_inherited_not_reimplemented_in_the_write_owner() -> 
         "get_message",
         "search_messages",
         "resume_topic",
+        "get_topic_cursor",
+        "_get_space_in_tx",
+        "_require_message",
     }
     assert issubclass(SocialStore, SocialReadQueries)
     assert all(name in SocialReadQueries.__dict__ for name in queries)
