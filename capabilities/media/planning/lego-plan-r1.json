@@ -34,8 +34,104 @@
       ],
       "acceptance": [
         "Projection names its source/observer boundary.",
-        "RichPerception Pearson coupling requires finite samples and a finite result; its canonical JSON digest rejects NaN/Infinity before recording source identity."
-      ]
+        "RichPerception Pearson coupling requires finite samples and a finite result; its canonical JSON digest rejects NaN/Infinity before recording source identity.",
+        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+      ],
+      "r21": {
+        "I": {
+          "type": "MediaProjectionInput",
+          "fields": [
+            "media root",
+            "optional Artifact and Creative Library source roots",
+            "caller-selected versioned record inputs"
+          ],
+          "consumers": [
+            "creative_index.build_creative_index",
+            "creative_index.query_creative_index"
+          ]
+        },
+        "O": {
+          "type": "MediaProjectionResult",
+          "fields": [
+            "bounded source-annotated creative graph nodes",
+            "typed relations and evidence",
+            "revision-labelled sources"
+          ],
+          "consumers": [
+            "creative_index.build_creative_index",
+            "creative_index.query_creative_index"
+          ]
+        },
+        "S": {
+          "type": "OwnerScopedState",
+          "description": "Disposable derived Creative Index; source owners retain currentness and mutation authority"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "named source root exists",
+            "no assumption that multiple Productions yield one current Production"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "projected nodes/edges retain source path and owner revision",
+            "node ID collision with different facts is rejected"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "projection does not become source truth",
+            "external owner source is not silently rewritten",
+            "physical source availability alone does not establish semantic truth"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read source JSON and Git revisions",
+            "derive in-memory navigation graph"
+          ],
+          "excluded": [
+            "mutate original Production/Artifact records",
+            "publish/distribute media"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "selected source count, nodes, edges, read latency",
+          "reason": "No representative cross-owner runtime cost benchmark is supplied",
+          "obligation": "Measure from selected real consumer traces before claiming a cost bound"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "interpretive loss and currentness of external sources",
+          "reason": "Source correctness and existing model tests do not imply external domain or human acceptance",
+          "obligation": "Obtain independent consumer/host or reader evidence before elevating acceptance"
+        },
+        "prov": {
+          "type": "source_and_consumer_contract",
+          "sourcePaths": [
+            "src/ordivon_studio/creative_index.py",
+            "src/ordivon_studio/creative_index_artifact.py",
+            "src/ordivon_studio/creative_index_library.py",
+            "tests/test_creative_index.py"
+          ],
+          "consumerEvidence": "Existing owner-native test and implementation source, not an independent machine-checked universal proof",
+          "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
+        },
+        "unfold": {
+          "type": "native_owner_implementation",
+          "sourcePaths": [
+            "src/ordivon_studio/creative_index.py",
+            "src/ordivon_studio/creative_index_artifact.py",
+            "src/ordivon_studio/creative_index_library.py",
+            "tests/test_creative_index.py"
+          ]
+        }
+      }
     },
     {
       "id": "V02",
@@ -54,8 +150,104 @@
         "current source truth"
       ],
       "acceptance": [
-        "Later source change does not silently float historical expression."
-      ]
+        "Later source change does not silently float historical expression.",
+        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+      ],
+      "r21": {
+        "I": {
+          "type": "ClaimBindingInput",
+          "fields": [
+            "Production sourceBindings",
+            "Claim binding ID, path and scope",
+            "declared local historical Git revision"
+          ],
+          "consumers": [
+            "production_validation._validate_production_semantics",
+            "models.validate_repository"
+          ]
+        },
+        "O": {
+          "type": "ClaimBindingResult",
+          "fields": [
+            "scoped Claim consistency findings",
+            "local Git commit/blob witness or explicit error"
+          ],
+          "consumers": [
+            "production_validation._validate_production_semantics",
+            "models.validate_repository"
+          ]
+        },
+        "S": {
+          "type": "OwnerScopedState",
+          "description": "Git-versioned Production and claims documents; no copy of owner source truth"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "Claim binding references a declared identity",
+            "only ordivon-local Git objects are qualified by local Git"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "missing source revisions/blobs are rejected",
+            "invalid or escaped source paths are rejected",
+            "duplicate Claim and binding IDs are rejected"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "later source changes cannot rewrite a frozen historical claim",
+            "local Git PASS does not verify remote/external source truth",
+            "original chat bytes must not be inferred from reconstructed narrative"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read declared claims and source bindings",
+            "query local Git commit/blob identities"
+          ],
+          "excluded": [
+            "rewrite historical Git source",
+            "silently promote an unverified external claim"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "historical Git lookups per bound Claim",
+          "reason": "No representative cross-owner runtime cost benchmark is supplied",
+          "obligation": "Measure from selected real consumer traces before claiming a cost bound"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "truth and external referent quality of bound Claim",
+          "reason": "Source correctness and existing model tests do not imply external domain or human acceptance",
+          "obligation": "Obtain independent consumer/host or reader evidence before elevating acceptance"
+        },
+        "prov": {
+          "type": "source_and_consumer_contract",
+          "sourcePaths": [
+            "src/ordivon_studio/production_validation.py",
+            "src/ordivon_studio/models.py",
+            "schemas/claims.schema.json",
+            "tests/test_models.py"
+          ],
+          "consumerEvidence": "Existing owner-native test and implementation source, not an independent machine-checked universal proof",
+          "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
+        },
+        "unfold": {
+          "type": "native_owner_implementation",
+          "sourcePaths": [
+            "src/ordivon_studio/production_validation.py",
+            "src/ordivon_studio/models.py",
+            "schemas/claims.schema.json",
+            "tests/test_models.py"
+          ]
+        }
+      }
     },
     {
       "id": "V03",
@@ -74,8 +266,103 @@
         "generic representation"
       ],
       "acceptance": [
-        "Multiple valid productions do not imply a unique current one."
-      ]
+        "Multiple valid productions do not imply a unique current one.",
+        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+      ],
+      "r21": {
+        "I": {
+          "type": "ProductionStateInput",
+          "fields": [
+            "selected production.json",
+            "claims.json",
+            "optional asset, cognition and receipt documents"
+          ],
+          "consumers": [
+            "models.validate_repository",
+            "production_validation._validate_production_semantics"
+          ]
+        },
+        "O": {
+          "type": "ProductionStateResult",
+          "fields": [
+            "structural and semantic admission errors",
+            "versioned authoring/rendering Production state"
+          ],
+          "consumers": [
+            "models.validate_repository",
+            "production_validation._validate_production_semantics"
+          ]
+        },
+        "S": {
+          "type": "OwnerScopedState",
+          "description": "Studio-owned editable Production manifest, not Host Work or observer projection authority"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "actual authoring or rendering Production selected",
+            "Production files satisfy declared JSON Schema"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "declared source/carrier paths are validated",
+            "invalid identity/cognition/state references are rejected",
+            "multiple records never imply one unique current Production"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "Studio owns authored state, not source owner currentness",
+            "rendered != published and model PASS != human approval",
+            "sourceCarrier requires exact selected bytes only when opted in"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read and validate owner-native Production/Claim/Asset/Receipt files"
+          ],
+          "excluded": [
+            "create universal status registry",
+            "start Runtime jobs or publish output during validation"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "number and size of Production documents and Git queries",
+          "reason": "No representative cross-owner runtime cost benchmark is supplied",
+          "obligation": "Measure from selected real consumer traces before claiming a cost bound"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "editorial quality and actual recipient acceptance",
+          "reason": "Source correctness and existing model tests do not imply external domain or human acceptance",
+          "obligation": "Obtain independent consumer/host or reader evidence before elevating acceptance"
+        },
+        "prov": {
+          "type": "source_and_consumer_contract",
+          "sourcePaths": [
+            "src/ordivon_studio/models.py",
+            "src/ordivon_studio/production_validation.py",
+            "schemas/production.schema.json",
+            "tests/test_models.py"
+          ],
+          "consumerEvidence": "Existing owner-native test and implementation source, not an independent machine-checked universal proof",
+          "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
+        },
+        "unfold": {
+          "type": "native_owner_implementation",
+          "sourcePaths": [
+            "src/ordivon_studio/models.py",
+            "src/ordivon_studio/production_validation.py",
+            "schemas/production.schema.json",
+            "tests/test_models.py"
+          ]
+        }
+      }
     },
     {
       "id": "V04",
@@ -99,8 +386,108 @@
       ],
       "acceptance": [
         "Mechanical/factual pass is distinguishable from craft/human-response claims.",
-        "Media owner preflight rejects a different pinned @remotion/cli version from remotion before render verification."
-      ]
+        "Media owner preflight rejects a different pinned @remotion/cli version from remotion before render verification.",
+        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+      ],
+      "r21": {
+        "I": {
+          "type": "RenderQCInput",
+          "fields": [
+            "exact selected media path",
+            "ffprobe stream/timebase data",
+            "video/audio mechanical constraints"
+          ],
+          "consumers": [
+            "qc.validate_video_probe",
+            "qc.validate_loudness",
+            "review.build_video_review_packet"
+          ]
+        },
+        "O": {
+          "type": "RenderQCResult",
+          "fields": [
+            "technical QC evidence and typed failures",
+            "source-bound review packet"
+          ],
+          "consumers": [
+            "qc.validate_video_probe",
+            "qc.validate_loudness",
+            "review.build_video_review_packet"
+          ]
+        },
+        "S": {
+          "type": "OwnerScopedState",
+          "description": "Per-invocation technical evidence; review owner does not replace human editorial judgment"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "source media readable",
+            "installed ffprobe/ffmpeg providers available when invoked",
+            "requested limits are well-formed"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "technical probe/loudness violations are explicit",
+            "measurements remain attached to selected media identity"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "a mechanical PASS never implies artistic approval",
+            "nonfinite/invalid numeric evidence is not silently admitted",
+            "no native Resolve edit is claimed without a matched host receipt"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read/probe media via ffprobe",
+            "run ffmpeg loudness analysis for selected consumer",
+            "optionally construct review report"
+          ],
+          "excluded": [
+            "mutate source Production as a probe side effect",
+            "claim human craft acceptance",
+            "publish media"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "media duration, decode workload and probe IO",
+          "reason": "No representative cross-owner runtime cost benchmark is supplied",
+          "obligation": "Measure from selected real consumer traces before claiming a cost bound"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "human aesthetic response and current external native edit state",
+          "reason": "Source correctness and existing model tests do not imply external domain or human acceptance",
+          "obligation": "Obtain independent consumer/host or reader evidence before elevating acceptance"
+        },
+        "prov": {
+          "type": "source_and_consumer_contract",
+          "sourcePaths": [
+            "src/ordivon_studio/qc.py",
+            "src/ordivon_studio/review.py",
+            "src/ordivon_studio/assets.py",
+            "tests/test_qc.py"
+          ],
+          "consumerEvidence": "Existing owner-native test and implementation source, not an independent machine-checked universal proof",
+          "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
+        },
+        "unfold": {
+          "type": "native_owner_implementation",
+          "sourcePaths": [
+            "src/ordivon_studio/qc.py",
+            "src/ordivon_studio/review.py",
+            "src/ordivon_studio/assets.py",
+            "tests/test_qc.py"
+          ]
+        }
+      }
     },
     {
       "id": "V05",
@@ -121,8 +508,113 @@
         "Distribution publication effect"
       ],
       "acceptance": [
-        "Output identity remains stable independently of publication."
-      ]
+        "Output identity remains stable independently of publication.",
+        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+      ],
+      "r21": {
+        "I": {
+          "type": "OutputIdentityInput",
+          "fields": [
+            "selected output bytes",
+            "declared sourceCarrier only for exact-byte output",
+            "optional caller-owned local Blob cache"
+          ],
+          "consumers": [
+            "assets.hash_file",
+            "assets.archive_blob",
+            "assets.materialize_blob",
+            "production_validation._validate_production_semantics"
+          ]
+        },
+        "O": {
+          "type": "OutputIdentityResult",
+          "fields": [
+            "sha256 byte digest and size",
+            "verified content-addressed cache object and selected output identity"
+          ],
+          "consumers": [
+            "assets.hash_file",
+            "assets.archive_blob",
+            "assets.materialize_blob",
+            "production_validation._validate_production_semantics"
+          ]
+        },
+        "S": {
+          "type": "OwnerScopedState",
+          "description": "Exact content-hash identity; Artifact publication authority remains outside Media Blob cache"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "source file readable",
+            "supported SHA-256 address",
+            "optional carrier is a declared actual source"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "digest computed from actual bytes",
+            "existing object reused only after hash and size check",
+            "new cache object checked before admission",
+            "forged sourceCarrier digest rejected"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "byte identity independent of downstream publication",
+            "derived transformations not forced equal to unrelated carriers",
+            "conflicting digest address is never overwritten"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "hash selected bytes",
+            "optionally archive/materialize a verified local cache object"
+          ],
+          "excluded": [
+            "publish to Artifact/R2",
+            "claim recipient accepted the bytes",
+            "rewrite selected source content"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "output byte count and content-addressed cache IO",
+          "reason": "No representative cross-owner runtime cost benchmark is supplied",
+          "obligation": "Measure from selected real consumer traces before claiming a cost bound"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "downstream distribution truth, human meaning and external acceptance",
+          "reason": "Source correctness and existing model tests do not imply external domain or human acceptance",
+          "obligation": "Obtain independent consumer/host or reader evidence before elevating acceptance"
+        },
+        "prov": {
+          "type": "source_and_consumer_contract",
+          "sourcePaths": [
+            "src/ordivon_studio/assets.py",
+            "src/ordivon_studio/production_validation.py",
+            "schemas/production.schema.json",
+            "tests/test_models.py",
+            "tests/test_assets.py"
+          ],
+          "consumerEvidence": "Existing owner-native test and implementation source, not an independent machine-checked universal proof",
+          "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
+        },
+        "unfold": {
+          "type": "native_owner_implementation",
+          "sourcePaths": [
+            "src/ordivon_studio/assets.py",
+            "src/ordivon_studio/production_validation.py",
+            "schemas/production.schema.json",
+            "tests/test_models.py",
+            "tests/test_assets.py"
+          ]
+        }
+      }
     },
     {
       "id": "V06",
