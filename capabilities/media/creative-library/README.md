@@ -28,10 +28,22 @@ From the PostgreSQL archive authority:
 python3 scripts/creative_library.py build \
   --postgres \
   --pg-socket /var/lib/postgres/ordivon-data-r5-pg-14550-v4 \
-  --pg-port 55434 \
+  --pg-port 14550 \
   --database ordivon_assets \
+  --retained-catalog artifacts/creative-library/catalog-v1.json \
   --output artifacts/creative-library/catalog-v1.json
 ```
+
+The current PostgreSQL archive may include new works while historical Game/Web
+Git checkouts are no longer installed at their original source paths. The
+optional `--retained-catalog` reuses **only identical historical Git identities**
+(repo, revision and source path) from a digest-verified prior catalog, and
+recomputes every carrier-tree digest. Works compiled against available Git
+sources have `sourceTreeStanding=EXACT_GIT_TREE`; historical-only entries have
+`HISTORICAL_INDEX_GIT_UNAVAILABLE` and do **not** claim byte availability.
+The native HTTP server returns an unavailable-source response rather than
+substituting current working-tree bytes for them. New works without a valid
+source tree or identical historical carrier index are not admitted.
 
 ## Browse
 

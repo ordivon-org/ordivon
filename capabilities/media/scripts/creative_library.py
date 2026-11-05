@@ -159,6 +159,44 @@ def canonical_digest(value: object) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
+def load_verified_catalog(path: str | Path) -> dict:
+    catalog = json.loads(Path(path).read_text(encoding="utf-8"))
+    core = dict(catalog)
+    digest = core.pop("catalogDigest", None)
+    actual = canonical_digest(core)
+    if digest != actual:
+        raise RuntimeError(f"catalog digest mismatch: expected {digest}, recomputed {actual}")
+    return catalog
+
+
+def retained_carriers(source: dict, retained: dict[str, dict]) -> tuple[str, list[dict]]:
+    """Reuse a past source-index only for the identical historical Git identity.
+
+    These are Git blob identifiers from a digest-verified earlier catalog, not
+    evidence that the source repo or any media bytes are currently installed.
+    """
+    cached = retained.get(source["work_id"])
+    identity = ("sourceRepo", "sourceRevision", "sourcePath")
+    if cached is None or any(
+        cached.get(field) != source.get(key)
+        for field, key in zip(identity, ("source_repo", "source_revision", "source_path"))
+    ):
+        raise RuntimeError(f"no exact historical carrier source for {source['work_id']}")
+    carriers = cached.get("carriers")
+    if not isinstance(carriers, list) or cached.get("carrierCount") != len(carriers):
+        raise RuntimeError(f"invalid historical carrier count for {source['work_id']}")
+    expected = canonical_digest([
+        (carrier["gitPath"], carrier["objectId"], carrier["size"])
+        for carrier in carriers
+    ])
+    if expected != cached.get("sourceTreeDigest"):
+        raise RuntimeError(f"historical source tree digest mismatch for {source['work_id']}")
+    source_base = cached.get("sourceBase")
+    if not isinstance(source_base, str):
+        raise RuntimeError(f"invalid historical source base for {source['work_id']}")
+    return source_base, carriers
+
+
 def _psql_json_lines(sql: str, *, socket: str, port: int, database: str) -> list[dict]:
     cmd = ["/usr/bin/runuser", "-u", "postgres", "--", "/usr/bin/psql", "-h", socket, "-p", str(port), "-d", database, "-At", "-c", sql]
     proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
@@ -239,18 +277,35 @@ def load_derived_previews(path: str | Path | None) -> dict[str, dict]:
     return result
 
 
-def build_catalog(archive: dict, derived_previews: dict[str, dict] | None = None) -> dict:
+def build_catalog(
+    archive: dict,
+    derived_previews: dict[str, dict] | None = None,
+    *,
+    historical_catalog: dict | None = None,
+) -> dict:
     derived_previews = derived_previews or {}
+    retained = {
+        work["workId"]: work for work in historical_catalog.get("works", [])
+    } if historical_catalog else {}
     result_works: list[dict] = []
     total_carriers = 0
     direct_preview_works = 0
+    historical_index_only_works = 0
     for source in archive["works"]:
         repo = source.get("source_repo")
         revision = source.get("source_revision")
         source_path = source.get("source_path")
         if not (repo and revision and source_path):
             raise RuntimeError(f"work lacks exact source identity: {source.get('work_id')}")
-        source_base, carriers = git_tree(repo, revision, source_path)
+        try:
+            source_base, carriers = git_tree(repo, revision, source_path)
+            source_tree_standing = "EXACT_GIT_TREE"
+        except RuntimeError:
+            if not historical_catalog:
+                raise
+            source_base, carriers = retained_carriers(source, retained)
+            source_tree_standing = "HISTORICAL_INDEX_GIT_UNAVAILABLE"
+            historical_index_only_works += 1
         total_carriers += len(carriers)
         modalities = sorted({c["kind"] for c in carriers if c["kind"] not in {"other", "source"}})
         hero = choose_carrier(carriers, launch=False)
@@ -263,6 +318,7 @@ def build_catalog(archive: dict, derived_previews: dict[str, dict] | None = None
             "room": source.get("room"), "status": source.get("status"), "series": source.get("series"),
             "sourceRepo": repo, "sourceRevision": revision, "sourcePath": source_path,
             "sourceBase": source_base, "sourceTreeDigest": tree_digest,
+            "sourceTreeStanding": source_tree_standing,
             "featured": bool(source.get("featured")), "evidenceLevel": source.get("evidence_level"),
             "physicalStanding": source.get("physical_standing"), "humanStanding": source.get("human_standing"),
             "sourceKind": source.get("source_kind"), "modalities": modalities,
@@ -273,9 +329,17 @@ def build_catalog(archive: dict, derived_previews: dict[str, dict] | None = None
     unknown_derived = sorted(set(derived_previews) - {w["workId"] for w in result_works})
     if unknown_derived:
         raise RuntimeError("derived preview references unknown work(s): " + ", ".join(unknown_derived))
+    source_manifest = archive.get("manifest", {})
+    source_census_current = (
+        source_manifest.get("workCount") == len(result_works)
+        and source_manifest.get("workRelationCount") == len(archive.get("relations", []))
+    )
     catalog_core = {
         "schemaVersion": SCHEMA_VERSION,
-        "archiveStanding": archive.get("manifest", {}).get("standing", "UNKNOWN"),
+        "archiveStanding": (
+            source_manifest.get("standing", "UNKNOWN")
+            if source_census_current else "PG_SOURCE_EXTENDED_BEYOND_FROZEN_CENSUS"
+        ),
         "archiveManifest": archive.get("manifest", {}),
         "works": result_works,
         "relations": archive.get("relations", []),
@@ -283,6 +347,7 @@ def build_catalog(archive: dict, derived_previews: dict[str, dict] | None = None
             "workCount": len(result_works), "carrierCount": total_carriers,
             "directPreviewWorks": direct_preview_works, "derivedPreviewCount": len(derived_previews),
             "relationCount": len(archive.get("relations", [])),
+            "historicalIndexOnlyWorks": historical_index_only_works,
         },
     }
     catalog_core["catalogDigest"] = canonical_digest(catalog_core)
@@ -497,20 +562,16 @@ class LibraryHandler(BaseHTTPRequestHandler):
 def cmd_build(args: argparse.Namespace) -> int:
     archive = load_archive(args)
     derived_previews = load_derived_previews(args.derived_manifest)
-    catalog = build_catalog(archive, derived_previews)
+    historical = load_verified_catalog(args.retained_catalog) if args.retained_catalog else None
+    catalog = build_catalog(archive, derived_previews, historical_catalog=historical)
     write_atomic_json(Path(args.output), catalog)
     print(json.dumps({"output": args.output, "catalogDigest": catalog["catalogDigest"], **catalog["summary"]}, ensure_ascii=False))
     return 0
 
 
 def cmd_serve(args: argparse.Namespace) -> int:
-    catalog = json.loads(Path(args.catalog).read_text(encoding="utf-8"))
-    expected = catalog.get("catalogDigest")
-    test = dict(catalog)
-    test.pop("catalogDigest", None)
-    actual = canonical_digest(test)
-    if expected != actual:
-        raise RuntimeError(f"catalog digest mismatch: expected {expected}, recomputed {actual}")
+    catalog = load_verified_catalog(args.catalog)
+    expected = catalog["catalogDigest"]
     server = LibraryServer((args.bind, args.port), catalog)
     print(f"Creative Library: http://{args.bind}:{server.server_port}/  works={len(catalog['works'])} digest={expected}", flush=True)
     try:
@@ -529,7 +590,8 @@ def parser() -> argparse.ArgumentParser:
     b.add_argument("--archive-json", default=str(DEFAULT_ARCHIVE_JSON))
     b.add_argument("--postgres", action="store_true", help="read current creative_archive through psql instead of the frozen JSON export")
     b.add_argument("--pg-socket", default="/var/lib/postgres/ordivon-data-r5-pg-14550-v4")
-    b.add_argument("--pg-port", type=int, default=55434)
+    b.add_argument("--pg-port", type=int, default=14550)
+    b.add_argument("--retained-catalog", help="digest-verified prior carrier index when exact historical Git sources are no longer locally accessible")
     b.add_argument("--database", default="ordivon_assets")
     b.add_argument("--derived-manifest", default=str(DEFAULT_DERIVED_MANIFEST), help="optional digest-bound derived-preview manifest")
     b.add_argument("--output", default=str(DEFAULT_CATALOG))
