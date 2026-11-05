@@ -46,7 +46,7 @@ def test_released_intent_cannot_be_resurrected() -> None:
 
 
 def test_topic_resume_is_bounded_and_cursor_based() -> None:
-    text = (STORE.parent / "social_queries.py").read_text()
+    text = (STORE.parent / "social_topic_queries.py").read_text()
     resume = text.split("    def resume_topic", 1)[1]
     assert "after_sequence" in resume
     assert "limit + 1" in resume

@@ -13,6 +13,9 @@
       "src/ordivon_host_v2/work_queries.py",
       "src/ordivon_host_v2/social_store.py",
       "src/ordivon_host_v2/social_queries.py",
+      "src/ordivon_host_v2/social_space_queries.py",
+      "src/ordivon_host_v2/social_message_queries.py",
+      "src/ordivon_host_v2/social_topic_queries.py",
       "src/ordivon_host_v2/social_errors.py",
       "src/ordivon_host_v2/attention_store.py",
       "src/ordivon_host_v2/attention_projections.py",
@@ -98,6 +101,9 @@
         "src/ordivon_host_v2/collaboration_inputs.py",
         "src/ordivon_host_v2/social_store.py",
         "src/ordivon_host_v2/social_queries.py",
+        "src/ordivon_host_v2/social_space_queries.py",
+        "src/ordivon_host_v2/social_message_queries.py",
+        "src/ordivon_host_v2/social_topic_queries.py",
         "src/ordivon_host_v2/social_errors.py",
         "tests/test_social_query_boundary.py",
         "tests/test_social_work_fabric_social_graph.py"
@@ -365,6 +371,8 @@
       "evidence": [
         "src/ordivon_host_v2/social_store.py",
         "src/ordivon_host_v2/social_queries.py",
+        "src/ordivon_host_v2/social_message_queries.py",
+        "src/ordivon_host_v2/social_topic_queries.py",
         "src/ordivon_host_v2/social_contracts.py",
         "tests/test_social_message_digest_postgres.py",
         "tests/test_message_get_contract.py"
@@ -427,7 +435,10 @@
       "evidence": [
         "src/ordivon_host_v2/social_store.py",
         "src/ordivon_host_v2/social_queries.py",
+        "src/ordivon_host_v2/social_message_queries.py",
+        "src/ordivon_host_v2/social_topic_queries.py",
         "src/ordivon_host_v2/collection_pagination.py",
+        "tests/test_social_work_fabric_social_store.py",
         "tests/test_social_work_fabric_postgres.py::test_r2_topic_cursor_relation_readback_reasons_and_reentry",
         "tests/test_social_work_fabric_postgres.py::test_r2_message_page_respects_canonical_byte_budget"
       ],
