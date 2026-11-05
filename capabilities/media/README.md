@@ -54,6 +54,13 @@ creative-alpha, grounded-meaning and article/foundational studies live in
 `ordivon_studio.research`. Research scripts import that subpackage directly;
 there are no redundant compatibility shims or separate research truth store.
 
+The R6 Creative Alpha method separates `research/creative_protocol.py`
+(sealed protocol and mechanism construction), `research/creative_observer.py`
+(browser-receipt-to-task projection), and `research/creative_analysis.py`
+(independent visible, holdout, uncertainty and portfolio scoring).
+The R6 experiment CLI consumes these owners directly. The former
+`research/creative_alpha.py` monolith is retired without an adapter facade.
+
 Equipment follows a three-stage, source-readable contract:
 `equipment_discovery.py` observes physical Workstation/tool candidates;
 `equipment_capabilities.py` projects selectable actions and verification;
