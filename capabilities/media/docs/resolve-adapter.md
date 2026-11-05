@@ -9,8 +9,11 @@ Studio owns cross-tool production facts. The adapter compiles one bounded Resolv
 The source responsibilities are explicit: `resolve_discovery.py` reads native
 PowerShell/WSL and FFprobe observations without installing or editing anything;
 `resolve_contracts.py` checks operation identity and Result shape without
-calling Resolve or acquiring provider state; `resolve_adapter.py` owns operation
-preparation, Runner installation and result readback. `resolve_editorial.py`
+calling Resolve or acquiring provider state; `resolve_operations.py`
+constructs source-bound native Runner command payloads without installation.
+`resolve_adapter.py` owns effectful operation staging, Runner installation
+and readback. A successful result is rejected if its operationId or digest
+differs from the currently staged operation (when present). `resolve_editorial.py`
 uses existing OpenTimelineIO adapters and exact source-byte bindings. The copied
 `resolve_runner_menu.py` remains one self-contained Python file because Resolve
 runs it from the internal Scripts menu. Never split that deployment file into

@@ -7,6 +7,7 @@ or acquiring publication authority. Resolve still owns the original result.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from typing import Any
@@ -125,3 +126,9 @@ def validate_result(result: dict[str, Any], *, expected_operation_id: str | None
         if forbidden in encoded:
             errors.append(f"result contains forbidden private material: {forbidden!r}")
     return errors
+
+
+
+def _canonical_digest(value: object) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return f"sha256:{hashlib.sha256(payload).hexdigest()}"
