@@ -9,7 +9,7 @@ from psycopg.types.json import Jsonb
 from .canonical_json import canonical_digest
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .command_receipts import claim_command_receipt, record_command_receipt
-from .errors import ConflictError
+from .errors import ActorRefNotFound, ConflictError, WorkNotFound
 from .work_inputs import (
     ActorRefInput,
     WorkCreateInput,
@@ -18,14 +18,6 @@ from .work_inputs import (
     WorkSnapshotInput,
     WorkState,
 )
-
-
-class WorkNotFound(RuntimeError):
-    pass
-
-
-class ActorRefNotFound(RuntimeError):
-    pass
 
 
 class WorkStore:

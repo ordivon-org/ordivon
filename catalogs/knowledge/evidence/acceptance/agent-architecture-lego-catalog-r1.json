@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "agent-architecture-lego-catalog-r1",
+  "date": "2026-09-18",
+  "status": "PASS",
+  "studyLineage": {
+    "workspaceId": "ws-agent-architecture-lego-catalog-r1-20260918",
+    "sourceRepo": "/root/projects/ordivon-next",
+    "sourceRevision": "595dfcbc50e82a7280025461f6db2ae8592f465c",
+    "studyCommit": "2b7518861ba74236035a16977ebb683b2878a798",
+    "note": "The study lineage included detached Agent Service and project-kernel-decomposition development evidence that was not yet canonical on main."
+  },
+  "mainIntegration": {
+    "workspaceId": "ws-agent-architecture-lego-main-integrate-r1-20260918",
+    "baseRevision": "7648600e40eeec9912187d529c1f48653a8db565",
+    "policy": "Integrate only the catalog artifacts; do not resurrect the repo-local project-kernel-decomposition Skill or import detached Agent Service development history."
+  },
+  "method": {
+    "name": "project-kernel-decomposition / LEGO node graph / Atomicity Gate",
+    "skillPlaneUsedDuringStudy": true,
+    "repoLocalSkillRequiredOnMain": false,
+    "mode": "cross-harness agent architecture LEGO catalog"
+  },
+  "deliverables": [
+    {
+      "path": "knowledge/lessons/agent-architecture-lego-catalog-r1.md",
+      "role": "human-readable canonical R1 reference catalog"
+    },
+    {
+      "path": "knowledge/graphs/agent-architecture-lego-catalog-r1.json",
+      "role": "machine-readable Core-24 node/edge/assembly graph"
+    },
+    {
+      "path": "evidence/acceptance/agent-architecture-lego-catalog-r1.json",
+      "role": "lineage-aware main integration acceptance receipt"
+    }
+  ],
+  "catalog": {
+    "nodeCount": 24,
+    "edgeCount": 32,
+    "assemblyCount": 6,
+    "lawCount": 15,
+    "assemblies": [
+      "agentHarness",
+      "executionRuntime",
+      "durableSession",
+      "artifactProvenance",
+      "portableExtension",
+      "agentService"
+    ]
+  },
+  "mainValidation": {
+    "jobId": "job-01a0b0fa-e1c3-7511-9bca-1a7760c5254e",
+    "attemptId": "attempt-01a0b0fa-e1c3-7511-9bca-1a834ab0286d",
+    "exitCode": 0,
+    "checks": {
+      "jsonParses": "PASS",
+      "uniqueNodeIds": "PASS",
+      "edgeReferencesResolve": "PASS",
+      "assemblyReferencesResolve": "PASS",
+      "portablePluginBoundaryExplicit": "PASS",
+      "mainEvidencePathsPresent": "PASS",
+      "retiredRepoLocalDecompositionSkillNotResurrected": "PASS"
+    }
+  },
+  "currentMainEvidence": [
+    "docs/AGENT_PLUGIN_CORE_R3.md",
+    "docs/ARCHITECTURE.md",
+    "knowledge/lessons/ordivon-agent-birth-lego-r1.md"
+  ],
+  "researchSideEvidence": {
+    "status": "EVIDENCE_NOT_MAIN_AUTHORITY",
+    "items": [
+      "project-kernel-decomposition Skill and LEGO node-graph contract from the study lineage",
+      "detached Agent Service minimal-kernel and node-graph development records",
+      "Runtime/Host/Artifact/Harness evidence referenced from that development lineage"
+    ]
+  },
+  "externalEvidenceScope": {
+    "systems": [
+      "OpenAI4S",
+      "OpenAI Codex",
+      "Anthropic Claude Science",
+      "NousResearch Hermes Agent",
+      "OpenClaw",
+      "Agent Skills",
+      "Agent Plugins",
+      "MCP"
+    ],
+    "rule": "Open-source mechanisms are classified from current source/official docs; closed managed-service internals are not inferred beyond public product contracts. The cross-harness matrix is descriptive and not a quality score."
+  },
+  "frozenDecisions": [
+    "The provisional 20-node list expands to Core-24 because Atomicity Gate requires Context Projection, Completion Contract, Checkpoint/Branch/Recovery, and Plugin/Skill/Tool/MCP boundaries to remain distinct.",
+    "Agent Plugins portable core remains upstream-defined; Ordivon does not create a rich portable Plugin schema.",
+    "Agent Skills, Tool surfaces, and MCP are orthogonal capability surfaces and must not be collapsed into one interface.",
+    "Runtime remains the physical execution substrate; Agent Service remains semantic/control-plane authority; Harness remains the model/context/action loop.",
+    "Artifact Version and Artifact Observation remain separate identities; future Ordivon Artifact work should evaluate a generic ProducerRef rather than binding provenance only to scientific Cells.",
+    "Research-side development records remain evidence and are not relabeled as current-main authorities until separately integrated.",
+    "The catalog is a reference vocabulary, not a requirement to migrate production code or implement all 24 LEGO."
+  ],
+  "acceptance": {
+    "oneSentenceTest": "PASS",
+    "moduleCompletenessTest": "PASS",
+    "nodeGraphCoverage": "PASS",
+    "atomicityGate": "PASS_FOR_R1_CATALOG_LEVEL",
+    "edgeTyping": "PASS",
+    "reassemblySufficiency": "PASS",
+    "minimalCloneSpec": "PASS_AS_ASSEMBLY_CONTRACTS",
+    "behavioralAcceptance": "PASS_SPECIFIED_NOT_GLOBAL_IMPLEMENTATION"
+  }
+}

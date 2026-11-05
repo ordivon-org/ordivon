@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from ordivon_studio.research.creative_alpha import (
+from ordivon_studio.research.creative_protocol import (
     VARIANTS,
     build_holdout_protocol,
     build_visible_protocol,

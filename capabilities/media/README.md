@@ -54,6 +54,13 @@ creative-alpha, grounded-meaning and article/foundational studies live in
 `ordivon_studio.research`. Research scripts import that subpackage directly;
 there are no redundant compatibility shims or separate research truth store.
 
+The R6 Creative Alpha method separates `research/creative_protocol.py`
+(sealed protocol and mechanism construction), `research/creative_observer.py`
+(browser-receipt-to-task projection), and `research/creative_analysis.py`
+(independent visible, holdout, uncertainty and portfolio scoring).
+The R6 experiment CLI consumes these owners directly. The former
+`research/creative_alpha.py` monolith is retired without an adapter facade.
+
 Equipment follows a three-stage, source-readable contract:
 `equipment_discovery.py` observes physical Workstation/tool candidates;
 `equipment_capabilities.py` projects selectable actions and verification;
@@ -64,10 +71,11 @@ are **distinct**; no new equipment engine or parallel asset authority is admitte
 
 Creative navigation follows the same source-of-truth rule:
 `creative_index.py` orchestrates a rebuildable projection over Media's native
-equipment, productions and collections; `creative_index_sources.py` reads
-Artifact-owned delivery evidence and Creative Library snapshots. Graph nodes
-and edges are derived navigation only. Query results never mutate or replace
-the original owner records.
+equipment, productions and collections. `creative_index_artifact.py` reads
+Artifact delivery evidence, and `creative_index_library.py` reads source-owned
+Creative Library catalogs and generated evidence. `creative_index_source_utils.py`
+retains only shared JSON reads and nonrecursive metadata traversal. All nodes
+and relations remain derived navigation; queries do not mutate owner records.
 
 The Agent entry point follows the existing ports-and-adapters boundary:
 `agent_surface.py` advertises and validates stable JSON Schema tools;
@@ -78,10 +86,14 @@ guess the Agent's currently intended Production. The runtime/tool-execution
 authority and production/source truth remain outside the Agent adapter.
 
 Resolve-private editorial interchange and selected-asset binding live in
-`ordivon_studio.resolve_editorial`. The existing `resolve_adapter` remains
-the Windows/operation bridge and the embedded Resolve Runner remains one
-self-contained deployable script. OpenTimelineIO and existing Media Blob
-hashing are reused instead of reimplementing timeline or digest engines.
+`ordivon_studio.resolve_editorial`. `resolve_discovery` owns Windows/WSL
+and FFprobe observations; the already-existing `resolve_contracts` owns
+the pure native result contract and operation identity. `resolve_operations`
+constructs the operation payloads without side effects; `resolve_adapter`
+owns the existing Windows operation stage, Runner installation and result
+readback, rejecting success receipts bound to a different staged operation.
+The embedded Resolve Runner remains the same self-contained deployable file.
+OpenTimelineIO and existing Media Blob hashing are reused, not reimplemented.
 
 ## Studio capability plane
 

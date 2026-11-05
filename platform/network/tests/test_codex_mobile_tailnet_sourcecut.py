@@ -24,7 +24,7 @@ def test_codex_policy_admits_only_bounded_provider_https():
     assert rules[0]["port"] == [443]
     assert rules[0]["network"] == ["tcp"]
     assert rules[0]["outbound"] == upstream["tag"]
-    assert {"chatgpt.com", "auth.openai.com"} <= set(rules[0]["domain"])
+    assert {"chatgpt.com", "auth.openai.com", "persistent.oaistatic.com"} <= set(rules[0]["domain"])
     assert rules[-1] == {"action": "reject"}
 
 

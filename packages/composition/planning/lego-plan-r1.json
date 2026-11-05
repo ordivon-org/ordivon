@@ -395,7 +395,7 @@
       "evidence": [
         "src/ordivon_composition/web_security_gate_r3.py",
         "tests/test_cross_domain_verification_r3.py",
-        "packages/composition/evidence/acceptance/cross-domain-verification-r3-bindings.json"
+        "packages/composition/tests/fixtures/cross-domain-verification-r3-bindings.json"
       ],
       "dependencies": [
         "C07"
@@ -466,7 +466,7 @@
       "evidence": [
         "src/ordivon_composition/research_artifact_gate_r3.py",
         "tests/test_cross_domain_verification_r3.py",
-        "packages/composition/evidence/acceptance/cross-domain-verification-r3-bindings.json"
+        "packages/composition/tests/fixtures/cross-domain-verification-r3-bindings.json"
       ],
       "dependencies": [
         "C07"

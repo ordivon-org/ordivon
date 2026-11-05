@@ -6,9 +6,9 @@ import json
 import pytest
 from mcp import Client
 
-from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.errors import ConflictError, WorkNotFound
 from ordivon_host_v2.mcp_server import build_server
-from ordivon_host_v2.work_store import WorkNotFound, WorkStore
+from ordivon_host_v2.work_store import WorkStore
 
 
 def _error_text(result) -> str:

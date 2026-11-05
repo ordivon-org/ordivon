@@ -89,6 +89,28 @@ class R2Tests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "different bytes"):
                     replicate_r2_blob(source, bucket="bucket-one", credentials_path=credentials)
 
+    def test_failed_download_leaves_no_partial_staging_file(self) -> None:
+        from ordivon_studio.cloudflare_r2_transport import _verified_remote_download
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with (
+                patch(
+                    "ordivon_studio.cloudflare_r2_transport._curl_download",
+                    side_effect=RuntimeError("R2 download transport failed"),
+                ),
+                self.assertRaisesRegex(RuntimeError, "transport failed"),
+            ):
+                _verified_remote_download(
+                    url="https://api.example.invalid/object",
+                    api_token="test-token-value",
+                    expected_digest="sha256:" + "0" * 64,
+                    expected_size=None,
+                    directory=root,
+                    curl="/usr/bin/curl",
+                )
+            self.assertEqual(list(root.iterdir()), [])
+
     def test_restore_creates_and_reuses_verified_local_cache_object(self) -> None:
         payload = b"remote selected bytes"
         with tempfile.TemporaryDirectory() as directory:
