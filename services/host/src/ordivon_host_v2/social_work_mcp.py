@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import json
-from functools import wraps
 from typing import Annotated, Literal
 
 from mcp.server import MCPServer
-from mcp.server.mcpserver.exceptions import ToolError
-from pydantic import Field, ValidationError
+from pydantic import Field
 
 from .canonical_json import canonical_digest
 from .collaboration_inputs import (
@@ -18,7 +15,7 @@ from .collaboration_inputs import (
     SpaceInput,
     TopicInput,
 )
-from .errors import ConflictError
+from .mcp_domain_errors import _project_domain_errors
 from .social_attention import AttentionStore
 from .social_contracts import (
     ActorRefResponse,
@@ -44,7 +41,7 @@ from .social_contracts import (
     WorkListResponse,
     WorkResponse,
 )
-from .social_store import MessageNotFound, SocialStore, SpaceNotFound, TopicNotFound
+from .social_store import SocialStore
 from .work_inputs import (
     ActorKind,
     ActorRefInput,
@@ -52,7 +49,7 @@ from .work_inputs import (
     WorkSnapshotInput,
     WorkState,
 )
-from .work_store import ActorRefNotFound, WorkNotFound, WorkStore
+from .work_store import WorkStore
 
 # A revision is an exact Host CAS identity, never a coerced bool/float/string.
 # Use the existing provider's strict bounded integer instead of a custom DSL.
@@ -64,94 +61,6 @@ PositiveWorkListLimit = Annotated[int, Field(strict=True, ge=1, le=200)]
 
 def _request_id(prefix: str, payload: object) -> str:
     return f"{prefix}:{canonical_digest(payload).removeprefix('sha256:')}"
-
-
-def _domain_error_payload(exc: Exception) -> dict[str, object]:
-    payload: dict[str, object] = {
-        "schemaVersion": 1,
-        "kind": "ordivon.host-domain-error",
-        "retryable": False,
-    }
-    if isinstance(exc, WorkNotFound):
-        payload.update(
-            code="NOT_FOUND",
-            resourceKind="work",
-            resourceRef=str(exc),
-            suggestedAction="discover-before-create",
-        )
-    elif isinstance(exc, ActorRefNotFound):
-        payload.update(
-            code="NOT_FOUND",
-            resourceKind="actor",
-            resourceRef=str(exc),
-            suggestedAction="inspect-owner-inventory",
-        )
-    elif isinstance(exc, SpaceNotFound):
-        payload.update(
-            code="NOT_FOUND",
-            resourceKind="space",
-            resourceRef=str(exc),
-            suggestedAction="inspect-owner-inventory",
-        )
-    elif isinstance(exc, TopicNotFound):
-        payload.update(
-            code="NOT_FOUND",
-            resourceKind="topic",
-            resourceRef=str(exc),
-            suggestedAction="inspect-owner-inventory",
-        )
-    elif isinstance(exc, MessageNotFound):
-        payload.update(
-            code="NOT_FOUND",
-            resourceKind="message",
-            resourceRef=str(exc),
-            suggestedAction="inspect-owner-inventory",
-        )
-    elif isinstance(exc, ConflictError):
-        payload.update(
-            code="CONFLICT",
-            detail=str(exc),
-            suggestedAction="reread-current-state-and-reconcile",
-        )
-    elif isinstance(exc, ValidationError):
-        payload.update(
-            code="INVALID_ARGUMENT",
-            issues=exc.errors(include_url=False, include_input=False),
-            suggestedAction="correct-request",
-        )
-    elif isinstance(exc, ValueError):
-        payload.update(
-            code="INVALID_ARGUMENT",
-            detail=str(exc),
-            suggestedAction="correct-request",
-        )
-    else:  # pragma: no cover - caller catches only the explicit domain set below.
-        raise TypeError(f"unsupported domain error type: {type(exc).__name__}")
-    return payload
-
-
-def _project_domain_errors(func):
-    """Map expected Host-domain rejection to MCP ToolError without hiding crashes."""
-
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except (
-            WorkNotFound,
-            ActorRefNotFound,
-            SpaceNotFound,
-            TopicNotFound,
-            MessageNotFound,
-            ConflictError,
-            ValidationError,
-            ValueError,
-        ) as exc:
-            raise ToolError(
-                json.dumps(_domain_error_payload(exc), sort_keys=True, separators=(",", ":"))
-            ) from None
-
-    return wrapped
 
 
 def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
