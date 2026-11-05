@@ -2373,6 +2373,17 @@ def _mcp_decorated_route_functions(
     return found
 
 
+def _gateway_host_route_source() -> str:
+    """Concatenate actual registered route definitions for source graph checks."""
+    base = ROOT / "services/gateway/src/ordivon_gateway"
+    return "\n".join(
+        (base / f"host_{owner}_tools.py").read_text(encoding="utf-8").replace(
+            "from __future__ import annotations\n", ""
+        )
+        for owner in ("work", "social", "attention")
+    )
+
+
 def _host_core_parent_consumer_contract(plan: dict, host_text: str,
                                         gateway_text: str) -> None:
     import ast
@@ -2440,6 +2451,30 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     assert not (work_routes.keys() & (social_routes.keys() | attention_routes.keys()))
     assert not (social_routes.keys() & attention_routes.keys())
     actual_host = {**work_routes, **social_routes, **attention_routes}
+    gateway_registrar = ast.parse(
+        (ROOT / "services/gateway/src/ordivon_gateway/host_tools.py").read_text(
+            encoding="utf-8"
+        )
+    )
+    gateway_register = next(
+        node for node in gateway_registrar.body
+        if isinstance(node, ast.FunctionDef) and node.name == "register_host_tools"
+    )
+    for owner in ("work", "social", "attention"):
+        registration = f"register_host_{owner}_tools"
+        assert any(
+            isinstance(node, ast.ImportFrom) and node.level == 1
+            and node.module == f"host_{owner}_tools"
+            and any(alias.name == registration for alias in node.names)
+            for node in gateway_registrar.body
+        ), f"Gateway {owner} adapter not imported"
+        assert any(
+            isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+            and node.func.id == registration
+            and [arg.id if isinstance(arg, ast.Name) else None for arg in node.args]
+            == ["server", "_host"]
+            for node in ast.walk(gateway_register)
+        ), f"Gateway {owner} adapter not registered"
     actual_gateway = _mcp_decorated_route_functions(
         ROOT / "services/gateway/src/ordivon_gateway/host_tools.py", "server",
         source_override=gateway_text)
@@ -2521,7 +2556,7 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
 def test_host_core_parent_lego_consumer_refinement_is_bound_to_real_calls() -> None:
     plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
     host_text = (ROOT / "services/host/src/ordivon_host_v2/service.py").read_text()
-    gateway_text = (ROOT / "services/gateway/src/ordivon_gateway/host_tools.py").read_text()
+    gateway_text = _gateway_host_route_source()
     _host_core_parent_consumer_contract(plan, host_text, gateway_text)
     # These are formerly unqualified *declarations*, not a formal proof or
     # evidence that current installed Windows/Linux binaries match Git.
@@ -2540,7 +2575,7 @@ def test_host_parent_refinement_fails_on_lost_consumption_or_false_proof(
 ) -> None:
     plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
     host_text = (ROOT / "services/host/src/ordivon_host_v2/service.py").read_text()
-    gateway_text = (ROOT / "services/gateway/src/ordivon_gateway/host_tools.py").read_text()
+    gateway_text = _gateway_host_route_source()
     if mutation == "consumer":
         next(n for n in plan["nodes"] if n["id"] == "O01")["consumers"] = [
             "mcp_work_tools:work.does_not_exist"]
