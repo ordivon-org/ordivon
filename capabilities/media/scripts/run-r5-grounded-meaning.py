@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from ordivon_studio.research.grounded_contracts import canonical_digest
-from ordivon_studio.research.grounded_meaning import build_provider_bundle
+from ordivon_studio.research.grounded_provider import build_provider_bundle
 from ordivon_studio.research.grounded_scoring import score_provider_receipt
 
 

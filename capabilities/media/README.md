@@ -228,3 +228,12 @@ seed seal), `trial_ledger.py` (PostgreSQL-native append-only history), and
 `search_calibration.py` (search/replay/holdout and null calibration).
 No legacy `research_validity.py` facade or second database authority is
 retained. The research CLIs and test consumers import the natural boundary.
+
+The R5 Grounded Meaning research method is implemented by
+`research/grounded_evidence.py` (evidence and result contracts),
+`research/grounded_text_tasks.py` (controlled writing and comprehension tasks),
+`research/grounded_av_tasks.py` (source-semantic video, timed transcript,
+speech and crossmodal tasks), and `research/grounded_provider.py` (the
+existing bundled experiment entry point). `grounded_scoring.py` independently
+scores provider receipts. The former `grounded_meaning.py` is retired rather
+than retained as a forwarding module.
