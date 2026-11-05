@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import base64
 import hashlib
-import json
 import os
 import re
 import shutil
@@ -17,6 +15,12 @@ from artifact_core.json_validation import load_json
 from artifact_core.json_validation import validate_json_document as validate_json_document
 from artifact_core.profile_v1 import validate_profile_v1 as validate_profile
 from artifact_trust.provenance import IN_TOTO_STATEMENT_V1 as IN_TOTO_STATEMENT_V1
+from artifact_trust.sigstore_bundle import (
+    INTOTO_DSSE_PAYLOAD_TYPE as INTOTO_DSSE_PAYLOAD_TYPE,
+)
+from artifact_trust.sigstore_bundle import (
+    verify_sigstore_vsa_bundle_shape as verify_sigstore_vsa_bundle_shape,
+)
 from artifact_trust.trust_policy import (
     DEFAULT_VSA_TRUST_POLICY_SCHEMA as DEFAULT_VSA_TRUST_POLICY_SCHEMA,
 )
@@ -54,7 +58,6 @@ GLOBAL_COSIGN = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/bin/cosign"
 GLOBAL_COSIGN_ARCH_PACKAGE = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/provenance/cosign-3.1.3-1-x86_64.pkg.tar.zst"
 GLOBAL_COSIGN_ARCH_PACKAGE_SIGNATURE = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/provenance/cosign-3.1.3-1-x86_64.pkg.tar.zst.sig"
 LOCAL_VSA_VERIFIER_ID = "https://ordivon.local/verifiers/artifact-delivery-v1"
-INTOTO_DSSE_PAYLOAD_TYPE = "application/vnd.in-toto+json"
 COSIGN_STANDARD_BUNDLE_MIN_VERSION = (3, 0, 6)
 VSA_GATE_NAMES = frozenset({
     "profileSchema", "structural", "dependency", "semantic", "visual",
@@ -311,65 +314,6 @@ def _version_at_least(observed: Iterable[int], minimum: tuple[int, int, int]) ->
     return values >= minimum
 
 
-def verify_sigstore_vsa_bundle_shape(
-    bundle_path: Path,
-    statement_path: Path,
-    accepted_media_types: Iterable[str],
-    signer_mode: str,
-) -> dict[str, Any]:
-    failures: list[str] = []
-    bundle = load_json(bundle_path)
-    statement = load_json(statement_path)
-    accepted = set(accepted_media_types)
-    media_type = bundle.get("mediaType") if isinstance(bundle, dict) else None
-    if media_type != SIGSTORE_BUNDLE_V03 or media_type not in accepted:
-        failures.append("bundle is not an explicitly accepted standardized Sigstore v0.3 JSON bundle")
-    envelope = bundle.get("dsseEnvelope") if isinstance(bundle, dict) else None
-    signed_statement: Any = None
-    if not isinstance(envelope, dict):
-        failures.append("Sigstore bundle does not contain a DSSE envelope")
-    else:
-        if envelope.get("payloadType") != INTOTO_DSSE_PAYLOAD_TYPE:
-            failures.append("DSSE payloadType is not application/vnd.in-toto+json")
-        signatures = envelope.get("signatures")
-        if not isinstance(signatures, list) or not signatures:
-            failures.append("DSSE envelope contains no signature")
-        payload = envelope.get("payload")
-        if not isinstance(payload, str):
-            failures.append("DSSE envelope payload is absent")
-        else:
-            try:
-                decoded = base64.b64decode(payload, validate=True)
-                signed_statement = json.loads(decoded)
-            except Exception as error:
-                failures.append(f"DSSE payload is not valid base64 JSON: {error}")
-    if signed_statement is not None and signed_statement != statement:
-        failures.append("detached VSA statement does not exactly match the JSON object authenticated by the DSSE bundle")
-    verification_material = bundle.get("verificationMaterial") if isinstance(bundle, dict) else None
-    tlog_entries: list[Any] = []
-    if not isinstance(verification_material, dict):
-        failures.append("Sigstore bundle verificationMaterial is absent")
-    else:
-        raw_entries = verification_material.get("tlogEntries")
-        if isinstance(raw_entries, list):
-            tlog_entries = raw_entries
-        if signer_mode == "public-key" and not isinstance(verification_material.get("publicKey"), dict):
-            failures.append("public-key signer requires standardized bundle publicKey verification material")
-        if signer_mode == "keyless":
-            if not isinstance(verification_material.get("certificate"), dict):
-                failures.append("keyless signer requires standardized bundle leaf certificate verification material")
-            if isinstance(verification_material.get("publicKey"), dict):
-                failures.append("keyless signer bundle must not substitute raw publicKey verification material")
-    return {
-        "status": "PASS" if not failures else "FAIL",
-        "bundle": file_fact(bundle_path),
-        "mediaType": media_type,
-        "payloadType": envelope.get("payloadType") if isinstance(envelope, dict) else None,
-        "signatureCount": len(envelope.get("signatures", [])) if isinstance(envelope, dict) and isinstance(envelope.get("signatures"), list) else 0,
-        "tlogEntryCount": len(tlog_entries),
-        "signedStatementMatches": signed_statement == statement if signed_statement is not None else False,
-        "failures": failures,
-    }
 
 
 def verify_signed_verification_summary(
