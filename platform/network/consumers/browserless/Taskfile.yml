@@ -5,7 +5,7 @@ tasks:
     desc: Validate the one-identity shared provider carrier without changing live state
     cmds:
       - /usr/bin/sing-box check -c consumers/browserless/config/provider-carrier.json
-      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-netns.service consumers/browserless/systemd/network-v2-browserless-forward.service consumers/browserless/systemd/network-v2-browserless-wireguard.service consumers/browserless/systemd/network-v2-browserless-dns.service consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/browserless/systemd/network-v2-browserless.target
+      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-netns.service consumers/browserless/systemd/network-v2-browserless-forward.service consumers/browserless/systemd/network-v2-browserless-wireguard.service consumers/browserless/systemd/network-v2-browserless-dns.service consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/browserless/systemd/network-v2-browserless.target consumers/browserless/systemd/network-v2-browserless-legacy-provider.target
       - /usr/bin/bash -n consumers/browserless/provider-carrier-ready.sh consumers/browserless/provider-switch.sh consumers/browserless/production-cutover.sh
       - grep -F 'PROVIDER_SITE=${PROVIDER_SITE:-th-bkk}' consumers/browserless/production-cutover.sh >/dev/null
 
@@ -20,12 +20,17 @@ tasks:
           systemctl is-active --quiet network-v2-gluetun-owned.service
           systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
           install -d -m 0755 /usr/local/libexec/network-v2
+          install -m 0644 consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+          install -m 0644 consumers/browserless/systemd/network-v2-browserless-legacy-provider.target /etc/systemd/system/network-v2-browserless-legacy-provider.target
+          # Only a daemon-reload: no selected Provider or Consumer restart.
+          systemctl daemon-reload
           install -m 0755 consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
         else
           install -d -m 0755 /etc/network-v2/browserless /usr/local/libexec/network-v2
           install -m 0644 consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
           install -m 0644 consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
           install -m 0644 consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+          install -m 0644 consumers/browserless/systemd/network-v2-browserless-legacy-provider.target /etc/systemd/system/network-v2-browserless-legacy-provider.target
           install -m 0755 consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
           install -m 0755 consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
           install -m 0755 consumers/browserless/acceptance/production-path.sh /usr/local/libexec/network-v2/browserless-production-path
@@ -62,6 +67,13 @@ tasks:
     desc: Check current owned/legacy SourceCut and real provider consequence, not inactive legacy artifacts
     cmds:
       - cmp -s consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+      - cmp -s consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+      - cmp -s consumers/browserless/systemd/network-v2-browserless-legacy-provider.target /etc/systemd/system/network-v2-browserless-legacy-provider.target
+      - |
+        if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
+          ! systemctl is-active --quiet network-v2-browserless-legacy-provider.target
+          ! systemctl is-enabled --quiet network-v2-browserless-legacy-provider.target
+        fi
       - |
         if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
           systemctl is-active --quiet network-v2-gluetun-owned.service

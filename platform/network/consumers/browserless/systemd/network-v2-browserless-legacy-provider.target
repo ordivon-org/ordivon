@@ -1,0 +1,10 @@
+# Cold-replacement rollback target. It is installed but disabled while Gluetun owns provider mode.
+[Unit]
+Description=Network v2 legacy WireGuard rollback provider mode
+Requires=network-v2-browserless.target
+Wants=network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service
+After=network-v2-browserless.target network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service
+ConditionPathExists=!/etc/network-v2/gluetun/m4-owned-mode.selected
+
+[Install]
+WantedBy=multi-user.target
