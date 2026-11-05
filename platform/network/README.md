@@ -25,6 +25,14 @@ network-v2-r0.target
 
 `network-v2-r0.target` is the stable live unit name. The historical `r0` token is retained only to avoid an unnecessary service-identity migration.
 
+## Long-horizon execution
+
+The source-bound 49-obligation DAG and acceptance catalog is
+[planning/execution-program-r1.md](planning/execution-program-r1.md).
+Host Work owns mutable task state; this is not a second status registry.
+The first NS2 source-only spy extension covers Codex, Discord and Model
+Provider, but cannot itself certify deployed no-bypass or process behavior.
+
 ## Repository boundaries
 
 ```text
