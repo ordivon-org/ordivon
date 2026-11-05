@@ -60,7 +60,11 @@ Those eight operations account for 92.87% of counted calls. Advanced surfaces ar
    - `engine/workspace.rs`
    - `engine/execution.rs`
    - `engine/reconciliation.rs`
-   - `engine/control_query.rs`
+   - `engine/job_control.rs`
+   - `engine/execution_environment.rs`
+   - `engine/terminal_evidence.rs`
+   - `engine/workspace_evidence.rs`
+   - `engine/job_activity_evidence.rs`
 5. Deleted the unused public `workspace_is_dirty` wrapper and its duplicate Git status implementation. Its ignore semantics are now covered by the stronger `workspace_head_and_dirty_at` test.
 
 ## Phase 2 changes
