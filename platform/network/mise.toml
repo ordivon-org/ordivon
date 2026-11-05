@@ -21,3 +21,13 @@ set -euo pipefail
 command -v sing-box >/dev/null || { echo 'sing-box is required for network behavior verification' >&2; exit 2; }
 PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with pytest==9.1.1   python -m pytest -q -p no:cacheprovider tests/test_egress_routing_behavior.py
 '''
+
+# Opt-in installed SourceCut: rerun the SAME native sing-box independent
+# upstream spy against installed bytes, requiring exact source/install equality.
+# No production proxy, VPN or endpoint restart occurs.
+[tasks.behavior-installed]
+run = '''
+set -euo pipefail
+command -v sing-box >/dev/null || { echo 'sing-box is required' >&2; exit 2; }
+ORDIVON_NETWORK_POLICY_SOURCE=installed PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with pytest==9.1.1 python -m pytest -q -p no:cacheprovider tests/test_egress_routing_behavior.py
+'''

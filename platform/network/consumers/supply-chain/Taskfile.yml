@@ -6,7 +6,7 @@ tasks:
     deps: [consumer:browserless:provider-carrier:validate]
     cmds:
       - /usr/bin/sing-box check -c consumers/supply-chain/config/egress.json
-      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.supply-chain-egress" and .listen=={"host":"127.0.0.1","port":19581,"protocol":"http"} and .networkAuthority.carrierService=="network-v2-browserless-provider-carrier.service" and .networkAuthority.providerSite=="th-bkk" and .directFallback==false' consumers/supply-chain/config/authority.json >/dev/null
+      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.supply-chain-egress" and .listen=={"host":"127.0.0.1","port":19581,"protocol":"http"} and .networkAuthority.carrierService=="network-v2-gluetun-owned-adapter.service" and .networkAuthority.namespace=="nv2-browserless-prod" and (.networkAuthority|has("providerSite")|not) and .directFallback==false' consumers/supply-chain/config/authority.json >/dev/null
       - jq -e '.inbounds==[{"type":"http","tag":"supply-chain-oci","listen":"127.0.0.1","listen_port":19581}] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and .route.rules[-1].action=="reject" and (has("dns")|not) and (has("services")|not)' consumers/supply-chain/config/egress.json >/dev/null
       - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/supply-chain/systemd/network-v2-supply-chain-egress.service consumers/supply-chain/systemd/network-v2-supply-chain.target
       - /usr/bin/bash -n consumers/supply-chain/ready.sh consumers/supply-chain/acceptance/docker-rebind-smoke.sh
@@ -69,7 +69,6 @@ tasks:
       - |
         docker info 2>/dev/null | grep -F 'HTTP Proxy: http://127.0.0.1:19581' >/dev/null
         docker info 2>/dev/null | grep -F 'HTTPS Proxy: http://127.0.0.1:19581' >/dev/null
-      - docker image inspect 'openpolicyagent/opa@sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f' >/dev/null
 
   consumer:supply-chain:stop:
     desc: Stop the Supply-Chain proxy only; callers must not stop it while Docker remains proxy-bound
