@@ -52,6 +52,7 @@ def project_creative_library_source(
                 "sourcePath": work.get("sourcePath"),
                 "sourceKind": work.get("sourceKind"),
                 "sourceTreeDigest": work.get("sourceTreeDigest"),
+                "sourceTreeStanding": work.get("sourceTreeStanding"),
                 "modalities": sorted(value for value in work.get("modalities", []) if isinstance(value, str)),
                 "room": work.get("room"),
                 "series": work.get("series"),
