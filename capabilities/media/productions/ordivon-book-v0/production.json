@@ -132,7 +132,14 @@
       "portable/portable-pdf.receipt.json"
     ],
     "sourceDocuments": [
-      "future-horizon-laboratory.mdx"
+      "future-horizon-laboratory.mdx",
+      "story.mdx",
+      "chapter-02.mdx",
+      "chapter-03.mdx",
+      "chapter-04.mdx",
+      "chapter-05.mdx",
+      "chapter-06.mdx",
+      "chapter-07.mdx"
     ]
   },
   "outputs": [
@@ -141,14 +148,16 @@
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:bb1a14412b98c576479f5fa6f0950314309a8d73a817b5e354e68fc6367cb8f1"
+      "blobDigest": "sha256:bb1a14412b98c576479f5fa6f0950314309a8d73a817b5e354e68fc6367cb8f1",
+      "sourceCarrier": "story.mdx"
     },
     {
       "id": "ordivon-book-v0-chapter-2-zh",
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:af70e8b0f8a3f93943c25dd01fef10e6be1d8d84839fd7e99b9e5287d2bd097a"
+      "blobDigest": "sha256:af70e8b0f8a3f93943c25dd01fef10e6be1d8d84839fd7e99b9e5287d2bd097a",
+      "sourceCarrier": "chapter-02.mdx"
     },
     {
       "id": "ordivon-book-v0-current-zh",
@@ -163,21 +172,24 @@
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:bcf33947a2aeff2867900a7126fe2a9c6d69a0122fbeed6b45856be36d08b0de"
+      "blobDigest": "sha256:bcf33947a2aeff2867900a7126fe2a9c6d69a0122fbeed6b45856be36d08b0de",
+      "sourceCarrier": "chapter-03.mdx"
     },
     {
       "id": "ordivon-book-v0-chapter-4-zh",
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:38cbcb4e3f0b8f8b00f401f554fd90505a43047a7bc2bcbb62c223dd1eeacba3"
+      "blobDigest": "sha256:38cbcb4e3f0b8f8b00f401f554fd90505a43047a7bc2bcbb62c223dd1eeacba3",
+      "sourceCarrier": "chapter-04.mdx"
     },
     {
       "id": "ordivon-book-v0-chapter-5-zh",
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:7ae8104ffc6b8b1af5f2207ad95046815017fed79b3013107d6203948944f442"
+      "blobDigest": "sha256:7ae8104ffc6b8b1af5f2207ad95046815017fed79b3013107d6203948944f442",
+      "sourceCarrier": "chapter-05.mdx"
     },
     {
       "id": "ordivon-book-v0-future-horizon-laboratory-zh",
@@ -192,14 +204,16 @@
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:063a401e225f88f61af39c91225cc1273d4f87fdcd1a123bcf30459cfc49b218"
+      "blobDigest": "sha256:063a401e225f88f61af39c91225cc1273d4f87fdcd1a123bcf30459cfc49b218",
+      "sourceCarrier": "chapter-06.mdx"
     },
     {
       "id": "ordivon-book-v0-chapter-7-zh",
       "kind": "article",
       "status": "approved",
       "profile": "writing",
-      "blobDigest": "sha256:3675074fada87e77d15538151b06f9397c6c222eeb4e913011868e8fafbd909e"
+      "blobDigest": "sha256:3675074fada87e77d15538151b06f9397c6c222eeb4e913011868e8fafbd909e",
+      "sourceCarrier": "chapter-07.mdx"
     },
     {
       "id": "ordivon-book-v0-portable-pdf-zh",

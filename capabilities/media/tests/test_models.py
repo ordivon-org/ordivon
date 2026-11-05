@@ -32,8 +32,27 @@ class ModelTests(unittest.TestCase):
                 self.assertEqual(_validate_production_semantics(path, production, claims, None), [])
                 self.assertEqual(
                     len([out for out in production["outputs"] if "sourceCarrier" in out]),
-                    2 if name == "ordivon-book-v0" else 1,
+                    9 if name == "ordivon-book-v0" else 1,
                 )
+
+    def test_book_chapters_are_exact_source_carriers(self) -> None:
+        root = ROOT / "productions/ordivon-book-v0"
+        path = root / "production.json"
+        production = json.loads(path.read_text(encoding="utf-8"))
+        claims = json.loads((root / "claims.json").read_text(encoding="utf-8"))
+        chapters = [
+            output for output in production["outputs"]
+            if output["id"].startswith("ordivon-book-v0-chapter-")
+        ]
+        self.assertEqual(len(chapters), 7)
+        self.assertEqual(
+            {o["sourceCarrier"] for o in chapters},
+            {"story.mdx", *{f"chapter-{n:02d}.mdx" for n in range(2, 8)}},
+        )
+        self.assertEqual(_validate_production_semantics(path, production, claims, None), [])
+        corrupted = copy.deepcopy(production)
+        next(o for o in corrupted["outputs"] if o["id"] == "ordivon-book-v0-chapter-7-zh")["blobDigest"] = "sha256:" + "0" * 64
+        self.assertTrue(any("digest mismatch" in error for error in _validate_production_semantics(path, corrupted, claims, None)))
 
     def test_future_horizon_output_is_bound_to_real_repository_bytes(self) -> None:
         root = ROOT / "productions/ordivon-book-v0"
