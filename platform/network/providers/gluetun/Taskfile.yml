@@ -1,0 +1,40 @@
+version: '3'
+
+tasks:
+  provider:gluetun:validate:
+    desc: Validate existing Quadlet-owned single-session provider and recovery lifecycle without effects
+    cmds:
+      - bash -n providers/gluetun/identity-exclusive.sh
+      - sing-box check -c providers/gluetun/config/carrier-adapter.json
+      - systemd-analyze verify providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.service providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer
+      - grep -q '^EnvironmentFile=/etc/network-v2/gluetun/serialized-candidate.env$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
+      - grep -q '^Volume=/etc/network-v2/browserless/nv2blwg.conf:/gluetun/wireguard/wg0.conf:ro$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
+
+  provider:gluetun:verify:
+    desc: Verify deployed Gluetun SourceCut and real shared-provider HTTPS path
+    deps: [provider:gluetun:validate]
+    cmds:
+      - cmp -s providers/gluetun/identity-exclusive.sh /usr/local/libexec/network-v2/provider-identity-exclusive
+      - cmp -s providers/gluetun/config/carrier-adapter.json /etc/network-v2/browserless/provider-carrier-gluetun-candidate.json
+      - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned.target /etc/systemd/system/network-v2-gluetun-owned.target
+      - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned-adapter.service /etc/systemd/system/network-v2-gluetun-owned-adapter.service
+      - cmp -s providers/gluetun/quadlet/network-v2-gluetun-owned.container /etc/containers/systemd/network-v2-gluetun-owned.container
+      - cmp -s providers/gluetun/quadlet/network-v2-gluetun-owned.network /etc/containers/systemd/network-v2-gluetun-owned.network
+      - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.service /etc/systemd/system/network-v2-gluetun-owned-reconcile.service
+      - cmp -s providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer /etc/systemd/system/network-v2-gluetun-owned-reconcile.timer
+      - systemctl is-active --quiet network-v2-gluetun-owned.target
+      - systemctl is-active --quiet network-v2-gluetun-owned-reconcile.timer
+      - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+
+  provider:gluetun:observe-exit:
+    desc: Optional one-shot IPinfo public egress observation through selected Gluetun proxy; not health or provider selection
+    cmds:
+      - |
+        test -e /etc/network-v2/gluetun/m4-owned-mode.selected
+        tmp=$(mktemp)
+        trap 'rm -f "$tmp"' EXIT
+        receipt=$(curl -q -4 --noproxy '' -fsS           -x http://10.252.246.2:19680           --connect-timeout 6 --max-time 15 -o "$tmp"           -w '%{http_code} %{http_connect}' https://ipinfo.io/json)
+        read -r code tunnel extra <<< "$receipt"
+        test "$code" = 200 && test "$tunnel" = 200 && test -z "$extra"
+        jq -ce '(.ip|type=="string") and (.country|type=="string")' "$tmp" >/dev/null
+        jq -c '{kind:"ordivon.network-v2.provider-egress-observation",standing:"OBSERVED_NOT_READINESS",source:"ipinfo.io",ip,country,org}' "$tmp"

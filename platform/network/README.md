@@ -38,6 +38,34 @@ docs/          current architecture, decisions and acceptance matrix
 evidence/      current capability standing
 ```
 
+## Native task composition
+
+The root `Taskfile.yml` is the public orchestration surface, not a dumping
+ground for provider and application scripts. Native Go Task `includes` with
+`flatten: true` bind each submodule's own `Taskfile.yml` into exactly the same
+public `provider:*`, `consumer:*`, `capability:*` and `reference:*` task names.
+The included Taskfiles deliberately inherit the repository-root working
+directory; executing one as a standalone Taskfile is not the supported
+deployment entrypoint.
+
+Examples of natural Owner files:
+
+- `providers/gluetun/Taskfile.yml` — physical Provider source and acceptance
+- `providers/surfshark/Taskfile.yml` — provider catalog and profiles
+- `consumers/browserless/Taskfile.yml` — shared carrier and legacy cutover
+- `consumers/codex/Taskfile.yml` — Codex scoped proxy
+- `consumers/mobile-tailnet-exit/Taskfile.yml` — Tailscale exit
+- `consumers/finance/Taskfile.yml` — separate Finance destination authority
+- `capabilities/wireguard/Taskfile.yml` — reusable WireGuard capability
+- `reference/linux/Taskfile.yml` — external Linux reference fidelity
+
+Other application consumers use the same convention. The root retains generic
+platform lifecycle, cross-module acceptance and evidence operations. There is
+no additional task router or custom registry. Run `task --list-all`,
+`task all:validate` and `mise run ci` from `platform/network/` before release.
+Validation proves declared source/config contracts; `task ...:verify` checks
+deployed SourceCut and real consumer consequences separately.
+
 Generic core tasks do not depend on provider or consumer profiles.
 Old round evidence is recoverable in Git and is not retained as current documentation.
 The selected Gluetun Quadlet owns the single physical provider session.
@@ -66,7 +94,7 @@ Optional provider and consumer surfaces use their own namespaces, for example `p
 
 ## Current standing
 
-Current WSL platform standing: **LOCAL_WSL_GRADUATED**.
+The checked-in WSL acceptance record reports **LOCAL_WSL_GRADUATED** at **2026-09-12T15:23:44Z**, for its exact recorded source and platform fingerprints. It is a historical acceptance witness, **not** a claim that the current WSL installation has passed a fresh full graduation since later reconfiguration and outages.
 
 Proven locally:
 

@@ -1,0 +1,77 @@
+version: '3'
+
+tasks:
+  consumer:supply-chain:validate:
+    desc: Validate the scoped OCI authority over the shared provider carrier without changing Docker
+    deps: [consumer:browserless:provider-carrier:validate]
+    cmds:
+      - /usr/bin/sing-box check -c consumers/supply-chain/config/egress.json
+      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.supply-chain-egress" and .listen=={"host":"127.0.0.1","port":19581,"protocol":"http"} and .networkAuthority.carrierService=="network-v2-browserless-provider-carrier.service" and .networkAuthority.providerSite=="th-bkk" and .directFallback==false' consumers/supply-chain/config/authority.json >/dev/null
+      - jq -e '.inbounds==[{"type":"http","tag":"supply-chain-oci","listen":"127.0.0.1","listen_port":19581}] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and .route.rules[-1].action=="reject" and (has("dns")|not) and (has("services")|not)' consumers/supply-chain/config/egress.json >/dev/null
+      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/supply-chain/systemd/network-v2-supply-chain-egress.service consumers/supply-chain/systemd/network-v2-supply-chain.target
+      - /usr/bin/bash -n consumers/supply-chain/ready.sh consumers/supply-chain/acceptance/docker-rebind-smoke.sh
+      - grep -F '127.0.0.1:19581' consumers/supply-chain/systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf >/dev/null
+      - '! grep -R --exclude=Taskfile.yml -F "10.254.177.2:19381" consumers/supply-chain'
+      - '! grep -R -F "provider-auto" consumers/supply-chain/config'
+
+  consumer:supply-chain:materialize:
+    desc: Materialize OCI authority and Docker proxy binding over the shared provider carrier without restarting Docker
+    deps: [consumer:browserless:provider-carrier:materialize, consumer:supply-chain:validate]
+    cmds:
+      - install -d -m 0755 /etc/network-v2/supply-chain /etc/systemd/system/docker.service.d /usr/local/libexec/network-v2
+      - install -m 0644 consumers/supply-chain/config/authority.json /etc/network-v2/supply-chain/authority.json
+      - install -m 0644 consumers/supply-chain/config/egress.json /etc/network-v2/supply-chain/egress.json
+      - rm -f /etc/network-v2/supply-chain/provider-endpoints.json
+      - install -m 0644 consumers/supply-chain/systemd/network-v2-supply-chain-egress.service /etc/systemd/system/network-v2-supply-chain-egress.service
+      - install -m 0644 consumers/supply-chain/systemd/network-v2-supply-chain.target /etc/systemd/system/network-v2-supply-chain.target
+      - install -m 0755 consumers/supply-chain/ready.sh /usr/local/libexec/network-v2/supply-chain-ready
+      - install -m 0644 consumers/supply-chain/systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf /etc/systemd/system/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf
+      - rm -f /etc/systemd/system/docker.service.d/ordivon-preservation-vpn-proxy.conf
+      - systemctl daemon-reload
+      - systemctl enable network-v2-supply-chain.target
+
+  consumer:supply-chain:start:
+    desc: Start only the scoped Supply-Chain proxy; Docker remains untouched
+    deps: [consumer:supply-chain:materialize]
+    cmds:
+      - systemctl start network-v2-supply-chain.target
+
+  consumer:supply-chain:ready:
+    desc: Prove admitted OCI registry families and unknown-domain rejection without changing Docker
+    cmds:
+      - /usr/local/libexec/network-v2/supply-chain-ready
+
+  consumer:supply-chain:converge:
+    desc: Converge exact Supply-Chain proxy bytes without restarting Docker
+    cmds:
+      - task: consumer:supply-chain:materialize
+      - systemctl restart network-v2-supply-chain.target
+      - task: consumer:supply-chain:ready
+
+  consumer:supply-chain:docker-rebind:
+    desc: Rebind Docker from the retired Public-Web proxy, prove container recovery, and replay the pinned OPA pull
+    cmds:
+      - task: consumer:supply-chain:converge
+      - ./consumers/supply-chain/acceptance/docker-rebind-smoke.sh
+
+  consumer:supply-chain:verify:
+    desc: Verify deployed bytes, retired proxy absence, live scoped consequence, Docker binding, and pinned OPA availability
+    cmds:
+      - cmp -s consumers/supply-chain/config/authority.json /etc/network-v2/supply-chain/authority.json
+      - cmp -s consumers/supply-chain/config/egress.json /etc/network-v2/supply-chain/egress.json
+      - cmp -s consumers/supply-chain/systemd/network-v2-supply-chain-egress.service /etc/systemd/system/network-v2-supply-chain-egress.service
+      - cmp -s consumers/supply-chain/systemd/network-v2-supply-chain.target /etc/systemd/system/network-v2-supply-chain.target
+      - cmp -s consumers/supply-chain/systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf /etc/systemd/system/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf
+      - test ! -e /etc/systemd/system/docker.service.d/ordivon-preservation-vpn-proxy.conf
+      - test ! -e /etc/network-v2/supply-chain/provider-endpoints.json
+      - systemctl is-enabled --quiet network-v2-supply-chain.target
+      - /usr/local/libexec/network-v2/supply-chain-ready
+      - |
+        docker info 2>/dev/null | grep -F 'HTTP Proxy: http://127.0.0.1:19581' >/dev/null
+        docker info 2>/dev/null | grep -F 'HTTPS Proxy: http://127.0.0.1:19581' >/dev/null
+      - docker image inspect 'openpolicyagent/opa@sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f' >/dev/null
+
+  consumer:supply-chain:stop:
+    desc: Stop the Supply-Chain proxy only; callers must not stop it while Docker remains proxy-bound
+    cmds:
+      - systemctl stop network-v2-supply-chain.target

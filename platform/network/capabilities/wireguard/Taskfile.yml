@@ -1,0 +1,22 @@
+version: '3'
+
+tasks:
+  capability:wireguard:materialize:
+    desc: Build the pinned official wireguard-go source and install it only inside Network v2 libexec
+    cmds:
+      - rm -rf /tmp/network-v2-wireguard-go-build
+      - git init -q /tmp/network-v2-wireguard-go-build
+      - git -C /tmp/network-v2-wireguard-go-build remote add origin {{.WIREGUARD_GO_REPO}}
+      - git -C /tmp/network-v2-wireguard-go-build fetch --quiet --depth 1 origin {{.WIREGUARD_GO_REVISION}}
+      - git -C /tmp/network-v2-wireguard-go-build checkout --quiet --detach FETCH_HEAD
+      - test "$(git -C /tmp/network-v2-wireguard-go-build rev-parse HEAD)" = "{{.WIREGUARD_GO_REVISION}}"
+      - make -C /tmp/network-v2-wireguard-go-build
+      - install -d -m 0755 /usr/local/libexec/network-v2
+      - install -m 0755 /tmp/network-v2-wireguard-go-build/wireguard-go /usr/local/libexec/network-v2/wireguard-go
+      - /usr/local/libexec/network-v2/wireguard-go --version 2>&1 | grep -F "{{.WIREGUARD_GO_VERSION}}"
+
+  capability:wireguard:accept:
+    desc: Prove wg-quick + pinned official wireguard-go can create, fail, and recover a v2-owned userspace WireGuard lifecycle
+    cmds:
+      - task: capability:wireguard:materialize
+      - ./capabilities/wireguard/acceptance/userspace-lifecycle.sh

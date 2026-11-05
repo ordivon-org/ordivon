@@ -69,11 +69,12 @@ def test_semantic_consumers_survive_physical_carrier_loss():
 
 
 def test_no_current_consumer_materializes_duplicate_provider_identity():
-    taskfile = (ROOT / "Taskfile.yml").read_text()
-    assert "rm -f /etc/network-v2/finance/provider-endpoints.json" in taskfile
-    assert "rm -f /etc/network-v2/supply-chain/provider-endpoints.json" in taskfile
-    assert "provider-endpoints.json -c /etc/network-v2/finance" not in taskfile
-    assert "provider-endpoints.json -c /etc/network-v2/supply-chain" not in taskfile
+    finance = (FINANCE / "Taskfile.yml").read_text()
+    supply = (SUPPLY / "Taskfile.yml").read_text()
+    assert "rm -f /etc/network-v2/finance/provider-endpoints.json" in finance
+    assert "rm -f /etc/network-v2/supply-chain/provider-endpoints.json" in supply
+    assert "provider-endpoints.json -c /etc/network-v2/finance" not in finance
+    assert "provider-endpoints.json -c /etc/network-v2/supply-chain" not in supply
     for directory in (FINANCE / "config", SUPPLY / "config"):
         for path in directory.glob("*.json"):
             assert "provider-auto" not in path.read_text()
@@ -137,7 +138,7 @@ def test_legacy_provider_switch_rejects_m4_before_any_mutation(tmp_path: Path) -
 
 def test_selected_gluetun_materialization_is_readiness_only():
     """The selected physical Provider must not be replaced by inactive legacy units."""
-    taskfile = (ROOT / "Taskfile.yml").read_text()
+    taskfile = (BROWSERLESS / "Taskfile.yml").read_text()
     block = taskfile.split(
         "  consumer:browserless:provider-carrier:materialize:", 1
     )[1].split("\n  consumer:browserless:provider-carrier:ready:", 1)[0]

@@ -1,0 +1,7 @@
+version: '3'
+
+tasks:
+  capability:failover:accept:
+    desc: Prove HAProxy TCP primary/backup failover across mature sing-box provider/direct carriers without mutating the provider tunnel
+    cmds:
+      - ./capabilities/failover/acceptance/priority-failover-smoke.sh

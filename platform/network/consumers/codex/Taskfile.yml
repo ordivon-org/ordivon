@@ -1,0 +1,20 @@
+version: '3'
+
+tasks:
+  consumer:codex:validate:
+    desc: Validate Codex destination-scoped fail-closed HTTP egress policy without effects
+    cmds:
+      - sing-box check -c consumers/codex/config/sing-box.json
+      - bash -n consumers/codex/ready.sh
+      - systemd-analyze verify consumers/codex/systemd/network-v2-codex.target consumers/codex/systemd/network-v2-codex-proxy.service consumers/codex/systemd/network-v2-codex-relay.service
+
+  consumer:codex:verify:
+    desc: Verify installed Codex byte identity and real ChatGPT success/unknown-domain denial
+    deps: [consumer:codex:validate]
+    cmds:
+      - cmp -s consumers/codex/config/sing-box.json /etc/network-v2/codex/sing-box.json
+      - cmp -s consumers/codex/ready.sh /usr/local/libexec/network-v2/codex-ready
+      - cmp -s consumers/codex/systemd/network-v2-codex.target /etc/systemd/system/network-v2-codex.target
+      - cmp -s consumers/codex/systemd/network-v2-codex-proxy.service /etc/systemd/system/network-v2-codex-proxy.service
+      - cmp -s consumers/codex/systemd/network-v2-codex-relay.service /etc/systemd/system/network-v2-codex-relay.service
+      - /usr/local/libexec/network-v2/codex-ready
