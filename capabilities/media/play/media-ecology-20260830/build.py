@@ -10,14 +10,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ordivon_studio.ecology import (  # noqa: E402
-    collection_feed_item,
-    derive_activity_feed,
-    derive_board_threads,
-    normalize_board_source,
-    thread_feed_items,
-    validate_collection,
-)
+from ordivon_studio.ecology.board import derive_board_threads, normalize_board_source  # noqa: E402
+from ordivon_studio.ecology.collection import collection_feed_item, validate_collection  # noqa: E402
+from ordivon_studio.ecology.feed import derive_activity_feed, thread_feed_items  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 
