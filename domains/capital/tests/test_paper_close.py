@@ -163,3 +163,38 @@ def test_postgres_paper_receipt_binds_admitted_market_bytes():
     changed_binding = admit("2026-01-09T18:00:00Z")
     with pytest.raises(ValueError, match="conflicting"):
         store.close_session(account, replace(day1, marks={}), mark_snapshot=changed_binding)
+
+
+def test_postgres_carries_buy_payable_over_a_market_only_session():
+    dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from ordivon_capital.accounting.postgres_paper_close import PostgresPaperClose
+
+    # Markets can open on a day when the securities settlement service is closed.
+    before = date(2026, 11, 9)
+    trade = date(2026, 11, 10)
+    market_only = date(2026, 11, 11)
+    settlement = date(2026, 11, 12)
+    fill = paper_close.PaperBuy(
+        "after-holiday", "ETF", 10, 10_000, 100,
+        datetime.fromisoformat("2026-11-09T16:15:00-05:00"),
+        datetime.fromisoformat("2026-11-10T09:30:00-05:00"),
+        settlement_date=settlement,
+    )
+    account = "paper-test-" + uuid4().hex
+    store = PostgresPaperClose(dsn)
+    store.close_session(account, paper_close.PaperSession(before, None, 1_000_000, 0, {}, ()))
+    marks = {"ETF": 10_200}
+    store.close_session(account, paper_close.PaperSession(trade, before, 0, 0, marks, (fill,)))
+    open_payable = store.close_session(
+        account, paper_close.PaperSession(market_only, trade, 0, 0, marks, ()),
+    )["valuation"]
+    assert open_payable["cash_minor"] == 1_000_000
+    assert open_payable["payable_minor"] == 100_100
+    after = PostgresPaperClose(dsn).close_session(
+        account, paper_close.PaperSession(settlement, market_only, 0, 0, marks, ()),
+    )["valuation"]
+    assert after["cash_minor"] == 899_900
+    assert after["payable_minor"] == 0
+    assert open_payable["nav_minor"] == after["nav_minor"] == 1_001_900
