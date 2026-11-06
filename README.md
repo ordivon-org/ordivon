@@ -1,5 +1,19 @@
 # Ordivon
 
+Ordivon is a modular, human-directed and Agent-assisted system for verified
+research, engineering and other practical work. Specialized owners handle
+execution, collaboration, domain facts and controlled effects; agents combine
+their capabilities without inheriting authority from the repository.
+
+**New here?** Start with [the two audience-specific entry paths](docs/start/README.md):
+[for people](docs/start/human-first-run.md) (a runnable, read-only example) and
+[for Agents](docs/start/agent-first-run.md) (owner discovery, evidence and
+native verification). Find a concrete task in the
+[task/owner guide](docs/start/tasks.md). The web product is a tested canary,
+not a generally available production application.
+
+## Engineering repository and ownership
+
 This repository is the primary source monorepo for Ordivon.
 
 Repository co-location does not merge authority. Runtime, Host, Harness, platform capabilities, domain owners, and scientific studies retain their own state, environment, release, and semantic acceptance boundaries.

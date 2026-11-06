@@ -1,5 +1,12 @@
 # Ordivon Monorepo Agent Rules
 
+First session in this repository? Use
+[Agent first verified task](docs/start/agent-first-run.md) and
+[task/owner navigation](docs/start/tasks.md) to find one real consumer. These
+are optional onboarding pointers, not new execution authority or an additional
+mandatory workflow. The rules below govern consequential changes.
+
+
 1. Work inside the natural owner directory.
 2. Run that owner's native verification before claiming completion.
 3. Do not import another owner's internals merely because they are in the same Git tree.
