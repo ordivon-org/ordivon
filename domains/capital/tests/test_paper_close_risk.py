@@ -17,6 +17,7 @@ import pytest
 
 from ordivon_capital.accounting.paper_close import (
     PaperBuy,
+    PaperSell,
     PaperSession,
     value_session,
 )
@@ -183,3 +184,175 @@ def test_real_postgres_paper_close_is_consumed_after_atomic_commit():
     assert out["marketSha256"] == snapshot.sha256
     assert out["risk"]["nodes"]["exposureLedger"]["grossNotionalUsd"] == "1020.000000"
     assert out["standing"] == "RISK_BUDGET_INCOMPLETE"
+
+
+
+def _sell_case():
+    """Use the actual paper state transition and native Market admission."""
+    base_raw, base_binding, buy_snapshot, day0, day1 = _evidence()
+    first = value_session(None, day0)
+    buy_day = PaperSession(
+        day1.session, day1.previous_session, 0, 0,
+        buy_snapshot.prices_for(day1.session.isoformat()), day1.buys,
+    )
+    purchase = value_session(first, buy_day)
+    clearing = PaperSession(date(2026, 1, 12), day1.session, 0, 0, {"ETF": 10_200}, ())
+    cleared = value_session(purchase, clearing)
+    sale = PaperSell(
+        "risk-sale", "ETF", 10, 10_300, 100,
+        datetime.fromisoformat("2026-01-12T16:15:00-05:00"),
+        datetime.fromisoformat("2026-01-13T09:30:00-05:00"),
+        settlement_date=date(2026, 1, 15),
+    )
+    day = date(2026, 1, 13)
+    close = "2026-01-13T21:00:00Z"
+    captured = "2026-01-13T21:10:00Z"
+    src = {
+        "schemaVersion": 1,
+        "kind": "ordivon.finance.markets.etf-eod-snapshot",
+        "sourceId": "paper-risk-synthetic-sell",
+        "currency": "USD",
+        "priceBasis": "RAW_UNADJUSTED_CLOSE",
+        "rights": {"status": "AUTHORIZED_PRIVATE_PAPER_USE", "evidenceRef": "synthetic"},
+        "corporateActions": {"coverage": "COMPLETE", "evidenceRef": "synthetic", "events": []},
+        "capturedAt": captured,
+        "supersedesSha256": None,
+        "marks": [{
+            "sessionDate": day.isoformat(), "instrumentId": "ETF", "priceMinor": 10_300,
+            "availableAt": captured, "availabilityBasis": "FIRST_OBSERVED",
+        }],
+    }
+    raw = json.dumps(src, sort_keys=True).encode()
+    binding = {
+        "expected_sha256": "sha256:" + hashlib.sha256(raw).hexdigest(),
+        "expected_source_id": src["sourceId"],
+        "expected_rights_ref": "synthetic",
+        "expected_corporate_actions_ref": "synthetic",
+        "expected_instruments": ["ETF"],
+        "expected_session_closes": {day.isoformat(): close},
+        "decision_at": captured,
+    }
+    snapshot = admit_etf_eod_snapshot(raw, **binding)
+    sale_day = PaperSession(day, clearing.session, 0, 0, {}, (), sells=(sale,))
+    valuation = value_session(
+        cleared,
+        PaperSession(day, clearing.session, 0, 0, {"ETF": 10_300}, (), sells=(sale,)),
+    )
+    receipt = _receipt(buy_snapshot, day0, day1)
+    receipt["valuation"] = asdict(valuation) | {"session": day.isoformat()}
+    receipt["market_evidence"] = {
+        "standing": "OPERATOR_BOUND_MARKS",
+        "sha256": snapshot.sha256,
+        "source_id": snapshot.source_id,
+        "rights_ref": snapshot.rights_ref,
+        "corporate_actions_ref": snapshot.corporate_actions_ref,
+        "captured_at": snapshot.captured_at.isoformat(),
+        "valuation_as_of": snapshot.decision_at.isoformat(),
+        "session_closes": {
+            mark.session_date: mark.session_close_at.isoformat() for mark in snapshot.marks
+        },
+        "instrument_ids": ["ETF"],
+        "supersedes_sha256": None,
+    }
+    return raw, binding, snapshot, (day0, day1, clearing, sale_day), receipt
+
+
+def test_paper_sell_receivables_count_in_nav_but_never_in_free_cash():
+    _, _, snapshot, _, receipt = _sell_case()
+    out = review_paper_close_risk(receipt=receipt, snapshot=snapshot)
+    assert out["standing"] == "RISK_BUDGET_INCOMPLETE"
+    assert out["netAssetValueMinor"] == 1_002_800
+    assert out["unsettledSaleReceivablesMinor"] == 102_900
+    assert out["unencumberedCashMinor"] == 599_900
+    assert out["grossPositionValueMinor"] == 0
+    assert out["risk"]["nodes"]["exposureLedger"]["grossNotionalUsd"] == "0.000000"
+    assert out["capitalAuthority"] == "SIMULATION_ONLY"
+
+
+@pytest.mark.parametrize("part,reason", [
+    ("receivable_minor", "receivable liability"),
+    ("sale_settlement_dates", "sale receivable"),
+    ("nav_minor", "NAV contradicts"),
+])
+def test_paper_sell_bad_receivable_identity_fails_risk(part, reason):
+    _, _, snapshot, _, receipt = _sell_case()
+    receipt = copy.deepcopy(receipt)
+    if part == "receivable_minor":
+        receipt["valuation"]["receivable_minor"] = 0
+    elif part == "sale_settlement_dates":
+        receipt["valuation"]["sale_settlement_dates"] = {}
+    else:
+        receipt["valuation"]["nav_minor"] -= 100
+    with pytest.raises(PaperRiskEvidenceError, match=reason):
+        review_paper_close_risk(receipt=receipt, snapshot=snapshot)
+
+
+def test_readonly_pg_receipt_and_risk_cli_after_simulated_sell(tmp_path: Path):
+    dsn = os.getenv("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from ordivon_capital.accounting.postgres_paper_close import (
+        PostgresPaperClose,
+        read_committed_paper_close,
+    )
+
+    raw, binding, snapshot, days, expected = _sell_case()
+    day0, day1, day2, sale_day = days
+    _, _, buy_snapshot, _, _ = _evidence()
+    store = PostgresPaperClose(dsn)
+    account = "risk-sale-" + uuid4().hex
+    store.close_session(account, day0)
+    store.close_session(account, day1, mark_snapshot=buy_snapshot)
+    store.close_session(account, day2)
+    committed = store.close_session(account, sale_day, mark_snapshot=snapshot)
+    assert committed["valuation"] == expected["valuation"]
+    readback = read_committed_paper_close(dsn, account, sale_day.session)
+    assert committed == readback
+    assert read_committed_paper_close(dsn, account, sale_day.session) == readback
+    with pytest.raises(ValueError, match="no committed"):
+        read_committed_paper_close(dsn, account, date(2026, 1, 14))
+    paths = {name: tmp_path / (name + ".json") for name in ("snapshot", "binding")}
+    paths["snapshot"].write_bytes(raw)
+    paths["binding"].write_text(json.dumps(binding))
+    cli = subprocess.run(
+        [
+            sys.executable, "-m", "ordivon_capital.risk.paper_close_risk",
+            "--account", account, "--session", sale_day.session.isoformat(),
+            "--snapshot", str(paths["snapshot"]), "--binding", str(paths["binding"]),
+        ], cwd=ROOT, env=os.environ | {
+            "PYTHONPATH": str(ROOT / "src"), "ORDIVON_CAPITAL_PAPER_PG_DSN": dsn,
+        }, capture_output=True, text=True, check=False,
+    )
+    assert cli.returncode == 0, cli.stderr
+    report = json.loads(cli.stdout)
+    assert report["unsettledSaleReceivablesMinor"] == 102_900
+    assert report["unencumberedCashMinor"] == 599_900
+    assert report["accountingPersistenceReverified"] is True
+    assert report["accountingReadbackMode"] == "POSTGRESQL_CURRENT_COMMITTED_REQUEST"
+
+
+def test_accounting_readback_rejects_a_tampered_committed_request():
+    dsn = os.getenv("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    import psycopg
+
+    from ordivon_capital.accounting.postgres_paper_close import (
+        PostgresPaperClose,
+        read_committed_paper_close,
+    )
+
+    _, _, snapshot, day0, day1 = _evidence()
+    account = "risk-altered-" + uuid4().hex
+    store = PostgresPaperClose(dsn)
+    store.close_session(account, day0)
+    store.close_session(account, day1, mark_snapshot=snapshot)
+    assert read_committed_paper_close(dsn, account, day1.session)["valuation"]["nav_minor"] == 1_001_900
+    with psycopg.connect(dsn) as db:
+        db.execute(
+            "UPDATE ordivon_paper.daily_close SET request = jsonb_set("
+            "request, '{contribution_minor}', '123'::jsonb) "
+            "WHERE account_key = %s AND session = %s", (account, day1.session),
+        )
+    with pytest.raises(ValueError, match="stored request disagree"):
+        read_committed_paper_close(dsn, account, day1.session)

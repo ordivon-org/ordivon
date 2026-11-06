@@ -112,6 +112,13 @@ to their upstream contracts. The PostgreSQL acceptance test uses
 
 ## Current standing
 
+**Human/Agent operating interfaces (CA01–CA10)**:
+[Finance Operating Guide](docs/FINANCE_OPERATIONS_R1.md) contains
+human decisions separate from the agent implementation and qualification
+commands. The source Agent Skill is under the root directory
+.agents/skills/finance-paper-risk-review/SKILL.md.
+
+
 **Finance Paper Risk consumer (CA03)**: read-only
 `ordivon_capital.risk.paper_close_risk` composes Markets-admitted
 ETF marks, existing PostgreSQL paper Accounting receipts, and native

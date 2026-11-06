@@ -98,31 +98,35 @@
       "id": "CA03",
       "label": "PortfolioExposureLedger",
       "kind": "risk_state_projection",
-      "responsibility": "Project explicit position/factor exposure and compose admitted Markets marks with durable paper Accounting close for native Risk and Governance evaluation",
+      "responsibility": "Compose native Account durable paper buy/sell closes, source-bound Markets marks and existing Risk/Governance without another engine",
       "authority": "Capital domain's bounded source contract, not provider execution truth",
       "state": "IMPLEMENTED",
       "inputs": [
-        "caller-defined signed notionals, factor loadings and registered owner risk budget",
-        "PostgresPaperClose receipt and independently admitted operator-bound ETF close snapshot"
+        "caller position/factor observations with owner risk-budget registration",
+        "operator-bound ETF close snapshot and offline Account receipt OR direct paper PostgreSQL account/session readback"
       ],
       "outputs": [
-        "native portfolio/factor exposure and risk budget evaluation",
-        "paper close risk review: reconciled NAV, position notionals, unsettled liabilities and market identity"
+        "native exposure and Governance risk limit evaluation",
+        "reconciled net equity, cash, payables, sale receivables, position value and persistence readback standing"
       ],
-      "behavioralContract": "An admitted paper close must equal cash minus open payables plus shares times bound prices. Retroactive source substitutions reject. UNSET budget remains INCOMPLETE. No money, broker, orders or inferred approval.",
+      "behavioralContract": "NAV exactly equals settled cash minus purchase payables plus sale receivables plus marked holdings; sale receivable is not free cash; SQL read path checks stored request digest and receipt identity; UNSET budget remains INCOMPLETE.",
       "acceptance": [
         "Owner tests construct exposure ledger from explicit loadings and reject incomplete risk inputs.",
-        "Native tests compose real PostgreSQL paper close with Markets source admission, Risk exposure and Governance incomplete budget; negative cases alter NAV, payable, shares, source identity and settlement maturity"
+        "Native tests compose real PostgreSQL paper close with Markets source admission, Risk exposure and Governance incomplete budget; negative cases alter NAV, payable, shares, source identity and settlement maturity",
+        "Disposable PostgreSQL writes buy and sell, read-only readback confirms request SHA, rejects tampered DB row and excludes unsettled sale receivables from free cash."
       ],
       "evidence": [
         "src/ordivon_capital/risk/portfolio_risk.py",
         "tests/test_portfolio_risk.py",
         "src/ordivon_capital/risk/paper_close_risk.py",
-        "tests/test_paper_close_risk.py"
+        "tests/test_paper_close_risk.py",
+        "src/ordivon_capital/accounting/postgres_paper_close.py",
+        "docs/FINANCE_OPERATIONS_R1.md"
       ],
       "dependencies": [],
       "sharedRefs": [
-        "docs/FINANCE_PAPER_INVESTMENT_R1.md"
+        "docs/FINANCE_PAPER_INVESTMENT_R1.md",
+        "docs/FINANCE_OPERATIONS_R1.md"
       ],
       "consumerEvidence": [
         {
@@ -144,17 +148,17 @@
       "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
       "effectBoundary": "NON_LIVE_SOURCE_ONLY",
       "r21Contract": {
-        "I": "PaperCloseReceiptV1, admitted Markets EtfEodSnapshot, registered owner risk budget",
-        "O": "paper-close-risk-review and native exposure ledger, Governance risk evaluation",
-        "S": "Unit/pure Risk source, no additional persistent accounting authority",
-        "pre": "exact Market source identity, matched session, positive marks, valid minor-unit cash/payables/held shares and stated settlement maturity",
-        "post": "NAV equals cash minus payables plus share-quantity times source-bound mark; exposure and risk-budget evaluation delegated to existing Risk/Governance",
-        "inv": "no broker effect, no independent provider proof, UNSET risk budget never promoted to PASS",
-        "eff": "NONE; direct CLI reads provided inputs and prints result",
-        "c": "O(k) positions and open unsettled transfers; reuse Risk evaluator",
-        "epsilon": "integer-cent conservation exact; risk Decimal presentation quantized; outside-provider financial error UNKNOWN",
-        "prov": "Accounting request digest and Markets admitted SHA; actual third-party market provenance and independent PostgreSQL readback not re-established by pure Risk",
-        "unfold": "Markets.admit_etf_eod_snapshot -> Accounting.PostgresPaperClose.close_session -> Risk.review_paper_close_risk -> Risk.build_portfolio_risk_report"
+        "I": "Account receipt or PostgreSQL read-only account/session SELECT, admitted Markets ETF snapshot, existing owner risk budget",
+        "O": "native exposure, Governance limit evaluation, cash/payable/sale receivable/NAV, persistence-readback status",
+        "S": "No new state; Accounting retains PostgreSQL and Risk is pure given verified receipt",
+        "pre": "matched operator source and instrument/price session, stored request digest and data types valid, sale receivables have explicit maturity",
+        "post": "NAV=cash-payables+sale_receivables+marked holdings; unencumbered cash excludes receivables; native Risk/Governance only",
+        "inv": "no fill inference from adjusted historical NAV; unavailable real provider/source evidence never promotes authority",
+        "eff": "Offline mode reads local files; Account SQL read uses read-only PostgreSQL transaction; no financial writes",
+        "c": "O(k) portfolio positions/pending liabilities plus indexed O(log N) receipt lookup in Accounting; excludes network/SQL latency",
+        "epsilon": "integer-cent conservation exact; provider data and risk tolerance UNKNOWN",
+        "prov": "Accounting DB committed request SHA, Markets operator-bound snapshot SHA, no external market truth attestation",
+        "unfold": "Accounting.read_committed_paper_close/receipt -> Markets.admit_etf_eod_snapshot -> Risk.review_paper_close_risk -> native Governance report; consumed Human/Agent guide"
       }
     },
     {

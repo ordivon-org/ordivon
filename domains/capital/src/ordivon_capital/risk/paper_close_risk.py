@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from datetime import date
@@ -110,16 +111,34 @@ def review_paper_close_risk(
     positions = _object(value.get("positions"), "positions")
     pending = _object(value.get("pending"), "pending")
     settlement_dates = _object(value.get("settlement_dates"), "settlement dates")
+    pending_sales = _object(value.get("pending_sales", {}), "pending sales")
+    sale_settlement_dates = _object(
+        value.get("sale_settlement_dates", {}), "sale settlement dates"
+    )
+    if sale_settlement_dates.keys() != pending_sales.keys():
+        raise PaperRiskEvidenceError("sale receivable lacks exact settlement identity")
+    if pending_sales.keys() & pending.keys():
+        raise PaperRiskEvidenceError("paper buy/sell fill identities overlap")
     if settlement_dates.keys() - pending.keys():
         raise PaperRiskEvidenceError("settlement date refers to missing open payable")
     for fill_id, clearance in settlement_dates.items():
         if type(fill_id) is not str or not fill_id or _session(clearance) <= session:
             raise PaperRiskEvidenceError("invalid unsettled payable maturity")
 
+    for fill_id, maturity in sale_settlement_dates.items():
+        if type(fill_id) is not str or not fill_id or _session(maturity) <= session:
+            raise PaperRiskEvidenceError("invalid unsettled sale receivable maturity")
+
     cash = _minor(value.get("cash_minor"), "cash")
     protected = _minor(value.get("protected_minor"), "protected")
     payable = _minor(value.get("payable_minor"), "payable")
     nav = _minor(value.get("nav_minor"), "net asset value")
+    receivable = _minor(value.get("receivable_minor", 0), "receivable")
+    total_sales = sum(
+        _minor(amount, f"pending_sales.{fill_id}") for fill_id, amount in pending_sales.items()
+    )
+    if receivable != total_sales:
+        raise PaperRiskEvidenceError("receivable liability differs from unsettled sale proceeds")
     total_pending = sum(_minor(amount, f"pending.{fill_id}") for fill_id, amount in pending.items())
     if payable != total_pending:
         raise PaperRiskEvidenceError("payable liability disagrees with open pending fills")
@@ -133,8 +152,10 @@ def review_paper_close_risk(
         for symbol, shares in sorted(positions.items())
     }
     invested = sum(notional.values())
-    if nav != cash - payable + invested:
-        raise PaperRiskEvidenceError("paper NAV contradicts market values and unsettled payables")
+    if nav != cash - payable + invested + receivable:
+        raise PaperRiskEvidenceError(
+            "paper NAV contradicts market positions, payables and sale receivables"
+        )
     if not nav:
         raise PaperRiskEvidenceError("risk exposure requires positive paper equity")
     free_cash = cash - payable - protected
@@ -165,6 +186,7 @@ def review_paper_close_risk(
         "grossPositionValueMinor": invested,
         "netAssetValueMinor": nav,
         "unsettledPayablesMinor": payable,
+        "unsettledSaleReceivablesMinor": receivable,
         "unencumberedCashMinor": free_cash,
         "availableEquityInterpretation": "UNENCUMBERED_PAPER_CASH_NOT_BROKER_BUYING_POWER",
         "risk": risk,
@@ -184,10 +206,15 @@ def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Compose paper Accounting, Markets and Risk")
-    parser.add_argument("--receipt", type=Path, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--receipt", type=Path)
+    source.add_argument("--account")
+    parser.add_argument("--session")
     parser.add_argument("--snapshot", type=Path, required=True)
     parser.add_argument("--binding", type=Path, required=True)
     args = parser.parse_args()
+    if bool(args.account) != bool(args.session):
+        parser.error("--account and --session must be supplied together")
     try:
         def read(path: Path) -> Any:
             return json.loads(
@@ -198,7 +225,22 @@ def main() -> int:
             )
 
         snapshot = admit_etf_eod_snapshot(args.snapshot.read_bytes(), **read(args.binding))
-        result = review_paper_close_risk(receipt=read(args.receipt), snapshot=snapshot)
+        if args.receipt is not None:
+            receipt = read(args.receipt)
+        else:
+            from ordivon_capital.accounting.postgres_paper_close import (
+                read_committed_paper_close,
+            )
+
+            receipt = read_committed_paper_close(
+                os.environ.get("ORDIVON_CAPITAL_PAPER_PG_DSN", ""),
+                args.account,
+                date.fromisoformat(args.session),
+            )
+        result = review_paper_close_risk(receipt=receipt, snapshot=snapshot)
+        if args.account:
+            result["accountingPersistenceReverified"] = True
+            result["accountingReadbackMode"] = "POSTGRESQL_CURRENT_COMMITTED_REQUEST"
     except (OSError, ValueError, TypeError, PortfolioRiskError, SnapshotAdmissionError) as exc:
         print(json.dumps({"standing": "REJECTED", "capitalAuthority": "SIMULATION_ONLY",
                           "reason": str(exc) if isinstance(exc, ValueError)
