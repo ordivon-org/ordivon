@@ -17,8 +17,7 @@
   "directFallback": false,
   "networkAuthority": {
     "kind": "network-v2",
-    "name": "provider-egress",
-    "providerProfileId": "surfshark:th-bkk"
+    "name": "provider-egress"
   },
   "authenticationAuthority": {
     "separate": true,
