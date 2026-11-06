@@ -22,7 +22,7 @@ NETWORK = Path(__file__).resolve().parents[2]
 ROOT = Path("/etc/network-v2")
 NAMESPACE = "nv2-browserless-prod"
 CARRIER_PORT = 19680
-CASES = ("codex", "discord", "model-provider", "supply-chain", "x-reality")
+CASES = ("codex", "discord", "model-provider", "supply-chain", "x-reality", "claude", "chat-ingress")
 
 
 def command(*args: str, timeout: float = 8) -> str:
@@ -39,7 +39,7 @@ def pid(unit: str) -> int:
 
 
 def contract(name: str) -> dict:
-    filename = "sing-box.json" if name == "codex" else "egress.json"
+    filename = "sing-box.json" if name in ("codex", "claude", "chat-ingress") else "egress.json"
     source = NETWORK / "consumers" / name / "config" / filename
     installed = ROOT / name / filename
     b = source.read_bytes()
@@ -62,13 +62,35 @@ def contract(name: str) -> dict:
         match = re.search(r"systemd-socket-activate -l 127\.0\.0\.1:(\d+)", relay)
         assert match is not None
         port = int(match.group(1))
+    elif name in ("claude", "chat-ingress"):
+        relay = (NETWORK / f"consumers/{name}/systemd/network-v2-{name}-relay.service").read_text()
+        match = re.search(r"systemd-socket-activate -l 127\.0\.0\.1:(\d+)", relay)
+        assert match is not None, f"{name}: no source-bound host relay"
+        assert config["inbounds"][0]["listen"] == "127.0.0.1"
+        if name == "claude":
+            ready = (NETWORK / "consumers/claude/ready.sh").read_text()
+            client = re.search(r"^client_proxy=http://10\.252\.247\.1:(\d+)$", ready, re.M)
+            assert client is not None
+            port = int(client.group(1))
+            proxy_host = "10.252.247.1"
+            probe_namespace = "nv2-claude-client"
+        else:
+            port = int(match.group(1))
+            proxy_host = "127.0.0.1"
+            probe_namespace = None
     else:
         assert config["inbounds"][0]["listen"] == "127.0.0.1"
         port = int(config["inbounds"][0]["listen_port"])
-    unit = "network-v2-codex-proxy.service" if name == "codex" else f"network-v2-{name}-egress.service"
+    unit = (
+        "network-v2-codex-proxy.service" if name == "codex"
+        else f"network-v2-{name}-proxy.service" if name in ("claude", "chat-ingress")
+        else f"network-v2-{name}-egress.service"
+    )
     return {
         "consumer": name, "proxyPort": port, "allowedHost": host,
-        "sensor": "namespace" if name == "codex" else "host",
+        "proxyHost": proxy_host if name in ("claude", "chat-ingress") else "127.0.0.1",
+        "probeNamespace": probe_namespace if name in ("claude", "chat-ingress") else None,
+        "sensor": "namespace" if name in ("codex", "claude", "chat-ingress") else "host",
         "sourceSha256": hashlib.sha256(b).hexdigest(),
         "unit": unit, "pid": pid(unit),
     }
@@ -131,9 +153,11 @@ def run(names: list[str]) -> dict:
                 ("wrong-port", f"{c['allowedHost']}:444"),
             ):
                 before = observer.count(target)
-                result = subprocess.run([
+                prefix = (["ip", "netns", "exec", c["probeNamespace"]]
+                          if c["probeNamespace"] else [])
+                result = subprocess.run([*prefix,
                     "curl", "-q", "-4", "--noproxy", "",
-                    "-x", f"http://127.0.0.1:{c['proxyPort']}",
+                    "-x", f"http://{c['proxyHost']}:{c['proxyPort']}",
                     "-I", "-sS", "--connect-timeout", "4", "--max-time", "9",
                     "-o", "/dev/null", "-w", "%{http_connect}/%{http_code}",
                     f"https://{target}/",
@@ -156,7 +180,7 @@ def run(names: list[str]) -> dict:
     for c in data:
         if pid(c["unit"]) != c["pid"]:
             raise AssertionError(f"{c['consumer']}: process replaced during witness")
-        filename = "sing-box.json" if c["consumer"] == "codex" else "egress.json"
+        filename = "sing-box.json" if c["consumer"] in ("codex", "claude", "chat-ingress") else "egress.json"
         source = NETWORK / "consumers" / c["consumer"] / "config" / filename
         installed = ROOT / c["consumer"] / filename
         if source.read_bytes() != installed.read_bytes() or (

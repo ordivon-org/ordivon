@@ -48,6 +48,7 @@ tasks:
       - cmp -s consumers/chat-ingress/systemd/network-v2-chat-ingress.target /etc/systemd/system/network-v2-chat-ingress.target
       - test "$(systemctl is-active network-v2-chat-ingress-proxy.service)" = active
       - /usr/local/libexec/network-v2/chat-ingress-ready
+      - python3 acceptance/egress/live-carrier-witness.py --consumers chat-ingress
 
   consumer:chat-ingress:stop:
     desc: Stop the scoped ChatIngress proxy without touching the shared Browserless Network v2 authority

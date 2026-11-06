@@ -84,21 +84,22 @@ for _attempt in 1 2 3; do
 done
 test "$ok" = 1
 
-# Unknown destinations require an explicit policy denial at the HTTPS CONNECT
-# stage. A failed curl process is NOT proof: DNS/proxy/TLS errors (000), a 407
-# proxy-auth challenge and an origin HTTP 403 reached through CONNECT=200 must
-# never produce a READY verdict. Reuse the mature Supply-Chain policy witness.
+# The native sing-box reject action can accept CONNECT=200 and immediately
+# close its non-TUN connection. A failed TLS exchange is transport evidence
+# only, not an upstream no-forwarding proof. The Owner's consumer:claude:verify
+# additionally runs the independent real Carrier CONNECT witness.
 remaining=$((readiness_deadline - SECONDS))
 ((remaining > 0)) || { echo 'Claude readiness total deadline expired' >&2; exit 1; }
 max_time=$((remaining < 8 ? remaining : 8))
+deny_rc=0
 deny_receipt=$(ip netns exec nv2-claude-client curl -q -4 -x "$client_proxy" \
   --noproxy '' -I -sS --connect-timeout 3 --max-time "$max_time" \
-  -o /dev/null -w '%{http_code}|%{http_connect}' https://example.com/ \
-  2>/dev/null) || deny_receipt="${deny_receipt:-}"
-# The whole curl receipt must match the two-field protocol: a successful
-# first-line parse must not discard a trailing field or a second line.
-if [[ ! "$deny_receipt" =~ ^(000|403)\|403$ ]]; then
-  echo "ERROR: unknown Claude destination lacks exact two-field CONNECT denial receipt" >&2
+  -o /dev/null -w '%{http_code}|%{http_connect}|%{time_appconnect}' \
+  https://example.com/ 2>/dev/null) || deny_rc=$?
+# An origin reply, successful TLS, 407 auth challenge, malformed/multiple
+# receipts, or an uncompleted CONNECT always fails the transport gate.
+if [[ "$deny_rc" -eq 0 || ! "$deny_receipt" =~ ^000\|(200|403)\|0([.]0+)?$ ]]; then
+  echo "ERROR: unknown Claude destination completed TLS or lacked a valid close receipt" >&2
   exit 41
 fi
 
@@ -106,4 +107,4 @@ fi
 test -z "$(ip netns exec nv2-browserless-prod ip -6 route show default)"
 
 ((SECONDS < readiness_deadline)) || { echo 'Claude readiness total deadline expired' >&2; exit 1; }
-printf '{"schemaVersion":1,"kind":"ordivon.network-v2.claude-readiness","standing":"READY","apiHttpStatus":%s,"clientProxy":"%s","directInternet":"BLOCKED","unknownDestination":"REJECTED","ipv6DefaultRoute":false,"directFallback":false}\n' "$api_code" "$client_proxy"
+printf '{"schemaVersion":1,"kind":"ordivon.network-v2.claude-readiness","standing":"TRANSPORT_READY","apiHttpStatus":%s,"clientProxy":"%s","directInternet":"BLOCKED","unknownDestination":"TLS_NOT_ESTABLISHED","upstreamNonforwarding":"UNKNOWN","ipv6DefaultRoute":false,"directFallback":false}\n' "$api_code" "$client_proxy"

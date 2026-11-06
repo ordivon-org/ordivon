@@ -44,7 +44,7 @@ if [[ "$joined" == *"https://example.com/"* ]];then
     valid|unknown_connect_denied)
       # The proxy explicitly refused HTTPS CONNECT. Curl may exit 56
       # but still emits its documented per-attempt CONNECT receipt.
-      printf '000|403'
+      printf '000|403|0'
       exit 56;;
     unknown_transport_failure)
       printf '000|000'
@@ -61,7 +61,7 @@ if [[ "$joined" == *"https://example.com/"* ]];then
     unknown_tls_handshake_failure)
       # Independently observed live probe: CONNECT=200, TLS handshake failed
       # (curl exit35). Transport failure does not authenticate policy reject.
-      printf '000|200'
+      printf '000|200|0'
       exit 35;;
     unknown_origin_forbidden|unknown_http_forbidden)
       # The origin replied 403 through an ACCEPTED CONNECT tunnel.
@@ -147,7 +147,8 @@ exit 88
 def test_live_transport_shape_and_isolated_proxy_contract(tmp_path):
     outcome, calls = _readiness(tmp_path, "valid")
     assert outcome.returncode == 0, (outcome.stdout, outcome.stderr)
-    assert '"standing":"READY"' in outcome.stdout
+    assert '"standing":"TRANSPORT_READY"' in outcome.stdout
+    assert '"upstreamNonforwarding":"UNKNOWN"' in outcome.stdout
     assert '"directFallback":false' in outcome.stdout
     assert '"apiHttpStatus":404' in outcome.stdout
     api = [s for s in calls if "https://api.anthropic.com/" in s and " -x " in " "+s]
@@ -196,7 +197,6 @@ def test_real_consumer_readiness_fails_closed_for_upstream_faults(tmp_path, faul
         "unknown_proxy_auth_failure",
         "unknown_trailing_delimiter",
         "unknown_multiline_receipt",
-        "unknown_tls_handshake_failure",
         "unknown_origin_forbidden",
         "unknown_http_forbidden",
         "unknown_malformed",
@@ -204,10 +204,10 @@ def test_real_consumer_readiness_fails_closed_for_upstream_faults(tmp_path, faul
         "unknown_extra_receipt",
     ),
 )
-def test_unknown_destination_requires_explicit_connect_policy_rejection(
+def test_unknown_destination_rejects_unqualified_transport_receipts(
     tmp_path: Path, scenario: str
 ) -> None:
-    """A curl failure is not policy proof; status 403 from origin is not denial."""
+    """Malformed, unauthenticated or origin-success receipts are not transport proof."""
     outcome, calls = _readiness(tmp_path, scenario)
     assert outcome.returncode != 0, (scenario, outcome.stdout, outcome.stderr)
     assert '"standing":"READY"' not in outcome.stdout
@@ -216,6 +216,14 @@ def test_unknown_destination_requires_explicit_connect_policy_rejection(
     assert "-x http://10.252.247.1:19482" in attempts[0]
     assert "--noproxy" in attempts[0]
     assert "--insecure" not in attempts[0]
+
+
+def test_native_singbox_connect200_tls_close_is_only_transport_evidence(tmp_path):
+    outcome, calls = _readiness(tmp_path, "unknown_tls_handshake_failure")
+    assert outcome.returncode == 0, (outcome.stdout, outcome.stderr)
+    assert '"standing":"TRANSPORT_READY"' in outcome.stdout
+    assert '"upstreamNonforwarding":"UNKNOWN"' in outcome.stdout
+    assert any(c.split()[-1] == "https://example.com/" for c in calls)
 
 
 @pytest.mark.parametrize("scenario", ["direct_http_forbidden", "unknown_http_forbidden"])
@@ -268,5 +276,6 @@ def test_n08_source_consumer_contract_matches_install_and_proxy_policy() -> None
     assert "CONNECT=407" in n08["behavioralContract"][0]
     assert "CONNECT=200" in n08["behavioralContract"][0]
     assert "%{http_code}|%{http_connect}" in readiness
-    assert '[[ ! "$deny_receipt" =~ ^(000|403)\\|403$ ]]' in readiness
+    assert '"$deny_receipt" =~ ^000\\|(200|403)\\|0([.]0+)?$' in readiness
+    assert '"upstreamNonforwarding":"UNKNOWN"' in readiness
     assert all("live" not in x.lower() for x in n08["consumers"])
