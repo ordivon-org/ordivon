@@ -32,6 +32,14 @@ REQUIRED_ANTI_GROWTH = {
 REQUIRED_LEGACY_ROOTS = {"services/", "platform/", "capabilities/", "domains/", "meta/"}
 ALLOWED_MODES = {"retain", "move", "split"}
 
+def assert_retired_source_roots_absent(repo_root: Path) -> None:
+    """Prevent a deployed Meta/Next retirement from regaining source ownership."""
+    for root_name in ("meta", "next"):
+        if (repo_root / root_name).exists():
+            raise StructureR2Error(
+                f"retired Meta/Next source root reintroduced: {root_name}/"
+            )
+
 def _text(value: Any, *, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise StructureR2Error(f"{field} must be a non-empty string")
@@ -202,6 +210,12 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
             _text(task, field=f"{mapping_id}.verifyTask")
 
     if repo_root is not None:
+        if any(
+            mapping.get("id") == "next-residual"
+            and mapping.get("standing") == "DEPLOYED"
+            for mapping in mappings
+        ):
+            assert_retired_source_roots_absent(repo_root)
         for mapping in mappings:
             if mapping.get("standing") != "DEPLOYED" or mapping.get("mode") != "move":
                 continue

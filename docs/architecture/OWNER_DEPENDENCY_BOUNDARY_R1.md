@@ -1,58 +1,48 @@
 # Ordivon owner dependency boundary R1
 
-Date: 2026-09-21
-Status: IMPLEMENTED — bounded literal-seam guard
+Source implementation: `tools/repo/check_owner_boundaries.py`, policy: `tools/repo/dependency_contracts.toml`.
 
-## Property
+Updated: 2026-11-06. Status: **IMPLEMENTED** — bounded source-literal dependency check.
 
-Source co-location in the modular monorepo does not grant one owner permission to consume another owner's implementation internals.
+## Contract
 
-The R1 guard is deliberately narrow. It evaluates explicit cross-owner path literals in active tracked source/config files and requires each occurrence to match one exact declared seam with a documented contract or boundary.
+Repository co-location confers neither ownership nor permission to import an
+Owner's private implementation. Cross-Owner consumption follows an explicitly
+named public contract or narrow observed source seam. The existing guard scans
+active tracked code/config and rejects undeclared literal references and stale
+or overlapping policy exceptions.
 
-This is repository-boundary enforcement. It is not a universal dependency graph, capability registry, or domain authority.
+## Observed seams (2026-11-06; main 21ae23a)
 
-## Current admitted seam classes
+| Consumer | Producer | Boundary |
+| --- | --- | --- |
+| Harness | Security | Named public Security subtree locators |
+| Web | Security | Public verifier/admission contracts and explicit E2E/test bindings |
+| Media | Artifact | Read-only delivery/acceptance projection |
+| Workstation | Distribution | Native smoke acceptance evidence |
+| Workstation | Game / Media | Test-only environment bindings |
+| Harness / Composition | Runtime | Pinned public formal toolchain, not Job/Attempt authority |
+| Composition | Runtime | Source-bound formal trace test contract |
+| Artifact | Authority Catalog | Test-only publication venue locator |
 
-| Consumer | Producer | Kind | Boundary |
-| --- | --- | --- | --- |
-| Harness | Security | PUBLIC_OWNER_LOCATOR | Accepted canonical Security subtree locator; Security revision stays subtree-scoped |
-| Web | Security | PUBLIC_SOURCE_CONTRACT | Only the Agent Request Verifier and Agent Admission public contract paths |
-| Media | Artifact | READ_ONLY_OWNER_PROJECTION | Disposable Creative Index reads Artifact delivery/acceptance projections |
-| Skills | Next | OPERATOR_SOURCE_BINDING | Temporary filesystem-to-MCP bridge over operator-configured source roots |
-| Workstation | Distribution | ACCEPTANCE_EVIDENCE_BINDING | n8n acceptance consumes one Distribution evidence input |
-| Workstation | Game / Media | TEST_ONLY_ENVIRONMENT_BINDING | Host toolchain consequence tests only |
-| Next | Composition | PUBLIC_PACKAGE_DEPENDENCY | Next consumes the extracted `ordivon-composition` public Python package through its declared local package source; implementation internals are not imported by path |
+Observed check: **2,136 active tracked files; 19 seam declarations;
+21 literal references; zero undeclared literal edges**.
+These are source-text observations, not proof that a referenced consumer
+is exercised in the deployed system.
 
-Test and E2E variants are declared separately. A production source file cannot inherit permission merely because the same owner pair already has a test seam.
+## Retired ownership
 
-## Explicit non-edges
+`meta/` and standalone Next source are retired in this SourceCut. They are not
+Owners, not approved dependency destinations, and not resurrected by historical
+references, compatibility aliases, receipts or old plans. The source-retirement
+record lives in
+`docs/migration/retirement/META_NEXT_SOURCE_RETIREMENT_20261105.md`.
+Their live responsibilities were delegated to natural Owners such as
+Composition, Skills, Authority Catalog, Studies and domain-specific modules.
 
-The following catalog/profile trees are navigation or knowledge projections rather than executable dependency edges:
+## Limits
 
-- meta/next/authorities/
-- catalogs/authorities/
-- catalogs/knowledge/
-- profiles/domains/
-
-Historical docs, evidence, planning, research, experiments, fixtures, and retained artifacts are also excluded from active-source dependency truth.
-
-## Falsification
-
-Executable unit checks prove:
-
-1. Web may reference the exact Security public verifier contract.
-2. The same file may not substitute a Security internal source path.
-3. Another Web file does not gain permission merely because Web to Security is an admitted pair.
-4. Next metadata/navigation references do not become runtime dependency edges.
-
-## Current measured standing
-
-At the Structure R2 S1A fence the checker inspected 1,936 active tracked files and found 23 cross-owner literal references covered by 18 narrow seam declarations. The new `PUBLIC_PACKAGE_DEPENDENCY` is the explicit Next -> Composition package seam; it does not transfer Composition authority back to Next.
-
-No undeclared active literal seam remained.
-
-## Scope limit
-
-R1 detects explicit owner-root literals. It does not claim complete discovery of dynamically constructed paths, package-manager dependencies, protocol calls, generated code, or runtime network edges.
-
-Language-native module/import enforcement is added only if a real current dependency class requires it. Co-location alone is not a reason to create a cross-language dependency framework.
+The check covers literal source paths, not all package-resolver imports,
+constructed paths, runtime calls, generated code or semantic consumer behavior.
+Language-native and runtime consumer checks remain with the affected Owner.
+This bounded policy is preferable to inventing a global dependency registry.
