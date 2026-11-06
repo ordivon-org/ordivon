@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 import psycopg
 from psycopg.rows import dict_row
@@ -64,6 +64,77 @@ class SocialTopicCommands:
                 "truthBoundary": "named asynchronous conversation axis only; not Work lifecycle or authority",
             }
             record_command_receipt(conn, client_request_id, "topic.create", request_digest, result)
+            return result
+
+    def set_topic_state(
+        self,
+        *,
+        topic_ref: str,
+        actor_ref: str,
+        state: Literal["open", "closed"],
+        expected_state: Literal["open", "closed"],
+        expected_high_sequence: int,
+        client_request_id: str,
+    ) -> dict[str, Any]:
+        """Compare-and-set topic openness; retain all messages and replay evidence.
+
+        The topic row lock is the same lock used before message sequence allocation,
+        so closing cannot silently overtake a concurrent message.post.
+        """
+        if state not in ("open", "closed") or expected_state not in ("open", "closed"):
+            raise ValueError("topic state must be open or closed")
+        if type(expected_high_sequence) is not int or expected_high_sequence < 0:
+            raise ValueError("expected_high_sequence must be a non-negative integer")
+        request = {
+            "operation": "topic.state.set",
+            "topicRef": topic_ref,
+            "actorRef": actor_ref,
+            "state": state,
+            "expectedState": expected_state,
+            "expectedHighSequence": expected_high_sequence,
+        }
+        digest = canonical_digest(request)
+        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+            replay = claim_command_receipt(conn, client_request_id, "topic.state.set", digest)
+            if replay is not None:
+                return replay
+            self._require_actor(conn, actor_ref)
+            topic = self._require_topic(conn, topic_ref, for_no_key_update=True)
+            high = int(
+                conn.execute(
+                    "SELECT COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=%s",
+                    (topic_ref,),
+                ).fetchone()["high"]
+            )
+            if topic["state"] != expected_state:
+                raise ConflictError("topic state changed since expected state")
+            if high != expected_high_sequence:
+                raise ConflictError("topic messages changed since expected high sequence")
+            admission = "existing" if state == topic["state"] else "committed"
+            if admission == "committed":
+                topic = conn.execute(
+                    "UPDATE topics SET state=%s,updated_at=clock_timestamp(),"
+                    "change_sequence=swf_next_change_sequence() WHERE topic_ref=%s "
+                    "RETURNING topic_ref,space_ref,title,state,created_by_actor_ref,"
+                    "created_at,updated_at",
+                    (state, topic_ref),
+                ).fetchone()
+                if topic is None:
+                    raise RuntimeError("topic state update disappeared")
+            result = {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-topic",
+                "admission": admission,
+                "topicRef": topic["topic_ref"],
+                "spaceRef": topic["space_ref"],
+                "title": topic["title"],
+                "state": topic["state"],
+                "createdByActorRef": topic["created_by_actor_ref"],
+                "createdAt": topic["created_at"].isoformat(),
+                "updatedAt": topic["updated_at"].isoformat(),
+                "truthBoundary": "topic openness only; no message deletion, consumer-release proof, or authority transfer",
+            }
+            record_command_receipt(conn, client_request_id, "topic.state.set", digest, result)
             return result
 
     def ack_topic_cursor(

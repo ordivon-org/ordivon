@@ -217,6 +217,7 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
                 "topic.cursor.get",
                 "topic.list",
                 "topic.resume",
+                "topic.state.set",
                 "message.post",
                 "message.search",
                 "message.relation.add",

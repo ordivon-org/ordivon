@@ -25,6 +25,7 @@ EXPECTED = {
     "topic.cursor.get",
     "topic.list",
     "topic.resume",
+    "topic.state.set",
     "message.get",
     "message.post",
     "message.search",
