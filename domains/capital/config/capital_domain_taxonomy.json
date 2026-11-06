@@ -62,6 +62,7 @@
       "portfolio_risk.py",
       "dependence_analysis.py",
       "tail_risk.py",
+      "tail_report.py",
       "risk_values.py",
       "risk_budget_validation.py",
       "paper_close_risk.py"

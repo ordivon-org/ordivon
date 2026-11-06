@@ -16,6 +16,7 @@ from ordivon_capital.risk.portfolio_risk import (
     load_registered_risk_budget,
     validate_dependence_model,
 )
+from ordivon_capital.risk.tail_report import build_tail_risk_report
 
 
 class PortfolioRiskTests(unittest.TestCase):
@@ -269,3 +270,23 @@ class PortfolioRiskTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+def test_risk_owned_tail_report_preserves_sample_and_horizon_metadata():
+    returns = [0.01] * 39 + [-0.20]
+    out = build_tail_risk_report(
+        [{
+            "seriesId": "A",
+            "returns": returns,
+            "returnHorizon": "1D_LOG_RETURN",
+            "sampleLabel": "TEST_SAMPLE",
+            "liquidityHorizonDays": 10,
+        }],
+        confidence=0.975,
+    )
+    row = out["series"][0]
+    assert row["returnHorizon"] == "1D_LOG_RETURN"
+    assert row["liquidityHorizonDays"] == 10
+    assert out["liquidityHorizonScalingApplied"] is False
+    assert float(row["calculation"]["expectedShortfallLossFraction"]) >= float(
+        row["calculation"]["valueAtRiskLossFraction"]
+    )
