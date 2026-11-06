@@ -8,7 +8,7 @@ The project Constitution is [`MEDIA.md`](MEDIA.md); canonical Media research sta
 
 - **Human:** [Use Ordivon Media](docs/human-guide.md) — what the system can do, choose an existing work, commission a deliverable and review real outputs.
 - **Agent:** [Media Agent entry](AGENTS.md) — source/consumer selection, current Agent Surface, LEGO composition and real acceptance boundaries. The [media-studio-navigation Skill](../../.agents/skills/media-studio-navigation/SKILL.md) is its progressive-disclosure entry point.
-- **Technical reference:** [MEDIA.md](MEDIA.md), [STUDIO.md](STUDIO.md), [Media model](docs/media-model.md) and live `studio-agent-surface.py` schemas. None is replaced by a duplicate registry.
+- **Technical reference:** [MEDIA.md](MEDIA.md), [STUDIO.md](STUDIO.md), [Media model](docs/media-model.md), [existing LEGO capability reference](docs/capability-reference.md), and live `studio-agent-surface.py` schemas. None is replaced by a duplicate registry.
 
 ## Activation boundary
 
@@ -215,6 +215,13 @@ For ordinary Agent work, start from the dependency-independent Studio semantic s
 python3 scripts/studio-agent-surface.py
 ```
 
+The source-only `surface`, `studio_production_standing`, and
+`studio_processing_profiles` actions run before dependency materialization.
+**Parameterized** actions use the pinned JSON Schema environment; from Media
+run `mise exec -- python3 scripts/materialize-python.py` first, then the
+`.venv/bin/python` commands below. No renderer dependencies are required
+for these read-only queries.
+
 | Need | Read / invoke |
 | --- | --- |
 | design or inspect a generic observer-facing Media projection without assuming Studio production | [`research/media/engineering-consumption/OMPC-v0.md`](research/media/engineering-consumption/OMPC-v0.md) |
@@ -222,10 +229,10 @@ python3 scripts/studio-agent-surface.py
 | discover existing FFprobe/FFmpeg/OTIO/timed-text processing LEGO with exact profile + adapter hashes, without materializing Studio dependencies | `python3 scripts/studio-agent-surface.py studio_processing_profiles --arguments '{}'` |
 | compile one selected processing profile into a digest-pinned, nonexecuting Runtime command | Use the existing Studio action: studio_processing_probe_plan, with digests from studio_processing_profiles |
 | inspect Production standing before selecting current work | `python3 scripts/studio-agent-surface.py studio_production_standing --arguments '{}'` |
-| after caller/owner intent identifies one Production, inspect its bounded context | `python3 scripts/studio-agent-surface.py studio_production_context --arguments '{"productionId":"<id>"}'` |
+| after caller/owner intent identifies one Production, inspect its bounded context | `.venv/bin/python scripts/studio-agent-surface.py studio_production_context --arguments '{"productionId":"<id>"}'` |
 | inspect one Production, its Claims/Outputs, and optional source-binding Git relation through the lower-level CLI | `uv run ordivon-studio production-context <production-root> [--source-repo BINDING_ID=PATH]` |
-| hydrate scoped retained learning for the selected Production | `python3 scripts/studio-agent-surface.py studio_learning_context --arguments '{"currentProductionId":"<id>"}'` |
-| compile a truthful equipment proposal only when one exact capability is needed | `python3 scripts/studio-agent-surface.py studio_equipment_propose --arguments '{"capability":"<capability>","parameters":{}}'` |
+| hydrate scoped retained learning for the selected Production | `.venv/bin/python scripts/studio-agent-surface.py studio_learning_context --arguments '{"currentProductionId":"<id>"}'` |
+| compile a truthful equipment proposal only when one exact capability is needed | `.venv/bin/python scripts/studio-agent-surface.py studio_equipment_propose --arguments '{"capability":"<capability>","parameters":{}}'` |
 | use lower-level media inspection/render/QC/recovery operations after dependencies are materialized | `uv run ordivon-studio --help` |
 | understand the Media owner contract | [`MEDIA.md`](MEDIA.md) |
 | understand which consumer evidence can reopen the Media baseline | [`MEDIA.md`](MEDIA.md) |

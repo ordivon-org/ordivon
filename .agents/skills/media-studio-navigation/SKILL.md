@@ -21,4 +21,4 @@ Use this source-owned procedure when the caller wants to find, commission, resum
 7. For a real equipment task, use `studio_equipment_propose`; for existing work search use `studio_creative_index_query`; for scoped creative evidence use `studio_learning_context`. These are existing source-owned actions, not new providers or registries.
 8. Finish with the consumer's actual source-grounded plan or observed result; state the earliest missing precondition otherwise. Retain editable source, selected recoverable bytes and necessary receipts, not hypothetical future intermediates.
 
-The current authority references are `capabilities/media/MEDIA.md`, `STUDIO.md`, `docs/media-model.md` and `capabilities/media/AGENTS.md`. Action schemas and production files remain the operational truth; this Skill is only navigation.
+The current authority references are `capabilities/media/MEDIA.md`, `STUDIO.md`, `docs/media-model.md`, `capabilities/media/docs/capability-reference.md` and `capabilities/media/AGENTS.md`. Action schemas and production files remain the operational truth; this Skill is only navigation.
