@@ -114,8 +114,13 @@ class PostgresPaperClose:
                 "supersedes_sha256": mark_snapshot.supersedes_sha256,
             }
         # Freeze caller-owned input before retrying a transaction.
+        encoded_day = asdict(day)
+        for fill in encoded_day["buys"]:
+            if fill["settlement_date"] is None:
+                # Preserve identity for previously admitted fixture requests.
+                del fill["settlement_date"]
         payload = json.dumps(
-            asdict(day) | {"market_evidence": market_evidence},
+            encoded_day | {"market_evidence": market_evidence},
             default=_iso, sort_keys=True, separators=(",", ":"),
         )
         digest = hashlib.sha256(payload.encode()).hexdigest()
@@ -189,12 +194,12 @@ class PostgresPaperClose:
                 raise ValueError(f"paper cash posting rejected: {status}")
 
         if previous:
-            for fill_id, amount in previous.pending.items():
+            for fill_id, amount in previous.payable_due_on(day.session).items():
                 post(identity("settle", fill_id), cash, clearing, amount, "POST", identity("buy", fill_id))
         if day.contribution_minor:
             post(identity("deposit", day.session.isoformat()), fund, cash, day.contribution_minor, "IMMEDIATE")
-        for fill_id, amount in valuation.pending.items():
-            post(identity("buy", fill_id), cash, clearing, amount, "PENDING")
+        for fill in day.buys:
+            post(identity("buy", fill.fill_id), cash, clearing, fill.cost_minor, "PENDING")
         state = self._ledger._account_in_transaction(db, cash)
         if (
             state.credits_posted - state.debits_posted != valuation.cash_minor

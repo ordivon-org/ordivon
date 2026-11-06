@@ -59,8 +59,7 @@ For the current source, actual CLI and invariants, see
 
 The Accounting owner can close one supplied USD simulation session with
 `ordivon_capital.accounting.postgres_paper_close`. It carries whole-share
-long positions and settles the previous session's buy payables. Inputs must
-already bind the consecutive exchange session, admitted fills and raw
+long positions and settles due buy payables. Inputs must already bind the consecutive exchange session, admitted fills and raw
 closing marks. This entry point is for an offline paper run.
 
 Use a dedicated PostgreSQL database named `ordivon_paper` and a role
@@ -86,7 +85,12 @@ A funding-only opening request for `session.json`:
 
 Subsequent requests name the preceding session. Buy rows contain
 `fill_id`, `symbol`, `shares`, `price_minor`, `fee_minor`,
-`decided_at` and `filled_at`. Timestamps carry offsets. Mark values
+`decided_at` and `filled_at`. Timestamps carry offsets. For a
+calendar-qualified run, supply each buy's `settlement_date` from the
+clearing calendar. The cash transfer is posted at the first valuation
+on or after that date, and earlier valuations carry the payable. Older
+fixture requests that omit it still settle at the next valuation.
+Mark values
 and all money fields are USD cents. Inline marks are caller-supplied.
 For operator-bound marks, pass `--market-snapshot snapshot.json` and
 `--market-binding binding.json` together with empty inline `marks`. The
