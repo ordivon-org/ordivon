@@ -1,9 +1,9 @@
-# Ordivon Current Architecture
+# Ordivon Architecture — Historical 2026-09-28 Snapshot
 
 Date: 2026-09-28
-Status: **CURRENT DEPLOYED PROJECTION — NON-AUTHORITATIVE**
+Status: **HISTORICAL DEPLOYED SNAPSHOT — NON-AUTHORITATIVE**
 
-This document is a **rebuildable projection** of Ordivon's currently deployed architecture. Architecture contracts, execution plans, migration records, research notes, and acceptance reports remain useful evidence, but none of these documents override current physical/source/owner truth.
+This is a **2026-09-28 historical snapshot**, not a projection of the deployment currently running. To establish live state, inspect the canonical Owner MCP status, the installed release symlinks and systemd process, and the Git/source manifests at the time of the decision. Architecture contracts, execution plans, migration records, research notes, and acceptance reports remain useful evidence, but none of these documents override current physical/source/owner truth.
 
 Machine-readable companion: `docs/architecture/deployed-architecture-r1.json`.
 
