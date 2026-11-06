@@ -115,6 +115,9 @@ class PostgresPaperClose:
             }
         # Freeze caller-owned input before retrying a transaction.
         encoded_day = asdict(day)
+        if not day.sells:
+            # Keep the stored request identity for existing buy-only closes.
+            del encoded_day["sells"]
         for fill in encoded_day["buys"]:
             if fill["settlement_date"] is None:
                 # Preserve identity for previously admitted fixture requests.
@@ -145,9 +148,17 @@ class PostgresPaperClose:
                 PaperValuation(**(head[2]["valuation"] | {"session": head[0]}))
                 if head else None
             )
+            if mark_snapshot is not None:
+                covered = set(previous.positions) if previous else set()
+                covered.update(fill.symbol for fill in (*day.buys, *day.sells))
+                if covered - day.marks.keys():
+                    raise ValueError("market snapshot does not cover every held or traded instrument")
             valuation = value_session(previous, day)
             self._post_cash(db, account_key, day, previous, valuation)
             receipt = asdict(valuation) | {"session": day.session.isoformat()}
+            if not day.sells and not (previous and previous.pending_sales):
+                for key in ("pending_sales", "sale_settlement_dates", "receivable_minor"):
+                    del receipt[key]
             result = {
                 "schema_version": 1,
                 "valuation": receipt,
@@ -177,6 +188,20 @@ class PostgresPaperClose:
         def identity(*parts: str) -> int:
             return stable_accounting_id("ordivon-capital:paper-close:usd:v1", key, *parts)
 
+        buy_ids = {fill.fill_id for fill in day.buys}
+        sell_ids = {fill.fill_id for fill in day.sells}
+        opposite_transfers = [
+            *(str(identity("sell", fill_id)) for fill_id in buy_ids),
+            *(str(identity("buy", fill_id)) for fill_id in sell_ids),
+        ]
+        if buy_ids & sell_ids or (
+            opposite_transfers and db.execute(
+                "SELECT 1 FROM ordivon_capital.transfers WHERE id = ANY(%s) LIMIT 1",
+                (opposite_transfers,),
+            ).fetchone()
+        ):
+            raise ValueError("paper fill identity already used for the opposite side")
+
         cash, fund, clearing = (identity(role) for role in ("cash", "fund", "clearing"))
         if previous is None:
             accounts = (AccountingAccount(cash, True), AccountingAccount(fund), AccountingAccount(clearing))
@@ -196,14 +221,19 @@ class PostgresPaperClose:
         if previous:
             for fill_id, amount in previous.payable_due_on(day.session).items():
                 post(identity("settle", fill_id), cash, clearing, amount, "POST", identity("buy", fill_id))
+            for fill_id, amount in previous.receivable_due_on(day.session).items():
+                post(identity("settle-sell", fill_id), clearing, cash, amount, "POST", identity("sell", fill_id))
         if day.contribution_minor:
             post(identity("deposit", day.session.isoformat()), fund, cash, day.contribution_minor, "IMMEDIATE")
         for fill in day.buys:
             post(identity("buy", fill.fill_id), cash, clearing, fill.cost_minor, "PENDING")
+        for fill in day.sells:
+            post(identity("sell", fill.fill_id), clearing, cash, fill.proceeds_minor, "PENDING")
         state = self._ledger._account_in_transaction(db, cash)
         if (
             state.credits_posted - state.debits_posted != valuation.cash_minor
             or state.debits_pending != valuation.payable_minor
+            or state.credits_pending != valuation.receivable_minor
         ):
             raise ValueError("paper cash ledger and valuation disagree")
 

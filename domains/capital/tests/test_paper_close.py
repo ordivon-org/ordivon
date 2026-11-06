@@ -198,3 +198,74 @@ def test_postgres_carries_buy_payable_over_a_market_only_session():
     assert after["cash_minor"] == 899_900
     assert after["payable_minor"] == 0
     assert open_payable["nav_minor"] == after["nav_minor"] == 1_001_900
+
+
+def test_postgres_paper_sell_reduces_positions_and_carries_receivable():
+    dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from ordivon_capital.accounting.postgres_paper_close import PostgresPaperClose
+
+    day0, day1, day2 = inputs()
+    trade = date(2026, 1, 13)
+    pending_day = date(2026, 1, 14)
+    clearing_day = date(2026, 1, 15)
+    sale = paper_close.PaperSell(
+        "sale-1", "ETF", 10, 10_300, 100,
+        datetime.fromisoformat("2026-01-12T16:15:00-05:00"),
+        datetime.fromisoformat("2026-01-13T09:30:00-05:00"),
+        settlement_date=clearing_day,
+    )
+    account = "paper-test-" + uuid4().hex
+    store = PostgresPaperClose(dsn)
+    for day in (day0, day1, day2):
+        store.close_session(account, day)
+    sell_day = paper_close.PaperSession(trade, day2.session, 0, 0, {}, (), sells=(sale,))
+    with pytest.raises(ValueError, match="held shares"):
+        store.close_session(account, replace(sell_day, sells=(replace(sale, shares=11),)))
+    with pytest.raises(ValueError, match="already used for the opposite side"):
+        store.close_session(
+            account, replace(sell_day, sells=(replace(sale, fill_id=day1.buys[0].fill_id),)),
+        )
+
+    from ordivon_capital.markets.etf_eod_snapshot import AdmittedEtfEodSnapshot, EtfCloseMark
+
+    close_at = datetime.fromisoformat("2026-01-13T21:00:00+00:00")
+    captured = datetime.fromisoformat("2026-01-13T21:10:00+00:00")
+    other_symbol = AdmittedEtfEodSnapshot(
+        "sha256:" + "1" * 64, "fixture", "fixture", "fixture", captured, captured, None,
+        (EtfCloseMark(trade.isoformat(), "OTHER", 10_000, close_at, captured, "FIRST_OBSERVED"),),
+    )
+    with pytest.raises(ValueError, match="does not cover every held or traded"):
+        store.close_session(account, sell_day, mark_snapshot=other_symbol)
+    receipt = store.close_session(account, sell_day)
+    assert receipt["valuation"]["positions"] == {}
+    assert receipt["valuation"]["cash_minor"] == 899_900
+    assert receipt["valuation"]["receivable_minor"] == 102_900
+    assert receipt["valuation"]["nav_minor"] == 1_002_800
+    pending = paper_close.PaperSession(pending_day, trade, 0, 0, {}, ())
+    assert store.close_session(account, pending)["valuation"]["receivable_minor"] == 102_900
+
+    clearing = paper_close.PaperSession(clearing_day, pending_day, 0, 0, {}, ())
+    buy = replace(
+        day1.buys[0], fill_id="large-buy", shares=65,
+        decided_at=datetime.fromisoformat("2026-01-14T16:15:00-05:00"),
+        filled_at=datetime.fromisoformat("2026-01-15T09:30:00-05:00"),
+    )
+    with pytest.raises(ValueError, match="protected cash"):
+        store.close_session(account, replace(clearing, marks={"ETF": 10_000}, buys=(buy,)))
+
+    final = PostgresPaperClose(dsn).close_session(account, clearing)["valuation"]
+    assert final["receivable_minor"] == 0
+    assert final["cash_minor"] == final["nav_minor"] == 1_002_800
+    assert store.close_session(account, sell_day) == receipt
+
+    following = paper_close.PaperSession(
+        date(2026, 1, 16), clearing_day, 0, 0, {"ETF": 10_000},
+        (replace(
+            buy,
+            decided_at=datetime.fromisoformat("2026-01-15T16:15:00-05:00"),
+            filled_at=datetime.fromisoformat("2026-01-16T09:30:00-05:00"),
+        ),),
+    )
+    assert store.close_session(account, following)["valuation"]["positions"] == {"ETF": 65}
