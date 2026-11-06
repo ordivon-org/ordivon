@@ -1,5 +1,34 @@
 # Ordivon Capital — Finance investment and research owner
 
+
+## Start here — Human / Agent (2026-11-06)
+
+**Human**: [Finance operating guide](docs/FINANCE_HUMAN_GUIDE_R1.md)
+provides an actually runnable contribution-only demo, a responsibility map
+covering all seven existing Owners, reproducible historical Paper replay
+instructions, a bounded PostgreSQL Paper close path, and explicit limits on
+market data, return comparison and broker authority.
+
+**Agent**: use the canonical
+[Finance Paper Investment Skill](../../.agents/skills/finance-paper-investment/SKILL.md)
+for Investment Mode and Paper Lab; use
+[Finance Experiment Review](../../.agents/skills/finance-experiment-review/SKILL.md)
+for hypothesis freeze and prospective falsification. Both are standard
+Agent Skills text, not independent execution runtimes, broker adapters or
+financial permission sources.
+
+The smallest fully runnable dry example, from the repository root:
+
+```sh
+domains/capital/scripts/run-strategic-contribution-brief \
+  < domains/capital/examples/strategic_contribution_r1.json
+```
+
+Expect exactly `allocationsMinor.BOND_CORE=10000` cents,
+`allocationsMinor.INDEX_CORE=0` and `executionAuthorized=false`.
+Inputs are caller-supplied and neither risk suitability nor provider
+pricing is thereby verified.
+
 **Canonical sources remain `domains/capital` / `ordivon_capital`.**
 Finance is the investment-management program rather than a second
 source/package/Agent owner. Its current capabilities include the existing
