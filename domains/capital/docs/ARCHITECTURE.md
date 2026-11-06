@@ -11,7 +11,10 @@ evaluation; no second economic performance calculator is added.
 `research/experiment_protocol.py` owns only a **pre-experiment** plan
 commitment and subsequent readiness assessment using declared source
 availability, disjoint train/validation/prospective holdout and identity
-digests. It complements, but does not replace, existing provider byte-binding
+digests. Temporal instants are normalized to UTC before calendar-day
+partition comparison; the frozen plan and result are strict versioned JSON
+shapes, and an undeclared authority or extra economic claim cannot promote
+a review standing. It complements, but does not replace, existing provider byte-binding
 and return-path evaluation. UNKNOWN is not REJECTED; REVIEW_REQUIRED is
 not independent research validation, broker permission or an allocation grant.
 

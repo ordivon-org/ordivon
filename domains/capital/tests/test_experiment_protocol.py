@@ -131,3 +131,43 @@ def test_frozen_identity_tampering_is_rejected() -> None:
     tampered = copy.deepcopy(frozen)
     tampered["plan"]["trialsPlanned"] = 1
     assert assess_holdout_evidence(tampered, None)["standing"] == "REJECTED"
+
+
+def test_utc_freeze_day_prevents_cross_timezone_holdout_leakage() -> None:
+    plan = _plan()
+    # Local 2026-01-01 is already UTC Jan 2; the Jan 2 holdout is not future.
+    plan["frozenAt"] = "2026-01-01T23:00:00-12:00"
+    with pytest.raises(ExperimentContractError, match="after the freeze date"):
+        freeze_experiment_plan(plan)
+
+
+def test_utc_holdout_observation_day_prevents_cross_timezone_admission() -> None:
+    frozen = freeze_experiment_plan(_plan())
+    evidence = _result(frozen["planDigest"])
+    # Local June 30 is UTC June 29; the declared June 30 holdout is unfinished.
+    evidence["observedThrough"] = "2026-06-30T00:30:00+14:00"
+    assert assess_holdout_evidence(frozen, evidence)["standing"] == "REJECTED"
+
+
+def test_extra_permission_claim_is_not_forwarded_by_a_frozen_plan() -> None:
+    plan = _plan()
+    plan["allowExternalWrite"] = True
+    with pytest.raises(ExperimentContractError, match="plan keys"):
+        freeze_experiment_plan(plan)
+
+
+def test_forged_frozen_receipt_authority_is_rejected() -> None:
+    frozen = freeze_experiment_plan(_plan())
+    forged = copy.deepcopy(frozen)
+    forged["authority"] = "TRADE"
+    assessed = assess_holdout_evidence(forged, _result(frozen["planDigest"]))
+    assert assessed["standing"] == "REJECTED"
+    assert assessed["externalWriteAllowed"] is False
+
+
+def test_undeclared_positive_economic_claim_cannot_promote_review() -> None:
+    frozen = freeze_experiment_plan(_plan())
+    evidence = _result(frozen["planDigest"])
+    evidence["independentProfitProof"] = True
+    assessed = assess_holdout_evidence(frozen, evidence)
+    assert assessed["standing"] == "UNKNOWN"

@@ -12,11 +12,25 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
+
+_PLAN_FIELDS = frozenset({
+    "schemaVersion", "kind", "hypothesisId", "effectBoundary", "frozenAt",
+    "codeRevision", "configDigest", "environmentDigest", "trialsPlanned",
+    "baselineId", "metricDefinition", "partitions", "historicalSources",
+})
+_RESULT_FIELDS = frozenset({
+    "planDigest", "evaluatedAt", "observedThrough", "availableAt",
+    "holdoutDigest", "trialsEvaluated", "multiplicityControl",
+    "costModelDigest", "benchmarkEvidenceDigest", "independentReproduction",
+})
+_FROZEN_FIELDS = frozenset({
+    "schemaVersion", "kind", "planDigest", "plan", "authority", "attestation",
+})
 
 
 class ExperimentContractError(ValueError):
@@ -32,12 +46,12 @@ def _timestamp(value: Any, field: str) -> datetime:
         raise ExperimentContractError(f"{field} invalid timestamp") from exc
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise ExperimentContractError(f"{field} must have a UTC offset")
-    return parsed
+    return parsed.astimezone(UTC)
 
 
 def _date(value: Any, field: str) -> date:
-    if not isinstance(value, str):
-        raise ExperimentContractError(f"{field} must be an ISO date")
+    if not isinstance(value, str) or re.fullmatch(r"\d{4}-\d{2}-\d{2}", value) is None:
+        raise ExperimentContractError(f"{field} must be YYYY-MM-DD")
     try:
         return date.fromisoformat(value)
     except ValueError as exc:
@@ -62,7 +76,9 @@ def freeze_experiment_plan(plan: Mapping[str, Any]) -> dict[str, Any]:
     """
     if not isinstance(plan, Mapping):
         raise ExperimentContractError("plan must be an object")
-    if plan.get("schemaVersion") != 1 or plan.get("kind") != "ordivon.capital.research.plan":
+    if set(plan) != _PLAN_FIELDS:
+        raise ExperimentContractError("plan keys must match the declared research contract")
+    if type(plan.get("schemaVersion")) is not int or plan["schemaVersion"] != 1 or plan.get("kind") != "ordivon.capital.research.plan":
         raise ExperimentContractError("unsupported plan identity")
     if plan.get("effectBoundary") != "RESEARCH_ONLY":
         raise ExperimentContractError("a research plan cannot request external effects")
@@ -79,13 +95,13 @@ def freeze_experiment_plan(plan: Mapping[str, Any]) -> dict[str, Any]:
 
     frozen_at = _timestamp(plan.get("frozenAt"), "frozenAt")
     partitions = plan.get("partitions")
-    if not isinstance(partitions, Mapping):
-        raise ExperimentContractError("partitions must be an object")
+    if not isinstance(partitions, Mapping) or set(partitions) != {"train", "validation", "holdout"}:
+        raise ExperimentContractError("partitions must contain only train, validation and holdout")
     spans: dict[str, tuple[date, date]] = {}
     for stage in ("train", "validation", "holdout"):
         row = partitions.get(stage)
-        if not isinstance(row, Mapping):
-            raise ExperimentContractError(f"missing partition {stage}")
+        if not isinstance(row, Mapping) or set(row) != {"start", "end"}:
+            raise ExperimentContractError(f"partition {stage} must have exact start/end")
         start = _date(row.get("start"), f"{stage}.start")
         end = _date(row.get("end"), f"{stage}.end")
         if start > end:
@@ -104,8 +120,10 @@ def freeze_experiment_plan(plan: Mapping[str, Any]) -> dict[str, Any]:
         raise ExperimentContractError("historicalSources must be nonempty")
     identities: set[str] = set()
     for index, row in enumerate(sources):
-        if not isinstance(row, Mapping):
-            raise ExperimentContractError(f"source {index} must be an object")
+        if not isinstance(row, Mapping) or set(row) != {
+            "sourceId", "snapshotDigest", "observedThrough", "availableAt"
+        }:
+            raise ExperimentContractError(f"source {index} must have exact provenance fields")
         source_id = row.get("sourceId")
         _nonblank(source_id, f"source {index}.sourceId")
         if source_id in identities:
@@ -139,15 +157,26 @@ def assess_holdout_evidence(
     """Return UNKNOWN, REJECTED, or REVIEW_REQUIRED; never authorize trading."""
     reasons: list[str] = []
     status = "UNKNOWN"
-    if not isinstance(frozen, Mapping) or frozen.get("kind") != (
-        "ordivon.capital.research.frozen-plan"
+    if (
+        not isinstance(frozen, Mapping)
+        or set(frozen) != _FROZEN_FIELDS
+        or type(frozen.get("schemaVersion")) is not int
+        or frozen["schemaVersion"] != 1
+        or frozen.get("kind") != "ordivon.capital.research.frozen-plan"
+        or frozen.get("authority") != "NONE"
+        or frozen.get("attestation") != "CALLER_DECLARED_NOT_INDEPENDENTLY_VERIFIED"
     ):
-        raise ExperimentContractError("expected a frozen research plan")
-    expected = freeze_experiment_plan(frozen.get("plan", {}))["planDigest"]
+        return _assessment("REJECTED", ["FROZEN_RECEIPT_IDENTITY_INVALID"])
+    try:
+        expected = freeze_experiment_plan(frozen.get("plan", {}))["planDigest"]
+    except ExperimentContractError:
+        return _assessment("REJECTED", ["FROZEN_PLAN_CONTRACT_INVALID"])
     if frozen.get("planDigest") != expected:
         return _assessment("REJECTED", ["FROZEN_PLAN_DIGEST_MISMATCH"])
     if not isinstance(result, Mapping):
         return _assessment("UNKNOWN", ["NO_HOLDOUT_EVIDENCE"])
+    if set(result) != _RESULT_FIELDS:
+        return _assessment("UNKNOWN", ["UNSUPPORTED_OR_MISSING_RESULT_FIELDS"])
     if result.get("planDigest") != expected:
         return _assessment("REJECTED", ["RESULT_PLAN_IDENTITY_MISMATCH"])
 

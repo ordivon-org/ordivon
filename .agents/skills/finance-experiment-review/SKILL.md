@@ -45,7 +45,9 @@ Agent platform, brokerage adapter or source/package identity.
    strategy has economic value. Contributions, return conventions and
    period timing must be comparable.
 2. Freeze hypothesis, code/config/environment and historical data vintage
-   before the prospective holdout starts. Persist the returned artifact
+   before the prospective holdout starts. Dates use UTC calendar-day cuts;
+   crossing a timezone boundary does not authorize same-day holdout use.
+   Persist the returned artifact
    through the actual Runtime natural owner; SHA-256 does not prove source
    authenticity or that freeze happened at the claimed past time.
 3. State dataset point-in-time availability, trial family size, cost model
