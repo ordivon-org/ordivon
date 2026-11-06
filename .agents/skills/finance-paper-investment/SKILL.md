@@ -89,7 +89,8 @@ investment advice.
    `finalStrategyNAV`, `finalBenchmarkNAV`, `strategyMaxDrawdown`, and
    `dailySettlements`. Distinguish bounded mathematical replay from
    independently verified market performance.
-4. For a revised source vintage use the existing
+4. A requested --output receipt is atomically published create-once. An identical replay is idempotent; different bytes at an occupied path fail without replacing the existing receipt. Use a distinct path for each source/policy version.
+5. For a revised source vintage use the existing
    `scripts/run-paper-etf-vintage-compare-r1`, not a third price-replay
    implementation. The result indicates historical sensitivity, never
    prospective alpha.

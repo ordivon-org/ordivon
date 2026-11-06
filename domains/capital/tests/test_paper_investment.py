@@ -169,6 +169,56 @@ def test_cli_writes_paper_receipt_only_to_explicit_file(tmp_path: Path):
     assert json.loads(receipt.read_text())["finalStrategyNAV"] == run()["finalStrategyNAV"]
 
 
+def test_paper_receipt_replay_is_idempotent_and_different_content_never_overwrites(
+    tmp_path: Path,
+) -> None:
+    from ordivon_capital.portfolio.paper_investment import _write_receipt
+
+    receipt = tmp_path / "replay.json"
+    original = run()
+    _write_receipt(receipt, original)
+    frozen = receipt.read_bytes()
+    _write_receipt(receipt, original)
+    assert receipt.read_bytes() == frozen
+    different = dict(original, replayId="sha256:" + "0" * 64)
+    with pytest.raises(PaperInvestmentError, match="receipt collision"):
+        _write_receipt(receipt, different)
+    assert receipt.read_bytes() == frozen
+
+
+def test_competing_receipt_publisher_cannot_replace_prior_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import os
+
+    from ordivon_capital.portfolio.paper_investment import _write_receipt
+
+    receipt = tmp_path / "replay.json"
+    rival = b'{"kind":"competing-replay"}\\n'
+    original_link = os.link
+
+    def contest_between_check_and_publish(src: os.PathLike[str], dst: os.PathLike[str]) -> None:
+        receipt.write_bytes(rival)
+        original_link(src, dst)
+
+    monkeypatch.setattr(os, "link", contest_between_check_and_publish)
+    with pytest.raises(PaperInvestmentError, match="receipt collision"):
+        _write_receipt(receipt, run())
+    assert receipt.read_bytes() == rival
+    assert sorted(path.name for path in tmp_path.iterdir()) == ["replay.json"]
+
+
+def test_paper_receipt_destination_never_follows_broken_symlink(tmp_path: Path) -> None:
+    from ordivon_capital.portfolio.paper_investment import _write_receipt
+
+    outside = tmp_path / "target.json"
+    receipt = tmp_path / "replay.json"
+    receipt.symlink_to(outside)
+    with pytest.raises(PaperInvestmentError, match="symlink"):
+        _write_receipt(receipt, run())
+    assert not outside.exists()
+
+
 def test_cli_rejects_duplicate_policy_keys(tmp_path: Path):
     import os
     import subprocess
