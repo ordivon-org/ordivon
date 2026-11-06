@@ -13,6 +13,7 @@ import json
 import re
 from collections.abc import Mapping
 from datetime import UTC, date, datetime
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -228,4 +229,187 @@ def _assessment(standing: str, reasons: list[str]) -> dict[str, Any]:
         "reasons": reasons,
         "externalWriteAllowed": False,
         "capitalAllocationAuthorized": False,
+    }
+
+
+
+# This is a thin source-only composition of the existing frozen research
+# protocol with the existing byte-verified candidate evaluator.  It is not a
+# second backtester, model-validation platform, or independent witness.
+_PRECOMMIT_FIELDS = frozenset({
+    "schemaVersion", "kind", "candidateId", "hypothesis", "frozenAt",
+    "trialCount", "currency", "costCoverage",
+    "strategyAssetWeight", "benchmarkExpenseFraction",
+})
+_COST_FIELDS = frozenset({"fees", "slippage", "financing", "taxes"})
+
+
+def _policy_decimal(value: Any, label: str) -> str:
+    if type(value) is not str:
+        raise ExperimentContractError(f"{label} must be a decimal string")
+    try:
+        parsed = Decimal(value)
+    except InvalidOperation as exc:
+        raise ExperimentContractError(f"{label} must be a finite decimal") from exc
+    if not parsed.is_finite() or not Decimal(0) <= parsed <= Decimal(1):
+        raise ExperimentContractError(f"{label} outside [0,1]")
+    return str(parsed.normalize())
+
+
+def candidate_policy_digest(candidate: Mapping[str, Any]) -> str:
+    """Commit to candidate weights, fees and trial family BEFORE seeing holdout.
+
+    Only the precommitment projection is included. Future source/holdout
+    digests must NOT be in the policy because they cannot exist at freeze time.
+    """
+    if not isinstance(candidate, Mapping) or not _PRECOMMIT_FIELDS <= set(candidate):
+        raise ExperimentContractError("candidate precommitment fields incomplete")
+    if candidate.get("schemaVersion") != 2 or candidate.get("kind") != (
+        "ordivon.capital.finance.replayable-research-candidate"
+    ):
+        raise ExperimentContractError("replayable candidate v2 required")
+    for key in ("candidateId", "hypothesis"):
+        _nonblank(candidate.get(key), key)
+    if type(candidate.get("trialCount")) is not int or candidate["trialCount"] < 1:
+        raise ExperimentContractError("trialCount must be positive integer")
+    if not isinstance(candidate.get("currency"), str) or re.fullmatch(
+        r"[A-Z]{3}", candidate["currency"]
+    ) is None:
+        raise ExperimentContractError("currency must be uppercase three-letter code")
+    costs = candidate.get("costCoverage")
+    if (
+        type(costs) is not list
+        or len(costs) != len(_COST_FIELDS)
+        or not all(type(item) is str for item in costs)
+        or set(costs) != _COST_FIELDS
+    ):
+        raise ExperimentContractError("costCoverage must list all four unique costs")
+    policy = {key: candidate[key] for key in _PRECOMMIT_FIELDS}
+    policy["frozenAt"] = _timestamp(candidate["frozenAt"], "frozenAt").isoformat()
+    policy["strategyAssetWeight"] = _policy_decimal(
+        candidate["strategyAssetWeight"], "strategyAssetWeight"
+    )
+    policy["benchmarkExpenseFraction"] = _policy_decimal(
+        candidate["benchmarkExpenseFraction"], "benchmarkExpenseFraction"
+    )
+    policy["costCoverage"] = sorted(costs)
+    encoded = json.dumps(policy, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return "sha256:" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def review_replayed_candidate(
+    *,
+    frozen: Mapping[str, Any],
+    manifest: Mapping[str, Any],
+    source_bytes: bytes,
+    holdout_bytes: bytes,
+    evaluated_at: str,
+) -> dict[str, Any]:
+    """Compose TWO existing owners' pure evaluations with exact policy identity.
+
+    Honest standing is at most UNKNOWN without provider and independent
+    reproduction attestations. Same-repo recomputation is not independent.
+    """
+    from .investment_candidate import CandidateEvidenceError, evaluate_investment_candidate
+
+    def reject(reason: str) -> dict[str, Any]:
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.capital.research.composed-review",
+            "standing": "REJECTED",
+            "reasons": [reason],
+            "capitalAuthority": "NONE",
+            "externalWriteAllowed": False,
+        }
+
+    receipt = assess_holdout_evidence(frozen, None)
+    if receipt["standing"] == "REJECTED":
+        return reject("INVALID_FROZEN_EXPERIMENT")
+    if not isinstance(manifest, Mapping) or type(manifest.get("schemaVersion")) is not int:
+        return reject("UNSUPPORTED_CANDIDATE")
+    if manifest.get("schemaVersion") != 2:
+        return reject("V2_SOURCE_REPLAY_REQUIRED")
+    plan = frozen["plan"]
+    if manifest.get("candidateId") != plan["hypothesisId"]:
+        return reject("CANDIDATE_ID_NOT_PRECOMMITTED")
+    if manifest.get("trialCount") != plan["trialsPlanned"]:
+        return reject("TRIAL_FAMILY_CHANGED_AFTER_FREEZE")
+    try:
+        if _timestamp(manifest.get("frozenAt"), "candidate.frozenAt") != _timestamp(
+            plan["frozenAt"], "plan.frozenAt"
+        ):
+            return reject("FREEZE_TIME_IDENTITY_MISMATCH")
+        if candidate_policy_digest(manifest) != plan["configDigest"]:
+            return reject("PRECOMMITTED_POLICY_MISMATCH")
+        evaluation = evaluate_investment_candidate(
+            manifest=dict(manifest),
+            source_bytes=source_bytes,
+            holdout_bytes=holdout_bytes,
+        )
+    except (ExperimentContractError, CandidateEvidenceError, TypeError, ValueError):
+        return reject("SOURCE_REPLAY_OR_POLICY_INVALID")
+
+    # The evaluator has already checked strict row identities and chronological
+    # instants. Read only the accepted timestamp projection; do not recompute
+    # investment economics or invent continuous daily-market observations.
+    records = json.loads(holdout_bytes)
+    start = _date(plan["partitions"]["holdout"]["start"], "holdout.start")
+    end = _date(plan["partitions"]["holdout"]["end"], "holdout.end")
+    observations = [
+        _timestamp(row["periodEndAt"], "periodEndAt") for row in records
+    ]
+    if observations[0].date() < start or observations[-1].date() > end:
+        return reject("CANDIDATE_OBSERVATIONS_OUTSIDE_PRECOMMITTED_HOLDOUT")
+    if observations[-1].date() < end:
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.capital.research.composed-review",
+            "standing": "UNKNOWN",
+            "reasons": ["PROSPECTIVE_HOLDOUT_INCOMPLETE"],
+            "frozenPlanDigest": frozen["planDigest"],
+            "candidateId": manifest["candidateId"],
+            "capitalAuthority": "NONE",
+            "externalWriteAllowed": False,
+        }
+    available = max(
+        _timestamp(row["availableAt"], "holdout.availableAt") for row in records
+    )
+    cost_projection = [
+        {key: row[key] for key in sorted(_COST_FIELDS)} for row in records
+    ]
+    cost_bytes = json.dumps(cost_projection, sort_keys=True, separators=(",", ":")).encode()
+    # Source bytes are not attested market observations: this digest only
+    # binds the content the local source-replay evaluator consumed.
+    source_digest = "sha256:" + hashlib.sha256(source_bytes).hexdigest()
+    result = {
+        "planDigest": frozen["planDigest"],
+        "evaluatedAt": evaluated_at,
+        "observedThrough": observations[-1].isoformat(),
+        "availableAt": available.isoformat(),
+        "holdoutDigest": "sha256:" + hashlib.sha256(holdout_bytes).hexdigest(),
+        "trialsEvaluated": manifest["trialCount"],
+        "multiplicityControl": "UNKNOWN",
+        "costModelDigest": "sha256:" + hashlib.sha256(cost_bytes).hexdigest(),
+        "benchmarkEvidenceDigest": source_digest,
+        "independentReproduction": None,
+    }
+    assessment = assess_holdout_evidence(frozen, result)
+    if assessment["standing"] == "REJECTED":
+        return reject("PROSPECTIVE_EVIDENCE_TEMPORAL_CONTRADICTION")
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.capital.research.composed-review",
+        "standing": "UNKNOWN",
+        "reasons": assessment["reasons"] + [
+            "PROVIDER_AND_FREEZE_ATTESTATION_UNVERIFIED"
+        ],
+        "frozenPlanDigest": frozen["planDigest"],
+        "candidateId": manifest["candidateId"],
+        "sourceToReturnRecomputationVerified": evaluation[
+            "sourceToReturnRecomputationVerified"
+        ],
+        "sourceObservationProvenanceVerified": False,
+        "economicSummary": evaluation["economicSummary"],
+        "capitalAuthority": "NONE",
+        "externalWriteAllowed": False,
     }

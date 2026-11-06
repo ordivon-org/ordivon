@@ -10,10 +10,13 @@ import argparse
 import json
 import sys
 from collections.abc import Mapping
+from pathlib import Path
 
 from ordivon_capital.research.experiment_protocol import (
     assess_holdout_evidence,
+    candidate_policy_digest,
     freeze_experiment_plan,
+    review_replayed_candidate,
 )
 
 
@@ -33,8 +36,14 @@ def _reject_nonfinite(value: str) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "operation", choices=("freeze-experiment", "assess-holdout")
+        "operation", choices=(
+            "freeze-experiment", "assess-holdout",
+            "fingerprint-policy", "review-candidate",
+        )
     )
+    parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--source", type=Path)
+    parser.add_argument("--holdout", type=Path)
     args = parser.parse_args(argv)
     try:
         request = json.load(
@@ -44,9 +53,25 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("JSON input must be an object")
         if args.operation == "freeze-experiment":
             result = freeze_experiment_plan(request)
-        else:
+        elif args.operation == "assess-holdout":
             result = assess_holdout_evidence(request["frozen"], request.get("result"))
-    except (ValueError, KeyError, TypeError) as exc:
+        elif args.operation == "fingerprint-policy":
+            result = {"configDigest": candidate_policy_digest(request)}
+        else:
+            if not (args.manifest and args.source and args.holdout):
+                raise ValueError("review-candidate needs --manifest, --source and --holdout")
+            manifest = json.loads(
+                args.manifest.read_text(encoding="utf-8"),
+                object_pairs_hook=_unique_object, parse_constant=_reject_nonfinite,
+            )
+            result = review_replayed_candidate(
+                frozen=request["frozen"],
+                manifest=manifest,
+                source_bytes=args.source.read_bytes(),
+                holdout_bytes=args.holdout.read_bytes(),
+                evaluated_at=request["evaluatedAt"],
+            )
+    except (ValueError, KeyError, TypeError, OSError, UnicodeError) as exc:
         print(f"INVALID_FINANCE_LEGO_INPUT: {exc}", file=sys.stderr)
         return 2
     print(json.dumps(result, ensure_ascii=False, sort_keys=True, allow_nan=False))
