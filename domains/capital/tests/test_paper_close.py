@@ -223,6 +223,21 @@ def test_postgres_paper_sell_reduces_positions_and_carries_receivable():
     sell_day = paper_close.PaperSession(trade, day2.session, 0, 0, {}, (), sells=(sale,))
     with pytest.raises(ValueError, match="held shares"):
         store.close_session(account, replace(sell_day, sells=(replace(sale, shares=11),)))
+    with pytest.raises(ValueError, match="already used for the opposite side"):
+        store.close_session(
+            account, replace(sell_day, sells=(replace(sale, fill_id=day1.buys[0].fill_id),)),
+        )
+
+    from ordivon_capital.markets.etf_eod_snapshot import AdmittedEtfEodSnapshot, EtfCloseMark
+
+    close_at = datetime.fromisoformat("2026-01-13T21:00:00+00:00")
+    captured = datetime.fromisoformat("2026-01-13T21:10:00+00:00")
+    other_symbol = AdmittedEtfEodSnapshot(
+        "sha256:" + "1" * 64, "fixture", "fixture", "fixture", captured, captured, None,
+        (EtfCloseMark(trade.isoformat(), "OTHER", 10_000, close_at, captured, "FIRST_OBSERVED"),),
+    )
+    with pytest.raises(ValueError, match="does not cover every held or traded"):
+        store.close_session(account, sell_day, mark_snapshot=other_symbol)
     receipt = store.close_session(account, sell_day)
     assert receipt["valuation"]["positions"] == {}
     assert receipt["valuation"]["cash_minor"] == 899_900

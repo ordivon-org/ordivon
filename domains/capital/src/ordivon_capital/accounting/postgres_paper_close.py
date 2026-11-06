@@ -148,6 +148,11 @@ class PostgresPaperClose:
                 PaperValuation(**(head[2]["valuation"] | {"session": head[0]}))
                 if head else None
             )
+            if mark_snapshot is not None:
+                covered = set(previous.positions) if previous else set()
+                covered.update(fill.symbol for fill in (*day.buys, *day.sells))
+                if covered - day.marks.keys():
+                    raise ValueError("market snapshot does not cover every held or traded instrument")
             valuation = value_session(previous, day)
             self._post_cash(db, account_key, day, previous, valuation)
             receipt = asdict(valuation) | {"session": day.session.isoformat()}
@@ -182,6 +187,20 @@ class PostgresPaperClose:
     ) -> None:
         def identity(*parts: str) -> int:
             return stable_accounting_id("ordivon-capital:paper-close:usd:v1", key, *parts)
+
+        buy_ids = {fill.fill_id for fill in day.buys}
+        sell_ids = {fill.fill_id for fill in day.sells}
+        opposite_transfers = [
+            *(str(identity("sell", fill_id)) for fill_id in buy_ids),
+            *(str(identity("buy", fill_id)) for fill_id in sell_ids),
+        ]
+        if buy_ids & sell_ids or (
+            opposite_transfers and db.execute(
+                "SELECT 1 FROM ordivon_capital.transfers WHERE id = ANY(%s) LIMIT 1",
+                (opposite_transfers,),
+            ).fetchone()
+        ):
+            raise ValueError("paper fill identity already used for the opposite side")
 
         cash, fund, clearing = (identity(role) for role in ("cash", "fund", "clearing"))
         if previous is None:
