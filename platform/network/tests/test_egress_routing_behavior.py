@@ -7,6 +7,7 @@ services, credentials, VPN identities, netns, or global routes are modified.
 from __future__ import annotations
 
 import json
+import runpy
 import os
 import queue
 import shutil
@@ -208,3 +209,17 @@ def test_native_reject_has_no_upstream_effect_even_with_connect_200() -> None:
         )
         with pytest.raises(queue.Empty):
             observed.get(timeout=0.3)
+
+
+def test_carrier_observer_recognizes_ipv6_connect_authority() -> None:
+    """An IPv6 CONNECT must not be silently excluded from negative evidence."""
+    script = Path(__file__).resolve().parents[1] / "acceptance/egress/live-carrier-witness.py"
+    regex = runpy.run_path(str(script))["CONNECT_AUTHORITY"]
+    assert regex.findall("CONNECT [2606:4700:4700::1111]:443 HTTP/1.1") == [
+        ("[2606:4700:4700::1111]", "443")
+    ]
+    assert regex.findall("CONNECT 1.1.1.1:443 HTTP/1.1") == [("1.1.1.1", "443")]
+    assert regex.findall("CONNECT api.example.com:443 HTTP/1.1") == [
+        ("api.example.com", "443")
+    ]
+    assert regex.findall("CONNECT 2606:4700:4700::1111:443 HTTP/1.1") == []

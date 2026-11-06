@@ -23,6 +23,9 @@ ROOT = Path("/etc/network-v2")
 NAMESPACE = "nv2-browserless-prod"
 CARRIER_PORT = 19680
 CASES = ("codex", "discord", "model-provider", "supply-chain", "x-reality", "claude", "chat-ingress")
+# CONNECT targets can contain bracketed IPv6 literals, not only DNS/IPv4.
+# Missing this case makes a leaking IPv6 CONNECT invisible to the Carrier spy.
+CONNECT_AUTHORITY = re.compile(r"CONNECT\s+(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9.-]+):(\d+)\s+HTTP/1")
 
 
 def command(*args: str, timeout: float = 8) -> str:
@@ -112,7 +115,7 @@ class Observer:
     def _reader(self) -> None:
         assert self.process.stdout is not None
         for line in self.process.stdout:
-            for m in re.finditer(r"CONNECT\s+([A-Za-z0-9.-]+):(\d+)\s+HTTP/1", line):
+            for m in CONNECT_AUTHORITY.finditer(line):
                 if len(self.seen) >= 10000:
                     return
                 # No raw packet payloads, auth headers or packet files are stored.
@@ -151,6 +154,10 @@ def run(names: list[str]) -> dict:
                 ("allowed", f"{c['allowedHost']}:443"),
                 ("unknown-host", f"{forbidden}:443"),
                 ("wrong-port", f"{c['allowedHost']}:444"),
+                # Literal targets bypass DNS-name allowlisting; both families
+                # must produce no upstream Carrier CONNECT.
+                ("ipv4-literal", "1.1.1.1:443"),
+                ("ipv6-literal", "[2606:4700:4700::1111]:443"),
             ):
                 before = observer.count(target)
                 prefix = (["ip", "netns", "exec", c["probeNamespace"]]
@@ -166,7 +173,10 @@ def run(names: list[str]) -> dict:
                 time.sleep(0.3)
                 forwarded = observer.count(target) - before
                 accepted = forwarded > 0 and result.returncode == 0
-                rejected = forwarded == 0
+                # The sing-box native listener can acknowledge CONNECT 200
+                # before terminating a rejected route. A nonzero curl exit
+                # AND zero observed upstream delivery are both required.
+                rejected = forwarded == 0 and result.returncode != 0
                 observations.append({
                     "consumer": c["consumer"], "scenario": scenario,
                     "observer": c["sensor"], "forwardedConnects": forwarded,
@@ -193,8 +203,8 @@ def run(names: list[str]) -> dict:
         "schemaVersion": 1,
         "kind": "ordivon.network-v2.ns2-live-carrier-witness",
         "standing": "PASS" if all(x["pass"] for x in observations) else "FAIL",
-        "scope": "sampled IPv4 HTTPS scoped proxy -> shared Carrier CONNECT only",
-        "unproved": ["DNS/DoH indirect exits", "IPv6", "Finance direct exception",
+        "scope": "sampled scoped HTTP CONNECT (DNS names, IPv4/IPv6 IP literals) -> shared Carrier; not IPv6 transport path",
+        "unproved": ["DNS/DoH indirect exits", "IPv6 direct/UDP egress", "Finance direct exception",
                      "all local app process binding", "loaded memory policy digest"],
         "observedAtUtc": dt.datetime.now(dt.timezone.utc).isoformat(),
         "providerPidStable": True, "consumerCount": len(data),
