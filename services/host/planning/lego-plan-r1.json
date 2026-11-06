@@ -12,6 +12,10 @@
       "src/ordivon_host_v2/work_store.py",
       "src/ordivon_host_v2/work_queries.py",
       "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_space_commands.py",
+        "src/ordivon_host_v2/social_topic_commands.py",
+        "src/ordivon_host_v2/social_message_commands.py",
+        "src/ordivon_host_v2/social_intent_commands.py",
       "src/ordivon_host_v2/social_queries.py",
       "src/ordivon_host_v2/social_space_queries.py",
       "src/ordivon_host_v2/social_message_queries.py",
@@ -100,6 +104,10 @@
       "evidence": [
         "src/ordivon_host_v2/collaboration_inputs.py",
         "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_space_commands.py",
+        "src/ordivon_host_v2/social_topic_commands.py",
+        "src/ordivon_host_v2/social_message_commands.py",
+        "src/ordivon_host_v2/social_intent_commands.py",
         "src/ordivon_host_v2/social_queries.py",
         "src/ordivon_host_v2/social_space_queries.py",
         "src/ordivon_host_v2/social_message_queries.py",
@@ -228,6 +236,7 @@
         "L10"
       ],
       "evidence": [
+        "tests/test_contract_policy.py",
         "src/ordivon_host_v2/service.py",
         "src/ordivon_host_v2/canonical_json.py",
         "migrations/versions/0009_retire_legacy_task_board.py",
@@ -370,6 +379,7 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_message_commands.py",
         "src/ordivon_host_v2/social_queries.py",
         "src/ordivon_host_v2/social_message_queries.py",
         "src/ordivon_host_v2/social_topic_queries.py",
@@ -433,7 +443,10 @@
         "test_r2_message_page_respects_canonical_byte_budget"
       ],
       "evidence": [
+        "mise.toml",
         "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_message_commands.py",
+        "src/ordivon_host_v2/social_topic_commands.py",
         "src/ordivon_host_v2/social_queries.py",
         "src/ordivon_host_v2/social_message_queries.py",
         "src/ordivon_host_v2/social_topic_queries.py",
