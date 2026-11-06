@@ -155,3 +155,36 @@ real 1,511,995-byte pinned GitHub snapshot was re-fetched with both SHA-256
 and Git blob identity verified and compared to itself across 401 priced
 sessions; it correctly produced zero NAV changes. No vendor correction was
 claimed, and the unlicensed raw CSV was removed after this smoke replay.
+
+## Native paper Account-to-Risk consumer (CA03)
+
+The historical adjusted-close daily mix replay and the PostgreSQL paper
+account **are different representations**. No historical NAV change is
+converted into fabricated buys or settlement events. For an actual
+simulated account receipt, the existing Markets owner independently binds
+raw *unadjusted* ETF marks to their SHA-256, exchange session, capture
+time, source reference, corporate-actions evidence and private-use rights.
+The existing `PostgresPaperClose` Accounting owner then durably posts
+simulated buys, unsettled liabilities and cash receipts to the dedicated
+`ordivon_paper` database.
+
+To compose an already committed Accounting receipt and exactly the
+admitted Markets snapshot into the existing Risk/Governance evaluator:
+
+    scripts/run-capability-python -m ordivon_capital.risk.paper_close_risk --receipt paper-close-receipt.json --snapshot snapshot.json --binding operator-market-binding.json
+
+The operator binding is separately supplied, not self-certified market
+metadata. The Risk adapter verifies that the receipt carries the same
+snapshot SHA, references, clock and instrument set; and that exact
+integer-cent NAV equals cash minus unsettled payables plus held shares
+times session close. Unencumbered cash is not represented as broker
+margin or buying power. Existing native Risk constructs notionals and
+exposure ratios, then the Governance owner evaluates the *actual*
+registered risk budget. With the current owner-principal budget UNSET,
+risk standing is INCOMPLETE, not an investment order approval.
+
+The risk review is pure/read-only, does not re-query PostgreSQL, and
+cannot independently prove its input receipt was durable or that the
+data provider's licence and timestamps are authentic. Risk CA03 now
+has this actual cross-owner consumer without a new ledger, calculation
+engine or control-plane service.

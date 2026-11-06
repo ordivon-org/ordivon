@@ -112,6 +112,12 @@ to their upstream contracts. The PostgreSQL acceptance test uses
 
 ## Current standing
 
+**Finance Paper Risk consumer (CA03)**: read-only
+`ordivon_capital.risk.paper_close_risk` composes Markets-admitted
+ETF marks, existing PostgreSQL paper Accounting receipts, and native
+Risk/Governance; the principal risk budget is still UNSET. See
+`docs/FINANCE_PAPER_INVESTMENT_R1.md`.
+
 **Finance Investment Mode R2**: [cash-flow-matched passive baseline](docs/FINANCE_INVESTMENT_MODE_R2.md) is available as a read-only portfolio comparison. It does not grant trade authority.
 
 
