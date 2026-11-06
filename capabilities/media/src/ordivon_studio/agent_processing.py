@@ -13,11 +13,13 @@ from pathlib import Path
 from typing import Any
 
 # Profile kinds retain current wire contracts despite the stable processing directory.
+# The native script and its required first argument form one Profile-kind contract.
+# OTIO is editorial metadata and TTML is timed text, not video/audio bytes.
 _ADAPTERS = {
-    "ordivon.media.v2.av-profile": "probe-av.sh",
-    "ordivon.media.v2.audio-profile": "probe-audio.sh",
-    "ordivon.media.v2.otio-profile": "probe-otio.sh",
-    "ordivon.media.v2.timed-text-profile": "probe-timed-text.sh",
+    "ordivon.media.v2.av-profile": ("probe-av.sh", "videoSource"),
+    "ordivon.media.v2.audio-profile": ("probe-audio.sh", "audioSource"),
+    "ordivon.media.v2.otio-profile": ("probe-otio.sh", "editorialTimeline"),
+    "ordivon.media.v2.timed-text-profile": ("probe-timed-text.sh", "timedTextDocument"),
 }
 
 
@@ -45,7 +47,7 @@ def processing_profiles(root: Path) -> dict[str, Any]:
             raise ValueError(f"duplicate Media processing profile id: {value['id']}")
         seen.add(value["id"])
         adapter = _ADAPTERS.get(value["kind"])
-        adapter_path = root / "processing/bin" / adapter if adapter else None
+        adapter_path = root / "processing/bin" / adapter[0] if adapter else None
         adapter_digest = (
             "sha256:" + hashlib.sha256(adapter_path.read_bytes()).hexdigest()
             if adapter_path is not None and adapter_path.is_file()
@@ -59,7 +61,7 @@ def processing_profiles(root: Path) -> dict[str, Any]:
             "adapterPath": adapter_path.relative_to(root).as_posix() if adapter_path else None,
             "adapterPresent": adapter_path.is_file() if adapter_path else False,
             "adapterDigest": adapter_digest,
-            "inputRoles": ["mediaSource", "profile", "evidenceDirectory"],
+            "inputRoles": [adapter[1], "profile", "evidenceDirectory"] if adapter else [],
             "externalToolReadiness": "not-observed",
         })
     return {

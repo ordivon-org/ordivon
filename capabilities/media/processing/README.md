@@ -49,6 +49,12 @@ with an exact inputPath and evidenceDirectory. The result is an ordered native
 bash invocation proposal using the current adapter; Runtime executes it and
 the adapter produces raw tool observations and a profile evidence receipt.
 
+The Discovery catalog gives each supported profile its real first-argument
+role: videoSource (AV), audioSource, editorialTimeline (OTIO), or
+timedTextDocument (TTML). Unknown profile kinds have no advertised input
+roles and no executable adapter. These role names are discovery hints, not
+proof that a supplied file matches its role.
+
 The compiler does not implement FFmpeg, OTIO, or subtitle processing; it
 does not check tool installation, mutate source media, or grant execution
 authority. A profile check is a mechanical predicate, never aesthetic or
