@@ -178,3 +178,35 @@ outside this capability. For human use, see `FINANCE_HUMAN_GUIDE_R1.md`; for the
 Risk CLI, consult the existing
 `.agents/skills/finance-paper-risk-review/SKILL.md`.
 CA01–CA10 identities remain in `planning/lego-plan-r1.json`.
+
+## Native Accounting identity refinement: pure Paper to PostgreSQL
+
+The pure `accounting.paper_close.value_session` is a deterministic Paper
+valuation transition; the durable `accounting.postgres_paper_close` adds
+transactional identity history and committed receipts. They are **not two
+interchangeable ledgers**.
+
+For current day buys (B_t), sells (S_t), still-open purchase payables
+(P_{t-1}), and still-open sale receivables (R_{t-1}), an accepted
+transition now explicitly requires:
+
+```text
+IDs(B_t) ∩ (IDs(S_t) ∪ IDs(R_open)) = ∅
+IDs(S_t) ∩ IDs(P_open) = ∅
+```
+
+Here (P_open) and (R_open) are the **unsettled** sets after settlement
+of amounts due that day. This simple disjointness condition prevents a
+single economic fill from being both debit-side and credit-side in the
+same or overlapping sessions. It is a necessary state-transition
+refinement already enforced by PostgreSQL's identity-indexed transfer
+ledger for its **full historical** lifetime. It is not a replacement for
+that persistent anti-replay history: the pure state cannot detect a
+reused fill ID after an earlier transfer has settled and fallen out of
+its bounded daily state.
+
+The native source test exercises a simultaneous buy/sell ID collision
+and a sell reusing a still-open buy payable. Consumer proof is the
+Accounting state transition plus the existing PostgreSQL close tests,
+rather than another mirror ledger, approval system or exhaustive
+mutation harness.
