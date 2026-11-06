@@ -12,6 +12,10 @@
       "src/ordivon_host_v2/work_store.py",
       "src/ordivon_host_v2/work_queries.py",
       "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_space_commands.py",
+        "src/ordivon_host_v2/social_topic_commands.py",
+        "src/ordivon_host_v2/social_message_commands.py",
+        "src/ordivon_host_v2/social_intent_commands.py",
       "src/ordivon_host_v2/social_queries.py",
       "src/ordivon_host_v2/social_space_queries.py",
       "src/ordivon_host_v2/social_message_queries.py",
@@ -100,6 +104,10 @@
       "evidence": [
         "src/ordivon_host_v2/collaboration_inputs.py",
         "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_space_commands.py",
+        "src/ordivon_host_v2/social_topic_commands.py",
+        "src/ordivon_host_v2/social_message_commands.py",
+        "src/ordivon_host_v2/social_intent_commands.py",
         "src/ordivon_host_v2/social_queries.py",
         "src/ordivon_host_v2/social_space_queries.py",
         "src/ordivon_host_v2/social_message_queries.py",
@@ -370,6 +378,7 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_message_commands.py",
         "src/ordivon_host_v2/social_queries.py",
         "src/ordivon_host_v2/social_message_queries.py",
         "src/ordivon_host_v2/social_topic_queries.py",
@@ -434,6 +443,8 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_message_commands.py",
+        "src/ordivon_host_v2/social_topic_commands.py",
         "src/ordivon_host_v2/social_queries.py",
         "src/ordivon_host_v2/social_message_queries.py",
         "src/ordivon_host_v2/social_topic_queries.py",
