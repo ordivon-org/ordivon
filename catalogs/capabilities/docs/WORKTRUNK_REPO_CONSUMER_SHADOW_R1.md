@@ -21,3 +21,7 @@ Evidence:
 
 ## Decision
 KEEP_NATIVE_GIT for Repo governance and Runtime. This trial qualifies Worktrunk only as a disposable, gated *read-only* representation for this consumer, not lifecycle replacement or production installation. A permanent adapter that still depends on Git to verify prunable facts cannot count as custom-code elimination. No Owner production path was switched, and verified retired custom LOC remains zero. Do not infer cleanup authority, R2.1 admission, deployment or a system-wide substitution from this report.
+
+## P3 adjacent owner intake, not adoption
+
+The external GitHub source-cut and LICENSE-file observations for Workstation (agent-desktop), Research (Scrapling), and Security/Skills (security-audit-skill) are frozen separately in catalogs/capabilities/evidence/cross-owner-source-observations-20261106.json. These are **discovery-only**. None is a proved existing-consumer substitution, installed Skill or source-code retirement; each requires natural-Owner contract and negative-test qualification.
