@@ -1369,7 +1369,8 @@
         "processing/bin/probe-audio.sh",
         "processing/bin/probe-otio.sh",
         "processing/bin/probe-timed-text.sh",
-        "tests/test_agent_processing.py"
+        "tests/test_agent_processing.py",
+        "scripts/studio-agent-surface.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -1384,7 +1385,9 @@
         "Plan compiler accepts only one known profile and the exact discovered profile and adapter digests; changed digest cannot silently compile.",
         "Plan delegates unchanged to the existing Linux Runtime/native Bash adapter, with explicit cwd and positional arguments.",
         "Real Linux Runtime executed one generated 1920x1080p30 FFprobe plan and returned actual technicalQc.ok=true with source/profile/raw probe digests.",
-        "Owner verification and AV/audio/OTIO/timed-text native smoke passed; technical QC does not confer semantic/aesthetic/publication approval."
+        "Owner verification and AV/audio/OTIO/timed-text native smoke passed; technical QC does not confer semantic/aesthetic/publication approval.",
+        "The source-owned studio_processing_profiles action is accessible through system Python with an exact empty-object schema, before optional third-party Studio dependencies are materialized; other actions retain JSON Schema validation.",
+        "The existing native processing probe-plan action continues to validate selected profile/adapter digests and returns a nonexecuting Runtime proposal."
       ],
       "r21": {
         "I": {
@@ -1744,8 +1747,8 @@
   ],
   "review": {
     "sourceRevision": "757c7e4b08879e386f683f56674763f544984be3",
-    "updatedAt": "2026-09-18",
-    "standing": "INITIAL",
-    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+    "updatedAt": "2026-11-06",
+    "standing": "NATIVE_RUNTIME_ACCEPTED_BOUNDARIES_DECLARED",
+    "notes": "Uses one already-integrated V11 native processing LEGO (including source catalog and Runtime probe-plan) rather than registering duplicate V11/V12. Bootstrap-free read-only discovery was independently tested; existing exact 1080p FFprobe Runtime receipt is preserved. Historical sourceRevision remains historical."
   }
 }

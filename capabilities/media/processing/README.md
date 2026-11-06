@@ -23,6 +23,11 @@ Run from `capabilities/media`. Use `processing/bin/` for exact profile checks an
 own media parsing/encoding, loudness computation, subtitle conversion and timeline
 interchange; these shell adapters must not reimplement those semantics.
 
+The dependency-light `studio_processing_profiles` Agent action lists the source
+profile and adapter paths with their independent SHA-256 byte identities. It does
+not invoke equipment or claim it is installed. Execute a selected adapter through
+Runtime only after the actual tool and source artifact are available.
+
 ## Dependency and ownership boundaries
 
 The AV technical adapter intentionally does **not** invoke the Studio asset, QC,
