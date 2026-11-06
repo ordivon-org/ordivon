@@ -16,6 +16,21 @@ class EvidenceTests(unittest.TestCase):
         packet = ROOT / "catalogs/capabilities/evidence/external-lego-worktrunk-20261106.json"
         self.assertEqual(check(ROOT, packet), [])
 
+    def test_wrong_consumer_blob_witness_cannot_pass_as_source_provenance(self):
+        original = json.loads((ROOT / "catalogs/capabilities/evidence/external-lego-worktrunk-20261106.json").read_text())
+        first_path = original["references"]["consumerSources"][0]
+        with tempfile.TemporaryDirectory() as temp:
+            p = Path(temp) / "forged.json"
+            original["source"]["consumerSourceBlobSha1"][first_path] = "0" * 40
+            p.write_text(json.dumps(original), encoding="utf-8")
+            errors = check(ROOT, p)
+            self.assertTrue(any("does not match SourceCut" in error for error in errors), errors)
+
+            del original["source"]["consumerSourceBlobSha1"][first_path]
+            p.write_text(json.dumps(original), encoding="utf-8")
+            errors = check(ROOT, p)
+            self.assertTrue(any("witness paths differ" in error for error in errors), errors)
+
     def test_negative_fake_adoption_and_reference(self):
         original = json.loads((ROOT / "catalogs/capabilities/evidence/external-lego-worktrunk-20261106.json").read_text())
         with tempfile.TemporaryDirectory() as temp:

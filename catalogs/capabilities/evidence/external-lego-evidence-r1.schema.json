@@ -52,7 +52,8 @@
       "type": "object",
       "required": [
         "ordivonSourceCut",
-        "upstream"
+        "upstream",
+        "consumerSourceBlobSha1"
       ],
       "properties": {
         "ordivonSourceCut": {
@@ -96,6 +97,14 @@
               "type": "string",
               "format": "date-time"
             }
+          }
+        },
+        "consumerSourceBlobSha1": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
           }
         }
       }
