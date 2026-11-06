@@ -40,9 +40,33 @@ probe dns_aaaa 127.0.0.1:25355
 tmp_prom="$DATA/prometheus.yml"
 sed -e "s/127\\.0\\.0\\.1:29115/127.0.0.1:$BB_PORT/g" -e 's/127\.0\.0\.1:25353/127.0.0.1:25355/g' "$prom" >"$tmp_prom"
 cp config/prometheus/consumer.rules.yml "$DATA/consumer.rules.yml"
+mkdir -p "$DATA/consumers"
+for fragment in config/prometheus/consumers/*.yml; do
+  sed -e "s/127\\.0\\.0\\.1:29115/127.0.0.1:$BB_PORT/g" "$fragment" >"$DATA/consumers/$(basename "$fragment")"
+done
+promtool check config "$tmp_prom" >/dev/null
 systemd-run --quiet --unit="$PROM_UNIT" --property=Type=simple --property=Restart=no /usr/bin/prometheus --config.file="$tmp_prom" --storage.tsdb.path="$DATA/tsdb" --storage.tsdb.retention.time=1h --web.listen-address="127.0.0.1:$PROM_PORT"
 for _ in $(seq 1 60); do curl -fsS "http://127.0.0.1:$PROM_PORT/-/ready" >/dev/null 2>&1 && break; sleep 0.1; done
 curl -fsS "http://127.0.0.1:$PROM_PORT/-/ready" >/dev/null
+# Ready means the HTTP server responds, not that imported consumer pools
+# and targets are loaded. Prove Prometheus' own post-merge live graph.
+expected=0
+for declared in config/prometheus/prometheus.yml config/prometheus/consumers/*.yml; do
+  count=$(yq -o=json '.scrape_configs | length' "$declared")
+  expected=$((expected + count))
+done
+observed_pools=0
+observed_targets=0
+for _ in $(seq 1 50); do
+  observed_pools=$(curl -fsS "http://127.0.0.1:$PROM_PORT/api/v1/scrape_pools" | jq '.data.scrapePools | length')
+  observed_targets=$(curl -fsS "http://127.0.0.1:$PROM_PORT/api/v1/targets?state=active" | jq '.data.activeTargets | length')
+  if test "$observed_pools" = "$expected" && test "$observed_targets" = "$expected"; then break; fi
+  sleep 0.2
+done
+test "$observed_pools" = "$expected"
+test "$observed_targets" = "$expected"
+printf 'native_loaded_scrape_pools=%s native_active_targets=%s
+' "$observed_pools" "$observed_targets"
 ok=0
 for _ in $(seq 1 12); do
   count=$(curl -fsS -G --data-urlencode 'query=probe_success == 1' "http://127.0.0.1:$PROM_PORT/api/v1/query" | jq '[.data.result[]?] | length')

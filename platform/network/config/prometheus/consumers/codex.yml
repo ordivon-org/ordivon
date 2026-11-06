@@ -1,0 +1,40 @@
+# Native Prometheus scrape definitions for the codex consumer.
+scrape_configs:
+  - job_name: blackbox-scoped-codex-mcp
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module:
+        - codex_mcp_bearer
+    static_configs:
+      - targets:
+          - https://gateway-mcp.ordivon.com/mcp
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: __param_target
+      - source_labels:
+          - __param_target
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  - job_name: blackbox-scoped-codex-access
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module:
+        - codex_cloudflare_access
+    static_configs:
+      - targets:
+          - https://falling-union-c376.cloudflareaccess.com/
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: __param_target
+      - source_labels:
+          - __param_target
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
