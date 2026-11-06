@@ -458,6 +458,8 @@
       ],
       "evidence": [
         "src/ordivon_gateway/external_worker.py",
+        "src/ordivon_gateway/worker_identity.py",
+        "src/ordivon_gateway/worker_receipts.py",
         "src/ordivon_gateway/worker_http.py",
         "src/ordivon_gateway/mcp_server.py",
         "tests/test_external_pull_worker.py",
