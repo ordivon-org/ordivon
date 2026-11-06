@@ -61,6 +61,36 @@ Agent platform, brokerage adapter or source/package identity.
    broker execution as different responsibilities. All source LEGO outputs
    are read-only; no result grants a provider write effect.
 
+## Native precommitment to source-replay consumer
+
+Prepare a **pre-holdout candidate policy** with the v2 replayable candidate's
+`schemaVersion`, `kind`, `candidateId`, `hypothesis`, `frozenAt`,
+`trialCount`, `currency`, `costCoverage`, `strategyAssetWeight` and
+`benchmarkExpenseFraction`. These are only fields available before
+holdout; do not include future `sourceSha256` or `holdoutSha256`.
+
+From the repo root, use the existing Capital runner:
+
+    domains/capital/scripts/run-finance-lego fingerprint-policy < policy.json
+
+Copy the resulting `configDigest` into the research plan, then
+`freeze-experiment` and persist the receipt through the Runtime natural
+owner **before** holdout. SHA-256 alone cannot attest historical timing.
+
+After the observations and derived returns exist, build a native v2
+manifest with the same precommitted policy and postfreeze source/holdout
+digests in **raw lowercase 64-hex**, as required by
+`investment_candidate.py`:
+
+    domains/capital/scripts/run-finance-lego review-candidate --manifest candidate.json --source source.json --holdout holdout.json < review-request.json
+
+The request is JSON with `frozen` (frozen receipt) and `evaluatedAt`
+(UTC-offset time). This thin adapter does not duplicate return arithmetic.
+It rejects retroactively changed weights, trials and false source-derived
+returns. Missing independent reproduction and real publisher authenticity
+remain UNKNOWN. Research evidence never grants capital allocation or
+external order effects.
+
 ## Executable protocol interface
 
 The precommitment input to `freeze-experiment` must be JSON with

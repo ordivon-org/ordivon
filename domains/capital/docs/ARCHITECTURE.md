@@ -18,8 +18,22 @@ a review standing. It complements, but does not replace, existing provider byte-
 and return-path evaluation. UNKNOWN is not REJECTED; REVIEW_REQUIRED is
 not independent research validation, broker permission or an allocation grant.
 
+**Finance research composition** calls existing
+`investment_candidate.py` for source-to-return arithmetic rather than
+repeating the economics. Pre-holdout `fingerprint-policy` binds only
+candidate identity, frozen instant, strategy asset weight, benchmark expense,
+currency, trial count and cost categories into the plan's `configDigest`.
+Source and holdout byte digests are *postfreeze* evidence, not preregistered
+historical features. After observation, `review-candidate` checks exact
+policy identity before delegating byte-verified source replay and the
+prospective evidence gate. Complete local arithmetic without independently
+attested timestamp, provider authenticity, multiple-testing correction and
+independent reproduction remains `UNKNOWN`; incomplete holdout is `UNKNOWN`.
+The protocol's `sha256:<hex>` prefix and the candidate's raw lowercase
+64-character source/holdout digests remain their existing native contracts.
+
 `scripts/run-finance-lego` calls the existing Capital Python toolchain
-for these two research protocol operations. An optional Agent consults
+for all four research operations. An optional Agent consults
 `.agents/skills/finance-experiment-review/SKILL.md`; no new Agent
 registry, workflow platform, brokerage engine or source-owner tree exists.
 R2.1 contract CA10 is explicitly source-qualified, and real historic
