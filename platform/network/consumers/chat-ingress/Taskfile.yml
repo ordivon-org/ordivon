@@ -6,6 +6,9 @@ tasks:
     cmds:
       - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.chat-ingress-egress" and .listen.host=="127.0.0.1" and .listen.port==19081 and .networkAuthority.namespace=="nv2-browserless-prod" and .networkAuthority.serviceUnit=="network-v2-browserless.target" and .directFallback==false' consumers/chat-ingress/config/egress.json >/dev/null
       - /usr/bin/sing-box check -c consumers/chat-ingress/config/sing-box.json
+      - |
+        set -eu
+        jq -e '.inbounds==[{"type":"mixed","tag":"chat-ingress","listen":"127.0.0.1","listen_port":19080}] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and .route.rules==[{"inbound":["chat-ingress"],"network":["tcp"],"domain":["chatgpt.com"],"port":[443],"action":"route","outbound":"provider-carrier"},{"action":"reject"}] and (has("dns")|not)' consumers/chat-ingress/config/sing-box.json >/dev/null
       - /usr/bin/systemd-analyze verify consumers/chat-ingress/systemd/network-v2-chat-ingress-proxy.service consumers/chat-ingress/systemd/network-v2-chat-ingress-relay.service consumers/chat-ingress/systemd/network-v2-chat-ingress.target
       - /usr/bin/bash -n consumers/chat-ingress/ready.sh
 
@@ -32,6 +35,18 @@ tasks:
   consumer:chat-ingress:ready:
     desc: Prove ChatIngress loopback relay and provider reachability without provider SEND
     cmds:
+      - /usr/local/libexec/network-v2/chat-ingress-ready
+
+  consumer:chat-ingress:verify:
+    desc: Verify installed ChatIngress unit/authority SourceCut and real consumer readiness
+    cmds:
+      - test "$(systemctl show --value -p NeedDaemonReload network-v2-chat-ingress-proxy.service)" = no
+      - cmp -s consumers/chat-ingress/config/egress.json /etc/network-v2/chat-ingress/egress.json
+      - cmp -s consumers/chat-ingress/config/sing-box.json /etc/network-v2/chat-ingress/sing-box.json
+      - cmp -s consumers/chat-ingress/systemd/network-v2-chat-ingress-proxy.service /etc/systemd/system/network-v2-chat-ingress-proxy.service
+      - cmp -s consumers/chat-ingress/systemd/network-v2-chat-ingress-relay.service /etc/systemd/system/network-v2-chat-ingress-relay.service
+      - cmp -s consumers/chat-ingress/systemd/network-v2-chat-ingress.target /etc/systemd/system/network-v2-chat-ingress.target
+      - test "$(systemctl is-active network-v2-chat-ingress-proxy.service)" = active
       - /usr/local/libexec/network-v2/chat-ingress-ready
 
   consumer:chat-ingress:stop:

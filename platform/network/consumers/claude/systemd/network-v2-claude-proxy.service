@@ -1,7 +1,7 @@
 [Unit]
 Description=Network v2 Claude Code scoped HTTPS proxy inside Browserless VPN authority
 BindsTo=network-v2-browserless.target
-After=network-v2-browserless.target network-v2-browserless-dns.service
+After=network-v2-browserless.target
 PartOf=network-v2-claude.target
 
 [Service]

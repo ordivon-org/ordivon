@@ -12,6 +12,22 @@ def _task(name: str) -> str:
     )[0]
 
 
+def test_claude_egress_is_scoped_to_the_single_shared_http_carrier() -> None:
+    import json
+    policy = json.loads((ROOT / "consumers/claude/config/sing-box.json").read_text())
+    assert policy["outbounds"] == [
+        {"type": "http", "tag": "provider-carrier", "server": "10.252.246.2", "server_port": 19680}
+    ]
+    assert policy["route"]["rules"][-1] == {"action": "reject"}
+    assert "dns" not in policy
+
+
+def test_claude_proxy_waits_for_substrate_not_inactive_legacy_dns() -> None:
+    source = (ROOT / "consumers/claude/systemd/network-v2-claude-proxy.service").read_text()
+    assert "After=network-v2-browserless.target" in source
+    assert "network-v2-browserless-dns.service" not in source
+
+
 def test_claude_converge_proves_loaded_policy_not_only_transport() -> None:
     converge = _task("converge")
     verify = _task("verify")
