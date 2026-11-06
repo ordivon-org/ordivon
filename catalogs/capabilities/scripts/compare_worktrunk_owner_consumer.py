@@ -77,8 +77,8 @@ def projected_porcelain(payload: dict, *, native_metadata: bytes) -> bytes:
 def qualify(binary: Path) -> dict:
     binary = binary.resolve(strict=True)
     binary_digest = "sha256:" + hashlib.sha256(binary.read_bytes()).hexdigest()
-    source_evidence = json.loads((ROOT / "catalogs/capabilities/evidence/worktrunk-git-comparison-20261106.json").read_text())
-    if binary_digest != source_evidence.get("binarySha256"):
+    source_evidence = json.loads((ROOT / "catalogs/capabilities/evidence/worktrunk-candidate-20261106.json").read_text())
+    if binary_digest != source_evidence.get("source", {}).get("upstream", {}).get("releaseBinarySha256"):
         raise ValueError("Worktrunk binary digest does not match previously reviewed release")
     binary_version = run([str(binary), "--version"], dict(os.environ)).strip()
     if binary_version != "wt v0.81.0":

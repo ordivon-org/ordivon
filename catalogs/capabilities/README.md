@@ -38,8 +38,8 @@ At task time, prefer the provider's natural currentness source:
 
 If no trustworthy current probe exists, treat the local availability statement as a dated observation and revalidate before relying on it. Do not create a durable Ordivon ProviderStatus database merely to centralize facts already owned by package managers, container runtimes, services, or other natural providers.
 
-## External LEGO evidence pipeline
+## External capability evaluation (LEP method)
 
-Human task path: [review a candidate](docs/HUMAN_EXTERNAL_LEGO_REVIEW_R1.md). Agent Owner path: [AGENTS.md](AGENTS.md). Both use the same native evidence, existing Skills and natural consumer Owner; neither creates a second review authority.
+For a real consumer, see the [Human review guide](docs/HUMAN_EXTERNAL_LEGO_REVIEW_R1.md), [Agent Owner instructions](AGENTS.md), and [architecture/contract](docs/EXTERNAL_CAPABILITY_EVALUATION_R1.md). The reusable Agent Skill is under .agents/skills/external-capability-evaluation/SKILL.md.
 
-Source-cut-bound external candidate evidence and replayable GitHub Radar snapshots are described in [External LEGO Evolution R1](docs/EXTERNAL_LEGO_EVOLUTION_R1.md). The read-only Catalog is not a live provider registry, owner authorization, R2.1 admission or promotion service; all adoption requires the natural consumer Owner and independent validation.
+Catalog records discovery and evidence, not live provider status, installation, R2.1 admission, or Owner promotion.

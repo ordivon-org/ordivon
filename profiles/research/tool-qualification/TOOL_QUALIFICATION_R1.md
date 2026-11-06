@@ -25,3 +25,5 @@ The sibling static component contract admits exactly:
 It does not own live availability, current provider status, Runtime Job identity, scientific judgment, or Study acceptance. An Effect Adapter must name its effect authorization owner and replay semantics.
 
 Reuse/promotion remains owned by the existing Research reuse lifecycle. These contracts do not add a seventh disposition, Tool registry, currentness database, or new Research service.
+
+External provider intake uses catalogs/capabilities/docs/EXTERNAL_CAPABILITY_EVALUATION_R1.md. It supplies no independent Research qualification or promotion authority.

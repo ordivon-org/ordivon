@@ -1,4 +1,4 @@
-"""External LEGO evidence and GitHub radar consumer-contract tests."""
+"""External source evidence, owner consumer and GitHub candidate behavior."""
 import json
 from pathlib import Path
 import sys
@@ -7,42 +7,36 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "catalogs/capabilities/scripts"))
-from check_external_lego_evidence import check
+from check_external_candidate_references import check
 from github_radar_incremental import normalize, previous_repositories, parse_trending
 
 
 class EvidenceTests(unittest.TestCase):
     def test_current_bounded_worktrunk_chain(self):
-        packet = ROOT / "catalogs/capabilities/evidence/external-lego-worktrunk-20261106.json"
+        packet = ROOT / "catalogs/capabilities/evidence/worktrunk-candidate-20261106.json"
         self.assertEqual(check(ROOT, packet), [])
 
-    def test_wrong_consumer_blob_witness_cannot_pass_as_source_provenance(self):
-        original = json.loads((ROOT / "catalogs/capabilities/evidence/external-lego-worktrunk-20261106.json").read_text())
-        first_path = original["references"]["consumerSources"][0]
+    def test_missing_consumer_blob_mapping_rejected(self):
+        original = json.loads((ROOT / "catalogs/capabilities/evidence/worktrunk-candidate-20261106.json").read_text())
+        removed = original["references"]["consumerSources"][0]
+        del original["source"]["consumerSourceBlobSha1"][removed]
         with tempfile.TemporaryDirectory() as temp:
-            p = Path(temp) / "forged.json"
-            original["source"]["consumerSourceBlobSha1"][first_path] = "0" * 40
-            p.write_text(json.dumps(original), encoding="utf-8")
-            errors = check(ROOT, p)
-            self.assertTrue(any("does not match SourceCut" in error for error in errors), errors)
+            path = Path(temp) / "missing.json"
+            path.write_text(json.dumps(original), encoding="utf-8")
+            errors = check(ROOT, path)
+        self.assertTrue(any("witness paths" in e for e in errors), errors)
 
-            del original["source"]["consumerSourceBlobSha1"][first_path]
-            p.write_text(json.dumps(original), encoding="utf-8")
-            errors = check(ROOT, p)
-            self.assertTrue(any("witness paths differ" in error for error in errors), errors)
-
-    def test_negative_fake_adoption_and_reference(self):
-        original = json.loads((ROOT / "catalogs/capabilities/evidence/external-lego-worktrunk-20261106.json").read_text())
+    def test_negative_wrong_source_blob_and_reference(self):
+        original = json.loads((ROOT / "catalogs/capabilities/evidence/worktrunk-candidate-20261106.json").read_text())
         with tempfile.TemporaryDirectory() as temp:
-            p = Path(temp) / "invalid.json"
-            original["decision"] = "ADOPT_SCOPED"
+            packet = Path(temp) / "invalid.json"
             original["references"]["provider"] = "../../etc/passwd"
-            original["standing"] = "ADMITTED"
-            p.write_text(json.dumps(original), encoding="utf-8")
-            errors = check(ROOT, p)
-        self.assertTrue(any("approval" in e for e in errors))
-        self.assertTrue(any("missing 11" in e for e in errors))
-        self.assertTrue(any("missing or escaping" in e for e in errors))
+            first = original["references"]["consumerSources"][0]
+            original["source"]["consumerSourceBlobSha1"][first] = "0" * 40
+            packet.write_text(json.dumps(original), encoding="utf-8")
+            issues = check(ROOT, packet)
+        self.assertTrue(any("missing/escaping" in issue for issue in issues))
+        self.assertTrue(any("blob" in issue for issue in issues))
 
 
 class WorktrunkConsumerProjectionTests(unittest.TestCase):

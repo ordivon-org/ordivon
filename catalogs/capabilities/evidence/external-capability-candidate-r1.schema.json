@@ -1,8 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ordivon.dev/catalogs/capabilities/evidence/external-lego-evidence-r1.schema.json",
-  "title": "External LEGO candidate evidence R1",
+  "$id": "https://ordivon.dev/catalogs/capabilities/evidence/external-capability-candidate-r1.schema.json",
+  "title": "External executable capability candidate evidence R1 (not formal LEGO admission)",
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "kind",
     "schemaVersion",
@@ -17,7 +18,7 @@
   ],
   "properties": {
     "kind": {
-      "const": "ordivon.external-lego-evidence"
+      "const": "ordivon.external-capability-candidate"
     },
     "schemaVersion": {
       "const": "r1"
@@ -27,29 +28,22 @@
       "minLength": 1
     },
     "standing": {
-      "enum": [
-        "INCOMPLETE_CANDIDATE",
-        "DECLARED",
-        "ADMITTED"
-      ]
+      "const": "CANDIDATE_ONLY"
     },
     "decision": {
       "enum": [
         "HOLD",
         "REFERENCE_ONLY",
         "KEEP_NATIVE",
-        "ADOPT_SCOPED",
         "REJECT"
       ]
     },
     "productionActivated": {
-      "type": "boolean"
-    },
-    "ownerApprovalEvidence": {
-      "type": "string"
+      "const": false
     },
     "source": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "ordivonSourceCut",
         "upstream",
@@ -58,15 +52,17 @@
       "properties": {
         "ordivonSourceCut": {
           "type": "string",
-          "pattern": "^[0-9a-f]{40}$"
+          "pattern": "^[a-f0-9]{40}$"
         },
         "upstream": {
           "type": "object",
+          "additionalProperties": false,
           "required": [
             "repository",
             "observedHeadCommit",
             "releaseTag",
             "releaseArchiveSha256",
+            "releaseBinarySha256",
             "licenseExpression",
             "licenseEvidence",
             "observationTime"
@@ -74,24 +70,31 @@
           "properties": {
             "repository": {
               "type": "string",
-              "format": "uri"
+              "pattern": "^https://github.com/[^/ ]+/[^/ ]+$"
             },
             "observedHeadCommit": {
               "type": "string",
-              "pattern": "^[0-9a-f]{40}$"
+              "pattern": "^[a-f0-9]{40}$"
             },
             "releaseTag": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             },
             "releaseArchiveSha256": {
               "type": "string",
-              "pattern": "^sha256:[0-9a-f]{64}$"
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "releaseBinarySha256": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
             },
             "licenseExpression": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             },
             "licenseEvidence": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             },
             "observationTime": {
               "type": "string",
@@ -104,13 +107,14 @@
           "minProperties": 1,
           "additionalProperties": {
             "type": "string",
-            "pattern": "^[0-9a-f]{40}$"
+            "pattern": "^[a-f0-9]{40}$"
           }
         }
       }
     },
     "capability": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "name",
         "kind",
@@ -119,7 +123,8 @@
       ],
       "properties": {
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "kind": {
           "enum": [
@@ -129,35 +134,17 @@
           ]
         },
         "goal": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "r21Standing": {
-          "enum": [
-            "NOT_FORMALLY_DECLARED",
-            "TYPED_COMPLETE_UNPROVED",
-            "SCOPED_VERIFIED"
-          ]
-        },
-        "r21": {
-          "type": "object",
-          "required": [
-            "I",
-            "O",
-            "S",
-            "pre",
-            "post",
-            "inv",
-            "eff",
-            "c",
-            "epsilon",
-            "prov",
-            "unfold"
-          ]
+          "const": "NOT_FORMALLY_DECLARED"
         }
       }
     },
     "references": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "provider",
         "knowledge",
@@ -169,28 +156,36 @@
       ],
       "properties": {
         "provider": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "knowledge": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "skills": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "research": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "composition": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "experiment": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "consumerSources": {
           "type": "array",
           "minItems": 1,
+          "uniqueItems": true,
           "items": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -199,7 +194,8 @@
       "type": "array",
       "minItems": 1,
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       }
     },
     "summary": {

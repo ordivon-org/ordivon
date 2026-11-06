@@ -1,8 +1,8 @@
 {
-  "kind": "ordivon.external-lego-evidence",
+  "kind": "ordivon.external-capability-candidate",
   "schemaVersion": "r1",
   "candidateId": "github:max-sixty/worktrunk@v0.81.0#worktree-list",
-  "standing": "INCOMPLETE_CANDIDATE",
+  "standing": "CANDIDATE_ONLY",
   "decision": "KEEP_NATIVE",
   "productionActivated": false,
   "source": {
@@ -14,12 +14,14 @@
       "releaseArchiveSha256": "sha256:0c253f216985ce9cd7b202a11606b5ce6aa934b1019fd1fbb9b7ce2b47b1c74a",
       "licenseExpression": "MIT OR Apache-2.0",
       "licenseEvidence": "Official LICENSE body verified; GitHub API NOASSERTION is not the license expression",
-      "observationTime": "2026-11-06T05:29:00Z"
+      "observationTime": "2026-11-06T05:29:00Z",
+      "releaseBinarySha256": "sha256:1f3d97a5c263f87345d03a1e439f5d53efa5a468e8bde10e724cbd9e5e79de9b"
     },
     "consumerSourceBlobSha1": {
       "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/records.rs": "fba3ee00eee6bc8a392c51465e67f42e3d23ffc6",
       "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/paths_git.rs": "68ff64e363be140365f36cccfc6ae1d3fddd3147",
-      "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/close_recovery.rs": "b1c2459b94c964d193f8248e5407049e019618bc"
+      "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/close_recovery.rs": "b1c2459b94c964d193f8248e5407049e019618bc",
+      "tools/repo/exhaustive_coverage.py": "376961d01d2ca38f2321cad89c3b9ee4582d7468"
     }
   },
   "capability": {
@@ -34,11 +36,12 @@
     "skills": ".agents/skills/skill-supply-chain-audit/SKILL.md",
     "research": "profiles/research/tool-qualification/examples/worktrunk-workspace-r1.json",
     "composition": "packages/composition/docs/SUCCESSOR_CONTRACT_R1.md",
-    "experiment": "catalogs/capabilities/evidence/worktrunk-git-comparison-20261106.json",
+    "experiment": "catalogs/capabilities/evidence/worktrunk-repo-owner-consumer-shadow-20261106.json",
     "consumerSources": [
       "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/records.rs",
       "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/close_recovery.rs",
-      "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/paths_git.rs"
+      "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/paths_git.rs",
+      "tools/repo/exhaustive_coverage.py"
     ]
   },
   "unknowns": [
@@ -46,5 +49,5 @@
     "No Worktrunk lifecycle negative-test parity or independent owner promotion",
     "Upstream release archive SHA does not establish binary signature provenance"
   ],
-  "summary": "Read-only list equivalence observed on disposable fixture only; retain native Git; rebased to immutable PR parent SourceCut 6b455952d78b8ce51595f1c1ec2575d12fb0670d; three real consumer blob IDs equal old audit SourceCut 65d9bba3e2000f973fc3bcc05410fa2a8f97b5b7"
+  "summary": "Worktrunk v0.81.0 inventory agrees on tested paths but lacks demonstrated prunable semantics. Repository governance and Runtime KEEP_NATIVE_GIT; no production substitution."
 }
