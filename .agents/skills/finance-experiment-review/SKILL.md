@@ -8,6 +8,13 @@ metadata:
 
 # Finance Experiment Review
 
+For first use and owner discovery, see Capital's
+[Human quickstart](../../../domains/capital/docs/FINANCE_HUMAN_QUICKSTART_R1.md)
+and [Agent playbook](../../../domains/capital/docs/FINANCE_AGENT_PLAYBOOK_R1.md).
+This Skill remains a scoped research procedure, not a general onboarding
+manual or execution authority.
+
+
 Finance is an investment-focused capability within Capital, not another
 Agent platform, brokerage adapter or source/package identity.
 
