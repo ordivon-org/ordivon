@@ -30,17 +30,54 @@ The non-deployed source-layout transition target is `docs/architecture/STRUCTURE
 
 Choose the **current natural owner** by the fact or effect it controls; the repository path is a navigation aid, not a new authority or a permanent LEGO identity.
 
-| Question / responsibility | Current owner entry | Boundary |
+| Real consumer problem | Current natural Owner | Authority boundary |
 | --- | --- | --- |
-| Execute a Workspace, Job or Attempt; inspect a Runtime artifact | [`services/runtime/`](services/runtime/README.md) | Runtime execution and artifact truth |
-| Read or commit external Work, Space, Topic, Message or attention state | [`services/host/`](services/host/README.md) | Host PostgreSQL semantic continuity |
-| Route an authenticated external capability to an owner | [`services/gateway/`](services/gateway/README.md) | Gateway routing, not domain truth |
-| Run a bounded Agent turn, tool call or browser session | [`services/harness/`](services/harness/README.md) | Harness cognition/tool continuity |
-| Evaluate generic Cognitive Circuit and composition contracts | [`packages/composition/`](packages/composition/README.md) | Portable composition mechanics |
-| Work on the product-facing web application | [`apps/web/`](apps/web/README.md) | Application surface |
-| Maintain the temporary Agent Skills MCP compatibility bridge | [`extensions/chatgpt-skills-mcp/`](extensions/chatgpt-skills-mcp/README.md) | Agent Plugins/MCP adapter only, not Skill authority |
-| Select a method or reusable Agent Skill | [`.agents/skills/method-router/`](.agents/skills/method-router/SKILL.md) | Advisory method, not execution authorization |
-| Check dependency ownership and allowed cross-owner seams | [`tools/repo/owners.toml`](tools/repo/owners.toml), [`dependency_contracts.toml`](tools/repo/dependency_contracts.toml) | Repository mechanics; owner-native contracts remain authoritative |
+| Workspace/Job/Attempt and execution Artifacts | [runtime](services/runtime/README.md) | Execution truth; not Host Work |
+| Work/Space/Topic/Message/Attention | [host](services/host/README.md) | PostgreSQL continuity and collaboration |
+| Agent turn, provider/tool and trace continuity | [harness](services/harness/README.md) | Agent cognition; not a second Runtime |
+| Northbound capability routing | [gateway](services/gateway/README.md) | Adapter, never domain truth |
+| DNS/VPN/tunnel/proxy/route | [network](platform/network/README.md) | Physical network and connection |
+| Principals/credentials/security policy | [security](platform/security/README.md) | Platform enforcement |
+| Host service deployment/recovery | [workstation](platform/workstation/README.md) | Windows/Linux realization |
+| External evidence and authority currentness | [authority-catalog](catalogs/authorities/README.md) | Discovery, not execution |
+| Provider capability discovery | [capability-catalog](catalogs/capabilities/README.md) | Metadata, not authorization |
+| Durable artifact identity/content/read | [artifact](capabilities/artifact/README.md) | Artifact bytes and integrity |
+| Package and deliver products | [distribution](capabilities/distribution/README.md) | Destination receipts |
+| Retention/archive/restore | [preservation](capabilities/preservation/README.md) | Preservation and recoverability |
+| Media input/assets/render/encode | [media](capabilities/media/README.md) | Media output |
+| Financial research/portfolio/risk/simulation | [capital](domains/capital/README.md) | Financial domain, paper and live separated |
+| ECS, gameplay, Agent play and replay | [game](domains/game/README.md) | Playable game state |
+| Contracts, LEGO ports and composition | [composition](packages/composition/README.md) | Portable combination semantics |
+| Product Web interface | [web](apps/web/README.md) | UI projection only |
+| Control-plane plugin packaging | [control-plugin](extensions/ordivon-control-plane/) | Thin Tool carrier |
+| ChatGPT Skill MCP compatibility | [skills](extensions/chatgpt-skills-mcp/README.md) | Not Skill source authority |
+| Attendance session and browser action | [chaoxing-autosign](apps/chaoxing-autosign/README.md) | Application outcome |
+
+The table is a human navigation view, not a new registry. The source of truth for ownership paths and verification tasks is [owners.toml](tools/repo/owners.toml). The canonical advisory [method router](.agents/skills/method-router/SKILL.md) and [Recursive LEGO R2.1](.agents/skills/recursive-lego-calculus/SKILL.md) are separate from executable owner tools.
+
+### For Humans: from a goal to a verified outcome
+
+1. State the desired outcome, current evidence and **final consumer**; choose the Owner that owns the fact or effect, then open the Owner README and its actual Tools.
+2. Distinguish a source commit, a merged PR, a running installed release, a Runtime Job, a Host Work and the actual user/domain outcome. One is not a substitute for another. Prefer live Owner observations to dates in historical plans.
+3. For improvements, first check whether the OS, Git, PostgreSQL, uv, pnpm, Cargo, native provider API or current Ordivon Owner already supplies the needed operation. Treat a Skill as method guidance, not authority to execute an effect.
+4. For removal, trace real downstream consumers and replay/recovery obligations. Use Owner-native close, Git worktree removal, native cache prune or PostgreSQL/Alembic rather than deleting files and rows with guessed path or age rules.
+
+Existing commands to start with:
+
+~~~bash
+mise tasks ls --all                       # Discover real Owner verification entrypoints
+mise run host:queue                        # Host native queue; live PG tests require a test DSN
+mise run gateway:verify                    # Gateway native source/contract verification
+mise run repo:ci                           # Repository mechanics, not domain acceptance
+git worktree list --porcelain              # Inspect live and closed Git worktree registrations
+git worktree prune --dry-run --verbose     # Stale Git metadata only
+~~~
+
+### For Agents: no second playbook
+
+Read [AGENTS.md](AGENTS.md), then the selected Owner README and any closer scoped AGENTS.md. For architecture, use the existing [DSM Skill](.agents/skills/design-structure-matrix/SKILL.md). For external Skill candidates, use the existing [supply-chain audit Skill](.agents/skills/skill-supply-chain-audit/SKILL.md); for a declared LEGO use the complete [R2.1 contract](.agents/skills/recursive-lego-calculus/SKILL.md). A Tool, Skill, code file or Agent is **not** automatically an independently admitted LEGO. Reuse source/native methods before composing or inventing an adapter.
+
+A useful handoff is brief and concrete: current SourceCut, selected Owner, final consumer, verified invariant/contract, commit and published/deployed state, removed redundant bytes if any, and remaining UNKNOWN. Avoid duplicate report files when native receipts or the PR already record the evidence.
 
 For source vs deployed state, start with [`CURRENT_ARCHITECTURE.md`](docs/architecture/CURRENT_ARCHITECTURE.md). For the **proposed, only partially deployed** physical package layout and migration gates, read [`STRUCTURE_R2.md`](docs/architecture/STRUCTURE_R2.md). Do not move source solely to match that target: first identify its real consumers, public seam, deployment files and native verification, and keep source relocation separate from semantic changes.
 
