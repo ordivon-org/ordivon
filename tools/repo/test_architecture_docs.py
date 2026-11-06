@@ -1360,7 +1360,25 @@ def test_git02_unadmitted_historical_finance_and_network_consumers_remain_source
             assert row["historicalNativeTestResult"] == "12_PASSED"
         assert row["behaviorScope"].strip()
         assert row["missingCurrentConsumerEvidence"].strip()
-        assert all(not (ROOT / path).exists() for path in row["historicOnlyFiles"])
+        # GIT-02 remains a historical, unadmitted *commit*; a later independently
+        # proven live consumer may legitimately reuse one historical path.
+        # Network's consumer.rules.yml was read back from the active 2026-11-06
+        # Prometheus/Blackbox deployment and admitted under the exact Network
+        # monitoring SourceCut, not cherry-picked from the historical branch.
+        live_rule = "platform/network/config/prometheus/consumer.rules.yml"
+        if row["owner"] == "platform/network":
+            assert live_rule in row["historicOnlyFiles"]
+            assert (ROOT / live_rule).is_file()
+            source = (ROOT / "platform/network/Taskfile.yml").read_text()
+            preflight = (ROOT / "platform/network/scripts/monitoring-sourcecut-preflight.py").read_text()
+            assert "promtool check rules config/prometheus/consumer.rules.yml" in source
+            assert "config/prometheus/consumer.rules.yml /etc/network-v2/prometheus/consumer.rules.yml" in source
+            assert '"prometheus/consumer.rules.yml"' in preflight
+        assert all(
+            not (ROOT / path).exists()
+            for path in row["historicOnlyFiles"]
+            if row["owner"] != "platform/network" or path != live_rule
+        )
     module.validate_formal_issue_census(census, plans)
 
 
