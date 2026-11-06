@@ -3,7 +3,7 @@
   "kind": "ordivon.capital.domain-taxonomy",
   "asOfDate": "2026-11-06",
   "standing": "ACTIVE_SOURCE_OWNER_TAXONOMY",
-  "principle": "Capital is the umbrella. Markets owns observable market/reference facts; Trading owns orders, provider effect boundaries, execution and reconciliation; Portfolio owns caller-mandated allocation and scenario projection; Risk owns exposure and risk measurement; Research owns model/evidence validation; Governance owns mandate and authorization policy; Accounting owns durable ledger mechanics.",
+  "principle": "Capital is the umbrella. Markets owns observable market/reference facts; Trading owns orders, provider effect boundaries, execution and reconciliation; Portfolio owns caller-mandated allocation and scenario projection; Risk owns exposure and risk measurement; Research owns model/evidence validation; Governance owns mandate and authorization policy; Accounting owns durable ledger mechanics. Finance denotes the investment program, not a duplicate Capital package. Harness owns Agent orchestration.",
   "domains": {
     "markets": {
       "role": "public market/reference data, microstructure observations, streaming and market transport qualification"
@@ -18,7 +18,7 @@
       "role": "exposure, factor/dependence statistics, expected shortfall and risk-budget measurement"
     },
     "research": {
-      "role": "model monitoring, prospective validation, standards inventory and evidence persistence"
+      "role": "frozen experiment protocol, prospective evidence, model monitoring and validation; no independent Agent runtime or capital authority"
     },
     "governance": {
       "role": "execution authorization, live-test admission, risk-budget and pre-trade policy gates"
@@ -66,7 +66,8 @@
       "okx_factor_observer.py",
       "prospective_validation.py",
       "quantitative_inventory_validation.py",
-      "standards_inventory.py"
+      "standards_inventory.py",
+      "experiment_protocol.py"
     ],
     "governance": [
       "policy_decision.py"

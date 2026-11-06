@@ -34,7 +34,14 @@ def _qualify_native_plan(plan: dict) -> None:
         for source in node["evidence"]:
             assert ".." not in Path(source).parts
             assert (CAPITAL / source).is_file(), (node["id"], source)
-        if node["id"] == "CA09":
+        if node["id"] == "CA10":
+            assert set(node["r21Contract"]) == {"I","O","S","pre","post","inv","eff","c","epsilon","prov","unfold"}
+            assert node["r21Contract"]["eff"] == "NONE"
+            assert node["formalQualification"] == "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN"
+            assert node["effectBoundary"] == "NON_LIVE_SOURCE_ONLY"
+            for consumer in node["consumerEvidence"]:
+                assert (CAPITAL / consumer["path"]).is_file()
+        elif node["id"] == "CA09":
             assert node["effectBoundary"] == "NO_EXTERNAL_EFFECT"
             assert node["formalQualification"] == (
                 "INTEGER_CONSERVATION_INVARIANTS_TESTED_NO_UNIVERSAL_PROOF"
@@ -69,9 +76,9 @@ def _plan() -> dict:
     return json.loads(PLAN.read_text(encoding="utf-8"))
 
 
-def test_first_layer_and_new_investment_lego_are_source_qualified() -> None:
+def test_existing_source_legos_and_frozen_protocol_have_exact_owners() -> None:
     plan = _plan()
-    assert {node["id"] for node in plan["nodes"]} == {f"CA{x:02d}" for x in range(1, 10)}
+    assert {node["id"] for node in plan["nodes"]} == {f"CA{x:02d}" for x in range(1, 11)}
     _qualify_native_plan(plan)
 
 

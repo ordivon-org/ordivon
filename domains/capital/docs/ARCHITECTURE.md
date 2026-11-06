@@ -1,5 +1,31 @@
 # Ordivon Capital Architecture
 
+## Finance investment program — source boundary (2026-11-06)
+
+The Finance economic program **reuses** Capital's seven real source owners.
+The existing `strategic_contribution.py` and `passive_benchmark.py` are the
+current Investment Mode mechanics. No second passive-index simulator is added.
+The current `investment_candidate.py` owns byte-bound economic candidate
+evaluation; no second economic performance calculator is added.
+
+`research/experiment_protocol.py` owns only a **pre-experiment** plan
+commitment and subsequent readiness assessment using declared source
+availability, disjoint train/validation/prospective holdout and identity
+digests. Temporal instants are normalized to UTC before calendar-day
+partition comparison; the frozen plan and result are strict versioned JSON
+shapes, and an undeclared authority or extra economic claim cannot promote
+a review standing. It complements, but does not replace, existing provider byte-binding
+and return-path evaluation. UNKNOWN is not REJECTED; REVIEW_REQUIRED is
+not independent research validation, broker permission or an allocation grant.
+
+`scripts/run-finance-lego` calls the existing Capital Python toolchain
+for these two research protocol operations. An optional Agent consults
+`.agents/skills/finance-experiment-review/SKILL.md`; no new Agent
+registry, workflow platform, brokerage engine or source-owner tree exists.
+R2.1 contract CA10 is explicitly source-qualified, and real historic
+timestamp attestation remains UNKNOWN. The native acceptance uses
+`mise run //domains/capital:verify`.
+
 ## Core rule
 
 Ordivon Capital is a composition/control plane, not a new financial framework. External standards define semantics and providers own authoritative external reality. Mature implementations are candidates for mechanics until they pass current language, semantic, executable and comparative qualification gates. Ordivon keeps local mechanisms when no external candidate is admitted, while minimizing them to the exact bounded contract.

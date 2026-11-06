@@ -1,4 +1,29 @@
-# Ordivon Capital — Composition First
+# Ordivon Capital — Finance investment and research owner
+
+**Canonical sources remain `domains/capital` / `ordivon_capital`.**
+Finance is the investment-management program rather than a second
+source/package/Agent owner. Its current capabilities include the existing
+Investment-first contribution consumer, cash-flow-matched passive benchmark
+and frozen-candidate economic evidence evaluator. The *additional* R4
+`experiment_protocol.py` freezes experiment intentions and classifies
+declared prospective evidence prior to independent candidate evaluation.
+It does not duplicate the existing investment engines.
+
+The Agent interface is `scripts/run-finance-lego` (freeze-experiment,
+assess-holdout); the direct benchmark and allocation consumers remain in
+`portfolio.passive_benchmark` and `scripts/run-strategic-contribution-brief`.
+Current owner mapping is in `config/capital_domain_taxonomy.json`,
+source-only LEGO identity in `planning/lego-plan-r1.json` (CA10),
+source architecture in `docs/ARCHITECTURE.md`, native acceptance via
+`mise run //domains/capital:verify`. All three Finance stages are
+read-only and never grant financial effects.
+
+## Historical Capital qualifications
+
+The remaining portions of this README include frozen prior technology
+candidate/validation evidence and must not be interpreted as independent
+current installed/admitted provider truth. See `docs/ARCHITECTURE.md`
+for current source-owner boundaries.
 
 Ordivon Capital is the capital composition and control plane of Ordivon. It does not define a new accounting, risk, trading, settlement, identity, observability, lineage, or cloud-cost framework. It composes authoritative standards, mature implementations, provider reality, and the minimum Ordivon glue required to bind evidence, authority, execution, and reconciliation.
 
