@@ -50,6 +50,31 @@ The current source-owned families cover AV structure (FFprobe), audio loudness (
 
 Technical PASS cannot approve meaning, style, licenses, human experience or publication. OTIO references media externally; it does not contain video/audio payloads or guarantee an editor's private effects survive interchange.
 
+## Two exact, runnable inspection/recovery examples
+
+After explicitly materializing the pinned Python toolchain above, inspect an
+existing video file without modifying it:
+
+~~~bash
+.venv/bin/ordivon-studio probe productions/live-relay-001/render/live-relay-001-source.mp4
+~~~
+
+This returns the exact Blob digest and FFprobe-observed streams. It is not
+authorization to change source media or publish the Production.
+
+For a selected Blob you actually need to preserve or recover, use the existing
+CLI; these commands are **effectful** and require a chosen destination:
+
+~~~text
+.venv/bin/ordivon-studio hash <selected-file>
+.venv/bin/ordivon-studio archive <selected-file> --cache-root <selected-CAS-root>
+.venv/bin/ordivon-studio materialize <sha256:digest> <destination> --cache-root <selected-CAS-root>
+~~~
+
+The external Cloudflare R2 adapter is optional; inspect
+`.venv/bin/ordivon-studio r2 --help` only when an actual recovery consumer
+requires it. Neither the CAS nor R2 replaces the editable Production source.
+
 ## Commission or revise a work
 
 1. Name the **audience**, intended experience and concrete deliverable (article, master video, audio, caption file, still, interactive page).

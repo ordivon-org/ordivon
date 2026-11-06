@@ -8,7 +8,7 @@ The project Constitution is [`MEDIA.md`](MEDIA.md); canonical Media research sta
 
 - **Human:** [Use Ordivon Media](docs/human-guide.md) — what the system can do, choose an existing work, commission a deliverable and review real outputs.
 - **Agent:** [Media Agent entry](AGENTS.md) — source/consumer selection, current Agent Surface, LEGO composition and real acceptance boundaries. The [media-studio-navigation Skill](../../.agents/skills/media-studio-navigation/SKILL.md) is its progressive-disclosure entry point.
-- **Technical reference:** [MEDIA.md](MEDIA.md), [STUDIO.md](STUDIO.md), [Media model](docs/media-model.md) and live `studio-agent-surface.py` schemas. None is replaced by a duplicate registry.
+- **Technical reference:** [MEDIA.md](MEDIA.md), [STUDIO.md](STUDIO.md), [Media model](docs/media-model.md), [existing LEGO capability reference](docs/capability-reference.md), and live `studio-agent-surface.py` schemas. None is replaced by a duplicate registry.
 
 ## Activation boundary
 
