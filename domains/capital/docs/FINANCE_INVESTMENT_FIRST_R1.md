@@ -57,6 +57,37 @@ bounded by 128 instruments, uses exact integer cents, rejects invented assets,
 non-integers and data beyond an int64 money boundary. The caller owns the
 target weights; outcomes do not constitute security recommendations.
 
+### Why the integer-cent allocation conserves money
+
+The current implementation uses **Hamilton / largest-remainder**
+apportionment on target deficits, with all quantities integer-valued.
+For current holdings `hᵢ ≥ 0`, intended contribution `C ≥ 0`,
+target weights `wᵢ ≥ 0` satisfying `Σwᵢ = B = 10000` basis
+points, and projected total `T = Σhᵢ + C`, let:
+
+```text
+gᵢ = max(0, T × wᵢ − B × hᵢ)
+D  = Σgᵢ
+qᵢ = floor(C × gᵢ / D), for C > 0
+R  = C − Σqᵢ
+```
+
+`Σ(T × wᵢ − B × hᵢ) = B × C` and therefore
+`D ≥ B × C > 0` for `C > 0`: apportionment cannot divide by
+zero. Since every fractional part of `C × gᵢ / D` is less than one,
+`0 ≤ R < number_of_assets`. Allocate one additional cent to each
+of the `R` largest remainders; then `Σallocationᵢ = C`,
+every allocation is nonnegative, and
+`projected_holdingsᵢ = hᵢ + allocationᵢ ≥ hᵢ`.
+The separately admitted input `C ≤ cash − protected_reserve`
+implies the projected cash never violates that reserve.
+
+This is an **algebraic source explanation**, not a mechanized refinement
+proof, optimal-portfolio theorem or certification of the caller's target
+weights. The existing native consumer test suite checks exact cent
+conservation, reserve protection and deterministic ties; trivial per-value
+mutation wrappers are not needed to establish this identity.
+
 Real executable consumer:
 
 ```sh

@@ -44,26 +44,10 @@ assess-holdout); the direct benchmark and allocation consumers remain in
 Current owner mapping is in `config/capital_domain_taxonomy.json`,
 source-only LEGO identity in `planning/lego-plan-r1.json` (CA10),
 source architecture in `docs/ARCHITECTURE.md`, native acceptance via
-`mise run //domains/capital:verify`. All three Finance stages are
-read-only and never grant financial effects.
-
-## First-use paths: Human and Agent
-
-- **For a person:** [Finance human quickstart](docs/FINANCE_HUMAN_QUICKSTART_R1.md)
-  explains currently working investment research tasks and executes a
-  contribution and a matched-cash-flow benchmark using synthetic inputs.
-- **For an Agent:** [Finance source-bound playbook](docs/FINANCE_AGENT_PLAYBOOK_R1.md)
-  maps natural owners, exact consumers, research/evidence requirements and
-  native verification; reuse the existing
-  [Finance experiment review Skill](../../.agents/skills/finance-experiment-review/SKILL.md)
-  only when the task actually needs it.
-
-These paths do not create another Finance package, registry, investment
-engine or product permission model. The source/API checks are not claims of
-a fully deployed external-customer product. LEAN/Nautilus are qualified
-historical or candidate implementations according to their exact standing,
-not automatic installed trading authority; accounting still has real
-PostgreSQL/SQLite migration consumer boundaries.
+`mise run //domains/capital:verify`. Research and stateless Portfolio
+analysis are read-only; dedicated Accounting Paper closes write **only
+simulated** PostgreSQL ledger state. Neither path gives broker trading
+authority.
 
 ## Historical Capital qualifications
 
@@ -164,11 +148,14 @@ to their upstream contracts. The PostgreSQL acceptance test uses
 
 ## Current standing
 
-**Human/Agent operating interfaces (CA01–CA10)**:
-[Finance Operating Guide](docs/FINANCE_OPERATIONS_R1.md) contains
-human decisions separate from the agent implementation and qualification
-commands. The source Agent Skill is under the root directory
-.agents/skills/finance-paper-risk-review/SKILL.md.
+**Finance operating interfaces (CA01–CA10):**
+[Human operating guide](docs/FINANCE_HUMAN_GUIDE_R1.md) is the single
+human-facing Finance entry. Agent instructions are scoped to the existing
+[Investment/Paper Skill](../../.agents/skills/finance-paper-investment/SKILL.md),
+[Research Skill](../../.agents/skills/finance-experiment-review/SKILL.md)
+and [Paper Risk Skill](../../.agents/skills/finance-paper-risk-review/SKILL.md).
+The authoritative CA01–CA10 source mapping remains
+`planning/lego-plan-r1.json`, not another duplicated guide.
 
 
 **Finance Paper Risk consumer (CA03)**: read-only
