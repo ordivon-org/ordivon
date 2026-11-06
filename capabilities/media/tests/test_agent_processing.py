@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,6 +13,27 @@ from ordivon_studio.agent_surface import execute_surface_action, surface_project
 
 
 class ProcessingDiscoveryTests(unittest.TestCase):
+    def test_catalog_can_be_consumed_before_studio_dependencies_materialize(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        script = root / "scripts/studio-agent-surface.py"
+        command = [sys.executable, "-S", str(script), "studio_processing_profiles"]
+        result = subprocess.run(
+            [*command, "--arguments", "{}"],
+            cwd=root, capture_output=True, text=True, check=True,
+        )
+        catalog = json.loads(result.stdout)
+        self.assertEqual(catalog["kind"], "ordivon.media.processing-profile-discovery")
+        self.assertEqual(len(catalog["profiles"]), 4)
+        for profile in catalog["profiles"]:
+            self.assertTrue(profile["profileDigest"].startswith("sha256:"))
+            self.assertTrue(profile["adapterDigest"].startswith("sha256:"))
+        invalid = subprocess.run(
+            [*command, "--arguments", '{"unknown":1}'],
+            cwd=root, capture_output=True, text=True, check=False,
+        )
+        self.assertNotEqual(invalid.returncode, 0)
+        self.assertIn("invalid arguments", invalid.stderr)
+
     def test_discovery_is_digest_bound_and_does_not_claim_tool_readiness(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
