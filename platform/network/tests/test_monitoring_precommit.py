@@ -9,7 +9,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/monitoring-sourcecut-preflight.py"
-CONFIGS = ("blackbox/blackbox.yml", "prometheus/prometheus.yml")
+CONFIGS = ("blackbox/blackbox.yml", "prometheus/prometheus.yml", "prometheus/consumer.rules.yml")
 
 
 def _load():
@@ -20,8 +20,8 @@ def _load():
     return module
 
 
-def _files(root: Path, *, blackbox: bytes = b"modules: {}\\n", prometheus: bytes = b"scrape_configs: []\\n"):
-    for name, data in zip(CONFIGS, (blackbox, prometheus), strict=True):
+def _files(root: Path, *, blackbox: bytes = b"modules: {}\\n", prometheus: bytes = b"scrape_configs: []\\n", rules: bytes = b"groups: []\\n"):
+    for name, data in zip(CONFIGS, (blackbox, prometheus, rules), strict=True):
         destination = root / name
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes(data)
@@ -29,7 +29,7 @@ def _files(root: Path, *, blackbox: bytes = b"modules: {}\\n", prometheus: bytes
 
 @pytest.mark.parametrize("root_link", ["source", "live", "dangling-live"])
 def test_monitoring_preflight_rejects_root_symlink_before_install(tmp_path, root_link):
-    """A symlink at the root escapes the two declared monitoring Owner trees."""
+    """A symlink at the root escapes the declared monitoring Owner tree."""
     owner = _load()
     source, live = tmp_path / "source", tmp_path / "live"
     if root_link == "source":
@@ -56,25 +56,25 @@ def test_first_install_and_idempotent_sourcecut(tmp_path):
     assert owner.verify(source, live) == "IDENTICAL_SOURCECUT"
 
 
-@pytest.mark.parametrize("which", ["blackbox", "prometheus"])
+@pytest.mark.parametrize("which", ["blackbox", "prometheus", "rules"])
 def test_missing_or_partial_live_sourcecut_fails_closed(tmp_path, which):
     owner = _load()
     source, live = tmp_path / "source", tmp_path / "live"
     _files(source)
-    path = live / CONFIGS[0 if which == "blackbox" else 1]
+    path = live / CONFIGS[0 if which == "blackbox" else 1 if which == "prometheus" else 2]
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes((source / CONFIGS[0 if which == "blackbox" else 1]).read_bytes())
+    path.write_bytes((source / CONFIGS[0 if which == "blackbox" else 1 if which == "prometheus" else 2]).read_bytes())
     with pytest.raises(ValueError, match="incomplete"):
         owner.verify(source, live)
 
 
-@pytest.mark.parametrize("which", ["blackbox", "prometheus"])
+@pytest.mark.parametrize("which", ["blackbox", "prometheus", "rules"])
 def test_live_consumer_drift_refuses_overwrite(tmp_path, which):
     owner = _load()
     source, live = tmp_path / "source", tmp_path / "live"
     _files(source)
     _files(live)
-    drifted = live / CONFIGS[0 if which == "blackbox" else 1]
+    drifted = live / CONFIGS[0 if which == "blackbox" else 1 if which == "prometheus" else 2]
     drifted.write_bytes(drifted.read_bytes() + b"# live extra consumer\\n")
     before = drifted.read_bytes()
     with pytest.raises(ValueError, match="differs"):
@@ -85,7 +85,7 @@ def test_live_consumer_drift_refuses_overwrite(tmp_path, which):
 
 @pytest.mark.parametrize("area", ["source", "live"])
 @pytest.mark.parametrize("name", [
-    "prometheus/consumer.rules.yml",
+    "prometheus/unowned.rules.yml",
     "blackbox/scoped-consumer.yaml",
 ])
 def test_unlisted_monitoring_configs_are_not_accepted(tmp_path, area, name):
@@ -105,7 +105,7 @@ def test_first_install_does_not_ignore_preexisting_monitoring_rules(tmp_path):
     owner = _load()
     source, live = tmp_path / "source", tmp_path / "live"
     _files(source)
-    extra = live / "prometheus/consumer.rules.yml"
+    extra = live / "prometheus/unowned.rules.yml"
     extra.parent.mkdir(parents=True, exist_ok=True)
     extra.write_text("groups: []\n")
     with pytest.raises(ValueError, match="unmanaged monitoring"):

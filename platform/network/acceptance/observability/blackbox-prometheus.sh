@@ -39,6 +39,7 @@ probe dns_aaaa 127.0.0.1:25355
 # Rewrite only local smoke endpoints; source config remains canonical.
 tmp_prom="$DATA/prometheus.yml"
 sed -e "s/127\\.0\\.0\\.1:29115/127.0.0.1:$BB_PORT/g" -e 's/127\.0\.0\.1:25353/127.0.0.1:25355/g' "$prom" >"$tmp_prom"
+cp config/prometheus/consumer.rules.yml "$DATA/consumer.rules.yml"
 systemd-run --quiet --unit="$PROM_UNIT" --property=Type=simple --property=Restart=no /usr/bin/prometheus --config.file="$tmp_prom" --storage.tsdb.path="$DATA/tsdb" --storage.tsdb.retention.time=1h --web.listen-address="127.0.0.1:$PROM_PORT"
 for _ in $(seq 1 60); do curl -fsS "http://127.0.0.1:$PROM_PORT/-/ready" >/dev/null 2>&1 && break; sleep 0.1; done
 curl -fsS "http://127.0.0.1:$PROM_PORT/-/ready" >/dev/null
