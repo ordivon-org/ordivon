@@ -222,7 +222,7 @@ python3 scripts/studio-agent-surface.py
 | compile a truthful equipment proposal only when one exact capability is needed | `python3 scripts/studio-agent-surface.py studio_equipment_propose --arguments '{"capability":"<capability>","parameters":{}}'` |
 | use lower-level media inspection/render/QC/recovery operations after dependencies are materialized | `uv run ordivon-studio --help` |
 | understand the Media owner contract | [`MEDIA.md`](MEDIA.md) |
-| inspect Phase-1 closure / freeze / reopen posture | [`docs/media-phase1-construction-audit.md`](docs/media-phase1-construction-audit.md) |
+| understand which consumer evidence can reopen the Media baseline | [`MEDIA.md`](MEDIA.md) |
 | understand why Studio exists | this README |
 | determine document/fact/evidence authority | [`docs/authority.md`](docs/authority.md) |
 | first-principles architecture and technical choices | [`STUDIO.md`](STUDIO.md) |
