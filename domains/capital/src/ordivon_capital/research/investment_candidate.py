@@ -26,6 +26,14 @@ _ROW_KEYS = frozenset({
     "fees", "slippage", "financing", "taxes",
 })
 _COST_KEYS = frozenset({"fees", "slippage", "financing", "taxes"})
+_REPLAY_MANIFEST_KEYS = _MANIFEST_KEYS | frozenset({
+    "strategyAssetWeight", "benchmarkExpenseFraction",
+})
+_SOURCE_ROW_KEYS = frozenset({
+    "periodEndAt", "availableAt", "assetGrossReturn",
+    "cashGrossReturn", "benchmarkGrossReturn",
+})
+
 
 
 class CandidateEvidenceError(ValueError):
@@ -95,10 +103,22 @@ def evaluate_investment_candidate(
     holdout_bytes: bytes,
 ) -> dict[str, Any]:
     """Validate submitted aligned holdout returns; never admit live authority."""
-    data = _object(manifest, _MANIFEST_KEYS, "candidate")
-    if type(data["schemaVersion"]) is not int or data["schemaVersion"] != 1:
-        raise CandidateEvidenceError("candidate: schemaVersion must be 1")
-    if data["kind"] != "ordivon.capital.finance.frozen-research-candidate":
+    if type(manifest) is not dict or type(manifest.get("schemaVersion")) is not int:
+        raise CandidateEvidenceError("candidate: schemaVersion must be integer")
+    version = manifest["schemaVersion"]
+    if version not in (1, 2):
+        raise CandidateEvidenceError("candidate: unsupported schemaVersion")
+    replayed = version == 2
+    data = _object(
+        manifest,
+        _REPLAY_MANIFEST_KEYS if replayed else _MANIFEST_KEYS,
+        "candidate",
+    )
+    expected_kind = (
+        "ordivon.capital.finance.replayable-research-candidate"
+        if replayed else "ordivon.capital.finance.frozen-research-candidate"
+    )
+    if data["kind"] != expected_kind:
         raise CandidateEvidenceError("candidate: unsupported kind")
     for field in ("candidateId", "hypothesis"):
         if type(data[field]) is not str or not data[field].strip():
@@ -127,6 +147,21 @@ def evaluate_investment_candidate(
     if type(rows) is not list or not rows:
         raise CandidateEvidenceError("holdout: nonempty paired period list required")
 
+    source_rows: list[Any] | None = None
+    strategy_weight: Decimal | None = None
+    benchmark_expense: Decimal | None = None
+    if replayed:
+        strategy_weight = _decimal(data["strategyAssetWeight"], "strategyAssetWeight")
+        benchmark_expense = _decimal(
+            data["benchmarkExpenseFraction"], "benchmarkExpenseFraction"
+        )
+        if not 0 <= strategy_weight <= 1 or not 0 <= benchmark_expense <= 1:
+            raise CandidateEvidenceError("source: strategy weight/benchmark expense outside [0,1]")
+        decoded = _read_json(source_bytes, "source")
+        if type(decoded) is not list or len(decoded) != len(rows):
+            raise CandidateEvidenceError("source and holdout must have same length")
+        source_rows = decoded
+
     strategy_wealth = Decimal(1)
     benchmark_wealth = Decimal(1)
     peak_wealth = Decimal(1)
@@ -145,6 +180,24 @@ def evaluate_investment_candidate(
 
         gross = _decimal(row["strategyGrossReturn"], "strategyGrossReturn")
         baseline = _decimal(row["benchmarkNetReturn"], "benchmarkNetReturn")
+        if source_rows is not None:
+            assert strategy_weight is not None and benchmark_expense is not None
+            source = _object(source_rows[index], _SOURCE_ROW_KEYS, f"source[{index}]")
+            source_end = _utc(source["periodEndAt"], f"source[{index}].periodEndAt")
+            source_available = _utc(source["availableAt"], f"source[{index}].availableAt")
+            if source_end != period_end:
+                raise CandidateEvidenceError("source: holdout period end mismatch")
+            if not period_end <= source_available <= available:
+                raise CandidateEvidenceError("source: invalid observation availability")
+            asset = _decimal(source["assetGrossReturn"], "assetGrossReturn")
+            cash = _decimal(source["cashGrossReturn"], "cashGrossReturn")
+            bench = _decimal(source["benchmarkGrossReturn"], "benchmarkGrossReturn")
+            if min(asset, cash, bench) < -1:
+                raise CandidateEvidenceError("source: impossible simple return")
+            recomputed_gross = strategy_weight * asset + (1 - strategy_weight) * cash
+            recomputed_baseline = bench - benchmark_expense
+            if gross != recomputed_gross or baseline != recomputed_baseline:
+                raise CandidateEvidenceError("source: claimed returns do not match source replay")
         costs = tuple(_decimal(row[k], k) for k in ("fees", "slippage", "financing", "taxes"))
         if any(c < 0 for c in costs):
             raise CandidateEvidenceError("holdout: costs must be nonnegative")
@@ -159,10 +212,13 @@ def evaluate_investment_candidate(
         max_drawdown = max(max_drawdown, (peak_wealth - strategy_wealth) / peak_wealth)
 
     return {
-        "schemaVersion": 1,
+        "schemaVersion": version,
         "kind": "ordivon.capital.finance.research-evaluation",
         "candidateId": data["candidateId"],
-        "standing": "STRUCTURALLY_REVIEWABLE_NOT_INDEPENDENTLY_VERIFIED",
+        "standing": (
+            "SOURCE_REPLAYED_PROVIDER_NOT_ATTESTED"
+            if replayed else "STRUCTURALLY_REVIEWABLE_NOT_INDEPENDENTLY_VERIFIED"
+        ),
         "capitalAuthority": "NONE",
         "holdoutPeriods": len(rows),
         "declaredTrials": data["trialCount"],
@@ -170,7 +226,7 @@ def evaluate_investment_candidate(
         "holdoutBytesDigestVerified": True,
         "featureTimeDeclarationChecked": True,
         "freezeAttestationVerified": False,
-        "sourceToReturnRecomputationVerified": False,
+        "sourceToReturnRecomputationVerified": replayed,
         "statisticalGeneralizationVerified": False,
         "economicSummary": {
             "currency": data["currency"],
@@ -187,10 +243,15 @@ def evaluate_investment_candidate(
         },
         "requiredNextEvidence": [
             "Externally witnessed hypothesis freeze and point-in-time provenance",
-            "Independent recomputation of returns from committed source",
+            (
+                "Independent verification of market source and cost observations"
+                if replayed else
+                "Independent recomputation of returns from committed source"
+            ),
             "Multiple-trial selection-bias evaluation and untouched holdout",
             "Independent model/risk review and distinct capital authorization",
         ],
+        **({"sourceObservationProvenanceVerified": False} if replayed else {}),
     }
 
 

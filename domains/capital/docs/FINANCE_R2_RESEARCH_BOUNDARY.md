@@ -111,3 +111,51 @@ inspection/pruning rather than recursive filesystem deletion.
    Research Factory; no second Agent subsystem.
 5. Real broker effects and capital rights are a separately controlled
    phase, not an incidental effect of the research CLI.
+
+
+## Finance R3 — source-recomputed candidate (schemaVersion=2)
+
+The original v1 interface remains an envelope-only structural check. The same
+CLI now admits an optional schemaVersion=2 with kind
+ordivon.capital.finance.replayable-research-candidate and two declared
+frozen policy parameters:
+
+- strategyAssetWeight: decimal string in [0,1], constant over holdout periods;
+  the residual portfolio weight stays in a caller-provided cash series.
+- benchmarkExpenseFraction: decimal string in [0,1], constant per period
+  and subtracted from the benchmark gross return.
+
+For v2 only, --source must be a JSON array with exactly one observation per
+holdout period. Fields: periodEndAt, availableAt, assetGrossReturn,
+cashGrossReturn, benchmarkGrossReturn. All simple returns are finite decimal
+strings with lower bound -1. Each source end equals the holdout end; declared
+availability is between that period end and the holdout availability. Both
+source and holdout bytes remain SHA-256 committed.
+
+Independently compute from committed observations:
+
+    expected_strategy_gross = weight * asset + (1-weight) * cash
+    expected_benchmark_net = benchmark_gross - benchmark_expense
+
+Both must exactly match claimed holdout returns. Even an adversary who
+recommits modified holdout bytes cannot use a false derived return without
+detection. Holdout costs, compounding and drawdown use the existing v1
+computation. No new backtesting engine or tracking service is introduced.
+
+Successful standing: SOURCE_REPLAYED_PROVIDER_NOT_ATTESTED, with
+sourceToReturnRecomputationVerified=true and
+sourceObservationProvenanceVerified=false. This is reproducible arithmetic
+from the submitted observations, NOT evidence that an external provider
+published them, that corporate-action adjustments and universe membership
+are point-in-time, that an experiment was truly frozen before the holdout,
+or that fees, trials, liquidity and forward profitability are established.
+The two authorities remain distinct: this result never grants capital.
+
+R2.1 refinement: I=FrozenCandidateV2 plus committed observation array;
+O=ResearchEvidenceSummaryV2 or CandidateEvidenceError; S=Unit;
+pre=valid time-aligned observations and declared constant exposure;
+post=holdout claims exactly equal independently calculated source projections;
+inv=read-only and no capital grant; eff=empty; c=O(n) processing;
+epsilon=Decimal-context arithmetic, financial-source error UNKNOWN;
+prov=byte digests verified, publisher/freeze claims NOT VERIFIED;
+unfold=same evaluator and CLI plus focused v2 falsification consumer.
