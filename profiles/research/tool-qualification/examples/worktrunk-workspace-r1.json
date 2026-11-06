@@ -1,7 +1,7 @@
 {
   "packetKind": "research-tool-qualification-packet",
   "schemaVersion": "r1",
-  "observationCut": "65d9bba3e2000f973fc3bcc05410fa2a8f97b5b7",
+  "observationCut": "6b455952d78b8ce51595f1c1ec2575d12fb0670d",
   "qualifiedProblemClass": "Worktree inventory of a disposable local Git repository",
   "qualifiedOperation": "Worktrunk v0.81.0 list --format json",
   "ownerRef": "catalogs/capabilities/providers/worktrunk.md",

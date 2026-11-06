@@ -1,7 +1,7 @@
 {
   "kind": "ordivon.external-lego-cross-owner-prospective-r1",
   "snapshotDay": "2026-11-06",
-  "sourceCut": "65d9bba3e2000f973fc3bcc05410fa2a8f97b5b7",
+  "sourceCut": "6b455952d78b8ce51595f1c1ec2575d12fb0670d",
   "measured": {
     "verifiedProductionSubstitutions": 0,
     "verifiedCustomCodeRetiredLines": 0,

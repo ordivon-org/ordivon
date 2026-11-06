@@ -1,6 +1,6 @@
 # External LEGO Evolution R1 — evidence-first, owner-local pipeline
 
-**SourceCut:** 65d9bba3e2000f973fc3bcc05410fa2a8f97b5b7 (2026-11-06).
+**SourceCut:** 6b455952d78b8ce51595f1c1ec2575d12fb0670d (2026-11-06).
 
 This is a composition of *existing* Catalog, Skills, Research and Composition obligations, not a new registry, permission service, scheduler, global source of truth or form of LEGO. No new always-on process is required.
 
@@ -62,3 +62,7 @@ The starting scorecard is zero *verified* production substitutions and zero *ver
 - No separate installation-currentness database; consult actual provider and owner.
 - No upstream project hooks/bootstrap executables without independent review.
 - No automatic deletion based only on zero grep hits or a positive fixture test.
+
+## Source-cut rebinding and independent blob witness
+
+Original local source audit: 65d9bba3e2000f973fc3bcc05410fa2a8f97b5b7. The GitHub PR parent is the exact commit 6b455952d78b8ce51595f1c1ec2575d12fb0670d. On 2026-11-06 all three Runtime worktree consumer source Git blob identities were verified identical across those source cuts, by comparing Git local historical tree identity against official GitHub Git Blob SHA-1 at 6b455952d78b8ce51595f1c1ec2575d12fb0670d. This equality is strictly scoped to these paths and does not assert that whole commits or Runtime deployments are equivalent. Rebinding allows the CI checkout to prove the consumer paths without needing an unrelated historical commit object.

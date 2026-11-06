@@ -6,7 +6,7 @@
   "decision": "KEEP_NATIVE",
   "productionActivated": false,
   "source": {
-    "ordivonSourceCut": "65d9bba3e2000f973fc3bcc05410fa2a8f97b5b7",
+    "ordivonSourceCut": "6b455952d78b8ce51595f1c1ec2575d12fb0670d",
     "upstream": {
       "repository": "https://github.com/max-sixty/worktrunk",
       "observedHeadCommit": "181f17a7942b8e944f9c03c0f81b70e95a3b1a9b",
@@ -15,6 +15,11 @@
       "licenseExpression": "MIT OR Apache-2.0",
       "licenseEvidence": "Official LICENSE body verified; GitHub API NOASSERTION is not the license expression",
       "observationTime": "2026-11-06T05:29:00Z"
+    },
+    "consumerSourceBlobSha1": {
+      "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/records.rs": "fba3ee00eee6bc8a392c51465e67f42e3d23ffc6",
+      "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/paths_git.rs": "68ff64e363be140365f36cccfc6ae1d3fddd3147",
+      "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/close_recovery.rs": "b1c2459b94c964d193f8248e5407049e019618bc"
     }
   },
   "capability": {
@@ -41,5 +46,5 @@
     "No Worktrunk lifecycle negative-test parity or independent owner promotion",
     "Upstream release archive SHA does not establish binary signature provenance"
   ],
-  "summary": "Read-only list equivalence observed on disposable fixture only; retain native Git"
+  "summary": "Read-only list equivalence observed on disposable fixture only; retain native Git; rebased to immutable PR parent SourceCut 6b455952d78b8ce51595f1c1ec2575d12fb0670d; three real consumer blob IDs equal old audit SourceCut 65d9bba3e2000f973fc3bcc05410fa2a8f97b5b7"
 }
