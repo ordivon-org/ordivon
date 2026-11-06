@@ -1,0 +1,44 @@
+{
+  "kind": "ordivon.external-world-observation-r1",
+  "observationId": "uk-boe-bank-rate-2026-11-05",
+  "claimStatus": "ISSUER_REPORTED",
+  "checkedAt": "2026-11-06",
+  "baseline": {
+    "subject": "Bank of England Bank Rate",
+    "predicate": "official-policy-rate",
+    "value": "3.75",
+    "unit": "percent",
+    "dataAsOf": "2026-09-17",
+    "evidence": {
+      "url": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
+      "publisher": "Bank of England Monetary Policy Committee",
+      "publishedAt": "2026-09-17",
+      "supportScope": "MPC maintained Bank Rate at 3.75 percent"
+    }
+  },
+  "current": {
+    "subject": "Bank of England Bank Rate",
+    "predicate": "official-policy-rate",
+    "value": "4.00",
+    "unit": "percent",
+    "eventAt": "2026-11-04",
+    "reportedAt": "2026-11-05",
+    "dataAsOf": "2026-11-05",
+    "revisedAt": null,
+    "evidence": {
+      "url": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/november-2026",
+      "publisher": "Bank of England Monetary Policy Committee",
+      "publishedAt": "2026-11-05",
+      "supportScope": "MPC vote 8 to 1 to raise Bank Rate by 0.25 percentage points to 4 percent"
+    }
+  },
+  "declaredDelta": "0.25",
+  "affectedConsumers": [],
+  "ownerVerdict": "UNKNOWN",
+  "productionApplied": false,
+  "nonClaims": [
+    "Policy rate decision is issuer-reported and cited, not independently re-scraped by the validator",
+    "Not a production Capital/Finance model mutation",
+    "No automatic portfolio or trading effect"
+  ]
+}
