@@ -18,7 +18,7 @@ Scope: `capabilities/media/`. Inherit the monorepo `AGENTS.md`; follow this Owne
 | Existing Production and allowed source claims | `studio_production_standing` → selected `studio_production_context`; `production_context.py` |
 | Existing creative assets and works | `studio_creative_index_query` / `creative_index.py`; derived navigation only |
 | Native inspection: video, audio, OTIO or timed text | `studio_processing_profiles` → `studio_processing_probe_plan` → Runtime → raw evidence; use `media-native-processing` Skill |
-| Physical editing/render/capture capability | `studio_equipment_propose`; `equipment_discovery.py` → `equipment_capabilities.py` → `equipment_plan.py`; Workstation/Runtime own readiness/effect |
+| Physical editing/render/capture capability | `studio_equipment_propose`; `equipment_discovery.py` → `equipment_capabilities.py` → `equipment_plan.py` (creative) / `equipment_plan_delivery.py` (cross-domain native producers); Workstation/Runtime own readiness/effect |
 | Reuse empirical creative judgment | `studio_learning_context` and `research/expression/`; hypotheses do not become human-response facts |
 | Installed dependencies | `studio_dependencies_status` → `studio_dependencies_propose`; no implicit installation |
 | Selected bytes and recovery | `assets.py`, Production Asset/Blob records and Artifact/byte authority; no automatic second store |
