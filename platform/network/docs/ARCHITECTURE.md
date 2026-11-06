@@ -70,17 +70,22 @@ The generic core must not import provider- or consumer-specific configuration.
 
 **Monitoring SourceCut precommit LEGO** (Network Owner, Taskfile.yml /
 scripts/monitoring-sourcecut-preflight.py). Before core:install makes its
-first live write, compare the two existing Blackbox/Prometheus configuration
-bytes against the deployed pair:
+first live write, compare all three existing Blackbox/Prometheus configuration
+files (Blackbox modules, Prometheus scrape jobs, and consumer alert rules)
+byte-for-byte with the deployed generation:
 
-- Neither live file exists: FIRST_INSTALL, after native configuration validation.
-- Both exist with identical bytes: IDENTICAL_SOURCECUT, idempotent installation.
-- A partial pair, symlink, or any different bytes: BLOCKED, without an install.
+- None of the three live files exists: FIRST_INSTALL, after native validation.
+- All three exist with identical bytes: IDENTICAL_SOURCECUT, idempotent installation.
+- Partial files, symlinks, or different bytes: BLOCKED, before any install write.
 
 This is the minimum no-silent-overwrite guarantee selected from the historical
 Network R6 consumer-failure branch. It intentionally does **not** resurrect the
-old multi-consumer monitoring registry, restore retired alert rules, introduce a
-YAML parser/production dependency, or claim semantic YAML equivalence. Changing
+old multi-consumer monitoring registry, introduce a YAML parser/production
+dependency, or claim semantic YAML equivalence. The adopted consumer rules and
+Blackbox modules are the 2026-11-06 verified active live configuration, not
+a reconstruction from old logs. Prometheus natively loads rule_files and
+Blackbox natively loads its declared modules; consumer domain policy remains
+outside Network. Changing
 live monitoring requires a separately qualified migration; no broad automatic
 overwrite is authorized. Native source/fault tests:
 tests/test_monitoring_precommit.py, accepted through mise run ci.

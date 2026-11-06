@@ -1,6 +1,8 @@
 global:
   scrape_interval: 5s
   evaluation_interval: 5s
+rule_files:
+  - consumer.rules.yml
 scrape_configs:
   - job_name: blackbox-http-ipv4
     scrape_interval: 15s
@@ -10,6 +12,134 @@ scrape_configs:
       module: [http_2xx_ipv4]
     static_configs:
       - targets: [https://example.com/]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  # Real PyPA package-index consumer through the active shared VPN carrier.
+  # Probe failure is distinct from a running sing-box process or host egress.
+  - job_name: blackbox-vpn-pypi
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module: [http_vpn_2xx_ipv4]
+    static_configs:
+      - targets: [https://pypi.org/simple/pip-audit/]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  # Distinct production consumer: scoped model-provider egress with allowlist.
+  - job_name: blackbox-vpn-model-provider
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module: [http_model_provider_reachable]
+    static_configs:
+      - targets: [https://api.deepseek.com/v1/models]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  # Independently measured live Finance venue public-data consumers.
+  - job_name: blackbox-vpn-finance-okx
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module: [http_finance_okx_business]
+    static_configs:
+      - targets: [https://openapi.okx.com/api/v5/public/time]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  - job_name: blackbox-vpn-finance-binance-usdm
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module: [http_finance_binance-usdm_business]
+    static_configs:
+      - targets: [https://fapi.binance.com/fapi/v1/time]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  # Monitor the actual accepted consumer origin, not only the carrier port.
+  - job_name: blackbox-scoped-codex-mcp
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module: [codex_mcp_bearer]
+    static_configs:
+      - targets: [https://gateway-mcp.ordivon.com/mcp]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  # Monitor the actual accepted consumer origin, not only the carrier port.
+  - job_name: blackbox-scoped-codex-access
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module: [codex_cloudflare_access]
+    static_configs:
+      - targets: [https://falling-union-c376.cloudflareaccess.com/]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  # Monitor the actual accepted consumer origin, not only the carrier port.
+  - job_name: blackbox-scoped-claude-api
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module: [claude_anon_api]
+    static_configs:
+      - targets: [https://api.anthropic.com/]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  # Monitor the actual accepted consumer origin, not only the carrier port.
+  - job_name: blackbox-scoped-supply-chain
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module: [supply_chain_registry]
+    static_configs:
+      - targets: [https://registry-1.docker.io/v2/]
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -51,6 +181,38 @@ scrape_configs:
       module: [dns_aaaa]
     static_configs:
       - targets: [127.0.0.1:25353]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  # Measure the actual upstream resolvers outside dnsproxy's local cache.
+  # Warm cached example.com answers otherwise hide upstream packet loss.
+  - job_name: blackbox-dns-upstream-cloudflare
+    scrape_interval: 1m
+    scrape_timeout: 8s
+    metrics_path: /probe
+    params:
+      module: [dns_a]
+    static_configs:
+      - targets: [1.1.1.1:53]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  - job_name: blackbox-dns-upstream-google
+    scrape_interval: 1m
+    scrape_timeout: 8s
+    metrics_path: /probe
+    params:
+      module: [dns_a]
+    static_configs:
+      - targets: [8.8.8.8:53]
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

@@ -13,6 +13,101 @@ modules:
       preferred_ip_protocol: ip6
       ip_protocol_fallback: false
       follow_redirects: true
+  # Observe the actual shared Gluetun/sing-box HTTPS consumer, not the host
+  # direct route or a port that can stay open during a VPN outage.
+  http_vpn_2xx_ipv4:
+    prober: http
+    timeout: 10s
+    http:
+      method: HEAD
+      preferred_ip_protocol: ip4
+      fail_if_not_ssl: true
+      proxy_url: http://10.252.246.2:19680
+      skip_resolve_phase_with_proxy: true
+  # Actual allowlisted production model proxy, not generic host internet.
+  # Anonymous API 401/403 proves transport reachability, NOT usable credentials.
+  http_model_provider_reachable:
+    prober: http
+    timeout: 10s
+    http:
+      method: HEAD
+      preferred_ip_protocol: ip4
+      valid_status_codes: [200, 401, 403]
+      fail_if_not_ssl: true
+      proxy_url: http://127.0.0.1:19881
+      skip_resolve_phase_with_proxy: true
+  # Real Finance venue consumption: scoped proxies and public JSON contracts,
+  # not mere carrier process or HTTP 200 observations.
+  http_finance_okx_business:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      preferred_ip_protocol: ip4
+      valid_status_codes: [200]
+      fail_if_not_ssl: true
+      proxy_url: http://127.0.0.1:19283
+      skip_resolve_phase_with_proxy: true
+      fail_if_body_json_not_matches_cel: "has(body.code) && body.code == '0' && has(body.data) && size(body.data) > 0"
+  http_finance_binance-usdm_business:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      preferred_ip_protocol: ip4
+      valid_status_codes: [200]
+      fail_if_not_ssl: true
+      proxy_url: http://127.0.0.1:19287
+      skip_resolve_phase_with_proxy: true
+      fail_if_body_json_not_matches_cel: "has(body.serverTime) && body.serverTime > 0"
+  # Consumer HTTP CONNECT + origin TLS through one existing scoped proxy.
+  codex_mcp_bearer:
+    prober: http
+    timeout: 10s
+    http:
+      method: HEAD
+      preferred_ip_protocol: ip4
+      follow_redirects: false
+      valid_status_codes: [401]
+      fail_if_not_ssl: true
+      proxy_url: http://127.0.0.1:19982
+      skip_resolve_phase_with_proxy: true
+  # Consumer HTTP CONNECT + origin TLS through one existing scoped proxy.
+  codex_cloudflare_access:
+    prober: http
+    timeout: 10s
+    http:
+      method: HEAD
+      preferred_ip_protocol: ip4
+      follow_redirects: false
+      valid_status_codes: [200, 301, 302, 403, 404]
+      fail_if_not_ssl: true
+      proxy_url: http://127.0.0.1:19982
+      skip_resolve_phase_with_proxy: true
+  # Consumer HTTP CONNECT + origin TLS through one existing scoped proxy.
+  claude_anon_api:
+    prober: http
+    timeout: 10s
+    http:
+      method: HEAD
+      preferred_ip_protocol: ip4
+      follow_redirects: false
+      valid_status_codes: [401, 403, 404, 405]
+      fail_if_not_ssl: true
+      proxy_url: http://127.0.0.1:19481
+      skip_resolve_phase_with_proxy: true
+  # Consumer HTTP CONNECT + origin TLS through one existing scoped proxy.
+  supply_chain_registry:
+    prober: http
+    timeout: 10s
+    http:
+      method: HEAD
+      preferred_ip_protocol: ip4
+      follow_redirects: false
+      valid_status_codes: [401]
+      fail_if_not_ssl: true
+      proxy_url: http://127.0.0.1:19581
+      skip_resolve_phase_with_proxy: true
   tcp_connect:
     prober: tcp
     timeout: 5s
@@ -26,6 +121,10 @@ modules:
       transport_protocol: udp
       query_name: example.com
       query_type: A
+      # NOERROR with ANCOUNT=0 is NODATA, not usable DNS resolution.
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - '(?i)^example\.com\.\s+\d+\s+IN\s+A\s+\d+\.\d+\.\d+\.\d+$'
   dns_aaaa:
     prober: dns
     timeout: 5s
@@ -34,3 +133,6 @@ modules:
       transport_protocol: udp
       query_name: example.com
       query_type: AAAA
+      validate_answer_rrs:
+        fail_if_none_matches_regexp:
+          - '(?i)^example\.com\.\s+\d+\s+IN\s+AAAA\s+[0-9a-f:]+$'
