@@ -26,7 +26,6 @@ PRESERVED = (
     "HTTPPROXY",
     "HTTPPROXY_LISTENING_ADDRESS",
     "DNS_SERVER",
-    "DNS_UPSTREAM_RESOLVER_TYPE",
     "PUBLICIP_ENABLED",
     "HTTP_CONTROL_SERVER_ADDRESS",
     "FIREWALL_INPUT_PORTS",
@@ -80,6 +79,12 @@ def generate_env(inherited: dict[str, str], interface_address: str) -> str:
         f"SERVER_COUNTRIES={COUNTRIES}",
         "UPDATER_PERIOD=480h",
         "HEALTH_RESTART_VPN=on",
+        # The VPN startup check must not depend on its own DNS layer.
+        # Both IP identities have independently validated TLS certificates.
+        "HEALTH_TARGET_ADDRESSES=1.1.1.1:443,8.8.8.8:443",
+        # Native Gluetun encrypted DNS, without the legacy DoH SourceCut.
+        "DNS_UPSTREAM_RESOLVER_TYPE=dot",
+        "DNS_UPSTREAM_RESOLVERS=cloudflare,google",
     ]
     for key in PRESERVED:
         if key in inherited:

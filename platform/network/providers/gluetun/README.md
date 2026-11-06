@@ -53,6 +53,27 @@ The official server catalog updates at `UPDATER_PERIOD=480h`; the systemd
 oneshot only restarts physically stopped services. No Ordivon candidate loop
 or competing WireGuard session is created.
 
+## Health and DNS are separate capabilities
+
+Gluetun's physical VPN startup/full checks now use native TLS IP endpoints
+HEALTH_TARGET_ADDRESSES=1.1.1.1:443,8.8.8.8:443 instead of requiring
+working DNS to check the physical tunnel. Both IP endpoints were checked
+inside the running VPN namespace using certificate-verified TLS.
+
+The native DNS server uses encrypted DNS-over-TLS
+(DNS_UPSTREAM_RESOLVER_TYPE=dot) with Cloudflare and Google upstreams,
+rather than inheriting the previous DoH setting from the archived Custom
+Provider candidate. Gluetun's native VPN restart, firewall and cache
+remain the only owners of those functions. Physical and DNS failures
+must still be independently measured; this configuration does not prove
+that future reconnect storms have ceased.
+
+The existing Custom provider candidate environment remains a valid
+credential materialization input and recovery source. Deployment is
+a new native environment SourceCut followed by a controlled physical
+Provider restart and downstream consumer verification, not an
+additional WireGuard identity.
+
 The physical identity is imported from the already-owned WireGuard profile
 by `task provider:gluetun:native:prepare`, which writes a root-only native
 environment file and stores the private key in Podman Secret

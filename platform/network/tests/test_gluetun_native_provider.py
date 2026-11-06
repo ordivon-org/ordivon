@@ -31,6 +31,7 @@ def test_wireguard_materialization_is_native_and_does_not_expose_private_key():
             "HTTPPROXY=on\n"
             "HTTPPROXY_LISTENING_ADDRESS=:8888\n"
             "UPDATER_PERIOD=0\n"
+            "DNS_UPSTREAM_RESOLVER_TYPE=doh\n"
         ),
         ipv4,
     )
@@ -41,6 +42,10 @@ def test_wireguard_materialization_is_native_and_does_not_expose_private_key():
     assert "SERVER_COUNTRIES=Singapore,Japan" in env
     assert "UPDATER_PERIOD=480h" in env
     assert "HEALTH_RESTART_VPN=on" in env
+    assert "HEALTH_TARGET_ADDRESSES=1.1.1.1:443,8.8.8.8:443" in env
+    assert env.count("DNS_UPSTREAM_RESOLVER_TYPE=dot") == 1
+    assert "DNS_UPSTREAM_RESOLVERS=cloudflare,google" in env
+    assert "DNS_UPSTREAM_RESOLVER_TYPE=doh" not in env
     assert "HTTPPROXY_LISTENING_ADDRESS=:8888" in env
     assert SYNTHETIC_KEY not in env
     assert "WIREGUARD_ENDPOINT_IP" not in env
