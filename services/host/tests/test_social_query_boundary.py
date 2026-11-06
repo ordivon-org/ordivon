@@ -34,7 +34,6 @@ def test_social_queries_are_inherited_not_reimplemented_in_the_write_owner() -> 
         "get_space",
         "list_space_subjects",
         "list_participations",
-        "list_topics",
         "list_spaces",
         "_get_space_in_tx",
     }
@@ -46,6 +45,7 @@ def test_social_queries_are_inherited_not_reimplemented_in_the_write_owner() -> 
         "_require_message",
     }
     assert {name for name in queries if name in SocialTopicReadQueries.__dict__} == {
+        "list_topics",
         "resume_topic",
         "get_topic_cursor",
     }

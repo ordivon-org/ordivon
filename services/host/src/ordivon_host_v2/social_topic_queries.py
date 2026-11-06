@@ -13,6 +13,7 @@ import psycopg
 from psycopg.rows import dict_row
 
 from .collection_pagination import (
+    DEFAULT_COLLECTION_MAX_BYTES,
     DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
     MIN_MESSAGE_COLLECTION_MAX_BYTES,
     bounded_prefix,
@@ -24,6 +25,64 @@ class SocialTopicReadQueries:
     """Read-only PostgreSQL projections; SocialStore remains the sole write authority."""
 
     dsn: str
+
+    def list_topics(
+        self,
+        space_ref: str,
+        *,
+        after_topic_ref: str | None = None,
+        limit: int = 100,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
+        if type(limit) is not int or not 1 <= limit <= 500:
+            raise ValueError("limit must be in [1,500]")
+        validate_max_bytes(max_bytes)
+        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+            conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            self._require_space(conn, space_ref)
+            rows = conn.execute(
+                "SELECT topic_ref,title,state,created_by_actor_ref,created_at,updated_at FROM topics "
+                "WHERE space_ref=%s AND (%s::text IS NULL OR topic_ref>%s) "
+                "ORDER BY topic_ref LIMIT %s",
+                (space_ref, after_topic_ref, after_topic_ref, limit + 1),
+            ).fetchall()
+            sql_more = len(rows) > limit
+            candidates = [
+                {
+                    "topicRef": row["topic_ref"],
+                    "title": row["title"],
+                    "state": row["state"],
+                    "createdByActorRef": row["created_by_actor_ref"],
+                    "createdAt": row["created_at"].isoformat(),
+                    "updatedAt": row["updated_at"].isoformat(),
+                }
+                for row in rows[:limit]
+            ]
+
+            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.host-topic-list",
+                    "spaceRef": space_ref,
+                    "topics": page,
+                    "hasMore": True,
+                    "nextAfterTopicRef": None if not page else page[-1]["topicRef"],
+                    "rankingApplied": False,
+                    "truthBoundary": "conversation-axis inventory only; not Work lifecycle or priority",
+                }
+
+            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            has_more = sql_more or byte_more
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-topic-list",
+                "spaceRef": space_ref,
+                "topics": page,
+                "hasMore": has_more,
+                "nextAfterTopicRef": page[-1]["topicRef"] if has_more and page else None,
+                "rankingApplied": False,
+                "truthBoundary": "conversation-axis inventory only; not Work lifecycle or priority",
+            }
 
     def resume_topic(
         self,
