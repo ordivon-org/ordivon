@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.finance.paper.replay-request",
+  "source": {
+    "repository": "manisahni/marketdata",
+    "commit": "65a079329e379e104495f459e12e76a8f995585a",
+    "commitAt": "2026-08-20T21:41:22Z",
+    "path": "daily_adjclose.csv",
+    "sha256": "361efb287116fc8200582c15fcd315bcce2e218fa1e50b416bacc5acebff37b9",
+    "gitBlobSha": "29175a3fd8700cab31762bd72ced772ea5d1c807",
+    "originStanding": "UNVERIFIED_UPSTREAM_MARKET_PROVENANCE"
+  },
+  "policy": {
+    "startDate": "2025-01-02",
+    "endDate": "2026-08-10",
+    "startingCapital": "100000",
+    "currency": "USD",
+    "weightsBps": {
+      "SPY": 6000,
+      "SHY": 4000
+    },
+    "benchmarkSymbol": "SPY",
+    "strategyAnnualExpenseFraction": "0.002",
+    "benchmarkAnnualExpenseFraction": "0.001",
+    "periodsPerYear": 252,
+    "trialsDeclared": 1
+  }
+}

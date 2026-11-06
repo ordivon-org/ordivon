@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# The existing Capital runner supplies the locked native Python toolchain.
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+exec "$root/scripts/run-capability-python" -m ordivon_capital.portfolio.paper_investment "$@"
