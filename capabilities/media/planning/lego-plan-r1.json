@@ -1353,6 +1353,141 @@
           ]
         }
       }
+    },
+    {
+      "id": "V11",
+      "label": "NativeProcessingProfileDiscovery",
+      "kind": "capability_adapter",
+      "responsibility": "Expose native FFprobe/FFmpeg/OTIO/TTML processing profiles and installed-source adapter filenames as bounded, digest-identifiable read-only LEGO; choose no media operation and claim no tool readiness.",
+      "authority": "Media owns source profile/adapter discovery; Runtime owns physical execution, Workstation owns installed tools, and Product/Artifact/Studio consumers own output acceptance.",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/agent_processing.py",
+        "src/ordivon_studio/agent_surface.py",
+        "processing/profiles",
+        "processing/bin",
+        "tests/test_agent_processing.py",
+        "processing/README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "FFmpeg/OTIO parsing, encoding or processing implementation",
+        "a second media asset, selected-output or source-currentness database",
+        "physical tool availability or published release standing",
+        "execution authority or domain-level QC acceptance"
+      ],
+      "acceptance": [
+        "The existing Studio Agent action lists every source profile with a stable profile digest and, when an adapter exists, its independently measured byte digest.",
+        "No-argument read-only discovery works with the installed Python standard library before materializing third-party Studio dependencies.",
+        "Unknown profile kinds have no fabricated adapter or physical tool readiness; duplicate profile IDs are rejected.",
+        "A full mechanical QC PASS is accepted only from a separate source- and tool-bound execution with output readback, never from this catalog."
+      ],
+      "r21": {
+        "I": {
+          "type": "MediaProcessingDiscoveryIntent",
+          "fields": [
+            "current Media source root",
+            "on-disk processing/profiles/*.json and processing/bin/*.sh"
+          ],
+          "consumers": [
+            "studio_processing_profiles Agent action",
+            "selected Studio or technical QC task"
+          ]
+        },
+        "O": {
+          "type": "BoundedProcessingProfileCatalog",
+          "fields": [
+            "profile ID/kind/path and SHA-256",
+            "source adapter path, presence, SHA-256 or null",
+            "declared input roles and externalToolReadiness=not-observed"
+          ],
+          "consumers": [
+            "Studio Agent caller choosing a native adapter; not a direct effect"
+          ]
+        },
+        "S": {
+          "type": "EphemeralProjection",
+          "owner": "caller invocation",
+          "description": "No separate catalog file, registry, state writer or tool installation"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "Media root is chosen by caller",
+            "readable JSON source profile is a declared schemaVersion=1 object with nonblank ID/kind",
+            "no active physical tool assumption from a profile file"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "profile and adapter hashes identify the actually observed source bytes",
+            "unknown adapter is represented as absent, without fabricating existence",
+            "all declared objects remain source-owned rather than copied to a persistent registry"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "source identity and domain acceptance never transfer to this discovery projection",
+            "no encoding, editing, publication or installation side effect",
+            "no access to live workstation tool readiness is inferred"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read exact processing profile and adapter bytes",
+            "emit one JSON projection"
+          ],
+          "excluded": [
+            "run ffmpeg/ffprobe/otiotool/ttconv",
+            "write media outputs or install dependencies",
+            "modify another Owner's truth"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "actual FFmpeg/OTIO/TTML execution time and installed tool costs",
+          "reason": "static discovery does not run the selected physical probe",
+          "obligation": "measure separately on concrete selected media processing Job"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "physical tool readiness, media source validity, delivered-output compliance and aesthetic judgment",
+          "reason": "a digest-bound adapter catalog is not a physical execution or media judgment receipt",
+          "obligation": "bind live tool/material bytes, invoke native processing and observe its evidence before claiming technical results"
+        },
+        "prov": {
+          "type": "source_and_test_evidence",
+          "sourcePaths": [
+            "src/ordivon_studio/agent_processing.py",
+            "src/ordivon_studio/agent_surface.py",
+            "processing/README.md"
+          ],
+          "verification": "Local Python 3.15.1 source-action discovery and targeted unit tests; source-only proof of catalog behavior",
+          "standing": "SOURCE_CONSUMER_TESTED__PHYSICAL_MEDIA_EFFECT_NOT_EVALUATED"
+        },
+        "unfold": {
+          "type": "reuse_existing_capability",
+          "ownerSource": [
+            "src/ordivon_studio/agent_processing.py",
+            "src/ordivon_studio/agent_surface.py"
+          ],
+          "externalProviders": [
+            "FFprobe/FFmpeg",
+            "OpenTimelineIO otiotool",
+            "IMSC/TTML ttconv"
+          ],
+          "nativeAdapters": [
+            "processing/bin/probe-av.sh",
+            "processing/bin/probe-audio.sh",
+            "processing/bin/probe-otio.sh",
+            "processing/bin/probe-timed-text.sh"
+          ]
+        }
+      }
     }
   ],
   "edges": [
@@ -1403,6 +1538,12 @@
       "to": "V04",
       "type": "EVIDENCE",
       "label": "staged operation identity and matched native Resolve result to QC"
+    },
+    {
+      "from": "V11",
+      "to": "V04",
+      "type": "EVIDENCE",
+      "label": "Only after Runtime executes a selected native profile adapter, its exact technical evidence can feed Media RenderQC; discovery alone is not QC"
     }
   ],
   "slices": [
@@ -1563,8 +1704,8 @@
   ],
   "review": {
     "sourceRevision": "757c7e4b08879e386f683f56674763f544984be3",
-    "updatedAt": "2026-09-18",
-    "standing": "INITIAL",
-    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+    "updatedAt": "2026-11-06",
+    "standing": "SOURCE_VERIFIED_PARTIAL",
+    "notes": "Project-native LEGO projection; V11 registered after direct Studio Agent consumer test, with physical media effect explicitly UNKNOWN. Historical initial sourceRevision is not silently currentized."
   }
 }

@@ -98,15 +98,21 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
     if not isinstance(arguments, Mapping):
         raise ValueError(f"invalid arguments for {name}: expected an object")
 
-    # The dependency is already owned and locked by Studio. Keep discovery
-    # dependency-free; validate only at the actual action execution boundary.
-    from jsonschema import Draft202012Validator
-
     checked = dict(arguments)
-    violation = next(iter(Draft202012Validator(tool["inputSchema"]).iter_errors(checked)), None)
-    if violation is not None:
-        location = "/".join(map(str, violation.absolute_path)) or "<root>"
-        raise ValueError(f"invalid arguments for {name} at {location}: {violation.message}")
+    schema = tool["inputSchema"]
+    # An exact empty-object schema is fully checkable by Python itself.
+    # Keep no-argument observation LEGO usable before Studio dependency
+    # materialization, without adding an alternative JSON Schema validator.
+    if schema == {"type": "object", "properties": {}, "additionalProperties": False}:
+        if checked:
+            raise ValueError(f"invalid arguments for {name} at <root>: unexpected properties")
+    else:
+        from jsonschema import Draft202012Validator
+
+        violation = next(iter(Draft202012Validator(schema).iter_errors(checked)), None)
+        if violation is not None:
+            location = "/".join(map(str, violation.absolute_path)) or "<root>"
+            raise ValueError(f"invalid arguments for {name} at {location}: {violation.message}")
     arguments = checked
 
     if name == "studio_dependencies_status":

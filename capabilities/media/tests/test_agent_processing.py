@@ -26,7 +26,8 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             }
             raw = json.dumps(data, sort_keys=True).encode()
             (profiles / "test-av.json").write_bytes(raw)
-            (adapters / "probe-av.sh").write_text("#!/bin/sh\\n", encoding="utf-8")
+            adapter_bytes = b"#!/bin/sh\n"
+            (adapters / "probe-av.sh").write_bytes(adapter_bytes)
             result = processing_profiles(root)
             self.assertTrue(result["catalogPresent"])
             self.assertEqual(len(result["profiles"]), 1)
@@ -35,6 +36,9 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             self.assertEqual(item["profileDigest"], "sha256:" + hashlib.sha256(raw).hexdigest())
             self.assertEqual(item["adapterPath"], "processing/bin/probe-av.sh")
             self.assertTrue(item["adapterPresent"])
+            self.assertEqual(
+                item["adapterDigest"], "sha256:" + hashlib.sha256(adapter_bytes).hexdigest()
+            )
             self.assertEqual(item["externalToolReadiness"], "not-observed")
             self.assertEqual(
                 execute_surface_action("studio_processing_profiles", {}, root=root), result
@@ -56,6 +60,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             self.assertIsNone(item["adapterPath"])
             self.assertFalse(item["adapterPresent"])
             self.assertEqual(item["externalToolReadiness"], "not-observed")
+            self.assertIsNone(item["adapterDigest"])
 
     def test_duplicate_profile_identity_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

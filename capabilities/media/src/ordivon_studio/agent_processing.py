@@ -46,13 +46,21 @@ def processing_profiles(root: Path) -> dict[str, Any]:
         seen.add(value["id"])
         adapter = _ADAPTERS.get(value["kind"])
         adapter_path = root / "processing/bin" / adapter if adapter else None
+        adapter_bytes = (
+            adapter_path.read_bytes() if adapter_path is not None and adapter_path.is_file()
+            else None
+        )
         profiles.append({
             "id": value["id"],
             "profileKind": value["kind"],
             "profilePath": path.relative_to(root).as_posix(),
             "profileDigest": "sha256:" + hashlib.sha256(raw).hexdigest(),
             "adapterPath": adapter_path.relative_to(root).as_posix() if adapter_path else None,
-            "adapterPresent": adapter_path.is_file() if adapter_path else False,
+            "adapterDigest": (
+                "sha256:" + hashlib.sha256(adapter_bytes).hexdigest()
+                if adapter_bytes is not None else None
+            ),
+            "adapterPresent": adapter_bytes is not None,
             "inputRoles": ["mediaSource", "profile", "evidenceDirectory"],
             "externalToolReadiness": "not-observed",
         })
