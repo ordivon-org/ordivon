@@ -68,6 +68,8 @@ run = """
 set -euo pipefail
 python3 -m unittest tools/repo/test_tracked_secrets.py
 python3 -m unittest tools/repo/test_source_history_legos.py
+python3 -m unittest discover -s catalogs/capabilities/tests -p 'test_external_lego_evolution.py'
+python3 catalogs/capabilities/scripts/check_external_lego_evidence.py catalogs/capabilities/evidence/external-lego-worktrunk-20261106.json
 python3 -m unittest tools/repo/test_formal_source_contract.py
 python3 -m unittest tools/repo/test_workspace_ready.py
 uv run --with pyyaml==6.0.3 python -m unittest tools/repo/test_dependency_update_ownership.py

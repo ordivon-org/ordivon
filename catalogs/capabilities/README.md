@@ -37,3 +37,7 @@ At task time, prefer the provider's natural currentness source:
 - external standard/provider version knowledge: append-only records under `authorities/observations/` where appropriate.
 
 If no trustworthy current probe exists, treat the local availability statement as a dated observation and revalidate before relying on it. Do not create a durable Ordivon ProviderStatus database merely to centralize facts already owned by package managers, container runtimes, services, or other natural providers.
+
+## External LEGO evidence pipeline
+
+Source-cut-bound external candidate evidence and replayable GitHub Radar snapshots are described in [External LEGO Evolution R1](docs/EXTERNAL_LEGO_EVOLUTION_R1.md). The read-only Catalog is not a live provider registry, owner authorization, R2.1 admission or promotion service; all adoption requires the natural consumer Owner and independent validation.

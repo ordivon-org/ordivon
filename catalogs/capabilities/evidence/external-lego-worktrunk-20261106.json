@@ -1,0 +1,45 @@
+{
+  "kind": "ordivon.external-lego-evidence",
+  "schemaVersion": "r1",
+  "candidateId": "github:max-sixty/worktrunk@v0.81.0#worktree-list",
+  "standing": "INCOMPLETE_CANDIDATE",
+  "decision": "KEEP_NATIVE",
+  "productionActivated": false,
+  "source": {
+    "ordivonSourceCut": "65d9bba3e2000f973fc3bcc05410fa2a8f97b5b7",
+    "upstream": {
+      "repository": "https://github.com/max-sixty/worktrunk",
+      "observedHeadCommit": "181f17a7942b8e944f9c03c0f81b70e95a3b1a9b",
+      "releaseTag": "v0.81.0",
+      "releaseArchiveSha256": "sha256:0c253f216985ce9cd7b202a11606b5ce6aa934b1019fd1fbb9b7ce2b47b1c74a",
+      "licenseExpression": "MIT OR Apache-2.0",
+      "licenseEvidence": "Official LICENSE body verified; GitHub API NOASSERTION is not the license expression",
+      "observationTime": "2026-11-06T05:29:00Z"
+    }
+  },
+  "capability": {
+    "name": "worktree read-only inventory",
+    "kind": "capability",
+    "goal": "Compare branch/path/dirty-state inventory without replacing Runtime's Git execution authority",
+    "r21Standing": "NOT_FORMALLY_DECLARED"
+  },
+  "references": {
+    "provider": "catalogs/capabilities/providers/worktrunk.md",
+    "knowledge": "catalogs/knowledge/lessons/worktrunk-workspace-native-git-r1.md",
+    "skills": ".agents/skills/skill-supply-chain-audit/SKILL.md",
+    "research": "profiles/research/tool-qualification/examples/worktrunk-workspace-r1.json",
+    "composition": "packages/composition/docs/SUCCESSOR_CONTRACT_R1.md",
+    "experiment": "catalogs/capabilities/evidence/worktrunk-git-comparison-20261106.json",
+    "consumerSources": [
+      "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/records.rs",
+      "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/close_recovery.rs",
+      "services/runtime/crates/ordivon-runtime-core/src/universal/workspace/paths_git.rs"
+    ]
+  },
+  "unknowns": [
+    "No complete Runtime Workspace equivalence or actual production consumer switch",
+    "No Worktrunk lifecycle negative-test parity or independent owner promotion",
+    "Upstream release archive SHA does not establish binary signature provenance"
+  ],
+  "summary": "Read-only list equivalence observed on disposable fixture only; retain native Git"
+}

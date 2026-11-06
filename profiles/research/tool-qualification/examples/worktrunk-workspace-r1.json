@@ -1,0 +1,27 @@
+{
+  "packetKind": "research-tool-qualification-packet",
+  "schemaVersion": "r1",
+  "observationCut": "65d9bba3e2000f973fc3bcc05410fa2a8f97b5b7",
+  "qualifiedProblemClass": "Worktree inventory of a disposable local Git repository",
+  "qualifiedOperation": "Worktrunk v0.81.0 list --format json",
+  "ownerRef": "catalogs/capabilities/providers/worktrunk.md",
+  "canonicalToolId": "github:max-sixty/worktrunk@v0.81.0#list",
+  "effectClass": "read_only",
+  "evidenceRefs": [
+    "catalogs/capabilities/evidence/worktrunk-git-comparison-20261106.json"
+  ],
+  "positiveControlRefs": [
+    "catalogs/capabilities/evidence/worktrunk-git-comparison-20261106.json"
+  ],
+  "negativeControlRefs": [
+    "catalogs/capabilities/evidence/worktrunk-git-comparison-20261106.json"
+  ],
+  "standing": "HOLD",
+  "holdReasons": [
+    "No Research-consumer-specific qualification; no installed-current Runtime equality or delegated production effect authorization"
+  ],
+  "nonClaims": [
+    "Disposable git inventory qualification is not Runtime adoption",
+    "No production installation, switching or source deletion"
+  ]
+}
