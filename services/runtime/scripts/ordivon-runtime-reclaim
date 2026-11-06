@@ -546,35 +546,58 @@ def git_verbatim_patch_ids(
 
 
 def git_canonical_head(source_repo: Path) -> tuple[str, str]:
-    # Git local-main is authoritative when the repository owner has checked it
-    # out as the integration branch. Workspaces merged there need not wait for
-    # publication to a possibly stale origin/main tracking ref.
+    # Prefer the published integration ref when local main is stale or has
+    # diverged. A local-main fast-forward *ahead* of the publication may still
+    # prove a native integration before the next remote-tracking refresh.
     branch = subprocess.run(
         ["git", "-C", str(source_repo), "symbolic-ref", "--quiet", "HEAD"],
         check=False,
         capture_output=True,
         text=True,
     )
-    if branch.returncode == 0 and branch.stdout.strip() == "refs/heads/main":
-        return git_text(source_repo, ["rev-parse", "refs/heads/main^{commit}"]), "main"
     if branch.returncode not in {0, 1}:
         raise RuntimeError(
             f"git symbolic-ref HEAD failed: {branch.stderr.strip() or branch.returncode}"
         )
 
-    # Detached/non-main source checkouts are not implicit local publication.
-    # Keep the existing remote release authority rather than accepting drift.
     published_ref = "refs/remotes/origin/main"
     published = subprocess.run(
         ["git", "-C", str(source_repo), "show-ref", "--verify", "--quiet", published_ref],
         check=False,
     )
-    if published.returncode == 0:
-        return git_text(source_repo, ["rev-parse", f"{published_ref}^{{commit}}"]), "origin/main"
-    if published.returncode != 1:
+    if published.returncode not in {0, 1}:
         raise RuntimeError(
             f"git show-ref failed while resolving canonical publication ref: {published.returncode}"
         )
+
+    published_head = (
+        git_text(source_repo, ["rev-parse", f"{published_ref}^{{commit}}"])
+        if published.returncode == 0 else None
+    )
+    if branch.returncode == 0 and branch.stdout.strip() == "refs/heads/main":
+        local_head = git_text(source_repo, ["rev-parse", "refs/heads/main^{commit}"])
+        if published_head is not None:
+            ancestry = subprocess.run(
+                ["git", "-C", str(source_repo), "merge-base", "--is-ancestor",
+                 published_head, local_head],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            if ancestry.returncode == 1:
+                # Remote ahead or histories diverged: never infer publication
+                # from local commits that are not integrated in origin/main.
+                return published_head, "origin/main"
+            if ancestry.returncode != 0:
+                raise RuntimeError(
+                    "git merge-base failed resolving local/remote publication ancestry: "
+                    + (ancestry.stderr.strip() or str(ancestry.returncode))
+                )
+        return local_head, "main"
+
+    # Detached/non-main source checkouts do not confer local publication.
+    if published_head is not None:
+        return published_head, "origin/main"
     return git_text(source_repo, ["rev-parse", "HEAD"]), "HEAD"
 
 
