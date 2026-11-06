@@ -394,6 +394,68 @@
         "prov": "source path, exact example, owner tests and real CLI; external account valuations UNATTESTED",
         "unfold": "parse and validate -> integer deficits -> largest remainder apportion -> project and mark unknown"
       }
+    },
+    {
+      "id": "CA10",
+      "label": "FrozenExperimentProtocolReview",
+      "kind": "research_evidence_contract",
+      "responsibility": "Freeze one historical data/code/config cut, then classify prospective holdout evidence without granting capital or order authority",
+      "authority": "Finance Research source-only evidence declaration; external providers and independent verifiers remain authoritative",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "historical source vintage, frozen code/config/environment, disjoint train/validation/holdout, declared trial family, prospective result"
+      ],
+      "outputs": [
+        "content-addressed frozen plan and UNKNOWN/REJECTED/REVIEW_REQUIRED evidence assessment"
+      ],
+      "behavioralContract": "Invalid time cuts are rejected; missing reproducibility and multiple-test evidence remains UNKNOWN; even review-ready evidence cannot authorize an order.",
+      "acceptance": [
+        "Native source tests vary data release time, holdout overlap, independent reproduction and experiment-family multiplicity."
+      ],
+      "evidence": [
+        "src/ordivon_capital/research/experiment_protocol.py",
+        "tests/test_experiment_protocol.py",
+        "scripts/finance_lego.py",
+        "scripts/run-finance-lego"
+      ],
+      "dependencies": [
+        "CA08"
+      ],
+      "sharedRefs": [
+        "docs/FINANCE_R2_RESEARCH_BOUNDARY.md"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "scripts/run-finance-lego",
+          "standing": "NATIVE_READ_ONLY_CLI_CONSUMER"
+        },
+        {
+          "path": "tests/test_experiment_protocol.py",
+          "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+        }
+      ],
+      "mustNotOwn": [
+        "provider data authenticity",
+        "profitable edge",
+        "trading permissions",
+        "actual third-party independent attestations"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_CONSUMER_VERIFIED",
+      "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
+      "effectBoundary": "NON_LIVE_SOURCE_ONLY",
+      "r21Contract": {
+        "I": "FrozenExperimentPlanV1 with UTC-offset dates, code/config/environment digests, historical source snapshot/vintage identities, disjoint train/validation/future holdout, and prospective review report",
+        "O": "FrozenPlanReceiptV1 or ReviewAssessmentV1 with UNKNOWN, REJECTED, REVIEW_REQUIRED; never execution or capital authority",
+        "S": "Unit, pure Python source; external durable artifact identity belongs to Runtime",
+        "pre": "strict schemaVersion/kind/effectBoundary, source availability <= declared freeze time, holdout entirely after frozen date, unique source IDs, positive declared trials",
+        "post": "deterministic canonical JSON SHA-256 plan identity, rejection of invalid temporal cuts, unknown on incomplete evidence and review required only on complete declared fields",
+        "inv": "no network, credentials, market data fetch, external financial write, capital allocation approval or provider-authenticity inference",
+        "eff": "NONE",
+        "c": "O(n) input/source entries + sort/json serialization; exact resource bounds UNKNOWN pending consumer-admitted caps",
+        "epsilon": "content SHA-256 and Python date/JSON identity exact within input bytes; historical source authenticity/independent-replication proof UNKNOWN",
+        "prov": "caller-supplied, digest-identified plan and CLI source; actual historical independent timestamp/cost-provider identity UNKNOWN",
+        "unfold": "source experiment_protocol.py -> scripts/finance_lego.py -> scripts/run-finance-lego; tests/test_experiment_protocol.py and test_finance_lego_cli.py"
+      }
     }
   ],
   "edges": [
