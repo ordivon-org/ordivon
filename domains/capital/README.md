@@ -18,6 +18,24 @@ source architecture in `docs/ARCHITECTURE.md`, native acceptance via
 `mise run //domains/capital:verify`. All three Finance stages are
 read-only and never grant financial effects.
 
+## First-use paths: Human and Agent
+
+- **For a person:** [Finance human quickstart](docs/FINANCE_HUMAN_QUICKSTART_R1.md)
+  explains currently working investment research tasks and executes a
+  contribution and a matched-cash-flow benchmark using synthetic inputs.
+- **For an Agent:** [Finance source-bound playbook](docs/FINANCE_AGENT_PLAYBOOK_R1.md)
+  maps natural owners, exact consumers, research/evidence requirements and
+  native verification; reuse the existing
+  [Finance experiment review Skill](../../.agents/skills/finance-experiment-review/SKILL.md)
+  only when the task actually needs it.
+
+These paths do not create another Finance package, registry, investment
+engine or product permission model. The source/API checks are not claims of
+a fully deployed external-customer product. LEAN/Nautilus are qualified
+historical or candidate implementations according to their exact standing,
+not automatic installed trading authority; accounting still has real
+PostgreSQL/SQLite migration consumer boundaries.
+
 ## Historical Capital qualifications
 
 The remaining portions of this README include frozen prior technology
@@ -31,13 +49,18 @@ Ordivon Capital is the capital composition and control plane of Ordivon. It does
 
 **Market Capital is one implemented domain inside Ordivon Capital, not the parent system.** The current repository contains the Market domain plus a cross-domain TigerBeetle accounting integration. Treasury, Compute, Enterprise, Human, Distribution, and other capital domains are not instantiated until a real use case requires them and an external-owner census has been completed.
 
-Current Market-domain business backbone: CFA investment-management process.
-Trading semantics: FIX.
-Trading runtime: pinned QuantConnect LEAN (installed and admitted for bounded non-live Wave B execution).
-Post-trade reference semantics: PFMI + ISO 20022; broker/custodian infrastructure remains authoritative.
-Research/data persistence: Pandera + Parquet/PyArrow + DuckDB + MLflow, with MLflow tracking configuration owned by the caller/environment.
-Historical issuer/reference inputs (GLEIF/SEC/Arelle) belong to the retired Wave-A generation slice and are not active Capital capabilities.
-Capital accounting mechanics: TigerBeetle `0.17.9`; venue/custody/settlement systems remain authoritative for their own external state.
+Historical technology reference (not a current deployed-provider inventory):
+CFA investment process; FIX order semantics; PFMI and ISO 20022 as
+post-trade references. The bounded old Wave-B LEAN experiment and
+NautilusTrader comparisons are qualification/candidate evidence, not an
+automatic current trading engine. Pandera, Parquet/PyArrow, DuckDB and MLflow
+are research/data mechanics **only where an active consumer has qualified
+them**; do not infer that all are installed together. TigerBeetle 0.17.9
+has passed specific substrate/replay qualifications; it does not thereby
+replace the active PostgreSQL accounting owner or external custodian.
+GLEIF/SEC/Arelle Wave-A generation is retired. Always prefer the current
+owner's source, deployed state and latest evidence over this historical
+summary.
 
 ## Investment-first Finance modernization (2026-11-06)
 
