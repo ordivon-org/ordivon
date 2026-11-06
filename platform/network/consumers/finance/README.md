@@ -23,3 +23,15 @@ The former production-smoke script acted on the retired Browserless carrier
 and therefore no longer represented the selected physical Provider.
 Physical fault acceptance belongs in a disposable native systemd/Gluetun
 environment with independent consumer witnesses.
+
+## Independent Finance lane acceptance
+
+The native consumer:finance:verify Task composes the existing read-only
+Finance readiness with acceptance/egress/finance-lane-witness.py, which
+reuses the Network live Carrier observer. The witness binds the exact
+nine-lane source/installed configuration and running proxy PIDs, checks
+seven shared Carrier routes and two explicit public-direct routes, and
+samples denied hostname, denied port and local TCP direct-fallback canaries.
+This proves sampled IPv4 HTTPS behavior and local no-fallback, not universal
+DNS/IPv6 noninterference, process memory identity or financial-write authority.
+No new VPN session, monitor or long-running service is introduced.

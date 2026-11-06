@@ -61,6 +61,7 @@ tasks:
       - test -e /etc/network-v2/gluetun/m4-owned-mode.selected
       - systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
       - /usr/local/libexec/network-v2/finance-ready all 90
+      - python3 acceptance/egress/finance-lane-witness.py
 
   consumer:finance:stop:
     desc: Stop only Finance northbound authorities; do not stop the shared provider carrier
