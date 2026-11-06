@@ -10,6 +10,7 @@ from datetime import date, datetime
 from os import environ
 from pathlib import Path
 
+import psycopg
 from psycopg import Connection
 from psycopg.types.json import Jsonb
 
@@ -60,9 +61,10 @@ class PostgresPaperClose:
         PostgresPaperClose._verify_receipt_table(db)
 
     @staticmethod
-    def _verify_receipt_table(db: Connection) -> None:
-        # Allow concurrent closes and exclude DDL until postings and receipt commit.
-        db.execute("LOCK TABLE ordivon_paper.daily_close IN ROW EXCLUSIVE MODE")
+    def _verify_receipt_table(db: Connection, *, lock: bool = True) -> None:
+        # Close is writable; readback may verify catalog under READ ONLY.
+        if lock:
+            db.execute("LOCK TABLE ordivon_paper.daily_close IN ROW EXCLUSIVE MODE")
         admitted = db.execute(
             """
             SELECT c.relkind = 'r' AND c.relpersistence = 'p'
@@ -236,6 +238,50 @@ class PostgresPaperClose:
             or state.credits_pending != valuation.receivable_minor
         ):
             raise ValueError("paper cash ledger and valuation disagree")
+
+
+def read_committed_paper_close(paper_dsn: str, account_key: str, session: date) -> dict:
+    """Read the actual durable receipt via PostgreSQL, without creating a schema.
+
+    This is an Accounting-owned readback of current local database truth;
+    it is not an independent attestation of third-party market data.
+    """
+    if not paper_dsn:
+        raise ValueError("paper readback requires an explicit paper database DSN")
+    if re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", account_key) is None:
+        raise ValueError("invalid paper account key")
+    if type(session) is not date:
+        raise ValueError("paper readback requires a concrete ISO session date")
+    try:
+        with psycopg.connect(paper_dsn) as db:
+            db.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            if db.execute("SELECT pg_catalog.current_database()").fetchone() != (
+                "ordivon_paper",
+            ):
+                raise ValueError("paper readback requires dedicated ordivon_paper database")
+            PostgresPaperClose._verify_receipt_table(db, lock=False)
+            row = db.execute(
+                "SELECT request_sha256, request, receipt FROM ordivon_paper.daily_close "
+                "WHERE account_key = %s AND session = %s",
+                (account_key, session),
+            ).fetchone()
+            if row is None:
+                raise ValueError("no committed paper receipt for requested account session")
+            digest, request, receipt = row
+            recomputed = hashlib.sha256(
+                json.dumps(request, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+            if (
+                recomputed != digest
+                or receipt.get("request_sha256") != digest
+                or receipt.get("account_key") != account_key
+                or receipt.get("mode") != "PAPER"
+                or receipt.get("valuation", {}).get("session") != session.isoformat()
+            ):
+                raise ValueError("committed paper receipt and stored request disagree")
+            return receipt
+    except psycopg.Error as exc:
+        raise ValueError("paper database readback unavailable") from exc
 
 
 def main() -> int:

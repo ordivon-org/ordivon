@@ -155,3 +155,24 @@ real 1,511,995-byte pinned GitHub snapshot was re-fetched with both SHA-256
 and Git blob identity verified and compared to itself across 401 priced
 sessions; it correctly produced zero NAV changes. No vendor correction was
 claimed, and the unlicensed raw CSV was removed after this smoke replay.
+
+## Native paper Account-to-Risk consumer (CA03)
+
+Historical adjusted-close NAV replay differs from PostgreSQL simulated
+brokerage-account ledger. Markets admits operator-bound raw ETF marks;
+Accounting records simulated buys, sells, unsettled payables and sale
+receivables. Risk must not infer fills from adjusted historical bars.
+
+Prefer the read-only PostgreSQL Account source readback:
+risk.paper_close_risk --account ACCOUNT --session ISO_DATE with
+ORDIVON_CAPITAL_PAPER_PG_DSN bound to the dedicated paper database.
+The alternative --receipt FILE is offline and cannot attest persistence.
+Both require independent operator market --snapshot and --binding.
+
+NAV = cash - purchase_payables + sale_receivables +
+      sum(held_shares times session_raw_close).
+Sale receivables increase NAV but not unencumbered cash. Risk delegates
+to existing Governance; currently UNSET budget remains INCOMPLETE.
+Real broker orders and independent price/source licence proof remain
+outside this capability. The Human and Agent guide consuming CA01–CA10
+is FINANCE_OPERATIONS_R1.md, linked by the main README.

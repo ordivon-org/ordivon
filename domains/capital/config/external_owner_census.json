@@ -632,7 +632,8 @@
         "src/ordivon_capital/risk/dependence_analysis.py",
         "src/ordivon_capital/risk/tail_risk.py",
         "src/ordivon_capital/risk/risk_values.py",
-        "src/ordivon_capital/risk/risk_budget_validation.py"
+        "src/ordivon_capital/risk/risk_budget_validation.py",
+        "src/ordivon_capital/risk/paper_close_risk.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -649,7 +650,7 @@
         "SR 26-2 reference for model governance"
       ],
       "localStanding": "THIN_GLUE_AFTER_OWNER_AUDIT",
-      "localResponsibility": "normalize observed exposure and bind descriptive/model-validation evidence; library-owned estimators remain external. Current bounded risk-limit decisions are local deterministic rules. Future portfolio optimization requires a real contract and comparative qualification before any external optimizer is admitted. Exact portfolio-risk-budget document validation is a domain-local fail-closed contract bound to the active schema digest; it is not a general JSON Schema engine.",
+      "localResponsibility": "normalize observed exposure and bind descriptive/model-validation evidence; library-owned estimators remain external. Current bounded risk-limit decisions are local deterministic rules. Future portfolio optimization requires a real contract and comparative qualification before any external optimizer is admitted. Exact portfolio-risk-budget document validation is a domain-local fail-closed contract bound to the active schema digest; it is not a general JSON Schema engine. The paper-account Risk consumer reconciles Accounting close receipt NAV, unsettled payables and operator-admitted Markets marks before delegating exposures and registered Governance risk limits; it never creates a second risk engine or supplies missing owner tolerance.",
       "admittedMechanicsOwners": [
         "NumPy 2.5.3 for vector arithmetic, sample variance, quantile, mean, correlation and array mechanics",
         "SciPy 1.18.1 for linregress",

@@ -98,28 +98,43 @@
       "id": "CA03",
       "label": "PortfolioExposureLedger",
       "kind": "risk_state_projection",
-      "responsibility": "Build caller-supplied factor-loading and position exposure ledger without converting overlapping exposures into additive risk contributions",
+      "responsibility": "Compose native Account durable paper buy/sell closes, source-bound Markets marks and existing Risk/Governance without another engine",
       "authority": "Capital domain's bounded source contract, not provider execution truth",
       "state": "IMPLEMENTED",
       "inputs": [
-        "positions, explicit asset loadings and risk-budget assumptions"
+        "caller position/factor observations with owner risk-budget registration",
+        "operator-bound ETF close snapshot and offline Account receipt OR direct paper PostgreSQL account/session readback"
       ],
       "outputs": [
-        "source-bound portfolio/factor exposure ledger and incomplete budget standing"
+        "native exposure and Governance risk limit evaluation",
+        "reconciled net equity, cash, payables, sale receivables, position value and persistence readback standing"
       ],
-      "behavioralContract": "No inferred loadings, no duplicate overlapping exposure as independent risk and no silent UNSET-to-PASS promotion.",
+      "behavioralContract": "NAV exactly equals settled cash minus purchase payables plus sale receivables plus marked holdings; sale receivable is not free cash; SQL read path checks stored request digest and receipt identity; UNSET budget remains INCOMPLETE.",
       "acceptance": [
-        "Owner tests construct exposure ledger from explicit loadings and reject incomplete risk inputs."
+        "Owner tests construct exposure ledger from explicit loadings and reject incomplete risk inputs.",
+        "Native tests compose real PostgreSQL paper close with Markets source admission, Risk exposure and Governance incomplete budget; negative cases alter NAV, payable, shares, source identity and settlement maturity",
+        "Disposable PostgreSQL writes buy and sell, read-only readback confirms request SHA, rejects tampered DB row and excludes unsettled sale receivables from free cash."
       ],
       "evidence": [
         "src/ordivon_capital/risk/portfolio_risk.py",
-        "tests/test_portfolio_risk.py"
+        "tests/test_portfolio_risk.py",
+        "src/ordivon_capital/risk/paper_close_risk.py",
+        "tests/test_paper_close_risk.py",
+        "src/ordivon_capital/accounting/postgres_paper_close.py",
+        "docs/FINANCE_OPERATIONS_R1.md"
       ],
       "dependencies": [],
-      "sharedRefs": [],
+      "sharedRefs": [
+        "docs/FINANCE_PAPER_INVESTMENT_R1.md",
+        "docs/FINANCE_OPERATIONS_R1.md"
+      ],
       "consumerEvidence": [
         {
           "path": "tests/test_portfolio_risk.py",
+          "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+        },
+        {
+          "path": "tests/test_paper_close_risk.py",
           "standing": "NATIVE_TEST_STATIC_CONSUMER_ONLY"
         }
       ],
@@ -131,7 +146,20 @@
       ],
       "sourceQualification": "DOMAIN_SOURCE_AND_OWNER_TEST_ONLY",
       "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
-      "effectBoundary": "NON_LIVE_SOURCE_ONLY"
+      "effectBoundary": "NON_LIVE_SOURCE_ONLY",
+      "r21Contract": {
+        "I": "Account receipt or PostgreSQL read-only account/session SELECT, admitted Markets ETF snapshot, existing owner risk budget",
+        "O": "native exposure, Governance limit evaluation, cash/payable/sale receivable/NAV, persistence-readback status",
+        "S": "No new state; Accounting retains PostgreSQL and Risk is pure given verified receipt",
+        "pre": "matched operator source and instrument/price session, stored request digest and data types valid, sale receivables have explicit maturity",
+        "post": "NAV=cash-payables+sale_receivables+marked holdings; unencumbered cash excludes receivables; native Risk/Governance only",
+        "inv": "no fill inference from adjusted historical NAV; unavailable real provider/source evidence never promotes authority",
+        "eff": "Offline mode reads local files; Account SQL read uses read-only PostgreSQL transaction; no financial writes",
+        "c": "O(k) portfolio positions/pending liabilities plus indexed O(log N) receipt lookup in Accounting; excludes network/SQL latency",
+        "epsilon": "integer-cent conservation exact; provider data and risk tolerance UNKNOWN",
+        "prov": "Accounting DB committed request SHA, Markets operator-bound snapshot SHA, no external market truth attestation",
+        "unfold": "Accounting.read_committed_paper_close/receipt -> Markets.admit_etf_eod_snapshot -> Risk.review_paper_close_risk -> native Governance report; consumed Human/Agent guide"
+      }
     },
     {
       "id": "CA04",
