@@ -57,7 +57,7 @@ def _free_port() -> int:
 
 @contextmanager
 def _consumer_proxy(consumer: str, *, disable_terminal_reject: bool = False):
-    filename = "sing-box.json" if consumer == "codex" else "egress.json"
+    filename = "sing-box.json" if consumer in ("codex", "claude", "chat-ingress") else "egress.json"
     source = CONSUMERS / consumer / "config" / filename
     mode = os.environ.get("ORDIVON_NETWORK_POLICY_SOURCE", "source")
     assert mode in ("source", "installed"), "Unknown native policy probe mode"
@@ -143,6 +143,8 @@ def _connect(port: int, target: str) -> None:
         ("x-reality", ("api.x.com:443",)),
         ("supply-chain", ("registry-1.docker.io:443", "image.pkg.dev:443", "production.cloudfront.docker.com:443")),
         ("codex", ("chatgpt.com:443", "persistent.oaistatic.com:443")),
+        ("claude", ("api.anthropic.com:443", "downloads.claude.ai:443")),
+        ("chat-ingress", ("chatgpt.com:443",)),
         ("discord", ("discord.com:443", "gateway.discord.gg:443")),
         ("model-provider", ("api.deepseek.com:443", "generativelanguage.googleapis.com:443")),
     ],
@@ -164,7 +166,7 @@ def test_declared_destinations_reach_spy_but_unknown_or_wrong_port_do_not(
 
 @pytest.mark.parametrize(
     "consumer",
-    ("x-reality", "supply-chain", "codex", "discord", "model-provider"),
+    ("x-reality", "supply-chain", "codex", "discord", "model-provider", "claude", "chat-ingress"),
 )
 def test_terminal_reject_negative_control_is_observable(consumer: str) -> None:
     """Deliberately break a temporary policy and detect forbidden delivery.

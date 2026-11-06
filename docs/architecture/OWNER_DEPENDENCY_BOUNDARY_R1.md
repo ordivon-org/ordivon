@@ -34,10 +34,7 @@ is exercised in the deployed system.
 
 `meta/` and standalone Next source are retired in this SourceCut. They are not
 Owners, not approved dependency destinations, and not resurrected by historical
-references, compatibility aliases, receipts or old plans. The source-retirement
-record lives in
-`docs/migration/retirement/META_NEXT_SOURCE_RETIREMENT_20261105.md`.
-Their live responsibilities were delegated to natural Owners such as
+references, compatibility aliases, receipts or old plans. Their live responsibilities were delegated to natural Owners such as
 Composition, Skills, Authority Catalog, Studies and domain-specific modules.
 
 ## Limits
