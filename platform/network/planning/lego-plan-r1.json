@@ -279,7 +279,7 @@
         "A source-local readiness verdict; nonzero/UNKNOWN when necessary observation is missing, failed or expired."
       ],
       "behavioralContract": [
-        "All declared consumers share one readiness deadline. Allowed-origin probes must report the expected status, CONNECT=200 and positive TLS completion. Supply-Chain and Claude unknown-destination probes require an explicit HTTPS CONNECT=403 denial from the selected proxy: DNS/transport failure (CONNECT=000), proxy auth (CONNECT=407), a failed TLS handshake after CONNECT=200, an origin HTTP 403 after CONNECT=200, malformed receipts, and expired budgets never establish policy denial. Chat-ingress rejection and live provider reachability remain separately qualified.",
+        "All declared consumers share one readiness deadline. Allowed-origin probes must report the expected status, CONNECT=200 and positive TLS completion. Supply-Chain unknown-destination readiness conservatively requires an explicit HTTPS CONNECT=403; this is sufficient but not necessary across implementations. Claude's transport readiness requires allowed-origin TLS completion, no direct client default route and no successful TLS to the forbidden destination, but reports upstream non-forwarding as UNKNOWN. A separate source/installed/PID-fenced native Carrier observer must see permitted forwarding and zero unknown-domain/wrong-port forwarding before the Claude full consumer verification can pass. CONNECT=200 followed by a closed TLS stream alone never proves non-forwarding. Chat-ingress independent real Carrier acceptance is similarly required; expired budgets, origin HTTP403, proxy auth (CONNECT=407), and malformed receipts never establish non-forwarding.",
         "A conservative CONNECT403 signature can yield false-negative readiness for some actual sing-box reject policies; live provider/domain success is not entailed."
       ],
       "sharedRefs": [],
@@ -308,7 +308,7 @@
       ],
       "acceptance": [
         "Native isolated Bash fake-time test demonstrates a common failure consumes one shared deadline and cannot yield READY.",
-        "Existing consumer tests reject malformed or failed allowed-origin observations. Supply-Chain and Claude fake-provider tests distinguish CONNECT=403 from transport/proxy-auth failure and from origin HTTP 403 after a permitted CONNECT tunnel; the exact Claude source contract is consumed by Taskfile materialization and tests. This is a source-bounded negative/positive witness, not evidence that a running proxy loaded the policy."
+        "Existing consumer tests reject malformed or failed allowed-origin observations. Supply-Chain fake-provider tests continue to require the native explicit CONNECT=403 signature. Claude fast readiness reports TRANSPORT_READY with upstreamNonforwarding=UNKNOWN when TLS is closed after CONNECT, never mistaking that for complete policy proof. Native sing-box source and installed upstream spy tests plus a same-attempt real Carrier observer independently distinguish allowed forwarding from unknown-domain/wrong-port zero forwarding. The Owner verify task composes these proof layers and checks installed bytes and PIDs."
       ],
       "formalObligations": [
         "For a finite shared readiness deadline, any required failing consumer probe must prevent a READY verdict after its shared budget is exhausted.",

@@ -16,7 +16,7 @@ tasks:
         jq -e '.route.rules[-1].action=="reject" and (.route.rules[] | select(.action=="route") | .port)==[443] and (.route.rules[] | select(.action=="route") | .network)==["tcp"] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and (.route.rules[] | select(.action=="route") | .outbound)=="provider-carrier" and (has("dns")|not)' consumers/claude/config/sing-box.json >/dev/null
 
   consumer:claude:materialize:
-    desc: Materialize the Claude scoped egress and no-direct-route client namespace without restarting the shared Browserless VPN carrier
+    desc: Materialize the Claude scoped egress and no-direct-route client namespace without restarting the shared physical Gluetun VPN
     deps: [consumer:claude:validate]
     cmds:
       - install -d -m 0755 /etc/network-v2/claude
@@ -39,7 +39,7 @@ tasks:
       - systemctl start network-v2-claude-client.target
 
   consumer:claude:ready:
-    desc: Prove no direct client route, admitted Anthropic HTTPS, unknown-domain rejection and no IPv6 escape
+    desc: Prove client transport and no direct route; policy no-forward is independently qualified by consumer:claude:verify
     cmds:
       - /usr/local/libexec/network-v2/claude-ready
 
@@ -69,8 +69,9 @@ tasks:
       - systemctl is-enabled --quiet network-v2-claude.target
       - systemctl is-enabled --quiet network-v2-claude-client.target
       - /usr/local/libexec/network-v2/claude-ready
+      - python3 acceptance/egress/live-carrier-witness.py --consumers claude
 
   consumer:claude:stop:
-    desc: Stop only Claude-owned network units; the shared Browserless VPN carrier remains untouched
+    desc: Stop only Claude-owned network units; the shared physical Gluetun VPN remains untouched
     cmds:
       - systemctl stop network-v2-claude-client.target network-v2-claude.target
