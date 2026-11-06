@@ -138,6 +138,18 @@ def value_session(previous: PaperValuation | None, day: PaperSession) -> PaperVa
             fill_id: previous.sale_settlement_dates[fill_id] for fill_id in pending_sales
         }
 
+    # The durable PostgreSQL ledger treats a fill ID as one economic event,
+    # not a reusable buy/sell pair. Refine the pure state transition to the
+    # same identity rule for all sides still observable in this daily state.
+    # Settled historical IDs require the durable ledger's transfer index.
+    buy_ids = {fill.fill_id for fill in day.buys}
+    sell_ids = {fill.fill_id for fill in day.sells}
+    if (
+        buy_ids & (sell_ids | pending_sales.keys())
+        or sell_ids & pending.keys()
+    ):
+        raise ValueError("paper fill identity already used for the opposite side")
+
     # Only shares carried into the session can be sold in this daily model.
     for fill in day.sells:
         _validate_fill(fill, day, pending_sales, "sell")

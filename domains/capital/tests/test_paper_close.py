@@ -269,3 +269,45 @@ def test_postgres_paper_sell_reduces_positions_and_carries_receivable():
         ),),
     )
     assert store.close_session(account, following)["valuation"]["positions"] == {"ETF": 65}
+
+
+def test_paper_pure_valuation_and_postgres_share_fill_side_identity_contract():
+    """Same fill cannot represent both buy and sell, even before PG admission."""
+    day0, day1, day2 = inputs()
+    opening = paper_close.value_session(None, day0)
+    purchased = paper_close.value_session(opening, day1)
+    t0 = datetime.fromisoformat("2026-01-09T16:15:00-05:00")
+    t1 = datetime.fromisoformat("2026-01-12T09:30:00-05:00")
+    buy = paper_close.PaperBuy("shared-fill", "ETF", 1, 10_000, 0, t0, t1)
+    sell = paper_close.PaperSell(
+        "shared-fill", "ETF", 1, 10_000, 0, t0, t1,
+        settlement_date=date(2026, 1, 14),
+    )
+    # Both fills are independently plausible, and aggregate cash/shares
+    # would balance. The identity is invalid *before* ledger posting.
+    contradictory = replace(
+        day2, buys=(buy,), sells=(sell,),
+    )
+    with pytest.raises(ValueError, match="opposite side"):
+        paper_close.value_session(purchased, contradictory)
+
+
+def test_paper_open_payable_cannot_be_reidentified_as_sale_receivable():
+    """Cross-side identity is disjoint across sessions until settlement."""
+    day0, day1, day2 = inputs()
+    opening = paper_close.value_session(None, day0)
+    deferred = replace(
+        day1.buys[0], settlement_date=date(2026, 1, 15),
+    )
+    purchased = paper_close.value_session(opening, replace(day1, buys=(deferred,)))
+    assert "order-1" in purchased.pending
+    sale = paper_close.PaperSell(
+        "order-1", "ETF", 10, 10_300, 100,
+        datetime.fromisoformat("2026-01-09T16:15:00-05:00"),
+        datetime.fromisoformat("2026-01-12T09:30:00-05:00"),
+        settlement_date=date(2026, 1, 14),
+    )
+    with pytest.raises(ValueError, match="opposite side"):
+        paper_close.value_session(
+            purchased, replace(day2, sells=(sale,), marks={}),
+        )
