@@ -24,9 +24,19 @@ class ProcessingDiscoveryTests(unittest.TestCase):
         catalog = json.loads(result.stdout)
         self.assertEqual(catalog["kind"], "ordivon.media.processing-profile-discovery")
         self.assertEqual(len(catalog["profiles"]), 4)
+        source_role_by_id = {
+            "av-sdr-web-1080p30-noaudio": "videoSource",
+            "audio-program-48k-mono-lufs23": "audioSource",
+            "runtime-introduction-assembly-v2": "editorialTimeline",
+            "runtime-introduction-en-ttml": "timedTextDocument",
+        }
         for profile in catalog["profiles"]:
             self.assertTrue(profile["profileDigest"].startswith("sha256:"))
             self.assertTrue(profile["adapterDigest"].startswith("sha256:"))
+            self.assertEqual(
+                profile["inputRoles"],
+                [source_role_by_id[profile["id"]], "profile", "evidenceDirectory"],
+            )
         invalid = subprocess.run(
             [*command, "--arguments", '{"unknown":1}'],
             cwd=root, capture_output=True, text=True, check=False,
@@ -79,6 +89,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             item = result["profiles"][0]
             self.assertIsNone(item["adapterPath"])
             self.assertFalse(item["adapterPresent"])
+            self.assertEqual(item["inputRoles"], [])
             self.assertEqual(item["externalToolReadiness"], "not-observed")
 
     def test_native_probe_plan_reuses_discovered_bytes_and_refuses_drift(self) -> None:
