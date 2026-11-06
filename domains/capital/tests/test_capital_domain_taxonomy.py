@@ -25,9 +25,29 @@ def test_capital_source_packages_match_instantiated_domains():
 
 
 def test_taxonomy_module_map_matches_physical_source():
+    # This is a two-sided source identity contract: a registry that omits
+    # actively importable modules is just as misleading as a stale path.
+    physical_domains = {
+        path.name for path in SRC.iterdir()
+        if path.is_dir() and (path / "__init__.py").is_file()
+    }
+    declared_domains = set(TAXONOMY["moduleMap"])
+    assert declared_domains == physical_domains, {
+        "unregisteredDomains": sorted(physical_domains - declared_domains),
+        "obsoleteDomains": sorted(declared_domains - physical_domains),
+    }
+    assert declared_domains == set(TAXONOMY["domains"])
     for domain, names in TAXONOMY["moduleMap"].items():
-        for name in names:
-            assert (SRC / domain / name).is_file(), (domain, name)
+        expected = {
+            path.name for path in (SRC / domain).glob("*.py")
+            if path.name != "__init__.py"
+        }
+        assert len(names) == len(set(names)), (domain, "duplicate module entry")
+        assert set(names) == expected, {
+            "owner": domain,
+            "unregisteredModules": sorted(expected - set(names)),
+            "obsoleteModules": sorted(set(names) - expected),
+        }
 
 
 def test_old_market_python_namespace_has_no_active_references():
@@ -46,26 +66,51 @@ def test_old_market_python_namespace_has_no_active_references():
     assert offenders == []
 
 
-def test_markets_domain_does_not_depend_on_decision_or_effect_domains():
+def _forbidden_market_imports(source: str) -> list[str]:
+    """Resolve standard Python absolute and parent-relative owner imports.
+
+    The prior check missed parent-relative cross-owner imports, such as
+    from ..accounting import x. Python import-level semantics suffice.
+    """
     forbidden = {"trading", "portfolio", "risk", "research", "governance", "accounting"}
     offenders = []
-    for path in (SRC / "markets").glob("*.py"):
-        tree = ast.parse(path.read_text())
-        for node in ast.walk(tree):
-            module = None
-            if isinstance(node, ast.ImportFrom):
-                module = node.module
-            elif isinstance(node, ast.Import):
-                for alias in node.names:
-                    if alias.name.startswith("ordivon_capital."):
-                        parts = alias.name.split(".")
-                        if len(parts) > 1 and parts[1] in forbidden:
-                            offenders.append((path.name, alias.name))
-            if module and module.startswith("ordivon_capital."):
-                parts = module.split(".")
+    for node in ast.walk(ast.parse(source)):
+        targets = []
+        if isinstance(node, ast.Import):
+            targets = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            if node.level == 2:
+                targets = (
+                    ["ordivon_capital." + node.module]
+                    if node.module
+                    else ["ordivon_capital." + alias.name for alias in node.names]
+                )
+            elif node.level == 0 and node.module:
+                targets = [node.module]
+        for target in targets:
+            if target.startswith("ordivon_capital."):
+                parts = target.split(".")
                 if len(parts) > 1 and parts[1] in forbidden:
-                    offenders.append((path.name, module))
+                    offenders.append(target)
+    return offenders
+
+
+def test_markets_domain_does_not_depend_on_decision_or_effect_domains():
+    offenders = []
+    for path in (SRC / "markets").glob("*.py"):
+        for target in _forbidden_market_imports(path.read_text()):
+            offenders.append((path.name, target))
     assert offenders == []
+
+
+def test_market_boundary_recognizes_parent_relative_imports():
+    assert _forbidden_market_imports("from ..accounting import paper_close") == [
+        "ordivon_capital.accounting"
+    ]
+    assert _forbidden_market_imports("from .. import trading") == [
+        "ordivon_capital.trading"
+    ]
+    assert _forbidden_market_imports("from .etf_eod_snapshot import admit_etf_eod_snapshot") == []
 
 
 def test_trading_fullpath_runner_replaces_ambiguous_market_runner_name():

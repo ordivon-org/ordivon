@@ -7,6 +7,54 @@ return path and a caller-supplied passive-index benchmark, using exactly
 the same capital-contribution schedule. It does not install an optimizer,
 access personal financial accounts, create an investment signal, or trade.
 
+## Source-owner module completeness and deletion boundary (2026-11-06)
+
+The current Finance program is implemented inside the canonical Capital
+source owner. Its seven directories are responsibility boundaries, not seven
+independent agents, duplicate data stores or providers. Under Parnas-style
+information hiding and the QuantConnect LEAN Algorithm Framework's division
+between research/universe, portfolio, risk and execution, code moves only
+when an actual cross-owner consumer requires a new responsibility.
+
+The existing `config/capital_domain_taxonomy.json` `moduleMap` is a complete
+source-owner representation, not a partial sample. The native
+`test_capital_domain_taxonomy.py` now validates both directions:
+
+- Each declared owner/module must exist on the physical source tree.
+- Each importable physical owner/module must be declared exactly once.
+- Source owners and declared responsibility names must have the same domain
+  identity, without accidental duplicate or orphan modules.
+
+The previously unregistered **seven** modules were the existing source files
+for ETF/historical prices, paper replay/passive benchmark, research economic
+candidate, and Accounting paper close/PostgreSQL readback. Registration
+corrects the representation; it does **not** re-implement, move or certify
+their provider-facing behavior. The Markets no-import-from-decision test also
+recognizes native Python parent-relative imports, not only absolute syntax.
+
+Consumer-based cleanup retired only two zero-byte empty directory marker
+files under `data/raw` and `data/derived`, and their redundant ignore
+exceptions. The actual ignore protections remain. `artifacts/.gitkeep`
+is retained because frozen external evidence includes its path. Legacy
+`accounting/sqlite_ledger.py` is likewise *not* a dead file: the PostgreSQL
+migration/oracle qualification tests actively import it and the PG adapter
+still uses a read-only SQLite legacy ingest seam. Retire it only with
+real consumer substitution and invariant readback, never by age or filename.
+
+This source contract is independent of investor performance and brokerage
+execution permissions. CFA Institute's GIPS treatment of external flows and
+time-weighted performance is relevant to research comparability; it does
+not turn a caller-supplied or synthetic paper close into qualified accounting
+truth. The authoritative daily NAV and price-vintage owner remain the
+existing Accounting and Markets implementations, not a second Portfolio
+NAV engine. New Agent research is subordinate to these naturally owned
+sources.
+
+Upstream methodological references:
+- https://www.quantconnect.com/docs/v2/writing-algorithms/algorithm-framework/overview
+- https://import-linter.readthedocs.io/en/v2.6/contract_types.html
+- https://www.gipsstandards.org/standards/gips-standards-for-firms/gips-standards-handbook-for-firms/
+
 ## Why this boundary exists
 
 A raw ending-balance comparison is misleading when paths receive
