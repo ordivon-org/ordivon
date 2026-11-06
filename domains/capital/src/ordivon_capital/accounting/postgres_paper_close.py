@@ -15,6 +15,7 @@ from psycopg import Connection
 from psycopg.types.json import Jsonb
 
 from ..markets.etf_eod_snapshot import AdmittedEtfEodSnapshot, admit_etf_eod_snapshot
+from ..trading.paper_fill_calendar import admit_paper_session_calendar
 from .paper_close import PaperSession, PaperValuation, decode_session, value_session
 from .postgres_ledger import PostgresAccountingLedger
 from .substrate import AccountingAccount, LedgerApplyStatus, stable_accounting_id
@@ -86,6 +87,8 @@ class PostgresPaperClose:
     def close_session(
         self, account_key: str, day: PaperSession, *,
         mark_snapshot: AdmittedEtfEodSnapshot | None = None,
+        calendar_bytes: bytes | None = None,
+        calendar_sha256: str | None = None,
     ) -> dict:
         """Close using inline fixture marks or the trusted output of Markets admission."""
         if re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", account_key) is None:
@@ -115,6 +118,24 @@ class PostgresPaperClose:
                 "instrument_ids": sorted({mark.instrument_id for mark in mark_snapshot.marks}),
                 "supersedes_sha256": mark_snapshot.supersedes_sha256,
             }
+        execution = {}
+        if (calendar_bytes is None) != (calendar_sha256 is None):
+            raise ValueError("paper calendar bytes and digest must be supplied together")
+        if calendar_bytes is not None and calendar_sha256 is not None:
+            evidence = admit_paper_session_calendar(
+                calendar_bytes, expected_sha256=calendar_sha256,
+                previous_session=day.previous_session, trade_session=day.session,
+                fills=(
+                    (fill.decided_at, fill.filled_at, fill.settlement_date)
+                    for fill in (*day.buys, *day.sells)
+                ),
+            )
+            if mark_snapshot is not None and (
+                market_evidence["session_closes"][day.session.isoformat()] != evidence["closes_at"]
+            ):
+                raise ValueError("market snapshot and execution calendar disagree on the close")
+            execution = {"execution_evidence": evidence}
+
         # Freeze caller-owned input before retrying a transaction.
         encoded_day = asdict(day)
         if not day.sells:
@@ -125,12 +146,12 @@ class PostgresPaperClose:
                 # Preserve identity for previously admitted fixture requests.
                 del fill["settlement_date"]
         payload = json.dumps(
-            encoded_day | {"market_evidence": market_evidence},
+            encoded_day | {"market_evidence": market_evidence} | execution,
             default=_iso, sort_keys=True, separators=(",", ":"),
         )
         digest = hashlib.sha256(payload.encode()).hexdigest()
         request = json.loads(payload)
-        day = decode_session({key: value for key, value in request.items() if key != "market_evidence"})
+        day = decode_session({key: value for key, value in request.items() if key not in {"market_evidence", "execution_evidence"}})
 
         def close(db: Connection) -> dict:
             self._verify_receipt_table(db)
@@ -169,6 +190,7 @@ class PostgresPaperClose:
                 "previous_request_sha256": head[1] if head else None,
                 "account_key": account_key,
                 "market_evidence": market_evidence,
+                **execution,
             }
             written = db.execute(
                 "INSERT INTO ordivon_paper.daily_close "
@@ -276,6 +298,7 @@ def read_committed_paper_close(paper_dsn: str, account_key: str, session: date) 
                 or receipt.get("request_sha256") != digest
                 or receipt.get("account_key") != account_key
                 or receipt.get("mode") != "PAPER"
+                or receipt.get("execution_evidence") != request.get("execution_evidence")
                 or receipt.get("valuation", {}).get("session") != session.isoformat()
             ):
                 raise ValueError("committed paper receipt and stored request disagree")
@@ -290,9 +313,13 @@ def main() -> int:
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--market-snapshot", type=Path)
     parser.add_argument("--market-binding", type=Path)
+    parser.add_argument("--fill-calendar", type=Path)
+    parser.add_argument("--fill-calendar-sha256")
     args = parser.parse_args()
     if bool(args.market_snapshot) != bool(args.market_binding):
         parser.error("--market-snapshot and --market-binding must be supplied together")
+    if bool(args.fill_calendar) != bool(args.fill_calendar_sha256):
+        parser.error("--fill-calendar and --fill-calendar-sha256 must be supplied together")
     try:
         day = decode_session(json.loads(args.input.read_text(encoding="utf-8")))
         snapshot = None
@@ -300,7 +327,11 @@ def main() -> int:
             binding = json.loads(args.market_binding.read_text(encoding="utf-8"))
             snapshot = admit_etf_eod_snapshot(args.market_snapshot.read_bytes(), **binding)
         dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_DSN", "")
-        result = PostgresPaperClose(dsn).close_session(args.account, day, mark_snapshot=snapshot)
+        result = PostgresPaperClose(dsn).close_session(
+            args.account, day, mark_snapshot=snapshot,
+            calendar_bytes=args.fill_calendar.read_bytes() if args.fill_calendar else None,
+            calendar_sha256=args.fill_calendar_sha256,
+        )
     except (ValueError, TypeError, KeyError, OSError) as error:
         print(f"paper close rejected: {error}", file=sys.stderr)
         return 1

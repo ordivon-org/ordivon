@@ -45,6 +45,7 @@
       "binance_usdm_private_capture.py",
       "binance_usdm_provider.py",
       "execution_feasibility.py",
+      "paper_fill_calendar.py",
       "execution_reconciliation.py",
       "fix44_projection.py",
       "okx_readonly_client.py",
