@@ -221,3 +221,12 @@ def test_phase1_content_scan_exact_source_complete_and_non_authoritative():
                }
                for x in result["summary"]["contentObservedCounterexamples12"])
     assert all(x["actualConsumers"] == "UNKNOWN" for x in result["paths"])
+
+
+@pytest.mark.parametrize("retired_root", ["meta", "next"])
+def test_retired_meta_next_source_root_cannot_reappear(
+    tmp_path: Path, retired_root: str
+) -> None:
+    (tmp_path / retired_root).mkdir()
+    with pytest.raises(module.StructureR2Error, match="retired Meta/Next source root"):
+        module.assert_retired_source_roots_absent(tmp_path)

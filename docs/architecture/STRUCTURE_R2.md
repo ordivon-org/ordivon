@@ -8,8 +8,9 @@ Machine-readable companion: `docs/architecture/structure-r2-transition-r1.json`.
 ## Decision
 
 Repository placement is an engineering-navigation mechanism, not the Ordivon ontology.
-The current `services/`, `platform/`, `capabilities/`, `domains/`, and `meta/` roots encode
-contextual classifications into physical paths. R2 separates four grammars instead:
+The current `services/`, `platform/`, `capabilities/` and `domains/` roots remain legacy placement classes. The former top-level `meta/` and Next Owner were retired from source on 2026-11-05. Their historical paths below document the migration, not a current architectural layer.
+
+R2 separates four grammars instead:
 
 1. **Repository grammar** — where maintained source lives.
 2. **Contract grammar** — which public seam consumers may depend on.
