@@ -355,6 +355,53 @@ class LifecycleTests(unittest.TestCase):
                 local_head,
             )
 
+    def test_reclaim_planner_prefers_published_remote_when_local_main_is_stale_or_diverged(self) -> None:
+        """Local main may contain useful commits without representing public integration."""
+        reclaim = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            baseline = init_repository(source)
+            candidate = root / "published"
+            subprocess.run(
+                ["git", "-C", str(source), "worktree", "add", "-q", "--detach",
+                 str(candidate), baseline],
+                check=True,
+            )
+            (candidate / "README.md").write_text("published update\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(candidate), "add", "README.md"], check=True)
+            subprocess.run(
+                ["git", "-C", str(candidate), "-c", "user.name=Test",
+                 "-c", "user.email=test@example.invalid", "commit", "-qm", "published"],
+                check=True,
+            )
+            published_head = subprocess.check_output(
+                ["git", "-C", str(candidate), "rev-parse", "HEAD"], text=True,
+            ).strip()
+            subprocess.run(
+                ["git", "-C", str(source), "update-ref", "refs/remotes/origin/main",
+                 published_head],
+                check=True,
+            )
+            canonical = reclaim["git_canonical_head"]
+            self.assertEqual(canonical(source), (published_head, "origin/main"))
+            self.assertEqual(
+                reclaim["git_canonical_integration"](candidate, str(source))["canonicalRef"],
+                "origin/main",
+            )
+
+            # Keep an unpublished local-main change rather than resetting it.
+            (source / "LOCAL_ONLY.md").write_text("local-only\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "LOCAL_ONLY.md"], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "local only"], check=True)
+            self.assertEqual(canonical(source), (published_head, "origin/main"))
+            self.assertNotEqual(
+                subprocess.check_output(
+                    ["git", "-C", str(source), "rev-parse", "main"], text=True,
+                ).strip(),
+                published_head,
+            )
+
     def test_local_main_fast_forward_only_when_ancestry_proven(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory) / "source"
