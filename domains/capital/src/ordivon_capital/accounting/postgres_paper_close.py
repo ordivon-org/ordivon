@@ -10,7 +10,7 @@ from datetime import date, datetime
 from os import environ
 from pathlib import Path
 
-from psycopg import Connection, connect
+from psycopg import Connection
 from psycopg.types.json import Jsonb
 
 from .paper_close import PaperSession, PaperValuation, decode_session, value_session
@@ -22,16 +22,23 @@ def _iso(value: date | datetime) -> str:
     return value.isoformat()
 
 
+class _PaperLedger(PostgresAccountingLedger):
+    def _connect(self) -> Connection:
+        db = super()._connect()
+        try:
+            if db.execute("SELECT pg_catalog.current_database()").fetchone() != ("ordivon_paper",):
+                raise ValueError("paper close requires the dedicated ordivon_paper database")
+        except BaseException:
+            db.close()
+            raise
+        return db
+
+
 class PostgresPaperClose:
     """Owns paper positions and receipts. Requires a dedicated paper database."""
 
     def __init__(self, paper_dsn: str) -> None:
-        if not paper_dsn.strip():
-            raise ValueError("ORDIVON_CAPITAL_PAPER_PG_DSN is required")
-        with connect(paper_dsn) as db:
-            if db.execute("SELECT current_database()").fetchone() != ("ordivon_paper",):
-                raise ValueError("paper close requires the dedicated ordivon_paper database")
-        self._ledger = PostgresAccountingLedger(paper_dsn)
+        self._ledger = _PaperLedger(paper_dsn)
         self._ledger._atomic(self._create_schema)
 
     @staticmethod
@@ -48,6 +55,24 @@ class PostgresPaperClose:
                 PRIMARY KEY (account_key, session)
             )"""
         )
+
+        admitted = db.execute(
+            """
+            SELECT c.relkind = 'r' AND c.relpersistence = 'p'
+                   AND NOT (c.relrowsecurity OR c.relhasrules OR c.relhastriggers)
+                   AND EXISTS (
+                       SELECT FROM pg_catalog.pg_constraint p
+                       WHERE p.conrelid = c.oid AND p.contype = 'p'
+                         AND NOT p.condeferrable
+                         AND pg_catalog.pg_get_constraintdef(p.oid)
+                             = 'PRIMARY KEY (account_key, session)'
+                   )
+            FROM pg_catalog.pg_class c
+            WHERE c.oid = 'ordivon_paper.daily_close'::pg_catalog.regclass
+            """
+        ).fetchone()
+        if admitted != (True,):
+            raise RuntimeError("paper receipt table must be permanent with its original key")
 
     def close_session(self, account_key: str, day: PaperSession) -> dict:
         if re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", account_key) is None:
@@ -86,12 +111,15 @@ class PostgresPaperClose:
                 "previous_request_sha256": head[1] if head else None,
                 "account_key": account_key,
             }
-            db.execute(
+            written = db.execute(
                 "INSERT INTO ordivon_paper.daily_close "
                 "(account_key, session, request_sha256, request, receipt) "
-                "VALUES (%s, %s, %s, %s, %s)",
+                "VALUES (%s, %s, %s, %s, %s) "
+                "RETURNING account_key, session, request_sha256, request, receipt",
                 (account_key, day.session, digest, Jsonb(request), Jsonb(result)),
-            )
+            ).fetchone()
+            if written != (account_key, day.session, digest, request, result):
+                raise RuntimeError("paper receipt read-back mismatch")
             return result
 
         return self._ledger._atomic(close)

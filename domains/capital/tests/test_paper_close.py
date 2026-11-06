@@ -92,3 +92,21 @@ def test_postgres_paper_close_is_atomic_replayable_and_conflict_checked():
     assert settled["valuation"]["cash_minor"] == 899_900
     assert settled["valuation"]["nav_minor"] == receipts[0]["valuation"]["nav_minor"]
     assert store.close_session(account, day1) == receipts[0]
+
+
+def test_postgres_paper_rejects_a_non_durable_receipt_table():
+    dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from psycopg import connect
+
+    from ordivon_capital.accounting.postgres_paper_close import PostgresPaperClose
+
+    PostgresPaperClose(dsn)
+    with connect(dsn, autocommit=True) as db:
+        db.execute("ALTER TABLE ordivon_paper.daily_close SET UNLOGGED")
+        try:
+            with pytest.raises(RuntimeError, match="paper receipt table"):
+                PostgresPaperClose(dsn)
+        finally:
+            db.execute("ALTER TABLE ordivon_paper.daily_close SET LOGGED")
