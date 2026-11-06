@@ -31,6 +31,8 @@ the existing daily-world-brief procedure remains the correct entry.
 Discover and read the exact installed `external-world-evidence-review` Skill
 when activated. Reuse the domain's native research and verification tools
 and W3C PROV / CloudEvents / OpenLineage only where their semantics are needed.
+Resolve exact standards from `catalogs/authorities/scripts/authority_catalog.py show <id>`; the
+current OpenLineage source observation is `openlineage-spec` (2026-11-06).
 Preserve source dates, uncertain status, direct support scope, independent
 counterevidence and actual consumer read-back. Do not construct an extra
 persistent event registry, automatic promotion daemon or custom arithmetic

@@ -123,15 +123,28 @@ def validate_catalog_semantics(catalog: dict[str, tuple[Path, dict]]) -> None:
                         f"unresolved relation {authority_id} {relation} {target}"
                     )
         previous_date = None
-        for obs_path in observation_paths(authority_id):
+        observed_paths = observation_paths(authority_id)
+        latest_path = observed_paths[-1] if observed_paths else None
+        for obs_path in observed_paths:
             obs = read_json(obs_path)
             if obs.get("authorityId") != authority_id:
                 raise SystemExit(f"observation mismatch: {obs_path}")
             date = obs.get("observedDate")
+            if not isinstance(date, str):
+                raise SystemExit(f"observation has no date: {obs_path}")
             if previous_date is not None and date < previous_date:
                 raise SystemExit(f"observation order regression: {obs_path}")
             previous_date = date
-            if obs.get("officialSource") != identity.get("officialSource"):
+            observed_source = obs.get("officialSource")
+            if not isinstance(observed_source, str) or not observed_source:
+                raise SystemExit(f"observation lacks officialSource: {obs_path}")
+            # A versioned authority has immutable identity. A rolling authority
+            # can relocate its canonical source while historical observations
+            # retain the source which was actually checked at that date. Its
+            # latest observation must always match the currently bound source.
+            if (
+                mode == "versioned" or obs_path == latest_path
+            ) and observed_source != identity.get("officialSource"):
                 raise SystemExit(
                     f"observation source differs from record officialSource: {obs_path}"
                 )
