@@ -15,18 +15,25 @@ Media does **not** own the underlying domain truth being mediated.
 7. **Derived reality stays derived.** Publication, interface, authorship, preservation, mediated presence, datafication/legibility and related structures are first-class typed derived realities without hidden primitive promotion.
 8. **Consumer-pressure extraction.** Shared Media implementation is extracted only after materially different real consumers reproduce common pressure that owner-local solutions cannot cleanly contain.
 
-## Project inversion — materialized
+## Current source authority and historical Media project
 
-The physical repository is now `/root/projects/ordivon-media`, and the canonical Media research navigation root remains `research/media/`. The owner-identity inversion is materialized:
+The active source repository for Media is `ordivon-org/ordivon`, with this owner at
+`capabilities/media/`. The former standalone repository
+`ordivon-org/ordivon-media` is **archived and read-only**; it is a historical
+source carrier, not a second live release target. Within this owner, the canonical
+research navigation root remains `research/media/`.
 
-```text
-old: Studio project containing Media research
-new: Media project containing Studio capability
-```
+The earlier Studio-to-Media project inversion is historical. It established
+Studio as Media's optional production capability, not a second current
+repository or an obligation to wrap all source-owner projections. Existing
+`ordivon-studio` CLI/package/tool identities remain valid where they name
+Studio production capability.
 
-The migration is not a global rename of Studio symbols. Existing `ordivon-studio` CLI/package/tool identities remain valid where they name Studio production capability.
-
-See [`docs/media-m0-identity-migration.md`](docs/media-m0-identity-migration.md) for the live M0 preflight and [`research/media/engineering-consumption/OMPC-v0.md`](research/media/engineering-consumption/OMPC-v0.md) for the first technology-neutral projection contract.
+See [`docs/media-m0-identity-migration.md`](docs/media-m0-identity-migration.md)
+for the historical physical move and
+[`research/media/engineering-consumption/OMPC-v0.md`](research/media/engineering-consumption/OMPC-v0.md)
+for the optional projection contract. Historical source references and
+content digests must not be rewritten to resemble current authority.
 
 ## Phase 1 status
 
