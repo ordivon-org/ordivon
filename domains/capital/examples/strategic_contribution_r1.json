@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.finance.portfolio.strategic-contribution-request",
+  "currency": "USD",
+  "cashMinor": 50000,
+  "protectedReserveMinor": 30000,
+  "contributionMinor": 10000,
+  "holdingsMinor": {
+    "INDEX_CORE": 80000,
+    "BOND_CORE": 20000
+  },
+  "targetWeightsBps": {
+    "INDEX_CORE": 6000,
+    "BOND_CORE": 4000
+  }
+}

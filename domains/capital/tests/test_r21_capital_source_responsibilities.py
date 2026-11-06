@@ -31,31 +31,47 @@ def _qualify_native_plan(plan: dict) -> None:
             "acceptance",
         ):
             assert node.get(role), (node.get("id"), role)
-        assert node["effectBoundary"] == "NON_LIVE_SOURCE_ONLY"
-        assert node["formalQualification"] == ("ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN")
         for source in node["evidence"]:
             assert ".." not in Path(source).parts
             assert (CAPITAL / source).is_file(), (node["id"], source)
-        for consumer in node["consumerEvidence"]:
-            assert consumer["standing"] == "NATIVE_TEST_STATIC_CONSUMER_ONLY"
-            path = consumer["path"]
-            assert path.startswith("tests/")
-            tree = ast.parse((CAPITAL / path).read_text(encoding="utf-8"))
-            assert any(
-                isinstance(row, ast.ImportFrom)
-                and row.module
-                and row.module.startswith("ordivon_capital.")
-                for row in ast.walk(tree)
-            ), (node["id"], path)
+        if node["id"] == "CA09":
+            assert node["effectBoundary"] == "NO_EXTERNAL_EFFECT"
+            assert node["formalQualification"] == (
+                "INTEGER_CONSERVATION_INVARIANTS_TESTED_NO_UNIVERSAL_PROOF"
+            )
+            assert node["r21Contract"]["eff"] == "NONE"
+            assert node["r21Contract"]["post"].find("cash after") >= 0
+            assert {row["standing"] for row in node["consumerEvidence"]} == {
+                "NATIVE_REAL_READ_ONLY_CLI_CONSUMER",
+                "NATIVE_TEST_AND_INVARIANT_MATRIX",
+            }
+            for consumer in node["consumerEvidence"]:
+                assert (CAPITAL / consumer["path"]).is_file()
+        else:
+            assert node["effectBoundary"] == "NON_LIVE_SOURCE_ONLY"
+            assert node["formalQualification"] == (
+                "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN"
+            )
+            for consumer in node["consumerEvidence"]:
+                assert consumer["standing"] == "NATIVE_TEST_STATIC_CONSUMER_ONLY"
+                path = consumer["path"]
+                assert path.startswith("tests/")
+                tree = ast.parse((CAPITAL / path).read_text(encoding="utf-8"))
+                assert any(
+                    isinstance(row, ast.ImportFrom)
+                    and row.module
+                    and row.module.startswith("ordivon_capital.")
+                    for row in ast.walk(tree)
+                ), (node["id"], path)
 
 
 def _plan() -> dict:
     return json.loads(PLAN.read_text(encoding="utf-8"))
 
 
-def test_first_layer_eight_semantic_boundaries_are_source_qualified() -> None:
+def test_first_layer_and_new_investment_lego_are_source_qualified() -> None:
     plan = _plan()
-    assert len(plan["nodes"]) == 8
+    assert {node["id"] for node in plan["nodes"]} == {f"CA{x:02d}" for x in range(1, 10)}
     _qualify_native_plan(plan)
 
 

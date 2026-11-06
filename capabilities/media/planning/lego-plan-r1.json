@@ -1488,6 +1488,143 @@
           ]
         }
       }
+    },
+    {
+      "id": "V12",
+      "label": "NativeProcessingProbePlan",
+      "kind": "capability_adapter",
+      "responsibility": "Compose one selected digest-pinned Media processing profile and native adapter into the existing Runtime execution proposal without invoking an external media tool.",
+      "authority": "Studio owns source profile selection and exact native command assembly; Runtime owns execution, external native tools own processing, source/Artifact consumers own acceptance.",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/agent_processing.py::processing_probe_plan",
+        "src/ordivon_studio/agent_surface.py::studio_processing_probe_plan",
+        "tests/test_agent_processing.py::test_native_probe_plan_reuses_discovered_bytes_and_refuses_drift",
+        "processing/bin",
+        "processing/profiles"
+      ],
+      "dependencies": [
+        "V11"
+      ],
+      "mustNotOwn": [
+        "a second media execution scheduler",
+        "media encoding/parser implementations or a second QC engine",
+        "physical input byte immutability, external tool readiness or publication standing",
+        "a new asset registry, cross-Owner state store or external effects admission"
+      ],
+      "acceptance": [
+        "Read an actual V11 profile row and compile the source adapter and profile with the exact provided SHA-256 expectations.",
+        "Reject drift of either selected profile or adapter digest, while retaining existing Studio input schema validation.",
+        "Emit one existing Runtime-local Linux Bash command proposal and the expected native evidence receipt path; do not execute or infer success.",
+        "Rely on a distinct physical Job and evidence readback for actual output/QC acceptance."
+      ],
+      "r21": {
+        "I": {
+          "type": "SelectedNativeProcessingIntent",
+          "fields": [
+            "profileId",
+            "expectedProfileDigest",
+            "expectedAdapterDigest",
+            "inputPath",
+            "evidenceDirectory"
+          ],
+          "consumers": [
+            "studio_processing_probe_plan Agent action"
+          ]
+        },
+        "O": {
+          "type": "DigestBoundNativeProcessingProposal",
+          "fields": [
+            "profileDigest",
+            "adapterDigest",
+            "Runtime executionTarget/executable/argv/cwdRelative",
+            "expectedReceipt",
+            "explicit completion and authority boundaries"
+          ],
+          "consumers": [
+            "Runtime workspace execution proposal and Media technical QC after actual effect"
+          ]
+        },
+        "S": {
+          "type": "EphemeralSelectedSourcePlan",
+          "owner": "caller invocation",
+          "description": "No persistent plan database, duplicate workspace or media byte store"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "selected profile exists in current V11 source catalog",
+            "caller-supplied profile and adapter digest equal current source bytes",
+            "adapter is present and input/evidence paths are nonblank"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "returned command references only the selected native tool adapter and its exact source-owned profile",
+            "declares expected evidence.json without claiming it exists or passes",
+            "no external tool was run by plan construction"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "Runtime remains the only physical executor",
+            "plan construction cannot upgrade source truth, equipment availability, tool acceptance or publication",
+            "no implicit fallback to stale profile or adapter on a digest mismatch"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read current V11 source profile and adapter bytes",
+            "compute plan and expected receipt path"
+          ],
+          "excluded": [
+            "start native tools",
+            "install dependencies",
+            "write outputs, modify media or publish"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "native probe process duration and resource consumption",
+          "reason": "plan compiler is source-only and does not execute the proposed command",
+          "obligation": "measure a selected native processing Job and retain its resource evidence"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "input byte identity at dispatch, current native tool readiness, output conformance and human-facing craft acceptance",
+          "reason": "current source-facing plan does not carry an executable frozen-input or observed provider execution proof",
+          "obligation": "bind exact sources and native tool identities in Runtime, execute, and independently read back the produced evidence"
+        },
+        "prov": {
+          "type": "source_and_test_evidence",
+          "sourcePaths": [
+            "src/ordivon_studio/agent_processing.py",
+            "src/ordivon_studio/agent_surface.py",
+            "tests/test_agent_processing.py"
+          ],
+          "verification": "Merged native probe plan and digest drift consumer tests; source-only execution proposal verified",
+          "standing": "SOURCE_PLAN_TESTED__PHYSICAL_EXECUTION_UNKNOWN"
+        },
+        "unfold": {
+          "type": "reuse_existing_native_capability",
+          "ownerSource": [
+            "src/ordivon_studio/agent_processing.py::processing_profiles",
+            "src/ordivon_studio/agent_processing.py::processing_probe_plan"
+          ],
+          "executionOwner": "services/runtime",
+          "externalProviders": [
+            "FFmpeg/FFprobe",
+            "OpenTimelineIO otiotool",
+            "TTML ttconv"
+          ],
+          "sourceProfiles": "processing/profiles",
+          "nativeAdapters": "processing/bin"
+        }
+      }
     }
   ],
   "edges": [
@@ -1541,9 +1678,15 @@
     },
     {
       "from": "V11",
+      "to": "V12",
+      "type": "DATA",
+      "label": "selected exact source-owned processing profile/adapter digests into one nonexecuting native probe plan"
+    },
+    {
+      "from": "V12",
       "to": "V04",
       "type": "EVIDENCE",
-      "label": "Only after Runtime executes a selected native profile adapter, its exact technical evidence can feed Media RenderQC; discovery alone is not QC"
+      "label": "only executed Runtime Job and independently observed native technical receipt can reach Media QC; plan construction alone is not QC"
     }
   ],
   "slices": [
@@ -1706,6 +1849,6 @@
     "sourceRevision": "757c7e4b08879e386f683f56674763f544984be3",
     "updatedAt": "2026-11-06",
     "standing": "SOURCE_VERIFIED_PARTIAL",
-    "notes": "Project-native LEGO projection; V11 registered after direct Studio Agent consumer test, with physical media effect explicitly UNKNOWN. Historical initial sourceRevision is not silently currentized."
+    "notes": "Project-native LEGO projection. V11 source catalog and V12 existing native plan action are tested source consumers; native physical media Job effect remains UNKNOWN, and the historic initial sourceRevision is not silently currentized."
   }
 }

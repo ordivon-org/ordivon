@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.capital.domain-taxonomy",
-  "asOfDate": "2026-09-21",
+  "asOfDate": "2026-11-06",
   "standing": "ACTIVE_SOURCE_OWNER_TAXONOMY",
-  "principle": "Capital is the umbrella. Markets owns observable market/reference facts; Trading owns orders, provider effect boundaries, execution and reconciliation; Portfolio owns scenario projection; Risk owns exposure and risk measurement; Research owns model/evidence validation; Governance owns mandate and authorization policy; Accounting owns durable ledger mechanics.",
+  "principle": "Capital is the umbrella. Markets owns observable market/reference facts; Trading owns orders, provider effect boundaries, execution and reconciliation; Portfolio owns caller-mandated allocation and scenario projection; Risk owns exposure and risk measurement; Research owns model/evidence validation; Governance owns mandate and authorization policy; Accounting owns durable ledger mechanics.",
   "domains": {
     "markets": {
       "role": "public market/reference data, microstructure observations, streaming and market transport qualification"
@@ -12,7 +12,7 @@
       "role": "provider/private reality, order intent, FIX projection, execution feasibility and execution reconciliation"
     },
     "portfolio": {
-      "role": "portfolio state transformations and caller-supplied counterfactual projections"
+      "role": "portfolio state transformations, caller-supplied counterfactual projections, and contribution-only long-horizon target allocation without external orders"
     },
     "risk": {
       "role": "exposure, factor/dependence statistics, expected shortfall and risk-budget measurement"
@@ -49,7 +49,8 @@
       "private_reality.py"
     ],
     "portfolio": [
-      "portfolio_counterfactuals.py"
+      "portfolio_counterfactuals.py",
+      "strategic_contribution.py"
     ],
     "risk": [
       "portfolio_risk.py",

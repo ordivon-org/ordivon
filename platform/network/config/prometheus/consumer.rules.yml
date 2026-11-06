@@ -1,0 +1,73 @@
+groups:
+  - name: network-v2-vpn-consumer
+    rules:
+      # An active HTTP listener is not proof of a usable Gluetun VPN.
+      # Track consecutive application failures, including absent scrape data.
+      - alert: NetworkVPNPyPIUnavailable
+        expr: (probe_success{job="blackbox-vpn-pypi"} == 0) or absent(probe_success{job="blackbox-vpn-pypi"})
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Shared VPN proxy cannot complete the PyPI HTTPS consumer
+      # A ready package-index carrier does not prove model APIs are reachable.
+      - alert: NetworkVPNModelProviderUnavailable
+        expr: (probe_success{job="blackbox-vpn-model-provider"} == 0) or absent(probe_success{job="blackbox-vpn-model-provider"})
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Scoped production model-provider proxy cannot reach the public API
+      # One venue can fail even while PyPI, models and other venues are healthy.
+      - alert: NetworkVPNFinancePublicUnavailable
+        expr: (probe_success{job=~"blackbox-vpn-finance-(okx|binance-usdm)"} == 0) or absent(probe_success{job="blackbox-vpn-finance-okx"}) or absent(probe_success{job="blackbox-vpn-finance-binance-usdm"})
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Scoped Finance public-data API consumer is unavailable
+      # DNS NOERROR is not sufficient: blackbox validates a real A/AAAA
+      # answer. Treat missing probes as unavailable rather than healthy.
+      - alert: NetworkDNSAddressUnavailable
+        expr: (probe_success{job=~"blackbox-dns-a|blackbox-dns-aaaa"} == 0) or absent(probe_success{job="blackbox-dns-a"}) or absent(probe_success{job="blackbox-dns-aaaa"})
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Local DNS A/AAAA address resolution is unavailable
+      # dnsproxy may still return cached answers while a native resolver is down.
+      # Check the direct upstream independently; missing scrape data fails closed.
+      - alert: NetworkDNSUpstreamUnavailable
+        expr: (probe_success{job=~"blackbox-dns-upstream-(cloudflare|google)"} == 0) or absent(probe_success{job="blackbox-dns-upstream-cloudflare"}) or absent(probe_success{job="blackbox-dns-upstream-google"})
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: DNS upstream cannot return an address record
+
+      # Entire class: deny false READY on any scoped end-to-end consumer.
+      - alert: NetworkScopedConsumerUnavailable
+        expr: (probe_success{job=~"blackbox-scoped-(codex-mcp|codex-access|claude-api|supply-chain)"} == 0) or absent(probe_success{job="blackbox-scoped-codex-mcp"}) or absent(probe_success{job="blackbox-scoped-codex-access"}) or absent(probe_success{job="blackbox-scoped-claude-api"}) or absent(probe_success{job="blackbox-scoped-supply-chain"})
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Scoped consumer proxy cannot complete expected origin HTTPS
+      # Prevent certificate-expiry class before the next production TLS outage.
+      - alert: NetworkConsumerTLSExpirySoon
+        expr: (probe_ssl_earliest_cert_expiry{job=~"blackbox-(vpn|scoped)-.*"} - time()) < 1209600
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Consumer origin TLS certificate expires within fourteen days
+      # Hard-failure rules miss a carrier that still succeeds but spends
+      # most of its ten-second consumer deadline on every request.  Reuse
+      # exporter timings; no polling daemon, new labels, or private payloads.
+      - alert: NetworkConsumerLatencyHigh
+        expr: (probe_duration_seconds{job=~"blackbox-(vpn|scoped)-.*"} > 8) and on(job, instance) (probe_success == 1)
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Scoped consumer HTTPS probe is nearing its timeout

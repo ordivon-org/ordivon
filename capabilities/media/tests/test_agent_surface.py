@@ -63,6 +63,7 @@ class AgentSurfaceTests(unittest.TestCase):
                 "studio_learning_context",
                 "studio_creative_index_query",
                 "studio_processing_profiles",
+                "studio_processing_probe_plan",
                 "studio_equipment_propose",
             ],
         )

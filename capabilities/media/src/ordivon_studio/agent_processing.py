@@ -46,8 +46,9 @@ def processing_profiles(root: Path) -> dict[str, Any]:
         seen.add(value["id"])
         adapter = _ADAPTERS.get(value["kind"])
         adapter_path = root / "processing/bin" / adapter if adapter else None
-        adapter_bytes = (
-            adapter_path.read_bytes() if adapter_path is not None and adapter_path.is_file()
+        adapter_digest = (
+            "sha256:" + hashlib.sha256(adapter_path.read_bytes()).hexdigest()
+            if adapter_path is not None and adapter_path.is_file()
             else None
         )
         profiles.append({
@@ -56,11 +57,8 @@ def processing_profiles(root: Path) -> dict[str, Any]:
             "profilePath": path.relative_to(root).as_posix(),
             "profileDigest": "sha256:" + hashlib.sha256(raw).hexdigest(),
             "adapterPath": adapter_path.relative_to(root).as_posix() if adapter_path else None,
-            "adapterDigest": (
-                "sha256:" + hashlib.sha256(adapter_bytes).hexdigest()
-                if adapter_bytes is not None else None
-            ),
-            "adapterPresent": adapter_bytes is not None,
+            "adapterPresent": adapter_path.is_file() if adapter_path else False,
+            "adapterDigest": adapter_digest,
             "inputRoles": ["mediaSource", "profile", "evidenceDirectory"],
             "externalToolReadiness": "not-observed",
         })
@@ -71,4 +69,62 @@ def processing_profiles(root: Path) -> dict[str, Any]:
         "profiles": profiles,
         "authority": "source-owned processing profiles; no duplicate registry or selected-asset authority",
         "executionBoundary": "Runtime executes the existing adapter with the chosen exact profile; the adapter emits raw external-tool evidence and a mechanical profile verdict, not publication or aesthetic approval.",
+    }
+
+
+def processing_probe_plan(
+    root: Path,
+    *,
+    profile_id: str,
+    expected_profile_digest: str,
+    expected_adapter_digest: str,
+    input_path: str,
+    evidence_directory: str,
+) -> dict[str, Any]:
+    """Compile a native Runtime command from exact, already-discovered inputs.
+
+    No process executes here, and no tool state is inferred. The supplied
+    profile and adapter digests prevent a caller from silently changing the
+    discovered tool implementation between selection and compilation.
+    """
+    candidates = processing_profiles(root)["profiles"]
+    selected = next((item for item in candidates if item["id"] == profile_id), None)
+    if selected is None:
+        raise ValueError(f"unknown Media processing profile: {profile_id}")
+    if selected["profileDigest"] != expected_profile_digest:
+        raise ValueError("selected Media processing profile digest changed")
+    if selected["adapterDigest"] != expected_adapter_digest:
+        raise ValueError("selected Media processing adapter digest changed")
+    if not selected["adapterPresent"] or selected["adapterPath"] is None:
+        raise ValueError("selected Media processing adapter is unavailable")
+    if not input_path.strip() or not evidence_directory.strip():
+        raise ValueError("processing input and evidence directory must be non-empty")
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.studio-native-processing-probe-plan",
+        "profileId": profile_id,
+        "profileDigest": selected["profileDigest"],
+        "adapterDigest": selected["adapterDigest"],
+        "execution": {
+            "executionTarget": "local_linux",
+            "executable": "/usr/bin/bash",
+            "args": [
+                selected["adapterPath"],
+                input_path,
+                selected["profilePath"],
+                evidence_directory,
+            ],
+            "cwdRelative": "capabilities/media",
+        },
+        "expectedReceipt": str(Path(evidence_directory) / "evidence.json"),
+        "completionScope": (
+            "Native adapter mechanics only: check its exit status, inspect exact "
+            "evidence.json and raw tool observations. No rights, taste, semantic "
+            "validity or publication verdict follows from profile acceptance."
+        ),
+        "authorityBoundary": (
+            "Studio compiles; Runtime executes. Input/source bytes and native "
+            "tool readiness must still be checked at execution; this is not an "
+            "effect admission or a source-byte immutability guarantee."
+        ),
     }

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .agent_dependencies import dependency_proposal, dependency_status
-from .agent_processing import processing_profiles
+from .agent_processing import processing_probe_plan, processing_profiles
 from .agent_productions import _production_root, production_standing
 from .creative_index import build_creative_index, query_creative_index
 from .equipment import load_equipment_world, propose_operation
@@ -72,6 +72,22 @@ def tool_definitions() -> list[dict[str, Any]]:
             "name": "studio_processing_profiles",
             "description": "Discover source-owned FFprobe/FFmpeg/OTIO/timed-text processing profiles and exact adapter paths with content digests. This is a read-only LEGO catalog projection; external tool readiness and effect authority remain with Workstation/Runtime.",
             "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+        },
+        {
+            "name": "studio_processing_probe_plan",
+            "description": "Compile an exact read-only Runtime proposal from an existing processing profile and adapter, both SHA-256 pinned by a previous Studio discovery. Does not execute, acquire tools or decide publication.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "profileId": {"type": "string", "minLength": 1},
+                    "expectedProfileDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                    "expectedAdapterDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                    "inputPath": {"type": "string", "minLength": 1},
+                    "evidenceDirectory": {"type": "string", "minLength": 1},
+                },
+                "required": ["profileId", "expectedProfileDigest", "expectedAdapterDigest", "inputPath", "evidenceDirectory"],
+                "additionalProperties": False,
+            },
         },
         {
             "name": "studio_equipment_propose",
@@ -144,6 +160,15 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
         return query_creative_index(index, str(arguments["term"]))
     if name == "studio_processing_profiles":
         return processing_profiles(root)
+    if name == "studio_processing_probe_plan":
+        return processing_probe_plan(
+            root,
+            profile_id=str(arguments["profileId"]),
+            expected_profile_digest=str(arguments["expectedProfileDigest"]),
+            expected_adapter_digest=str(arguments["expectedAdapterDigest"]),
+            input_path=str(arguments["inputPath"]),
+            evidence_directory=str(arguments["evidenceDirectory"]),
+        )
     if name == "studio_equipment_propose":
         world = load_equipment_world(root / "research/equipment/equipment-world.json")
         equipment_id = arguments.get("equipmentId")
@@ -164,7 +189,7 @@ def surface_projection() -> dict[str, Any]:
         "kind": "ordivon.studio-agent-tool-surface",
         "truthRole": "studio-domain-semantic-actions",
         "domainId": "domain:ordivon-studio",
-        "revision": "studio-agent-surface-processing-profiles-v1",
+        "revision": "studio-agent-surface-processing-probe-plan-v1",
         "tools": tool_definitions(),
         "runtimeOwnsPhysicalExecution": True,
         "harnessMayAdmitSubsetOnly": True,

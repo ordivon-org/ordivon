@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail closed before a Network install could erase existing live monitoring bytes.
 
-Two existing Owner files are compared as exact immutable source-cut values.
+Three existing Owner files are compared as exact immutable source-cut values.
 The check is deliberately stricter than YAML semantic equivalence: intended
 changes require a separately qualified migration, never a silent overwrite.
 """
@@ -13,7 +13,7 @@ import subprocess
 import urllib.request
 from pathlib import Path
 
-CONFIGS = ("blackbox/blackbox.yml", "prometheus/prometheus.yml")
+CONFIGS = ("blackbox/blackbox.yml", "prometheus/prometheus.yml", "prometheus/consumer.rules.yml")
 
 
 
@@ -173,7 +173,7 @@ def verify(source: Path, live: Path) -> str:
     for label, tree in (("source", source), ("live", live)):
         if tree.is_symlink():
             raise ValueError(f"unmanaged monitoring root: {label}")
-    # The two declared configs are a closed set for this install owner.
+    # The three declared configs are a closed set for this install owner.
     # Extra YAML may be a previously deployed consumer or alert rule.
     for tree in (source, live):
         for folder in ("blackbox", "prometheus"):
