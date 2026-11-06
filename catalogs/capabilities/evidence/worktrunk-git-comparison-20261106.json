@@ -1,0 +1,48 @@
+{
+  "kind": "ordivon.external-lego-comparison-r1",
+  "observedAt": "2026-11-06T05:38:38.355755+00:00",
+  "candidate": "max-sixty/worktrunk",
+  "binaryVersion": "v0.81.0",
+  "binarySha256": "sha256:1f3d97a5c263f87345d03a1e439f5d53efa5a468e8bde10e724cbd9e5e79de9b",
+  "sourceBoundary": "disposable local Git fixture; no Runtime production consumer",
+  "operator": "worktree inventory (read only)",
+  "positiveControls": [
+    {
+      "name": "read-only worktree inventory",
+      "passed": true,
+      "nativeBranches": [
+        "experimental",
+        "main"
+      ],
+      "candidateBranches": [
+        "experimental",
+        "main"
+      ]
+    }
+  ],
+  "negativeControls": [
+    {
+      "name": "dirty worktree cannot be removed by plain Git",
+      "passed": true,
+      "nativeRemoveExit": 128
+    },
+    {
+      "name": "candidate reports dirty state without invoking remove",
+      "passed": true
+    }
+  ],
+  "rollback": {
+    "passed": true,
+    "mechanism": "native git worktree remove after dirty file cleanup"
+  },
+  "knownNonParity": [
+    "Worktrunk marks an arbitrary path as branch_mismatch",
+    "No candidate create/remove/merge lifecycle parity verified",
+    "Runtime source binding, execution evidence and recovery not tested"
+  ],
+  "standing": "QUALIFIED_IN_SCOPE",
+  "replacementDecision": "KEEP_NATIVE_GIT",
+  "productionSwitched": false,
+  "deletedCustomLines": 0,
+  "independentConsumerReadback": false
+}

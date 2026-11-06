@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/catalogs/capabilities/evidence/external-lego-evidence-r1.schema.json",
+  "title": "External LEGO candidate evidence R1",
+  "type": "object",
+  "required": [
+    "kind",
+    "schemaVersion",
+    "candidateId",
+    "standing",
+    "decision",
+    "productionActivated",
+    "source",
+    "capability",
+    "references",
+    "unknowns"
+  ],
+  "properties": {
+    "kind": {
+      "const": "ordivon.external-lego-evidence"
+    },
+    "schemaVersion": {
+      "const": "r1"
+    },
+    "candidateId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "standing": {
+      "enum": [
+        "INCOMPLETE_CANDIDATE",
+        "DECLARED",
+        "ADMITTED"
+      ]
+    },
+    "decision": {
+      "enum": [
+        "HOLD",
+        "REFERENCE_ONLY",
+        "KEEP_NATIVE",
+        "ADOPT_SCOPED",
+        "REJECT"
+      ]
+    },
+    "productionActivated": {
+      "type": "boolean"
+    },
+    "ownerApprovalEvidence": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "ordivonSourceCut",
+        "upstream"
+      ],
+      "properties": {
+        "ordivonSourceCut": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "upstream": {
+          "type": "object",
+          "required": [
+            "repository",
+            "observedHeadCommit",
+            "releaseTag",
+            "releaseArchiveSha256",
+            "licenseExpression",
+            "licenseEvidence",
+            "observationTime"
+          ],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "format": "uri"
+            },
+            "observedHeadCommit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "releaseTag": {
+              "type": "string"
+            },
+            "releaseArchiveSha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "licenseExpression": {
+              "type": "string"
+            },
+            "licenseEvidence": {
+              "type": "string"
+            },
+            "observationTime": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "required": [
+        "name",
+        "kind",
+        "goal",
+        "r21Standing"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "capability",
+            "method",
+            "mixed"
+          ]
+        },
+        "goal": {
+          "type": "string"
+        },
+        "r21Standing": {
+          "enum": [
+            "NOT_FORMALLY_DECLARED",
+            "TYPED_COMPLETE_UNPROVED",
+            "SCOPED_VERIFIED"
+          ]
+        },
+        "r21": {
+          "type": "object",
+          "required": [
+            "I",
+            "O",
+            "S",
+            "pre",
+            "post",
+            "inv",
+            "eff",
+            "c",
+            "epsilon",
+            "prov",
+            "unfold"
+          ]
+        }
+      }
+    },
+    "references": {
+      "type": "object",
+      "required": [
+        "provider",
+        "knowledge",
+        "skills",
+        "research",
+        "composition",
+        "experiment",
+        "consumerSources"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "knowledge": {
+          "type": "string"
+        },
+        "skills": {
+          "type": "string"
+        },
+        "research": {
+          "type": "string"
+        },
+        "composition": {
+          "type": "string"
+        },
+        "experiment": {
+          "type": "string"
+        },
+        "consumerSources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "summary": {
+      "type": "string"
+    }
+  }
+}

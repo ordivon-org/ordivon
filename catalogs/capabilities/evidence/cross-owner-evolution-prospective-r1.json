@@ -1,0 +1,46 @@
+{
+  "kind": "ordivon.external-lego-cross-owner-prospective-r1",
+  "snapshotDay": "2026-11-06",
+  "sourceCut": "6b455952d78b8ce51595f1c1ec2575d12fb0670d",
+  "measured": {
+    "verifiedProductionSubstitutions": 0,
+    "verifiedCustomCodeRetiredLines": 0,
+    "measuredEconomicBenefit": "UNKNOWN",
+    "evidenceScope": "this new LEP pilot, not entire Ordivon history"
+  },
+  "lanes": [
+    {
+      "owner": "services/runtime",
+      "source": "max-sixty/worktrunk",
+      "level": "READ_ONLY_INVENTORY_FIXTURE_QUALIFIED",
+      "evidence": "catalogs/capabilities/evidence/worktrunk-git-comparison-20261106.json",
+      "nextGate": "Runtime owner-native lifecycle, exact source fences, crash recovery, production consumer readback"
+    },
+    {
+      "owner": "platform/workstation",
+      "source": "vercel-labs/agent-desktop",
+      "level": "DISCOVERY_ONLY",
+      "evidence": "https://github.com/vercel-labs/agent-desktop",
+      "nextGate": "Real desktop accessibility target, action permission and privacy, fail-closed operation proof"
+    },
+    {
+      "owner": "profiles/research",
+      "source": "D4Vinci/Scrapling",
+      "level": "DISCOVERY_ONLY",
+      "evidence": "https://github.com/D4Vinci/Scrapling",
+      "nextGate": "Source fidelity, access policy, reproducible retrieval and domain research user qualification"
+    }
+  ],
+  "lifecycleTriggers": [
+    "new tagged release or critical issue",
+    "actual owner consumer mismatch",
+    "license/dependency change",
+    "external-method counterexample"
+  ],
+  "feedback": "Increment observed evidence in candidate packets and native owner reports; do not infer adopted status or improvements from star count",
+  "nonClaims": [
+    "not a registry or live provider status owner",
+    "no auto-install",
+    "no cross-owner production adoption"
+  ]
+}
