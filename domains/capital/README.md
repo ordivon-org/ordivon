@@ -32,6 +32,9 @@ For the current source, actual CLI and invariants, see
 
 ## Current standing
 
+**Finance Investment Mode R2**: [cash-flow-matched passive baseline](docs/FINANCE_INVESTMENT_MODE_R2.md) is available as a read-only portfolio comparison. It does not grant trade authority.
+
+
 The historical Wave-A generation pipeline is retired. Its frozen `wave_b/fixtures/wave_a_target_portfolio.json` remains an immutable regression/execution-mechanics input for Wave B; Capital no longer carries the GLEIF/SEC/Cboe/equal-weight generator that produced it.
 
 Wave B / M1 admits bounded historical execution through pinned QuantConnect LEAN. M2 adds LEAN-native pre-trade feasibility. M3 uses provenance-recorded Nasdaq historical OHLCV only for execution-mechanics/data-plumbing validation. M4 projects order intent through a legacy FIX 4.4 wire profile under the FIX Latest semantic reference. M5 is prospective validation: a frozen decision may be evaluated only against strictly post-decision aligned holdout sessions; this is not causal evidence. M6 freezes a pre-market shadow plan. Every current execution runner crosses the OPA-governed execution-policy enforcement point before LEAN starts. No live financial-write path is implemented. NautilusTrader `2.0.0rc4` remains qualification-only.

@@ -653,6 +653,30 @@
       }
     },
     {
+      "id": "portfolio-cashflow-matched-benchmark-replay",
+      "sourcePatterns": [
+        "src/ordivon_capital/portfolio/passive_benchmark.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Authoritative benchmark/index providers own historical total-return facts",
+        "Asset custodian/broker and Capital Accounting own actual balances and cash flows"
+      ],
+      "localStanding": "RETAINED_BOUNDED_READONLY_CASHFLOW_COMPARISON",
+      "localResponsibility": "Compare caller-supplied strategy and passive benchmark terminal wealth under identical contributed capital and exact cost timing. No source truth, broker effects, generic optimizer, performance forecasting, time-weighted return, tax engine, or ledger implementation.",
+      "admittedMechanicsOwners": [
+        "Python 3.15.1 standard-library Decimal for exact currency/fractional arithmetic"
+      ],
+      "candidateMechanics": [
+        "PyPortfolioOpt or Riskfolio-Lib only if future allocation optimization is actually consumed"
+      ],
+      "localDependencies": [
+        "Caller-supplied ordered period total returns, deposits and expense conventions"
+      ]
+    },
+    {
       "id": "portfolio-counterfactual-projection",
       "sourcePatterns": [
         "src/ordivon_capital/portfolio/portfolio_counterfactuals.py"
