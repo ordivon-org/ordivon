@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import mimetypes
 import os
 import shutil
-import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,26 +170,3 @@ def materialize_blob(digest: str, cache_root: Path, destination: Path) -> dict[s
     finally:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
-
-
-def probe_media(path: Path, ffprobe: str = "/usr/bin/ffprobe") -> dict[str, Any]:
-    if not path.is_file():
-        raise FileNotFoundError(path)
-    result = subprocess.run(
-        [
-            ffprobe,
-            "-v",
-            "error",
-            "-show_format",
-            "-show_streams",
-            "-of",
-            "json",
-            str(path),
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or f"ffprobe exited {result.returncode}")
-    return json.loads(result.stdout)

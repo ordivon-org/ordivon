@@ -21,9 +21,17 @@ Primary implementation and contract:
 - `capabilities/media/src/ordivon_studio/agent_surface.py`
 - `capabilities/media/processing/README.md` and `processing/profiles/*.json`
 - `capabilities/media/planning/lego-plan-r1.json`
+- `capabilities/media/src/ordivon_studio/qc.py` (generic native FFprobe observation and profile-specific QC)
 
 Read the current source rather than reimplementing FFmpeg, OpenTimelineIO,
 TTML parsers, another registry, daemon, or queue.
+
+For a consumer requiring raw container/stream observations rather than
+an existing fixed Processing Profile, use the established
+`ordivon_studio.qc.probe_media` directly under its authorized Runtime
+execution; it delegates JSON to FFprobe. The Blob/CAS owner
+`ordivon_studio.assets` does not perform technical QC. Do not create
+another subprocess probe wrapper or infer profile approval from raw fields.
 
 ## Procedure — the shortest actual composition
 

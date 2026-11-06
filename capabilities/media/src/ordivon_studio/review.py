@@ -5,9 +5,9 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from .assets import hash_file, probe_media
+from .assets import hash_file
 from .perception import build_video_perception_bundle
-from .qc import validate_video_probe
+from .qc import probe_media, validate_video_probe
 
 
 def _load_object(path: Path) -> dict[str, Any]:
