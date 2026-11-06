@@ -50,7 +50,7 @@ The generic Network Core MUST NOT own Finance/Claude/X destination policy. Obser
 - SOURCE-only: focused native tests + mise run ci; Green pytest does not certify a deployed VPN.
 - Generic Linux: task core:verify; Blackbox/Prometheus actual targets, DNS A/AAAA, HTTPS. Idempotent task core:converge is still effectful when source/install differ.
 - Gluetun: provider:gluetun:verify, ipinfo one-shot, loaded non-secret env and literal IP/TLS health; verify down-stream consumers before closing. DNS timeout may be cause OR effect of tunnel impairment.
-- Scoped consumer: one admitted real request plus independently observed wrong-host/wrong-port **zero upstream forwarding**. Reuse acceptance/egress/live-carrier-witness.py; do not mistake shared-carrier temporal correlation for exclusive flow identity.
+- Scoped consumer: one admitted real request plus independently observed wrong-host/wrong-port/IPv4-literal/IPv6-literal **zero upstream CONNECT**; require failed TLS/HTTP origin for each negative probe. Reuse acceptance/egress/live-carrier-witness.py; the observer understands bracketed IPv6 CONNECT syntax but this is **not** a positive native IPv6/UDP/no-DNS-bypass proof. Do not mistake shared-carrier temporal correlation for exclusive flow identity.
 - IPv4/IPv6/UDP QUIC: task accept:family-fallback, task accept:full-ip (isolated namespace).
 - DNS faults: task accept:dns-resilience; check cached answer, SERVFAIL under all-upstream outage, recovery and stable daemon PID.
 - Generic cold start: task accept:cold-start touches running R0. A full Windows boot→WSL→systemd→Podman→Consumer is **Workstation** acceptance, not the generic isolated cold-start test.
