@@ -3,28 +3,28 @@
   "kind": "ordivon.capital.domain-taxonomy",
   "asOfDate": "2026-11-06",
   "standing": "ACTIVE_SOURCE_OWNER_TAXONOMY",
-  "principle": "Capital is the umbrella. Markets owns observable market/reference facts; Trading owns orders, provider effect boundaries, execution and reconciliation; Portfolio owns caller-mandated allocation and scenario projection; Risk owns exposure and risk measurement; Research owns model/evidence validation; Governance owns mandate and authorization policy; Accounting owns durable ledger mechanics. Finance denotes the investment program, not a duplicate Capital package. Harness owns Agent orchestration.",
+  "principle": "Capital is the umbrella. Markets owns observable market/reference facts; Trading owns orders, provider effect boundaries, execution and reconciliation; Portfolio owns caller-mandated allocation and scenario projection; Risk owns exposure and risk measurement; Research owns model/evidence validation; Governance owns mandate and authorization policy; Accounting owns durable ledger mechanics and the canonical paper-close NAV. The moduleMap is exact over actively importable owner modules, not an aspirational catalog. Finance denotes the investment program, not a duplicate Capital package. Harness owns Agent orchestration.",
   "domains": {
     "markets": {
-      "role": "public market/reference data, microstructure observations, streaming and market transport qualification"
+      "role": "point-in-time public market/reference observations, provider-qualified ETF closes, historical price vintages, streaming and market transport qualification; never investment permission"
     },
     "trading": {
       "role": "provider/private reality, order intent, FIX projection, execution feasibility and execution reconciliation"
     },
     "portfolio": {
-      "role": "portfolio state transformations, caller-supplied counterfactual projections, and contribution-only long-horizon target allocation without external orders"
+      "role": "caller-directed strategic contribution, cash-flow-matched passive benchmarks, deterministic paper investment replay and bounded counterfactual portfolio composition; no broker rights"
     },
     "risk": {
       "role": "exposure, factor/dependence statistics, expected shortfall and risk-budget measurement"
     },
     "research": {
-      "role": "frozen experiment protocol, prospective evidence, model monitoring and validation; no independent Agent runtime or capital authority"
+      "role": "hypothesis and frozen experiment protocol, candidate economic evidence, prospective holdout validation and model monitoring; no independent Agent runtime or capital authority"
     },
     "governance": {
       "role": "execution authorization, live-test admission, risk-budget and pre-trade policy gates"
     },
     "accounting": {
-      "role": "durable reservation/post/void/idempotency and ledger bindings"
+      "role": "durable reservation/post/void/idempotency, native PostgreSQL journal, paper daily close and persistent readback; SQLite retained only for explicitly qualified legacy oracle/import consumers"
     }
   },
   "moduleMap": {
@@ -37,7 +37,9 @@
       "crypto_stream_resilience.py",
       "market_sensors.py",
       "okx_sensor_capture.py",
-      "websocket_proxy_lifecycle.py"
+      "websocket_proxy_lifecycle.py",
+      "etf_eod_snapshot.py",
+      "historical_close_snapshot.py"
     ],
     "trading": [
       "binance_usdm_private_capture.py",
@@ -50,7 +52,10 @@
     ],
     "portfolio": [
       "portfolio_counterfactuals.py",
-      "strategic_contribution.py"
+      "strategic_contribution.py",
+      "paper_investment.py",
+      "passive_benchmark.py",
+      "paper_vintage.py"
     ],
     "risk": [
       "portfolio_risk.py",
@@ -67,7 +72,8 @@
       "prospective_validation.py",
       "quantitative_inventory_validation.py",
       "standards_inventory.py",
-      "experiment_protocol.py"
+      "experiment_protocol.py",
+      "investment_candidate.py"
     ],
     "governance": [
       "policy_decision.py"
@@ -76,7 +82,9 @@
       "durable.py",
       "postgres_ledger.py",
       "sqlite_ledger.py",
-      "substrate.py"
+      "substrate.py",
+      "paper_close.py",
+      "postgres_paper_close.py"
     ]
   },
   "dependencyRules": [
