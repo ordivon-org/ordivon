@@ -1,0 +1,33 @@
+{
+  "kind": "ordivon.external-lego-owner-consumer-shadow-r1",
+  "observedAt": "2026-11-06T07:05:22.074650+00:00",
+  "owner": "repository-governance",
+  "actualConsumerPath": "tools/repo/exhaustive_coverage.py",
+  "candidate": "max-sixty/worktrunk",
+  "candidateVersion": "wt v0.81.0",
+  "candidateBinarySha256": "sha256:1f3d97a5c263f87345d03a1e439f5d53efa5a468e8bde10e724cbd9e5e79de9b",
+  "boundary": "independent disposable two-repository Git fixture; actual consumer code under mock-provided read-only Git response",
+  "positive": {
+    "nativeVsCandidateConsumerOutputEqual": true,
+    "rawGitWorktreePorcelainIdentical": true
+  },
+  "negative": {
+    "forgedCandidatePathNotEqualNative": true,
+    "stalePrunableMetadataObservedByGit": true,
+    "prunableCandidateBlocked": true
+  },
+  "rollback": {
+    "originalConsumerRestoredAfterMock": true,
+    "temporaryReposRetired": true,
+    "productionConsumerChanged": false
+  },
+  "standing": "QUALIFIED_FOR_DISPOSABLE_READ_ONLY_PROJECTION",
+  "actualOwnerProductionReadback": false,
+  "productionReplacementAuthorized": false,
+  "retiredCustomLines": 0,
+  "blockingUnknowns": [
+    "No prunable-equivalent native Worktrunk contract",
+    "No Runtime workspace open/close/recovery/SourceCut equivalence",
+    "No actual production code path switched"
+  ]
+}

@@ -30,6 +30,58 @@ class EvidenceTests(unittest.TestCase):
         self.assertTrue(any("missing or escaping" in e for e in errors))
 
 
+class WorktrunkConsumerProjectionTests(unittest.TestCase):
+    def test_exact_porcelain_projection(self):
+        from compare_worktrunk_owner_consumer import projected_porcelain
+        snapshot = {"items": [
+            {"branch": "main", "head": {"sha": "1" * 40},
+             "worktree": {"path": "/tmp/example-main", "detached": False}},
+            {"branch": None, "head": {"sha": "2" * 40},
+             "worktree": {"path": "/tmp/example-linked", "detached": True}},
+        ]}
+        expected = ("worktree /tmp/example-main\nHEAD " + "1" * 40 +
+                    "\nbranch refs/heads/main\n\n" +
+                    "worktree /tmp/example-linked\nHEAD " + "2" * 40 +
+                    "\ndetached\n\n").encode()
+        self.assertEqual(projected_porcelain(snapshot, native_metadata=b""), expected)
+
+    def test_prunable_metadata_fails_closed(self):
+        from compare_worktrunk_owner_consumer import projected_porcelain
+        snapshot = {"items": [{"branch": "main", "head": {"sha": "1" * 40},
+                               "worktree": {"path": "/tmp/main", "detached": False}}]}
+        with self.assertRaisesRegex(ValueError, "prunable"):
+            projected_porcelain(snapshot, native_metadata=b"prunable gitdir missing\n")
+
+    def test_ambiguous_candidate_denied(self):
+        from compare_worktrunk_owner_consumer import projected_porcelain
+        entry = {"branch": "main", "head": {"sha": "1" * 40},
+                 "worktree": {"path": "/tmp/main", "detached": False}}
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            projected_porcelain({"items": [entry, entry]}, native_metadata=b"")
+        with self.assertRaisesRegex(ValueError, "HEAD"):
+            projected_porcelain({"items": [{"branch": "main", "head": {"sha": "x"},
+                                            "worktree": {"path": "/tmp/main", "detached": False}}]},
+                                native_metadata=b"")
+
+
+class CrossOwnerSourceObservationTests(unittest.TestCase):
+    def test_frozen_sources_do_not_imply_adoption(self):
+        import re
+        source = ROOT / "catalogs/capabilities/evidence/cross-owner-source-observations-20261106.json"
+        record = json.loads(source.read_text())
+        self.assertEqual(record["standing"], "DISCOVERY_ONLY")
+        self.assertEqual(len(record["observations"]), 3)
+        for entry in record["observations"]:
+            self.assertRegex(entry["upstream"]["commit"], r"^[0-9a-f]{40}$")
+            self.assertRegex(entry["upstream"]["licenseFileGitBlob"], r"^[0-9a-f]{40}$")
+            self.assertTrue((ROOT / entry["existingConsumerReference"]).is_file())
+            self.assertIn(entry["disposition"], ("RESEARCH_ONLY", "REFERENCE_ONLY"))
+            self.assertNotIn("ADMITTED", entry["consumerRelation"])
+        self.assertFalse(record["outcomes"]["autoInstall"])
+        self.assertFalse(record["outcomes"]["autoAdopt"])
+        self.assertEqual(record["outcomes"]["customLinesRetiredVerified"], 0)
+
+
 class RadarTests(unittest.TestCase):
     def example(self):
         return {"kind": "ordivon.github-trending-observation-r1", "snapshotDay": "2026-11-06",

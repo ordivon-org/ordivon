@@ -1,0 +1,89 @@
+{
+  "kind": "ordivon.external-lego-cross-owner-source-observations-r1",
+  "observedAt": "2026-11-06T07:09:32Z",
+  "sourceAuthority": "GitHub official REST repository, commit, license and pinned contents endpoints",
+  "standing": "DISCOVERY_ONLY",
+  "nonAuthorityNotice": "This is one frozen external-source comparison, not a provider registry, owner currentness, license legal opinion, installed runtime state or R2.1 admission.",
+  "observations": [
+    {
+      "owner": "platform/workstation",
+      "upstream": {
+        "repository": "https://github.com/vercel-labs/agent-desktop",
+        "commit": "b43ac4f6e892ef608f8851428613c4009f0e84c7",
+        "commitTime": "2026-11-05T06:30:44Z",
+        "licenseMetadata": "Apache-2.0",
+        "licenseFile": "LICENSE",
+        "licenseFileGitBlob": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+        "archived": false
+      },
+      "kind": "capability+method",
+      "capabilityHypothesis": "Desktop semantic computer-use CLI",
+      "methodHypothesis": "Computer-use effect boundary separate from Runtime/Harness lifecycle authority",
+      "existingConsumerReference": "platform/workstation/workstation/playwright_cli_binding.py",
+      "consumerRelation": "ANALOGOUS_ONLY_NOT_INTERFACE_EQUIVALENT",
+      "missingEvidence": [
+        "Exact node-local executable/permission contract",
+        "Current production consumer for desktop operations",
+        "Accessibility visibility, effect fencing and audit replay",
+        "Verified release/package bytes"
+      ],
+      "disposition": "RESEARCH_ONLY"
+    },
+    {
+      "owner": "profiles/research",
+      "upstream": {
+        "repository": "https://github.com/D4Vinci/Scrapling",
+        "commit": "bc602488b44e978da3266841e913af17577ec0fd",
+        "commitTime": "2026-11-05T18:01:44Z",
+        "licenseMetadata": "BSD-3-Clause",
+        "licenseFile": "LICENSE",
+        "licenseFileGitBlob": "41615aad07eb42df7f09997f207950098e853a68",
+        "archived": false
+      },
+      "kind": "capability+method",
+      "capabilityHypothesis": "Web content extraction and crawl",
+      "methodHypothesis": "Separable acquisition/normalization and source fidelity comparison",
+      "existingConsumerReference": "profiles/research/tool-qualification/TOOL_QUALIFICATION_R1.md",
+      "consumerRelation": "RESEARCH_QUALIFICATION_METHOD_ONLY_NO_ACTUAL_TASK_CONSUMER",
+      "missingEvidence": [
+        "Actual authorized research data consumer and policy",
+        "Retrieval input/output fidelity against incumbent",
+        "Publisher terms, robots and privacy constraints",
+        "Reproducible negative extraction controls and package provenance"
+      ],
+      "disposition": "RESEARCH_ONLY"
+    },
+    {
+      "owner": "platform/security + platform/skills",
+      "upstream": {
+        "repository": "https://github.com/cloudflare/security-audit-skill",
+        "commit": "c1c8a8c1471069fb0e188eeaff69b8e8db6564a8",
+        "commitTime": "2026-09-14T19:28:54Z",
+        "licenseMetadata": "MIT",
+        "licenseFile": "LICENSE",
+        "licenseFileGitBlob": "6dbc9ecb3a5b9080e95b962869e8c7ab16cfdc20",
+        "archived": false
+      },
+      "kind": "method-first",
+      "capabilityHypothesis": "Repeatable AI-assisted security review",
+      "methodHypothesis": "Multi-phase findings and independent verification, not untrusted skill execution",
+      "existingConsumerReference": ".agents/skills/skill-supply-chain-audit/SKILL.md",
+      "consumerRelation": "ADJACENT_METHOD_NOT_DROP_IN_REPLACEMENT",
+      "missingEvidence": [
+        "Review of untrusted prompt/instructions/tool surface",
+        "Current Security Owner threat-model control match",
+        "Independent negative findings and false-positive calibration",
+        "Install/execute effects and provenance verification"
+      ],
+      "disposition": "REFERENCE_ONLY"
+    }
+  ],
+  "outcomes": {
+    "productionSubstitutionsVerified": 0,
+    "customLinesRetiredVerified": 0,
+    "sustainedMaintenanceBenefit": "UNKNOWN",
+    "autoInstall": false,
+    "autoAdopt": false,
+    "ownerConsumerEquivalenceProven": false
+  }
+}
