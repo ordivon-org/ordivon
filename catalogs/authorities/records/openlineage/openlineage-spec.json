@@ -30,7 +30,7 @@
       "id": "openlineage",
       "name": "OpenLineage"
     },
-    "officialSource": "https://openlineage.io/docs/spec/",
+    "officialSource": "https://github.com/OpenLineage/OpenLineage/blob/main/spec/OpenLineage.md",
     "publicationDate": null,
     "title": "OpenLineage specification",
     "versionLabel": null

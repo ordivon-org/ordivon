@@ -171,6 +171,72 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(latest[1]["observedDate"], "2026-09-19")
         self.assertEqual(latest[1]["lifecycleStatus"], "published-current")
 
+    def test_rolling_source_revision_retains_historical_observation(self):
+        _, record = catalog.get_record("openlineage-spec")
+        prior = json.loads(
+            (
+                ROOT
+                / "catalogs/authorities/observations/openlineage-spec/2026-09-14.json"
+            ).read_text()
+        )
+        latest = catalog.latest_observation("openlineage-spec")
+        self.assertIsNotNone(latest)
+        self.assertNotEqual(
+            prior["officialSource"], record["identity"]["officialSource"]
+        )
+        self.assertEqual(
+            latest[1]["officialSource"], record["identity"]["officialSource"]
+        )
+        self.assertEqual(latest[1]["versionObserved"], "1.55.0")
+        self.assertEqual(latest[1]["observedDate"], "2026-11-06")
+        catalog.validate_catalog_semantics(catalog.records())
+
+    def test_rolling_current_source_drift_cannot_pass_catalog_validation(self):
+        from unittest.mock import patch
+
+        from catalogs.authorities.scripts import authority_catalog_sources as sources
+
+        current_path = (
+            ROOT / "catalogs/authorities/observations/openlineage-spec/2026-11-06.json"
+        )
+        actual_read = sources.read_json
+
+        def mismatched_latest(path):
+            result = actual_read(path)
+            if path == current_path:
+                return {
+                    **result,
+                    "officialSource": "https://example.invalid/not-the-record-source",
+                }
+            return result
+
+        with patch.object(sources, "read_json", side_effect=mismatched_latest):
+            with self.assertRaisesRegex(SystemExit, "observation source differs"):
+                catalog.validate_catalog_semantics(catalog.records())
+
+    def test_versioned_authority_cannot_rewrite_source_even_in_old_observation(self):
+        from unittest.mock import patch
+
+        from catalogs.authorities.scripts import authority_catalog_sources as sources
+
+        historical = (
+            ROOT / "catalogs/authorities/observations/cloudevents-1.0.2/2026-09-14.json"
+        )
+        original = sources.read_json
+
+        def replaced_historical_source(path):
+            result = original(path)
+            if path == historical:
+                return {
+                    **result,
+                    "officialSource": "https://example.invalid/changed-versioned-source",
+                }
+            return result
+
+        with patch.object(sources, "read_json", side_effect=replaced_historical_source):
+            with self.assertRaisesRegex(SystemExit, "observation source differs"):
+                catalog.validate_catalog_semantics(catalog.records())
+
     def test_refresh_is_a_plan_not_mutation(self):
         _, record = catalog.get_record("iso-31000-2018")
         before = json.dumps(record, sort_keys=True)

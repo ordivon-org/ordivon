@@ -30,11 +30,13 @@ Activate for an external world event, public institutional decision, primary emp
 5. **Validate and close the loop.** Only the domain Owner may revise its own model or practice. Bind original version, new version, evaluation anchor, independent evidence and post-change readback. A Composition gate PASS or Runtime exit zero does not imply domain acceptance. If no validated benefit or evidence is sufficient, KEEP / HOLD / UNKNOWN, with a concrete falsifier.
 
 ## Choose standards by job, not by decorating a schema
-- W3C PROV-O (https://www.w3.org/TR/prov-o/) for tracing Entity/Activity/Agent and derived relations. Do not construct a universal PROV graph for one headline.
-- CloudEvents 1.0.2 (https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md) only for actual event exchange: `source`+`id` duplicate identity and RFC3339 `time` are transport semantics, **not** independent proof that the claim occurred.
-- OpenLineage (https://openlineage.io/docs/spec/) for real job/data lineage with meaningful Run/Job/Dataset consumers; never infer a Cartesian-product dependency from one job's input/output arrays.
+Resolve the **existing Authority Catalog** for the exact specification before applying it. For the following three registered standards use the catalog's native CLI `python3 catalogs/authorities/scripts/authority_catalog.py show <id>` and check the `latestObservation` as well as the issuing source. A catalog record is discovery/currentness evidence, **not** a domain acceptance or proof that any upstream claim is true.
+
+- `w3c-prov-o-2013`: W3C PROV-O (https://www.w3.org/TR/prov-o/) only for actual Entity/Activity/Agent provenance and derived relations. Do not construct a universal PROV graph for one headline.
+- `cloudevents-1.0.2`: pinned CloudEvents 1.0.2 (https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md) only for actual event exchange. `source`+`id` duplicate identity and RFC3339 `time` are transport semantics, **not** independent proof a claim occurred.
+- `openlineage-spec`: the official OpenLineage specification as identified by the current Authority Catalog observation. Use it only for actual run/job/dataset lineage consumers, not for a generic collection of source URLs; versioned facet schemas and documentation-version labels must not be conflated with the specification's normative edition.
 - Existing Research qualification and method-router Skills when experimental evidence or theory selection is needed; existing Security/Skill supply-chain procedure for untrusted external executable instructions.
-- Existing external-capability-evaluation Skill, when installed, for software/algorithm candidates. An external repository is a capability candidate, **not** automatically a formal LEGO.
+- Existing external-capability-evaluation Skill, **only when discoverable**, for software/algorithm candidates. An external repository is a capability candidate, **not** automatically a formal LEGO.
 
 ## Finished work reports
 For humans: identify changed fact, date, credible source, earlier baseline, supported delta, affected real decision, verdict and next observable falsifier in ordinary Chinese prose. For agents: retain source/version/authority references, exact consumer binding, verifier scope and status separately; only persist to the natural Owner where it already has an admitted write/read-back contract.
