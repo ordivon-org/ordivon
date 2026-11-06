@@ -53,6 +53,21 @@ groups:
           severity: warning
         annotations:
           summary: Scoped consumer proxy cannot complete expected origin HTTPS
+      # Root-cause triage, not a claim that Gluetun itself failed: three
+      # differently scoped end-to-end HTTPS probes failing concurrently is
+      # stronger evidence of a shared path incident than any one alone.
+      # All three one-minute scrapes must have age <90s; missing scrapes remain UNKNOWN here and are
+      # handled by their existing individual absent()/unavailable alerts.
+      - alert: NetworkCorrelatedConsumerOutage
+        expr: >-
+          (sum(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 0)
+          and (count(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 3)
+          and (count((time() - timestamp(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"})) < 90) == 3)
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: PyPI, Codex and Claude independent HTTPS probes are simultaneously failing; inspect shared egress before individual applications
       # Prevent certificate-expiry class before the next production TLS outage.
       - alert: NetworkConsumerTLSExpirySoon
         expr: (probe_ssl_earliest_cert_expiry{job=~"blackbox-(vpn|scoped)-.*"} - time()) < 1209600

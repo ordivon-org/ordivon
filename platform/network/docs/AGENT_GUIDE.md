@@ -68,6 +68,12 @@ The generic Network Core MUST NOT own Finance/Claude/X destination policy. Obser
   proxy launcher or Windows global proxy manager.
 - Mobile: native server ready is not an iPad/iPhone client selection; collect IPinfo and DNS evidence **on each device** separately.
 
+### Shared-path incident classifier (native Prometheus, not a new controller)
+
+Use existing `NetworkCorrelatedConsumerOutage` alongside the individual `NetworkVPNPyPIUnavailable` / `NetworkScopedConsumerUnavailable` alerts. Its exact predicate is `count(series) == 3 AND sum(series) == 0 AND count(time()-timestamp(series) < 90s) == 3` maintained for 2m. This models **three simultaneously sampled failures**, not a proved VPN-causal fault. A missing series makes the correlated predicate UNKNOWN; individual `absent()` alerts retain missing-series coverage. One healthy consumer is a counterexample to the correlated predicate; CONNECT 200 with TLS failing does not count as healthy.
+
+Triage: source+loaded Prometheus rule parity → `/api/v1/alerts` plus Blackbox history → native Gluetun health and endpoint-rotation journal → Provider HTTPS `verify` → exact impacted Consumer request. Match source timestamps, target/PID, installed generation and origin HTTPS. Gluetun's official native check/auto-heal owns physical recovery; do not add an Agent polling loop, a second tunnel or an IPinfo scraper. Any new endpoint/health-target policy is justified only with independent before/after consumer SLO evidence.
+
 ## 5. Concrete task snippets
 
 From platform/network/:

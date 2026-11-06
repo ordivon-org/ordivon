@@ -105,6 +105,15 @@ Chrome 使用 **自身的原生 Windows 策略**，而不是 Surfshark 桌面 GU
 | 重启 Windows 后 WSL 没启动 | Windows 启动 → WSL → systemd → Podman | Workstation |
 | 监控显示正常但配置漂移 | 生产 SourceCut、Prometheus 原生加载的抓取池 | Network Observability |
 
+### 多个应用同时断网时如何定位
+
+从已经存在的 Prometheus 读取 `NetworkCorrelatedConsumerOutage`：它只在 PyPI、Codex 与 Claude **三路每分钟 HTTPS 探针最近 90 秒都有样本、并持续两分钟同时失败**时成立。该信号是共享路径优先排查的线索，不是 Gluetun 根因证明；任何一个探针缺席则须查看已有的单独 `absent()` 告警，不能把缺测当作成功或失败。
+
+    curl -fsS http://127.0.0.1:29090/api/v1/alerts |
+      jq '.data.alerts[] | select(.labels.alertname=="NetworkCorrelatedConsumerOutage")'
+
+随后顺序检查 `task provider:gluetun:verify`、Gluetun 原生日志、`task provider:gluetun:observe-exit`，最后复测受到影响的 Consumer。代理 CONNECT 200 但 HTTPS TLS 超时属于 **尚未完成源站请求**，不能宣布 READY；`systemctl active` 也不能取代源站探测。先使用 Gluetun 自带健康恢复，**不要在故障时另开一条 WireGuard 或重启全部 Consumer**。IPinfo 的未认证端点有共享限流，只用于一次性出口采样，不用来替代 Prometheus 健康检查。
+
 **DNS 故障与 VPN 故障不能混为一谈。** DNS 超时既可能导致健康检查受影响，也可能只是底层隧道故障的结果。应分别验证原生 IP/TLS 健康目标与 DNS 上游。不要为此添加第二个 VPN Watchdog：Gluetun 自带健康检查与自动恢复。
 
 ## 五、如何判断文件或数据可以删除？
