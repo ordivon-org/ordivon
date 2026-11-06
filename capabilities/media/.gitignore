@@ -18,3 +18,7 @@ renders/
 *.dra
 apps/preview/dist/
 packages/identity/dist/
+
+# Media Ecology pilot views and browser results are rebuilt from retained sources.
+play/media-ecology-20260830/index.html
+play/media-ecology-20260830/browser-acceptance.json
