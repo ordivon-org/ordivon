@@ -213,3 +213,10 @@ the actual SQLite 3.53.1 live HOLD until each affected process is upgraded;
 do not mark installed/live PASS from a passing isolated candidate. The
 Renovate hosted GitHub App needs separate authorization and a real uv.lock
 update PR before the old Dependabot uv route can be retired.
+
+## Read-only Paper Investment Lab NAV consumer (2026-11-06)
+
+The Finance Portfolio owner now composes daily valuations from caller-supplied
+price and balance snapshots. It does not own source data, durable Accounting,
+order effects or independent risk admission. See
+[Finance paper daily valuation R1](FINANCE_PAPER_DAILY_VALUATION_R1.md).

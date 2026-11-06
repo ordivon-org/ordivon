@@ -798,6 +798,21 @@
       ],
       "localStanding": "RETAINED_IRREDUCIBLE_READONLY_GLUE",
       "localResponsibility": "Conserve caller-specified contribution cents while preserving an explicit cash reserve; allocate without sale, prediction, advice or execution effects. Own only the exact cross-asset caller mandate composition, not optimization or a broker."
+    },
+    {
+      "id": "portfolio-paper-daily-valuation",
+      "sourcePatterns": [
+        "src/ordivon_capital/portfolio/daily_valuation.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Python standard-library Decimal exact financial arithmetic",
+        "QuantConnect LEAN owner for execution, corporate actions and portfolio accounting when actually required"
+      ],
+      "localStanding": "RETAINED_READONLY_PORTFOLIO_COMPOSITION",
+      "localResponsibility": "One caller-provided price/position/cash snapshot into cent-rounded daily paper NAV and deposit-neutral economic gain. Never claim verified market/custody sources, trade settlement, share ownership, or execution rights."
     }
   ],
   "notInstantiatedDomains": [

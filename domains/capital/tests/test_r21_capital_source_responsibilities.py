@@ -41,6 +41,19 @@ def _qualify_native_plan(plan: dict) -> None:
             assert node["effectBoundary"] == "NON_LIVE_SOURCE_ONLY"
             for consumer in node["consumerEvidence"]:
                 assert (CAPITAL / consumer["path"]).is_file()
+        elif node["id"] == "CA11":
+            assert node["effectBoundary"] == "NO_EXTERNAL_EFFECT"
+            assert node["formalQualification"] == (
+                "DECIMAL_CONSERVATION_TESTED_NO_UNIVERSAL_PROOF"
+            )
+            assert node["r21Contract"]["eff"] == "NONE"
+            assert "closing NAV" in node["r21Contract"]["post"]
+            assert {row["standing"] for row in node["consumerEvidence"]} == {
+                "NATIVE_REAL_READ_ONLY_CLI_CONSUMER",
+                "NATIVE_TEST_AND_INVARIANT_MATRIX",
+            }
+            for consumer in node["consumerEvidence"]:
+                assert (CAPITAL / consumer["path"]).is_file()
         elif node["id"] == "CA09":
             assert node["effectBoundary"] == "NO_EXTERNAL_EFFECT"
             assert node["formalQualification"] == (
@@ -78,7 +91,7 @@ def _plan() -> dict:
 
 def test_existing_source_legos_and_frozen_protocol_have_exact_owners() -> None:
     plan = _plan()
-    assert {node["id"] for node in plan["nodes"]} == {f"CA{x:02d}" for x in range(1, 11)}
+    assert {node["id"] for node in plan["nodes"]} == {f"CA{x:02d}" for x in range(1, 12)}
     _qualify_native_plan(plan)
 
 

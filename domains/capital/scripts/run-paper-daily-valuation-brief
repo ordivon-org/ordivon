@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Reuse the existing Finance environment; this is only a source consumer.
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+exec "$root/scripts/run-capability-python" "$root/scripts/paper_daily_valuation_brief.py"

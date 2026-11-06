@@ -55,6 +55,20 @@ For the current source, actual CLI and invariants, see
 `domains/capital` until a separate cross-owner relocation is verified;
 `Finance` names the investment program, not a second package.
 
+## Paper Investment Lab daily valuation (source-level R1)
+
+The portfolio now includes a **daily paper mark-to-market composition** that
+keeps start-of-period cash deposits separate from economic gains and enforces
+strict end-of-session price-availability ordering. This is a **read-only,
+source-unattested** calculation, not a verified daily live market feed, actual
+settlement service or production timer.
+
+Native consumer: `scripts/run-paper-daily-valuation-brief`; example:
+`examples/paper_daily_valuation_synthetic_r1.json`; contract:
+[Finance paper valuation R1](docs/FINANCE_PAPER_DAILY_VALUATION_R1.md).
+The example is fully synthetic and must not be represented as an actual
+investment result.
+
 ## Current standing
 
 **Finance Investment Mode R2**: [cash-flow-matched passive baseline](docs/FINANCE_INVESTMENT_MODE_R2.md) is available as a read-only portfolio comparison. It does not grant trade authority.

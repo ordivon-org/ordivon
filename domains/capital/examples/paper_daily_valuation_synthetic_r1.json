@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.finance.paper-daily-valuation-input",
+  "portfolioId": "PAPER_INDEX_R1",
+  "currency": "USD",
+  "sessionCloseAt": "2026-11-05T16:00:00-05:00",
+  "evaluatedAt": "2026-11-05T18:00:00-05:00",
+  "openingNav": "10000.00",
+  "externalCashFlowAtStart": "0.00",
+  "cashAtClose": "4000.00",
+  "protectedCash": "3000.00",
+  "pricesStanding": "SYNTHETIC_FIXTURE",
+  "positions": [
+    {
+      "instrumentId": "SIM_INDEX",
+      "quantity": "10",
+      "closePrice": "602.25",
+      "priceAsOf": "2026-11-05T16:00:00-05:00",
+      "availableAt": "2026-11-05T17:00:00-05:00",
+      "sourceId": "SYNTHETIC_FIXTURE"
+    }
+  ]
+}

@@ -12,7 +12,7 @@
       "role": "provider/private reality, order intent, FIX projection, execution feasibility and execution reconciliation"
     },
     "portfolio": {
-      "role": "portfolio state transformations, caller-supplied counterfactual projections, and contribution-only long-horizon target allocation without external orders"
+      "role": "portfolio state transformations, caller-supplied counterfactual projections, and contribution-only long-horizon target allocation without external orders; source-unattested daily paper NAV projection"
     },
     "risk": {
       "role": "exposure, factor/dependence statistics, expected shortfall and risk-budget measurement"
@@ -50,7 +50,8 @@
     ],
     "portfolio": [
       "portfolio_counterfactuals.py",
-      "strategic_contribution.py"
+      "strategic_contribution.py",
+      "daily_valuation.py"
     ],
     "risk": [
       "portfolio_risk.py",

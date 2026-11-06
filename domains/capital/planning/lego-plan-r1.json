@@ -456,6 +456,69 @@
         "prov": "caller-supplied, digest-identified plan and CLI source; actual historical independent timestamp/cost-provider identity UNKNOWN",
         "unfold": "source experiment_protocol.py -> scripts/finance_lego.py -> scripts/run-finance-lego; tests/test_experiment_protocol.py and test_finance_lego_cli.py"
       }
+    },
+    {
+      "id": "CA11",
+      "label": "PaperDailyValuationProjection",
+      "kind": "read_only_paper_portfolio_valuation",
+      "responsibility": "Compose cash, holdings and caller-provided EOD marks into research-only NAV and funding-neutral period gain",
+      "authority": "Portfolio source-level only; Markets/Accounting own source truth; Risk/Governance own real approvals",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "explicit USD prior NAV, start external flow, close cash/protected reserve, positions and close observations with availability times"
+      ],
+      "outputs": [
+        "read-only NAV, positions value, economic gain and nullable period simple return with UNATTESTED standing"
+      ],
+      "behavioralContract": "Exact monetary conservation and no-lookahead availableAt <= evaluatedAt; never treat a deposit as strategy PnL, a missing input as source truth, or research as trading authorization",
+      "acceptance": [
+        "29 dedicated bounded invalid-input/conservation tests and actual native stdin CLI; Finance owner verify"
+      ],
+      "evidence": [
+        "src/ordivon_capital/portfolio/daily_valuation.py",
+        "tests/test_paper_daily_valuation.py",
+        "examples/paper_daily_valuation_synthetic_r1.json",
+        "scripts/run-paper-daily-valuation-brief"
+      ],
+      "dependencies": [],
+      "sharedRefs": [
+        "docs/FINANCE_PAPER_DAILY_VALUATION_R1.md"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "scripts/run-paper-daily-valuation-brief",
+          "standing": "NATIVE_REAL_READ_ONLY_CLI_CONSUMER"
+        },
+        {
+          "path": "tests/test_paper_daily_valuation.py",
+          "standing": "NATIVE_TEST_AND_INVARIANT_MATRIX"
+        }
+      ],
+      "mustNotOwn": [
+        "real market price truth",
+        "corporate actions",
+        "durable capital ledger",
+        "order fills",
+        "taxes",
+        "trade settlement",
+        "strategy advice"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_CONSUMER_VERIFIED_SYNTHETIC",
+      "formalQualification": "DECIMAL_CONSERVATION_TESTED_NO_UNIVERSAL_PROOF",
+      "effectBoundary": "NO_EXTERNAL_EFFECT",
+      "r21Contract": {
+        "I": "bounded USD decimal-string EOD marks, cash, prior NAV, start external flow and price availability metadata",
+        "O": "candidate NAV and funding-neutral gain with explicit unverified flags",
+        "S": "pure read-only and without durable state",
+        "pre": "exact bounded schema, unique instruments, all priceAsOf match session close and availableAt <= evaluatedAt, cash covers protected reserve",
+        "post": "closing NAV = cash + sum(rounded positions); gain = closing NAV - (opening NAV + external flow)",
+        "inv": "no remote effects, no real capital authorization, caller evidence UNATTESTED, exact Decimal cents per position",
+        "eff": "NONE",
+        "c": "O(n log n) bounded n <= 128",
+        "epsilon": "cent rounding; source and corporate action quality UNKNOWN",
+        "prov": "synthetic or caller-declared only, no independent attestation",
+        "unfold": "validate -> temporal admissibility -> mark value -> funding-neutral gain -> research receipt"
+      }
     }
   ],
   "edges": [
@@ -510,6 +573,17 @@
       "status": "IMPLEMENTED",
       "acceptance": [
         "Read-only investment allocation CLI and conservation tests are source-realized; live effect authority stays NONE."
+      ]
+    },
+    {
+      "id": "CAS4",
+      "label": "PaperDailyReadOnlyValuation",
+      "nodeIds": [
+        "CA11"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Synthetic real CLI and model invariant tests qualify a read-only valuation function, not provider-complete EOD settlement."
       ]
     }
   ],
