@@ -83,7 +83,8 @@ previous session, current session, and next eligible clearing date for any fill.
 Trading validates the prior close, the next scheduled open, and the next
 clearing day. Accounting binds the calendar evidence to the same committed
 request and receipt. When an admitted mark snapshot is also supplied, both
-inputs must agree on the close instant. The operator is responsible for the
+inputs must agree on overlapping session closes. Successive bound calendars
+must agree on overlapping dates and with booked clearing dates. The operator is responsible for the
 calendar versions, source authenticity, correct venue, and fill prices.
 This path models on-time opening fills only.
 

@@ -25,6 +25,10 @@ def _iso(value: date | datetime) -> str:
     return value.isoformat()
 
 
+def _calendar_conflict(left: dict, right: dict) -> bool:
+    return any(left[day] != right[day] for day in left.keys() & right.keys())
+
+
 class _PaperLedger(PostgresAccountingLedger):
     def _connect(self) -> Connection:
         db = super()._connect()
@@ -119,6 +123,7 @@ class PostgresPaperClose:
                 "supersedes_sha256": mark_snapshot.supersedes_sha256,
             }
         execution = {}
+        evidence = None
         if (calendar_bytes is None) != (calendar_sha256 is None):
             raise ValueError("paper calendar bytes and digest must be supplied together")
         if calendar_bytes is not None and calendar_sha256 is not None:
@@ -130,10 +135,10 @@ class PostgresPaperClose:
                     for fill in (*day.buys, *day.sells)
                 ),
             )
-            if mark_snapshot is not None and (
-                market_evidence["session_closes"][day.session.isoformat()] != evidence["closes_at"]
+            if mark_snapshot is not None and _calendar_conflict(
+                market_evidence["session_closes"], evidence["session_closes"]
             ):
-                raise ValueError("market snapshot and execution calendar disagree on the close")
+                raise ValueError("market snapshot and execution calendar disagree on session closes")
             execution = {"execution_evidence": evidence}
 
         # Freeze caller-owned input before retrying a transaction.
@@ -171,6 +176,21 @@ class PostgresPaperClose:
                 PaperValuation(**(head[2]["valuation"] | {"session": head[0]}))
                 if head else None
             )
+            if head and evidence is not None:
+                prior_receipt = head[2]
+                prior_calendar = prior_receipt.get("execution_evidence", {})
+                prior_market = prior_receipt["market_evidence"].get("session_closes", {})
+                closes = evidence["session_closes"]
+                if _calendar_conflict(prior_calendar.get("session_closes", {}), closes) or (
+                    _calendar_conflict(prior_market, closes)
+                ):
+                    raise ValueError("successive paper closes disagree on session closes")
+                clearing = evidence["clearing_days"]
+                if _calendar_conflict(prior_calendar.get("clearing_days", {}), clearing):
+                    raise ValueError("successive paper closes disagree on clearing days")
+                maturities = (*previous.settlement_dates.values(), *previous.sale_settlement_dates.values())
+                if any(clearing.get(maturity) is False for maturity in maturities):
+                    raise ValueError("execution calendar disagrees with a booked clearing date")
             if mark_snapshot is not None:
                 covered = set(previous.positions) if previous else set()
                 covered.update(fill.symbol for fill in (*day.buys, *day.sells))

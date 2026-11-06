@@ -51,7 +51,8 @@ def admit_paper_session_calendar(
     if not isinstance(rows, list) or not 1 <= len(rows) <= 62:
         raise ValueError("paper calendar requires a bounded day window")
     market = {}
-    clearing = []
+    clearing = {}
+    closes = {}
     prior = None
     for row in rows:
         if not isinstance(row, dict) or row.keys() != {"date", "open", "close", "clears"}:
@@ -65,8 +66,8 @@ def admit_paper_session_calendar(
         bounds = _session_bounds(day, row["open"], row["close"])
         if bounds is not None:
             market[day] = bounds
-        if row["clears"]:
-            clearing.append(day)
+        clearing[day.isoformat()] = row["clears"]
+        closes[day.isoformat()] = bounds[1].isoformat() if bounds else None
     if trade_session not in market:
         raise ValueError("paper trade session must be an open market day")
     if previous_session is not None and (
@@ -74,8 +75,11 @@ def admit_paper_session_calendar(
         or next((day for day in market if day > previous_session), None) != trade_session
     ):
         raise ValueError("paper trade session must be the next open market day")
-    opens_at, closes_at = market[trade_session]
-    maturity = next((day for day in clearing if day > trade_session), None)
+    opens_at, _ = market[trade_session]
+    maturity = next(
+        (day for day, clears in clearing.items() if clears and day > trade_session.isoformat()),
+        None,
+    )
     count = 0
     for decided_at, filled_at, settlement_date in fills:
         if filled_at.utcoffset() is None or filled_at.astimezone(UTC) != opens_at:
@@ -86,7 +90,7 @@ def admit_paper_session_calendar(
             or not market[previous_session][1] <= decided_at.astimezone(UTC) < opens_at
         ):
             raise ValueError("paper decision must follow the previous close and precede the open")
-        if maturity is None or settlement_date != maturity:
+        if settlement_date is None or settlement_date.isoformat() != maturity:
             raise ValueError("paper fill settlement date must match the next clearing day")
         count += 1
     return {
@@ -96,7 +100,8 @@ def admit_paper_session_calendar(
         "clearing_source": source["clearing_source"],
         "trade_session": trade_session.isoformat(),
         "previous_session": previous_session.isoformat() if previous_session else None,
-        "closes_at": closes_at.isoformat(),
-        "settlement_date": maturity.isoformat() if count else None,
+        "session_closes": closes,
+        "clearing_days": clearing,
+        "settlement_date": maturity if count else None,
         "fill_count": count,
     }

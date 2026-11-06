@@ -1,6 +1,7 @@
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from hashlib import sha256
-from json import dumps
+from json import dumps, loads
 
 import pytest
 
@@ -74,6 +75,20 @@ def test_calendar_evidence_is_committed_in_paper_receipt():
     payload = calendar_payload()
     arguments = {"calendar_bytes": payload, "calendar_sha256": sha256(payload).hexdigest()}
     day = PaperSession(session, previous, 0, 0, {"ETF": 100}, (buy,))
+    from ordivon_capital.markets.etf_eod_snapshot import AdmittedEtfEodSnapshot, EtfCloseMark
+
+    captured = datetime(2026, 11, 10, 22, tzinfo=UTC)
+    wrong_prior = AdmittedEtfEodSnapshot(
+        "sha256:" + "1" * 64, "fixture", "fixture", "fixture", captured, captured, None,
+        (
+            EtfCloseMark(previous.isoformat(), "ETF", 100,
+                         datetime(2026, 11, 9, 20, tzinfo=UTC), captured, "FIRST_OBSERVED"),
+            EtfCloseMark(session.isoformat(), "ETF", 100,
+                         datetime(2026, 11, 10, 21, tzinfo=UTC), captured, "FIRST_OBSERVED"),
+        ),
+    )
+    with pytest.raises(ValueError, match="disagree on session closes"):
+        store.close_session(account, replace(day, marks={}), mark_snapshot=wrong_prior, **arguments)
     closed = store.close_session(account, day, **arguments)
     assert closed["execution_evidence"]["calendar_sha256"] == arguments["calendar_sha256"]
     assert closed["execution_evidence"]["settlement_date"] == "2026-11-12"
@@ -81,3 +96,12 @@ def test_calendar_evidence_is_committed_in_paper_receipt():
     assert store.close_session(account, day, **arguments) == closed
     with pytest.raises(ValueError, match="conflicting inputs"):
         store.close_session(account, day)
+
+    revised = loads(payload)
+    revised["days"][-1]["clears"] = False
+    revision = dumps(revised).encode()
+    next_day = PaperSession(date(2026, 11, 11), session, 0, 0, {"ETF": 100}, ())
+    with pytest.raises(ValueError, match="disagree on clearing days"):
+        store.close_session(
+            account, next_day, calendar_bytes=revision, calendar_sha256=sha256(revision).hexdigest(),
+        )
