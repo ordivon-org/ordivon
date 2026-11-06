@@ -253,7 +253,7 @@
     },
     {
       "id": "tail-risk-report",
-      "implementation": "src/ordivon_capital/research/model_monitoring.py::build_tail_risk_report",
+      "implementation": "src/ordivon_capital/risk/tail_report.py::build_tail_risk_report",
       "classification": "ADAPTER",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",

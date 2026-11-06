@@ -53,7 +53,7 @@ No local traffic-light threshold is embedded. If decision thresholds are later r
 
 ## Tail risk
 
-Portfolio reports may include a tail-risk node produced from registered empirical historical expected-shortfall calculations.
+Portfolio reports may include a tail-risk node produced from registered empirical historical expected-shortfall calculations. This report is composed by the Risk owner at src/ordivon_capital/risk/tail_report.py; the Research OKX observer consumes that Risk contract without defining a parallel estimator.
 
 The node preserves sample identity, return horizon, confidence level, and liquidity-horizon metadata. Liquidity-horizon metadata does not imply scaling. The current implementation is not a Basel capital engine.
 

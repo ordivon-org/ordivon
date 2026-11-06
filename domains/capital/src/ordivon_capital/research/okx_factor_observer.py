@@ -16,10 +16,10 @@ from ordivon_capital.risk.portfolio_risk import (
     completed_log_returns,
     validate_dependence_model,
 )
+from ordivon_capital.risk.tail_report import build_tail_risk_report
 
 from .model_monitoring import (
     assess_paired_return_data_quality,
-    build_tail_risk_report,
     measure_dependence_drift,
     monitor_dependence_outcomes,
 )
