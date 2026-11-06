@@ -1353,6 +1353,155 @@
           ]
         }
       }
+    },
+    {
+      "id": "V11",
+      "label": "NativeProcessingProbePlan",
+      "kind": "capability_adapter",
+      "responsibility": "Select one existing source-owned media processing profile and native adapter by exact content digests; compile a replaceable Runtime execution proposal without creating a media engine, event store or workflow scheduler.",
+      "authority": "Media Studio owns processing selection/plan semantics; Runtime owns physical execution; upstream native tools own decoding/interchange/measuring",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/agent_processing.py",
+        "src/ordivon_studio/agent_surface.py",
+        "processing/bin/probe-av.sh",
+        "processing/bin/probe-audio.sh",
+        "processing/bin/probe-otio.sh",
+        "processing/bin/probe-timed-text.sh",
+        "tests/test_agent_processing.py"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "new media parser, codec or audio DSP implementation",
+        "external runtime/Workstation tool installation and physical execution",
+        "selected Production or Artifact byte authority",
+        "a second media registry, persistent workflow scheduler or result ledger",
+        "implicit artistic, rights or publication acceptance"
+      ],
+      "acceptance": [
+        "Studio Agent discovery exposes four existing source-owned profiles with exact profile and adapter SHA-256.",
+        "Plan compiler accepts only one known profile and the exact discovered profile and adapter digests; changed digest cannot silently compile.",
+        "Plan delegates unchanged to the existing Linux Runtime/native Bash adapter, with explicit cwd and positional arguments.",
+        "Real Linux Runtime executed one generated 1920x1080p30 FFprobe plan and returned actual technicalQc.ok=true with source/profile/raw probe digests.",
+        "Owner verification and AV/audio/OTIO/timed-text native smoke passed; technical QC does not confer semantic/aesthetic/publication approval."
+      ],
+      "r21": {
+        "I": {
+          "type": "NativeProcessingProbeSelection",
+          "fields": [
+            "existing processing profile ID",
+            "expected exact SHA-256 of profile and native adapter",
+            "caller-selected media input path",
+            "caller-selected evidence output directory"
+          ],
+          "consumers": [
+            "agent_surface.studio_processing_profiles",
+            "agent_surface.studio_processing_probe_plan"
+          ]
+        },
+        "O": {
+          "type": "RuntimeExecutionProposal",
+          "fields": [
+            "exact selected profile and adapter source digests",
+            "local_linux /usr/bin/bash process proposal with cwdRelative and positional args",
+            "expected native evidence receipt path",
+            "explicit execution and result-meaning limitations"
+          ],
+          "consumers": [
+            "Runtime.workspace_exec (selected native process)",
+            "Media technical QC/review only after actual Runtime readback"
+          ]
+        },
+        "S": {
+          "type": "Unit",
+          "justification": "Discovery and compilation re-read exact source-owned files; no persistent private registry or mutable workflow state."
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "profile is present and unique in existing processing/profiles source",
+            "profile kind maps to one available native processing adapter",
+            "supplied SHA-256 values equal the current selected profile and adapter bytes",
+            "input path and evidence directory are nonempty caller-selected strings"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "returns only a concrete native Runtime proposal without invoking any tool",
+            "plan identifies source-owned profile, adapter and exact checked digests",
+            "unknown profile, unavailable adapter or digest drift is rejected before execution",
+            "no technical QC result is invented during compilation"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "no duplicate FFmpeg/OTIO/timed-text implementation or state authority",
+            "pure plan compilation is not an executed effect or source-byte immutability witness",
+            "Studio Production is optional; ordinary technical profile check alone need not create Production",
+            "a mechanical PASS does not entail artistic, rights, human or publication acceptance"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read source-owned JSON profile and native Bash adapter bytes to calculate content hashes",
+            "emit a pure JSON-like execution plan for downstream Runtime admission"
+          ],
+          "excluded": [
+            "start a media process, acquire providers or alter sources at planning time",
+            "write a second profile registry or execution log",
+            "claim an external native effect before a Runtime attempt and receipt"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "profile catalog scan plus adapter byte hashing and downstream external media workload",
+          "reason": "one successful 1080p real trace and existing smoke do not establish general cost bounds",
+          "obligation": "measure representative selected workflows only when execution cost affects a real consumer"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "external decoder conformance, source temporal semantics, human quality, rights and publication",
+          "reason": "native FFprobe receipts prove only requested mechanical predicates on selected bytes",
+          "obligation": "use existing independent Artifact/consumer readback and actual audience evidence only if claimed"
+        },
+        "prov": {
+          "type": "source_and_runtime_consumer_evidence",
+          "sourcePaths": [
+            "src/ordivon_studio/agent_processing.py",
+            "src/ordivon_studio/agent_surface.py",
+            "tests/test_agent_processing.py",
+            "processing/profiles/av-sdr-web-1080p30-noaudio.json",
+            "processing/bin/probe-av.sh"
+          ],
+          "runtimeJobId": "job-01a1af1a-7fbb-777b-a902-696542e0c645",
+          "runtimeWitness": "FFprobe n9.0 returned technicalQc.ok=true on a generated 1920x1080p30 H.264 source with source/profile/raw-probe evidence digests. This is one bounded execution episode, not a universal proof.",
+          "standing": "OWNER_TESTED_AND_NATIVE_RUNTIME_ACCEPTED_FOR_ONE_PROFILE__OTHER_SEMANTICS_UNKNOWN"
+        },
+        "unfold": {
+          "type": "owner_native_code_and_external_tools",
+          "sourcePaths": [
+            "src/ordivon_studio/agent_processing.py",
+            "src/ordivon_studio/agent_surface.py",
+            "tests/test_agent_processing.py"
+          ],
+          "nativeAdapterPaths": [
+            "processing/bin/probe-av.sh",
+            "processing/bin/probe-audio.sh",
+            "processing/bin/probe-otio.sh",
+            "processing/bin/probe-timed-text.sh"
+          ],
+          "externalImplementations": [
+            "FFprobe",
+            "FFmpeg loudnorm",
+            "OpenTimelineIO otiotool",
+            "TTML ttconv"
+          ]
+        }
+      }
     }
   ],
   "edges": [
@@ -1403,6 +1552,12 @@
       "to": "V04",
       "type": "EVIDENCE",
       "label": "staged operation identity and matched native Resolve result to QC"
+    },
+    {
+      "from": "V11",
+      "to": "V04",
+      "type": "DATA",
+      "label": "Optional digest-bound native probe plan; Runtime execution and actual tool receipt are required before the existing QC consumer can claim technical evidence"
     }
   ],
   "slices": [
@@ -1551,6 +1706,32 @@
       ],
       "blockers": [],
       "nextAction": "Only if an actual Resolve production needs host editing, use the current installed native Runner from Workspace Scripts > Utility, invoke a source-bound operation and read back exact matched result before promoting DOMAIN_ACCEPTED."
+    },
+    {
+      "id": "VS7",
+      "objective": "Use the existing Studio Agent surface to discover source-owned native processing profiles and compile exact Runtime commands while deleting any need for a separate profile registry or media processing engine.",
+      "status": "IMPLEMENTED",
+      "nodeIds": [
+        "V11",
+        "V04"
+      ],
+      "acceptance": [
+        "Four native AV, audio loudness, timed-text and OTIO profile smoke paths pass with positive/negative cases.",
+        "Exact profile/adapter digest selection is checked before plan compilation.",
+        "One compiled plan was executed by Linux Runtime and yielded real FFprobe technicalQC evidence.",
+        "Source Media Production, Archive and optional Studio state are untouched by planning."
+      ],
+      "evidence": [
+        "src/ordivon_studio/agent_processing.py",
+        "src/ordivon_studio/agent_surface.py",
+        "tests/test_agent_processing.py",
+        "processing/tests/smoke.sh",
+        "processing/tests/audio-smoke.sh",
+        "processing/tests/timedtext-smoke.sh",
+        "processing/tests/otio-smoke.sh"
+      ],
+      "blockers": [],
+      "nextAction": "Activate only for an actual selected consumer; no speculative tool acquisition, duplicate QC rewrite or private media workflow scheduler."
     }
   ],
   "gaps": [
