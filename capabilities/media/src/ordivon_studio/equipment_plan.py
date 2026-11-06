@@ -12,11 +12,16 @@ from typing import Any
 
 from .equipment_plan_contracts import (
     EquipmentPlan,
-    _first_existing,
-    _require_existing,
     _windows_native_argument,
 )
+from .equipment_plan_contracts import (
+    _first_existing as _first_existing,
+)
+from .equipment_plan_contracts import (
+    _require_existing as _require_existing,
+)
 from .equipment_plan_delivery import compile_delivery_operation
+
 
 def compile_operation(
     equipment_id: str,
