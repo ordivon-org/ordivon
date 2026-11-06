@@ -64,6 +64,24 @@ class WorktrunkConsumerProjectionTests(unittest.TestCase):
                                 native_metadata=b"")
 
 
+class CrossOwnerSourceObservationTests(unittest.TestCase):
+    def test_frozen_sources_do_not_imply_adoption(self):
+        import re
+        source = ROOT / "catalogs/capabilities/evidence/cross-owner-source-observations-20261106.json"
+        record = json.loads(source.read_text())
+        self.assertEqual(record["standing"], "DISCOVERY_ONLY")
+        self.assertEqual(len(record["observations"]), 3)
+        for entry in record["observations"]:
+            self.assertRegex(entry["upstream"]["commit"], r"^[0-9a-f]{40}$")
+            self.assertRegex(entry["upstream"]["licenseFileGitBlob"], r"^[0-9a-f]{40}$")
+            self.assertTrue((ROOT / entry["existingConsumerReference"]).is_file())
+            self.assertIn(entry["disposition"], ("RESEARCH_ONLY", "REFERENCE_ONLY"))
+            self.assertNotIn("ADMITTED", entry["consumerRelation"])
+        self.assertFalse(record["outcomes"]["autoInstall"])
+        self.assertFalse(record["outcomes"]["autoAdopt"])
+        self.assertEqual(record["outcomes"]["customLinesRetiredVerified"], 0)
+
+
 class RadarTests(unittest.TestCase):
     def example(self):
         return {"kind": "ordivon.github-trending-observation-r1", "snapshotDay": "2026-11-06",
