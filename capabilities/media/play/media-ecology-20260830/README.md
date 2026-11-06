@@ -22,7 +22,7 @@ Human encounter pilot:
 .venv/bin/python play/media-ecology-20260830/browser-check.py
 ```
 
-`build.py` deterministically generates `projection.json` and `index.html`. `browser-check.py` uses the current Workstation-managed Playwright Chromium binding at desktop and mobile viewports, rejects horizontal overflow, checks the expected activity/member counts, and retains screenshot digests rather than screenshot payloads in `browser-acceptance.json`.
+`projection.json` remains the current regression fixture consumed by the Media Ecology test. `index.html` is generated on demand by `build.py` from the retained projection, and `browser-acceptance.json` is an invocation-local Workstation Chromium result from `browser-check.py`. Both outputs are deliberately untracked: neither is current source or a durable consumer-owned acceptance record. The historical HTML rendering is not claimed to be byte-identical to later versions of the renderer.
 
 Source-fence note: `board-snapshot.json` predates Host's machine-readable Board query fence. Current builds therefore retain it as `selectionMode=unknown-legacy-response` and explicitly make no completeness claim. New Host Board snapshots preserve `latest-window` versus `incremental-page` selection semantics for downstream Media recovery.
 
