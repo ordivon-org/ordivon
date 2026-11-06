@@ -67,11 +67,33 @@ def check(root: Path, packet: Path) -> list[str]:
         resolved = (root / path).resolve()
         if not resolved.is_relative_to(root.resolve()) or not resolved.is_file():
             errors.append("missing or escaping ref: " + path)
+    # Existing source-bound blobs are evidence, not advisory metadata. A path
+    # may exist at SourceCut while its recorded bytes belong to another revision.
+    claimed_blobs = source.get("consumerSourceBlobSha1")
+    if not isinstance(claimed_blobs, dict) or set(claimed_blobs) != set(consumers):
+        errors.append("consumer Git Blob witness paths differ from consumerSources")
     if SHA.fullmatch(cut):
         for path in consumers:
-            p = subprocess.run(["git","-C",str(root),"cat-file","-e",cut+":"+path],capture_output=True)
-            if p.returncode:
+            if not isinstance(path, str) or not path or path.startswith("/"):
+                continue
+            obj = subprocess.run(
+                ["git", "-C", str(root), "rev-parse", "--verify", cut + ":" + path],
+                capture_output=True, text=True,
+            )
+            if obj.returncode:
                 errors.append("not in bound original SourceCut: " + path)
+                continue
+            blob = obj.stdout.strip()
+            kind = subprocess.run(
+                ["git", "-C", str(root), "cat-file", "-t", blob],
+                capture_output=True, text=True,
+            )
+            if kind.returncode or kind.stdout.strip() != "blob":
+                errors.append("consumer source at SourceCut is not a Git Blob: " + path)
+            if isinstance(claimed_blobs, dict):
+                recorded = claimed_blobs.get(path)
+                if not isinstance(recorded, str) or not SHA.fullmatch(recorded) or recorded != blob:
+                    errors.append("consumer Git Blob witness does not match SourceCut: " + path)
     if "experiment" in refs and (root/refs["experiment"]).is_file():
         try:
             test=json.loads((root/refs["experiment"]).read_text())

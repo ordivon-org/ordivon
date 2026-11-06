@@ -40,4 +40,6 @@ If no trustworthy current probe exists, treat the local availability statement a
 
 ## External LEGO evidence pipeline
 
+Human task path: [review a candidate](docs/HUMAN_EXTERNAL_LEGO_REVIEW_R1.md). Agent Owner path: [AGENTS.md](AGENTS.md). Both use the same native evidence, existing Skills and natural consumer Owner; neither creates a second review authority.
+
 Source-cut-bound external candidate evidence and replayable GitHub Radar snapshots are described in [External LEGO Evolution R1](docs/EXTERNAL_LEGO_EVOLUTION_R1.md). The read-only Catalog is not a live provider registry, owner authorization, R2.1 admission or promotion service; all adoption requires the natural consumer Owner and independent validation.

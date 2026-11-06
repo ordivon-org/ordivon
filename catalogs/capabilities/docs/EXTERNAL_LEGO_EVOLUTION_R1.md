@@ -14,6 +14,8 @@ This is a composition of *existing* Catalog, Skills, Research and Composition ob
 6. **Adoption or abstention** — owner decides direct reuse, scoped activation, minimal adapter, KEEP_NATIVE, HOLD or REJECT. Composition Successor Contract binds old/new candidates but does not promote them. Materialize only when owner has verified exact current state and effect approval.
 7. **Evolution** — reobserve upstream/current license and actual owner state on version or contract change. Remove custom wrappers only after independently validating consumer reachability, negative evidence, restore path and post-cutover readback.
 
+For a task-oriented starting point, use the [Human review how-to](HUMAN_EXTERNAL_LEGO_REVIEW_R1.md) or [Agent Owner instructions](../AGENTS.md). The existing checker now requires recorded consumer Git Blob identities to match the actual bound SourceCut; a matching filename alone cannot prove source identity. This validates evidence integrity, not provider adoption.
+
 ## First source-cut evidence chain
 
 - Source discovery and upstream exact version: catalogs/capabilities/evidence/external-lego-worktrunk-20261106.json
