@@ -16,13 +16,30 @@ Expected records include:
 Open upstream sources may be pinned or mirrored where redistribution permits. Restricted standards should be represented by metadata, version, official source references and permitted derived mappings rather than copied content.
 
 
-## External world observations
+## External-world learning: Human entry
 
-[Claim–Evidence–Delta R1](docs/EXTERNAL_WORLD_DELTA_R1.md) defines a bounded,
-read-only source comparison with an explicitly unaccepted domain decision. The
-[November 2026 BoE example](observations/boe-rate-20261105.json) preserves both
-primary-source dates and units, and the stdlib consumer can reproduce its
-arithmetic without creating a news database or changing Capital state.
+Use the [external-world evidence review Skill](../../.agents/skills/external-world-evidence-review/SKILL.md)
+when an externally confirmed event or counterexample might change a **named**
+current domain hypothesis or decision. Choose the real previous baseline,
+issuer/original source, affected model or consumer, and the next observation
+that would disprove the proposed change. The relevant natural Owner, not this
+catalog, decides whether to revise that model. For routine daily news reading,
+the existing daily-world-brief procedure remains the correct entry.
+
+## External-world learning: Agent entry
+
+Discover and read the exact installed `external-world-evidence-review` Skill
+when activated. Reuse the domain's native research and verification tools
+and W3C PROV / CloudEvents / OpenLineage only where their semantics are needed.
+Preserve source dates, uncertain status, direct support scope, independent
+counterevidence and actual consumer read-back. Do not construct an extra
+persistent event registry, automatic promotion daemon or custom arithmetic
+validator. A no-consumer observation may remain a human-readable report.
+
+The earlier `external_world_delta.py`, dated BoE sample and self-referential
+tests are retired because the only live references were their own demo, README
+and root CI invocation; ordinary source/date/decimal comparison is handled
+by mature, task-selected methods. Git retains the past source if needed.
 
 ## Lifecycle
 
