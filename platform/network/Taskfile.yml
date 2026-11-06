@@ -94,7 +94,6 @@ tasks:
       - systemctl disable network-v2-dnsproxy.service network-v2-singbox.service network-v2-blackbox.service network-v2-prometheus.service >/dev/null 2>&1 || true
       - systemctl enable network-v2-r0.target
       - systemctl restart network-v2-r0.target
-      - systemctl disable --now network-v2-toxiproxy.service || true
 
   core:verify:
     desc: Fail closed unless live R0 bytes, systemd composition root, dual-stack data plane, probe plane, and evidence plane match source
@@ -104,7 +103,6 @@ tasks:
       - cmp -s systemd/network-v2-singbox.service /etc/systemd/system/network-v2-singbox.service
       - cmp -s systemd/network-v2-blackbox.service /etc/systemd/system/network-v2-blackbox.service
       - cmp -s systemd/network-v2-prometheus.service /etc/systemd/system/network-v2-prometheus.service
-      - cmp -s systemd/network-v2-toxiproxy.service /etc/systemd/system/network-v2-toxiproxy.service
       - cmp -s config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
       - cmp -s config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
       - cmp -s config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
@@ -262,8 +260,6 @@ tasks:
 
 
 vars:
-  SYSTEMD_UNITS:
-    sh: printf '%s ' systemd/network-v2-*.service
   R0_SYSTEMD_UNITS:
     sh: printf '%s ' systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
   FINANCE_SYSTEMD_UNITS:
