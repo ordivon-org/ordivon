@@ -8,17 +8,17 @@
   "canonicalToolId": "github:max-sixty/worktrunk@v0.81.0#list",
   "effectClass": "read_only",
   "evidenceRefs": [
-    "catalogs/capabilities/evidence/worktrunk-git-comparison-20261106.json"
+    "catalogs/capabilities/evidence/worktrunk-repo-owner-consumer-shadow-20261106.json"
   ],
   "positiveControlRefs": [
-    "catalogs/capabilities/evidence/worktrunk-git-comparison-20261106.json"
+    "catalogs/capabilities/evidence/worktrunk-repo-owner-consumer-shadow-20261106.json"
   ],
   "negativeControlRefs": [
-    "catalogs/capabilities/evidence/worktrunk-git-comparison-20261106.json"
+    "catalogs/capabilities/evidence/worktrunk-repo-owner-consumer-shadow-20261106.json"
   ],
   "standing": "HOLD",
   "holdReasons": [
-    "No Research-consumer-specific qualification; no installed-current Runtime equality or delegated production effect authorization"
+    "Actual Research experiment consumer and owner-currentness not established; repo-governance read-only evidence cannot qualify a Research operation."
   ],
   "nonClaims": [
     "Disposable git inventory qualification is not Runtime adoption",

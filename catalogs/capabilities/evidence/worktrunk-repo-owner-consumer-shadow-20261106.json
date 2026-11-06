@@ -29,5 +29,33 @@
     "No prunable-equivalent native Worktrunk contract",
     "No Runtime workspace open/close/recovery/SourceCut equivalence",
     "No actual production code path switched"
-  ]
+  ],
+  "realRepositoryReadOnlyObservation": {
+    "observedAt": "2026-11-06T06:57:47.888949+00:00",
+    "actualConsumerPath": "tools/repo/exhaustive_coverage.py",
+    "observedSourceHead": "65d9bba3e2000f973fc3bcc05410fa2a8f97b5b7",
+    "native": {
+      "count": 145,
+      "prunable": 0,
+      "detached": 107
+    },
+    "candidateInventory": {
+      "count": 145,
+      "detached": 107
+    },
+    "consumerReadback": {
+      "nativeRequeried": true,
+      "countParity": true,
+      "pathSetParity": true,
+      "branchParity": true,
+      "detachedParity": true,
+      "missingPaths": [],
+      "extraPaths": [],
+      "branchMismatches": [],
+      "detachedMismatches": [],
+      "note": "Same Git metadata snapshot before/after candidate probe; natural owner production implementation was not switched"
+    },
+    "nativeReadbackEqualSnapshot": true,
+    "noGlobalInstallation": false
+  }
 }
