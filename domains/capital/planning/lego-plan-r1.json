@@ -332,6 +332,68 @@
       "sourceQualification": "DOMAIN_SOURCE_AND_OWNER_TEST_ONLY",
       "formalQualification": "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN",
       "effectBoundary": "NON_LIVE_SOURCE_ONLY"
+    },
+    {
+      "id": "CA09",
+      "label": "StrategicContributionOnlyAllocation",
+      "kind": "read_only_portfolio_composition",
+      "responsibility": "Project exact contribution-only allocation from explicit user targets and protected cash reserves",
+      "authority": "Finance Portfolio source and caller-supplied policy; Risk, Governance and Trading retain independent authority",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "USD integer cents cash, reserve, contribution, holdings and target weights in integer basis points"
+      ],
+      "outputs": [
+        "deterministic read-only allocation proposal, projected holdings and explicit unverified/risk-unknown standings"
+      ],
+      "behavioralContract": "Conservation, no-selling, protected reserve and exact normalized target weights; no trade order, advice, inferred return or execution rights",
+      "acceptance": [
+        "Existing Finance native suite, exact integer conservation/property matrix, and real stdin CLI consumer with negative invalid-document cases"
+      ],
+      "evidence": [
+        "src/ordivon_capital/portfolio/strategic_contribution.py",
+        "tests/test_strategic_contribution.py",
+        "examples/strategic_contribution_r1.json",
+        "scripts/run-strategic-contribution-brief"
+      ],
+      "dependencies": [],
+      "sharedRefs": [
+        "docs/FINANCE_INVESTMENT_FIRST_R1.md"
+      ],
+      "consumerEvidence": [
+        {
+          "path": "scripts/run-strategic-contribution-brief",
+          "standing": "NATIVE_REAL_READ_ONLY_CLI_CONSUMER"
+        },
+        {
+          "path": "tests/test_strategic_contribution.py",
+          "standing": "NATIVE_TEST_AND_INVARIANT_MATRIX"
+        }
+      ],
+      "mustNotOwn": [
+        "market prices or valuation",
+        "security selection",
+        "cost/tax forecasting",
+        "risk approval",
+        "broker orders",
+        "external financial effects"
+      ],
+      "sourceQualification": "DOMAIN_SOURCE_CONSUMER_VERIFIED",
+      "formalQualification": "INTEGER_CONSERVATION_INVARIANTS_TESTED_NO_UNIVERSAL_PROOF",
+      "effectBoundary": "NO_EXTERNAL_EFFECT",
+      "r21Contract": {
+        "I": "strict caller USD minor-unit holdings/reserve/contribution and exact target bps",
+        "O": "exact integer projected holdings and unverified research-only receipt",
+        "S": "read-only projection; no mutable state",
+        "pre": "valid asset identities, reserve funded, contribution <= unprotected cash, weights sum to 10000",
+        "post": "allocated contribution exact, no holdings decrease, cash after >= protected reserve",
+        "inv": "int64 money bounds; integer apportionment; no risk/financial-write authorization",
+        "eff": "NONE",
+        "c": "O(n log n), bounded n <= 128",
+        "epsilon": "not applicable to arithmetic; market returns UNKNOWN",
+        "prov": "source path, exact example, owner tests and real CLI; external account valuations UNATTESTED",
+        "unfold": "parse and validate -> integer deficits -> largest remainder apportion -> project and mark unknown"
+      }
     }
   ],
   "edges": [
@@ -375,6 +437,17 @@
       "status": "IMPLEMENTED",
       "acceptance": [
         "Policy/reconciliation/accounting implementations have separate native tests, but provider account acceptance and Windows/Linux installed state are not claimed."
+      ]
+    },
+    {
+      "id": "CAS3",
+      "label": "InvestmentFirstStrategicAllocation",
+      "nodeIds": [
+        "CA09"
+      ],
+      "status": "IMPLEMENTED",
+      "acceptance": [
+        "Read-only investment allocation CLI and conservation tests are source-realized; live effect authority stays NONE."
       ]
     }
   ],
