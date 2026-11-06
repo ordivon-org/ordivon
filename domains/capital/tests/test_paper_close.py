@@ -110,3 +110,48 @@ def test_postgres_paper_rejects_a_non_durable_receipt_table():
                 PostgresPaperClose(dsn)
         finally:
             db.execute("ALTER TABLE ordivon_paper.daily_close SET LOGGED")
+
+
+def test_postgres_paper_receipt_binds_admitted_market_bytes():
+    dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from hashlib import sha256
+    from json import dumps
+
+    from ordivon_capital.accounting.postgres_paper_close import PostgresPaperClose
+    from ordivon_capital.markets.etf_eod_snapshot import admit_etf_eod_snapshot
+
+    close_at = "2026-01-09T21:00:00Z"
+    observed_at = "2026-01-09T21:10:00Z"
+    raw = dumps({
+        "schemaVersion": 1,
+        "kind": "ordivon.finance.markets.etf-eod-snapshot",
+        "sourceId": "synthetic-fixture",
+        "currency": "USD",
+        "priceBasis": "RAW_UNADJUSTED_CLOSE",
+        "rights": {"status": "AUTHORIZED_PRIVATE_PAPER_USE", "evidenceRef": "fixture"},
+        "corporateActions": {"coverage": "COMPLETE", "evidenceRef": "fixture", "events": []},
+        "capturedAt": observed_at,
+        "supersedesSha256": None,
+        "marks": [{
+            "sessionDate": "2026-01-09", "instrumentId": "ETF", "priceMinor": 10_200,
+            "availableAt": observed_at, "availabilityBasis": "FIRST_OBSERVED",
+        }],
+    }).encode()
+    digest = "sha256:" + sha256(raw).hexdigest()
+    snapshot = admit_etf_eod_snapshot(
+        raw, expected_sha256=digest, expected_source_id="synthetic-fixture",
+        expected_rights_ref="fixture", expected_corporate_actions_ref="fixture",
+        expected_instruments=["ETF"], expected_session_closes={"2026-01-09": close_at},
+        decision_at=observed_at,
+    )
+    day0, day1, _ = inputs()
+    account = "paper-test-" + uuid4().hex
+    store = PostgresPaperClose(dsn)
+    store.close_session(account, day0)
+    receipt = store.close_session(account, replace(day1, marks={}), mark_snapshot=snapshot)
+    assert receipt["market_evidence"]["sha256"] == digest
+    assert receipt["valuation"]["nav_minor"] == 1_001_900
+    with pytest.raises(ValueError, match="inline marks"):
+        store.close_session(account, day1, mark_snapshot=snapshot)

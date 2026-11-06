@@ -5,7 +5,7 @@ import hashlib
 import json
 import re
 import sys
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import date, datetime
 from os import environ
 from pathlib import Path
@@ -13,6 +13,7 @@ from pathlib import Path
 from psycopg import Connection
 from psycopg.types.json import Jsonb
 
+from ..markets.etf_eod_snapshot import AdmittedEtfEodSnapshot, admit_etf_eod_snapshot
 from .paper_close import PaperSession, PaperValuation, decode_session, value_session
 from .postgres_ledger import PostgresAccountingLedger
 from .substrate import AccountingAccount, LedgerApplyStatus, stable_accounting_id
@@ -74,14 +75,39 @@ class PostgresPaperClose:
         if admitted != (True,):
             raise RuntimeError("paper receipt table must be permanent with its original key")
 
-    def close_session(self, account_key: str, day: PaperSession) -> dict:
+    def close_session(
+        self, account_key: str, day: PaperSession, *,
+        mark_snapshot: AdmittedEtfEodSnapshot | None = None,
+    ) -> dict:
         if re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", account_key) is None:
             raise ValueError("invalid paper account key")
-        # Canonicalize and copy caller-owned mutable input before retrying a transaction.
-        payload = json.dumps(asdict(day), default=_iso, sort_keys=True, separators=(",", ":"))
+        market_evidence = {"standing": "CALLER_SUPPLIED_MARKS"}
+        if mark_snapshot is not None:
+            if day.marks:
+                raise ValueError("inline marks cannot accompany an admitted snapshot")
+            session = day.session.isoformat()
+            try:
+                marks = mark_snapshot.prices_for(session)
+            except KeyError as error:
+                raise ValueError("market snapshot does not cover the close session") from error
+            day = replace(day, marks=marks)
+            market_evidence = {
+                "standing": "OPERATOR_BOUND_MARKS",
+                "sha256": mark_snapshot.sha256,
+                "source_id": mark_snapshot.source_id,
+                "rights_ref": mark_snapshot.rights_ref,
+                "corporate_actions_ref": mark_snapshot.corporate_actions_ref,
+                "captured_at": mark_snapshot.captured_at.isoformat(),
+                "decision_at": mark_snapshot.decision_at.isoformat(),
+            }
+        # Freeze caller-owned input before retrying a transaction.
+        payload = json.dumps(
+            asdict(day) | {"market_evidence": market_evidence},
+            default=_iso, sort_keys=True, separators=(",", ":"),
+        )
         digest = hashlib.sha256(payload.encode()).hexdigest()
         request = json.loads(payload)
-        day = decode_session(request)
+        day = decode_session({key: value for key, value in request.items() if key != "market_evidence"})
 
         def close(db: Connection) -> dict:
             existing = db.execute(
@@ -110,6 +136,7 @@ class PostgresPaperClose:
                 "request_sha256": digest,
                 "previous_request_sha256": head[1] if head else None,
                 "account_key": account_key,
+                "market_evidence": market_evidence,
             }
             written = db.execute(
                 "INSERT INTO ordivon_paper.daily_close "
@@ -166,11 +193,19 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--account", required=True)
     parser.add_argument("--input", required=True, type=Path)
+    parser.add_argument("--market-snapshot", type=Path)
+    parser.add_argument("--market-binding", type=Path)
     args = parser.parse_args()
+    if bool(args.market_snapshot) != bool(args.market_binding):
+        parser.error("--market-snapshot and --market-binding must be supplied together")
     try:
         day = decode_session(json.loads(args.input.read_text(encoding="utf-8")))
+        snapshot = None
+        if args.market_snapshot:
+            binding = json.loads(args.market_binding.read_text(encoding="utf-8"))
+            snapshot = admit_etf_eod_snapshot(args.market_snapshot.read_bytes(), **binding)
         dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_DSN", "")
-        result = PostgresPaperClose(dsn).close_session(args.account, day)
+        result = PostgresPaperClose(dsn).close_session(args.account, day, mark_snapshot=snapshot)
     except (ValueError, TypeError, KeyError, OSError) as error:
         print(f"paper close rejected: {error}", file=sys.stderr)
         return 1

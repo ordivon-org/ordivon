@@ -87,7 +87,13 @@ A funding-only opening request for `session.json`:
 Subsequent requests name the preceding session. Buy rows contain
 `fill_id`, `symbol`, `shares`, `price_minor`, `fee_minor`,
 `decided_at` and `filled_at`. Timestamps carry offsets. Mark values
-and all money fields are USD cents. The cash ledger, input snapshot and
+and all money fields are USD cents. Inline marks are caller-supplied.
+For operator-bound marks, pass `--market-snapshot snapshot.json` and
+`--market-binding binding.json` together with empty inline `marks`. The
+binding object supplies the keyword arguments documented in
+[the ETF snapshot contract](docs/PAPER_ETF_EOD_SNAPSHOT_R1.md). Its snapshot
+identity, source, evidence references and observation clock are preserved
+in the paper receipt. The cash ledger, input snapshot and
 valuation receipt commit together. Exact replay returns the original
 receipt and changed inputs for a closed session are rejected. The runner
 requires a session with no corporate actions or sell fills. Calendar
