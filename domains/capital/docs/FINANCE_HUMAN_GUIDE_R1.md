@@ -151,6 +151,8 @@ scripts/run-capability-python -m ordivon_capital.risk.paper_close_risk \
 `.agents/skills/finance-paper-risk-review/SKILL.md`，真实资格由
 Accounting/Markets/Risk 原生消费者给出。
 
+历史尾部风险如果单独计算 VaR / ES，应使用现有 Risk 的 `historical_expected_shortfall`，并按 [Portfolio Risk Monitoring](PORTFOLIO_RISK_MONITORING_R1.md) 理解其经验分布与尾部概率口径。尤其不要把“超过阈值的样本直接平均”误认为指定置信度的 ES；它不能替代未来风险预测或风险预算。
+
 ## 4. 如何阅读结果？
 
 - **`READ_ONLY_PROJECTION`**：只是数学投影。它不证明行情真实或组合风险合格。

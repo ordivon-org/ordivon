@@ -36,6 +36,13 @@ Do not create another broker, Finance Agent service, ledger or risk engine.
    Unsettled sale receivables cannot fund new buys.
    UNSET principal budget means RISK_BUDGET_INCOMPLETE, not approval.
 
+For a separate descriptive tail-risk request, call the existing Risk
+`historical_expected_shortfall` consumer. It integrates the empirical loss
+quantile over the exact upper probability mass, including fractional boundary
+observations; use `effectiveTailObservationWeight` rather than treating
+`tailObservationCount` as independent severe events. Do not turn this
+statistic into an automated risk-budget approval.
+
 Qualification: mise run //domains/capital:verify plus actual isolated
 PostgreSQL paper receipt readback under disposable
 ORDIVON_CAPITAL_PAPER_PG_TEST_DSN against database ordivon_paper.

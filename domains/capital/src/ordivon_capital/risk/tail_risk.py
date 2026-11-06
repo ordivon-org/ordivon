@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from typing import Any
 
@@ -33,21 +34,42 @@ def historical_expected_shortfall(
         [_float(value, f"returns[{i}]") for i, value in enumerate(returns)],
         dtype=float,
     )
-    losses = -values
-    value_at_risk = float(np.quantile(losses, confidence, method="linear"))
-    tail = losses[losses >= value_at_risk]
-    if tail.size == 0:
-        raise PortfolioRiskError("expected-shortfall tail set is empty")
-    expected_shortfall = float(np.mean(tail))
+    # Integrate the inverse empirical CDF over (confidence, 1], rather
+    # than averaging every value at/above an interpolated VaR threshold.
+    # The latter gives the wrong tail probability for finite samples and
+    # overweights tied observations at the boundary.
+    losses = np.sort(-values)
+    value_at_risk = float(np.quantile(losses, confidence, method="inverted_cdf"))
+    tail_mass = (1.0 - confidence) * losses.size
+    nearest_integer = round(tail_mass)
+    if nearest_integer >= 1 and math.isclose(
+        tail_mass, nearest_integer, rel_tol=0.0, abs_tol=1e-12
+    ):
+        tail_mass = float(nearest_integer)
+    whole_observations = int(tail_mass)
+    fractional_observation = tail_mass - whole_observations
+    weighted_tail = (
+        [float(loss) / tail_mass for loss in losses[-whole_observations:]]
+        if whole_observations
+        else []
+    )
+    if fractional_observation:
+        weighted_tail.append(
+            float(losses[-whole_observations - 1]) * (fractional_observation / tail_mass)
+        )
+    expected_shortfall = math.fsum(weighted_tail)
+    if not math.isfinite(expected_shortfall):
+        raise PortfolioRiskError("expected-shortfall aggregate is non-finite")
 
     return {
         "schemaVersion": 2,
         "kind": "ordivon.capital.risk.historical-expected-shortfall",
         "componentId": "historical-expected-shortfall",
-        "method": "EMPIRICAL_HISTORICAL_TAIL_MEAN",
+        "method": "EMPIRICAL_QUANTILE_INTEGRATED_TAIL",
         "confidence": format(confidence, ".6f"),
         "observationCount": int(values.size),
-        "tailObservationCount": int(tail.size),
+        "tailObservationCount": whole_observations + int(fractional_observation > 0),
+        "effectiveTailObservationWeight": format(tail_mass, ".12g"),
         "valueAtRiskLossFraction": format(value_at_risk, ".8f"),
         "expectedShortfallLossFraction": format(expected_shortfall, ".8f"),
         "liquidityHorizonScalingApplied": False,
