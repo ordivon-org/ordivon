@@ -843,7 +843,8 @@
     {
       "id": "portfolio-offline-virtual-capital-daily-mark",
       "sourcePatterns": [
-        "src/ordivon_capital/portfolio/paper_investment.py"
+        "src/ordivon_capital/portfolio/paper_investment.py",
+        "src/ordivon_capital/portfolio/paper_vintage.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"
@@ -854,7 +855,7 @@
         "Original historical market-data provider owns the actual price and adjustment truth"
       ],
       "localStanding": "RETAINED_BOUNDED_SIMULATION_ONLY",
-      "localResponsibility": "Compose validated external historical price bytes and caller-frozen virtual allocation into daily descriptive NAV with passive index and cash comparisons. No broker trades, cash transfer, independent profit claim, optimizer, scheduler, alternative accounting registry or live authority.",
+      "localResponsibility": "Compose validated external historical price bytes and caller-frozen virtual allocation into daily descriptive NAV with passive index and cash comparisons. No broker trades, cash transfer, independent profit claim, optimizer, scheduler, alternative accounting registry or live authority. Compare two precisely byte-bound retrospective source vintages under one exact policy, refusing wealth deltas when priced session coverage differs; without provider point-in-time attestation or predictive inference.",
       "admittedMechanicsOwners": [
         "Existing Capital passive_benchmark replay and Python Decimal"
       ],
