@@ -13,7 +13,7 @@ tasks:
         declared=$(jq -cS '.allowedHttpsDomains|sort' consumers/claude/config/authority.json)
         enforced=$(jq -cS '.route.rules[] | select(.action=="route") | .domain|sort' consumers/claude/config/sing-box.json)
         test "$declared" = "$enforced"
-        jq -e '.route.rules[-1].action=="reject" and (.route.rules[] | select(.action=="route") | .port)==[443] and (.route.rules[] | select(.action=="route") | .network)==["tcp"]' consumers/claude/config/sing-box.json >/dev/null
+        jq -e '.route.rules[-1].action=="reject" and (.route.rules[] | select(.action=="route") | .port)==[443] and (.route.rules[] | select(.action=="route") | .network)==["tcp"] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and (.route.rules[] | select(.action=="route") | .outbound)=="provider-carrier" and (has("dns")|not)' consumers/claude/config/sing-box.json >/dev/null
 
   consumer:claude:materialize:
     desc: Materialize the Claude scoped egress and no-direct-route client namespace without restarting the shared Browserless VPN carrier

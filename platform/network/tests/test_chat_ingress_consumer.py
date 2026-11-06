@@ -24,6 +24,13 @@ def test_chat_ingress_consumer_is_scoped_to_existing_browserless_network_authori
     }
     assert cfg['directFallback'] is False
     assert cfg['allowedOrigins'] == ['https://chatgpt.com']
+    policy = json.loads((CONSUMER / 'config/sing-box.json').read_text())
+    assert policy['outbounds'] == [{'type':'http','tag':'provider-carrier','server':'10.252.246.2','server_port':19680}]
+    assert policy['route']['rules'] == [
+        {'inbound':['chat-ingress'], 'network':['tcp'], 'domain':['chatgpt.com'], 'port':[443], 'action':'route', 'outbound':'provider-carrier'},
+        {'action':'reject'},
+    ]
+    assert 'dns' not in policy
 
 
 def test_chat_ingress_units_relay_only_to_namespace_local_proxy_and_do_not_change_host_routes():
@@ -37,6 +44,8 @@ def test_chat_ingress_units_relay_only_to_namespace_local_proxy_and_do_not_chang
     assert 'systemd-socket-proxyd 127.0.0.1:19080' in relay
     assert 'BindsTo=network-v2-browserless.target' in proxy
     assert 'BindsTo=network-v2-browserless.target' in relay
+    assert 'After=network-v2-browserless.target' in proxy
+    assert 'network-v2-browserless-dns.service' not in proxy
     combined = '\n'.join((proxy, relay, target)).lower()
     for forbidden in ('ip route replace', 'route add', 'netsh', 'proxyenable', 'wg-quick up'):
         assert forbidden not in combined
@@ -49,6 +58,7 @@ def test_chat_ingress_has_standard_network_v2_lifecycle_tasks_and_readiness():
         'consumer:chat-ingress:materialize:',
         'consumer:chat-ingress:start:',
         'consumer:chat-ingress:ready:',
+        'consumer:chat-ingress:verify:',
         'consumer:chat-ingress:stop:',
     ):
         assert task in taskfile
