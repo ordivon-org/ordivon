@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Existing Finance runner owns Python environment; this file only selects a consumer.
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+exec "$root/scripts/run-capability-python" "$root/scripts/strategic_contribution_brief.py"

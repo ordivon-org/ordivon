@@ -758,6 +758,21 @@
       ],
       "localStanding": "LOCAL_BOUNDED_SESSIONLESS_TAGVALUE_PROJECTOR_PREFERRED",
       "localResponsibility": "project only the qualified FIX 4.4 NewOrderSingle field sequence for mechanics evidence; no session, transport, BodyLength, CheckSum, resend, sequence recovery, dictionary negotiation, or broader FIX engine"
+    },
+    {
+      "id": "portfolio-strategic-contribution-only",
+      "sourcePatterns": [
+        "src/ordivon_capital/portfolio/strategic_contribution.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Python standard-library exact integer arithmetic and bounded Hamilton apportionment",
+        "QuantConnect or NautilusTrader only if an actual future execution contract is qualified"
+      ],
+      "localStanding": "RETAINED_IRREDUCIBLE_READONLY_GLUE",
+      "localResponsibility": "Conserve caller-specified contribution cents while preserving an explicit cash reserve; allocate without sale, prediction, advice or execution effects. Own only the exact cross-asset caller mandate composition, not optimization or a broker."
     }
   ],
   "notInstantiatedDomains": [

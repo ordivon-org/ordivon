@@ -14,6 +14,22 @@ Research/data persistence: Pandera + Parquet/PyArrow + DuckDB + MLflow, with MLf
 Historical issuer/reference inputs (GLEIF/SEC/Arelle) belong to the retired Wave-A generation slice and are not active Capital capabilities.
 Capital accounting mechanics: TigerBeetle `0.17.9`; venue/custody/settlement systems remain authoritative for their own external state.
 
+## Investment-first Finance modernization (2026-11-06)
+
+The canonical Finance program now includes a **contribution-only long-horizon
+allocation consumer**, separately from historical trading/backtest experiments.
+Caller-defined target weights and explicitly protected cash are projected
+using integer-cent arithmetic; no asset is sold, no forecast or market
+valuation is inferred, and no order is submitted. This extends the existing
+Portfolio source owner without creating another trading engine or an Agent
+registry.
+
+For the current source, actual CLI and invariants, see
+[Investment-first Finance R1](docs/FINANCE_INVESTMENT_FIRST_R1.md) and
+`scripts/run-strategic-contribution-brief`. The source path remains
+`domains/capital` until a separate cross-owner relocation is verified;
+`Finance` names the investment program, not a second package.
+
 ## Current standing
 
 The historical Wave-A generation pipeline is retired. Its frozen `wave_b/fixtures/wave_a_target_portfolio.json` remains an immutable regression/execution-mechanics input for Wave B; Capital no longer carries the GLEIF/SEC/Cboe/equal-weight generator that produced it.
