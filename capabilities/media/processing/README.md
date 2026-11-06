@@ -23,6 +23,13 @@ Run from `capabilities/media`. Use `processing/bin/` for exact profile checks an
 own media parsing/encoding, loudness computation, subtitle conversion and timeline
 interchange; these shell adapters must not reimplement those semantics.
 
+OpenTimelineIO and ttconv use existing version-pinned wrappers
+(`processing/bin/otiotool-pinned.sh` and `processing/bin/ttconv-pinned.sh`)
+via `mise` and `uv tool run` when the selected adapter executes. The ttconv
+command is named `tt`: absence of a global `otiotool`, `tt`, or `ttconv`
+command does not prove the pinned adapter unavailable. Native readiness is
+established by the actual Runtime Job and tool receipt, not by discovery.
+
 The dependency-light `studio_processing_profiles` Agent action lists the source
 profile and adapter paths with their independent SHA-256 byte identities. It does
 not invoke equipment or claim it is installed. Execute a selected adapter through

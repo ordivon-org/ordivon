@@ -47,6 +47,9 @@ python3 scripts/studio-agent-surface.py studio_processing_profiles --arguments '
 ```
 
 The current source-owned families cover AV structure (FFprobe), audio loudness (FFmpeg), timeline interchange (OpenTimelineIO) and timed text (TTML/ttconv). This list shows the precise profile and adapter digests, **not** installed-tool readiness. To inspect a real artifact, select one profile and let an Agent compile its digest-pinned Runtime execution plan through the [native-processing Skill](../../../.agents/skills/media-native-processing/SKILL.md). The existing [processing reference](../processing/README.md) describes the native tools.
+OTIO and TTML work through source-pinned `mise + uv tool run` wrappers on
+selection; missing global `otiotool` or `ttconv` commands are not by themselves
+a failure. Check the selected Runtime Job and receipt for actual tool readiness.
 
 Technical PASS cannot approve meaning, style, licenses, human experience or publication. OTIO references media externally; it does not contain video/audio payloads or guarantee an editor's private effects survive interchange.
 

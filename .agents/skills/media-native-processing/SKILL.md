@@ -55,8 +55,12 @@ another subprocess probe wrapper or infer profile approval from raw fields.
    `expectedReceipt`. A digest mismatch rejects the stale choice.
 4. Submit the plan's concrete `execution` fields through the normal Runtime
    `workspace.exec` with the real Workspace ID. Confirm source bytes and
-   the selected native tool exist in that execution environment; do not treat
-   a source catalog as an effect or installation proof.
+   native execution from the Job receipt, not from the discovery catalog.
+   OTIO and TTML adapters already invoke `processing/bin/otiotool-pinned.sh`
+   and `processing/bin/ttconv-pinned.sh`, resolving exact versions via
+   `mise` and `uv tool run` only when selected. The ttconv CLI is `tt`, not
+   `ttconv`; absence of global `otiotool` or `ttconv` on PATH does not prove
+   these pinned adapters unavailable. Never install a duplicate provider.
 5. Observe the exact Runtime Job and read the emitted `evidence.json`
    plus native tool observations. Bind artifact/profile/tool hashes and exact
    acceptance predicates to the **real consumer**. Negative fixture failure
