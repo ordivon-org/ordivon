@@ -55,6 +55,46 @@ For the current source, actual CLI and invariants, see
 `domains/capital` until a separate cross-owner relocation is verified;
 `Finance` names the investment program, not a second package.
 
+## Paper investment accounting
+
+The Accounting owner can close one supplied USD simulation session with
+`ordivon_capital.accounting.postgres_paper_close`. It carries whole-share
+long positions and settles the previous session's buy payables. Inputs must
+already bind the consecutive exchange session, admitted fills and raw
+closing marks. This entry point is for an offline paper run.
+
+Use a dedicated PostgreSQL database named `ordivon_paper` and a role
+restricted to that database. Set `ORDIVON_CAPITAL_PAPER_PG_DSN` for the runner.
+
+```sh
+scripts/run-capability-python -m ordivon_capital.accounting.postgres_paper_close \
+  --account cash --input session.json
+```
+
+A funding-only opening request for `session.json`:
+
+```json
+{
+  "session": "2026-01-08",
+  "previous_session": null,
+  "contribution_minor": 1000000,
+  "reserve_contribution_minor": 0,
+  "marks": {},
+  "buys": []
+}
+```
+
+Subsequent requests name the preceding session. Buy rows contain
+`fill_id`, `symbol`, `shares`, `price_minor`, `fee_minor`,
+`decided_at` and `filled_at`. Timestamps carry offsets. Mark values
+and all money fields are USD cents. The cash ledger, input snapshot and
+valuation receipt commit together. Exact replay returns the original
+receipt and changed inputs for a closed session are rejected. The runner
+requires a session with no corporate actions or sell fills. Calendar
+qualification, corporate-action postings and execution admission belong
+to their upstream contracts. The PostgreSQL acceptance test uses
+`ORDIVON_CAPITAL_PAPER_PG_TEST_DSN` against a disposable paper database.
+
 ## Current standing
 
 **Finance Investment Mode R2**: [cash-flow-matched passive baseline](docs/FINANCE_INVESTMENT_MODE_R2.md) is available as a read-only portfolio comparison. It does not grant trade authority.
