@@ -22,7 +22,7 @@ The root owns repository mechanics only. It does not define a Universal Task, St
 
 The physical primary checkout at /root/projects/ordivon is a shared integration surface, not an agent scratch workspace. Candidate work belongs in detached/branch worktrees. Main integration must be serialized through tools/repo/migration/integrate-main.sh; the helper fails closed if the primary index/worktree is stale or dirty and never auto-stashes or resets shared bytes. Owner-native verification remains outside this Git integration helper.
 
-The dated `docs/architecture/CURRENT_ARCHITECTURE.md` preserves the **2026-09-28 historical deployment snapshot**, not current production truth. The source migration record is `docs/migration/acceptance/SOURCE_MIGRATION_STANDING.md`.
+The dated `docs/architecture/CURRENT_ARCHITECTURE.md` is a historical deployment snapshot, not current production truth. Use the current Owner contracts, installed service observations, and Git history for exact source/installation lineage; the superseded standalone migration receipts are no longer an active reference layer.
 
 The non-deployed source-layout transition target is `docs/architecture/STRUCTURE_R2.md`. It does not override current owner paths until each relocation wave is independently accepted.
 
