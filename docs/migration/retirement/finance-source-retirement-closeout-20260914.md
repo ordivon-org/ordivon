@@ -2,7 +2,7 @@
 
 Status: **SOURCE_RETIRED / PHYSICAL ARCHIVE PRESERVED / LIVE RECOVERY RESIDUAL SEPARATE**.
 
-This record supersedes the current-disposition conclusion in `finance-retention-disposition.md` without rewriting why the earlier migration hold was correct at that time.
+The earlier `RETAIN ACTIVE` migration hold was discharged by the consumer cutover and recovery evidence below; it is not a current source-retention decision.
 
 ## Physical source archive
 
