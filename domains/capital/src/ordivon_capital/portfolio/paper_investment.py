@@ -291,12 +291,17 @@ def _reject_constant(value: str) -> None:
 def _write_receipt(path: Path, result: dict[str, Any]) -> None:
     payload = (json.dumps(result, sort_keys=True, ensure_ascii=False) + "\n").encode()
     path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists():
+
+    def assert_existing_receipt_is_identical() -> None:
         if path.is_symlink():
             raise PaperInvestmentError("receipt destination must not be symlink")
         if path.read_bytes() != payload:
             raise PaperInvestmentError("receipt collision: existing different replay")
+
+    if path.is_symlink() or path.exists():
+        assert_existing_receipt_is_identical()
         return
+
     temp_path: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as temporary:
@@ -305,8 +310,16 @@ def _write_receipt(path: Path, result: dict[str, Any]) -> None:
             temporary.write(payload)
             temporary.flush()
             os.fsync(temporary.fileno())
-        os.replace(temp_path, path)
-        temp_path = None
+
+        # A hard link atomically publishes the fully flushed receipt, but
+        # refuses to replace an already published name. os.replace would
+        # overwrite a competing writer after the preceding existence check.
+        try:
+            os.link(temp_path, path)
+        except FileExistsError:
+            # Same replay is idempotent; a different replay cannot overwrite
+            # an existing receipt, even when publication races.
+            assert_existing_receipt_is_identical()
     finally:
         if temp_path is not None:
             temp_path.unlink(missing_ok=True)
