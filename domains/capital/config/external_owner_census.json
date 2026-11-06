@@ -577,6 +577,22 @@
       "authorityBoundary": "OKX live-trade credential audit is separate from private-Reality observer admission; config/private_reality_policy.json remains authoritative for observer admission"
     },
     {
+      "id": "markets-paper-etf-snapshot-admission",
+      "sourcePatterns": [
+        "src/ordivon_capital/markets/etf_eod_snapshot.py"
+      ],
+      "ownerClasses": [
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "operator-authorized market-data source and action source",
+        "listing exchange session calendar"
+      ],
+      "localStanding": "RETAINED_IRREDUCIBLE_READONLY_GLUE",
+      "localResponsibility": "bind independently committed ETF closing-mark bytes to a paper decision and fail closed on incomplete marks, temporal leakage, or corporate actions outside R1; no provider or trading admission"
+    },
+    {
       "id": "trading-private-reality",
       "sourcePatterns": [
         "src/ordivon_capital/trading/okx_readonly_client.py",
