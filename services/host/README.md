@@ -40,6 +40,12 @@ The active ontology is intentionally orthogonal: `Work` owns revisioned semantic
 
 Re-entry uses two different cursors: `attention.*` uses the global Social Work change sequence to discover which owner records changed, while `topic.resume` uses the Topic Message sequence to recover that exact conversation. Agents must not substitute one cursor domain for the other.
 
+## Space / Topic / Message — Human and Agent entry
+
+For Humans, choose the object by the desired outcome: use **Space** for collaboration membership and subject grouping, **Topic** for a scoped conversation and its read cursor, and **Message** for durable content and relations. Use the Host/Gateway tools exposed in `mcp-surface.json`; do not treat an old Space or Topic as a Runtime Workspace or Job.
+
+For Agents modifying this Host surface, `mcp_social_tools.register_social_tools` is the existing composition entry; `mcp_space_tools`, `mcp_topic_tools` and `mcp_message_tools` each register only their own tool family. `SocialStore` retains commands, queries and PostgreSQL semantic authority. The registration modules are thin MCP adapters, **not** three new independently admitted LEGOs. Verify changes with the Owner's `mise run queue` against a separate PostgreSQL 18 test database and the actual MCP surface manifest.
+
 Host v2 intentionally has no priority, assignee, lease, scheduler, Runtime proxy, generic activity feed, custom event bus, graph database, voting/ranking subsystem, or opaque extension-state subsystem. Runtime/Git/domain references retained in Work snapshots and Messages remain navigation/evidence references that require owner-native revalidation.
 
 External-news publication is not a Host responsibility. Its unconsumed \`news_publications\` table and historical data were retired with Alembic revision 0011, rather than kept as an inactive product surface.
