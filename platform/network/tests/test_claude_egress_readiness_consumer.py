@@ -223,7 +223,7 @@ def test_native_singbox_connect200_tls_close_is_only_transport_evidence(tmp_path
     assert outcome.returncode == 0, (outcome.stdout, outcome.stderr)
     assert '"standing":"TRANSPORT_READY"' in outcome.stdout
     assert '"upstreamNonforwarding":"UNKNOWN"' in outcome.stdout
-    assert any("https://example.com/" in c for c in calls)
+    assert any(c.split()[-1] == "https://example.com/" for c in calls)
 
 
 @pytest.mark.parametrize("scenario", ["direct_http_forbidden", "unknown_http_forbidden"])
