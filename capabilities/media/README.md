@@ -4,6 +4,12 @@ Ordivon Media is an **optional media-domain capability** for intentional, reusab
 
 The project Constitution is [`MEDIA.md`](MEDIA.md); canonical Media research starts at [`research/media/`](research/media/README.md). **Ordivon Studio is retained inside this project as the authoring and production capability plane.** Existing `ordivon-studio` CLI/package/tool identities remain Studio capability names rather than repository-owner names.
 
+## Choose your entry point
+
+- **Human:** [Use Ordivon Media](docs/human-guide.md) — what the system can do, choose an existing work, commission a deliverable and review real outputs.
+- **Agent:** [Media Agent entry](AGENTS.md) — source/consumer selection, current Agent Surface, LEGO composition and real acceptance boundaries. The [media-studio-navigation Skill](../../.agents/skills/media-studio-navigation/SKILL.md) is its progressive-disclosure entry point.
+- **Technical reference:** [MEDIA.md](MEDIA.md), [STUDIO.md](STUDIO.md), [Media model](docs/media-model.md) and live `studio-agent-surface.py` schemas. None is replaced by a duplicate registry.
+
 ## Activation boundary
 
 The default representation remains with its natural source/client owner. A tool result, status card, metric, ordinary UI projection, browser view, repository view, or provider-native response does **not** enter Media merely because a human or Agent can observe it.

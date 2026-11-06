@@ -39,12 +39,13 @@ doctor() {
   (cd "$repo" && "$mise_bin" exec -- node - <<'JS'
 const fs=require('node:fs');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-if (process.version !== 'v26.12.0') throw new Error(`Studio expects Node 26.12.0 via mise, got ${process.version}`);
-if (pkg.packageManager !== 'pnpm@12.4.2') throw new Error(`unexpected packageManager ${pkg.packageManager}`);
+if (process.version !== `v${pkg.engines.node}`) throw new Error(`Studio expects Node ${pkg.engines.node} via mise, got ${process.version}`);
+if (!/^pnpm@[0-9]+\.[0-9]+\.[0-9]+$/.test(pkg.packageManager)) throw new Error(`invalid packageManager ${pkg.packageManager}`);
 console.log(`studio node=${process.version} packageManager=${pkg.packageManager}`);
 JS
   )
-  (cd "$repo" && "$mise_bin" exec -- pnpm --version | grep -Fx '12.4.2')
+  expected_pnpm=$(cd "$repo" && "$mise_bin" exec -- node -p "JSON.parse(require('node:fs').readFileSync('package.json','utf8')).packageManager.split('@')[1]")
+  (cd "$repo" && "$mise_bin" exec -- pnpm --version | grep -Fx "$expected_pnpm")
   pnpm_mise deps:js:check
   mise_run python3 scripts/require-python-deps.py
   echo 'owner environment doctor: valid profile=test'
