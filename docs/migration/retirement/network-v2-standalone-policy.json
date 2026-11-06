@@ -11,12 +11,11 @@
   },
   "allowedReferenceClasses": [
     {
-      "id": "migration-acceptance-and-receipts",
+      "id": "migration-acceptance",
       "globs": [
-        "docs/migration/acceptance/**",
-        "docs/migration/receipts/**"
+        "docs/migration/acceptance/**"
       ],
-      "reason": "Migration receipts and acceptances preserve exact historical Network source coordinates."
+      "reason": "Dated migration acceptances retain historical Network source coordinates."
     },
     {
       "id": "historical-next-migration-records",

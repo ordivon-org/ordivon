@@ -11,12 +11,11 @@
   },
   "allowedReferenceClasses": [
     {
-      "id": "migration-acceptance-and-receipts",
+      "id": "migration-acceptance",
       "globs": [
-        "docs/migration/acceptance/**",
-        "docs/migration/receipts/**"
+        "docs/migration/acceptance/**"
       ],
-      "reason": "Migration acceptances and receipts preserve exact historical Runtime source coordinates."
+      "reason": "Dated migration acceptances retain historical Runtime source coordinates."
     },
     {
       "id": "frozen-production-topology",
