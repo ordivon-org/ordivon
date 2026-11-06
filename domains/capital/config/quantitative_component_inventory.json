@@ -262,13 +262,12 @@
       "assumptions": [],
       "limitations": [
         "Liquidity-horizon metadata is descriptive only; no scaling is performed.",
-        "The report is not a regulatory capital calculation."
+        "The report is not a regulatory capital calculation.",
+        "The September 2026 acceptance snapshot uses the retired threshold-tail estimator and does not validate the current integrated-quantile implementation."
       ],
       "validation": {
         "standing": "NOT_APPLICABLE",
-        "evidenceRefs": [
-          "evidence/acceptance/dependence-model-monitoring-r1.json"
-        ]
+        "evidenceRefs": []
       },
       "monitoring": {
         "standing": "NOT_APPLICABLE",
@@ -289,7 +288,7 @@
       "classification": "NON_MODEL_CALCULATION",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
-      "purpose": "Compute an empirical one-period historical tail-loss mean beyond an empirical VaR quantile for descriptive risk monitoring.",
+      "purpose": "Compute empirical one-period expected shortfall as the integral of the empirical loss quantile, with fractional boundary observation weights, for descriptive risk monitoring.",
       "materiality": "LOW",
       "assumptions": [
         "The supplied completed returns define the historical sample being summarized."
@@ -297,13 +296,12 @@
       "limitations": [
         "This is a historical descriptive statistic, not a forecast of future losses.",
         "No distribution is fitted and no liquidity-horizon scaling is applied.",
-        "The output is not a Basel regulatory capital calculation."
+        "The output is not a Basel regulatory capital calculation.",
+        "Previous source-acceptance evidence predates this estimator's quantile-integration semantics; current regression qualification is Owner-native."
       ],
       "validation": {
         "standing": "NOT_APPLICABLE",
-        "evidenceRefs": [
-          "evidence/acceptance/dependence-model-oot-validation-r1.json"
-        ]
+        "evidenceRefs": []
       },
       "monitoring": {
         "standing": "NOT_APPLICABLE",

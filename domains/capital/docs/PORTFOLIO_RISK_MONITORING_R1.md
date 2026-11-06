@@ -56,3 +56,5 @@ No local traffic-light threshold is embedded. If decision thresholds are later r
 Portfolio reports may include a tail-risk node produced from registered empirical historical expected-shortfall calculations.
 
 The node preserves sample identity, return horizon, confidence level, and liquidity-horizon metadata. Liquidity-horizon metadata does not imply scaling. The current implementation is not a Basel capital engine.
+
+The empirical loss VaR uses the inverse empirical CDF (NumPy `inverted_cdf`). Expected shortfall is the probability-weighted upper-quantile integral: for `n` completed returns and confidence `c`, its tail mass is `n * (1-c)` observations. It includes whole worst losses plus the fractional boundary observation; averaging all losses over an interpolated threshold can incorrectly change the nominal tail probability, particularly for small samples or ties. `tailObservationCount` counts contributing observations while `effectiveTailObservationWeight` gives their exact aggregate weight. Neither summary implies prospective calibration, independent market-source verification or regulatory stress/liquidity scaling.

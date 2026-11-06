@@ -117,16 +117,40 @@ class PortfolioRiskTests(unittest.TestCase):
                 proxy_returns={i: i / 2000 for i in range(20)},
             )
 
-    def test_empirical_expected_shortfall_is_tail_mean_without_regulatory_scaling(self):
+    def test_empirical_expected_shortfall_uses_empirical_quantile_without_regulatory_scaling(self):
         returns = [0.01] * 19 + [-0.20]
         out = historical_expected_shortfall(returns, confidence=0.95)
         self.assertEqual(out["componentId"], "historical-expected-shortfall")
+        self.assertEqual(out["valueAtRiskLossFraction"], "-0.01000000")
+        self.assertEqual(out["expectedShortfallLossFraction"], "0.20000000")
         self.assertGreaterEqual(
             float(out["expectedShortfallLossFraction"]),
             float(out["valueAtRiskLossFraction"]),
         )
         self.assertFalse(out["liquidityHorizonScalingApplied"])
         self.assertFalse(out["regulatoryCapitalCalculation"])
+
+    def test_historical_es_integrates_fractional_boundary_probability(self):
+        # Empirical losses: 18 x 0, then 1, 2, 10. At c=.9 there are
+        # exactly 2.1 observations of tail mass (not all three full losses).
+        returns = [0.0] * 18 + [-1.0, -2.0, -10.0]
+        report = historical_expected_shortfall(returns, confidence=0.9)
+        self.assertEqual(report["method"], "EMPIRICAL_QUANTILE_INTEGRATED_TAIL")
+        self.assertEqual(report["valueAtRiskLossFraction"], "1.00000000")
+        self.assertEqual(report["expectedShortfallLossFraction"], "5.76190476")
+        self.assertEqual(report["tailObservationCount"], 3)
+        self.assertEqual(report["effectiveTailObservationWeight"], "2.1")
+        self.assertEqual(
+            report, historical_expected_shortfall(list(reversed(returns)), confidence=0.9)
+        )
+
+    def test_historical_es_integrates_ties_without_inflating_tail_mass(self):
+        # Tied worst losses are included fractionally, not as 20 observations.
+        report = historical_expected_shortfall([-0.1] * 20, confidence=0.975)
+        self.assertEqual(report["tailObservationCount"], 1)
+        self.assertEqual(report["effectiveTailObservationWeight"], "0.5")
+        self.assertEqual(report["valueAtRiskLossFraction"], "0.10000000")
+        self.assertEqual(report["expectedShortfallLossFraction"], "0.10000000")
 
     def test_factor_observatory_allows_multiple_proxies_per_factor_but_rejects_duplicate_pair(self):
         base = {i: 0.001 * math.sin(i / 5) for i in range(1, 70)}
