@@ -11,9 +11,45 @@ import argparse
 import json
 import subprocess
 import urllib.request
+from urllib.parse import parse_qs, urlsplit
 from pathlib import Path
 
 CONFIGS = ("blackbox/blackbox.yml", "prometheus/prometheus.yml", "prometheus/consumer.rules.yml")
+SCRAPE_GLOB = "consumers/*.yml"  # Prometheus' native optional-owner fragment contract
+
+
+def _fragment_paths(root: Path) -> list[Path]:
+    """Use only upstream native scrape_config_files, not a custom registry."""
+    prometheus = _read_owner_yaml(root / CONFIGS[1])
+    patterns = prometheus.get("scrape_config_files") or []
+    if not patterns:
+        return []
+    if patterns != [SCRAPE_GLOB]:
+        raise ValueError(f"unsupported Prometheus native fragment set: {patterns}")
+    directory = root / "prometheus/consumers"
+    if directory.is_symlink() or not directory.is_dir():
+        raise ValueError("missing or unsafe native Prometheus fragment directory")
+    paths = sorted(directory.glob("*.yml"))
+    if not paths or any(p.is_symlink() or not p.is_file() for p in paths):
+        raise ValueError("missing or unsafe Prometheus consumer fragment")
+    return paths
+
+
+def _all_scrape_jobs(root: Path) -> list[dict]:
+    prometheus = _read_owner_yaml(root / CONFIGS[1])
+    jobs = prometheus.get("scrape_configs")
+    if not isinstance(jobs, list):
+        raise ValueError("missing Prometheus scrape_configs")
+    result = list(jobs)
+    for path in _fragment_paths(root):
+        fragment = _read_owner_yaml(path)
+        if set(fragment) != {"scrape_configs"} or not isinstance(fragment["scrape_configs"], list):
+            raise ValueError(f"invalid native Prometheus fragment structure: {path}")
+        result.extend(fragment["scrape_configs"])
+    names = [job.get("job_name") for job in result if isinstance(job, dict)]
+    if len(names) != len(result) or any(not isinstance(n, str) or not n for n in names) or len(set(names)) != len(names):
+        raise ValueError("duplicate Prometheus job name or invalid job name across native fragments")
+    return result
 
 
 
@@ -75,12 +111,17 @@ def _prometheus_projection(config: dict, base: Path) -> dict:
     if not isinstance(rule_paths, list):
         raise ValueError("invalid Prometheus rule_files")
     rules = sorted(str((base / path).resolve()) for path in rule_paths)
+    native_files = config.get("scrape_config_files") or []
+    if not isinstance(native_files, list):
+        raise ValueError("invalid Prometheus scrape_config_files")
+    native_paths = sorted(str((base / path).resolve()) for path in native_files)
     alerting = config.get("alerting") or {}
     if not isinstance(alerting, dict):
         raise ValueError("invalid Prometheus alerting config")
     return {
         "jobs": jobs,
         "rule_files": rules,
+        "scrape_config_files": native_paths,
         "alertmanagers": alerting.get("alertmanagers") or [],
         "remote_write": config.get("remote_write") or [],
     }
@@ -96,16 +137,70 @@ def verify_loaded_prometheus(live: Path, loaded: dict) -> int:
             key for key in sorted(expected) if expected[key] != observed[key]
         ]
         raise ValueError(f"loaded Prometheus consumer graph differs: {differing}")
-    return len(expected["jobs"])
+    # Prometheus /status/config intentionally reports the main YAML and fragment
+    # references, not the expanded job graph. Never mistake main-only for all.
+    return len(_all_scrape_jobs(live))
+
+
+def verify_loaded_active_targets(live: Path, pool_data: dict, target_data: dict) -> int:
+    """Independent process projection: include jobs must actually be active."""
+    expected = _all_scrape_jobs(live)
+    names = {job["job_name"] for job in expected}
+    loaded_pools = pool_data.get("data", {}).get("scrapePools")
+    if not isinstance(loaded_pools, list) or set(loaded_pools) != names or len(loaded_pools) != len(names):
+        raise ValueError("loaded Prometheus scrape pools differ from native fragment graph")
+    targets = target_data.get("data", {}).get("activeTargets")
+    if not isinstance(targets, list):
+        raise ValueError("Prometheus active target API omitted target graph")
+    indexed: dict[str, list] = {}
+    for target in targets:
+        name = (target.get("labels") or {}).get("job")
+        indexed.setdefault(name, []).append(target)
+    if set(indexed) != names:
+        raise ValueError("active target job set differs from declared source")
+    for job in expected:
+        name = job["job_name"]
+        declared_targets = [
+            target for group in job.get("static_configs", [])
+            for target in group.get("targets", [])
+        ]
+        observed = indexed[name]
+        if len(declared_targets) != 1 or len(observed) != 1:
+            raise ValueError(f"ambiguous Prometheus target cardinality: {name}")
+        target = observed[0]
+        parsed = urlsplit(target.get("scrapeUrl") or "")
+        if target.get("scrapePool") != name:
+            raise ValueError(f"wrong loaded scrape pool: {name}")
+        if job.get("metrics_path") == "/probe":
+            params = parse_qs(parsed.query)
+            module = (job.get("params") or {}).get("module")
+            actual = (target.get("discoveredLabels") or {}).get("__param_module")
+            if (not isinstance(module, list) or len(module) != 1 or
+                    params.get("module") != module or actual != module[0] or
+                    params.get("target") != declared_targets):
+                raise ValueError(f"loaded Blackbox module/target differs: {name}")
+            exporter = next(
+                (r.get("replacement") for r in job.get("relabel_configs", [])
+                 if r.get("target_label") == "__address__"), None)
+            if parsed.netloc != exporter or parsed.path != "/probe":
+                raise ValueError(f"loaded Blackbox exporter binding differs: {name}")
+        elif parsed.netloc != declared_targets[0] or parsed.path != "/metrics":
+            raise ValueError(f"loaded direct scrape differs: {name}")
+    return len(names)
+
+
+def _api_payload(path: str) -> dict:
+    with urllib.request.urlopen(f"http://127.0.0.1:29090{path}", timeout=8) as response:
+        value = json.load(response, object_pairs_hook=_no_duplicate_keys)
+    if value.get("status") != "success":
+        raise ValueError(f"Prometheus native API unsuccessful: {path}")
+    return value
 
 
 def verify_loaded_prometheus_local(live: Path) -> int:
     """Only the current locally listening Prometheus API is an observed source."""
-    with urllib.request.urlopen(
-        "http://127.0.0.1:29090/api/v1/status/config", timeout=8
-    ) as response:
-        payload = json.load(response, object_pairs_hook=_no_duplicate_keys)
-    if payload.get("status") != "success" or not isinstance(payload.get("data"), dict):
+    payload = _api_payload("/api/v1/status/config")
+    if not isinstance(payload.get("data"), dict):
         raise ValueError("Prometheus loaded config API is not successful")
     source = payload["data"].get("yaml")
     if not isinstance(source, str) or not source.strip():
@@ -119,15 +214,19 @@ def verify_loaded_prometheus_local(live: Path) -> int:
     loaded = json.loads(parsed.stdout, object_pairs_hook=_no_duplicate_keys)
     if not isinstance(loaded, dict):
         raise ValueError("invalid Prometheus loaded config projection")
-    return verify_loaded_prometheus(live, loaded)
+    count = verify_loaded_prometheus(live, loaded)
+    pools = _api_payload("/api/v1/scrape_pools")
+    active = _api_payload("/api/v1/targets?state=active")
+    if verify_loaded_active_targets(live, pools, active) != count:
+        raise ValueError("incomplete loaded Prometheus consumer graph")
+    return count
 
 
 def verify_probe_consumer_edges(source: Path) -> int:
     """Prove configuration graph edges only; not live Blackbox or consumer effects."""
     blackbox = _read_owner_yaml(source / CONFIGS[0])
-    prometheus = _read_owner_yaml(source / CONFIGS[1])
     modules = blackbox.get("modules")
-    jobs = prometheus.get("scrape_configs")
+    jobs = _all_scrape_jobs(source)
     if not isinstance(modules, dict) or not isinstance(jobs, list):
         raise ValueError("missing Blackbox modules or Prometheus scrape_configs")
     names: set[str] = set()
@@ -173,8 +272,10 @@ def verify(source: Path, live: Path) -> str:
     for label, tree in (("source", source), ("live", live)):
         if tree.is_symlink():
             raise ValueError(f"unmanaged monitoring root: {label}")
-    # The three declared configs are a closed set for this install owner.
-    # Extra YAML may be a previously deployed consumer or alert rule.
+    # Source declares the closed set, including Prometheus-native fragments;
+    # extra live YAML might still be a consumer, never silently delete it.
+    fragments = _fragment_paths(source)
+    declared = (*CONFIGS, *(path.relative_to(source).as_posix() for path in fragments))
     for tree in (source, live):
         for folder in ("blackbox", "prometheus"):
             directory = tree / folder
@@ -182,22 +283,24 @@ def verify(source: Path, live: Path) -> str:
                 raise ValueError(f"unmanaged monitoring directory: {folder}")
             if not directory.is_dir():
                 continue
-            for path in directory.iterdir():
-                name = f"{folder}/{path.name}"
-                if path.suffix.lower() in {".yml", ".yaml"} and name not in CONFIGS:
+            for path in directory.rglob("*"):
+                name = path.relative_to(tree).as_posix()
+                if path.is_symlink():
+                    raise ValueError(f"unmanaged monitoring symlink: {name}")
+                if path.is_file() and path.suffix.lower() in {".yml", ".yaml"} and name not in declared:
                     raise ValueError(f"unmanaged monitoring configuration: {name}")
     candidate = []
-    for name in CONFIGS:
+    for name in declared:
         path = source / name
         if path.is_symlink() or not path.is_file():
             raise ValueError(f"invalid source monitoring file: {name}")
         candidate.append(path.read_bytes())
-    present = [(live / name).exists() or (live / name).is_symlink() for name in CONFIGS]
+    present = [(live / name).exists() or (live / name).is_symlink() for name in declared]
     if not any(present):
         return "FIRST_INSTALL"
     if not all(present):
         raise ValueError("incomplete live monitoring SourceCut")
-    for name, data in zip(CONFIGS, candidate, strict=True):
+    for name, data in zip(declared, candidate, strict=True):
         path = live / name
         if path.is_symlink() or not path.is_file() or path.read_bytes() != data:
             raise ValueError(f"live monitoring differs from source: {name}")

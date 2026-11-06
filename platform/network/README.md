@@ -36,7 +36,7 @@ Provider, but cannot itself certify deployed no-bypass or process behavior.
 ## Repository boundaries
 
 ```text
-config/        generic live configuration
+config/        generic live configuration; native Prometheus consumer scrape fragments
 systemd/       generic live lifecycle
 acceptance/    generic capability acceptance
 capabilities/  optional reusable mechanisms such as WireGuard/failover

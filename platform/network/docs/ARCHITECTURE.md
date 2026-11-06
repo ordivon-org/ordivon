@@ -66,13 +66,15 @@ providers/              provider-specific profiles and evidence
 consumers/              consumer-specific network policy and shadow migration
 ```
 
-The generic core must not import provider- or consumer-specific configuration.
+The generic DNS and proxy data plane must not import provider or consumer destination policy. Prometheus' read-only evidence plane may include consumer-owned scrape declarations through upstream-native `scrape_config_files`; this does not start or authorize those consumers.
 
 **Monitoring SourceCut precommit LEGO** (Network Owner, Taskfile.yml /
 scripts/monitoring-sourcecut-preflight.py). Before core:install makes its
 first live write, compare all three existing Blackbox/Prometheus configuration
-files (Blackbox modules, Prometheus scrape jobs, and consumer alert rules)
-byte-for-byte with the deployed generation:
+files (Blackbox modules, generic scrape jobs, and consumer alert rules),
+plus each Prometheus-native consumers/*.yml scrape fragment, byte-for-byte
+with the deployed generation. The native scrape-pool and active-target APIs
+also verify that all consumer jobs are loaded:
 
 - None of the three live files exists: FIRST_INSTALL, after native validation.
 - All three exist with identical bytes: IDENTICAL_SOURCECUT, idempotent installation.

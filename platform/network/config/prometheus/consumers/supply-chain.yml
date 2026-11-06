@@ -1,0 +1,40 @@
+# Native Prometheus scrape definitions for the supply-chain consumer.
+scrape_configs:
+  - job_name: blackbox-vpn-pypi
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module:
+        - http_vpn_2xx_ipv4
+    static_configs:
+      - targets:
+          - https://pypi.org/simple/pip-audit/
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: __param_target
+      - source_labels:
+          - __param_target
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  - job_name: blackbox-scoped-supply-chain
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module:
+        - supply_chain_registry
+    static_configs:
+      - targets:
+          - https://registry-1.docker.io/v2/
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: __param_target
+      - source_labels:
+          - __param_target
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115

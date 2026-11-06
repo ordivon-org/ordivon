@@ -80,6 +80,11 @@ tasks:
       - install -m 0644 config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
       - install -m 0644 config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
       - install -m 0644 config/prometheus/consumer.rules.yml /etc/network-v2/prometheus/consumer.rules.yml
+      - |
+        install -d -m 0755 /etc/network-v2/prometheus/consumers
+        for fragment in config/prometheus/consumers/*.yml; do
+          install -m 0644 "$fragment" /etc/network-v2/prometheus/consumers/"$(basename "$fragment")"
+        done
       - install -d -m 0755 /etc/sysctl.d
       - install -m 0644 config/sysctl/90-network-v2-forwarding.conf /etc/sysctl.d/90-network-v2-forwarding.conf
       - /usr/bin/sysctl --system >/dev/null
@@ -104,6 +109,10 @@ tasks:
       - cmp -s config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
       - cmp -s config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
       - cmp -s config/prometheus/consumer.rules.yml /etc/network-v2/prometheus/consumer.rules.yml
+      - |
+        for fragment in config/prometheus/consumers/*.yml; do
+          cmp -s "$fragment" /etc/network-v2/prometheus/consumers/"$(basename "$fragment")" || exit 1
+        done
       - cmp -s config/sysctl/90-network-v2-forwarding.conf /etc/sysctl.d/90-network-v2-forwarding.conf
       - test "$(sysctl -n net.ipv4.ip_forward)" = 1
       - systemctl is-active --quiet network-v2-r0.target
