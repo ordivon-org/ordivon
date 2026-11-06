@@ -70,6 +70,24 @@ committed digest and capture time, and record the predecessor in
 `supersedesSha256`. Markets never chooses the revision or verifies a revision
 chain; the operator must bind the proper digest for each decision.
 
+### Opening fills and clearing dates
+
+For a paper close with supplied opening fills, pass `--fill-calendar FILE`
+and `--fill-calendar-sha256 HASH` to the Accounting CLI. The UTF-8 object has
+`market_source`, `clearing_source`, and `days`. Give independent evidence
+references and one row for every date in the window. Each row has `date`
+(ISO date), `open` and `close` (UTC times such as `14:30:00Z`, both null
+on a closed market day), and a separate boolean `clears`. Include the
+previous session, current session, and next eligible clearing date for any fill.
+
+Trading validates the prior close, the next scheduled open, and the next
+clearing day. Accounting binds the calendar evidence to the same committed
+request and receipt. When an admitted mark snapshot is also supplied, both
+inputs must agree on overlapping session closes. Successive bound calendars
+must agree on overlapping dates and with booked clearing dates. The operator is responsible for the
+calendar versions, source authenticity, correct venue, and fill prices.
+This path models on-time opening fills only.
+
 ### Provider qualification, 2026-11-06
 
 The installed Linux developer egress profile reached the EODHD public demo

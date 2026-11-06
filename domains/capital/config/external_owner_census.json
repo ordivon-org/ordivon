@@ -783,6 +783,14 @@
       "localResponsibility": "size only the exact admitted empty-portfolio USD long US-equity whole-share validation contract with explicit free-portfolio buffer and frozen IB-style fee mechanics; fail closed outside that contract; do not grow a general buying-power/backtest engine"
     },
     {
+      "id": "trading-paper-fill-calendar",
+      "sourcePatterns": ["src/ordivon_capital/trading/paper_fill_calendar.py"],
+      "ownerClasses": ["ORDIVON_GLUE"],
+      "externalOwners": ["Exchange session notices", "DTC settlement notices"],
+      "localStanding": "OPERATOR_BOUND_PAPER_CALENDAR",
+      "localResponsibility": "Validate bounded paper open fills and clearing dates against digest-bound operator evidence."
+    },
+    {
       "id": "trading-fix44-projection",
       "sourcePatterns": [
         "src/ordivon_capital/trading/fix44_projection.py",
