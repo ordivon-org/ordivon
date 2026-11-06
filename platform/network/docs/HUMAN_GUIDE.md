@@ -45,7 +45,17 @@ Claude、Finance、Browserless、Discord、Model Provider、Supply Chain、Chat 
 
 IPinfo 的结果只代表这一次指定 HTTPS 连接；之后 Gluetun 可能原生切换服务器。Windows 或 Linux 主机的直接出口可以与 VPN 出口不同，这本身不等于故障。
 
-### 2. Windows Codex / ChatGPT 走专用代理
+### 2. Windows 原生 Google Chrome 自动使用 VPN
+
+Chrome 使用 **自身的原生 Windows 策略**，而不是 Surfshark 桌面 GUI 或 Windows 全局系统代理。正确配置时，Windows 用户侧 `HKCU\Software\Policies\Google\Chrome` 中的 `ProxySettings` 应采用 `ProxyMode=fixed_servers` 和 `ProxyServer=http://127.0.0.1:19781`，并以 Chrome 实际加载的策略为准。这份浏览器策略的长期配置与开机恢复归 **Workstation**；Network 只拥有下游代理、出口及消费者的验证。
+
+1. 在 Windows Chrome 中访问 `chrome://policy`，确认实际加载的 `ProxySettings`，不要只检查注册表或代理端口。
+2. 访问 https://ipinfo.io，比较 Chrome 的公网 IP 与 Linux 的 `task provider:gluetun:observe-exit` 结果。
+3. 检查 `task consumer:windows-real-chrome:verify`，验证 Linux 代理 SourceCut 和真实 HTTPS 后果。
+
+验证时可以使用 Chrome 原生无界面模式和新的临时配置目录，且**不要传入代理命令行参数**，否则无法证明策略自动生效。用完删除临时目录。这只能证明被测试的 Chrome HTTPS 请求，**不自动涵盖 WebRTC、所有扩展、DNS/IPv6 泄漏或正常登录资料是否选择了相同设置**。不需要新建专用 Chrome 启动器。
+
+### 3. Windows Codex / ChatGPT 走专用代理
 
 专用代理端口为 **127.0.0.1:19982**。我们不需要修改整个 Windows 的全局代理。
 
@@ -59,7 +69,7 @@ IPinfo 的结果只代表这一次指定 HTTPS 连接；之后 Gluetun 可能原
 
 工具只报告进程名、PID、代理变量是否匹配以及连接数量，不显示凭据、远程 IP 或命令行。即便代理变量和连接可见，它仍会输出 END_TO_END_EGRESS_UNKNOWN；要提升结论，必须用真实应用请求与独立 Carrier 观测关联。**不必为了检测而强制退出当前 ChatGPT 桌面会话。**
 
-### 3. 让 iPad 或 iPhone 使用电脑提供的 VPN 出口
+### 4. 让 iPad 或 iPhone 使用电脑提供的 VPN 出口
 
 服务器已通过 Tailscale 广告批准的 Exit Node：**ordivon-surfshark-exit**。
 
@@ -70,7 +80,7 @@ IPinfo 的结果只代表这一次指定 HTTPS 连接；之后 Gluetun 可能原
 
 如果某台 iOS 设备离线，服务器无法代替它完成选择和出口验收。服务端运行正常 ≠ 手机流量已经被转发。
 
-### 4. 改配置或恢复服务
+### 5. 改配置或恢复服务
 
 提交代码前，从 platform/network/ 执行：
 

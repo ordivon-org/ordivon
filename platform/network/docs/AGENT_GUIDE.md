@@ -55,6 +55,17 @@ The generic Network Core MUST NOT own Finance/Claude/X destination policy. Obser
 - DNS faults: task accept:dns-resilience; check cached answer, SERVFAIL under all-upstream outage, recovery and stable daemon PID.
 - Generic cold start: task accept:cold-start touches running R0. A full Windows boot→WSL→systemd→Podman→Consumer is **Workstation** acceptance, not the generic isolated cold-start test.
 - Windows app process: upstream psutil one-shot observer; read actual proxy environment/sockets, do not infer from .codex/.env. Fresh CLI doctor plus shared Carrier CONNECT remains correlated, not uniquely attributed.
+- Windows Chrome: `consumer:windows-real-chrome:verify` proves only the
+  Linux proxy. Read the current interactive-user Chrome
+  `HKCU\Software\Policies\Google\Chrome\ProxySettings` and
+  `chrome://policy` (Workstation owns registry lifecycle). Use upstream
+  Chrome `--headless=new --dump-dom` with disposable `--user-data-dir`,
+  **without** a `--proxy-server` argument; compare an actual
+  https://ipinfo.io/json browser response with sampled Gluetun egress.
+  Remove the disposable profile via OS-native cleanup. Proxied curl
+  success is not browser-process proof; one Chrome HTTPS request is not
+  universal WebRTC/DNS/IPv6 no-bypass proof. Do not add another Chrome
+  proxy launcher or Windows global proxy manager.
 - Mobile: native server ready is not an iPad/iPhone client selection; collect IPinfo and DNS evidence **on each device** separately.
 
 ## 5. Concrete task snippets
