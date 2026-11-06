@@ -21,7 +21,6 @@ from ..protocol import (
 )
 from ..run_state import HarnessRunState, state_from_dict
 from ..working_view import (
-    WORKING_SET_HISTORY_CONTROL_NAME,
     AgentCallerIngressPromotionProposal,
     AgentWorkingSetTransitionProposal,
     HarnessWorkingSetPin,
@@ -47,6 +46,7 @@ from ..store import (
     new_execution_owner_id,
 )
 from .continuity_guards import (
+    _TOOL_EVENT_KINDS,
     continuity_event_id,
     required_event_digest,
     require_active_budget_consistency,
@@ -113,14 +113,6 @@ _PROVIDER_CLEAR_EVENT_KINDS = frozenset(
         "harness.run-stopped",
         "harness.run-completed",
         "harness.run-failed",
-    }
-)
-_TOOL_EVENT_KINDS = frozenset(
-    {
-        "harness.tool-step-prepared",
-        "harness.tool-step-recorded",
-        "harness.tool-step-unknown",
-        "harness.tool-step-reconciled",
     }
 )
 
@@ -1087,221 +1079,6 @@ class SQLiteHarnessRunContinuityStore(_WorkingSetReadQueries):
             if index not in suppressed
         )
 
-    def _current_attempt_tool_exchange_segments(
-        self,
-        observations: tuple[HarnessToolObservation, ...],
-        *,
-        current: HarnessWorkingSetSpec,
-        before_event_sequence: int | None = None,
-    ) -> tuple[tuple[int, tuple[dict[str, JsonValue], ...]], ...]:
-        if not self.contract.privacy.allow_model_content:
-            raise HarnessProviderCallRecoveryRequired(
-                "transient Tool exchange recovery requires retained model content"
-            )
-        if not self.contract.privacy.allow_tool_content:
-            raise HarnessProviderCallRecoveryRequired(
-                "transient Tool exchange recovery requires retained Tool content"
-            )
-        if not current.committed:
-            raise HarnessProviderCallRequestMismatch(
-                "transient Tool exchange recovery requires a committed Working Set"
-            )
-        boundary_sequence = self._working_set_event_sequence(current)
-        events = self.store.list_run_events(self.harness_run_id)
-        observations_by_call: dict[str, HarnessToolObservation] = {}
-        for observation in observations:
-            if observation.tool_call_id in observations_by_call:
-                raise HarnessProviderCallRequestMismatch(
-                    "recovered Tool Observation identities must remain unique"
-                )
-            observations_by_call[observation.tool_call_id] = observation
-
-        terminal_tool_evidence: dict[
-            tuple[str, str], tuple[HarnessToolStepIntent, HarnessToolObservation]
-        ] = {}
-        for event in events:
-            if event.sequence <= boundary_sequence:
-                continue
-            if (
-                before_event_sequence is not None
-                and event.sequence >= before_event_sequence
-            ):
-                break
-            if event.event_kind not in _TOOL_EVENT_KINDS:
-                continue
-            receipt_object_digest = event.data.get("receiptObjectDigest")
-            observation_object_digest = event.data.get("observationObjectDigest")
-            if receipt_object_digest is None or observation_object_digest is None:
-                continue
-            self._validate_tool_event(event)
-            if not isinstance(receipt_object_digest, str) or not isinstance(
-                observation_object_digest, str
-            ):
-                raise ValueError("Tool recovery event object references are invalid")
-            raw_receipt = self.store.get_object(
-                receipt_object_digest,
-                expected_kind="harness-tool-step-receipt",
-            )
-            raw_intent = self.store.get_object(
-                required_event_digest(event.data, "toolStepIntentObjectDigest"),
-                expected_kind="harness-tool-step-intent",
-            )
-            raw_observation = self.store.get_object(
-                observation_object_digest,
-                expected_kind="harness-tool-observation",
-            )
-            if not isinstance(raw_receipt, dict) or not isinstance(raw_intent, dict):
-                raise TypeError("Tool recovery receipt or intent object is invalid")
-            if not isinstance(raw_observation, dict):
-                raise TypeError("Tool recovery Observation object is invalid")
-            receipt = HarnessToolStepReceipt.from_dict(raw_receipt)
-            if not receipt.terminal:
-                continue
-            intent = HarnessToolStepIntent.from_dict(raw_intent)
-            observation = HarnessToolObservation.from_dict(raw_observation)
-            if (
-                observation.tool_call_id != intent.tool_call_id
-                or observation.tool_name != intent.tool_name
-                or observation.digest != receipt.observation_digest
-            ):
-                raise HarnessProviderCallRequestMismatch(
-                    "durable Tool recovery evidence differs from its intent/receipt"
-                )
-            terminal_tool_evidence[(intent.turn_id, intent.tool_call_id)] = (
-                intent,
-                observation,
-            )
-
-        segments: list[tuple[int, tuple[dict[str, JsonValue], ...]]] = []
-        for event in events:
-            if event.sequence <= boundary_sequence:
-                continue
-            if (
-                before_event_sequence is not None
-                and event.sequence >= before_event_sequence
-            ):
-                break
-            if event.event_kind != "harness.provider-call-completed":
-                continue
-            retained = self._load_provider_from_event(event)
-            result = retained.result
-            if result is None:
-                raise HarnessProviderCallRecoveryRequired(
-                    "current-attempt Tool exchange recovery requires exact Provider result content"
-                )
-            if not result.tool_calls:
-                continue
-            assistant_message: dict[str, JsonValue] = {
-                "role": "assistant",
-                "content": result.content,
-                "toolCalls": [call.to_dict() for call in result.tool_calls],
-            }
-            turn_messages: list[dict[str, JsonValue]] = [assistant_message]
-            for call in result.tool_calls:
-                observation = observations_by_call.get(call.tool_call_id)
-                if observation is None or observation.tool_name != call.name:
-                    raise HarnessProviderCallRecoveryRequired(
-                        "current-attempt Provider Tool call lacks its recovered exact Observation"
-                    )
-                if call.argument_error is None:
-                    if call.name == WORKING_SET_HISTORY_CONTROL_NAME:
-                        expected_history = self._expected_working_set_history_observation(
-                            call,
-                            current=current,
-                        )
-                        if observation != expected_history:
-                            raise HarnessProviderCallRequestMismatch(
-                                "recovered Working Set history Observation differs from deterministic Journal projection"
-                            )
-                    else:
-                        evidence = terminal_tool_evidence.get(
-                            (retained.record.turn_id, call.tool_call_id)
-                        )
-                        if evidence is None:
-                            raise HarnessProviderCallRecoveryRequired(
-                                "current-attempt Provider Tool call lacks terminal durable Tool evidence"
-                            )
-                        intent, durable_observation = evidence
-                        if (
-                            intent.tool_call_digest != call.digest
-                            or durable_observation != observation
-                        ):
-                            raise HarnessProviderCallRequestMismatch(
-                                "recovered Tool exchange differs from durable Provider/Tool evidence"
-                            )
-                else:
-                    error = observation.structured_content.get("error")
-                    if (
-                        observation.status != "rejected"
-                        or not isinstance(error, dict)
-                        or error.get("safeToCorrect") is not True
-                        or error.get("physicalDispatch") is not False
-                    ):
-                        raise HarnessProviderCallRequestMismatch(
-                            "local Tool correction recovery lacks exact no-dispatch evidence"
-                        )
-                turn_messages.append(observation.to_model_message())
-            segments.append((event.sequence, tuple(turn_messages)))
-        return tuple(segments)
-
-    def load_current_attempt_tool_exchange_messages(
-        self,
-        observations: tuple[HarnessToolObservation, ...],
-    ) -> tuple[dict[str, JsonValue], ...]:
-        """Rebuild exact transient Tool exchanges for the current committed attempt."""
-        if not observations:
-            return ()
-        current = self.load_current_working_set()
-        return tuple(
-            message
-            for _sequence, segment in self._current_attempt_tool_exchange_segments(
-                observations,
-                current=current,
-            )
-            for message in segment
-        )
-
-    def load_current_attempt_cognition_overlay_messages(
-        self,
-        messages: tuple[dict[str, JsonValue], ...],
-        observations: tuple[HarnessToolObservation, ...],
-    ) -> dict[str, JsonValue]:
-        """Rebuild ordered non-WorkingSet cognition for the current interaction."""
-        current = self.load_current_working_set()
-        pause_sequence, caller_messages = self._caller_cognition_ingress_for_messages(
-            messages
-        )
-        segments = (
-            self._current_attempt_tool_exchange_segments(
-                observations,
-                current=current,
-            )
-            if observations
-            else ()
-        )
-        pre_caller: list[dict[str, JsonValue]] = []
-        post_caller: list[dict[str, JsonValue]] = []
-        for sequence, segment in segments:
-            target = (
-                pre_caller
-                if pause_sequence is not None and sequence < pause_sequence
-                else post_caller
-            )
-            target.extend(dict(message) for message in segment)
-        suppressed = self._durable_caller_ingress_indexes(
-            current,
-            pause_sequence=pause_sequence,
-            caller_messages=caller_messages,
-        )
-        return {
-            "preCallerToolMessages": pre_caller,
-            "callerMessages": [
-                dict(message)
-                for index, message in enumerate(caller_messages)
-                if index not in suppressed
-            ],
-            "postCallerToolMessages": post_caller,
-        }
 
     def _working_set_from_event(
         self, event: HarnessRunEventRecord

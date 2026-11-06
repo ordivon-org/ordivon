@@ -10,6 +10,16 @@ from .run_store_port import HarnessRunStoreBinding
 # Pure contract checks: callers retain run ownership, SQLite leases and event writes.
 
 
+_TOOL_EVENT_KINDS = frozenset(
+    {
+        "harness.tool-step-prepared",
+        "harness.tool-step-recorded",
+        "harness.tool-step-unknown",
+        "harness.tool-step-reconciled",
+    }
+)
+
+
 def require_tool_intent_binding(
     intent: HarnessToolStepIntent, run_id: str, binding: HarnessRunStoreBinding
 ) -> None:
