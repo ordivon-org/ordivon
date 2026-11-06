@@ -29,14 +29,45 @@ repository or an obligation to wrap all source-owner projections. Existing
 `ordivon-studio` CLI/package/tool identities remain valid where they name
 Studio production capability.
 
-See [`docs/media-m0-identity-migration.md`](docs/media-m0-identity-migration.md)
-for the historical physical move and
-[`research/media/engineering-consumption/OMPC-v0.md`](research/media/engineering-consumption/OMPC-v0.md)
-for the optional projection contract. Historical source references and
-content digests must not be rewritten to resemble current authority.
+The historical physical move is recorded in Git history; it is not a current
+migration runbook. The optional projection contract remains
+[`research/media/engineering-consumption/OMPC-v0.md`](research/media/engineering-consumption/OMPC-v0.md).
+Historical source references and content digests must not be rewritten to
+resemble current authority.
 
-## Phase 1 status
+## Stable baseline and consumer-driven reopening
 
-Ordivon Media construction Phase 1 (M0–M4) is **closed**. The project is now in a stable-owner / consumer-pressure-driven posture: MF0–MF9 remain historical research constraints, OMPC-v0 is an optional shared reference for tasks that activate Media semantics, Studio remains active as the production capability plane, and no shared Media engine/runtime/SDK is admitted without demonstrated implementation duplication or a concrete consumer falsifier.
+The M0–M4 construction phase is **closed**, not an outstanding work queue.
+The current baseline is the Constitution above, the owner-native research
+under `research/media/`, the optional
+[`OMPC-v0`](research/media/engineering-consumption/OMPC-v0.md)
+and its [conformance corpus](research/media/engineering-consumption/OMPC-CONFORMANCE-v0.md),
+and the living Studio capability plane. Reopen only against an observed
+consumer or a concrete source-bound counterexample:
 
-See [`docs/media-phase1-construction-audit.md`](docs/media-phase1-construction-audit.md) for the closure, freeze and reopen criteria.
+1. **Source/owner boundary:** Media remains optional; Web, Game, Finance,
+   Runtime and source owners retain their own truth. Source/observer
+   ambiguity or false currentness can reopen OMPC only with an exact failing
+   case, not a new diagram or invented primitive.
+2. **Research semantics:** MF0–MF9 remain the existing falsifiable research
+   substrate; MF10 remains UNKNOWN/NOT ADMITTED. Do not map these
+   foundations to an arbitrary number of implementation packages.
+3. **Conformance:** The existing A/B/C/D baseline is enough until a real
+   owner supplies a new failing consumer or a proposed contract change
+   creates an actual falsification obligation. Do not add tests for symmetry.
+4. **Studio identity:** Keep `ordivon_studio`, `ordivon-studio` and
+   medium-native source names where they describe an actual capability.
+   Restructure only when real Productions are constrained by a concrete
+   replacement seam; no mass rename merely to match the Media owner name.
+5. **Shared implementation:** Extract only after materially different
+   consumers reproduce equivalent machinery and a small replacement
+   demonstrably removes duplication without taking over source authority.
+   A universal Media Engine, SDK, runtime, validator service or asset
+   database is not admitted by conceptual similarity alone.
+6. **Archive/currentness:** Past Git revisions and provider receipts are
+   evidence of the past, not current external status or an automatic backlog.
+   Re-observe remote/provider truth before acting on any historical claim.
+
+No next construction phase is admitted merely because the previous phase
+closed. Studio Production work can continue independently against its own
+current sources and real consumers.
