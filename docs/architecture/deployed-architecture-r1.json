@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "ordivon.deployed-architecture",
   "observedDate": "2026-09-28",
-  "status": "CURRENT_DEPLOYED_BASELINE",
+  "status": "HISTORICAL_DEPLOYED_SNAPSHOT_20260928",
   "defaultNorthbound": {
     "component": "gateway",
     "protocol": "MCP",

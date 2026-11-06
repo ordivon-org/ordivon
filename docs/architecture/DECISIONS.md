@@ -4,7 +4,7 @@ This is a navigation index, not a new architectural authority or approval servic
 
 | Decision area | Current reference | Status / use |
 | --- | --- | --- |
-| Deployed system topology | [CURRENT_ARCHITECTURE.md](CURRENT_ARCHITECTURE.md) | Rebuildable deployed projection; validate against actual installation |
+| Dated deployed topology (2026-09-28) | [CURRENT_ARCHITECTURE.md](CURRENT_ARCHITECTURE.md) | Historical snapshot only; live installed source and Owner MCP status are authoritative |
 | Repository layout migration | [STRUCTURE_R2.md](STRUCTURE_R2.md) | Partially deployed target, not current source truth |
 | Owner dependency seams | [OWNER_DEPENDENCY_BOUNDARY_R1.md](OWNER_DEPENDENCY_BOUNDARY_R1.md) | Boundary guidance; check current owner/contract manifests |
 | Test methods and upstream tools | [TESTING_UPSTREAM_ADOPTION_R1.md](TESTING_UPSTREAM_ADOPTION_R1.md) | Owner-scoped methodology guidance |

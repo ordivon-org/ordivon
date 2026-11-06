@@ -22,7 +22,7 @@ The root owns repository mechanics only. It does not define a Universal Task, St
 
 The physical primary checkout at /root/projects/ordivon is a shared integration surface, not an agent scratch workspace. Candidate work belongs in detached/branch worktrees. Main integration must be serialized through tools/repo/migration/integrate-main.sh; the helper fails closed if the primary index/worktree is stale or dirty and never auto-stashes or resets shared bytes. Owner-native verification remains outside this Git integration helper.
 
-See `docs/architecture/CURRENT_ARCHITECTURE.md` for canonical deployed architecture and `docs/migration/acceptance/SOURCE_MIGRATION_STANDING.md` for source migration standing.
+The dated `docs/architecture/CURRENT_ARCHITECTURE.md` preserves the **2026-09-28 historical deployment snapshot**, not current production truth. The source migration record is `docs/migration/acceptance/SOURCE_MIGRATION_STANDING.md`.
 
 The non-deployed source-layout transition target is `docs/architecture/STRUCTURE_R2.md`. It does not override current owner paths until each relocation wave is independently accepted.
 
@@ -79,7 +79,7 @@ Read [AGENTS.md](AGENTS.md), then the selected Owner README and any closer scope
 
 A useful handoff is brief and concrete: current SourceCut, selected Owner, final consumer, verified invariant/contract, commit and published/deployed state, removed redundant bytes if any, and remaining UNKNOWN. Avoid duplicate report files when native receipts or the PR already record the evidence.
 
-For source vs deployed state, start with [`CURRENT_ARCHITECTURE.md`](docs/architecture/CURRENT_ARCHITECTURE.md). For the **proposed, only partially deployed** physical package layout and migration gates, read [`STRUCTURE_R2.md`](docs/architecture/STRUCTURE_R2.md). Do not move source solely to match that target: first identify its real consumers, public seam, deployment files and native verification, and keep source relocation separate from semantic changes.
+For historical source-vs-deployment context, use [`CURRENT_ARCHITECTURE.md`](docs/architecture/CURRENT_ARCHITECTURE.md). For the **proposed, only partially deployed** physical package layout and migration gates, read [`STRUCTURE_R2.md`](docs/architecture/STRUCTURE_R2.md). Do not move source solely to match that target: first identify its real consumers, public seam, deployment files and native verification, and keep source relocation separate from semantic changes.
 
 ## Verify, contribute, report
 

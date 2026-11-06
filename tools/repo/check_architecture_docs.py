@@ -1526,8 +1526,8 @@ def validate_deployed_graph(value: dict[str, Any]) -> None:
     _require_exact_schema_one(value, "deployed architecture")
     if value.get("kind") != "ordivon.deployed-architecture":
         raise ArchitectureDocsError("unexpected deployed architecture kind")
-    if value.get("status") != "CURRENT_DEPLOYED_BASELINE":
-        raise ArchitectureDocsError("deployed architecture must be CURRENT_DEPLOYED_BASELINE")
+    if value.get("status") != "HISTORICAL_DEPLOYED_SNAPSHOT_20260928":
+        raise ArchitectureDocsError("2026-09-28 deployed snapshot must be historical, not current")
 
     northbound = value.get("defaultNorthbound")
     if not isinstance(northbound, dict):
@@ -1674,9 +1674,9 @@ def validate_deployed_source_tool_relation(
         raise ArchitectureDocsError("deployed Gateway declaredToolCount exceeds current source surface")
 
 
-def validate_current_document(text: str) -> None:
+def validate_architecture_snapshot_document(text: str) -> None:
     required = [
-        "Status: **CURRENT DEPLOYED PROJECTION — NON-AUTHORITATIVE**",
+        "Status: **HISTORICAL DEPLOYED SNAPSHOT — NON-AUTHORITATIVE**",
         "Method Router ≠ Capability Router",
         "Harness is not currently a routed Gateway owner",
         "historical Ordivon Agent Service is **RETIRED**",
@@ -2308,7 +2308,7 @@ def validate_repository(root: Path = ROOT) -> None:
     method_router = root / METHOD_ROUTER.relative_to(ROOT)
     readme = root / README.relative_to(ROOT)
 
-    validate_current_document(current.read_text(encoding="utf-8"))
+    validate_architecture_snapshot_document(current.read_text(encoding="utf-8"))
     validate_r21_lego_vocabulary(
         (root / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md").read_text(
             encoding="utf-8"
