@@ -92,8 +92,9 @@ For operator-bound marks, pass `--market-snapshot snapshot.json` and
 `--market-binding binding.json` together with empty inline `marks`. The
 binding object supplies the keyword arguments documented in
 [the ETF snapshot contract](docs/PAPER_ETF_EOD_SNAPSHOT_R1.md). Its snapshot
-identity, source, evidence references and observation clock are preserved
-in the paper receipt. The cash ledger, input snapshot and
+identity, source, evidence references, bound session times and valuation
+as-of time are preserved in the paper receipt. A retrospective capture
+only establishes availability at that as-of time. The cash ledger, input snapshot and
 valuation receipt commit together. Exact replay returns the original
 receipt and changed inputs for a closed session are rejected. The runner
 requires a session with no corporate actions or sell fills. Calendar

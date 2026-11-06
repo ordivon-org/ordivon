@@ -102,12 +102,14 @@ def test_postgres_paper_rejects_a_non_durable_receipt_table():
 
     from ordivon_capital.accounting.postgres_paper_close import PostgresPaperClose
 
-    PostgresPaperClose(dsn)
+    store = PostgresPaperClose(dsn)
     with connect(dsn, autocommit=True) as db:
         db.execute("ALTER TABLE ordivon_paper.daily_close SET UNLOGGED")
         try:
             with pytest.raises(RuntimeError, match="paper receipt table"):
                 PostgresPaperClose(dsn)
+            with pytest.raises(RuntimeError, match="paper receipt table"):
+                store.close_session("non-durable-" + uuid4().hex, inputs()[0])
         finally:
             db.execute("ALTER TABLE ordivon_paper.daily_close SET LOGGED")
 
@@ -140,12 +142,15 @@ def test_postgres_paper_receipt_binds_admitted_market_bytes():
         }],
     }).encode()
     digest = "sha256:" + sha256(raw).hexdigest()
-    snapshot = admit_etf_eod_snapshot(
-        raw, expected_sha256=digest, expected_source_id="synthetic-fixture",
-        expected_rights_ref="fixture", expected_corporate_actions_ref="fixture",
-        expected_instruments=["ETF"], expected_session_closes={"2026-01-09": close_at},
-        decision_at=observed_at,
-    )
+    def admit(bound_close):
+        return admit_etf_eod_snapshot(
+            raw, expected_sha256=digest, expected_source_id="synthetic-fixture",
+            expected_rights_ref="fixture", expected_corporate_actions_ref="fixture",
+            expected_instruments=["ETF"], expected_session_closes={"2026-01-09": bound_close},
+            decision_at=observed_at,
+        )
+
+    snapshot = admit(close_at)
     day0, day1, _ = inputs()
     account = "paper-test-" + uuid4().hex
     store = PostgresPaperClose(dsn)
@@ -155,3 +160,6 @@ def test_postgres_paper_receipt_binds_admitted_market_bytes():
     assert receipt["valuation"]["nav_minor"] == 1_001_900
     with pytest.raises(ValueError, match="inline marks"):
         store.close_session(account, day1, mark_snapshot=snapshot)
+    changed_binding = admit("2026-01-09T18:00:00Z")
+    with pytest.raises(ValueError, match="conflicting"):
+        store.close_session(account, replace(day1, marks={}), mark_snapshot=changed_binding)

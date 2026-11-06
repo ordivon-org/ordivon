@@ -57,6 +57,12 @@ class PostgresPaperClose:
             )"""
         )
 
+        PostgresPaperClose._verify_receipt_table(db)
+
+    @staticmethod
+    def _verify_receipt_table(db: Connection) -> None:
+        # Allow concurrent closes and exclude DDL until postings and receipt commit.
+        db.execute("LOCK TABLE ordivon_paper.daily_close IN ROW EXCLUSIVE MODE")
         admitted = db.execute(
             """
             SELECT c.relkind = 'r' AND c.relpersistence = 'p'
@@ -79,6 +85,7 @@ class PostgresPaperClose:
         self, account_key: str, day: PaperSession, *,
         mark_snapshot: AdmittedEtfEodSnapshot | None = None,
     ) -> dict:
+        """Close using inline fixture marks or the trusted output of Markets admission."""
         if re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", account_key) is None:
             raise ValueError("invalid paper account key")
         market_evidence = {"standing": "CALLER_SUPPLIED_MARKS"}
@@ -98,7 +105,13 @@ class PostgresPaperClose:
                 "rights_ref": mark_snapshot.rights_ref,
                 "corporate_actions_ref": mark_snapshot.corporate_actions_ref,
                 "captured_at": mark_snapshot.captured_at.isoformat(),
-                "decision_at": mark_snapshot.decision_at.isoformat(),
+                "valuation_as_of": mark_snapshot.decision_at.isoformat(),
+                "session_closes": {
+                    mark.session_date: mark.session_close_at.isoformat()
+                    for mark in mark_snapshot.marks
+                },
+                "instrument_ids": sorted({mark.instrument_id for mark in mark_snapshot.marks}),
+                "supersedes_sha256": mark_snapshot.supersedes_sha256,
             }
         # Freeze caller-owned input before retrying a transaction.
         payload = json.dumps(
@@ -110,6 +123,7 @@ class PostgresPaperClose:
         day = decode_session({key: value for key, value in request.items() if key != "market_evidence"})
 
         def close(db: Connection) -> dict:
+            self._verify_receipt_table(db)
             existing = db.execute(
                 "SELECT request_sha256, receipt FROM ordivon_paper.daily_close "
                 "WHERE account_key = %s AND session = %s", (account_key, day.session),
