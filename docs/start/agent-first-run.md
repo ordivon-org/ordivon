@@ -14,7 +14,37 @@ by the fact or external effect you must inspect. For this exercise, use
 The model's familiarity with a package or old documentation is not evidence
 that its deployment, data source, release or consumer is current.
 
-## 2. Complete one concrete, bounded task
+## 2. Discover a project Skill without confusing Workspace identities
+
+When the Ordivon Skills MCP is connected, project Skills are deliberately
+**not** visible through an unscoped global inventory. Supply the **registered
+Skills project-workspace name**, not the ephemeral Runtime execution
+`ws-...` handle. An observed example in the installed 2026-11-06
+deployment is `ordivon-next` (other deployments may differ):
+
+```text
+skills.search(query="finance", workspaceId="ordivon-next")
+skills.resolve(ref="finance-paper-investment", workspaceId="ordivon-next")
+skills.read(skillId="project-ordivon-next/finance-paper-investment",
+            workspaceId="ordivon-next")
+```
+
+The `skillId` above is an example of an actual qualified Skills Owner
+resolution; always use the exact returned ID, revisions and source currentness
+when available. The live test found all three project Finance procedures
+(`finance-paper-investment`, `finance-experiment-review` and
+`finance-paper-risk-review`) with that project context, and successfully
+read the first Skill. A global query returning no Finance results does not
+imply missing project packages.
+
+The named project registrations belong to the existing
+[Skills owner](../architecture/SKILLS.md). Check its active configuration
+rather than installing duplicate Skills, creating a second registry or
+passing a Runtime Job workspace ID as if it were a Skills project key.
+Skill activation supplies instructions only; real tools/effects are still
+owned by their natural providers.
+
+## 3. Complete one concrete, bounded task
 
 Using an already allocated isolated Workspace (or a separate Git worktree
 when the Runtime owner is not available), from the repository root:
@@ -30,7 +60,7 @@ Inspect the JSON output. Require `standing=READ_ONLY_PROJECTION`,
 sample. If this is a code change, follow with the focused consumer test and
 `mise run verify` from `domains/capital` before claiming Owner acceptance.
 
-## 3. Distinguish kinds of evidence
+## 4. Distinguish kinds of evidence
 
 | Observation | What it supports | What it does not prove |
 | --- | --- | --- |
@@ -44,7 +74,7 @@ accepted effect contract and identity; never infer approval from an Agent Skill
 or a read-only analysis. Domain success needs a relevant consumer readback or
 independent acceptance evidence.
 
-## 4. Report and hand off
+## 5. Report and hand off
 
 Record the natural owner, exact source revision, input/evidence identity,
 executed command or Job, actual output, checked tests, and the single most
