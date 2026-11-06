@@ -59,7 +59,7 @@ For the current source, actual CLI and invariants, see
 
 The Accounting owner can close one supplied USD simulation session with
 `ordivon_capital.accounting.postgres_paper_close`. It carries whole-share
-long positions and settles due buy payables. Inputs must already bind the consecutive exchange session, admitted fills and raw
+long positions and settles due buy payables and sale receivables. Inputs must already bind the consecutive exchange session, admitted fills and raw
 closing marks. This entry point is for an offline paper run.
 
 Use a dedicated PostgreSQL database named `ordivon_paper` and a role
@@ -90,8 +90,12 @@ calendar-qualified run, supply each buy's `settlement_date` from the
 clearing calendar. The cash transfer is posted at the first valuation
 on or after that date, and earlier valuations carry the payable. Older
 fixture requests that omit it still settle at the next valuation.
-Mark values
-and all money fields are USD cents. Inline marks are caller-supplied.
+A session can include a `sells` array with the same fill fields and a
+required clearing date. Sales can only use shares carried into that
+session. The close values sale proceeds as a receivable until clearing,
+and a buy can use the proceeds starting with the session after the close
+that posts the cash. The receipt exposes sale amounts while a sale is
+pending or settles. Mark values and money fields are USD cents. Inline marks are caller-supplied.
 For operator-bound marks, pass `--market-snapshot snapshot.json` and
 `--market-binding binding.json` together with empty inline `marks`. The
 binding object supplies the keyword arguments documented in
@@ -101,7 +105,7 @@ as-of time are preserved in the paper receipt. A retrospective capture
 only establishes availability at that as-of time. The cash ledger, input snapshot and
 valuation receipt commit together. Exact replay returns the original
 receipt and changed inputs for a closed session are rejected. The runner
-requires a session with no corporate actions or sell fills. Calendar
+requires a session with no corporate actions. Calendar
 qualification, corporate-action postings and execution admission belong
 to their upstream contracts. The PostgreSQL acceptance test uses
 `ORDIVON_CAPITAL_PAPER_PG_TEST_DSN` against a disposable paper database.
