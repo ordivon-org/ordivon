@@ -1,92 +1,118 @@
-# Ordivon Network | Human guide
+# Ordivon Network｜Human 操作手册
 
-**Who this is for:** people who want to know what Network does, use it, or diagnose it. This is a task-oriented guide, not a second status registry.
+**适用对象：** 使用、维护 Ordivon 的人类用户。需要修改实现或自动化执行的 Agent，请阅读 [Agent 操作契约](AGENT_GUIDE.md)。这里按 Diátaxis 的方法区分「入门、操作、参考、原理」，避免让用户阅读整个源码才能知道下一步怎么做。
 
-## 1. What Network actually does
+## 一、先弄清楚 Network 能做什么
 
-Network composes mature networking components and checks real consumers. It does **not** automatically route every Windows application or iOS device through a VPN.
+**Ordivon Network 不是把整个电脑强制接入 VPN 的万能开关。** 它负责组合成熟的网络能力，并证明指定应用的真实网络路径。
 
-    Application → consumer-specific proxy/policy → shared carrier
-                                                   → single Gluetun/WireGuard
-                                                   → Internet
+    应用 → 各自的网络策略/本地代理 → 共享 Carrier
+                                      → 一个 Gluetun/Surfshark WireGuard
+                                      → 外部互联网
 
-    Generic Linux Network: dnsproxy + sing-box + Blackbox + Prometheus
-    Windows application: explicit per-process proxy selection
-    iPad/iPhone: explicit client-side Tailscale Exit Node selection
+    Linux 通用底座：dnsproxy + sing-box + Blackbox Exporter + Prometheus
+    Windows：应用进程自行绑定已配置的本地代理
+    iPad/iPhone：设备端必须主动选择 Tailscale Exit Node
 
-One physical Gluetun/Surfshark WireGuard identity is shared by eligible consumers. Network generic core, Provider, and each Consumer are separate ownership boundaries. Workstation owns Windows boot/WSL; Runtime owns Workspaces; Security owns secrets; Host owns mutable Work state.
+只有一个共享的物理 WireGuard 身份。Network 的通用底座、物理 Provider、每个 Consumer 都是不同模块。Windows/WSL 开机归 Workstation；任务与 Workspace 归 Runtime；凭据归 Security；业务目的地策略归相应 Consumer。
 
-## 2. Read-only getting started
+**重要区别：** VPN 进程运行、服务返回 READY、某次测试返回 HTTP 200，都不自动证明所有应用或手机正在使用 VPN。
 
-Run the following from platform/network/:
+## 二、五分钟入门
 
-| Question | Native command | Evidence provided |
+从项目的 platform/network/ 目录运行以下现有原生命令：
+
+| 你想知道什么 | 直接运行 | 实际证明了什么 |
 | --- | --- | --- |
-| Which capabilities exist? | task --list-all | Current callable owner interfaces |
-| Is Linux core current and healthy? | task core:verify | Installed bytes, DNS, proxy and monitoring probes |
-| Is the VPN provider healthy? | task provider:gluetun:verify | Gluetun SourceCut and live shared provider |
-| Which public VPN exit was sampled? | task provider:gluetun:observe-exit | HTTPS ipinfo.io sample; NOT guaranteed future IP |
-| Is Codex's Linux proxy ready? | task consumer:codex:verify | Bounded HTTPS policy and rejection |
-| Is the Tailscale Exit Node server ready? | task consumer:mobile-tailnet-exit:verify | Server-side advertisement and approval only |
-| Are source configurations valid? | task all:validate | Static source validity, not live application traffic |
+| 有哪些实际能力？ | task --list-all | 当前 Owner 可用的任务接口 |
+| Linux 通用 Network 是否健康？ | task core:verify | 已安装配置、DNS、代理、监控的真实读回 |
+| Surfshark 隧道是否正常？ | task provider:gluetun:verify | Gluetun 配置与实际 Provider 路径 |
+| VPN 当前走哪个公网出口？ | task provider:gluetun:observe-exit | 通过 https://ipinfo.io/json 进行一次真实 HTTPS 采样 |
+| Codex 网络消费者是否正常？ | task consumer:codex:verify | Linux 侧范围受限的 HTTPS 代理与拒绝行为 |
+| 手机 Exit Node 服务端是否就绪？ | task consumer:mobile-tailnet-exit:verify | 服务器端公告、批准、命名空间与 Provider |
+| 配置源码是否有效？ | task all:validate | 静态配置有效，不能代替应用实测 |
 
-Every other consumer has its own native Taskfile: Claude, Browserless, Finance, Supply Chain, Discord, Model Provider, Chat Ingress, X Reality, and Windows Chrome. Discover actual task names with task --list-all rather than guessing.
+Claude、Finance、Browserless、Discord、Model Provider、Supply Chain、Chat Ingress、X Reality、Windows Chrome 等应用各有自己的 Consumer 任务。运行 task --list-all 找到真实接口，不要推测任务名。
 
-## 3. Do a real task
+## 三、具体怎么使用
 
-### Check VPN location with IPinfo
+### 1. 查 VPN 出口，而不是看客户端图标
 
-1. Run task provider:gluetun:verify.
-2. Run task provider:gluetun:observe-exit. This makes one explicitly proxied HTTPS request to https://ipinfo.io/json.
-3. Verify the specific consumer via its consumer:*:verify task.
-4. Make an actual request **from the application**.
+1. 执行 task provider:gluetun:verify。
+2. 执行 task provider:gluetun:observe-exit，观察返回的 IP、国家和网络组织。
+3. 执行所需应用自己的 consumer:*:verify。
+4. 最后从**那个应用本身**发起真实请求，才可以检查应用是否正确走代理。
 
-The host may separately have a different direct public IP. A successful explicit proxy call does not prove that an already-running app adopted the proxy.
+IPinfo 的结果只代表这一次指定 HTTPS 连接；之后 Gluetun 可能原生切换服务器。Windows 或 Linux 主机的直接出口可以与 VPN 出口不同，这本身不等于故障。
 
-### Use Windows Codex
+### 2. Windows Codex / ChatGPT 走专用代理
 
-The approved dedicated local proxy is 127.0.0.1:19982. Windows global proxy is deliberately not changed. A new Codex CLI process can receive HTTP_PROXY and HTTPS_PROXY in its own environment; a process already running before the .codex/.env edit **cannot inherit that edit retroactively**.
+专用代理端口为 **127.0.0.1:19982**。我们不需要修改整个 Windows 的全局代理。
 
-The optional source-owned, read-only observer (Windows interactive user, upstream psutil) is:
+- 对新的 Codex CLI 进程，可以在其进程环境内配置 HTTP_PROXY 和 HTTPS_PROXY，指向该端口。
+- 用户目录下 .codex/.env 的更改不会追溯到已经运行的进程。已经打开的 ChatGPT/Codex 需要检查自己的实际进程环境。
+- 网络诊断可使用 Codex 原生 doctor --network-only --json；但是它只能证明被诊断的进程，不能代表所有旧桌面进程。
+
+需要检查旧进程的代理继承和 TCP 套接字时，在 Windows 交互用户环境执行源码提供的一次性只读工具（复用成熟的 psutil）：
 
     uv run --no-project --with "psutil>=7,<8" python consumers/codex/windows_process_egress.py
 
-It reports process name/PID, proxy-environment classification, whether the profile is newer, and aggregated connection counts. It does NOT print credentials, environment values, command lines, or remote IPs. It deliberately reports END_TO_END_EGRESS_UNKNOWN; only independent observation of the actual client request and carrier can advance that claim. Running an isolated fresh CLI need not close your existing ChatGPT desktop session.
+工具只报告进程名、PID、代理变量是否匹配以及连接数量，不显示凭据、远程 IP 或命令行。即便代理变量和连接可见，它仍会输出 END_TO_END_EGRESS_UNKNOWN；要提升结论，必须用真实应用请求与独立 Carrier 观测关联。**不必为了检测而强制退出当前 ChatGPT 桌面会话。**
 
-### Send an iPhone or iPad through VPN
+### 3. 让 iPad 或 iPhone 使用电脑提供的 VPN 出口
 
-The server advertises the approved node ordivon-surfshark-exit. On each **device**, open Tailscale and select that Exit Node. Then use that same device's browser to visit https://ipinfo.io. Test Wi-Fi and cellular separately and check that expected DNS works.
+服务器已通过 Tailscale 广告批准的 Exit Node：**ordivon-surfshark-exit**。
 
-Server-side task consumer:mobile-tailnet-exit:verify does not prove iPad/iPhone selection. An offline iOS peer is not evidence that it uses the exit. Do not claim that an iPhone is protected based on an active Linux service alone.
+1. 在需要使用 VPN 的 **每台设备**打开 Tailscale。
+2. 选择这个已批准的 Exit Node；不能只看服务器的 READY 标识。
+3. 使用同一台 iPad/iPhone 的浏览器打开 https://ipinfo.io，核对公网出口。
+4. 单独验证 Wi-Fi、蜂窝移动网络切换后的 DNS 和出口。
 
-## 4. When something is not working
+如果某台 iOS 设备离线，服务器无法代替它完成选择和出口验收。服务端运行正常 ≠ 手机流量已经被转发。
 
-| Symptom | Next observation | Owner |
+### 4. 改配置或恢复服务
+
+提交代码前，从 platform/network/ 执行：
+
+    mise run ci
+    mise run behavior
+    task all:validate
+
+检查生产配置，执行 task core:verify 和受影响的 consumer:*:verify。task core:converge 已采用 Go Task 原生幂等机制：**当前配置已通过验收时不会重复安装**；只有修复确有必要时才可能重新安装或重启通用 Network 服务。Gluetun 物理 Provider 的准备与启动是不同操作，不要混为一谈。
+
+源码发布走仓库现有的 GitHub PR、必需 CI、合并队列；只有合并之后再进行生产读回，才算实际发布完成。
+
+## 四、出问题时先找谁
+
+| 表现 | 先检查 | 真正的 Owner |
 | --- | --- | --- |
-| Linux generic proxy or DNS down | task core:verify | Network core |
-| VPN/exit not reachable | task provider:gluetun:verify and one IPinfo sample | Gluetun Provider |
-| DNS timeout triggers repeated VPN checks | Check loaded Gluetun DNS and health targets; compare literal IP/TLS with DNS | Provider native DNS/health |
-| One domain denied, others fine | That consumer's Taskfile and real request | That Consumer |
-| Old Windows Codex ignored new .env | Actual process environment/creation time, scoped TCP socket | Codex Consumer + Workstation |
-| iPad/iPhone uses unexpected public IP | Actual Tailscale client Exit Node choice and device IPinfo | iOS + Tailscale |
-| Windows reboot does not start Linux | Windows startup → WSL → systemd → Podman | Workstation, then Network |
-| Prometheus healthy but config differs | Native SourceCut plus loaded scrape pools | Network Observability |
+| Linux 通用 DNS/HTTP 代理不能用 | task core:verify | Network 通用底座 |
+| 共享 VPN 出口异常 | task provider:gluetun:verify；一次 IPinfo 采样 | Gluetun Provider |
+| DoH/DoT 超时、VPN 反复重连 | 当前 Gluetun 加载的 DNS、健康检查目标；独立 IP/TLS 与 DNS 观测 | Provider 原生 DNS/健康 |
+| 只有一个应用域名被拒绝 | 对应 Consumer 的实际路由策略与请求 | 对应 Consumer |
+| 旧 Windows Codex 不使用新代理 | 进程启动时间、实际环境变量、套接字 | Codex Consumer / Workstation |
+| iPad/iPhone 出口不符合预期 | 设备端 Exit Node 选择、设备上的 IPinfo | iOS Tailscale 客户端 |
+| 重启 Windows 后 WSL 没启动 | Windows 启动 → WSL → systemd → Podman | Workstation |
+| 监控显示正常但配置漂移 | 生产 SourceCut、Prometheus 原生加载的抓取池 | Network Observability |
 
-A WireGuard interface being up does not mean encrypted DNS is functioning. DNS timeouts can also be an **effect** of tunnel instability, not necessarily its cause. Gluetun's own native healthcheck and WireGuard restart own recovery; Ordivon must not create a competing VPN watchdog.
+**DNS 故障与 VPN 故障不能混为一谈。** DNS 超时既可能导致健康检查受影响，也可能只是底层隧道故障的结果。应分别验证原生 IP/TLS 健康目标与 DNS 上游。不要为此添加第二个 VPN Watchdog：Gluetun 自带健康检查与自动恢复。
 
-## 5. Making changes and cleanup
+## 五、如何判断文件或数据可以删除？
 
-From platform/network/: run mise run ci, mise run behavior and task all:validate for source; run core:verify and the affected consumer:verify for installed/real behavior. The native task core:converge skips work when already verified, but may restart generic services if a repair is actually required. Provider preparation and Provider activation are separate operations.
+判断标准不是创建时间、名称中含有 legacy 或文件暂时没被 grep 到，而是**有没有真实消费者**。任务可能通过 glob、pytest、systemd、Podman、运行时状态或恢复链间接消费文件。
 
-Publish through the existing monorepo GitHub PR, required checks and merge queue. A detached Workspace test PASS is not a deployed release. Clean Podman storage through native Podman volume operations after checking container references. Clean Runtime Workspaces through Runtime lifecycle after consumers release them; never directly remove the backing worktree.
+- 不再引用的匿名 Podman 卷，通过 Podman 原生卷操作删除。
+- Runtime Workspace 只通过 Runtime 生命周期接口关闭；如果消费关系还没有释放，不直接删除底层 Git worktree。
+- 仍用于合法回滚的 Provider 配置和仍有消费者的源文件不当作垃圾。
+- 不另外建立 Network 专属垃圾回收控制器、状态数据库或后台清理任务。
 
-## 6. More details
+## 六、文档入口
 
-- [Architecture / explanation](ARCHITECTURE.md)
-- [Acceptance reference](ACCEPTANCE_MATRIX.md)
-- [Mechanism decision reference](DECISION_MATRIX.md)
-- [Agent contract](AGENT_GUIDE.md)
-- [Diátaxis documentation framework](https://diataxis.fr/)
-- [C4 architecture model](https://c4model.com/)
-- [Official Gluetun DNS options](https://github.com/qdm12/gluetun-wiki/blob/main/setup/options/dns.md)
-- [Official Gluetun healthcheck options](https://github.com/qdm12/gluetun-wiki/blob/main/setup/options/healthcheck.md)
+- [Network 架构、边界和组成](ARCHITECTURE.md)：为什么这么设计
+- [能力验收矩阵](ACCEPTANCE_MATRIX.md)：各种能力需要哪些证据
+- [机制选择矩阵](DECISION_MATRIX.md)：成熟组件如何取舍
+- [Agent 操作契约](AGENT_GUIDE.md)：可执行的 Agent 工程指引
+- [Diátaxis](https://diataxis.fr/)：教程、操作、参考和解释的专业文档范式
+- [C4 Model](https://c4model.com/)：跨角色理解系统、容器与组件
+- [Gluetun 原生 DNS 选项](https://github.com/qdm12/gluetun-wiki/blob/main/setup/options/dns.md)
+- [Gluetun 原生健康检查](https://github.com/qdm12/gluetun-wiki/blob/main/setup/options/healthcheck.md)
