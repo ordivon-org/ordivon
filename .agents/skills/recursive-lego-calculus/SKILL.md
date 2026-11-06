@@ -158,6 +158,14 @@ For algebraic assume/guarantee composition or substitution, prefer an admitted f
 
 Do not activate every lens. Choose only methods/providers that can change the decision.
 
+## Human/Agent Owner adoption (optional)
+
+When a real cross-Owner change needs Human-facing guidance, mature external
+LEGO replacement advice or separate Agent execution instructions, read
+`references/owner-provider-human-agent.md`. Reuse the existing method router,
+Owner APIs and provider evidence. This optional reference is not a new Skill,
+registry or mandatory stage.
+
 ## Consumer-rooted retirement (optional)
 
 When removing a PR, Git ref, source responsibility or Runtime Workspace with

@@ -1,6 +1,6 @@
-# Ordivon 三主线执行计划 R1（Current）
+# Ordivon 五主线执行计划 R2（Current）
 
-> 更新基线：2026-11-06。范围严格限于：（A）Owner 高内聚低耦合拆解；（B）目录、命名、表征标准化；（C）Host、Runtime 及各 Owner 的最终消费者穿透清理。本文是可在任务完结后删除的协调工件，不是新的 Owner、Board、Meta/Next、数据库或治理机制。状态以最新 Git、PostgreSQL、Runtime、systemd、GitHub PR 和实际消费者为准。
+> 更新基线：2026-11-06。范围聚焦：（A）Owner 高内聚低耦合拆解；（B）目录、命名、表征标准化；（C）Host、Runtime 及各 Owner 的最终消费者穿透清理；（D）成熟能力型与思想型 LEGO 的证据驱动发现和替换；（E）分别面向 Human/Agent 的使用指导。本文是可在任务完结后删除的协调工件，不是新的 Owner、Board、Meta/Next、数据库或治理机制。状态以最新 Git、PostgreSQL、Runtime、systemd、GitHub PR 和实际消费者为准。
 
 ## 一、目标函数、认识论与执行纪律
 
@@ -44,7 +44,7 @@
 
 正式源码区域另外包括 profiles/、studies/、tools/repo/、docs/architecture/；它们不自动成为新的业务 Owner。Meta/Next 已经通过 PR #1539 退役，不再恢复新的总控目录。语言优先 Rust、TypeScript、Python；TS 使用 pnpm、锁文件，依赖升级以当前自然 Owner 为权威。
 
-## 三、三主线可执行 Work Package
+## 三、前三项工程主线 Work Package
 
 每项都需写明：真实输入和最终消费者；需要保持的不变量；前置依赖；变更最小 SourceCut；验证证据；删除条件和实际发布状态。
 
@@ -138,3 +138,31 @@
 协作使用已有 Host Task Space 承接任务、最大交流 Space 用于沟通；Agent Loop 内自规划：MCDT in the loop, Human on the loop。声明 SourceCut 避免与其他 Agent 同时修改同一路径，但不因内部审批拖延工作。每次发布仍通过 GitHub PR、原生必需检查与 Merge Queue，并对安装侧单独验收。
 
 本文件自身退出条件：各 Work Package 已在自然 Owner 源码和安装证据中闭环，无未知当前消费者；移除此文件而不建一个新的长期维护看板。
+
+
+## 五、成熟 LEGO 的证据驱动发现、采用与退役
+
+本主线是既有自然 Owner 的工作方法，而不是新的注册表、治理 Owner 或通用执行平台。区分能力型 LEGO（有界读/转换/求解/效果）与思想型 LEGO（表示、拆解、选择、组合、验证方法）。Skill、Tool、文件、Provider 卡片并非天然独立的已准入 LEGO；只有明确声明/准入时才按 R2.1 完整十一坐标建模。
+
+1. 从 Human/domain 目标和实际消费者反推必要责任，先 DELETE 不必要自制实现；再复用自然 Owner；仍不足时比较成熟外界 Provider、组合/薄适配，最后才考虑自造。非消费证据不能伪装为“无消费者”。
+2. 外界只补实质未知：官方 SourceCut/文档、许可证、维护状态、效果与权限、替换契约、成本、可验证反例。优先使用 `catalogs/capabilities/packages/INDEX.md` 与已有 `catalogs/capabilities/providers/`，不建立平行 Provider 索引。
+3. 根据问题选择最小思想型 LEGO：Bounded Context / `project-kernel-decomposition` 定责任，`design-structure-matrix` 查耦合，`compositional-contracts` 证明组合前提，`recursive-lego-calculus` 查最终消费者闭包。方法结论与真实源代码、安装、运行、领域验收互相独立。
+4. 每次替换以同一消费者验收谓词比较旧与新，保持天然 Owner 单一真值。正常 GitHub Merge Queue 发布，原生 Release 安装及消费者读回后删除旧实现和可再生残留。
+
+| 成熟外部基础 | Ordivon 已有入口 | 边界与采用结论 |
+| --- | --- | --- |
+| DDD / Team Topologies / DSM | `tools/repo/owners.toml`、Owner Boundary、现有方法 Skills | 按语义权威与独立变化原因拆分，不按文件大小拆分 |
+| Agent Skills 开放规格 | `.agents/skills/`、`extensions/chatgpt-skills-mcp/` | Skill 包按需读取；文件存在不等于在线 Skills 服务已注册或可解析 |
+| Git 原生 worktree / Worktrunk | Runtime Workspace、`catalogs/capabilities/providers/worktrunk.md` | Worktrunk 目前只具备只读 Git 对照证据，可研究 Workstation UX，不代替 Runtime Workspace/Recovery |
+| PostgreSQL / GitHub Merge Queue | Host 原生 PG、Alembic、GitHub PR | 重用状态与发布权威，不自造中间 Ledger 或第二发布队列 |
+| OpenSSF Scorecard / SLSA / OpenTelemetry | Provider 评价、Artifact/Distribution、原生日志与追踪 | 分别用于风险线索、构建来源、统一事件命名；均不是形式化正确性证明 |
+
+官方参考：https://martinfowler.com/bliki/BoundedContext.html 、https://teamtopologies.com/key-concepts-content/team-interaction-modeling-with-team-topologies 、https://agentskills.io/specification 、https://openssf.org/projects/scorecard/ 、https://slsa.dev/spec/v1.2/provenance 、https://opentelemetry.io/docs/specs/semconv/ 。
+
+## 六、分别面向 Human 与 Agent 的原生入口
+
+**Human：** 直接提出目标、最终可观察收益和愿意承担的影响，不必手动写十一坐标。先在 `catalogs/capabilities/packages/INDEX.md` 选择 Package，再寻找 Owner 原生能力；比较不做、自带能力、外界成熟能力三个方案；验收要看真实读回、变化与代价。例如“关闭旧的 Host Topic，但保留历史消息可读”，应复用 Host `topic.state.set` 的 CAS，而不是另写删除服务。详细步骤见 `.agents/skills/recursive-lego-calculus/references/owner-provider-human-agent.md`。
+
+**Agent：** 从 `AGENTS.md`、Owner Manifest、`origin/main` SourceCut、实际已安装实例和真实消费者开始；用 `method-router` 选最少的专业方法；对独立声明的 LEGO 填全 R2.1 契约；采用现成 Port/工具并做有针对性的消费者验证；经受保护主线发布、安装读回后退役旧 Carrier。Skill 文件仅被 Git 跟踪，不代表当前 Skill Server 的绑定；必须用当前 `resolve/read` 证实可见性。具体工作路径见同一 reference 的 Agent 部分。
+
+**同一能力、两种视图：** Human 看收益、效果、可恢复性；Agent 看精确身份、前置条件、不变量、效果、证据和作用范围。两者不分别创建 Owner、状态表、规则引擎或工作流。
