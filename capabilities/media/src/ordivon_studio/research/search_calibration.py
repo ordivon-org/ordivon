@@ -16,7 +16,7 @@ from statistics import NormalDist
 from typing import TYPE_CHECKING, Any
 
 from .grounded_contracts import canonical_digest
-from .trial_registration import seed_commitment, validate_registration
+from .trial_registration import admit_frozen_winner, seed_commitment, validate_registration
 
 if TYPE_CHECKING:
     from .trial_ledger import TrialLedger
@@ -219,18 +219,6 @@ def _quantile(values: Sequence[float], q: float) -> float:
     return float(ordered[low] * (1.0 - weight) + ordered[high] * weight)
 
 
-def _admit_frozen_winner(registration: Mapping[str, Any], winner: Mapping[str, Any]) -> None:
-    """Reject changed or cross-registration selections before their consumption."""
-    if (
-        winner.get("registrationDigest") != registration["registrationDigest"]
-        or winner.get("experimentId") != registration["experimentId"]
-    ):
-        raise ValueError("winner is not bound to this registration")
-    frozen = {key: value for key, value in winner.items() if key != "winnerDigest"}
-    if winner.get("winnerDigest") != canonical_digest(frozen):
-        raise ValueError("frozen winner digest mismatch")
-
-
 def search_replay_correction(
     registration: Mapping[str, Any],
     winner: Mapping[str, Any],
@@ -239,7 +227,7 @@ def search_replay_correction(
     replay_count: int = 2000,
 ) -> dict[str, Any]:
     registered = validate_registration(registration)
-    _admit_frozen_winner(registered, winner)
+    admit_frozen_winner(registered, winner)
     if replay_count < 100:
         raise ValueError("replay_count must be >= 100")
     mode = str(registered["search"]["mode"])
@@ -282,7 +270,7 @@ def evaluate_sealed_holdout(
     ledger: TrialLedger | None = None,
 ) -> dict[str, Any]:
     registered = validate_registration(registration)
-    _admit_frozen_winner(registered, winner)
+    admit_frozen_winner(registered, winner)
     if seed_commitment(holdout_seed) != registered["holdout"]["seedCommitment"]:
         raise ValueError("holdout seed does not satisfy the sealed commitment")
     candidate_id = str(winner["candidateId"])
@@ -410,69 +398,4 @@ def calibration_experiment(
         ),
     }
     result["calibrationDigest"] = canonical_digest(result)
-    return result
-
-
-def score_null_attack(
-    *,
-    registration: Mapping[str, Any],
-    winner: Mapping[str, Any],
-    correction: Mapping[str, Any],
-    holdout: Mapping[str, Any],
-    calibration: Mapping[str, Any],
-) -> dict[str, Any]:
-    registered = validate_registration(registration)
-    digest = registered["registrationDigest"]
-    if any(item.get("registrationDigest") != digest for item in (winner, correction, holdout)):
-        raise ValueError("R6-A artifacts do not share one registration")
-    _admit_frozen_winner(registered, winner)
-    if correction.get("winnerDigest") != winner["winnerDigest"] or holdout.get("winnerDigest") != winner["winnerDigest"]:
-        raise ValueError("R6-A correction/holdout does not consume the frozen winner")
-    for label, artifact, digest_field in (
-        ("search correction", correction, "correctionDigest"),
-        ("sealed holdout", holdout, "holdoutDigest"),
-        ("calibration", calibration, "calibrationDigest"),
-    ):
-        observed = artifact.get(digest_field)
-        source = {key: value for key, value in artifact.items() if key != digest_field}
-        if observed != canonical_digest(source):
-            raise ValueError(f"R6-A {label} source digest mismatch")
-    rows = calibration.get("rows")
-    if not isinstance(rows, dict) or not rows:
-        raise ValueError("calibration rows missing")
-    largest_budget = str(max(int(key) for key in rows))
-    largest = rows[largest_budget]
-    corrected_rates = [float(row["searchCorrectedFalsePositiveRate"]) for row in rows.values()]
-    holdout_rates = [float(row["sealedHoldoutFalsePositiveRate"]) for row in rows.values()]
-    signals = {
-        "visibleWinnerLooksNaivelySignificant": float(winner["naiveOneSidedP"]) < 0.05,
-        "officialSearchCorrectionRejectsFalseAlpha": float(correction["searchCorrectedP"]) >= 0.05,
-        "officialSealedHoldoutRejectsFalseAlpha": float(holdout["holdoutOneSidedP"]) >= 0.05,
-        "highBudgetNaiveFalsePositiveInflation": float(largest["naiveFalsePositiveRate"]) >= 0.95,
-        "searchCorrectionCalibrated": all(0.015 <= rate <= 0.085 for rate in corrected_rates),
-        "sealedHoldoutCalibrated": all(0.015 <= rate <= 0.085 for rate in holdout_rates),
-        "holdoutWasIndependentOfVisibleWinner": abs(float(largest["meanHoldoutZ"])) <= 0.20,
-    }
-    result = {
-        "schemaVersion": 1,
-        "kind": "ordivon.studio.creative-alpha-r6a-score",
-        "experimentId": registered["experimentId"],
-        "registrationDigest": digest,
-        "acceptanceSignals": signals,
-        "accepted": all(signals.values()),
-        "observed": {
-            "visibleWinnerZ": winner["visibleStatisticZ"],
-            "visibleWinnerNaiveP": winner["naiveOneSidedP"],
-            "searchCorrectedP": correction["searchCorrectedP"],
-            "holdoutZ": holdout["holdoutStatisticZ"],
-            "holdoutP": holdout["holdoutOneSidedP"],
-            "calibrationMode": calibration.get("mode"),
-            "largestBudgetCalibration": largest,
-        },
-        "decisionLaw": (
-            "Passing R6-A means the apparatus exposes selection inflation while maintaining calibrated search-aware and sealed-holdout evidence under a known zero-effect universe. "
-            "It does not establish any positive creative law."
-        ),
-    }
-    result["scoreDigest"] = canonical_digest(result)
     return result

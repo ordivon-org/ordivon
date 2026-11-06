@@ -150,3 +150,15 @@ def build_null_registration(
     }
     registration["registrationDigest"] = canonical_digest(registration)
     return validate_registration(registration)
+
+
+def admit_frozen_winner(registration: Mapping[str, Any], winner: Mapping[str, Any]) -> None:
+    """Reject changed or cross-registration selections before their consumption."""
+    if (
+        winner.get("registrationDigest") != registration["registrationDigest"]
+        or winner.get("experimentId") != registration["experimentId"]
+    ):
+        raise ValueError("winner is not bound to this registration")
+    frozen = {key: value for key, value in winner.items() if key != "winnerDigest"}
+    if winner.get("winnerDigest") != canonical_digest(frozen):
+        raise ValueError("frozen winner digest mismatch")
