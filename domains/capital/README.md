@@ -2,6 +2,8 @@
 
 Ordivon Capital is the capital composition and control plane of Ordivon. It does not define a new accounting, risk, trading, settlement, identity, observability, lineage, or cloud-cost framework. It composes authoritative standards, mature implementations, provider reality, and the minimum Ordivon glue required to bind evidence, authority, execution, and reconciliation.
 
+**Finance R2 (investment research)**: the bounded, read-only frozen-candidate evidence consumer and its R2.1 contract live in [FINANCE_R2_RESEARCH_BOUNDARY](docs/FINANCE_R2_RESEARCH_BOUNDARY.md). Research evidence never grants execution or capital authority.
+
 **Market Capital is one implemented domain inside Ordivon Capital, not the parent system.** The current repository contains the Market domain plus a cross-domain TigerBeetle accounting integration. Treasury, Compute, Enterprise, Human, Distribution, and other capital domains are not instantiated until a real use case requires them and an external-owner census has been completed.
 
 Current Market-domain business backbone: CFA investment-management process.
