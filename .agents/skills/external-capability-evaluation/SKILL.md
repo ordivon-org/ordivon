@@ -29,7 +29,7 @@ A task wants to discover, classify, decompose, qualify, reuse, replace or learn 
 ## Already-existing entrypoints
 
 - Candidate snapshots: catalogs/capabilities/scripts/github_radar_incremental.py
-- Source schema: catalogs/capabilities/evidence/external-capability-candidate-r1.schema.json (existing pinned check-jsonschema).
+- Source schema: catalogs/capabilities/schemas/external-capability-candidate-r1.schema.json (existing pinned check-jsonschema).
 - Git/cross-file evidence: catalogs/capabilities/scripts/check_external_candidate_references.py
 - Studied example: catalogs/capabilities/evidence/worktrunk-candidate-20261106.json
 - Native Research qualification: profiles/research/tool-qualification/TOOL_QUALIFICATION_R1.md

@@ -40,7 +40,7 @@ Official Github radar (does not install or admit any software):
 
 Pinned standard JSON Schema validator, already available in Ordivon:
 
-    uv run --with check-jsonschema==0.38.0 check-jsonschema --schemafile catalogs/capabilities/evidence/external-capability-candidate-r1.schema.json catalogs/capabilities/evidence/worktrunk-candidate-20261106.json
+    uv run --with check-jsonschema==0.38.0 check-jsonschema --schemafile catalogs/capabilities/schemas/external-capability-candidate-r1.schema.json catalogs/capabilities/evidence/worktrunk-candidate-20261106.json
 
 Narrow existing Git/cross-file reference witness (not another JSON parser):
 
