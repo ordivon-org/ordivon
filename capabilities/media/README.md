@@ -207,6 +207,7 @@ python3 scripts/studio-agent-surface.py
 | design or inspect a generic observer-facing Media projection without assuming Studio production | [`research/media/engineering-consumption/OMPC-v0.md`](research/media/engineering-consumption/OMPC-v0.md) |
 | discover the bounded Studio Agent surface without `.venv` or `node_modules` | `python3 scripts/studio-agent-surface.py` |
 | discover existing FFprobe/FFmpeg/OTIO/timed-text processing LEGO with exact profile hashes | `./.venv/bin/python scripts/studio-agent-surface.py studio_processing_profiles --arguments '{}'` (after the pinned Python dependencies are materialized) |
+| compile one selected processing profile into a digest-pinned, nonexecuting Runtime command | Use the existing Studio action: studio_processing_probe_plan, with digests from studio_processing_profiles |
 | inspect Production standing before selecting current work | `python3 scripts/studio-agent-surface.py studio_production_standing --arguments '{}'` |
 | after caller/owner intent identifies one Production, inspect its bounded context | `python3 scripts/studio-agent-surface.py studio_production_context --arguments '{"productionId":"<id>"}'` |
 | inspect one Production, its Claims/Outputs, and optional source-binding Git relation through the lower-level CLI | `uv run ordivon-studio production-context <production-root> [--source-repo BINDING_ID=PATH]` |

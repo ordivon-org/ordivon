@@ -35,6 +35,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             self.assertEqual(item["profileDigest"], "sha256:" + hashlib.sha256(raw).hexdigest())
             self.assertEqual(item["adapterPath"], "processing/bin/probe-av.sh")
             self.assertTrue(item["adapterPresent"])
+            self.assertEqual(item["adapterDigest"], "sha256:" + hashlib.sha256(b"#!/bin/sh\\n").hexdigest())
             self.assertEqual(item["externalToolReadiness"], "not-observed")
             self.assertEqual(
                 execute_surface_action("studio_processing_profiles", {}, root=root), result
@@ -56,6 +57,40 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             self.assertIsNone(item["adapterPath"])
             self.assertFalse(item["adapterPresent"])
             self.assertEqual(item["externalToolReadiness"], "not-observed")
+
+    def test_native_probe_plan_reuses_discovered_bytes_and_refuses_drift(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        catalog = execute_surface_action("studio_processing_profiles", {}, root=root)
+        profile = next(item for item in catalog["profiles"]
+                       if item["id"] == "av-sdr-web-1080p30-noaudio")
+        args = {
+            "profileId": profile["id"],
+            "expectedProfileDigest": profile["profileDigest"],
+            "expectedAdapterDigest": profile["adapterDigest"],
+            "inputPath": "/tmp/media-demo.mp4",
+            "evidenceDirectory": "/tmp/media-demo-evidence",
+        }
+        result = execute_surface_action("studio_processing_probe_plan", args, root=root)
+        self.assertEqual(result["execution"], {
+            "executionTarget": "local_linux",
+            "executable": "/usr/bin/bash",
+            "args": [
+                profile["adapterPath"],
+                args["inputPath"],
+                profile["profilePath"],
+                args["evidenceDirectory"],
+            ],
+            "cwdRelative": "capabilities/media",
+        })
+        self.assertEqual(result["profileDigest"], profile["profileDigest"])
+        self.assertEqual(result["adapterDigest"], profile["adapterDigest"])
+        args["expectedAdapterDigest"] = "sha256:" + "0" * 64
+        with self.assertRaisesRegex(ValueError, "adapter digest changed"):
+            execute_surface_action("studio_processing_probe_plan", args, root=root)
+        args["expectedAdapterDigest"] = profile["adapterDigest"]
+        args["expectedProfileDigest"] = "sha256:" + "0" * 64
+        with self.assertRaisesRegex(ValueError, "profile digest changed"):
+            execute_surface_action("studio_processing_probe_plan", args, root=root)
 
     def test_duplicate_profile_identity_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

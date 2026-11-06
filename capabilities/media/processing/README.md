@@ -33,3 +33,18 @@ MediaInfo, VMAF/QCTools, DVC, OCI/ORAS, C2PA and specialist review platforms are
 **optional external candidates**, not a mandated stack. Add them only when an
 actual consumer and a falsifiable delivery requirement justify their use.
 Provider-native distribution/readback remains with its natural owner.
+
+
+## Agent composition entry
+
+The existing Studio Agent surface advertises studio_processing_profiles for
+source-owned profile and native adapter discovery. Select one row and supply
+its profileDigest and adapterDigest to studio_processing_probe_plan together
+with an exact inputPath and evidenceDirectory. The result is an ordered native
+bash invocation proposal using the current adapter; Runtime executes it and
+the adapter produces raw tool observations and a profile evidence receipt.
+
+The compiler does not implement FFmpeg, OTIO, or subtitle processing; it
+does not check tool installation, mutate source media, or grant execution
+authority. A profile check is a mechanical predicate, never aesthetic or
+publication approval.
