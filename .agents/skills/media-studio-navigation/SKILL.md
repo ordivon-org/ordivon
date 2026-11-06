@@ -1,33 +1,24 @@
 ---
 name: media-studio-navigation
-description: "When an Agent must decide whether Ordivon Media/Studio owns a requested human-facing output, find the real Production and source-bound Claims, or route writing, video, audio, visual and interactive work into existing Studio capabilities, follow the current Media Agent Surface and owner contracts. Not for generic tool output, running native probes without a selected file (use media-native-processing), or external publication."
-compatibility: "Ordivon monorepo Media source; Python 3 for dependency-light initial discovery."
+description: "Find the appropriate existing Ordivon Media capability and an explicitly selected Studio Production for a human-facing creative work. Read source-owned Claims, production context, equipment options and current evidence without inventing a new production registry or transferring source authority."
+compatibility: "Ordivon monorepo capabilities/media source; Python 3 for dependency-light discovery."
 metadata:
-  source-authority: "capabilities/media/AGENTS.md and current ordivon_studio.agent_surface schemas"
+  source-authority: "capabilities/media/AGENTS.md and ordivon_studio.agent_surface schemas"
 ---
 
-# Media Studio Navigation — route to an existing consumer
+# Media Studio Navigation
 
-## Trigger
+Use this source-owned procedure when the caller wants to find, commission, resume or review a Media or Studio work. Ordinary status/tool output belongs to its source application unless a specific media composition or expression is needed.
 
-Use when a caller wants to understand, commission, resume or revise an Ordivon Media expression or Studio Production and needs a concrete **first action**. Source/native app observation alone does not justify Media activation.
+## Procedure
 
-## Actual shortest path
+1. Name the requesting consumer, intended audience and deliverable. Record the source Owner and exact source revision for any factual statement. Avoid Studio when ordinary source-native presentation is sufficient.
+2. Run `cd capabilities/media && python3 scripts/studio-agent-surface.py`. This discovers the live Studio action definitions and JSON input schemas without installing media tooling.
+3. Run `python3 scripts/studio-agent-surface.py studio_production_standing --arguments '{}'` from the same directory. Inspect returned Production IDs and descriptions. The selected Production must come from the caller's real intent, not file timestamps or status ordering.
+4. For that exact ID, call `studio_production_context` using its advertised schema. If the parameterized action requires `jsonschema` in a fresh Workspace, run `mise exec -- python3 scripts/materialize-python.py` and use `.venv/bin/python scripts/studio-agent-surface.py`. Do not install the JS renderer merely to read production context.
+5. Read source-bound Claims, the selected Production and Outputs. Keep Production lifecycle, individual Output approval, underlying bytes, destination publication and human-response acceptance distinct.
+6. For a real native-technical task, inspect `studio_processing_profiles`, select a profile by returned ID and both exact digests, and compile `studio_processing_probe_plan`. Runtime owns physical execution; output evidence only establishes the profile's declared technical predicates. Do not infer publication approval.
+7. For a real equipment task, use `studio_equipment_propose`; for existing work search use `studio_creative_index_query`; for scoped creative evidence use `studio_learning_context`. These are existing source-owned actions, not new providers or registries.
+8. Finish with the consumer's actual source-grounded plan or observed result; state the earliest missing precondition otherwise. Retain editable source, selected recoverable bytes and necessary receipts, not hypothetical future intermediates.
 
-1. Identify user audience and intended deliverable, source Owner revision and final consumer. If the existing source/UI is already sufficient, do not invoke Studio.
-2. Read `capabilities/media/AGENTS.md` and run from `capabilities/media`:
-   `python3 scripts/studio-agent-surface.py`. Use the returned JSON schemas rather than a static Skill-tool list.
-3. For an existing work run `python3 scripts/studio-agent-surface.py studio_production_standing --arguments '{}'`. Select **one** `productionId` by real owner/caller intent; current identity is deliberately not inferred by Studio.
-4. For a selected work request `studio_production_context` with that ID; where its JSON-Schema dependency is absent, from Media run `mise exec -- python3 scripts/materialize-python.py`, then invoke `.venv/bin/python scripts/studio-agent-surface.py`. Avoid acquiring the JavaScript renderer for a read-only query. Read the linked Claim/Production/Asset/Output source and the selected source revision before making any external-world assertion.
-5. Route to `studio_creative_index_query`, `studio_learning_context` or `studio_equipment_propose` only for an actual needed component. For FFprobe, FFmpeg, OTIO or TTML technical inspection hand off to `media-native-processing` with exact digest-pinned profile and source file; this Skill does not execute a probe.
-6. Compose existing media/editor/native providers first, retain editable source, then actual rendered bytes and only consumer-useful evidence. Send any physical effects through Runtime; external publication and read-back stay with the destination Provider/Owner.
-7. Decide against source-bound Claim, actual medium craft and, only where claimed, human-response evidence. Distinguish finished Output approval from whole Production state and provider publication. Report unknown dimensions as UNKNOWN, not a synthetic PASS.
-
-## Boundaries / sources
-
-- Owner responsibilities: `capabilities/media/MEDIA.md`, `STUDIO.md`, `docs/media-model.md`.
-- Human route: `capabilities/media/docs/human-guide.md`.
-- Native LEGO/typed representations: `capabilities/media/planning/lego-plan-r1.json`, `processing/profiles/`; never create a shadow catalog.
-- Skills already installed for deeper method selection: `design-structure-matrix`, `compositional-contracts`, `recursive-lego-calculus`, `media-native-processing`.
-
-Stop when the consumer has the actual source-grounded plan or accepted output, or the earliest missing precondition is named. Don't bootstrap the entire Studio environment for simple discovery.
+The current authority references are `capabilities/media/MEDIA.md`, `STUDIO.md`, `docs/media-model.md` and `capabilities/media/AGENTS.md`. Action schemas and production files remain the operational truth; this Skill is only navigation.
