@@ -111,6 +111,17 @@ class RadarTests(unittest.TestCase):
         self.assertEqual([x["stars"] for x in item["officialTrending"]],[546,1802,4300])
         self.assertEqual(item["adoptionStanding"],"DISCOVERY_ONLY")
 
+    def test_transient_github_api_failure_remains_explainable(self):
+        data = self.example()
+        data["repositories"]["max-sixty/worktrunk"] = {
+            "apiStatus": "FAILED", "note": "temporary upstream API error", "totalStars": None,
+        }
+        item = normalize(data, set())["candidates"][0]
+        self.assertEqual(item["apiStatus"], "FAILED")
+        self.assertEqual(item["apiFailureNote"], "temporary upstream API error")
+        self.assertEqual(item["adoptionStanding"], "DISCOVERY_ONLY")
+        self.assertIsNone(item["totalStarsSource"])
+
     def test_wrong_window_rejected(self):
         data = self.example()
         data["windows"][0]["entries"][0]["sourceWindowLabel"]="this week"

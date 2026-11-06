@@ -165,6 +165,10 @@ def normalize(raw: dict, history: set[str]) -> dict:
         value["licenseMetadata"] = api.get("licenseMetadata")
         value["metadataCurrentness"] = api.get("pushedAt")
         value["apiStatus"] = api.get("apiStatus", "UNVERIFIED")
+        # Preserve the original upstream diagnostic for an actually observed API failure.
+        # Do not turn an unavailable metadata lookup into a claim that the repo is absent.
+        if value["apiStatus"] == "FAILED" and api.get("note"):
+            value["apiFailureNote"] = str(api["note"])[:200]
         value["licenseVerification"] = "METADATA_ONLY_NOT_LICENSE_FILE"
         value["repeatedWithin7Days"] = repo in history
         value["recommendationDisposition"] = "REVIEW_CHANGE_BEFORE_REPEAT" if repo in history else "NEW_CANDIDATE"
