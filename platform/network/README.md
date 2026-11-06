@@ -91,6 +91,9 @@ task core:validate
 # Verify the currently installed live generation
 task core:verify
 
+# Converge idempotently: skip installation when core:verify already passes
+task core:converge
+
 # Isolated generic tests without live convergence
 task accept:source
 

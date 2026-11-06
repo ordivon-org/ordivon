@@ -67,7 +67,11 @@ tasks:
     deps: [core:validate, provider:surfshark:validate, provider:gluetun:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate, consumer:codex:validate, consumer:mobile-tailnet-exit:validate, consumer:discord:validate, consumer:model-provider:validate, consumer:windows-real-chrome:validate]
 
   core:install:
-    desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
+    desc: Materialize the exact validated R0 source generation; skip effects when the installed generation already verifies
+    # Reuse Go Task's native up-to-date check: no service restart if the
+    # deployed SourceCut, process and real consumer probes already verify.
+    status:
+      - task core:verify
     cmds:
       - task: core:validate
       - /usr/bin/python3 scripts/monitoring-sourcecut-preflight.py --source config --live /etc/network-v2
