@@ -117,3 +117,41 @@ specific simulation policy, not evidence of reliable investment alpha.
 3. Only when real portfolio orders become the question should LEAN or
    NautilusTrader's qualified paper brokerage/fill model be used. This
    bounded mark-to-market projection must not grow into a new broker.
+
+## R4 — source revision sensitivity, with no new backtest engine
+
+A provider may retroactively change a historical bar, including historical
+split/dividend-adjusted closes. The existing Finance fixed-policy simulation
+can now compare the same policy against two separately SHA-256- and Git-blob-
+bound CSV vintages through a thin Portfolio consumer:
+
+    scripts/run-paper-etf-vintage-compare-r1 \
+      --reference-request REFERENCE.json --reference-source REFERENCE.csv \
+      --candidate-request CANDIDATE.json --candidate-source CANDIDATE.csv
+
+Both inputs reuse the existing Markets adjusted-close CSV admission, Portfolio
+paper NAV engine, and passive benchmark assertion. The comparison requires the
+same policy and source repository/path. It lists dates where strategy NAV
+changes and computes terminal strategy/benchmark changes **only when priced
+session dates agree exactly**. Different session coverage produces
+`INCOMPARABLE_SESSION_COVERAGE` without a misleading wealth delta. It writes
+no database, downloads nothing, and cannot place orders.
+
+This is a *retrospective data-revision sensitivity* LEGO, not two proven
+as-known-at-the-time market vintages. Git commit time is only a declared
+mirror timestamp; both provider authenticity and historical point-in-time
+publication remain unverified. In particular, EODHD documents that its
+split/dividend-adjusted close history may be recalculated with later actions,
+and that it does **not** expose point-in-time vintages:
+https://eodhd.com/help/methodology . Strictly separate mechanical comparison
+from ex-ante strategy evidence.
+
+The native tests exercise equal bytes, modified priced closes, changed session
+coverage, changed policy and provenance lineage, forged digests, and the exact
+subprocess CLI. At least two genuine, separately timestamped and independently committed
+provider snapshots are needed to investigate an observed vendor correction.
+The existing GitHub example contains only one documented source vintage. A
+real 1,511,995-byte pinned GitHub snapshot was re-fetched with both SHA-256
+and Git blob identity verified and compared to itself across 401 priced
+sessions; it correctly produced zero NAV changes. No vendor correction was
+claimed, and the unlicensed raw CSV was removed after this smoke replay.
