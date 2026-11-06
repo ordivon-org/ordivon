@@ -1,31 +1,40 @@
 # Find the Ordivon owner for your task
 
-**Choose by outcome and authoritative fact**, not by a technology name.
-The paths below are discovery aids. Capability deployment and consumer
-qualification must be checked with the real owner.
+Choose by the **outcome and authoritative fact or effect**, not by a
+technology label or directory name. The
+[20-owner task-to-authority table](../../README.md#where-to-start) is the
+human navigation entry; [owners.toml](../../tools/repo/owners.toml) is
+the repository's mechanical ownership and verification-task mapping.
+Neither grants authority or proves that an Owner is installed and ready.
 
-| I want to... | First owner entry | First evidence to request |
-| --- | --- | --- |
-| Run a verifiable task and read its artifacts | [Runtime](../../services/runtime/README.md) | Workspace/Job/Attempt plus artifact/result state |
-| Continue an Agent collaboration, Work or discussion | [Host](../../services/host/README.md) | Work/Space/Topic/Message authority and exact revision |
-| Build an Agent invocation or tool session | [Harness](../../services/harness/README.md) | Agent run/tool effects and owned trace |
-| Route a remote authenticated tool operation | [Gateway](../../services/gateway/README.md) | Deployed route and downstream owner readiness |
-| Run an investment research/simulation study | [Capital / Finance](../../domains/capital/README.md) | Source digests, read-only replay and independent research status |
-| Inspect a network/VPN/DNS failure | [Network](../../platform/network/README.md) | Observed route, nameserver and exit-path evidence |
-| Review auth, credentials or effect boundaries | [Security](../../platform/security/README.md) | The applicable Security owner contract |
-| Create or inspect application-facing browser behavior | [Web](../../apps/web/README.md) | Canary/browser acceptance; production eligibility separately |
-| Work on media | [Media capability](../../capabilities/media/README.md) | Actual active consumer and native owner tests; see owner-native documentation |
-| Design or review a research workflow | [Research capability package](../../catalogs/capabilities/packages/research.md) | Resolve the study/experiment owner and actual consumer; no monolithic Research service is implied |
-| Work on a playable game | [Game](../../domains/game/README.md) | Playable build and actual Agent/human game loop |
+## Human: goal to a usable result
 
-**Where is Skills?** Canonical in-repo procedural packages live under
-[Agent Skills](../../.agents/skills/), with
-[method-router](../../.agents/skills/method-router/SKILL.md) for tasks where
-method selection is genuinely uncertain. Skill discovery, authority and runtime
-effects are different boundaries.
+1. Find the outcome in the [owner table](../../README.md#where-to-start),
+   then follow the selected Owner's README.
+2. Ask for a live consumer observation (not only a source commit or test).
+   Runtime execution, Host continuity, installed service and domain outcome
+   are distinct facts.
+3. For a first working example, use the
+   [human first-run](human-first-run.md). For a method or reusable LEGO,
+   start with the [canonical project Skills](../../.agents/skills/).
 
-**When no owner entry exists:** inspect the source and current deployment
-rather than treating a missing README as proof a capability is absent.
-A separate owner onboarding page should be added when a real consumer and
-setup path can be demonstrated; do not generate boilerplate READMEs for
-empty or retired owners.
+## Agent: consumer to a verified effect
+
+1. Read [AGENTS.md](../../AGENTS.md), locate the natural Owner via
+   [owners.toml](../../tools/repo/owners.toml), and verify the current
+   SourceCut, public contract, native tests and actual final consumer.
+2. Reuse the existing [method router](../../.agents/skills/method-router/SKILL.md)
+   when the analysis method is uncertain. Use the
+   [Recursive LEGO R2.1 Skill](../../.agents/skills/recursive-lego-calculus/SKILL.md)
+   only for independently contractable responsibilities, not every file
+   or Tool. For executable work, follow the
+   [agent first-run](agent-first-run.md).
+3. Retire a source carrier or Workspace only after checking real
+   callers, active Jobs, unreleased commits, installed readbacks and
+   replay/retention obligations. Use native Owner/Git lifecycle operations;
+   do not treat an absent static import as proof of no consumer.
+
+A directory, package, Skill, external provider, or historical plan is not
+a substitute for the actual authority. If an outcome has no table entry,
+inspect its current source and deployment rather than inventing a new Owner
+or producing an empty README.
