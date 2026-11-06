@@ -53,6 +53,7 @@ from .continuity_guards import (
     require_run_snapshot_binding,
     require_tool_intent_binding,
     validate_snapshot_state,
+    validate_tool_event,
 )
 from .continuity_records import (
     HarnessDispatchFenceV2,
@@ -2876,73 +2877,13 @@ class SQLiteHarnessRunContinuityStore(_WorkingSetReadQueries):
         )
 
     def _validate_tool_event(self, event: HarnessRunEventRecord) -> None:
-        data = event.data
-        intent_object_digest = required_event_digest(data, "toolStepIntentObjectDigest")
-        raw_intent = self.store.get_object(
-            intent_object_digest,
-            expected_kind="harness-tool-step-intent",
+        validate_tool_event(
+            event,
+            store=self.store,
+            harness_run_id=self.harness_run_id,
+            binding=self.binding,
+            allow_tool_content=self.contract.privacy.allow_tool_content,
         )
-        if not isinstance(raw_intent, dict):
-            raise ValueError("Harness Tool Step Intent event object is invalid")
-        intent = HarnessToolStepIntent.from_dict(raw_intent)
-        require_tool_intent_binding(intent, self.harness_run_id, self.binding)
-        if data.get("toolStepIntentDigest") != intent.digest:
-            raise ValueError("Harness Tool Step Intent event digest differs")
-        fence_object_digest = data.get("dispatchFenceObjectDigest")
-        if fence_object_digest is not None:
-            if not isinstance(fence_object_digest, str):
-                raise ValueError("Harness Dispatch Fence event reference is invalid")
-            raw_fence = self.store.get_object(
-                fence_object_digest,
-                expected_kind="harness-dispatch-fence",
-            )
-            if not isinstance(raw_fence, dict):
-                raise ValueError("Harness Dispatch Fence event object is invalid")
-            fence = (
-                HarnessDispatchFenceV2.from_dict(raw_fence)
-                if raw_fence.get("schemaVersion") == 2
-                else HarnessDispatchFence.from_dict(raw_fence)
-            )
-            if (
-                data.get("dispatchFenceDigest") != fence.digest
-                or fence.intent_digest != intent.digest
-            ):
-                raise ValueError("Harness Dispatch Fence event differs")
-        receipt_object_digest = data.get("receiptObjectDigest")
-        observation_object_digest = data.get("observationObjectDigest")
-        if receipt_object_digest is None:
-            if observation_object_digest is not None:
-                raise ValueError("Harness Tool Observation event lacks its Receipt")
-            return
-        if not isinstance(receipt_object_digest, str):
-            raise ValueError("Harness Tool Step Receipt event reference is invalid")
-        raw_receipt = self.store.get_object(
-            receipt_object_digest,
-            expected_kind="harness-tool-step-receipt",
-        )
-        if not isinstance(raw_receipt, dict):
-            raise ValueError("Harness Tool Step Receipt event object is invalid")
-        receipt = HarnessToolStepReceipt.from_dict(raw_receipt)
-        if (
-            data.get("receiptDigest") != receipt.digest
-            or receipt.intent_digest != intent.digest
-        ):
-            raise ValueError("Harness Tool Step Receipt event differs")
-        if observation_object_digest is not None:
-            if not isinstance(observation_object_digest, str):
-                raise ValueError("Harness Tool Observation event reference is invalid")
-            raw_observation = self.store.get_object(
-                observation_object_digest,
-                expected_kind="harness-tool-observation",
-            )
-            if not isinstance(raw_observation, dict):
-                raise ValueError("Harness Tool Observation event object is invalid")
-            if canonical_digest(raw_observation) != receipt.observation_digest:
-                raise ValueError("Harness Tool Observation event differs from its Receipt")
-        elif self.contract.privacy.allow_tool_content and receipt.observation_digest is not None:
-            raise ValueError(
-                "Harness Tool Observation content was authorized but its event object is missing"
-            )
 
     def _load_snapshot_from_event(self, event: HarnessRunEventRecord) -> StoredHarnessRunSnapshot:
         data = event.data
