@@ -798,6 +798,51 @@
       ],
       "localStanding": "RETAINED_IRREDUCIBLE_READONLY_GLUE",
       "localResponsibility": "Conserve caller-specified contribution cents while preserving an explicit cash reserve; allocate without sale, prediction, advice or execution effects. Own only the exact cross-asset caller mandate composition, not optimization or a broker."
+    },
+    {
+      "id": "markets-github-historical-close-byte-admission",
+      "sourcePatterns": [
+        "src/ordivon_capital/markets/historical_close_snapshot.py"
+      ],
+      "ownerClasses": [
+        "IMPLEMENTATION_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Original market-data publisher owns historical close and adjustment validity (currently not independently attested)",
+        "GitHub owns mirrored commit and Git blob bytes, not original market-time truth",
+        "Python standard-library csv/hashlib/decimal own parsing and arithmetic mechanics"
+      ],
+      "localStanding": "RETAINED_BOUNDED_DATA_BYTE_ADMISSION",
+      "localResponsibility": "Validate an explicitly identified immutable GitHub-derived adjusted-close CSV for offline virtual research, reject false digest/missing partial prices/duplicate dates, and report all-no-quote days; no network data service, market-data ownership, or claim that upstream publication existed at historical time.",
+      "admittedMechanicsOwners": [
+        "Python 3.15 standard-library csv, hashlib, Decimal"
+      ],
+      "localDependencies": [
+        "Caller-supplied SHA-256 of separately fetched pinned GitHub blob; original provider licensing and history remain unverified"
+      ]
+    },
+    {
+      "id": "portfolio-offline-virtual-capital-daily-mark",
+      "sourcePatterns": [
+        "src/ordivon_capital/portfolio/paper_investment.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Capital Portfolio existing cash-flow-matched passive benchmark comparison owns compound-return oracle",
+        "LEAN/NautilusTrader would own any future exchange fills or real paper brokerage effects",
+        "Original historical market-data provider owns the actual price and adjustment truth"
+      ],
+      "localStanding": "RETAINED_BOUNDED_SIMULATION_ONLY",
+      "localResponsibility": "Compose validated external historical price bytes and caller-frozen virtual allocation into daily descriptive NAV with passive index and cash comparisons. No broker trades, cash transfer, independent profit claim, optimizer, scheduler, alternative accounting registry or live authority.",
+      "admittedMechanicsOwners": [
+        "Existing Capital passive_benchmark replay and Python Decimal"
+      ],
+      "localDependencies": [
+        "Markets historical CSV admission and caller-frozen capital/weights/cost convention"
+      ]
     }
   ],
   "notInstantiatedDomains": [
