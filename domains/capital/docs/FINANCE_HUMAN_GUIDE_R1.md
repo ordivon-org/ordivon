@@ -1,6 +1,6 @@
 # Ordivon Finance — Human 操作指南（R1）
 
-**入口定位**：Finance 是 Ordivon Capital 的投资研究与模拟投资能力组合，不是独立交易机器人或独立 Agent Runtime。当前源码在 `domains/capital/`；所有示例均以仓库根目录为工作目录。首次使用先运行 `mise run //domains/capital:verify` 检查已有软件环境，而不是重建 Finance 平台。
+**入口定位**：Finance 是 Ordivon Capital 的投资研究与模拟投资能力组合，不是独立交易机器人或独立 Agent Runtime。当前源码在 `domains/capital/`；所有示例均以仓库根目录为工作目录。首次体验先执行下方的无账户、只读示例；修改源码或验收工程变更时才运行 `mise run //domains/capital:verify`。无需为一个简单示例先跑全仓测试。
 
 ## 1. 我能用它做什么？
 
@@ -62,6 +62,31 @@ domains/capital/scripts/run-strategic-contribution-brief \
 3. 需要衡量策略是否优于简单指数时，使用现有 `portfolio.passive_benchmark`。输入需包含同一现金流、每期税费/成本假设与时点；详见 `docs/FINANCE_INVESTMENT_MODE_R2.md`。
 4. 结论只允许是比较结果及其限定条件，不允许把“样例回测上涨”写成“建议买入”。
 
+### 同一现金流的被动基准：一个不用行情账户的算例
+
+从仓库根目录进入 Capital 责任目录执行：
+
+```sh
+cd domains/capital
+scripts/run-capability-python \
+  -m ordivon_capital.portfolio.passive_benchmark \
+  --input examples/passive_benchmark_first_run_r1.json
+```
+
+这个原生运行器会将执行目录切换到 `domains/capital`；
+因此输入路径须相对于 Capital 根目录，不能直接把仓库根相对路径
+传给 `--input`。
+
+这个独立的合成算例让策略与基准都从 $1,000 开始，并在两个
+假想收益期间各于**期初**投入 $100。它明确建模不同的每期收益、
+费用比例和固定手续费，不请求行情 API。累计投入 $1,200；
+在该固定输入下，策略期末财富为 $1,192.10672，基准为
+$1,214.44400448，相差 −$22.33728448。这个差值是描述性的，
+没有数据真实性认证、统计显著性或实际投资建议的含义。
+
+使用真实数据时必须单独证明资产价格来源、公司行为调整、各期
+现金流、费用和可获得时间；不能将回测样例转为可信的样本外收益。
+
 ### B. Research Mode：建立可反证的研究
 
 现有 Agent Skill `.agents/skills/finance-experiment-review/SKILL.md` 是正式流程说明，入口是：
@@ -101,6 +126,31 @@ domains/capital/scripts/run-capability-python \
 
 Paper 日结会改变**模拟数据库**的状态，但不会调用真实经纪商。重复提交相同已关闭时段应获得原收据，改变同一已关闭时段的内容应被拒绝。模拟买卖的清算日期、费用和企业行为存在明确的已实现范围；无真实行情时，日结事实必须标为未知或缺失。
 
+### Paper 账本到 Risk：检查已承诺的模拟账户
+
+如果已经由 Accounting 在**专用** `ordivon_paper` PostgreSQL 数据库
+完成一个 Paper 日结，Risk 可沿现有只读消费者核对已提交日结与
+Markets 独立准入的原始未复权收盘价，而不从复权历史柱子猜测成交：
+
+```sh
+cd domains/capital
+scripts/run-capability-python -m ordivon_capital.risk.paper_close_risk \
+  --account PAPER_ACCOUNT --session YYYY-MM-DD \
+  --snapshot /private/etf-raw-marks.json \
+  --binding /private/operator-market-binding.json
+```
+
+此处四个大写/私有路径都是占位符，不是可直接用于某位用户的默认
+账户或市场数据。实际运行需要已存在的 Paper 收据、可用的
+`ORDIVON_CAPITAL_PAPER_PG_DSN` 和外部独立来源证据。
+`--receipt` 离线模式只能读取自行提交的收据文件，**不能证明**它
+确实已经入账。NAV 口径是现金减未结应付款、加未结应收款与
+按有效行情计价的持仓；未结卖出应收款不是可立即投入的自由现金。
+目前 Principal 风险预算输入标为 `UNSET`，Risk 不能因此宣称
+风险限额已满足。Agent 专项操作说明在
+`.agents/skills/finance-paper-risk-review/SKILL.md`，真实资格由
+Accounting/Markets/Risk 原生消费者给出。
+
 ## 4. 如何阅读结果？
 
 - **`READ_ONLY_PROJECTION`**：只是数学投影。它不证明行情真实或组合风险合格。
@@ -125,6 +175,7 @@ Paper 日结会改变**模拟数据库**的状态，但不会调用真实经纪�
 - 源码能力与成熟外部 Owner：`domains/capital/config/external_owner_census.json`。
 - Agent 研究 Skill：`.agents/skills/finance-experiment-review/SKILL.md`。
 - Agent 投资/Paper Skill：`.agents/skills/finance-paper-investment/SKILL.md`。
+- Agent 专项模拟账本 Risk：`.agents/skills/finance-paper-risk-review/SKILL.md`。
 - 本地验证：`mise run //domains/capital:verify`；全仓库发布验证：`mise run repo:ci`。
 - 理论来源：QuantConnect LEAN Algorithm Framework（分离资产选择、组合、风控与执行）、CFA Institute GIPS（现金流对收益的影响）、Agent Skills 开放格式（按需加载知识，不重复做 Agent Runtime）。
 

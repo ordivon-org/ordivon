@@ -121,12 +121,11 @@
         "src/ordivon_capital/risk/paper_close_risk.py",
         "tests/test_paper_close_risk.py",
         "src/ordivon_capital/accounting/postgres_paper_close.py",
-        "docs/FINANCE_OPERATIONS_R1.md"
+        "docs/FINANCE_HUMAN_GUIDE_R1.md"
       ],
       "dependencies": [],
       "sharedRefs": [
-        "docs/FINANCE_PAPER_INVESTMENT_R1.md",
-        "docs/FINANCE_OPERATIONS_R1.md"
+        "docs/FINANCE_PAPER_INVESTMENT_R1.md"
       ],
       "consumerEvidence": [
         {

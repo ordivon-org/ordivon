@@ -8,8 +8,10 @@ metadata:
 
 # Finance Paper Risk Review
 
-Natural source owner is Risk CA03. Read Human/Agent operational guide
-at domains/capital/docs/FINANCE_OPERATIONS_R1.md for all CA01–CA10.
+Natural source owner is Risk CA03. Human-facing instructions live at
+`domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md`; the authoritative
+CA01–CA10 mapping is `domains/capital/planning/lego-plan-r1.json`.
+Do not load unrelated Finance procedures unless the task requires them.
 Do not create another broker, Finance Agent service, ledger or risk engine.
 
 1. Distinguish retrospective adjusted-close virtual NAV from the

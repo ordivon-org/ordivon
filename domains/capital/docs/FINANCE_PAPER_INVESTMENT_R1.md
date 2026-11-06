@@ -174,5 +174,7 @@ NAV = cash - purchase_payables + sale_receivables +
 Sale receivables increase NAV but not unencumbered cash. Risk delegates
 to existing Governance; currently UNSET budget remains INCOMPLETE.
 Real broker orders and independent price/source licence proof remain
-outside this capability. The Human and Agent guide consuming CA01–CA10
-is FINANCE_OPERATIONS_R1.md, linked by the main README.
+outside this capability. For human use, see `FINANCE_HUMAN_GUIDE_R1.md`; for the exact
+Risk CLI, consult the existing
+`.agents/skills/finance-paper-risk-review/SKILL.md`.
+CA01–CA10 identities remain in `planning/lego-plan-r1.json`.

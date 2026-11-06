@@ -8,11 +8,11 @@ metadata:
 
 # Finance Experiment Review
 
-For first use and owner discovery, see Capital's
-[Human quickstart](../../../domains/capital/docs/FINANCE_HUMAN_QUICKSTART_R1.md)
-and [Agent playbook](../../../domains/capital/docs/FINANCE_AGENT_PLAYBOOK_R1.md).
-This Skill remains a scoped research procedure, not a general onboarding
-manual or execution authority.
+For Human first use and finance capability discovery, see the
+[Finance human guide](../../../domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md).
+This Skill is the scoped Agent research procedure. The natural Owner
+source identity is documented in `domains/capital/docs/ARCHITECTURE.md`;
+other task Skills should only be loaded when needed.
 
 
 Finance is an investment-focused capability within Capital, not another
