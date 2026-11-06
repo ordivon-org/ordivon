@@ -38,3 +38,21 @@ that dotenv was changed. This readiness witness therefore emits
 `applicationProcessEgress: UNKNOWN` rather than asserting that already-running
 Windows processes use the scoped proxy. A true process-restart and a trace
 of its actual requests is a separate consumer acceptance obligation.
+
+
+## Windows process-level observation (DEV-01)
+
+Use the mature upstream psutil library for a read-only snapshot of already
+running Windows desktop and Codex processes in the interactive user context:
+
+    uv run --no-project --with 'psutil>=7,<8' python consumers/codex/windows_process_egress.py
+
+This source-owned one-shot LEGO reports only names/PIDs, HTTP(S) proxy
+environment binding classification, whether a process predates the .codex/.env
+file and aggregated local-proxy versus nonlocal TLS socket counts. It never
+prints proxy values, credentials, remote addresses or command lines. Unreadable
+processes are UNKNOWN, not empty. Its standing is always
+END_TO_END_EGRESS_UNKNOWN: a scoped environment and even an observed proxy TCP
+socket alone cannot certify Codex API traffic or Gluetun upstream forwarding.
+Pair the result with the existing NS2 upstream spy and a fresh actual client
+request before any process-level route claim.
