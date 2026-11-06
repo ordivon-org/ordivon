@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .agent_dependencies import dependency_proposal, dependency_status
+from .agent_processing import processing_profiles
 from .agent_productions import _production_root, production_standing
 from .creative_index import build_creative_index, query_creative_index
 from .equipment import load_equipment_world, propose_operation
@@ -66,6 +67,11 @@ def tool_definitions() -> list[dict[str, Any]]:
                 "required": ["term"],
                 "additionalProperties": False,
             },
+        },
+        {
+            "name": "studio_processing_profiles",
+            "description": "Discover source-owned FFprobe/FFmpeg/OTIO/timed-text processing profiles and exact adapter paths with content digests. This is a read-only LEGO catalog projection; external tool readiness and effect authority remain with Workstation/Runtime.",
+            "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
         },
         {
             "name": "studio_equipment_propose",
@@ -130,6 +136,8 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
             ),
         )
         return query_creative_index(index, str(arguments["term"]))
+    if name == "studio_processing_profiles":
+        return processing_profiles(root)
     if name == "studio_equipment_propose":
         world = load_equipment_world(root / "research/equipment/equipment-world.json")
         equipment_id = arguments.get("equipmentId")
@@ -150,7 +158,7 @@ def surface_projection() -> dict[str, Any]:
         "kind": "ordivon.studio-agent-tool-surface",
         "truthRole": "studio-domain-semantic-actions",
         "domainId": "domain:ordivon-studio",
-        "revision": "studio-agent-surface-production-standing-v2",
+        "revision": "studio-agent-surface-processing-profiles-v1",
         "tools": tool_definitions(),
         "runtimeOwnsPhysicalExecution": True,
         "harnessMayAdmitSubsetOnly": True,
