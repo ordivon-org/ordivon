@@ -13,6 +13,8 @@
       "tests/test_gateway_service.py",
       "src/ordivon_gateway/capability_catalog.py",
       "src/ordivon_gateway/execution_coordinator.py",
+      "src/ordivon_gateway/execution_commands.py",
+      "src/ordivon_gateway/execution_observations.py",
       "src/ordivon_gateway/execution_refs.py",
       "src/ordivon_gateway/capability_projection.py",
       "src/ordivon_gateway/owner_protocol.py"
@@ -48,7 +50,9 @@
         "tests/test_gateway_service.py",
         "extensions/ordivon-control-plane/mcp.json",
         "src/ordivon_gateway/capability_catalog.py",
-        "src/ordivon_gateway/execution_coordinator.py"
+        "src/ordivon_gateway/execution_coordinator.py",
+        "src/ordivon_gateway/execution_commands.py",
+        "src/ordivon_gateway/execution_observations.py"
       ],
       "consumerEvidence": [
         "extensions/ordivon-control-plane/mcp.json",
@@ -169,6 +173,8 @@
         "tests/test_gateway_service.py",
         "tests/test_execution_principal_request_namespace.py",
         "src/ordivon_gateway/execution_coordinator.py",
+        "src/ordivon_gateway/execution_commands.py",
+        "src/ordivon_gateway/execution_observations.py",
         "src/ordivon_gateway/execution_refs.py",
         "src/ordivon_gateway/owner_protocol.py"
       ],
@@ -222,6 +228,7 @@
         "tests/test_gateway_service.py",
         "tests/test_capability_authz_middleware.py",
         "src/ordivon_gateway/execution_coordinator.py",
+        "src/ordivon_gateway/execution_observations.py",
         "src/ordivon_gateway/execution_refs.py"
       ],
       "consumerEvidence": [
@@ -455,7 +462,9 @@
         "src/ordivon_gateway/mcp_server.py",
         "tests/test_external_pull_worker.py",
         "tests/test_external_worker_precommit_readback.py",
-        "src/ordivon_gateway/execution_coordinator.py"
+        "src/ordivon_gateway/execution_coordinator.py",
+        "src/ordivon_gateway/execution_commands.py",
+        "src/ordivon_gateway/execution_observations.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/service.py",
