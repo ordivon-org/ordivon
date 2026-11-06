@@ -101,6 +101,13 @@ readback, rejecting success receipts bound to a different staged operation.
 The embedded Resolve Runner remains the same self-contained deployable file.
 OpenTimelineIO and existing Media Blob hashing are reused, not reimplemented.
 
+Native FFprobe observation now belongs to `ordivon_studio.qc.probe_media`,
+beside existing FFmpeg loudness and technical validators; `assets.py` owns
+only Blob identity, verified CAS admission, and materialization. Studio CLI,
+Review, Rich Perception and SAPI narration all consume the existing QC reader
+directly. This is a source-only owner move; no compatibility facade or
+second probe implementation is retained.
+
 Video perception follows the same native-tool composition:
 `perception_video_io.py` invokes FFmpeg's built-in `select`, `tblend`,
 `signalstats` and `xstack` filters to observe frames and assemble a real

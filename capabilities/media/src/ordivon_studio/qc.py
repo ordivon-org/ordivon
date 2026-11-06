@@ -222,3 +222,30 @@ def validate_loudness(
                 f"true peak: expected <= {max_true_peak_dbtp:.1f} dBTP, found {true_peak:.1f} dBTP"
             )
     return errors
+
+def probe_media(path: Path, ffprobe: str = "/usr/bin/ffprobe") -> dict[str, Any]:
+    """Observe actual media container and stream facts using native FFprobe.
+
+    Source bytes remain Asset/Production-owned; this QC reader does not
+    approve any output profile or alter input media.
+    """
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    result = subprocess.run(
+        [
+            ffprobe,
+            "-v",
+            "error",
+            "-show_format",
+            "-show_streams",
+            "-of",
+            "json",
+            str(path),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or f"ffprobe exited {result.returncode}")
+    return json.loads(result.stdout)

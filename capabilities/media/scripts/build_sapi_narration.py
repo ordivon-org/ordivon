@@ -7,7 +7,8 @@ import tempfile
 import wave
 from pathlib import Path
 
-from ordivon_studio.assets import hash_file, probe_media
+from ordivon_studio.assets import hash_file
+from ordivon_studio.qc import probe_media
 
 
 def _windows_path(path: Path) -> str:

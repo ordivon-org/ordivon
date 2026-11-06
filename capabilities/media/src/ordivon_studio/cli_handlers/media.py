@@ -7,9 +7,9 @@ import json
 import sys
 from pathlib import Path
 
-from ..assets import archive_blob, hash_file, materialize_blob, probe_media, r2_object_key
+from ..assets import archive_blob, hash_file, materialize_blob, r2_object_key
 from ..cloudflare_r2 import replicate_r2_blob, restore_r2_blob
-from ..qc import measure_loudness, validate_loudness, validate_video_probe
+from ..qc import measure_loudness, probe_media, validate_loudness, validate_video_probe
 from ..review import build_video_review_packet
 from ..timed_text import export_srt, export_webvtt, validate_timed_text_delivery
 from ..video import normalize_h264_bt709
