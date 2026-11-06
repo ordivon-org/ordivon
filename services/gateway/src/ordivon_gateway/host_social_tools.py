@@ -128,6 +128,25 @@ def register_host_social_tools(
             },
         )
 
+    @server.tool(name="topic.state.set")
+    async def topic_state_set(
+        topicRef: str,
+        actorRef: str,
+        state: Literal["open", "closed"],
+        expectedState: Literal["open", "closed"],
+        expectedHighSequence: int,
+    ) -> dict[str, Any]:
+        return await _host(
+            "topic.state.set",
+            {
+                "topicRef": topicRef,
+                "actorRef": actorRef,
+                "state": state,
+                "expectedState": expectedState,
+                "expectedHighSequence": expectedHighSequence,
+            },
+        )
+
     @server.tool(name="topic.list")
     async def topic_list(
         spaceRef: str,

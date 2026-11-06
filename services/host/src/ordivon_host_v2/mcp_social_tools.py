@@ -147,6 +147,31 @@ def register_social_tools(
             client_request_id=request_id("topic-create", value.model_dump(mode="json")),
         )
 
+    @mcp.tool(name="topic.state.set")
+    @_project_domain_errors
+    def topic_state_set(
+        topicRef: str,
+        actorRef: str,
+        state: Literal["open", "closed"],
+        expectedState: Literal["open", "closed"],
+        expectedHighSequence: int,
+    ) -> TopicResponse:
+        request = {
+            "topicRef": topicRef,
+            "actorRef": actorRef,
+            "state": state,
+            "expectedState": expectedState,
+            "expectedHighSequence": expectedHighSequence,
+        }
+        return social.set_topic_state(
+            topic_ref=topicRef,
+            actor_ref=actorRef,
+            state=state,
+            expected_state=expectedState,
+            expected_high_sequence=expectedHighSequence,
+            client_request_id=request_id("topic-state-set", request),
+        )
+
     @mcp.tool(name="topic.list")
     @_project_domain_errors
     def topic_list(
