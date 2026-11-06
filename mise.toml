@@ -69,7 +69,7 @@ set -euo pipefail
 python3 -m unittest tools/repo/test_tracked_secrets.py
 python3 -m unittest tools/repo/test_source_history_legos.py
 python3 -m unittest discover -s catalogs/capabilities/tests -p 'test_external_capability_evaluation.py'
-uv run --with check-jsonschema==0.38.0 check-jsonschema --schemafile catalogs/capabilities/evidence/external-capability-candidate-r1.schema.json catalogs/capabilities/evidence/worktrunk-candidate-20261106.json
+uv run --with check-jsonschema==0.38.0 check-jsonschema --schemafile catalogs/capabilities/schemas/external-capability-candidate-r1.schema.json catalogs/capabilities/evidence/worktrunk-candidate-20261106.json
 python3 catalogs/capabilities/scripts/check_external_candidate_references.py catalogs/capabilities/evidence/worktrunk-candidate-20261106.json
 python3 -m unittest tools/repo/test_formal_source_contract.py
 python3 -m unittest tools/repo/test_workspace_ready.py
