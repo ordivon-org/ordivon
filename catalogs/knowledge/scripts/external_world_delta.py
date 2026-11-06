@@ -86,9 +86,21 @@ def examine(packet: object) -> tuple[list[str], dict | None]:
     for key in ("subject", "predicate", "unit"):
         if not current.get(key) or current.get(key) != baseline.get(key):
             errors.append("missing or mismatched baseline/current " + key)
-    old = _number(baseline.get("value"), "baseline.value", errors)
-    new = _number(current.get("value"), "current.value", errors)
-    declared = _number(packet.get("declaredDelta"), "declaredDelta", errors)
+    value_kind = current.get("valueType", "numeric")
+    if value_kind not in ("numeric", "state") or baseline.get("valueType", "numeric") != value_kind:
+        errors.append("unsupported or mismatched valueType")
+    if value_kind == "numeric":
+        old = _number(baseline.get("value"), "baseline.value", errors)
+        new = _number(current.get("value"), "current.value", errors)
+        declared = _number(packet.get("declaredDelta"), "declaredDelta", errors)
+    else:
+        old = baseline.get("value")
+        new = current.get("value")
+        declared = None
+        if not all(isinstance(v, str) and 0 < len(v) <= 200 for v in (old, new)):
+            errors.append("state values must be short non-empty strings")
+        if packet.get("declaredDelta") is not None:
+            errors.append("state changes cannot assert arithmetic deltas")
 
     checked = _day(packet.get("checkedAt"), "checkedAt", errors)
     previous_at = _day(baseline.get("dataAsOf"), "baseline.dataAsOf", errors)
@@ -114,7 +126,7 @@ def examine(packet: object) -> tuple[list[str], dict | None]:
     if checked and any(published and published > checked for published in
                        (baseline_published, current_published)):
         errors.append("evidence publication cannot follow checkedAt")
-    if old is not None and new is not None and declared is not None and new - old != declared:
+    if value_kind == "numeric" and old is not None and new is not None and declared is not None and new - old != declared:
         errors.append("declaredDelta does not equal current minus baseline")
 
     affected = packet.get("affectedConsumers")
@@ -129,7 +141,9 @@ def examine(packet: object) -> tuple[list[str], dict | None]:
 
     if errors:
         return errors, None
-    assert old is not None and new is not None and declared is not None
+    assert old is not None and new is not None
+    if value_kind == "numeric":
+        assert declared is not None
     fingerprint = hashlib.sha256(json.dumps(packet, sort_keys=True, separators=(",", ":"),
                                             ensure_ascii=False).encode("utf-8")).hexdigest()
     projection = {
@@ -142,8 +156,12 @@ def examine(packet: object) -> tuple[list[str], dict | None]:
         "baselineValue": str(old),
         "currentValue": str(new),
         "unit": current["unit"],
-        "valueChange": str(new - old),
-        "basisPointChange": str((new - old) * 100) if current["unit"] == "percent" else None,
+        "valueType": value_kind,
+        "changeKind": ("NUMERIC_DIFFERENCE" if value_kind == "numeric" else
+                       ("STATE_CHANGED" if old != new else "STATE_UNCHANGED")),
+        "valueChange": str(new - old) if value_kind == "numeric" else None,
+        "basisPointChange": (str((new - old) * 100)
+                             if value_kind == "numeric" and current["unit"] == "percent" else None),
         "baselineDataAsOf": baseline["dataAsOf"],
         "currentDataAsOf": current["dataAsOf"],
         "eventAt": current.get("eventAt"),
@@ -154,7 +172,7 @@ def examine(packet: object) -> tuple[list[str], dict | None]:
         "domainAcceptanceEstablished": False,
         "sourceContentVerifiedByThisProgram": False,
         "productionApplied": False,
-        "nonClaim": "Metadata and arithmetic checked only; issuer page contents and downstream domain truth require independent confirmation.",
+        "nonClaim": "Metadata and typed comparison checked only; source contents and downstream domain truth require independent confirmation.",
     }
     return [], projection
 

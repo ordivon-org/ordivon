@@ -14,7 +14,8 @@
       "publisher": "Bank of England Monetary Policy Committee",
       "publishedAt": "2026-09-17",
       "supportScope": "MPC maintained Bank Rate at 3.75 percent"
-    }
+    },
+    "valueType": "numeric"
   },
   "current": {
     "subject": "Bank of England Bank Rate",
@@ -30,7 +31,8 @@
       "publisher": "Bank of England Monetary Policy Committee",
       "publishedAt": "2026-11-05",
       "supportScope": "MPC vote 8 to 1 to raise Bank Rate by 0.25 percentage points to 4 percent"
-    }
+    },
+    "valueType": "numeric"
   },
   "declaredDelta": "0.25",
   "affectedConsumers": [],

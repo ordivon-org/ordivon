@@ -42,6 +42,11 @@ python3 catalogs/knowledge/scripts/external_world_delta.py \
 python3 -m unittest discover -s catalogs/knowledge/tests -p 'test_*.py' -v
 ```
 
+Numeric observations use finite decimal strings with exact arithmetic; categorical
+state transitions use `valueType=state` and `declaredDelta=null`, reporting only
+a literal change, not deriving causal effects or numeric magnitude. Both remain
+owner-review proposals.
+
 The sourced example is the Bank of England MPC policy-rate change:
 official 17 Sep 2026 meeting summary (3.75%) → official 5 Nov 2026
 publication concerning the meeting ending 4 Nov (4.00%). The resulting

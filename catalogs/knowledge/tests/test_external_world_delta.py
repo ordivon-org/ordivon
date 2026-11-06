@@ -103,5 +103,30 @@ class ExternalWorldDeltaTests(unittest.TestCase):
         self.assertTrue(any("finite" in v for v in examine(record)[0]))
 
 
+    def test_state_transition_without_numeric_inference(self):
+        packet = self.example()
+        for record, value in ((packet["baseline"], "MAINTAIN"), (packet["current"], "INCREASE")):
+            record.update(valueType="state", value=value, predicate="MPC-decision-kind", unit="decision")
+        packet["declaredDelta"] = None
+        errors, output = examine(packet)
+        self.assertEqual(errors, [])
+        self.assertEqual(output["changeKind"], "STATE_CHANGED")
+        self.assertEqual(output["baselineValue"], "MAINTAIN")
+        self.assertEqual(output["currentValue"], "INCREASE")
+        self.assertIsNone(output["basisPointChange"])
+        self.assertFalse(output["domainAcceptanceEstablished"])
+
+    def test_state_change_rejects_forged_numeric_delta(self):
+        packet = self.example()
+        for slot in ("baseline", "current"):
+            packet[slot]["valueType"] = "state"
+        self.assertTrue(any("arithmetic" in x for x in examine(packet)[0]))
+
+    def test_mixed_value_types_rejected(self):
+        packet = self.example()
+        packet["current"]["valueType"] = "state"
+        self.assertTrue(any("valueType" in x for x in examine(packet)[0]))
+
+
 if __name__ == "__main__":
     unittest.main()
