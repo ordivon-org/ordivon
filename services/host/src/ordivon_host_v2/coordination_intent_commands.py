@@ -14,7 +14,7 @@ from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
 
 
-class SocialIntentCommands:
+class CoordinationIntentCommands:
     """PostgreSQL commands through the sole Host SocialStore authority."""
 
     def declare_intent(

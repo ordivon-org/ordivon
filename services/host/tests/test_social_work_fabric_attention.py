@@ -3,13 +3,13 @@ from pathlib import Path
 import pytest
 
 from ordivon_host_v2 import attention_store
-from ordivon_host_v2.attention_queries import ATTENTION_DELTA_SQL
+from ordivon_host_v2.attention_sql import ATTENTION_DELTA_SQL
 from ordivon_host_v2.attention_store import AttentionStore
 from ordivon_host_v2.collection_pagination import validate_max_bytes
 
 ROOT = Path(__file__).parents[1]
 ATTENTION = ROOT / "src" / "ordivon_host_v2" / "attention_store.py"
-ATTENTION_QUERY = ROOT / "src" / "ordivon_host_v2" / "attention_queries.py"
+ATTENTION_QUERY = ROOT / "src" / "ordivon_host_v2" / "attention_sql.py"
 MIGRATION = ROOT / "migrations" / "versions" / "0008_social_work_fabric_attention.py"
 
 

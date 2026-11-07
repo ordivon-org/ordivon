@@ -5,7 +5,7 @@ import pytest
 ROOT = Path(__file__).parents[1]
 STORE = ROOT / "src" / "ordivon_host_v2" / "social_store.py"
 MSG_STORE = STORE.with_name("social_message_commands.py")
-INTENT_STORE = STORE.with_name("social_intent_commands.py")
+INTENT_STORE = STORE.with_name("coordination_intent_commands.py")
 
 
 def test_social_store_does_not_use_participation_as_authorization() -> None:
