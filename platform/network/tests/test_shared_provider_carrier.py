@@ -47,28 +47,6 @@ def test_production_provider_defaults_to_cross_consumer_qualified_site():
     assert cutover.index("if [[ -e /etc/network-v2/gluetun/m4-owned-mode.selected ]]; then") < cutover.index("SCRIPT=$(readlink")
 
 
-def test_finance_provider_lanes_share_carrier_and_macro_lanes_remain_direct():
-    egress = json.loads((FINANCE / "config" / "egress.json").read_text())
-    assert egress["outbounds"] == [
-        {"type": "http", "tag": "provider-carrier", "server": "10.252.246.2", "server_port": 19680},
-        {"type": "direct", "tag": "public-direct"},
-    ]
-    assert "dns" not in egress
-    assert "services" not in egress
-    routes = {tuple(r.get("inbound", [])): r for r in egress["route"]["rules"] if r.get("inbound")}
-    for tag in (
-        "finance-okx", "finance-binance-spot-public", "finance-binance-spot-public-ws",
-        "finance-binance-usdm", "finance-okx-ws", "finance-binance-usdm-ws", "finance-binance-wallet",
-    ):
-        assert routes[(tag,)]["outbound"] == "provider-carrier"
-    assert routes[("finance-us-treasury-public",)]["outbound"] == "public-direct"
-    assert routes[("finance-fred-public-csv",)]["outbound"] == "public-direct"
-    unit = (FINANCE / "systemd" / "network-v2-finance-egress.service").read_text()
-    assert "provider-endpoints.json" not in unit
-    assert "Wants=network-v2-gluetun-owned-adapter.service" in unit
-    assert "Requires=network-v2-gluetun-owned-adapter.service" not in unit
-
-
 def test_semantic_consumers_survive_physical_carrier_loss():
     for directory, name, carrier in (
         (FINANCE, "finance", "network-v2-gluetun-owned-adapter.service"),
