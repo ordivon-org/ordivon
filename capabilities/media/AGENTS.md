@@ -55,3 +55,11 @@ Choose the returned `id` plus **both** exact `profileDigest` and `adapterDigest`
 For source or contract changes use affected Owner tests (`scripts/owner-environment test`, specific `processing/tests/*-smoke.sh` for changed providers). Use standard Git branch/PR/CI/merge queue; don't replace the repository's release system. Verify current consumers before deleting data; native Git GC/worktree removal and existing cache mechanisms supersede custom cleanup frameworks. Retain selected masters, unique source, rights and actual read-back evidence, not speculative historical copies. A local test PASS is not end-to-end Production publication.
 
 Human-facing orientation is `docs/human-guide.md`; technical source authority remains `MEDIA.md`, `STUDIO.md`, `docs/media-model.md` and live tool schemas.
+
+## Optional DaVinci Resolve equipment
+
+Use [the native API and consumer acceptance contract](docs/resolve-native.md).
+Do not rebuild the retired embedded Ordivon menu Runner or staged-operation
+protocol. Prefer the installed official API and existing OTIO/FFmpeg LEGO.
+Live Windows session, source binding, native readback and Production acceptance
+are distinct from fake-Resolve unit tests and historical Free 21 receipts.

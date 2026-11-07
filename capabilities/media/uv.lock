@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = "==3.15.1"
 
 [[package]]
@@ -39,23 +39,12 @@ wheels = [
 ]
 
 [[package]]
-name = "opentimelineio"
-version = "0.18.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/de/41/73e65b707f3491792d4b34bea75edc2a1cc6ce10848ba199c3de8e3bee58/opentimelineio-0.18.1.tar.gz", hash = "sha256:a4e5086e2accd4ca9853ab48bf531e0c148eff47889363a6da3a03f662fbf5e8", size = 2921656, upload-time = "2025-11-09T16:38:53.364Z" }
-
-[[package]]
 name = "ordivon-studio-tools"
 version = "0.1.0a0"
 source = { editable = "." }
 dependencies = [
     { name = "jsonschema" },
     { name = "psycopg", extra = ["binary"] },
-]
-
-[package.optional-dependencies]
-resolve = [
-    { name = "opentimelineio" },
 ]
 
 [package.dev-dependencies]
@@ -66,10 +55,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "jsonschema", specifier = "==4.26.0" },
-    { name = "opentimelineio", marker = "extra == 'resolve'", specifier = "==0.18.1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3,<4" },
 ]
-provides-extras = ["resolve"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "ruff", specifier = "==0.17.2" }]

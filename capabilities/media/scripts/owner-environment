@@ -6,15 +6,12 @@ mise_bin=${MISE_BIN:-$(command -v mise || true)}
 
 usage() {
   cat <<'TXT'
-usage: scripts/owner-environment bootstrap|doctor|test|cold-start|bootstrap-resolve|doctor-resolve|test-resolve
+usage: scripts/owner-environment bootstrap|doctor|test|cold-start
 
 bootstrap          materialize pinned Node and core Python dependency planes
 doctor             verify mise/Node/pnpm plus exact JS and Python materialization
 test               bootstrap, doctor, and run Studio's default check surface
 cold-start         copy the current source fence and prove test without warmed node_modules/.venv
-bootstrap-resolve  materialize core plus optional OpenTimelineIO resolve equipment
-doctor-resolve     verify the resolve equipment profile
-test-resolve       run default checks plus resolve adapter tests
 
 External media binaries, GPU/browser execution and provider credentials remain capability-specific.
 TXT
@@ -29,10 +26,6 @@ bootstrap() {
   (cd "$repo" && "$mise_bin" install)
   pnpm_mise install --frozen-lockfile
   mise_run python3 scripts/materialize-python.py
-}
-bootstrap_resolve() {
-  bootstrap
-  mise_run python3 scripts/materialize-python.py --extra resolve
 }
 doctor() {
   require_tools
@@ -50,20 +43,10 @@ JS
   mise_run python3 scripts/require-python-deps.py
   echo 'owner environment doctor: valid profile=test'
 }
-doctor_resolve() {
-  doctor
-  mise_run python3 scripts/require-python-deps.py --extra resolve
-  echo 'owner environment doctor: valid profile=capability:resolve'
-}
 run_tests() {
   bootstrap
   doctor
   pnpm_mise check
-}
-run_resolve_tests() {
-  bootstrap_resolve
-  doctor_resolve
-  pnpm_mise check:all
 }
 case "$mode" in
   bootstrap) bootstrap ;;
@@ -76,9 +59,6 @@ case "$mode" in
     (cd "$repo" && tar --exclude=.git --exclude=.venv --exclude=node_modules --exclude=out --exclude=dist --exclude='*/__pycache__' -cf - .) | tar -xf - -C "$tmp/repo"
     "$tmp/repo/scripts/owner-environment" test
     ;;
-  bootstrap-resolve) bootstrap_resolve ;;
-  doctor-resolve) doctor_resolve ;;
-  test-resolve) run_resolve_tests ;;
   --help|-h) usage ;;
   *) usage >&2; exit 2 ;;
 esac
