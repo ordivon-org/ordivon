@@ -8,6 +8,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 ENTRY = ROOT / "catalogs/capabilities/ele/studies.py"
+# Load the exact source-local CLI and its sibling pure relation extractor.
+sys.path.insert(0, str(ENTRY.parent))
 SPEC = importlib.util.spec_from_file_location("ele_studies", ENTRY)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -105,3 +107,79 @@ def test_source_cut_rejects_uncommitted_research_claim(tmp_path: Path) -> None:
     provider.write_text("# Sample\nVersion B not committed\n", encoding="utf-8")
     with pytest.raises(ValueError, match="differs from Git HEAD"):
         MODULE.verify_source_cut(MODULE.gather(tmp_path), tmp_path)
+
+
+def test_explicit_json_references_preserve_consumer_boundary() -> None:
+    from relations import references_for
+
+    content = json.dumps(
+        {
+            "source": {"upstream": {"repository": "https://github.com/demo/tool"}},
+            "references": {
+                "provider": "catalogs/capabilities/providers/worktrunk.md",
+                "consumerSources": ["catalogs/capabilities/ele/example.rs"],
+                "notAnInstalledProvider": "No production switch",
+            },
+        }
+    )
+    record = MODULE.Study(
+        "candidate_evidence:demo",
+        "a" * 64,
+        "candidate_evidence",
+        "catalogs/capabilities/evidence/demo.json",
+        "demo",
+        content,
+        MODULE.json_sections(content),
+    )
+    refs = references_for(
+        record,
+        {"catalogs/capabilities/providers/worktrunk.md": "provider:worktrunk"},
+        {
+            "catalogs/capabilities/providers/worktrunk.md",
+            "catalogs/capabilities/ele/example.rs",
+        },
+    )
+    assert len(refs) == 3
+    assert [ref.relation for ref in refs] == [
+        "upstream_repository_reference",
+        "git_source",
+        "consumer_source_reference",
+    ]
+    assert refs[1].target_study_id == "provider:worktrunk"
+    assert refs[2].locator == "$.references.consumerSources[0]"
+    assert not any("installed" in ref.relation for ref in refs)
+
+
+def test_markdown_links_do_not_convert_uncited_claims_into_edges() -> None:
+    from relations import references_for
+
+    body = (
+        "# Project comparison\n"
+        "Some discussions mention catalogs/capabilities/ele/example.rs outside a citation.\n"
+        "Qualified source: [provider](../../capabilities/providers/worktrunk.md).\n"
+        "Existing Git source path: \x60catalogs/capabilities/ele/example.rs\x60.\n"
+        "Unsupported: [not present](not-real.md).\n"
+    )
+    record = MODULE.Study(
+        "lesson:demo",
+        "b" * 64,
+        "lesson",
+        "catalogs/knowledge/lessons/demo.md",
+        "demo",
+        body,
+        MODULE.markdown_sections(body),
+    )
+    refs = references_for(
+        record,
+        {"catalogs/capabilities/providers/worktrunk.md": "provider:worktrunk"},
+        {
+            "catalogs/capabilities/providers/worktrunk.md",
+            "catalogs/capabilities/ele/example.rs",
+        },
+    )
+    assert len(refs) == 2
+    assert refs[0].target == "catalogs/capabilities/providers/worktrunk.md"
+    assert refs[0].target_study_id == "provider:worktrunk"
+    assert refs[0].locator == "line:3"
+    assert refs[1].target == "catalogs/capabilities/ele/example.rs"
+    assert refs[1].locator == "line:4"

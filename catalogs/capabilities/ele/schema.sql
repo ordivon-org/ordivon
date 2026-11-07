@@ -36,6 +36,24 @@ CREATE TABLE IF NOT EXISTS ele.study_heads (
   FOREIGN KEY (study_id,sha256)
     REFERENCES ele.study_versions (study_id,sha256) ON DELETE RESTRICT
 );
+-- Explicit document/JSON source references only. These are pointers, not
+-- consumer adoption or claimed formal refinement relationships.
+CREATE TABLE IF NOT EXISTS ele.study_references (
+  study_id text NOT NULL,
+  sha256 char(64) NOT NULL,
+  ordinal integer NOT NULL CHECK (ordinal >= 0),
+  section_ordinal integer NOT NULL CHECK (section_ordinal >= 0),
+  relation text NOT NULL,
+  locator text NOT NULL,
+  target text NOT NULL,
+  target_study_id text,
+  PRIMARY KEY (study_id,sha256,ordinal),
+  FOREIGN KEY (study_id,sha256,section_ordinal)
+    REFERENCES ele.study_sections (study_id,sha256,ordinal) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS ele_study_references_target
+  ON ele.study_references (target);
+
 CREATE INDEX IF NOT EXISTS ele_study_sections_search
   ON ele.study_sections USING gin (to_tsvector('simple',body));
 CREATE OR REPLACE VIEW ele.current_studies AS

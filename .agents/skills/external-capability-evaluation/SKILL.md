@@ -28,8 +28,14 @@ A task wants to discover, classify, decompose, qualify, reuse, replace or learn 
 
 ## Already-existing entrypoints
 
-- Existing ELE PostgreSQL research projection: catalogs/capabilities/ele/studies.py
-  (source-bound project analyses and decompositions; not an install/adoption authority).
+- Existing ELE PostgreSQL research projection: catalogs/capabilities/ele/studies.py.
+  When the ELE PG DSN is available, use `search --query <problem>` to find
+  previous provider/project decompositions and `links --id <study-id>` to
+  inspect exact cited upstream, consumer-source and Research evidence pointers;
+  `show --id <study-id>` reads the original source-backed sections. Otherwise
+  read the original Catalog/Knowledge Git files; a missing PG connection does
+  not justify creating another database, index, or registry. Reference edges
+  are citations/mentions, never evidence of installation or owner acceptance.
 - Candidate snapshots: catalogs/capabilities/scripts/github_radar_incremental.py
 - Source schema: catalogs/capabilities/schemas/external-capability-candidate-r1.schema.json (existing pinned check-jsonschema).
 - Git/cross-file evidence: catalogs/capabilities/scripts/check_external_candidate_references.py
