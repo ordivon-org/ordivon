@@ -82,9 +82,7 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 Dependencies point from service to capability_catalog, execution_coordinator,
 and execution_refs. Both specialized modules use owner_protocol for response
 validation and reuse the existing execution_refs wire grammar; neither imports
-service. Catalog
-inputs are the owner caller, copied route map, optional external-worker
-projection and timeout. Extraction preserves the public route and JSON
+service. Catalog inputs are the owner caller, copied route map and probe timeout. Extraction preserves the public route and JSON
 contracts. Behavioral tests establish observed compatibility, not proof
 of implementation-level semantic equivalence.
 
@@ -99,7 +97,7 @@ cancellation authority.
 
 B01 is intentionally small. The public schema avoids fast-moving closed enums such as Runtime execution-context values. Provider-owned context data stays opaque at the Gateway boundary; Gateway only lowers the generic envelope into the owner field and leaves semantic validation to the owner.
 
-For `execution.windows`, Gateway 0.4 accepts either the legacy provider-defined string context or a provider-defined JSON object. A string is forwarded as Runtime `windowsAuthority`; an object is forwarded unchanged as Runtime `windowsContext`. Capability projection prefers Runtime `windowsContexts` when the owner advertises them, so identity/privilege composition remains Runtime-owned rather than duplicated in Gateway.
+For `execution.windows`, Gateway accepts either the legacy provider-defined string context or a provider-defined JSON object. A string is forwarded as Runtime `windowsAuthority`; an object is forwarded unchanged as Runtime `windowsContext`. Capability projection prefers Runtime `windowsContexts` when the owner advertises them, so identity/privilege composition remains Runtime-owned rather than duplicated in Gateway.
 
 
 ## Host northbound boundary
@@ -144,3 +142,17 @@ Native Windows identity tests require an installed, stopped
 skip these Windows-only checks; those skips are not native Windows qualification.
 
 Windows release dependencies use uv `--link-mode copy`: each release owns its file ACLs independently of the shared package cache. Existing releases are not rewritten by reinstall; repair a qualified stopped release separately and retain its recovery backup.
+
+## Gateway B01 routing verification and evidence
+
+Specification: forwarded requests must preserve exact map key, route capability
+and owner identity. The finite TLA+ model is formal/GatewayRoutingR1.tla
+(safe, reachable, deliberately unsafe configs). The bounded source checker is
+formal/check_routing_conformance.py; it compares finite route-map proposals with
+the actual GatewayService constructor and reference parser.
+
+Evidence classes must remain separate: SPECIFIED, MODEL_VERIFIED,
+BOUNDED_IMPLEMENTATION_CHECKED, SOURCE_CONSUMER_TESTED, INSTALLED_VERIFIED.
+General Python-to-TLA refinement, PDP correctness, service identity and physical
+effects remain UNKNOWN until independently established. See AGENTS.md and
+.agents/skills/gateway-formal-routing/SKILL.md for Human/Agent procedures.
