@@ -56,3 +56,38 @@ END_TO_END_EGRESS_UNKNOWN: a scoped environment and even an observed proxy TCP
 socket alone cannot certify Codex API traffic or Gluetun upstream forwarding.
 Pair the result with the existing NS2 upstream spy and a fresh actual client
 request before any process-level route claim.
+
+
+## Verified native Windows Codex CLI scoped launch (2026-11-07)
+
+The interactive-user psutil observation classified **18/18 already-running
+ChatGPT/Codex processes as proxyEnvironment=UNSET**. A correct .codex/.env
+file alone is not proxy-use evidence. A fresh native Codex CLI 0.166.0 process
+with scoped HTTP(S) proxy environment completed a real model request and
+returned NETWORK_EGRESS_OK. Its own TCP connection to the local 19982 proxy
+was observed; no nonlocal TLS socket was observed in that bounded sample.
+
+For a **new CLI process only**, invoke the thin native PowerShell launcher
+from the Network repository, passing normal CLI arguments:
+
+    powershell.exe -NoProfile -File consumers/codex/windows-native-cli.ps1 exec --skip-git-repo-check --sandbox read-only "Reply only NETWORK_EGRESS_OK"
+
+The wrapper resolves an existing versioned native Codex installation,
+assigns HTTP(S)/ALL proxy variables to the child process environment, and
+delegates arguments to the original Codex binary. It does not set Windows
+global proxies, rewrite Desktop configuration, restart any app, start an
+additional VPN, or manage credentials. A missing expected Codex executable
+fails closed instead of falling back to an arbitrary executable on PATH.
+
+The original ChatGPT Desktop instance is **not fixed** by this CLI launcher.
+Its existing process environment and actual outbound traffic require a
+separate supported app-startup and real-request witness. The request sample
+is not a universal non-bypass proof, and Linux-side consumer:codex:verify
+alone cannot prove Windows process use.
+
+
+Windows PowerShell 5.1 maps normal native Codex progress on stderr to PowerShell
+ErrorRecords. The launcher keeps strict errors while selecting the executable,
+then uses native-process-compatible Continue handling during the Codex
+invocation and propagates the upstream process exit code. Do not interpret
+any stderr output alone as a Codex failure or as a successful request.
