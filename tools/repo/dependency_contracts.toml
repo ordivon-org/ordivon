@@ -173,7 +173,7 @@ from_owner = "capability-catalog"
 to_owner = "artifact"
 source_glob = "catalogs/capabilities/ele/studies.py"
 allowed_fragment = "capabilities/artifact/docs/"
-kind = "READ_ONLY_OWNER_PROJECTION"
+kind = "RESEARCH_SOURCE_PROJECTION"
 contract_ref = "catalogs/capabilities/ele/README.md"
 
 [[seams]]
@@ -181,7 +181,7 @@ from_owner = "capability-catalog"
 to_owner = "preservation"
 source_glob = "catalogs/capabilities/ele/studies.py"
 allowed_fragment = "capabilities/preservation/docs/"
-kind = "READ_ONLY_OWNER_PROJECTION"
+kind = "RESEARCH_SOURCE_PROJECTION"
 contract_ref = "catalogs/capabilities/ele/README.md"
 
 [[seams]]
@@ -189,7 +189,7 @@ from_owner = "capability-catalog"
 to_owner = "capital"
 source_glob = "catalogs/capabilities/ele/studies.py"
 allowed_fragment = "domains/capital/docs/"
-kind = "READ_ONLY_OWNER_PROJECTION"
+kind = "RESEARCH_SOURCE_PROJECTION"
 contract_ref = "catalogs/capabilities/ele/README.md"
 
 [[seams]]
@@ -197,7 +197,7 @@ from_owner = "capability-catalog"
 to_owner = "network"
 source_glob = "catalogs/capabilities/ele/studies.py"
 allowed_fragment = "platform/network/docs/"
-kind = "READ_ONLY_OWNER_PROJECTION"
+kind = "RESEARCH_SOURCE_PROJECTION"
 contract_ref = "catalogs/capabilities/ele/README.md"
 
 [[seams]]
@@ -205,7 +205,7 @@ from_owner = "capability-catalog"
 to_owner = "harness"
 source_glob = "catalogs/capabilities/ele/studies.py"
 allowed_fragment = "services/harness/docs/"
-kind = "READ_ONLY_OWNER_PROJECTION"
+kind = "RESEARCH_SOURCE_PROJECTION"
 contract_ref = "catalogs/capabilities/ele/README.md"
 
 [[seams]]
@@ -213,5 +213,5 @@ from_owner = "capability-catalog"
 to_owner = "media"
 source_glob = "catalogs/capabilities/ele/studies.py"
 allowed_fragment = "capabilities/media/research/"
-kind = "READ_ONLY_OWNER_PROJECTION"
+kind = "RESEARCH_SOURCE_PROJECTION"
 contract_ref = "catalogs/capabilities/ele/README.md"
