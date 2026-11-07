@@ -103,6 +103,57 @@ def exposure_from_stress(
     return max(0.0, target)
 
 
+
+def solve_turnover_adjusted_exposure(
+    *,
+    target: float,
+    equity_before_trade: float,
+    previous_gross: float,
+    turnover_cost: float,
+) -> tuple[float, float, float]:
+    """One exact-in-reals rebalance fixed point, projected into finite floats.
+
+    The trading fee is charged on actual gross turnover, so solving for gross
+    requires its fee feedback. This is Research cash/debt simulation, never
+    an order-sizing authorization or a second Accounting ledger.
+    """
+    if not (
+        all(math.isfinite(v) for v in (
+            target, equity_before_trade, previous_gross, turnover_cost
+        ))
+        and target >= 0
+        and equity_before_trade > 0
+        and previous_gross >= 0
+        and 0 <= turnover_cost < 0.05
+        and target * turnover_cost < 1
+    ):
+        raise UnitRModelError("invalid rebalance inputs")
+    if equity_before_trade <= turnover_cost * previous_gross:
+        raise UnitRModelError("existing position liquidation fee exhausts equity")
+
+    if target * equity_before_trade >= previous_gross:
+        gross = target * (
+            equity_before_trade + turnover_cost * previous_gross
+        ) / (1 + target * turnover_cost)
+    else:
+        gross = target * (
+            equity_before_trade - turnover_cost * previous_gross
+        ) / (1 - target * turnover_cost)
+    fee = turnover_cost * abs(gross - previous_gross)
+    post_equity = equity_before_trade - fee
+    if not (
+        all(math.isfinite(v) for v in (gross, fee, post_equity))
+        and gross >= 0
+        and post_equity > 0
+    ):
+        raise UnitRModelError("unrepresentable rebalance valuation")
+    if not math.isclose(
+        gross, target * post_equity, rel_tol=1e-10, abs_tol=1e-10
+    ):
+        raise UnitRModelError("turnover-adjusted target is not conserved")
+    return gross, fee, post_equity
+
+
 def stress_estimate(
     bars: list[Bar], decision_index: int, assumptions: Assumptions
 ) -> dict[str, float]:
@@ -322,20 +373,13 @@ def replay_unit_r(
             before_cashflow_equity = current_equity + 1.0
             prior_exposure = shares * b.adjusted_close
             f = assumptions.turnover_cost
-            # Solve gross=target*(equity_before_trade - f*|gross-old_gross|)
-            if target * before_cashflow_equity >= prior_exposure:
-                exposure = target * (before_cashflow_equity + f * prior_exposure) / (
-                    1 + target * f
-                )
-            else:
-                exposure = target * (before_cashflow_equity - f * prior_exposure) / (
-                    1 - target * f
-                )
-            paid = f * abs(exposure - prior_exposure)
+            exposure, paid, post_equity = solve_turnover_adjusted_exposure(
+                target=target,
+                equity_before_trade=before_cashflow_equity,
+                previous_gross=prior_exposure,
+                turnover_cost=f,
+            )
             fee_sum += paid
-            post_equity = before_cashflow_equity - paid
-            if post_equity <= 0:
-                raise UnitRModelError("trade fees exceed account equity")
             shares = exposure / b.adjusted_close
             if exposure > post_equity:
                 debt, cash = exposure - post_equity, 0.0
