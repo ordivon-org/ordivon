@@ -2,6 +2,8 @@
 
 Media helps people turn source-owned facts, research or ideas into **editable, understandable media**: writing, visuals, sound, video, motion and interactive works. Studio is the production capability inside Media, not a separate authority over what another Owner says is true.
 
+For a directory-by-directory explanation of what to keep, change or retire, see the [consumer-grounded Media directory audit](directory-audit.md). It is a dated source inventory, not evidence that every current file remains necessary.
+
 ## Decide whether Media is needed
 
 | What you want | Where to start |
