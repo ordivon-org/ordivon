@@ -1595,6 +1595,11 @@ class BrowserlessAutomationService:
         prompt_digest = "sha256:" + hashlib.sha256(prompt.encode("utf-8")).hexdigest()
         try:
             pg_dsn = os.environ.get("ORDIVON_WAKE_TURN_POSTGRES_DSN")
+            fresh_pg = os.environ.get("ORDIVON_WAKE_TURN_FRESH_BOOTSTRAP") == "1"
+            if fresh_pg and not pg_dsn:
+                raise WakeTurnConflict(
+                    "fresh PostgreSQL wake requested without PG DSN; SQLite fallback prohibited"
+                )
             if pg_dsn:
                 try:
                     from postgres_wake_turn_map import PostgresWakeTurnMap
@@ -1604,7 +1609,9 @@ class BrowserlessAutomationService:
                 # A legacy source with an active writer is not a safe cutover.
                 # Explicit PG cutover must have retired all SQLite wake writes
                 # and proven identities equal before any new turn can be sent.
-                wake_owner.assert_legacy_sealed(self.config.turn_ledger)
+                wake_owner.assert_legacy_sealed(
+                    self.config.turn_ledger, fresh_bootstrap=fresh_pg
+                )
             else:
                 wake_owner = SQLiteWakeTurnMap(self.config.turn_ledger)
             mapping = wake_owner.allocate(
