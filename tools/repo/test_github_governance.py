@@ -42,6 +42,8 @@ _FORMAL_SOURCE_FILES = (
     "mise.toml", "tools/formal/mise.toml", "tools/formal/verify.py",
     "tools/formal/RecursiveLegoRefinement.lean",
     "tools/formal/RecursiveLegoVariationFrame.lean",
+    "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
+    "capabilities/media/src/ordivon_studio/agent_processing.py",
     "tools/formal/Proof.rs", "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs", "tools/formal/Proof.qnt",
     "tools/formal/Proof.als",
@@ -50,6 +52,7 @@ _FORMAL_SOURCE_FILES = (
 _FORMAL_PROBE_ORACLES = (
     ("Lean kernel R2.1 relational composition", 0),
     ("Lean kernel qualified variation frame and countermodels", 0),
+    ("Lean kernel Media processing admission model", 0),
     ("Lean rejects false theorem", 1),
     ("Z3: sat", 0), ("Z3: unsat", 0),
     ("cvc5: sat", 0), ("cvc5: unsat", 0),
@@ -399,7 +402,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             # The Formal mathematical model cannot grant implementation
             # refinement or actual installed effect acceptance. A checker that
             # claims PASS for either must fail this consumer's admission, even
-            # if all 16 real mathematical probes pass.
+            # if all 17 required formal probes pass.
             for field in ("implementationRefinement", "installedCurrentness"):
                 unearned = copy.deepcopy(full_report)
                 unearned[field] = "PASS"
@@ -477,9 +480,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             wrong_count = copy.deepcopy(full_report)
             wrong_count["count"] += 1
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
-            # Two new forged/missing fragment receipts and one extra
-            # source-blob omission case extend the negative corpus.
-            self.assertEqual(len(invalid_receipts), 73)
+            # Every exact Formal source and each probe adds a separate
+            # fail-closed omission witness; the Media binding adds three.
+            self.assertEqual(len(invalid_receipts), 76)
 
             try:
                 for label, payload in invalid_receipts.items():
@@ -574,7 +577,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 '[tasks.verify]\nrun = "echo harmless nested task"\n',
                 encoding="utf-8",
             )
-            # The real verifier consumes 10 exact source inputs; the disposable
+            # The real verifier consumes 13 exact source inputs; the disposable
             # Git fixture must contain the same declared source universe.
             for rel in _FORMAL_SOURCE_FILES:
                 file = repo / rel
