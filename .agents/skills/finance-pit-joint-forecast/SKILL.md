@@ -76,3 +76,30 @@ The adapter repeats only the caller-supplied broker numbers once the
 forecast scenario count is known; actual state-specific margin contracts
 must continue to use scenario_maintenance. Never assume one uniform
 rate applies to a real brokerage account without provider evidence.
+
+
+## Historical multi-month structural scenario trees (not a predictive upgrade)
+
+The same canonical Research CLI provides `--mode monthly-tree`, accepting an
+explicit `trading_sessions` exchange calendar, an `as_of` timestamp, actual
+published price vintages and complete stage-wise economic terms. It emits
+`optimizer_input` for the **existing** Portfolio multistage CRRA solver.
+The distinct `research/pit_monthly_paths.py` module owns only the historical
+path-prefix construction and delegates market vintage selection to
+`research/pit_joint_forecast.py`. No parallel optimizer/registry is created.
+
+**Human:** historical full-path replay preserves serial dependence, but a
+singleton observed prefix can identify its historical future; never report an
+in-sample optimization result as forward investment alpha. Verify the source
+calendar and point-in-time market data separately.
+
+**Agent:** prefer the `one-step` conditional lagged-KNN pilot only for
+prequential evaluation; it is not yet a calibrated multi-step Markov model.
+`monthly-tree` is a structural nonanticipativity/consumer research fixture.
+Read `forecast_evidence.predictive_recursion` and
+`standing=STRUCTURAL_HISTORICAL_PATH_TREE_NOT_PREDICTIVE_ADMISSIBLE` before
+interpreting a scenario value. Preserve distinct forecast, economic contract,
+solver and effect standing. Use the existing `finance-experiment-review`
+Skill for forward-validation methodology.
+
+Run: `python -m pytest tests/test_pit_joint_forecast.py tests/test_pit_monthly_tree.py tests/test_terminal_liabilities.py` from `domains/capital`.

@@ -50,6 +50,39 @@ class PITResearchContract(unittest.TestCase):
                 records.append(rec(a, day.isoformat(), day.isoformat() + "T21:00:00+00:00", price))
         return sessions, records
 
+    def test_exact_rational_return_keys_merge_indistinguishable_scenarios(self):
+        # 90/100 and 89.1/99 are both exactly 9/10 as published decimals.
+        sessions = tuple(
+            date.fromisoformat(s) for s in
+            ("2026-01-30", "2026-02-27", "2026-03-31", "2026-04-30")
+        )
+        rows = [
+            rec(ticker, d.isoformat(), d.isoformat() + "T21:00:00+00:00", price)
+            for ticker, prices in (
+                ("A", (100, 90, 99, 89.1)),
+                ("B", (100, 100, 100, 100)),
+            )
+            for d, price in zip(sessions, prices, strict=True)
+        ]
+        forecast = empirical_joint_forecast(
+            records=rows,
+            assets=("A", "B"),
+            valuation_sessions=sessions,
+            as_of=datetime(2026, 5, 1, 12, tzinfo=UTC),
+            valuation_session=sessions[-1],
+        )
+        self.assertEqual(forecast.training_return_count, 3)
+        self.assertEqual(len(forecast.scenarios), 2)
+        self.assertEqual(sorted(s.history_count for s in forecast.scenarios), [1, 2])
+        self.assertAlmostEqual(sum(s.probability for s in forecast.scenarios), 1.0)
+        # The one-step solver sees two distinct observations, not a fake third.
+        contract = make_one_step_optimizer_contract(
+            forecast, gamma=2, initial_margin=(.4, .4),
+            turnover_cost=(0, 0), scenario_maintenance=((.3, .3),) * 2,
+            cash_gross=1.01, debt_gross=1.02,
+        )
+        self.assertEqual(len(contract["nodes"]), 3)
+
     def test_revisions_only_known_after_publication(self):
         s, rows = self.fixture()
         revised = rec("A", "2026-08-31", "2026-11-06T11:30:00+00:00", 999.0)
@@ -98,7 +131,8 @@ class PITResearchContract(unittest.TestCase):
             valuation_session=sessions[-1],
         )
         self.assertEqual(fc.training_return_count, 3)
-        self.assertEqual(len(fc.scenarios), 3)
+        # Two mathematically equal decimal ratios must not invent a third state.
+        self.assertEqual(len(fc.scenarios), 2)
         self.assertAlmostEqual(sum(s.probability for s in fc.scenarios), 1)
         self.assertAlmostEqual(fc.scenarios[0].probability, 1 / 3)
         self.assertEqual(fc.excluded_incomplete_intervals, 0)
@@ -236,7 +270,7 @@ class PITResearchContract(unittest.TestCase):
                 "turnover_cost": [0, 0],
                 "cash_gross": 1.0,
                 "debt_gross": 1.03,
-                "scenario_maintenance": [[0.3, 0.3] for _ in range(3)],
+                "maintenance_by_asset": [0.3, 0.3],
             },
         }
         x = from_json_payload(payload)

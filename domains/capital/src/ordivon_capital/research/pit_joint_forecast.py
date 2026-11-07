@@ -18,6 +18,7 @@ from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
@@ -62,6 +63,22 @@ class PriceVintage:
             "PROVIDER_ORIGIN_VERIFIED",
         ):
             raise PointInTimeError("explicit source standing required")
+
+
+def _exact_price_ratio(after: PriceVintage, before: PriceVintage) -> Fraction:
+    """Exact rational equality for serialized positive finite price observations.
+
+    A float quotient is only a numerical solver value, not a categorical
+    scenario identity: e.g. 90/100 and 89.1/99 represent the same return.
+    """
+    ratio = Fraction(str(after.adjusted_close)) / Fraction(str(before.adjusted_close))
+    try:
+        solver_value = float(ratio)
+    except OverflowError as exc:
+        raise PointInTimeError("gross return exceeds finite solver range") from exc
+    if not _finite_positive(solver_value):
+        raise PointInTimeError("gross return is outside positive finite solver range")
+    return ratio
 
 
 @dataclass(frozen=True)
@@ -169,7 +186,7 @@ def empirical_joint_forecast(
     by_key = point_in_time_prices(records, as_of=instant)
     if any((a, valuation_session) not in by_key for a in names):
         raise PointInTimeError("current valuation missing a published asset price")
-    included: list[tuple[float, ...]] = []
+    included: list[tuple[Fraction, ...]] = []
     included_indices: list[int] = []
     used_sessions: list[str] = []
     digests: set[str] = set()
@@ -180,8 +197,8 @@ def empirical_joint_forecast(
         if any(before is None or after is None for before, after in pairs):
             excluded += 1
             continue
-        gross = tuple(after.adjusted_close / before.adjusted_close for before, after in pairs)
-        if not all(_finite_positive(g) for g in gross):
+        gross = tuple(_exact_price_ratio(after, before) for before, after in pairs)
+        if not all(_finite_positive(float(g)) for g in gross):
             raise PointInTimeError("nonfinite joint return")
         included.append(gross)
         included_indices.append(j)
@@ -205,10 +222,10 @@ def empirical_joint_forecast(
         ]
         if len(transitions) < 2:
             raise PointInTimeError("lagged_knn requires two complete lagged transitions")
-        query = tuple(math.log(g) for g in included[-1])
+        query = tuple(math.log(float(g)) for g in included[-1])
         ranked = sorted(
             (
-                math.fsum((math.log(current[j]) - query[j]) ** 2 for j in range(len(query))),
+                math.fsum((math.log(float(current[j])) - query[j]) ** 2 for j in range(len(query))),
                 i,
             )
             for i, (current, _, _) in enumerate(transitions)
@@ -231,7 +248,8 @@ def empirical_joint_forecast(
     counts = Counter(selected)
     n = len(selected)
     scenarios = tuple(
-        JointScenario(count / n, vector, count) for vector, count in sorted(counts.items())
+        JointScenario(count / n, tuple(float(g) for g in vector), count)
+        for vector, count in sorted(counts.items())
     )
     if not math.isclose(math.fsum(s.probability for s in scenarios), 1.0, abs_tol=1e-12):
         raise PointInTimeError("empirical probability mass is not normalized")
@@ -535,9 +553,16 @@ def main() -> int:
         description="Read-only PIT research to existing Capital optimizer"
     )
     parser.add_argument("--input", type=Path, required=True)
+    parser.add_argument("--mode", choices=("one-step", "monthly-tree"), default="one-step")
     args = parser.parse_args()
     try:
-        outcome = from_json_payload(json.loads(args.input.read_text(encoding="utf-8")))
+        payload = json.loads(args.input.read_text(encoding="utf-8"))
+        if args.mode == "monthly-tree":
+            from ordivon_capital.research.pit_monthly_paths import from_multiperiod_json_payload
+
+            outcome = from_multiperiod_json_payload(payload)
+        else:
+            outcome = from_json_payload(payload)
     except (PointInTimeError, ValueError, TypeError, KeyError) as e:
         parser.error(f"incomplete point-in-time market/economic contract: {e}")
     print(json.dumps(outcome, ensure_ascii=False, sort_keys=True))
