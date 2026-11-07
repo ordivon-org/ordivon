@@ -31,6 +31,44 @@ theorem settlement_preserves_valuation
   unfold valuation
   omega
 
+/- PaperClose.value_session settlement equations (integer minor units).
+   The day's just-settled sell proceeds are excluded from new buy funding:
+   their economic receivable already existed before this settlement.
+   This is a model property, not a proof that Python/Postgres refines it. -/
+private def cashAfterSettlement
+    (oldCash contribution dueBuy dueSell : Int) : Int :=
+  oldCash + contribution - dueBuy + dueSell
+
+private def payableAfterSettlement
+    (oldPayable dueBuy newBuyPayable : Int) : Int :=
+  oldPayable - dueBuy + newBuyPayable
+
+theorem available_cash_excludes_same_day_sale_settlement
+    (oldCash contribution oldPayable dueBuy dueSell newBuyPayable : Int) :
+    cashAfterSettlement oldCash contribution dueBuy dueSell -
+      payableAfterSettlement oldPayable dueBuy newBuyPayable - dueSell =
+      oldCash - oldPayable + contribution - newBuyPayable := by
+  unfold cashAfterSettlement payableAfterSettlement
+  omega
+
+theorem buy_admission_preserves_protected_cash_without_sale_proceeds
+    (oldCash contribution oldPayable dueBuy dueSell newBuyPayable protectedCash : Int)
+    (admitted :
+      protectedCash ≤
+        cashAfterSettlement oldCash contribution dueBuy dueSell -
+          payableAfterSettlement oldPayable dueBuy newBuyPayable - dueSell) :
+    protectedCash ≤ oldCash - oldPayable + contribution - newBuyPayable := by
+  rw [available_cash_excludes_same_day_sale_settlement] at admitted
+  exact admitted
+
+theorem bounded_settlement_keeps_liabilities_nonnegative
+    (oldPayable oldReceivable dueBuy dueSell : Int)
+    (bounds :
+      0 ≤ dueBuy ∧ dueBuy ≤ oldPayable ∧
+      0 ≤ dueSell ∧ dueSell ≤ oldReceivable) :
+    0 ≤ oldPayable - dueBuy ∧ 0 ≤ oldReceivable - dueSell := by
+  omega
+
 -- The exact signed ceiling is reachable.
 example : valuation maxReceiptMinor 0 0 0 = maxReceiptMinor := by decide
 

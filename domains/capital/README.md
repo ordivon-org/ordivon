@@ -55,7 +55,7 @@ From the repository root, run
 `mise run //domains/capital:verify:paper-amounts` with the Lean tool already
 pinned under `tools/formal`. The integer model checks signed-int64 Risk consumer
 fields under the reserve and nonnegative component assumptions, and shows
-that settling booked payables and receivables preserves NAV at fixed marks.
+that settling booked payables and receivables preserves NAV at fixed marks; it also proves the exact integer funding identity that excludes same-day settled sale proceeds from new-buy capacity, plus nonnegative residual liabilities under bounded settlement.
 It does not verify Python, PostgreSQL, time-bound market admission or a
 positive-equity Risk review. Use `mise run //domains/capital:verify` for the
 implementation, and a disposable `ORDIVON_CAPITAL_PAPER_PG_TEST_DSN` for
