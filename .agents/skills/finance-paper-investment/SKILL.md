@@ -42,6 +42,11 @@ Human owns utility/horizon, market/broker authorities own probabilities/
 borrowing/margin, and missing inputs remain UNKNOWN.
 `solve_multistage` is the bounded finite-scenario monthly-1r
 nonanticipative optimizer under `domains/capital/docs/MULTISTAGE_FINANCE_R1.md`.
+Optional `terminal_liabilities_r` requires an externally verified cash
+obligation for EVERY terminal leaf. Optimize CRRA on disposable surplus,
+report gross/obligation/net values separately; never treat future liabilities
+as today's broker collateral. This does not cover interim consumption.
+
 It requires the FULL externally supplied observable information tree and
 conditional probabilities. It separately reports feasible contract residuals,
 terminal wealth and an independent LP supporting-hyperplane bound on

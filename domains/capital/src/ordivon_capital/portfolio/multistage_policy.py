@@ -14,7 +14,7 @@ edge's margin check. Terminal nodes receive no new money and cannot trade.
 Consequently "terminalR" is account value after T contributions, whereas
 the TWR unit account requires separate unitization.
 
-Finite scenario expected CRRA utility + linear self-financing/trade/margin
+Finite scenario expected CRRA utility of net terminal liabilities plus linear self-financing/trade/margin
 constraints is a concave maximization on a convex feasible set. A supporting
 hyperplane LP gives a *numerical global optimality-gap upper bound*, not
 a formal proof of SciPy or an authenticated return forecast.
@@ -62,6 +62,11 @@ class InformationNode:
 class MultistageProblem:
     gamma: float
     nodes: tuple[InformationNode, ...]
+    # If specified, every terminal observation has a caller-owned cash
+    # obligation, measured in the same 1r unit as the investment account.
+    # These obligations are deducted from *terminal consumption utility*,
+    # not silently represented as broker collateral or early cash deposits.
+    terminal_liabilities_r: dict[str, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -70,6 +75,10 @@ class MultistageSolution:
     expected_terminal_r: float
     certainty_equivalent_terminal_r: float
     expected_utility: float
+    expected_disposable_terminal_r: float
+    # Independent from gross-account CE: respects terminal obligations,
+    # while the original field remains the gross terminal equity CE.
+    certainty_equivalent_disposable_r: float
     root_risky_r: tuple[float, ...]
     root_cash_r: float
     root_debt_r: float
@@ -182,6 +191,17 @@ def _validate_tree(problem: MultistageProblem) -> _ValidTree:
     leaves = tuple(n for n in ordered if n.terminal)
     if not leaves:
         raise AlgebraicPolicyError("at least one finite terminal state required")
+    if problem.terminal_liabilities_r is not None:
+        claims = problem.terminal_liabilities_r
+        if not isinstance(claims, dict) or set(claims) != {n.id for n in leaves}:
+            raise AlgebraicPolicyError(
+                "terminal liabilities require one explicit obligation per leaf"
+            )
+        if any(
+            not _finite(v) or isinstance(v, bool) or v < 0
+            for v in claims.values()
+        ):
+            raise AlgebraicPolicyError("nonnegative finite terminal liabilities required")
     depths = {n.t for n in leaves}
     if len(depths) != 1:
         raise AlgebraicPolicyError("all paths must have the same contribution horizon")
@@ -320,6 +340,14 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
     b_ub = np.asarray(ub_rhs)
     W_leaf = np.vstack(terminal_rows)
     W_arrival = np.vstack(prewealth_rows)
+    liabilities = np.asarray(
+        [
+            0.0 if problem.terminal_liabilities_r is None
+            else problem.terminal_liabilities_r[leaf.id]
+            for leaf in tree.leaves
+        ],
+        dtype=float,
+    )
     leaf_probabilities = np.asarray(terminal_probs)
     numerical_interior = float(np.finfo(float).eps)
 
@@ -341,17 +369,48 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         or float(np.min(W_arrival @ x0)) <= 0.0
     ):
         raise AlgebraicPolicyError("positive all-cash initialization infeasible")
+    if float(np.min(W_leaf @ x0 - liabilities)) <= numerical_interior:
+        # A cash-only investment is insufficient to pay all obligations.
+        # Use the existing mature HiGHS LP to maximize the smallest
+        # state-wise terminal surplus. Do not fake a default risk budget.
+        # If no positive surplus exists, the requested CRRA objective has
+        # no feasible solution under these actual contract assumptions.
+        ext = np.zeros((A_ub.shape[0], 1))
+        arrival = np.hstack((-W_arrival, np.ones((W_arrival.shape[0], 1))))
+        disposable = np.hstack((-W_leaf, np.ones((W_leaf.shape[0], 1))))
+        c = np.zeros(size + 1)
+        c[-1] = -1.0
+        lp = linprog(
+            c,
+            A_ub=np.vstack((np.hstack((A_ub, ext)), arrival, disposable)),
+            b_ub=np.concatenate((
+                b_ub,
+                np.zeros(W_arrival.shape[0]),
+                -liabilities,
+            )),
+            A_eq=np.hstack((A_eq, np.zeros((A_eq.shape[0], 1)))),
+            b_eq=b_eq,
+            bounds=[(0.0, None)] * (size + 1),
+            method="highs",
+        )
+        if not lp.success or lp.x[-1] <= numerical_interior:
+            raise AlgebraicPolicyError(
+                "no strictly positive post-liability consumption "
+                "under stated scenario and financing contracts"
+            )
+        x0 = np.asarray(lp.x[:-1], dtype=float)
 
     constraints = [
         LinearConstraint(A_eq, b_eq, b_eq),
         LinearConstraint(A_ub, -np.inf, b_ub),
         LinearConstraint(W_arrival, numerical_interior, np.inf),
+        LinearConstraint(W_leaf, liabilities + numerical_interior, np.inf),
     ]
     bounds = Bounds(np.zeros(size), np.full(size, np.inf))
     gamma = problem.gamma
 
     def utility_and_gradient(x: Any) -> tuple[float, Any]:
-        W = W_leaf @ x
+        W = W_leaf @ x - liabilities
         if np.any(W <= 0):
             return float("-inf"), np.full(size, float("nan"))
         if gamma == 1:
@@ -385,6 +444,7 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         np.max(A_ub @ x - b_ub),
         -np.min(x),
         numerical_interior - np.min(W_arrival @ x),
+        np.max(liabilities + numerical_interior - W_leaf @ x),
     ))
     if (
         not found.success
@@ -406,10 +466,12 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
     value, gradient = utility_and_gradient(x)
     certificate = linprog(
         -gradient,
-        A_ub=np.vstack((A_ub, -W_arrival)),
-        b_ub=np.concatenate(
-            (b_ub, -np.full(W_arrival.shape[0], numerical_interior))
-        ),
+        A_ub=np.vstack((A_ub, -W_arrival, -W_leaf)),
+        b_ub=np.concatenate((
+            b_ub,
+            -np.full(W_arrival.shape[0], numerical_interior),
+            -liabilities - numerical_interior,
+        )),
         A_eq=A_eq, b_eq=b_eq,
         bounds=[(0.0, None)] * size, method="highs",
     )
@@ -424,11 +486,28 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
     # Gap is a visible numerical evidence value, never turned into a
     # fictitious mathematical or portfolio-risk guarantee.
     terminal_wealth = W_leaf @ x
+    disposable_wealth = terminal_wealth - liabilities
+    # Preserve existing gross-account CE semantics even if the objective
+    # explicitly uses disposable surplus. Renaming fields by interpretation
+    # would silently corrupt old read-only consumers.
     if gamma == 1:
-        certainty_equivalent = math.exp(value)
+        certainty_equivalent_disposable = math.exp(value)
+        certainty_equivalent_gross = math.exp(
+            float(leaf_probabilities @ np.log(terminal_wealth))
+        )
     else:
-        moment = float(leaf_probabilities @ terminal_wealth ** (1 - gamma))
-        certainty_equivalent = math.exp(math.log(moment) / (1 - gamma))
+        disposable_moment = float(
+            leaf_probabilities @ disposable_wealth ** (1 - gamma)
+        )
+        gross_moment = float(
+            leaf_probabilities @ terminal_wealth ** (1 - gamma)
+        )
+        certainty_equivalent_disposable = math.exp(
+            math.log(disposable_moment) / (1 - gamma)
+        )
+        certainty_equivalent_gross = math.exp(
+            math.log(gross_moment) / (1 - gamma)
+        )
     output_decisions: dict[str, dict[str, Any]] = {}
     for node in decisions:
         start = offsets[node.id]
@@ -452,15 +531,23 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         leaf.id: {
             "probability": tree.probability[leaf.id],
             "terminalR": float(value_r),
+            "obligationR": float(obligation),
+            "disposableTerminalR": float(value_r - obligation),
         }
-        for leaf, value_r in zip(tree.leaves, terminal_wealth, strict=True)
+        for leaf, value_r, obligation in zip(
+            tree.leaves, terminal_wealth, liabilities, strict=True
+        )
     }
     first = output_decisions[decisions[0].id]
     return MultistageSolution(
         contributions_r_per_path=tree.months,
         expected_terminal_r=float(leaf_probabilities @ terminal_wealth),
-        certainty_equivalent_terminal_r=certainty_equivalent,
+        certainty_equivalent_terminal_r=certainty_equivalent_gross,
         expected_utility=value,
+        expected_disposable_terminal_r=float(
+            leaf_probabilities @ disposable_wealth
+        ),
+        certainty_equivalent_disposable_r=certainty_equivalent_disposable,
         root_risky_r=first["assetExposuresR"],
         root_cash_r=first["cashR"],
         root_debt_r=first["debtR"],
@@ -496,8 +583,15 @@ def main() -> int:
 
             with _Path(args.input).open(encoding="utf-8") as f:
                 payload = json.load(f)
-        if not isinstance(payload, dict) or set(payload) != {"gamma", "nodes"}:
-            raise AlgebraicPolicyError("expected only gamma and nodes")
+        allowed_payload = {"gamma", "nodes", "terminal_liabilities_r"}
+        if (
+            not isinstance(payload, dict)
+            or not {"gamma", "nodes"} <= set(payload)
+            or set(payload) - allowed_payload
+        ):
+            raise AlgebraicPolicyError(
+                "expected only gamma and nodes (optional terminal_liabilities_r)"
+            )
         if not isinstance(payload["nodes"], list):
             raise AlgebraicPolicyError("nodes must be a JSON list of information sets")
         allowed = set(InformationNode.__dataclass_fields__)
@@ -515,7 +609,11 @@ def main() -> int:
                     normalized[key] = tuple(normalized[key])
             nodes.append(InformationNode(**normalized))
         result = solve_multistage(
-            MultistageProblem(gamma=payload["gamma"], nodes=tuple(nodes))
+            MultistageProblem(
+                gamma=payload["gamma"],
+                nodes=tuple(nodes),
+                terminal_liabilities_r=payload.get("terminal_liabilities_r"),
+            )
         )
     except (ValueError, TypeError, KeyError) as exc:
         parser.error(f"invalid economic research input: {exc}")
