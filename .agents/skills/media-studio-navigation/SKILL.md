@@ -33,3 +33,23 @@ owns the edit and render. The script emits MP4, DRP and source/output digest
 receipt; independent Media Processing Profiles check the resulting files.
 Discover current Resolve native options instead of copying private parsers.
 Do not reinstall the retired menu Runner or introduce a new agent registry.
+
+## Agent composition for direct Resolve + OTIO work
+
+For native video work, the production caller selects either `--visual`
+(repeated shot files) or `--otio` (existing interchange timeline). Use the
+official Resolve import API; `--source-clips-dir` passes the native relink
+directory, while `--min-timeline-frames` expresses an actual consumer
+requirement. The one-shot script under `capabilities/media/scripts/`
+creates its own isolated project and emits editable DRP, MP4 and digest
+receipt. Read `timelineFrames` and the precise OTIO reference limitation.
+
+Next, use the *existing* `studio_processing_profiles` and
+`studio_processing_probe_plan` with exact profile/adapter digests for OTIO,
+FFprobe/FFmpeg, loudness and TTML as required. Do not copy a decoder,
+caption parser, editing engine, command registry or persistent staging
+protocol into this Skill. An Agent may propose Remotion/React/SVG motions,
+native Resolve/Fairlight audio and color actions, asset CAS/R2 recovery and
+provider-owned publication only when the selected Production consumes them.
+A Runtime Job is evidence of execution; only the actual Output and
+destination readback can support acceptance or publication.
