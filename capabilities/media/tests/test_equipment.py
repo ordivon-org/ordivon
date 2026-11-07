@@ -251,6 +251,26 @@ class EquipmentWorldTests(unittest.TestCase):
             )
         self.assertEqual(plan.args[-1], "C:\\Users\\test\\project.rpp")
 
+    def test_native_resolve_render_plan_uses_selected_sources(self) -> None:
+        plan = compile_operation(
+            "davinci-resolve",
+            "deliver.render",
+            {
+                "python": r"C:\Python311\python.exe",
+                "script": r"C:\repo\media\resolve-native-produce.py",
+                "visuals": [r"C:\source\a.mp4", r"C:\source\b.mp4"],
+                "audio": r"C:\source\voice.wav",
+                "output_dir": r"C:\output",
+                "name": "test-cut",
+                "grade_saturation": 1.1,
+            },
+        )
+        self.assertEqual(plan.transport, "windows-native-active-user-process")
+        self.assertEqual(plan.executable, r"C:\Python311\python.exe")
+        self.assertEqual(plan.args.count("--visual"), 2)
+        self.assertIn("--grade-saturation", plan.args)
+        self.assertTrue(any("active_user" in note for note in plan.notes))
+
     def test_external_equipment_plans_preserve_authority_boundaries(self) -> None:
         obs = compile_operation("obs-studio", "live.scene.switch", {})
         self.assertEqual(obs.transport, "provider-descriptor-only")
@@ -309,7 +329,7 @@ class EquipmentWorldTests(unittest.TestCase):
         self.assertEqual(by_id["obs-studio"]["defaultLifecycle"], "websocket-server-disabled-by-default")
         self.assertIn("re-observe", by_id["obs-studio"]["convergence"])
         self.assertIn("native-rpp", by_id["reaper"]["stateAuthority"])
-        self.assertEqual(by_id["davinci-resolve"]["transport"], "studio.resolve-adapter")
+        self.assertEqual(by_id["davinci-resolve"]["transport"], "resolve-official-python-api")
         self.assertNotIn("password", json.dumps(surface).lower())
 
     def test_workstation_binding_is_physical_discovery_not_semantic_authority(self) -> None:

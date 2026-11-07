@@ -98,6 +98,10 @@ def propose_operation(
         proposal["blockers"].append("USE_STUDIO_NATIVE_COMMAND")
         return proposal
     plan = compile_operation(candidate["id"], capability, parameters)
+    if candidate["id"] == "davinci-resolve" and plan.executable is None:
+        proposal["plan"] = plan.as_dict()
+        proposal["blockers"].append("EXACT_RESOLVE_NATIVE_SOURCE_AND_EXECUTION_BINDING_REQUIRED")
+        return proposal
     verification = capability_projection.verification_contract(candidate["id"], capability, parameters)
     proposal["plan"] = plan.as_dict()
     proposal["verification"] = verification
