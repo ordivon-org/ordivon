@@ -133,7 +133,7 @@ def test_artifact_resource_identity_is_job_scoped_and_delimiter_safe() -> None:
 def test_malformed_or_external_artifact_target_fails_closed_before_authorizer() -> None:
     for operation_ref, code in (
         ("not-an-operation", "CAPABILITY_AUTHZ_TARGET_INVALID"),
-        ("ordivon-exec:v1:external.pull:operation-1", "CAPABILITY_AUTHZ_TARGET_UNQUALIFIED"),
+        ("ordivon-exec:v1:external.pull:operation-1", "CAPABILITY_AUTHZ_TARGET_INVALID"),
     ):
         authorizer = FakeAuthorizer()
         reached = False

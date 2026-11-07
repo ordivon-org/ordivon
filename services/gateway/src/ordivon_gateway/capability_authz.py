@@ -119,9 +119,9 @@ def resolve_authorization_target(
 ) -> CapabilityAuthorizationTarget | None:
     """Resolve the protected natural-owner object from trusted Gateway semantics.
 
-    Tool name alone is intentionally insufficient: ``artifact.read`` also routes external.pull
-    artifacts. Until Security defines an external-artifact policy target, those calls fail closed
-    whenever this PEP is enabled instead of being mislabeled as ``artifact.runtime``.
+    Tool name alone is insufficient: the operation reference must resolve to a
+    qualified Runtime owner and artifact. Retired external worker references fail
+    closed before reaching Runtime or the authorization provider.
     """
 
     if tool_name != "artifact.read":

@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 import json
 from importlib.metadata import version as package_version
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from .capability_projection import project_capability_search, project_execution_capability
 from .contracts import (
@@ -21,17 +21,12 @@ from .research_resolution import resolve_research_capability
 from .routing import CapabilityRoute
 from .upstream import OwnerToolCaller
 
-if TYPE_CHECKING:
-    from .external_worker import ExternalPullWorkerTransport
-
-
 _OWNER_ROLES = {
     "runtime.linux": "physical execution owner",
     "runtime.windows": "physical execution owner",
     "host": "external semantic continuity owner",
     "skills": "procedural Skill discovery and exact binding owner",
     "research.composition": "non-authoritative Research composition metadata",
-    "external.pull": "provider-neutral outbound pull execution transport",
 }
 
 
@@ -46,12 +41,10 @@ class CapabilityCatalog:
         self,
         caller: OwnerToolCaller,
         routes: dict[str, CapabilityRoute],
-        external_workers: ExternalPullWorkerTransport | None,
         projection_timeout_seconds: float,
     ) -> None:
         self._caller = caller
         self._routes = routes
-        self._external_workers = external_workers
         self._projection_timeout_seconds = projection_timeout_seconds
 
     def system_describe(self) -> SystemDescription:
@@ -60,19 +53,13 @@ class CapabilityCatalog:
                 owner_id=owner_id,
                 role=role,
                 configured=(
-                    True
-                    if owner_id == "research.composition"
-                    else self._external_workers is not None
-                    if owner_id == "external.pull"
+                    True if owner_id == "research.composition"
                     else _configured(self._caller, owner_id)
                 ),
             )
             for owner_id, role in _OWNER_ROLES.items()
-            if owner_id != "external.pull" or self._external_workers is not None
         ]
         capabilities = set(self._routes)
-        if self._external_workers is not None:
-            capabilities.update(self._external_workers.capability_projection())
         return SystemDescription(
             gateway_version=package_version("ordivon-gateway"),
             owners=owners,
@@ -80,23 +67,12 @@ class CapabilityCatalog:
         )
 
     async def capability_describe(self, capability: str | None = None) -> CapabilityProjection:
-        # The native route wins execution_submit/execution_resolve dispatch.
-        # Discovery must expose that same natural owner exactly once, even
-        # when a pull worker advertises an overlapping capability name.
-        external_projection = {
-            name: nodes
-            for name, nodes in (
-                self._external_workers.capability_projection().items()
-                if self._external_workers is not None
-                else ()
-            )
-            if name not in self._routes
-        }
+        # Discovery and dispatch share the same natural-owner route table.
         if capability is not None:
             route = self._routes.get(capability)
-            if route is None and capability not in external_projection:
+            if route is None:
                 raise GatewayError(f"unknown capability: {capability}")
-            selected = [route] if route is not None else []
+            selected = [route]
         else:
             selected = [self._routes[key] for key in sorted(self._routes)]
 
@@ -259,35 +235,6 @@ class CapabilityCatalog:
                     context_mode=route.context_mode,  # type: ignore[arg-type]
                     observation_error="no projection adapter for capability",
                     truth_boundary=route.truth_boundary,
-                )
-            )
-
-        external_keys = (
-            [capability]
-            if capability is not None and capability in external_projection
-            else sorted(external_projection)
-            if capability is None
-            else []
-        )
-        for external_capability in external_keys:
-            nodes = external_projection[external_capability]
-            values.append(
-                CapabilityDescriptor(
-                    capability=external_capability,
-                    owner_id="external.pull",
-                    category="execution",
-                    configured=True,
-                    available=bool(nodes),
-                    context_mode="none",
-                    owner_node_ids=nodes,
-                    truth_boundary=(
-                        "External worker transport owns queue/lease/attempt delivery mechanics only; "
-                        "workers do not acquire Task ownership or domain authority."
-                    ),
-                    description=(
-                        "Execute through a live operator-admitted provider-neutral external pull worker."
-                    ),
-                    tags=["execution", "external", "pull", "worker"],
                 )
             )
 

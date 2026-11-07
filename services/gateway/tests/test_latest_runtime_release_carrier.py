@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ordivon_gateway import external_worker, mcp_server
+from ordivon_gateway import mcp_server
 
 ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = ROOT / "packaging/install_release.sh"
@@ -29,8 +29,7 @@ def test_default_gateway_does_not_require_any_sqlite_engine(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", raising=False)
-    monkeypatch.setattr(external_worker.sqlite3, "sqlite_version", "0.0.0")
-    assert mcp_server._external_workers_from_env() is None
+    mcp_server._reject_retired_worker_database_config()
 
 
 @pytest.mark.parametrize(
@@ -46,4 +45,4 @@ def test_retired_gateway_sqlite_transport_rejected_without_opening_database(
 ) -> None:
     monkeypatch.setenv("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", legacy_value)
     with pytest.raises(RuntimeError, match="SQLite External Worker was retired"):
-        mcp_server._external_workers_from_env()
+        mcp_server._reject_retired_worker_database_config()
