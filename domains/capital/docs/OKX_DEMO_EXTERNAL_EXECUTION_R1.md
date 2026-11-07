@@ -75,3 +75,34 @@ including exact replay, uniqueness collision, eight-way concurrent
 single claim, restart/reopen readback and CLI-to-Governance no-write
 consumer. This is not provider Demo transaction proof and does not
 claim settled Accounting balance.
+
+## Official upstream mechanics qualified at exact version 1.5.0
+
+Official OKX Agent Trade Kit @okx_ai/okx-trade-cli 1.5.0 is the default
+Trading transport, pinned in a scoped pnpm package and lockfile. It
+replaces hand-written HMAC and HTTP mechanics in the default path,
+while retaining the immutable PostgreSQL intent, Governance source and
+existing Accounting ownership. The old local transport remains
+--transport reference for differential fallback pending real Demo
+account/order/fill and Accounting parity.
+
+Physical local-protocol qualification used the actual installed official
+Node executable with a controlled signed loopback HTTP endpoint. It
+verified --demo --json --env, x-simulated-trading:1 and provider HMAC
+for account/config, balance, order-by-clOrdId, cash-limit order, recent
+fills, and cancellation. The official order body includes tag=CLI and
+banAmend=false, which differ from the original minimal local wire but
+do not prove changed economic or settlement behavior.
+
+The official client currently does not retry ordinary POST automatically.
+Ordivon still treats any ambiguous provider response as effect UNKNOWN.
+The exact credential file is read from Runtime's CredentialAuthority
+and passed through the official CLI's documented native environment
+credential interface for that single child process. The temporary
+isolated HOME contains no persisted API credentials; no TOML credentials
+are written to disk or tmpfs. Secrets do not go into Git, argv,
+global user configuration or output receipts.
+
+In domains/capital, install with mise run provider:okx:install and
+qualify with mise run verify:provider:okx-official. These checks
+are NOT a Demo order or account authorization receipt.

@@ -90,3 +90,36 @@ an Accounting settlement, custody or real venue fill.
 The real PG tests are in tests/test_postgres_demo_intent.py, run
 with ORDIVON_CAPITAL_PG_TEST_DSN pointing to an isolated disposable
 PostgreSQL cluster. A missing test DSN produces skip, not PG proof.
+
+## Official upstream provider integration (v1.5.0)
+
+The Trading entrypoint selects --transport official by default. The exact
+external implementation is OKX Agent Trade Kit CLI 1.5.0, pinned in
+domains/capital/tools/okx_official_cli/package.json and pnpm-lock.yaml.
+Run from Capital: mise run provider:okx:install, then
+mise run verify:provider:okx-official. The latter runs the physical
+official CLI binary against a loopback Demo protocol endpoint: signed
+HTTP evidence, not an external OKX order or settled Accounting journal.
+
+The --transport reference fallback retains the prior small Python REST
+client only until provider-account and accounting parity is independently
+proven. Do not build another order management service or signing SDK.
+Both transports use the SAME precommitted PostgreSQL intent and unique
+effect claim in okx_demo_execution.main.
+
+Human use: scripts/run-okx-demo-execution --request request.json
+--transport official. Demo credentials arrive from Runtime's dedicated
+CREDENTIALS_DIRECTORY. The official CLI loads them through its native
+OKX_API_KEY/OKX_SECRET_KEY/OKX_PASSPHRASE environment interface, scoped
+only to the child process with an isolated temporary HOME. No secrets
+are written to TOML, Git, the shared home, arguments or reports.
+The CLI forces --demo --json --env and verifies Demo identity from the
+returned JSON envelope. Regional accounts must use their actual site
+(ORDIVON_OKX_SITE) and matching valid OKX HTTPS origin.
+
+Agent behavior: first STAGE_INTENT, then INSPECT_INTENT, next a single
+PG-claimed PLACE_LIMIT, then external order and fill query. CLI exit
+status does not prove a venue effect; provider error and lost POST
+response must not cause automatic reposting. clOrdId matches still
+require original immutable intent and order time correlation.
+No recent fills is not complete order-history evidence.
