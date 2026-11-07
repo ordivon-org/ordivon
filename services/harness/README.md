@@ -117,6 +117,12 @@ property with Owner-native formal and real-consumer evidence. Report
 `PG_CONSUMER_VERIFIED/UNKNOWN` and `INSTALLED_VERIFIED/UNKNOWN` separately.
 Do not create aliases for deleted names or reinterpret UNKNOWN as FALSE.
 
+Browserless conversation binding payload and receipt semantics now live in
+the backend-neutral scripts/conversation_binding_contract.py. Normal PG read
+and write no longer depend on importing the SQLite concrete Store.
+Historical source qualification still imports SQLite explicitly, when needed.
+No new Store or database authority is introduced.
+
 Browserless wake-turn identity validation now lives in
 `scripts/wake_turn_contract.py` (digest/text checks and `WakeTurnConflict`),
 shared by PostgreSQL and the legacy SQLite source reader. The PostgreSQL
