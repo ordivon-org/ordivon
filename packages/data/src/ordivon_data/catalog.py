@@ -94,6 +94,7 @@ def inspect_catalog(
     ):
         raise ValueError("not a supported DCAT compact JSON-LD Catalog projection")
     products = []
+    seen_product_versions: set[tuple[str, str]] = set()
     for dataset in catalog["dcat:dataset"]:
         if not isinstance(dataset, dict) or "dcat:Dataset" not in (
             dataset.get("@type")
@@ -101,14 +102,28 @@ def inspect_catalog(
             else [dataset.get("@type")]
         ):
             raise ValueError("catalog includes a non-Dataset entry")
+        product_id, version = dataset.get("dct:identifier"), dataset.get("dcat:version")
+        if (
+            not isinstance(product_id, str)
+            or not product_id
+            or not isinstance(version, str)
+            or not version
+        ):
+            raise ValueError("dataset has no stable product identifier and version")
+        identity = (product_id, version)
+        if identity in seen_product_versions:
+            raise ValueError("duplicate data product identity and version")
+        seen_product_versions.add(identity)
         distributions = dataset.get("dcat:distribution", [])
-        if not isinstance(distributions, list):
-            raise TypeError("dataset distributions are not a list")
+        if not isinstance(distributions, list) or any(
+            not isinstance(item, dict) for item in distributions
+        ):
+            raise TypeError("dataset distributions must be a list of objects")
         products.append(
             {
-                "id": dataset.get("dct:identifier"),
+                "id": product_id,
                 "title": dataset.get("dct:title"),
-                "version": dataset.get("dcat:version"),
+                "version": version,
                 "policy": dataset.get("odrl:hasPolicy"),
                 "distributions": [
                     inspect_distribution(item, allowed_roots, verify_local)

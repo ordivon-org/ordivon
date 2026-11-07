@@ -87,3 +87,28 @@ class CatalogProjectionTests(TestCase):
             path.write_text(json.dumps({"@type": "dcat:Dataset"}))
             with self.assertRaises(ValueError):
                 inspect_catalog(path)
+
+    def test_duplicate_product_version_and_malformed_distribution_fail(self):
+        source = (
+            REPO_ROOT
+            / "studies/data-lifecycle/evidence/data-products-r2/federated-catalog.dcat.jsonld"
+        )
+        catalog = json.loads(source.read_text(encoding="utf-8"))
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "catalog.json"
+            catalog["dcat:dataset"].append(dict(catalog["dcat:dataset"][0]))
+            path.write_text(json.dumps(catalog), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "duplicate data product"):
+                inspect_catalog(path)
+
+            catalog["dcat:dataset"].pop()
+            catalog["dcat:dataset"][0]["dcat:distribution"] = [None]
+            path.write_text(json.dumps(catalog), encoding="utf-8")
+            with self.assertRaisesRegex(TypeError, "list of objects"):
+                inspect_catalog(path)
+
+            catalog["dcat:dataset"][0]["dcat:distribution"] = []
+            catalog["dcat:dataset"][0].pop("dcat:version")
+            path.write_text(json.dumps(catalog), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "identifier and version"):
+                inspect_catalog(path)
