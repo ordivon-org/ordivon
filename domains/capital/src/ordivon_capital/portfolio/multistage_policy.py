@@ -258,7 +258,7 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
       h_i >= abs(a_i - pretrade_risky_i)
       initial_margin(a) <= post_trade_equity
       pretrade_equity_edge >= maintenance_edge(risky_gross)
-      pretrade_equity_edge > 0 before any 1r rescue deposit
+      pretrade_equity_edge >= 0 before any 1r rescue deposit
     Terminal expected CRRA utility is strictly concave in positive wealth.
     """
     tree = _validate_tree(problem)
@@ -392,7 +392,7 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         float(np.min(x0)) >= 0.0
         and float(np.max(np.abs(A_eq @ x0 - b_eq))) <= 1e-9
         and float(np.max(A_ub @ x0 - b_ub)) <= 1e-9
-        and float(np.min(W_arrival @ x0)) > numerical_interior
+        and float(np.min(W_arrival @ x0)) >= 0.0
         and float(np.min(W_leaf @ x0 - liabilities)) > numerical_interior
     )
     if not all_cash_feasible:
@@ -402,7 +402,9 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         # If no positive surplus exists, the requested CRRA objective has
         # no feasible solution under these actual contract assumptions.
         ext = np.zeros((A_ub.shape[0], 1))
-        arrival = np.hstack((-W_arrival, np.ones((W_arrival.shape[0], 1))))
+        # Zero equity without a loan is solvent before next month's 1r.
+        # The strictly positive CRRA domain applies only to terminal surplus.
+        arrival = np.hstack((-W_arrival, np.zeros((W_arrival.shape[0], 1))))
         disposable = np.hstack((-W_leaf, np.ones((W_leaf.shape[0], 1))))
         c = np.zeros(size + 1)
         c[-1] = -1.0
@@ -429,7 +431,7 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
     constraints = [
         LinearConstraint(A_eq, b_eq, b_eq),
         LinearConstraint(A_ub, -np.inf, b_ub),
-        LinearConstraint(W_arrival, numerical_interior, np.inf),
+        LinearConstraint(W_arrival, 0.0, np.inf),
         LinearConstraint(W_leaf, liabilities + numerical_interior, np.inf),
     ]
     bounds = Bounds(np.zeros(size), np.full(size, np.inf))
@@ -469,7 +471,7 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         0.0,
         np.max(A_ub @ x - b_ub),
         -np.min(x),
-        numerical_interior - np.min(W_arrival @ x),
+        -np.min(W_arrival @ x),
         np.max(liabilities + numerical_interior - W_leaf @ x),
     ))
     if (
@@ -495,7 +497,7 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         A_ub=np.vstack((A_ub, -W_arrival, -W_leaf)),
         b_ub=np.concatenate((
             b_ub,
-            -np.full(W_arrival.shape[0], numerical_interior),
+            np.zeros(W_arrival.shape[0]),
             -liabilities - numerical_interior,
         )),
         A_eq=A_eq, b_eq=b_eq,

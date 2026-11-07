@@ -196,3 +196,7 @@ CLI 只写标准输出 JSON，无下单、账户读写、自动市场预测或�
 - Skaf & Boyd, *Multi-Period Portfolio Optimization with Constraints and Transaction Costs*, 2009: dynamic programming approximations. https://stanford.edu/~boyd/papers/dyn_port_opt.html
 - Cvxportfolio official MultiPeriodOptimization manual: https://www.cvxportfolio.com/en/stable/optimization_policies.html
 - Merton (1969), Samuelson (1969): CRRA / lifetime portfolio decisions.
+\n### 鍒拌揪鏃剁偣闆舵潈鐩婄殑缁忔祹鍚堟硶鎬n
+鍦ㄦ棤鍊熸涓斾笉娆犵淮鎸佷繚璇侀噾鐨勬儏鏅腑锛屾姇璧勮€呭彲浠ュ皢褰撴湀1r鍏ㄩ儴鐢ㄤ簬
+鐪熷疄鏀嚭锛屼娇娆℃湀鏂拌祫閲戝埌璐?*涔嬪墠**鐨勮处鎴锋潈鐩婃伆濂戒负闆躲€俓n瀹冨苟涓嶆槸璐熷€猴紝涔熶笉搴旇鏁板€煎唴鐐规潯浠惰涓哄繀鐒跺己鍒跺钩浠撱€俓n
+鎵€鏈変腑闂存湀鑺傜偣鍙姹?W^- >= 0 涓旀弧瓒崇湡瀹炵淮鎸佷繚璇侀噾 W^- >= M銆俓n鍙缁堢 CRRA 鍙敮閰嶄綑棰?W_T-L_T 瑕佹眰涓ユ牸姝ｇ殑鏁堢敤瀹氫箟鍩熴€俓n鍙鐐规悳绱€丼LSQP 鍘熷绾︽潫鍜岀嫭绔?HiGHS 鍒囪秴骞抽潰鏈€浼樺€间笂鐣孿n鍏ㄩ儴閲囩敤鐩稿悓鍙鍩燂紝閬垮厤鑷埗鈥滃畨鍏?epsilon鈥濆彉鎴愮粡娴庤鍒欍€俓n

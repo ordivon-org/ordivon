@@ -110,3 +110,19 @@ def test_native_multistage_json_readback_reports_cashflow_timing():
     assert out["solution"]["expected_terminal_r"]==pytest.approx(
         (.8*1.02+1-.3)*1.03,abs=1e-6
     )
+
+
+def test_spent_all_cash_can_receive_future_1r() -> None:
+    # A non-borrowing account can validly be zero before the next deposit.
+    result = solve_multistage(MultistageProblem(
+        gamma=1, nodes=states(),
+        node_outflow_after_contribution_r={"root":1.0, "next":0.0},
+    ))
+    assert result.root_risky_r[0] == pytest.approx(0.0, abs=1e-6)
+    assert result.root_cash_r == pytest.approx(0.0, abs=1e-6)
+    assert result.root_debt_r == pytest.approx(0.0, abs=1e-6)
+    assert result.node_decisions_r["next"]["postTradeEquityR"] == pytest.approx(
+        1.0, abs=1e-6
+    )
+    assert result.expected_terminal_r == pytest.approx(1.03, abs=1e-6)
+    assert result.concavity_global_utility_gap_upper < 1e-5
