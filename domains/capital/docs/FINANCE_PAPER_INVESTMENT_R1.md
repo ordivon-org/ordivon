@@ -179,6 +179,17 @@ Risk CLI, consult the existing
 `.agents/skills/finance-paper-risk-review/SKILL.md`.
 CA01–CA10 identities remain in `planning/lego-plan-r1.json`.
 
+## Formal Accounting cash invariants (Z3)
+
+The existing [Paper cash/settlement model](../formal/README.md) uses a
+pinned upstream SMT solver to prove the abstract NAV settlement identity,
+pure-settlement neutrality and protected-reserve implication over
+**mathematical integers**, with two deliberately SAT invalid-economics
+witnesses. Run `cd domains/capital && mise run formal:paper`.
+Its implementation refinement is **PARTIAL**: it is not a proof of all
+Python branches, database serializability or real-market settlement.
+Preserve the existing native PostgreSQL/Markets/Risk consumer checks.
+
 ## Native Accounting identity refinement: pure Paper to PostgreSQL
 
 The pure `accounting.paper_close.value_session` is a deterministic Paper

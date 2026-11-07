@@ -10,6 +10,20 @@ uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
 uv run --group test python -m pytest -m "not provider_qualification"
+mise run formal:paper
+"""
+
+[tasks."formal:paper"]
+description = "Prove Paper cash/settlement Presburger invariants using pinned upstream Z3; check wrong-model witnesses"
+run = """
+set -euo pipefail
+observed="$(mise exec github:Z3Prover/z3@5.3.2 -- z3 -smt2 formal/paper_cash_settlement_r1.smt2)"
+expected=$'unsat\nunsat\nunsat\nsat\nsat'
+if [[ "$observed" != "$expected" ]]; then
+  printf 'Paper formal proof mismatch; expected:\n%s\nobserved:\n%s\n' "$expected" "$observed" >&2
+  exit 1
+fi
+printf 'paper_cash_settlement_r1: 3 universal QF_LIA checks UNSAT; 2 wrong-model witnesses SAT\n'
 """
 
 [tasks."verify:provider"]
