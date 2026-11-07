@@ -62,6 +62,7 @@
       "paper_vintage.py",
       "paper_close_performance.py",
       "algebraic_policy.py",
+      "information_tree.py",
       "multistage_policy.py"
     ],
     "risk": [

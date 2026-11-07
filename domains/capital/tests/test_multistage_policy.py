@@ -39,6 +39,39 @@ def terminal(
     )
 
 
+def test_information_tree_is_a_pure_reusable_financial_contract() -> None:
+    from ordivon_capital.portfolio.information_tree import (
+        InformationNode as CanonicalInformationNode,
+    )
+    from ordivon_capital.portfolio.information_tree import (
+        MultistageProblem as CanonicalMultistageProblem,
+    )
+    from ordivon_capital.portfolio.information_tree import (
+        validate_information_tree,
+    )
+    from ordivon_capital.portfolio.multistage_policy import _validate_tree
+
+    # Current research callers still use the established Portfolio module
+    # types; the new specification is identity-equal, not a shadow model.
+    assert CanonicalInformationNode is InformationNode
+    assert CanonicalMultistageProblem is MultistageProblem
+    assert _validate_tree is validate_information_tree
+    problem = MultistageProblem(
+        gamma=2.0,
+        nodes=(
+            root(),
+            terminal("lower", "root", 1, 0.4, 0.85),
+            terminal("upper", "root", 1, 0.6, 1.12),
+        ),
+    )
+    tree = validate_information_tree(problem)
+    assert tree.months == 1
+    assert tuple(node.id for node in tree.decision) == ("root",)
+    assert tuple(node.id for node in tree.leaves) == ("lower", "upper")
+    assert tree.probability["lower"] == pytest.approx(0.4)
+    assert tree.probability["upper"] == pytest.approx(0.6)
+
+
 def test_one_period_is_a_special_case_of_multistage_convex_program() -> None:
     econ = OnePeriodProblem(
         gamma=1, initial_margin=(.4,), turnover_cost=(0,),
