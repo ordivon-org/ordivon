@@ -690,7 +690,7 @@ impl PgRuntime {
             windows_context: None,
             windows_execution_context: None,
             foreign_references: vec![],
-            host_dependencies: host_dependencies,
+            host_dependencies,
             input_set_id: None,
             effective_inputs: vec![],
             credential_set_id: None,
