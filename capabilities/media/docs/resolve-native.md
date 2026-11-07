@@ -99,6 +99,17 @@ python scripts/resolve-native-produce.py --otio C:\media\cut.otio `
 
 The API implements native relinking with `sourceClipsPath`; a successful
 import does **not** independently hash all references inside the OTIO.
+For reliable Windows import, author the interchange using the **official**
+`opentimelineio==0.18.1` library and verify it with `otiotool --verify-ranges`.
+Pass the actual `--source-clips-dir` whenever native relinking is needed.
+On the tested Resolve Studio 21.0.3.7 workstation, an older handwritten OTIO
+passed structural checks but failed native import; an official-library OTIO
+with explicit media relinking imported, graded and rendered successfully in
+Windows Runtime Job `job-01a1b5bd-3146-7da2-82b7-dee5da9cf798`.
+Independent FFprobe, duration, codec and SHA-256 checks passed. This is
+specific native acceptance evidence, not arbitrary OTIO round-trip fidelity
+or external publication.
+
 The receipt hashes the exact .otio input, optional separately supplied audio,
 editable DRP and rendered MP4 and reports the timeline's actual frame count.
 `otioMediaReferencesIndependentlyVerified=false` is an intentional evidence

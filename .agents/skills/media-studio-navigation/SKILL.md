@@ -36,6 +36,15 @@ Do not reinstall the retired menu Runner or introduce a new agent registry.
 
 ## Agent composition for direct Resolve + OTIO work
 
+The existing `studio_equipment_propose` / `davinci-resolve` / `deliver.render`
+plan compiles either `visuals` (a nonempty list) or `otio` (one timeline path),
+never both, alongside `python`, `script`, `output_dir` and `name`.
+For OTIO also pass `source_clips_dir` when relinking and a real positive
+`min_timeline_frames` when required. This is an execution plan, not an edit;
+Windows Runtime `active_user` must see selected source files rather than a
+service-only Workspace. Prefer official OTIO authoring and pinned `otiotool`
+validation before the native import.
+
 For native video work, the production caller selects either `--visual`
 (repeated shot files) or `--otio` (existing interchange timeline). Use the
 official Resolve import API; `--source-clips-dir` passes the native relink
