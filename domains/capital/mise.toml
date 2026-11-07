@@ -2,7 +2,6 @@
 python = "3.15.1"
 uv = "0.13.5"
 rust = { version = "1.99.1", components = "clippy,rustfmt" }
-"github:Z3Prover/z3" = "5.3.2"
 
 [tasks.verify]
 run = """
@@ -15,16 +14,23 @@ mise run formal:paper
 """
 
 [tasks."formal:paper"]
-description = "Prove Paper cash/settlement Presburger invariants using pinned upstream Z3; check wrong-model witnesses"
+description = "Prove Paper cash/settlement Presburger invariants using pinned upstream Z3 PyPI wheel"
 run = """
 set -euo pipefail
-observed="$(z3 -smt2 formal/paper_cash_settlement_r1.smt2)"
-expected=$'unsat\nunsat\nunsat\nsat\nsat'
-if [[ "$observed" != "$expected" ]]; then
-  printf 'Paper formal proof mismatch; expected:\n%s\nobserved:\n%s\n' "$expected" "$observed" >&2
-  exit 1
-fi
-printf 'paper_cash_settlement_r1: 3 universal QF_LIA checks UNSAT; 2 wrong-model witnesses SAT\n'
+# Reuse the existing pinned uv tool rather than the older GitHub mise
+# backend, which cannot resolve this upstream Z3 Release tag.
+uvx --python 3.15 --from z3-solver==5.3.3.0 python - <<'PYZ3'
+from pathlib import Path
+
+import z3
+
+raw = Path("formal/paper_cash_settlement_r1.smt2").read_bytes()
+observed = z3.z3core.Z3_eval_smtlib2_string(z3.main_ctx().ref(), raw).splitlines()
+expected = ["unsat", "unsat", "unsat", "sat", "sat"]
+if observed != expected:
+    raise SystemExit(f"Paper formal proof mismatch: {observed!r} != {expected!r}")
+print("paper_cash_settlement_r1: 3 universal QF_LIA checks UNSAT; 2 wrong-model witnesses SAT")
+PYZ3
 """
 
 [tasks."verify:provider"]

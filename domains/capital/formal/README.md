@@ -11,8 +11,11 @@ mise run formal:paper
 ```
 
 `mise run verify` also invokes this task after Capital's normal native
-tests. It uses **upstream Z3 5.3.2**, pinned in the Capital owner's native `[tools]` declaration via mise's existing GitHub backend; no custom solver, new Python
-dependency, new registry or extra release pipeline.
+tests. It uses upstream **Z3 5.3.3** via the exact `z3-solver==5.3.3.0`
+PyPI wheel, run through the owner's existing pinned `uvx` toolchain.
+The verification task calls Z3's upstream `Z3_eval_smtlib2_string` API
+directly on the same SMT-LIB source. No custom solver, application runtime
+dependency, parallel registry or extra release pipeline is introduced.
 
 ## Why these equations, rather than hundreds of tiny mutation cases?
 
