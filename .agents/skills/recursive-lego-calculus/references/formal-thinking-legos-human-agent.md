@@ -57,8 +57,8 @@ survives comparison.
 
 ### Apply methods to Ordivon's actual Owner abilities
 
-Use the 20-root manifest at tools/repo/owners.toml for the *current* exact
-Owner boundary; the following are **recommended proof targets**, not claims
+The *current* Owner roots are documented in tools/repo/owners.toml;
+the following are **recommended proof targets**, not claims
 that each theorem is already proved. The final column is deliberately
 non-substitutable physical/consumer evidence.
 
