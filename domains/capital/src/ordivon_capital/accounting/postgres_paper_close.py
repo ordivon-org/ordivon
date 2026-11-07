@@ -282,17 +282,56 @@ class PostgresPaperClose:
             raise ValueError("paper cash ledger and valuation disagree")
 
 
-def read_committed_paper_close(paper_dsn: str, account_key: str, session: date) -> dict:
-    """Read the actual durable receipt via PostgreSQL, without creating a schema.
-
-    This is an Accounting-owned readback of current local database truth;
-    it is not an independent attestation of third-party market data.
-    """
+def _validate_paper_read_scope(paper_dsn: str, account_key: str) -> None:
     if not paper_dsn:
         raise ValueError("paper readback requires an explicit paper database DSN")
     if re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", account_key) is None:
         raise ValueError("invalid paper account key")
-    if type(session) is not date:
+
+
+def _read_committed_paper_receipt(db: Connection, account_key: str, session: date) -> dict:
+    """Validate one committed receipt and its immediate predecessor in one snapshot."""
+    row = db.execute(
+        "SELECT request_sha256, request, receipt FROM ordivon_paper.daily_close "
+        "WHERE account_key = %s AND session = %s",
+        (account_key, session),
+    ).fetchone()
+    if row is None:
+        raise ValueError("no committed paper receipt for requested account session")
+    prior = db.execute(
+        "SELECT request_sha256 FROM ordivon_paper.daily_close "
+        "WHERE account_key = %s AND session < %s ORDER BY session DESC LIMIT 1",
+        (account_key, session),
+    ).fetchone()
+    previous_digest = prior[0] if prior else None
+    digest, request, receipt = row
+    recomputed = hashlib.sha256(
+        json.dumps(request, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    if (
+        recomputed != digest
+        or receipt.get("schema_version") != 1
+        or receipt.get("request_sha256") != digest
+        or receipt.get("previous_request_sha256") != previous_digest
+        or receipt.get("account_key") != account_key
+        or receipt.get("mode") != "PAPER"
+        or request.get("session") != session.isoformat()
+        or receipt.get("market_evidence") != request.get("market_evidence")
+        or receipt.get("execution_evidence") != request.get("execution_evidence")
+        or receipt.get("valuation", {}).get("session") != session.isoformat()
+        or receipt.get("valuation", {}).get("contribution_minor")
+            != request.get("contribution_minor")
+    ):
+        raise ValueError("committed paper receipt and stored request disagree")
+    return receipt
+
+
+def _read_paper_close(
+    paper_dsn: str, account_key: str, session: date | None,
+) -> dict | None:
+    """One shared, read-only, repeatable-read transaction for both consumers."""
+    _validate_paper_read_scope(paper_dsn, account_key)
+    if session is not None and type(session) is not date:
         raise ValueError("paper readback requires a concrete ISO session date")
     try:
         with psycopg.connect(paper_dsn) as db:
@@ -302,35 +341,47 @@ def read_committed_paper_close(paper_dsn: str, account_key: str, session: date) 
             ):
                 raise ValueError("paper readback requires dedicated ordivon_paper database")
             PostgresPaperClose._verify_receipt_table(db, lock=False)
-            row = db.execute(
-                "SELECT request_sha256, request, receipt FROM ordivon_paper.daily_close "
-                "WHERE account_key = %s AND session = %s",
-                (account_key, session),
-            ).fetchone()
-            if row is None:
-                raise ValueError("no committed paper receipt for requested account session")
-            digest, request, receipt = row
-            recomputed = hashlib.sha256(
-                json.dumps(request, sort_keys=True, separators=(",", ":")).encode()
-            ).hexdigest()
-            if (
-                recomputed != digest
-                or receipt.get("request_sha256") != digest
-                or receipt.get("account_key") != account_key
-                or receipt.get("mode") != "PAPER"
-                or receipt.get("execution_evidence") != request.get("execution_evidence")
-                or receipt.get("valuation", {}).get("session") != session.isoformat()
-            ):
-                raise ValueError("committed paper receipt and stored request disagree")
-            return receipt
+            if session is None:
+                head = db.execute(
+                    "SELECT session FROM ordivon_paper.daily_close "
+                    "WHERE account_key = %s ORDER BY session DESC LIMIT 1",
+                    (account_key,),
+                ).fetchone()
+                if head is None:
+                    return None
+                session = head[0]
+            return _read_committed_paper_receipt(db, account_key, session)
     except psycopg.Error as exc:
         raise ValueError("paper database readback unavailable") from exc
+
+
+def read_committed_paper_close(paper_dsn: str, account_key: str, session: date) -> dict:
+    """Read one durable receipt without creating a schema or verifying market origin."""
+    if type(session) is not date:
+        raise ValueError("paper readback requires a concrete ISO session date")
+    receipt = _read_paper_close(paper_dsn, account_key, session)
+    assert receipt is not None  # a specific absent date already raises ValueError
+    return receipt
+
+
+def read_latest_committed_paper_close(paper_dsn: str, account_key: str) -> dict | None:
+    """Read the Paper account head, or None if the initialized account is empty.
+
+    No schema/account creation. Database absence is not an empty account;
+    it fails closed. Receipt consistency does not prove external price truth.
+    """
+    return _read_paper_close(paper_dsn, account_key, None)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--account", required=True)
-    parser.add_argument("--input", required=True, type=Path)
+    operation = parser.add_mutually_exclusive_group(required=True)
+    operation.add_argument("--input", type=Path, help="admit a simulated close")
+    operation.add_argument(
+        "--read-latest", action="store_true",
+        help="read current committed account head without writes or schema creation",
+    )
     parser.add_argument("--market-snapshot", type=Path)
     parser.add_argument("--market-binding", type=Path)
     parser.add_argument("--fill-calendar", type=Path)
@@ -340,18 +391,34 @@ def main() -> int:
         parser.error("--market-snapshot and --market-binding must be supplied together")
     if bool(args.fill_calendar) != bool(args.fill_calendar_sha256):
         parser.error("--fill-calendar and --fill-calendar-sha256 must be supplied together")
+    if args.read_latest and any((
+        args.market_snapshot, args.market_binding, args.fill_calendar,
+        args.fill_calendar_sha256,
+    )):
+        parser.error("--read-latest does not admit market data, fills, or calendars")
     try:
-        day = decode_session(json.loads(args.input.read_text(encoding="utf-8")))
-        snapshot = None
-        if args.market_snapshot:
-            binding = json.loads(args.market_binding.read_text(encoding="utf-8"))
-            snapshot = admit_etf_eod_snapshot(args.market_snapshot.read_bytes(), **binding)
         dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_DSN", "")
-        result = PostgresPaperClose(dsn).close_session(
-            args.account, day, mark_snapshot=snapshot,
-            calendar_bytes=args.fill_calendar.read_bytes() if args.fill_calendar else None,
-            calendar_sha256=args.fill_calendar_sha256,
-        )
+        if args.read_latest:
+            committed = read_latest_committed_paper_close(dsn, args.account)
+            result = {
+                "standing": "COMMITTED_PAPER_HEAD" if committed else "NO_COMMITTED_PAPER_CLOSE",
+                "account_key": args.account,
+                "receipt": committed,
+                "accounting_persistence_reverified": committed is not None,
+                "market_authenticity_independently_verified": False,
+                "effect": "READ_ONLY",
+            }
+        else:
+            day = decode_session(json.loads(args.input.read_text(encoding="utf-8")))
+            snapshot = None
+            if args.market_snapshot:
+                binding = json.loads(args.market_binding.read_text(encoding="utf-8"))
+                snapshot = admit_etf_eod_snapshot(args.market_snapshot.read_bytes(), **binding)
+            result = PostgresPaperClose(dsn).close_session(
+                args.account, day, mark_snapshot=snapshot,
+                calendar_bytes=args.fill_calendar.read_bytes() if args.fill_calendar else None,
+                calendar_sha256=args.fill_calendar_sha256,
+            )
     except (ValueError, TypeError, KeyError, OSError) as error:
         print(f"paper close rejected: {error}", file=sys.stderr)
         return 1
