@@ -44,8 +44,8 @@ def signed_headers(private, worker_id, generation, nonce, path, body):
     }
 
 
-def test_real_http_mcp_submit_to_signed_worker_completion(tmp_path) -> None:
-    transport = ExternalPullWorkerTransport(tmp_path / "workers.sqlite3")
+def test_real_http_mcp_submit_to_signed_worker_completion(pg_dsn) -> None:
+    transport = ExternalPullWorkerTransport(pg_dsn)
     private = Ed25519PrivateKey.generate()
     public = base64.b64encode(private.public_key().public_bytes_raw()).decode()
     transport.enroll(

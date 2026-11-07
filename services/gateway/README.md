@@ -118,9 +118,20 @@ Checkpoint payloads are opaque objects at the Gateway boundary. Host validates t
 ## External pull workers (candidate R3)
 
 Gateway can optionally enable the provider-neutral external pull-worker transport by setting
-ORDIVON_GATEWAY_EXTERNAL_WORKER_DB to a durable SQLite path. When enabled, enrolled workers
+ORDIVON_GATEWAY_EXTERNAL_WORKER_DB to an explicit PostgreSQL DSN (URI or libpq host/dbname connection string). When enabled, enrolled workers
 contribute their current operator-bounded capabilities to the normal Gateway capability
 projection and execution.submit/get/cancel plus artifact.read remain the northbound API.
+
+The default Gateway remains database-free when this variable is unset or empty.
+Invalid DSNs and database failures fail startup closed. The Gateway-local
+`gateway_external_worker_epoch1` schema starts fresh: no SQLite reads, backfill,
+or dual writes. Operators must supply a role permitted to create this schema.
+Every store call uses a SQL transaction and the same transaction-scoped advisory
+lock, preserving serialized identity/lease/receipt CAS across Gateway processes.
+This deliberately retains single-writer throughput. PostgreSQL commits are durable;
+no external execution is retried merely because its started lease expires.
+Historical SQLite files are discarded, not imported. This source patch does not
+remove installed data or change live services.
 
 Worker HTTP routes live under /v1/workers/* and /v1/operations/*. Runtime requests are
 Ed25519 signed and replay-fenced. Enrollment is disabled unless
@@ -130,7 +141,7 @@ This transport is execution-delivery mechanics only. It does not close Admission
 AF-S2 capability authorization, does not establish domain EffectAuthority, and does not
 grant shell workers browser authority.
 
-The external worker's SQLite transport must establish a readable persisted
+The external worker's PostgreSQL transport must establish a readable persisted
 operation before committing a submit, terminal completion or cancellation.
 If the post-write readback fails, it rolls back the entire transaction,
 including attempt and artifact changes; this never counts as an executed or

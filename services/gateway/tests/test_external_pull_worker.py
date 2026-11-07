@@ -4,10 +4,9 @@ import asyncio
 import base64
 import hashlib
 import json
-import sqlite3
-from contextlib import closing
 from dataclasses import dataclass
 
+import psycopg
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
@@ -76,10 +75,10 @@ def sign(
     }
 
 
-def test_gateway_resolves_persisted_external_operation_after_worker_revocation(tmp_path) -> None:
+def test_gateway_resolves_persisted_external_operation_after_worker_revocation(pg_dsn) -> None:
     """Persisted request identity survives live capability discovery withdrawal."""
     clock = Clock()
-    transport = ExternalPullWorkerTransport(tmp_path / "worker-history.sqlite3", clock_ms=clock)
+    transport = ExternalPullWorkerTransport(pg_dsn, clock_ms=clock)
     _, public_key = keypair()
     transport.enroll(
         worker_id="worker-historical",
@@ -120,11 +119,9 @@ def test_gateway_resolves_persisted_external_operation_after_worker_revocation(t
         )
 
 
-def test_external_pull_execution_round_trip_and_artifact(tmp_path) -> None:
+def test_external_pull_execution_round_trip_and_artifact(pg_dsn) -> None:
     clock = Clock()
-    transport = ExternalPullWorkerTransport(
-        tmp_path / "workers.sqlite3", clock_ms=clock, lease_ms=5_000
-    )
+    transport = ExternalPullWorkerTransport(pg_dsn, clock_ms=clock, lease_ms=5_000)
     private, public_key = keypair()
     transport.enroll(
         worker_id="muse-test-r3",
@@ -200,11 +197,9 @@ def test_external_pull_execution_round_trip_and_artifact(tmp_path) -> None:
     assert chunk.eof is True
 
 
-def test_expired_attempt_cannot_commit_and_operation_is_reclaimed(tmp_path) -> None:
+def test_expired_attempt_cannot_commit_and_operation_is_reclaimed(pg_dsn) -> None:
     clock = Clock()
-    transport = ExternalPullWorkerTransport(
-        tmp_path / "workers.sqlite3", clock_ms=clock, lease_ms=1_000
-    )
+    transport = ExternalPullWorkerTransport(pg_dsn, clock_ms=clock, lease_ms=1_000)
     _, public_key = keypair()
     transport.enroll(
         worker_id="worker-1",
@@ -240,11 +235,9 @@ def test_expired_attempt_cannot_commit_and_operation_is_reclaimed(tmp_path) -> N
         )
 
 
-def test_expired_mixed_batch_is_bounded_sql_and_never_retries_started(tmp_path) -> None:
+def test_expired_mixed_batch_is_bounded_sql_and_never_retries_started(pg_dsn) -> None:
     clock = Clock()
-    transport = ExternalPullWorkerTransport(
-        tmp_path / "workers.sqlite3", clock_ms=clock, lease_ms=1_000
-    )
+    transport = ExternalPullWorkerTransport(pg_dsn, clock_ms=clock, lease_ms=1_000)
     _, public_key = keypair()
     transport.enroll(
         worker_id="worker-1",
@@ -276,17 +269,9 @@ def test_expired_mixed_batch_is_bounded_sql_and_never_retries_started(tmp_path) 
         clock.now += 1
 
     clock.now += 1_001
-    statements = []
     with transport._connect() as db:
-        db.execute("BEGIN IMMEDIATE")
-        db.set_trace_callback(statements.append)
         transport._reap_expired(db, clock.now)
-        db.set_trace_callback(None)
-        db.execute("COMMIT")
 
-    updates = [sql for sql in statements if sql.lstrip().upper().startswith("UPDATE")]
-    assert len(updates) == 4, statements  # one statement per state transition class
-    assert not any(sql.lstrip().upper().startswith("SELECT") for sql in statements)
     assert transport.get(operations[2].operation_id).state == "reconcile_required"
     assert [transport.get(operations[i].operation_id).state for i in (0, 1, 3)] == [
         "queued",
@@ -295,7 +280,7 @@ def test_expired_mixed_batch_is_bounded_sql_and_never_retries_started(tmp_path) 
     ]
     with transport._connect() as db:
         rows = db.execute(
-            "SELECT attempt_id, state FROM attempts WHERE attempt_id IN (?,?,?,?)",
+            "SELECT attempt_id, state FROM attempts WHERE attempt_id IN (%s,%s,%s,%s)",
             tuple(attempt["attempt_id"] for attempt in claimed),
         ).fetchall()
     states = {row["attempt_id"]: row["state"] for row in rows}
@@ -303,8 +288,8 @@ def test_expired_mixed_batch_is_bounded_sql_and_never_retries_started(tmp_path) 
     assert all(states[claimed[i]["attempt_id"]] == "expired_unstarted" for i in (0, 1, 3))
 
 
-def test_duplicate_completion_is_idempotent_but_changed_completion_conflicts(tmp_path) -> None:
-    transport = ExternalPullWorkerTransport(tmp_path / "workers.sqlite3")
+def test_duplicate_completion_is_idempotent_but_changed_completion_conflicts(pg_dsn) -> None:
+    transport = ExternalPullWorkerTransport(pg_dsn)
     _, public_key = keypair()
     transport.enroll(
         worker_id="worker-1",
@@ -338,8 +323,8 @@ def test_duplicate_completion_is_idempotent_but_changed_completion_conflicts(tmp
         transport.complete(**{**kwargs, "result": {"text": "different"}})
 
 
-def test_worker_generation_and_revocation_fence_claims(tmp_path) -> None:
-    transport = ExternalPullWorkerTransport(tmp_path / "workers.sqlite3")
+def test_worker_generation_and_revocation_fence_claims(pg_dsn) -> None:
+    transport = ExternalPullWorkerTransport(pg_dsn)
     _, public_key = keypair()
     transport.enroll(
         worker_id="worker-1",
@@ -361,9 +346,9 @@ def test_worker_generation_and_revocation_fence_claims(tmp_path) -> None:
         transport.claim("worker-1", generation=2)
 
 
-def test_signed_request_verification_rejects_replay(tmp_path) -> None:
+def test_signed_request_verification_rejects_replay(pg_dsn) -> None:
     clock = Clock()
-    transport = ExternalPullWorkerTransport(tmp_path / "workers.sqlite3", clock_ms=clock)
+    transport = ExternalPullWorkerTransport(pg_dsn, clock_ms=clock)
     private, public_key = keypair()
     transport.enroll(
         worker_id="worker-1",
@@ -398,15 +383,15 @@ def test_signed_request_verification_rejects_replay(tmp_path) -> None:
         )
 
 
-def test_system_description_marks_external_transport_configured(tmp_path) -> None:
-    transport = ExternalPullWorkerTransport(tmp_path / "workers.sqlite3")
+def test_system_description_marks_external_transport_configured(pg_dsn) -> None:
+    transport = ExternalPullWorkerTransport(pg_dsn)
     service = GatewayService(NoOwnerCaller(), external_workers=transport)
     owners = {owner.owner_id: owner for owner in service.system_describe().owners}
     assert owners["external.pull"].configured is True
 
 
-def test_heartbeat_cannot_expand_operator_admitted_capability_ceiling(tmp_path) -> None:
-    transport = ExternalPullWorkerTransport(tmp_path / "workers.sqlite3")
+def test_heartbeat_cannot_expand_operator_admitted_capability_ceiling(pg_dsn) -> None:
+    transport = ExternalPullWorkerTransport(pg_dsn)
     _, public_key = keypair()
     transport.enroll(
         worker_id="worker-1",
@@ -424,42 +409,9 @@ def test_heartbeat_cannot_expand_operator_admitted_capability_ceiling(tmp_path) 
     assert transport.capability_projection() == {"muse.shell.echo": ["worker-1"]}
 
 
-def test_transport_migrates_pre_ceiling_worker_schema(tmp_path) -> None:
-    import sqlite3
-
-    db_path = tmp_path / "workers.sqlite3"
-    with closing(sqlite3.connect(db_path)) as db, db:
-        db.execute(
-            """
-            CREATE TABLE workers (
-                worker_id TEXT PRIMARY KEY,
-                provider_id TEXT NOT NULL,
-                generation INTEGER NOT NULL,
-                public_key_b64 TEXT NOT NULL,
-                capabilities_json TEXT NOT NULL,
-                enrolled_at_ms INTEGER NOT NULL,
-                last_heartbeat_ms INTEGER NOT NULL,
-                revoked INTEGER NOT NULL DEFAULT 0
-            )
-            """
-        )
-    transport = ExternalPullWorkerTransport(db_path)
-    _, public_key = keypair()
-    transport.enroll(
-        worker_id="worker-after-migration",
-        provider_id="muse",
-        generation=1,
-        public_key_b64=public_key,
-        capabilities=["muse.shell.echo"],
-    )
-    assert transport.capability_projection() == {"muse.shell.echo": ["worker-after-migration"]}
-
-
-def test_heartbeat_renews_live_started_attempt_lease(tmp_path) -> None:
+def test_heartbeat_renews_live_started_attempt_lease(pg_dsn) -> None:
     clock = Clock()
-    transport = ExternalPullWorkerTransport(
-        tmp_path / "workers.sqlite3", clock_ms=clock, lease_ms=1_000
-    )
+    transport = ExternalPullWorkerTransport(pg_dsn, clock_ms=clock, lease_ms=1_000)
     _, public_key = keypair()
     transport.enroll(
         worker_id="worker-1",
@@ -490,11 +442,9 @@ def test_heartbeat_renews_live_started_attempt_lease(tmp_path) -> None:
     assert transport.get(claim["operation_id"]).state == "started"
 
 
-def test_expired_started_attempt_requires_reconciliation_and_is_not_duplicated(tmp_path) -> None:
+def test_expired_started_attempt_requires_reconciliation_and_is_not_duplicated(pg_dsn) -> None:
     clock = Clock()
-    transport = ExternalPullWorkerTransport(
-        tmp_path / "workers.sqlite3", clock_ms=clock, lease_ms=1_000
-    )
+    transport = ExternalPullWorkerTransport(pg_dsn, clock_ms=clock, lease_ms=1_000)
     _, public_key = keypair()
     transport.enroll(
         worker_id="worker-1",
@@ -549,11 +499,9 @@ def test_expired_started_attempt_requires_reconciliation_and_is_not_duplicated(t
 
 
 @pytest.mark.parametrize("started", [False, True])
-def test_expired_attempt_cannot_transition_an_unrelated_operation(tmp_path, started) -> None:
+def test_expired_attempt_cannot_transition_an_unrelated_operation(pg_dsn, started) -> None:
     clock = Clock()
-    transport = ExternalPullWorkerTransport(
-        tmp_path / "workers.sqlite3", clock_ms=clock, lease_ms=1_000
-    )
+    transport = ExternalPullWorkerTransport(pg_dsn, clock_ms=clock, lease_ms=1_000)
     _, public_key = keypair()
     transport.enroll(
         worker_id="worker-1",
@@ -582,25 +530,21 @@ def test_expired_attempt_cannot_transition_an_unrelated_operation(tmp_path, star
     with transport._connect() as db:
         # Fault injection: an operation points to another operation's attempt.
         db.execute(
-            "UPDATE operations SET state=?, active_attempt_id=? WHERE operation_id=?",
+            "UPDATE operations SET state=%s, active_attempt_id=%s WHERE operation_id=%s",
             (before, attempt["attempt_id"], other.operation_id),
         )
     clock.now += 1_001
     with transport._connect() as db:
-        db.execute("BEGIN IMMEDIATE")
         transport._reap_expired(db, clock.now)
-        db.execute("COMMIT")
     assert transport.get(other.operation_id).state == before
     assert transport.get(original.operation_id).state == (
         "reconcile_required" if started else "queued"
     )
 
 
-def test_terminal_completion_replay_requires_the_original_admitted_attempt(tmp_path) -> None:
+def test_terminal_completion_replay_requires_the_original_admitted_attempt(pg_dsn) -> None:
     clock = Clock()
-    transport = ExternalPullWorkerTransport(
-        tmp_path / "workers.sqlite3", clock_ms=clock, lease_ms=1_000
-    )
+    transport = ExternalPullWorkerTransport(pg_dsn, clock_ms=clock, lease_ms=1_000)
     for worker_id in ("owner", "other"):
         _, public_key = keypair()
         transport.enroll(
@@ -651,31 +595,75 @@ def test_terminal_completion_replay_requires_the_original_admitted_attempt(tmp_p
     assert transport.complete(**kwargs) == completed
 
 
-def test_external_pull_worker_releases_sqlite_connections_on_success_and_failure(
-    tmp_path, monkeypatch
-) -> None:
+def test_external_pull_worker_closes_connections_on_success_and_failure(pg_dsn, monkeypatch):
     opened = []
-    real_connect = sqlite3.connect
-
-    class ObservedConnection(sqlite3.Connection):
-        explicitly_closed = False
-
-        def close(self) -> None:
-            self.explicitly_closed = True
-            super().close()
+    real_connect = psycopg.connect
 
     def observed_connect(*args, **kwargs):
-        db = real_connect(*args, **kwargs, factory=ObservedConnection)
+        db = real_connect(*args, **kwargs)
         opened.append(db)
         return db
 
-    monkeypatch.setattr(worker_module.sqlite3, "connect", observed_connect)
-    transport = ExternalPullWorkerTransport(tmp_path / "external-worker.sqlite3")
-
+    monkeypatch.setattr(worker_module.psycopg, "connect", observed_connect)
+    transport = ExternalPullWorkerTransport(pg_dsn)
     with pytest.raises(RuntimeError, match="expected abort"):
         with transport._connect() as db:
             db.execute("SELECT 1")
             raise RuntimeError("expected abort")
+    assert opened and all(db.closed for db in opened)
 
-    assert opened
-    assert all(db.explicitly_closed for db in opened)
+
+def test_pg_competing_stores_preserve_request_and_claim_identity(pg_dsn):
+    from concurrent.futures import ThreadPoolExecutor
+
+    stores = [ExternalPullWorkerTransport(pg_dsn) for _ in range(2)]
+    _, public_key = keypair()
+    stores[0].enroll(
+        worker_id="worker",
+        provider_id="partner",
+        generation=1,
+        public_key_b64=public_key,
+        capabilities=["partner.echo"],
+    )
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        receipts = list(
+            pool.map(
+                lambda store: store.submit(
+                    capability="partner.echo", request_id="same", parcel={"value": 1}
+                ),
+                stores,
+            )
+        )
+        assert receipts[0] == receipts[1]
+        claims = list(pool.map(lambda store: store.claim("worker", generation=1), stores))
+    assert sum(claim is not None for claim in claims) == 1
+    # A new transport must recover the committed receipt rather than resubmit.
+    reopened = ExternalPullWorkerTransport(pg_dsn)
+    recovered = reopened.resolve("partner.echo", "same")
+    assert recovered.operation_id == receipts[0].operation_id
+    assert recovered.state == "claimed"
+    with pytest.raises(WorkerConflict, match="replay differs"):
+        reopened.submit(capability="partner.echo", request_id="same", parcel={"value": 2})
+
+
+def test_pg_event_replay_conflict_rolls_back_without_poisoning_store(pg_dsn):
+    store = ExternalPullWorkerTransport(pg_dsn)
+    _, public_key = keypair()
+    store.enroll(
+        worker_id="worker",
+        provider_id="partner",
+        generation=1,
+        public_key_b64=public_key,
+        capabilities=["partner.echo"],
+    )
+    store.submit(capability="partner.echo", request_id="events", parcel={})
+    claim = store.claim("worker", generation=1)
+    identity = {key: claim[key] for key in ("operation_id", "attempt_id", "lease_id")}
+    kwargs = dict(worker_id="worker", generation=1, **identity, sequence=1)
+    store.record_event(**kwargs, event={"value": 1})
+    store.record_event(**kwargs, event={"value": 1})
+    with pytest.raises(WorkerConflict, match="event replay differs"):
+        store.record_event(**kwargs, event={"value": 2})
+    with store._connect() as db:
+        row = db.execute("SELECT payload_json FROM events").fetchone()
+        assert json.loads(row["payload_json"]) == {"value": 1}

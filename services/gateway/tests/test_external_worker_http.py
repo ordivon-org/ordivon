@@ -40,9 +40,9 @@ def _signed_headers(
     }
 
 
-def test_worker_http_enrollment_signed_claim_and_completion(tmp_path) -> None:
+def test_worker_http_enrollment_signed_claim_and_completion(pg_dsn, tmp_path) -> None:
     now = 1_800_000_000_000
-    transport = ExternalPullWorkerTransport(tmp_path / "workers.sqlite3", clock_ms=lambda: now)
+    transport = ExternalPullWorkerTransport(pg_dsn, clock_ms=lambda: now)
     token_file = tmp_path / "enroll.token"
     token_file.write_text("one-time-staging-token\n")
     app = Starlette()
@@ -137,9 +137,9 @@ def test_worker_http_enrollment_signed_claim_and_completion(tmp_path) -> None:
     assert transport.get(operation.operation_id).state == "completed"
 
 
-def test_worker_http_replayed_signature_is_rejected(tmp_path) -> None:
+def test_worker_http_replayed_signature_is_rejected(pg_dsn) -> None:
     now = 1_800_000_000_000
-    transport = ExternalPullWorkerTransport(tmp_path / "workers.sqlite3", clock_ms=lambda: now)
+    transport = ExternalPullWorkerTransport(pg_dsn, clock_ms=lambda: now)
     private = Ed25519PrivateKey.generate()
     public = base64.b64encode(private.public_key().public_bytes_raw()).decode()
     transport.enroll(

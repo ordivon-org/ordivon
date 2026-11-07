@@ -32,7 +32,7 @@ from .contracts import (
     ExecutionResolution,
     SystemDescription,
 )
-from .external_worker import ExternalPullWorkerTransport, require_qualified_legacy_sqlite
+from .external_worker import ExternalPullWorkerTransport
 from .host_tools import register_host_tools
 from .service import GatewayError, GatewayService
 from .upstream import McpOwnerCaller, OwnerCallError
@@ -384,17 +384,9 @@ def build_http_app(
 
 
 def _external_workers_from_env() -> ExternalPullWorkerTransport | None:
-    """Gate the optional legacy SQLite transport at its actual consumer boundary."""
-    external_worker_db = os.environ.get("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", "").strip()
-    if not external_worker_db:
-        return None
-    if "://" in external_worker_db:
-        raise RuntimeError(
-            "ORDIVON_GATEWAY_EXTERNAL_WORKER_DB is not a PostgreSQL backend; "
-            "do not treat a database DSN as a SQLite filesystem path"
-        )
-    require_qualified_legacy_sqlite()
-    return ExternalPullWorkerTransport(external_worker_db)
+    """An explicit worker DSN enables persistence; core routing needs no database."""
+    dsn = os.environ.get("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", "").strip()
+    return ExternalPullWorkerTransport(dsn) if dsn else None
 
 
 def main() -> None:
