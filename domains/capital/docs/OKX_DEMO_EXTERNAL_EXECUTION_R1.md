@@ -97,9 +97,11 @@ do not prove changed economic or settlement behavior.
 The official client currently does not retry ordinary POST automatically.
 Ordivon still treats any ambiguous provider response as effect UNKNOWN.
 The exact credential file is read from Runtime's CredentialAuthority
-and projected into a mode-0600 isolated tmpfs TOML profile for the
-official child process. Neither secrets nor the profile go into
-Git, command arguments, or the shared user home.
+and passed through the official CLI's documented native environment
+credential interface for that single child process. The temporary
+isolated HOME contains no persisted API credentials; no TOML credentials
+are written to disk or tmpfs. Secrets do not go into Git, argv,
+global user configuration or output receipts.
 
 In domains/capital, install with mise run provider:okx:install and
 qualify with mise run verify:provider:okx-official. These checks

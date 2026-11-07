@@ -29,8 +29,9 @@ class OkxOfficialSpotDemoClient(OkxSpotDemoClient):
     """Thin upstream provider transport, preserving bounded Demo order semantics.
 
     No shell, no ad-hoc HMAC or HTTP implementation, no shared OKX profile,
-    and no new OMS. Credentials are projected only into a private ephemeral
-    config file under tmpfs for the child process, never into argv or env.
+    and no new OMS. CredentialAuthority supplies the one child process with
+    ephemeral environment values (upstream CLI's supported native interface).
+    Secrets are never serialized to TOML, argv or a persistent location.
     """
 
     def __init__(
@@ -116,34 +117,29 @@ class OkxOfficialSpotDemoClient(OkxSpotDemoClient):
         args = self._route(method, path, query, body)
         ram = "/dev/shm" if os.path.isdir("/dev/shm") and os.access("/dev/shm", os.W_OK) else None
         with tempfile.TemporaryDirectory(prefix="ordivon-okx-official-demo-", dir=ram) as home:
-            root = Path(home)
-            directory = root / ".okx"
-            directory.mkdir(mode=0o700)
-            # TOML basic quoted strings accept JSON escapes; secrets are never echoed.
-            config = (
-                "default_profile = \"ordivon-demo\"\n"
-                "[profiles.ordivon-demo]\n"
-                "demo = true\n"
-                f"site = {json.dumps(self._site)}\n"
-                f"api_key = {json.dumps(self._credentials.api_key)}\n"
-                f"secret_key = {json.dumps(self._credentials.secret_key)}\n"
-                f"passphrase = {json.dumps(self._credentials.passphrase)}\n"
-            )
-            if self._credentials.api_key == "" or self._credentials.secret_key == "" or self._credentials.passphrase == "":
+            if not all((
+                self._credentials.api_key,
+                self._credentials.secret_key,
+                self._credentials.passphrase,
+            )):
                 raise OkxDemoError("Demo credentials missing")
-            cfg = directory / "config.toml"
-            cfg.write_text(config, encoding="utf-8")
-            cfg.chmod(0o600)
 
+            # The official upstream loader accepts an environment credential
+            # tuple. Limit it to this subprocess: no TOML file, no mutation of
+            # os.environ, no API secret in arguments or exception messages.
             env = {k: v for k, v in os.environ.items() if not k.startswith("OKX_")}
             env["HOME"] = home
+            env["OKX_API_KEY"] = self._credentials.api_key
+            env["OKX_SECRET_KEY"] = self._credentials.secret_key
+            env["OKX_PASSPHRASE"] = self._credentials.passphrase
             env["OKX_DEMO"] = "1"
             env["OKX_SITE"] = self._site
             env["OKX_API_BASE_URL"] = self._base_url
-            # Upstream respects standard HTTPS_PROXY/ALL_PROXY from Ordivon Network.
-            # Its own TOML profile owns optional explicit proxy_url, not secrets.
-            if self._official_proxy_url():
-                cfg.write_text(config + f"proxy_url = {json.dumps(self._official_proxy_url())}\n", encoding="utf-8")
+            if self._official_proxy_url() is not None:
+                # The official CLI uses Undici's standard proxy environment
+                # support. Leave network-owned defaults in place otherwise.
+                env["HTTPS_PROXY"] = self._official_proxy_url()
+                env["https_proxy"] = self._official_proxy_url()
             command = [
                 self._node, str(self._script), "--demo", "--json", "--env",
                 "--profile", "ordivon-demo", *args,

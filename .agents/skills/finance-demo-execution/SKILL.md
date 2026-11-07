@@ -109,9 +109,10 @@ effect claim in okx_demo_execution.main.
 
 Human use: scripts/run-okx-demo-execution --request request.json
 --transport official. Demo credentials arrive from Runtime's dedicated
-CREDENTIALS_DIRECTORY, and are projected into a private process-scoped
-tmpfs config.toml profile, never process argv, environment variables
-or the shared home directory. The file is removed after every invocation.
+CREDENTIALS_DIRECTORY. The official CLI loads them through its native
+OKX_API_KEY/OKX_SECRET_KEY/OKX_PASSPHRASE environment interface, scoped
+only to the child process with an isolated temporary HOME. No secrets
+are written to TOML, Git, the shared home, arguments or reports.
 The CLI forces --demo --json --env and verifies Demo identity from the
 returned JSON envelope. Regional accounts must use their actual site
 (ORDIVON_OKX_SITE) and matching valid OKX HTTPS origin.
