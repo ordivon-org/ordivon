@@ -12,6 +12,10 @@ uv run --group test ruff check .
 uv run --group test python -m pytest -m "not provider_qualification"
 """
 
+[tasks."verify:formal"]
+description = "Prove Paper Accounting cash, payable, receivable and NAV equations with pinned upstream Z3"
+run = "python3 -I scripts/verify-paper-cash-formal.py"
+
 [tasks."verify:provider"]
 description = "Run node-local external-provider and credential-bound qualification tests"
 run = """
