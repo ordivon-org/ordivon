@@ -7,10 +7,24 @@ rust = { version = "1.99.1", components = "clippy,rustfmt" }
 run = """
 set -euo pipefail
 mise run verify:formal:risk-exposure
+mise run verify:formal:unit-r-margin
 uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
 uv run --group test python -m pytest -m "not provider_qualification"
+"""
+
+[tasks."verify:formal:unit-r-margin"]
+description = "Z3 static real-valued margin headroom identity and counterexample (not broker refinement)"
+run = """
+set -euo pipefail
+observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/UnitRMarginBoundR1.smt2)"
+expected="$(printf 'unsat\\nunsat\\nsat')"
+if [ "$observed" != "$expected" ]; then
+  printf 'Unexpected Z3 margin proof result: %s\\n' "$observed" >&2
+  exit 1
+fi
+printf '%s\\n' "$observed"
 """
 
 [tasks."verify:provider"]
