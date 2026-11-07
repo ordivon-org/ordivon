@@ -46,6 +46,10 @@ Optional `terminal_liabilities_r` requires an externally verified cash
 obligation for EVERY terminal leaf. Optimize CRRA on disposable surplus,
 report gross/obligation/net values separately; never treat future liabilities
 as today's broker collateral. This does not cover interim consumption.
+This additional contract only handles payments explicitly due after the
+current month 1r contribution; it does NOT authorize any early rescue of
+pre-contribution defaults or guarantee real broker liquidity.
+
 
 It requires the FULL externally supplied observable information tree and
 conditional probabilities. It separately reports feasible contract residuals,

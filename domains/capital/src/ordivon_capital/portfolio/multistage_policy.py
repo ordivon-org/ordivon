@@ -67,6 +67,9 @@ class MultistageProblem:
     # These obligations are deducted from *terminal consumption utility*,
     # not silently represented as broker collateral or early cash deposits.
     terminal_liabilities_r: dict[str, float] | None = None
+    # Economic payment due AFTER the explicitly timed monthly 1r deposit
+    # and BEFORE the rebalance. Earlier due dates are outside this contract.
+    node_outflow_after_contribution_r: dict[str, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -191,6 +194,20 @@ def _validate_tree(problem: MultistageProblem) -> _ValidTree:
     leaves = tuple(n for n in ordered if n.terminal)
     if not leaves:
         raise AlgebraicPolicyError("at least one finite terminal state required")
+    if problem.node_outflow_after_contribution_r is not None:
+        claims = problem.node_outflow_after_contribution_r
+        decision_ids = {n.id for n in ordered if not n.terminal}
+        if not isinstance(claims, dict) or set(claims) != decision_ids:
+            raise AlgebraicPolicyError(
+                "intermediate obligations require exact decision-node coverage"
+            )
+        if any(
+            not _finite(v) or isinstance(v, bool) or v < 0
+            for v in claims.values()
+        ):
+            raise AlgebraicPolicyError(
+                "nonnegative finite decision-date obligations required"
+            )
     if problem.terminal_liabilities_r is not None:
         claims = problem.terminal_liabilities_r
         if not isinstance(claims, dict) or set(claims) != {n.id for n in leaves}:
@@ -304,7 +321,11 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         if node.parent is not None:
             row -= all_wealth_rows[node.id]
         eq_rows.append(row)
-        rhs_eq.append(1.0)  # Defining unit r, not an investor-selected threshold.
+        due = (
+            0.0 if problem.node_outflow_after_contribution_r is None
+            else problem.node_outflow_after_contribution_r[node.id]
+        )
+        rhs_eq.append(1.0 - due)  # Actual monthly 1r minus paid cash outflow.
 
         # Linear epigraph for each turnover absolute value.
         for i in range(n):
@@ -357,19 +378,24 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
     x0 = np.zeros(size, dtype=float)
     for node in decisions:
         index = offsets[node.id]
-        x0[index + n] = 1.0 + (
+        due = (
+            0.0 if problem.node_outflow_after_contribution_r is None
+            else problem.node_outflow_after_contribution_r[node.id]
+        )
+        x0[index + n] = 1.0 - due + (
             0.0 if node.parent is None
             else node.cash_gross * x0[offsets[node.parent] + n]
         )
     # Check the constructed feasible point; invalid consumer constraints
     # cannot be "repaired" by silently loosening provider margins.
-    if (
-        float(np.max(np.abs(A_eq @ x0 - b_eq))) > 1e-9
-        or float(np.max(A_ub @ x0 - b_ub)) > 1e-9
-        or float(np.min(W_arrival @ x0)) <= 0.0
-    ):
-        raise AlgebraicPolicyError("positive all-cash initialization infeasible")
-    if float(np.min(W_leaf @ x0 - liabilities)) <= numerical_interior:
+    all_cash_feasible = (
+        float(np.min(x0)) >= 0.0
+        and float(np.max(np.abs(A_eq @ x0 - b_eq))) <= 1e-9
+        and float(np.max(A_ub @ x0 - b_ub)) <= 1e-9
+        and float(np.min(W_arrival @ x0)) > numerical_interior
+        and float(np.min(W_leaf @ x0 - liabilities)) > numerical_interior
+    )
+    if not all_cash_feasible:
         # A cash-only investment is insufficient to pay all obligations.
         # Use the existing mature HiGHS LP to maximize the smallest
         # state-wise terminal surplus. Do not fake a default risk budget.
@@ -396,7 +422,7 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         if not lp.success or lp.x[-1] <= numerical_interior:
             raise AlgebraicPolicyError(
                 "no strictly positive post-liability consumption "
-                "under stated scenario and financing contracts"
+                "or funded intermediate obligations under stated contracts"
             )
         x0 = np.asarray(lp.x[:-1], dtype=float)
 
@@ -526,6 +552,11 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
             "debtR": float(debt),
             "tradeCostR": fees,
             "postTradeEquityR": after_trade,
+            "contributionR": 1.0,
+            "outflowAfterContributionR": (
+                0.0 if problem.node_outflow_after_contribution_r is None
+                else problem.node_outflow_after_contribution_r[node.id]
+            ),
         }
     distribution = {
         leaf.id: {
@@ -583,7 +614,10 @@ def main() -> int:
 
             with _Path(args.input).open(encoding="utf-8") as f:
                 payload = json.load(f)
-        allowed_payload = {"gamma", "nodes", "terminal_liabilities_r"}
+        allowed_payload = {
+            "gamma", "nodes", "terminal_liabilities_r",
+            "node_outflow_after_contribution_r",
+        }
         if (
             not isinstance(payload, dict)
             or not {"gamma", "nodes"} <= set(payload)
@@ -613,6 +647,9 @@ def main() -> int:
                 gamma=payload["gamma"],
                 nodes=tuple(nodes),
                 terminal_liabilities_r=payload.get("terminal_liabilities_r"),
+                node_outflow_after_contribution_r=payload.get(
+                    "node_outflow_after_contribution_r"
+                ),
             )
         )
     except (ValueError, TypeError, KeyError) as exc:
