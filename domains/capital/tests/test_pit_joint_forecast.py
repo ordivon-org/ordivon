@@ -584,5 +584,92 @@ class PITNativeOptimizerConsumer(unittest.TestCase):
         with self.assertRaises(PointInTimeError):
             solve_pit_payload(payload)
 
+
+class PITPairedPrequentialConsumer(unittest.TestCase):
+    def dataset(self):
+        from ordivon_capital.research.pit_joint_forecast import PriceVintage
+
+        sessions, records = PITResearchContract().fixture()
+        outcome_day = date(2026, 11, 30)
+        new = [
+            PriceVintage(
+                asset=name, session=outcome_day,
+                published_at=datetime(2026, 11, 30, 21, tzinfo=UTC),
+                adjusted_close=value,
+                raw_source_sha256=SHA,
+                source_standing=STANDING,
+            )
+            for name, value in (("A", 115.0), ("B", 91.0))
+        ]
+        return {
+            "records": records + new,
+            "assets": ("A", "B"),
+            "valuation_sessions": (*sessions, outcome_day),
+            "decision_instants": {
+                sessions[-1]: datetime(2026, 10, 30, 22, tzinfo=UTC)
+            },
+            "evaluation_as_of": datetime(2026, 11, 30, 23, tzinfo=UTC),
+        }
+
+    def test_exact_matched_periods_no_invented_significance(self):
+        from ordivon_capital.research.pit_joint_forecast import (
+            compare_pit_prequential_forecasts,
+        )
+
+        kwargs = self.dataset()
+        result = compare_pit_prequential_forecasts(**kwargs)
+        a = prequential_energy_evaluation(**kwargs, forecast_method="empirical")
+        b = prequential_energy_evaluation(**kwargs, forecast_method="lagged_knn")
+        self.assertEqual(result["matchedEvaluationCount"], 1)
+        self.assertEqual(
+            result["standing"],
+            "PAIRED_PREQUENTIAL_DESCRIPTIVE_NO_SIGNIFICANCE_OR_ALPHA",
+        )
+        self.assertEqual(result["effectStanding"], "READ_ONLY_NO_TRADE_NO_ACCOUNTING")
+        self.assertAlmostEqual(
+            result["meanCandidateMinusBaselineEnergy"],
+            b[0]["energy_score"] - a[0]["energy_score"],
+        )
+        self.assertAlmostEqual(
+            result["perEvaluation"][0]["candidate_minus_baseline_variogram"],
+            b[0]["variogram_score"] - a[0]["variogram_score"],
+        )
+        self.assertEqual(
+            result["perEvaluation"][0]["baseline_forecast_sha256"],
+            a[0]["frozen_forecast_sha256"],
+        )
+        self.assertNotIn("pValue", result)
+        self.assertNotIn("recommendedPortfolio", result)
+
+    def test_later_historical_revision_cannot_rewrite_frozen_score(self):
+        from ordivon_capital.research.pit_joint_forecast import (
+            compare_pit_prequential_forecasts,
+        )
+
+        kwargs = self.dataset()
+        before = compare_pit_prequential_forecasts(**kwargs)
+        rows = list(kwargs["records"])
+        rows.append(rec(
+            "A", "2026-08-31", "2026-11-15T10:00:00+00:00", 9000.0,
+        ))
+        after = compare_pit_prequential_forecasts(
+            **{**kwargs, "records": rows}
+        )
+        self.assertEqual(before, after)
+
+    def test_unpublished_outcome_cannot_be_scored(self):
+        from ordivon_capital.research.pit_joint_forecast import (
+            compare_pit_prequential_forecasts,
+        )
+
+        kwargs = self.dataset()
+        with self.assertRaisesRegex(PointInTimeError, "not yet published"):
+            compare_pit_prequential_forecasts(
+                **{
+                    **kwargs,
+                    "evaluation_as_of": datetime(2026, 11, 15, tzinfo=UTC),
+                }
+            )
+
 if __name__ == "__main__":
     unittest.main()

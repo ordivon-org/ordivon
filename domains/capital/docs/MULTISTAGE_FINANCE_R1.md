@@ -218,3 +218,18 @@ real-world probability distribution and never authorizes a live trade.
 A future-published vintage cannot change the frozen earlier solution.
 The original research experiment review remains responsible for independent
 prospective proper-scoring and subsequent economic out-of-sample evidence.
+
+
+## PIT 鏉′欢姒傜巼鐨勪弗鏍奸厤瀵硅瘉浼紙涓嶆槸鏀剁泭鐜囨楠岋級
+
+Research 宸叉湁 `prequential_energy_evaluation`銆佸鍙橀噺 Energy Score 鍜孿nVariogram Score銆傛柊鍑芥暟 `compare_pit_prequential_forecasts` 鍦?*鐩稿悓鐨?*
+淇℃伅鎴鏃堕棿銆佸悓涓€鏈熺粨鏋滀笌鍚庣画璇勪及鏃堕棿涓婏紝瀵筡n`empirical` 涓?`lagged_knn` 杩涜閰嶅锛歕n
+    d_t = EnergyScore(candidate_t, realized_t) - EnergyScore(baseline_t, realized_t)
+
+杈撳嚭鍐荤粨棰勬祴鍝堝笇銆侀€愭湀 d_t銆佸潎鍊煎強鐩稿悓鏁版嵁涓婄殑 Variogram
+宸銆傛鍊间唬琛ㄥ€欓€夋鐜囬娴嬫崯澶辨洿澶э紝璐熷€间唬琛ㄦ洿灏忋€俓n涓嶅厑璁告贩鐢ㄤ袱妯″瀷涓嶅悓鐨勬牱鏈垨鏈潵鎵嶅彂甯冪殑浠锋牸淇銆俓n
+杩欏彧鏄潯浠舵鐜囨ā鍨嬬殑**鎻忚堪鎬?*鏍锋湰澶栬瘉鎹紝涓嶇洿鎺ヤ骇鐢熸姇璧勬敹鐩婏紝
+涓嶈嚜琛屽绉扮粺璁℃樉钁椼€傝嫢瑕佹楠岄暱鏈熼娴嬪噯纭€у樊寮傦紝椤婚噰鐢ㄦ垚鐔焅nDiebold鈥揗ariano 鏃跺簭鐩稿叧璇樊鎺ㄦ柇锛涜嫢涓嶆柇灏濊瘯澶氫釜妯″瀷锛岃繕椤籠n浣跨敤鎴愮啛澶氶噸妯″瀷姣旇緝锛堝 Hansen SPA锛夈€傛病鏈夊彲鏍搁獙鐨勮冻澶熸牱鏈琝n鍜屽畬鏁寸爺绌堕娉ㄥ唽锛屼笉缂栭€犱换浣?p 鍊兼垨鏈€浼樻潬鏉嗙粨璁恒€俓n
+鐞嗚锛欸neiting鈥揜aftery, Strictly Proper Scoring Rules (2007);
+Diebold鈥揗ariano, Comparing Predictive Accuracy (1995);
+Hansen, Superior Predictive Ability (2005).
