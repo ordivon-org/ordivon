@@ -12,6 +12,7 @@ mise run verify:formal:unit-r-margin
 mise run verify:formal:unit-r-rebalance
 mise run verify:formal:algebraic-capital
 mise run verify:formal:multistage-one-r
+mise run verify:formal:broker-liquidation
 uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
@@ -53,6 +54,19 @@ if [[ "$(printf '%s\\n' "$report" | grep -F -c 'info: Confirmed over all paths.'
   echo "CrossHair Paper source contract not confirmed" >&2
   exit 1
 fi
+"""
+
+[tasks."verify:formal:broker-liquidation"]
+description = "Formalize declared sale cashflow invariants and residual-debt counterexample with existing Z3"
+run = """
+set -euo pipefail
+observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/BrokerLiquidationCashflowR1.smt2)"
+expected="$(printf 'unsat\\nunsat\\nsat')"
+if [ "$observed" != "$expected" ]; then
+  printf 'Broker liquidation proof disagrees with its exact obligations: %s\\n' "$observed" >&2
+  exit 1
+fi
+printf '%s\\n' "$observed"
 """
 
 [tasks."verify:formal:unit-r-margin"]
