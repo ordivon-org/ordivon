@@ -42,3 +42,11 @@ The game product owns recipe, rules, balance and desired player experience. Bevy
 owns ECS scheduling, keyboard input, rendering, UI and window integration.
 The surrounding `domains/game/knowledge` collection is advisory evidence, not
 a runtime dependency or implicit validator of player satisfaction.
+
+## Human and Agent workflows
+
+**Human:** From domains/game run mise run build:bevy for the pinned native Rust build. Run cargo run --locked inside examples/orbit-collector on a graphical computer to actually play. WASD/arrows move; R restarts. Compilation does not establish player enjoyment.
+
+**Agent:** From domains/game run mise run test:bevy; it exercises the real Bevy ECS, player rules and HUD using Cargo.lock. This is source/state test evidence, not visual perception or a persistent interactive episode. Use mature upstream gameplay observation/control only when a real graphical consumer exists.
+
+**Distribution:** The Cargo target executable is not a signed installer or store release. Qualify native platform packaging and player behavior independently.

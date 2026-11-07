@@ -11,9 +11,11 @@ summary: Source-bound Game LEGO discovery without retained first-party games.
 ---
 # Ordivon Game — reusable LEGO, no legacy games
 
-Current first-party games: NONE. Station Zero, Causal Lag, Veilwild, Casefile,
-old playable experiments and generic prototypes are retired from active source.
-They remain recoverable from Git history only, not product dependencies.
+Current independently released and Human-qualified first-party games: NONE.
+Room Encounter (Godot) and Orbit Collector (Bevy) are playable **native technical
+examples**, with Linux/Windows Room Encounter export entrypoints. Retired
+Station Zero, Causal Lag, Veilwild and Casefile source remains recoverable
+from Git history only, not as current product dependencies.
 
 ## Current three Game workstreams
 
@@ -144,6 +146,8 @@ Mod Runtime, content engine, or platform is currently justified.
 
 Remove any knowledge carrier or query that loses its real consumer. Past
 existence is not a reason for preserving live code.
+
+For all G01鈥揋11 Human and Agent tools see [current Game Owner authority](docs/authority.md).
 
 ## Two native operation modes
 

@@ -9,6 +9,7 @@ managed_paths:
   - README.md
   - AGENTS.md
   - docs/authority.md
+  - docs/architecture-and-composition.md
   - docs/external-knowledge-base-r1.md
   - docs/mechanism-experience-library-r1.md
   - docs/mechanism-relationship-graph-r1.md
@@ -41,8 +42,16 @@ managed_paths:
   - examples/native-composition/README.md
   - examples/native-composition/assert.gd
   - examples/room-encounter/README.md
+  - examples/room-encounter/export_presets.cfg
   - examples/room-encounter/assert.gd
   - examples/room-encounter/assert_process_restart.gd
+  - examples/room-encounter/agent_episode.gd
+  - examples/room-encounter/agent_episode_acceptance.py
+  - examples/orbit-collector/README.md
+  - examples/orbit-collector/Cargo.toml
+  - examples/orbit-collector/src/rules.rs
+  - examples/orbit-collector/src/gameplay.rs
+  - mise.toml
   - examples/native-composition/assets/kenney-ui-art/button_rectangle_depth_border.png
 enforcement: strict
 maintainers: [zycxfyh]
