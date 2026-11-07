@@ -94,3 +94,65 @@ Human: invalid profile thresholds reject before QC. Correct the delivery
 profile, then review technical receipts and separate rights/creative approval.
 Agent: select the current Profile, reject nonfinite limits, execute the native
 adapter via Runtime, and bind receipts to actual Production/Output consumers.
+
+
+## Creative Library: version-bound acceptance (Lean proof + Python refinement)
+
+`CreativeLibraryAcceptance.lean` is checked by the existing
+`tools/formal/verify.py` native Lean 4 gate, with the proof source, Python
+producer and bounded refinement witness in the existing Git SourceCut.
+It specifies the predicate:
+
+`CurrentBinding <=> semanticDigest(selected) == semanticDigest(accepted)
+AND fileSha256(selected) == fileSha256(accepted), with all four known.`
+
+Lean's kernel checked `current_requires_both_identities`, semantic-mismatch
+rejection, absent-source non-promotion, missing-file non-promotion and a
+non-vacuous positive example. The model uses `Option Nat` opaque digest
+identifiers: it **does not** model JSON parsing, hash collision resistance,
+filesystem read atomicity, actual archive authority or Human approval.
+
+**Implementation refinement (bounded, not a universal proof):**
+`creative_index_library._catalog_acceptance_relation` is a pure equality
+decision over optional digest strings, called after the selected Catalog's
+bytes are read. `tests/test_creative_index.py` checks all 625 cases of the
+five-representative presence/equality quotient of its four identity inputs.
+Because this quotient treats digest values only through equality and
+presence, the test is a scoped refinement witness for the currently
+audited source; it is not a kernel proof of Python or a theorem over arbitrary
+language objects. The existing independent source-scoped proof gate binds
+both this implementation and witness to exact committed Git blobs.
+
+**Real consumer:** `creative_index.build_creative_index` reads the selected
+`artifacts/creative-library/catalog-v1.json` and the older historical R1/R2
+acceptance receipts. In the inspected SourceCut, both project with
+`standing=HISTORICAL_ACCEPTANCE_NOT_CURRENT` and preserve their original
+`declaredStanding`. Six actual derived preview bytes, three provenance
+receipts and the manifest separately passed exact SHA-256 readback. These
+media facts are not implied by the Lean theorem and remain provider/consumer
+evidence.
+
+**Tool invocation:**
+
+```bash
+mise -C tools/formal exec -- lean ../../capabilities/media/formal/CreativeLibraryAcceptance.lean
+# After committing exact source and proof:
+mise -C tools/formal run verify
+```
+
+The first command is for an immediate model edit check; the existing full
+verifier requires all registered formal files to match committed HEAD.
+No second proof engine, local registry or release gate was created.
+
+**Test retirement:** the redundant synthetic mismatched-file acceptance
+example was retired once the complete finite equality quotient covered the
+pure decision property. Keep one source-to-Creative-Index integration witness
+and exact historical Catalog bytes readback; neither a Lean abstract proof
+nor the quotient covers actual JSON, disk, archive PG, browser or media effects.
+
+Human: compare the *selected* Catalog ID and both digests; a historical PASS
+is evidence for an older SourceCut, not proof your current Library is ready.
+
+Agent: report model proof, bounded Python refinement, native byte readback,
+and external browsing/rights acceptance separately. Missing either digest
+remains UNKNOWN rather than FALSE or PASS; do not silently rewrite receipts.

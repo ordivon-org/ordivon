@@ -5,15 +5,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from .agent_dependencies import dependency_proposal, dependency_status
-from .agent_processing import processing_probe_plan, processing_profiles
-from .agent_productions import _production_root, production_standing
 from .agent_surface_contracts import surface_projection as surface_projection
 from .agent_surface_contracts import tool_definitions
-from .creative_index import build_creative_index, query_creative_index
-from .equipment import load_equipment_world, propose_operation
-from .learning_context import build_learning_context
-from .production_context import build_production_context
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_OWNER_ROOT = Path("capabilities/artifact")
@@ -45,20 +38,34 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
     arguments = checked
 
     if name == "studio_dependencies_status":
+        from .agent_dependencies import dependency_status
+
         return dependency_status(root)
     if name == "studio_dependencies_propose":
+        from .agent_dependencies import dependency_proposal
+
         return dependency_proposal(str(arguments["target"]), root)
     if name == "studio_production_standing":
+        from .agent_productions import production_standing
+
         return production_standing(root)
     if name == "studio_production_context":
+        from .agent_productions import _production_root
+        from .production_context import build_production_context
+
         production_id = str(arguments["productionId"])
         return build_production_context(_production_root(root, production_id))
     if name == "studio_learning_context":
+        from .agent_productions import _production_root
+        from .learning_context import build_learning_context
+
         current = arguments.get("currentProductionId")
         if current is not None:
             _production_root(root, current)
         return build_learning_context(root, current_production_id=current)
     if name == "studio_creative_index_query":
+        from .creative_index import build_creative_index, query_creative_index
+
         artifact_candidate = Path(
             os.environ.get("ORDIVON_ARTIFACT_ROOT", str(root.parents[1] / ARTIFACT_OWNER_ROOT))
         )
@@ -72,8 +79,12 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
         )
         return query_creative_index(index, str(arguments["term"]))
     if name == "studio_processing_profiles":
+        from .agent_processing import processing_profiles
+
         return processing_profiles(root)
     if name == "studio_processing_probe_plan":
+        from .agent_processing import processing_probe_plan
+
         return processing_probe_plan(
             root,
             profile_id=str(arguments["profileId"]),
@@ -83,6 +94,8 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
             evidence_directory=str(arguments["evidenceDirectory"]),
         )
     if name == "studio_equipment_propose":
+        from .equipment import load_equipment_world, propose_operation
+
         world = load_equipment_world(root / "research/equipment/equipment-world.json")
         equipment_id = arguments.get("equipmentId")
         parameters = arguments["parameters"]

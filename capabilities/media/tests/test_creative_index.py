@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 import tempfile
@@ -238,6 +239,104 @@ class CreativeIndexTests(unittest.TestCase):
             evidence = "evidence:artifact:accept-a"
             self.assertIn(("equipment:aseprite", "evidencedBy", evidence), relations)
             self.assertIn(("delivery-profile:design-2d-aseprite-horizontal-sheet-r1", "evidencedBy", evidence), relations)
+
+    def test_acceptance_identity_relation_finite_quotient_refinement(self) -> None:
+        """Complete equality/presence quotient for four opaque digest identities.
+
+        This is a bounded implementation-refinement witness, not a proof
+        of Python's runtime, SHA-256, or external bytes. Every branch of the
+        equality-only decision has a canonical input in the quotient.
+        """
+        from itertools import product
+
+        from ordivon_studio.creative_index_library import _catalog_acceptance_relation
+
+        classes = (None, "sha256:" + "0" * 64, "sha256:" + "1" * 64,
+                   "sha256:" + "2" * 64, "sha256:" + "3" * 64)
+        cases = 0
+        for selected_semantic, accepted_semantic, selected_file, accepted_file in product(classes, repeat=4):
+            if selected_semantic is None:
+                expected = "UNKNOWN_NO_SELECTED_CATALOG"
+            elif accepted_semantic is None:
+                expected = "UNKNOWN_UNBOUND_ACCEPTANCE"
+            elif selected_semantic != accepted_semantic:
+                expected = "HISTORICAL_DIFFERENT_CATALOG"
+            elif selected_file is None or accepted_file is None:
+                expected = "UNKNOWN_UNBOUND_CATALOG_FILE"
+            elif selected_file != accepted_file:
+                expected = "HISTORICAL_DIFFERENT_CATALOG"
+            else:
+                expected = "MATCHES_SELECTED_CATALOG"
+            observed = _catalog_acceptance_relation(
+                selected_semantic, accepted_semantic, selected_file, accepted_file)
+            self.assertEqual(observed, expected)
+            cases += 1
+        self.assertEqual(cases, 625)
+
+    def test_historical_library_acceptance_cannot_certify_changed_catalog(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            library = Path(directory)
+            catalog = library / "artifacts/creative-library/catalog-v1.json"
+            acceptance = library / "artifacts/creative-library/evidence/acceptance-r2.json"
+            acceptance.parent.mkdir(parents=True)
+            catalog.write_text(json.dumps({
+                "schemaVersion": 1,
+                "catalogDigest": "sha256:" + "a" * 64,
+                "summary": {"workCount": 0},
+                "works": [],
+            }), encoding="utf-8")
+            acceptance.write_text(json.dumps({
+                "schemaVersion": 1,
+                "kind": "ordivon.creative-library.acceptance",
+                "standing": "R2_DERIVED_PREVIEW_LAYER_ACCEPTED",
+                "catalogDigest": "sha256:" + "b" * 64,
+            }), encoding="utf-8")
+            result = build_creative_index(ROOT, creative_library_root=library)
+            evidence = next(
+                row for row in result["nodes"]
+                if row["id"] == "evidence:creative-library:acceptance-r2"
+            )
+            self.assertEqual(evidence["standing"], "HISTORICAL_ACCEPTANCE_NOT_CURRENT")
+            self.assertEqual(evidence["declaredStanding"], "R2_DERIVED_PREVIEW_LAYER_ACCEPTED")
+            self.assertEqual(
+                evidence["selectedCatalogRelation"]["relation"],
+                "HISTORICAL_DIFFERENT_CATALOG",
+            )
+
+            acceptance.write_text(json.dumps({
+                "schemaVersion": 1,
+                "kind": "ordivon.creative-library.acceptance",
+                "standing": "R2_DERIVED_PREVIEW_LAYER_ACCEPTED",
+                "catalogDigest": "sha256:" + "a" * 64,
+            }), encoding="utf-8")
+            unbound_file = build_creative_index(ROOT, creative_library_root=library)
+            evidence0 = next(
+                row for row in unbound_file["nodes"]
+                if row["id"] == "evidence:creative-library:acceptance-r2"
+            )
+            self.assertEqual(evidence0["standing"], "HISTORICAL_ACCEPTANCE_NOT_CURRENT")
+            self.assertEqual(
+                evidence0["selectedCatalogRelation"]["relation"],
+                "UNKNOWN_UNBOUND_CATALOG_FILE",
+            )
+
+            acceptance.write_text(json.dumps({
+                "schemaVersion": 1,
+                "kind": "ordivon.creative-library.acceptance",
+                "standing": "R2_DERIVED_PREVIEW_LAYER_ACCEPTED",
+                "catalogDigest": "sha256:" + "a" * 64,
+                "catalogFileSha256": "sha256:" + hashlib.sha256(catalog.read_bytes()).hexdigest(),
+            }), encoding="utf-8")
+            matching = build_creative_index(ROOT, creative_library_root=library)
+            evidence3 = next(
+                row for row in matching["nodes"]
+                if row["id"] == "evidence:creative-library:acceptance-r2"
+            )
+            self.assertEqual(evidence3["standing"], "R2_DERIVED_PREVIEW_LAYER_ACCEPTED")
+            self.assertEqual(
+                evidence3["selectedCatalogRelation"]["relation"],
+                "MATCHES_SELECTED_CATALOG",
+            )
 
     def test_agent_surface_builds_fresh_query_projection(self) -> None:
         from ordivon_studio.agent_surface import execute_surface_action

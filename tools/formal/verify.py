@@ -32,6 +32,9 @@ SOURCE_FILES = (
     "tools/formal/RecursiveLegoRefinement.lean",
     "tools/formal/RecursiveLegoVariationFrame.lean",
     "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
+    "capabilities/media/formal/CreativeLibraryAcceptance.lean",
+    "capabilities/media/src/ordivon_studio/creative_index_library.py",
+    "capabilities/media/tests/test_creative_index.py",
     "capabilities/media/formal/LoudnessProfileSafety.smt2",
     "capabilities/media/src/ordivon_studio/agent_processing.py",
     "capabilities/media/src/ordivon_studio/qc.py",
@@ -430,7 +433,8 @@ def main() -> None:
     source = ROOT / "RecursiveLegoRefinement.lean"
     variation = ROOT / "RecursiveLegoVariationFrame.lean"
     media_proof = REPO / "capabilities/media/formal/MediaNativeProcessingAdmission.lean"
-    for proof_file in (source, variation, media_proof):
+    media_library_proof = REPO / "capabilities/media/formal/CreativeLibraryAcceptance.lean"
+    for proof_file in (source, variation, media_proof, media_library_proof):
         if re.search(r"\b(sorry|admit|axiom)\b", proof_file.read_text()):
             raise AssertionError("Unproved Lean shortcut in source")
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
@@ -445,6 +449,8 @@ def main() -> None:
         ))
         probes.append(run("Lean kernel Media processing admission model",
                           [executable("lean"), str(media_proof)]))
+        probes.append(run("Lean kernel Media Creative Library Catalog acceptance",
+                          [executable("lean"), str(media_library_proof)]))
         # Check all three FP queries, including the historical NaN
         # counterexample. Z3 process success by itself is not a proof.
         media_fp = REPO / "capabilities/media/formal/LoudnessProfileSafety.smt2"

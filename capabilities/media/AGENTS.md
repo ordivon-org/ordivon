@@ -7,8 +7,9 @@ Scope: `capabilities/media/`. Inherit the monorepo `AGENTS.md`; follow this Owne
 1. Name the final consumer, source revision/SourceCut, intended audience and what outcome needs to change. Decide if this is an ordinary source-native projection or an authored Media responsibility. If Media adds no needed semantic transformation, stop and use the source Owner directly.
 2. If Studio work is needed, discover the current action schema with `python3 scripts/studio-agent-surface.py` from this directory. This imports only `agent_surface_contracts.py` (the one authoritative schema), not the implementation adapters; it needs no `.venv` or `node_modules`. Import the `agent_surface.py` executor only after a selected action names a real consumer.
 3. For production-specific work call `studio_production_standing` and ground **one** `productionId` in caller/owner intent before `studio_production_context`. Never infer current intent from directory sort, Git timestamps or Output status.
-4. Select existing LEGO by required postcondition, exact inputs, tool read-back and source/version. The current `planning/lego-plan-r1.json` and `processing/profiles/*.json` supply the native Media planning/profile evidence; **do not** duplicate them into a new registry or invent an extra broker.
-5. Only after selection, materialize relevant dependencies or submit the compiled physical effect through Runtime. Parameterized Python-only context queries may use `mise exec -- python3 scripts/materialize-python.py` and `.venv/bin/python scripts/studio-agent-surface.py`; do not install renderer dependencies for discovery. Bind resulting receipt/bytes to the **real consuming Production/Output/Claim** before declaring a result.
+4. A selected `studio_*` action enters `agent_surface.py`, which validates its JSON Schema **before** importing its natural capability owner. Do not import every Media implementation to call one action, and do not add a parallel dispatcher or registry. An invalid action must not load the equipment, Production or processing implementation.
+5. Select existing LEGO by required postcondition, exact inputs, tool read-back and source/version. The current `planning/lego-plan-r1.json` and `processing/profiles/*.json` supply the native Media planning/profile evidence; **do not** duplicate them into a new registry or invent an extra broker.
+6. Only after selection, materialize relevant dependencies or submit the compiled physical effect through Runtime. Parameterized Python-only context queries may use `mise exec -- python3 scripts/materialize-python.py` and `.venv/bin/python scripts/studio-agent-surface.py`; do not install renderer dependencies for discovery. Bind resulting receipt/bytes to the **real consuming Production/Output/Claim** before declaring a result.
 
 ## Route to existing capability
 
@@ -16,7 +17,7 @@ Scope: `capabilities/media/`. Inherit the monorepo `AGENTS.md`; follow this Owne
 | --- | --- |
 | Representation for an observer, no creative Production | `research/media/engineering-consumption/OMPC-v0.md`, source Owner retains truth |
 | Existing Production and allowed source claims | `studio_production_standing` → selected `studio_production_context`; `production_context.py` |
-| Existing creative assets and works | `studio_creative_index_query` / `creative_index.py`; derived navigation only |
+| Existing creative assets and works | `studio_creative_index_query` / `creative_index.py`; derived navigation only; historical Library acceptance requires `selectedCatalogRelation` readback |
 | Native inspection: video, audio, OTIO or timed text | `studio_processing_profiles` → `studio_processing_probe_plan` → Runtime → raw evidence; use `media-native-processing` Skill |
 | Physical editing/render/capture capability | `studio_equipment_propose`; `equipment_discovery.py` → `equipment_capabilities.py` → `equipment_plan.py` (creative) / `equipment_plan_delivery.py` (cross-domain native producers); Workstation/Runtime own readiness/effect |
 | Reuse empirical creative judgment | `studio_learning_context` and `research/expression/`; hypotheses do not become human-response facts |
@@ -32,7 +33,7 @@ The `agent_surface_contracts.tool_definitions()` schema is the wire contract; di
 
 ## Composition and evidence
 
-Use the existing R2.1 definition `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` when a LEGO is formally admitted. For an actual selected composition, check at least:
+Use the existing R2.1 definition `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` when a LEGO is formally admitted. For formal-first change selection, inspect `formal/README.md` and `tools/formal/verify.py` first. Use existing Lean and Z3 sources; name source-bound SPECIFICATION, MODEL, PROOF, implementation-refinement witness and actual consumer separately. A formal model result alone does not authorize deletion of an external-effect or unrefined Python regression. For an actual selected composition, check at least:
 
 - `pre`: source identity/currentness, chosen input bytes, compatible profile and installed tool or explicitly UNKNOWN readiness.
 - `post`: exact output/receipt observed by the selected consumer; do not upgrade process exit to consumer acceptance.

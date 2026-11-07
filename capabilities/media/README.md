@@ -81,7 +81,7 @@ and relations remain derived navigation; queries do not mutate owner records.
 The Agent entry point follows the existing ports-and-adapters boundary:
 `agent_surface_contracts.py` owns the one stable source-only JSON Schema/tool-definition contract;
 `scripts/studio-agent-surface.py` exposes that schema without loading concrete provider code;
-`agent_surface.py` validates selected inputs and dispatches the existing Studio actions;
+`agent_surface.py` validates selected inputs and imports only the selected Studio action's implementation after validation, without preloading unrelated equipment, research or creative-index modules;
 `agent_dependencies.py` observes exact Python/pnpm materialization and emits
 explicit acquisition **plans** without installing anything;
 `agent_productions.py` reads owner-native Production identity and does not

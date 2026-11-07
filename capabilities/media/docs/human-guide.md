@@ -16,7 +16,7 @@ For a directory-by-directory explanation of what to keep, change or retire, see 
 
 ## Explore an existing work (no installation required)
 
-The no-argument `python3 scripts/studio-agent-surface.py` command displays the current nine Agent tool schemas without loading equipment/render/Production implementations. **Discovery is not execution**: select an exact Production or processing source before asking an Agent to run an action.
+The no-argument `python3 scripts/studio-agent-surface.py` command displays the current nine Agent tool schemas without loading equipment/render/Production implementations. After selecting an action, the CLI loads only that action's implementation; inspection does not require installing the unrelated creative tools. **Discovery is not execution**: select an exact Production or processing source before asking an Agent to run an action.
 
 From the repository:
 
@@ -99,7 +99,7 @@ explained in [formal evidence](../formal/README.md). It proves abstract
 admission and separation of technical QC from publication approval; it does
 **not** prove the Python runtime, actual tool behavior, or rights/creative
 acceptance. Inspect the real producer and the selected Runtime evidence for
-those questions. A model PASS is not a production release receipt.
+those questions. A model PASS is not a production release receipt. Creative Library additionally has a Lean proof that current acceptance requires **both** matching semantic and file digests. Its current Catalog differs from older R1/R2 acceptance receipts, and the Index correctly marks them historical. See [formal evidence](../formal/README.md) and [Creative Library source boundary](../creative-library/README.md).
 
 ## If something does not work
 
