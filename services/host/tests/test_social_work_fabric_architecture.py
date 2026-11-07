@@ -78,7 +78,7 @@ def test_swf99_holds_unproven_optional_legos_off_default_surface() -> None:
     held = {row["lego"] for row in gate["hold"]}
     assert {"WorkRelation", "CoordinationIntent", "PrivateConfidentialSemantics"} <= held
     assert gate["standing"] == "PASS_PROMOTE_BOUNDED_CORE"
-    surface = (ROOT / "src" / "ordivon_host_v2" / "social_work_mcp.py").read_text()
+    surface = (ROOT / "src" / "ordivon_host_v2" / "mcp_tool_registration.py").read_text()
     assert 'name="work.relation.add"' not in surface
     assert 'name="work.relation.list"' not in surface
     assert 'name="intent.declare"' not in surface

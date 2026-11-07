@@ -11,7 +11,7 @@ from typing import Any, Literal
 import psycopg
 from psycopg.rows import dict_row
 
-from .attention_queries import ATTENTION_DELTA_SQL
+from .attention_sql import ATTENTION_DELTA_SQL
 from .canonical_json import canonical_bytes
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .errors import ConflictError

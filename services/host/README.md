@@ -90,6 +90,10 @@ an installed production SourceCut witness, or DOMAIN_ACCEPTED. Preserve these
 distinct proof obligations; do not delete the real CAS/race/replay tests merely
 because the revision increment has a source-level proof.
 
+## Host Owner operation guide
+
+See [Host Owner Guide](docs/HOST_OWNER_GUIDE.md) for directory retention decisions, reusable LEGO boundaries, and separate Human/Agent workflows. This guide is not a second authority for the MCP tool list or database schema.
+
 ## Current product surface
 
 Host v2 runs Social Work Fabric schema 11. The release-owned

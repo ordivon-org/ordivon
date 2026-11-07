@@ -31,7 +31,7 @@ def test_active_service_has_no_legacy_storage_references() -> None:
 
 
 def test_historical_cutover_reader_is_not_active_host_authority() -> None:
-    mcp = (SRC / "mcp_server.py").read_text() + (SRC / "social_work_mcp.py").read_text()
+    mcp = (SRC / "mcp_server.py").read_text() + (SRC / "mcp_tool_registration.py").read_text()
     assert "legacy_cutover" not in mcp
     assert "register_social_work_tools" in mcp
 

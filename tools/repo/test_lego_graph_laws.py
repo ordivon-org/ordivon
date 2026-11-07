@@ -2389,7 +2389,7 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     import ast
     nodes = {n["id"]: n for n in plan["nodes"]}
     parents = {"O01", "O02", "O03", "O04"}
-    host_mcp_path = ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py"
+    host_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_tool_registration.py"
     attention_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_attention_tools.py"
     work_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_work_tools.py"
     social_mcp_path = ROOT / "services/host/src/ordivon_host_v2/mcp_social_tools.py"

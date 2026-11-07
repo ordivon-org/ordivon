@@ -8,8 +8,8 @@ from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 
 from .contracts import HostStatusResponse
+from .mcp_tool_registration import register_social_work_tools
 from .service import HostV2
-from .social_work_mcp import register_social_work_tools
 
 
 def build_server(dsn: str | None = None) -> MCPServer:

@@ -4,18 +4,18 @@ from typing import Any
 
 import psycopg
 
+from .coordination_intent_commands import CoordinationIntentCommands
 from .errors import ActorRefNotFound, WorkNotFound
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
-from .social_intent_commands import SocialIntentCommands
 from .social_message_commands import (
     SocialMessageCommands,
 )
 from .social_message_commands import (
     _reply_target_precedes_source as _reply_target_precedes_source,
 )
-from .social_queries import SocialReadQueries
+from .social_read_queries import SocialReadQueries
 from .social_space_commands import SocialSpaceCommands
 from .social_topic_commands import SocialTopicCommands
 
@@ -24,7 +24,7 @@ class SocialStore(
     SocialSpaceCommands,
     SocialTopicCommands,
     SocialMessageCommands,
-    SocialIntentCommands,
+    CoordinationIntentCommands,
     SocialReadQueries,
 ):
     """Durable Social Graph records without IAM, scheduling, ranking, or effect authority."""
