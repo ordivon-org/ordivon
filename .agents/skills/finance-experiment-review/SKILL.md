@@ -89,9 +89,10 @@ manifest with the same precommitted policy and postfreeze source/holdout
 digests in **raw lowercase 64-hex**, as required by
 `investment_candidate.py`:
 
-    domains/capital/scripts/run-finance-lego review-candidate --manifest candidate.json --source source.json --holdout holdout.json < review-request.json
+    domains/capital/scripts/run-finance-lego review-candidate --manifest /path/to/candidate.json --source /path/to/source.json --holdout /path/to/holdout.json < review-request.json
 
-The request is JSON with `frozen` (frozen receipt) and `evaluatedAt`
+CLI option paths are relative to `domains/capital` or absolute. Shell redirection
+remains relative to the invoking shell. The request is JSON with `frozen` (frozen receipt) and `evaluatedAt`
 (UTC-offset time). This thin adapter does not duplicate return arithmetic.
 It rejects retroactively changed weights, trials and false source-derived
 returns. Missing independent reproduction and real publisher authenticity

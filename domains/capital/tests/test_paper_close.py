@@ -41,6 +41,28 @@ def test_paper_cash_settlement_does_not_create_or_destroy_nav():
     assert settled.protected_minor == 300_000
 
 
+def test_paper_valuation_must_fit_the_risk_receipt_integer_domain():
+    day0, day1, _ = inputs()
+    max_minor = 2**63 - 1
+    opening = paper_close.value_session(
+        None, replace(day0, contribution_minor=max_minor)
+    )
+    assert opening.nav_minor == max_minor
+
+    # A payable can offset excessive cash and keep NAV exactly at the ceiling.
+    buy = replace(day1.buys[0], shares=1, price_minor=2, fee_minor=0)
+    with pytest.raises(ValueError, match="receipt.*int64"):
+        paper_close.value_session(
+            opening, replace(day1, contribution_minor=1, buys=(buy,), marks={"ETF": 1})
+        )
+
+    # A mark can overflow NAV while cash still fits.
+    with pytest.raises(ValueError, match="receipt.*int64"):
+        paper_close.value_session(
+            opening, replace(day1, marks={"ETF": 2**62})
+        )
+
+
 def test_paper_invalid_evidence_has_no_valuation():
     day0, day1, _ = inputs()
     opening = paper_close.value_session(None, day0)
