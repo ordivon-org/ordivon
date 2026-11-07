@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -46,6 +48,38 @@ class AgentSurfaceTests(unittest.TestCase):
             encoding="utf-8",
         )
         return root
+
+    def test_discovery_imports_contract_without_concrete_studio_providers(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        source = root / "src"
+        code = (
+            "import sys; "
+            f"sys.path.insert(0, {str(source)!r}); "
+            "from ordivon_studio.agent_surface_contracts import surface_projection; "
+            "assert len(surface_projection()['tools']) == 9; "
+            "assert not any(name.startswith(('ordivon_studio.equipment', "
+            "'ordivon_studio.creative_index', 'ordivon_studio.production_context', "
+            "'ordivon_studio.learning_context')) for name in sys.modules)"
+        )
+        result = subprocess.run(
+            [sys.executable, "-S", "-c", code],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        script = root / "scripts" / "studio-agent-surface.py"
+        discovered = subprocess.run(
+            [sys.executable, "-S", str(script)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(discovered.returncode, 0, discovered.stderr)
+        self.assertEqual(
+            [item["name"] for item in json.loads(discovered.stdout)["tools"]],
+            [item["name"] for item in surface_projection()["tools"]],
+        )
 
     def test_surface_is_small_domain_owned_and_transport_neutral(self) -> None:
         value = surface_projection()

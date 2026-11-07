@@ -151,6 +151,77 @@ actual selected consumers and native provider/rights evidence before
 admission. The existing FFprobe/FFmpeg, OpenTimelineIO, TTML and Remotion
 capabilities remain the preferred proven toolchain.
 
+## 2026-11-07 follow-up 鈥?named consumers and directory disposition
+
+This is an inspection of current source references and real named tests,
+not a claim that every historical Git object, remote asset or human
+consumer has been exhaustively observed.
+
+| Directory / specific source | Observed consumer or physical evidence | Current disposition |
+| --- | --- | --- |
+| `src/ordivon_studio/agent_surface_contracts.py` | Source-only CLI discovery and `test_agent_surface.py` `python -S` import-isolation witness | NEW, single authoritative schema source; the existing dispatcher still owns action validation and invocation |
+| `src/ordivon_studio/agent_surface.py` | Explicit Studio action execution; existing tests patch its provider functions | KEEP dispatcher/API, stop eager-importing it for bare discovery |
+| `src/ordivon_studio/research/` | R5 grounded provider + scoring, R6 registered search and PG Trial Ledger consumed by current scripts/test suite | KEEP current producer/algorithm modules, no new database or general research executor |
+| `research/media/core,derived,coverage,history,negative,bridges,evidence,engineering-consumption` | MF0鈥揗F9 source authority and research falsification/provenance navigation | KEEP source-fenced research, not deployable packages; MF10 UNKNOWN |
+| `research/expression/context.json` | `studio_learning_context` reads current research validity and scoped Production learning | KEEP as research source, never promote to universal aesthetic preference |
+| `research/equipment/equipment-world.json` | `studio_equipment_propose` and equipment source tests select the capabilities | KEEP equipment *descriptions*; readiness is a separate physical observation |
+| `scripts/run-r4-article-experiment.py`, `run-r5-grounded-meaning.py`, `run-r6-creative-alpha.py`, `run-r6-creative-validity.py` | `package.json` exposes explicit research commands; R5/R6 also occur in existing LEGO source references | KEEP until an actual registered consumer retires that research workflow |
+| `scripts/run-r4-media-experiment.py` | `research/expression/context.json` retains its scoped method/source path | KEEP as historical research reproduction, **not** current production implementation |
+| `scripts/build_sapi_narration.py`, `synthesize-sapi-cues.ps1` | `productions/runtime-introduction/assets.json`, README and production plan reference both | KEEP medium-specific reconstruction source; installed Windows SAPI readiness is UNKNOWN without a selected task |
+| `play/media-ecology-20260830/projection.json`, `build.py` | `test_ecology.py::test_real_media_ecology_html_ingress_cannot_bypass_collection_contract` invokes builder with retained fixture | KEEP; moving to a tidy name would immediately invalidate a real existing consumer |
+| `play/media-ecology-20260830/board-snapshot.json`, `daily-cabinet.collection.json` | Pilot's authored source scopes; README explicitly distinguishes frozen Host Board and live Host authority | KEEP bounded immutable test inputs; never silently currentize |
+| `play/media-ecology-20260830/browser-check.py` | Historical Chromium encounter procedure; generated browser receipt is ignored | KEEP as reproducibility script, no proof it is a live browser provider |
+| `productions/live-relay-001/render/live-relay-001-source.mp4` | Production approved source capture, exact `manifest.sha256`, QC and Human guide consumer | KEEP source; observed H.264/1280脳720/30 fps/BT.709 and SHA-256 readback in prior round |
+| `productions/live-relay-001/render/live-relay-001-master.mkv` | Different approved FFV1 preservation master; independent digest and Artifact profile | KEEP master; not interchangeable with source MP4 |
+| `artifacts/creative-library/catalog-v1.json` and `derived/*` | `creative_index_library.py`, `scripts/creative_library.py`, catalog metadata, preview receipts | KEEP selected navigational snapshot until refresh/repoint contract; derived does not mean unconsumed |
+| `apps/`, `packages/`, `processing/`, `schemas/`, `formal/` | Remotion/preview, DTCG/React, native FFprobe/FFmpeg/OTIO/TTML, wire JSON contracts and limited Lean/SMT models | KEEP owner-specific capabilities and models; no invented universal engine |
+| `tests/` and `docs/` | Actual consumer regressions, Human task guides and Agent schema navigation | KEEP targeted evidence; avoid duplicate tests unsupported by distinct properties |
+
+**Naming:** keep canonical public wire fields `productionId`,
+`studio_*`, `ordivon_studio`, digest and source-bound historical
+paths. New code uses explicit contract-vs-dispatcher filenames rather than
+inventing `vNext`, `master-controller` or `universal-lego-engine`.
+No historical `play/` or `research/` path was rewritten simply because
+a newer name looked cleaner.
+
+**Human:** run `python3 scripts/studio-agent-surface.py` only to inspect
+capabilities, then choose a selected Production and work source in
+`docs/human-guide.md`. View actual work and decide creative adequacy
+separately from technical QC.
+
+**Agent:** import `agent_surface_contracts.tool_definitions()` or run the
+source-only CLI without materializing optional toolchains. After selecting
+an exact action/profile/Production, use the existing dispatcher and native
+provider/Runtime execution. Check exact Postcondition and receipts, not
+process exit alone.
+
+## Selected LEGO: source-only Studio tool contract
+
+This is a verified **replacement seam within the existing Studio Agent
+surface**, not a new Media registry or an automatic formally proved LEGO.
+
+| R2.1 field | Current consumer-grounded meaning |
+| --- | --- |
+| `I` | No-argument tool discovery; optional action name and JSON object only for execution |
+| `O` | Exact nine tool definitions, names and JSON Schemas; selected execution retains original result contract |
+| `S` | Source revision of the current `agent_surface_contracts.py`; no mutable registry |
+| `pre` | Current Media source available; no renderer install required for discovery |
+| `post` | Source-only CLI returns exactly the same canonical schema as the pre-split public surface |
+| `inv` | Schema discovery does not import equipment, Creative Index or Production implementation; no source-owner truth mutation |
+| `eff` | Discovery: read-only; selected action: existing dispatcher and Runtime/provider effect boundary |
+| `c` | One local Python `-S` cold-import sample: contract 9.9 ms / 42 modules versus old full module 45.0 ms / 121 modules; not a workload SLA |
+| `epsilon` | UNKNOWN for cross-host timing, concurrent provider drift and physical result acceptance |
+| `prov` | Exact source definitions, contract hash equality, import-isolation regression, and real Production/processing consumers |
+| `unfold` | `studio-agent-surface.py` (discovery)  -> `agent_surface_contracts.py`; on selected action  -> `agent_surface.py`  -> already-owned Studio implementation |
+
+**Independent provider evidence:** the four current native Processing
+Profiles still discover with system Python; a selected existing
+`live-relay-001-source.mp4` FFprobe readback yielded H.264 video and AAC
+audio and matched the retained source digest. The Production's separate
+FFV1 preservation master, source MP4, poster and QC contact sheet also
+matched their existing four-file SHA-256 manifest. Neither this sample nor
+tool-discovery equality grants publication authority.
+
 ## Mature external baseline
 
 - [PyPA src-layout guidance](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/):
@@ -170,9 +241,13 @@ capabilities remain the preferred proven toolchain.
   JSON/path boundary implementations from `learning_context.py`; reuse the
   existing Production Context functions and add a regression for path escape.
   Keep wire IDs, manifests and actual results stable.
-- **P1, conditional:** `agent_surface.py` coordinates seven or more domains;
-  measure actual cold discovery cost/import pressure or independent consumer
-  requirements before a dispatcher split. Do not split only for file count.
+- **P1, implemented in current follow-up:** keep the existing dispatch/action
+  entry for real effects, but extract its *single source* of nine tool schemas
+  into `agent_surface_contracts.py`. The CLI imports only this contract for
+  source-only discovery. A local `python -S` cold-import sample changed
+  from 45.0 ms / 121 modules for the old full import to 9.9 ms / 42
+  modules for contracts only. Preserve the exact action identifiers and wire
+  inputs; this sample is not a universal performance benchmark.
 - **P1, conditional:** evaluate the ~62 MB Live Relay sources and outputs
   against selected delivery/re-edit/recovery consumers; do not treat
   binary size or same digest alone as a deletion proof.

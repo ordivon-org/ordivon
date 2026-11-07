@@ -5,7 +5,7 @@ Scope: `capabilities/media/`. Inherit the monorepo `AGENTS.md`; follow this Owne
 ## Start from the consumer, not the tool
 
 1. Name the final consumer, source revision/SourceCut, intended audience and what outcome needs to change. Decide if this is an ordinary source-native projection or an authored Media responsibility. If Media adds no needed semantic transformation, stop and use the source Owner directly.
-2. If Studio work is needed, discover the current action schema with `python3 scripts/studio-agent-surface.py` from this directory. This initial discovery needs no `.venv` or `node_modules`.
+2. If Studio work is needed, discover the current action schema with `python3 scripts/studio-agent-surface.py` from this directory. This imports only `agent_surface_contracts.py` (the one authoritative schema), not the implementation adapters; it needs no `.venv` or `node_modules`. Import the `agent_surface.py` executor only after a selected action names a real consumer.
 3. For production-specific work call `studio_production_standing` and ground **one** `productionId` in caller/owner intent before `studio_production_context`. Never infer current intent from directory sort, Git timestamps or Output status.
 4. Select existing LEGO by required postcondition, exact inputs, tool read-back and source/version. The current `planning/lego-plan-r1.json` and `processing/profiles/*.json` supply the native Media planning/profile evidence; **do not** duplicate them into a new registry or invent an extra broker.
 5. Only after selection, materialize relevant dependencies or submit the compiled physical effect through Runtime. Parameterized Python-only context queries may use `mise exec -- python3 scripts/materialize-python.py` and `.venv/bin/python scripts/studio-agent-surface.py`; do not install renderer dependencies for discovery. Bind resulting receipt/bytes to the **real consuming Production/Output/Claim** before declaring a result.
@@ -28,7 +28,7 @@ The [consumer-grounded directory audit](docs/directory-audit.md) records current
 
 The [per-LEGO capability reference](docs/capability-reference.md) maps current implementations, Human tasks, Agent inputs and evidence boundaries. It is navigation only, never a new registry.
 
-A `tool_definitions()` schema is the wire contract; directory names, doc prose, `README` tables and Skill descriptions are discovery aids, not alternate API authorities. Don't parse arbitrary narrative files to reconstruct existing action contracts.
+The `agent_surface_contracts.tool_definitions()` schema is the wire contract; directory names, doc prose, `README` tables and Skill descriptions are discovery aids, not alternate API authorities. Don't parse arbitrary narrative files to reconstruct existing action contracts.
 
 ## Composition and evidence
 
