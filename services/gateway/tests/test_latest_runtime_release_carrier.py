@@ -25,48 +25,30 @@ def test_gateway_release_checks_python_not_legacy_sqlite() -> None:
     assert "current.next" in text
 
 
-def test_default_gateway_does_not_require_any_sqlite_engine(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_default_gateway_needs_no_database(monkeypatch):
     monkeypatch.delenv("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", raising=False)
-    monkeypatch.setattr(external_worker.sqlite3, "sqlite_version", "0.0.0")
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("disabled feature opened a database")
+
+    monkeypatch.setattr(external_worker.psycopg, "connect", forbidden)
     assert mcp_server._external_workers_from_env() is None
 
 
-def test_explicit_legacy_worker_fails_closed_on_unqualified_sqlite(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+@pytest.mark.parametrize("value", ["/tmp/legacy-worker.db", "", "postgresql://", "dbname=workers"])
+def test_worker_requires_explicit_pg_dsn(value):
+    with pytest.raises(ValueError, match="explicit PostgreSQL DSN"):
+        external_worker.ExternalPullWorkerTransport(value)
+
+
+def test_explicit_worker_dsn_uses_pg_backend(monkeypatch, pg_dsn):
+    monkeypatch.setenv("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", pg_dsn)
+    transport = mcp_server._external_workers_from_env()
+    assert transport is not None
+    assert transport.dsn == pg_dsn
+
+
+def test_legacy_path_fails_closed(monkeypatch):
     monkeypatch.setenv("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", "/tmp/legacy-worker.db")
-    monkeypatch.setattr(external_worker.sqlite3, "sqlite_version", "3.53.1")
-    with pytest.raises(RuntimeError, match="legacy external worker requires SQLite 3.54.0"):
+    with pytest.raises(ValueError, match="explicit PostgreSQL DSN"):
         mcp_server._external_workers_from_env()
-
-
-def test_legacy_worker_cannot_misinterpret_postgres_dsn_as_file(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv(
-        "ORDIVON_GATEWAY_EXTERNAL_WORKER_DB",
-        "postgresql://localhost/ordivon_workers",
-    )
-    monkeypatch.setattr(external_worker.sqlite3, "sqlite_version", "3.54.0")
-    with pytest.raises(RuntimeError, match="not a PostgreSQL backend"):
-        mcp_server._external_workers_from_env()
-
-
-def test_explicit_qualified_legacy_worker_uses_existing_backend(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    path = tmp_path / "legacy-worker.db"
-    monkeypatch.setenv("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", str(path))
-    monkeypatch.setattr(external_worker.sqlite3, "sqlite_version", "3.54.0")
-    constructed: list[str] = []
-    sentinel = object()
-
-    def fake_transport(value: str) -> object:
-        constructed.append(value)
-        return sentinel
-
-    monkeypatch.setattr(mcp_server, "ExternalPullWorkerTransport", fake_transport)
-    assert mcp_server._external_workers_from_env() is sentinel
-    assert constructed == [str(path)]
