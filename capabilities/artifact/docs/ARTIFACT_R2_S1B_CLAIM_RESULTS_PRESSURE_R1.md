@@ -1,5 +1,8 @@
 # Artifact R2-S1B — Explicit claimResults Adapter Pressure Test R1
 
+> **Historical R2-S1B observation, not a current backlog or current coverage count.** This document records why the original WAVE and PNG claim mappings needed native changes. Those current verifiers now expose explicit claim results; the FLAC claim-results implementation is separately being qualified. Preserve the counterexamples below as source-cut evidence, but use present profile files, native verifier outputs and current tests for actionable standing. No Profile-v2 production promotion is implied.
+
+
 ## Standing
 
 R2_S1B_PRESSURE_TEST_COMPLETE_SELECTIVE_NATIVE_EXPANSION_REQUIRED
