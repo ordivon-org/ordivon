@@ -133,7 +133,8 @@
         "tests/test_postgres_wake_turn_map.py::test_pg_native_identity_immutability_rejects_mutation",
         "tests/test_postgres_conversation_binding.py::test_weak_pg_check_literals_do_not_count_as_integrity_contract",
         "formal/ConversationBindingCutoverR1.tla",
-        "tests/test_pg_binding_cutover_formal_gate.py"
+        "tests/test_pg_binding_cutover_formal_gate.py",
+        "scripts/conversation_binding_contract.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
