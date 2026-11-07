@@ -510,7 +510,8 @@
         "examples/room-encounter/main.tscn",
         "examples/room-encounter/encounter_root.gd",
         "examples/room-encounter/assert.gd",
-        "mise.toml"
+        "mise.toml",
+        "examples/room-encounter/encounter_save_slot.gd"
       ],
       "recursiveLegoR21": {
         "I": [
@@ -549,6 +550,86 @@
           "examples/room-encounter/encounter_root.gd",
           "examples/room-encounter/encounter_audio_feedback.gd",
           "examples/room-encounter/assert.gd"
+        ]
+      }
+    },
+    {
+      "id": "G11",
+      "label": "GodotRoomAgentEpisode",
+      "kind": "native_action_observation_adapter",
+      "responsibility": "Run bounded headless action/observation episodes using the same real Room Encounter PackedScene and EncounterRules used by Human players",
+      "authority": "Existing EncounterRules owns action admission and game state; native Godot owns SceneTree; this adapter owns only episode I/O and receipt",
+      "state": "IMPLEMENTED",
+      "inputs": [
+        "Godot-imported room scene and one 0..64 action-name sequence: attack, guard, advance"
+      ],
+      "outputs": [
+        "one prefixed schema_version=1 JSON receipt containing initial, accepted/rejected action transitions, final and terminal state"
+      ],
+      "behavioralContract": "Scene reset per invocation; actions delegate to native rules, reject invalid transitions without mutation; unavailable game initialization fails closed. No save writes, independent simulation, or human-preference verdict.",
+      "acceptance": [
+        "Godot editor import followed by actual native scene execution and deterministic repeated episode",
+        "Rejected/unknown actions preserve rule snapshots; an action-limited input fails",
+        "A complete real three-room win produces terminal=true, phase=won"
+      ],
+      "evidence": [
+        "examples/room-encounter/agent_episode.gd",
+        "examples/room-encounter/agent_episode_acceptance.py",
+        "examples/room-encounter/README.md"
+      ],
+      "dependencies": [],
+      "sharedRefs": [],
+      "mustNotOwn": [
+        "generic Game runtime",
+        "cross-engine simulator",
+        "graphical Agent perception",
+        "human playtest quality",
+        "game state or persistence"
+      ],
+      "consumerEvidence": [
+        "examples/room-encounter/agent_episode_acceptance.py",
+        "examples/room-encounter/agent_episode.gd",
+        "examples/room-encounter/README.md",
+        "mise.toml"
+      ],
+      "recursiveLegoR21": {
+        "I": [
+          "Native imported Godot PackedScene",
+          "bounded sequence of native actions"
+        ],
+        "O": [
+          "JSON state-transition receipt",
+          "nonzero process result on invalid invocation or unavailable native game"
+        ],
+        "S": [
+          "ephemeral EncounterRules state for one process; no persistent independent state"
+        ],
+        "pre": [
+          "Godot native script and imported Dialogue Manager available",
+          "exactly one --actions argument with at most 64 actions"
+        ],
+        "post": [
+          "For every step accepted equals the actual native action return; after equals the real rule snapshot",
+          "unrecognized or illegal actions retain the prior state"
+        ],
+        "inv": [
+          "EncounterRules remains sole authority of combat/room state",
+          "each invocation starts a fresh run and does not access SaveSlot storage"
+        ],
+        "eff": [
+          "Godot headless scene instantiation, game Signals, stdout JSON and process termination"
+        ],
+        "c": "O(number of actions) rule calls and snapshots, max 64; Godot scene startup and native runtime overhead unmeasured",
+        "epsilon": "Human preference/experience, visual perception, interactive streaming, hardware audio and other-game transfer UNKNOWN; not a universal formal proof",
+        "prov": [
+          "examples/room-encounter/README.md",
+          "domains/game/mise.toml Godot 4.7.2 declared pin",
+          "examples/room-encounter/agent_episode_acceptance.py"
+        ],
+        "unfold": [
+          "examples/room-encounter/agent_episode.gd",
+          "examples/room-encounter/encounter_rules.gd",
+          "examples/room-encounter/agent_episode_acceptance.py"
         ]
       }
     }

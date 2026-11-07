@@ -116,3 +116,11 @@ not a new storage framework or evidence of human playtest/production release.
 ## Integrated room-narrative boundary (2026-11-03)
 
 G09 uses the same executable Room Encounter as G10, with upstream Dialogue Manager controlling text/choices and native Rules alone controlling combat/room state. The old standalone demo is retired; the upstream package is git-moved byte-identically, not duplicated. No extra quest state or runtime registry.
+
+## Bounded Human / Agent game operation (G11)
+
+A native test-only Agent episode port now lives in `examples/room-encounter/agent_episode.gd` with executable acceptance at `examples/room-encounter/agent_episode_acceptance.py`. It loads the real native game scene and routes actions to the existing `examples/room-encounter/encounter_rules.gd` node rather than rebuilding a second simulation. Its observation contract is an authoritative symbolic state, explicitly **not** screenshots, perception or Human preference. The transport is a single process with bounded comma-separated actions and a prefixed JSON receipt. Uninitialized scene state fails closed, so a missing Godot editor import cannot be mistaken for a successful playthrough.
+
+Human players launch the original Godot scene and use its buttons and keyboard. Agents run bounded headless episodes; both consume the same rule authority. For detailed commands, use `examples/room-encounter/README.md`, not a second orchestrator. Godot owns engine lifecycle; Game owns local action semantics; Runtime/Harness remain separate owners of external job execution and agent coordination.
+
+**External-first normalization:** Follow Godot's official project organization/scene composition recommendations (source assets next to their consumers, native Snake_case files, PascalCase nodes, third-party addons in `addons/`), and Bevy's official ECS/Plugin interfaces for Rust consumers. Reference sources: https://docs.godotengine.org/en/4.7/tutorials/best_practices/project_organization.html ; https://docs.godotengine.org/en/stable/tutorials/best_practices/scene_organization.html ; https://bevy.org/news/bevy-0-20/ . These upstream patterns are capability providers, not game-quality certificates.

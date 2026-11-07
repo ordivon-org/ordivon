@@ -60,3 +60,17 @@ a ConfigFile run and a fresh Godot SceneTree reloading that run with
 silent state restoration and continued legal gameplay. Game test:encounter
 runs both independently and cleans the temporary slot. No duplicated
 storage engine or renderer is introduced.
+
+## Human and Agent operation — distinct evidence channels
+
+**Human operator:** Import the addon once with `godot --headless --editor --import --path examples/room-encounter`, then run `godot --path examples/room-encounter` and play through the keyboard/buttons described above. Human enjoyment, usability and accessibility require human evidence; a headless test cannot prove them.
+
+**Agent operator (symbolic, bounded):** After the same editor import, run from `domains/game/`:
+
+    godot --headless --path examples/room-encounter --script res://agent_episode.gd -- --actions attack,advance,attack,attack
+
+The single `GAME_AGENT_EPISODE_JSON=` line is machine-readable and contains `schema_version=1`, `observation_mode=authoritative_state_not_pixels`, the initial state, ordered steps (`action`, `recognized`, `accepted`, `before`, `after`), final state and terminal status. Accepted action names are `attack`, `guard` and `advance`. Invalid/rejected actions have no game-rule effect.
+
+Each process starts a new scene and fresh run, does not write save files, and accepts at most 64 actions. Agents may submit a growing action prefix to inspect later states; this is bounded deterministic replay, **not** a persistent online environment, browser controller or visual playtest.
+
+`mise run test:agent-episode` verifies native scene transitions, deterministic replay, invalid-action rejection, an actual terminal win and the action limit. `mise run verify` first imports the native dialogue asset through `test:encounter`, then runs this Agent acceptance. Real players and Agents use the same authoritative encounter rules; they do not share an evidence claim about subjective experience.
