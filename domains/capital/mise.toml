@@ -15,6 +15,7 @@ uv sync --locked --group test
 uv run --group test ruff check .
 uv run --group test python -m pytest -m "not provider_qualification"
 mise run formal:paper
+mise run formal:paper:source
 """
 
 [tasks."formal:paper"]
@@ -35,6 +36,21 @@ if observed != expected:
     raise SystemExit(f"Paper formal proof mismatch: {observed!r} != {expected!r}")
 print("paper_cash_settlement_r1: 3 universal QF_LIA checks UNSAT; 2 wrong-model witnesses SAT")
 PYZ3
+"""
+
+[tasks."formal:paper:source"]
+description = "Qualify scoped real Python Paper settlement implementation with upstream CrossHair"
+run = """
+set -euo pipefail
+export PYTHONPATH="$PWD/src:$PWD"
+report="$(uvx --python 3.15 --from crosshair-tool==0.0.113 --with z3-solver==5.3.3.0 crosshair check     --report_all --analysis_kind=PEP316     --per_condition_timeout=25 --per_path_timeout=5     formal.paper_settlement_source_contract.settled_cash_and_liabilities_match_model)"
+printf '%s\\n' "$report"
+# CrossHair can exit zero without proving a postcondition. This source check
+# admits only its explicit scoped proof report, never silence or a timeout.
+if [[ "$(printf '%s\\n' "$report" | grep -F -c 'info: Confirmed over all paths.' || true)" != 1 ]]; then
+  echo "CrossHair Paper source contract not confirmed" >&2
+  exit 1
+fi
 """
 
 [tasks."verify:formal:unit-r-margin"]

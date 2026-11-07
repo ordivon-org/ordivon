@@ -254,6 +254,36 @@ approximations are satisfiable. Neither result can be promoted into
 `MODEL_PROVED`. A verifier returning `unknown`, a changed query count or
 unexpected result **fails the task**; it never silently passes.
 
+### Scoped source-symbolic implementation refinement (CrossHair)
+
+The source-adjacent `paper_settlement_source_contract.py` directly invokes
+`accounting.paper_close.value_session` for a two-session, no-new-trade,
+no-held-position case with two matured/not-yet-matured buy payables and
+sale receivables. Six integer symbolic inputs are admitted only with
+nonnegative payable/receivable bounds, protected-cash backing and
+**both** existing-NAV and resulting-cash signed-int64 receipt bounds.
+This links the real Python transition to the Z3/Lean settlement arithmetic
+for that exact subset, without implementing another accounting state machine.
+
+From `domains/capital`, execute `mise run formal:paper:source` using upstream
+CrossHair 0.0.113 + Z3 5.3.3.0 via the existing `uvx` toolchain. The task
+requires `Confirmed over all paths.` from the real source and refuses
+silent exits or unconfirmed paths. The owner-native `mise run verify` also
+runs this scoped consumer. Before the combined receipt bounds were added,
+CrossHair found a real counterexample: cash 1 and receivables at the signed
+int64 ceiling matured together would make the next receipt overflow.
+The source correctly rejects that invalid prior-state/receipt domain; the
+contract now excludes the unreachable input rather than weakening
+`value_session` or claiming it must accept an overflowing close.
+
+**Evidence scope:** bounded symbolic exploration of the exact declared Python
+subset and a demonstrated negative counterexample, not kernel-level complete
+Python refinement, arbitrary account history, fill identity/calendar,
+PostgreSQL SERIALIZABLE transitions, crash recovery, real exchange settlement,
+provider data authenticity or brokerage authorization. Existing actual
+PostgreSQL consumer/readback tests must remain. The CrossHair outcome is
+`SOURCE_SYMBOLIC_CHECKED_IN_SCOPE` only when witnessed on a source revision.
+
 ### Exact consumers and future retirement boundary
 
 - [Accounting source transition](../src/ordivon_capital/accounting/paper_close.py)
