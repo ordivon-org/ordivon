@@ -99,6 +99,22 @@ returns. Missing independent reproduction and real publisher authenticity
 remain UNKNOWN. Research evidence never grants capital allocation or
 external order effects.
 
+## Exact precommitted decimal identity
+
+The `fingerprint-policy` source contract now canonicalizes strategy weights and
+benchmark expenses by the exact finite Decimal coefficient/exponent, stripping
+only base-ten trailing zeroes. Distinct admitted values beyond 28 decimal digits
+must not share a `configDigest`. Re-evaluate existing historical policy digests
+using their pinned historical source revision; never silently reinterpret an
+already-persisted frozen receipt with the new code. Numeric-equivalent spellings
+such as `0.5`/`0.50` share the current policy identity.
+
+For a new experiment, fingerprint the complete policy *before* freezing, then
+persist that exact digest through the native Runtime owner before holdout.
+The source-native consumer should reject changed high-precision weights as
+`PRECOMMITTED_POLICY_MISMATCH`. A digest checks local declared policy identity,
+not independent historical time or provider authenticity.
+
 ## Executable protocol interface
 
 The precommitment input to `freeze-experiment` must be JSON with
