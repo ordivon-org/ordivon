@@ -76,16 +76,30 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 
 以下三个 Space 的功能重叠，属于进一步消费者审计候选，不是已经证明可删的数据：
 
-| Space 标识的关键部分 | Topic 数 | Participation 数 | 当前处置 |
-| --- | ---: | ---: | --- |
-| ordivon-task-portfolio-and-proof-gates-r1 | 7 | 0 | 有 7 个 Topic，不按“0 人参与”直接删除 |
-| ordivon-task-control-r1 | 8 | 2 | 可能是活跃入口；须检查 Message/订阅/引用 |
-| ordivon-capability-task-forum-r1 | 13 | 3 | 可能是活跃入口；须检查 Message/订阅/引用 |
+| Space 标识的关键部分 | Topic | Message | Participation | Space Subscription | 处置 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| ordivon-task-portfolio-and-proof-gates-r1 | 7 | 216 | 0 | 0 | 有实际消息和 Subject，暂不删除 |
+| ordivon-task-control-r1 | 8 | 140 | 2 | 1 | 存在消息和关注者，暂不删除 |
+| ordivon-capability-task-forum-r1 | 13 | 158 | 3 | 0 | 有实际消息和参与者，暂不删除 |
 
-这是一份在线读取时刻的快照；没有完成消息/订阅/引用闭包核验，也没有 Host 原生删除 API 的已发布契约。本轮没有直接执行 PG SQL 删除。优先复用现行 Space；确认所有消费者已经转移后再做精确退役，绝不新建第二个全局任务入口。
+线上 PostgreSQL 的只读事务已核查全部 35 个 Space 对应的 Topic、Message、Participation、Subject、Space/Topic Subscription 与 Coordination Intent。**这些维度全部为零的 Space 数量为 0**。三个重叠候选合计 514 条 Message；不能简单以“空间名称重复”断定是可删除垃圾。
+
+这是一份在线读取时刻的快照；跨 Owner 和 WorkSnapshot 的完整引用闭包未全部核验，也没有已发布的 Host 原生删除 API 契约。本轮没有直接执行 PG SQL 删除。优先复用现行 Space；确认所有消费者已经转移后再做精确退役，绝不新建第二个全局任务入口。
 
 架构参考：[Martin Fowler CQRS](https://martinfowler.com/bliki/CQRS.html) 强调按 bounded context 局部采用、避免全面复杂化；[Architecture Patterns with Python](https://www.cosmicpython.com/) 提供 Repository / Service Layer / Unit of Work 的成熟边界思想。Host 当前直接复用 PostgreSQL 事务，只有证明额外抽象能减少真实耦合才需要引入 Repository/UoW 包装。
 
-## 7. 待进一步验证的边界
+## 7. Work Graph 关系模块二次拆解
+
+本轮将 add_relation、_reject_cycle 从 work_store.py 抽取至 work_relation_commands.py。WorkStore 仍然是唯一组合入口：关系命令使用现有 PostgreSQL DSN、Actor/Work 存在性检查、事务级 advisory lock、递归图环检测与幂等回执。WorkSnapshot CAS 和只读 Work 查询保持原来的语义所有权。
+
+**能力型 LEGO — WorkRelationInsert**：I 为 WorkRelationInput 与 clientRequestId；O 为 committed/existing 回执或类型化冲突；S 是 Host PG 的 works、work_relations、actor_refs 与 command_receipts；pre 是有效引用及非自环；post 是原子写入与可重放回执；inv 是 parent_of 与 depends_on 各自图内无环；eff 是单个 PG 事务内的原生锁/递归查询/插入，没有域外执行；c 与 epsilon 仍为 UNKNOWN，不能将测试通过伪装成生产故障率证明；prov 使用真实代码、PG oracle 和精确 SourceCut；unfold 为 WorkStore → WorkRelationCommands → PG lock/check/insert/receipt。
+
+**思想型 LEGO — OwnerNativeRelation**：Host Work 关系是语义引用，不自动产生 Runtime Job、任务调度、Actor 权限或领域验收；依赖/父子关系不证明实际执行先后。公开 MCP 工具清单没有 work.relation.add，所以 Human 和 Agent 都不得将 Python 内部能力当成线上已公布工具。
+
+**Human 使用**：继续通过 work.get、work.snapshot.commit 和自然 Owner 验证状态；涉及关系源码时用原生 PostgreSQL 并发与三节点关系 Oracle 证伪。**Agent 使用**：先检查实际 tools/list，不尝试未发布的 Work Relation 写接口；读取引用后到 Runtime、Git 和领域 Owner 重新验证，再更新 WorkSnapshot。
+
+参考成熟能力：PostgreSQL MVCC (https://www.postgresql.org/docs/current/mvcc.html)、MCP Python SDK (https://github.com/modelcontextprotocol/python-sdk)、Cosmic Python (https://www.cosmicpython.com/book/chapter_06_uow.html)、CQRS 的局部采用原则 (https://martinfowler.com/bliki/CQRS.html)。当前未引入二次数据库、ORM、事件总线或自建 UoW。
+
+## 8. 待进一步验证的边界
 
 Coordination Intent 与 Work Relation 有内部能力和数据库消费者，但并非全部显式 MCP 工具，不能把“代码存在”直接宣称外部产品可用。跨包更名 ordivon_host_v2、删除 R1 图方案、删除不可逆迁移或重写 PG 状态必须先有消费者迁移与发布验收；重构范围越广，不代表系统越优。
