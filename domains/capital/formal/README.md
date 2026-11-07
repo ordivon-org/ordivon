@@ -47,3 +47,16 @@ Never replace tests of external effects or broader-than-three-asset behavior
 on the strength of this partial model. Do not count `unknown` / timeout as
 `unsat`; use the exact expected output gate in the existing mise task.
 The toolchain is reused from `tools/formal/mise.toml`, not installed here.
+
+## All-asset mathematical extension (Lean kernel)
+
+`PortfolioApportionmentGeneral.lean` reuses the pinned Lean 4 compiler and
+proves quotient-plus-remainder identities for **arbitrary finite lists of
+nonnegative integer gaps**. With positive denominator equal to the sum of
+gaps, the sum of floor quotas plus the integer residual count equals the
+contribution; the residual count is strictly smaller than the number of
+assets. Run `mise run verify:formal:apportionment` in `domains/capital`.
+This removes the three-asset limit for these two **algebraic** claims only.
+The specific *ranking* used for distributing residual cents remains
+three-asset model-checked, and the production Python refinement remains
+UNKNOWN. Do not infer an all-asset tie-break or broker correctness proof.

@@ -21,6 +21,15 @@ uv sync --locked --group test
 uv run --group test python -m pytest -m provider_qualification
 """
 
+[tasks."verify:paper-amounts"]
+description = "Check the Paper Accounting receipt amount model with pinned Lean"
+run = '''
+set -eu
+model="$PWD/formal/PaperCloseAmounts.lean"
+lean="$(mise -C ../../tools/formal which lean)"
+"$lean" "$model"
+'''
+
 [tasks."verify:formal:contribution"]
 description = "Check the three-asset Portfolio allocation model with existing pinned Z3"
 run = """
@@ -32,4 +41,12 @@ if [ "$observed" != "$expected" ]; then
   exit 1
 fi
 printf '%s\n' "$observed"
+"""
+
+[tasks."verify:formal:apportionment"]
+description = "Lean kernel proof of all-asset Portfolio quotient/remainder conservation"
+run = """
+set -euo pipefail
+cd ../../tools/formal
+mise exec -- lean ../../domains/capital/formal/PortfolioApportionmentGeneral.lean
 """

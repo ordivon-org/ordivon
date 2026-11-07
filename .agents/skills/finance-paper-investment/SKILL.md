@@ -123,6 +123,7 @@ For a new-cash/no-sell allocation request, reuse
 three-symbol abstract largest-remainder model, *not* arbitrary portfolio
 size or the production Python function's refinement. Preserve the native
 `run-strategic-contribution-brief` consumer as a separate observation.
+The additional task `mise run //domains/capital:verify:formal:apportionment` proves general finite-asset quota and residual-count algebra with Lean, but it does not prove Python implementation refinement or all-asset tie-break.
 Report model UNSAT/SAT, source digest and actual consumer result distinctly;
 never upgrade the model evidence to a broker or capital authority.
 
