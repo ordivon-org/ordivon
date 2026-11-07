@@ -151,6 +151,32 @@ This Wake cutover does not by itself switch Harness Run/CAS, conversation
 materialization, conversation role-binding, or Turn Effect send receipts.
 Do not mark those separate Owners as cut over.
 
+### PG-only Browserless identity/effect consumer selection
+
+The deployed Browserless owner has **three independent identity/effect seams**:
+conversation role binding, wake-to-turn mapping, and external turn-send effect
+receipts. To prevent a partially configured release from quietly writing a
+different SQLite authority, set
+`ORDIVON_BROWSERLESS_PG_IDENTITIES_EFFECTS_REQUIRED=1` **only after** all
+three existing PG authorities have been independently activated, all old
+Browserless/Temporal effect senders quiesced, and a coherent installed release
+prepared. The following three existing DSNs are then **mandatory**:
+
+- `ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN` — affinity read/adopt
+- `ORDIVON_WAKE_TURN_POSTGRES_DSN` — wake-to-turn identity allocation
+- `ORDIVON_TURN_EFFECT_POSTGRES_DSN` — effect read / Provider send
+
+In this mode, a missing DSN fails closed *before* any legacy SQLite call at
+each corresponding consumer, including the separate Playwright send process.
+No new registry, shared credentials file, or alternate provider transport is
+introduced. Fresh wake identities additionally require
+`ORDIVON_WAKE_TURN_FRESH_BOOTSTRAP=1` with an absent old wake file.
+Conversation binding and turn effects retain their own established PG
+activation obligations: this selection switch does **not** grant authority
+to initialize them automatically and does not override the live SQLite
+materialization ledger. This is a **scoped** PG-only cutover: general Harness
+Run/CAS and Browserless materialization remain separate owners.
+
 ### PG-first Turn Effects: retire legacy effect writer (explicit operator cutover)
 
 `PostgresTurnEffects.stage_legacy` deliberately stays `PENDING`; it is a copy,

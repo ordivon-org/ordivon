@@ -16,7 +16,7 @@ Candidate-discovery preference:
 
 For non-authoritative mechanics, items 3 and 4 compete. Neither wins by default.
 
-The goal is not a uniform framework. Asymmetric composition is preferred when different components demonstrably own different responsibilities better. See docs/EXTERNAL_IMPLEMENTATION_QUALIFICATION_R1.md.
+The goal is not a uniform framework. Asymmetric composition is preferred when different components demonstrably own different responsibilities better. Substitution must preserve the exact semantic/authority contract and pass functional, license, supply-chain, and real-consumer gates; only then compare maintenance and operating burden. See docs/ARCHITECTURE.md and config/external_owner_census.json for current owners and accepted qualification evidence.
 
 ## Current component ownership
 

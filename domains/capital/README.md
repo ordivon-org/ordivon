@@ -69,6 +69,15 @@ positive-equity Risk review. Use `mise run //domains/capital:verify` for the
 implementation, and a disposable `ORDIVON_CAPITAL_PAPER_PG_TEST_DSN` for
 committed receipt and Risk CLI read-back.
 
+### Read-only Paper period performance
+
+Human: use the Paper 日报 section of the [operating guide](docs/FINANCE_HUMAN_GUIDE_R1.md)
+to separate external funding from investment gain. Agent: compose native
+Accounting receipts and an admitted Markets snapshot through
+`portfolio.paper_close_performance.summarize_paper_period`; its CLI can read
+committed PostgreSQL closes. Risk retains valuation checks. This projection
+adds no ledger, scheduler, broker effects or new third-party dependency.
+
 ## Historical Capital qualifications
 
 The remaining portions of this README include frozen prior technology
