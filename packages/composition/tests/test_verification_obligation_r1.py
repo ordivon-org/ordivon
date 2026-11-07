@@ -2786,11 +2786,11 @@ def test_shared_c04_gateway_cli_rejects_invalid_proof_graph_without_traceback(tm
     import subprocess
     import sys
 
-    op = "ordivon-exec:v1:external.pull:operation-one"
+    op = "ordivon-exec:v1:runtime.windows:operation-one"
     obs = {
         "kind": "ordivon.gateway-execution-observation",
         "schema_version": 1,
-        "owner_id": "external.pull",
+        "owner_id": "runtime.windows",
         "native_id": "operation-one",
         "operation_ref": op,
         "capability": "muse.shell.echo",
