@@ -39,7 +39,7 @@ This document states the stable public maturity, supported environment, known li
 
 ## Errors
 
-This page is not live state. It must not be used to infer active Jobs, installed release-artifact digests and modes, current storage size, service health, or semantic Task completion.
+This page is not live state. It must not be used to infer active Jobs, installed release-artifact digests and modes, current storage size, service health, or semantic Task completion. The 2026-11-07 [owner audit](audits/2026-11-07-runtime-owner-audit.md) observed both a legacy Linux service and a PG candidate service, plus a distinct Windows Runtime version; it is not evidence that the whole fleet uses PostgreSQL.
 
 ## Compatibility
 

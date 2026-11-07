@@ -1,4 +1,6 @@
-# Runtime vNext decomposition and reassembly
+# Runtime decomposition (historical implementation record)
+
+> Status as of 2026-11-07: this is a historical account of SQLite-era modularization, not the source of current installed Runtime, PostgreSQL writer, or live service authority. Current contracts are in [`runtime.md`](runtime.md), current owner observations in [`audits/2026-11-07-runtime-owner-audit.md`](audits/2026-11-07-runtime-owner-audit.md).
 
 ## Goal
 

@@ -61,7 +61,8 @@ Runtime does **not** automatically redact command arguments, environment values 
 
 | Data | Typical location | Purpose | Default lifecycle |
 | --- | --- | --- | --- |
-| Registry database | `/var/lib/ordivon/registry/registry.sqlite3` | Job, Attempt, reservation, event, Artifact metadata, recovery truth | retained while the instance remains authoritative |
+| Legacy SQLite Registry (legacy service only) | `/var/lib/ordivon/registry/registry.sqlite3` in the historical packaged configuration | Former Job, Attempt, reservation, event, Artifact metadata and recovery state | retire after verifying no installed writer/reader; old history need not be migrated solely to preserve it |
+| PostgreSQL Registry (PG-native Runtime) | operator-configured PG server/schema, not a hard-coded SQLite file | PG Job/Attempt admission, lifecycle/readback and recovery truth | bounded by the actual active writer epoch and its consumers; never delete PG data as a filesystem cache |
 | Attempt bundles and Artifacts | `/var/lib/ordivon/registry/attempts/` | request, plan, progress, output, result, terminal evidence | retained with Registry history unless the instance is retired or an explicit future archival policy applies |
 | Workspace records and worktrees | `/var/lib/ordivon/runtime/` | isolated source state and lifecycle identity | policy classes: ephemeral, review, or pinned; dirty/active/unknown state is never removed automatically |
 | execution caches | `/var/lib/ordivon/runtime/cache/` | reusable package and build state | Workspace-scoped state is protected while referenced; legacy source-build state is reconstructible and capacity-reclaimable; shared package-cache semantics remain package-manager-owned |

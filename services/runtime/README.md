@@ -50,6 +50,9 @@ participant or Host admits work
 
 ## Start here
 
+- For human operations and safe cleanup use [`docs/guides/operator-runtime.md`](docs/guides/operator-runtime.md); for Agent execution and evidence use [`docs/guides/agent-runtime.md`](docs/guides/agent-runtime.md).
+- For the 2026-11-07 directory and backend consumer audit use [`docs/audits/2026-11-07-runtime-owner-audit.md`](docs/audits/2026-11-07-runtime-owner-audit.md). Its findings are time-scoped, not production deployment proof.
+
 - Use [`docs/quickstart.md`](docs/quickstart.md) to build, verify, install, and exercise Runtime.
 - Use [`docs/status.md`](docs/status.md) for the current maturity and support boundary.
 - Use [`docs/runtime.md`](docs/runtime.md) for the canonical execution model and [`docs/operations.md`](docs/operations.md) for operation and recovery.
@@ -124,7 +127,7 @@ Run the complete real-system journey on a disposable or owner-trusted machine:
 sudo scripts/local-acceptance run
 ```
 
-That command builds the Runtime and Runner, executes the ignored systemd/cgroup tests, starts a temporary loopback MCP server, and exercises Workspace creation, mutation, durable Patch replay, execution, observation, Artifact reading, cancellation, restart recovery, and safe closure.
+That command builds the Runtime and Runner, executes the ignored systemd/cgroup tests, starts a temporary loopback MCP server, and exercises Workspace creation, mutation, durable execution-request replay, execution, observation, Artifact reading, cancellation, restart recovery, and safe closure.
 
 Successful Linux Attempts may additionally register an immutable `resource_receipt` Artifact containing a terminal pre-result snapshot of the Attempt cgroup's CPU, memory, swap, memory-event, and I/O counters. Receipt absence remains compatible and does not change execution state; present receipts are identity-validated before registration. `scripts/resource_workload_profile.py` is a read-only derived-analysis helper for caller-supplied receipt files/directories and never becomes Runtime execution or pricing authority.
 
