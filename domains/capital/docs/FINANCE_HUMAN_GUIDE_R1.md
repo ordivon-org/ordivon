@@ -38,6 +38,16 @@
 对 Agent 来说，正确流程是**先选择用户问题，再沿自然 Owner 调用已有 LEGO**；对 Human 来说，先确认经济目标、数据来源和可承受的回撤，然后再解释结果。CA01—CA10 之外新并入的 Paper 模块仍由其自然 Owner 管理，不因为尚未获得连续 CA 编号就“不可使用”。
 
 
+### Risk 的形式化性质与实际实现
+
+对 CA03 暴露账本，现有 Lean 证明 `net`、`gross` 在任意有限整数
+头寸列表上的组合律，并证明 `|net| ≤ gross`。在仓库根目录运行
+`mise run //domains/capital:verify:formal:risk-exposure` 检查模型；
+再运行 `mise run //domains/capital:verify` 检查实际 Python 消费者。
+两者不可混为一谈：Python `Decimal`、因子加载、外部账户真实性与
+真实投资结果尚无相应实现精化证明，详见
+`domains/capital/formal/RiskExposureBound.md`。
+
 ## 2. 立即可复现：给长期投资账户规划一笔虚拟新增资金
 
 这是最简单的无账户、无数据库、无网络金融效果的起步任务：

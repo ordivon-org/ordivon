@@ -49,6 +49,14 @@ analysis are read-only; dedicated Accounting Paper closes write **only
 simulated** PostgreSQL ledger state. Neither path gives broker trading
 authority.
 
+### Risk gross/net formal algebra
+
+`mise run //domains/capital:verify:formal:risk-exposure` checks an
+all-finite-position Lean model of `|net| <= gross` and compositional
+exposure arithmetic. Implementation refinement to the actual Python Decimal
+ledger remains **UNKNOWN**; read
+`formal/RiskExposureBound.md` and retain the native source consumer test.
+
 ### Paper Accounting verification
 
 From the repository root, run

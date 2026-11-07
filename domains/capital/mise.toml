@@ -6,6 +6,7 @@ rust = { version = "1.99.1", components = "clippy,rustfmt" }
 [tasks.verify]
 run = """
 set -euo pipefail
+mise run verify:formal:risk-exposure
 uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
@@ -19,6 +20,14 @@ set -euo pipefail
 uv lock --check
 uv sync --locked --group test
 uv run --group test python -m pytest -m provider_qualification
+"""
+
+[tasks."verify:formal:risk-exposure"]
+description = "Lean kernel proof of all-position Risk exposure bounds and composition"
+run = """
+set -euo pipefail
+cd ../../tools/formal
+mise exec -- lean ../../domains/capital/formal/RiskExposureBound.lean
 """
 
 [tasks."verify:paper-amounts"]
