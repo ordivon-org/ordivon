@@ -34,6 +34,101 @@ Do not claim a theorem about the world from an encoding without a bridge:
 contains **distinct obligations**. A verified finite abstraction is not an
 automatically verified PostgreSQL transaction or distributed service.
 
+## Industrial core modes: choose by the missing evidence, not by tool popularity
+
+The following six **reusable reasoning patterns** are derived from documented
+engineering practices. They are *not* a newly mandatory lifecycle, separate
+prover, Owner, Agent role or six automatically admitted R2.1 LEGOs.
+A method choice is useful only when it changes the next real consumer decision.
+
+| Core mode | Grounded industrial practice | What Human decides / what Agent actually delivers |
+| --- | --- | --- |
+| **Contract-first specification** | AWS TLA+ distributed design; Microsoft P/P# event-machine specifications in Azure engineering | Human states an unacceptable outcome; Agent makes safety/liveness assumptions and legal transitions explicit *before* implementation |
+| **Model checking with real failure replay** | Google's CAV 2026 network protocol work used seven TLA+ models, recreated prior bugs and checked fixes; state projection helped assess model coverage | Human asks whether known failures are reproducible; Agent provides model trace, concrete feasibility and explicit model scope |
+| **Verification-guided development with implementation bridge** | AWS Cedar proves Dafny-model properties and uses differential randomized comparisons against its Rust engine; AWS authorization engine also used shadow/differential production comparison for a legacy replacement | Human demands behavioral compatibility; Agent binds exact model/source versions, known equivalence limits, difference findings and real production comparison |
+| **Composable, incremental source summaries** | Meta Infer uses Separation Logic and procedure pre/post summaries, reusing analyses across changed code; the analyzer supports review-time feedback | Human cares about time-to-action and useful bugs; Agent records proof dependence and rechecks only affected callers/assumptions, *unless* coverage is unknown |
+| **Independent proof checking / small trusted base** | Anthropic + Theorem generated executable-level proofs checked by Rocq; the claimed no-crash properties are conditional on RISC-V, modeled Linux and single-thread execution assumptions | Human sees exact theorem and trust assumptions; Agent may propose proof but the native independent kernel determines acceptance |
+| **Trace-to-evaluation improvement and subtraction** | OpenAI advocates trace grading, real task evals and iteration; Anthropic recommends simple composable agent patterns and increasing complexity only for measured value | Human evaluates actual outcome and maintenance cost; Agent records failures, adds only value-earning checks, repairs and retires obsolete custom paths |
+
+### Soundness and economic decision rules
+
+1. A proof about an abstract model does **not** prove source behavior unless
+   a concrete simulation, refinement relation, translation argument, or
+   other qualified bridge exists. AWS Cedar's differential randomized testing
+   is useful corroboration of model/production equivalence across generated
+   inputs, **not** a universal deductive proof of that equivalence.
+2. A model-checking counterexample may be a real spec/design error or an
+   abstraction artifact. The agent must replay or check feasibility before
+   eliminating the offending transition. Reconstructing a *known* production
+   failure is strong model-relevance evidence, not total state-space coverage.
+3. A procedure summary applies only while the source cut, relevant callees,
+   environment assumptions, and effect readset are current. An incremental
+   proof-cache HIT without these preconditions is stale evidence. Meta's
+   industrial approach argues for **local summary reuse**, not global
+   verification of arbitrary future changes.
+4. Independent checker PASS must be scoped by the trusted base, theorem
+   statement, exact build and environment assumptions. Anthropic's 2026
+   assembly-level no-crash results cover selected single-threaded static
+   RISC-V Linux binaries with stated resource limits; they do not certify
+   arbitrary deployed architectures, networks or all bug classes.
+5. Agent task evaluation/trace grading measures behavior on selected tasks.
+   It is **not** a proof of an invariant. Conversely, a valid theorem is not
+   evidence that the human's problem framing or domain objective was right.
+6. **Stop or subtract** when a simpler native method satisfies the actual
+   consumer. A generic code analysis dashboard, second registry, new
+   proof-file format, mandatory six-stage Agent workflow or an added
+   sample test needs its own earned consumer; method popularity is not one.
+
+### Two views of the same mode
+
+**Human-facing question:** "What important failure must never occur,
+under which conditions, and what live outcome would convince me that the
+change worked?" The reply should identify the required guarantee, the
+best industrial precedent, which of model/proof/code/live standing is
+known, at least one plausible falsifier, and the affected consumer.
+No solver commands are necessary for an ordinary acceptance decision.
+
+**Agent-facing decision:** The method operator takes the current property,
+Owner/consumer, exact SourceCut, evidence readset, assumptions and budget;
+it returns a chosen existing method/provider, one scoped obligation,
+negative witness or counterexample, a source-to-consumer bridge if needed,
+and a stop/retire decision. First check whether a weaker existing method
+already meets the consumer contract. If not, choose one dominant mode;
+combine modes only for separate obligations. Invalidate proof evidence on
+changes to dependent source, assumptions, checker or installation.
+Publish through the existing Owner and protected Git path. Never establish
+a shared reasoning ledger or a second execution authority.
+
+**Ordivon example:** Runtime's Job/Attempt recovery behavior primarily
+needs state-machine exploration (AWS/Google/Microsoft modes), followed by
+source/receipt replay on native Runtime. Host Work revision arithmetic
+primarily needs code contracts and source checking, but PostgreSQL CAS,
+MCP ingress and installed source still need targeted real checks.
+Harness Agent/Tool trajectories benefit from task-specific trace evaluation,
+while its tool-dispatch invariants require independent state-model/source
+evidence. These are different claims and must not be merged into a
+single vague "verified" label.
+
+### Industrial primary sources
+
+- AWS, *How Amazon Web Services uses formal methods* (2015):
+  https://www.amazon.science/publications/how-amazon-web-services-uses-formal-methods
+- AWS, *How we built Cedar with automated reasoning and differential testing*:
+  https://www.amazon.science/blog/how-we-built-cedar-with-automated-reasoning-and-differential-testing
+- Microsoft, *Building Reliable Cloud Services Using P#*:
+  https://www.microsoft.com/en-us/research/publication/building-reliable-cloud-services-using-p-experience-report/
+- Google, *Model Checking for Flexible Networking Protocols* (CAV 2026):
+  https://research.google/pubs/model-checking-for-flexible-networking-protocols/
+- Meta, *Finding inter-procedural bugs at scale with Infer*:
+  https://engineering.fb.com/2017/09/06/android/finding-inter-procedural-bugs-at-scale-with-infer-static-analyzer/
+- Anthropic, *LLMs are making formal software verification feasible
+  at a much larger scale* (Oct. 2026):
+  https://www.anthropic.com/research/formal-verification
+- Anthropic, *Building effective agents*:
+  https://www.anthropic.com/research/building-effective-agents
+- OpenAI, *Evaluate agent workflows*:
+  https://developers.openai.com/api/docs/guides/agent-evals
+
 ## Select one method family that changes the decision
 
 | Decision-changing question | Mature *thinking* LEGO pattern | Existing capability/provider and appropriate evidence |
