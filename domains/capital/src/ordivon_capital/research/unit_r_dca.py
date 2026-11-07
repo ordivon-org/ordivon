@@ -197,7 +197,9 @@ def replay_unit_r(
     The same session's close is a simplifying execution assumption, never a
     claim that an actual market-on-close order would be filled at that price.
     """
-    if policy not in ("unlevered", "margin_cap", "risk_budget", "peak_cushion"):
+    if policy not in (
+        "unlevered", "margin_cap", "risk_budget", "peak_cushion", "crisis_memory",
+    ):
         raise UnitRModelError("unknown research-only policy")
     if not 0 <= account_drawdown_budget <= 1:
         raise UnitRModelError("invalid account risk budget")
@@ -275,13 +277,25 @@ def replay_unit_r(
             first_months.add(period_key)
             deposit_dates.append(b.session)
             shock = stress_estimate(bars, i, assumptions)
-            largest_shock = max(largest_shock, shock["scenarioShock"])
+            stressed_loss = shock["scenarioShock"]
+            if policy == "crisis_memory":
+                # Previously observed crises NEVER disappear when the rolling
+                # three-year estimator forgets an old bear market. Include all
+                # historical data available for THIS ETF, even prior to the
+                # six-instrument common comparison date. Still no lookahead.
+                lifetime_drawdown = observed_max_drawdown(
+                    [row.adjusted_close for row in bars[:i]]
+                )
+                stressed_loss = min(
+                    .95, max(stressed_loss, lifetime_drawdown + .05)
+                )
+            largest_shock = max(largest_shock, stressed_loss)
             if policy == "unlevered":
                 target = 1.0
             else:
                 # The regulator and house margin scenario can differ.
                 basic = exposure_from_stress(
-                    shock=shock["scenarioShock"],
+                    shock=stressed_loss,
                     maintenance=assumptions.stress_maintenance,
                     initial_margin=assumptions.initial_margin,
                     headroom_use=assumptions.margin_headroom_use,
@@ -297,7 +311,7 @@ def replay_unit_r(
                             / signal_unit_nav,
                         )
                     target = exposure_from_stress(
-                        shock=shock["scenarioShock"],
+                        shock=stressed_loss,
                         maintenance=assumptions.stress_maintenance,
                         initial_margin=assumptions.initial_margin,
                         headroom_use=assumptions.margin_headroom_use,
@@ -393,13 +407,11 @@ def run_study(
     intersection = set.intersection(*(set(bar.session for bar in history)
                                      for history in histories.values()))
     dates = sorted(intersection)
-    aligned = {
-        ticker: [bar for bar in history if bar.session in intersection]
-        for ticker, history in histories.items()
-    }
-    for ticker in aligned:
-        if len(aligned[ticker]) != len(dates):
-            raise UnitRModelError("misaligned benchmark dates")
+    aligned = histories
+    for ticker, history in histories.items():
+        execution_dates = [bar.session for bar in history if bar.session >= dates[0]]
+        if execution_dates != dates:
+            raise UnitRModelError("misaligned common benchmark dates")
     result: dict[str, Any] = {
         "standing": "HISTORICAL_REPLAY_ONLY",
         "unit": "1r each calendar month, USD-numeraire-equivalent, no FX",
@@ -431,6 +443,10 @@ def run_study(
                 ),
                 "peak_cushion_40pct": replay_unit_r(
                     bars, start=beginning, policy="peak_cushion", assumptions=assumptions,
+                    account_drawdown_budget=.40,
+                ),
+                "crisis_memory_40pct": replay_unit_r(
+                    bars, start=beginning, policy="crisis_memory", assumptions=assumptions,
                     account_drawdown_budget=.40,
                 ),
             }
@@ -482,7 +498,11 @@ def main() -> int:
         "commonDays": result["comparableTradingDays"],
         "start": result["firstComparableBar"],
         "end": result["lastComparableBar"],
-        "variants": sum(len(v) for v in result["runs"].values()) * 5,
+        "variants": sum(
+            len(policies)
+            for vintage in result["runs"].values()
+            for policies in vintage.values()
+        ),
     }))
     return 0
 

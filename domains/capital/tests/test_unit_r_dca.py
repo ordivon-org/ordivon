@@ -104,3 +104,25 @@ def test_invalid_math_fail_closed() -> None:
         )
     with pytest.raises(UnitRModelError):
         observed_max_drawdown([1.0, 0.0, 2.0])
+
+def test_crisis_memory_retains_old_tail_loss_without_future_data() -> None:
+    # A crash outside the last 756 bars must still constrain lifetime-memory
+    # risk sizing. The ETF's *past* is known even when another ETF did not
+    # exist at the date of that crash.
+    prices = [1.0] * 1600
+    prices[100] = 0.15
+    rows = series(prices)
+    cut = rows[1500].session
+    assumptions = Assumptions(turnover_cost=0, borrow_annual=0)
+    rolling = replay_unit_r(
+        rows, start=cut, policy="risk_budget", assumptions=assumptions,
+        account_drawdown_budget=.4,
+    )
+    memory = replay_unit_r(
+        rows, start=cut, policy="crisis_memory", assumptions=assumptions,
+        account_drawdown_budget=.4,
+    )
+    assert rolling["status"] == memory["status"] == "COMPLETED"
+    assert memory["averageExposure"] < rolling["averageExposure"]
+    assert memory["largestPriorKnownStressPct"] >= 90.0
+    assert memory["maximumExposure"] < 0.50
