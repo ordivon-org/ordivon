@@ -69,6 +69,18 @@ alone is not a verified Python/PostgreSQL refinement or a production service
 receipt; keep these evidence classes separate. This extends the existing CA07
 Accounting contract instead of registering a duplicate risk/ledger LEGO.
 
+For CA03 gross/net exposure (not Paper settlement), use the source-adjacent
+`domains/capital/formal/RiskExposureBound.md` and
+`mise run //domains/capital:verify:formal:risk-exposure`. The pinned Lean
+kernel proves `|net| <= gross` and concatenation laws for arbitrary finite
+**mathematical integer** signed positions. Record `modelProof=PROVED` only
+after observing the proof run; `implementationRefinement=UNKNOWN` for actual
+Python Decimal and `marketDataAuthority=UNKNOWN` without provider evidence.
+Use `mise run //domains/capital:verify` as separate actual Risk consumer
+validation, including the precision/cancellation counterexample regressions.
+Do not remove its mixed-position source test on the strength of a
+model-only theorem. No new CA03 implementation, risk service, or Skill is needed.
+
 Qualification: mise run //domains/capital:verify plus actual isolated
 PostgreSQL paper receipt readback under disposable
 ORDIVON_CAPITAL_PAPER_PG_TEST_DSN against database ordivon_paper.

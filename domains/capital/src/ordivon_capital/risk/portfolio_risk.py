@@ -30,8 +30,10 @@ from .risk_values import (
     PortfolioRiskError as PortfolioRiskError,
 )
 from .risk_values import (
+    _add_exact,
     _d,
     _fmt_lossless,
+    _multiply_exact,
 )
 from .tail_risk import historical_expected_shortfall as historical_expected_shortfall
 
@@ -106,8 +108,8 @@ def build_exposure_ledger(
         seen.add(inst)
 
         signed = _d(row.get("signedNotionalUsd"), f"positions[{i}].signedNotionalUsd")
-        gross += abs(signed)
-        net += signed
+        gross = _add_exact(gross, abs(signed))
+        net = _add_exact(net, signed)
 
         factor_loadings_raw = row.get("factorLoadings")
         if factor_loadings_raw is None:
@@ -127,8 +129,9 @@ def build_exposure_ledger(
                 )
             loading = _d(loading_raw, f"positions[{i}].factorLoadings.{factor_name}")
             factor_loadings[factor_name] = _fmt_lossless(loading)
-            factor_exposure[factor_name] = (
-                factor_exposure.get(factor_name, Decimal("0")) + signed * loading
+            factor_exposure[factor_name] = _add_exact(
+                factor_exposure.get(factor_name, Decimal("0")),
+                _multiply_exact(signed, loading),
             )
 
         normalized.append(

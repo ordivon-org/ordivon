@@ -47,6 +47,55 @@ class PortfolioRiskTests(unittest.TestCase):
         self.assertEqual(factors["tech"], "125.000000")
         self.assertEqual(factors["semiconductor"], "120.000000")
 
+    def test_exposure_ledger_preserves_micro_notional_after_large_cancellation(self):
+        # Real-source counterexample to the default 28-digit Decimal context:
+        # 1e20 + 1e-10 - 1e20 used to return zero, discarding exposure.
+        ledger = build_exposure_ledger(
+            equity_usd="1e20",
+            available_equity_usd="0",
+            positions=[
+                {"instrumentId": "A", "signedNotionalUsd": "1e20",
+                 "factorLoadings": {"EXACT": "1"}},
+                {"instrumentId": "B", "signedNotionalUsd": "1e-10",
+                 "factorLoadings": {"EXACT": "1"}},
+                {"instrumentId": "C", "signedNotionalUsd": "-1e20",
+                 "factorLoadings": {"EXACT": "1"}},
+            ],
+        )
+        self.assertEqual(ledger["netNotionalUsd"], "0.0000000001")
+        self.assertEqual(ledger["grossNotionalUsd"], "200000000000000000000.0000000001")
+        self.assertEqual(ledger["factorExposure"][0]["signedExposureUsd"], "0.0000000001")
+
+    def test_exposure_ledger_factor_product_is_exact_above_default_decimal_precision(self):
+        # A 38-digit source product was silently rounded to 28 significant
+        # digits by Decimal's ambient context.
+        ledger = build_exposure_ledger(
+            equity_usd="100",
+            available_equity_usd="0",
+            positions=[{
+                "instrumentId": "A",
+                "signedNotionalUsd": "1.234567890123456789",
+                "factorLoadings": {"LONG_FACTOR": "9.876543210987654321"},
+            }],
+        )
+        self.assertEqual(
+            ledger["factorExposure"][0]["signedExposureUsd"],
+            "12.193263113702179522374638011112635269",
+        )
+
+    def test_exposure_ledger_formats_large_finite_notionals_without_context_error(self):
+        # Decimal.quantize previously raised InvalidOperation for this valid
+        # 23-digit notional solely because display requested six places.
+        ledger = build_exposure_ledger(
+            equity_usd="1e22",
+            available_equity_usd="0",
+            positions=[{"instrumentId": "A", "signedNotionalUsd": "1e22"},
+                       {"instrumentId": "B", "signedNotionalUsd": "-1e22"}],
+        )
+        self.assertEqual(ledger["netNotionalUsd"], "0.000000")
+        self.assertEqual(ledger["grossNotionalUsd"], "20000000000000000000000.000000")
+        self.assertEqual(ledger["grossToEquity"], "2.000000")
+
     def test_completed_log_returns_rejects_unsorted_prices(self):
         with self.assertRaises(PortfolioRiskError):
             completed_log_returns(
