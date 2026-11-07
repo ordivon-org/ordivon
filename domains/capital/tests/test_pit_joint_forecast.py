@@ -671,5 +671,113 @@ class PITPairedPrequentialConsumer(unittest.TestCase):
                 }
             )
 
+
+class MarketCapturedVintageAdmission(unittest.TestCase):
+    """Real Markets CSV digest contract -> PIT decisions; no retroactive origin."""
+
+    @staticmethod
+    def csv(close_a="108.9", missing_b=False):
+        prices = [
+            ("2026-07-31", "100", "100"),
+            ("2026-08-31", "110", "90"),
+            ("2026-09-30", "99", "99"),
+            ("2026-10-30", close_a, "" if missing_b else "89.1"),
+        ]
+        text = "Date,A,B\\n" + "".join(
+            ",".join(row) + "\\n" for row in prices
+        )
+        # Intentional literal newline encoding for CSV reader.
+        return text.replace("\\n", "\n").encode("utf-8")
+
+    @staticmethod
+    def admitted(raw, **override):
+        from ordivon_capital.research.pit_joint_forecast import (
+            market_capture_to_pit_vintages,
+        )
+
+        fields = {
+            "raw_csv": raw,
+            "expected_sha256": hashlib.sha256(raw).hexdigest(),
+            "assets": ("A", "B"),
+            "first_session": date(2026, 7, 31),
+            "last_session": date(2026, 10, 30),
+            "captured_at": datetime(2026, 11, 7, 12, tzinfo=UTC),
+            "last_session_close_at": datetime(2026, 10, 30, 20, tzinfo=UTC),
+        }
+        fields.update(override)
+        return market_capture_to_pit_vintages(**fields)
+
+    def test_five_year_archive_is_not_five_years_of_point_in_time_access(self):
+        rows = self.admitted(self.csv())
+        self.assertEqual(len(rows), 8)
+        self.assertEqual({x.source_standing for x in rows}, {
+            "SECONDARY_VENDOR_NOT_ATTESTED",
+        })
+        self.assertEqual({x.published_at for x in rows}, {
+            datetime(2026, 11, 7, 12, tzinfo=UTC),
+        })
+        # Dates in a later imported archive do not make the archive
+        # historically available for an earlier investment decision.
+        self.assertFalse(
+            point_in_time_prices(rows, as_of=datetime(2026, 10, 30, 23, tzinfo=UTC))
+        )
+        sessions = [
+            date.fromisoformat(x)
+            for x in ("2026-07-31", "2026-08-31", "2026-09-30", "2026-10-30")
+        ]
+        with self.assertRaisesRegex(PointInTimeError, "current valuation missing"):
+            empirical_joint_forecast(
+                records=rows, assets=("A", "B"),
+                valuation_sessions=sessions,
+                as_of=datetime(2026, 10, 30, 23, tzinfo=UTC),
+                valuation_session=sessions[-1],
+            )
+        forecast = empirical_joint_forecast(
+            records=rows, assets=("A", "B"),
+            valuation_sessions=sessions,
+            as_of=datetime(2026, 11, 7, 13, tzinfo=UTC),
+            valuation_session=sessions[-1],
+        )
+        self.assertEqual(forecast.training_return_count, 3)
+        self.assertEqual(forecast.source_digests, (
+            hashlib.sha256(self.csv()).hexdigest(),
+        ))
+
+    def test_later_updated_csv_cannot_rewrite_earlier_information(self):
+        old = self.admitted(self.csv())
+        replacement = self.admitted(
+            self.csv(close_a="999"),
+            captured_at=datetime(2026, 11, 8, 12, tzinfo=UTC),
+        )
+        earlier = point_in_time_prices(
+            (*old, *replacement),
+            as_of=datetime(2026, 11, 7, 13, tzinfo=UTC),
+        )
+        later = point_in_time_prices(
+            (*old, *replacement),
+            as_of=datetime(2026, 11, 9, tzinfo=UTC),
+        )
+        key = ("A", date(2026, 10, 30))
+        self.assertAlmostEqual(earlier[key].adjusted_close, 108.9)
+        self.assertAlmostEqual(later[key].adjusted_close, 999)
+
+    def test_digest_missing_quotes_and_impossible_capture_are_rejected(self):
+        raw = self.csv()
+        with self.assertRaisesRegex(PointInTimeError, "Markets source admission"):
+            self.admitted(raw, expected_sha256="0" * 64)
+        with self.assertRaisesRegex(PointInTimeError, "Markets source admission"):
+            self.admitted(self.csv(missing_b=True))
+        with self.assertRaisesRegex(PointInTimeError, "before its market close"):
+            self.admitted(
+                raw, captured_at=datetime(2026, 10, 30, 19, tzinfo=UTC)
+            )
+        with self.assertRaisesRegex(PointInTimeError, "must match"):
+            self.admitted(
+                raw,
+                last_session_close_at=datetime(2026, 10, 29, 20, tzinfo=UTC),
+            )
+        with self.assertRaisesRegex(PointInTimeError, "UTC offset"):
+            self.admitted(raw, captured_at=datetime(2026, 11, 7, 12))
+
 if __name__ == "__main__":
     unittest.main()

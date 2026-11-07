@@ -108,6 +108,76 @@ class EmpiricalJointForecast:
         return result
 
 
+def market_capture_to_pit_vintages(
+    *,
+    raw_csv: bytes,
+    expected_sha256: str,
+    assets: Sequence[str],
+    first_session: date,
+    last_session: date,
+    captured_at: datetime,
+    last_session_close_at: datetime,
+) -> tuple[PriceVintage, ...]:
+    """Conservative Markets->Research composition, with no invented history.
+
+    This reuses Markets' digest-verified adjusted-close CSV admission.
+    The capture instant is the EARLIEST claim we can mechanically support
+    for the entire imported snapshot. A downloaded five-year history is not
+    thereby evidence that this same adjusted-close vintage was available
+    to an investor five years ago.
+
+    The recorded published_at equals the capture instant deliberately,
+    a *conservative point-of-knowledge bound*, not a provider assertion of
+    original publication time. This is secondary vendor research data, not
+    a primary-exchange or corporate-action audit.
+    """
+    from ordivon_capital.markets.historical_close_snapshot import (
+        HistoricalCloseError,
+        admit_adjusted_close_csv,
+    )
+
+    instant = _utc(captured_at)
+    close_at = _utc(last_session_close_at)
+    # Preserve the existing Markets exchange-calendar convention: price
+    # sessions are exchange-local dates, not arbitrary UTC calendar dates.
+    from zoneinfo import ZoneInfo
+
+    if close_at.astimezone(ZoneInfo("America/New_York")).date() != last_session:
+        raise PointInTimeError(
+            "last source session must match the caller's market close timestamp"
+        )
+    if instant < close_at:
+        raise PointInTimeError(
+            "whole market snapshot cannot be captured before its market close"
+        )
+    names = tuple(assets)
+    if not names or len(names) != len(set(names)):
+        raise PointInTimeError("unique nonempty market assets required")
+    try:
+        admitted = admit_adjusted_close_csv(
+            raw=raw_csv,
+            expected_sha256=expected_sha256,
+            instruments=frozenset(names),
+            start_date=first_session,
+            end_date=last_session,
+        )
+    except HistoricalCloseError as exc:
+        raise PointInTimeError("Markets source admission failed") from exc
+    return tuple(
+        PriceVintage(
+            asset=asset,
+            session=observation.session,
+            # Do not backdate this source to any earlier session close.
+            published_at=instant,
+            adjusted_close=float(observation.prices[asset]),
+            raw_source_sha256=admitted.source_sha256,
+            source_standing="SECONDARY_VENDOR_NOT_ATTESTED",
+        )
+        for observation in admitted.observations
+        for asset in names
+    )
+
+
 def point_in_time_prices(
     records: Sequence[PriceVintage], *, as_of: datetime
 ) -> dict[tuple[str, date], PriceVintage]:

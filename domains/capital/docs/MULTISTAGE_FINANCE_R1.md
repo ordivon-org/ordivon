@@ -233,3 +233,26 @@ Research 宸叉湁 `prequential_energy_evaluation`銆佸鍙橀噺 Energy Scor
 鐞嗚锛欸neiting鈥揜aftery, Strictly Proper Scoring Rules (2007);
 Diebold鈥揗ariano, Comparing Predictive Accuracy (1995);
 Hansen, Superior Predictive Ability (2005).
+
+
+## Markets 鈫?PIT锛氬巻鍙叉姤浠风殑瀹為檯鍙敤鏃堕棿涓嶆槸浜ゆ槗鏃ユ湡
+
+宸茬粡鍙戝竷鐨?Markets `admit_adjusted_close_csv` 鍙礋璐ｅ璋冪敤鏂筡n鎻愪緵鐨?*鍘熷瀛楄妭**璁＄畻 SHA-256銆佽В鏋愭帓搴忋€佹鏌ユ棩鏈熶笌姝ｄ环鏍硷紝
+瀹冩湰韬笉璇佹槑浠锋牸鍦ㄥ巻鍙叉椂鍒诲彲寰楋紝涔熶笉璁よ瘉渚涘簲鍟嗗拰澶嶆潈鏂规銆俓n
+Research 鐨?`market_capture_to_pit_vintages` 鍙仛蹇呰鐨勮法 Owner
+杞崲锛屼笉寤虹珛鏂?Registry 鎴栨暟鎹簱銆傝緭鍏ヤ粛涓?Markets 鏃㈡湁鐨刓n`Date` + ETF 鍒楃殑 CSV 鍘熷瀛楄妭鍙婂叾姝ｇ‘鎽樿銆佽瘉鍒搁泦鍚堛€侀鏈棩锛孿n鍐嶆槑纭粰鍑轰袱涓嫭绔嬫椂闂达細
+`last_session_close_at` 涓轰氦鏄撴棩鍘嗘彁渚涚殑鏈€鍚庝竴鏈熶氦鏄撶粨鏉熺灛闂达紝
+`captured_at` 涓烘湰娆℃枃浠跺疄闄呭彇寰楃灛闂淬€備袱鑰呭繀椤诲甫鏃跺尯锛孿n绗﹀悎缇庝笢浜ゆ槗鎵€鏃ユ湡锛屽苟婊¤冻 `captured_at>=last_session_close_at`銆俓n缂轰竴鍒欐棤娉曚繚璇佹暟鎹笉瓒呭墠锛涗笉鑳戒粠鍘嗗彶浠锋牸鑷繁鐚滄祴浜ゆ槗缁撴潫鏃堕棿銆俓n
+杞崲鍚庣殑姣忎釜 `PriceVintage` 浠嶆部鐢ㄦ棫 PIT 鏍煎紡锛孿n灏?`published_at` 璁句负鏈璁板綍瀹為檯鍙敤鏃堕棿鐨?*淇濆畧涓婄晫**
+`captured_at`锛屼笉鏄寽娴嬩緵搴斿晢浜斿勾鍓嶇殑鍘熷鍙戝竷鏃堕棿锛乗n瀵规煇涓巻鍙叉椂鐐?`t<captured_at`锛屽叏閮ㄦ柊鏁版嵁搴旇 PIT 鎺掗櫎锛孿n鍝€曟枃浠跺唴閮ㄥ寘鍚瘮 `t` 鏇存棭鐨勪氦鏄撴棩鏈熴€俓n杩欐瘮灏嗕粖鏃ヤ笅杞界殑涓€鏁存浜斿勾璋冨悗浠风洿鎺ュ啓鎴愪簲骞村墠鍙鏁版嵁涓ユ牸寰楀銆俓n
+浣跨敤鑼冨紡锛歕n
+    from ordivon_capital.research.pit_joint_forecast import market_capture_to_pit_vintages
+    records = market_capture_to_pit_vintages(
+        raw_csv=raw_file_bytes, expected_sha256=sha256,
+        assets=("IWM","SPY"), first_session=start, last_session=end,
+        captured_at=actual_capture_utc,
+        last_session_close_at=market_calendar_close_utc,
+    )
+
+涔嬪悗鍙甯镐氦缁?`empirical_joint_forecast` 鍜孿n`prequential_energy_evaluation`锛屼絾鍙湁鍐荤粨鏃剁湡姝ｅ凡瀛樻。鐨勪笉鍚孿n鍘嗗彶蹇収鎵嶈兘鐢ㄤ簬鍘嗗彶閫愭湡棰勬祴锛涗粖澶╀竴娆℃€т笅杞界殑浠锋牸涓嶈兘璇佹槑
+鍗佸勾鍓嶉鐭ャ€傝皟鍚庝环鏍间粎鏄緵搴斿晢鐨勬€诲洖鎶ヤ唬鐞嗭紱鎷嗗垎銆佸垎绾€佺◣鍔°€乗n鏉ユ簮鏉冨埄銆佷氦鏄撳彲鎵ц鎬у拰鍒稿晢铻嶈祫浠嶅睘浜庣浉浜掔嫭绔嬬殑鐪熷疄鍚堝悓銆俓n鐞嗚涓庡疄璺垫潵婧愶細ALFRED historical vintage dates锛汷penBB 鐨刓n`unadjusted`/`splits_only`/`splits_and_dividends` 鍙ｅ緞鍖哄垎锛沑nNYSE 姝ｅ紡浜ゆ槗鏃ュ巻涓庝氦鏄撶粨鏉熸椂闂淬€俓n
