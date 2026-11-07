@@ -15,10 +15,11 @@ import hashlib
 import json
 import math
 from collections import Counter
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 
 class PointInTimeError(ValueError):
@@ -28,7 +29,7 @@ class PointInTimeError(ValueError):
 def _utc(instant: datetime) -> datetime:
     if instant.tzinfo is None or instant.utcoffset() is None:
         raise PointInTimeError("information time must include UTC offset")
-    return instant.astimezone(timezone.utc)
+    return instant.astimezone(UTC)
 
 
 def _finite_positive(x: float) -> bool:
@@ -150,7 +151,9 @@ def empirical_joint_forecast(
         (right.year * 12 + right.month) - (left.year * 12 + left.month) != 1
         for left, right in zip(sessions, sessions[1:])
     ):
-        raise PointInTimeError("consecutive monthly valuation endpoints required; daily/weekly returns cannot fund a monthly multistage model")
+        raise PointInTimeError(
+            "consecutive monthly valuation endpoints required; daily/weekly returns cannot fund a monthly multistage model"
+        )
     if valuation_session not in sessions or valuation_session > instant.date():
         raise PointInTimeError("valuation session unavailable on declared calendar")
     last = sessions.index(valuation_session)
@@ -169,10 +172,7 @@ def empirical_joint_forecast(
         if any(before is None or after is None for before, after in pairs):
             excluded += 1
             continue
-        gross = tuple(
-            after.adjusted_close / before.adjusted_close
-            for before, after in pairs
-        )
+        gross = tuple(after.adjusted_close / before.adjusted_close for before, after in pairs)
         if not all(_finite_positive(g) for g in gross):
             raise PointInTimeError("nonfinite joint return")
         included.append(gross)
@@ -187,8 +187,7 @@ def empirical_joint_forecast(
     counts = Counter(included)
     n = len(included)
     scenarios = tuple(
-        JointScenario(count / n, vector, count)
-        for vector, count in sorted(counts.items())
+        JointScenario(count / n, vector, count) for vector, count in sorted(counts.items())
     )
     if not math.isclose(math.fsum(s.probability for s in scenarios), 1.0, abs_tol=1e-12):
         raise PointInTimeError("empirical probability mass is not normalized")
@@ -217,25 +216,28 @@ def weighted_energy_score(
         raise PointInTimeError("actual realized outcome must be positive and finite")
     if not forecasts or any(
         len(s.gross_returns) != len(outcome)
-        or not math.isfinite(s.probability) or s.probability <= 0
+        or not math.isfinite(s.probability)
+        or s.probability <= 0
         or any(not _finite_positive(x) for x in s.gross_returns)
         for s in forecasts
     ):
         raise PointInTimeError("valid full-dimensional probabilistic forecast required")
     if not math.isclose(math.fsum(s.probability for s in forecasts), 1.0, abs_tol=1e-12):
         raise PointInTimeError("forecast probability mass must sum to one")
-    norm = lambda x, y: math.sqrt(math.fsum((a - b)**2 for a, b in zip(x, y, strict=True)))
+    norm = lambda x, y: math.sqrt(math.fsum((a - b) ** 2 for a, b in zip(x, y, strict=True)))
     first = math.fsum(s.probability * norm(s.gross_returns, outcome) for s in forecasts)
-    second = .5 * math.fsum(
+    second = 0.5 * math.fsum(
         a.probability * b.probability * norm(a.gross_returns, b.gross_returns)
-        for a in forecasts for b in forecasts
+        for a in forecasts
+        for b in forecasts
     )
     return max(0.0, first - second)
 
 
-
 def prequential_energy_evaluation(
-    *, records: Sequence[PriceVintage], assets: Sequence[str],
+    *,
+    records: Sequence[PriceVintage],
+    assets: Sequence[str],
     valuation_sessions: Sequence[date],
     decision_instants: Mapping[date, datetime],
     evaluation_as_of: datetime,
@@ -265,12 +267,15 @@ def prequential_energy_evaluation(
         if valuation_session not in calendar:
             raise PointInTimeError("decision session absent from monthly valuation calendar")
         ix = calendar.index(valuation_session)
-        if ix >= len(calendar)-1:
+        if ix >= len(calendar) - 1:
             raise PointInTimeError("no next session defined for evaluation")
-        next_session = calendar[ix+1]
+        next_session = calendar[ix + 1]
         distribution = empirical_joint_forecast(
-            records=records, assets=names, valuation_sessions=calendar,
-            as_of=t, valuation_session=valuation_session,
+            records=records,
+            assets=names,
+            valuation_sessions=calendar,
+            as_of=t,
+            valuation_session=valuation_session,
         )
         frozen_market = point_in_time_prices(records, as_of=t)
         realized = []
@@ -290,19 +295,24 @@ def prequential_energy_evaluation(
             "energy_score": weighted_energy_score(
                 forecasts=distribution.scenarios, realized_gross=realized
             ),
-            "frozen_forecast_sha256": hashlib.sha256(json.dumps(
-                distribution.to_dict(), sort_keys=True, separators=(",", ":")
-            ).encode()).hexdigest(),
+            "frozen_forecast_sha256": hashlib.sha256(
+                json.dumps(distribution.to_dict(), sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest(),
             "standing": "PREQUENTIAL_SCORE_ON_CALLER_SUPPLIED_VINTAGES",
         }
         results.append(result)
     return tuple(results)
 
+
 def make_one_step_optimizer_contract(
-    forecast: EmpiricalJointForecast, *, gamma: float,
-    initial_margin: Sequence[float], turnover_cost: Sequence[float],
+    forecast: EmpiricalJointForecast,
+    *,
+    gamma: float,
+    initial_margin: Sequence[float],
+    turnover_cost: Sequence[float],
     scenario_maintenance: Sequence[Sequence[float]],
-    cash_gross: float, debt_gross: float,
+    cash_gross: float,
+    debt_gross: float,
 ) -> dict[str, Any]:
     """Exact current multistage_policy JSON schema, without guessed inputs.
 
@@ -311,11 +321,19 @@ def make_one_step_optimizer_contract(
     """
     n = len(forecast.assets)
     margins, costs = tuple(initial_margin), tuple(turnover_cost)
-    if (len(margins) != n or len(costs) != n or
-        any(not math.isfinite(m) or not 0 < m <= 1 for m in margins) or
-        any(not math.isfinite(k) or k < 0 for k in costs)):
+    if (
+        len(margins) != n
+        or len(costs) != n
+        or any(not math.isfinite(m) or not 0 < m <= 1 for m in margins)
+        or any(not math.isfinite(k) or k < 0 for k in costs)
+    ):
         raise PointInTimeError("provider initial margin and turnover terms required")
-    if not _finite_positive(gamma) or not _finite_positive(cash_gross) or not _finite_positive(debt_gross) or debt_gross < cash_gross:
+    if (
+        not _finite_positive(gamma)
+        or not _finite_positive(cash_gross)
+        or not _finite_positive(debt_gross)
+        or debt_gross < cash_gross
+    ):
         raise PointInTimeError("finite caller risk preference and valid rates required")
     maintenance = tuple(tuple(row) for row in scenario_maintenance)
     if len(maintenance) != len(forecast.scenarios) or any(
@@ -323,39 +341,63 @@ def make_one_step_optimizer_contract(
         for row in maintenance
     ):
         raise PointInTimeError("scenario-by-asset broker maintenance matrix required")
-    nodes = [{
-        "id": "root", "parent": None, "t": 0,
-        "conditional_probability": 1.0,
-        "initial_margin": list(margins), "turnover_cost": list(costs),
-        "risky_gross": [], "maintenance": [],
-        "cash_gross": 1.0, "debt_gross": 1.0,
-        "terminal": False,
-    }]
+    nodes = [
+        {
+            "id": "root",
+            "parent": None,
+            "t": 0,
+            "conditional_probability": 1.0,
+            "initial_margin": list(margins),
+            "turnover_cost": list(costs),
+            "risky_gross": [],
+            "maintenance": [],
+            "cash_gross": 1.0,
+            "debt_gross": 1.0,
+            "terminal": False,
+        }
+    ]
     for j, (scenario, m) in enumerate(zip(forecast.scenarios, maintenance, strict=True)):
-        nodes.append({
-            "id": f"scenario_{j}", "parent": "root", "t": 1,
-            "conditional_probability": scenario.probability,
-            "risky_gross": list(scenario.gross_returns),
-            "cash_gross": cash_gross, "debt_gross": debt_gross,
-            "maintenance": list(m), "initial_margin": [], "turnover_cost": [],
-            "terminal": True,
-        })
+        nodes.append(
+            {
+                "id": f"scenario_{j}",
+                "parent": "root",
+                "t": 1,
+                "conditional_probability": scenario.probability,
+                "risky_gross": list(scenario.gross_returns),
+                "cash_gross": cash_gross,
+                "debt_gross": debt_gross,
+                "maintenance": list(m),
+                "initial_margin": [],
+                "turnover_cost": [],
+                "terminal": True,
+            }
+        )
     return {"gamma": gamma, "nodes": nodes}
 
 
 def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Produce a reproducible, zero-authority optimizer contract plus evidence."""
-    expected = {"as_of", "valuation_session", "assets", "valuation_sessions", "prices", "economic_contract"}
+    expected = {
+        "as_of",
+        "valuation_session",
+        "assets",
+        "valuation_sessions",
+        "prices",
+        "economic_contract",
+    }
     if set(payload) != expected:
         raise PointInTimeError("expected exact data and economic-contract input fields")
+
     def record(raw: Mapping[str, Any]) -> PriceVintage:
         return PriceVintage(
-            asset=raw["asset"], session=date.fromisoformat(raw["session"]),
+            asset=raw["asset"],
+            session=date.fromisoformat(raw["session"]),
             published_at=datetime.fromisoformat(raw["published_at"]),
             adjusted_close=float(raw["adjusted_close"]),
             raw_source_sha256=raw["raw_source_sha256"],
             source_standing=raw["source_standing"],
         )
+
     forecast = empirical_joint_forecast(
         records=[record(x) for x in payload["prices"]],
         assets=payload["assets"],
@@ -364,7 +406,14 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         valuation_session=date.fromisoformat(payload["valuation_session"]),
     )
     econ = payload["economic_contract"]
-    if set(econ) != {"gamma", "initial_margin", "turnover_cost", "scenario_maintenance", "cash_gross", "debt_gross"}:
+    if set(econ) != {
+        "gamma",
+        "initial_margin",
+        "turnover_cost",
+        "scenario_maintenance",
+        "cash_gross",
+        "debt_gross",
+    }:
         raise PointInTimeError("economic contract requires exact explicit fields")
     tree = make_one_step_optimizer_contract(forecast, **econ)
     canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
@@ -384,7 +433,9 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Read-only PIT research to existing Capital optimizer")
+    parser = argparse.ArgumentParser(
+        description="Read-only PIT research to existing Capital optimizer"
+    )
     parser.add_argument("--input", type=Path, required=True)
     args = parser.parse_args()
     try:
