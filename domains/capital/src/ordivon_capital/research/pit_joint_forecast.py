@@ -530,14 +530,61 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+
+def solve_pit_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Research-to-Portfolio native consumer, no second optimization engine.
+
+    The only market probabilities are the caller's past-visible empirical or
+    lagged-neighbor hypotheses. The caller must also supply actual economic
+    preferences and provider financing/margin terms. This function neither
+    authenticates those inputs nor creates any order/Paper event.
+    """
+    import dataclasses
+
+    from ordivon_capital.portfolio.multistage_policy import (
+        InformationNode,
+        MultistageProblem,
+        solve_multistage,
+    )
+
+    result = from_json_payload(payload)
+    contract = result["optimizer_input"]
+    vectors = {"risky_gross", "maintenance", "initial_margin", "turnover_cost"}
+    nodes = tuple(
+        InformationNode(
+            **{
+                key: tuple(value) if key in vectors else value
+                for key, value in raw.items()
+            }
+        )
+        for raw in contract["nodes"]
+    )
+    solution = solve_multistage(
+        MultistageProblem(gamma=contract["gamma"], nodes=nodes)
+    )
+    return {
+        **result,
+        "conditional_allocation": dataclasses.asdict(solution),
+        "allocation_standing": "CONDITIONAL_UNCALIBRATED_ONE_STEP_RESEARCH",
+    }
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Read-only PIT research to existing Capital optimizer"
     )
     parser.add_argument("--input", type=Path, required=True)
+    parser.add_argument(
+        "--solve", action="store_true",
+        help="run the existing read-only one-step CRRA consumer, with no trades",
+    )
     args = parser.parse_args()
     try:
-        outcome = from_json_payload(json.loads(args.input.read_text(encoding="utf-8")))
+        payload = json.loads(args.input.read_text(encoding="utf-8"))
+        outcome = (
+            solve_pit_payload(payload)
+            if args.solve
+            else from_json_payload(payload)
+        )
     except (PointInTimeError, ValueError, TypeError, KeyError) as e:
         parser.error(f"incomplete point-in-time market/economic contract: {e}")
     print(json.dumps(outcome, ensure_ascii=False, sort_keys=True))

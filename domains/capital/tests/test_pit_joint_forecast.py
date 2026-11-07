@@ -472,5 +472,117 @@ class PITResearchContract(unittest.TestCase):
         self.assertEqual(result, same)
 
 
+
+class PITNativeOptimizerConsumer(unittest.TestCase):
+    """Real solver invocation with frozen, explicitly unattested price vintages."""
+
+    def payload(self):
+        calendar, rows = PITResearchContract().fixture()
+        return {
+            "as_of": "2026-10-30T22:00:00+00:00",
+            "valuation_session": calendar[-1].isoformat(),
+            "assets": ["A", "B"],
+            "valuation_sessions": [d.isoformat() for d in calendar],
+            "prices": [
+                {
+                    "asset": x.asset,
+                    "session": x.session.isoformat(),
+                    "published_at": x.published_at.isoformat(),
+                    "adjusted_close": x.adjusted_close,
+                    "raw_source_sha256": x.raw_source_sha256,
+                    "source_standing": x.source_standing,
+                }
+                for x in rows
+            ],
+            "economic_contract": {
+                "gamma": 2.0,
+                "initial_margin": [0.5, 0.5],
+                "turnover_cost": [0.0, 0.0],
+                "cash_gross": 1.01,
+                "debt_gross": 1.03,
+                "maintenance_by_asset": [0.3, 0.3],
+            },
+        }
+
+    def test_one_api_consumes_pit_joint_distribution_and_existing_solver(self):
+        from ordivon_capital.research.pit_joint_forecast import solve_pit_payload
+
+        payload = self.payload()
+        out = solve_pit_payload(payload)
+        self.assertEqual(
+            out["allocation_standing"],
+            "CONDITIONAL_UNCALIBRATED_ONE_STEP_RESEARCH",
+        )
+        self.assertEqual(out["effects"], "NONE_NO_TRADE_NO_ACCOUNTING")
+        self.assertEqual(out["conditional_allocation"]["contributions_r_per_path"], 1)
+        self.assertEqual(len(out["conditional_allocation"]["root_risky_r"]), 2)
+        self.assertEqual(len(out["conditional_allocation"]["terminal_distribution"]), 3)
+        self.assertLess(out["conditional_allocation"]["equality_residual"], 1e-7)
+        self.assertLess(out["conditional_allocation"]["inequality_residual"], 1e-7)
+        self.assertLess(
+            out["conditional_allocation"]["concavity_global_utility_gap_upper"], 1e-5
+        )
+        # The original evidence-only API remains byte-for-byte semantically stable.
+        evidence = from_json_payload(payload)
+        self.assertEqual(out["optimizer_input"], evidence["optimizer_input"])
+        self.assertEqual(out["forecast_evidence"], evidence["forecast_evidence"])
+        self.assertNotIn("conditional_allocation", evidence)
+
+    def test_future_released_revision_does_not_change_conditional_policy(self):
+        from ordivon_capital.research.pit_joint_forecast import solve_pit_payload
+
+        payload = self.payload()
+        before = solve_pit_payload(payload)
+        revised = {
+            **payload["prices"][0],
+            "published_at": "2026-11-10T12:00:00+00:00",
+            "adjusted_close": 100000.0,
+        }
+        payload["prices"].append(revised)
+        after = solve_pit_payload(payload)
+        self.assertEqual(before["forecast_evidence"], after["forecast_evidence"])
+        self.assertEqual(
+            before["conditional_allocation"],
+            after["conditional_allocation"],
+        )
+        self.assertNotEqual(before["input_sha256"], after["input_sha256"])
+
+    def test_native_cli_solve_opt_in_and_original_cli_default(self):
+        import json
+        import os
+        import subprocess
+        import tempfile
+
+        payload = self.payload()
+        with tempfile.TemporaryDirectory() as temp:
+            file = Path(temp) / "vintages.json"
+            file.write_text(json.dumps(payload), encoding="utf-8")
+            env = {**os.environ, "PYTHONPATH": str(ROOT)}
+            command = [
+                sys.executable,
+                "-m", "ordivon_capital.research.pit_joint_forecast",
+                "--input", str(file),
+            ]
+            old = subprocess.run(
+                command, capture_output=True, text=True, check=True, env=env
+            )
+            full = subprocess.run(
+                [*command, "--solve"],
+                capture_output=True, text=True, check=True, env=env
+            )
+        old_json, new_json = json.loads(old.stdout), json.loads(full.stdout)
+        self.assertNotIn("conditional_allocation", old_json)
+        self.assertIn("conditional_allocation", new_json)
+        self.assertEqual(old_json["input_sha256"], new_json["input_sha256"])
+        self.assertEqual(new_json["effects"], "NONE_NO_TRADE_NO_ACCOUNTING")
+
+    def test_missing_economic_owner_terms_never_create_an_optimal_policy(self):
+        from ordivon_capital.research.pit_joint_forecast import solve_pit_payload
+
+        payload = self.payload()
+        payload["economic_contract"].pop("gamma")
+        with self.assertRaises(PointInTimeError):
+            solve_pit_payload(payload)
+
 if __name__ == "__main__":
     unittest.main()
