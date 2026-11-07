@@ -32,11 +32,9 @@ from .contracts import (
     ExecutionResolution,
     SystemDescription,
 )
-from .external_worker import ExternalPullWorkerTransport
 from .host_tools import register_host_tools
 from .service import GatewayError, GatewayService
 from .upstream import McpOwnerCaller, OwnerCallError
-from .worker_http import attach_worker_routes
 
 
 def _owner_error_result(exc: OwnerCallError) -> CallToolResult:
@@ -319,8 +317,6 @@ def build_http_app(
     public_origin: str | None,
     access_verifier: CloudflareAccessVerifier | None,
     local_bearer_token_file: str | None = None,
-    external_workers: ExternalPullWorkerTransport | None = None,
-    worker_enrollment_token_file: str | None = None,
 ):
     allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
     allowed_origins = [
@@ -367,12 +363,6 @@ def build_http_app(
         )
 
     app.add_route("/health", health, methods=["GET"])
-    if external_workers is not None:
-        attach_worker_routes(
-            app,
-            external_workers,
-            enrollment_token_file=worker_enrollment_token_file,
-        )
     if access_verifier is not None or local_bearer_token_file is not None:
         return CloudflareAccessMiddleware(
             app,
@@ -383,23 +373,17 @@ def build_http_app(
     return app
 
 
-def _external_workers_from_env() -> ExternalPullWorkerTransport | None:
-    """PG-only Gateway: historical SQLite worker transport is retired.
-
-    Active Gateway is a stateless MCP router; actual durable Work/Job/Attempt
-    authority belongs to PostgreSQL-backed Runtime and Host.
-    """
+def _reject_retired_worker_database_config() -> None:
+    """Reject the deleted SQLite worker config; Gateway delegates effects to owners."""
     if os.environ.get("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", "").strip():
         raise RuntimeError(
-            "Gateway SQLite External Worker was retired; this legacy file-backed "
-            "transport is no longer admitted. Use PostgreSQL Owner Runtime."
+            "Gateway SQLite External Worker was retired; use PostgreSQL Owner Runtime."
         )
-    return None
 
 
 def main() -> None:
-    external_workers = _external_workers_from_env()
-    gateway = GatewayService(McpOwnerCaller.from_env(), external_workers=external_workers)
+    _reject_retired_worker_database_config()
+    gateway = GatewayService(McpOwnerCaller.from_env())
     server = build_server(gateway)
     transport = os.environ.get("ORDIVON_GATEWAY_TRANSPORT", "stdio")
     if transport == "stdio":
@@ -428,10 +412,6 @@ def main() -> None:
         public_origin=public_origin,
         access_verifier=access_verifier,
         local_bearer_token_file=local_bearer_token_file,
-        external_workers=external_workers,
-        worker_enrollment_token_file=(
-            os.environ.get("ORDIVON_GATEWAY_WORKER_ENROLLMENT_TOKEN_FILE") or None
-        ),
     )
     uvicorn.run(app, host=host, port=port, log_level="info")
 

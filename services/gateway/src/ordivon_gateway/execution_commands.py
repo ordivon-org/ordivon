@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from .contracts import (
     ExecutionReceipt,
 )
 from .execution_refs import GatewayError, parse_execution_ref
 from .execution_refs import format_execution_ref as _execution_ref
-from .external_worker_contracts import WorkerConflict
 from .owner_protocol import _required_bool, _required_str
 from .routing import CapabilityRoute
 from .upstream import OwnerToolCaller
-
-if TYPE_CHECKING:
-    from .external_worker import ExternalPullWorkerTransport
 
 
 class ExecutionCommandMethods:
@@ -21,7 +17,6 @@ class ExecutionCommandMethods:
 
     _caller: OwnerToolCaller
     _routes: dict[str, CapabilityRoute]
-    _external_workers: ExternalPullWorkerTransport | None
 
     async def execution_submit(
         self,
@@ -38,42 +33,6 @@ class ExecutionCommandMethods:
         authority_references: list[dict[str, Any]] | None = None,
     ) -> ExecutionReceipt:
         route = self._routes.get(capability)
-        if route is None and self._external_workers is not None:
-            external_projection = self._external_workers.capability_projection()
-            if capability in external_projection:
-                if not request_id or not workspace_id or not executable:
-                    raise GatewayError("requestId, workspaceId, and executable are required")
-                parcel: dict[str, Any] = {
-                    "workspace_id": workspace_id,
-                    "executable": executable,
-                    "args": list(args),
-                    "cwd_relative": cwd_relative,
-                }
-                if context is not None:
-                    parcel["context"] = context
-                if env is not None:
-                    parcel["env"] = dict(env)
-                if timeout_ms is not None:
-                    parcel["timeout_ms"] = timeout_ms
-                if authority_references is not None:
-                    parcel["authority_references"] = [dict(item) for item in authority_references]
-                try:
-                    operation = self._external_workers.submit(
-                        capability=capability,
-                        request_id=request_id,
-                        parcel=parcel,
-                    )
-                except WorkerConflict as exc:
-                    raise GatewayError(str(exc)) from exc
-                return ExecutionReceipt(
-                    operation_ref=_execution_ref("external.pull", operation.operation_id),
-                    capability=capability,
-                    owner_id="external.pull",
-                    native_id=operation.operation_id,
-                    state=operation.state,
-                    terminal=operation.terminal,
-                    delivery_disposition="queued" if not operation.terminal else "committed",
-                )
         if route is None:
             raise GatewayError(f"unknown capability: {capability}")
         if route.category != "execution" or route.owner_tool != "workspace.exec":
@@ -145,22 +104,6 @@ class ExecutionCommandMethods:
 
     async def execution_cancel(self, operation_ref: str) -> ExecutionReceipt:
         owner_id, native_id = parse_execution_ref(operation_ref)
-        if owner_id == "external.pull":
-            if self._external_workers is None:
-                raise GatewayError("external pull worker transport is not configured")
-            try:
-                operation = self._external_workers.cancel(native_id)
-            except WorkerConflict as exc:
-                raise GatewayError(str(exc)) from exc
-            return ExecutionReceipt(
-                operation_ref=operation_ref,
-                capability=operation.capability,
-                owner_id=owner_id,
-                native_id=native_id,
-                state=operation.state,
-                terminal=operation.terminal,
-                delivery_disposition="committed" if operation.terminal else "in_progress",
-            )
         result = await self._caller.call_tool(
             owner_id,
             "job.cancel",

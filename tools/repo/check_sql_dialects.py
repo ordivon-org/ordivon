@@ -49,9 +49,9 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     'apps/web/src/store.ts': 1,
     'platform/security/labs/agent-admission-rs/src/grant-store.ts': 1,
     'platform/security/labs/agent-admission-rs/src/principal-store.ts': 1,
-    # Other concrete owners previously invisible to the Runtime/Harness-only gate:
-    # Gateway pull-worker durability (conditional deployed consumer).
-    'services/gateway/src/ordivon_gateway/external_worker.py': 1,
+    # The Gateway's SQLite external-worker transport was retired after
+    # natural-owner routing cutover. A new direct SQLite call in Gateway
+    # must fail this exact source-frozen debt gate, not be grandfathered.
     # Capital accounting and Media research have distinct consumer contracts:
     # do not promote the research executor or test-only ledger to live PG by analogy.
     'domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py': 1,

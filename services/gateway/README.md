@@ -73,7 +73,7 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
   Its discovery methods delegate rather than duplicating catalog rules.
 - **Execution Coordinator** (src/ordivon_gateway/execution_coordinator.py):
   submit, resolve, observe, cancel and artifact forwarding to Runtime or
-  external pull workers. Owns neither Job state nor terminal truth.
+  natural Runtime owners only. Owns neither Job state nor terminal truth.
 - **Owner protocol** (src/ordivon_gateway/owner_protocol.py):
   owner response validation and configuration probes. The canonical execution
   reference grammar stays in execution_refs.py; the service.py compatibility
@@ -115,28 +115,12 @@ Gateway currently exposes `host.status` as a delegated, read-only Host status/in
 
 Checkpoint payloads are opaque objects at the Gateway boundary. Host validates the current WorkingCheckpoint schema; Gateway does not maintain a second Host checkpoint ontology.
 
-## External pull workers (candidate R3)
+## Retired external pull workers
 
-Gateway can optionally enable the provider-neutral external pull-worker transport by setting
-The legacy ORDIVON_GATEWAY_EXTERNAL_WORKER_DB SQLite transport is retired. Enrolled workers
-contribute their current operator-bounded capabilities to the normal Gateway capability
-projection and execution.submit/get/cancel plus artifact.read remain the northbound API.
-
-Worker HTTP routes live under /v1/workers/* and /v1/operations/*. Runtime requests are
-Ed25519 signed and replay-fenced. Enrollment is disabled unless
-ORDIVON_GATEWAY_WORKER_ENROLLMENT_TOKEN_FILE is configured.
-
-This transport is execution-delivery mechanics only. It does not close Admission Fabric
-AF-S2 capability authorization, does not establish domain EffectAuthority, and does not
-grant shell workers browser authority.
-
-The external worker's SQLite transport must establish a readable persisted
-operation before committing a submit, terminal completion or cancellation.
-If the post-write readback fails, it rolls back the entire transaction,
-including attempt and artifact changes; this never counts as an executed or
-semantically completed effect. Owner-native fault injection and the
-`python -O` negative control live in
-`tests/test_external_worker_precommit_readback.py`.
+The pre-PG external pull worker and its SQLite persistence are deleted.
+Gateway startup rejects `ORDIVON_GATEWAY_EXTERNAL_WORKER_DB`; Runtime owns
+Job/Attempt/Artifact and Host owns Work/Social continuity. No historical
+worker data are imported, migrated or retained by this source retirement.
 
 ## Capability observation lifecycle
 
