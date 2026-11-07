@@ -1,5 +1,7 @@
 # Ordivon Finance — Human 操作指南（R1）
 
+**Directory audit and Human/Agent roles:** [Finance Owner / LEGO audited guide](FINANCE_DIRECTORY_OWNER_AUDIT_R1.md). Use the existing natural Owners instead of recreating the retired Wave-A pipeline.
+
 > 多阶段情景树优化与严格非预见性说明：
 > `MULTISTAGE_FINANCE_R1.md`。这个成熟随机规划子问题在所有
 > 价格/融资/效用分布均由调用者或真实提供方给定时才有条件最优解，

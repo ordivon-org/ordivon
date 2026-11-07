@@ -1,6 +1,8 @@
 # Ordivon Capital — Finance investment and research owner
 
 
+**Directory/Owner audit:** [Finance directory and LEGO boundary audit](docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md) records consumer-backed retirement decisions and separate Human/Agent operating paths. It is source evidence, not a current market or broker authority.
+
 ## Start here — Human / Agent (2026-11-06)
 
 **Human**: [Finance operating guide](docs/FINANCE_HUMAN_GUIDE_R1.md)

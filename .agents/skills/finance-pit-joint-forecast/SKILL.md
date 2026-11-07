@@ -42,7 +42,7 @@ Reviewable invariants:
 5. Unknown source or financial-contract fact remains `UNKNOWN`, not a zero, a guess or a false claim.
 6. Human-facing output distinguishes empirical distribution score from investor return and broker applicability.
 
-Verification: `python -m unittest discover -s domains/capital/tests -p test_pit_joint_forecast.py -v` (8 pure property/consumer checks). Full Ordivon Owner verification and canonical Skill registry must occur when the change reaches `main`; do not claim that preparing a SKILL.md file installs or activates it.
+Verification: `python -m unittest discover -s domains/capital/tests -p test_pit_joint_forecast.py -v` (native PIT suite; verify the current test count rather than hard-coding it). Full Ordivon Owner verification and canonical Skill registry must occur when the change reaches `main`; do not claim that preparing a SKILL.md file installs or activates it.
 
 ## Retire and reuse
 
