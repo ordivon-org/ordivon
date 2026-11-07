@@ -75,7 +75,7 @@ Risk-data architecture uses BCBS 239 principles as the reference for source iden
 
 ## Composition-first rule
 
-Ordivon Capital owner domains adopt a mechanism only after contract-equivalent qualification. Venue APIs own market/account/order reality. The current bounded US-equity feasibility contract is owned by the small local fee-aware sizer after zero-mismatch differential qualification against current LEAN; LEAN remains an isolated historical/general trading-engine challenger because its latest candidate is functionally green but supply-chain blocked. NautilusTrader is likewise a challenger rather than a canonical core owner. Its rc4 executable qualification tools are isolated under tools/nautilus_rc4; canonical public-data, private-read preflight, and OKX provider-audit gates do not execute rc4. Nautilus-specific episode normalization/effect-matrix adapters are likewise candidate tools; the current non-live effect admission contract is provider-neutral and retains rc4 only as historical qualification evidence. FIX Latest / FIX Orchestra remains the order-semantic reference. The current legacy FIX 4.4 mechanics projection is a bounded local sessionless TagValue projector after 120/120 byte-exact QuickFIX/n comparisons; QuickFIX/n is retained only as a differential oracle and future real-session candidate. PostgreSQL 18.6 through psycopg 3 is the current **native-qualified Accounting implementation owner** in the source census, while installed-service cutover remains a distinct observed fact; legacy SQLite is confined to historical/migration consumers, and TigerBeetle remains a separately qualified distributed-accounting challenger. Prometheus 3.14.0 is a Capital observability candidate rather than a current owner. A 2026-09-21 live census found the old Market-Capital node-exporter/shared-Prometheus island inactive and the active Network v2 Prometheus had zero Capital series; the stale renderer/rules/textfile/drop-in were therefore retired instead of preserved as compatibility debt. Grafana/OpenTelemetry/OpenLineage likewise remain candidates until an active contract exists. See docs/COMPOSITION_FIRST_2026-09-14.md.
+Ordivon Capital owner domains adopt a mechanism only after contract-equivalent qualification. Venue APIs own market/account/order reality. The current bounded US-equity feasibility contract is owned by the small local fee-aware sizer after zero-mismatch differential qualification against current LEAN; LEAN remains an isolated historical/general trading-engine challenger because its latest candidate is functionally green but supply-chain blocked. NautilusTrader is likewise a challenger rather than a canonical core owner. Its rc4 executable qualification tools are isolated under tools/nautilus_rc4; canonical public-data, private-read preflight, and OKX provider-audit gates do not execute rc4. Nautilus-specific episode normalization/effect-matrix adapters are likewise candidate tools; the current non-live effect admission contract is provider-neutral and retains rc4 only as historical qualification evidence. FIX Latest / FIX Orchestra remains the order-semantic reference. The current legacy FIX 4.4 mechanics projection is a bounded local sessionless TagValue projector after 120/120 byte-exact QuickFIX/n comparisons; QuickFIX/n is retained only as a differential oracle and future real-session candidate. PostgreSQL 18.6 through psycopg 3 is the current **native-qualified Accounting implementation owner** in the source census, while installed-service cutover remains a distinct observed fact; legacy SQLite is confined to disposable historical regression consumers, and TigerBeetle remains a separately qualified distributed-accounting challenger. Prometheus 3.14.0 is a Capital observability candidate rather than a current owner. A 2026-09-21 live census found the old Market-Capital node-exporter/shared-Prometheus island inactive and the active Network v2 Prometheus had zero Capital series; the stale renderer/rules/textfile/drop-in were therefore retired instead of preserved as compatibility debt. Grafana/OpenTelemetry/OpenLineage likewise remain candidates until an active contract exists. See docs/COMPOSITION_FIRST_2026-09-14.md.
 
 ### Capital accounting substrate
 ### Capital accounting substrate
@@ -85,9 +85,9 @@ The canonical source authority is
 `config/external_owner_census.json` current qualifications. Native
 PostgreSQL SERIALIZABLE/uniqueness/advisory-transaction evidence belongs to
 the Accounting owner; do not reinterpret that test PASS as an automatic
-production install/cutover. `accounting/sqlite_ledger.py` and the one-time
-SQLite source importer remain **legacy migration and regression consumers**
-until an accepted consumer cutover retires their exact usage. TigerBeetle
+production install/cutover. The one-time SQLite source importer is retired:
+no historical SQLite row backfill is required. `accounting/sqlite_ledger.py`
+is retained only for consumed disposable differential regression tests. TigerBeetle
 is a challenger rather than the canonical current ledger.
 
 Neither internal accounting substrate proves exchange settlement, legal
@@ -116,7 +116,7 @@ Retained local seams are:
 - frozen-decision to standard execution-intent mapping;
 - bounded local deterministic policy input normalization and fail-closed enforcement;
 - venue-native order/fill state to FIX lifecycle normalization;
-- authoritative reconciliation to the current qualified Accounting owner, retaining the explicitly consumed SQLite migration seam;
+- authoritative reconciliation to the current qualified Accounting owner, without a SQLite importer or fallback;
 - provider restart/recovery identity bindings required by the composition.
 
 The Governance-domain execution-policy enforcement point is src/ordivon_capital/governance/policy_decision.py plus config/execution_policy.json. The source contract is a bounded deterministic policy rule set evaluated by the current owner-native Python toolchain. OPA 1.20.2 is retained only as historical differential evidence under tools/opa_1_20_2.
