@@ -49,7 +49,12 @@ From repository root, run:
     mise run //domains/capital:verify:formal
 
 This delegates to the pinned upstream Z3 from tools/formal/mise.toml. The
-verifier requires UNSAT for negated universal arithmetic obligations, SAT
+Capital Owner native mise verify also runs this proof before the Python regression
+suite. In CI, the existing Owner task resolves the pinned Z3 from
+tools/formal/mise.toml when it is not yet installed. No new workflow or
+custom solver wrapper is required.
+
+The verifier requires UNSAT for negated universal arithmetic obligations, SAT
 for a nonvacuous legal transition, and SAT for two faulty-model probes:
 counting unsettled/intraday sale proceeds as buying power and failing to
 remove a settled receivable. An unexpected solver result or UNKNOWN fails.
