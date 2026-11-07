@@ -82,9 +82,10 @@ class EmpiricalJointForecast:
     training_sessions: tuple[str, ...]
     source_digests: tuple[str, ...]
     standing: str = "PAST_ONLY_EMPIRICAL_JOINT_BASELINE_NOT_CALIBRATED"
+    conditioning: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "assets": list(self.assets),
             "as_of_utc": self.as_of_utc,
             "valuation_session": self.valuation_session,
@@ -102,6 +103,9 @@ class EmpiricalJointForecast:
             "source_digests": list(self.source_digests),
             "standing": self.standing,
         }
+        if self.conditioning is not None:
+            result["conditioning"] = self.conditioning
+        return result
 
 
 def point_in_time_prices(
@@ -135,6 +139,7 @@ def empirical_joint_forecast(
     valuation_sessions: Sequence[date],
     as_of: datetime,
     valuation_session: date,
+    forecast_method: str = "empirical",
 ) -> EmpiricalJointForecast:
     """Past-only joint monthly returns on declared month-end valuation sessions.
 
@@ -143,6 +148,8 @@ def empirical_joint_forecast(
     session itself must have all assets, or estimation fails closed.
     """
     instant = _utc(as_of)
+    if forecast_method not in ("empirical", "lagged_knn"):
+        raise PointInTimeError("forecast_method must be empirical or lagged_knn")
     names = tuple(assets)
     if not names or len(names) != len(set(names)) or any(not x for x in names):
         raise PointInTimeError("unique nonempty assets required")
@@ -163,6 +170,7 @@ def empirical_joint_forecast(
     if any((a, valuation_session) not in by_key for a in names):
         raise PointInTimeError("current valuation missing a published asset price")
     included: list[tuple[float, ...]] = []
+    included_indices: list[int] = []
     used_sessions: list[str] = []
     digests: set[str] = set()
     excluded = 0
@@ -176,16 +184,52 @@ def empirical_joint_forecast(
         if not all(_finite_positive(g) for g in gross):
             raise PointInTimeError("nonfinite joint return")
         included.append(gross)
+        included_indices.append(j)
         used_sessions.append(newer.isoformat())
         for before, after in pairs:
             digests.add(before.raw_source_sha256)
             digests.add(after.raw_source_sha256)
     if not included:
         raise PointInTimeError("no complete observed one-month joint returns")
+    selected = included
+    standing = "PAST_ONLY_EMPIRICAL_JOINT_BASELINE_NOT_CALIBRATED"
+    conditioning = None
+    if forecast_method == "lagged_knn":
+        # Training pairs (r_t, r_{t+1}) must be observed and consecutive.
+        if included_indices[-1] != last:
+            raise PointInTimeError("latest conditioning return not fully published")
+        transitions = [
+            (included[i], included[i + 1], used_sessions[i + 1])
+            for i in range(len(included) - 1)
+            if included_indices[i + 1] == included_indices[i] + 1
+        ]
+        if len(transitions) < 2:
+            raise PointInTimeError("lagged_knn requires two complete lagged transitions")
+        query = tuple(math.log(g) for g in included[-1])
+        ranked = sorted(
+            (
+                math.fsum((math.log(current[j]) - query[j]) ** 2 for j in range(len(query))),
+                i,
+            )
+            for i, (current, _, _) in enumerate(transitions)
+        )
+        neighbors = math.isqrt(len(transitions))
+        neighbors += neighbors * neighbors < len(transitions)
+        chosen = ranked[:neighbors]
+        selected = [transitions[i][1] for _, i in chosen]
+        conditioning = {
+            "method": "lagged_knn_log_joint_returns",
+            "conditioning_session": used_sessions[-1],
+            "eligible_historical_transitions": len(transitions),
+            "neighbor_count": neighbors,
+            "selected_outcome_sessions": [transitions[i][2] for _, i in chosen],
+            "selection_standing": "SQRT_SAMPLE_HEURISTIC_NOT_CALIBRATED",
+        }
+        standing = "PAST_ONLY_LAGGED_KNN_JOINT_NOT_CALIBRATED"
     # Group duplicate exact joint realizations: consuming multistage policy
     # rejects duplicate indistinguishable children to prevent fake foresight.
-    counts = Counter(included)
-    n = len(included)
+    counts = Counter(selected)
+    n = len(selected)
     scenarios = tuple(
         JointScenario(count / n, vector, count) for vector, count in sorted(counts.items())
     )
@@ -195,11 +239,13 @@ def empirical_joint_forecast(
         assets=names,
         as_of_utc=instant.isoformat(),
         valuation_session=valuation_session.isoformat(),
-        training_return_count=n,
+        training_return_count=len(included),
         excluded_incomplete_intervals=excluded,
         scenarios=scenarios,
         training_sessions=tuple(used_sessions),
         source_digests=tuple(sorted(digests)),
+        standing=standing,
+        conditioning=conditioning,
     )
 
 
@@ -234,6 +280,38 @@ def weighted_energy_score(
     return max(0.0, first - second)
 
 
+def weighted_variogram_score(
+    *, forecasts: Sequence[JointScenario], realized_gross: Sequence[float]
+) -> float:
+    """Proper pairwise dependency score (p=1), not strictly proper alone."""
+    outcome = tuple(realized_gross)
+    if len(outcome) < 2 or any(not _finite_positive(x) for x in outcome):
+        raise PointInTimeError("variogram requires two positive finite assets")
+    if (
+        not forecasts
+        or any(
+            len(f.gross_returns) != len(outcome)
+            or not math.isfinite(f.probability)
+            or f.probability <= 0
+            or any(not _finite_positive(g) for g in f.gross_returns)
+            for f in forecasts
+        )
+        or not math.isclose(math.fsum(f.probability for f in forecasts), 1.0, abs_tol=1e-12)
+    ):
+        raise PointInTimeError("valid normalized joint forecast required")
+    return math.fsum(
+        (
+            abs(outcome[i] - outcome[j])
+            - math.fsum(
+                f.probability * abs(f.gross_returns[i] - f.gross_returns[j]) for f in forecasts
+            )
+        )
+        ** 2
+        for i in range(len(outcome))
+        for j in range(i + 1, len(outcome))
+    )
+
+
 def prequential_energy_evaluation(
     *,
     records: Sequence[PriceVintage],
@@ -241,6 +319,7 @@ def prequential_energy_evaluation(
     valuation_sessions: Sequence[date],
     decision_instants: Mapping[date, datetime],
     evaluation_as_of: datetime,
+    forecast_method: str = "empirical",
 ) -> tuple[dict[str, Any], ...]:
     """Score truly frozen past-only distributions after next prices are public.
 
@@ -276,6 +355,7 @@ def prequential_energy_evaluation(
             valuation_sessions=calendar,
             as_of=t,
             valuation_session=valuation_session,
+            forecast_method=forecast_method,
         )
         frozen_market = point_in_time_prices(records, as_of=t)
         realized = []
@@ -292,6 +372,12 @@ def prequential_energy_evaluation(
             "outcome_session": next_session.isoformat(),
             "realized_joint_gross": realized,
             "training_n": distribution.training_return_count,
+            "forecast_method": forecast_method,
+            "variogram_score": (
+                weighted_variogram_score(forecasts=distribution.scenarios, realized_gross=realized)
+                if len(names) > 1
+                else None
+            ),
             "energy_score": weighted_energy_score(
                 forecasts=distribution.scenarios, realized_gross=realized
             ),
@@ -385,7 +471,7 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         "prices",
         "economic_contract",
     }
-    if set(payload) != expected:
+    if set(payload) not in (expected, expected | {"forecast_method"}):
         raise PointInTimeError("expected exact data and economic-contract input fields")
 
     def record(raw: Mapping[str, Any]) -> PriceVintage:
@@ -404,27 +490,39 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         valuation_sessions=[date.fromisoformat(s) for s in payload["valuation_sessions"]],
         as_of=datetime.fromisoformat(payload["as_of"]),
         valuation_session=date.fromisoformat(payload["valuation_session"]),
+        forecast_method=payload.get("forecast_method", "empirical"),
     )
     econ = payload["economic_contract"]
-    if set(econ) != {
-        "gamma",
-        "initial_margin",
-        "turnover_cost",
-        "scenario_maintenance",
-        "cash_gross",
-        "debt_gross",
-    }:
-        raise PointInTimeError("economic contract requires exact explicit fields")
-    tree = make_one_step_optimizer_contract(forecast, **econ)
+    required = {"gamma", "initial_margin", "turnover_cost", "cash_gross", "debt_gross"}
+    if set(econ) == required | {"scenario_maintenance"}:
+        model_terms = dict(econ)
+    elif set(econ) == required | {"maintenance_by_asset"}:
+        # An explicit broker contract shared by all outcomes is a natural
+        # shorthand, independent of the number of forecast scenarios.
+        # Never infer this contract from historical returns or a default.
+        model_terms = {key: econ[key] for key in required}
+        model_terms["scenario_maintenance"] = [
+            econ["maintenance_by_asset"] for _ in forecast.scenarios
+        ]
+    else:
+        raise PointInTimeError(
+            "economic contract requires explicit scenario_maintenance "
+            "or maintenance_by_asset plus funding, costs and gamma"
+        )
+    tree = make_one_step_optimizer_contract(forecast, **model_terms)
     canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return {
-        "standing": "HISTORICAL_POINT_IN_TIME_EMPIRICAL_RESEARCH_ONLY",
+        "standing": (
+            "HISTORICAL_POINT_IN_TIME_EMPIRICAL_RESEARCH_ONLY"
+            if payload.get("forecast_method", "empirical") == "empirical"
+            else "HISTORICAL_POINT_IN_TIME_CONDITIONAL_RESEARCH_ONLY"
+        ),
         "effects": "NONE_NO_TRADE_NO_ACCOUNTING",
         "optimizer_input": tree,
         "forecast_evidence": forecast.to_dict(),
         "input_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
         "limitations": [
-            "Empirical joint distribution is an uncalibrated predictive baseline, not validated conditional probabilities.",
+            "Both empirical and lagged-neighbor distributions are uncalibrated research baselines, not independently validated conditional probabilities.",
             "Provider adjusted prices and release timestamps require independent authority verification.",
             "Monthly valuation after published close is not an executable same-close fill.",
             "No real broker liquidation or live account funding is implied.",

@@ -47,3 +47,32 @@ Verification: `python -m unittest discover -s domains/capital/tests -p test_pit_
 ## Retire and reuse
 
 If an existing validated Markets/Research module already provides these exact as-of and joint-scenario semantics, delete this adapter after migrating its actual consumers rather than keeping two feature-compatible versions. Do not remove unrelated active worktrees or source files based only on age or filenames.
+
+
+## Optional conditional pilot in the original interface
+
+Set a top-level JSON field "forecast_method" to "lagged_knn" to
+reweight one-month joint return scenarios based only on complete
+historical consecutive month-pairs (r_t, r_t+1). Default remains
+"empirical". The conditioner uses Euclidean distance between
+log-gross joint return vectors and a fully disclosed integer square-root
+neighbor count. This is a pilot estimator, NOT calibrated market probability
+or proof of investment advantage. Insufficient historical transitions
+produce an explicit error; no invented default market rates or silent
+fallback.
+
+Both methods return the existing one-step optimizer_input of
+gamma and nodes, with separate conditioning evidence. Prequential
+validation can use the same forecast_method and reports energy and
+variogram scores; the latter reveals dependence misspecification but is
+not strictly proper by itself. Never compare these estimates to real market
+outcomes without authenticated historical price publication vintages.
+
+
+For broker maintenance that is invariant across return outcomes,
+"economic_contract" may contain an explicit per-asset
+"maintenance_by_asset" array instead of "scenario_maintenance".
+The adapter repeats only the caller-supplied broker numbers once the
+forecast scenario count is known; actual state-specific margin contracts
+must continue to use scenario_maintenance. Never assume one uniform
+rate applies to a real brokerage account without provider evidence.
