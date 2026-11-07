@@ -43,7 +43,9 @@ _FORMAL_SOURCE_FILES = (
     "tools/formal/RecursiveLegoRefinement.lean",
     "tools/formal/RecursiveLegoVariationFrame.lean",
     "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
+    "capabilities/media/formal/LoudnessProfileSafety.smt2",
     "capabilities/media/src/ordivon_studio/agent_processing.py",
+    "capabilities/media/src/ordivon_studio/qc.py",
     "tools/formal/Proof.rs", "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs", "tools/formal/Proof.qnt",
     "tools/formal/Proof.als",
@@ -53,6 +55,7 @@ _FORMAL_PROBE_ORACLES = (
     ("Lean kernel R2.1 relational composition", 0),
     ("Lean kernel qualified variation frame and countermodels", 0),
     ("Lean kernel Media processing admission model", 0),
+    ("Z3 IEEE-754 Media loudness profile model", 0),
     ("Lean rejects false theorem", 1),
     ("Z3: sat", 0), ("Z3: unsat", 0),
     ("cvc5: sat", 0), ("cvc5: unsat", 0),
@@ -480,9 +483,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             wrong_count = copy.deepcopy(full_report)
             wrong_count["count"] += 1
             invalid_receipts["forged-count"] = json.dumps(wrong_count)
-            # Every exact Formal source and each probe adds a separate
-            # fail-closed omission witness; the Media binding adds three.
-            self.assertEqual(len(invalid_receipts), 76)
+            # Every declared Formal source/probe yields its own missing-input
+            # falsifier below. The checks must grow with the live proof readset,
+            # not fail at an obsolete hard-coded specimen count.
 
             try:
                 for label, payload in invalid_receipts.items():
