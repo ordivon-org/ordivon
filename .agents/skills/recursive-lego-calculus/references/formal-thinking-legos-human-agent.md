@@ -55,6 +55,36 @@ REUSE admitted local or mature upstream proof, then COMPOSE a thin bridge.
 Only implement a novel method when a concrete unmet consumer obligation
 survives comparison.
 
+### Apply methods to Ordivon's actual Owner abilities
+
+Use the 20-root manifest at tools/repo/owners.toml for the *current* exact
+Owner boundary; the following are **recommended proof targets**, not claims
+that each theorem is already proved. The final column is deliberately
+non-substitutable physical/consumer evidence.
+
+| Existing Owner(s) | Formal-thinking question and chosen model | Indispensable real acceptance |
+| --- | --- | --- |
+| Runtime | Job/Attempt/Workspace transitions; admission witness and recovery invariants (TLA+/TLC, Rust/Kani on actual covered functions) | Native durable Job/Attempt recovery, Workspace close and Linux/Windows readback |
+| Host | Work CAS and snapshot revision, message/reply reachability, transactional identity and references (contract/SMT/CrossHair; relational model) | PostgreSQL transaction, MCP Work/Topic/Message consumers and live Host doctor |
+| Harness | Agent/Tool proposal, binding, execution, timeout, cancellation and replay (TLA+/Quint and source refinement) | Actual Tool trace, Runtime receipts and real Agent consumer |
+| Gateway | Provider/Owner route selection, identity forwarding, request/error contract (assume–guarantee) | Gateway-to-Host/Runtime actual routed request and negative route |
+| Network | DNS/proxy/VPN path and policy-dependent egress, recovery under failures (transition system, fault model) | Native DNS/tunnel/egress and connection reset experiments |
+| Security | Explicit principal/capability authorization and no privilege amplification (relational invariant / SMT) | Actual current principal and rejected unauthorized effect |
+| Skills | Source priority, exact binding, package digest and currentness (deterministic resolution relation) | Live skills.resolve/read from the natural Skills service |
+| Workstation | Installed Git SourceCut, immutable release, atomic switch/rollback (state machine) | systemd, actual executable/interpreter, installed-source readback |
+| Artifact / Preservation | Digest integrity, lineage and retention/restoration preconditions (algebraic relations) | Open/recover actual bytes and target consumer |
+| Distribution | Destination receipt and retry/idempotency contract (state machine) | Remote destination readback; local packaging PASS is not delivery |
+| Media | Source-to-export identity, transformations, loss/quality bounds (typed contract, SMT where decidable) | Actual rendered/encoded media inspection and target platform |
+| Capital | Accounting conservation, no look-ahead, position/risk bounds and simulation/live separation (Lean/Z3 and source tests) | Real feed provenance, historical replay and simulation consumer |
+| Game | ECS state invariants, inventory/resource bounds, replay determinism (model + Kani where applicable) | Playable Bevy/Godot run and real Agent-controlled session |
+| Composition / authority & capability catalogs | Assumption discharge, provider refinement, evidence currentness (Pacti/Lean/TLC) | One actual provider resolution and composed Owner consumer |
+| Web / Control Plugin / Chaoxing | User-visible request/action, permission and result semantics (interface contract) | Native browser/plugin action and external readback |
+
+Do not mark any row complete from the method choice alone. Some capabilities
+are intentionally outside the presently installed prover's sound fragment;
+prefer an honest UNKNOWN plus a focused real consumer to an elaborate
+unconnected model.
+
 ### Verification and composition laws
 
 - **Validity:** `pre` must be satisfiable *and reachable* under the stated
