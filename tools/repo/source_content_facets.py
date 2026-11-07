@@ -5,6 +5,7 @@ Reads exact immutable Git objects. No working-tree search, eval, imports,
 executions, filesystem moves, owner admission, or semantic/proof claims.
 """
 from __future__ import annotations
+
 import argparse
 import ast
 import collections
@@ -23,7 +24,7 @@ TOPIC_HINTS = frozenset({"kind","schemaVersion","id","name","type","status","sub
 
 
 def git(*args: str, repo: Path) -> bytes:
-    p = subprocess.run(["git","--no-replace-objects","-C",str(repo),*args],capture_output=True)
+    p = subprocess.run(["git","--no-replace-objects","-C",str(repo),*args],capture_output=True,check=False)
     if p.returncode:
         raise ValueError(f"Git failed at {args[:2]}: {p.stderr[:280]!r}")
     return p.stdout
@@ -155,6 +156,34 @@ def candidate_zone(path: str,zones: list[dict]) -> str:
     raise ValueError("Unclassified physical source path: "+path)
 
 
+def add_current_owner_source_zones(zones: list[dict], owner_manifest: dict,
+                                   current_paths: set[str]) -> None:
+    """Classify new *physical* owner roots without rewriting frozen 2026 seeds.
+
+    The same exact Git SourceCut supplies the existing mechanical owner map.
+    Source labels are not semantic ownership, deployment or LEGO admission.
+    Unregistered/uncovered source paths must still fail closed.
+    """
+    if owner_manifest.get("truth_role") != "repository-mechanics-only-not-domain-authority":
+        raise ValueError("source partition requires the mechanical owner manifest")
+    for owner in owner_manifest.get("owners", []):
+        root, name = owner["root"], owner["name"]
+        if (not isinstance(root, str) or not root.endswith("/")
+            or root.startswith("/") or ".." in root.split("/")
+            or "\\" in root or "//" in root
+            or not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9-]*", name)):
+            raise ValueError("noncanonical source owner root/name")
+        # Only add a source-only label if existing historical/migration
+        # regions leave an actual tracked file under this owner unclassified.
+        uncovered = any(path.startswith(root) and not any(
+            zone.get("sourcePrefix") and path.startswith(zone["sourcePrefix"])
+            for zone in zones
+        ) for path in current_paths)
+        if uncovered:
+            zones.append({"legacyName": None, "sourcePrefix": root,
+                          "sourceRef": "zone/registered-source-owner-" + name})
+
+
 def compile_projection(repo: Path, cut: str) -> dict:
     rows=exact_tree(repo,cut)
     # The bounded source naming seeds are part of the same exact Git cut.
@@ -251,6 +280,12 @@ def compile_projection(repo: Path, cut: str) -> dict:
             alias=dict(seeds[0])
             alias["sourcePrefix"]=placed
             zones.append(alias)
+    # Post-seed owner additions use the existing mechanical manifest at this
+    # exact SourceCut. Do not edit historical naming evidence to add a path.
+    current_owner_manifest = tomllib.loads(git(
+        "show", cut+":tools/repo/owners.toml", repo=repo
+    ).decode("utf8"))
+    add_current_owner_source_zones(zones, current_owner_manifest, current_paths)
     if len({v["candidateName"] for v in specific})!=26:
         raise ValueError("duplicate scoped source display aliases")
     for v in specific:
@@ -266,7 +301,7 @@ def compile_projection(repo: Path, cut: str) -> dict:
     eligible=[oid for oid in oids if sizes[oid]<=MAX_READ_BYTES]
     content=batch_contents(repo,eligible,sizes)
     content_counts=collections.Counter(); zones_count=collections.Counter()
-    inspected=collections.Counter();labels=collections.Counter(); ambiguity=collections.Counter()
+    inspected=collections.Counter(); ambiguity=collections.Counter()
     path_rows=[];dense_hits=collections.defaultdict(list); maxsize=0
     for entry in rows:
         path=entry["path"]; zone=candidate_zone(path,zones)

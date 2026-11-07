@@ -96,6 +96,11 @@ root = "domains/capital/"
 verify_task = "capital:verify"
 
 [[owners]]
+name = "data"
+root = "packages/data/"
+verify_task = "data:verify"
+
+[[owners]]
 name = "web"
 root = "apps/web/"
 verify_task = "web:verify"

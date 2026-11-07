@@ -9,6 +9,7 @@ config_roots = [
   "tools/formal",
   "studies/experimental-episodes/episode-store",
   "packages/composition",
+  "packages/data",
   "catalogs/authorities",
   "services/runtime",
   "services/host",
@@ -137,6 +138,13 @@ run = """
 set -euo pipefail
 cd packages/composition
 mise install
+mise run verify
+"""
+
+[tasks."data:verify"]
+run = """
+set -euo pipefail
+cd packages/data
 mise run verify
 """
 
