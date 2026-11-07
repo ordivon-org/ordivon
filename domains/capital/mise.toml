@@ -7,6 +7,7 @@ rust = { version = "1.99.1", components = "clippy,rustfmt" }
 run = """
 set -euo pipefail
 mise run verify:formal:risk-exposure
+mise run verify:formal:passive-general
 uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
@@ -71,4 +72,12 @@ if [ "$observed" != "$expected" ]; then
   exit 1
 fi
 printf '%s\n' "$observed"
+"""
+
+[tasks."verify:formal:passive-general"]
+description = "Lean arbitrary-finite-period passive benchmark algebra and conditional admission"
+run = """
+set -euo pipefail
+cd ../../tools/formal
+mise exec -- lean ../../domains/capital/formal/PortfolioPassiveBenchmarkGeneral.lean
 """
