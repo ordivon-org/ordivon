@@ -12,18 +12,23 @@ import json
 import re
 import sys
 from collections import deque
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from tempfile import TemporaryDirectory
+import tomllib
 
 import z3
 
 REPO = Path(__file__).resolve().parents[3]
 NETWORK = REPO / "platform/network"
-CONTROL_SOURCES = {
-    "ordivon-runtime.service": REPO / "services/runtime/packaging/systemd/ordivon-runtime.service",
-    "ordivon-host-v2.service": REPO / "services/host/packaging/systemd/ordivon-host-v2.service",
-    "ordivon-gateway.service": REPO / "services/gateway/systemd/ordivon-gateway.service",
+# Exactly three intended management contracts; physical Owner paths remain
+# task-local evidence and cannot silently create cross-Owner source seams.
+EXPECTED_MANAGEMENT = {
+    "ordivon-runtime.service": "runtime",
+    "ordivon-host-v2.service": "host",
+    "ordivon-gateway.service": "gateway",
 }
+BINDING_PATH = NETWORK / "formal/fixtures/control-plane-source-bindings.json"
+OWNER_MANIFEST = REPO / "tools/repo/owners.toml"
 # Includes weak start edges and pure ordering edges, intentionally stronger
 # than checking Requires= alone. PartOf= is a stop/restart coupling, not start.
 COUPLING = frozenset(("Requires", "Wants", "Requisite", "BindsTo", "Upholds", "PartOf", "After"))
@@ -32,6 +37,56 @@ UNIT_NAME = re.compile(r"^[A-Za-z0-9@_.:-]+\.(?:service|target|timer|socket|path
 
 class UnsupportedSource(RuntimeError):
     pass
+
+
+def management_source_bindings() -> dict[str, Path]:
+    """Admit one task-local source binding against canonical Owner roots.
+
+    Physical repository locations are proof inputs, never runtime dependencies
+    between Network and the verified managers. Reject stale/escaped bindings.
+    """
+    try:
+        binding = json.loads(BINDING_PATH.read_text(encoding="utf-8"))
+        manifest = tomllib.loads(OWNER_MANIFEST.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise UnsupportedSource(f"management source binding unavailable: {exc}") from exc
+    if (not isinstance(binding, dict)
+            or set(binding) != {"schemaVersion", "kind", "truthRole", "managementUnits"}
+            or binding["schemaVersion"] != 1
+            or binding["kind"] != "ordivon.network.formal-control-plane-source-binding"
+            or binding["truthRole"] != "task-local-proof-input-not-owner-truth"):
+        raise UnsupportedSource("management binding schema/authority role changed")
+    rows = binding["managementUnits"]
+    if not isinstance(rows, list) or len(rows) != len(EXPECTED_MANAGEMENT):
+        raise UnsupportedSource("unexpected management unit binding count")
+    owner_roots = {o["name"]: o["root"] for o in manifest.get("owners", [])}
+    sources: dict[str, Path] = {}
+    for row in rows:
+        if not isinstance(row, dict) or set(row) != {"unit", "owner", "sourcePath"}:
+            raise UnsupportedSource("unsupported management binding entry")
+        unit, owner, source_path = row["unit"], row["owner"], row["sourcePath"]
+        if (not isinstance(unit, str) or EXPECTED_MANAGEMENT.get(unit) != owner
+                or not isinstance(source_path, str) or not source_path
+                or not isinstance(owner_roots.get(owner), str)):
+            raise UnsupportedSource("binding does not match the three canonical management owners")
+        repo_relative = PurePosixPath(source_path)
+        if (repo_relative.is_absolute() or ".." in repo_relative.parts
+                or chr(92) in source_path
+                or repo_relative.as_posix() != source_path):
+            raise UnsupportedSource("noncanonical management source binding path")
+        candidate = REPO.joinpath(*repo_relative.parts)
+        owner_root = (REPO / owner_roots[owner]).resolve(strict=True)
+        if (unit in sources or candidate.name != unit or not candidate.is_file()
+                or candidate.is_symlink()
+                or not candidate.resolve(strict=True).is_relative_to(owner_root)):
+            raise UnsupportedSource("duplicate, missing or escaping management source binding")
+        sources[unit] = candidate
+    if set(sources) != set(EXPECTED_MANAGEMENT):
+        raise UnsupportedSource("management source binding is incomplete")
+    return sources
+
+
+CONTROL_SOURCES = management_source_bindings()
 
 
 def unit_dependencies(source: Path) -> set[str]:

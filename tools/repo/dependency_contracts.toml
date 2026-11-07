@@ -164,32 +164,3 @@ source_glob = "capabilities/artifact/tests/test_artifact_publication_carrier_r1.
 allowed_fragment = "catalogs/authorities/venues/"
 kind = "TEST_ONLY_OWNER_LOCATOR"
 contract_ref = "docs/architecture/RESEARCH_PUBLICATION_CLOSURE_R1.md"
-
-
-# Read-only formal proof over the current source Unit dependencies of three
-# management Owners. Each seam is exact-source and exact-target, not runtime
-# import authority, general data-plane access, or a blanket cross-owner grant.
-# Source proof must be requalified if a referenced Owner moves its Unit.
-[[seams]]
-from_owner = "network"
-to_owner = "runtime"
-source_glob = "platform/network/formal/control_plane_independence.py"
-allowed_fragment = "services/runtime/packaging/systemd/ordivon-runtime.service"
-kind = "READ_ONLY_FORMAL_SOURCE_CONTRACT"
-contract_ref = "platform/network/docs/AGENT_GUIDE.md"
-
-[[seams]]
-from_owner = "network"
-to_owner = "host"
-source_glob = "platform/network/formal/control_plane_independence.py"
-allowed_fragment = "services/host/packaging/systemd/ordivon-host-v2.service"
-kind = "READ_ONLY_FORMAL_SOURCE_CONTRACT"
-contract_ref = "platform/network/docs/AGENT_GUIDE.md"
-
-[[seams]]
-from_owner = "network"
-to_owner = "gateway"
-source_glob = "platform/network/formal/control_plane_independence.py"
-allowed_fragment = "services/gateway/systemd/ordivon-gateway.service"
-kind = "READ_ONLY_FORMAL_SOURCE_CONTRACT"
-contract_ref = "platform/network/docs/AGENT_GUIDE.md"
