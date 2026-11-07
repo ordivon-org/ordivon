@@ -66,3 +66,31 @@ A redundant specimen test can be removed only when a proof covers its exact
 property **and** a valid implementation-refinement connection exists. Source
 carrier integrity, real hardware/media tools and delivery remain actual
 consumer evidence. Otherwise report `UNKNOWN`, not a fabricated proof.
+
+## IEEE-754 loudness profile admission: Z3 model + source consumer
+
+LoudnessProfileSafety.smt2 directly models the comparison semantics of the
+existing qc.validate_loudness decision on binary64 values with a finite
+measured programme. Its three Z3 answers are SAT / UNSAT / SAT:
+
+1. The historical comparison-only decision can accept a NaN target.
+2. The strengthened finite-parameter admission cannot accept a nonfinite
+   selected target, tolerance or true-peak limit in this model.
+3. A normal finite programme/profile remains admissible (nonvacuity).
+
+This is an IEEE-754 MODEL property, not proof that arbitrary Python float
+executions refine this SMT model. The source implementation adds explicit
+math.isfinite checks for selected limits and rejects negative tolerance.
+tests/test_qc.py is the selected actual Python consumer witness, with a native
+FFmpeg measurement retained for the physical tool boundary.
+tools/formal/verify.py invokes Z3 under existing source-scoped tool and Git-cut
+evidence; CI checks all three answers rather than exit code alone.
+
+A trial CrossHair path search against actual Python returned Not confirmed;
+that result is UNKNOWN, not a theorem or permission to delete real consumer
+verification. No extra CrossHair runtime/test scaffold is retained.
+
+Human: invalid profile thresholds reject before QC. Correct the delivery
+profile, then review technical receipts and separate rights/creative approval.
+Agent: select the current Profile, reject nonfinite limits, execute the native
+adapter via Runtime, and bind receipts to actual Production/Output consumers.
