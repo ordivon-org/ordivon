@@ -1,0 +1,53 @@
+# Tracked files larger than limit_bytes must be listed here with an exact
+# max_bytes and a reason. New large media should live outside Git (artifact
+# store or release asset); see CONTRIBUTING.md. Entries are removed when the file
+# is removed or shrinks below the limit.
+#
+# Checked by tools/repo/check_large_files.py (mise run repo:ci).
+
+limit_bytes = 1048576
+
+[[file]]
+path = "capabilities/media/productions/live-relay-001/render/live-relay-001-master.mkv"
+max_bytes = 41512896
+reason = "Accepted media production render; bytes are pinned by the production's manifest.sha256 and verification evidence."
+
+[[file]]
+path = "capabilities/media/productions/live-relay-001/render/live-relay-001-source.mp4"
+max_bytes = 16481768
+reason = "Accepted media production render; bytes are pinned by the production's manifest.sha256 and verification evidence."
+
+[[file]]
+path = "capabilities/media/productions/live-relay-001/program/02-object.png"
+max_bytes = 2640380
+reason = "Accepted media production frame; bytes are pinned by the production's manifest.sha256."
+
+[[file]]
+path = "capabilities/media/productions/live-relay-001/source/convergence-object-001.png"
+max_bytes = 1271283
+reason = "Accepted media production source image; bytes are pinned by the production's manifest.sha256."
+
+[[file]]
+path = "capabilities/media/productions/convergence-object-001/render/convergence-object-001.glb"
+max_bytes = 1407184
+reason = "Accepted media production render; bytes are pinned by the production's manifest.sha256."
+
+[[file]]
+path = "capabilities/media/productions/convergence-object-001/render/convergence-object-001.png"
+max_bytes = 1271283
+reason = "Accepted media production render; bytes are pinned by the production's manifest.sha256."
+
+[[file]]
+path = "capabilities/media/productions/convergence-sonic-ident/render/convergence-master.wav"
+max_bytes = 1382480
+reason = "Accepted media production master; bytes are pinned by the production's manifest.sha256."
+
+[[file]]
+path = "capabilities/media/artifacts/creative-library/catalog-v1.json"
+max_bytes = 1318218
+reason = "Creative library catalog consumed as a whole by the media owner."
+
+[[file]]
+path = "capabilities/media/productions/archive-archipelago-001/source/creative-library-catalog-v1.json"
+max_bytes = 1312552
+reason = "Production-local copy of the creative library catalog."

@@ -67,6 +67,8 @@ uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 run = """
 set -euo pipefail
 python3 -m unittest tools/repo/test_tracked_secrets.py
+python3 -m unittest tools/repo/test_check_large_files.py
+python3 tools/repo/check_large_files.py
 python3 -m unittest tools/repo/test_source_history_legos.py
 python3 -m unittest discover -s catalogs/capabilities/tests -p 'test_external_capability_evaluation.py'
 uv run --with check-jsonschema==0.38.0 check-jsonschema --schemafile catalogs/capabilities/schemas/external-capability-candidate-r1.schema.json catalogs/capabilities/evidence/worktrunk-candidate-20261106.json
