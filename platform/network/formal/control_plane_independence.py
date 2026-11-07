@@ -13,6 +13,7 @@ import re
 import sys
 from collections import deque
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import z3
 
@@ -157,13 +158,24 @@ def proof() -> dict[str, object]:
             f"management -> data-plane crossing (or solver UNKNOWN): "
             f"{result}, path={concrete_path(graph, control, data_set)}"
         )
-    # Mutate the mathematical graph, not actual service files. Show the same
-    # verifier rejects exactly the forbidden coupling it is supposed to catch.
-    mutant = {k: set(v) for k, v in graph.items()}
-    mutant["ordivon-runtime.service"].add("network-v2-r0.target")
-    negative = symbolic_crossing(mutant, control, data_set)
-    if negative != z3.sat:
-        raise UnsupportedSource(f"negative dependency mutant not falsified: {negative}")
+    # Falsify the entire source-parser-to-SMT path, not only the solver:
+    # temporarily inject a genuine systemd Wants= declaration into a copy.
+    # No installed or repository Unit is changed.
+    with TemporaryDirectory(prefix="ordivon-network-unit-falsification-") as temp:
+        original = CONTROL_SOURCES["ordivon-runtime.service"]
+        mutated = Path(temp) / original.name
+        mutated.write_text(
+            original.read_text(encoding="utf-8")
+            + "\n[Unit]\nWants=network-v2-r0.target\n",
+            encoding="utf-8",
+        )
+        mutant = {k: set(v) for k, v in graph.items()}
+        mutant["ordivon-runtime.service"] = unit_dependencies(mutated)
+        if "network-v2-r0.target" not in mutant["ordivon-runtime.service"]:
+            raise UnsupportedSource("source parser did not admit injected dependency")
+        negative = symbolic_crossing(mutant, control, data_set)
+        if negative != z3.sat:
+            raise UnsupportedSource(f"negative dependency mutant not falsified: {negative}")
     return {
         "kind": "ordivon.network.control-plane-independence",
         "standing": "PROVED_WITHIN_SOURCE_GRAPH",
