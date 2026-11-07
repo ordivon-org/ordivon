@@ -1,0 +1,936 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.formal-lego-issue-census-evidence",
+  "truthRole": "time-scoped-audit-evidence-not-registry-or-admission",
+  "observedAt": "2026-11-07T12:50:58+08:00",
+  "source": {
+    "protectedGithubMain": "f43b4d245322e3203a19a5800ab08797c5702330",
+    "linuxLocalMain": "f43b4d245322e3203a19a5800ab08797c5702330",
+    "observationBoundary": "Exact current Git SourceCut in a dedicated Runtime Workspace; branch/current-head and other Agent PRs can move after this observation. No universal installed-service, PG, or domain-consumer claim."
+  },
+  "representation": {
+    "primary": "Existing canonical 20-Owner source-evidence gap census, not a formal LEGO registry or an admitted LEGO cohort",
+    "sourceOwners": 20,
+    "ownerLocalFormalModelSourceOwners": 7,
+    "additionalOwnerWithSourceDirectedSymbolicProof": 1,
+    "formalSourcePresenceDoesNotMeanProofExecuted": true,
+    "planningNodeIsNotAnAdmittedR21LEGO": true,
+    "evidenceLevels": [
+      "DECLARED",
+      "MODEL_CHECKED",
+      "SOURCE_REFINED",
+      "INSTALLED_CURRENT",
+      "CONSUMER_ACCEPTED",
+      "UNKNOWN"
+    ],
+    "priority": "Audit actually admitted R2.1 LEGO instances and their typed eleven coordinates before computing completion rates; bind proofs to source and installed recipients; do not auto-label planned nodes or mere directory presence as proof.",
+    "historicalCensusPolicy": "Append one immutable time-scoped observation; do not rewrite 2026-11-01 observations."
+  },
+  "registrations": [
+    {
+      "ownerPlan": "packages/composition/planning/lego-plan-r1.json",
+      "slice": "CR21",
+      "scope": "Existing proposed Composition R2.1 contract/acceptance slice; linking current source audit does NOT promote PROPOSED to DECLARED, mathematical proof or installed acceptance."
+    }
+  ],
+  "issues": [
+    {
+      "id": "OWNER-EVIDENCE-AUTHORITY-CATALOG-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "catalogs/authorities",
+      "standing": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+      "evidence": "catalogs/authorities/planning/lego-plan-r1.json",
+      "consumers": "authority-catalog:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Source version, issuer/provenance currentness, and one true domain-standard consumer; a catalog entry alone is not external truth.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "authority-catalog:verify",
+        "candidatePlanPaths": [
+          "catalogs/authorities/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [],
+        "trackedSourceFileCount": 375
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "declarative",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Source version, issuer/provenance currentness, and one true domain-standard consumer; a catalog entry alone is not external truth.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-CAPABILITY-CATALOG-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "catalogs/capabilities",
+      "standing": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+      "evidence": "catalogs/capabilities/AGENTS.md",
+      "consumers": "capability-catalog:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Candidate source digest and consumer-specific replacement equivalence; catalog discovery does not certify deployed capability.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "capability-catalog:verify",
+        "candidatePlanPaths": [],
+        "representativeConsumerTestSources": [],
+        "trackedSourceFileCount": 72
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "graph",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Candidate source digest and consumer-specific replacement equivalence; catalog discovery does not certify deployed capability.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-COMPOSITION-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "packages/composition",
+      "standing": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+      "evidence": "packages/composition/formal/EffectReplayFence.tla; packages/composition/formal/Lego21OwnerBoundary.tla",
+      "consumers": "composition:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Assumption discharge, visible effect/receipt refinement, and consumer acceptance across actual Owner interfaces.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [
+          "packages/composition/formal/EffectReplayFence.tla",
+          "packages/composition/formal/Lego21OwnerBoundary.tla"
+        ],
+        "nativeFormalTaskNames": [
+          "formal:verify",
+          "formal:effect:verify"
+        ],
+        "nativeOwnerVerifyTask": "composition:verify",
+        "candidatePlanPaths": [
+          "packages/composition/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [
+          "packages/composition/tests/test_interface_contract_core.py",
+          "packages/composition/tests/test_interface_contract_r2.py",
+          "packages/composition/tests/test_native_formal_model_gate.py"
+        ],
+        "trackedSourceFileCount": 83
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "algebra",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Assumption discharge, visible effect/receipt refinement, and consumer acceptance across actual Owner interfaces.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "LINKED",
+        "ownerPlan": "packages/composition/planning/lego-plan-r1.json",
+        "slice": "CR21"
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-CONTROL-PLUGIN-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "extensions/ordivon-control-plane",
+      "standing": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+      "evidence": "extensions/ordivon-control-plane/mcp.json",
+      "consumers": "control-plugin:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "UI-initiated action contract, exact authority boundary, external consumer readback and owner-native proof as warranted.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "control-plugin:verify",
+        "candidatePlanPaths": [],
+        "representativeConsumerTestSources": [],
+        "trackedSourceFileCount": 2
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "UI-initiated action contract, exact authority boundary, external consumer readback and owner-native proof as warranted.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-RUNTIME-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "services/runtime",
+      "standing": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+      "evidence": "services/runtime/formal/RuntimeDispatchR1.tla; services/runtime/formal/RuntimePgCutoverR1.tla; services/runtime/formal/RuntimeWindowsFirstPgR1.tla; services/runtime/formal/WorkspaceConsumerCloseR1.tla",
+      "consumers": "runtime:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Job/Attempt/Workspace admission, at-most-once physical dispatch, PG recovery and restart refinement on native Windows/Linux.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [
+          "services/runtime/formal/RuntimeDispatchR1.tla",
+          "services/runtime/formal/RuntimePgCutoverR1.tla",
+          "services/runtime/formal/RuntimeWindowsFirstPgR1.tla",
+          "services/runtime/formal/WorkspaceConsumerCloseR1.tla"
+        ],
+        "nativeFormalTaskNames": [
+          "formal:kani:verify",
+          "formal:verify"
+        ],
+        "nativeOwnerVerifyTask": "runtime:verify",
+        "candidatePlanPaths": [
+          "services/runtime/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [
+          "services/runtime/crates/ordivon-runtime-core/tests/sqlite_unsigned_contract.rs",
+          "services/runtime/crates/ordivon-runtime-mcp/src/server/tests/projection_contract.rs",
+          "services/runtime/scripts/tests/pg_recovery_pitr_probe.py"
+        ],
+        "trackedSourceFileCount": 424
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Job/Attempt/Workspace admission, at-most-once physical dispatch, PG recovery and restart refinement on native Windows/Linux.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-HOST-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "services/host",
+      "standing": "PRODUCTION_SOURCE_CROSSHAIR_5_OF_5_OBSERVED",
+      "evidence": "services/host/src/ordivon_host_v2/work_store.py; services/host/src/ordivon_host_v2/social_message_commands.py; services/host/mise.toml",
+      "consumers": "host:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Work CAS revision and PG snapshot atomicity, reference integrity, concurrent read/write SQL and MCP consumer readback.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [
+          "formal:reply-source"
+        ],
+        "nativeOwnerVerifyTask": "host:verify",
+        "candidatePlanPaths": [
+          "services/host/planning/lego-plan-r1.json",
+          "services/host/planning/lego-plan-r3.json"
+        ],
+        "representativeConsumerTestSources": [
+          "services/host/tests/test_contract_policy.py",
+          "services/host/tests/test_host_db_preflight_contract.py",
+          "services/host/tests/test_message_get_contract.py"
+        ],
+        "trackedSourceFileCount": 100
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "PRODUCTION_SOURCE_CROSSHAIR_5_OF_5_OBSERVED",
+        "implementationRefinement": "BOUNDED_SOURCE_FUNCTION_SYMBOLIC_CONTRACT_OBSERVED",
+        "installedConsumerReadback": "SCOPED_LIVE_HOST_MCP_WORK_LIST_TO_GET_READBACK_OBSERVED"
+      },
+      "representation": {
+        "primary": "constraint",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Work CAS revision and PG snapshot atomicity, reference integrity, concurrent read/write SQL and MCP consumer readback.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-HARNESS-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "services/harness",
+      "standing": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+      "evidence": "services/harness/formal/ConversationBindingCutoverR1.tla; services/harness/formal/ProviderClaimR1.tla",
+      "consumers": "harness:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Agent/Tool claim, generation, cancellation and replay invariants; implementation bridge and actual Tool/Runtime traces.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [
+          "services/harness/formal/ConversationBindingCutoverR1.tla",
+          "services/harness/formal/ProviderClaimR1.tla"
+        ],
+        "nativeFormalTaskNames": [
+          "formal:source-refinement",
+          "formal:verify"
+        ],
+        "nativeOwnerVerifyTask": "harness:verify",
+        "candidatePlanPaths": [
+          "services/harness/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [
+          "services/harness/tests/test_browser_benchmark_contract.py",
+          "services/harness/tests/test_browserless_conversation_output_contract.py",
+          "services/harness/tests/test_browserless_postgres_wake_selection.py"
+        ],
+        "trackedSourceFileCount": 741
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Agent/Tool claim, generation, cancellation and replay invariants; implementation bridge and actual Tool/Runtime traces.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-GATEWAY-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "services/gateway",
+      "standing": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+      "evidence": "services/gateway/formal/GatewayCapabilityAuthzR1.tla",
+      "consumers": "gateway:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Authorized route and principal binding, forbidden path rejection, real Gateway -> Host/Runtime request trace.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [
+          "services/gateway/formal/GatewayCapabilityAuthzR1.tla"
+        ],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "gateway:verify",
+        "candidatePlanPaths": [
+          "services/gateway/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [
+          "services/gateway/tests/test_host_byte_budget_tool_contract.py",
+          "services/gateway/tests/test_systemd_contract.py",
+          "services/gateway/tests/test_tool_surface_release_contract.py"
+        ],
+        "trackedSourceFileCount": 92
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Authorized route and principal binding, forbidden path rejection, real Gateway -> Host/Runtime request trace.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-SKILLS-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "extensions/chatgpt-skills-mcp",
+      "standing": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+      "evidence": "extensions/chatgpt-skills-mcp/planning/lego-plan-r1.json",
+      "consumers": "skills:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Trusted Skill source/digest binding, stale-resolution exclusion and actual resolve/read consumer.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "skills:verify",
+        "candidatePlanPaths": [
+          "extensions/chatgpt-skills-mcp/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [],
+        "trackedSourceFileCount": 46
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "constraint",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Trusted Skill source/digest binding, stale-resolution exclusion and actual resolve/read consumer.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-SECURITY-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "platform/security",
+      "standing": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+      "evidence": "platform/security/planning/lego-plan-r1.json",
+      "consumers": "security:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Principal/capability effect admission and denied unauthorized operations; actual policy engine and live negative case.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "security:verify",
+        "candidatePlanPaths": [
+          "platform/security/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [
+          "platform/security/contracts/agent-request-verifier-v1/test/cnf-extension-interop.test.ts",
+          "platform/security/tests/test_agent_admission_contract.py",
+          "platform/security/tests/test_gateway_capability_authz_contract.py"
+        ],
+        "trackedSourceFileCount": 176
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "constraint",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Principal/capability effect admission and denied unauthorized operations; actual policy engine and live negative case.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-WORKSTATION-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "platform/workstation",
+      "standing": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+      "evidence": "platform/workstation/.gitignore",
+      "consumers": "workstation:ci (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Installed exact SourceCut, atomic release switch/rollback, actual Windows/Linux process and binary readback.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "workstation:ci",
+        "candidatePlanPaths": [],
+        "representativeConsumerTestSources": [
+          "platform/workstation/providers/cloudflare/test/contracts.test.ts",
+          "platform/workstation/tests/test_codex_cli_pnpm_contract.py",
+          "platform/workstation/tests/test_jev_consumer_secret_materializer.py"
+        ],
+        "trackedSourceFileCount": 273
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Installed exact SourceCut, atomic release switch/rollback, actual Windows/Linux process and binary readback.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-NETWORK-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "platform/network",
+      "standing": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+      "evidence": "platform/network/formal/control_plane_independence.py; platform/network/formal/egress_policy_refinement.py",
+      "consumers": "network:ci (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Scoped egress and source-to-loaded forwarding, DNS/UDP/IPv6 process behavior and real carrier negative witnesses.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [
+          "platform/network/formal/control_plane_independence.py",
+          "platform/network/formal/egress_policy_refinement.py"
+        ],
+        "nativeFormalTaskNames": [
+          "formal",
+          "formal-control-plane"
+        ],
+        "nativeOwnerVerifyTask": "network:ci",
+        "candidatePlanPaths": [
+          "platform/network/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [
+          "platform/network/tests/test_blackbox_ip_family_contract.py",
+          "platform/network/tests/test_blackbox_scrape_budget_contract.py",
+          "platform/network/tests/test_browserless_serial_restoration_contract.py"
+        ],
+        "trackedSourceFileCount": 207
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Scoped egress and source-to-loaded forwarding, DNS/UDP/IPv6 process behavior and real carrier negative witnesses.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-ARTIFACT-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "capabilities/artifact",
+      "standing": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+      "evidence": "capabilities/artifact/planning/lego-plan-r2.json",
+      "consumers": "artifact:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Digest and lineage preservation, atomic artifact persistence and reopen by the consuming Owner.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "artifact:verify",
+        "candidatePlanPaths": [
+          "capabilities/artifact/planning/lego-plan-r2.json"
+        ],
+        "representativeConsumerTestSources": [
+          "capabilities/artifact/tests/test_artifact_legacy_digest_consumers.py",
+          "capabilities/artifact/tests/test_artifact_operation_receipt_contract_r1.py",
+          "capabilities/artifact/tests/test_artifact_python_currentness_contract.py"
+        ],
+        "trackedSourceFileCount": 425
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "graph",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Digest and lineage preservation, atomic artifact persistence and reopen by the consuming Owner.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-DISTRIBUTION-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "capabilities/distribution",
+      "standing": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+      "evidence": "capabilities/distribution/.gitignore",
+      "consumers": "distribution:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Destination receipt identity, retry idempotency, real remote destination readback.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "distribution:verify",
+        "candidatePlanPaths": [],
+        "representativeConsumerTestSources": [],
+        "trackedSourceFileCount": 40
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Destination receipt identity, retry idempotency, real remote destination readback.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-MEDIA-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "capabilities/media",
+      "standing": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+      "evidence": "capabilities/media/formal/LoudnessProfileSafety.smt2; capabilities/media/formal/MediaNativeProcessingAdmission.lean",
+      "consumers": "media:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Native processing admission, source-to-export identity and real decoded/rendered consumer acceptance.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [
+          "capabilities/media/formal/LoudnessProfileSafety.smt2",
+          "capabilities/media/formal/MediaNativeProcessingAdmission.lean"
+        ],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "media:verify",
+        "candidatePlanPaths": [
+          "capabilities/media/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [],
+        "trackedSourceFileCount": 610
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "constraint",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Native processing admission, source-to-export identity and real decoded/rendered consumer acceptance.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-PRESERVATION-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "capabilities/preservation",
+      "standing": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+      "evidence": "capabilities/preservation/planning/lego-plan-r1.json",
+      "consumers": "preservation:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Versioned retention and restore obligations; recover actual source bytes and final consumer readback.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "preservation:verify",
+        "candidatePlanPaths": [
+          "capabilities/preservation/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [],
+        "trackedSourceFileCount": 48
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "graph",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Versioned retention and restore obligations; recover actual source bytes and final consumer readback.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-GAME-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "domains/game",
+      "standing": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+      "evidence": "domains/game/planning/lego-plan-r1.json",
+      "consumers": "game:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "ECS update invariants, deterministic replay and real playable Agent-controlled session.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "game:verify",
+        "candidatePlanPaths": [
+          "domains/game/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [],
+        "trackedSourceFileCount": 322
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "ECS update invariants, deterministic replay and real playable Agent-controlled session.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-CAPITAL-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "domains/capital",
+      "standing": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+      "evidence": "domains/capital/formal/PaperCloseAmounts.lean; domains/capital/formal/PortfolioApportionmentGeneral.lean; domains/capital/formal/PortfolioContributionR1.smt2; domains/capital/formal/PortfolioPassiveBenchmarkR1.smt2",
+      "consumers": "capital:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Accounting conservation, no look-ahead, portfolio bounds and real Python/data/simulation refinement.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [
+          "domains/capital/formal/PaperCloseAmounts.lean",
+          "domains/capital/formal/PortfolioApportionmentGeneral.lean",
+          "domains/capital/formal/PortfolioContributionR1.smt2",
+          "domains/capital/formal/PortfolioPassiveBenchmarkR1.smt2",
+          "domains/capital/formal/RiskExposureBound.lean"
+        ],
+        "nativeFormalTaskNames": [
+          "verify:formal:risk-exposure",
+          "verify:formal:contribution",
+          "verify:formal:apportionment",
+          "verify:formal:passive-benchmark"
+        ],
+        "nativeOwnerVerifyTask": "capital:verify",
+        "candidatePlanPaths": [
+          "domains/capital/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [
+          "domains/capital/tests/test_accounting_smoke_optimizer_contract.py",
+          "domains/capital/tests/test_capability_current_postgres.py",
+          "domains/capital/tests/test_current_source_pointer_integrity.py"
+        ],
+        "trackedSourceFileCount": 364
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "MODEL_PROOF_SOURCE_PRESENT_VERDICT_NOT_REQUALIFIED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "algebra",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Accounting conservation, no look-ahead, portfolio bounds and real Python/data/simulation refinement.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-WEB-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "apps/web",
+      "standing": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+      "evidence": "apps/web/planning/lego-plan-r1.json",
+      "consumers": "web:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Request/action contract and identity, actual web/browser consumer and negative authorization path.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "web:verify",
+        "candidatePlanPaths": [
+          "apps/web/planning/lego-plan-r1.json"
+        ],
+        "representativeConsumerTestSources": [],
+        "trackedSourceFileCount": 35
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Request/action contract and identity, actual web/browser consumer and negative authorization path.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    },
+    {
+      "id": "OWNER-EVIDENCE-CHAOXING-AUTOSIGN-20261107",
+      "problemClass": "FORMAL_REFINEMENT_GAP",
+      "naturalOwner": "apps/chaoxing-autosign",
+      "standing": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+      "evidence": "apps/chaoxing-autosign/README.md",
+      "consumers": "chaoxing:verify (source task only; installed/effect consumer independently qualified)",
+      "formalObligation": "Application action contract, session/permission boundary and authorized external readback.",
+      "sourceInventory": {
+        "formalModelSourcePaths": [],
+        "nativeFormalTaskNames": [],
+        "nativeOwnerVerifyTask": "chaoxing:verify",
+        "candidatePlanPaths": [],
+        "representativeConsumerTestSources": [],
+        "trackedSourceFileCount": 11
+      },
+      "qualification": {
+        "individualAdmittedLegoPopulation": "UNKNOWN_NOT_ENUMERATED_FROM_PLANNING_NODES",
+        "fullElevenCoordinateDeclaration": "UNKNOWN_NOT_INDEPENDENTLY_ASSESSED",
+        "modelProof": "NO_OWNER_LOCAL_FORMAL_SOURCE_IDENTIFIED_SCOPE_LIMITED",
+        "implementationRefinement": "UNKNOWN_NOT_PROVED_BY_DIRECTORY_PRESENCE",
+        "installedConsumerReadback": "NOT_REQUALIFIED_BY_THIS_SOURCE_CENSUS"
+      },
+      "representation": {
+        "primary": "state-machine",
+        "supporting": [],
+        "methodSkill": ".agents/skills/recursive-lego-calculus/SKILL.md",
+        "evidenceState": "SOURCE_ONLY_NOT_A_VERIFIER_VERDICT",
+        "requiredWitness": "Application action contract, session/permission boundary and authorized external readback.",
+        "selectionReason": "Select a mature per-Owner method only after admitting one actual consumer/property; this historical source inventory does not certify formal full-LEGO admission or the installed implementation."
+      },
+      "registration": {
+        "state": "UNREGISTERED",
+        "reason": "This evidence row inventories an Owner, not a formal independently admitted LEGO. No precise valid admitted slice is asserted; existing plans may contain candidates but are not proof declarations."
+      }
+    }
+  ],
+  "verification": {
+    "standing": "SOURCE_BOUNDED_20_OWNER_INVENTORY_WITH_19_UNQUALIFIED_SOURCE_PROOF_RESULTS",
+    "sourceMechanism": "tools/repo/owners.toml; git ls-files; owner-local mise.toml; existing tools/repo/check_architecture_docs.py; no new schema, checker, service or registry.",
+    "observedNativeProof": {
+      "owner": "host",
+      "task": "mise run //services/host:formal:reply-source",
+      "checkedActualSourceFunctions": [
+        "ordivon_host_v2.social_message_commands._reply_target_precedes_source",
+        "ordivon_host_v2.work_store._next_work_revision"
+      ],
+      "crosshairVersion": "0.0.112",
+      "result": "5 PEP316 obligations confirmed over all paths in the symbolic checker scope",
+      "notProved": [
+        "PostgreSQL CAS transaction linearizability",
+        "live Host MCP service identity",
+        "cross-owner effects"
+      ]
+    },
+    "nonClaims": [
+      "The 20 Owner roots are not twenty independently DECLARED/ADMITTED LEGOs.",
+      "The existence of a .tla, .lean or .smt2 file does not prove it passed a current checker or covers the actual source.",
+      "No absence of a formal file proves an Owner has zero formal or native invariant evidence.",
+      "No completeness percentage of 11-coordinate LEGO declarations is justified absent a verified admitted LEGO population.",
+      "Owner tests without an independent live PostgreSQL, network, device or application readback do not establish real consumer acceptance.",
+      "A 2026-11-07 source snapshot cannot be promoted into later installed/currentness evidence without requalification."
+    ],
+    "observedNativeOwnerVerify": {
+      "owner": "host",
+      "task": "mise run //services/host:verify",
+      "sourceCut": "f43b4d245322e3203a19a5800ab08797c5702330",
+      "result": "380 passed, 41 skipped",
+      "realPgTestDsnPresent": false,
+      "qualification": "Host source + non-PG tests accepted; PostgreSQL transaction/linearizability tests requiring explicit test DSN NOT_RUN, not PASS."
+    },
+    "observedNativeConsumer": {
+      "owner": "host",
+      "source": "actual connected Host MCP (not Host test DSN)",
+      "operations": [
+        "work.list(limit=3)",
+        "work.get(exact listed workRef and revision)"
+      ],
+      "result": "One list-selected Work with revision 40 returned identically by work.get; returned stored snapshot carries sha256 digest and Host semantic continuity truth boundary.",
+      "privacy": "The selected Work reference and snapshot contents are deliberately omitted from Git evidence. Point-in-time observation only.",
+      "notProved": [
+        "atomic write CAS",
+        "concurrent PG transactions",
+        "installed Host executable SourceCut identity",
+        "any other Work contents"
+      ]
+    },
+    "rootCiQualification": {
+      "source": "mise run repo:ci at workspace source cut",
+      "partial": "Repository architecture/docs and SQL source checks PASS; focused repository/test suites 532 passed; native Git publication smoke PASS.",
+      "overall": "TIMED_OUT_AFTER_PARTIAL_PASS",
+      "remaining": "NO_UNEXECUTED_REPO_CI_TAIL_SUBTASKS_IN_THIS_SOURCE_AUDIT; single-run aggregate remains TIMED_OUT.",
+      "governanceTail": {
+        "command": "Existing repo:ci governance tail: unittest GitHub governance; GitHub governance checker; actionlint; git diff --check",
+        "result": "25 tests PASS (86.841s); github governance valid (uv=13, npm=8, cargo=2); actionlint PASS; final git diff --check PASS",
+        "qualification": "Tail ran in a separate native Runtime Job after monolithic repo:ci timeout. This is not one successful continuous repo:ci invocation."
+      }
+    }
+  }
+}
