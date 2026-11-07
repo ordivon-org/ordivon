@@ -40,6 +40,7 @@ Provider, but cannot itself certify deployed no-bypass or process behavior.
 ```text
 config/        generic live configuration; native Prometheus consumer scrape fragments
 systemd/       generic live lifecycle
+substrates/    shared netns/forward/carrier (stable installed identifiers)
 acceptance/    generic capability acceptance
 capabilities/  optional reusable mechanisms such as WireGuard/failover
 providers/     provider-specific profiles and evidence
@@ -53,7 +54,7 @@ evidence/      current capability standing
 The root `Taskfile.yml` is the public orchestration surface, not a dumping
 ground for provider and application scripts. Native Go Task `includes` with
 `flatten: true` bind each submodule's own `Taskfile.yml` into exactly the same
-public `provider:*`, `consumer:*`, `capability:*` and `reference:*` task names.
+public `provider:*`, `consumer:*`, `substrate:*`, `capability:*` and `reference:*` task names.
 The included Taskfiles deliberately inherit the repository-root working
 directory; executing one as a standalone Taskfile is not the supported
 deployment entrypoint.
@@ -62,7 +63,8 @@ Examples of natural Owner files:
 
 - `providers/gluetun/Taskfile.yml` — physical Provider source and acceptance
 - `providers/surfshark/Taskfile.yml` — provider catalog and profiles
-- `consumers/browserless/Taskfile.yml` — shared carrier and legacy cutover
+- `substrates/shared-egress/Taskfile.yml` — shared namespace/carrier source
+- `consumers/browserless/Taskfile.yml` — inactive legacy provider recovery
 - `consumers/codex/Taskfile.yml` — Codex scoped proxy
 - `consumers/mobile-tailnet-exit/Taskfile.yml` — Tailscale exit
 - `consumers/finance/Taskfile.yml` — separate Finance destination authority

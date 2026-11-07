@@ -1,6 +1,9 @@
 version: '3'
 
 includes:
+  shared-egress:
+    taskfile: ./substrates/shared-egress/Taskfile.yml
+    flatten: true
   browserless:
     taskfile: ./consumers/browserless/Taskfile.yml
     flatten: true
@@ -64,7 +67,7 @@ tasks:
 
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, provider:surfshark:validate, provider:gluetun:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate, consumer:codex:validate, consumer:mobile-tailnet-exit:validate, consumer:discord:validate, consumer:model-provider:validate, consumer:windows-real-chrome:validate]
+    deps: [core:validate, substrate:shared-egress:validate, provider:surfshark:validate, provider:gluetun:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate, consumer:codex:validate, consumer:mobile-tailnet-exit:validate, consumer:discord:validate, consumer:model-provider:validate, consumer:windows-real-chrome:validate]
 
   core:install:
     desc: Materialize the exact validated R0 source generation; skip effects when the installed generation already verifies

@@ -7,8 +7,40 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BROWSERLESS = ROOT / "consumers" / "browserless"
+SHARED_EGRESS = ROOT / "substrates" / "shared-egress"
 FINANCE = ROOT / "consumers" / "finance"
 SUPPLY = ROOT / "consumers" / "supply-chain"
+
+
+
+def test_shared_substrate_source_has_one_native_owner_and_legacy_is_delegated() -> None:
+    """Shared netns and carrier are not duplicated under Browserless recovery."""
+    expected = (
+        "systemd/network-v2-browserless-netns.service",
+        "systemd/network-v2-browserless-forward.service",
+        "systemd/network-v2-browserless.target",
+        "carrier-ready.sh",
+    )
+    shared_tasks = (SHARED_EGRESS / "Taskfile.yml").read_text()
+    legacy_tasks = (BROWSERLESS / "Taskfile.yml").read_text()
+    root_tasks = (ROOT / "Taskfile.yml").read_text()
+    assert "taskfile: ./substrates/shared-egress/Taskfile.yml" in root_tasks
+    assert "substrate:shared-egress:materialize" in legacy_tasks
+    assert "substrate:shared-egress:validate" in shared_tasks
+    assert "substrate:shared-egress:verify" in shared_tasks
+    for rel in expected:
+        path = SHARED_EGRESS / rel
+        assert path.is_file(), f"missing shared source: {path}"
+        if rel.startswith("systemd/"):
+            assert not (BROWSERLESS / rel).exists(), f"duplicated shared unit: {rel}"
+            assert f"install -m 0644 substrates/shared-egress/{rel}" in shared_tasks
+        else:
+            assert not (BROWSERLESS / "provider-carrier-ready.sh").exists()
+            assert "install -m 0755 substrates/shared-egress/carrier-ready.sh" in shared_tasks
+    assert "install -m 0644 substrates/shared-egress/systemd/network-v2-browserless.target" not in legacy_tasks
+    assert "install -m 0755 substrates/shared-egress/carrier-ready.sh" not in legacy_tasks
+    assert "network-v2-browserless-wireguard.service" not in shared_tasks
+    assert (BROWSERLESS / "systemd/network-v2-browserless-legacy-provider.target").is_file()
 
 
 def test_browserless_owns_one_internal_provider_carrier():
@@ -26,7 +58,7 @@ def test_browserless_owns_one_internal_provider_carrier():
     assert "NetworkNamespacePath=/run/netns/nv2-browserless-prod" in unit
     assert "Requires=network-v2-browserless-dns.service network-v2-browserless-forward.service" in unit
     assert "provider-endpoints.json" not in unit
-    target = (BROWSERLESS / "systemd" / "network-v2-browserless.target").read_text()
+    target = (SHARED_EGRESS / "systemd" / "network-v2-browserless.target").read_text()
     assert "Wants=network-v2-browserless-netns.service network-v2-browserless-forward.service" in target
     assert "network-v2-browserless-provider-carrier.service" not in target
     assert "network-v2-browserless-wireguard.service" not in target
@@ -141,9 +173,9 @@ def test_selected_gluetun_materialization_only_installs_compat_targets_and_readi
     )[1].split("\n        else", 1)[0]
     assert "network-v2-gluetun-owned.service" in selected
     assert "network-v2-gluetun-owned-adapter.service" in selected
-    assert "provider-carrier-ready.sh" in selected
+    assert "substrate:shared-egress:materialize" in block
     assert "systemctl daemon-reload" in selected
-    assert "install -m 0644 consumers/browserless/systemd/network-v2-browserless.target" in selected
+    assert "install -m 0644 substrates/shared-egress/systemd/network-v2-browserless.target" in (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()
     assert "install -m 0644 consumers/browserless/systemd/network-v2-browserless-legacy-provider.target" in selected
     assert "network-v2-browserless-provider-carrier.service" not in selected
     assert "network-v2-browserless-wireguard.service" not in selected
@@ -188,7 +220,7 @@ def test_browserless_shared_provider_requires_real_tunnel_and_origin_evidence(
     import os
     import subprocess
 
-    script = (BROWSERLESS / "provider-carrier-ready.sh").read_text()
+    script = (SHARED_EGRESS / "carrier-ready.sh").read_text()
     # Keep the physical provider session external; substitute only the
     # presence of its namespace and the systemd/ip/curl witnesses.
     namespace = tmp_path / "network-namespace"

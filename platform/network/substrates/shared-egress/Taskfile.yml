@@ -1,0 +1,37 @@
+version: '3'
+
+tasks:
+  substrate:shared-egress:validate:
+    desc: Validate shared namespace and provider carrier without live effects
+    cmds:
+      - /usr/bin/systemd-analyze verify substrates/shared-egress/systemd/network-v2-browserless-netns.service substrates/shared-egress/systemd/network-v2-browserless-forward.service substrates/shared-egress/systemd/network-v2-browserless.target
+      - /usr/bin/bash -n substrates/shared-egress/carrier-ready.sh
+
+  substrate:shared-egress:materialize:
+    desc: Install the existing shared substrate source without restarting physical VPN
+    deps: [substrate:shared-egress:validate]
+    # Native Go Task skip; avoid daemon-reload when installed source already matches.
+    status:
+      - cmp -s substrates/shared-egress/systemd/network-v2-browserless-netns.service /etc/systemd/system/network-v2-browserless-netns.service
+      - cmp -s substrates/shared-egress/systemd/network-v2-browserless-forward.service /etc/systemd/system/network-v2-browserless-forward.service
+      - cmp -s substrates/shared-egress/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+      - cmp -s substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+    cmds:
+      - install -d -m 0755 /usr/local/libexec/network-v2
+      - install -m 0644 substrates/shared-egress/systemd/network-v2-browserless-netns.service /etc/systemd/system/network-v2-browserless-netns.service
+      - install -m 0644 substrates/shared-egress/systemd/network-v2-browserless-forward.service /etc/systemd/system/network-v2-browserless-forward.service
+      - install -m 0644 substrates/shared-egress/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+      - install -m 0755 substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+      - systemctl daemon-reload
+
+  substrate:shared-egress:verify:
+    desc: Prove source and installed byte identity plus live namespace, forwarding and provider effect
+    cmds:
+      - cmp -s substrates/shared-egress/systemd/network-v2-browserless-netns.service /etc/systemd/system/network-v2-browserless-netns.service
+      - cmp -s substrates/shared-egress/systemd/network-v2-browserless-forward.service /etc/systemd/system/network-v2-browserless-forward.service
+      - cmp -s substrates/shared-egress/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+      - cmp -s substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+      - systemctl is-active --quiet network-v2-browserless.target
+      - systemctl is-active --quiet network-v2-browserless-netns.service
+      - systemctl is-active --quiet network-v2-browserless-forward.service
+      - /usr/local/libexec/network-v2/browserless-provider-carrier-ready

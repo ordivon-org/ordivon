@@ -29,6 +29,7 @@ Reuse the upstream mechanism before constructing a new Ordivon wrapper.
 | Query resolution | AdGuard dnsproxy parallel upstream/cache | State transition and Z3 induction | A/AAAA UDP/TCP, expired cache, outage recovery |
 | Generic application proxy | sing-box HTTP/SOCKS/TCP | Protocol and first-match route semantics | Actual origin TLS plus forbidden no-forward |
 | Physical VPN | Gluetun + native Surfshark WireGuard | Single-writer/identity invariant | One Podman secret/session, VPN exit, health recovery |
+| Shared namespace / carrier | Native iproute2 netns/veth, systemd units, Gluetun adapter | DSM coupling and stable interface refinement | Installed byte parity, no default route, real provider and consumers |
 | Mobile exit | Tailscale userspace in Gluetun netns | E2E source/installed/client witness | Admin-approved node, iOS-selected exit and IPinfo |
 | Scoped app access | sing-box bounded consumer policies | Assume/guarantee and Z3 refinement | Exact host+port admit, negative canary, no direct fallback |
 | Optional failover | HAProxy native TCP backend priority | Reliability fault tree / replay | Failover/failback of real accepted workload |
