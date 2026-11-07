@@ -122,3 +122,42 @@ Read the exact invocation, session requirements and optional preview flags
 in [Resolve native production](resolve-native.md). For new shots or more
 complex Fusion/Fairlight work, extend the project with official Resolve APIs
 instead of introducing another Ordivon menu Runner.
+
+## Human: one production, one native editing workflow
+
+Select the actual `productionId` and Claims first. Use
+[Resolve-native execution](resolve-native.md) with `--visual` for consecutive
+source shots or `--otio` for an existing editorial cut; the two are mutually
+exclusive. In either case, you may attach a separately selected `--audio`,
+apply a measured CDL saturation operation, and request a minimum timeline
+length. Preserve the resulting **editable DRP** as well as the delivered MP4.
+
+For captions, review the source TimedText cues, then use the pinned
+`ttconv`/TTML processing profile to derive SRT or WebVTT. For a Remotion
+animation, edit the existing React/SVG composition and render only the
+selected output; import it into Resolve as visual media if appropriate.
+For sound, review Fairlight's actual mix, run the existing FFmpeg loudnorm
+profile on the selected audio master, and listen to the final rendered output.
+For technical video QC, invoke the existing FFprobe/FFmpeg profile. A measured
+codec or loudness PASS does not mean the cut is good or correctly subtitled.
+
+For publication, identify the destination's real provider/API and read back
+the posted object or receipt. Production, Output, Blob and provider publication
+are separate states. Use the existing Creative Library index for discovery
+and `assets.py`/selected CAS or R2 for recovery, never as extra editorial
+truth stores. Discard unselected preview renders and scratch once no consumer
+references remain; do not delete masters or system directories by name alone.
+
+## Human: applying and evaluating a precise native grade
+
+Use the supported `--grade-slope`, `--grade-offset`,
+`--grade-power` and `--grade-saturation` inputs with
+`scripts/resolve-native-produce.py` for an isolated Resolve
+project. They map directly to the official Color CDL operation.
+Read `gradeCDL` in the receipt, inspect the real render on a
+calibrated display appropriate to the selected output, and retain
+the editable DRP. The receipt also shows which files Resolve
+actually loaded into its video and audio tracks. Source digest
+verification and independent FFprobe observations cannot
+substitute for creative color review or published-platform
+readback. No approval is manufactured by the script.

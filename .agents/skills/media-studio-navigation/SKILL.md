@@ -33,3 +33,37 @@ owns the edit and render. The script emits MP4, DRP and source/output digest
 receipt; independent Media Processing Profiles check the resulting files.
 Discover current Resolve native options instead of copying private parsers.
 Do not reinstall the retired menu Runner or introduce a new agent registry.
+
+## Agent composition for direct Resolve + OTIO work
+
+For native video work, the production caller selects either `--visual`
+(repeated shot files) or `--otio` (existing interchange timeline). Use the
+official Resolve import API; `--source-clips-dir` passes the native relink
+directory, while `--min-timeline-frames` expresses an actual consumer
+requirement. The one-shot script under `capabilities/media/scripts/`
+creates its own isolated project and emits editable DRP, MP4 and digest
+receipt. Read `timelineFrames` and the precise OTIO reference limitation.
+
+Next, use the *existing* `studio_processing_profiles` and
+`studio_processing_probe_plan` with exact profile/adapter digests for OTIO,
+FFprobe/FFmpeg, loudness and TTML as required. Do not copy a decoder,
+caption parser, editing engine, command registry or persistent staging
+protocol into this Skill. An Agent may propose Remotion/React/SVG motions,
+native Resolve/Fairlight audio and color actions, asset CAS/R2 recovery and
+provider-owned publication only when the selected Production consumes them.
+A Runtime Job is evidence of execution; only the actual Output and
+destination readback can support acceptance or publication.
+
+### Native Color and timeline-source readback
+
+For a selected editable Resolve Production, set ASC CDL parameters
+directly through the existing one-shot script using
+`--grade-slope`, `--grade-offset`, `--grade-power`, and
+`--grade-saturation`; these call official `SetCDL`. Read the
+effective `gradeCDL` in the emitted receipt. Verify the actual
+source-file digests reported under
+`nativeTimelineMediaReadback` against selected Asset/Blob
+authority before claiming an OTIO-linked source is faithful.
+`nativeTimelineMediaReadbackComplete=true` concerns physical
+media readback, not independent OTIO semantic conformance,
+creative approval or external publication.

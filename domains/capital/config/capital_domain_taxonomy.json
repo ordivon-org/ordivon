@@ -49,7 +49,8 @@
       "execution_reconciliation.py",
       "fix44_projection.py",
       "okx_readonly_client.py",
-      "private_reality.py"
+      "private_reality.py",
+      "okx_demo_execution.py"
     ],
     "portfolio": [
       "portfolio_counterfactuals.py",
@@ -81,7 +82,8 @@
       "experiment_protocol.py",
       "investment_candidate.py",
       "unit_r_dca.py",
-      "pit_joint_forecast.py"
+      "pit_joint_forecast.py",
+      "independent_policy_replay.py"
     ],
     "governance": [
       "policy_decision.py"
