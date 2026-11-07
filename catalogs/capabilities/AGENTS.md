@@ -2,6 +2,12 @@
 
 This is read-only discovery, routing knowledge and external LEGO evidence, **not** a live provider registry, installation authority, universal LEGO calculus or approval system. Human task guide: [docs/HUMAN_EXTERNAL_LEGO_REVIEW_R1.md](docs/HUMAN_EXTERNAL_LEGO_REVIEW_R1.md). Agent Skill: .agents/skills/external-capability-evaluation/SKILL.md.
 
+**ELE source-bound project research:** For a searchable decomposition of the
+existing project studies, use the existing Catalog-owned
+[PostgreSQL read projection](ele/README.md) and its exact-source readback.
+Do not infer installed capability, project currentness or formal LEGO admission
+from imported research. Do not duplicate Host/Runtime or domain data.
+
 1. Start from the existing consumer and natural Owner. Read this Owner's README.md, authority-map-r1.md and docs/EXTERNAL_CAPABILITY_EVALUATION_R1.md. A source repository, Tool, Agent Skill or GitHub Trending entry is not automatically a LEGO.
 2. Verify a scoped candidate via the existing script from repo root: python3 catalogs/capabilities/scripts/check_external_candidate_references.py catalogs/capabilities/evidence/worktrunk-candidate-20261106.json. This checks the exact SourceCut and consumer Git Blob witnesses; never change to current HEAD just to pass.
 3. Reuse existing procedures **on demand**: .agents/skills/method-router/SKILL.md for method selection, .agents/skills/skill-supply-chain-audit/SKILL.md for third-party Skill source review, and .agents/skills/recursive-lego-calculus/SKILL.md only for formal R2.1 declarations. Do not copy the methods or build a private method registry.

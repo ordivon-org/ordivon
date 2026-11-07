@@ -38,6 +38,15 @@ At task time, prefer the provider's natural currentness source:
 
 If no trustworthy current probe exists, treat the local availability statement as a dated observation and revalidate before relying on it. Do not create a durable Ordivon ProviderStatus database merely to centralize facts already owned by package managers, container runtimes, services, or other natural providers.
 
+## External Learning & Evolution (ELE) project studies on PostgreSQL
+
+The existing provider analyses, knowledge decompositions, package studies and
+pinned evidence can be imported as a source-bound, searchable PostgreSQL
+projection. See [ELE PG study guide](ele/README.md) and
+[the native CLI](ele/studies.py). Git source remains the natural Owner's edited
+truth until each real consumer has migrated; the PG index is not installed
+provider state or an executable/formal LEGO registry.
+
 ## External capability evaluation (LEP method)
 
 For a real consumer, see the [Human review guide](docs/HUMAN_EXTERNAL_LEGO_REVIEW_R1.md), [Agent Owner instructions](AGENTS.md), and [architecture/contract](docs/EXTERNAL_CAPABILITY_EVALUATION_R1.md). The reusable Agent Skill is under .agents/skills/external-capability-evaluation/SKILL.md.
