@@ -390,6 +390,88 @@ def prequential_energy_evaluation(
     return tuple(results)
 
 
+
+def compare_pit_prequential_forecasts(
+    *,
+    records: Sequence[PriceVintage],
+    assets: Sequence[str],
+    valuation_sessions: Sequence[date],
+    decision_instants: Mapping[date, datetime],
+    evaluation_as_of: datetime,
+    baseline_method: str = "empirical",
+    candidate_method: str = "lagged_knn",
+) -> dict[str, Any]:
+    """Paired, same-clock, independent retrospective loss observations.
+
+    Reuses the existing strict historical release-time cuts and proper energy
+    score. The output is descriptive: a loss difference is NOT a Diebold-Mariano
+    p-value, a Hansen-SPA correction, or evidence of economic alpha.
+
+    Positive candidate-minus-baseline loss means worse candidate scoring.
+    A historical experiment remains caller-supplied, not an externally
+    authenticated precommitted prospective trial.
+    """
+    kwargs = dict(
+        records=records,
+        assets=assets,
+        valuation_sessions=valuation_sessions,
+        decision_instants=decision_instants,
+        evaluation_as_of=evaluation_as_of,
+    )
+    reference = prequential_energy_evaluation(
+        **kwargs, forecast_method=baseline_method
+    )
+    candidate = prequential_energy_evaluation(
+        **kwargs, forecast_method=candidate_method
+    )
+    if not reference or len(reference) != len(candidate):
+        raise PointInTimeError("paired evaluation requires common realized periods")
+    pairs: list[dict[str, Any]] = []
+    for before, after in zip(reference, candidate, strict=True):
+        identity = (
+            "valuation_session", "decision_time", "evaluation_as_of",
+            "outcome_session", "realized_joint_gross",
+        )
+        if any(before[key] != after[key] for key in identity):
+            raise PointInTimeError(
+                "models must use identical ex-ante decision and realized outcome"
+            )
+        delta = after["energy_score"] - before["energy_score"]
+        b_variogram, a_variogram = before["variogram_score"], after["variogram_score"]
+        pairs.append(
+            {
+                "decision_time": before["decision_time"],
+                "valuation_session": before["valuation_session"],
+                "outcome_session": before["outcome_session"],
+                "baseline_forecast_sha256": before["frozen_forecast_sha256"],
+                "candidate_forecast_sha256": after["frozen_forecast_sha256"],
+                "baseline_energy": before["energy_score"],
+                "candidate_energy": after["energy_score"],
+                "candidate_minus_baseline_energy": delta,
+                "candidate_minus_baseline_variogram": (
+                    None if b_variogram is None or a_variogram is None
+                    else a_variogram - b_variogram
+                ),
+            }
+        )
+    return {
+        "standing": "PAIRED_PREQUENTIAL_DESCRIPTIVE_NO_SIGNIFICANCE_OR_ALPHA",
+        "effectStanding": "READ_ONLY_NO_TRADE_NO_ACCOUNTING",
+        "baselineMethod": baseline_method,
+        "candidateMethod": candidate_method,
+        "matchedEvaluationCount": len(pairs),
+        "meanCandidateMinusBaselineEnergy": (
+            math.fsum(row["candidate_minus_baseline_energy"] for row in pairs)
+            / len(pairs)
+        ),
+        "perEvaluation": pairs,
+        "limitations": [
+            "Caller-supplied historical timestamps are not independently attested.",
+            "Descriptive energy loss differentials are not a serial-dependence-adjusted Diebold-Mariano inference or multiple-model SPA test.",
+            "No optimal leverage, confidence level, statistical significance or prospective alpha is asserted.",
+        ],
+    }
+
 def make_one_step_optimizer_contract(
     forecast: EmpiricalJointForecast,
     *,
