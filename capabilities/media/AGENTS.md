@@ -126,11 +126,11 @@ not approve the film or publish it.
 
 ## Agent: parameterized Remotion without duplicate templates
 
-For a selected \`runtime-flow\` animation, supply \`eyebrow\` and
-\`headline\` in exact JSON \`--props=/path/to/props.json\` via the
+For a selected `runtime-flow` animation, supply `eyebrow` and
+`headline` in exact JSON `--props=/path/to/props.json` via the
 existing Remotion CLI. The defaults and typed component stay in
-\`apps/motion-remotion/src/runtime-flow-composition.tsx\`; Root advertises
-the same \`defaultProps\`. This is the native Remotion \`inputProps\` contract,
+`apps/motion-remotion/src/runtime-flow-composition.tsx`; Root advertises
+the same `defaultProps`. This is the native Remotion `inputProps` contract,
 not a new Ordivon animation schema. Bind the props-file digest and source
 revision to the actual rendered MP4, then verify native media bytes
 with FFprobe and the selected Production's Claim/Output evidence.
