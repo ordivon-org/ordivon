@@ -26,7 +26,7 @@ CONTROL_SOURCES = {
 # Includes weak start edges and pure ordering edges, intentionally stronger
 # than checking Requires= alone. PartOf= is a stop/restart coupling, not start.
 COUPLING = frozenset(("Requires", "Wants", "Requisite", "BindsTo", "Upholds", "PartOf", "After"))
-UNIT_NAME = re.compile(r"^[A-Za-z0-9@_.:-]+\.(?:service|target)$")
+UNIT_NAME = re.compile(r"^[A-Za-z0-9@_.:-]+\.(?:service|target|timer|socket|path|mount|automount)$")
 
 
 class UnsupportedSource(RuntimeError):
@@ -60,6 +60,10 @@ def unit_dependencies(source: Path) -> set[str]:
         if "=" not in line:
             raise UnsupportedSource(f"unparsed Unit directive: {source}: {line}")
         key, value = (x.strip() for x in line.split("=", 1))
+        # Reverse or mutual coupling has different semantics. Do not silently
+        # produce a "proof" if such new source directives are introduced.
+        if key in {"Before", "PropagatesStopTo", "StopPropagatedFrom", "Conflicts"}:
+            raise UnsupportedSource(f"unmodeled coupling directive {key}: {source}")
         if key not in COUPLING:
             continue
         if not value:
@@ -74,12 +78,16 @@ def unit_dependencies(source: Path) -> set[str]:
 
 
 def source_graph() -> tuple[dict[str, set[str]], list[str], int]:
-    files = list(NETWORK.rglob("*.service")) + list(NETWORK.rglob("*.target"))
-    # Quadlet's native .container -> generated .service identity is an
-    # upstream Podman convention. Model its declared [Unit] dependencies,
-    # but do not claim the generator or installed generation was checked.
-    generated = list(NETWORK.rglob("*.container"))
-    entries = [(p.name, p) for p in files] + [(p.stem + ".service", p) for p in generated]
+    files = [p for suffix in (".service", ".target", ".timer", ".socket", ".path")
+             for p in NETWORK.rglob("*" + suffix)]
+    # Podman Quadlet generator convention: .container -> .service and
+    # .network -> -network.service. This models authored [Unit] text only,
+    # not whether the installed generator emitted or loaded these units.
+    containers = list(NETWORK.rglob("*.container"))
+    networks = list(NETWORK.rglob("*.network"))
+    entries = ([(p.name, p) for p in files]
+               + [(p.stem + ".service", p) for p in containers]
+               + [(p.stem + "-network.service", p) for p in networks])
     sources: dict[str, Path] = dict(CONTROL_SOURCES)
     for name, path in entries:
         if name in sources:
