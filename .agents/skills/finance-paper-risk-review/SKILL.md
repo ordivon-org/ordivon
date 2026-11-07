@@ -21,7 +21,24 @@ Do not create another broker, Finance Agent service, ledger or risk engine.
    exact session schedule, instrument set and decision clock.
 3. Have Accounting commit paper buy/sell sessions, pending payables
    and sale receivables in the dedicated ordivon_paper PostgreSQL DB.
-4. Prefer SQL read-only Accounting readback:
+4. Determine the current Paper account head **before** constructing any
+   daily-close request. Use the Accounting-native read-only consumer; it
+   neither creates an account nor synthesizes a valuation:
+
+       export ORDIVON_CAPITAL_PAPER_PG_DSN='...dedicated paper-only DSN...'
+       cd domains/capital
+       scripts/run-capability-python -m ordivon_capital.accounting.postgres_paper_close --account ACCOUNT --read-latest
+
+   `COMMITTED_PAPER_HEAD` contains the stored receipt and its latest session.
+   `NO_COMMITTED_PAPER_CLOSE` means this account is empty in an initialized
+   paper database. A missing database/schema, invalid receipt or absent DSN
+   is an error, **not** an empty account or invitation to reset capital.
+   The readback checks request digest, immediate predecessor linkage,
+   recorded market-evidence equality and a consistent PostgreSQL snapshot;
+   it does not independently authenticate publisher data or recalculate NAV.
+   `--read-latest` rejects all market/fill/calendar admission options.
+5. Prefer SQL read-only Accounting readback for Risk:
+
 
        export ORDIVON_CAPITAL_PAPER_PG_DSN='...paper-only DSN...'
        cd domains/capital
@@ -30,7 +47,7 @@ Do not create another broker, Finance Agent service, ledger or risk engine.
    The alternative --receipt FILE reads a caller-provided JSON file
    and leaves accountingPersistenceReverified=false. Never claim
    database proof from an offline receipt.
-5. Risk checks NAV conservation with pending purchase payables, sale
+6. Risk checks NAV conservation with pending purchase payables, sale
    receivables, protected cash and marked positions, then delegates
    exposure and budget decisions to the existing Risk/Governance.
    Unsettled sale receivables cannot fund new buys.

@@ -126,6 +126,23 @@ domains/capital/scripts/run-capability-python \
 
 Paper 日结会改变**模拟数据库**的状态，但不会调用真实经纪商。重复提交相同已关闭时段应获得原收据，改变同一已关闭时段的内容应被拒绝。模拟买卖的清算日期、费用和企业行为存在明确的已实现范围；无真实行情时，日结事实必须标为未知或缺失。
 
+### 每日结算前：先读取原有账户的最新已结算日期
+
+```sh
+cd domains/capital
+# 需预先设置专用的 ORDIVON_CAPITAL_PAPER_PG_DSN
+scripts/run-capability-python -m ordivon_capital.accounting.postgres_paper_close \
+  --account PAPER_ACCOUNT --read-latest
+```
+
+这是 **只读 PostgreSQL 查询**，不创建账户，不重新拨入起始虚拟本金，不生成任何今日收盘价。
+返回 `COMMITTED_PAPER_HEAD` 才表示存在可验证的本地模拟日结回执；
+`NO_COMMITTED_PAPER_CLOSE` 仅表示已初始化的 Paper 数据库里该账户为空。
+缺失数据库、密码或结算表则报错，而不是自动声称余额为零。查询会核对
+同一数据库快照中的原始请求摘要、回执的行情声明和前一条摘要；
+它**不独立证明**行情是某个交易所当天发布的，也不以账面 NAV 代替收益率。
+没有新、完整、可核验的合格收盘价就报告 `NOT_SETTLED`，不要重置本金或伪造结算。
+
 ### Paper 账本到 Risk：检查已承诺的模拟账户
 
 如果已经由 Accounting 在**专用** `ordivon_paper` PostgreSQL 数据库
