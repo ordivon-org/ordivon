@@ -193,6 +193,48 @@ def test_policy_digest_is_stable_across_semantically_equal_timezones() -> None:
     assert candidate_policy_digest(altered) == plan["configDigest"]
 
 
+def test_precommitment_digest_is_exact_for_high_precision_weights() -> None:
+    from decimal import ROUND_DOWN, ROUND_UP, Decimal, localcontext
+
+    plan, manifest, source, holdout = _fixture()
+    first = dict(manifest, strategyAssetWeight="0.1234567890123456789012345678901234567890")
+    changed = dict(manifest, strategyAssetWeight="0.1234567890123456789012345678901234567891")
+    assert Decimal(first["strategyAssetWeight"]) != Decimal(changed["strategyAssetWeight"])
+    first_digest = candidate_policy_digest(first)
+    assert first_digest != candidate_policy_digest(changed)
+
+    # Adding insignificant zeros changes the byte spelling, not the policy.
+    equivalent = dict(first, strategyAssetWeight=first["strategyAssetWeight"] + "0000")
+    assert candidate_policy_digest(equivalent) == first_digest
+    assert candidate_policy_digest(dict(manifest, strategyAssetWeight="0.5000")) == (
+        candidate_policy_digest(manifest)
+    )
+    # Neither caller precision nor caller rounding mode can change the digest.
+    for precision, rounding in ((2, ROUND_DOWN), (2, ROUND_UP), (70, ROUND_DOWN)):
+        with localcontext() as context:
+            context.prec = precision
+            context.rounding = rounding
+            assert candidate_policy_digest(first) == first_digest
+            assert candidate_policy_digest(changed) != first_digest
+
+    # Actual frozen source-replay consumer must reject modifying an admitted
+    # high-precision weight, even if market arithmetic later rounds to 28 digits.
+    plan["configDigest"] = first_digest
+    result = _run(plan, changed, source, holdout)
+    assert result["standing"] == "REJECTED"
+    assert result["reasons"] == ["PRECOMMITTED_POLICY_MISMATCH"]
+
+
+def test_precommitment_digest_is_exact_for_high_precision_benchmark_cost() -> None:
+    _, manifest, _, _ = _fixture()
+    left = dict(manifest, benchmarkExpenseFraction="0.000000000000000000000000000000001")
+    right = dict(manifest, benchmarkExpenseFraction="0.000000000000000000000000000000002")
+    assert candidate_policy_digest(left) != candidate_policy_digest(right)
+    assert candidate_policy_digest(dict(left, benchmarkExpenseFraction="1e-33")) == (
+        candidate_policy_digest(left)
+    )
+
+
 def test_cli_fingerprint_freeze_review_full_composition(tmp_path: Path) -> None:
     plan, manifest, source, holdout = _fixture()
     for filename, payload in (

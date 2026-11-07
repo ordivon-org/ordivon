@@ -253,7 +253,18 @@ def _policy_decimal(value: Any, label: str) -> str:
         raise ExperimentContractError(f"{label} must be a finite decimal") from exc
     if not parsed.is_finite() or not Decimal(0) <= parsed <= Decimal(1):
         raise ExperimentContractError(f"{label} outside [0,1]")
-    return str(parsed.normalize())
+    # Decimal.normalize() first rounds to the active Context precision. A
+    # research policy digest must distinguish *every* distinct admitted weight,
+    # even when more than the default 28 coefficient digits were supplied.
+    # Reconstruct the exact coefficient/exponent tuple instead: removing base-10
+    # trailing zeros is an equivalence-preserving identity, not arithmetic.
+    if parsed.is_zero():
+        return "0"
+    sign, digits, exponent = parsed.as_tuple()
+    end = len(digits)
+    while end > 1 and digits[end - 1] == 0:
+        end -= 1
+    return str(Decimal((sign, digits[:end], exponent + len(digits) - end)))
 
 
 def candidate_policy_digest(candidate: Mapping[str, Any]) -> str:
