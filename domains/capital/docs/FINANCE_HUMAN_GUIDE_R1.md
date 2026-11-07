@@ -196,6 +196,29 @@ Accounting/Markets/Risk 原生消费者给出。
 
 历史尾部风险如果单独计算 VaR / ES，应使用现有 Risk 的 `historical_expected_shortfall`，并按 [Portfolio Risk Monitoring](PORTFOLIO_RISK_MONITORING_R1.md) 理解其经验分布与尾部概率口径。尤其不要把“超过阈值的样本直接平均”误认为指定置信度的 ES；它不能替代未来风险预测或风险预算。
 
+### Paper 日报：新增本金与投资盈亏分开
+
+对两个已经提交的连续 Paper 收据，可读取 PostgreSQL 并生成只读简报：
+
+```sh
+cd domains/capital
+scripts/run-capability-python -m ordivon_capital.portfolio.paper_close_performance \
+  --account PAPER_ACCOUNT --session YYYY-MM-DD --previous-session YYYY-MM-DD \
+  --snapshot /private/etf-raw-marks.json \
+  --binding /private/operator-market-binding.json
+```
+
+沿用上节的专用数据库 DSN、账户和行情占位符。简报复用 Accounting 的
+净值及 Risk 的核对；投资盈亏为「本期净值 − 前期净值 − 本期新增本金」。
+收益率假设新增本金在期初可用；它不是时间加权收益或内部收益率，
+首份收据不评收益。JSON 中的 `accountingPersistenceReverified=true`
+只表示已完成原生 PostgreSQL 回读，不证明外部行情来源真实。
+
+Agent 可直接调用 `summarize_paper_period`，或用
+`--current-receipt` / `--previous-receipt` 提交文件；文件模式的持久化
+核验标志保持 false。必须保留前驱摘要链、Markets 原始价绑定、
+Risk 状态及精确收益小数字符串；不要从此简报推导下单权限。
+
 ### 形式化与实际结算：目前验证到哪里？
 
 Finance 已有原生 Lean 模型 `formal/PaperCloseAmounts.lean`，可以运行
