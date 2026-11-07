@@ -132,14 +132,35 @@ def compile_operation(
         height = int(parameters["height"])
         return EquipmentPlan(equipment_id, capability, "process", require_existing("/usr/bin/rsvg-convert"), ("--width", str(width), "--height", str(height), "-o", output, input_path))
     if equipment_id == "davinci-resolve":
-        if capability == "deliver.render" and {"python", "script", "visuals", "output_dir", "name"} <= parameters.keys():
-            visuals = parameters["visuals"]
-            if not isinstance(visuals, list) or not visuals or not all(isinstance(p, str) and p for p in visuals):
-                raise ValueError("selected visuals must be a nonempty list of source paths")
+        required = {"python", "script", "output_dir", "name"}
+        if capability == "deliver.render" and required <= parameters.keys():
+            visuals = parameters.get("visuals")
+            otio = parameters.get("otio")
+            if (visuals is None) == (otio is None):
+                raise ValueError("select exactly one editorial source: visuals or otio")
             args = [str(parameters["script"])]
-            for visual in visuals:
-                args.extend(("--visual", visual))
-            args.extend(("--output-dir", str(parameters["output_dir"]), "--name", str(parameters["name"])))
+            if visuals is not None:
+                if (not isinstance(visuals, list) or not visuals
+                        or not all(isinstance(p, str) and p for p in visuals)):
+                    raise ValueError("selected visuals must be a nonempty list of source paths")
+                for visual in visuals:
+                    args.extend(("--visual", visual))
+            else:
+                if not isinstance(otio, str) or not otio.strip():
+                    raise ValueError("selected otio must be one nonempty timeline path")
+                args.extend(("--otio", otio))
+            source_clips_dir = parameters.get("source_clips_dir")
+            if source_clips_dir is not None:
+                if otio is None or not isinstance(source_clips_dir, str) or not source_clips_dir:
+                    raise ValueError("source_clips_dir requires an OTIO and a nonempty directory")
+                args.extend(("--source-clips-dir", source_clips_dir))
+            minimum_frames = parameters.get("min_timeline_frames")
+            if minimum_frames is not None:
+                if type(minimum_frames) is not int or minimum_frames <= 0:
+                    raise ValueError("min_timeline_frames must be a positive integer")
+                args.extend(("--min-timeline-frames", str(minimum_frames)))
+            args.extend(("--output-dir", str(parameters["output_dir"]),
+                         "--name", str(parameters["name"])))
             if parameters.get("audio"):
                 args.extend(("--audio", str(parameters["audio"])))
             if parameters.get("grade_saturation") is not None:
@@ -150,13 +171,14 @@ def compile_operation(
                 (
                     "Execute via Windows Runtime windowsAuthority=active_user in the logged-in desktop session.",
                     "The official Resolve API produces MP4, editable DRP, and source/output SHA-256 receipt.",
+                    "When selecting OTIO, independently validate its media references and bind source_clips_dir if relinking is needed.",
                 ),
             )
         return EquipmentPlan(
             equipment_id, capability, "resolve-official-python-api", None, (),
             (
                 "Use the installed Resolve official Python API through Windows Runtime active_user.",
-                "To render supply python, script, visuals, output_dir, name to source-owned scripts/resolve-native-produce.py.",
+                "To render supply python, script, output_dir, name, and exactly one of visuals or otio.",
                 "Do not restore the retired ordivon-studio resolve menu Runner.",
             ),
         )
