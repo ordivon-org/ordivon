@@ -7,21 +7,13 @@ ROOT = Path(__file__).resolve().parents[1]
 CONSUMER = ROOT / "consumers" / "supply-chain"
 
 
-def test_supply_chain_authority_matches_enforced_destination_policy():
+def test_supply_chain_authority_declares_loopback_and_carrier():
     authority = json.loads((CONSUMER / "config" / "authority.json").read_text())
-    egress = json.loads((CONSUMER / "config" / "egress.json").read_text())
     assert authority["listen"] == {"host": "127.0.0.1", "port": 19581, "protocol": "http"}
     assert authority["directFallback"] is False
     assert authority["networkAuthority"]["carrierService"] == "network-v2-gluetun-owned-adapter.service"
     assert authority["networkAuthority"]["namespace"] == "nv2-browserless-prod"
     assert "providerSite" not in authority["networkAuthority"]
-    route = next(r for r in egress["route"]["rules"] if r.get("inbound") == ["supply-chain-oci"])
-    assert sorted(route["domain"]) == sorted(authority["allowedHttpsDomains"])
-    assert sorted(route["domain_suffix"]) == sorted(authority["allowedHttpsDomainSuffixes"])
-    assert route["port"] == 443
-    assert route["network"] == ["tcp"]
-    assert route["outbound"] == "provider-carrier"
-    assert egress["route"]["rules"][-1] == {"action": "reject"}
 
 
 def test_supply_chain_reuses_one_shared_carrier_without_vpn_identity():

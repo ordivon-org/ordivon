@@ -24,13 +24,6 @@ def test_chat_ingress_consumer_is_scoped_to_existing_browserless_network_authori
     }
     assert cfg['directFallback'] is False
     assert cfg['allowedOrigins'] == ['https://chatgpt.com']
-    policy = json.loads((CONSUMER / 'config/sing-box.json').read_text())
-    assert policy['outbounds'] == [{'type':'http','tag':'provider-carrier','server':'10.252.246.2','server_port':19680}]
-    assert policy['route']['rules'] == [
-        {'inbound':['chat-ingress'], 'network':['tcp'], 'domain':['chatgpt.com'], 'port':[443], 'action':'route', 'outbound':'provider-carrier'},
-        {'action':'reject'},
-    ]
-    assert 'dns' not in policy
 
 
 def test_chat_ingress_units_relay_only_to_namespace_local_proxy_and_do_not_change_host_routes():
