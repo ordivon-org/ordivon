@@ -63,3 +63,15 @@ Do not rebuild the retired embedded Ordivon menu Runner or staged-operation
 protocol. Prefer the installed official API and existing OTIO/FFmpeg LEGO.
 Live Windows session, source binding, native readback and Production acceptance
 are distinct from fake-Resolve unit tests and historical Free 21 receipts.
+## Native Resolve production action
+
+For a real Windows editing consumer, source files and the intended Output
+directory are exact task inputs. The source-owned
+`scripts/resolve-native-produce.py` is a one-shot official Resolve API
+operation for visual cuts, a separate audio track, optional CDL grading,
+editable `.drp` and MP4 export. Use Windows Runtime `windowsAuthority=active_user`
+and a supported Python API interpreter. Do not write to the selected
+user project or bring back the retired menu Runner. Read the resulting
+`.receipt.json` and render in a separate native Processing profile.
+The installed scripting README is the API authority; the semantic
+`studio_equipment_propose` action alone does not perform the physical edit.

@@ -22,3 +22,14 @@ Use this source-owned procedure when the caller wants to find, commission, resum
 8. Finish with the consumer's actual source-grounded plan or observed result; state the earliest missing precondition otherwise. Retain editable source, selected recoverable bytes and necessary receipts, not hypothetical future intermediates.
 
 The current authority references are `capabilities/media/MEDIA.md`, `STUDIO.md`, `docs/media-model.md`, `capabilities/media/docs/capability-reference.md` and `capabilities/media/AGENTS.md`. Action schemas and production files remain the operational truth; this Skill is only navigation.
+
+## Native Resolve media creation
+
+When the consumer actually requests a finished editable video, use
+`capabilities/media/scripts/resolve-native-produce.py` with explicit selected
+`--visual` files, optional `--audio`, `--output-dir` and `--name` in the
+Windows interactive user session. The installed Blackmagic scripting API
+owns the edit and render. The script emits MP4, DRP and source/output digest
+receipt; independent Media Processing Profiles check the resulting files.
+Discover current Resolve native options instead of copying private parsers.
+Do not reinstall the retired menu Runner or introduce a new agent registry.
