@@ -1,6 +1,6 @@
-# Ordivon 五主线执行计划 R2（Current）
+# Ordivon 六主线执行计划 R2（Current）
 
-> 更新基线：2026-11-06。范围聚焦：（A）Owner 高内聚低耦合拆解；（B）目录、命名、表征标准化；（C）Host、Runtime 及各 Owner 的最终消费者穿透清理；（D）成熟能力型与思想型 LEGO 的证据驱动发现和替换；（E）分别面向 Human/Agent 的使用指导。本文是可在任务完结后删除的协调工件，不是新的 Owner、Board、Meta/Next、数据库或治理机制。状态以最新 Git、PostgreSQL、Runtime、systemd、GitHub PR 和实际消费者为准。
+> 更新基线：2026-11-06。范围聚焦：（A）Owner 高内聚低耦合拆解；（B）目录、命名、表征标准化；（C）Host、Runtime 及各 Owner 的最终消费者穿透清理；（D）成熟能力型与思想型 LEGO 的证据驱动发现和替换；（E）分别面向 Human/Agent 的使用指导；（F）将可证明的关键性质由成熟形式化工具验证，并仅保留不可替代的真实消费者验证。本文是可在任务完结后删除的协调工件，不是新的 Owner、Board、Meta/Next、数据库或治理机制。状态以最新 Git、PostgreSQL、Runtime、systemd、GitHub PR 和实际消费者为准。
 
 ## 一、目标函数、认识论与执行纪律
 
@@ -127,6 +127,14 @@
 | X10 | C/D 盘、WSL VHDX、日志与缓存、历史大目录 | 物理容量、仍存活消费者、真实恢复资源；原生系统/WSL 操作 |
 
 处置类别只有 DELETE、MIGRATE_THEN_DELETE、REUSE、KEEP_ACTIVE、UNKNOWN_EVIDENCE。历史性记录不是永久 KEEP_ACTIVE；若源在 Git、Consumer 已终结、并无合法持有义务，优先实际删除。UNKNOWN 先定点补证据，而不是扩大永久防护。
+
+## 六主线 F：形式化性质逐步取代冗余样例验证
+
+- **规格与真实实现分离。** Owner 先标明不可违反的安全性质、允许的状态转移、活性前提和调用者边界；模型证明必须注明有限状态/参数、假设、SourceCut 以及实现精化尚未覆盖的部分。模型 PASS 不自动提升为已安装实例 PASS。
+- **成熟工具各归其位。** Runtime/Harness/Composition 继续复用现有 digest-verified TLA+/TLC；Runtime Rust 代码按实际可用范围使用 Kani/Verus；跨模块契约优先组合现有 Lean/Z3/Pacti；Host Python 纯决策优先复用已锁定的 CrossHair，而不是新建验证解释器。
+- **Host 当前具体范例。** social_message_commands._reply_target_precedes_source 证明回复边遵循严格递减顺序；work_store._next_work_revision 证明 Work CAS 修订号单调且不超过 PostgreSQL BIGINT 上界。两者均是实际业务代码，而非另写的等价影子实现；正式入口仍负责输入类型、PG 事务及消费者验收。
+- **移除标准。** 当形式化性质覆盖、源代码连接、工具证据和负向反例均独立核实后，删除仅重复同一性质的样例断言；不得以抽象证明删除 PostgreSQL 行锁/事务、MCP 协议、实际部署、网络/系统效果以及跨 Owner 最终消费者验证。
+- **发布顺序。** 按自然 Owner 的 mise run verify 与根仓库 mise run repo:ci 验证、经 GitHub Merge Queue 合并，然后确认安装 SourceCut；不为验证再造 Owner、审计数据库或独立发布管线。
 
 ## 四、分波次实施、验收与关闭
 
