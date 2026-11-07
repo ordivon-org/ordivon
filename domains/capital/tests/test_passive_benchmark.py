@@ -1,7 +1,10 @@
 """Test exact cash-flow comparison, not simulated investment alpha."""
 
+import json
+import subprocess
 from copy import deepcopy
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -144,3 +147,48 @@ def test_partial_wealth_comparison_does_not_report_annualized_or_drawdown():
     assert any("drawdown" in x for x in out["notEvaluated"])
     assert "annualizedReturn" not in out
     assert out["capitalAuthority"] == "NONE"
+
+
+def test_native_cli_observes_matched_contributions_and_net_gain_identity(tmp_path):
+    """One real module/JSON consumer witness; not an arbitrary-period proof."""
+    first = sample_row()
+    first.update(
+        strategyExpenseFractionAtStart="0.01",
+        strategyFixedFeeAtStart="1",
+        benchmarkGrossReturn="0.02",
+    )
+    second = sample_row()
+    second.update(
+        periodEndAt="2026-11-03T00:00:00+00:00",
+        depositAtStart="25",
+        strategyGrossReturn="-0.03",
+        benchmarkGrossReturn="-0.02",
+        benchmarkFixedFeeAtStart="2",
+    )
+    payload = {
+        "schemaVersion": 1,
+        "kind": "ordivon.capital.finance.passive-benchmark-input",
+        "openingBalance": "100",
+        "currency": "USD",
+        "periods": [first, second],
+    }
+    source = tmp_path / "benchmark-consumer.json"
+    source.write_text(json.dumps(payload), encoding="utf-8")
+    result = subprocess.run(
+        [str(Path(__file__).resolve().parents[1] / "scripts/run-capability-python"),
+         "-m", "ordivon_capital.portfolio.passive_benchmark",
+         "--input", str(source)],
+        text=True, capture_output=True, check=False, timeout=90,
+    )
+    assert result.returncode == 0, result.stderr
+    observed = json.loads(result.stdout)
+    assert observed["capitalAuthority"] == "NONE"
+    assert observed["standing"] == "DESCRIPTIVE_REPLAY_NO_MARKET_VALIDATION"
+    assert observed["contributedCapital"] == "175"
+    assert Decimal(observed["terminalWealthDifference"]) == (
+        Decimal(observed["strategyNetGainVsContributions"])
+        - Decimal(observed["benchmarkNetGainVsContributions"])
+    )
+    assert observed == replay_passive_benchmark(
+        opening_balance="100", currency="USD", periods=[first, second]
+    )

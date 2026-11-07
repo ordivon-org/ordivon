@@ -60,3 +60,45 @@ This removes the three-asset limit for these two **algebraic** claims only.
 The specific *ranking* used for distributing residual cents remains
 three-asset model-checked, and the production Python refinement remains
 UNKNOWN. Do not infer an all-asset tie-break or broker correctness proof.
+
+## Passive benchmark — exact-arithmetic transition contract
+
+`PortfolioPassiveBenchmarkR1.smt2` models **two ordered periods**, two
+portfolio paths with **the same external deposits**, proportional and fixed
+fees charged at the start of each period, and a subsequent gross simple return.
+It uses Z3's QF_NRA mathematical reals, the same economic ordering as
+`portfolio/passive_benchmark.py`. The admission assumptions are nonnegative
+opening capital/deposits/fees, expense fractions between 0 and 1, returns no
+less than −100%, and fees not exceeding available capital.
+
+The five UNSAT counterexample obligations establish the model's:
+
+1. Exact cancellation of matched external contributions in **terminal wealth
+   difference** versus difference of net gains from contributed capital.
+2. Nonnegative intermediate and terminal wealth after admitted fee/return steps.
+3. A no-fee, zero-return strategy has terminal wealth equal to opening capital
+   plus the two deposits (deposits are **not** investment profit).
+4. Identical strategy/benchmark costs and returns imply equal terminal wealth.
+5. Admissible start-of-period fees cannot increase wealth against the matching
+   hypothetical fee-free return in the first period.
+
+The sixth result must be SAT, witnessing a real, positive-deposit, positive-fee,
+nonzero-comparison case to disallow a vacuous all-zero proof. This is **model
+checking of two periods**; no full Python `Decimal` refinement proof, arbitrary
+period-count theorem, authenticated market data, GIPS-compliant TWR/MWR, tax,
+transaction fill, or capital authorization is implied. In particular, Decimal
+precision/rounding is not modelled by mathematical reals; do not delete
+implementation tests based solely on these proof obligations.
+
+**Human:** From `domains/capital`, run
+`mise run verify:formal:passive-benchmark`. Read a synthetic native result via
+`scripts/run-capability-python -m ordivon_capital.portfolio.passive_benchmark
+--input examples/passive_benchmark_first_run_r1.json`. Treat its terminal
+wealth difference as a descriptive difference, **not** a return rate.
+
+**Agent:** Resolve the existing project-scoped
+`finance-paper-investment` Skill and record model SHA, pinned Z3 version,
+exact `UNSAT × 5 / SAT × 1` outcome, native consumer output/CLI, input provenance,
+and separate standing: spec/model VERIFIED; implementation refinement UNKNOWN;
+real financial outcome UNKNOWN. Compare only matched external deposits and fee
+timing, never infer trade authorization.
