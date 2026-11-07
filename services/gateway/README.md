@@ -118,7 +118,7 @@ Checkpoint payloads are opaque objects at the Gateway boundary. Host validates t
 ## External pull workers (candidate R3)
 
 Gateway can optionally enable the provider-neutral external pull-worker transport by setting
-ORDIVON_GATEWAY_EXTERNAL_WORKER_DB to a durable SQLite path. When enabled, enrolled workers
+The legacy ORDIVON_GATEWAY_EXTERNAL_WORKER_DB SQLite transport is retired. Enrolled workers
 contribute their current operator-bounded capabilities to the normal Gateway capability
 projection and execution.submit/get/cancel plus artifact.read remain the northbound API.
 

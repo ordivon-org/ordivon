@@ -8,9 +8,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from .ordivon.deepseek import DEFAULT_DEEPSEEK_SECRET_PATH
-from .sqlite_store import SQLiteHarnessStore
-from .postgres_store import PostgresHarnessStore
-from .store_ops import backup_harness_store, restore_harness_backup, verify_harness_backup
+from .postgres_store import PostgresHarnessStore, configured_postgres
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -75,6 +73,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = _dispatch_store(args)
         else:
             from .independent_cli import dispatch
+
             result = dispatch(args, clock_ms=_wall_clock_ms)
     except (
         FileNotFoundError,
@@ -96,67 +95,43 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _dispatch_store(args: argparse.Namespace) -> dict[str, object]:
-    from .independent_cli import _postgres_selection
-    pg = _postgres_selection()
-    if pg is not None:
-        if args.command == "store-init":
-            with PostgresHarnessStore(pg[0], schema=pg[1], initialize=True) as store:
-                return {"ok": True, "backend": "postgresql", "stateRoot": None, "store": store.doctor(full=True)}
-        if args.command in {"store-backup", "store-verify-backup", "store-restore"}:
-            raise ValueError("PostgreSQL CLI uses native PG backup/restore, not SQLite Store archives")
-        with PostgresHarnessStore(pg[0], schema=pg[1]) as store:
-            if args.command == "store-doctor":
-                return {"ok": True, "backend": "postgresql", "stateRoot": None, "store": store.doctor(full=True)}
-            if args.command == "store-inspect":
-                return {"ok": True, "backend": "postgresql", "stateRoot": None, "run": store.load_run(args.harness_run_id).to_dict()}
-            if args.command == "store-events":
-                events = store.list_run_events(args.harness_run_id, after_sequence=args.after_sequence)
-                return {"ok": True, "backend": "postgresql", "stateRoot": None, "events": [event.to_dict() for event in events]}
-        raise ValueError("unsupported PostgreSQL Harness Store command")
-    if args.command == "store-verify-backup":
-        return {"ok": True, "backup": verify_harness_backup(args.backup.expanduser())}
-    if args.command == "store-restore":
-        return {
-            "ok": True,
-            "restore": restore_harness_backup(
-                args.backup.expanduser(), args.destination.expanduser()
-            ),
-        }
-    root = _state_root(args)
-    if args.command == "store-init":
-        with SQLiteHarnessStore.initialize(root) as store:
-            report = store.doctor(full=True)
-        return {"ok": True, "stateRoot": str(root), "store": report}
-    if args.command == "store-backup":
-        return {
-            "ok": True,
-            "backup": backup_harness_store(root, args.destination.expanduser()),
-        }
-    with SQLiteHarnessStore(root) as store:
-        if args.command == "store-doctor":
-            return {"ok": True, "stateRoot": str(root), "store": store.doctor(full=True)}
+    if args.state_root is not None:
+        raise ValueError("--state-root is retired; Harness uses PostgreSQL only")
+    dsn, schema = configured_postgres()
+    if args.command in {"store-backup", "store-verify-backup", "store-restore"}:
+        raise ValueError(
+            "legacy SQLite backup and restore are retired; use native PostgreSQL recovery"
+        )
+    with PostgresHarnessStore(dsn, schema=schema, initialize=args.command == "store-init") as store:
+        if args.command in {"store-init", "store-doctor"}:
+            return {
+                "ok": True,
+                "backend": "postgresql",
+                "stateRoot": None,
+                "storageBackend": "postgresql",
+                "schema": schema,
+                "store": store.doctor(full=True),
+            }
         if args.command == "store-inspect":
             return {
                 "ok": True,
-                "stateRoot": str(root),
+                "backend": "postgresql",
+                "stateRoot": None,
+                "storageBackend": "postgresql",
+                "schema": schema,
                 "run": store.load_run(args.harness_run_id).to_dict(),
             }
         if args.command == "store-events":
-            events = store.list_run_events(
-                args.harness_run_id, after_sequence=args.after_sequence
-            )
+            events = store.list_run_events(args.harness_run_id, after_sequence=args.after_sequence)
             return {
                 "ok": True,
-                "stateRoot": str(root),
+                "backend": "postgresql",
+                "stateRoot": None,
+                "storageBackend": "postgresql",
+                "schema": schema,
                 "events": [event.to_dict() for event in events],
             }
-    raise ValueError("unsupported Harness store command")
-
-
-def _state_root(args: argparse.Namespace) -> Path:
-    if args.state_root is None:
-        raise ValueError("Harness command requires --state-root")
-    return args.state_root.expanduser().resolve()
+    raise ValueError("unsupported Harness PG store command")
 
 
 def _wall_clock_ms() -> int:

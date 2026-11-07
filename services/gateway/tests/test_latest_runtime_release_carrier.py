@@ -33,40 +33,17 @@ def test_default_gateway_does_not_require_any_sqlite_engine(
     assert mcp_server._external_workers_from_env() is None
 
 
-def test_explicit_legacy_worker_fails_closed_on_unqualified_sqlite(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", "/tmp/legacy-worker.db")
-    monkeypatch.setattr(external_worker.sqlite3, "sqlite_version", "3.53.1")
-    with pytest.raises(RuntimeError, match="legacy external worker requires SQLite 3.54.0"):
-        mcp_server._external_workers_from_env()
-
-
-def test_legacy_worker_cannot_misinterpret_postgres_dsn_as_file(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv(
-        "ORDIVON_GATEWAY_EXTERNAL_WORKER_DB",
+@pytest.mark.parametrize(
+    "legacy_value",
+    [
+        "/tmp/legacy-worker.db",
         "postgresql://localhost/ordivon_workers",
-    )
-    monkeypatch.setattr(external_worker.sqlite3, "sqlite_version", "3.54.0")
-    with pytest.raises(RuntimeError, match="not a PostgreSQL backend"):
-        mcp_server._external_workers_from_env()
-
-
-def test_explicit_qualified_legacy_worker_uses_existing_backend(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ],
+)
+def test_retired_gateway_sqlite_transport_rejected_without_opening_database(
+    monkeypatch: pytest.MonkeyPatch,
+    legacy_value: str,
 ) -> None:
-    path = tmp_path / "legacy-worker.db"
-    monkeypatch.setenv("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", str(path))
-    monkeypatch.setattr(external_worker.sqlite3, "sqlite_version", "3.54.0")
-    constructed: list[str] = []
-    sentinel = object()
-
-    def fake_transport(value: str) -> object:
-        constructed.append(value)
-        return sentinel
-
-    monkeypatch.setattr(mcp_server, "ExternalPullWorkerTransport", fake_transport)
-    assert mcp_server._external_workers_from_env() is sentinel
-    assert constructed == [str(path)]
+    monkeypatch.setenv("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", legacy_value)
+    with pytest.raises(RuntimeError, match="SQLite External Worker was retired"):
+        mcp_server._external_workers_from_env()

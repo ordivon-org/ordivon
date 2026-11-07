@@ -70,9 +70,8 @@ else
   chmod -R a+rX "$PYTHON_INSTALL_DIR"
 fi
 
-# The base Gateway has no SQLite store. Qualify the requested Python
-# interpreter here; an explicitly enabled legacy worker checks its own
-# SQLite dependency at feature admission, without blocking the base Gateway.
+# Gateway is a stateless router; legacy SQLite worker transport is retired.
+# Qualify only the release Python interpreter here.
 "$PYTHON" - "$PYTHON_REQUEST" <<'PYTHON_CHECK'
 import sys
 

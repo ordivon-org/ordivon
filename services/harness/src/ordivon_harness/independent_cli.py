@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from typing import Any
 
@@ -17,50 +16,29 @@ from .ordivon.sqlite_agent_bridge import (
     NO_TOOL_AGENT_SURFACE_DIGEST,
 )
 from .ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from .sqlite_store import SQLiteHarnessStore
-from .postgres_store import PostgresHarnessStore
-from .store import HarnessStore
+from .postgres_store import PostgresHarnessStore, configured_postgres
 from .standalone import HarnessAgentExecution
 from .store import HarnessRunStatus
 
 
-def _postgres_selection() -> tuple[str, str] | None:
-    """Explicit owner-bound PG-only CLI; never infer a backend from partial env."""
-    required = os.environ.get("ORDIVON_HARNESS_PG_ONLY") == "1"
-    dsn = os.environ.get("ORDIVON_HARNESS_PG_DSN")
-    schema = os.environ.get("ORDIVON_HARNESS_PG_SCHEMA")
-    if required:
-        if not dsn or not schema:
-            raise ValueError(
-                "PostgreSQL Harness CLI requires ORDIVON_HARNESS_PG_DSN and "
-                "ORDIVON_HARNESS_PG_SCHEMA; SQLite fallback prohibited"
-            )
-        return dsn, schema
-    if dsn or schema:
-        raise ValueError(
-            "Partial PostgreSQL Harness CLI configuration without "
-            "ORDIVON_HARNESS_PG_ONLY=1 is ambiguous; select backend explicitly"
-        )
-    return None
-
-
 def dispatch(args, *, clock_ms) -> dict[str, object]:
     command = args.command
-    pg = _postgres_selection()
-    root = None if pg is not None else _state_root(args)
+    if args.state_root is not None:
+        raise ValueError("--state-root is retired; Harness uses PostgreSQL only")
+    dsn, schema = configured_postgres()
 
-    def store_factory() -> HarnessStore:
-        return (
-            PostgresHarnessStore(pg[0], schema=pg[1]) if pg is not None
-            else SQLiteHarnessStore(root)
-        )
+    def store_factory() -> PostgresHarnessStore:
+        return PostgresHarnessStore(dsn, schema=schema)
+
     if command == "doctor":
         with store_factory() as store:
             return {
                 "ok": True,
                 "authority": "independent-harness-run",
-                "stateRoot": None if root is None else str(root),
-                "backend": "postgresql" if pg is not None else "sqlite",
+                "backend": "postgresql",
+                "stateRoot": None,
+                "storageBackend": "postgresql",
+                "schema": schema,
                 "store": store.doctor(full=True),
             }
     if command == "status":
@@ -68,16 +46,18 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
             return {
                 "ok": True,
                 "authority": "independent-harness-run",
-                "stateRoot": None if root is None else str(root),
-                "backend": "postgresql" if pg is not None else "sqlite",
+                "backend": "postgresql",
+                "stateRoot": None,
+                "storageBackend": "postgresql",
+                "schema": schema,
                 "run": store.load_run(args.harness_run_id).to_dict(),
             }
     if command == "inspect":
         with store_factory() as store:
-            return _inspect(store, args.harness_run_id, root=root, clock_ms=clock_ms)
+            return _inspect(store, args.harness_run_id, schema=schema, clock_ms=clock_ms)
     if command == "explain":
         with store_factory() as store:
-            inspected = _inspect(store, args.harness_run_id, root=root, clock_ms=clock_ms)
+            inspected = _inspect(store, args.harness_run_id, schema=schema, clock_ms=clock_ms)
             inspected["proofBoundaries"] = {
                 "durable": (
                     "Run/Contract/Provider/Snapshot/Recovery objects are exact Harness "
@@ -105,18 +85,14 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
         messages = _load_messages(args)
         if not messages:
             raise ValueError("independent run requires at least one input message")
-        def factory(exact_contract: HarnessRunContract) -> AgentTurnAdapter:
-            return _adapter(exact_contract, args)
-        if pg is not None:
-            handle = HarnessAgentRun.create_postgres(
-                pg[0], pg[1], contract, factory,
-                clock_ms=clock_ms, monotonic_ms=clock_ms,
-            )
-        else:
-            handle = HarnessAgentRun.create(
-                root, contract, factory,
-                clock_ms=clock_ms, monotonic_ms=clock_ms,
-            )
+        handle = HarnessAgentRun.create_postgres(
+            dsn,
+            schema,
+            contract,
+            lambda exact_contract: _adapter(exact_contract, args),
+            clock_ms=clock_ms,
+            monotonic_ms=clock_ms,
+        )
         status = handle.status()
         if status["status"] in {
             HarnessRunStatus.STOPPED.value,
@@ -124,36 +100,25 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
             HarnessRunStatus.FAILED.value,
         }:
             with store_factory() as store:
-                return _inspect(store, contract.harness_run_id, root=root, clock_ms=clock_ms)
+                return _inspect(store, contract.harness_run_id, schema=schema, clock_ms=clock_ms)
         if status["status"] == HarnessRunStatus.PAUSED.value:
             raise ValueError("paused independent Harness Run requires resume")
         execution = handle.run(messages)
         with store_factory() as store:
-            return _execution_value(execution, root=root, store=store)
+            return _execution_value(execution, schema=schema, store=store)
     if command == "resume":
-        def factory(exact_contract: HarnessRunContract) -> AgentTurnAdapter:
-            return _adapter(exact_contract, args)
-        if pg is not None:
-            handle = HarnessAgentRun.open_postgres(
-                pg[0], pg[1], args.harness_run_id, factory,
-                clock_ms=clock_ms, monotonic_ms=clock_ms,
-            )
-        else:
-            handle = HarnessAgentRun.open(
-                root, args.harness_run_id, factory,
-                clock_ms=clock_ms, monotonic_ms=clock_ms,
-            )
+        handle = HarnessAgentRun.open_postgres(
+            dsn,
+            schema,
+            args.harness_run_id,
+            lambda exact_contract: _adapter(exact_contract, args),
+            clock_ms=clock_ms,
+            monotonic_ms=clock_ms,
+        )
         execution = handle.resume(additional_messages=_load_messages(args))
         with store_factory() as store:
-            return _execution_value(execution, root=root, store=store)
+            return _execution_value(execution, schema=schema, store=store)
     raise ValueError(f"unsupported independent Harness command: {command}")
-
-
-def _state_root(args) -> Path:
-    root = args.state_root
-    if root is None:
-        raise ValueError("Harness command requires --state-root")
-    return root.expanduser().resolve()
 
 
 def _load_contract(path: Path) -> HarnessRunContract:
@@ -201,16 +166,18 @@ def _adapter(contract: HarnessRunContract, args) -> AgentTurnAdapter:
 def _execution_value(
     execution: HarnessAgentExecution,
     *,
-    root: Path | None,
-    store: HarnessStore,
+    schema: str,
+    store: PostgresHarnessStore,
 ) -> dict[str, object]:
     projection = store.load_run(execution.loop_result.harness_run_id)
     terminal = execution.terminal_result
     return {
         "ok": True,
         "authority": "independent-harness-run",
-        "stateRoot": None if root is None else str(root),
-        "backend": "postgresql" if root is None else "sqlite",
+        "backend": "postgresql",
+        "stateRoot": None,
+        "storageBackend": "postgresql",
+        "schema": schema,
         "run": projection.to_dict(),
         "stopCode": execution.loop_result.stop_code.value,
         "usage": execution.loop_result.usage,
@@ -224,10 +191,10 @@ def _execution_value(
 
 
 def _inspect(
-    store: HarnessStore,
+    store: PostgresHarnessStore,
     harness_run_id: str,
     *,
-    root: Path | None,
+    schema: str,
     clock_ms,
 ) -> dict[str, object]:
     projection = store.load_run(harness_run_id)
@@ -269,8 +236,10 @@ def _inspect(
     return {
         "ok": True,
         "authority": "independent-harness-run",
-        "stateRoot": None if root is None else str(root),
-        "backend": "postgresql" if root is None else "sqlite",
+        "backend": "postgresql",
+        "stateRoot": None,
+        "storageBackend": "postgresql",
+        "schema": schema,
         "run": run_value,
         "contract": continuity.contract.to_dict(),
         "providerCall": provider,
@@ -278,8 +247,6 @@ def _inspect(
         "runReceipt": run_receipt,
         "completionProposal": completion_proposal,
     }
-
-
 
 
 __all__ = ["dispatch"]
