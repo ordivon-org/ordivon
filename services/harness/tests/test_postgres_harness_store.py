@@ -52,6 +52,89 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         with psycopg.connect(self.dsn, autocommit=True) as conn:
             conn.execute(sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(sql.Identifier(self.schema)))
 
+    def test_native_cli_pg_only_run_status_inspect_and_recovery(self) -> None:
+        """CLI is a real consumer: no SQLite file can be created in PG-only mode."""
+        import contextlib
+        import io
+        import json
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from ordivon_harness.cli import main as cli_main
+        from tests.test_p0_sqlite_agent_loop import (
+            contract as cli_contract, needs_input_result, completed_result,
+        )
+
+        from ordivon_harness.core_contracts import HarnessPrivacyPolicy
+        run = replace(
+            cli_contract("pg-cli-first-class"),
+            privacy=HarnessPrivacyPolicy(
+                content_policy="bounded-private-content",
+                allow_model_content=True,
+                allow_tool_content=False,
+            ),
+        )
+        with tempfile.TemporaryDirectory() as root_dir:
+            root = Path(root_dir)
+            contract_file = root / "contract.json"
+            contract_file.write_text(json.dumps(run.to_dict()), encoding="utf-8")
+            def invoke(*args: str):
+                output = io.StringIO()
+                error = io.StringIO()
+                with contextlib.redirect_stdout(output), contextlib.redirect_stderr(error):
+                    code = cli_main(args)
+                return code, json.loads(output.getvalue()) if output.getvalue() else None, error.getvalue()
+
+            with patch.dict(os.environ, {
+                "ORDIVON_HARNESS_PG_ONLY": "1",
+                "ORDIVON_HARNESS_PG_DSN": self.dsn,
+                "ORDIVON_HARNESS_PG_SCHEMA": self.schema,
+            }):
+                code, initialized, error = invoke("store-init")
+                self.assertEqual(code, 0, error)
+                self.assertEqual(initialized["backend"], "postgresql")
+                with patch(
+                    "ordivon_harness.independent_cli._adapter",
+                    return_value=ScriptedTurnAdapter((needs_input_result("pg-cli-first-class-pause"),)),
+                ):
+                    code, paused, error = invoke("run", str(contract_file), "--message", "test")
+                self.assertEqual(code, 0, error)
+                self.assertEqual(paused["backend"], "postgresql")
+                self.assertIsNone(paused["stateRoot"])
+                self.assertEqual(paused["run"]["status"], "paused")
+                code, status, error = invoke("status", run.harness_run_id)
+                self.assertEqual(code, 0, error)
+                self.assertEqual(status["run"]["status"], "paused")
+                code, inspected, error = invoke("inspect", run.harness_run_id)
+                self.assertEqual(code, 0, error)
+                self.assertEqual(inspected["contract"]["harnessRunId"], run.harness_run_id)
+                with patch(
+                    "ordivon_harness.independent_cli._adapter",
+                    return_value=ScriptedTurnAdapter((completed_result("pg-cli-first-class-resume"),)),
+                ):
+                    code, completed, error = invoke(
+                        "resume", run.harness_run_id, "--message", "continuation"
+                    )
+                self.assertEqual(code, 0, error)
+                self.assertEqual(completed["run"]["status"], "completed")
+                self.assertEqual(completed["backend"], "postgresql")
+                code, events, error = invoke("store-events", run.harness_run_id)
+                self.assertEqual(code, 0, error)
+                self.assertGreater(len(events["events"]), 2)
+            self.assertEqual(sorted(p.name for p in root.iterdir()), ["contract.json"])
+
+    def test_pg_only_cli_missing_dsn_fails_closed_before_sqlite(self) -> None:
+        import contextlib
+        import io
+        from unittest.mock import patch
+        from ordivon_harness.cli import main as cli_main
+        with patch.dict(os.environ, {"ORDIVON_HARNESS_PG_ONLY": "1"}, clear=True):
+            error = io.StringIO()
+            with contextlib.redirect_stderr(error):
+                code = cli_main(["store-init"])
+            self.assertEqual(code, 1)
+            self.assertIn("SQLite fallback prohibited", error.getvalue())
+
     def test_exact_contract_and_immutable_cas_object(self) -> None:
         self.assertIsInstance(self.store, HarnessStore)
         run = contract()

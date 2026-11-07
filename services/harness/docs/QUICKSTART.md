@@ -210,6 +210,37 @@ This is an incremental compatibility path over the current Gateway execution pro
 
 ### Supported Python Agent Run surface
 
+### PostgreSQL-only independent CLI (fresh Run epoch)
+
+The supported CLI now reuses the existing PostgreSQL HarnessStore port.
+An explicitly selected new epoch skips all SQLite historical Run records.
+Provide both the SQL connection and the exact owner schema through the
+operator-controlled environment, then use the same standard CLI verbs:
+
+```sh
+export ORDIVON_HARNESS_PG_ONLY=1
+export ORDIVON_HARNESS_PG_DSN='postgresql://<operator-provisioned-private-role>'
+export ORDIVON_HARNESS_PG_SCHEMA=ordivon_harness_runs
+ordivon-harness store-init
+ordivon-harness doctor
+ordivon-harness run /path/to/contract.json --message 'start'
+ordivon-harness status HARNESS_RUN_ID
+ordivon-harness resume HARNESS_RUN_ID --message 'continue'
+```
+
+The schema is an existing PostgreSQL authority managed by the caller; `store-init`
+creates only the supplied Harness schema/tables using its existing database
+role and does not read, migrate, or delete SQLite data. With PG-only enabled
+but a missing DSN or schema the CLI fails *before* opening any SQLite Store.
+A partially configured PG DSN without the explicit selector also fails
+rather than guessing a backend. `store-backup`, `store-verify-backup` and
+`store-restore` reject PG-only mode: use native PostgreSQL tools such as
+`pg_dump`/restore under the DBA's database ownership. No Provider effect,
+Runtime physical execution, Host Work authority, or external domain completion
+is inferred from a successful PG Store operation. The remaining Harness
+Python API, Browserless materialization and installed Agent Automation
+versions must each qualify their own production consumer route.
+
 For normal Python execution, use `HarnessAgentRun` rather than composing the SQLite Store, Continuity, Provider bridge and `StandaloneHarnessRunner` yourself. The caller still owns the exact Contract and Provider choice; Harness passes the persisted Contract to the caller-supplied Adapter factory before execution. On reopen/resume, Harness mechanically reconstructs Continuity and the exact Snapshot-bound Provider source.
 
 ```python
