@@ -1,6 +1,9 @@
 # SLSA Build Provenance R1
 
 Date: 2026-09-12
+
+Status: HISTORICAL ACCEPTANCE, superseded on 2026-11-07. The old local Python wheel builder assumed Python 3.12 while current Security pyproject.toml requires Python 3.15.1, and treated the monorepo root like a standalone Security repo. It had no tracked external consumer. Do not use this historic record as current release/build authority. Security now treats build provenance as an externally issued claim: prefer GitHub actions/attest to generate signed SLSA provenance and gh attestation verify to authenticate it. Security's remaining local verifier is content-only and returns authenticated=false.
+
 Standing: `BUILD_L1_PROVENANCE_VERIFIED` for the local acceptance builder; no Build L2/L3 claim.
 
 Security v2 now distinguishes two standard attestations:

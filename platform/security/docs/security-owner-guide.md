@@ -70,6 +70,16 @@ Choose **DELETE -> REUSE -> COMPOSE -> BUILD**. Prefer improving an existing OPA
 
 Use `git ls-files platform/security`, `git grep`, `mise run verify`, and focused owner tests. Do not install or copy remote code into live services merely because a GitHub project looks popular. Record actual tool version and acceptance evidence for any newly selected provider.
 
+## Supply-chain producer retirement and modern provider choice (2026-11-07)
+
+The unconsumed custom Security wheel provenance builder and its static local build-type document were retired. The builder's hardcoded Python 3.12 and standalone git-archive assumptions are incompatible with this monorepo's Python 3.15.1 source. The historic September 2026 acceptance remains available as dated evidence only.
+
+Prefer GitHub Actions actions/attest to issue signed SLSA provenance from the actual producing workflow. Use gh attestation verify on the exact artifact to authenticate signer identity and predicate before Security evaluates its claimed content. The older slsa-framework/slsa-github-generator project explicitly states it is no longer actively maintained and recommends GitHub native artifact attestations. The local Security verify_build_provenance.py checker requires independent expected builder/build type and yields PROVENANCE_CONTENT_BOUND, authenticated=false; it is NOT proof that the statement was signed. References: https://github.com/actions/attest ; https://cli.github.com/manual/gh_attestation_verify ; https://slsa.dev/spec/v1.2/build-provenance .
+
+Human: verify an artifact's signed attestation from the release workflow before accepting its provenance.
+
+Agent: use the real provider-issued attestation and cryptographic verification; never invent build history from logs or promote parsed unsigned JSON into trusted builder identity.
+
 ## Current observed integration gaps
 
 - The retired Gateway v1 source-only evaluator was not compatible with the current Gateway's resource-bound response. Gateway's AuthZEN-v3 adapter exists in source; deployment, coverage and complete Principal/Agent-Grants path require separate runtime evidence.

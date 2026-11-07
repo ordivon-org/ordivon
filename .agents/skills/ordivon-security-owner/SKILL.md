@@ -13,7 +13,7 @@ license: MIT
 
 - Authorization: start with `platform/security/policies/`, `contracts/agent-admission-v1/`, `contracts/agent-request-verifier-v1/` and the **current** `services/gateway/src/ordivon_gateway/authzen_authorizer.py` + `capability_authz.py`. Existing Gateway-v1 evaluator is retired; do not resurrect it.
 - Source assurance: prefer external Gitleaks / Semgrep / OSV-Scanner / Trivy / Syft, SARIF, CycloneDX and OPA. Prove scanner execution, report subject, freshness and policy standing separately.
-- Artifact provenance: use SLSA, in-toto and Sigstore/Cosign; require an exact artifact digest and builder/trust policy. Do not mint build-system facts at the Security verifier.
+- Artifact provenance: prefer current build-owner native GitHub actions/attest and gh attestation verify for a signed SLSA/in-toto statement, or Cosign/Sigstore for the actual producer trust profile. Do not mint build-system facts in Security; its verify_build_provenance.py only binds unsigned statement content and returns authenticated=false. The old local Python 3.12 wheel builder has been retired.
 - Threats: reuse OWASP Threat Model Library, STRIDE, CWE/CAPEC; bind the model to exact architecture files.
 - Browser evidence: compare versioned detector witnesses; changed challenge outcome alone is not a root cause.
 
