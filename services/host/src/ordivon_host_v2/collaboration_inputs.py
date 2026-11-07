@@ -5,7 +5,7 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator
 
 # PostgreSQL owner schema uses non-negative signed bigint millisecond columns.
-POSTGRES_BIGINT_MAX = (1 << 63) - 1
+from .postgres_bounds import POSTGRES_BIGINT_MAX
 
 
 class ParticipationStanding(StrEnum):

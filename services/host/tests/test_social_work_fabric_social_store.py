@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).parents[1]
 STORE = ROOT / "src" / "ordivon_host_v2" / "social_store.py"
 MSG_STORE = STORE.with_name("social_message_commands.py")
@@ -54,23 +56,6 @@ def test_topic_resume_is_bounded_and_cursor_based() -> None:
     assert "limit + 1" in resume
     assert '"hasMore"' in resume
     assert '"nextAfterSequence"' in resume
-
-
-def test_causal_reply_pure_decision_covers_signed_bigint_edges() -> None:
-    """The native Host consumer uses the same signed-order pure decision."""
-    from ordivon_host_v2.social_store import _reply_target_precedes_source
-
-    lower, upper = -(2**63), 2**63 - 1
-    for src, dst, expected in (
-        (2, 1, True),
-        (1, 2, False),
-        (1, 1, False),
-        (upper, lower, True),
-        (lower, upper, False),
-        (lower, lower, False),
-        (upper, upper, False),
-    ):
-        assert _reply_target_precedes_source(src, dst) is expected
 
 
 def test_reply_symbolic_contract_is_bound_to_actual_host_consumer() -> None:
@@ -171,3 +156,16 @@ def test_two_writer_committed_prefix_interleaving_exhaustive() -> None:
     assert old_schedules > 0
     assert old_skipped > 0  # Clock serialization alone does not prove safety.
     assert locked_schedules > 0
+
+def test_work_cas_rejects_unincrementable_pg_revision_before_database_access() -> None:
+    """Formal proof assumes valid inputs; real WorkStore enforces that boundary."""
+    from ordivon_host_v2.work_store import WorkStore
+
+    with pytest.raises(ValueError, match="PostgreSQL BIGINT predecessor"):
+        WorkStore("postgresql://not-opened").commit_snapshot(
+            "work:boundary",
+            expected_revision=(1 << 63) - 1,
+            snapshot=None,
+            actor_ref="actor:boundary",
+            client_request_id="boundary-only",
+        )

@@ -88,6 +88,15 @@ requires it. Neither the CAS nor R2 replaces the editable Production source.
 
 For the technical vocabulary, use [Media model](media-model.md), [Studio design](../STUDIO.md), [technical baseline](technical-baseline.md), [authority](authority.md) and [storage layout](storage-layout.md). For expression ideas rather than ready-to-run programs, consult [Art & Expression research](../research/expression/README.md).
 
+## What formal verification does and does not guarantee
+
+Media's native Processing Profile admission has an owner-scoped Lean model,
+explained in [formal evidence](../formal/README.md). It proves abstract
+admission and separation of technical QC from publication approval; it does
+**not** prove the Python runtime, actual tool behavior, or rights/creative
+acceptance. Inspect the real producer and the selected Runtime evidence for
+those questions. A model PASS is not a production release receipt.
+
 ## If something does not work
 
 - **No uniquely current Production:** select a concrete ID; do not take the most recently modified directory as intent.
@@ -97,3 +106,9 @@ For the technical vocabulary, use [Media model](media-model.md), [Studio design]
 - **Old work or cache:** preserve only selected source/evidence with a real consumer; discard rebuildable local caches using the owning tool's native cleanup procedure.
 
 For programmatic Agent instructions, use [Media Agent guide](../AGENTS.md). This page is a task guide; the existing source files and tool schemas are the technical reference.
+
+## Optional DaVinci Resolve native editing
+
+Use [Resolve's installed native API](resolve-native.md) in the approved interactive
+Windows session. The previous embedded Ordivon menu Runner and CLI staging
+bridge are retired. An independent OTIO probe does not prove a Studio edit.

@@ -38,6 +38,16 @@
 对 Agent 来说，正确流程是**先选择用户问题，再沿自然 Owner 调用已有 LEGO**；对 Human 来说，先确认经济目标、数据来源和可承受的回撤，然后再解释结果。CA01—CA10 之外新并入的 Paper 模块仍由其自然 Owner 管理，不因为尚未获得连续 CA 编号就“不可使用”。
 
 
+### Risk 的形式化性质与实际实现
+
+对 CA03 暴露账本，现有 Lean 证明 `net`、`gross` 在任意有限整数
+头寸列表上的组合律，并证明 `|net| ≤ gross`。在仓库根目录运行
+`mise run //domains/capital:verify:formal:risk-exposure` 检查模型；
+再运行 `mise run //domains/capital:verify` 检查实际 Python 消费者。
+两者不可混为一谈：Python `Decimal`、因子加载、外部账户真实性与
+真实投资结果尚无相应实现精化证明，详见
+`domains/capital/formal/RiskExposureBound.md`。
+
 ## 2. 立即可复现：给长期投资账户规划一笔虚拟新增资金
 
 这是最简单的无账户、无数据库、无网络金融效果的起步任务：
@@ -84,6 +94,11 @@ scripts/run-capability-python \
 $1,214.44400448，相差 −$22.33728448。这个差值是描述性的，
 没有数据真实性认证、统计显著性或实际投资建议的含义。
 
+如要检查这类比较的底层**数学转移契约**，在 `domains/capital` 运行
+`mise run verify:formal:passive-benchmark`。证明范围及具体的 Human/Agent
+证据使用规则见 `formal/README.md`：五个 `unsat` 与一个 `sat` 证明
+两期精确实数模型的性质，并不等于真实 Python/市场收益已被证明。
+
 使用真实数据时必须单独证明资产价格来源、公司行为调整、各期
 现金流、费用和可获得时间；不能将回测样例转为可信的样本外收益。
 
@@ -107,11 +122,12 @@ domains/capital/scripts/run-finance-lego assess-holdout < review.json
 
 ```sh
 domains/capital/scripts/run-paper-etf-replay-r1 \
-  --request domains/capital/examples/paper_fixed_mix_etf_20261106.json \
+  --request examples/paper_fixed_mix_etf_20261106.json \
   --source /path/to/verified/daily_adjclose.csv \
   --output /private/path/paper-replay-receipt.json
 ```
 
+脚本参数中的相对路径从 `domains/capital` 解析，外部文件可用绝对路径。
 上面的 `--source` 是**占位符**：必须先独立取得与请求摘要一致的授权数据，否则程序应拒绝。仓库示例文件并未自带真实数据；不要臆造“今天收益”。输出为 `RETROSPECTIVE_PAPER_REPLAY_NO_FORWARD_EDGE_CLAIM`，不等于实盘盈利或独立市场源验证。 可选的 --output 使用一次性原子创建的本地模拟收据：相同请求可复用既有文件，不同策略或数据版本不能覆盖已有路径；应选择新的收据路径。
 
 **第二级（有状态的模拟日结）**：仅在 Paper 专用 PostgreSQL 数据库 `ordivon_paper` 中使用 Accounting 的原生日结入口。配置 `ORDIVON_CAPITAL_PAPER_PG_DSN` 指向 Paper 专属角色，再提交已经明确交易所日期和持仓来源的 session：
@@ -125,6 +141,23 @@ domains/capital/scripts/run-capability-python \
 如果有已经得到 Markets 准入的 ETF 日终快照，必须**成对**传入 `--market-snapshot snapshot.json --market-binding binding.json`；不能仅靠添加标志绕过行情资格，也不能把上一次价格悄悄当成今天价格。输入和收据格式以 `domains/capital/README.md` 的 Paper accounting 部分为准。
 
 Paper 日结会改变**模拟数据库**的状态，但不会调用真实经纪商。重复提交相同已关闭时段应获得原收据，改变同一已关闭时段的内容应被拒绝。模拟买卖的清算日期、费用和企业行为存在明确的已实现范围；无真实行情时，日结事实必须标为未知或缺失。
+
+### 每日结算前：先读取原有账户的最新已结算日期
+
+```sh
+cd domains/capital
+# 需预先设置专用的 ORDIVON_CAPITAL_PAPER_PG_DSN
+scripts/run-capability-python -m ordivon_capital.accounting.postgres_paper_close \
+  --account PAPER_ACCOUNT --read-latest
+```
+
+这是 **只读 PostgreSQL 查询**，不创建账户，不重新拨入起始虚拟本金，不生成任何今日收盘价。
+返回 `COMMITTED_PAPER_HEAD` 才表示存在可验证的本地模拟日结回执；
+`NO_COMMITTED_PAPER_CLOSE` 仅表示已初始化的 Paper 数据库里该账户为空。
+缺失数据库、密码或结算表则报错，而不是自动声称余额为零。查询会核对
+同一数据库快照中的原始请求摘要、回执的行情声明和前一条摘要；
+它**不独立证明**行情是某个交易所当天发布的，也不以账面 NAV 代替收益率。
+没有新、完整、可核验的合格收盘价就报告 `NOT_SETTLED`，不要重置本金或伪造结算。
 
 ### Paper 账本到 Risk：检查已承诺的模拟账户
 
@@ -152,6 +185,21 @@ scripts/run-capability-python -m ordivon_capital.risk.paper_close_risk \
 Accounting/Markets/Risk 原生消费者给出。
 
 历史尾部风险如果单独计算 VaR / ES，应使用现有 Risk 的 `historical_expected_shortfall`，并按 [Portfolio Risk Monitoring](PORTFOLIO_RISK_MONITORING_R1.md) 理解其经验分布与尾部概率口径。尤其不要把“超过阈值的样本直接平均”误认为指定置信度的 ES；它不能替代未来风险预测或风险预算。
+
+### 形式化与实际结算：目前验证到哪里？
+
+Finance 已有原生 Lean 模型 `formal/PaperCloseAmounts.lean`，可以运行
+`mise run //domains/capital:verify:paper-amounts`。其整数规格证明：
+清算已经计入的应付和应收款不会凭空改变同一市场价格下的 NAV；
+结算当日收到的卖出款不会同时增加**当日新买单可用预算**；
+在结算额不超过原负债时，剩余应收应付款仍非负。
+这不是对 Python、PostgreSQL 或真实交易所行为的自动证明。
+
+Human 应把「数学模型成立」「代码有可观察的对应行为」
+「数据库真正提交和读回」「提供商数据可信」看作四种不同证据。
+Agent 需要在实际操作中同时检查源码、`test_paper_close.py`
+消费者行为和 Paper PostgreSQL 回读；没有实际回读时不能标为已验收。
+现阶段模型到实现之间不存在机器验证的全面精化证明。
 
 ## 4. 如何阅读结果？
 

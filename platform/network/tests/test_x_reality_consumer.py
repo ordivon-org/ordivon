@@ -11,14 +11,6 @@ def test_authority_is_transport_only_and_exact():
     assert a["directFallback"] is False
     assert a["authenticationAuthority"] == {"separate": True, "transportConsumerOwnsCredential": False, "userContextProven": False}
 
-def test_egress_uses_shared_carrier_and_rejects_unknown():
-    e = json.loads((X / "config" / "egress.json").read_text())
-    assert e["outbounds"] == [{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}]
-    route = e["route"]["rules"][0]
-    assert route["domain"] == ["api.x.com"]
-    assert route["port"] == 443
-    assert e["route"]["rules"][-1]["action"] == "reject"
-
 def test_semantic_service_soft_depends_on_carrier():
     u = (X / "systemd" / "network-v2-x-reality-egress.service").read_text()
     assert "Wants=network-v2-gluetun-owned-adapter.service" in u

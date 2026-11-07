@@ -31,6 +31,7 @@
 | Codex 网络消费者是否正常？ | task consumer:codex:verify | Linux 侧范围受限的 HTTPS 代理与拒绝行为 |
 | 手机 Exit Node 服务端是否就绪？ | task consumer:mobile-tailnet-exit:verify | 服务器端公告、批准、命名空间与 Provider |
 | 配置源码是否有效？ | task all:validate | 静态配置有效，不能代替应用实测 |
+| 受限出口路由符合授权契约吗？ | mise run formal | 原生 Z3 对八组 Consumer 的符号化规格精化证明；不等于真实 VPN 应用已验证 |
 
 Claude、Finance、Browserless、Discord、Model Provider、Supply Chain、Chat Ingress、X Reality、Windows Chrome 等应用各有自己的 Consumer 任务。运行 task --list-all 找到真实接口，不要推测任务名。
 

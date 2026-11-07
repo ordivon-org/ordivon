@@ -6,6 +6,7 @@ rust = { version = "1.99.1", components = "clippy,rustfmt" }
 [tasks.verify]
 run = """
 set -euo pipefail
+mise run verify:formal:risk-exposure
 uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
@@ -40,4 +41,55 @@ set -euo pipefail
 uv lock --check
 uv sync --locked --group test
 uv run --group test python -m pytest -m provider_qualification
+"""
+
+[tasks."verify:formal:risk-exposure"]
+description = "Lean kernel proof of all-position Risk exposure bounds and composition"
+run = """
+set -euo pipefail
+cd ../../tools/formal
+mise exec -- lean ../../domains/capital/formal/RiskExposureBound.lean
+"""
+
+[tasks."verify:paper-amounts"]
+description = "Check the Paper Accounting receipt amount model with pinned Lean"
+run = '''
+set -eu
+model="$PWD/formal/PaperCloseAmounts.lean"
+lean="$(mise -C ../../tools/formal which lean)"
+"$lean" "$model"
+'''
+
+[tasks."verify:formal:contribution"]
+description = "Check the three-asset Portfolio allocation model with existing pinned Z3"
+run = """
+set -euo pipefail
+observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/PortfolioContributionR1.smt2)"
+expected="$(printf 'unsat\nunsat\nunsat\nunsat\nsat')"
+if [ "$observed" != "$expected" ]; then
+  printf 'Formal check did not return its precise UNSAT/SAT obligations: %s\n' "$observed" >&2
+  exit 1
+fi
+printf '%s\n' "$observed"
+"""
+
+[tasks."verify:formal:apportionment"]
+description = "Lean kernel proof of all-asset Portfolio quotient/remainder conservation"
+run = """
+set -euo pipefail
+cd ../../tools/formal
+mise exec -- lean ../../domains/capital/formal/PortfolioApportionmentGeneral.lean
+"""
+
+[tasks."verify:formal:passive-benchmark"]
+description = "Native Z3 proof of Portfolio cashflow-matched benchmark transitions"
+run = """
+set -euo pipefail
+observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/PortfolioPassiveBenchmarkR1.smt2)"
+expected="$(printf 'unsat\nunsat\nunsat\nunsat\nunsat\nsat')"
+if [ "$observed" != "$expected" ]; then
+  printf 'Unexpected model result (unknown/timeout/SAT obligation is not verified): %s\n' "$observed" >&2
+  exit 1
+fi
+printf '%s\n' "$observed"
 """

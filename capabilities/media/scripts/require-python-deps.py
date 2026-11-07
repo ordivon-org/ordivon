@@ -12,15 +12,14 @@ PYTHON = ROOT / ".venv" / "bin" / "python"
 INPUTS = ("pyproject.toml", "uv.lock", ".python-version")
 EXPECTED_PYTHON = (ROOT / ".python-version").read_text(encoding="utf-8").strip()
 EXPECTED_JSONSCHEMA = "4.26.0"
-EXPECTED_OTIO = "0.18.1"
 
 
 def digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def fail(message: str, *, resolve: bool) -> int:
-    target = "pnpm bootstrap:resolve" if resolve else "pnpm bootstrap:python"
+def fail(message: str) -> int:
+    target = "pnpm bootstrap:python"
     print("Studio Python dependencies are not currently materialized for this Workspace.")
     print(f"- {message}")
     print(f"Run `{target}` once, then replay the intended command.")
@@ -29,39 +28,34 @@ def fail(message: str, *, resolve: bool) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Fail closed unless Studio's existing Python environment matches its exact materialization receipt.")
-    parser.add_argument("--extra", action="append", default=[], choices=["resolve"])
-    args = parser.parse_args()
-    required_extras = set(args.extra)
+    parser.parse_args()
     if not PYTHON.is_file():
-        return fail("missing .venv/bin/python", resolve="resolve" in required_extras)
+        return fail("missing .venv/bin/python")
     if not RECEIPT.is_file():
-        return fail("missing .venv/.ordivon-materialization.json", resolve="resolve" in required_extras)
+        return fail("missing .venv/.ordivon-materialization.json")
     try:
         receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return fail("materialization receipt is unreadable", resolve="resolve" in required_extras)
+        return fail("materialization receipt is unreadable")
     if receipt.get("schemaVersion") != 1 or receipt.get("kind") != "ordivon.studio-python-materialization-receipt":
-        return fail("materialization receipt schema is unsupported", resolve="resolve" in required_extras)
+        return fail("materialization receipt schema is unsupported")
     recorded = receipt.get("inputs")
     if not isinstance(recorded, dict):
-        return fail("materialization receipt has no exact input bindings", resolve="resolve" in required_extras)
+        return fail("materialization receipt has no exact input bindings")
     for name in INPUTS:
         current = digest(ROOT / name)
         if recorded.get(name) != current:
-            return fail(f"{name} differs from the materialized receipt", resolve="resolve" in required_extras)
-    actual_extras = set(receipt.get("extras", []))
-    if not required_extras.issubset(actual_extras):
-        return fail(f"missing required Python extras: {sorted(required_extras - actual_extras)}", resolve="resolve" in required_extras)
+            return fail(f"{name} differs from the materialized receipt")
+    if receipt.get("extras") != []:
+        return fail("materialization includes retired Python extras")
     probe = [
         "import importlib.metadata as m, platform",
         f"assert platform.python_version() == {EXPECTED_PYTHON!r}",
         f"assert m.version('jsonschema') == {EXPECTED_JSONSCHEMA!r}",
     ]
-    if "resolve" in required_extras:
-        probe.append(f"assert m.version('opentimelineio') == {EXPECTED_OTIO!r}")
     result = subprocess.run([str(PYTHON), "-c", "; ".join(probe)], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
     if result.returncode != 0:
-        return fail("installed Python package state does not satisfy the expected versions", resolve="resolve" in required_extras)
+        return fail("installed Python package state does not satisfy the expected versions")
     print("studio_python_dependencies=ready")
     return 0
 

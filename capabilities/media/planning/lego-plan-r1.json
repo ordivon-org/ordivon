@@ -762,21 +762,16 @@
       "id": "V07",
       "label": "ResolveEditorialConform",
       "kind": "capability_adapter",
-      "responsibility": "Compose mature OpenTimelineIO interchange with exact Media Blob identity into Resolve-private, operation-bound editorial conform inputs; leave actual editing and native API effects to Resolve Runner.",
-      "authority": "Studio editorial preparation",
-      "state": "IMPLEMENTED",
+      "responsibility": "RETIRED: legacy version-specific Resolve menu Runner and operation-bound test code; Resolve native API and existing OTIO interchange are natural providers.",
+      "authority": "No active authority: historical compatibility evidence only",
+      "state": "RETIRED",
       "sharedRefs": [],
       "evidence": [
-        "src/ordivon_studio/resolve_editorial.py",
-        "src/ordivon_studio/resolve_operations.py",
-        "src/ordivon_studio/resolve_adapter.py",
-        "src/ordivon_studio/assets.py",
-        "tests/test_resolve_adapter.py",
+        "docs/resolve-native.md",
+        "docs/resolve-compatibility/resolve-free-21.0.3.7.md",
         "processing/bin/probe-otio.sh"
       ],
-      "dependencies": [
-        "V03"
-      ],
+      "dependencies": [],
       "mustNotOwn": [
         "general-purpose OTIO schema/parsers",
         "codec or audio DSP",
@@ -785,107 +780,94 @@
         "unobserved Windows Resolve acceptance"
       ],
       "acceptance": [
-        "A current Production and OTIO snapshot bind exact selected Asset identities and bytes before conform operation preparation.",
-        "The external OTIO gate remains responsible for generic timeline inspection; no replacement media engine is introduced.",
-        "Resolve operation consumer and existing tests accept the moved source-to-conform composition without a compatibility copy.",
-        "Native Resolve 21 effect/currentness remains UNKNOWN until the Windows owner actually executes and reads back that conform."
+        "Legacy menu Runner, staging CLI and dedicated operation modules are absent from current source and CLI.",
+        "Independent native OTIO probe and remaining Media owner checks pass.",
+        "Historical Free 21.0.3.7 acceptance remains explicitly historical; a future Studio consumer must produce new native execution and read-back evidence."
       ],
       "r21": {
         "I": {
-          "type": "ResolveEditorialInput",
+          "type": "RetirementInput",
           "fields": [
-            "Production JSON",
-            "Asset manifest",
-            "OTIO timeline",
-            "selected media file bytes",
-            "exact Windows media path"
+            "previous source Git identity",
+            "legacy native acceptance profile",
+            "current consumer reachability"
           ]
         },
         "O": {
-          "type": "ResolveEditorialProjection",
+          "type": "RetirementEvidence",
           "fields": [
-            "source-bound conform parameters",
-            "Resolve-facing OTIO document"
-          ],
-          "consumer": "resolve_operations.build_assembly_conform_operation"
+            "obsolete adapter sources absent",
+            "native API guide",
+            "independent OTIO and Media tests"
+          ]
         },
         "S": {
           "type": "Unit",
-          "justification": "No durable mutable editorial ledger; source files and write destinations are caller-owned."
+          "justification": "retired LEGO has no active persisted state, operation channel or mutable registry"
         },
         "pre": {
           "type": "predicate",
           "claims": [
-            "Production and Asset IDs agree",
-            "single supported timeline and track",
-            "every selected file exists and digest/size/duration agree",
-            "fixed Resolve v21 profile constraints"
+            "current Git SourceCut reviewed",
+            "no active Production depends on legacy Runner",
+            "historical Free edition evidence retained"
           ]
         },
         "post": {
           "type": "predicate",
           "claims": [
-            "operation parameters carry exact selection and source digests",
-            "OTIO output references the selected Resolve-readable file URIs",
-            "caller operation may prepare Resolve conform or reject incompatible selection"
+            "legacy CLI and Runner are unavailable in current source",
+            "current editing remains with the official Resolve API",
+            "current native result is UNKNOWN until a real consumer checks it"
           ]
         },
         "inv": {
           "type": "predicate",
           "claims": [
-            "source-owned truth is not rewritten",
-            "no implicit NLE execution or publication",
-            "file digest is computed by existing Media assets.hash_file",
-            "generic editorial interchange is owned by OpenTimelineIO"
+            "no custom editor or script installer",
+            "historical compatibility evidence remains untouched",
+            "no promotion of source-only or Free-version evidence to live Studio acceptance"
           ]
         },
         "eff": {
           "type": "effect_set",
           "declared": [
-            "read selected local source and media bytes",
-            "write an explicit Resolve OTIO preparation file"
+            "remove stale repository source and test facade",
+            "update owner projection and human/agent guide"
           ],
           "excluded": [
-            "edit Resolve project",
-            "publish media",
-            "mutate source Production/Asset manifest"
+            "modify Windows program installation",
+            "delete Production/Asset/media bytes",
+            "mutate Resolve project"
           ]
         },
         "c": {
           "type": "UNKNOWN",
-          "scope": "external tool CPU/IO and NLE latency",
-          "reason": "not benchmarked for this extracted boundary",
-          "obligation": "measure only if real consumer cost requires optimization"
+          "scope": "future native Resolve API integration cost",
+          "reason": "no current edit consumer requesting a benchmark"
         },
         "epsilon": {
           "type": "UNKNOWN",
-          "scope": "native Resolve 21 edit/render fidelity outside modeled OTIO payload",
-          "reason": "no current embedded-Resolve replay receipt in this source cut",
-          "obligation": "Windows Resolve read-back via existing adapter before claiming domain acceptance"
+          "scope": "Studio edit and render semantics for a future target session",
+          "reason": "Resolve was not running for live acceptance"
         },
         "prov": {
-          "type": "source_paths",
+          "type": "historical_git_and_current_guide",
           "paths": [
-            "src/ordivon_studio/resolve_editorial.py",
-            "src/ordivon_studio/resolve_operations.py",
-            "src/ordivon_studio/resolve_adapter.py",
-            "processing/bin/probe-otio.sh",
-            "tests/test_resolve_adapter.py"
-          ],
-          "standing": "bounded source/consumer tests, not a native Resolve acceptance receipt"
+            "docs/resolve-native.md",
+            "docs/resolve-compatibility/resolve-free-21.0.3.7.md",
+            "processing/tests/otio-smoke.sh"
+          ]
         },
         "unfold": {
-          "type": "owner_native_code",
-          "sourcePaths": [
-            "src/ordivon_studio/resolve_editorial.py",
-            "src/ordivon_studio/resolve_operations.py",
-            "src/ordivon_studio/resolve_adapter.py"
-          ],
-          "providerPaths": [
-            "processing/bin/otiotool-pinned.sh",
-            "processing/bin/probe-otio.sh"
-          ]
+          "type": "terminal_retired",
+          "reason": "do not unfold retired Runner into a new adapter without real consumer evidence"
         }
+      },
+      "retirement": {
+        "date": "2026-11-07",
+        "reason": "DELETE_CUSTOM_BY_DEFAULT; no active Production consumer identified; built-in Resolve scripting API and OTIO replace custom embedded Runner",
+        "currentGuide": "docs/resolve-native.md"
       }
     },
     {
@@ -1027,21 +1009,16 @@
       "id": "V09",
       "label": "ResolveOperationBridge",
       "kind": "capability_adapter",
-      "responsibility": "Compose selected-source Resolve operations with the existing upstream host-discovery and pure receipt contracts; own exact staging and native result readback without replacing Blackmagic Resolve execution or the one-file Runner.",
-      "authority": "Media Resolve operation preparation and native result projection; Blackmagic Resolve owns actual project/timeline effects",
-      "state": "IMPLEMENTED",
+      "responsibility": "RETIRED: legacy version-specific Resolve menu Runner and operation-bound test code; Resolve native API and existing OTIO interchange are natural providers.",
+      "authority": "No active authority: historical compatibility evidence only",
+      "state": "RETIRED",
       "sharedRefs": [],
       "evidence": [
-        "src/ordivon_studio/resolve_discovery.py",
-        "src/ordivon_studio/resolve_contracts.py",
-        "src/ordivon_studio/resolve_operations.py",
-        "src/ordivon_studio/resolve_adapter.py",
-        "src/ordivon_studio/resolve_runner_menu.py",
-        "tests/test_resolve_adapter.py"
+        "docs/resolve-native.md",
+        "docs/resolve-compatibility/resolve-free-21.0.3.7.md",
+        "processing/bin/probe-otio.sh"
       ],
-      "dependencies": [
-        "V07"
-      ],
+      "dependencies": [],
       "mustNotOwn": [
         "DaVinci Resolve native project or timeline authority",
         "general purpose OTIO parsing and media decoding",
@@ -1050,136 +1027,94 @@
         "unobserved proof of native Windows Resolve 21 effects"
       ],
       "acceptance": [
-        "Keep the embedded menu Runner unchanged with byte-exact native Windows installation.",
-        "Keep the existing upstream Windows/WSL/FFprobe discovery and pure result validation; separate only operation construction into replaceable source module.",
-        "Preserve probe/smoke/compatibility operation payloads exactly before and after source refactoring.",
-        "Successful native result with a present staged operation must match its exact operationId and canonical digest before source-side readback succeeds.",
-        "Official Resolve contract tests and external OTIO inspection pass; real current NLE edit is UNKNOWN unless executed and observed."
+        "Legacy menu Runner, staging CLI and dedicated operation modules are absent from current source and CLI.",
+        "Independent native OTIO probe and remaining Media owner checks pass.",
+        "Historical Free 21.0.3.7 acceptance remains explicitly historical; a future Studio consumer must produce new native execution and read-back evidence."
       ],
       "r21": {
         "I": {
-          "type": "ResolveOperationIntent",
+          "type": "RetirementInput",
           "fields": [
-            "operation action and exact operationId",
-            "selected media/Production/OTIO source identity and byte digest",
-            "caller supplied or Windows-discovered control and script paths",
-            "optional expected readback operationId"
-          ],
-          "consumers": [
-            "ordivon_studio.cli_handlers.resolve",
-            "resolve_editorial",
-            "resolve_discovery (host source)"
+            "previous source Git identity",
+            "legacy native acceptance profile",
+            "current consumer reachability"
           ]
         },
         "O": {
-          "type": "ResolvePreparedOperationAndReceipt",
+          "type": "RetirementEvidence",
           "fields": [
-            "operation JSON with source-bound operationDigest",
-            "installed standalone script path when requested",
-            "source-side prepared result",
-            "native Runner result validated against operation identity and current staged source digest if present"
-          ],
-          "consumers": [
-            "Resolve Runner installed menu-script",
-            "Media CLI result + downstream review/QC"
+            "obsolete adapter sources absent",
+            "native API guide",
+            "independent OTIO and Media tests"
           ]
         },
         "S": {
-          "type": "CurrentControlFilePair",
-          "fields": [
-            "resolve-operation.json",
-            "resolve-result.json"
-          ],
-          "owner": "caller-selected Windows/WSL control directory",
-          "mutation": "one staged current operation; stale result removed at stage; Runner overwrites result when invoked",
-          "note": "Not a durable Media state authority; installed Runner remains a single self-contained program"
+          "type": "Unit",
+          "justification": "retired LEGO has no active persisted state, operation channel or mutable registry"
         },
         "pre": {
           "type": "predicate",
-          "requirements": [
-            "valid current operation/source contract and canonical chosen source bytes",
-            "Windows/WSL native environment available for actual installation or execution",
-            "OpenTimelineIO extra only when preparing editorial conform operations",
-            "installed Resolve host scripting API available only when NLE action is requested"
+          "claims": [
+            "current Git SourceCut reviewed",
+            "no active Production depends on legacy Runner",
+            "historical Free edition evidence retained"
           ]
         },
         "post": {
           "type": "predicate",
-          "guarantees": [
-            "new operation construction preserves exact original source-side on-wire payload",
-            "staging persists the exact operation and evicts stale result",
-            "read_result validates native receipt with existing resolve_contracts and verifies ID + digest of a present staged operation",
-            "native Runner identity and menu deployment stay unchanged"
-          ],
-          "limitations": [
-            "A source-side read of success cannot claim currently executing GUI/NLE editing without a current native host readback receipt"
+          "claims": [
+            "legacy CLI and Runner are unavailable in current source",
+            "current editing remains with the official Resolve API",
+            "current native result is UNKNOWN until a real consumer checks it"
           ]
         },
         "inv": {
           "type": "predicate",
-          "guarantees": [
-            "native Resolve Runner single file is unchanged",
-            "upstream resolve_discovery and resolve_contracts remain the sole source-side owners of environment projection and pure result validation",
-            "a stale success receipt is rejected whenever a different staged operation exists",
-            "Production/Asset truth remains external; no generic NLE framework or duplicate registry is created"
+          "claims": [
+            "no custom editor or script installer",
+            "historical compatibility evidence remains untouched",
+            "no promotion of source-only or Free-version evidence to live Studio acceptance"
           ]
         },
         "eff": {
           "type": "effect_set",
           "declared": [
-            "read source media/environment via upstream discovery",
-            "copy unchanged menu Runner and explicit config on install",
-            "stage one operation and remove its stale result",
-            "write original OTIO handoff when conform is explicitly prepared",
-            "read one result with staged-operation digest cross-check"
+            "remove stale repository source and test facade",
+            "update owner projection and human/agent guide"
           ],
           "excluded": [
-            "start DaVinci Resolve or edit a project during source-side preparation",
-            "publish media",
-            "mutate Host/Runtime or shared source authority"
+            "modify Windows program installation",
+            "delete Production/Asset/media bytes",
+            "mutate Resolve project"
           ]
         },
         "c": {
           "type": "UNKNOWN",
-          "scope": "actual Windows Resolve host script, media decode, import, playback/render latency",
-          "reason": "current source-side tests and disabled native host do not benchmark a physical Resolve run",
-          "obligation": "measure only when a selected real NLE consumer invokes and records an exact operation receipt"
+          "scope": "future native Resolve API integration cost",
+          "reason": "no current edit consumer requesting a benchmark"
         },
         "epsilon": {
           "type": "UNKNOWN",
-          "scope": "unobserved native Resolve edit, timeline fidelity, GUI playback and final rendered media acceptance",
-          "reason": "the same Runner byte digest and deterministic fake-host consumer cannot prove a currently installed and invoked Windows Resolve binary performed the effect",
-          "obligation": "execute and read back a real current Windows Resolve host session with exact operation/source digests before domain acceptance"
+          "scope": "Studio edit and render semantics for a future target session",
+          "reason": "Resolve was not running for live acceptance"
         },
         "prov": {
-          "type": "source_and_native_consumer_evidence",
-          "sourcePaths": [
-            "src/ordivon_studio/resolve_discovery.py",
-            "src/ordivon_studio/resolve_contracts.py",
-            "src/ordivon_studio/resolve_operations.py",
-            "src/ordivon_studio/resolve_adapter.py",
-            "src/ordivon_studio/resolve_runner_menu.py"
-          ],
-          "runnerSha256": "02d5b4524127bb22b95d9d94bdd08d311c2f6a64ba07b2d8f2e0c1441f376f6f",
-          "installed": "Windows native current logged-in user script-menu file hash verified exactly; no Resolve process was observed",
-          "comparison": "three on-wire operation fixtures identical with old source and native Runner parser; 14 tests pass including one staged-digest counterexample",
-          "standing": "CODE_TESTED_AND_INSTALLED_FILE_VERIFIED__CURRENT_NLE_EDIT_UNKNOWN"
+          "type": "historical_git_and_current_guide",
+          "paths": [
+            "docs/resolve-native.md",
+            "docs/resolve-compatibility/resolve-free-21.0.3.7.md",
+            "processing/tests/otio-smoke.sh"
+          ]
         },
         "unfold": {
-          "type": "owner_native_code",
-          "sourcePaths": [
-            "src/ordivon_studio/resolve_discovery.py",
-            "src/ordivon_studio/resolve_contracts.py",
-            "src/ordivon_studio/resolve_operations.py",
-            "src/ordivon_studio/resolve_adapter.py"
-          ],
-          "hostProvider": "src/ordivon_studio/resolve_runner_menu.py",
-          "externalProviders": [
-            "DaVinci Resolve native scripting",
-            "OpenTimelineIO",
-            "ffprobe"
-          ]
+          "type": "terminal_retired",
+          "reason": "do not unfold retired Runner into a new adapter without real consumer evidence"
         }
+      },
+      "retirement": {
+        "date": "2026-11-07",
+        "reason": "DELETE_CUSTOM_BY_DEFAULT; no active Production consumer identified; built-in Resolve scripting API and OTIO replace custom embedded Runner",
+        "currentGuide": "docs/resolve-native.md"
       }
     },
     {
@@ -1370,6 +1305,8 @@
         "processing/bin/probe-otio.sh",
         "processing/bin/probe-timed-text.sh",
         "tests/test_agent_processing.py",
+        "formal/MediaNativeProcessingAdmission.lean",
+        "formal/README.md",
         "scripts/studio-agent-surface.py"
       ],
       "dependencies": [],
@@ -1387,7 +1324,8 @@
         "Real Linux Runtime executed one generated 1920x1080p30 FFprobe plan and returned actual technicalQc.ok=true with source/profile/raw probe digests.",
         "Owner verification and AV/audio/OTIO/timed-text native smoke passed; technical QC does not confer semantic/aesthetic/publication approval.",
         "The source-owned studio_processing_profiles action is accessible through system Python with an exact empty-object schema, before optional third-party Studio dependencies are materialized; other actions retain JSON Schema validation.",
-        "The existing native processing probe-plan action continues to validate selected profile/adapter digests and returns a nonexecuting Runtime proposal."
+        "The existing native processing probe-plan action continues to validate selected profile/adapter digests and returns a nonexecuting Runtime proposal.",
+        "Lean kernel checks the abstract native admission/digest-staleness and technical-QC-not-publication model. Source-to-Python implementation refinement remains UNKNOWN; selected Runtime OTIO consumer Job job-01a1b3da-8935-74a6-a65a-4fee61f281b4 supplies independent physical evidence."
       ],
       "r21": {
         "I": {
@@ -1539,24 +1477,6 @@
       "label": "selected output standing"
     },
     {
-      "from": "V03",
-      "to": "V07",
-      "type": "DATA",
-      "label": "selected Production/Asset source to editorial conform"
-    },
-    {
-      "from": "V07",
-      "to": "V09",
-      "type": "DATA",
-      "label": "source-bound OTIO conform to Resolve operation construction"
-    },
-    {
-      "from": "V09",
-      "to": "V04",
-      "type": "EVIDENCE",
-      "label": "staged operation identity and matched native Resolve result to QC"
-    },
-    {
       "from": "V11",
       "to": "V04",
       "type": "DATA",
@@ -1646,25 +1566,22 @@
     },
     {
       "id": "VS4",
-      "objective": "Reuse OpenTimelineIO and Media Blob identity for a replaceable, Resolve-private editorial conform without retaining duplicate generic timeline or hashing implementations.",
-      "status": "IMPLEMENTED",
+      "objective": "Retired unused Resolve embedded menu Runner and dedicated staging/compatibility bridge; use native Resolve Scripting API and existing OTIO pipeline instead.",
+      "status": "RETIRED",
       "nodeIds": [
-        "V03",
-        "V07",
-        "V04"
+        "V07"
       ],
       "acceptance": [
-        "Conform preparation is implemented by one cohesive module with current native Resolve adapter consumption.",
-        "The existing Resolve contract tests and official OTIO probe pass; actual Windows NLE result remains external/unknown."
+        "Retired custom sources and CLI are absent; current Media and native OTIO checks pass.",
+        "Historical Free 21.0.3.7 profiles are preserved; no current Studio edition or editing effect is inferred."
       ],
       "evidence": [
-        "src/ordivon_studio/resolve_editorial.py",
-        "src/ordivon_studio/resolve_operations.py",
-        "tests/test_resolve_adapter.py",
+        "docs/resolve-native.md",
+        "docs/resolve-compatibility/resolve-free-21.0.3.7.md",
         "processing/tests/otio-smoke.sh"
       ],
       "blockers": [],
-      "nextAction": "Native Windows Resolve readback only when a current production needs a real host conform; do not expand generic timeline adapters."
+      "nextAction": "Only when a real Production requires native effects, invoke official Resolve API in the authorized Windows session, then observe project/timeline readback and binding."
     },
     {
       "id": "VS5",
@@ -1687,28 +1604,23 @@
     },
     {
       "id": "VS6",
-      "objective": "Reuse merged upstream Resolve discovery and pure receipt contracts; isolate only operation construction and exact staged result readback while preserving standalone embedded Runner.",
-      "status": "IMPLEMENTED",
+      "objective": "Retired unused Resolve embedded menu Runner and dedicated staging/compatibility bridge; use native Resolve Scripting API and existing OTIO pipeline instead.",
+      "status": "RETIRED",
       "nodeIds": [
         "V07",
-        "V09",
-        "V04"
+        "V09"
       ],
       "acceptance": [
-        "All existing Resolve contract tests plus official OTIO smoke, full Media owner and protected root CI pass.",
-        "Original standalone Runner SHA-256 remains identical.",
-        "Successful receipt readback does not accept stale staged operation digest.",
-        "Native Windows NLE editing effects remain UNKNOWN unless a current host execution and readback is witnessed."
+        "Retired custom sources and CLI are absent; current Media and native OTIO checks pass.",
+        "Historical Free 21.0.3.7 profiles are preserved; no current Studio edition or editing effect is inferred."
       ],
       "evidence": [
-        "src/ordivon_studio/resolve_discovery.py",
-        "src/ordivon_studio/resolve_contracts.py",
-        "src/ordivon_studio/resolve_operations.py",
-        "src/ordivon_studio/resolve_adapter.py",
-        "tests/test_resolve_adapter.py"
+        "docs/resolve-native.md",
+        "docs/resolve-compatibility/resolve-free-21.0.3.7.md",
+        "processing/tests/otio-smoke.sh"
       ],
       "blockers": [],
-      "nextAction": "Only if an actual Resolve production needs host editing, use the current installed native Runner from Workspace Scripts > Utility, invoke a source-bound operation and read back exact matched result before promoting DOMAIN_ACCEPTED."
+      "nextAction": "Only when a real Production requires native effects, invoke official Resolve API in the authorized Windows session, then observe project/timeline readback and binding."
     },
     {
       "id": "VS7",

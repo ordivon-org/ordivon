@@ -4,6 +4,7 @@ python = "3.15.1"
 uv = "0.13.5"
 
 [tasks.ci]
+depends = ["formal", "formal-control-plane"]
 run = """
 set -euo pipefail
 test -n "$(git ls-files -- '*.sh' | head -1)"
@@ -36,3 +37,16 @@ ORDIVON_NETWORK_POLICY_SOURCE=installed PYTHONDONTWRITEBYTECODE=1 uv run --no-pr
 # No packet files, VPN mutations, Docker restarts or credential exposure.
 [tasks.behavior-live]
 run = 'python acceptance/egress/live-carrier-witness.py'
+
+# Z3 proof over source-declared TCP HTTP CONNECT authorities and actual
+# first-match sing-box source routing. Complements native consumer verification.
+[tasks.formal]
+description = "Prove 8 scoped HTTP/mixed-TCP policies and reject rogue-origin/direct-escape mutations with Z3"
+run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/egress_policy_refinement.py"
+
+
+# Source-bound systemd/Quadlet control-plane separation; complements native
+# installed-unit and consumer verification, never claims physical isolation.
+[tasks.formal-control-plane]
+description = "Prove Runtime/Host/Gateway have no source-graph dependency path to Network v2"
+run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/control_plane_independence.py"

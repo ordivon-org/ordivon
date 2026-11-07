@@ -15,6 +15,7 @@ from psycopg.rows import dict_row
 from .canonical_json import canonical_digest
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .errors import ConflictError, WorkNotFound
+from .postgres_bounds import POSTGRES_BIGINT_MAX
 from .work_inputs import WorkState
 
 
@@ -24,8 +25,10 @@ class WorkReadQueries:
     dsn: str
 
     def get_work(self, work_ref: str, revision: int | None = None) -> dict[str, Any]:
-        if revision is not None and (type(revision) is not int or revision < 1):
-            raise ValueError("revision must be a positive integer")
+        if revision is not None and (
+            type(revision) is not int or not 1 <= revision <= POSTGRES_BIGINT_MAX
+        ):
+            raise ValueError("revision must be a positive PostgreSQL BIGINT")
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             return self._get_work_in_tx(conn, work_ref, revision)

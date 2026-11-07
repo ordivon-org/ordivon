@@ -27,6 +27,8 @@ SOURCE_PASS is not APPLICATION_PASS. CONNECT 200 alone is not TLS success. A sam
 | Physical VPN / failover | one Gluetun Quadlet, native WireGuard, Podman Secret and healthcheck | task provider:gluetun:verify |
 | Surfshark profile/catalog | pinned Gluetun catalog | task provider:surfshark:verify-local |
 | Scoped application destination | consumer-owned sing-box policy, bounded relay | task consumer:<name>:validate / verify |
+| Scoped HTTP policy symbolic refinement | Z3 SMT with separate authority JSON and native sing-box route source | mise run formal (also native Network mise run ci) |
+
 | iOS Exit Node server | Tailscale userspace in Gluetun network namespace | task consumer:mobile-tailnet-exit:verify |
 | Optional fault/test mechanisms | Toxiproxy, isolated netns/TUN, HAProxy, tc/netem, containerlab | acceptance/, capabilities/, reference/linux/ |
 | Windows boot / app process bindings | Workstation, OS environment; Codex read-only process witness | consumers/codex/windows_process_egress.py |
@@ -44,6 +46,46 @@ The generic Network Core MUST NOT own Finance/Claude/X destination policy. Obser
 6. Publish through existing GitHub PR/required CI/merge queue. Re-fetch merged main; requalify deployed source and consumer effects. If main is new but live differs, say SOURCE_MERGED_LIVE_OLD rather than PASS.
 7. Before deleting a file, volume, unit or Workspace, check consumers for read/write/start/recovery dependency. Remove via the **native owner API**; never direct-delete an actively protected Runtime backing store.
 8. Report source commit, installed generation, loaded processes, real positive and negative consumer witness, deleted resources and remaining UNKNOWN. Host Work owns changing task state; do not create a second status file.
+
+### Formal scoped-route proof (source, not live effects)
+
+Run cd platform/network && mise run formal to prove equivalence of the
+independently declared authority and first-match sing-box routing policy for
+Claude, Discord, Model Provider, Supply Chain, X, nine Finance lanes,
+Codex and Chat Ingress. Chat Ingress reuses its existing allowedOrigins
+authority while keeping the mixed inbound explicitly TCP-restricted.
+Codex has one small immutable approved domain tuple in the canonical
+verifier because no second Codex authority exists; do not mirror a second
+independent policy JSON. Finance's illegal public-direct escape is also a
+deliberately rejected SMT mutation.
+Symbolic variables are normalized HTTP CONNECT hostname, incoming scoped
+listener and TCP destination port; UNSAT means no differing routing outcome
+within this admitted model. The tool refuses unsupported policy constructs,
+confirms every declared lane is reachable, and deliberately introduces a
+rogue route to obtain a real SMT counterexample. Z3 is version-pinned in the
+Network-local mise task; this is not a new framework or Skill registry.
+
+Control-plane source independence is a separate systemd dependency property:
+`mise run formal-control-plane` parses the checked-in Runtime, Host and
+Gateway units and all Network v2 service/target/Quadlet source units. Z3
+proves that no coupling path (start, stop or ordering dependency) reaches
+Network v2 from those three management roots. An injected Runtime-to-Network
+edge is rejected by the same proof. The scope explicitly excludes native
+installed units/drop-ins, aliases, network-online.target internals and actual
+process behavior; check those with native systemd and real consumers.
+The three management Unit paths are supplied by the bounded, checked-in
+task-local proof binding `formal/fixtures/control-plane-source-bindings.json`
+and validated against canonical Owner roots in `tools/repo/owners.toml`.
+They are read-only verification inputs, not new execution dependencies or
+source-of-truth registries. No additional dependency seam is registered.
+A manager Unit relocation invalidates the source proof until the binding is
+requalified against that manager's authoritative source.
+
+This proof does NOT cover Chrome mixed/public-web policy, physical Gluetun,
+Unicode/IDN normalization, IP literals, UDP, DNS/DoH, installed/loaded
+sing-box equivalence or real app process capture. Retain mise run behavior,
+task consumer:...:verify and live Carrier no-forward witnesses for those
+boundaries. An unsupported construct is NOT_PROVED, not silently admitted.
 
 ## 4. Targeted falsification selection
 

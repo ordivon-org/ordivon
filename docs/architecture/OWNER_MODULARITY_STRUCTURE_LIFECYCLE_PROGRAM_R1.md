@@ -1,6 +1,6 @@
-# Ordivon 五主线执行计划 R2（Current）
+# Ordivon 六主线执行计划 R2（Current）
 
-> 更新基线：2026-11-06。范围聚焦：（A）Owner 高内聚低耦合拆解；（B）目录、命名、表征标准化；（C）Host、Runtime 及各 Owner 的最终消费者穿透清理；（D）成熟能力型与思想型 LEGO 的证据驱动发现和替换；（E）分别面向 Human/Agent 的使用指导。本文是可在任务完结后删除的协调工件，不是新的 Owner、Board、Meta/Next、数据库或治理机制。状态以最新 Git、PostgreSQL、Runtime、systemd、GitHub PR 和实际消费者为准。
+> 更新基线：2026-11-07。范围聚焦：（A）Owner 高内聚低耦合拆解；（B）目录、命名、表征标准化；（C）Host、Runtime 及各 Owner 的最终消费者穿透清理；（D）成熟能力型与思想型 LEGO 的证据驱动发现和替换；（E）分别面向 Human/Agent 的使用指导；（F）将可证明的关键性质由成熟形式化工具验证，并仅保留不可替代的真实消费者验证。本文是可在任务完结后删除的协调工件，不是新的 Owner、Board、Meta/Next、数据库或治理机制。状态以最新 Git、PostgreSQL、Runtime、systemd、GitHub PR 和实际消费者为准。
 
 ## 一、目标函数、认识论与执行纪律
 
@@ -128,12 +128,38 @@
 
 处置类别只有 DELETE、MIGRATE_THEN_DELETE、REUSE、KEEP_ACTIVE、UNKNOWN_EVIDENCE。历史性记录不是永久 KEEP_ACTIVE；若源在 Git、Consumer 已终结、并无合法持有义务，优先实际删除。UNKNOWN 先定点补证据，而不是扩大永久防护。
 
+### 六主线 F：形式化性质逐步取代冗余样例验证
+
+- **规格与真实实现分离。** Owner 先标明不可违反的安全性质、允许的状态转移、活性前提和调用者边界；模型证明必须注明有限状态/参数、假设、SourceCut 以及实现精化尚未覆盖的部分。模型 PASS 不自动提升为已安装实例 PASS。
+- **成熟工具各归其位。** Runtime/Harness/Composition 继续复用现有 digest-verified TLA+/TLC；Runtime Rust 代码按实际可用范围使用 Kani/Verus；跨模块契约优先组合现有 Lean/Z3/Pacti；Host Python 纯决策优先复用已锁定的 CrossHair，而不是新建验证解释器。
+- **Host 当前具体范例。** social_message_commands._reply_target_precedes_source 证明回复边遵循严格递减顺序；work_store._next_work_revision 证明 Work CAS 修订号单调且不超过 PostgreSQL BIGINT 上界。两者均是实际业务代码，而非另写的等价影子实现；正式入口仍负责输入类型、PG 事务及消费者验收。
+- **移除标准。** 当形式化性质覆盖、源代码连接、工具证据和负向反例均独立核实后，删除仅重复同一性质的样例断言；不得以抽象证明删除 PostgreSQL 行锁/事务、MCP 协议、实际部署、网络/系统效果以及跨 Owner 最终消费者验证。
+- **发布顺序。** 按自然 Owner 的 mise run verify 与根仓库 mise run repo:ci 验证、经 GitHub Merge Queue 合并，然后确认安装 SourceCut；不为验证再造 Owner、审计数据库或独立发布管线。
+
+### F0–F7 Owner 验证与测试退役工作包
+
+| WP | 自然 Owner 与关键性质 | 成熟工具 / 可独立验收的证明义务 |
+| --- | --- | --- |
+| F0 | 规格与可信验证基底 | 复用 `tools/formal` Lean/Z3/cvc5/Quint/Alloy/Kani/Verus/Dafny 和 Runtime TLC 的既有锁定工具；明确时间、整数、有限状态、环境、公平性与抽象边界。工具输出含完整可反驳结果；错误、超时、跳过均非 PASS。 |
+| F1 | Runtime Job/Attempt/Workspace、恢复及 PG 切换 | 复用 `services/runtime/formal/RuntimeDispatchR1.tla` 等源，证明单次 Attempt 调度、歧义保留、取消/终止证据、持有关系及活跃工作区闭包；Rust Registry CAS、原生 Job/Artifact、实际持久化继续提供实现与消费者证据。 |
+| F2 | Host Work/Social/Attention/Receipt | 对 Work 修订 CAS、PG 事务原子性、引用与分页/游标完整性建立规格和反例；利用 PostgreSQL 约束、事务及 Host Doctor 的真实状态读回，模型结果不得冒充生产事务线性化证明。 |
+| F3 | Harness Agent/Tool/恢复 | 使用状态机、Hoare/Assume–Guarantee 和现有 Harness Formal 模型，证明调用与结果身份绑定、取消及失败后不无证据重放；模型→异步 Python 实现的模拟关系需单独验证。 |
+| F4 | Gateway 路由、授权与传输 | 用 Owner-local TLA+/TLC 有限状态检查受保护 `artifact.read` 的 Principal/Resource/PDP 精确绑定、v2 委托证据和 v3 非委托 AuthZEN 证据；沿 `capability_authz.py` 和 `test_capability_authz_middleware.py` 取得实现/真实消费者证明，不将通过的有限模型直接标记为实现精化。 |
+| F5 | Network/Security/Skills/Workstation 与领域 Owner | Network 连接和拒绝/恢复 LTS、Security PDP/PEP 契约、Skills 精确来源及 Workstation SourceCut→installed currentness；Game/Capital/Media/Artifact/Preservation 的领域不变量用 Z3/Lean/Alloy/Quint 或 native proof 选型。外部设备、网络和真实部署仍需必要原生消费者验证。 |
+| F6 | Recursive LEGO R2.1 组合与替换 | 对 `(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` 建立分层契约；组合需验证假设可满足、内部效果不冲突、前后条件与环境约束，替换需证明对现有消费者的观察精化。使用已有 Lean/Composition/Pacti 及真实 Consumer Trace，不建第二种证明关系语言。 |
+| F7 | 已有单元/集成/回归测试价值审计 | 按不变量→真实验证证据→实际消费者映射，对每项现有测试标记 `DELETE`、`CONSOLIDATE`、`KEEP_CONSUMER` 或 `UNKNOWN_REFINEMENT`。只有规格非空、模型覆盖、有效实现精化与可替代的具体测试断言都成立时，才删除重复样例；硬件、网络、部署和外部效果仍保留必要原生验收。 |
+
+**必要的反证制度：** 有限模型需检查非空可达性和可发现假违例的负控；SAT/UNSAT 要绑定精确公式、求解器/SourceCut；Lean/Kani/Verus 的结论必须声明所接受的公理、类型/边界、循环展开和外部调用假设。尽量先删无消费者的特化测试与冗余防护，但不能把“没有失败”视为“已证明”。无可用模型/实现精化时，将测试保留或收敛为最少的真实消费者合同检查，避免不可观察的纯模型胜利。
+
+**增量验证：** 证明义务通过受影响 Owner 的公开接口、确切代码与模型、求解器版本、前提和最终消费者建立显式来源边。只有依赖未变且完整验证读集可证明一致时才能重用证明；否则 UNKNOWN 并局部重算。与已有 `tools/repo`、Owner `mise`、GitHub 受保护发布和服务原生安装读回相连，不制造新的 Proof Registry。
+
 ## 四、分波次实施、验收与关闭
 
 - **Wave 0（P0）**：H1 → H2；并行 R1、H3、D1，完成后 R2、D2。先协调源码与安装状态，不在运行 Schema 10 代码时擅自升级其数据库。
 - **Wave 1（P1）**：M1–M4 的语义模块边界与 N1；同步整理 Network/Security/Skills/Workstation 的自然消费者。避免一次 PR 改动多个不相关 Owner。
 - **Wave 2（P1/P2）**：C1–C8，结合 N2–N5 完成真实消费者验证与旧路径清理。
 - **Wave 3（持续）**：X1–X10 周期性消费者穿透；每项本身具有完成态并清理临时支撑，减少而非扩张治理层。
+- **Wave F（与各 Wave 并行）**：优先 F0、F1、F4 的已有模型/实现读集，并行推进 F2、F3、F5、F6；只在 F7 已取得具体实现精化和消费者替代证据时退役相应样例测试。
 
 协作使用已有 Host Task Space 承接任务、最大交流 Space 用于沟通；Agent Loop 内自规划：MCDT in the loop, Human on the loop。声明 SourceCut 避免与其他 Agent 同时修改同一路径，但不因内部审批拖延工作。每次发布仍通过 GitHub PR、原生必需检查与 Merge Queue，并对安装侧单独验收。
 
@@ -164,5 +190,7 @@
 **Human：** 直接提出目标、最终可观察收益和愿意承担的影响，不必手动写十一坐标。先在 `catalogs/capabilities/packages/INDEX.md` 选择 Package，再寻找 Owner 原生能力；比较不做、自带能力、外界成熟能力三个方案；验收要看真实读回、变化与代价。例如“关闭旧的 Host Topic，但保留历史消息可读”，应复用 Host `topic.state.set` 的 CAS，而不是另写删除服务。详细步骤见 `.agents/skills/recursive-lego-calculus/references/owner-provider-human-agent.md`。
 
 **Agent：** 从 `AGENTS.md`、Owner Manifest、`origin/main` SourceCut、实际已安装实例和真实消费者开始；用 `method-router` 选最少的专业方法；对独立声明的 LEGO 填全 R2.1 契约；采用现成 Port/工具并做有针对性的消费者验证；经受保护主线发布、安装读回后退役旧 Carrier。Skill 文件仅被 Git 跟踪，不代表当前 Skill Server 的绑定；必须用当前 `resolve/read` 证实可见性。具体工作路径见同一 reference 的 Agent 部分。
+
+**形式化使用差异：** Human 检查要证明的行为、可复现反例与真实服务读回；Agent 另外绑定 SourceCut、精确模型范围、前提、求解器版本、实现精化及未覆盖效果。
 
 **同一能力、两种视图：** Human 看收益、效果、可恢复性；Agent 看精确身份、前置条件、不变量、效果、证据和作用范围。两者不分别创建 Owner、状态表、规则引擎或工作流。

@@ -49,6 +49,26 @@ analysis are read-only; dedicated Accounting Paper closes write **only
 simulated** PostgreSQL ledger state. Neither path gives broker trading
 authority.
 
+### Risk gross/net formal algebra
+
+`mise run //domains/capital:verify:formal:risk-exposure` checks an
+all-finite-position Lean model of `|net| <= gross` and compositional
+exposure arithmetic. Implementation refinement to the actual Python Decimal
+ledger remains **UNKNOWN**; read
+`formal/RiskExposureBound.md` and retain the native source consumer test.
+
+### Paper Accounting verification
+
+From the repository root, run
+`mise run //domains/capital:verify:paper-amounts` with the Lean tool already
+pinned under `tools/formal`. The integer model checks signed-int64 Risk consumer
+fields under the reserve and nonnegative component assumptions, and shows
+that settling booked payables and receivables preserves NAV at fixed marks; it also proves the exact integer funding identity that excludes same-day settled sale proceeds from new-buy capacity, plus nonnegative residual liabilities under bounded settlement.
+It does not verify Python, PostgreSQL, time-bound market admission or a
+positive-equity Risk review. Use `mise run //domains/capital:verify` for the
+implementation, and a disposable `ORDIVON_CAPITAL_PAPER_PG_TEST_DSN` for
+committed receipt and Risk CLI read-back.
+
 ## Historical Capital qualifications
 
 The remaining portions of this README include frozen prior technology

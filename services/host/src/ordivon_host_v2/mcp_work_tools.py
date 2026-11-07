@@ -7,12 +7,14 @@ from mcp.server import MCPServer
 from pydantic import Field
 
 from .mcp_domain_errors import _project_domain_errors
+from .postgres_bounds import POSTGRES_BIGINT_MAX
 from .social_contracts import ActorRefResponse, WorkListResponse, WorkResponse
 from .work_inputs import ActorKind, ActorRefInput, WorkCreateInput, WorkSnapshotInput, WorkState
 from .work_store import WorkStore
 
 # Exact Host CAS identities and inventory limits use bounded strict integers.
-PositiveWorkRevision = Annotated[int, Field(strict=True, ge=1)]
+PositiveWorkRevision = Annotated[int, Field(strict=True, ge=1, le=POSTGRES_BIGINT_MAX)]
+AdvancableWorkRevision = Annotated[int, Field(strict=True, ge=1, le=POSTGRES_BIGINT_MAX - 1)]
 PositiveWorkListLimit = Annotated[int, Field(strict=True, ge=1, le=200)]
 
 
@@ -79,7 +81,7 @@ def register_work_tools(
     @_project_domain_errors
     def work_snapshot_commit(
         workRef: str,
-        expectedRevision: PositiveWorkRevision,
+        expectedRevision: AdvancableWorkRevision,
         snapshot: WorkSnapshotInput,
         actorRef: str,
         continuityDisposition: Literal["continue", "complete", "abandon"] = "continue",

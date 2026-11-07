@@ -5,7 +5,7 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator
 
 # PostgreSQL signed bigint is an independent wire/DB boundary in this domain.
-POSTGRES_BIGINT_MAX = (1 << 63) - 1
+from .postgres_bounds import POSTGRES_BIGINT_MAX
 
 
 class IntentStanding(StrEnum):

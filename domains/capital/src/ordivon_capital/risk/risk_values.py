@@ -6,7 +6,7 @@ This package-local module has no domain I/O, portfolio policy or model fitting.
 from __future__ import annotations
 
 import math
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext
 from typing import Any
 
 
@@ -24,21 +24,37 @@ def _d(value: Any, label: str) -> Decimal:
     return out
 
 
-def _fmt(value: Decimal | None, places: str = "0.000001") -> str | None:
-    if value is None:
-        return None
-    return format(value.quantize(Decimal(places)), "f")
-
-
 def _fmt_lossless(value: Decimal) -> str:
-    """Keep the legacy six-place presentation only when it preserves the input.
+    """Keep six display places only if they preserve the exact Decimal.
 
-    Position and factor values feed other LEGO calculations. A displayed
-    rounded value is not interchangeable with the source numeric value.
+    Decimal.quantize uses the caller's context precision and can raise
+    InvalidOperation for an otherwise valid large notional. Decimal's native
+    fixed-point formatter has no such context-precision restriction.
     """
-    displayed = _fmt(value)
-    assert displayed is not None
+    displayed = format(value, ".6f")
     return displayed if Decimal(displayed) == value else format(value, "f")
+
+
+def _add_exact(a: Decimal, b: Decimal) -> Decimal:
+    """Use Decimal's native context at the precision needed for an exact sum.
+
+    The default 28 significant digits may silently erase small positions
+    when large positive/negative notionals cancel.
+    """
+    highest_digit = max(a.adjusted(), b.adjusted())
+    lowest_place = min(a.as_tuple().exponent, b.as_tuple().exponent)
+    with localcontext() as context:
+        context.prec = max(context.prec, highest_digit - lowest_place + 2)
+        return a + b
+
+
+def _multiply_exact(a: Decimal, b: Decimal) -> Decimal:
+    """Products of finite Decimal coefficients fit within their digit sum."""
+    with localcontext() as context:
+        context.prec = max(
+            context.prec, len(a.as_tuple().digits) + len(b.as_tuple().digits) + 1
+        )
+        return a * b
 
 
 def _float(value: Any, label: str) -> float:

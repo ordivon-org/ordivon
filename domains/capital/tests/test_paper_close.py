@@ -41,6 +41,76 @@ def test_paper_cash_settlement_does_not_create_or_destroy_nav():
     assert settled.protected_minor == 300_000
 
 
+def test_paper_valuation_must_fit_the_risk_receipt_integer_domain():
+    day0, day1, _ = inputs()
+    max_minor = 2**63 - 1
+    opening = paper_close.value_session(
+        None, replace(day0, contribution_minor=max_minor)
+    )
+    assert opening.nav_minor == max_minor
+
+    # A payable can offset excessive cash and keep NAV exactly at the ceiling.
+    buy = replace(day1.buys[0], shares=1, price_minor=2, fee_minor=0)
+    with pytest.raises(ValueError, match="receipt.*int64"):
+        paper_close.value_session(
+            opening, replace(day1, contribution_minor=1, buys=(buy,), marks={"ETF": 1})
+        )
+
+    # A mark can overflow NAV while cash still fits.
+    with pytest.raises(ValueError, match="receipt.*int64"):
+        paper_close.value_session(
+            opening, replace(day1, marks={"ETF": 2**62})
+        )
+
+
+def test_same_day_settled_sale_receipts_cannot_fund_new_paper_buys():
+    # A sale receivable was already in yesterday's NAV; crediting cash today
+    # must not also provide a second, intraday buy funding allowance.
+    day0, day1, day2 = inputs()
+    opening = paper_close.value_session(None, day0)
+    purchased = paper_close.value_session(opening, day1)
+    sale = paper_close.PaperSell(
+        "sale-1", "ETF", 10, 10_000, 100,
+        datetime.fromisoformat("2026-01-09T16:15:00-05:00"),
+        datetime.fromisoformat("2026-01-12T09:30:00-05:00"),
+        settlement_date=date(2026, 1, 13),
+    )
+    sold = paper_close.value_session(
+        purchased, replace(day2, marks={}, sells=(sale,))
+    )
+    assert sold.receivable_minor == 99_900
+
+    buy = paper_close.PaperBuy(
+        "new-buy", "ETF", 65, 10_000, 0,
+        datetime.fromisoformat("2026-01-12T16:15:00-05:00"),
+        datetime.fromisoformat("2026-01-13T09:30:00-05:00"),
+    )
+    settlement_day = paper_close.PaperSession(
+        date(2026, 1, 13), day2.session, 0, 0, {"ETF": 10_000}, (buy,)
+    )
+    with pytest.raises(ValueError, match="protected cash"):
+        paper_close.value_session(sold, settlement_day)
+
+    # Once settlement is complete, the proceeds become available on the
+    # following session; this is policy behavior, not real broker settlement.
+    settled = paper_close.value_session(
+        sold, replace(settlement_day, marks={}, buys=())
+    )
+    assert settled.receivable_minor == 0
+    assert settled.cash_minor == 999_800
+    next_buy = replace(
+        buy,
+        decided_at=datetime.fromisoformat("2026-01-13T16:15:00-05:00"),
+        filled_at=datetime.fromisoformat("2026-01-14T09:30:00-05:00"),
+    )
+    next_day = paper_close.PaperSession(
+        date(2026, 1, 14), settlement_day.session, 0, 0, {"ETF": 10_000}, (next_buy,)
+    )
+    accepted = paper_close.value_session(settled, next_day)
+    assert accepted.payable_minor == 650_000
+    assert accepted.protected_minor == 300_000
+
+
 def test_paper_invalid_evidence_has_no_valuation():
     day0, day1, _ = inputs()
     opening = paper_close.value_session(None, day0)
