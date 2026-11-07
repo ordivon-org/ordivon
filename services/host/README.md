@@ -44,7 +44,10 @@ and reply-edge SQL using existing Host PostgreSQL consumer tests.
 Formally confirmed pure arithmetic never certifies psycopg connection,
 commit, concurrency, installed release, or MCP effects. PostgreSQL
 numeric bounds are shared in postgres_bounds.py; do not recreate
-per-module constants.
+per-module constants. The read-side Work.get accepts revisions up to the
+signed BIGINT maximum, while Work.snapshot.commit requires a strictly lower
+expectedRevision so an increment can be represented; both the native MCP
+input and the WorkStore boundary enforce these domains.
 
 ## Current product surface
 

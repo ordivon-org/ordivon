@@ -27,3 +27,28 @@ def test_work_queries_have_no_mutation_commands_or_receipts() -> None:
     )
     for forbidden in ("insert into ", "update works ", "delete from ", "on conflict "):
         assert forbidden not in literals
+
+
+def test_work_read_rejects_revision_outside_postgres_bigint_before_connection() -> None:
+    """The actual store rejects a nonrepresentable revision, not the DB driver."""
+    import pytest
+
+    with pytest.raises(ValueError, match="positive PostgreSQL BIGINT"):
+        WorkStore("postgresql://unreachable").get_work("work:outside", (1 << 63))
+
+
+def test_native_mcp_work_revision_types_reject_unrepresentable_values() -> None:
+    """MCP read and CAS ingress have distinct representable revision domains."""
+    import pytest
+    from pydantic import TypeAdapter, ValidationError
+
+    from ordivon_host_v2.mcp_work_tools import AdvancableWorkRevision, PositiveWorkRevision
+
+    read = TypeAdapter(PositiveWorkRevision)
+    write = TypeAdapter(AdvancableWorkRevision)
+    assert read.validate_python((1 << 63) - 1) == (1 << 63) - 1
+    assert write.validate_python((1 << 63) - 2) == (1 << 63) - 2
+    with pytest.raises(ValidationError):
+        read.validate_python(1 << 63)
+    with pytest.raises(ValidationError):
+        write.validate_python((1 << 63) - 1)
