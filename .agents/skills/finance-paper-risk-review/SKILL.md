@@ -22,7 +22,7 @@ Do not create another broker, Finance Agent service, ledger or risk engine.
 3. Have Accounting commit paper buy/sell sessions, pending payables
    and sale receivables in the dedicated ordivon_paper PostgreSQL DB.
 4. Determine the current Paper account head **before** constructing any
-   daily-close request. Use the Accounting-native read-only consumer; it
+   daily-close request. Query through the Accounting-native read-only consumer; it
    neither creates an account nor synthesizes a valuation:
 
        export ORDIVON_CAPITAL_PAPER_PG_DSN='...dedicated paper-only DSN...'
@@ -69,7 +69,7 @@ alone is not a verified Python/PostgreSQL refinement or a production service
 receipt; keep these evidence classes separate. This extends the existing CA07
 Accounting contract instead of registering a duplicate risk/ledger LEGO.
 
-For CA03 gross/net exposure (not Paper settlement), use the source-adjacent
+For CA03 gross/net exposure (not Paper settlement), consult the source-adjacent
 `domains/capital/formal/RiskExposureBound.md` and
 `mise run //domains/capital:verify:formal:risk-exposure`. The pinned Lean
 kernel proves `|net| <= gross` and concatenation laws for arbitrary finite

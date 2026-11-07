@@ -32,7 +32,9 @@ SOURCE_FILES = (
     "tools/formal/RecursiveLegoRefinement.lean",
     "tools/formal/RecursiveLegoVariationFrame.lean",
     "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
+    "capabilities/media/formal/LoudnessProfileSafety.smt2",
     "capabilities/media/src/ordivon_studio/agent_processing.py",
+    "capabilities/media/src/ordivon_studio/qc.py",
     "tools/formal/Proof.rs",
     "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs",
@@ -443,6 +445,21 @@ def main() -> None:
         ))
         probes.append(run("Lean kernel Media processing admission model",
                           [executable("lean"), str(media_proof)]))
+        # Check all three FP queries, including the historical NaN
+        # counterexample. Z3 process success by itself is not a proof.
+        media_fp = REPO / "capabilities/media/formal/LoudnessProfileSafety.smt2"
+        fp_check = subprocess.run(
+            [executable("z3"), "-smt2", str(media_fp)], check=False,
+            capture_output=True, text=True, timeout=30,
+        )
+        if fp_check.returncode or fp_check.stdout.strip().splitlines() != [
+                "sat", "unsat", "sat"]:
+            raise AssertionError(
+                "Media loudness FP model SAT/UNSAT/nonvacuity mismatch: "
+                + (fp_check.stdout + fp_check.stderr)[-1800:]
+            )
+        probes.append({"probe": "Z3 IEEE-754 Media loudness profile model",
+                       "result": "PASS", "rc": 0})
         bad_lean = tmp / "Invalid.lean"
         bad_lean.write_text("theorem falseClaim (p : Prop) : p := by\n  exact True.intro\n")
         probes.append(run("Lean rejects false theorem", [executable("lean"), str(bad_lean)],

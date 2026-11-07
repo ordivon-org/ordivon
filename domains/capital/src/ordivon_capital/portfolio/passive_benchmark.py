@@ -10,7 +10,7 @@ import argparse
 import json
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
-from decimal import Decimal, Inexact, InvalidOperation, localcontext
+from decimal import Decimal, DecimalException, Inexact, InvalidOperation, localcontext
 from pathlib import Path
 from typing import Any
 
@@ -51,10 +51,10 @@ def _timestamp(value: Any) -> datetime:
 
 
 def _add_cash_exact(left: Decimal, right: Decimal, path: str) -> Decimal:
-    """Reject a representationally lost deposit; retain existing return precision.
+    """Reject lost digits in the authoritative external-cash total ledger.
 
-    Decimal market returns remain intentionally context-rounded. External cash
-    ledger additions instead must be representable in that same context.
+    Market valuations use their own bounded rounding budget. Actual deposits
+    accumulated in contributedCapital must never be silently rounded away.
     """
     with localcontext() as context:
         context.traps[Inexact] = True
@@ -64,6 +64,36 @@ def _add_cash_exact(left: Decimal, right: Decimal, path: str) -> Decimal:
             raise PassiveBenchmarkError(
                 f"{path}: cash flow would be silently rounded at current precision"
             ) from exc
+
+
+# An operational valuation may discard small fractional digits, but the
+# rounding unit of one *external deposit addition* must be at most a trillionth
+# of that deposit. The exact contributed-capital ledger is separate.
+_VALUATION_DEPOSIT_RELATIVE_ERROR_LIMIT = Decimal("0.000000000001")
+
+
+def _add_cash_to_valuation(left: Decimal, right: Decimal, path: str) -> Decimal:
+    """Admit only immaterial rounding at the investment valuation boundary.
+
+    One ULP is a conservative absolute rounding-error bound, independent of
+    the caller's chosen Decimal rounding mode. An unchanged large balance may
+    never quietly erase a meaningful small cash injection.
+    """
+    if right == 0:
+        return left
+    with localcontext() as context:
+        context.traps[Inexact] = False
+        context.clear_flags()
+        valued = left + right
+        if not valued.is_finite():
+            raise PassiveBenchmarkError(f"{path}: non-finite valuation")
+        if context.flags[Inexact]:
+            ulp = Decimal((0, (1,), valued.as_tuple().exponent))
+            if ulp > right * _VALUATION_DEPOSIT_RELATIVE_ERROR_LIMIT:
+                raise PassiveBenchmarkError(
+                    f"{path}: cash contribution exceeds valuation rounding budget"
+                )
+        return valued
 
 
 def _next_value(
@@ -81,11 +111,21 @@ def _next_value(
         raise PassiveBenchmarkError(f"{path}: expense fraction outside [0,1]")
     if fixed_fee < 0:
         raise PassiveBenchmarkError(f"{path}: negative fixed fee")
-    start = _add_cash_exact(capital, deposit, path)
-    after_fees = start * (1 - expense) - fixed_fee
-    if after_fees < 0:
-        raise PassiveBenchmarkError(f"{path}: fees exceed available capital")
-    return after_fees * (1 + gross_return)
+    try:
+        start = _add_cash_to_valuation(capital, deposit, path)
+        after_fees = start * (1 - expense) - fixed_fee
+        if not after_fees.is_finite():
+            raise PassiveBenchmarkError(f"{path}: non-finite after-fee valuation")
+        if after_fees < 0:
+            raise PassiveBenchmarkError(f"{path}: fees exceed available capital")
+        terminal = after_fees * (1 + gross_return)
+        if not terminal.is_finite():
+            raise PassiveBenchmarkError(f"{path}: non-finite terminal valuation")
+        return terminal
+    except DecimalException as exc:
+        raise PassiveBenchmarkError(
+            f"{path}: arithmetic outside supported Decimal context"
+        ) from exc
 
 
 def replay_passive_benchmark(

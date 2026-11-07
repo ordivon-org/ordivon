@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network.formal-control-plane-source-binding",
+  "truthRole": "task-local-proof-input-not-owner-truth",
+  "managementUnits": [
+    {
+      "unit": "ordivon-runtime.service",
+      "owner": "runtime",
+      "sourcePath": "services/runtime/packaging/systemd/ordivon-runtime.service"
+    },
+    {
+      "unit": "ordivon-host-v2.service",
+      "owner": "host",
+      "sourcePath": "services/host/packaging/systemd/ordivon-host-v2.service"
+    },
+    {
+      "unit": "ordivon-gateway.service",
+      "owner": "gateway",
+      "sourcePath": "services/gateway/systemd/ordivon-gateway.service"
+    }
+  ]
+}

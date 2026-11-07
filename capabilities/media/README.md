@@ -97,15 +97,13 @@ explicit acquisition **plans** without installing anything;
 guess the Agent's currently intended Production. The runtime/tool-execution
 authority and production/source truth remain outside the Agent adapter.
 
-Resolve-private editorial interchange and selected-asset binding live in
-`ordivon_studio.resolve_editorial`. `resolve_discovery` owns Windows/WSL
-and FFprobe observations; the already-existing `resolve_contracts` owns
-the pure native result contract and operation identity. `resolve_operations`
-constructs the operation payloads without side effects; `resolve_adapter`
-owns the existing Windows operation stage, Runner installation and result
-readback, rejecting success receipts bound to a different staged operation.
-The embedded Resolve Runner remains the same self-contained deployable file.
-OpenTimelineIO and existing Media Blob hashing are reused, not reimplemented.
+DaVinci Resolve editing stays with Blackmagic's native application and official
+Python/Lua Scripting API, not a copied Ordivon menu Runner. The former staged
+operation/receipt bridge and fixed-version Free compatibility experiment have
+been retired after tracing their consumers. Use [native Resolve integration](docs/resolve-native.md)
+when a current Production requires a real NLE effect. The native OpenTimelineIO
+probe and Media Blob hashing remain owned by their existing components.
+Historical Resolve 21 Free acceptance records remain in `docs/resolve-compatibility/`.
 
 Native FFprobe observation now belongs to `ordivon_studio.qc.probe_media`,
 beside existing FFmpeg loudness and technical validators; `assets.py` owns
@@ -256,18 +254,17 @@ scripts/owner-environment test
 
 The owner entrypoint consumes the existing pinned `mise.toml`, `pnpm-lock.yaml`, `uv.lock`, and Python materialization receipt. `cold-start` proves the same default check surface from a copied source fence with neither `node_modules` nor `.venv`.
 
-Resolve is optional equipment:
-
-```bash
-scripts/owner-environment test-resolve
-```
+Resolve remains optional equipment. Its native scripting API is invoked from a
+supported Windows Resolve session rather than installed through Studio's former
+menu Runner. [Human and Agent guide](docs/resolve-native.md) records the exact
+manual script environment, read-only probe and production acceptance boundary.
 
 ## License
 
 Apache-2.0. Production assets may carry their own rights and usage records in Asset metadata.
 
 Studio CLI command processing is organized by domain under
-`src/ordivon_studio/cli_handlers/` (media, ecology, equipment, Resolve).
+`src/ordivon_studio/cli_handlers/` (media, ecology, equipment).
 The public `ordivon-studio` console entry, `argparse` grammar and result
 exit codes remain owned by `cli.py`; this source-only split adds neither
 another command registry nor another operational authority.

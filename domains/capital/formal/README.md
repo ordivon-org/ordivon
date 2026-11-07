@@ -93,11 +93,15 @@ implementation tests based solely on these proof obligations.
 A real implementation-refinement falsification found a valid input with
 opening `10000000000000000000000000000`, deposit `1`, zero fees/returns: the
 original Python 28-digit context silently reported the unchanged opening as
-`contributedCapital`. The implementation now uses **standard-library Decimal
-Inexact traps specifically at external cash additions** (starting wealth plus
-deposit, and contributed capital ledger); an unrepresentable deposit is
-REJECTED, not silently erased. Market-return projections intentionally retain
-the existing bounded-precision Decimal arithmetic required by the native
+`contributedCapital`. The implementation uses **standard-library Decimal `Inexact` traps for
+the cumulative contributed-capital ledger**, which is not a market valuation.
+At each strategy/benchmark valuation, it instead permits bounded 28-digit
+context rounding of the deposit addition only if the result's conservative
+one-ULP error bound is at most `1e-12` of the positive deposit. A meaningful
+cash injection that would be lost to valuation rounding is **REJECTED**,
+not silently erased; normal tiny fractional-market-value rounding does not
+block long-term DCA. Market-return projections intentionally retain the
+existing bounded-precision Decimal arithmetic required by the native
 `portfolio.paper_investment` consumer; forcing exact infinite-precision
 returns would alter established paper replay results. This is a precise
 implementation-boundary repair, **not** a universal refinement theorem
@@ -115,3 +119,53 @@ exact `UNSAT × 5 / SAT × 1` outcome, native consumer output/CLI, input provena
 and separate standing: spec/model VERIFIED; implementation refinement UNKNOWN;
 real financial outcome UNKNOWN. Compare only matched external deposits and fee
 timing, never infer trade authorization.
+
+## Passive benchmark — arbitrary finite periods (Lean) and bounded Python refinement evidence
+
+`PortfolioPassiveBenchmarkGeneral.lean` uses Lean's pinned kernel and **exact
+rational arithmetic** with a list of any finite length, rather than extending
+the previous two-period Z3 bound by picking a larger fixed number. The proved
+properties are: (1) cumulative external contributions equal opening ledger
+plus the sum of deposits; (2) identical strategy/benchmark drivers preserve
+terminal wealth equality; (3) using the same contribution baseline cancels
+from the terminal-gain comparison; and (4) every accepted step's nonnegative
+after-fee balance and gross multiplier guarantee nonnegative terminal wealth,
+including for any finite sequence of admitted steps. The admission relation
+is evaluated against the **evolving** wealth state, not an assumed fixed
+opening wealth. This Lean model has no `sorry` or custom axioms.
+
+These are **unbounded-period mathematical specification theorems**; they are
+not a proof that Python `Decimal` correctly implements Rational arithmetic.
+Python maintains a fully exact external contribution ledger and a separate
+bounded market valuation: a cashflow addition in either valuation is accepted
+only when the worst-case one-ULP rounding error is no more than a declared
+`1e-12` fraction of that deposit. This is an operational numerical error
+policy, not a Lean theorem about Python runtime behavior.
+Python deliberately rounds market-return arithmetic to its current context;
+a blanket exact-arithmetic substitution previously broke the actual Paper
+Investment consumer. `tests/test_passive_benchmark.py` separately compares the
+real Python implementation against an independently structured standard
+`Decimal.Context` oracle for 96 seeded paths of 1, 2, 3, 7, 31, and 120
+periods and a 250-period no-fee/zero-return deposit path. Those are bounded
+consumer witnesses, not universal implementation refinement.
+
+Another direct falsification discovered that the prior API leaked a raw
+`decimal.Overflow` on a finite but out-of-range user-supplied return such as
+`1e999999`. The Python public boundary now raises `PassiveBenchmarkError`
+for unsupported Decimal-context operations, and the real JSON CLI returns
+`REJECTED` (exit code 2) without a traceback. This is a fail-closed
+implementation repair, not market-data verification.
+
+**Human:** Run `mise run verify:formal:passive-general` and
+`mise run verify:formal:passive-benchmark` from `domains/capital`, then
+`mise run verify` for the full real-consumer suite. To inspect a synthetic
+read-only result, use the existing `scripts/run-capability-python -m
+ordivon_capital.portfolio.passive_benchmark --input
+examples/passive_benchmark_first_run_r1.json`.
+
+**Agent:** Resolve the existing `finance-paper-investment` project Skill,
+keep the `Lean arbitrary-period model = VERIFIED` observation separate from
+`Python Decimal universal refinement = UNKNOWN`, report the actual native
+CLI and bounded differential/negative-case outcomes, preserve matched-cashflow
+semantics and non-live `capitalAuthority=NONE`, and do not turn mathematical
+properties or synthetic samples into prospective return evidence.
