@@ -34,6 +34,10 @@ demonstrates the chosen native workflow without a private menu Runner.
 
 ## Agent workflow
 
+The `studio_dependencies_status` and `studio_dependencies_propose` tools cover only the Studio JavaScript and Python project environment.
+Resolve Studio readiness is observed from the Windows application/session
+and its native Scripting API, not from a removed Python `resolve` extra.
+
 - Discover the current selected Production, source Asset/Blob digests, required exact native edit, target Resolve project, and active desktop/session. If any are not observable, report `UNKNOWN` rather than guessing or running an unattended edit.
 - Prefer direct task-specific invocations of the **installed official Python/Lua API** using existing Windows Runtime execution; never recreate a persistent menu Runner, operation staging store, separate state engine, or private editing DSL. A few ephemeral lines of API script can be appropriate when the user has requested a real effect.
 - Before modifying a project, bind source paths and digests to the selected Production. Avoid implicit writes to the active project, and use an explicit disposable project when testing.

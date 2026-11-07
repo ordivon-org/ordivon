@@ -22,14 +22,13 @@ def _digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _python_receipt_status(root: Path, *, require_resolve: bool) -> dict[str, Any]:
+def _python_receipt_status(root: Path) -> dict[str, Any]:
     receipt_path = root / PYTHON_RECEIPT
     python_path = root / ".venv/bin/python"
     result: dict[str, Any] = {
         "ready": False,
         "receipt": str(PYTHON_RECEIPT),
         "python": ".venv/bin/python",
-        "requiredExtra": "resolve" if require_resolve else None,
         "reason": None,
     }
     if not python_path.is_file():
@@ -55,13 +54,8 @@ def _python_receipt_status(root: Path, *, require_resolve: bool) -> dict[str, An
         if not path.is_file() or inputs.get(name) != _digest(path):
             result["reason"] = "PYTHON_RECEIPT_STALE"
             return result
-    extras = set(receipt.get("extras", []))
-    if require_resolve and "resolve" not in extras:
-        result["reason"] = "PYTHON_RESOLVE_EXTRA_ABSENT"
-        return result
     result["ready"] = True
     result["reason"] = "READY"
-    result["extras"] = sorted(extras)
     result["pythonVersion"] = receipt.get("python")
     result["uvVersion"] = receipt.get("uv")
     return result
@@ -109,16 +103,15 @@ def dependency_status(root: Path = ROOT) -> dict[str, Any]:
         "schemaVersion": 1,
         "kind": "ordivon.studio-dependency-status",
         "js": _js_status(root),
-        "python": _python_receipt_status(root, require_resolve=False),
-        "resolve": _python_receipt_status(root, require_resolve=True),
+        "python": _python_receipt_status(root),
         "boundary": "Observation never acquires dependencies. Missing capability is repaired only through an explicit acquisition proposal.",
     }
 
 
 def dependency_proposal(target: str, root: Path = ROOT) -> dict[str, Any]:
     status = dependency_status(root)
-    if target not in {"js", "python", "resolve"}:
-        raise ValueError("dependency target must be js, python, or resolve")
+    if target not in {"js", "python"}:
+        raise ValueError("dependency target must be js or python")
     current = status[target]
     if current["ready"]:
         return {
@@ -135,7 +128,7 @@ def dependency_proposal(target: str, root: Path = ROOT) -> dict[str, Any]:
         args = ["install", "--frozen-lockfile"]
     else:
         executable = "/usr/bin/python3"
-        args = ["scripts/materialize-python.py"] + (["--extra", "resolve"] if target == "resolve" else [])
+        args = ["scripts/materialize-python.py"]
     return {
         "schemaVersion": 1,
         "kind": "ordivon.studio-dependency-acquisition-proposal",

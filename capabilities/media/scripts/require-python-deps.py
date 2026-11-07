@@ -46,8 +46,6 @@ def main() -> int:
         current = digest(ROOT / name)
         if recorded.get(name) != current:
             return fail(f"{name} differs from the materialized receipt")
-    if receipt.get("extras") != []:
-        return fail("materialization includes retired Python extras")
     probe = [
         "import importlib.metadata as m, platform",
         f"assert platform.python_version() == {EXPECTED_PYTHON!r}",
