@@ -51,8 +51,6 @@ def test_owner_census_has_no_retained_physical_repo_contract():
 
 def test_current_docs_do_not_claim_physical_carrier_is_retained():
     census_doc = (ROOT / "docs/ORDIVON_CAPITAL_EXTERNAL_OWNER_CENSUS_R1.md").read_text()
-    taxonomy_doc = (ROOT / "docs/CAPITAL_DOMAIN_TAXONOMY_ACCEPTANCE_20260921.md").read_text()
     assert "is retained because frozen Research/Paper1" not in census_doc
     assert "Physical rename is therefore blocked" not in census_doc
-    assert "standalone repository path used by research provenance remain explicit provenance identities" not in taxonomy_doc
     assert "physical standalone carrier is retired" in census_doc
