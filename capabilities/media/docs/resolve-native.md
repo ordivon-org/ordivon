@@ -6,7 +6,15 @@
 
 Blackmagic's Resolve owns all NLE project/timeline effects, color, Fusion, Fairlight and delivery render. Media owns selected Production/Asset/Blob identities, exact source digests, native OTIO inspection, technical QC and acceptance; Runtime owns execution Job/Attempt. The existing `processing/bin/probe-otio.sh`, pinned `otiotool` and FFmpeg/FFprobe are sufficient for their respective source and technical checks. No parallel custom editing engine is warranted.
 
-The Windows install inspected on 2026-11-07 provided DaVinci Resolve `21.0.3.7` and its official `Developer/Scripting/README.txt`, but Resolve was not running. **Studio license activation was not verified** from an interactive session. The retained Free 21 compatibility record does not establish today's Studio capabilities.
+Windows Session 1 native acceptance (2026-11-07): DaVinci Resolve Studio
+21.0.3.7 accepted official Python API calls for isolated project creation,
+two video clips, one synchronised WAV track, native Color CDL,
+editable DRP export and MP4 H.264/AAC render. Resolve and independent
+FFprobe read back the output as 640x360/24 fps/4 seconds. Runtime Job
+job-01a1b547-8ad5-76c2-b228-b3e73a9ff69d covers the first full
+timeline acceptance; job-01a1b542-81ea-7fc0-a876-f942f83ee34c
+identified and falsified the earlier one-frame preview error. This
+demonstrates the chosen native workflow without a private menu Runner.
 
 ## Human workflow
 
@@ -35,3 +43,39 @@ The Windows install inspected on 2026-11-07 provided DaVinci Resolve `21.0.3.7` 
 ## Kept provenance
 
 Historical `docs/resolve-compatibility/resolve-free-21.0.3.7.{json,md}` and `runtime-introduction-assembly-conform-21.0.3.7.json` remain read-only evidence of specific earlier **Free** version observations. Production OTIO, source Assets, Studio tools and QC are unaffected by this Runner retirement.
+## Executable native production
+
+Use the source-owned one-shot script `scripts/resolve-native-produce.py` for selected
+visual sources, optional audio, native Color CDL, editable DRP and H.264 MP4.
+It invokes the installed Resolve Python API directly. It is not the retired
+menu Runner, an alternate editing engine, a staging protocol, or a state store.
+
+From an interactive Windows `active_user` Runtime execution with a fully
+initialized Resolve 21.0.3.7 session, run Python 3.11 (the actual native API
+module version verified on this workstation):
+
+```powershell
+$env:RESOLVE_SCRIPT_API = "$env:PROGRAMDATA\Blackmagic Design\DaVinci Resolve\Support\Developer\Scripting"
+$env:RESOLVE_SCRIPT_LIB = "C:\Program Files\Blackmagic Design\DaVinci Resolve\fusionscript.dll"
+python capabilities/media/scripts/resolve-native-produce.py `
+  --visual C:\sources\shot-01.mp4 `
+  --visual C:\sources\shot-02.mp4 `
+  --audio C:\sources\voice.wav `
+  --output-dir C:\outputs\selected-production `
+  --name selected-cut --grade-saturation 1.1
+```
+
+Runtime executes this request; Blackmagic owns the project, timeline, grade,
+audio track and render. The script imports selected files, builds timeline
+tracks, exports the editable `.drp`, renders MP4 and records exact SHA-256
+source and output identities in a `.receipt.json`. It closes/deletes only
+its newly created isolated project unless `--keep-project` is specified.
+Use a selected short source or lower project dimensions for preview; default render covers the full timeline.
+preview. Do not infer publication from technical output; a named destination
+must actually receive and read back its artifact.
+
+For native render-format selection, use values from `GetRenderCodecs('mp4')`.
+On the tested 21.0.3 install, the GUI label `H.264` maps to native codec
+identifier `H264`; the script selects the native identifier. Use the already
+published `studio_processing_profiles` action for FFprobe/FFmpeg, OTIO and
+TimedText checks rather than building parallel media parsers.
