@@ -472,7 +472,6 @@ class PITResearchContract(unittest.TestCase):
         self.assertEqual(result, same)
 
 
-
 class PITNativeOptimizerConsumer(unittest.TestCase):
     """Real solver invocation with frozen, explicitly unattested price vintages."""
 
@@ -519,9 +518,7 @@ class PITNativeOptimizerConsumer(unittest.TestCase):
         self.assertEqual(len(out["conditional_allocation"]["terminal_distribution"]), 3)
         self.assertLess(out["conditional_allocation"]["equality_residual"], 1e-7)
         self.assertLess(out["conditional_allocation"]["inequality_residual"], 1e-7)
-        self.assertLess(
-            out["conditional_allocation"]["concavity_global_utility_gap_upper"], 1e-5
-        )
+        self.assertLess(out["conditional_allocation"]["concavity_global_utility_gap_upper"], 1e-5)
         # The original evidence-only API remains byte-for-byte semantically stable.
         evidence = from_json_payload(payload)
         self.assertEqual(out["optimizer_input"], evidence["optimizer_input"])
@@ -560,15 +557,14 @@ class PITNativeOptimizerConsumer(unittest.TestCase):
             env = {**os.environ, "PYTHONPATH": str(ROOT)}
             command = [
                 sys.executable,
-                "-m", "ordivon_capital.research.pit_joint_forecast",
-                "--input", str(file),
+                "-m",
+                "ordivon_capital.research.pit_joint_forecast",
+                "--input",
+                str(file),
             ]
-            old = subprocess.run(
-                command, capture_output=True, text=True, check=True, env=env
-            )
+            old = subprocess.run(command, capture_output=True, text=True, check=True, env=env)
             full = subprocess.run(
-                [*command, "--solve"],
-                capture_output=True, text=True, check=True, env=env
+                [*command, "--solve"], capture_output=True, text=True, check=True, env=env
             )
         old_json, new_json = json.loads(old.stdout), json.loads(full.stdout)
         self.assertNotIn("conditional_allocation", old_json)
@@ -593,7 +589,8 @@ class PITPairedPrequentialConsumer(unittest.TestCase):
         outcome_day = date(2026, 11, 30)
         new = [
             PriceVintage(
-                asset=name, session=outcome_day,
+                asset=name,
+                session=outcome_day,
                 published_at=datetime(2026, 11, 30, 21, tzinfo=UTC),
                 adjusted_close=value,
                 raw_source_sha256=SHA,
@@ -605,9 +602,7 @@ class PITPairedPrequentialConsumer(unittest.TestCase):
             "records": records + new,
             "assets": ("A", "B"),
             "valuation_sessions": (*sessions, outcome_day),
-            "decision_instants": {
-                sessions[-1]: datetime(2026, 10, 30, 22, tzinfo=UTC)
-            },
+            "decision_instants": {sessions[-1]: datetime(2026, 10, 30, 22, tzinfo=UTC)},
             "evaluation_as_of": datetime(2026, 11, 30, 23, tzinfo=UTC),
         }
 
@@ -649,12 +644,15 @@ class PITPairedPrequentialConsumer(unittest.TestCase):
         kwargs = self.dataset()
         before = compare_pit_prequential_forecasts(**kwargs)
         rows = list(kwargs["records"])
-        rows.append(rec(
-            "A", "2026-08-31", "2026-11-15T10:00:00+00:00", 9000.0,
-        ))
-        after = compare_pit_prequential_forecasts(
-            **{**kwargs, "records": rows}
+        rows.append(
+            rec(
+                "A",
+                "2026-08-31",
+                "2026-11-15T10:00:00+00:00",
+                9000.0,
+            )
         )
+        after = compare_pit_prequential_forecasts(**{**kwargs, "records": rows})
         self.assertEqual(before, after)
 
     def test_unpublished_outcome_cannot_be_scored(self):
@@ -670,6 +668,92 @@ class PITPairedPrequentialConsumer(unittest.TestCase):
                     "evaluation_as_of": datetime(2026, 11, 15, tzinfo=UTC),
                 }
             )
+
+
+class PITAdjustedVintageFalsification(unittest.TestCase):
+    """A retroactive split adjustment cannot fabricate the next-month gain."""
+
+    def test_both_endpoints_share_evaluation_vintage_without_future_training(self):
+        from dataclasses import replace
+
+        from ordivon_capital.research.pit_joint_forecast import (
+            compare_pit_prequential_forecasts,
+        )
+
+        kwargs = PITPairedPrequentialConsumer().dataset()
+        initial = prequential_energy_evaluation(**kwargs)
+        initial_pair = compare_pit_prequential_forecasts(**kwargs)
+
+        # A 2-for-1 split backward-adjusts BOTH price endpoints. Dividing
+        # 57.5 (post-split Nov) by the FROZEN pre-split October close 108.9
+        # would fabricate a ~47% loss; true paired return is unchanged.
+        revised = list(kwargs["records"])
+        revision_digest = hashlib.sha256(b"as-of-evaluation split adjustment").hexdigest()
+        revised.extend(
+            (
+                replace(
+                    rec("A", "2026-10-30", "2026-11-10T11:00:00+00:00", 54.45),
+                    raw_source_sha256=revision_digest,
+                ),
+                replace(
+                    rec("A", "2026-11-30", "2026-11-30T22:00:00+00:00", 57.5),
+                    raw_source_sha256=revision_digest,
+                ),
+            )
+        )
+        same_clock = {**kwargs, "records": revised}
+        tested = prequential_energy_evaluation(**same_clock)
+        score = tested[0]
+        self.assertEqual(score["realized_price_basis"], "EVALUATION_AS_OF_BOTH_ENDPOINTS_ADJUSTED")
+        self.assertEqual(score["frozen_forecast_sha256"], initial[0]["frozen_forecast_sha256"])
+        self.assertAlmostEqual(score["realized_joint_gross"][0], 115.0 / 108.9, places=12)
+        self.assertAlmostEqual(score["energy_score"], initial[0]["energy_score"], places=12)
+        price_a = score["reference_revision_evidence"][0]
+        self.assertEqual(price_a["asset"], "A")
+        self.assertEqual(price_a["frozen_reference_close"], 108.9)
+        self.assertEqual(price_a["evaluation_reference_close"], 54.45)
+        self.assertEqual(price_a["evaluation_outcome_close"], 57.5)
+        self.assertEqual(price_a["reference_revision_factor"], 0.5)
+        self.assertTrue(price_a["reference_revised_since_decision"])
+        self.assertEqual(price_a["evaluation_reference_source_sha256"], revision_digest)
+        self.assertEqual(price_a["evaluation_outcome_source_sha256"], revision_digest)
+
+        paired = compare_pit_prequential_forecasts(**same_clock)
+        self.assertAlmostEqual(
+            paired["meanCandidateMinusBaselineEnergy"],
+            initial_pair["meanCandidateMinusBaselineEnergy"],
+            places=12,
+        )
+        self.assertEqual(
+            paired["perEvaluation"][0]["realized_price_basis"], score["realized_price_basis"]
+        )
+        self.assertEqual(
+            paired["perEvaluation"][0]["reference_revision_evidence"],
+            score["reference_revision_evidence"],
+        )
+
+        # No revision disclosed AFTER evaluation may rewrite the score, prices
+        # or as-of source identities for that frozen historical experiment.
+        future = revised + [
+            rec("A", "2026-10-30", "2026-12-10T12:00:00+00:00", 1e9),
+            rec("A", "2026-11-30", "2026-12-10T12:00:00+00:00", 1e-9),
+        ]
+        self.assertEqual(tested, prequential_energy_evaluation(**{**kwargs, "records": future}))
+
+    def test_real_after_decision_price_correction_changes_only_outcome_score(self):
+        kwargs = PITPairedPrequentialConsumer().dataset()
+        old = prequential_energy_evaluation(**kwargs)
+        corrected = list(kwargs["records"]) + [
+            rec("A", "2026-10-30", "2026-11-15T10:00:00+00:00", 105.0)
+        ]
+        revised = prequential_energy_evaluation(**{**kwargs, "records": corrected})
+        self.assertEqual(old[0]["frozen_forecast_sha256"], revised[0]["frozen_forecast_sha256"])
+        self.assertAlmostEqual(revised[0]["realized_joint_gross"][0], 115 / 105)
+        self.assertNotEqual(old[0]["energy_score"], revised[0]["energy_score"])
+        self.assertTrue(
+            revised[0]["reference_revision_evidence"][0]["reference_revised_since_decision"]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

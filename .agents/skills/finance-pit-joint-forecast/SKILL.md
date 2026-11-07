@@ -76,3 +76,21 @@ The adapter repeats only the caller-supplied broker numbers once the
 forecast scenario count is known; actual state-specific margin contracts
 must continue to use scenario_maintenance. Never assume one uniform
 rate applies to a real brokerage account without provider evidence.
+
+## As-of outcome revisions and false-alpha falsification
+
+Agent: Keep forecast and consumer input frozen at decision time. In
+prequential_energy_evaluation or compare_pit_prequential_forecasts,
+validate realized_price_basis =
+EVALUATION_AS_OF_BOTH_ENDPOINTS_ADJUSTED and retain the emitted per-asset
+reference_revision_evidence. Both realized adjusted closes must be
+selected at the later evaluation time. Never divide the later adjusted
+outcome close by a frozen, differently adjusted decision-date reference:
+split/dividend back-adjustments can create fake gains/losses. A source hash
+does not independently certify prices or the corporate-action methodology.
+
+Human: Read frozen-reference versus evaluation-reference prices, revision
+factor and source standing before interpreting scores. A revised
+retrospective adjusted-return label is not an executable fill, and a
+lower energy score is not investment profit. For actual broker position
+returns use existing Markets and Accounting corporate-action consumers.
