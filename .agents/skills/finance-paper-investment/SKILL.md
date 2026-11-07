@@ -26,6 +26,7 @@ This Skill is a **procedure and capability router**, not another portfolio engin
 | Close a funded Paper session and read its receipt | Accounting | `scripts/run-capability-python -m ordivon_capital.accounting.postgres_paper_close --account NAME --input SESSION.json` | Mutates ONLY dedicated Paper PostgreSQL; no broker |
 | Freeze a hypothesis, compare against passive benchmark and falsify | Research | Existing `finance-experiment-review` Skill and `scripts/run-finance-lego` | Evidence not authority |
 | Evaluate exposure and effects | Risk / Governance / Trading | Actual bounded source contracts | No implicit cross-domain permission |
+| Operate external OKX Demo provider | Trading / Governance / Accounting | scripts/run-okx-demo-execution and finance-demo-execution Skill | Source consumer and admission contract; external receipt separate |
 
 All command paths above are relative to `domains/capital` except the direct reference to the other canonical Skill. Before using one, check its exact option interface (`--help`) and latest source/contract version.
 
