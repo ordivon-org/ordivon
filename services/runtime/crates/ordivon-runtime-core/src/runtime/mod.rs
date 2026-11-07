@@ -8,6 +8,7 @@ mod error;
 mod evidence;
 #[allow(dead_code)]
 mod execution_provider;
+mod host_dependency;
 mod inspection;
 mod job_attempt_state;
 mod lifecycle_locks;

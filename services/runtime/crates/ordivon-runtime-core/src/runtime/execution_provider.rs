@@ -485,6 +485,7 @@ mod local_linux_adapter_tests {
             windows_context: None,
             windows_execution_context: None,
             foreign_references: Vec::new(),
+            host_dependencies: Vec::new(),
             input_set_id: None,
             effective_inputs: Vec::new(),
             credential_set_id: None,
