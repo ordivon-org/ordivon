@@ -165,6 +165,14 @@ requires a session with no corporate actions. Calendar
 qualification, corporate-action postings and execution admission belong
 to their upstream contracts. The PostgreSQL acceptance test uses
 `ORDIVON_CAPITAL_PAPER_PG_TEST_DSN` against a disposable paper database.
+In GitHub Actions the existing required `root-verification` job provisions a
+job-scoped PostgreSQL 18.6 service and binds its disposable DSN **only** to
+the selected Capital `verify` task. This exercises the same native Paper
+PostgreSQL consumers rather than installing an additional test harness. A
+missing or failing connection must fail the owner task, never silently skip.
+Local runs without a disposable DSN continue to report database tests as
+skipped; they cannot claim a PostgreSQL readback.
+
 
 ## Current standing
 

@@ -24,6 +24,22 @@ jobs:
     name: root-verification
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    # GitHub-native isolated PostgreSQL consumer; no local test harness or
+    # access to an installed/production Accounting authority.
+    services:
+      paper_postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: ordivon_paper
+          POSTGRES_PASSWORD: ${{ github.run_id }}
+        ports:
+          - 5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ordivon_paper"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
     steps:
       - name: Checkout exact revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -350,7 +366,14 @@ jobs:
               raise SystemExit(43) from exc
           PY
             # The selected task must not consume the following queue entries.
-            mise run "$task" </dev/null
+            if [[ "$task" == "capital:verify" ]]; then
+              # A positive Paper DSN causes all database consumers to run;
+              # failed connection is a failing test, never a hidden skip.
+              # Container and credentials exist only in this GitHub job.
+              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" mise run "$task" </dev/null
+            else
+              mise run "$task" </dev/null
+            fi
             echo "::endgroup::"
           done < "$RUNNER_TEMP/ordivon-affected-tasks.txt"
 
