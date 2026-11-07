@@ -11,8 +11,7 @@ mise run formal:paper
 ```
 
 `mise run verify` also invokes this task after Capital's normal native
-tests. It uses **upstream Z3 5.3.2**, pinned directly in the task (through
-the installed mise GitHub-provider mechanism); no custom solver, new Python
+tests. It uses **upstream Z3 5.3.2**, pinned in the Capital owner's native `[tools]` declaration via mise's existing GitHub backend; no custom solver, new Python
 dependency, new registry or extra release pipeline.
 
 ## Why these equations, rather than hundreds of tiny mutation cases?
