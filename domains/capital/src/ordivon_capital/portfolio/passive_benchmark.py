@@ -10,7 +10,7 @@ import argparse
 import json
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, Inexact, InvalidOperation, localcontext
 from pathlib import Path
 from typing import Any
 
@@ -50,6 +50,22 @@ def _timestamp(value: Any) -> datetime:
     return instant.astimezone(UTC)
 
 
+def _add_cash_exact(left: Decimal, right: Decimal, path: str) -> Decimal:
+    """Reject a representationally lost deposit; retain existing return precision.
+
+    Decimal market returns remain intentionally context-rounded. External cash
+    ledger additions instead must be representable in that same context.
+    """
+    with localcontext() as context:
+        context.traps[Inexact] = True
+        try:
+            return left + right
+        except Inexact as exc:
+            raise PassiveBenchmarkError(
+                f"{path}: cash flow would be silently rounded at current precision"
+            ) from exc
+
+
 def _next_value(
     *,
     capital: Decimal,
@@ -65,7 +81,7 @@ def _next_value(
         raise PassiveBenchmarkError(f"{path}: expense fraction outside [0,1]")
     if fixed_fee < 0:
         raise PassiveBenchmarkError(f"{path}: negative fixed fee")
-    start = capital + deposit
+    start = _add_cash_exact(capital, deposit, path)
     after_fees = start * (1 - expense) - fixed_fee
     if after_fees < 0:
         raise PassiveBenchmarkError(f"{path}: fees exceed available capital")
@@ -121,7 +137,7 @@ def replay_passive_benchmark(
             capital=benchmark, deposit=deposit, gross_return=benchmark_return,
             expense=benchmark_expense, fixed_fee=benchmark_fee, path="benchmark",
         )
-        contributed += deposit
+        contributed = _add_cash_exact(contributed, deposit, "contributed")
     return {
         "schemaVersion": 1,
         "kind": "ordivon.capital.finance.cashflow-matched-passive-benchmark",

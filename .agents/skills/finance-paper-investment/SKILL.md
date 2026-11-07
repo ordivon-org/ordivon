@@ -85,7 +85,13 @@ real consumer is still the native `scripts/run-capability-python -m
 ordivon_capital.portfolio.passive_benchmark --input ...`; keep real economic
 returns, fees, cashflow provenance, and hypothetical replay claims separate.
 Do not call terminal wealth difference a GIPS time-weighted or money-weighted
-return. Do not add another Finance reporting engine.
+return. Do not add another Finance reporting engine. Real consumer falsification
+identified that default Decimal precision could silently swallow external
+cash additions. The native Python benchmark now **rejects unrepresentable
+cash additions** while retaining context-rounded market-return arithmetic
+for compatibility with `portfolio.paper_investment`. Treat arithmetic-domain
+REJECTED standing as unavailable, never as lost customer money. The two-period
+SMT Real model does not prove complete Python Decimal refinement.
 
 ## Paper replay admission
 

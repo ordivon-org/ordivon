@@ -90,6 +90,19 @@ transaction fill, or capital authorization is implied. In particular, Decimal
 precision/rounding is not modelled by mathematical reals; do not delete
 implementation tests based solely on these proof obligations.
 
+A real implementation-refinement falsification found a valid input with
+opening `10000000000000000000000000000`, deposit `1`, zero fees/returns: the
+original Python 28-digit context silently reported the unchanged opening as
+`contributedCapital`. The implementation now uses **standard-library Decimal
+Inexact traps specifically at external cash additions** (starting wealth plus
+deposit, and contributed capital ledger); an unrepresentable deposit is
+REJECTED, not silently erased. Market-return projections intentionally retain
+the existing bounded-precision Decimal arithmetic required by the native
+`portfolio.paper_investment` consumer; forcing exact infinite-precision
+returns would alter established paper replay results. This is a precise
+implementation-boundary repair, **not** a universal refinement theorem
+for the real-arithmetic SMT model.
+
 **Human:** From `domains/capital`, run
 `mise run verify:formal:passive-benchmark`. Read a synthetic native result via
 `scripts/run-capability-python -m ordivon_capital.portfolio.passive_benchmark

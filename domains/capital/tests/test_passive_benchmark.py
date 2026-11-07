@@ -192,3 +192,15 @@ def test_native_cli_observes_matched_contributions_and_net_gain_identity(tmp_pat
     assert observed == replay_passive_benchmark(
         opening_balance="100", currency="USD", periods=[first, second]
     )
+
+
+def test_unrepresentable_deposit_is_rejected_not_silently_lost():
+    """A 1-unit cashflow may not disappear beside a 29-digit balance."""
+    row = sample_row()
+    row.update(
+        depositAtStart="1",
+        strategyGrossReturn="0",
+        benchmarkGrossReturn="0",
+    )
+    with pytest.raises(PassiveBenchmarkError, match="cash flow would be silently rounded"):
+        evaluate([row], opening="10000000000000000000000000000")
