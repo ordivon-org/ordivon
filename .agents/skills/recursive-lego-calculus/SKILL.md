@@ -166,6 +166,17 @@ LEGO replacement advice or separate Agent execution instructions, read
 Owner APIs and provider evidence. This optional reference is not a new Skill,
 registry or mandatory stage.
 
+## General formal-thinking LEGOs (optional)
+
+When choosing a reusable formal **method LEGO**, rather than merely running a
+verifier, read `references/formal-thinking-legos-human-agent.md`. This maps
+mature thinking methods to existing Owner capabilities and source-bound proof
+duties, with **Human outcome/acceptance** and **Agent execution/evidence**
+instructions separated. Keep `references/formal-model.md` for deep R2.1
+math and `references/owner-provider-human-agent.md` for ordinary provider
+adoption. Its method selection patterns are not independently admitted
+LEGOs; use only the smallest method set the real consumer needs.
+
 ## Consumer-rooted retirement (optional)
 
 When removing a PR, Git ref, source responsibility or Runtime Workspace with
