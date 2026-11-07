@@ -196,3 +196,7 @@ Superseded autonomous-interest R1–R6 protocols and R2–R6 self-test experimen
 - Björk/Lundgren/Holopainen, Game Design Patterns: https://dl.digra.org/index.php/dl/article/view/60
 - Machinations framework: https://machinations.io/docs/framework-basics
 - Valve Steam Tags / Tag Wizard: https://partner.steamgames.com/doc/store/tags
+
+## Historical evidence currentness
+
+R1, R2, R3 are versioned source-cut inputs rather than competing current design authorities. R3 includes 37 top specimens and 33 motifs; R2 cumulative mechanism evidence includes 50 specimens and 60 contextual claims. Earlier JSON has downstream consumers and must not be deleted as cache. Historic Markdown retains only its scoped explanatory role. The R7 autonomous-interest protocol remains pre-generation. Human/Agent native consumer commands and game-effect boundaries are described in domains/game/docs/authority.md.

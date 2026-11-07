@@ -69,8 +69,22 @@ storage engine or renderer is introduced.
 
     godot --headless --path examples/room-encounter --script res://agent_episode.gd -- --actions attack,advance,attack,attack
 
-The single `GAME_AGENT_EPISODE_JSON=` line is machine-readable and contains `schema_version=1`, `observation_mode=authoritative_state_not_pixels`, the initial state, ordered steps (`action`, `recognized`, `accepted`, `before`, `after`), final state and terminal status. Accepted action names are `attack`, `guard` and `advance`. Invalid/rejected actions have no game-rule effect.
+The single `GAME_AGENT_EPISODE_JSON=` line is machine-readable and contains `schema_version=1`, `observation_mode=authoritative_state_not_pixels`, the initial state, ordered steps (`action`, `recognized`, `accepted`, `before`, `after`), final state and terminal status. Accepted action names are `attack`, `guard` and `advance`. Agent `advance` selects the same enabled first **Dialogue Manager Unlock choice** as the Human scene; it cannot invoke the raw `EncounterRules.advance` or bypass the narrative gate. The native dialogue acceptance separately checks that the first response really invokes Unlock. Each result step includes `control_path` (`dialogue.unlock_choice` when accepted). Invalid/rejected actions do not mutate the rule state.
 
 Each process starts a new scene and fresh run, does not write save files, and accepts at most 64 actions. Agents may submit a growing action prefix to inspect later states; this is bounded deterministic replay, **not** a persistent online environment, browser controller or visual playtest.
 
-`mise run test:agent-episode` verifies native scene transitions, deterministic replay, invalid-action rejection, an actual terminal win and the action limit. `mise run verify` first imports the native dialogue asset through `test:encounter`, then runs this Agent acceptance. Real players and Agents use the same authoritative encounter rules; they do not share an evidence claim about subjective experience.
+`mise run test:agent-episode` verifies native scene transitions, deterministic replay, pre-clear narrative gate rejection, an actual terminal win through the native Unlock choice, and the action limit. `mise run verify` first imports the native dialogue asset through `test:encounter`, then runs this Agent acceptance. Real players and Agents use the same authoritative encounter rules; they do not share an evidence claim about subjective experience.
+
+
+## Native Linux x86_64 export and package
+
+Run `mise run export:room-linux` from `domains/game/` after installing official **Godot 4.7.2** Linux x86_64 export templates (same engine version as the pinned editor). This is standard Godot export via `export_presets.cfg`, not a custom engine or a project-only packer. It embeds the PCK into the engine executable and invokes that **exported executable** headlessly for a native launch check. Output is ignored by Git under `dist/room-encounter/`: an executable, two upstream asset license notices, and a Linux x86_64 tarball. Set `GAME_EXPORT_DIR` to override the output directory.
+
+A successful export, executable launch, or archive is evidence of a native, platform-specific deliverable. It does **not** establish Human enjoyment, graphics/audio correctness on a physical device, other OS compatibility, signing or game-store release. Those require the relevant Human/target consumer. The upstream Dialogue Manager MIT license and Kenney CC0 asset source notices are copied from their existing source locations.
+
+
+## Native Windows x86_64 export (Human desktop consumer)
+
+Run `mise run export:room-windows` from `domains/game/` with the official Godot **4.7.2** Windows x86_64 templates installed. It uses the same project source and rule/narrative state as Linux, plus the native Godot Windows Desktop export preset. The ignored output is `dist/room-encounter/windows-x86_64/room-encounter.exe` and a `room-encounter-windows-x86_64.zip` containing the executable and both upstream license notices. No Godot SDK or Ordivon Runtime is needed by the eventual Windows player. Run the exported Windows executable on a real Windows host to verify its launch; a Linux build command alone does not establish Windows runtime readiness.
+
+For both platforms, the Godot export preset excludes the standalone first-party Agent and assertion scripts. They stay available in source for mechanical verification but do not belong in the playable package. Linux and Windows builds are **technical previews**, not Human-validated indie game releases or store-certified products.

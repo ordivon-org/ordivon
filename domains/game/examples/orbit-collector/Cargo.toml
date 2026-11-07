@@ -6,4 +6,14 @@ publish = false
 description = "Playable Game product consumer of Bevy native ECS, input, sprites, text and lifecycle"
 
 [dependencies]
-bevy = "=0.20.1"
+# Keep only native 2D rendering, UI and X11 used by this concrete game.
+# Bevy default platform enables unused Wayland, gamepad, audio and 3D libs.
+bevy = { version = "=0.20.1", default-features = false, features = [
+  "2d_api",
+  "bevy_sprite_render",
+  "ui_bevy_render",
+  "bevy_winit",
+  "x11",
+  "default_font",
+  "multi_threaded",
+] }

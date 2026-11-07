@@ -1,6 +1,7 @@
 # Ordivon Game — operating contract for all Game agents
 
 This is the **canonical Game-owner instruction**. Read the root `AGENTS.md` first.
+Current G01鈥揋11 native Human/Agent entrypoints: [Game Owner authority](docs/authority.md).
 Keep this file current with the actual `domains/game` source, native consumers
 and independent product outcomes. The three long-running projects below are
 the entire Game engineering scope until the user changes it.

@@ -37,6 +37,7 @@ def main():
     assert not first["steps"][1]["accepted"]
     assert first["steps"][1]["after"] == first["steps"][1]["before"]
     assert first["steps"][2]["accepted"]
+    assert first["steps"][2]["control_path"] == "dialogue.unlock_choice"
     assert first["steps"][2]["after"]["room"] == 2
     assert first["steps"][3]["accepted"]
     assert first["final"]["phase"] == "fighting"
@@ -48,6 +49,11 @@ def main():
     assert status == 0 and not bad["steps"][0]["recognized"]
     assert not bad["steps"][0]["accepted"]
     assert bad["steps"][0]["before"] == bad["steps"][0]["after"] == bad["initial"]
+    status, premature, _ = episode("advance")
+    assert status == 0 and premature["steps"][0]["recognized"]
+    assert not premature["steps"][0]["accepted"]
+    assert premature["steps"][0]["control_path"] == "dialogue.unavailable"
+    assert premature["steps"][0]["before"] == premature["steps"][0]["after"]
     status, empty, _ = episode("")
     assert status == 0 and not empty["steps"] and empty["initial"] == empty["final"]
     status, long, _ = episode(",".join(["guard"] * 65))
@@ -57,7 +63,9 @@ def main():
     assert status == 0 and finished["terminal"] and finished["final"]["phase"] == "won"
     assert finished["final"]["room"] == 3
     assert all(step["accepted"] for step in finished["steps"])
-    print("GAME_AGENT_EPISODE_PASS native_episodes=6 deterministic=yes terminal_win=yes")
+    assert all(step["control_path"] == "dialogue.unlock_choice"
+               for step in finished["steps"] if step["action"] == "advance")
+    print("GAME_AGENT_EPISODE_PASS native_episodes=7 deterministic=yes terminal_win=yes narrative_gate=yes")
 
 
 if __name__ == "__main__":

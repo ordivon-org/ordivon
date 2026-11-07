@@ -39,6 +39,8 @@ func run_episode() -> void:
         return
     var game: Control = packed.instantiate()
     root.add_child(game)
+    await process_frame
+    await process_frame
     var rules: Node = game.get_node("Rules")
     var initial: Dictionary = rules.snapshot().duplicate(true)
     if initial["phase"] == "uninitialized":
@@ -54,18 +56,37 @@ func run_episode() -> void:
     for action in actions:
         var before: Dictionary = rules.snapshot().duplicate(true)
         var accepted: bool = false
+        var control_path: String = "unrecognized"
         match action:
             "attack":
                 accepted = rules.attack()
+                control_path = "native.rules"
             "guard":
                 accepted = rules.guard()
+                control_path = "native.rules"
             "advance":
-                accepted = rules.advance()
+                control_path = "dialogue.unavailable"
+                if before["phase"] == "cleared":
+                    # The Agent must select the same native narrative gate choice
+                    # available to a Human, not bypass G09 with rules.advance().
+                    var gate: VBoxContainer = game.get_node("GateDialogue")
+                    await process_frame
+                    await process_frame
+                    var choices: HBoxContainer = gate.get_node("Choices")
+                    if gate.visible and choices.get_child_count() > 0:
+                        var unlock: Button = choices.get_child(0)
+                        if not unlock.disabled:
+                            unlock.pressed.emit()
+                            await process_frame
+                            await process_frame
+                            control_path = "dialogue.unlock_choice"
+                            accepted = rules.snapshot() != before
             _:
                 pass
         var after: Dictionary = rules.snapshot().duplicate(true)
         steps.append({
             "action": action,
+            "control_path": control_path,
             "recognized": action in ["attack", "guard", "advance"],
             "accepted": accepted,
             "before": before,

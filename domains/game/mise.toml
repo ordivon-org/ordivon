@@ -4,7 +4,7 @@ pnpm = "12.16.1"
 godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check && mise run test:native && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:autonomous-study"
+run = "pnpm install --frozen-lockfile && pnpm check && mise run test:native && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:bevy && mise run test:autonomous-study"
 
 
 [tasks."test:native"]
@@ -39,3 +39,46 @@ run = "uv run --with check-jsonschema==0.38.0 python research/autonomous-interes
 [tasks."test:agent-episode"]
 description = "Exercise a real Godot room scene through bounded Agent action/observation JSON after editor import"
 run = "python3 examples/room-encounter/agent_episode_acceptance.py"
+
+
+[tasks."test:bevy"]
+description = "Exercise the exact native Rust/Bevy rules and ECS consumer with Cargo.lock"
+run = "cargo test --locked --manifest-path examples/orbit-collector/Cargo.toml && cargo check --locked --all-targets --manifest-path examples/orbit-collector/Cargo.toml"
+
+[tasks."build:bevy"]
+description = "Build the native Bevy game example; not a distributed package"
+run = "cargo build --locked --manifest-path examples/orbit-collector/Cargo.toml"
+
+
+[tasks."export:room-linux"]
+description = "Use official matching Godot export templates to export, smoke and package the actual Linux room game"
+run = """
+set -eu
+export_dir="${GAME_EXPORT_DIR:-$PWD/dist/room-encounter/linux-x86_64}"
+mkdir -p "$export_dir"
+godot --headless --path examples/room-encounter --editor --import
+godot --headless --path examples/room-encounter --export-release "Linux x86_64" "$export_dir/room-encounter.x86_64"
+test -s "$export_dir/room-encounter.x86_64"
+chmod +x "$export_dir/room-encounter.x86_64"
+cp examples/room-encounter/addons/dialogue_manager/LICENSE "$export_dir/DIALOGUE_MANAGER_LICENSE.txt"
+cp examples/room-encounter/assets/LICENSE.txt "$export_dir/KENNEY_ASSETS_LICENSE.txt"
+"$export_dir/room-encounter.x86_64" --headless --quit-after 3
+tar -czf "$export_dir/../room-encounter-linux-x86_64.tar.gz" -C "$export_dir" room-encounter.x86_64 DIALOGUE_MANAGER_LICENSE.txt KENNEY_ASSETS_LICENSE.txt
+sha256sum "$export_dir/room-encounter.x86_64" "$export_dir/../room-encounter-linux-x86_64.tar.gz"
+"""
+
+
+[tasks."export:room-windows"]
+description = "Use official version-matched Godot native templates to export and package Windows x86_64 Room Encounter"
+run = """
+set -eu
+export_dir="${GAME_EXPORT_DIR:-$PWD/dist/room-encounter/windows-x86_64}"
+mkdir -p "$export_dir"
+godot --headless --path examples/room-encounter --editor --import
+godot --headless --path examples/room-encounter --export-release "Windows x86_64" "$export_dir/room-encounter.exe"
+test -s "$export_dir/room-encounter.exe"
+cp examples/room-encounter/addons/dialogue_manager/LICENSE "$export_dir/DIALOGUE_MANAGER_LICENSE.txt"
+cp examples/room-encounter/assets/LICENSE.txt "$export_dir/KENNEY_ASSETS_LICENSE.txt"
+(cd "$export_dir" && python3 -m zipfile -c "../room-encounter-windows-x86_64.zip" room-encounter.exe DIALOGUE_MANAGER_LICENSE.txt KENNEY_ASSETS_LICENSE.txt)
+sha256sum "$export_dir/room-encounter.exe" "$export_dir/../room-encounter-windows-x86_64.zip"
+"""

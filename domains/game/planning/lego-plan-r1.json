@@ -564,13 +564,15 @@
         "Godot-imported room scene and one 0..64 action-name sequence: attack, guard, advance"
       ],
       "outputs": [
-        "one prefixed schema_version=1 JSON receipt containing initial, accepted/rejected action transitions, final and terminal state"
+        "one prefixed schema_version=1 JSON receipt containing initial, accepted/rejected action transitions, final and terminal state",
+        "step-local control_path identifying real native rule or enabled dialogue choice"
       ],
-      "behavioralContract": "Scene reset per invocation; actions delegate to native rules, reject invalid transitions without mutation; unavailable game initialization fails closed. No save writes, independent simulation, or human-preference verdict.",
+      "behavioralContract": "Each fresh native episode delegates attack/guard to the real EncounterRules; advance selects the actual enabled Dialogue Manager Unlock choice only when cleared, and never invokes EncounterRules.advance directly; invalid actions leave the rule state unchanged. No save writes, duplicate simulation, or Human-preference verdict.",
       "acceptance": [
         "Godot editor import followed by actual native scene execution and deterministic repeated episode",
         "Rejected/unknown actions preserve rule snapshots; an action-limited input fails",
-        "A complete real three-room win produces terminal=true, phase=won"
+        "A complete real three-room win produces terminal=true, phase=won",
+        "An advance before clearing the room is rejected; every accepted advance activates the actual native Unlock choice, consistent with the independent Human-narrative acceptance"
       ],
       "evidence": [
         "examples/room-encounter/agent_episode.gd",
@@ -609,17 +611,18 @@
           "exactly one --actions argument with at most 64 actions"
         ],
         "post": [
-          "For every step accepted equals the actual native action return; after equals the real rule snapshot",
+          "Every accepted attack/guard uses native EncounterRules; accepted advance selects the enabled native dialogue Unlock choice; after equals the real rule snapshot",
           "unrecognized or illegal actions retain the prior state"
         ],
         "inv": [
           "EncounterRules remains sole authority of combat/room state",
-          "each invocation starts a fresh run and does not access SaveSlot storage"
+          "each invocation starts a fresh run and does not access SaveSlot storage",
+          "No Agent advance may invoke EncounterRules.advance directly or bypass the Human narrative gate"
         ],
         "eff": [
           "Godot headless scene instantiation, game Signals, stdout JSON and process termination"
         ],
-        "c": "O(number of actions) rule calls and snapshots, max 64; Godot scene startup and native runtime overhead unmeasured",
+        "c": "At most 64 native state calls plus finite Dialogue Manager frame waits; engine initialization overhead not measured",
         "epsilon": "Human preference/experience, visual perception, interactive streaming, hardware audio and other-game transfer UNKNOWN; not a universal formal proof",
         "prov": [
           "examples/room-encounter/README.md",
@@ -629,7 +632,9 @@
         "unfold": [
           "examples/room-encounter/agent_episode.gd",
           "examples/room-encounter/encounter_rules.gd",
-          "examples/room-encounter/agent_episode_acceptance.py"
+          "examples/room-encounter/agent_episode_acceptance.py",
+          "examples/room-encounter/narrative/encounter_dialogue.gd",
+          "examples/room-encounter/narrative/gate.dialogue"
         ]
       }
     }
