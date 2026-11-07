@@ -132,6 +132,13 @@ exclusive. In either case, you may attach a separately selected `--audio`,
 apply a measured CDL saturation operation, and request a minimum timeline
 length. Preserve the resulting **editable DRP** as well as the delivered MP4.
 
+For an OTIO edit, export the timeline through official OpenTimelineIO,
+validate structure/ranges with pinned `otiotool`, then supply both `--otio`
+and the actual `--source-clips-dir` to Resolve when relinking. Use a Python
+interpreter confirmed compatible with the installed Resolve API (3.11.9 on
+the tested Windows workstation). Read back the editable DRP, MP4, receipt
+and independent FFprobe facts, and inspect the actual cut before approval.
+
 For captions, review the source TimedText cues, then use the pinned
 `ttconv`/TTML processing profile to derive SRT or WebVTT. For a Remotion
 animation, edit the existing React/SVG composition and render only the
