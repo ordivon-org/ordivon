@@ -8,6 +8,7 @@ run = """
 set -euo pipefail
 mise run verify:formal:risk-exposure
 mise run verify:formal:passive-general
+mise run verify:formal:unit-r-margin
 uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
@@ -33,6 +34,19 @@ if observed != expected:
     raise SystemExit(f"Paper formal proof mismatch: {observed!r} != {expected!r}")
 print("paper_cash_settlement_r1: 3 universal QF_LIA checks UNSAT; 2 wrong-model witnesses SAT")
 PYZ3
+"""
+
+[tasks."verify:formal:unit-r-margin"]
+description = "Z3 static real-valued margin headroom identity and counterexample (not broker refinement)"
+run = """
+set -euo pipefail
+observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/UnitRMarginBoundR1.smt2)"
+expected="$(printf 'unsat\\nunsat\\nsat')"
+if [ "$observed" != "$expected" ]; then
+  printf 'Unexpected Z3 margin proof result: %s\\n' "$observed" >&2
+  exit 1
+fi
+printf '%s\\n' "$observed"
 """
 
 [tasks."verify:provider"]

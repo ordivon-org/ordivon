@@ -76,7 +76,8 @@
       "quantitative_inventory_validation.py",
       "standards_inventory.py",
       "experiment_protocol.py",
-      "investment_candidate.py"
+      "investment_candidate.py",
+      "unit_r_dca.py"
     ],
     "governance": [
       "policy_decision.py"
