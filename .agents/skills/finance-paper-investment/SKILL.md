@@ -115,6 +115,17 @@ investment advice.
    readback was actually witnessed. If source/receipts are missing, mark the
    unavailable field UNKNOWN and avoid publishing fictitious daily P&L.
 
+## Portfolio mathematical verification (no extra proof framework)
+
+For a new-cash/no-sell allocation request, reuse
+`mise run //domains/capital:verify:formal:contribution` and
+`domains/capital/formal/README.md`. The pinned Z3 proof checks the
+three-symbol abstract largest-remainder model, *not* arbitrary portfolio
+size or the production Python function's refinement. Preserve the native
+`run-strategic-contribution-brief` consumer as a separate observation.
+Report model UNSAT/SAT, source digest and actual consumer result distinctly;
+never upgrade the model evidence to a broker or capital authority.
+
 ## Decision and falsification rules
 
 - **I**: goal, user investment assumptions, explicit capital units, current

@@ -79,6 +79,30 @@ def test_exact_conservation_and_no_sell_under_drift(
     assert result["cashAfterMinor"] >= source["protectedReserveMinor"]
 
 
+
+def test_native_consumer_breaks_equal_deficit_ties_by_asset_id() -> None:
+    """A fourth overweight asset makes the three-way 1-cent tie attainable."""
+    source = request()
+    source.update(
+        cashMinor=3,
+        protectedReserveMinor=2,
+        contributionMinor=1,
+        holdingsMinor={"ASSET_A": 0, "ASSET_B": 0, "ASSET_C": 0, "ASSET_D": 3},
+        targetWeightsBps={
+            "ASSET_A": 2500, "ASSET_B": 2500, "ASSET_C": 2500, "ASSET_D": 2500
+        },
+    )
+    projection = plan_strategic_contribution(source)
+    assert projection["allocationsMinor"] == {
+        "ASSET_A": 1, "ASSET_B": 0, "ASSET_C": 0, "ASSET_D": 0
+    }
+    assert projection["cashAfterMinor"] == 2
+    assert projection["executionAuthorized"] is False
+    observed = run_cli(json.dumps(source))
+    assert observed.returncode == 0, observed.stderr
+    assert json.loads(observed.stdout) == projection
+
+
 def test_deterministic_instrument_order_and_rounding() -> None:
     source = request()
     source["holdingsMinor"] = {"BOND_CORE": 0, "INDEX_CORE": 0}
