@@ -73,7 +73,7 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
   Its discovery methods delegate rather than duplicating catalog rules.
 - **Execution Coordinator** (src/ordivon_gateway/execution_coordinator.py):
   submit, resolve, observe, cancel and artifact forwarding to Runtime or
-  external pull workers. Owns neither Job state nor terminal truth.
+  natural Runtime owners only. Owns neither Job state nor terminal truth.
 - **Owner protocol** (src/ordivon_gateway/owner_protocol.py):
   owner response validation and configuration probes. The canonical execution
   reference grammar stays in execution_refs.py; the service.py compatibility
@@ -82,9 +82,7 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
 Dependencies point from service to capability_catalog, execution_coordinator,
 and execution_refs. Both specialized modules use owner_protocol for response
 validation and reuse the existing execution_refs wire grammar; neither imports
-service. Catalog
-inputs are the owner caller, copied route map, optional external-worker
-projection and timeout. Extraction preserves the public route and JSON
+service. Catalog inputs are the owner caller, copied route map and probe timeout. Extraction preserves the public route and JSON
 contracts. Behavioral tests establish observed compatibility, not proof
 of implementation-level semantic equivalence.
 
@@ -99,7 +97,7 @@ cancellation authority.
 
 B01 is intentionally small. The public schema avoids fast-moving closed enums such as Runtime execution-context values. Provider-owned context data stays opaque at the Gateway boundary; Gateway only lowers the generic envelope into the owner field and leaves semantic validation to the owner.
 
-For `execution.windows`, Gateway 0.4 accepts either the legacy provider-defined string context or a provider-defined JSON object. A string is forwarded as Runtime `windowsAuthority`; an object is forwarded unchanged as Runtime `windowsContext`. Capability projection prefers Runtime `windowsContexts` when the owner advertises them, so identity/privilege composition remains Runtime-owned rather than duplicated in Gateway.
+For `execution.windows`, Gateway accepts either the legacy provider-defined string context or a provider-defined JSON object. A string is forwarded as Runtime `windowsAuthority`; an object is forwarded unchanged as Runtime `windowsContext`. Capability projection prefers Runtime `windowsContexts` when the owner advertises them, so identity/privilege composition remains Runtime-owned rather than duplicated in Gateway.
 
 
 ## Host northbound boundary
@@ -115,28 +113,12 @@ Gateway currently exposes `host.status` as a delegated, read-only Host status/in
 
 Checkpoint payloads are opaque objects at the Gateway boundary. Host validates the current WorkingCheckpoint schema; Gateway does not maintain a second Host checkpoint ontology.
 
-## External pull workers (candidate R3)
+## Retired external pull workers
 
-Gateway can optionally enable the provider-neutral external pull-worker transport by setting
-The legacy ORDIVON_GATEWAY_EXTERNAL_WORKER_DB SQLite transport is retired. Enrolled workers
-contribute their current operator-bounded capabilities to the normal Gateway capability
-projection and execution.submit/get/cancel plus artifact.read remain the northbound API.
-
-Worker HTTP routes live under /v1/workers/* and /v1/operations/*. Runtime requests are
-Ed25519 signed and replay-fenced. Enrollment is disabled unless
-ORDIVON_GATEWAY_WORKER_ENROLLMENT_TOKEN_FILE is configured.
-
-This transport is execution-delivery mechanics only. It does not close Admission Fabric
-AF-S2 capability authorization, does not establish domain EffectAuthority, and does not
-grant shell workers browser authority.
-
-The external worker's SQLite transport must establish a readable persisted
-operation before committing a submit, terminal completion or cancellation.
-If the post-write readback fails, it rolls back the entire transaction,
-including attempt and artifact changes; this never counts as an executed or
-semantically completed effect. Owner-native fault injection and the
-`python -O` negative control live in
-`tests/test_external_worker_precommit_readback.py`.
+The pre-PG external pull worker and its SQLite persistence are deleted.
+Gateway startup rejects `ORDIVON_GATEWAY_EXTERNAL_WORKER_DB`; Runtime owns
+Job/Attempt/Artifact and Host owns Work/Social continuity. No historical
+worker data are imported, migrated or retained by this source retirement.
 
 ## Capability observation lifecycle
 
@@ -160,3 +142,17 @@ Native Windows identity tests require an installed, stopped
 skip these Windows-only checks; those skips are not native Windows qualification.
 
 Windows release dependencies use uv `--link-mode copy`: each release owns its file ACLs independently of the shared package cache. Existing releases are not rewritten by reinstall; repair a qualified stopped release separately and retain its recovery backup.
+
+## Gateway B01 routing verification and evidence
+
+Specification: forwarded requests must preserve exact map key, route capability
+and owner identity. The finite TLA+ model is formal/GatewayRoutingR1.tla
+(safe, reachable, deliberately unsafe configs). The bounded source checker is
+formal/check_routing_conformance.py; it compares finite route-map proposals with
+the actual GatewayService constructor and reference parser.
+
+Evidence classes must remain separate: SPECIFIED, MODEL_VERIFIED,
+BOUNDED_IMPLEMENTATION_CHECKED, SOURCE_CONSUMER_TESTED, INSTALLED_VERIFIED.
+General Python-to-TLA refinement, PDP correctness, service identity and physical
+effects remain UNKNOWN until independently established. See AGENTS.md and
+.agents/skills/gateway-formal-routing/SKILL.md for Human/Agent procedures.

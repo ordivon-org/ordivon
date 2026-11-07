@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from .capability_catalog import CapabilityCatalog
 from .contracts import (
@@ -19,10 +19,6 @@ from .execution_refs import GatewayError
 from .execution_refs import parse_execution_ref as parse_execution_ref
 from .routing import CapabilityRoute, default_routes
 from .upstream import OwnerToolCaller
-
-if TYPE_CHECKING:
-    from .external_worker import ExternalPullWorkerTransport
-
 
 _SOCIAL_WORK_HOST_TOOLS = frozenset(
     {
@@ -65,7 +61,6 @@ class GatewayService:
         caller: OwnerToolCaller,
         routes: dict[str, CapabilityRoute] | None = None,
         *,
-        external_workers: ExternalPullWorkerTransport | None = None,
         projection_timeout_seconds: float = 5.0,
     ) -> None:
         if (
@@ -81,11 +76,8 @@ class GatewayService:
             for name, route in self._routes.items()
         ):
             raise GatewayError("route identity must match its capability")
-        self._external_workers = external_workers
-        self._catalog = CapabilityCatalog(
-            caller, self._routes, external_workers, projection_timeout_seconds
-        )
-        self._execution = ExecutionCoordinator(caller, self._routes, external_workers)
+        self._catalog = CapabilityCatalog(caller, self._routes, projection_timeout_seconds)
+        self._execution = ExecutionCoordinator(caller, self._routes)
 
     def system_describe(self) -> SystemDescription:
         return self._catalog.system_describe()
