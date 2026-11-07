@@ -1,5 +1,10 @@
 # Ordivon Finance — Human 操作指南（R1）
 
+> 多阶段情景树优化与严格非预见性说明：
+> `MULTISTAGE_FINANCE_R1.md`。这个成熟随机规划子问题在所有
+> 价格/融资/效用分布均由调用者或真实提供方给定时才有条件最优解，
+> 未知分布不应被默认猜测，也不意味着允许交易。
+
 > 研究模型最新口径：`ALGEBRAIC_FINANCE_POLICY_R1.md`。每月 `1r`
 > 为标准化外部入金；不能仅从历史最大回撤、任意 40%/35% 数字
 > 推导普适的最优杠杆。早期 `UNIT_R_DCA_LONG_HISTORY_R1.md` 中的
