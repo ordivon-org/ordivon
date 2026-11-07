@@ -50,7 +50,8 @@
       "fix44_projection.py",
       "okx_readonly_client.py",
       "private_reality.py",
-      "okx_demo_execution.py"
+      "okx_demo_execution.py",
+      "postgres_demo_intent.py"
     ],
     "portfolio": [
       "portfolio_counterfactuals.py",

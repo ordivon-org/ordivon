@@ -62,3 +62,31 @@ effect uncertainty and provider identity, not actual orders. An external
 Demo provider receipt, restart/reconciliation and PG balance readback
 are separate evidence requirements. Do not add a second Agent registry,
 order engine, financial ledger, or SQLite archive.
+
+## Native PostgreSQL intent precommit (current executable entrypoint)
+
+The current Trading CLI *enforces* precommit. Use the existing Capital
+PostgreSQL DSN named ORDIVON_CAPITAL_PG_DSN through the authorized Runtime.
+First call the operation STAGE_INTENT (schemaVersion: 1) with parameters
+containing DemoIntent fields: intent_id, account_ref, client_order_id,
+instrument_id, side, size, limit_price, decision_ref,
+risk_evidence_digest and policy_evidence_digest. The last two are actual
+sha256: plus 64 lowercase hex evidence identities, not fabricated values.
+Result includes intentId, digest and STAGED. Operation INSPECT_INTENT
+with top-level intentId reads the durable row without provider secrets.
+
+For PLACE_LIMIT include the same top-level intentId in the JSON request.
+The CLI verifies actual order fields match the frozen PG intent, then
+atomically claims EFFECT_UNKNOWN in PostgreSQL before external HTTP POST.
+On observed provider ACK it records the external ordId. Competing
+processes cannot claim that intent again. CANCEL additionally requires
+the PG-acknowledged venue_order_id and records a separate uncertain
+cancel claim before POST; cancel ACK is not final cancellation.
+
+This reuses the transactional-outbox/unknown-effect principle but
+implements only the minimal Trading consumer. The PG intent is not
+an Accounting settlement, custody or real venue fill.
+
+The real PG tests are in tests/test_postgres_demo_intent.py, run
+with ORDIVON_CAPITAL_PG_TEST_DSN pointing to an isolated disposable
+PostgreSQL cluster. A missing test DSN produces skip, not PG proof.

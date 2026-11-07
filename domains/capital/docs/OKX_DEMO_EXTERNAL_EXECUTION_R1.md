@@ -54,3 +54,24 @@ semantic completion.
 
 Official provider reference: https://www.okx.com/docs-v5/en/
 (Place order, Cancel order, Order details, Transaction details, Demo).
+
+## Durable order-intent acceptance now enforced
+
+Trading source postgres_demo_intent.PostgresDemoIntentStore uses native
+PostgreSQL ordivon_capital.demo_order_intents, separately from Accounting
+transfers. It uses transactional uniqueness, immutable SHA-256 canonical
+content, and single-winner compare-and-set before any external POST.
+
+Native CLI operation STAGE_INTENT (parameters matching DemoIntent fields)
+and INSPECT_INTENT (top-level intentId) establish and read back the
+durable operator state. Writes require the same intentId, exact
+identity/economic match to PG, actual Governance Demo admission and
+native Demo credentials. Claim is EFFECT_UNKNOWN until independently
+resolved; neither a failed Runtime Job nor HTTP timeout proves no effect.
+PLACE_LIMIT ACK records ordId; cancel has its own one-time uncertainty.
+
+Physical PostgreSQL qualification uses a disposable PostgreSQL 18.6,
+including exact replay, uniqueness collision, eight-way concurrent
+single claim, restart/reopen readback and CLI-to-Governance no-write
+consumer. This is not provider Demo transaction proof and does not
+claim settled Accounting balance.

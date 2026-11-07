@@ -934,6 +934,25 @@
         "NautilusTrader OKXExecutionClient latest-stable candidate, requires exact-version owner qualification"
       ],
       "admittedMechanicsOwners": []
+    },
+    {
+      "id": "trading-postgres-demo-intent",
+      "sourcePatterns": [
+        "src/ordivon_capital/trading/postgres_demo_intent.py"
+      ],
+      "ownerClasses": [
+        "IMPLEMENTATION_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "PostgreSQL 18.6 native transactional and uniqueness authority",
+        "OKX authoritative provider account/order/fill reports"
+      ],
+      "localStanding": "NATIVE_PG_DEMO_INTENT_QUALIFIED_PROVIDER_EFFECT_UNVERIFIED",
+      "localResponsibility": "Trading owner precommits one exact immutable Demo order with PostgreSQL compare-and-set effect claim, separate cancel claim, and restart readback. At-most-one claim after durable reservation. No second Accounting Ledger. Provider remains sole order/fill authority and external effects are unverified.",
+      "admittedMechanicsOwners": [
+        "PostgreSQL 18.6 via psycopg3"
+      ]
     }
   ],
   "notInstantiatedDomains": [
