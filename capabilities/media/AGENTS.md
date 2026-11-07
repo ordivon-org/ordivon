@@ -24,6 +24,8 @@ Scope: `capabilities/media/`. Inherit the monorepo `AGENTS.md`; follow this Owne
 | Selected bytes and recovery | `assets.py`, Production Asset/Blob records and Artifact/byte authority; no automatic second store |
 | External distribution | Destination/provider Owner; output approval and physical publication are distinct |
 
+The [consumer-grounded directory audit](docs/directory-audit.md) records current directory responsibilities, retention boundaries, naming decisions, and implementation seams. It is navigation, not a substitute for real source/consumer inspection.
+
 The [per-LEGO capability reference](docs/capability-reference.md) maps current implementations, Human tasks, Agent inputs and evidence boundaries. It is navigation only, never a new registry.
 
 A `tool_definitions()` schema is the wire contract; directory names, doc prose, `README` tables and Skill descriptions are discovery aids, not alternate API authorities. Don't parse arbitrary narrative files to reconstruct existing action contracts.
