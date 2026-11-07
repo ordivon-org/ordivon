@@ -10,6 +10,7 @@ This owner-local Store does not grant Runtime effects or domain completion.
 from __future__ import annotations
 
 import re
+import os
 from types import TracebackType
 
 from anc_canonical import JsonValue, canonical_bytes, canonical_digest, loads_strict
@@ -89,6 +90,21 @@ _EVENT_PAYLOAD_KIND = "ordivon.harness-run-event-payload"
 _CONTRACT_OBJECT_KIND = "harness-run-contract"
 _MAX_EVENT_BATCH = 256
 _SCHEMA_NAME = re.compile(r"[a-z][a-z0-9_]{0,62}\Z")
+
+
+def configured_postgres() -> tuple[str, str]:
+    """The owner default is PG-only. No SQLite state-root or import fallback."""
+    # Preserve the already-published Harness PG CLI authority while retiring
+    # SQLite entirely: the explicit marker is advisory and cannot select SQLite.
+    dsn = (os.environ.get("ORDIVON_HARNESS_PG_DSN")
+           or os.environ.get("HARNESS_PG_DSN", "")).strip()
+    if not dsn:
+        raise RuntimeError("HARNESS_PG_DSN required (or ORDIVON_HARNESS_PG_DSN); SQLite fallback prohibited")
+    schema = (os.environ.get("ORDIVON_HARNESS_PG_SCHEMA")
+              or os.environ.get("HARNESS_PG_SCHEMA", "harness"))
+    if not _SCHEMA_NAME.fullmatch(schema):
+        raise ValueError("HARNESS_PG_SCHEMA must be one plain SQL identifier")
+    return dsn, schema
 
 
 def _projection(harness_run_id: str, row: dict) -> HarnessRunProjection:

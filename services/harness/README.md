@@ -65,12 +65,13 @@ cognition replan/commit, H04 Tool receipt fencing, and supported Run
 pause/reopen/resume. No real PostgreSQL service means **not qualified**, not
 an automatic success.
 
-**Cutover boundary:** the historic file-backed Store and its existing CLI
-callers have not all been retired. The default pre-existing `create/open`
-entrypoints remain legacy SQLite consumers during the transition. The new
-PG entrypoints are the migration target, but this does **not** yet establish
-installed PG-only operation, source-to-install refinement, or safe deletion of
-SQLite code. Delete those paths only after every real consumer is switched
+**PG-only CLI cutover:** The first-party ordivon-harness CLI now
+requires HARNESS_PG_DSN, optionally HARNESS_PG_SCHEMA (default harness).
+Store, independent Run, pause/reopen/resume and inspection commands use
+PostgreSQL. Without PG configuration it fails; --state-root and legacy
+SQLite backup/restore are retired. No old data are migrated. The old
+direct Python API and legacy implementation are not yet fully retired;
+do not confuse CLI cutover with whole-library PG-only completion.
 and PostgreSQL recovery/fault-injection checks remain green.
 
 ## Why Harness exists
