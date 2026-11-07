@@ -1,4 +1,5 @@
 """Real independent Harness CLI on PostgreSQL, without SQLite migration."""
+
 from __future__ import annotations
 
 import contextlib
@@ -26,10 +27,13 @@ class PgOnlyHarnessCli(unittest.TestCase):
     def setUp(self) -> None:
         self.dsn = os.environ["HARNESS_PG_TEST_DSN"]
         self.schema = "hpg_cli_" + uuid.uuid4().hex[:18]
-        self.env = patch.dict(os.environ, {
-            "HARNESS_PG_DSN": self.dsn,
-            "HARNESS_PG_SCHEMA": self.schema,
-        })
+        self.env = patch.dict(
+            os.environ,
+            {
+                "HARNESS_PG_DSN": self.dsn,
+                "HARNESS_PG_SCHEMA": self.schema,
+            },
+        )
         self.env.start()
         with PostgresHarnessStore(self.dsn, schema=self.schema, initialize=True):
             pass
@@ -37,7 +41,9 @@ class PgOnlyHarnessCli(unittest.TestCase):
     def tearDown(self) -> None:
         self.env.stop()
         with psycopg.connect(self.dsn, autocommit=True) as conn:
-            conn.execute(sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(sql.Identifier(self.schema)))
+            conn.execute(
+                sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(sql.Identifier(self.schema))
+            )
 
     @staticmethod
     def invoke(*args: str):
@@ -82,8 +88,13 @@ class PgOnlyHarnessCli(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             contract_path = Path(directory) / "contract.json"
             contract_path.write_text(json.dumps(run.to_dict()), encoding="utf-8")
-            with patch("ordivon_harness.independent_cli._adapter", return_value=ScriptedTurnAdapter((needs_input_result("pg-only-pause"),))):
-                code, result, error = self.invoke("run", str(contract_path), "--message", "new pg run")
+            with patch(
+                "ordivon_harness.independent_cli._adapter",
+                return_value=ScriptedTurnAdapter((needs_input_result("pg-only-pause"),)),
+            ):
+                code, result, error = self.invoke(
+                    "run", str(contract_path), "--message", "new pg run"
+                )
             self.assertEqual(code, 0, error)
             self.assertEqual(result["storageBackend"], "postgresql")
             self.assertEqual(result["run"]["status"], "paused")

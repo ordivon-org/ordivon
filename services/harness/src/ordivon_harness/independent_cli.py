@@ -26,8 +26,10 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
     if args.state_root is not None:
         raise ValueError("--state-root is retired; Harness uses PostgreSQL only")
     dsn, schema = configured_postgres()
+
     def store_factory() -> PostgresHarnessStore:
         return PostgresHarnessStore(dsn, schema=schema)
+
     if command == "doctor":
         with store_factory() as store:
             return {
@@ -84,7 +86,8 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
         if not messages:
             raise ValueError("independent run requires at least one input message")
         handle = HarnessAgentRun.create_postgres(
-            dsn, schema,
+            dsn,
+            schema,
             contract,
             lambda exact_contract: _adapter(exact_contract, args),
             clock_ms=clock_ms,
@@ -105,7 +108,8 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
             return _execution_value(execution, schema=schema, store=store)
     if command == "resume":
         handle = HarnessAgentRun.open_postgres(
-            dsn, schema,
+            dsn,
+            schema,
             args.harness_run_id,
             lambda exact_contract: _adapter(exact_contract, args),
             clock_ms=clock_ms,
@@ -115,7 +119,6 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
         with store_factory() as store:
             return _execution_value(execution, schema=schema, store=store)
     raise ValueError(f"unsupported independent Harness command: {command}")
-
 
 
 def _load_contract(path: Path) -> HarnessRunContract:
@@ -172,8 +175,8 @@ def _execution_value(
         "ok": True,
         "authority": "independent-harness-run",
         "backend": "postgresql",
-                "stateRoot": None,
-                "storageBackend": "postgresql",
+        "stateRoot": None,
+        "storageBackend": "postgresql",
         "schema": schema,
         "run": projection.to_dict(),
         "stopCode": execution.loop_result.stop_code.value,
@@ -234,8 +237,8 @@ def _inspect(
         "ok": True,
         "authority": "independent-harness-run",
         "backend": "postgresql",
-                "stateRoot": None,
-                "storageBackend": "postgresql",
+        "stateRoot": None,
+        "storageBackend": "postgresql",
         "schema": schema,
         "run": run_value,
         "contract": continuity.contract.to_dict(),
@@ -244,8 +247,6 @@ def _inspect(
         "runReceipt": run_receipt,
         "completionProposal": completion_proposal,
     }
-
-
 
 
 __all__ = ["dispatch"]

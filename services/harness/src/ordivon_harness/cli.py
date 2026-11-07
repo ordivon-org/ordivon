@@ -73,6 +73,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = _dispatch_store(args)
         else:
             from .independent_cli import dispatch
+
             result = dispatch(args, clock_ms=_wall_clock_ms)
     except (
         FileNotFoundError,
@@ -98,26 +99,38 @@ def _dispatch_store(args: argparse.Namespace) -> dict[str, object]:
         raise ValueError("--state-root is retired; Harness uses PostgreSQL only")
     dsn, schema = configured_postgres()
     if args.command in {"store-backup", "store-verify-backup", "store-restore"}:
-        raise ValueError("legacy SQLite backup and restore are retired; use native PostgreSQL recovery")
+        raise ValueError(
+            "legacy SQLite backup and restore are retired; use native PostgreSQL recovery"
+        )
     with PostgresHarnessStore(dsn, schema=schema, initialize=args.command == "store-init") as store:
         if args.command in {"store-init", "store-doctor"}:
-            return {"ok": True, "backend": "postgresql",
+            return {
+                "ok": True,
+                "backend": "postgresql",
                 "stateRoot": None,
-                "storageBackend": "postgresql", "schema": schema,
-                    "store": store.doctor(full=True)}
+                "storageBackend": "postgresql",
+                "schema": schema,
+                "store": store.doctor(full=True),
+            }
         if args.command == "store-inspect":
-            return {"ok": True, "backend": "postgresql",
+            return {
+                "ok": True,
+                "backend": "postgresql",
                 "stateRoot": None,
-                "storageBackend": "postgresql", "schema": schema,
-                    "run": store.load_run(args.harness_run_id).to_dict()}
+                "storageBackend": "postgresql",
+                "schema": schema,
+                "run": store.load_run(args.harness_run_id).to_dict(),
+            }
         if args.command == "store-events":
-            events = store.list_run_events(
-                args.harness_run_id, after_sequence=args.after_sequence
-            )
-            return {"ok": True, "backend": "postgresql",
+            events = store.list_run_events(args.harness_run_id, after_sequence=args.after_sequence)
+            return {
+                "ok": True,
+                "backend": "postgresql",
                 "stateRoot": None,
-                "storageBackend": "postgresql", "schema": schema,
-                    "events": [event.to_dict() for event in events]}
+                "storageBackend": "postgresql",
+                "schema": schema,
+                "events": [event.to_dict() for event in events],
+            }
     raise ValueError("unsupported Harness PG store command")
 
 

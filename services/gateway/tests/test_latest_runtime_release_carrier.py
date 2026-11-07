@@ -33,12 +33,16 @@ def test_default_gateway_does_not_require_any_sqlite_engine(
     assert mcp_server._external_workers_from_env() is None
 
 
-@pytest.mark.parametrize("legacy_value", [
-    "/tmp/legacy-worker.db",
-    "postgresql://localhost/ordivon_workers",
-])
+@pytest.mark.parametrize(
+    "legacy_value",
+    [
+        "/tmp/legacy-worker.db",
+        "postgresql://localhost/ordivon_workers",
+    ],
+)
 def test_retired_gateway_sqlite_transport_rejected_without_opening_database(
-    monkeypatch: pytest.MonkeyPatch, legacy_value: str,
+    monkeypatch: pytest.MonkeyPatch,
+    legacy_value: str,
 ) -> None:
     monkeypatch.setenv("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB", legacy_value)
     with pytest.raises(RuntimeError, match="SQLite External Worker was retired"):
