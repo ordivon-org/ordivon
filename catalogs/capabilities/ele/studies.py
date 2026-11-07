@@ -191,6 +191,56 @@ def source_cut(root: Path = ROOT) -> str:
     ).strip()
 
 
+def verify_source_cut(studies: list[Study], root: Path = ROOT) -> None:
+    """Require imported bytes to be the exact committed Git SourceCut.
+
+    The two batched native Git reads prevent dirty or untracked analysis files
+    from being attributed to a commit that never contained those bytes.
+    """
+    paths = [study.source_path for study in studies]
+    objects = subprocess.run(
+        ["git", "cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"],
+        cwd=root,
+        input="".join(f"HEAD:{path}\n" for path in paths),
+        text=True,
+        capture_output=True,
+        check=True,
+    ).stdout.splitlines()
+    working = subprocess.run(
+        ["git", "hash-object", "--stdin-paths"],
+        cwd=root,
+        input="".join(f"{path}\n" for path in paths),
+        text=True,
+        capture_output=True,
+        check=True,
+    ).stdout.splitlines()
+    if len(objects) != len(paths) or len(working) != len(paths):
+        raise ValueError("incomplete Git source identity readback")
+    mismatched = [
+        path
+        for path, obj, hashed in zip(paths, objects, working, strict=True)
+        if len(obj.split()) != 3 or obj.split()[1] != "blob" or obj.split()[0] != hashed
+    ]
+    if mismatched:
+        raise ValueError(f"ELE source differs from Git HEAD: {mismatched[:8]}")
+    status = subprocess.run(
+        [
+            "git",
+            "status",
+            "--porcelain",
+            "--untracked-files=all",
+            "--",
+            *(pattern for _, pattern in SOURCES),
+        ],
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    if status.stdout.strip():
+        raise ValueError("ELE source paths contain uncommitted additions or deletions")
+
+
 def connect() -> Any:
     dsn = os.getenv("ORDIVON_ELE_PG_DSN")
     if not dsn:
@@ -352,6 +402,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "kinds": counts,
         }
     if args.action == "migrate":
+        verify_source_cut(studies)
         return migrate(studies, source_cut())
     with connect() as conn, conn.cursor() as cur:
         if args.action == "verify":

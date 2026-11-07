@@ -87,7 +87,9 @@ embeddings-based semantic retrieval claim.
 
 1. Record the selected source families and exact Git revision. Verify the
    complete corpus (including JSON validity and distinct study IDs) via
-   `plan`.
+   `plan`. Before PG mutation, verify every selected original file's Git Blob
+   against HEAD; reject dirty/uncommitted external analyses rather than assign
+   them a false SourceCut.
 2. Import into PostgreSQL and require `verify` to match **all** current source
    digests, study IDs and section counts. Run one real `search` and `show`.
 3. Have actual Human/Agent consumers use this searchable projection for

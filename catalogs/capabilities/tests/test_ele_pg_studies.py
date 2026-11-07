@@ -75,3 +75,33 @@ def test_source_identity_distinguishes_analysis_and_acceptance(tmp_path: Path) -
         next(study for study in studies if study.study_id == "provider:sample").sha256
         == hashlib.sha256(provider.read_bytes()).hexdigest()
     )
+
+
+def test_source_cut_rejects_uncommitted_research_claim(tmp_path: Path) -> None:
+    import subprocess
+
+    import pytest
+
+    provider = tmp_path / "catalogs/capabilities/providers" / "sample.md"
+    provider.parent.mkdir(parents=True)
+    provider.write_text("# Sample\nVersion A\n", encoding="utf-8")
+    for command in (
+        ["git", "init", "-q"],
+        ["git", "add", "catalogs/capabilities/providers/sample.md"],
+        [
+            "git",
+            "-c",
+            "user.name=Research",
+            "-c",
+            "user.email=research@localhost",
+            "commit",
+            "-q",
+            "-m",
+            "freeze source",
+        ],
+    ):
+        subprocess.run(command, cwd=tmp_path, check=True, capture_output=True)
+    MODULE.verify_source_cut(MODULE.gather(tmp_path), tmp_path)
+    provider.write_text("# Sample\nVersion B not committed\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="differs from Git HEAD"):
+        MODULE.verify_source_cut(MODULE.gather(tmp_path), tmp_path)
