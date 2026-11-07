@@ -73,7 +73,7 @@ Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run
   Its discovery methods delegate rather than duplicating catalog rules.
 - **Execution Coordinator** (src/ordivon_gateway/execution_coordinator.py):
   submit, resolve, observe, cancel and artifact forwarding to Runtime or
-  external pull workers. Owns neither Job state nor terminal truth.
+  natural Runtime owners only. Owns neither Job state nor terminal truth.
 - **Owner protocol** (src/ordivon_gateway/owner_protocol.py):
   owner response validation and configuration probes. The canonical execution
   reference grammar stays in execution_refs.py; the service.py compatibility
