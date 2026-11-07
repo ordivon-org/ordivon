@@ -65,6 +65,22 @@ confirms every declared lane is reachable, and deliberately introduces a
 rogue route to obtain a real SMT counterexample. Z3 is version-pinned in the
 Network-local mise task; this is not a new framework or Skill registry.
 
+Control-plane source independence is a separate systemd dependency property:
+`mise run formal-control-plane` parses the checked-in Runtime, Host and
+Gateway units and all Network v2 service/target/Quadlet source units. Z3
+proves that no coupling path (start, stop or ordering dependency) reaches
+Network v2 from those three management roots. An injected Runtime-to-Network
+edge is rejected by the same proof. The scope explicitly excludes native
+installed units/drop-ins, aliases, network-online.target internals and actual
+process behavior; check those with native systemd and real consumers.
+The three management Unit paths are supplied by the bounded, checked-in
+task-local proof binding `formal/fixtures/control-plane-source-bindings.json`
+and validated against canonical Owner roots in `tools/repo/owners.toml`.
+They are read-only verification inputs, not new execution dependencies or
+source-of-truth registries. No additional dependency seam is registered.
+A manager Unit relocation invalidates the source proof until the binding is
+requalified against that manager's authoritative source.
+
 This proof does NOT cover Chrome mixed/public-web policy, physical Gluetun,
 Unicode/IDN normalization, IP literals, UDP, DNS/DoH, installed/loaded
 sing-box equivalence or real app process capture. Retain mise run behavior,
