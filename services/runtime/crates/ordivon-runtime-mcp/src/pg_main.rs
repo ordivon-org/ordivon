@@ -1,4 +1,8 @@
-//! Separate opt-in loopback endpoint. No installed service or Registry is changed.
+//! PostgreSQL Runtime loopback endpoint with local and explicit remote authentication.
+#[cfg(target_os = "linux")]
+mod access_auth;
+#[cfg(target_os = "linux")]
+mod pg_auth;
 #[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -19,6 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if token.len() < 32 {
         return Err("ORDIVON_PG_TOKEN requires at least 32 characters".into());
     }
+    let auth = pg_auth::PgAuth::from_env(&token)?;
     let config = PgRuntimeConfig {
         dsn: required("ORDIVON_PG_DSN")?,
         schema: required("ORDIVON_PG_SCHEMA")?,
@@ -50,18 +55,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Default::default(),
             StreamableHttpServerConfig::default(),
         );
-    let expected = format!("Bearer {token}");
     let app = axum::Router::new()
         .nest_service("/mcp", service)
         .layer(axum::middleware::from_fn(
             move |request: axum::extract::Request, next: axum::middleware::Next| {
-                let authorized = request
-                    .headers()
-                    .get(axum::http::header::AUTHORIZATION)
-                    .and_then(|v| v.to_str().ok())
-                    .is_some_and(|v| v == expected);
+                let auth = auth.clone();
                 async move {
-                    if authorized {
+                    if auth.authorized(request.headers()).await {
                         next.run(request).await
                     } else {
                         axum::response::Response::builder()

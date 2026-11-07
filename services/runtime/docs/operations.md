@@ -624,3 +624,37 @@ ORDIVON_RUNNER_PATH="$CARGO_TARGET_DIR/debug/ordivon-runtime-runner" \
 ```
 
 A failed namespace setup is terminal `RUNNER_START_FAILED`; contained execution does not retry as trusted-local. `ProtectControlGroups=yes` is intentional: it keeps the host cgroup path readable but immutable so Runner-start identity, cancellation, restart recovery, and recursive residual checks refer to the same supervisor object. The stronger `strict` cgroup namespace is not used because it rewrites the Runner-visible path to `/` and destroys that identity invariant.
+
+
+## PostgreSQL runtime remote authentication
+
+The `ordivon-runtime-pg` loopback listener accepts its existing `ORDIVON_PG_TOKEN`
+for trusted-local calls. Remote access is opt-in: configure
+`ORDIVON_REMOTE_BEARER_TOKEN_FILE` with an absolute, private regular file containing
+an independently rotatable remote token of at least 32 characters. It must differ
+from the local token. Tokens and JWTs are transport credentials; PG retains the
+configured static `ORDIVON_PG_PRINCIPAL` for admitted calls.
+
+To retain Cloudflare Access Managed OAuth ingress, set `ORDIVON_TRUST_CF_ACCESS=true`,
+`ORDIVON_CF_ACCESS_ISSUER` and `ORDIVON_CF_ACCESS_AUDIENCE`. The PG endpoint reuses
+the existing RS256 Access verifier, including issuer, audience, expiry and JWKS
+validation. `ORDIVON_CF_ACCESS_JWKS_URL` is optional. JWKS are loaded lazily, so a
+provider outage denies Access requests without breaking either Bearer path.
+Missing or invalid credentials return HTTP 401 before MCP session admission.
+Restore the operator-owned JWKS direct-egress environment when replacing service
+EnvironmentFile lists; do not silently drop its NO_PROXY configuration.
+
+Cloudflare control-plane API credentials are separate. An account-owned API token
+uses `/accounts/{account_id}/tokens/verify`; a user API token uses
+`/user/tokens/verify`. Neither is a Runtime Bearer or Access service token. Keep
+control-plane tokens outside the Runtime service environment. Browser Integrity
+Check exceptions for machine MCP clients should match only the named Runtime
+hostnames and `/mcp` paths, preserving Access and origin authentication.
+
+Before deployment, verify local Bearer, independent remote Bearer, genuine signed
+Access assertion, rejection of missing/forged authentication, and MCP discovery.
+Use the owner-native `cargo test -p ordivon-runtime-mcp --features postgres-runtime
+--bin ordivon-runtime-pg` for transport and signature checks, and explicitly run
+`--test pg_vertical -- --ignored --test-threads=1` after building the native Runner
+for disposable PostgreSQL lifecycle verification. A transport repair does not
+import historical state or authorize a schema epoch transition.
