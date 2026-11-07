@@ -46,7 +46,11 @@ Forward ==
   /\ forwardedOwner' = routeOwner
   /\ UNCHANGED <<requested, routeCapability, routeOwner>>
 
-Next == Lookup \/ Validate \/ Forward
+Stop ==
+  /\ phase \in {"forwarded", "rejected"}
+  /\ UNCHANGED vars
+
+Next == Lookup \/ Validate \/ Forward \/ Stop
 Spec == Init /\ [][Next]_vars
 
 TypeOK ==

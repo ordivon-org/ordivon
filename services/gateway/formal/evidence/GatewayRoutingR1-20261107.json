@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-routing-finite-verification",
+  "scope": "Gateway B01 finite model and bounded Python source contract",
+  "model": {
+    "path": "services/gateway/formal/GatewayRoutingR1.tla",
+    "sha256": "33000cb49e510cc5f57affe0c24475cb8251f0839fac219082c99fcf6b8fb72b",
+    "traces": {
+      "positive": {
+        "config": "GatewayRoutingR1.cfg",
+        "result": "MODEL_VERIFIED",
+        "statesGenerated": 59,
+        "distinctStates": 41,
+        "statesQueued": 0
+      },
+      "reachability": {
+        "config": "GatewayRoutingR1.reachability.cfg",
+        "expectedViolation": "NeverForward",
+        "result": "COUNTEREXAMPLE_OBSERVED",
+        "exitCode": 12
+      },
+      "unsafe": {
+        "config": "GatewayRoutingR1.unsafe.cfg",
+        "expectedViolation": "ForwardedImpliesExactRoute",
+        "result": "COUNTEREXAMPLE_OBSERVED",
+        "exitCode": 12
+      }
+    }
+  },
+  "tool": {
+    "name": "TLA+ TLC",
+    "version": "2.19",
+    "toolchainRelease": "tlaplus/tlaplus v1.7.4",
+    "jarSha256": "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88",
+    "java": "OpenJDK 17 (Arch Linux WSL)"
+  },
+  "sourceConformance": {
+    "checker": "services/gateway/formal/check_routing_conformance.py",
+    "result": "BOUNDED_IMPLEMENTATION_CHECKED",
+    "routeMaps": 48,
+    "validConfigurations": 9,
+    "rejectedConfigurations": 39,
+    "executionReferenceRoundtrips": 8
+  },
+  "evidenceBoundaries": {
+    "pythonToModelRefinement": "UNKNOWN_BEYOND_BOUNDED_EXPLORATION",
+    "nativeOwnerConsumer": "UNKNOWN",
+    "installedRelease": "UNKNOWN"
+  },
+  "observedAtUnixMs": 1794067869639
+}
