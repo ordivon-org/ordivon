@@ -220,6 +220,8 @@ def requires_core_formal_verification(paths: Iterable[str]) -> bool:
         # Formal SOURCE_FILES readset. Changing it invalidates the native
         # timeout bridge proof regardless of owner-root classification.
         or normalized == "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        or normalized.startswith("capabilities/media/formal/")
+        or normalized == "capabilities/media/src/ordivon_studio/agent_processing.py"
         for path in paths
     )
 
