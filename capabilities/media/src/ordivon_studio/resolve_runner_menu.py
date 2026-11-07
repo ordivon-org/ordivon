@@ -9,6 +9,7 @@ inside Resolve and writes one structured result.
 import datetime
 import hashlib
 import json
+import math
 import os
 import re
 from pathlib import Path
@@ -85,9 +86,16 @@ def _validate_settings(settings):
     frame_rate = settings.get("frameRate")
     width = settings.get("width")
     height = settings.get("height")
-    if not isinstance(frame_rate, (int, float)) or frame_rate <= 0:
-        raise ValueError("settings.frameRate must be positive")
-    if not isinstance(width, int) or width <= 0 or not isinstance(height, int) or height <= 0:
+    # Resolve consumes these numbers, not Python bool aliases or IEEE-754
+    # nonfinite values (both can otherwise pass comparison-only checks).
+    if (
+        isinstance(frame_rate, bool)
+        or not isinstance(frame_rate, (int, float))
+        or not math.isfinite(frame_rate)
+        or frame_rate <= 0
+    ):
+        raise ValueError("settings.frameRate must be a finite positive number")
+    if type(width) is not int or width <= 0 or type(height) is not int or height <= 0:
         raise ValueError("settings width and height must be positive integers")
     return settings
 

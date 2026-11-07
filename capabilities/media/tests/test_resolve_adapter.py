@@ -576,6 +576,35 @@ def _build_test_assembly_conform_operation(
 
 
 class ResolveAdapterTests(unittest.TestCase):
+    def test_resolve_settings_reject_nonfinite_rates_and_boolean_aliases_before_effects(self) -> None:
+        operation = build_smoke_operation(
+            operation_id="resolve-smoke-invalid-settings",
+            media_path="/tmp/resolve-not-executed.mp4",
+            media_digest="sha256:" + "0" * 64,
+        )
+        self.assertIs(validate_operation(operation), operation)
+        settings = operation["parameters"]["settings"]
+        for field, value in (
+            ("frameRate", float("nan")),
+            ("frameRate", float("inf")),
+            ("frameRate", float("-inf")),
+            ("frameRate", True),
+            ("width", True),
+            ("height", False),
+        ):
+            with self.subTest(field=field, value=str(value)):
+                original = settings[field]
+                settings[field] = value
+                try:
+                    with self.assertRaisesRegex(ValueError, "settings"):
+                        validate_operation(operation)
+                    resolve = FakeResolve()
+                    with self.assertRaisesRegex(ValueError, "settings"):
+                        execute_operation(operation, resolve, "test-double")
+                    self.assertEqual(list(resolve.project_manager.projects), ["Previous Project"])
+                finally:
+                    settings[field] = original
+
     def test_probe_operation_is_minimal_and_valid(self) -> None:
         operation = build_probe_operation("resolve-probe-test-001")
         generated = build_probe_operation()
