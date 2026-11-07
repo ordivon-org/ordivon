@@ -1225,10 +1225,27 @@ class BrowserlessAutomationService:
             "census": census,
         }
 
+    @staticmethod
+    def _postgres_seam_dsn(variable: str) -> str | None:
+        """Bind the existing PG-only identity/effect cutover to each real consumer."""
+        dsn = os.environ.get(variable)
+        if (
+            os.environ.get("ORDIVON_BROWSERLESS_PG_IDENTITIES_EFFECTS_REQUIRED") == "1"
+            and not dsn
+        ):
+            raise BrowserlessAutomationConflict(
+                f"{variable} is required in PG identity/effect mode; SQLite fallback prohibited"
+            )
+        return dsn
+
     def _pg_conversation_binding_owner(self):
         """One authoritative PG binding port for both reads and writes."""
-        dsn = os.environ.get("ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN")
+        dsn = self._postgres_seam_dsn("ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN")
         if not dsn:
+            if os.environ.get("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP") == "1":
+                raise BrowserlessAutomationConflict(
+                    "fresh PostgreSQL conversation binding needs PG DSN; SQLite fallback prohibited"
+                )
             return None
         try:
             from postgres_conversation_binding import PostgresConversationBindingStore
@@ -1435,7 +1452,7 @@ class BrowserlessAutomationService:
         }
 
     def _turn_effect_row(self, turn_request_id: str) -> dict | None:
-        pg_dsn = os.environ.get("ORDIVON_TURN_EFFECT_POSTGRES_DSN")
+        pg_dsn = self._postgres_seam_dsn("ORDIVON_TURN_EFFECT_POSTGRES_DSN")
         if pg_dsn:
             try:
                 from postgres_turn_effects import PostgresTurnEffects
@@ -1594,7 +1611,7 @@ class BrowserlessAutomationService:
         prompt = _continuation_prompt(prompt)
         prompt_digest = "sha256:" + hashlib.sha256(prompt.encode("utf-8")).hexdigest()
         try:
-            pg_dsn = os.environ.get("ORDIVON_WAKE_TURN_POSTGRES_DSN")
+            pg_dsn = self._postgres_seam_dsn("ORDIVON_WAKE_TURN_POSTGRES_DSN")
             fresh_pg = os.environ.get("ORDIVON_WAKE_TURN_FRESH_BOOTSTRAP") == "1"
             if fresh_pg and not pg_dsn:
                 raise WakeTurnConflict(
