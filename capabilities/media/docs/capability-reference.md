@@ -54,3 +54,17 @@ Four built-in Processing families use mature FFmpeg/FFprobe, ASWF OpenTimelineIO
 - [FFprobe documentation](https://ffmpeg.org/ffprobe.html): native observable stream and container facts.
 - [OpenTimelineIO documentation](https://opentimelineio.readthedocs.io/en/latest/): editorial interchange and references to external AV, not video/audio embedding.
 - [Current R2.1 LEGO graph](../planning/lego-plan-r1.json): contracts and evidence standing; source-level table rows alone are not refinement proofs.
+
+## Native Color / loaded media: current observed operation
+
+The existing `scripts/resolve-native-produce.py` now accepts complete
+RGB ASC CDL slope/offset/power plus saturation and records all four
+effective native parameters in `gradeCDL`. The same script
+uses official Resolve source-item readback to produce
+`nativeTimelineMediaReadback` with file digests. This
+composes **existing** official Resolve and Asset/Blob operations;
+it is not a separate color module, new registry or invented media
+decoder. For a human walkthrough see [Resolve](resolve-native.md)
+and [Human](human-guide.md); for Agent preconditions and evidence
+see [Agent](../AGENTS.md) and the current
+`media-studio-navigation` Skill.
