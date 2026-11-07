@@ -17,7 +17,7 @@ from typing import Any
 from .cognitive_circuit_r1 import CircuitContractError, _load_json
 from .verification_obligation_r1 import select_impacted_obligations
 
-OWNERS = frozenset({"runtime.linux", "runtime.windows", "external.pull"})
+OWNERS = frozenset({"runtime.linux", "runtime.windows"})
 DELIVERY = frozenset({"unknown", "in_progress", "committed"})
 
 

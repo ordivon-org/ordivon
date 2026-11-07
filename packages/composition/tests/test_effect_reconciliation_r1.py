@@ -14,7 +14,7 @@ from ordivon_composition.effect_reconciliation_r1 import (
     qualify_execution_effect_frontier,
 )
 
-OP = "ordivon-exec:v1:external.pull:operation-one"
+OP = "ordivon-exec:v1:runtime.windows:operation-one"
 EFFECT = f"effect:{OP}"
 
 
@@ -29,7 +29,7 @@ def gateway_observation(
         "schema_version": 1,
         "kind": "ordivon.gateway-execution-observation",
         "operation_ref": OP,
-        "owner_id": "external.pull",
+        "owner_id": "runtime.windows",
         "native_id": "operation-one",
         "capability": "muse.shell.echo",
         "state": state,
@@ -152,6 +152,19 @@ def test_undeclared_dynamic_effect_does_not_get_false_zero_impact():
     result = qualify(indexed=False)
     assert result["selection"]["unindexedChangeRefs"] == [EFFECT]
     assert set(standings(result).values()) == {"UNKNOWN"}
+
+
+def test_retired_gateway_external_pull_owner_refused_even_with_matching_reference():
+    """Composition must not revive a removed Gateway execution source."""
+    obs = gateway_observation()
+    obs["owner_id"] = "external.pull"
+    obs["operation_ref"] = "ordivon-exec:v1:external.pull:operation-one"
+    with pytest.raises(CircuitContractError, match="Gateway observation identity mismatch"):
+        qualify_execution_effect_frontier(
+            observation=obs,
+            expected_operation_ref=obs["operation_ref"],
+            proof_graph=graph(),
+        )
 
 
 @pytest.mark.parametrize(
