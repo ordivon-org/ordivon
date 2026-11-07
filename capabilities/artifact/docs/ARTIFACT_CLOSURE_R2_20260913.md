@@ -1,5 +1,8 @@
 # Artifact Closure R2 — 2026-09-13
 
+> **Historical closure evidence dated 2026-09-13, not current installed state.** Re-observe provider binaries, source locks, registry and Runtime/Workstation deployment before making current availability claims. See `../README.md`.
+
+
 Standing: **ACCEPTED_BOUNDED**
 
 ## Decision

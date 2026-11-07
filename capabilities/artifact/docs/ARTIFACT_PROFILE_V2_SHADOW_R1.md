@@ -1,5 +1,8 @@
 # Artifact Profile v2 — Shadow R1
 
+> **Historical Profile-v2 shadow-model experiment, not a production-cutover statement.** The test counts and profile-mapping numbers below apply to the earlier source cut. Read `../README.md` and current schemas/bindings to determine today's state.
+
+
 ## Standing
 
 `SHADOW_SCHEMA_PROVEN`
