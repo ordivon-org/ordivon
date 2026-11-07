@@ -699,7 +699,8 @@
     {
       "id": "portfolio-algebraic-crra-scenario-optimization",
       "sourcePatterns": [
-        "src/ordivon_capital/portfolio/algebraic_policy.py"
+        "src/ordivon_capital/portfolio/algebraic_policy.py",
+        "src/ordivon_capital/portfolio/multistage_policy.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"
@@ -710,7 +711,7 @@
         "Broker/provider owns initial and maintenance margin, cash yield and actual borrowing quote"
       ],
       "localStanding": "CONDITIONAL_READONLY_ALGEBRAIC_SCENARIO_BINDING_NOT_BROKER_OR_PROSPECTIVE",
-      "localResponsibility": "Map caller-supplied utility, price-scenario distribution, contract financing and brokerage rules onto established SciPy numerical convex optimization; retain only domain algebra and evidence distinctions, not an Ordivon generic solver or second execution platform. No arbitrarily fixed drawdown, leverage or risk floor. Does not solve the full intertemporal Bellman recursion.",
+      "localResponsibility": "Map caller-supplied utility, price-scenario distribution, contract financing and brokerage rules onto established SciPy numerical convex optimization; retain only domain algebra and evidence distinctions, not an Ordivon generic solver or second execution platform. No arbitrarily fixed drawdown, leverage or risk floor. Solves a caller-defined finite-scenario monthly 1r multistage terminal-CRRA subproblem with shared information-history decisions; this does not solve an unknown infinite-state real-world Bellman recursion or authenticate scenario probabilities. Uses an independent LP tangent upper bound to measure numerical concave optimization gap. No live trading or Paper booking.",
       "admittedMechanicsOwners": [
         "NumPy 2.5.3 numerical arrays",
         "SciPy 1.18.1 HiGHS LP feasible point and SLSQP numerical optimizer",
@@ -720,7 +721,8 @@
         "Cvxportfolio / Boyd multi-period convex trading only after actual predictive distribution and multi-period consumers are qualified"
       ],
       "localDependencies": [
-        "Caller-supplied normalized pretrade equity of 1r, distribution probabilities, positive CRRA gamma and asset maintenance contracts"
+        "Caller-supplied normalized pretrade equity of 1r, distribution probabilities, positive CRRA gamma and asset maintenance contracts",
+        "Caller-supplied finite market information tree, observable state branches, period-wise financing/cost conditions, monthly contributions of exactly 1r and terminal wealth utility"
       ]
     },
     {

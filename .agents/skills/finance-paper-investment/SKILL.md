@@ -40,6 +40,13 @@ with bounded read-only portfolio operator
 percentage drawdown, multiplier, financing APR or default risk preference.
 Human owns utility/horizon, market/broker authorities own probabilities/
 borrowing/margin, and missing inputs remain UNKNOWN.
+`solve_multistage` is the bounded finite-scenario monthly-1r
+nonanticipative optimizer under `domains/capital/docs/MULTISTAGE_FINANCE_R1.md`.
+It requires the FULL externally supplied observable information tree and
+conditional probabilities. It separately reports feasible contract residuals,
+terminal wealth and an independent LP supporting-hyperplane bound on
+numerical utility optimality; neither proves a trusted market forecast.
+When circumstances do not support that tree, keep output UNKNOWN.
 `solve_one_period` is a conditional one-period CRRA solution;
 intertemporal monthly cashflows still require genuine Bellman/MPC evidence.
 Never route research output into live or Paper execution without an

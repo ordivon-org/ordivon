@@ -57,7 +57,8 @@
       "paper_investment.py",
       "passive_benchmark.py",
       "paper_vintage.py",
-      "algebraic_policy.py"
+      "algebraic_policy.py",
+      "multistage_policy.py"
     ],
     "risk": [
       "portfolio_risk.py",

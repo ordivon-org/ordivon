@@ -10,6 +10,7 @@ mise run verify:formal:risk-exposure
 mise run verify:formal:passive-general
 mise run verify:formal:unit-r-margin
 mise run verify:formal:algebraic-capital
+mise run verify:formal:multistage-one-r
 uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
@@ -58,6 +59,19 @@ observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital
 expected="$(printf 'unsat\\nunsat\\nunsat\\nunsat\\nunsat\\nsat')"
 if [ "$observed" != "$expected" ]; then
   printf 'Unexpected Z3 algebraic capital proof result: %s\\n' "$observed" >&2
+  exit 1
+fi
+printf '%s\\n' "$observed"
+"""
+
+[tasks."verify:formal:multistage-one-r"]
+description = "Z3 two-period 1r self-financing, nonanticipative shared root and pre-contribution margin falsifier"
+run = """
+set -euo pipefail
+observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/MultistageOneRCashflowR1.smt2)"
+expected="$(printf 'unsat\\nunsat\\nunsat\\nunsat\\nunsat\\nsat')"
+if [ "$observed" != "$expected" ]; then
+  printf 'Unexpected multi-stage 1r Z3 result: %s\\n' "$observed" >&2
   exit 1
 fi
 printf '%s\\n' "$observed"
