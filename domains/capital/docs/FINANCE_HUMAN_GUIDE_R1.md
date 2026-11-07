@@ -84,6 +84,11 @@ scripts/run-capability-python \
 $1,214.44400448，相差 −$22.33728448。这个差值是描述性的，
 没有数据真实性认证、统计显著性或实际投资建议的含义。
 
+如要检查这类比较的底层**数学转移契约**，在 `domains/capital` 运行
+`mise run verify:formal:passive-benchmark`。证明范围及具体的 Human/Agent
+证据使用规则见 `formal/README.md`：五个 `unsat` 与一个 `sat` 证明
+两期精确实数模型的性质，并不等于真实 Python/市场收益已被证明。
+
 使用真实数据时必须单独证明资产价格来源、公司行为调整、各期
 现金流、费用和可获得时间；不能将回测样例转为可信的样本外收益。
 

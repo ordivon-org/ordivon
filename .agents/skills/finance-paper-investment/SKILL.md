@@ -73,6 +73,26 @@ Known fixture: `allocationsMinor.BOND_CORE=10000`,
 `riskStanding=NOT_EVALUATED`. Never report the example as source-qualified
 investment advice.
 
+## Passive benchmark transition proof and real consumer
+
+The existing `portfolio.passive_benchmark` remains the sole descriptive
+matched-cashflow benchmark replay. Check its source-adjacent, two-period
+mathematical model using
+`mise run //domains/capital:verify:formal:passive-benchmark` and read
+`domains/capital/formal/README.md` for exact proof scope. The model's five
+UNSAT/one SAT results are **not** a Python `Decimal` refinement proof. The
+real consumer is still the native `scripts/run-capability-python -m
+ordivon_capital.portfolio.passive_benchmark --input ...`; keep real economic
+returns, fees, cashflow provenance, and hypothetical replay claims separate.
+Do not call terminal wealth difference a GIPS time-weighted or money-weighted
+return. Do not add another Finance reporting engine. Real consumer falsification
+identified that default Decimal precision could silently swallow external
+cash additions. The native Python benchmark now **rejects unrepresentable
+cash additions** while retaining context-rounded market-return arithmetic
+for compatibility with `portfolio.paper_investment`. Treat arithmetic-domain
+REJECTED standing as unavailable, never as lost customer money. The two-period
+SMT Real model does not prove complete Python Decimal refinement.
+
 ## Paper replay admission
 
 1. Freeze the source provider, rights, `availableAt`, exact source revision,

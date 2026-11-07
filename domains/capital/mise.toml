@@ -50,3 +50,16 @@ set -euo pipefail
 cd ../../tools/formal
 mise exec -- lean ../../domains/capital/formal/PortfolioApportionmentGeneral.lean
 """
+
+[tasks."verify:formal:passive-benchmark"]
+description = "Native Z3 proof of Portfolio cashflow-matched benchmark transitions"
+run = """
+set -euo pipefail
+observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/PortfolioPassiveBenchmarkR1.smt2)"
+expected="$(printf 'unsat\nunsat\nunsat\nunsat\nunsat\nsat')"
+if [ "$observed" != "$expected" ]; then
+  printf 'Unexpected model result (unknown/timeout/SAT obligation is not verified): %s\n' "$observed" >&2
+  exit 1
+fi
+printf '%s\n' "$observed"
+"""
