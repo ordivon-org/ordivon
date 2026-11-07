@@ -84,3 +84,10 @@ Its existing process environment and actual outbound traffic require a
 separate supported app-startup and real-request witness. The request sample
 is not a universal non-bypass proof, and Linux-side consumer:codex:verify
 alone cannot prove Windows process use.
+
+
+Windows PowerShell 5.1 maps normal native Codex progress on stderr to PowerShell
+ErrorRecords. The launcher keeps strict errors while selecting the executable,
+then uses native-process-compatible Continue handling during the Codex
+invocation and propagates the upstream process exit code. Do not interpret
+any stderr output alone as a Codex failure or as a successful request.

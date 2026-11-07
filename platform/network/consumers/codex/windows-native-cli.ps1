@@ -41,5 +41,9 @@ $env:all_proxy = $proxy
 $env:NO_PROXY = 'localhost,127.0.0.1,::1'
 $env:no_proxy = $env:NO_PROXY
 
+# Native Codex emits normal progress on stderr. Windows PowerShell 5.1
+# converts native stderr into ErrorRecords; Stop would terminate a healthy CLI.
+# The original Codex process exit code, not stderr text, remains authoritative.
+$ErrorActionPreference = 'Continue'
 & $selected[0] @CodexArguments
 exit $LASTEXITCODE
