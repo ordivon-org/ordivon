@@ -10,8 +10,8 @@ import unittest
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop
 from ordivon_harness.core_contracts import HarnessPrivacyPolicy
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
-from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.store import HarnessEventAdmission
 from ordivon_harness.working_view import (
@@ -43,7 +43,7 @@ def _private_content_contract(suffix: str):
 class WorkingViewPrototypeTests(unittest.TestCase):
     @staticmethod
     def source(
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: EventSourcedRunContinuity,
         *,
         ref: str,
         generation: str,
@@ -64,7 +64,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
             run_contract = contract("pc11-working-metadata-only")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 spec = HarnessWorkingSetSpec.initial("working-attempt:metadata-only")
@@ -78,7 +78,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
             run_contract = _private_content_contract("pc12a-working-tool-content")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 source = HarnessWorkingViewSource(
@@ -121,7 +121,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
             run_contract = _private_content_contract("pc11-working-set")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 source_a, stored_a = self.source(
@@ -198,7 +198,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
             run_contract = _private_content_contract("pc11-working-doctor")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 initial = HarnessWorkingSetSpec.initial("working-attempt:doctor")
@@ -253,7 +253,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
             clock = FixedClock()
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 source_a, stored_a = self.source(
@@ -286,7 +286,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
             def write(spec: HarnessWorkingSetSpec) -> str:
                 try:
                     with SQLiteHarnessStore(root) as store:
-                        local = SQLiteHarnessRunContinuityStore.open(
+                        local = EventSourcedRunContinuity.open(
                             store, run_contract.harness_run_id, clock_ms=FixedClock()
                         )
                         barrier.wait()
@@ -299,7 +299,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
                 outcomes = list(pool.map(write, (candidate_a, candidate_b)))
             self.assertEqual(outcomes.count("created"), 1, outcomes)
             with SQLiteHarnessStore(root) as store:
-                continuity = SQLiteHarnessRunContinuityStore.open(
+                continuity = EventSourcedRunContinuity.open(
                     store, run_contract.harness_run_id, clock_ms=FixedClock()
                 )
                 head = continuity.load_current_working_set()
@@ -319,11 +319,11 @@ class WorkingViewPrototypeTests(unittest.TestCase):
             run_contract = contract("pc11-provider-metadata-only")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 adapter = ScriptedTurnAdapter((completed_result("pc11-provider-metadata-only"),))
-                bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+                bridge = HarnessAgentBridge(run_contract, continuity)
                 loop = OrdivonAgentLoop(
                     adapter, bridge, budget=budget(), clock_ms=clock, monotonic_ms=clock
                 )
@@ -360,11 +360,11 @@ class WorkingViewPrototypeTests(unittest.TestCase):
             run_contract = _private_content_contract("pc11-provider-v3")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 adapter = ScriptedTurnAdapter((completed_result("pc11-provider-v3"),))
-                bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+                bridge = HarnessAgentBridge(run_contract, continuity)
                 loop = OrdivonAgentLoop(
                     adapter,
                     bridge,
@@ -412,7 +412,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
 
             # Fresh process/store object reconstruction does not need caller transcript.
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store, run_contract.harness_run_id, clock_ms=clock
                 )
                 recovered = reopened.load_current_provider_call()

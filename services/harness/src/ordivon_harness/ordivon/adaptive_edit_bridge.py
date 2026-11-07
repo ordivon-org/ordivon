@@ -31,7 +31,7 @@ from ..protocol import HarnessRecoveryConsequence
 from ..runtime_port import HarnessRuntimeClientError, HarnessRuntimeToolRejected
 from .model import AgentToolCall, AgentToolDefinition
 from .runtime_lowering import lower_runtime_tool
-from .sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from .runtime_bridge import HarnessRuntimeBridge
 from .tool_errors import ToolBridgeError, ToolBridgeErrorKind
 
 _EDIT_SOURCE_MAX_BYTES = 4_194_304
@@ -157,7 +157,7 @@ ADAPTIVE_EDIT_TOOL_GRANT_TEMPLATE_DIGEST = canonical_digest(
 )
 
 
-class AdaptiveEditRuntimeBridge(SQLiteHarnessRuntimeBridge):
+class AdaptiveEditRuntimeBridge(HarnessRuntimeBridge):
     """Explicit mutable bridge for digest-fenced Agent edits.
 
     Runtime remains source-of-truth for current bytes and physical Patch outcome.

@@ -175,7 +175,7 @@
       "sharedRefs": [],
       "evidence": [
         "src/ordivon_harness/ordivon/runtime_lowering.py",
-        "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+        "src/ordivon_harness/ordivon/runtime_bridge.py",
         "src/ordivon_harness/ordivon/adaptive_edit_bridge.py",
         "tests/test_p0_execution_binding.py"
       ],
@@ -281,7 +281,7 @@
       "from": "H07",
       "to": "H04",
       "type": "DEPENDENCY",
-      "label": "Harness effect bridge consumes admitted Runtime lowering via concrete sqlite_runtime_bridge; source dependency rechecks on change, not physical-effect proof"
+      "label": "Harness effect bridge consumes admitted Runtime lowering via concrete runtime_bridge; source dependency rechecks on change, not physical-effect proof"
     },
     {
       "from": "H06",

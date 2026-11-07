@@ -72,7 +72,54 @@ PostgreSQL. Without PG configuration it fails; --state-root and legacy
 SQLite backup/restore are retired. No old data are migrated. The old
 direct Python API and legacy implementation are not yet fully retired;
 do not confuse CLI cutover with whole-library PG-only completion.
-and PostgreSQL recovery/fault-injection checks remain green.
+## Backend-neutral Continuity and Bridge LEGO
+
+The reusable continuity and bridge implementations are backend-neutral:
+`ordivon.run_continuity.EventSourcedRunContinuity`,
+`ordivon.agent_bridge.HarnessAgentBridge` and
+`ordivon.runtime_bridge.HarnessRuntimeBridge`. They consume the
+`HarnessStore` behavioral port, not a SQLite connection. The first-party
+CLI continues to bind that port through `PostgresHarnessStore` only.
+Neither Bridge owns Runtime, Host, Provider or domain truth.
+
+**Recursive LEGO R2.1 (source representation):**
+
+- `I`: exact `HarnessRunContract`, `HarnessStore` port, clock and optional
+  caller-bound Runtime binding / Tool grant
+- `O`: Provider, Tool and Run snapshot records, dispatch fences and receipts
+  or an explicit UNKNOWN recovery requirement
+- `S`: event-sourced Run revisions, leases, claim/dispatch/commit state,
+  Tool step and WorkingSet projections
+- `pre`: matching Run/Contract digest, qualified Store, current lease and
+  revision, and exact Tool authorization
+- `post`: exact event/receipt identity; response loss never permits blind
+  redispatch or unqualified domain success
+- `inv`: scoped Provider Claim model invariants on dispatch, acknowledgement,
+  leases and privacy, with deliberately reachable counterexample probes
+- `eff`: existing Store transactions and caller-supplied Runtime/Provider
+  effects; no new registry or authority
+- `c`: UNKNOWN for general execution cost without real measurement
+- `epsilon`: UNKNOWN until Python/SQL refinement and deployed execution
+  are independently qualified
+- `prov`: `formal/ProviderClaimR1.tla`, native tests, and exact Git SourceCut
+- `unfold`: specification -> TLC bounded model -> implementation/Store
+  readset -> real PostgreSQL and Runtime/Provider consumers
+
+**Human:** use `ordivon-harness doctor` with `HARNESS_PG_DSN` and an
+explicit Harness schema. Use the existing `mise run formal:verify` and
+`HARNESS_PG_TEST_DSN=<dedicated-test-DSN> mise run pg:verify` workflows.
+Never infer live deployment from a local model or a mocked Store.
+
+**Agent:** read the exact SourceCut and Contract, bind the current three
+modules through the established Store port, then verify the affected
+property with Owner-native formal and real-consumer evidence. Report
+`MODEL_VERIFIED`, `IMPLEMENTATION_REFINEMENT_UNKNOWN`,
+`PG_CONSUMER_VERIFIED/UNKNOWN` and `INSTALLED_VERIFIED/UNKNOWN` separately.
+Do not create aliases for deleted names or reinterpret UNKNOWN as FALSE.
+
+The direct `SQLiteHarnessStore` Python API remains a distinct legacy
+consumer; its removal requires PostgreSQL-native and real recovery
+qualification. Historical evidence preserves original file names.
 
 ## Why Harness exists
 

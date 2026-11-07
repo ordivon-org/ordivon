@@ -11,7 +11,7 @@ from anc_canonical import canonical_bytes, canonical_digest
 from ordivon_harness.ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapter
 from ordivon_harness.ordivon.loop import RunBudget
 from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRequestMismatch
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.ordivon.model import (
     AgentCallerIngressRef,
@@ -174,7 +174,7 @@ class R1SingleCapabilityTruthTests(unittest.TestCase):
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(value)
             clock = MutableClock()
-            continuity = SQLiteHarnessRunContinuityStore(store, value, clock_ms=clock)
+            continuity = EventSourcedRunContinuity(store, value, clock_ms=clock)
             continuity.bind_state(provider_state())
             base = AgentTurnRequest(
                 harness_run_id=value.harness_run_id,

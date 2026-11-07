@@ -11,7 +11,7 @@ from ordivon_harness.ordivon.loop import RunBudget
 def test_bridge_factory_accepts_existing_owner_neutral_continuity_port() -> None:
     continuity = signature(HarnessToolBridgeFactory.build).parameters["continuity"]
     assert continuity.annotation == "HarnessRunContinuityStore"
-    assert continuity.annotation != "SQLiteHarnessRunContinuityStore"
+    assert continuity.annotation != "EventSourcedRunContinuity"
 
 
 def test_observation_gate_contract_exact_boundary_and_priority() -> None:

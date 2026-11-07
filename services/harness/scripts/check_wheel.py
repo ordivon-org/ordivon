@@ -86,9 +86,9 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/tool_program_recovery.py",
     "ordivon_harness/ordivon/loop.py",
     "ordivon_harness/ordivon/model.py",
-    "ordivon_harness/ordivon/sqlite_agent_bridge.py",
-    "ordivon_harness/ordivon/sqlite_run_store.py",
-    "ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+    "ordivon_harness/ordivon/agent_bridge.py",
+    "ordivon_harness/ordivon/run_continuity.py",
+    "ordivon_harness/ordivon/runtime_bridge.py",
 }
 FORBIDDEN_MEMBERS = {
     "ordivon_harness/recovery.py",

@@ -10,7 +10,7 @@ from .core_contracts import HarnessRunContract
 from .execution_binding import HarnessExecutionBinding
 from .ordivon.model import AgentToolCall, AgentToolDefinition
 from .ordivon.run_store_port import HarnessRunContinuityStore
-from .ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from .ordivon.runtime_bridge import HarnessRuntimeBridge
 from .ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
 from .plugin_mcp import HarnessMcpClient
 from .protocol import HarnessRecoveryConsequence
@@ -466,7 +466,7 @@ class GatewayMcpRuntimeAdapter:
         }
 
 
-class PluginGatewayExecutionBridge(SQLiteHarnessRuntimeBridge):
+class PluginGatewayExecutionBridge(HarnessRuntimeBridge):
     recovery_consequence = HarnessRecoveryConsequence.PROCESS_OR_EXTERNAL_EFFECT_POSSIBLE
 
     def __init__(

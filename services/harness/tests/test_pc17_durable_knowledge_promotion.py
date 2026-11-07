@@ -8,8 +8,8 @@ import unittest
 from ordivon_harness.core_contracts import HarnessPrivacyPolicy
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunStopCode
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.working_view import (
     AgentWorkingSetTransitionProposal,
@@ -107,7 +107,7 @@ class PromotionDecisionAdapter(ScriptedTurnAdapter):
 class DurableKnowledgePromotionTests(unittest.TestCase):
     @staticmethod
     def seed(
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: EventSourcedRunContinuity,
         *,
         suffix: str,
     ) -> tuple[HarnessWorkingViewSource, HarnessWorkingSetPin]:
@@ -147,7 +147,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
             )
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store,
                 run_contract,
                 clock_ms=clock,
@@ -212,7 +212,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as second_store:
-                second = SQLiteHarnessRunContinuityStore.open(
+                second = EventSourcedRunContinuity.open(
                     second_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -232,7 +232,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
                         ),
                     )
                 )
-                second_bridge = SQLiteHarnessRuntimeBridge(
+                second_bridge = HarnessRuntimeBridge(
                     run_contract,
                     second,
                     execution_binding(run_contract, second),
@@ -262,7 +262,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
                 retained_c = second.load_current_snapshot()
 
             with SQLiteHarnessStore(root) as third_store:
-                third = SQLiteHarnessRunContinuityStore.open(
+                third = EventSourcedRunContinuity.open(
                     third_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -276,7 +276,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
                         ),
                     )
                 )
-                third_bridge = SQLiteHarnessRuntimeBridge(
+                third_bridge = HarnessRuntimeBridge(
                     run_contract,
                     third,
                     execution_binding(run_contract, third),
@@ -320,7 +320,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
             )
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store,
                 run_contract,
                 clock_ms=clock,
@@ -374,7 +374,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -388,7 +388,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
                         ),
                     )
                 )
-                replay_bridge = SQLiteHarnessRuntimeBridge(
+                replay_bridge = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),
@@ -437,7 +437,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
             )
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store,
                 run_contract,
                 clock_ms=clock,
@@ -493,7 +493,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -516,7 +516,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
                         ),
                     )
                 )
-                second_bridge = SQLiteHarnessRuntimeBridge(
+                second_bridge = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),
@@ -570,7 +570,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
             )
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store,
                     run_contract,
                     clock_ms=clock,

@@ -11,11 +11,11 @@ from .core_contracts import HarnessRunContract
 from .independent_result import IndependentRunRecorder, StoredIndependentRunResult
 from .ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapter
 from .ordivon.model import AgentTurnAdapter
-from .ordivon.sqlite_agent_bridge import (
+from .ordivon.agent_bridge import (
     NO_TOOL_AGENT_GRANT_DIGEST,
     NO_TOOL_AGENT_SURFACE_DIGEST,
 )
-from .ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from .ordivon.run_continuity import EventSourcedRunContinuity
 from .postgres_store import PostgresHarnessStore, configured_postgres
 from .standalone import HarnessAgentExecution
 from .store import HarnessRunStatus
@@ -198,7 +198,7 @@ def _inspect(
     clock_ms,
 ) -> dict[str, object]:
     projection = store.load_run(harness_run_id)
-    continuity = SQLiteHarnessRunContinuityStore.open(
+    continuity = EventSourcedRunContinuity.open(
         store,
         harness_run_id,
         clock_ms=clock_ms,

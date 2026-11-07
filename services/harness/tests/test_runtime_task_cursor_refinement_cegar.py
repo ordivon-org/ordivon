@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from ordivon_harness.ordivon.sqlite_runtime_bridge import (
+from ordivon_harness.ordivon.runtime_bridge import (
     _find_runtime_jobs_by_client_request,
 )
 from ordivon_harness.runtime_port import HarnessRuntimeClientError

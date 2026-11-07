@@ -20,8 +20,8 @@ from ordivon_harness.independent_result import (
 from ordivon_harness.ordivon.loop import RunStopCode
 from ordivon_harness.ordivon.events import HarnessRunEvent, HarnessTrace
 from ordivon_harness.ordivon.model import AgentRunConclusion, ScriptedTurnAdapter
-from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.standalone import StandaloneHarnessRunner
 from ordivon_harness.store import HarnessRunStatus
@@ -41,7 +41,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
         run_contract = contract(suffix) if run_contract is None else run_contract
         store = SQLiteHarnessStore.initialize(root)
         store.create_run(run_contract)
-        continuity = SQLiteHarnessRunContinuityStore(
+        continuity = EventSourcedRunContinuity(
             store,
             run_contract,
             clock_ms=clock,
@@ -100,11 +100,11 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                 clock = FixedClock()
                 try:
                     with SQLiteHarnessStore(root) as store:
-                        continuity = SQLiteHarnessRunContinuityStore.open(
+                        continuity = EventSourcedRunContinuity.open(
                             store, run_contract.harness_run_id, clock_ms=clock
                         )
                         adapter = CountingAdapter(worker)
-                        bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+                        bridge = HarnessAgentBridge(run_contract, continuity)
                         runner = self.runner(
                             run_contract, continuity, adapter, bridge, clock
                         )
@@ -146,7 +146,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
             suffix = "claim-to-dispatch-no-rebind"
             run_contract, store, continuity = self.initialize(root, suffix, clock)
             adapter = ScriptedTurnAdapter((completed_result(suffix),))
-            bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            bridge = HarnessAgentBridge(run_contract, continuity)
             runner = self.runner(run_contract, continuity, adapter, bridge, clock)
 
             original_begin = bridge.begin_provider_call
@@ -207,11 +207,11 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
             )
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store, run_contract, clock_ms=clock
             )
             adapter = ScriptedTurnAdapter((completed_result("structured-binding"),))
-            bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            bridge = HarnessAgentBridge(run_contract, continuity)
             with self.assertRaisesRegex(ValueError, "structured completion differs"):
                 StandaloneHarnessRunner(
                     run_contract,
@@ -255,7 +255,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                 run_contract,
                 continuity,
                 ScriptedTurnAdapter((candidate,)),
-                SQLiteHarnessAgentBridge(run_contract, continuity),
+                HarnessAgentBridge(run_contract, continuity),
                 clock,
             )
             execution = runner.run(({"role": "user", "content": "plan"},))
@@ -297,7 +297,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                 root, "standalone", clock, run_contract
             )
             adapter = ScriptedTurnAdapter((completed_result("standalone"),))
-            bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            bridge = HarnessAgentBridge(run_contract, continuity)
             runner = self.runner(run_contract, continuity, adapter, bridge, clock)
 
             execution = runner.run(
@@ -325,7 +325,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -357,7 +357,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                 root, "standalone-resume", clock, run_contract
             )
             first_adapter = ScriptedTurnAdapter((needs_input_result("standalone-pause"),))
-            first_bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            first_bridge = HarnessAgentBridge(run_contract, continuity)
             first = self.runner(
                 run_contract,
                 continuity,
@@ -374,14 +374,14 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
                 )
                 retained = reopened.load_current_snapshot()
                 adapter = ScriptedTurnAdapter((completed_result("standalone-resume"),))
-                bridge = SQLiteHarnessAgentBridge(
+                bridge = HarnessAgentBridge(
                     run_contract,
                     reopened,
                     provider_source=reopened.snapshot_provider_source(retained),

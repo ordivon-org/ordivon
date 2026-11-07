@@ -51,7 +51,7 @@ class _ToolObservationView(Protocol):
     def to_dict(self) -> dict[str, JsonValue]: ...
 
 
-class SQLiteHarnessAgentBridge:
+class HarnessAgentBridge:
     """Caller-neutral Agent Loop bridge for an independent no-Tool Run.
 
     It delegates durable Provider and Snapshot semantics to
@@ -77,11 +77,11 @@ class SQLiteHarnessAgentBridge:
             raise ValueError("Harness Run binding differs from its Contract")
         if contract.tool_catalog_digest != expected_tool_catalog_digest:
             raise ValueError(
-                "SQLiteHarnessAgentBridge no-Tool or expected Tool surface differs"
+                "HarnessAgentBridge no-Tool or expected Tool surface differs"
             )
         if contract.tool_grant_digest != expected_tool_grant_digest:
             raise ValueError(
-                "SQLiteHarnessAgentBridge no-Tool or expected Tool Grant differs"
+                "HarnessAgentBridge no-Tool or expected Tool Grant differs"
             )
         self.contract = contract
         self.run_store = run_store

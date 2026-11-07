@@ -26,8 +26,8 @@ from ordivon_harness.ordivon.provider_state_guards import (
     _require_provider_outcome_state,
     _require_provider_safe_retry_state,
 )
-from ordivon_harness.ordivon.sqlite_run_store import (
-    SQLiteHarnessRunContinuityStore,
+from ordivon_harness.ordivon.run_continuity import (
+    EventSourcedRunContinuity,
 )
 from ordivon_harness.protocol import (
     HarnessProviderCallFailureReceipt,
@@ -205,11 +205,11 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
         self,
         root: Path,
         clock: MutableClock,
-    ) -> tuple[SQLiteHarnessStore, SQLiteHarnessRunContinuityStore]:
+    ) -> tuple[SQLiteHarnessStore, EventSourcedRunContinuity]:
         store = SQLiteHarnessStore.initialize(root)
         value = contract()
         store.create_run(value)
-        provider = SQLiteHarnessRunContinuityStore(
+        provider = EventSourcedRunContinuity(
             store,
             value,
             clock_ms=clock,
@@ -218,7 +218,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
         return store, provider
 
     @staticmethod
-    def claim(provider: SQLiteHarnessRunContinuityStore, *, holder: str = "holder:first"):
+    def claim(provider: EventSourcedRunContinuity, *, holder: str = "holder:first"):
         source = provider.assignment_provider_source()
         return provider.claim_provider_call(
             source=source,
@@ -259,7 +259,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened:
-                fresh = SQLiteHarnessRunContinuityStore(
+                fresh = EventSourcedRunContinuity(
                     reopened,
                     contract(),
                     clock_ms=clock,
@@ -291,7 +291,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             clock = MutableClock()
             store, first = self.prepare(root, clock)
             claimed = self.claim(first)
-            second = SQLiteHarnessRunContinuityStore(
+            second = EventSourcedRunContinuity(
                 store,
                 contract(),
                 clock_ms=clock,
@@ -313,7 +313,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             store, first = self.prepare(root, clock)
             claimed = self.claim(first)
             first.mark_provider_call_dispatching(claimed)
-            fresh = SQLiteHarnessRunContinuityStore(
+            fresh = EventSourcedRunContinuity(
                 store,
                 contract(),
                 clock_ms=clock,
@@ -330,7 +330,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             store, winner = self.prepare(root, clock)
             claimed = self.claim(winner)
             dispatching = winner.mark_provider_call_dispatching(claimed)
-            contender = SQLiteHarnessRunContinuityStore(
+            contender = EventSourcedRunContinuity(
                 store,
                 contract(),
                 clock_ms=clock,
@@ -375,7 +375,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
 
             def commit_outcome():
                 with SQLiteHarnessStore(root) as outcome_store:
-                    outcome = SQLiteHarnessRunContinuityStore(
+                    outcome = EventSourcedRunContinuity(
                         outcome_store,
                         contract(),
                         clock_ms=clock,
@@ -452,7 +452,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             unknown = provider.fail_provider_call(dispatching, failure=ambiguous)
             self.assertEqual(unknown.record.status, HarnessProviderCallStatus.UNKNOWN)
             self.assertTrue(provider.provider_outcome_requires_resume)
-            fresh = SQLiteHarnessRunContinuityStore(
+            fresh = EventSourcedRunContinuity(
                 store,
                 contract(),
                 clock_ms=clock,
@@ -470,7 +470,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             store, winner = self.prepare(root, clock)
             claimed = self.claim(winner)
             dispatching = winner.mark_provider_call_dispatching(claimed)
-            loser = SQLiteHarnessRunContinuityStore(
+            loser = EventSourcedRunContinuity(
                 store,
                 contract(),
                 clock_ms=clock,

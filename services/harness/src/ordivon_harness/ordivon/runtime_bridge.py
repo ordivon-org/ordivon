@@ -27,7 +27,7 @@ from .control import ExecutionControl
 from .model import AgentToolCall, AgentToolDefinition
 from .run_store_port import HarnessRunContinuityStore
 from .runtime_lowering import RuntimeToolGrantView, lower_runtime_tool
-from .sqlite_agent_bridge import SQLiteHarnessAgentBridge
+from .agent_bridge import HarnessAgentBridge
 from .tool_errors import ToolBridgeError, ToolBridgeErrorKind
 
 SEARCH_WORKSPACE_DEFINITION = AgentToolDefinition(
@@ -244,7 +244,7 @@ def _runtime_delivery_state(payload: dict[str, JsonValue]) -> str:
     return "terminal"
 
 
-class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
+class HarnessRuntimeBridge(HarnessAgentBridge):
     """Independent Provider + Runtime bridge with explicit recovery consequence.
 
     The default surface remains observation-only. Domain-owned subclasses may strengthen

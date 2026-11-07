@@ -21,7 +21,7 @@ from ordivon_harness.ordivon.model import (
     AgentTurnResult,
     ScriptedTurnAdapter,
 )
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.plugin_gateway_effect import (
     GatewayMcpRuntimeAdapter,
     PluginGatewayExecutionBridgeFactory,
@@ -277,7 +277,7 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
 
         def probe(arguments) -> None:
             with SQLiteHarnessStore(root) as store:
-                continuity = SQLiteHarnessRunContinuityStore.open(store, "harness-run:plugin-h2")
+                continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
                 step = continuity.load_current_tool_step()
                 assert step.receipt is None
                 assert step.fence is not None
@@ -374,7 +374,7 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch() -> 
         assert client.calls[1][1]["requestId"] == client.calls[0][1]["requestId"]
 
         with SQLiteHarnessStore(root) as store:
-            continuity = SQLiteHarnessRunContinuityStore.open(store, "harness-run:plugin-h2")
+            continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
             step = continuity.load_current_tool_step()
             assert step.receipt is not None
             assert step.receipt.reconciled is True
@@ -548,7 +548,7 @@ def test_gateway_effect_bridge_propagates_cooperative_control_cancellation() -> 
         assert result.loop_result.stop_code.value == "cancel_unknown"
 
         with SQLiteHarnessStore(root) as store:
-            continuity = SQLiteHarnessRunContinuityStore.open(store, "harness-run:plugin-h2")
+            continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
             step = continuity.load_current_tool_step()
             assert step.receipt is not None
             assert step.receipt.status.value == "cancel-requested"

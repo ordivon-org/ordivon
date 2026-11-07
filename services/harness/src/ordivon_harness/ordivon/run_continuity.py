@@ -126,7 +126,7 @@ class _Heads:
     working_set: HarnessRunEventRecord | None
 
 
-class SQLiteHarnessRunContinuityStore(_WorkingSetReadQueries):
+class EventSourcedRunContinuity(_WorkingSetReadQueries):
     """Independent event-sourced Provider/Tool/Snapshot continuity for one Run."""
 
     @classmethod
@@ -136,7 +136,7 @@ class SQLiteHarnessRunContinuityStore(_WorkingSetReadQueries):
         harness_run_id: str,
         *,
         clock_ms: Callable[[], int] | None = None,
-    ) -> SQLiteHarnessRunContinuityStore:
+    ) -> EventSourcedRunContinuity:
         projection = store.load_run(harness_run_id)
         raw = store.get_object(
             projection.contract_object_digest,

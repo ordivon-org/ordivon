@@ -33,11 +33,11 @@ from .independent_result import IndependentCompletionProposal, IndependentHarnes
 from .ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapter
 from .ordivon.loop import RunBudget, RunStopCode
 from .ordivon.model import AgentTurnAdapter, AgentTurnRequest, AgentTurnResult
-from .ordivon.sqlite_agent_bridge import (
+from .ordivon.agent_bridge import (
     NO_TOOL_AGENT_GRANT_DIGEST,
     NO_TOOL_AGENT_SURFACE_DIGEST,
 )
-from .ordivon.sqlite_runtime_bridge import (
+from .ordivon.runtime_bridge import (
     INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
     INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
 )

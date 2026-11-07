@@ -27,11 +27,11 @@ from ordivon_harness.ordivon.model import (
     AgentToolCall,
     ScriptedTurnAdapter,
 )
-from ordivon_harness.ordivon.sqlite_agent_bridge import (
+from ordivon_harness.ordivon.agent_bridge import (
     NO_TOOL_AGENT_GRANT_DIGEST,
     NO_TOOL_AGENT_SURFACE_DIGEST,
 )
-from ordivon_harness.ordivon.sqlite_runtime_bridge import (
+from ordivon_harness.ordivon.runtime_bridge import (
     INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
     INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
 )
