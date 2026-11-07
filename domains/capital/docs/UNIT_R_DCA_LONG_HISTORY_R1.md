@@ -52,6 +52,36 @@ w_CPPI 复用 Grossman-Zhou / Black-Perold 的峰值保护及 CPPI 思想，实�
 在完整可用历史中 QQQ（2000-03-27 至 2002-10-09）观察到最大回撤约82.96%；SMH（2000-06-21 至 2008-11-20）约85.92%。保留历史极端记忆通常显著减少仓位，也可能导致长期财富终值下降。Crisis Memory 不等于 CPPI，有限调仓下最大实现回撤仍可能突破名义预算；不能称作严格回撤保证。
 实际历史维持保证金检测为40%，额外运行45%敏感性；融资情景利率 3%、7%、12%。这些利率不是已独立验证的历史券商真实融资价格。
 
+## 月度调仓：Research 内的独立计算单元
+
+回放调用 `research.unit_r_dca.solve_turnover_adjusted_exposure`，不再在
+月度循环中嵌入两套交易费用算法。假设按实际调仓名义金额的
+`turnover_cost` 收费，费用是投资损失，不是外部入金。
+
+给定调仓前权益 `E`、旧名义敞口 `G0`、目标敞口/净权益倍数 `w`、
+交易费率 `f`，新名义敞口 `G` 与新权益 `P` 必须满足：
+
+    P = E-f*abs(G-G0)
+    G = w*P
+    增持 (w*E>=G0): G=w*(E+f*G0)/(1+w*f)
+    减持 (w*E< G0): G=w*(E-f*G0)/(1-w*f)
+
+如果 `E<=f*G0`，全额平仓成本已耗尽权益，计算器明确拒绝该
+交易输入。模拟现金和借款按 `G,P` 分割，仍满足 `G+cash-debt=P`。
+
+`formal/UnitRRebalanceConservationR1.smt2` 使用已有的 Z3 QF_NRA
+验证买卖两分支固定点、分支方向、正权益、初始保证金、现金/负债
+恒等式：7 UNSAT 与 2 SAT。`formal/UnitRMarginBoundR1.smt2`
+已有的静态保证金模型继续保持 2 UNSAT 与 1 SAT，二者均进入
+Finance 原生 `mise run verify`，UNKNOWN/超时不能算作通过。
+
+**Human：**运行 `mise run verify:formal:unit-r-margin`、
+`mise run verify:formal:unit-r-rebalance` 与完整 `mise run verify`。
+**Agent：**通过现有 `finance-experiment-review` Skill，明确分开
+精确实数数学模型、Python float 实现证据、独立行情来源、历史回放
+与券商执行权限。这里不包含完整的 float 形式化精化证明、交易滑点、
+前瞻损失上界或真实券商强平行为。
+
 ## Human 与 Agent 分离指导
 
 Human：采用相同日K、同样的每月1r现金流、相同融资/费用假设比较 IWM/SPY/QQQ/SMH/DIA/RSP。重点查看2006年、2007年高位入场、2017年和2021年四个历史起点。优先比较最大回撤、XIRR与保证金事件，再比较期末r，而不是简单把杠杆加满。
@@ -63,9 +93,10 @@ Agent：每次读取完整数据哈希、起止交易日和调整价规则；验
     cd domains/capital
     PYTHONPATH=src uv run --no-sync python -m pytest -q tests/test_unit_r_dca.py
     cd ../../tools/formal
-    mise exec -- z3 -smt2 ../../domains/capital/formal/UnitRMarginBoundR1.smt2
+    mise run verify:formal:unit-r-margin
+    mise run verify:formal:unit-r-rebalance
 
-Z3预期返回依次为 UNSAT / UNSAT / SAT。
+第一个模型预期 2 UNSAT / 1 SAT，第二个模型为 7 UNSAT / 2 SAT。
 
 真实历史只读消费示例：
 

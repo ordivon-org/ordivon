@@ -159,3 +159,21 @@ inv=read-only and no capital grant; eff=empty; c=O(n) processing;
 epsilon=Decimal-context arithmetic, financial-source error UNKNOWN;
 prov=byte digests verified, publisher/freeze claims NOT VERIFIED;
 unfold=same evaluator and CLI plus focused v2 falsification consumer.
+
+## Precision of research policy commitments (2026-11-07)
+
+Policy `configDigest` binds the **exact admitted decimal numbers** for
+`strategyAssetWeight` and `benchmarkExpenseFraction`, not values rounded to
+the default Python `Decimal` context. The canonical representation strips
+only base-ten trailing zeros from the exact coefficient and updates the exponent.
+Thus `0.5` and `0.50` are the same numeric policy, while two distinct
+40-digit fractions remain distinct precommitments. The original source
+implementation used context-rounded `Decimal.normalize()` and could map
+different values to the same digest; historical receipts must be interpreted
+using their pinned source revision, not silently replayed under a newer one.
+
+The source-native Research contract's high-precision counterexample and real
+`review_replayed_candidate` admission are separate implementation witnesses.
+They do not prove authenticity of the original freeze timestamp, prospective
+market source or a profitable investment edge. No new Research owner or Skill
+registry is introduced.

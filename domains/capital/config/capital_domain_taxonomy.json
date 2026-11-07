@@ -57,6 +57,7 @@
       "paper_investment.py",
       "passive_benchmark.py",
       "paper_vintage.py",
+      "paper_close_performance.py",
       "algebraic_policy.py"
     ],
     "risk": [

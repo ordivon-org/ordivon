@@ -97,6 +97,20 @@ uv run python scripts/check_wheel.py "$wheel"
 
 # Exact local-node qualification. This is intentionally not a GitHub merge-group
 # prerequisite because it consumes materialized machine/provider authority.
+# Actual PostgreSQL integration is an owner-native, opt-in node qualification.
+# A DSN is required: the portable merge queue must never fabricate PG liveness.
+# The test suite creates only bounded, isolated temporary schemas and removes
+# those schemas afterwards; Host/Runtime databases and schemas are untouched.
+[tasks."pg:verify"]
+run = """
+set -euo pipefail
+if [[ -z "${HARNESS_PG_TEST_DSN:-}" ]]; then
+  echo 'HARNESS_PG_TEST_DSN is required for real PostgreSQL qualification' >&2
+  exit 2
+fi
+uv run --locked python -m pytest -q tests/test_postgres_harness_store.py
+"""
+
 [tasks.node-qualification]
 run = """
 set -euo pipefail

@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .ordivon.deepseek import DEFAULT_DEEPSEEK_SECRET_PATH
 from .sqlite_store import SQLiteHarnessStore
+from .postgres_store import PostgresHarnessStore
 from .store_ops import backup_harness_store, restore_harness_backup, verify_harness_backup
 
 
@@ -95,6 +96,23 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _dispatch_store(args: argparse.Namespace) -> dict[str, object]:
+    from .independent_cli import _postgres_selection
+    pg = _postgres_selection()
+    if pg is not None:
+        if args.command == "store-init":
+            with PostgresHarnessStore(pg[0], schema=pg[1], initialize=True) as store:
+                return {"ok": True, "backend": "postgresql", "stateRoot": None, "store": store.doctor(full=True)}
+        if args.command in {"store-backup", "store-verify-backup", "store-restore"}:
+            raise ValueError("PostgreSQL CLI uses native PG backup/restore, not SQLite Store archives")
+        with PostgresHarnessStore(pg[0], schema=pg[1]) as store:
+            if args.command == "store-doctor":
+                return {"ok": True, "backend": "postgresql", "stateRoot": None, "store": store.doctor(full=True)}
+            if args.command == "store-inspect":
+                return {"ok": True, "backend": "postgresql", "stateRoot": None, "run": store.load_run(args.harness_run_id).to_dict()}
+            if args.command == "store-events":
+                events = store.list_run_events(args.harness_run_id, after_sequence=args.after_sequence)
+                return {"ok": True, "backend": "postgresql", "stateRoot": None, "events": [event.to_dict() for event in events]}
+        raise ValueError("unsupported PostgreSQL Harness Store command")
     if args.command == "store-verify-backup":
         return {"ok": True, "backup": verify_harness_backup(args.backup.expanduser())}
     if args.command == "store-restore":

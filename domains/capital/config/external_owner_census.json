@@ -675,7 +675,8 @@
     {
       "id": "portfolio-cashflow-matched-benchmark-replay",
       "sourcePatterns": [
-        "src/ordivon_capital/portfolio/passive_benchmark.py"
+        "src/ordivon_capital/portfolio/passive_benchmark.py",
+        "src/ordivon_capital/portfolio/paper_close_performance.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"
@@ -685,7 +686,7 @@
         "Asset custodian/broker and Capital Accounting own actual balances and cash flows"
       ],
       "localStanding": "RETAINED_BOUNDED_READONLY_CASHFLOW_COMPARISON",
-      "localResponsibility": "Compare caller-supplied strategy and passive benchmark terminal wealth under identical contributed capital and exact cost timing. No source truth, broker effects, generic optimizer, performance forecasting, time-weighted return, tax engine, or ledger implementation.",
+      "localResponsibility": "Compare caller-supplied strategy and passive benchmark terminal wealth under identical contributed capital and exact cost timing. No source truth, broker effects, generic optimizer, performance forecasting, time-weighted return, tax engine, or ledger implementation. Project existing Accounting close NAV and external contributions into a start-funded period summary, reusing admitted Markets snapshots and native Risk review; do not create a second valuation ledger or confuse cash inflows with investment profit.",
       "admittedMechanicsOwners": [
         "Python 3.15.1 standard-library Decimal for exact currency/fractional arithmetic"
       ],

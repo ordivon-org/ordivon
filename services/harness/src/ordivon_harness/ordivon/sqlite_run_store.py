@@ -30,14 +30,14 @@ from ..working_view import (
     compile_working_view,
     compile_working_view_with_refs,
 )
-from ..sqlite_store import (
+from ..store_errors import (
     HarnessEventConflict,
     HarnessLeaseConflict,
     HarnessLeaseHeld,
     HarnessRevisionConflict,
-    SQLiteHarnessStore,
 )
 from ..store import (
+    HarnessStore,
     HarnessEventAdmission,
     HarnessEventWrite,
     HarnessRunEventRecord,
@@ -132,7 +132,7 @@ class SQLiteHarnessRunContinuityStore(_WorkingSetReadQueries):
     @classmethod
     def open(
         cls,
-        store: SQLiteHarnessStore,
+        store: HarnessStore,
         harness_run_id: str,
         *,
         clock_ms: Callable[[], int] | None = None,
@@ -148,7 +148,7 @@ class SQLiteHarnessRunContinuityStore(_WorkingSetReadQueries):
 
     def __init__(
         self,
-        store: SQLiteHarnessStore,
+        store: HarnessStore,
         contract: HarnessRunContract,
         *,
         clock_ms: Callable[[], int] | None = None,

@@ -25,6 +25,7 @@ from .ordivon.sqlite_runtime_bridge import (
 )
 from .runtime_port import HarnessRuntimeClient
 from .sqlite_store import SQLiteHarnessStore
+from .postgres_store import PostgresHarnessStore
 from .standalone import (
     HarnessAgentExecution,
     HarnessCognitionProfile,
@@ -32,7 +33,7 @@ from .standalone import (
     HarnessCognitionSeedSource,
     StandaloneHarnessRunner,
 )
-from .store import HarnessRunStatus
+from .store import HarnessRunStatus, HarnessStore
 from .ordivon.loop import CancellationToken, RunBudget
 from .ordivon.tool_bridge import ToolBridge
 
@@ -66,7 +67,7 @@ class HarnessAgentRun:
     cognition, rank sources, or admit caller/domain completion truth.
     """
 
-    state_root: Path
+    state_root: Path | None
     contract: HarnessRunContract
     adapter: AgentTurnAdapter
     clock_ms: Callable[[], int]
@@ -76,6 +77,7 @@ class HarnessAgentRun:
     runtime: HarnessRuntimeClient | None = None
     tool_bridge: ToolBridge | None = None
     tool_bridge_factory: HarnessToolBridgeFactory | None = None
+    store_factory: Callable[[], HarnessStore] | None = None
 
     @classmethod
     def create(
@@ -173,9 +175,94 @@ class HarnessAgentRun:
         )
 
     @classmethod
+    def create_postgres(
+        cls,
+        dsn: str,
+        schema: str,
+        contract: HarnessRunContract,
+        adapter_factory: HarnessAgentAdapterFactory,
+        *,
+        cognition_profile: HarnessCognitionProfile | None = None,
+        execution_binding: HarnessExecutionBinding | None = None,
+        runtime: HarnessRuntimeClient | None = None,
+        tool_bridge: ToolBridge | None = None,
+        tool_bridge_factory: HarnessToolBridgeFactory | None = None,
+        clock_ms: Callable[[], int] | None = None,
+        monotonic_ms: Callable[[], int] | None = None,
+    ) -> HarnessAgentRun:
+        """Create a real PG Run; the Harness schema must already be provisioned.
+
+        No SQLite state root, implicit schema creation, or dual writes.
+        """
+        cls._validate_structure(
+            contract, cognition_profile=cognition_profile,
+            execution_binding=execution_binding, runtime=runtime,
+            tool_bridge=tool_bridge, tool_bridge_factory=tool_bridge_factory,
+        )
+        adapter = cls._resolve_adapter(contract, adapter_factory)
+        def factory() -> PostgresHarnessStore:
+            return PostgresHarnessStore(dsn, schema=schema)
+        with factory() as store:
+            try:
+                projection = store.load_run(contract.harness_run_id)
+            except KeyError:
+                store.create_run(contract)
+            else:
+                if (projection.contract_digest != contract.digest
+                    or projection.caller_id != contract.caller_id
+                    or projection.caller_run_ref != contract.caller_run_ref):
+                    raise HarnessAgentRunCompositionError(
+                        "existing Harness PG Run differs from supplied Contract"
+                    )
+        return cls._bind(
+            None, contract, adapter, cognition_profile=cognition_profile,
+            execution_binding=execution_binding, runtime=runtime,
+            tool_bridge=tool_bridge, tool_bridge_factory=tool_bridge_factory,
+            clock_ms=clock_ms, monotonic_ms=monotonic_ms,
+            store_factory=factory,
+        )
+
+    @classmethod
+    def open_postgres(
+        cls,
+        dsn: str,
+        schema: str,
+        harness_run_id: str,
+        adapter_factory: HarnessAgentAdapterFactory,
+        *,
+        cognition_profile: HarnessCognitionProfile | None = None,
+        execution_binding: HarnessExecutionBinding | None = None,
+        runtime: HarnessRuntimeClient | None = None,
+        tool_bridge: ToolBridge | None = None,
+        tool_bridge_factory: HarnessToolBridgeFactory | None = None,
+        clock_ms: Callable[[], int] | None = None,
+        monotonic_ms: Callable[[], int] | None = None,
+    ) -> HarnessAgentRun:
+        """Reopen a Run from authoritative PG Journal after process loss."""
+        def factory() -> PostgresHarnessStore:
+            return PostgresHarnessStore(dsn, schema=schema)
+        with factory() as store:
+            contract = SQLiteHarnessRunContinuityStore.open(
+                store, harness_run_id, clock_ms=clock_ms
+            ).contract
+        cls._validate_structure(
+            contract, cognition_profile=cognition_profile,
+            execution_binding=execution_binding, runtime=runtime,
+            tool_bridge=tool_bridge, tool_bridge_factory=tool_bridge_factory,
+        )
+        adapter = cls._resolve_adapter(contract, adapter_factory)
+        return cls._bind(
+            None, contract, adapter, cognition_profile=cognition_profile,
+            execution_binding=execution_binding, runtime=runtime,
+            tool_bridge=tool_bridge, tool_bridge_factory=tool_bridge_factory,
+            clock_ms=clock_ms, monotonic_ms=monotonic_ms,
+            store_factory=factory,
+        )
+
+    @classmethod
     def _bind(
         cls,
-        state_root: Path,
+        state_root: Path | None,
         contract: HarnessRunContract,
         adapter: AgentTurnAdapter,
         *,
@@ -186,6 +273,7 @@ class HarnessAgentRun:
         tool_bridge_factory: HarnessToolBridgeFactory | None,
         clock_ms: Callable[[], int] | None,
         monotonic_ms: Callable[[], int] | None,
+        store_factory: Callable[[], HarnessStore] | None = None,
     ) -> HarnessAgentRun:
         wall_clock = clock_ms or (lambda: time.time_ns() // 1_000_000)
         mono_clock = monotonic_ms or (lambda: time.monotonic_ns() // 1_000_000)
@@ -200,6 +288,7 @@ class HarnessAgentRun:
             runtime=runtime,
             tool_bridge=tool_bridge,
             tool_bridge_factory=tool_bridge_factory,
+            store_factory=store_factory,
         )
         return value
 
@@ -208,7 +297,7 @@ class HarnessAgentRun:
         return self.contract.harness_run_id
 
     def status(self) -> dict[str, JsonValue]:
-        with SQLiteHarnessStore(self.state_root) as store:
+        with self._open_store() as store:
             return store.load_run(self.harness_run_id).to_dict()
 
     def explain(self) -> dict[str, JsonValue]:
@@ -322,7 +411,7 @@ class HarnessAgentRun:
         cancellation: CancellationToken | None = None,
         cognition_seed: HarnessCognitionSeed | None = None,
     ) -> HarnessAgentExecution:
-        with SQLiteHarnessStore(self.state_root) as store:
+        with self._open_store() as store:
             projection = store.load_run(self.harness_run_id)
             if projection.status is HarnessRunStatus.PAUSED:
                 raise RuntimeError("paused Harness Agent Run requires resume")
@@ -338,7 +427,7 @@ class HarnessAgentRun:
         additional_messages: tuple[dict[str, JsonValue], ...] = (),
         cancellation: CancellationToken | None = None,
     ) -> HarnessAgentExecution:
-        with SQLiteHarnessStore(self.state_root) as store:
+        with self._open_store() as store:
             continuity = self._continuity(store)
             retained = continuity.load_current_snapshot()
             provider_source = continuity.snapshot_provider_source(retained)
@@ -350,11 +439,11 @@ class HarnessAgentRun:
             )
 
     def inspect_terminal(self):
-        with SQLiteHarnessStore(self.state_root) as store:
+        with self._open_store() as store:
             return self._runner(store, provider_source=None).inspect_terminal()
 
     def doctor(self) -> dict[str, JsonValue]:
-        with SQLiteHarnessStore(self.state_root) as store:
+        with self._open_store() as store:
             projection = store.load_run(self.harness_run_id)
             provider_source = None
             if projection.status is HarnessRunStatus.PAUSED:
@@ -366,14 +455,21 @@ class HarnessAgentRun:
                 ).doctor()
             return self._runner(store, provider_source=None).doctor()
 
-    def _continuity(self, store: SQLiteHarnessStore) -> SQLiteHarnessRunContinuityStore:
+    def _open_store(self):
+        if self.store_factory is not None:
+            return self.store_factory()
+        if self.state_root is None:
+            raise HarnessAgentRunCompositionError("Harness Store authority is not configured")
+        return SQLiteHarnessStore(self.state_root)
+
+    def _continuity(self, store: HarnessStore) -> SQLiteHarnessRunContinuityStore:
         return SQLiteHarnessRunContinuityStore.open(
             store, self.harness_run_id, clock_ms=self.clock_ms
         )
 
     def _runner(
         self,
-        store: SQLiteHarnessStore,
+        store: HarnessStore,
         *,
         continuity: SQLiteHarnessRunContinuityStore | None = None,
         provider_source=None,

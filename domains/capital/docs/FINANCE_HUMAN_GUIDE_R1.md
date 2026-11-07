@@ -204,6 +204,29 @@ Accounting/Markets/Risk 原生消费者给出。
 
 历史尾部风险如果单独计算 VaR / ES，应使用现有 Risk 的 `historical_expected_shortfall`，并按 [Portfolio Risk Monitoring](PORTFOLIO_RISK_MONITORING_R1.md) 理解其经验分布与尾部概率口径。尤其不要把“超过阈值的样本直接平均”误认为指定置信度的 ES；它不能替代未来风险预测或风险预算。
 
+### Paper 日报：新增本金与投资盈亏分开
+
+对两个已经提交的连续 Paper 收据，可读取 PostgreSQL 并生成只读简报：
+
+```sh
+cd domains/capital
+scripts/run-capability-python -m ordivon_capital.portfolio.paper_close_performance \
+  --account PAPER_ACCOUNT --session YYYY-MM-DD --previous-session YYYY-MM-DD \
+  --snapshot /private/etf-raw-marks.json \
+  --binding /private/operator-market-binding.json
+```
+
+沿用上节的专用数据库 DSN、账户和行情占位符。简报复用 Accounting 的
+净值及 Risk 的核对；投资盈亏为「本期净值 − 前期净值 − 本期新增本金」。
+收益率假设新增本金在期初可用；它不是时间加权收益或内部收益率，
+首份收据不评收益。JSON 中的 `accountingPersistenceReverified=true`
+只表示已完成原生 PostgreSQL 回读，不证明外部行情来源真实。
+
+Agent 可直接调用 `summarize_paper_period`，或用
+`--current-receipt` / `--previous-receipt` 提交文件；文件模式的持久化
+核验标志保持 false。必须保留前驱摘要链、Markets 原始价绑定、
+Risk 状态及精确收益小数字符串；不要从此简报推导下单权限。
+
 ### 形式化与实际结算：目前验证到哪里？
 
 Finance 已有原生 Lean 模型 `formal/PaperCloseAmounts.lean`，可以运行
@@ -218,6 +241,16 @@ Human 应把「数学模型成立」「代码有可观察的对应行为」
 Agent 需要在实际操作中同时检查源码、`test_paper_close.py`
 消费者行为和 Paper PostgreSQL 回读；没有实际回读时不能标为已验收。
 现阶段模型到实现之间不存在机器验证的全面精化证明。
+
+### 研究参数的精确身份与冻结
+
+`fingerprint-policy` 会将研究策略的资产权重、基准费用率按**精确十进制数值**生成
+`configDigest`，而不是将它们先截断为默认 28 位有效数字。
+例如 `0.5` 与 `0.50` 在数学上等价，指向相同策略；
+但在第 40 位小数上不同的两个权重不能再使用相同研究预注册身份。
+冻结前应保存实际生成的策略摘要、源码版本与配置来源；更新源码后不能
+将历史冻结收据直接视作由新版算法签发，更不能用事后变更的参数
+改写研究结果。这个身份检查并不独立证明时间戳或市场数据真实。
 
 ## 4. 如何阅读结果？
 

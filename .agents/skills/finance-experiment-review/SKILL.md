@@ -99,6 +99,22 @@ returns. Missing independent reproduction and real publisher authenticity
 remain UNKNOWN. Research evidence never grants capital allocation or
 external order effects.
 
+## Exact precommitted decimal identity
+
+The `fingerprint-policy` source contract now canonicalizes strategy weights and
+benchmark expenses by the exact finite Decimal coefficient/exponent, stripping
+only base-ten trailing zeroes. Distinct admitted values beyond 28 decimal digits
+must not share a `configDigest`. Re-evaluate existing historical policy digests
+using their pinned historical source revision; never silently reinterpret an
+already-persisted frozen receipt with the new code. Numeric-equivalent spellings
+such as `0.5`/`0.50` share the current policy identity.
+
+For a new experiment, fingerprint the complete policy *before* freezing, then
+persist that exact digest through the native Runtime owner before holdout.
+The source-native consumer should reject changed high-precision weights as
+`PRECOMMITTED_POLICY_MISMATCH`. A digest checks local declared policy identity,
+not independent historical time or provider authenticity.
+
 ## Executable protocol interface
 
 The precommitment input to `freeze-experiment` must be JSON with
@@ -127,3 +143,21 @@ remain authoritative in `config/external_owner_census.json` and
 publisher authenticity, exhaustive search-family accounting, actual provider
 execution and independent real-money suitability are **UNKNOWN** until an
 observed consumer supplies qualifying evidence.
+
+## Monthly 1r historical-leverage Research: fee-aware rebalance contract
+
+Use `research/unit_r_dca.py` and `docs/UNIT_R_DCA_LONG_HISTORY_R1.md`,
+not a new brokerage, pricing engine, or research scheduler. The pure
+`solve_turnover_adjusted_exposure` is the sole Research local rebalance
+solver and evaluates `gross=target*(equity-fee*abs(gross-prior_gross))`.
+It rejects previous-position liquidation costs that would exhaust equity.
+The replay continues to own intraday margin checking, 1r monthly flow,
+strictly earlier data for risk signals, and descriptive XIRR/drawdown.
+
+Run existing owner verification: `mise run //domains/capital:verify`. Its
+formal prerequisites include `verify:formal:unit-r-margin` (two UNSAT, one
+SAT) and `verify:formal:unit-r-rebalance` (seven UNSAT, two SAT) using the
+repo's pinned Z3, no custom solver. These prove **exact-real static algebra**
+only; Python float behavior is supported separately by native consumer tests,
+not by an unbounded implementation-refinement proof. Source publisher rights,
+future margin gaps, broker liquidation and real alpha remain UNKNOWN.
