@@ -101,9 +101,12 @@ Use `domains/capital/formal/paper_cash_settlement_r1.smt2` and the
 owner-native `mise run formal:paper` task for three SMT-Presburger
 invariants plus two deliberately satisfiable incorrect-model witnesses.
 The natural specification and proof-level caveats are in
-`domains/capital/formal/README.md`. Model proof != source refinement,
+`domains/capital/formal/README.md`. For the **real Python implementation**
+under the specific two-date no-trade settlement shape, run
+`mise run formal:paper:source`: upstream CrossHair checks a scoped
+PEP316 contract. Neither checker proves full implementation refinement,
 PostgreSQL persistence, deployment or capital authority. Do not create
-a second ledger, copy Z3 into a private verifier or delete meaningful
+a second ledger, copy solvers into a private verifier or delete meaningful
 database tests on model-only evidence.
 
 ## Stateful Paper Accounting admission

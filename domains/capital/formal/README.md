@@ -78,6 +78,42 @@ approximations are satisfiable. Neither result can be promoted into
 `MODEL_PROVED`. A verifier returning `unknown`, a changed query count or
 unexpected result **fails the task**; it never silently passes.
 
+## Actual Python transition: restricted CrossHair refinement
+
+`paper_settlement_source_contract.py` imports the **real**
+`ordivon_capital.accounting.paper_close.value_session` and constructs a
+two-date, no-new-trade/no-position mark settlement with two buy payables and
+two sale receivables (one due now and one later). Six symbolic integer
+inputs vary over the declared `PEP316` precondition domain, including
+values of up to 2⁶³−1 cents. The postcondition checks the actual returned
+settled cash, remaining payables and receivables, protected reserve and
+economically unchanged NAV against the SMT settlement model.
+
+```sh
+cd domains/capital
+mise run formal:paper:source
+```
+
+This uses upstream **CrossHair 0.0.113, Python 3.15 and the same
+`z3-solver==5.3.3.0` tool** as the mathematical model, pinned by the
+existing `uvx` manager. The native task refuses to accept a silent
+exit-0 when CrossHair reports only an unconfirmed result: it requires
+`info: Confirmed over all paths.` for this exact target. No new
+Python production dependency or verifier layer is introduced.
+
+A local deliberately false source contract ("a matured payable never
+decreases") generated the concrete counterexample
+`intentionally_wrong_settlement(1, 1)` during the qualification
+investigation. It is **not** committed as a fake business rule.
+
+**Precisely qualified standing:** `SOURCE_SYMBOLIC_CHECKED_IN_SCOPE`,
+not `GLOBAL_REFINEMENT_PROVED`. CrossHair reasons over the modeled
+Python operations it supports and the reported search/path/time budgets.
+This contract excludes actual fills, holdings, price movement, arbitrary
+historical traces, PostgreSQL, provider rights and production effects.
+The adjacent Z3 model proves abstract linear identities, while physical
+PostgreSQL and Risk tests remain necessary.
+
 ## Exact consumers and future retirement boundary
 
 - [Accounting source transition](../src/ordivon_capital/accounting/paper_close.py)
