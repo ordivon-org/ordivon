@@ -4,7 +4,7 @@ python = "3.15.1"
 uv = "0.13.5"
 
 [tasks.ci]
-depends = ["formal", "formal-control-plane"]
+depends = ["formal", "formal-dns", "formal-control-plane"]
 run = """
 set -euo pipefail
 test -n "$(git ls-files -- '*.sh' | head -1)"
@@ -50,3 +50,9 @@ run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-s
 [tasks.formal-control-plane]
 description = "Prove Runtime/Host/Gateway have no source-graph dependency path to Network v2"
 run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/control_plane_independence.py"
+
+# Independent DNS TTL/failover state-machine proof, source-admitted against
+# dnsproxy native Unit and the real fault-injection acceptance fixture.
+[tasks.formal-dns]
+description = "Prove upstream DNS TTL, outage and recovery in Z3 state abstraction"
+run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/dns_cache_state.py"
