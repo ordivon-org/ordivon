@@ -16,11 +16,14 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import z3
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_NAMES = {
+    "codex": "sing-box.json",
+    "chat-ingress": "sing-box.json",
     "claude": "sing-box.json",
     "discord": "egress.json",
     "model-provider": "egress.json",
@@ -30,7 +33,14 @@ CONFIG_NAMES = {
 }
 ROUTE_FIELDS = frozenset({"inbound", "domain", "domain_suffix", "port", "network", "action", "outbound"})
 ALLOW = {"provider-carrier", "public-direct"}
-EXACT_NONFINANCE = frozenset(CONFIG_NAMES) - {"finance"}
+EXACT_NONFINANCE = frozenset(CONFIG_NAMES) - {"finance", "codex", "chat-ingress"}
+# Codex currently has no second Owner-declared destination authority. Keep
+# the minimal admitted independent spec here rather than clone a policy JSON.
+CODEX_AUTHORIZED_DOMAINS = (
+    "chatgpt.com", "persistent.oaistatic.com", "auth.openai.com",
+    "gateway-mcp.ordivon.com",
+    "falling-union-c376.cloudflareaccess.com",
+)
 
 
 class AdmissionError(RuntimeError):
@@ -87,7 +97,12 @@ def check_policy_shape(name: str, cfg: dict[str, Any]) -> list[dict[str, Any]]:
     require(isinstance(inbound, list) and bool(inbound), f"{name}: no inbounds")
     inbound_tags = set()
     for listener in inbound:
-        require(listener.get("type") == "http" and listener.get("tag"), f"{name}: only TCP HTTP inbound modeled")
+        require(
+            (listener.get("type") == "http" or
+             (name == "chat-ingress" and listener.get("type") == "mixed"))
+            and listener.get("tag"),
+            f"{name}: only HTTP or explicitly scoped Chat Ingress mixed inbound modeled",
+        )
         require(listener["tag"] not in inbound_tags, f"{name}: duplicate inbound")
         inbound_tags.add(listener["tag"])
     outgoing = cfg.get("outbounds")
@@ -120,6 +135,11 @@ def check_policy_shape(name: str, cfg: dict[str, Any]) -> list[dict[str, Any]]:
         if "network" in r:
             require(scalar_list(r["network"], str, "network") == ["tcp"],
                     f"{name}: unsupported non-TCP rule")
+        if name == "chat-ingress":
+            # Mixed can admit UDP via SOCKS; never assume it is HTTP-only.
+            # This model covers its explicitly TCP-restricted routes only.
+            require(r.get("network") == ["tcp"],
+                    "chat-ingress mixed ingress must explicitly constrain TCP")
     return rules
 
 
@@ -127,7 +147,44 @@ def declared_lanes(name: str, cfg: dict[str, Any]) -> list[AuthorizedLane]:
     config = ROOT / "consumers" / name / "config"
     tags = {v["tag"]: v for v in cfg["inbounds"]}
     declared: list[AuthorizedLane] = []
-    if name in EXACT_NONFINANCE:
+    if name == "codex":
+        require(len(tags) == 1, "codex: one scoped HTTP inbound required")
+        inbound, physical = next(iter(tags.items()))
+        require(physical.get("type") == "http"
+                and physical.get("listen") == "127.0.0.1"
+                and physical.get("listen_port") == 19980,
+                "codex: existing namespace-local proxy endpoint drift")
+        for dom in CODEX_AUTHORIZED_DOMAINS:
+            declared.append(AuthorizedLane(inbound, hostname(dom), 443, "provider-carrier"))
+    elif name == "chat-ingress":
+        authority = read_json(config / "egress.json")
+        require(authority.get("kind") == "ordivon.network-v2.chat-ingress-egress"
+                and authority.get("directFallback") is False,
+                "chat-ingress: Owner authority invalid")
+        require(authority.get("listen") == {
+            "host": "127.0.0.1", "port": 19081, "protocol": "mixed"
+        }, "chat-ingress: host relay authority drift")
+        require(len(tags) == 1, "chat-ingress: one scoped mixed inbound required")
+        inbound, physical = next(iter(tags.items()))
+        require(physical.get("type") == "mixed"
+                and physical.get("listen") == "127.0.0.1"
+                and physical.get("listen_port") == 19080,
+                "chat-ingress: namespace-local proxy drift")
+        origins = authority.get("allowedOrigins")
+        require(isinstance(origins, list) and bool(origins),
+                "chat-ingress: no independent HTTPS origin authority")
+        for origin in origins:
+            require(isinstance(origin, str), "chat-ingress: nonstring origin")
+            parsed = urlparse(origin)
+            require(parsed.scheme == "https" and parsed.hostname
+                    and parsed.port in (None, 443)
+                    and not parsed.username and not parsed.password
+                    and parsed.path in ("", "/") and not parsed.query and not parsed.fragment,
+                    "chat-ingress: unbounded origin in authority")
+            declared.append(AuthorizedLane(
+                inbound, hostname(parsed.hostname), 443, "provider-carrier"
+            ))
+    elif name in EXACT_NONFINANCE:
         authority = read_json(config / "authority.json")
         require(authority.get("directFallback") is False, f"{name}: fallback enabled")
         listener = authority.get("listen", {})
@@ -150,7 +207,7 @@ def declared_lanes(name: str, cfg: dict[str, Any]) -> list[AuthorizedLane]:
             declared.append(AuthorizedLane(inbound, hostname(dom), 443, "provider-carrier"))
         for dom in authority.get("allowedHttpsDomainSuffixes", []):
             declared.append(AuthorizedLane(inbound, hostname(dom), 443, "provider-carrier", suffix=True))
-    else:
+    elif name == "finance":
         authority_files = sorted(config.glob("*authority.json"))
         require(len(authority_files) == len(tags), "finance: missing or duplicate source lane declaration")
         for file in authority_files:
@@ -171,6 +228,8 @@ def declared_lanes(name: str, cfg: dict[str, Any]) -> list[AuthorizedLane]:
                 require(tag in {"finance-us-treasury-public", "finance-fred-public-csv"},
                         f"{file}: unexpected direct authority")
             declared.append(AuthorizedLane(tag, dest["host"], dest["port"], expected))
+    else:
+        raise AdmissionError(f"{name}: no formal admission for this Consumer")
     require(bool(declared), f"{name}: empty admissible policy")
     require(len({(x.inbound, x.host, x.port, x.suffix) for x in declared}) == len(declared),
             f"{name}: duplicated declaration")
@@ -254,14 +313,32 @@ def falsify_source_policy(name: str, cfg: dict[str, Any], lanes: list[Authorized
     # very same quantified SMT refinement must admit a counterexample.
     bad = copy.deepcopy(cfg)
     r = bad["route"]["rules"]
-    r.insert(-1, {"inbound": [lanes[0].inbound], "domain": ["rogue.example.invalid"],
-                  "port": lanes[0].port, "action": "route", "outbound": "provider-carrier"})
+    rogue = {"inbound": [lanes[0].inbound], "domain": ["rogue.example.invalid"],
+             "port": lanes[0].port, "action": "route", "outbound": "provider-carrier"}
+    if name == "chat-ingress":
+        # Keep the mixed inbound's explicit TCP constraint even in mutation;
+        # otherwise admission syntax, not SMT, would reject the negative case.
+        rogue["network"] = ["tcp"]
+    r.insert(-1, rogue)
     try:
         validate_refinement(name, bad, lanes)
     except AdmissionError as exc:
         require("counterexample" in str(exc), "mutant not rejected by SMT refutation")
     else:
         raise AdmissionError(f"{name}: rogue destination mutation falsely proven safe")
+    if name == "finance":
+        direct_escape = copy.deepcopy(cfg)
+        first = direct_escape["route"]["rules"][0]
+        require(first["outbound"] == "provider-carrier",
+                "finance: expected first lane to use physical Carrier")
+        first["outbound"] = "public-direct"
+        try:
+            validate_refinement(name, direct_escape, lanes)
+        except AdmissionError as exc:
+            require("counterexample" in str(exc),
+                    "Finance unapproved direct-escape mutation not refuted by Z3")
+        else:
+            raise AdmissionError("finance: unapproved direct egress falsely proven")
 
 
 def main() -> None:

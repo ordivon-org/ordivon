@@ -51,7 +51,13 @@ The generic Network Core MUST NOT own Finance/Claude/X destination policy. Obser
 
 Run cd platform/network && mise run formal to prove equivalence of the
 independently declared authority and first-match sing-box routing policy for
-Claude, Discord, Model Provider, Supply Chain, X and nine Finance lanes.
+Claude, Discord, Model Provider, Supply Chain, X, nine Finance lanes,
+Codex and Chat Ingress. Chat Ingress reuses its existing allowedOrigins
+authority while keeping the mixed inbound explicitly TCP-restricted.
+Codex has one small immutable approved domain tuple in the canonical
+verifier because no second Codex authority exists; do not mirror a second
+independent policy JSON. Finance's illegal public-direct escape is also a
+deliberately rejected SMT mutation.
 Symbolic variables are normalized HTTP CONNECT hostname, incoming scoped
 listener and TCP destination port; UNSAT means no differing routing outcome
 within this admitted model. The tool refuses unsupported policy constructs,
