@@ -8,6 +8,7 @@ import tempfile
 import unittest
 import wave
 from pathlib import Path
+from unittest import mock
 
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_audio',ROOT/'scripts/artifact_audio.py')
@@ -31,6 +32,53 @@ def make_flac(root: Path, *, sample_rate=48000) -> tuple[Path,bytes]:
 
 
 class ArtifactAudioTests(unittest.TestCase):
+    def test_missing_subject_keeps_every_profile_claim_unevaluated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = MODULE.verify_flac(Path(directory) / "missing.flac", BASE)
+        expected = json.loads(
+            (ROOT / "artifact-delivery/shadow-v2/examples/audio-flac-pcm16-r1-v2.json").read_text()
+        )["requiredEvidence"]
+        self.assertEqual(set(result["claimResults"]), set(expected))
+        self.assertEqual(
+            {claim["status"] for claim in result["claimResults"].values()},
+            {"NOT_EVALUATED"},
+        )
+
+    def test_invalid_contract_does_not_claim_decoder_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subject = root / "input.flac"
+            subject.write_bytes(b"not a real FLAC")
+            contract = root / "invalid.json"
+            value = json.loads(BASE.read_text())
+            value["audio"]["bitsPerSample"] = 24
+            contract.write_text(json.dumps(value))
+            result = MODULE.verify_flac(subject, contract, root / "evidence")
+            self.assertEqual(result["status"], "FAIL")
+            self.assertEqual(result["contractSchema"]["status"], "FAIL")
+            self.assertEqual(result["claimResults"]["contractSchema"]["status"], "FAIL")
+            self.assertTrue(all(
+                claim["status"] == "NOT_EVALUATED"
+                for name, claim in result["claimResults"].items()
+                if name != "contractSchema"
+            ))
+            self.assertNotIn("referenceIntegrity", result)
+
+    def test_missing_native_provider_preserves_contract_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subject = root / "input.flac"
+            subject.write_bytes(b"not a real FLAC")
+            with mock.patch.object(MODULE, "FLAC", root / "missing-flac-tool"):
+                result = MODULE.verify_flac(subject, BASE, root / "evidence")
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["claimResults"]["contractSchema"]["status"], "PASS")
+        self.assertTrue(all(
+            claim["status"] == "NOT_EVALUATED"
+            for name, claim in result["claimResults"].items()
+            if name != "contractSchema"
+        ))
+
     def require_tools(self):
         for p in (MODULE.FLAC,MODULE.METAFLAC,MODULE.FFMPEG,MODULE.FFPROBE):
             if not p.is_file(): self.skipTest(f'required mature external tool unavailable: {p}')
@@ -57,6 +105,12 @@ class ArtifactAudioTests(unittest.TestCase):
             self.assertEqual(value['status'],'PASS',value)
             self.assertTrue(value['decoderMatrix']['exactByteMatch'])
             self.assertEqual(value['streamInfo']['streamInfoMd5'],value['pcmIdentity']['decodedPcmMd5'])
+            required=json.loads((ROOT/'artifact-delivery/shadow-v2/examples/audio-flac-pcm16-r1-v2.json').read_text())['requiredEvidence']
+            self.assertEqual(set(value['claimResults']),set(required))
+            for name in required:
+                with self.subTest(claim=name):
+                    self.assertEqual(value['claimResults'][name]['status'],'PASS')
+                    self.assertEqual(value['claimResults'][name]['nativePointers'],['/'+name])
 
     def test_valid_flac_does_not_launder_wrong_sample_rate_contract(self):
         self.require_tools()
@@ -67,6 +121,8 @@ class ArtifactAudioTests(unittest.TestCase):
             self.assertEqual(value['status'],'FAIL')
             self.assertEqual(value['referenceIntegrity']['status'],'PASS')
             self.assertTrue(any('sampleRateHz' in x or 'sample rate' in x for x in value['failures']),value)
+            self.assertEqual(value['claimResults']['referenceIntegrity']['status'],'PASS')
+            self.assertEqual(value['claimResults']['streamInfo']['status'],'FAIL')
 
     def test_corrupt_audio_frame_fails_closed(self):
         self.require_tools()
@@ -90,6 +146,8 @@ class ArtifactAudioTests(unittest.TestCase):
             self.assertEqual(value['status'],'FAIL')
             self.assertEqual(value['referenceIntegrity']['status'],'PASS')
             self.assertEqual(value['metadataBlockPolicy']['status'],'FAIL')
+            self.assertEqual(value['claimResults']['metadataBlockPolicy']['status'],'FAIL')
+            self.assertEqual(value['claimResults']['referenceIntegrity']['status'],'PASS')
 
     def test_wrong_expected_pcm_digest_fails_after_both_decoders_agree(self):
         self.require_tools()
@@ -100,6 +158,8 @@ class ArtifactAudioTests(unittest.TestCase):
             self.assertEqual(value['status'],'FAIL')
             self.assertEqual(value['decoderMatrix']['status'],'PASS')
             self.assertIn('canonical decoded PCM SHA-256 differs from object contract',value['failures'])
+            self.assertEqual(value['claimResults']['decoderMatrix']['status'],'PASS')
+            self.assertEqual(value['claimResults']['pcmIdentity']['status'],'FAIL')
 
     def test_ambiguous_nested_contract_cannot_reach_flac_decoder(self):
         """JSON contract duplicates must be rejected before decoder effects."""
