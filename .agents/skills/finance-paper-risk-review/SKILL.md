@@ -60,6 +60,15 @@ observations; use `effectiveTailObservationWeight` rather than treating
 `tailObservationCount` as independent severe events. Do not turn this
 statistic into an automated risk-budget approval.
 
+Formal/real-consumer split: run
+`mise run //domains/capital:verify:paper-amounts` for the pinned Lean
+integer abstraction of NAV conservation, bounded settlement and the
+same-day sale-proceeds exclusion funding identity. Run the native Capital
+Python tests for the actual `value_session` funding behavior. Lean success
+alone is not a verified Python/PostgreSQL refinement or a production service
+receipt; keep these evidence classes separate. This extends the existing CA07
+Accounting contract instead of registering a duplicate risk/ledger LEGO.
+
 Qualification: mise run //domains/capital:verify plus actual isolated
 PostgreSQL paper receipt readback under disposable
 ORDIVON_CAPITAL_PAPER_PG_TEST_DSN against database ordivon_paper.

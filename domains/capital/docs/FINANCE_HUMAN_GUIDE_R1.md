@@ -171,6 +171,21 @@ Accounting/Markets/Risk 原生消费者给出。
 
 历史尾部风险如果单独计算 VaR / ES，应使用现有 Risk 的 `historical_expected_shortfall`，并按 [Portfolio Risk Monitoring](PORTFOLIO_RISK_MONITORING_R1.md) 理解其经验分布与尾部概率口径。尤其不要把“超过阈值的样本直接平均”误认为指定置信度的 ES；它不能替代未来风险预测或风险预算。
 
+### 形式化与实际结算：目前验证到哪里？
+
+Finance 已有原生 Lean 模型 `formal/PaperCloseAmounts.lean`，可以运行
+`mise run //domains/capital:verify:paper-amounts`。其整数规格证明：
+清算已经计入的应付和应收款不会凭空改变同一市场价格下的 NAV；
+结算当日收到的卖出款不会同时增加**当日新买单可用预算**；
+在结算额不超过原负债时，剩余应收应付款仍非负。
+这不是对 Python、PostgreSQL 或真实交易所行为的自动证明。
+
+Human 应把「数学模型成立」「代码有可观察的对应行为」
+「数据库真正提交和读回」「提供商数据可信」看作四种不同证据。
+Agent 需要在实际操作中同时检查源码、`test_paper_close.py`
+消费者行为和 Paper PostgreSQL 回读；没有实际回读时不能标为已验收。
+现阶段模型到实现之间不存在机器验证的全面精化证明。
+
 ## 4. 如何阅读结果？
 
 - **`READ_ONLY_PROJECTION`**：只是数学投影。它不证明行情真实或组合风险合格。
