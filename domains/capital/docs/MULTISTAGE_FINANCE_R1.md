@@ -200,3 +200,36 @@ CLI 只写标准输出 JSON，无下单、账户读写、自动市场预测或�
 鍦ㄦ棤鍊熸涓斾笉娆犵淮鎸佷繚璇侀噾鐨勬儏鏅腑锛屾姇璧勮€呭彲浠ュ皢褰撴湀1r鍏ㄩ儴鐢ㄤ簬
 鐪熷疄鏀嚭锛屼娇娆℃湀鏂拌祫閲戝埌璐?*涔嬪墠**鐨勮处鎴锋潈鐩婃伆濂戒负闆躲€俓n瀹冨苟涓嶆槸璐熷€猴紝涔熶笉搴旇鏁板€煎唴鐐规潯浠惰涓哄繀鐒跺己鍒跺钩浠撱€俓n
 鎵€鏈変腑闂存湀鑺傜偣鍙姹?W^- >= 0 涓旀弧瓒崇湡瀹炵淮鎸佷繚璇侀噾 W^- >= M銆俓n鍙缁堢 CRRA 鍙敮閰嶄綑棰?W_T-L_T 瑕佹眰涓ユ牸姝ｇ殑鏁堢敤瀹氫箟鍩熴€俓n鍙鐐规悳绱€丼LSQP 鍘熷绾︽潫鍜岀嫭绔?HiGHS 鍒囪秴骞抽潰鏈€浼樺€间笂鐣孿n鍏ㄩ儴閲囩敤鐩稿悓鍙鍩燂紝閬垮厤鑷埗鈥滃畨鍏?epsilon鈥濆彉鎴愮粡娴庤鍒欍€俓n
+## PIT-to-Portfolio direct read-only consumer
+
+The existing Research point-in-time joint forecaster now has an opt-in
+`--solve` flag, so no Agent needs to create a second JSON bridge or duplicate
+the SciPy optimizer. It consumes only published price vintages at the stated
+decision time, preserving cross-ETF joint monthly outcomes and explicit
+economic input (CRRA gamma, cash/debt rates, cost and broker margins).
+
+Run from `domains/capital`:
+    PYTHONPATH=src uv run --no-sync python -m ordivon_capital.research.pit_joint_forecast --input request.json --solve
+
+The old evidence-only request (without --solve) remains backward compatible.
+`conditional_allocation` is conditional on `forecast_evidence` and the caller's
+economic contract. It is NOT a market-verified optimal policy, not a claimed
+real-world probability distribution and never authorizes a live trade.
+A future-published vintage cannot change the frozen earlier solution.
+The original research experiment review remains responsible for independent
+prospective proper-scoring and subsequent economic out-of-sample evidence.
+
+
+## PIT 鏉′欢姒傜巼鐨勪弗鏍奸厤瀵硅瘉浼紙涓嶆槸鏀剁泭鐜囨楠岋級
+
+Research 宸叉湁 `prequential_energy_evaluation`銆佸鍙橀噺 Energy Score 鍜孿nVariogram Score銆傛柊鍑芥暟 `compare_pit_prequential_forecasts` 鍦?*鐩稿悓鐨?*
+淇℃伅鎴鏃堕棿銆佸悓涓€鏈熺粨鏋滀笌鍚庣画璇勪及鏃堕棿涓婏紝瀵筡n`empirical` 涓?`lagged_knn` 杩涜閰嶅锛歕n
+    d_t = EnergyScore(candidate_t, realized_t) - EnergyScore(baseline_t, realized_t)
+
+杈撳嚭鍐荤粨棰勬祴鍝堝笇銆侀€愭湀 d_t銆佸潎鍊煎強鐩稿悓鏁版嵁涓婄殑 Variogram
+宸銆傛鍊间唬琛ㄥ€欓€夋鐜囬娴嬫崯澶辨洿澶э紝璐熷€间唬琛ㄦ洿灏忋€俓n涓嶅厑璁告贩鐢ㄤ袱妯″瀷涓嶅悓鐨勬牱鏈垨鏈潵鎵嶅彂甯冪殑浠锋牸淇銆俓n
+杩欏彧鏄潯浠舵鐜囨ā鍨嬬殑**鎻忚堪鎬?*鏍锋湰澶栬瘉鎹紝涓嶇洿鎺ヤ骇鐢熸姇璧勬敹鐩婏紝
+涓嶈嚜琛屽绉扮粺璁℃樉钁椼€傝嫢瑕佹楠岄暱鏈熼娴嬪噯纭€у樊寮傦紝椤婚噰鐢ㄦ垚鐔焅nDiebold鈥揗ariano 鏃跺簭鐩稿叧璇樊鎺ㄦ柇锛涜嫢涓嶆柇灏濊瘯澶氫釜妯″瀷锛岃繕椤籠n浣跨敤鎴愮啛澶氶噸妯″瀷姣旇緝锛堝 Hansen SPA锛夈€傛病鏈夊彲鏍搁獙鐨勮冻澶熸牱鏈琝n鍜屽畬鏁寸爺绌堕娉ㄥ唽锛屼笉缂栭€犱换浣?p 鍊兼垨鏈€浼樻潬鏉嗙粨璁恒€俓n
+鐞嗚锛欸neiting鈥揜aftery, Strictly Proper Scoring Rules (2007);
+Diebold鈥揗ariano, Comparing Predictive Accuracy (1995);
+Hansen, Superior Predictive Ability (2005).

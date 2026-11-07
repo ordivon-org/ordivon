@@ -68,6 +68,29 @@ Agent platform, brokerage adapter or source/package identity.
    broker execution as different responsibilities. All source LEGO outputs
    are read-only; no result grants a provider write effect.
 
+## Exact paired PIT probability forecast falsification
+
+Use the same existing Capital Research source instead of making a third
+score evaluator: `ordivon_capital.research.pit_joint_forecast.compare_pit_prequential_forecasts`.
+Provide actual dated historical price vintages, named ETFs, the common
+monthly calendar, per-session frozen decision instants and the later
+evaluation time. It reuses `prequential_energy_evaluation` twice on the
+**identical** observed decision/outcome pairs, for
+`baseline_method=empirical` and `candidate_method=lagged_knn`, and reports
+the paired candidate-minus-baseline energy losses, their arithmetic mean
+and individual frozen forecast SHA256 references.
+
+A positive loss differential means worse candidate probability scoring,
+**not** a real market leverage recommendation, confidence interval or
+trading signal. The function intentionally performs no statistical
+significance test. Diebold-Mariano time-series inference needs a defensible
+dependence model, and comparisons over many chosen models additionally
+need multiplicity adjustment (e.g. Hansen SPA), not a guessed alpha
+threshold or hindsight-based selection.
+The caller must store independent pre-holdout source and forecast evidence
+through the canonical Research/Artifact owners. `READ_ONLY_NO_TRADE_NO_ACCOUNTING`
+remains mandatory.
+
 ## Native precommitment to source-replay consumer
 
 Prepare a **pre-holdout candidate policy** with the v2 replayable candidate's

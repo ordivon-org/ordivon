@@ -506,5 +506,204 @@ class PITResearchContract(unittest.TestCase):
         self.assertEqual(result, same)
 
 
+
+class PITNativeOptimizerConsumer(unittest.TestCase):
+    """Real solver invocation with frozen, explicitly unattested price vintages."""
+
+    def payload(self):
+        calendar, rows = PITResearchContract().fixture()
+        return {
+            "as_of": "2026-10-30T22:00:00+00:00",
+            "valuation_session": calendar[-1].isoformat(),
+            "assets": ["A", "B"],
+            "valuation_sessions": [d.isoformat() for d in calendar],
+            "prices": [
+                {
+                    "asset": x.asset,
+                    "session": x.session.isoformat(),
+                    "published_at": x.published_at.isoformat(),
+                    "adjusted_close": x.adjusted_close,
+                    "raw_source_sha256": x.raw_source_sha256,
+                    "source_standing": x.source_standing,
+                }
+                for x in rows
+            ],
+            "economic_contract": {
+                "gamma": 2.0,
+                "initial_margin": [0.5, 0.5],
+                "turnover_cost": [0.0, 0.0],
+                "cash_gross": 1.01,
+                "debt_gross": 1.03,
+                "maintenance_by_asset": [0.3, 0.3],
+            },
+        }
+
+    def test_one_api_consumes_pit_joint_distribution_and_existing_solver(self):
+        from ordivon_capital.research.pit_joint_forecast import solve_pit_payload
+
+        payload = self.payload()
+        out = solve_pit_payload(payload)
+        self.assertEqual(
+            out["allocation_standing"],
+            "CONDITIONAL_UNCALIBRATED_ONE_STEP_RESEARCH",
+        )
+        self.assertEqual(out["effects"], "NONE_NO_TRADE_NO_ACCOUNTING")
+        self.assertEqual(out["conditional_allocation"]["contributions_r_per_path"], 1)
+        self.assertEqual(len(out["conditional_allocation"]["root_risky_r"]), 2)
+        self.assertEqual(len(out["conditional_allocation"]["terminal_distribution"]), len(out["forecast_evidence"]["scenarios"]))
+        self.assertLess(out["conditional_allocation"]["equality_residual"], 1e-7)
+        self.assertLess(out["conditional_allocation"]["inequality_residual"], 1e-7)
+        self.assertLess(
+            out["conditional_allocation"]["concavity_global_utility_gap_upper"], 1e-5
+        )
+        # The original evidence-only API remains byte-for-byte semantically stable.
+        evidence = from_json_payload(payload)
+        self.assertEqual(out["optimizer_input"], evidence["optimizer_input"])
+        self.assertEqual(out["forecast_evidence"], evidence["forecast_evidence"])
+        self.assertNotIn("conditional_allocation", evidence)
+
+    def test_future_released_revision_does_not_change_conditional_policy(self):
+        from ordivon_capital.research.pit_joint_forecast import solve_pit_payload
+
+        payload = self.payload()
+        before = solve_pit_payload(payload)
+        revised = {
+            **payload["prices"][0],
+            "published_at": "2026-11-10T12:00:00+00:00",
+            "adjusted_close": 100000.0,
+        }
+        payload["prices"].append(revised)
+        after = solve_pit_payload(payload)
+        self.assertEqual(before["forecast_evidence"], after["forecast_evidence"])
+        self.assertEqual(
+            before["conditional_allocation"],
+            after["conditional_allocation"],
+        )
+        self.assertNotEqual(before["input_sha256"], after["input_sha256"])
+
+    def test_native_cli_solve_opt_in_and_original_cli_default(self):
+        import json
+        import os
+        import subprocess
+        import tempfile
+
+        payload = self.payload()
+        with tempfile.TemporaryDirectory() as temp:
+            file = Path(temp) / "vintages.json"
+            file.write_text(json.dumps(payload), encoding="utf-8")
+            env = {**os.environ, "PYTHONPATH": str(ROOT)}
+            command = [
+                sys.executable,
+                "-m", "ordivon_capital.research.pit_joint_forecast",
+                "--input", str(file),
+            ]
+            old = subprocess.run(
+                command, capture_output=True, text=True, check=True, env=env
+            )
+            full = subprocess.run(
+                [*command, "--solve"],
+                capture_output=True, text=True, check=True, env=env
+            )
+        old_json, new_json = json.loads(old.stdout), json.loads(full.stdout)
+        self.assertNotIn("conditional_allocation", old_json)
+        self.assertIn("conditional_allocation", new_json)
+        self.assertEqual(old_json["input_sha256"], new_json["input_sha256"])
+        self.assertEqual(new_json["effects"], "NONE_NO_TRADE_NO_ACCOUNTING")
+
+    def test_missing_economic_owner_terms_never_create_an_optimal_policy(self):
+        from ordivon_capital.research.pit_joint_forecast import solve_pit_payload
+
+        payload = self.payload()
+        payload["economic_contract"].pop("gamma")
+        with self.assertRaises(PointInTimeError):
+            solve_pit_payload(payload)
+
+
+class PITPairedPrequentialConsumer(unittest.TestCase):
+    def dataset(self):
+        from ordivon_capital.research.pit_joint_forecast import PriceVintage
+
+        sessions, records = PITResearchContract().fixture()
+        outcome_day = date(2026, 11, 30)
+        new = [
+            PriceVintage(
+                asset=name, session=outcome_day,
+                published_at=datetime(2026, 11, 30, 21, tzinfo=UTC),
+                adjusted_close=value,
+                raw_source_sha256=SHA,
+                source_standing=STANDING,
+            )
+            for name, value in (("A", 115.0), ("B", 91.0))
+        ]
+        return {
+            "records": records + new,
+            "assets": ("A", "B"),
+            "valuation_sessions": (*sessions, outcome_day),
+            "decision_instants": {
+                sessions[-1]: datetime(2026, 10, 30, 22, tzinfo=UTC)
+            },
+            "evaluation_as_of": datetime(2026, 11, 30, 23, tzinfo=UTC),
+        }
+
+    def test_exact_matched_periods_no_invented_significance(self):
+        from ordivon_capital.research.pit_joint_forecast import (
+            compare_pit_prequential_forecasts,
+        )
+
+        kwargs = self.dataset()
+        result = compare_pit_prequential_forecasts(**kwargs)
+        a = prequential_energy_evaluation(**kwargs, forecast_method="empirical")
+        b = prequential_energy_evaluation(**kwargs, forecast_method="lagged_knn")
+        self.assertEqual(result["matchedEvaluationCount"], 1)
+        self.assertEqual(
+            result["standing"],
+            "PAIRED_PREQUENTIAL_DESCRIPTIVE_NO_SIGNIFICANCE_OR_ALPHA",
+        )
+        self.assertEqual(result["effectStanding"], "READ_ONLY_NO_TRADE_NO_ACCOUNTING")
+        self.assertAlmostEqual(
+            result["meanCandidateMinusBaselineEnergy"],
+            b[0]["energy_score"] - a[0]["energy_score"],
+        )
+        self.assertAlmostEqual(
+            result["perEvaluation"][0]["candidate_minus_baseline_variogram"],
+            b[0]["variogram_score"] - a[0]["variogram_score"],
+        )
+        self.assertEqual(
+            result["perEvaluation"][0]["baseline_forecast_sha256"],
+            a[0]["frozen_forecast_sha256"],
+        )
+        self.assertNotIn("pValue", result)
+        self.assertNotIn("recommendedPortfolio", result)
+
+    def test_later_historical_revision_cannot_rewrite_frozen_score(self):
+        from ordivon_capital.research.pit_joint_forecast import (
+            compare_pit_prequential_forecasts,
+        )
+
+        kwargs = self.dataset()
+        before = compare_pit_prequential_forecasts(**kwargs)
+        rows = list(kwargs["records"])
+        rows.append(rec(
+            "A", "2026-08-31", "2026-11-15T10:00:00+00:00", 9000.0,
+        ))
+        after = compare_pit_prequential_forecasts(
+            **{**kwargs, "records": rows}
+        )
+        self.assertEqual(before, after)
+
+    def test_unpublished_outcome_cannot_be_scored(self):
+        from ordivon_capital.research.pit_joint_forecast import (
+            compare_pit_prequential_forecasts,
+        )
+
+        kwargs = self.dataset()
+        with self.assertRaisesRegex(PointInTimeError, "not yet published"):
+            compare_pit_prequential_forecasts(
+                **{
+                    **kwargs,
+                    "evaluation_as_of": datetime(2026, 11, 15, tzinfo=UTC),
+                }
+            )
+
 if __name__ == "__main__":
     unittest.main()

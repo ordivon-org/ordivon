@@ -26,6 +26,7 @@ This Skill is a **procedure and capability router**, not another portfolio engin
 | Close a funded Paper session and read its receipt | Accounting | `scripts/run-capability-python -m ordivon_capital.accounting.postgres_paper_close --account NAME --input SESSION.json` | Mutates ONLY dedicated Paper PostgreSQL; no broker |
 | Freeze a hypothesis, compare against passive benchmark and falsify | Research | Existing `finance-experiment-review` Skill and `scripts/run-finance-lego` | Evidence not authority |
 | Evaluate exposure and effects | Risk / Governance / Trading | Actual bounded source contracts | No implicit cross-domain permission |
+| Operate external OKX Demo provider | Trading / Governance / Accounting | scripts/run-okx-demo-execution and finance-demo-execution Skill | Source consumer and admission contract; external receipt separate |
 
 All command paths above are relative to `domains/capital` except the direct reference to the other canonical Skill. Before using one, check its exact option interface (`--help`) and latest source/contract version.
 
@@ -45,7 +46,7 @@ nonanticipative optimizer under `domains/capital/docs/MULTISTAGE_FINANCE_R1.md`.
 Optional `terminal_liabilities_r` requires an externally verified cash
 obligation for EVERY terminal leaf. Optimize CRRA on disposable surplus,
 report gross/obligation/net values separately; never treat future liabilities
-as today's broker collateral. This does not cover interim consumption.
+as today's broker collateral. Intermediate expenses are separately modeled by `node_outflow_after_contribution_r`.
 This additional contract only handles payments explicitly due after the
 current month 1r contribution; it does NOT authorize any early rescue of
 pre-contribution defaults or guarantee real broker liquidity.
@@ -66,6 +67,26 @@ broker or Paper Ledger receipt.
 intertemporal monthly cashflows still require genuine Bellman/MPC evidence.
 Never route research output into live or Paper execution without an
 independently established consumer contract.
+
+## Direct PIT research-to-Portfolio consumer
+
+Use the existing Research `pit_joint_forecast` --solve option for frozen,
+caller-supplied historical vintages and exact cross-ETF return scenarios.
+It calls the existing `portfolio.multistage_policy` solver directly,
+without inventing another financial optimizer or execution subsystem.
+
+From `domains/capital` run:
+`PYTHONPATH=src uv run --no-sync python -m ordivon_capital.research.pit_joint_forecast --input request.json --solve`.
+
+Without --solve the prior evidence-only JSON output is unchanged.
+Compare `forecast_evidence` with `conditional_allocation`. The former is an
+uncalibrated joint empirical/lagged-neighbor hypothesis. The latter is
+a conditional numerical solution under the caller's gamma/fees/funding/
+broker margin terms; the LP numerical optimality bound is NOT proof
+of market predictive skill. Both have `NONE_NO_TRADE_NO_ACCOUNTING` effects.
+The timestamp, raw-vintage evidence and actual broker contracts must be
+verified independently. Forward falsification uses the existing
+finance-experiment-review Skill.
 
 ## How to route the source LEGO registry (CA01—CA10)
 
@@ -247,3 +268,34 @@ investment mandate.
 References: https://github.com/agentskills/agentskills/blob/main/docs/specification.mdx ;
 https://www.quantconnect.com/docs/v2/writing-algorithms/algorithm-framework/overview ;
 https://www.gipsstandards.org/standards/gips-standards-for-firms/gips-standards-handbook-for-firms/
+
+## Independent multistage cashflow replay (Research falsifier)
+
+Use the EXISTING Portfolio multistage CRRA solver as the only optimizer.
+For independent falsification, package its exact input JSON as problem
+and its solution JSON as solution in one research-only JSON object.
+Run from domains/capital using the native environment:
+
+    PYTHONPATH=src uv run --frozen --no-sync --group test python -m ordivon_capital.research.independent_policy_replay --input /path/to/solver-pair.json
+
+This pure stdlib Research capability deliberately imports NO SciPy or
+Portfolio optimizer internals. It recomputes, from the public solution,
+each branch's before-deposit equity, pre-deposit maintenance, exactly
+one monthly 1r contribution, correctly dated due payments, turnover fees,
+post-trade budget, initial margin, terminal liabilities, probability mass,
+CRRA expected utility and certainty equivalents.
+
+Agent guidance: Always replay the EXACT frozen solver input and matching
+output before claiming numeric investment experiment results. Preserve
+returned input digest; never substitute realized future markets into
+the original information tree. REJECTED means a model/receipt mismatch.
+A passing result is NOT proof of optimizer optimality, trading
+authorization, or an audited data source; use independent analytic
+benchmarks and upstream solver's documented LP bound for numeric
+optimality evidence.
+
+Human guidance: Compare original obligation/return inputs with the replay
+receipt and check max_identity_residual_r and minimum_collateral_surplus_r.
+Positive terminal R is NOT investment profit without subtracting all
+contributed 1r and cash obligations. Only externally evidenced cash and
+broker contracts permit economic conclusions.

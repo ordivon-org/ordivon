@@ -408,6 +408,88 @@ def prequential_energy_evaluation(
     return tuple(results)
 
 
+
+def compare_pit_prequential_forecasts(
+    *,
+    records: Sequence[PriceVintage],
+    assets: Sequence[str],
+    valuation_sessions: Sequence[date],
+    decision_instants: Mapping[date, datetime],
+    evaluation_as_of: datetime,
+    baseline_method: str = "empirical",
+    candidate_method: str = "lagged_knn",
+) -> dict[str, Any]:
+    """Paired, same-clock, independent retrospective loss observations.
+
+    Reuses the existing strict historical release-time cuts and proper energy
+    score. The output is descriptive: a loss difference is NOT a Diebold-Mariano
+    p-value, a Hansen-SPA correction, or evidence of economic alpha.
+
+    Positive candidate-minus-baseline loss means worse candidate scoring.
+    A historical experiment remains caller-supplied, not an externally
+    authenticated precommitted prospective trial.
+    """
+    kwargs = dict(
+        records=records,
+        assets=assets,
+        valuation_sessions=valuation_sessions,
+        decision_instants=decision_instants,
+        evaluation_as_of=evaluation_as_of,
+    )
+    reference = prequential_energy_evaluation(
+        **kwargs, forecast_method=baseline_method
+    )
+    candidate = prequential_energy_evaluation(
+        **kwargs, forecast_method=candidate_method
+    )
+    if not reference or len(reference) != len(candidate):
+        raise PointInTimeError("paired evaluation requires common realized periods")
+    pairs: list[dict[str, Any]] = []
+    for before, after in zip(reference, candidate, strict=True):
+        identity = (
+            "valuation_session", "decision_time", "evaluation_as_of",
+            "outcome_session", "realized_joint_gross",
+        )
+        if any(before[key] != after[key] for key in identity):
+            raise PointInTimeError(
+                "models must use identical ex-ante decision and realized outcome"
+            )
+        delta = after["energy_score"] - before["energy_score"]
+        b_variogram, a_variogram = before["variogram_score"], after["variogram_score"]
+        pairs.append(
+            {
+                "decision_time": before["decision_time"],
+                "valuation_session": before["valuation_session"],
+                "outcome_session": before["outcome_session"],
+                "baseline_forecast_sha256": before["frozen_forecast_sha256"],
+                "candidate_forecast_sha256": after["frozen_forecast_sha256"],
+                "baseline_energy": before["energy_score"],
+                "candidate_energy": after["energy_score"],
+                "candidate_minus_baseline_energy": delta,
+                "candidate_minus_baseline_variogram": (
+                    None if b_variogram is None or a_variogram is None
+                    else a_variogram - b_variogram
+                ),
+            }
+        )
+    return {
+        "standing": "PAIRED_PREQUENTIAL_DESCRIPTIVE_NO_SIGNIFICANCE_OR_ALPHA",
+        "effectStanding": "READ_ONLY_NO_TRADE_NO_ACCOUNTING",
+        "baselineMethod": baseline_method,
+        "candidateMethod": candidate_method,
+        "matchedEvaluationCount": len(pairs),
+        "meanCandidateMinusBaselineEnergy": (
+            math.fsum(row["candidate_minus_baseline_energy"] for row in pairs)
+            / len(pairs)
+        ),
+        "perEvaluation": pairs,
+        "limitations": [
+            "Caller-supplied historical timestamps are not independently attested.",
+            "Descriptive energy loss differentials are not a serial-dependence-adjusted Diebold-Mariano inference or multiple-model SPA test.",
+            "No optimal leverage, confidence level, statistical significance or prospective alpha is asserted.",
+        ],
+    }
+
 def make_one_step_optimizer_contract(
     forecast: EmpiricalJointForecast,
     *,
@@ -548,19 +630,65 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+
+def solve_pit_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Research-to-Portfolio native consumer, no second optimization engine.
+
+    The only market probabilities are the caller's past-visible empirical or
+    lagged-neighbor hypotheses. The caller must also supply actual economic
+    preferences and provider financing/margin terms. This function neither
+    authenticates those inputs nor creates any order/Paper event.
+    """
+    import dataclasses
+
+    from ordivon_capital.portfolio.multistage_policy import (
+        InformationNode,
+        MultistageProblem,
+        solve_multistage,
+    )
+
+    result = from_json_payload(payload)
+    contract = result["optimizer_input"]
+    vectors = {"risky_gross", "maintenance", "initial_margin", "turnover_cost"}
+    nodes = tuple(
+        InformationNode(
+            **{
+                key: tuple(value) if key in vectors else value
+                for key, value in raw.items()
+            }
+        )
+        for raw in contract["nodes"]
+    )
+    solution = solve_multistage(
+        MultistageProblem(gamma=contract["gamma"], nodes=nodes)
+    )
+    return {
+        **result,
+        "conditional_allocation": dataclasses.asdict(solution),
+        "allocation_standing": "CONDITIONAL_UNCALIBRATED_ONE_STEP_RESEARCH",
+    }
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Read-only PIT research to existing Capital optimizer"
     )
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--mode", choices=("one-step", "monthly-tree"), default="one-step")
+    parser.add_argument(
+        "--solve", action="store_true",
+        help="run the existing read-only CRRA Portfolio consumer without trading",
+    )
     args = parser.parse_args()
     try:
         payload = json.loads(args.input.read_text(encoding="utf-8"))
         if args.mode == "monthly-tree":
             from ordivon_capital.research.pit_monthly_paths import from_multiperiod_json_payload
 
+            if args.solve:
+                parser.error("--solve in monthly-tree mode is not yet a calibrated forward model")
             outcome = from_multiperiod_json_payload(payload)
+        elif args.solve:
+            outcome = solve_pit_payload(payload)
         else:
             outcome = from_json_payload(payload)
     except (PointInTimeError, ValueError, TypeError, KeyError) as e:

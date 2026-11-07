@@ -75,11 +75,88 @@ tracks, exports the editable `.drp`, renders MP4 and records exact SHA-256
 source and output identities in a `.receipt.json`. It closes/deletes only
 its newly created isolated project unless `--keep-project` is specified.
 Use a selected short source or lower project dimensions for preview; default render covers the full timeline.
-preview. Do not infer publication from technical output; a named destination
-must actually receive and read back its artifact.
+Do not infer publication from technical output; a named destination must actually receive and read back its artifact.
 
 For native render-format selection, use values from `GetRenderCodecs('mp4')`.
 On the tested 21.0.3 install, the GUI label `H.264` maps to native codec
 identifier `H264`; the script selects the native identifier. Use the already
 published `studio_processing_profiles` action for FFprobe/FFmpeg, OTIO and
 TimedText checks rather than building parallel media parsers.
+
+## OTIO interchange as a native editing input
+
+When editorial cut structure already exists, choose `--otio` instead of
+`--visual`. The script calls the **installed Blackmagic**
+`MediaPool.ImportTimelineFromFile(path, options)` directly; it does not
+parse OTIO, define an Ordivon timeline language or emulate the editor:
+
+```powershell
+python scripts/resolve-native-produce.py --otio C:\media\cut.otio `
+  --source-clips-dir C:\media\sources `
+  --audio C:\media\voice.wav --output-dir C:\media\delivery `
+  --name cut-01 --min-timeline-frames 96 --grade-saturation 1.1
+```
+
+The API implements native relinking with `sourceClipsPath`; a successful
+import does **not** independently hash all references inside the OTIO.
+The receipt hashes the exact .otio input, optional separately supplied audio,
+editable DRP and rendered MP4 and reports the timeline's actual frame count.
+`otioMediaReferencesIndependentlyVerified=false` is an intentional evidence
+boundary, not a failed render. Reconcile linked media against the selected
+Production's Asset/Blob declarations before claiming source fidelity.
+
+Before editing, select a named Production, its sources and source digests.
+After editing, use the existing `studio_processing_profiles` and
+`studio_processing_probe_plan` actions with the native OTIO, FFprobe, audio
+loudness and timed-text adapters as applicable; the Runtime Job and generated
+raw receipts carry physical observations. Review real picture, speech,
+subtitle timing and color in Resolve/Fairlight; output approval is distinct
+from publishing to a particular provider and reading back its receipt.
+Keep only the selected editable source, accepted output and supporting
+consumer evidence. Do not retain every disposable render or test project.
+
+## Parameterized native Color CDL and loaded-source evidence
+
+The one-shot native producer now accepts the ASC-style CDL controls
+`--grade-slope R,G,B`, `--grade-offset R,G,B`,
+`--grade-power R,G,B`, plus `--grade-saturation N`. Each component
+must be finite. Unspecified channels use neutral RGB defaults, and no
+grade is applied unless an explicit grade argument is supplied.
+This is implemented by Resolve's installed `TimelineItem.SetCDL`,
+not an Ordivon color-correction engine. Other Color-page operations
+remain with the native application.
+
+Example using an existing OTIO timeline, audio and explicit color intent:
+
+```powershell
+python scripts/resolve-native-produce.py --otio C:\media\cut.otio `
+  --source-clips-dir C:\media\sources --audio C:\media\voice.wav `
+  --output-dir C:\media\delivery --name cut-02 `
+  --grade-slope 1.08,1.04,1.02 --grade-offset 0.01,0,0 `
+  --grade-power 1,0.98,1.02 --grade-saturation 1.08 `
+  --min-timeline-frames 96
+```
+
+The script reads back each timeline clip through Resolve's official
+`TimelineItem.GetMediaPoolItem()` and
+`MediaPoolItem.GetClipProperty("File Path")`; if the reported
+file exists, it records its SHA-256 as
+`nativeTimelineMediaReadback[].sourceDigest`. The
+`nativeTimelineMediaReadbackComplete` boolean means every observed
+timeline item's file was available and hashed. It is *not* proof that
+every external reference in the original OTIO has been interpreted
+identically, so `otioMediaReferencesIndependentlyVerified` continues
+to be false until the original OTIO/selected Assets are reconciled.
+Compare each observed digest against the selected Production's
+allowed Blob identities before claiming editorial source fidelity.
+The receipt keeps `schemaVersion=1` and the existing fields.
+
+Observed Windows Session 1 acceptance: Resolve Studio 21.0.3.7
+rendered two OTIO-referenced shots and a selected audio track
+under a non-neutral four-control CDL. Runtime Job
+`job-01a1b583-709d-7ca1-bf2f-428c1c0373a4` committed;
+independent FFprobe and SHA-256 readback Job
+`job-01a1b586-66da-7df3-9b17-778f1c249772` confirmed
+a 4.010667 s H.264/AAC MP4, three physically verified timeline
+source files and both output digests. This is a bounded native
+technical demonstration, not a platform publish.
