@@ -1,5 +1,8 @@
 # Artifact Redecomposition R1 — From Delivery Pipeline to Standing Kernel
 
+> **Historical source-cut study, not current implementation authority (2026-11-07 audit).** References to the old `artifact_delivery.py` CLI and its line count reflect an earlier tree; it is absent from the audited source. Present module routing and live-state facts must be read from `../README.md`, current code/bindings and node observations.
+
+
 ## Standing
 
 EVIDENCE_GROUNDED_REDECOMPOSITION_PLANNING_ONLY

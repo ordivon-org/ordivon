@@ -1,5 +1,8 @@
 # Artifact E2E — Standards-first Taxonomy R1
 
+> **Historical taxonomy study, not current family-count authority.** The 15-family count below reflects its earlier source cut; the audited `../artifact-delivery/taxonomy-v1.json` currently declares 16 families. Historic test counts and provider versions are not live availability evidence.
+
+
 ## Standing
 
 `SHADOW_MODEL_NO_RUNTIME_CUTOVER`

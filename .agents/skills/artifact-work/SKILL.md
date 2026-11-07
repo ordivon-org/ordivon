@@ -4,11 +4,11 @@ description: Create, transform, validate, package, or verify digital artifacts s
 compatibility: Requires filesystem access. Executable providers may be exposed through MCP, CLI, APIs, local applications, or workflow systems; some target validation requires Windows/PowerPoint or specialist validators.
 metadata:
   source-authority: ordivon-artifact-v2
-  source-revision: 39b6281b9b59c5d9d372a04e36f845758a7c93cf
-  migration-generation: ordivon-next-r1
 ---
 
 # Artifact work
+
+This Skill selects methods; it is not installed-provider or repository-revision evidence. Read the current `capabilities/artifact/README.md`, current bindings and actual Runtime/Workstation providers before claiming source-current or live acceptance. Human-facing steps and Agent execution rules are separated in that README.
 
 Use mature native formats, standards, tools, and validators. Do not invent an Ordivon document/media AST, package format, transport protocol, validator, or workflow engine when a mature owner exists.
 
