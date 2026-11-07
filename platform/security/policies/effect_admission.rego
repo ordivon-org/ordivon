@@ -59,7 +59,7 @@ else := null
 
 decision := {
   "schemaVersion": 1,
-  "kind": "ordivon.security.range-effect-admission",
+  "kind": "ordivon.security.effect-admission",
   "requestId": input.request.requestId,
   "requestDigest": input.request.requestDigest,
   "actorId": input.request.actorId,

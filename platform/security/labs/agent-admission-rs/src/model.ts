@@ -98,7 +98,7 @@ export interface AgentAdmissionDecision {
 
 export interface EffectAdmissionDecision {
   readonly schemaVersion: 1;
-  readonly kind: "ordivon.security.range-effect-admission";
+  readonly kind: "ordivon.security.effect-admission";
   readonly requestId: string;
   readonly requestDigest: string;
   readonly actorId: string;
