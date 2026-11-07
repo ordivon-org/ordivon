@@ -37,24 +37,13 @@ exact frozen source/selected candidate before appending one reveal event.
 Pure in-memory reasoning without a ledger remains available for independently
 constructed research fixtures, but it cannot silently upgrade to a recorded
 search or drop a recorded search's history.
-The one-time SQLite importer now **defaults to no historical import**.
-Only import a stopped legacy experiment when a current registered-search replay
-or sealed-holdout audit actually consumes its history. Bind the exact consumer
-search ID, selected purpose, and an independently established writer-stop
-condition:
-
-    uv run --project capabilities/media python capabilities/media/scripts/migrate-r6-trials.py \
-      --sqlite /path/to/old-trials.sqlite \
-      --expected-search-id experiment:required-current-search \
-      --retention-consumer registered_search_replay --source-writers-stopped
-
-The stop flag is an **operator assertion**, not automatic proof of all writers'
-quiescence. The importer reads but never deletes the old source, and checks
-identity, full event hashes, count, and PostgreSQL readback. The old file is
-eligible for a *separate* consumer-based retirement decision after verified
-cutover; neither an old file's existence nor hypothetical future usefulness
-is a reason to migrate or retain it indefinitely. If no real consumer needs
-the experiment, do not copy the event chain into PostgreSQL.
+The historical SQLite Trial Ledger importer is retired. No active R6
+Production or registered search is demonstrated to consume its old source
+events, so the one-off migration executable and its dedicated test fixtures
+are not a current capability. New R6 research uses only PostgreSQL, exact
+registered-search identity, and sealed-holdout readback. Historical importer
+source remains available through the prior Git revision if an independently
+grounded consumer later requires examination, not as an active CLI.
 Run the PG acceptance via mise run pg:verify using a disposable
 ORDIVON_MEDIA_TRIAL_TEST_DSN. Skipped tests do not prove the PG boundary.
 

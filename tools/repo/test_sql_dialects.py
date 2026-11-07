@@ -8,16 +8,16 @@ from pathlib import Path
 from tools.repo.check_sql_dialects import (
     OSQUERY_DEFAULT_TIMEOUT_SECONDS,
     OSQUERY_TIMEOUT_SECONDS,
+    ROOT,
+    SQLITE_LEGACY_SOURCE_CALLS,
     classify,
-    tracked_sql,
-    sqlite_direct_calls,
+    host_postgres_only_sources,
     sqlite_debt_issues,
+    sqlite_direct_calls,
     tracked_owner_sqlite_calls,
+    tracked_sql,
     tracked_unsafe_sqlite_file_uris,
     unsafe_sqlite_file_uri_interpolations,
-    SQLITE_LEGACY_SOURCE_CALLS,
-    ROOT,
-    host_postgres_only_sources,
 )
 
 
@@ -82,7 +82,6 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         for name in (
             "services/gateway/src/ordivon_gateway/external_worker.py",
             "domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py",
-            "capabilities/media/scripts/migrate-r6-trials.py",
             "platform/workstation/scripts/host_historical_projection.py",
             "services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py",
             "apps/chaoxing-autosign/chaoxing_mvp/ledger.py",
@@ -126,15 +125,15 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             [],
         )
 
-    def test_pg_media_retires_ledger_sqlite_but_keeps_verified_importer(self):
+    def test_pg_media_retires_ledger_sqlite_and_legacy_importer(self):
         observed = tracked_owner_sqlite_calls(ROOT)
-        retired = "capabilities/media/src/ordivon_studio/research/trial_ledger.py"
-        self.assertTrue((ROOT / retired).is_file())
+        ledger = "capabilities/media/src/ordivon_studio/research/trial_ledger.py"
         importer = "capabilities/media/scripts/migrate-r6-trials.py"
-        self.assertNotIn(retired, observed)
-        self.assertNotIn(retired, SQLITE_LEGACY_SOURCE_CALLS)
-        self.assertEqual(observed.get(importer), 1)
-        self.assertEqual(SQLITE_LEGACY_SOURCE_CALLS[importer], 1)
+        self.assertTrue((ROOT / ledger).is_file())
+        self.assertFalse((ROOT / importer).exists())
+        for path in (ledger, importer):
+            self.assertNotIn(path, observed)
+            self.assertNotIn(path, SQLITE_LEGACY_SOURCE_CALLS)
 
     def test_new_sqlite_owner_outside_old_runtime_harness_scope_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:

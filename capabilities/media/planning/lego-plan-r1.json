@@ -620,16 +620,14 @@
       "id": "V06",
       "label": "ExperimentTrialHistory",
       "kind": "state_authority",
-      "responsibility": "Hold the R6 experiment's append-only, identity-bound event history in PostgreSQL; local SQLite is legacy import evidence, not a second active ledger.",
+      "responsibility": "Hold R6 experiment append-only identity-bound event history only in PostgreSQL; legacy SQLite import executable is retired.",
       "authority": "Media R6 experimental consumer",
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
         "src/ordivon_studio/research/trial_ledger.py",
         "scripts/run-r6-creative-validity.py",
-        "scripts/migrate-r6-trials.py",
-        "tests/test_research_validity.py::ResearchValidityTest.test_parallel_trial_appends_commit_one_complete_hash_chain",
-        "tests/test_research_validity.py::ResearchValidityTest.test_legacy_sqlite_event_chain_migrates_once_to_pg_without_mutating_source"
+        "tests/test_research_validity.py::ResearchValidityTest.test_parallel_trial_appends_commit_one_complete_hash_chain"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -640,9 +638,8 @@
       "acceptance": [
         "R6 consumer refuses a local SQLite path as the active ledger.",
         "Concurrent PostgreSQL event writes retain one complete hash chain with source-defined event identity.",
-        "Legacy SQLite migration verifies every source event and commits exact equivalent PostgreSQL history or does not proceed.",
+        "Legacy SQLite import is retired from the current executable surface; Git history retains old source provenance.",
         "Real PostgreSQL tests run with disposable DSN; an absent DSN does not authorize PostgreSQL acceptance.",
-        "Legacy trial-history migration is not automatic retention: require a current consumer purpose, exact experiment search identity and independently attested writer-stop before source reads or PG writes; no demonstrated consumer implies no import. The old source remains outside importer deletion authority and requires independent post-cutover retirement.",
         "An altered selected winner with stale digest is rejected by replay and holdout; a forged rehashed winner is rejected against the PG trial.selected source row and cannot append a reveal.",
         "R6 final score rejects semantically altered holdout/calibration proof artifacts even when the original digest field is copied unchanged."
       ],
@@ -730,17 +727,16 @@
         },
         "epsilon": {
           "type": "UNKNOWN",
-          "scope": "domain-level live writer cutover and historic import equivalence",
-          "reason": "disposable PG behavior proves implementation contracts but not the actual deployed process source or live historical dataset",
-          "obligation": "identify active writers, current consumer and read-back receipts before domain cutover acceptance"
+          "scope": "deployment-bound PostgreSQL writer identity and frozen selection-to-holdout continuity",
+          "reason": "disposable PG behavior proves contracts but not the actual deployed writer/reader source",
+          "obligation": "observe active PostgreSQL writer, current consumer and read-back receipts before domain cutover acceptance"
         },
         "prov": {
           "type": "source_and_execution_evidence",
           "sourcePaths": [
             "src/ordivon_studio/research/trial_ledger.py",
             "src/ordivon_studio/research/trial_registration.py",
-            "tests/test_research_validity.py",
-            "scripts/migrate-r6-trials.py"
+            "tests/test_research_validity.py"
           ],
           "sourceCut": "d9df40e1d8156a18bca1b31b5ef2640731d47acc",
           "execution": "Disposable local PostgreSQL 18.6, 14/14 R6 native tests, 211/211 Media tests; ephemeral fixture removed",
@@ -1545,14 +1541,14 @@
     },
     {
       "id": "VS3",
-      "objective": "Qualify R6 Trial History as one PG-native capability LEGO, with a one-time verified SQLite importer instead of dual store authorities.",
+      "objective": "Qualify R6 Trial History as a PG-native LEGO and retire the unconsumed legacy SQLite importer.",
       "status": "IN_PROGRESS",
       "nodeIds": [
         "V06"
       ],
       "acceptance": [
-        "Media pg:verify runs against disposable PostgreSQL 18 and proves append, concurrent identity, history immutability and migration without implicit skips.",
-        "GitHub protected Owner CI admits the exact source change, and actual historical writers are quiesced before physical cutover.",
+        "Media pg:verify runs against disposable PostgreSQL 18 and proves append, concurrent identity, history immutability without implicit skips.",
+        "GitHub protected Owner CI admits the exact source change, and actual PostgreSQL writer/reader bindings are observed before physical cutover.",
         "A persisted winner cannot silently reveal holdout without its original PG source, and a changed/rehashed winner cannot pass the exact committed trial.selected evidence."
       ],
       "evidence": [
@@ -1562,7 +1558,7 @@
         "src/ordivon_studio/research/search_calibration.py"
       ],
       "blockers": [],
-      "nextAction": "PG-native ledger and frozen-winner source binding published after native suite; verify exact deployed R6 consumer DSN and any historical SQLite writers before admitting production cutover or old-source retirement. If no current consumer, do not create a duplicate empty production ledger or migrate history."
+      "nextAction": "PG-native ledger and frozen-winner source binding are code-tested; observe a selected deployed PostgreSQL consumer and real readback before claiming physical cutover. Legacy SQLite import is retired rather than kept for speculative history."
     },
     {
       "id": "VS4",

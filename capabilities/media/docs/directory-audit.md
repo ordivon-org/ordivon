@@ -31,7 +31,7 @@ destructive Media cleanup command.
 | `packages/identity/` | DTCG design-token source and replaceable compiler | KEEP. Align token semantics with DTCG 2025.10, not a proprietary identity registry. |
 | `packages/visuals/` | React/SVG reusable primitives consumed by applications | KEEP. Do not make Remotion the owner of visuals. |
 | `src/ordivon_studio/` | Python Studio CLI/Agent surface; Production, review, perception, QC, creative index, equipment, research and R2 adapters | CONVERGE by actual import/consumer seams. Reuse one Production source path boundary in both Production context and learning; preserve public `ordivon-studio` and `studio_*` names. Do not split into new pip packages without independent release consumers. |
-| `scripts/` | Actual entrypoints for dependency materialization, native providers, equipment, research experiments and old production reproduction | KEEP CURRENT CONSUMERS. Evaluate `run-r4/r5/r6`, `migrate-r6-trials` and SAPI scripts against reproducible experiment/Production requirements before retirement; lack of direct import alone is not a deletion proof. |
+| `scripts/` | Actual entrypoints for dependency materialization, native providers, equipment, research experiments and old production reproduction | KEEP CURRENT CONSUMERS. Evaluate `run-r4/r5/r6` and SAPI scripts against reproducible experiment/Production requirements before retirement; lack of direct import alone is not a deletion proof. |
 | `processing/` | Digest-selected FFprobe/FFmpeg, OTIO and TTML adapter scripts; profile JSON and native consumer smoke checks | KEEP. Exact Profile/Adapter digests and real provider readback are already the LEGO seam. No second media decoder or executor. |
 | `schemas/` | Existing Production, Asset, Claims, timed text and receipt formats | KEEP. These are wire/data contracts; do not rename live IDs for cosmetic consistency. |
 | `formal/` | Lean/SMT abstraction of selected processing admission and numerical soundness | KEEP AS MODEL, NOT END-TO-END PROOF. An implementation-refinement/physical-provider gap remains UNKNOWN. |
@@ -122,6 +122,34 @@ Use `docs/human-guide.md` for commands and examples.
 Use `AGENTS.md` and existing `media-studio-navigation` and
 `media-native-processing` Skills. This file creates **no additional agent
 surface, registry, CLI, or approval protocol**.
+
+## November 7 follow-through: retire the obsolete R6 SQLite importer
+
+The current Media R6 Trial Ledger is PostgreSQL-only. The source-bound
+consumer review found no current experiment, Production, or deployed
+workflow that selects the old one-shot SQLite import tool. Its only observed
+users were historical import fixtures, a README command, a LEGO plan entry,
+and the repository-wide SQLite debt census. Those consumers have been
+updated together, so the unsupported importer and its four dedicated tests
+are removed from the current source. The active PG identity/hash-chain,
+concurrency, registration, selected-winner and holdout tests remain.
+An isolated disposable PostgreSQL 18.6 instance exercised all 13 R6
+tests without skips on 2026-11-07, and was stopped and destroyed
+afterwards. This is code/fixture evidence, not deployed R6 PG acceptance.
+
+Historical importer bytes remain in earlier Git revisions as provenance,
+not in a live binary or a shadow repository. No old database was read,
+transferred, or deleted. A future named historical restoration consumer
+would need independent source analysis and a new decision, not a rollback
+to the retired default.
+
+**Fresh provider candidates:** Netflix VMAF/libvmaf is useful only when a
+Production has a reference-vs-encoded-video quality decision; it is not
+equivalent to creative/human acceptance and is *not admitted* to the
+current processing profiles. MediaInfo and optional ASR likewise require
+actual selected consumers and native provider/rights evidence before
+admission. The existing FFprobe/FFmpeg, OpenTimelineIO, TTML and Remotion
+capabilities remain the preferred proven toolchain.
 
 ## Mature external baseline
 
