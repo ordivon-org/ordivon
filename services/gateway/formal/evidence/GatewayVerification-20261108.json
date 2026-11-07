@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-verification-evidence",
+  "candidateBranch": "feat/gateway-formal-routing-evidence-20261107-r2",
+  "sourceCutAtTestArchive": "8ace96de0c",
+  "sourceEnvironment": {
+    "python": "3.15.1",
+    "package": "ordivon-gateway 0.9.0",
+    "dependencyAuthority": "services/gateway/uv.lock",
+    "installation": "uv sync --locked",
+    "platform": "Arch Linux on WSL2",
+    "source": "immutable Git archive of exact candidate source; six exact monorepo sourceRef files staged for consumer tests"
+  },
+  "proofs": {
+    "B01": {
+      "model": "services/gateway/formal/GatewayRoutingR1.tla",
+      "result": "MODEL_CHECKED",
+      "generated": 59,
+      "distinct": 41,
+      "queued": 0,
+      "negativeControls": [
+        {
+          "invariant": "NeverForward",
+          "expectedResult": "COUNTEREXAMPLE",
+          "exitCode": 12
+        },
+        {
+          "invariant": "ForwardedImpliesExactRoute",
+          "expectedResult": "COUNTEREXAMPLE",
+          "exitCode": 12
+        }
+      ]
+    },
+    "B02": {
+      "model": "services/gateway/formal/GatewayCapabilityAuthzR1.tla",
+      "result": "MODEL_CHECKED",
+      "generated": 773,
+      "distinct": 773,
+      "queued": 0,
+      "negativeControls": [
+        {
+          "invariant": "ForwardUnreachable",
+          "expectedResult": "COUNTEREXAMPLE",
+          "exitCode": 12
+        },
+        {
+          "invariant": "ForwardImpliesBinding",
+          "expectedResult": "COUNTEREXAMPLE",
+          "exitCode": 12
+        }
+      ]
+    },
+    "pinnedTLC": {
+      "tool": "TLA+ TLC 2.19 (toolchain 1.7.4)",
+      "sha256": "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
+    }
+  },
+  "pythonConformance": {
+    "result": "BOUNDED_CHECKED",
+    "routeMaps": 48,
+    "admitted": 9,
+    "rejected": 39,
+    "executionRefRoundtrips": 8
+  },
+  "sourceConsumer": {
+    "suite": "services/gateway/tests",
+    "passed": 157,
+    "skipped": 4,
+    "failed": 0,
+    "runJobId": "job-01a1b6cf-9f29-74a3-b61a-fe49d5da12f7",
+    "skipReasons": [
+      "disposable native PostgreSQL Runtime integration requires explicit execution fixture",
+      "Windows native ACL preflight not executed under WSL",
+      "2 Windows native service-identity cases not executed under WSL"
+    ]
+  },
+  "staticChecks": {
+    "ruffVersion": "0.17.2",
+    "ruffLint": "PASS",
+    "ruffFormat": "PASS",
+    "syntaxChecks": "PASS",
+    "importedGatewayModules": 24
+  },
+  "unproven": {
+    "implementationRefinement": "UNKNOWN outside bounded enumerated proposals",
+    "physicalOwnerEffect": "NOT_FULLY_QUALIFIED",
+    "windowsNativeIntegration": "UNKNOWN; three Windows-specific skips",
+    "postgresRealIntegration": "UNKNOWN; one opt-in skip",
+    "releaseCandidate": "NOT_BUILT_IN_THIS_WORK",
+    "remotePublication": "NOT_CONFIRMED",
+    "installedVersion": "unchanged on account used for Gateway discovery"
+  },
+  "notes": "A TLC invariant pass is finite model evidence, not Python semantic equivalence or live production security; native external effects and publication require separate evidence."
+}

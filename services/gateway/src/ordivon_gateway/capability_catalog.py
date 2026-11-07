@@ -53,7 +53,8 @@ class CapabilityCatalog:
                 owner_id=owner_id,
                 role=role,
                 configured=(
-                    True if owner_id == "research.composition"
+                    True
+                    if owner_id == "research.composition"
                     else _configured(self._caller, owner_id)
                 ),
             )

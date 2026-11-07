@@ -34,11 +34,13 @@ class FakeOwnerCaller:
 
 def test_retired_external_capability_is_not_discoverable_or_executable() -> None:
     service = GatewayService(FakeOwnerCaller())
+
     async def scenario() -> None:
         with pytest.raises(GatewayError, match="unknown capability"):
             await service.capability_describe("execution.partner")
         with pytest.raises(GatewayError, match="unknown capability"):
             await service.execution_resolve(capability="execution.partner", request_id="missing")
+
     asyncio.run(scenario())
 
 

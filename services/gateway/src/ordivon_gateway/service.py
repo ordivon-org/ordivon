@@ -76,9 +76,7 @@ class GatewayService:
             for name, route in self._routes.items()
         ):
             raise GatewayError("route identity must match its capability")
-        self._catalog = CapabilityCatalog(
-            caller, self._routes, projection_timeout_seconds
-        )
+        self._catalog = CapabilityCatalog(caller, self._routes, projection_timeout_seconds)
         self._execution = ExecutionCoordinator(caller, self._routes)
 
     def system_describe(self) -> SystemDescription:

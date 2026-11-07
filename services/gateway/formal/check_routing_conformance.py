@@ -6,23 +6,24 @@ identity, owner liveness, Security authorization or physical side effects.
 
 Run: python services/gateway/formal/check_routing_conformance.py
 """
+
 from __future__ import annotations
 
+import sys
 from dataclasses import replace
 from itertools import product
 from pathlib import Path
-import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ordivon_gateway.execution_refs import (
+from ordivon_gateway.execution_refs import (  # noqa: E402
     GatewayError,
     format_execution_ref,
     parse_execution_ref,
 )
-from ordivon_gateway.routing import CapabilityRoute, default_routes
-from ordivon_gateway.service import GatewayService
+from ordivon_gateway.routing import CapabilityRoute, default_routes  # noqa: E402
+from ordivon_gateway.service import GatewayService  # noqa: E402
 
 
 class NoOwner:
@@ -36,8 +37,10 @@ def explore() -> dict[str, int]:
     default = default_routes()
     assert default["execution.linux"].owner_id == "runtime.linux"
     assert default["execution.windows"].owner_id == "runtime.windows"
-    assert all(isinstance(value, CapabilityRoute) and key == value.capability
-               for key, value in default.items())
+    assert all(
+        isinstance(value, CapabilityRoute) and key == value.capability
+        for key, value in default.items()
+    )
 
     caller = NoOwner()
     # None means default; {} must never silently fall back to the default.
@@ -55,8 +58,7 @@ def explore() -> dict[str, int]:
     rejected = 0
     admitted = 0
     for left, right in product(choices, repeat=2):
-        proposals = ({keys[0]: left, keys[1]: right},
-                     {keys[0]: left}, {keys[1]: right})
+        proposals = ({keys[0]: left, keys[1]: right}, {keys[0]: left}, {keys[1]: right})
         for proposal in proposals:
             expected = all(
                 isinstance(value, CapabilityRoute) and key == value.capability
@@ -87,12 +89,11 @@ def explore() -> dict[str, int]:
         ("runtime.linux", "runtime.windows"),
         ("job-1", "job-abc", "ws-9", "a"),
     ):
-        assert parse_execution_ref(format_execution_ref(owner, native)) == (
-            owner, native
-        )
+        assert parse_execution_ref(format_execution_ref(owner, native)) == (owner, native)
         references += 1
     for malformed in (
-        "", "ordivon-exec:v0:runtime.linux:job-1",
+        "",
+        "ordivon-exec:v0:runtime.linux:job-1",
         "ordivon-exec:v1:runtime.linux:",
         "ordivon-exec:v1:invalid:job-1",
         "ordivon-exec:v1:runtime.linux:x:y",
@@ -105,8 +106,12 @@ def explore() -> dict[str, int]:
             raise AssertionError(f"malformed reference admitted: {malformed!r}")
 
     assert rejected > 0 and admitted > 0
-    return {"route_maps": explored, "admitted": admitted,
-            "rejected": rejected, "roundtrips": references}
+    return {
+        "route_maps": explored,
+        "admitted": admitted,
+        "rejected": rejected,
+        "roundtrips": references,
+    }
 
 
 if __name__ == "__main__":
