@@ -697,6 +697,33 @@
       ]
     },
     {
+      "id": "portfolio-algebraic-crra-scenario-optimization",
+      "sourcePatterns": [
+        "src/ordivon_capital/portfolio/algebraic_policy.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Human investor owns economic utility and actual investment horizon",
+        "Market-data and econometric owners supply conditional joint scenario probabilities",
+        "Broker/provider owns initial and maintenance margin, cash yield and actual borrowing quote"
+      ],
+      "localStanding": "CONDITIONAL_READONLY_ALGEBRAIC_SCENARIO_BINDING_NOT_BROKER_OR_PROSPECTIVE",
+      "localResponsibility": "Map caller-supplied utility, price-scenario distribution, contract financing and brokerage rules onto established SciPy numerical convex optimization; retain only domain algebra and evidence distinctions, not an Ordivon generic solver or second execution platform. No arbitrarily fixed drawdown, leverage or risk floor. Does not solve the full intertemporal Bellman recursion.",
+      "admittedMechanicsOwners": [
+        "NumPy 2.5.3 numerical arrays",
+        "SciPy 1.18.1 HiGHS LP feasible point and SLSQP numerical optimizer",
+        "Upstream Merton CRRA stochastic-control mathematics"
+      ],
+      "candidateMechanics": [
+        "Cvxportfolio / Boyd multi-period convex trading only after actual predictive distribution and multi-period consumers are qualified"
+      ],
+      "localDependencies": [
+        "Caller-supplied normalized pretrade equity of 1r, distribution probabilities, positive CRRA gamma and asset maintenance contracts"
+      ]
+    },
+    {
       "id": "portfolio-counterfactual-projection",
       "sourcePatterns": [
         "src/ordivon_capital/portfolio/portfolio_counterfactuals.py"

@@ -30,6 +30,21 @@ This Skill is a **procedure and capability router**, not another portfolio engin
 All command paths above are relative to `domains/capital` except the direct reference to the other canonical Skill. Before using one, check its exact option interface (`--help`) and latest source/contract version.
 
 
+## Algebraic investment research is not Paper settlement
+
+For normalized monthly 1r investment optimization, the canonical
+representation is `domains/capital/docs/ALGEBRAIC_FINANCE_POLICY_R1.md`
+with bounded read-only portfolio operator
+`ordivon_capital.portfolio.algebraic_policy`. Unlike prior historical
+`research.unit_r_dca` presets, this core does not define a "safe"
+percentage drawdown, multiplier, financing APR or default risk preference.
+Human owns utility/horizon, market/broker authorities own probabilities/
+borrowing/margin, and missing inputs remain UNKNOWN.
+`solve_one_period` is a conditional one-period CRRA solution;
+intertemporal monthly cashflows still require genuine Bellman/MPC evidence.
+Never route research output into live or Paper execution without an
+independently established consumer contract.
+
 ## How to route the source LEGO registry (CA01—CA10)
 
 Do not invent a second LEGO namespace, general controller or another skill

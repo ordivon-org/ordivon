@@ -9,6 +9,7 @@ set -euo pipefail
 mise run verify:formal:risk-exposure
 mise run verify:formal:passive-general
 mise run verify:formal:unit-r-margin
+mise run verify:formal:algebraic-capital
 uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
@@ -44,6 +45,19 @@ observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital
 expected="$(printf 'unsat\\nunsat\\nsat')"
 if [ "$observed" != "$expected" ]; then
   printf 'Unexpected Z3 margin proof result: %s\\n' "$observed" >&2
+  exit 1
+fi
+printf '%s\\n' "$observed"
+"""
+
+[tasks."verify:formal:algebraic-capital"]
+description = "Prove 1r algebraic self-financing, unitization, Merton derivative and unbounded-ruin case (not Python or broker refinement)"
+run = """
+set -euo pipefail
+observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/AlgebraicCapitalR1.smt2)"
+expected="$(printf 'unsat\\nunsat\\nunsat\\nunsat\\nunsat\\nsat')"
+if [ "$observed" != "$expected" ]; then
+  printf 'Unexpected Z3 algebraic capital proof result: %s\\n' "$observed" >&2
   exit 1
 fi
 printf '%s\\n' "$observed"

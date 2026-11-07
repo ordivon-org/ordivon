@@ -56,7 +56,8 @@
       "strategic_contribution.py",
       "paper_investment.py",
       "passive_benchmark.py",
-      "paper_vintage.py"
+      "paper_vintage.py",
+      "algebraic_policy.py"
     ],
     "risk": [
       "portfolio_risk.py",
