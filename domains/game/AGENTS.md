@@ -12,12 +12,12 @@ mature, replaceable mechanics, infrastructure, media, level/content, UX, and
 release capabilities; author new game-specific rules only where external
 capabilities and native engine primitives do not satisfy the desired behavior.
 
-**Existing evidence (2026-11-02; inspect current main again before work):**
+**Existing evidence (2026-11-07; inspect current main again before work):**
 - G01 source-grounded external references; G02 mechanism experiences;
   G03 rebuildable relationship projection; G04 counterexample memory;
   G05 read-only query consumers; G06 bounded *native Godot* acceptance;
-  G07 a Bevy-native product assembly; G08 native Godot movement audio feedback.
-  G07/G08 are source/consumer-qualified but not human-playtest proofs.
+  G07 a Bevy-native product assembly; G08 native Godot movement audio feedback; G09 native room narrative; G10 native checkpoint; G11 bounded native Agent episode.
+  Native engine and bounded Agent acceptance are source/consumer-qualified, not human-playtest proofs.
   The authoritative inventory is
   `planning/lego-plan-r1.json`, not this prose.
 - `src/` contains query input policy, knowledge file reading, pure graph
@@ -346,3 +346,11 @@ purpose is asserting that a documentation paragraph exists.
 ## Native Room Encounter composition (2026-11-03)
 
 G09 narrative and G10 ConfigFile now run in one Godot 4.7.2 product scene with rules, input, audio, and replaceable HUD. Upstream pinned MIT Dialogue Manager was relocated using git mv (no duplicate vendor source); unused standalone narrative project removed. Dialogue GateState derives its only token from EncounterRules.phase=cleared and requests only EncounterRules.advance. Door UI and N/Enter request dialogue choices rather than bypassing them. mise run test:dialogue-native exercises the actual combined consumer. Human narrative quality and final indie-game shipment remain unverified. Prefer native scene composition over new orchestrators or duplicated engine wrappers.
+
+## 5. Human / Agent operation and source of evidence
+
+**Human:** Run the actual Godot or Bevy project with graphical input; gather human-user research only for claims about usability, subjective enjoyment, interpretation and retention. A compile/test/Agent completion result is not human experience evidence.
+
+**Agent:** When a real native consumer needs non-visual action/observation evaluation, prefer an engine-native test adapter over a new game-control service. Room Encounter now exposes `examples/room-encounter/agent_episode.gd`, accepting at most 64 actions via `-- --actions` and returning a single prefixed JSON state trace. The runner loads the same PackedScene and EncounterRules used by humans, never duplicates combat rules, never writes saves, and rejects uninitialized project imports. Execute `mise run test:encounter` before `mise run test:agent-episode`; use `examples/room-encounter/README.md` for CLI details.
+
+**Claim boundary:** These are privileged symbolic observations with deterministic replay, not a visual agent, an ongoing real-time control loop, a human playtest, or certified R2.1 refinement proof. Capture and report the engine version actually executed; the declared mise pin and host-installed Godot may differ. For graphical Agent control, first name a real screenshot-input consumer and reuse the Workstation/Runtime capabilities that own it.

@@ -1,6 +1,6 @@
 # Game Domain Profile — R1 External-First Iterative Profile
 
-Status: **READY_FOR_REAL_WORK**. This profile governs how Game problems are approached in Ordivon Next; it does not create a new universal game-design ontology or re-own Engineering, Media, Artifact, Security, Network, Distribution or Operations.
+Status: **READY_FOR_REAL_WORK**. This profile governs how Game problems are approached in Ordivon; it does not create a new universal game-design ontology or re-own Engineering, Media, Artifact, Security, Network, Distribution or Operations.
 
 ## Entity of interest
 

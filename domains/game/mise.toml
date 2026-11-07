@@ -4,7 +4,7 @@ pnpm = "12.16.1"
 godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check && mise run test:native && mise run test:encounter && mise run test:visual-native && mise run test:dialogue-native && mise run test:autonomous-study"
+run = "pnpm install --frozen-lockfile && pnpm check && mise run test:native && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:autonomous-study"
 
 
 [tasks."test:native"]
@@ -35,3 +35,7 @@ run = "godot --headless --path examples/room-encounter --editor --import && godo
 [tasks."test:autonomous-study"]
 description = "Native R7 study evaluator/selftest from Game owner"
 run = "uv run --with check-jsonschema==0.38.0 python research/autonomous-interest-r7/protocol_selftest.py"
+
+[tasks."test:agent-episode"]
+description = "Exercise a real Godot room scene through bounded Agent action/observation JSON after editor import"
+run = "python3 examples/room-encounter/agent_episode_acceptance.py"

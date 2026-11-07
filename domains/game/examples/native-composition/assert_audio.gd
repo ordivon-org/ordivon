@@ -32,7 +32,7 @@ func run_native_audio_consumer() -> void:
     var right = InputEventKey.new()
     right.pressed = true
     right.physical_keycode = KEY_RIGHT
-    Input.parse_input_event(right)
+    Input.parse_input_event(right.duplicate())
     # The native input buffer may not dispatch before process_frame in headless CI.
     Input.flush_buffered_events()
     await process_frame
@@ -41,7 +41,7 @@ func run_native_audio_consumer() -> void:
     expect(feedback.playing, "AudioStreamPlayer playback starts")
     feedback.stream = alternate_clip
     expect(feedback.stream == alternate_clip, "source-licensed audio can be substituted independently")
-    Input.parse_input_event(right)
+    Input.parse_input_event(right.duplicate())
     await process_frame
     expect(rules.snapshot()["turn"] == 2, "audio substitution leaves mapped RIGHT action unchanged")
     expect(feedback.observed_play_count == 2, "second state transition is observed")
@@ -57,7 +57,7 @@ func run_native_audio_consumer() -> void:
     InputMap.action_add_event("move_right", d_key)
     var before_remap = rules.snapshot()
     var audio_before_remap = feedback.observed_play_count
-    Input.parse_input_event(right)
+    Input.parse_input_event(right.duplicate())
     await process_frame
     expect(rules.snapshot() == before_remap and feedback.observed_play_count == audio_before_remap, "removed key binding no longer changes game/audio")
     Input.parse_input_event(d_key)
