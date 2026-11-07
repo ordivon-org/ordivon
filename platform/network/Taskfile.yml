@@ -123,6 +123,9 @@ tasks:
       - systemctl is-active --quiet network-v2-singbox.service
       - systemctl is-active --quiet network-v2-blackbox.service
       - systemctl is-active --quiet network-v2-prometheus.service
+      # systemd Type=simple reports active before Prometheus loads its native scrape pools.
+      # Reuse Prometheus' own /-/ready endpoint; then strictly check the full loaded graph.
+      - curl -q --noproxy '*' --fail --silent --show-error --retry 15 --retry-delay 1 --retry-connrefused --retry-max-time 20 --max-time 3 -o /dev/null http://127.0.0.1:29090/-/ready
       - python3 scripts/monitoring-sourcecut-preflight.py --live /etc/network-v2 --check-loaded-prometheus
       - test -n "$(dig +time=2 +tries=1 @127.0.0.1 -p 25353 example.com A +short)"
       - test -n "$(dig +time=2 +tries=1 @127.0.0.1 -p 25353 example.com AAAA +short)"
