@@ -18,6 +18,7 @@ from ordivon_capital.research.pit_joint_forecast import (  # noqa: E402
     point_in_time_prices,
     prequential_energy_evaluation,
     weighted_energy_score,
+    weighted_variogram_score,
 )
 
 SHA = hashlib.sha256(b"research fixture, not exchange-attested").hexdigest()
@@ -302,6 +303,173 @@ class PITResearchContract(unittest.TestCase):
         )
         self.assertEqual(validated.months, 1)
         self.assertEqual(len(validated.leaves), len(forecast.scenarios))
+
+    def test_lagged_knn_only_uses_complete_past_transitions(self):
+        from datetime import UTC
+
+        sessions = tuple(date(2026, m, 28) for m in range(1, 9))
+        returns = (
+            (0.70, 0.70),
+            (1.40, 1.40),
+            (0.71, 0.72),
+            (1.50, 1.48),
+            (0.69, 0.70),
+            (1.60, 1.59),
+            (1.30, 1.30),
+        )
+        prices = {"A": 100.0, "B": 100.0}
+        rows = []
+        for j, day in enumerate(sessions):
+            if j:
+                for asset, gross in zip(("A", "B"), returns[j - 1], strict=True):
+                    prices[asset] *= gross
+            for asset in ("A", "B"):
+                rows.append(
+                    rec(asset, day.isoformat(), day.isoformat() + "T21:00:00+00:00", prices[asset])
+                )
+        asof = datetime(2026, 8, 28, 22, tzinfo=UTC)
+        kwargs = dict(
+            records=rows,
+            assets=("A", "B"),
+            valuation_sessions=sessions,
+            as_of=asof,
+            valuation_session=sessions[-1],
+        )
+        unconditional = empirical_joint_forecast(**kwargs)
+        conditional = empirical_joint_forecast(**kwargs, forecast_method="lagged_knn")
+        self.assertEqual(conditional.conditioning["eligible_historical_transitions"], 6)
+        self.assertEqual(conditional.conditioning["neighbor_count"], 3)
+        self.assertEqual(conditional.conditioning["conditioning_session"], "2026-08-28")
+        self.assertEqual(conditional.training_return_count, 7)
+        self.assertNotEqual(conditional.scenarios, unconditional.scenarios)
+        self.assertAlmostEqual(sum(x.probability for x in conditional.scenarios), 1.0)
+        later = rows + [
+            rec("A", "2026-07-28", "2026-09-01T10:00:00+00:00", 1e9),
+            rec("B", "2026-08-28", "2026-09-01T10:00:00+00:00", 1e9),
+        ]
+        replay = empirical_joint_forecast(
+            **{**kwargs, "records": later}, forecast_method="lagged_knn"
+        )
+        self.assertEqual(conditional.to_dict(), replay.to_dict())
+        incomplete = [o for o in rows if not (o.asset == "B" and o.session == sessions[-1])]
+        with self.assertRaisesRegex(PointInTimeError, "current valuation"):
+            empirical_joint_forecast(
+                **{**kwargs, "records": incomplete},
+                forecast_method="lagged_knn",
+            )
+
+    def test_variogram_distinguishes_correlated_and_anticorrelated_ensemble(self):
+        from ordivon_capital.research.pit_joint_forecast import JointScenario
+
+        co_crash = (
+            JointScenario(0.5, (0.8, 0.8), 1),
+            JointScenario(0.5, (1.2, 1.2), 1),
+        )
+        disjoint = (
+            JointScenario(0.5, (0.8, 1.2), 1),
+            JointScenario(0.5, (1.2, 0.8), 1),
+        )
+        self.assertAlmostEqual(
+            weighted_variogram_score(forecasts=co_crash, realized_gross=(0.8, 0.8)), 0
+        )
+        self.assertGreater(
+            weighted_variogram_score(forecasts=disjoint, realized_gross=(0.8, 0.8)), 0.15
+        )
+        with self.assertRaises(PointInTimeError):
+            weighted_variogram_score(forecasts=co_crash, realized_gross=(0.8,))
+
+    def test_one_existing_json_entry_accepts_conditional_method(self):
+        sessions, rows = self.fixture()
+        payload = {
+            "as_of": "2026-10-30T22:00:00+00:00",
+            "valuation_session": sessions[-1].isoformat(),
+            "assets": ["A", "B"],
+            "valuation_sessions": [x.isoformat() for x in sessions],
+            "prices": [
+                dict(
+                    asset=r.asset,
+                    session=r.session.isoformat(),
+                    published_at=r.published_at.isoformat(),
+                    adjusted_close=r.adjusted_close,
+                    raw_source_sha256=r.raw_source_sha256,
+                    source_standing=r.source_standing,
+                )
+                for r in rows
+            ],
+            "economic_contract": {
+                "gamma": 2,
+                "initial_margin": [0.5, 0.5],
+                "turnover_cost": [0.0, 0.0],
+                "maintenance_by_asset": [0.3, 0.3],
+                "cash_gross": 1.0,
+                "debt_gross": 1.01,
+            },
+        }
+        # Two eligible historical lag transitions: both are selected.
+        result = from_json_payload({**payload, "forecast_method": "lagged_knn"})
+        self.assertEqual(set(result["optimizer_input"]), {"gamma", "nodes"})
+        self.assertEqual(result["forecast_evidence"]["conditioning"]["neighbor_count"], 2)
+        # Refine to the exact existing numerical solver rather than only
+        # testing the shape of its input JSON.
+        from ordivon_capital.portfolio.multistage_policy import (
+            InformationNode,
+            MultistageProblem,
+            solve_multistage,
+        )
+
+        nodes = tuple(
+            InformationNode(
+                **{
+                    key: tuple(value)
+                    if key in ("risky_gross", "maintenance", "initial_margin", "turnover_cost")
+                    else value
+                    for key, value in n.items()
+                }
+            )
+            for n in result["optimizer_input"]["nodes"]
+        )
+        solution = solve_multistage(
+            MultistageProblem(gamma=result["optimizer_input"]["gamma"], nodes=nodes)
+        )
+        self.assertEqual(solution.contributions_r_per_path, 1)
+        self.assertLess(solution.equality_residual, 1e-7)
+        self.assertLess(solution.inequality_residual, 1e-7)
+        self.assertLess(solution.concavity_global_utility_gap_upper, 1e-5)
+        self.assertEqual(
+            from_json_payload(payload)["standing"],
+            "HISTORICAL_POINT_IN_TIME_EMPIRICAL_RESEARCH_ONLY",
+        )
+        with self.assertRaisesRegex(PointInTimeError, "forecast_method"):
+            from_json_payload({**payload, "forecast_method": "future_seer"})
+
+    def test_historical_conditional_prequential_metric_is_frozen(self):
+        sessions, records = self.fixture()
+        next_month = date(2026, 11, 30)
+        all_dates = (*sessions, next_month)
+        extra = [
+            rec("A", next_month.isoformat(), "2026-11-30T21:00:00+00:00", 118),
+            rec("B", next_month.isoformat(), "2026-11-30T21:00:00+00:00", 91),
+        ]
+        at = datetime.fromisoformat("2026-10-30T22:00:00+00:00")
+        evaluated_at = datetime.fromisoformat("2026-11-30T22:00:00+00:00")
+        kwargs = dict(
+            records=records + extra,
+            assets=("A", "B"),
+            valuation_sessions=all_dates,
+            decision_instants={sessions[-1]: at},
+            evaluation_as_of=evaluated_at,
+            forecast_method="lagged_knn",
+        )
+        result = prequential_energy_evaluation(**kwargs)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["forecast_method"], "lagged_knn")
+        self.assertGreaterEqual(result[0]["energy_score"], 0)
+        self.assertGreaterEqual(result[0]["variogram_score"], 0)
+        future_revision = rec("A", "2026-09-30", "2026-12-10T11:00:00+00:00", 1e9)
+        same = prequential_energy_evaluation(
+            **{**kwargs, "records": records + extra + [future_revision]}
+        )
+        self.assertEqual(result, same)
 
 
 if __name__ == "__main__":

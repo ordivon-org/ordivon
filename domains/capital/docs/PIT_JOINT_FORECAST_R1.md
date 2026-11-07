@@ -75,3 +75,35 @@ Ordivon `mise run //domains/capital:verify` must additionally pass after integra
 
 ## Horizon consistency
 Portfolio receives exactly one 1r contribution per month. The input forecast therefore MUST use consecutive monthly valuation endpoints, not daily/weekly gross returns or overnight financing. The data owner must independently certify the exchange-specific last-trading-session calendar and adjusted-price publication vintage. This is not a statistical guarantee.
+
+
+## Conditional joint pilot and proper dependence falsification
+
+The same existing input schema accepts an optional top-level
+"forecast_method": "lagged_knn" (default "empirical"). It uses
+k = ceil(sqrt(N)) previous complete consecutive monthly return transitions
+matched by Euclidean distance on log-gross joint returns. The
+conditioning month, eligible transitions and selected outcome sessions
+are reported. The value of k is disclosed as a pilot heuristic, **not**
+the result of validated hyperparameter selection. A missing latest
+return or fewer than two lagged transitions fails rather than reverting
+silently to unconditional probabilities.
+
+Only information available at each historical decision timestamp enters
+both models. Prequential energy score is a strictly proper distribution
+score (under its moment assumptions); pairwise variogram score p=1 is a
+proper complementary dependence diagnostic, not strictly proper on
+its own. There is **no** guarantee of excess returns, conditional
+calibration, margin realism, or ETF executable closes. Authenticate
+vendor vintages before drawing economic conclusions. This reuses the
+single existing multistage Portfolio consumer and changes no ledger
+or live-execution authority.
+
+
+For the one-step economic input, the caller can provide an explicit
+broker-side "maintenance_by_asset" array when the same margin schedule
+applies to every modeled return state. This eliminates the circular
+requirement to know the forecast's scenario count before constructing
+economic_contract. If the real brokerage requires different maintenance
+by liquidation/volatility state, use the original per-scenario
+"scenario_maintenance" matrix. Neither form supplies defaults.
