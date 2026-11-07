@@ -42,6 +42,7 @@ Choose the **current natural owner** by the fact or effect it controls; the repo
 | External evidence and authority currentness | [authority-catalog](catalogs/authorities/README.md) | Discovery, not execution |
 | Provider capability discovery | [capability-catalog](catalogs/capabilities/README.md) | Metadata, not authorization |
 | Durable artifact identity/content/read | [artifact](capabilities/artifact/README.md) | Artifact bytes and integrity |
+| Data-product interoperability, contract/lineage discovery | [data](packages/data/README.md) | Read-only cross-owner interoperability; source truth remains with producers |
 | Package and deliver products | [distribution](capabilities/distribution/README.md) | Destination receipts |
 | Retention/archive/restore | [preservation](capabilities/preservation/README.md) | Preservation and recoverability |
 | Media input/assets/render/encode | [media](capabilities/media/README.md) | Media output |

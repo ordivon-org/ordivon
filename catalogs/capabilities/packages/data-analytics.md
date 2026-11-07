@@ -1,6 +1,6 @@
 # Package: Data & Analytics
 
-Last census: 2026-09-20
+Last source review: 2026-11-07 (historical acceptance: 2026-09-22)
 
 Project-scoped data work: **READY_FOR_REAL_WORK**
 
@@ -65,13 +65,13 @@ Preservation evidence is bounded: the current master and replica occupy distinct
 
 Authoritative current projection:
 
-- `studies/data-lifecycle/data-lifecycle-census-r5.json`
-- `docs/DATA_PRODUCT_CONSUMPTION_FEEDBACK_R1.md`
-- `docs/DATA_PRODUCTS_FEDERATION_R1.md`
-- `docs/DATA_DURABLE_PRESERVATION_R1.md`
+- `studies/data-lifecycle/data-lifecycle-census-r6.json`
+- `docs/architecture/DATA_PRODUCT_CONSUMPTION_FEEDBACK_R1.md`
+- `docs/architecture/DATA_PRODUCTS_FEDERATION_R1.md`
+- `docs/architecture/DATA_DURABLE_PRESERVATION_R1.md`
 - `studies/data-lifecycle/evidence/preservation-r1/acceptance.json`
 
-R1–R4 census files remain historical evidence; R5 is current.
+R1–R5 census files remain historical evidence; R6 is the latest scoped census (not a new production deployment).
 
 Current shape:
 

@@ -1,0 +1,7 @@
+[tasks.verify]
+run = """
+set -euo pipefail
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+uv run --no-project --with pytest==9.1.1 python -m pytest -q ../../studies/data-lifecycle/tests
+python3 scripts/inspect_federation.py --verify-local >/dev/null
+"""

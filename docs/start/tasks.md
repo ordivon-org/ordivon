@@ -2,7 +2,7 @@
 
 Choose by the **outcome and authoritative fact or effect**, not by a
 technology label or directory name. The
-[20-owner task-to-authority table](../../README.md#where-to-start) is the
+[owner task-to-authority table](../../README.md#where-to-start) is the
 human navigation entry; [owners.toml](../../tools/repo/owners.toml) is
 the repository's mechanical ownership and verification-task mapping.
 Neither grants authority or proves that an Owner is installed and ready.
