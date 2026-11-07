@@ -20,7 +20,19 @@ The public canonical-JSON boundary has a real [Hypothesis](https://github.com/Hy
 property/regression test in `tests/test_canonical_property.py`. Run the local
 Owner's native `mise run test:focused`; select any existing pytest node with
 `HOST_PYTEST_NODE=tests/test_contract_policy.py mise run test:focused`.
-Both tasks invoke installed pytest directly, not a new harness. Use
+Both tasks invoke installed pytest directly, not a new harness.
+For a physical, locally repeatable PostgreSQL 18 qualification, run
+`mise run test:postgres:disposable` in `services/host`. This explicit
+Owner-native entrypoint reuses the existing Host queue script and its
+existing Docker `postgres:18` image, creates a random container name and password
+bound to a loopback-only ephemeral port, executes Alembic migrations and all
+existing real Host tests, and removes the test container on exit. It rejects
+an inherited `ORDIVON_HOST_V2_TEST_DSN` rather than risk running local
+disposable acceptance against a shared or production database. The default
+`mise run queue` retains its original GitHub-hosted auto-provision boundary;
+outside that runner it requires an explicit independent TEST_DSN.
+
+Use
 `mise run verify` for the full Host Owner test gate; it can legitimately
 report database cases as SKIP without a database DSN, so focused/unit PASS
 never claims PostgreSQL integration qualification.
@@ -48,6 +60,35 @@ per-module constants. The read-side Work.get accepts revisions up to the
 signed BIGINT maximum, while Work.snapshot.commit requires a strictly lower
 expectedRevision so an increment can be represented; both the native MCP
 input and the WorkStore boundary enforce these domains.
+
+### R2.1 declaration: Host Work snapshot compare-and-swap
+
+This is **one independent formally DECLARED implementation-backed capability
+LEGO**, not a declaration of all Host functions or an admission registry. The
+effective contract is the existing `WorkStore.commit_snapshot` public behavior:
+
+| Typed R2.1 coordinate | Host Work snapshot CAS interpretation |
+| --- | --- |
+| I | WorkRef, exact expectedRevision: int in [1, 2^63-2], WorkSnapshotInput, ActorRef, WorkState, ClientRequestId |
+| O | Work readback with committed/existing admission, or a typed conflict/error; no claim of semantic Work completion |
+| S | Actual Host PostgreSQL works, work_snapshots, actor_refs and command receipt rows in one transaction |
+| pre | Exact bounded integer, valid typed payload/actor; a new commit requires current revision = expected and current state = open |
+| post | On new commit revision increments by exactly one and current snapshot digest matches the canonical payload; exact replay or matching next revision yields existing, incompatible request conflicts |
+| inv | At most one *different* snapshot can win the same expected revision; current Work pointer and immutable snapshot row agree; terminal Work cannot be reopened through a new commit |
+| eff | Atomic PostgreSQL row-lock/CAS, snapshot insert and durable idempotency receipt; no Runtime Job or external domain effect |
+| c | UNKNOWN(reason=unmeasured transaction latency under realistic contention, scope=Host PG18 Work CAS, obligation=record consumer-relevant cost if optimizing) |
+| epsilon | UNKNOWN(reason=no general quantified external availability/failure bound, scope=database/deployment effects, obligation=qualify installed PG consumer); pure revision arithmetic is exact |
+| prov | Actual code in `src/ordivon_host_v2/work_store.py` and `work_queries.py`; locked CrossHair 0.0.112 source contract, real PostgreSQL 18 Alembic/pytest via `mise run test:postgres:disposable`, exact SourceCut is the tested Git revision |
+| unfold | `WorkStore.commit_snapshot` -> claim_command_receipt -> _next_work_revision / canonical_digest -> PostgreSQL conditional UPDATE / INSERT -> _get_work_in_tx -> record_command_receipt |
+
+Evidence standing is **DECLARATION_COMPLETE** for this scoped contract; the
+native CrossHair confirms the called revision arithmetic only, while the
+disposable PostgreSQL 18 test suite covers **specific actual transaction and
+consumer scenarios**. Neither provides a universal deductive proof of
+PostgreSQL concurrency, a Rust/TLA-style refinement of all SQL operations,
+an installed production SourceCut witness, or DOMAIN_ACCEPTED. Preserve these
+distinct proof obligations; do not delete the real CAS/race/replay tests merely
+because the revision increment has a source-level proof.
 
 ## Current product surface
 

@@ -19,6 +19,17 @@ set -euo pipefail
 uv run python -m pytest -q "${HOST_PYTEST_NODE:-tests/test_canonical_property.py}"
 """
 
+[tasks."test:postgres:disposable"]
+description = "Host real PostgreSQL 18 + Alembic + queue consumers in isolated loopback Docker; no production DSN"
+run = """
+set -euo pipefail
+if printenv ORDIVON_HOST_V2_TEST_DSN >/dev/null; then
+  echo "HOST_DISPOSABLE_REJECTS_INHERITED_DSN: use an isolated fresh test database" >&2
+  exit 2
+fi
+ORDIVON_HOST_QUEUE_LOCAL_DISPOSABLE=1 bash tools/host_queue_verify.sh
+"""
+
 [tasks.queue]
 run = """
 set -euo pipefail
