@@ -397,6 +397,50 @@ class PostgresWakeTurnMap:
                     db.execute("ROLLBACK")
                 raise
 
+    def activate_empty_fresh(self, legacy_source: Path) -> dict[str, Any]:
+        """Operator-only empty PG activation; never imports SQLite history.
+
+        Admission requires all legacy wake producers to be quiesced externally
+        before selecting this PG owner. Absence of a legacy file is NOT proof
+        of quiescence; deployers must explicitly retire the old consumers.
+        The marker uses the existing transactional PG cutover authority.
+        """
+        source = Path(legacy_source)
+        if source.exists():
+            raise WakeTurnConflict("fresh PG wake activation requires absent SQLite source")
+        with psycopg.connect(self.dsn) as pg:
+            with pg.transaction():
+                pg.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+                pg.execute("SELECT pg_advisory_xact_lock(%s)", (self._CUTOVER_ADVISORY_KEY,))
+                if source.exists():
+                    raise WakeTurnConflict("SQLite wake source appeared during PG activation")
+                if pg.execute(
+                    "SELECT 1 FROM ordivon_harness.wake_turn_map LIMIT 1"
+                ).fetchone():
+                    raise WakeTurnConflict(
+                        "fresh PG wake activation refuses existing destination identities"
+                    )
+                marker = pg.execute(
+                    "SELECT state FROM ordivon_harness.wake_cutover "
+                    "WHERE cutover_id='legacy' FOR UPDATE"
+                ).fetchone()
+                if marker is not None and marker[0] != "ACTIVE":
+                    raise WakeTurnConflict(
+                        "fresh PG wake activation refuses pending historical cutover"
+                    )
+                if marker is None:
+                    pg.execute(
+                        "INSERT INTO ordivon_harness.wake_cutover "
+                        "(cutover_id,state) VALUES('legacy','ACTIVE')"
+                    )
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.wake-turn-pg-cutover",
+            "migrationStanding": "fresh-empty-activated",
+            "sourceRows": 0,
+            "postgresRows": 0,
+        }
+
     def assert_legacy_sealed(self, source: Path, *, fresh_bootstrap: bool = False) -> None:
         """Check source identity continuity, not merely presence of a cutover flag.
 

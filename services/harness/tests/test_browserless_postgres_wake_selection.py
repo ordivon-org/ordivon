@@ -80,3 +80,47 @@ def test_unsealed_legacy_state_fails_closed_before_any_pg_write(
         service.launch_wake(
             tmp_path / "spec.json", CAMPAIGN_REF, "A01", wake_intent_id="wake:task-1", prompt="hello"
         )
+
+
+def test_explicit_fresh_wake_routes_to_pg_without_sqlite(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    service = _service(tmp_path)
+    monkeypatch.setenv("ORDIVON_WAKE_TURN_POSTGRES_DSN", "host=disposable-pg")
+    monkeypatch.setenv("ORDIVON_WAKE_TURN_FRESH_BOOTSTRAP", "1")
+    calls: list[str] = []
+
+    class FreshOwner:
+        def __init__(self, dsn: str) -> None:
+            assert dsn == "host=disposable-pg"
+            calls.append("PG")
+
+        def assert_legacy_sealed(self, source: Path, *, fresh_bootstrap: bool = False) -> None:
+            assert source == service.config.turn_ledger
+            assert fresh_bootstrap is True
+            calls.append("fresh-source-absent")
+
+        def allocate(self, **kwargs: str):
+            calls.append("allocate")
+            return {"turnRequestId": TURN_ID}
+
+    monkeypatch.setattr(postgres_wake_turn_map, "PostgresWakeTurnMap", FreshOwner)
+    monkeypatch.setattr(browserless, "SQLiteWakeTurnMap", Mock(side_effect=AssertionError("SQLite fallback")))
+    result = service.launch_wake(
+        tmp_path / "spec.json", CAMPAIGN_REF, "A01", wake_intent_id="wake:fresh", prompt="hello"
+    )
+    assert calls == ["PG", "fresh-source-absent", "allocate"]
+    assert result["turnRequestId"] == TURN_ID
+
+
+def test_fresh_pg_without_dsn_fails_closed_before_any_sqlite(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    service = _service(tmp_path)
+    monkeypatch.delenv("ORDIVON_WAKE_TURN_POSTGRES_DSN", raising=False)
+    monkeypatch.setenv("ORDIVON_WAKE_TURN_FRESH_BOOTSTRAP", "1")
+    monkeypatch.setattr(browserless, "SQLiteWakeTurnMap", Mock(side_effect=AssertionError("SQLite fallback")))
+    with pytest.raises(browserless.BrowserlessAutomationConflict, match="SQLite fallback prohibited"):
+        service.launch_wake(
+            tmp_path / "spec.json", CAMPAIGN_REF, "A01", wake_intent_id="wake:fresh", prompt="hello"
+        )

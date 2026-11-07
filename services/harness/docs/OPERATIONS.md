@@ -118,6 +118,39 @@ old SQLite writes. Native tests use an isolated disposable PostgreSQL and
 temporary SQLite fixtures, never deployed data.
 
 
+### Fresh PostgreSQL Wake/Turn identities (no historical SQLite import)
+
+When the operator explicitly discards **all prior wake/turn runtime identities**,
+the existing PostgreSQL Wake Owner can admit an empty epoch without copying
+SQLite. This is **not** permission to replay or resend an ambiguous external
+effect: stop and reconcile old Browserless/Temporal workers and unfinished
+Provider sends *before* selecting fresh identity, then prove the exact legacy
+wake ledger is absent. Merely deleting an open SQLite path is not process
+quiescence. Coordinate the deployed consumer atomically with the PG authority.
+
+After provisioning an isolated PostgreSQL database, invoke the already
+installed PG Owner in an operator-only process (not on a Provider effect path):
+
+    export ORDIVON_WAKE_TURN_POSTGRES_DSN='postgresql://...'
+    python -c 'import os; from pathlib import Path; from scripts.postgres_wake_turn_map import PostgresWakeTurnMap; print(PostgresWakeTurnMap(os.environ["ORDIVON_WAKE_TURN_POSTGRES_DSN"]).activate_empty_fresh(Path("/exact/absent/old-turn-ledger.sqlite")))'
+
+This commits only the existing PG `wake_cutover=ACTIVE` marker after proving
+zero destination rows; it rejects a present old source, a pending historical
+migration, or a pre-populated destination. It cannot independently prove no
+old process will recreate SQLite. Once old writers are stopped, enable the
+consumer with **both**:
+
+    ORDIVON_WAKE_TURN_POSTGRES_DSN=...
+    ORDIVON_WAKE_TURN_FRESH_BOOTSTRAP=1
+
+The consumer checks the absent legacy path at each wake and sends all new
+wake identities to PostgreSQL. With the fresh flag set but no PG DSN, the
+consumer **fails closed** rather than writing an SQLite identity. Without the
+explicit fresh flag the prior sealed-source migration requirement remains.
+This Wake cutover does not by itself switch Harness Run/CAS, conversation
+materialization, conversation role-binding, or Turn Effect send receipts.
+Do not mark those separate Owners as cut over.
+
 ### PG-first Turn Effects: retire legacy effect writer (explicit operator cutover)
 
 `PostgresTurnEffects.stage_legacy` deliberately stays `PENDING`; it is a copy,
