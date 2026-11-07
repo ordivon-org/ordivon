@@ -56,20 +56,12 @@ Chrome 使用 **自身的原生 Windows 策略**，而不是 Surfshark 桌面 GU
 
 验证时可以使用 Chrome 原生无界面模式和新的临时配置目录，且**不要传入代理命令行参数**，否则无法证明策略自动生效。用完删除临时目录。这只能证明被测试的 Chrome HTTPS 请求，**不自动涵盖 WebRTC、所有扩展、DNS/IPv6 泄漏或正常登录资料是否选择了相同设置**。不需要新建专用 Chrome 启动器。
 
-### 3. Windows Codex / ChatGPT 走专用代理
+### 3. Windows Codex / ChatGPT锛氭甯稿惎鍔ㄨ嚜鍔ㄦ帴鍏?VPN
 
-专用代理端口为 **127.0.0.1:19982**。我们不需要修改整个 Windows 的全局代理。
-
-- 对新的 Codex CLI 进程，可以在其进程环境内配置 HTTP_PROXY 和 HTTPS_PROXY，指向该端口。
-- 用户目录下 .codex/.env 的更改不会追溯到已经运行的进程。已经打开的 ChatGPT/Codex 需要检查自己的实际进程环境。
-- 网络诊断可使用 Codex 原生 doctor --network-only --json；但是它只能证明被诊断的进程，不能代表所有旧桌面进程。
-
-需要检查旧进程的代理继承和 TCP 套接字时，在 Windows 交互用户环境执行源码提供的一次性只读工具（复用成熟的 psutil）：
-
-    uv run --no-project --with "psutil>=7,<8" python consumers/codex/windows_process_egress.py
-
-工具只报告进程名、PID、代理变量是否匹配以及连接数量，不显示凭据、远程 IP 或命令行。即便代理变量和连接可见，它仍会输出 END_TO_END_EGRESS_UNKNOWN；要提升结论，必须用真实应用请求与独立 Carrier 观测关联。**不必为了检测而强制退出当前 ChatGPT 桌面会话。**
-
+褰撳墠 Windows 浜や簰鐢ㄦ埛鐨勭郴缁熶唬鐞嗘寚鍚?Ordivon 鐨?127.0.0.1:19781锛孿nCodex 鐨勫師鐢?respect_system_proxy 鍔熻兘宸插惎鐢ㄣ€傜洿鎺ョ偣鍑绘闈㈠簲鐢╘n鍗冲彲浣跨敤宸查厤缃殑浠ｇ悊锛屼笉闇€瑕?PowerShell 鍖呰鑴氭湰鎴栫壒娈婂惎鍔ㄥ懡浠ゃ€俓n
+Linux 鐨?127.0.0.1:19982 鏄?*鍙︿竴涓寖鍥村彈闄愮殑 Codex Consumer**锛孿n骞堕潪 Windows Desktop 鐨勯粯璁ょ綉缁滅瓥鐣ャ€侰hrome 鍒欎娇鐢ㄨ嚜宸辩殑鍘熺敓浠ｇ悊绛栫暐銆俓n
+楠屾敹椤哄簭锛氱郴缁熶唬鐞嗕笌 Codex 璁剧疆 鈫?瀹為檯妗岄潰杩涚▼鐨勬湰鍦颁唬鐞嗚繛鎺n鈫?搴旂敤鑷繁鐨勭湡瀹?HTTPS 璇锋眰 鈫?Network 涓嬫父 Consumer 涓?Gluetun銆俓n鏈夐檺鐨?TCP 鏍锋湰涓嶈兘璇佹槑鎵€鏈?DNS銆乁DP 鎴栨彃浠惰矾寰勫潎鏃犵粫琛屻€俓nWindows 閰嶇疆鎸佷箙鍖栧綊 Workstation锛汵etwork 璐熻矗杞戒綋銆佸彈闄愯矾鐢卞拰
+鐪熷疄娑堣垂鑰呴獙鏀躲€傛棫鐨勬墜鍔?CLI 鍚姩鍣ㄥ凡閫€褰癸紝涓嶅簲閲嶆柊寮曞叆銆俓n
 ### 4. 让 iPad 或 iPhone 使用电脑提供的 VPN 出口
 
 服务器已通过 Tailscale 广告批准的 Exit Node：**ordivon-surfshark-exit**。
@@ -81,6 +73,14 @@ Chrome 使用 **自身的原生 Windows 策略**，而不是 Surfshark 桌面 GU
 
 如果某台 iOS 设备离线，服务器无法代替它完成选择和出口验收。服务端运行正常 ≠ 手机流量已经被转发。
 
+### 鍚屼竴灞€鍩熺綉鐨?iPad 鐩磋繛浼樺寲
+
+褰撳墠鍚屼竴 LAN 鍐呭凡瀹炴祴锛歩Pad 鍒板嚭鍙ｈ妭鐐圭敱涓滀含 DERP 涓户绾?400ms
+鏀瑰杽涓?Tailscale 鐩磋繛绾?8鈥?ms銆備娇鐢?Gluetun 瀹樻柟鏀寔鐨刓nFIREWALL_OUTBOUND_SUBNETS=192.168.0.0/24 瀹炵幇灞€鍩熺綉閫氫俊銆俓n
+**娉ㄦ剰锛氳繖鏄鏁翠釜灞€鍩熺綉缃戞鐨勫嚭绔欎緥澶栵紝涓嶆槸浠呮斁琛屼竴涓?UDP 绔彛銆?*
+鍏綉璇锋眰浠嶉』閫氳繃 Surfshark銆俰Pad 鍒囨崲鍒板叾浠栫綉缁滃悗鍙兘鎭㈠浣跨敤
+DERP锛涘鏋滃搴?LAN 缃戞鏇存敼锛岄渶瑕侀噸鏂版鏌?CIDR銆佸疄闄呰矾鐢便€乗n瀹㈡埛绔?IPinfo 涓?DNS锛屼笉鑳藉彧鍑?Exit Node 鏄剧ず READY 灏遍獙鏀躲€俓n
+Surfshark 褰撳墠娌℃湁鍙敤鐨勫叕缃?IPv6 鍑哄彛锛屼笉蹇呰拷姹?IPv6 寰楀垎锛孿n浣嗕篃涓嶅緱璁?IPv6 缁曡繃宸查€変腑鐨勫嚭鍙ｇ洿鎺ヨ闂叕缃戙€俓n
 ### 5. 改配置或恢复服务
 
 提交代码前，从 platform/network/ 执行：

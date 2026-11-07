@@ -41,6 +41,8 @@ def test_wireguard_materialization_is_native_and_does_not_expose_private_key():
     assert 'SERVER_REGIONS="Asia Pacific"' in env
     assert "SERVER_COUNTRIES=Singapore,Japan" in env
     assert "UPDATER_PERIOD=480h" in env
+    # Existing Gluetun-native LAN route retains on-LAN Tailnet directness.
+    assert env.count("FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/24") == 1
     assert "HEALTH_RESTART_VPN=on" in env
     assert "HEALTH_TARGET_ADDRESSES=1.1.1.1:443,8.8.8.8:443" in env
     assert env.count("DNS_UPSTREAM_RESOLVER_TYPE=dot") == 1

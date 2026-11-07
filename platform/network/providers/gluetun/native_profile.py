@@ -78,6 +78,10 @@ def generate_env(inherited: dict[str, str], interface_address: str) -> str:
         'SERVER_REGIONS="Asia Pacific"',
         f"SERVER_COUNTRIES={COUNTRIES}",
         "UPDATER_PERIOD=480h",
+        # Local LAN underlay for the approved mobile Tailnet exit.
+        # Gluetun-native CIDR-wide exception; NOT UDP-port-only.
+        # Requalify public VPN egress and direct path if local LAN changes.
+        "FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/24",
         "HEALTH_RESTART_VPN=on",
         # The VPN startup check must not depend on its own DNS layer.
         # Both IP identities have independently validated TLS certificates.
