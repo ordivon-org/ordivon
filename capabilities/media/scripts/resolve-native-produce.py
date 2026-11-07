@@ -54,7 +54,6 @@ def main() -> int:
     args = ap.parse_args()
     if min(args.width, args.height, args.fps, args.timeout) <= 0:
         ap.error("width, height, fps and timeout must be positive")
-        ap.error("max-frames must be positive")
     if args.grade_saturation is not None and not (0 <= args.grade_saturation <= 4):
         ap.error("grade-saturation must be 0..4")
     if not args.name or any(c in args.name for c in '<>:"/\\|?*'):
