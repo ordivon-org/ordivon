@@ -78,7 +78,6 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     'services/harness/scripts/sqlite_conversation_materializer.py': 1,
     'services/harness/scripts/sqlite_wake_turn_map.py': 3,
     'services/harness/src/ordivon_harness/sqlite_store.py': 2,
-    'services/harness/src/ordivon_harness/store_ops.py': 3,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/doctor.rs': 1,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/error.rs': 1,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/inspection.rs': 1,
