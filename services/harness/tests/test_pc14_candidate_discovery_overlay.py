@@ -23,8 +23,8 @@ from ordivon_harness.ordivon.model import (
     ScriptedTurnAdapter,
 )
 from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRequestMismatch
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.run_state import HarnessRunState
 from ordivon_harness.sqlite_store import HarnessObjectMissing, SQLiteHarnessStore
 from ordivon_harness.working_view import (
@@ -38,7 +38,7 @@ from ordivon_harness.working_view import (
     overlay_working_view,
 )
 
-from tests.test_p0_sqlite_runtime_bridge import (
+from tests.test_p0_runtime_bridge import (
     FakeRuntime,
     FixedClock,
     budget,
@@ -203,7 +203,7 @@ class RawCandidateRuntime(FakeRuntime):
         return value
 
 
-class MaterializingDiscoveryRuntimeBridge(SQLiteHarnessRuntimeBridge):
+class MaterializingDiscoveryRuntimeBridge(HarnessRuntimeBridge):
     """Domain adapter that turns discovered raw content into exact Harness sources."""
 
     def __init__(self, *args, **kwargs) -> None:
@@ -277,7 +277,7 @@ class MaterializingDiscoveryRuntimeBridge(SQLiteHarnessRuntimeBridge):
         return retained
 
 
-class DiscoveryOverlayRuntimeBridge(SQLiteHarnessRuntimeBridge):
+class DiscoveryOverlayRuntimeBridge(HarnessRuntimeBridge):
     """Test domain adapter: discovery semantics stay outside generic Harness."""
 
     def __init__(self, *args, **kwargs) -> None:
@@ -311,7 +311,7 @@ class CandidateOverlayProjector:
     def __init__(
         self,
         store: SQLiteHarnessStore,
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: EventSourcedRunContinuity,
         bridge: DiscoveryOverlayRuntimeBridge,
     ) -> None:
         self.base = WorkingSetViewProjector(store, continuity)
@@ -327,7 +327,7 @@ class ArbitraryAppendingProjector:
     def __init__(
         self,
         store: SQLiteHarnessStore,
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: EventSourcedRunContinuity,
     ) -> None:
         self.base = WorkingSetViewProjector(store, continuity)
 
@@ -344,7 +344,7 @@ class ReplacingProjector:
     def __init__(
         self,
         store: SQLiteHarnessStore,
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: EventSourcedRunContinuity,
     ) -> None:
         self.base = WorkingSetViewProjector(store, continuity)
 
@@ -360,7 +360,7 @@ class ReplacingProjector:
 class CandidateDiscoveryOverlayTests(unittest.TestCase):
     @staticmethod
     def prepare_sources(
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: EventSourcedRunContinuity,
     ) -> tuple[
         HarnessWorkingSetSpec,
         HarnessWorkingSetPin,
@@ -426,7 +426,7 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
             run_contract = private_discovery_contract(f"pc14-{mode}")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 committed_a, pin_b, pin_c, source_a, source_b, source_c = (
@@ -549,7 +549,7 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
             run_contract = private_discovery_contract("pc14-raw-materialization")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 source_a = HarnessWorkingViewSource(
@@ -710,7 +710,7 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
             run_contract = private_discovery_contract("pc14-forged-overlay-history")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 committed_a, _, _, _, _, _ = self.prepare_sources(continuity)
@@ -836,7 +836,7 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
             run_contract = private_discovery_contract("pc14-unbound-overlay")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 self.prepare_sources(continuity)
@@ -880,7 +880,7 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
             run_contract = private_discovery_contract("pc14-replace-rejected")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 self.prepare_sources(continuity)
@@ -922,7 +922,7 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
             run_contract = private_discovery_contract("pc14-no-provider")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 committed_a, pin_b, _, _, _, _ = self.prepare_sources(continuity)

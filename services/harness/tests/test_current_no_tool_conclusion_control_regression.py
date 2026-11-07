@@ -14,12 +14,12 @@ from ordivon_harness.ordivon.model import (
     AgentTurnResult,
     ScriptedTurnAdapter,
 )
-from ordivon_harness.ordivon.sqlite_agent_bridge import (
+from ordivon_harness.ordivon.agent_bridge import (
     NO_TOOL_AGENT_GRANT_DIGEST,
     NO_TOOL_AGENT_SURFACE_DIGEST,
-    SQLiteHarnessAgentBridge,
+    HarnessAgentBridge,
 )
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 
 DIGEST_A = "sha256:" + "a" * 64
@@ -109,8 +109,8 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             root = Path(directory) / "state"
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract)
-            bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            continuity = EventSourcedRunContinuity(store, run_contract)
+            bridge = HarnessAgentBridge(run_contract, continuity)
             result = OrdivonAgentLoop(adapter, bridge, budget=budget).run(
                 harness_run_id=run_contract.harness_run_id,
                 assignment_id=continuity.binding.assignment_id,
@@ -173,10 +173,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             root = Path(directory) / "state"
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract)
+            continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
                 adapter,
-                SQLiteHarnessAgentBridge(run_contract, continuity),
+                HarnessAgentBridge(run_contract, continuity),
                 budget=budget,
             ).run(
                 harness_run_id=run_contract.harness_run_id,
@@ -237,10 +237,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             root = Path(directory) / "state"
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract)
+            continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
                 adapter,
-                SQLiteHarnessAgentBridge(run_contract, continuity),
+                HarnessAgentBridge(run_contract, continuity),
                 budget=budget,
             ).run(
                 harness_run_id=run_contract.harness_run_id,
@@ -291,10 +291,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             root = Path(directory) / "state"
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract)
+            continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
                 adapter,
-                SQLiteHarnessAgentBridge(run_contract, continuity),
+                HarnessAgentBridge(run_contract, continuity),
                 budget=budget,
             ).run(
                 harness_run_id=run_contract.harness_run_id,
@@ -359,10 +359,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             root = Path(directory) / "state"
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract)
+            continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
                 adapter,
-                SQLiteHarnessAgentBridge(run_contract, continuity),
+                HarnessAgentBridge(run_contract, continuity),
                 budget=budget,
             ).run(
                 harness_run_id=run_contract.harness_run_id,
@@ -422,10 +422,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             root = Path(directory) / "state"
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract)
+            continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
                 adapter,
-                SQLiteHarnessAgentBridge(run_contract, continuity),
+                HarnessAgentBridge(run_contract, continuity),
                 budget=budget,
             ).run(
                 harness_run_id=run_contract.harness_run_id,
@@ -478,10 +478,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             root = Path(directory) / "state"
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract)
+            continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
                 adapter,
-                SQLiteHarnessAgentBridge(run_contract, continuity),
+                HarnessAgentBridge(run_contract, continuity),
                 budget=budget,
             ).run(
                 harness_run_id=run_contract.harness_run_id,

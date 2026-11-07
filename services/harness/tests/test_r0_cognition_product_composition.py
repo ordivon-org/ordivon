@@ -18,9 +18,9 @@ from ordivon_harness.ordivon.model import (
     ScriptedTurnAdapter,
     static_provider_request_digest,
 )
-from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.standalone import (
     HarnessCognitionProfile,
@@ -37,7 +37,7 @@ from ordivon_harness.working_view import (
 )
 
 from tests.test_p0_sqlite_agent_loop import FixedClock, contract
-from tests.test_p0_sqlite_runtime_bridge import FakeRuntime, execution_binding
+from tests.test_p0_runtime_bridge import FakeRuntime, execution_binding
 from tests.test_pc15_epistemic_control import private_contract, run_budget
 
 
@@ -260,9 +260,9 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
             clock = FixedClock()
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
+            continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
             adapter = CaptureNeedsInputAdapter("bootstrap")
-            bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            bridge = HarnessAgentBridge(run_contract, continuity)
             execution = self.runner(
                 run_contract, continuity, adapter, bridge, clock
             ).run((), cognition_seed=self.seed())
@@ -291,7 +291,7 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
             clock = FixedClock()
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
+            continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
             seed = self.seed()
             stored = continuity.store_working_view_source(seed.sources[0].source)
             initial = HarnessWorkingSetSpec.initial(
@@ -307,7 +307,7 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
             )
             continuity.record_working_set(initial)
             adapter = CaptureNeedsInputAdapter("bootstrap-recovery")
-            bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            bridge = HarnessAgentBridge(run_contract, continuity)
 
             execution = self.runner(
                 run_contract, continuity, adapter, bridge, clock
@@ -325,9 +325,9 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
             clock = FixedClock()
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
+            continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
             first_adapter = CaptureNeedsInputAdapter("first-boundary")
-            first_bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            first_bridge = HarnessAgentBridge(run_contract, continuity)
             first = self.runner(
                 run_contract, continuity, first_adapter, first_bridge, clock
             ).run((), cognition_seed=self.seed())
@@ -335,7 +335,7 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
 
             retained = continuity.load_current_snapshot()
             adapter = PromotionThenTransitionAdapter()
-            bridge = SQLiteHarnessAgentBridge(
+            bridge = HarnessAgentBridge(
                 run_contract,
                 continuity,
                 provider_source=continuity.snapshot_provider_source(retained),
@@ -378,8 +378,8 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
             clock = FixedClock()
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
-            bridge = SQLiteHarnessRuntimeBridge(
+            continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
+            bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -421,8 +421,8 @@ class R0CognitionProductCompositionTests(unittest.TestCase):
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
             clock = FixedClock()
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
-            bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
+            bridge = HarnessAgentBridge(run_contract, continuity)
             runner = StandaloneHarnessRunner(
                 run_contract,
                 continuity,

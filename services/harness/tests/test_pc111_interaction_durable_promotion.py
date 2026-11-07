@@ -16,9 +16,9 @@ from ordivon_harness.ordivon.model import (
     AgentTurnResult,
     ScriptedTurnAdapter,
 )
-from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.working_view import (
     AgentCallerIngressPromotionProposal,
@@ -29,7 +29,7 @@ from ordivon_harness.working_view import (
     WorkingSetViewProjector,
 )
 
-from tests.test_p0_sqlite_runtime_bridge import FakeRuntime, FixedClock, execution_binding
+from tests.test_p0_runtime_bridge import FakeRuntime, FixedClock, execution_binding
 from tests.test_pc13_agent_owned_working_set import cognition_budget, cognition_contract
 from tests.test_pc14_candidate_discovery_overlay import transition_turn
 from tests.test_pc15_epistemic_control import (
@@ -57,7 +57,7 @@ def promotion_turn(
     )
 
 
-class LosePromotionCompletionBridge(SQLiteHarnessRuntimeBridge):
+class LosePromotionCompletionBridge(HarnessRuntimeBridge):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.injected = False
@@ -197,7 +197,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
         store = SQLiteHarnessStore.initialize(root)
         store.create_run(run_contract)
         clock = FixedClock()
-        continuity = SQLiteHarnessRunContinuityStore(
+        continuity = EventSourcedRunContinuity(
             store,
             run_contract,
             clock_ms=clock,
@@ -225,7 +225,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
         )
         continuity.record_working_set(initial)
         continuity.record_working_set(initial.commit("seed PC111 source A"))
-        bridge = SQLiteHarnessRuntimeBridge(
+        bridge = HarnessRuntimeBridge(
             run_contract,
             continuity,
             execution_binding(run_contract, continuity),
@@ -304,7 +304,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                     ),
                 )
             )
-            resume_bridge = SQLiteHarnessRuntimeBridge(
+            resume_bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -357,7 +357,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -367,7 +367,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                 final_adapter = ScriptedTurnAdapter(
                     (needs_input_turn("pc111-final-pause", "inspect durable result"),)
                 )
-                final_bridge = SQLiteHarnessRuntimeBridge(
+                final_bridge = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),
@@ -421,7 +421,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             adapter = ScriptedTurnAdapter(
                 (needs_input_turn("pc111-no-auto-next-pause", "do not promote caller input"),)
             )
-            resume_bridge = SQLiteHarnessRuntimeBridge(
+            resume_bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -480,7 +480,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                 basis="malformed attempt to select absent caller bytes",
             )
             adapter = ScriptedTurnAdapter((promotion_turn("bad-index", proposal),))
-            resume_bridge = SQLiteHarnessRuntimeBridge(
+            resume_bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -561,7 +561,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -573,7 +573,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                         "promotion replayed; inspect the successor cognition",
                     ),)
                 )
-                replay_bridge = SQLiteHarnessRuntimeBridge(
+                replay_bridge = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),
@@ -661,7 +661,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                     ),
                 )
             )
-            resume_bridge = SQLiteHarnessRuntimeBridge(
+            resume_bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -732,7 +732,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             adapter = ScriptedTurnAdapter(
                 (promotion_turn("repeat-first", first), promotion_turn("repeat-second", second))
             )
-            resume_bridge = SQLiteHarnessRuntimeBridge(
+            resume_bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -770,7 +770,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             run_contract = cognition_contract("pc111-model-only-promotion")
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store,
                 run_contract,
                 clock_ms=clock,
@@ -795,7 +795,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
             continuity.record_working_set(initial.commit("seed model-only base"))
             self.assertTrue(run_contract.privacy.allow_model_content)
             self.assertFalse(run_contract.privacy.allow_tool_content)
-            first_bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            first_bridge = HarnessAgentBridge(run_contract, continuity)
             first = OrdivonAgentLoop(
                 ScriptedTurnAdapter(
                     (needs_input_turn("pc111-model-only-pause", "caller fact required"),)
@@ -826,7 +826,7 @@ class InteractionDurablePromotionTests(unittest.TestCase):
                     needs_input_turn("pc111-model-only-final", "promotion complete"),
                 )
             )
-            second_bridge = SQLiteHarnessAgentBridge(
+            second_bridge = HarnessAgentBridge(
                 run_contract,
                 continuity,
                 provider_source=continuity.snapshot_provider_source(retained),

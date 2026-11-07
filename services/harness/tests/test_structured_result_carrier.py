@@ -20,8 +20,8 @@ from ordivon_harness.ordivon.model import (
     AgentTurnResult,
     ScriptedTurnAdapter,
 )
-from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.standalone import StandaloneHarnessRunner
 from tests.test_p0_sqlite_agent_loop import FixedClock
@@ -94,7 +94,7 @@ class StructuredResultCarrierTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             store = SQLiteHarnessStore.initialize(Path(directory) / "state")
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store,
                 run_contract,
                 clock_ms=clock,
@@ -103,7 +103,7 @@ class StructuredResultCarrierTests(unittest.TestCase):
                 run_contract,
                 continuity,
                 adapter,
-                SQLiteHarnessAgentBridge(run_contract, continuity),
+                HarnessAgentBridge(run_contract, continuity),
                 budget=RunBudget.from_contract_dict(run_contract.budget),
                 clock_ms=clock,
                 monotonic_ms=clock,

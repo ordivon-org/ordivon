@@ -529,8 +529,8 @@ class SQLiteHarnessStoreTests(unittest.TestCase):
                 )
 
     def test_operational_open_defers_unrelated_history_but_target_run_fails_closed(self) -> None:
-        from ordivon_harness.ordivon.sqlite_run_store import (
-            SQLiteHarnessRunContinuityStore,
+        from ordivon_harness.ordivon.run_continuity import (
+            EventSourcedRunContinuity,
         )
 
         with tempfile.TemporaryDirectory() as directory:
@@ -555,7 +555,7 @@ class SQLiteHarnessStoreTests(unittest.TestCase):
                 with self.assertRaises(HarnessJournalCorruption):
                     reopened.validate_run_history(contract_value.harness_run_id)
                 with self.assertRaises(HarnessJournalCorruption):
-                    SQLiteHarnessRunContinuityStore.open(
+                    EventSourcedRunContinuity.open(
                         reopened, contract_value.harness_run_id
                     )
                 with self.assertRaises(HarnessJournalCorruption):

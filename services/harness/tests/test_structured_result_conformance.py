@@ -19,8 +19,8 @@ from ordivon_harness.ordivon.model import (
     AgentTurnResult,
     ScriptedTurnAdapter,
 )
-from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.standalone import StandaloneHarnessRunner
 from ordivon_harness.structured_result_conformance import (
@@ -98,7 +98,7 @@ def turn(suffix: str, completion_contract, value) -> AgentTurnResult:
     )
 
 
-class CountingDomainGateBridge(SQLiteHarnessAgentBridge):
+class CountingDomainGateBridge(HarnessAgentBridge):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.validated_summaries: list[str] = []
@@ -285,7 +285,7 @@ class StructuredResultConformanceTests(unittest.TestCase):
             root = Path(directory) / "state"
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
+            continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
             bridge = CountingDomainGateBridge(run_contract, continuity)
             runner = StandaloneHarnessRunner(
                 run_contract,
@@ -326,8 +326,8 @@ class StructuredResultConformanceTests(unittest.TestCase):
             root = Path(directory) / "state"
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
-            bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
+            bridge = HarnessAgentBridge(run_contract, continuity)
             runner = StandaloneHarnessRunner(
                 run_contract,
                 continuity,

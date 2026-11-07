@@ -17,8 +17,8 @@ from ordivon_harness.ordivon.model import (
     static_provider_request_digest,
 )
 from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRequestMismatch
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.working_view import (
     AgentCallerIngressPromotionProposal,
@@ -31,7 +31,7 @@ from ordivon_harness.working_view import (
     WorkingSetViewProjector,
 )
 
-from tests.test_p0_sqlite_runtime_bridge import FakeRuntime, FixedClock, execution_binding
+from tests.test_p0_runtime_bridge import FakeRuntime, FixedClock, execution_binding
 from tests.test_pc111_interaction_durable_promotion import (
     deepseek_needs_input_response,
     promotion_turn,
@@ -120,7 +120,7 @@ class DurableCognitionSupersessionTests(unittest.TestCase):
         store = SQLiteHarnessStore.initialize(root)
         store.create_run(run_contract)
         clock = FixedClock()
-        continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
+        continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
         task = HarnessWorkingViewSource(
             logical_ref=f"source://pc112/{suffix}/task",
             logical_generation="generation:task",
@@ -155,7 +155,7 @@ class DurableCognitionSupersessionTests(unittest.TestCase):
         continuity.record_working_set(initial)
         continuity.record_working_set(initial.commit("seed task plus stale durable code"))
         runtime = FakeRuntime("direct")
-        bridge = SQLiteHarnessRuntimeBridge(
+        bridge = HarnessRuntimeBridge(
             run_contract,
             continuity,
             execution_binding(run_contract, continuity),
@@ -308,7 +308,7 @@ class DurableCognitionSupersessionTests(unittest.TestCase):
                 projector=projector, clock=clock,
             )
             adapter = CorrectionAdapter()
-            resume_bridge = SQLiteHarnessRuntimeBridge(
+            resume_bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),

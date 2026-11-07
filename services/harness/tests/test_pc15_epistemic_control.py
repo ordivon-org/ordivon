@@ -18,8 +18,8 @@ from ordivon_harness.ordivon.model import (
     AgentTurnResult,
     ScriptedTurnAdapter,
 )
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.working_view import (
     HarnessWorkingSetPin,
@@ -28,7 +28,7 @@ from ordivon_harness.working_view import (
     WorkingSetViewProjector,
 )
 
-from tests.test_p0_sqlite_runtime_bridge import (
+from tests.test_p0_runtime_bridge import (
     FakeRuntime,
     FixedClock,
     contract,
@@ -250,7 +250,7 @@ class EpistemicControlTests(unittest.TestCase):
         store = SQLiteHarnessStore.initialize(root)
         store.create_run(run_contract)
         clock = FixedClock()
-        continuity = SQLiteHarnessRunContinuityStore(
+        continuity = EventSourcedRunContinuity(
             store,
             run_contract,
             clock_ms=clock,
@@ -278,7 +278,7 @@ class EpistemicControlTests(unittest.TestCase):
         )
         continuity.record_working_set(initial)
         continuity.record_working_set(initial.commit("seed P-C1.5 base view"))
-        bridge = SQLiteHarnessRuntimeBridge(
+        bridge = HarnessRuntimeBridge(
             run_contract,
             continuity,
             execution_binding(run_contract, continuity),

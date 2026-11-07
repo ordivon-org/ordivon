@@ -8,11 +8,11 @@ import unittest
 from anc_canonical import canonical_digest
 
 from ordivon_harness.core_contracts import HarnessPrivacyPolicy
-from ordivon_harness.ordivon.sqlite_run_store import (
-    SQLiteHarnessRunContinuityStore,
+from ordivon_harness.ordivon.run_continuity import (
+    EventSourcedRunContinuity,
 )
 from ordivon_harness.ordivon.run_store_port import HarnessSuperseded
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.protocol import (
     HarnessProtocolError,
     HarnessRecoveryConsequence,
@@ -54,7 +54,7 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
         store = SQLiteHarnessStore.initialize(root)
         run_contract = contract() if run_contract is None else run_contract
         store.create_run(run_contract)
-        continuity = SQLiteHarnessRunContinuityStore(
+        continuity = EventSourcedRunContinuity(
             store,
             run_contract,
             clock_ms=clock,
@@ -177,7 +177,7 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
                 continuity.load_current_snapshot().snapshot,
                 retained.snapshot,
             )
-            arguments = SQLiteHarnessRuntimeBridge._with_dispatch_fence(
+            arguments = HarnessRuntimeBridge._with_dispatch_fence(
                 {"execution": {"foreignReferences": []}},
                 step.fence,
             )
@@ -229,7 +229,7 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore(
+                reopened = EventSourcedRunContinuity(
                     reopened_store,
                     run_contract,
                     clock_ms=clock,
@@ -361,7 +361,7 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore(
+                reopened = EventSourcedRunContinuity(
                     reopened_store,
                     run_contract,
                     clock_ms=clock,

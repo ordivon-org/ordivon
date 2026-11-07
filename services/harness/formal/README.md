@@ -5,11 +5,11 @@ exposed by Runtime. It is not a new Agent scheduler, source of truth, custom
 proof engine, or complete Python implementation-refinement proof.
 
 Owner source correspondence:
-- sqlite_run_store.py claim_provider_call: Claim, ExpireClaim, ReplaceExpiredClaim.
-- sqlite_run_store.py mark_provider_call_dispatching: AdmitDispatch with current
+- run_continuity.py claim_provider_call: Claim, ExpireClaim, ReplaceExpiredClaim.
+- run_continuity.py mark_provider_call_dispatching: AdmitDispatch with current
   holder and generation; durable fence before physical dispatch.
 - Actual Adapter.invoke: separate opaque PhysicalCall event.
-- sqlite_run_store.py complete_provider_call: CommitResult.
+- run_continuity.py complete_provider_call: CommitResult.
 - Caller-visible StandaloneHarnessRunner.run: DeliverAcknowledgement.
 - Lost response/uncertain physical effect: LoseKnowledge, no blind retry.
 

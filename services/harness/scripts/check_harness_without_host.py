@@ -17,8 +17,8 @@ from ordivon_harness.api import (
     RunBudget,
 )
 from ordivon_harness.ordivon.model import AgentRunConclusion, ScriptedTurnAdapter
-from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.standalone import StandaloneHarnessRunner
 
@@ -88,9 +88,9 @@ def main() -> int:
         root = Path(directory) / "state"
         with SQLiteHarnessStore.initialize(root) as store:
             store.create_run(contract)
-            continuity = SQLiteHarnessRunContinuityStore(store, contract, clock_ms=clock)
+            continuity = EventSourcedRunContinuity(store, contract, clock_ms=clock)
             adapter = ScriptedTurnAdapter((result,))
-            bridge = SQLiteHarnessAgentBridge(contract, continuity)
+            bridge = HarnessAgentBridge(contract, continuity)
             execution = StandaloneHarnessRunner(
                 contract,
                 continuity,
@@ -104,7 +104,7 @@ def main() -> int:
                 raise RuntimeError("Host-free Harness did not produce terminal evidence")
             receipt_digest = execution.terminal_result.receipt.digest
         with SQLiteHarnessStore(root) as reopened_store:
-            reopened = SQLiteHarnessRunContinuityStore.open(
+            reopened = EventSourcedRunContinuity.open(
                 reopened_store,
                 contract.harness_run_id,
                 clock_ms=clock,
@@ -113,7 +113,7 @@ def main() -> int:
                 contract,
                 reopened,
                 ScriptedTurnAdapter((result,)),
-                SQLiteHarnessAgentBridge(contract, reopened),
+                HarnessAgentBridge(contract, reopened),
                 budget=budget,
                 clock_ms=clock,
                 monotonic_ms=clock,

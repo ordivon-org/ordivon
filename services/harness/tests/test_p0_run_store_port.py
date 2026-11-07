@@ -8,7 +8,7 @@ import unittest
 from ordivon_harness.ordivon.run_store_port import (
     HarnessRunContinuityStore,
 )
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from tests.test_p0_sqlite_provider_store import MutableClock, contract
 
@@ -19,7 +19,7 @@ class HarnessRunStorePortTests(unittest.TestCase):
     def test_port_and_current_store_do_not_import_host(self) -> None:
         for relative in (
             "ordivon/run_store_port.py",
-            "ordivon/sqlite_run_store.py",
+            "ordivon/run_continuity.py",
         ):
             source = (ROOT / relative).read_text(encoding="utf-8")
             self.assertNotIn("ordivon_host", source)
@@ -37,7 +37,7 @@ class HarnessRunStorePortTests(unittest.TestCase):
         missing = sorted(
             name
             for name in required - {"harness_run_id"}
-            if not hasattr(SQLiteHarnessRunContinuityStore, name)
+            if not hasattr(EventSourcedRunContinuity, name)
         )
         self.assertEqual(missing, [])
         with tempfile.TemporaryDirectory() as directory:
@@ -45,18 +45,18 @@ class HarnessRunStorePortTests(unittest.TestCase):
             run_contract = contract()
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=MutableClock()
                 )
                 self.assertIsInstance(continuity, HarnessRunContinuityStore)
 
     def test_runtime_bridge_contract_depends_on_port_not_concrete_host_store(self) -> None:
-        source = (ROOT / "ordivon" / "sqlite_runtime_bridge.py").read_text(
+        source = (ROOT / "ordivon" / "runtime_bridge.py").read_text(
             encoding="utf-8"
         )
         self.assertNotIn("HostHarnessRunStore", source)
         annotation = inspect.signature(
-            SQLiteHarnessRunContinuityStore.__init__
+            EventSourcedRunContinuity.__init__
         ).parameters["contract"].annotation
         self.assertTrue(annotation)
 

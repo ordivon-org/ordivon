@@ -18,8 +18,8 @@ from ordivon_harness.ordivon.model import (
     ScriptedTurnAdapter,
 )
 from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRequestMismatch
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.working_view import (
     WORKING_SET_HISTORY_CONTROL_NAME,
@@ -31,7 +31,7 @@ from ordivon_harness.working_view import (
     compile_working_view,
 )
 
-from tests.test_p0_sqlite_runtime_bridge import FakeRuntime, FixedClock, execution_binding
+from tests.test_p0_runtime_bridge import FakeRuntime, FixedClock, execution_binding
 from tests.test_pc14_candidate_discovery_overlay import transition_turn
 from tests.test_pc15_epistemic_control import (
     CaptureTransport,
@@ -176,7 +176,7 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
     @staticmethod
     def seed_history(
         store: SQLiteHarnessStore,
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: EventSourcedRunContinuity,
     ) -> tuple[
         HarnessWorkingViewSource,
         HarnessWorkingViewSource,
@@ -322,12 +322,12 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
             )
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
+                continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
                 source_a, source_k, source_u, pin_a, pin_k, pin_u = self.seed_history(
                     store, continuity
                 )
                 runtime = FakeRuntime("direct")
-                bridge = SQLiteHarnessRuntimeBridge(
+                bridge = HarnessRuntimeBridge(
                     run_contract,
                     continuity,
                     execution_binding(run_contract, continuity),
@@ -397,12 +397,12 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
             )
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
+            continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
             source_a, _source_k, _source_u, _pin_a, pin_k, _pin_u = self.seed_history(
                 store, continuity
             )
             runtime = FakeRuntime("direct")
-            bridge = SQLiteHarnessRuntimeBridge(
+            bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -437,7 +437,7 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -451,7 +451,7 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
                         ),
                     )
                 )
-                replay_bridge = SQLiteHarnessRuntimeBridge(
+                replay_bridge = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),
@@ -490,7 +490,7 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
             )
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
+                continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
                 _source_a, _source_k, _source_u, _pin_a, _pin_k, pin_u = self.seed_history(
                     store, continuity
                 )
@@ -501,7 +501,7 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
                     )
                 )
                 runtime = FakeRuntime("direct")
-                bridge = SQLiteHarnessRuntimeBridge(
+                bridge = HarnessRuntimeBridge(
                     run_contract,
                     continuity,
                     execution_binding(run_contract, continuity),
@@ -542,7 +542,7 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
             )
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store,
                     run_contract,
                     clock_ms=clock,
@@ -588,7 +588,7 @@ class HistoricalCognitionRecallTests(unittest.TestCase):
             )
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store,
                     run_contract,
                     clock_ms=clock,

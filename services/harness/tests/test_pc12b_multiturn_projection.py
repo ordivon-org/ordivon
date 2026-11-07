@@ -16,8 +16,8 @@ from ordivon_harness.ordivon.model import (
     static_provider_request_digest,
 )
 from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRequestMismatch
-from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
 from ordivon_harness.protocol import HarnessProviderCallStatus
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
@@ -60,11 +60,11 @@ def candidate_result(suffix: str, summary: str) -> AgentTurnResult:
     )
 
 
-class ReplanAfterFirstConclusionBridge(SQLiteHarnessAgentBridge):
+class ReplanAfterFirstConclusionBridge(HarnessAgentBridge):
     def __init__(
         self,
         contract,
-        run_store: SQLiteHarnessRunContinuityStore,
+        run_store: EventSourcedRunContinuity,
         *,
         next_pin: HarnessWorkingSetPin,
         lose_second_completion: bool = False,
@@ -114,7 +114,7 @@ class MutatingProjector:
     def __init__(
         self,
         store: SQLiteHarnessStore,
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: EventSourcedRunContinuity,
         next_pin: HarnessWorkingSetPin,
     ) -> None:
         self.store = store
@@ -156,7 +156,7 @@ class StaticEphemeralProjector:
 class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
     @staticmethod
     def prepare_sources(
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: EventSourcedRunContinuity,
     ) -> tuple[
         HarnessWorkingSetSpec,
         HarnessWorkingSetPin,
@@ -209,7 +209,7 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
             run_contract = private_contract("pc12b-multiturn")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 committed_a, pin_b, source_a, source_b = self.prepare_sources(
@@ -291,7 +291,7 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
             run_contract = contract("pc12b-metadata-projection")
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store, run_contract, clock_ms=clock
             )
             adapter = ScriptedTurnAdapter(
@@ -299,7 +299,7 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
             )
             loop = OrdivonAgentLoop(
                 adapter,
-                SQLiteHarnessAgentBridge(run_contract, continuity),
+                HarnessAgentBridge(run_contract, continuity),
                 budget=budget(),
                 clock_ms=clock,
                 monotonic_ms=clock,
@@ -335,7 +335,7 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
             run_contract = private_contract("pc12b-stale-view")
             with SQLiteHarnessStore.initialize(root) as store:
                 store.create_run(run_contract)
-                continuity = SQLiteHarnessRunContinuityStore(
+                continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
                 )
                 _, pin_b, _, _ = self.prepare_sources(continuity)
@@ -344,7 +344,7 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
                 )
                 loop = OrdivonAgentLoop(
                     adapter,
-                    SQLiteHarnessAgentBridge(run_contract, continuity),
+                    HarnessAgentBridge(run_contract, continuity),
                     budget=budget(),
                     clock_ms=clock,
                     monotonic_ms=clock,
@@ -375,7 +375,7 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
             run_contract = private_contract("pc12b-response-loss")
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store, run_contract, clock_ms=clock
             )
             _, pin_b, _, source_b = self.prepare_sources(continuity)
@@ -416,7 +416,7 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -427,7 +427,7 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
                 self.assertEqual(retained.result, second)
                 self.assertEqual(retained.request, second_request)
                 reopened.bind_state(retained.state)
-                replay_bridge = SQLiteHarnessAgentBridge(run_contract, reopened)
+                replay_bridge = HarnessAgentBridge(run_contract, reopened)
                 replay_bridge.configure_provider_call(
                     adapter_id=ScriptedTurnAdapter.adapter_id,
                     requested_model_id=ScriptedTurnAdapter.model_id,

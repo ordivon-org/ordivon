@@ -6,9 +6,9 @@ import unittest
 
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunStopCode
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
-from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.working_view import (
     AgentWorkingSetTransitionProposal,
@@ -19,7 +19,7 @@ from ordivon_harness.working_view import (
 )
 
 from tests.test_p0_sqlite_agent_loop import FailIfInvokedAdapter
-from tests.test_p0_sqlite_runtime_bridge import FakeRuntime, FixedClock, execution_binding
+from tests.test_p0_runtime_bridge import FakeRuntime, FixedClock, execution_binding
 from tests.test_pc13_agent_owned_working_set import cognition_budget, cognition_contract
 from tests.test_pc14_candidate_discovery_overlay import transition_turn
 from tests.test_pc15_epistemic_control import (
@@ -35,7 +35,7 @@ from tests.test_pc16_cross_process_tool_exchange import (
 )
 
 
-class LoseCompletionResponseRuntimeBridge(SQLiteHarnessRuntimeBridge):
+class LoseCompletionResponseRuntimeBridge(HarnessRuntimeBridge):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.injected = False
@@ -49,7 +49,7 @@ class LoseCompletionResponseRuntimeBridge(SQLiteHarnessRuntimeBridge):
             )
 
 
-class ForgedCallerIngressRuntimeBridge(SQLiteHarnessRuntimeBridge):
+class ForgedCallerIngressRuntimeBridge(HarnessRuntimeBridge):
     def restore_current_attempt_cognition_overlay(self, messages, observations):
         restored = super().restore_current_attempt_cognition_overlay(
             messages,
@@ -86,7 +86,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
         store = SQLiteHarnessStore.initialize(root)
         store.create_run(run_contract)
         clock = FixedClock()
-        continuity = SQLiteHarnessRunContinuityStore(
+        continuity = EventSourcedRunContinuity(
             store,
             run_contract,
             clock_ms=clock,
@@ -131,7 +131,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
         )
         continuity.record_working_set(initial)
         continuity.record_working_set(initial.commit("seed PC110 source A"))
-        bridge = SQLiteHarnessRuntimeBridge(
+        bridge = HarnessRuntimeBridge(
             run_contract,
             continuity,
             execution_binding(run_contract, continuity),
@@ -234,7 +234,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                     ),
                 )
             )
-            resume_bridge = SQLiteHarnessRuntimeBridge(
+            resume_bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -324,7 +324,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                     ),
                 )
             )
-            resume_bridge = SQLiteHarnessRuntimeBridge(
+            resume_bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -390,7 +390,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             second_adapter = ScriptedTurnAdapter(
                 (needs_input_turn("pc110-consume-pause-2", "second caller reply required"),)
             )
-            second_bridge = SQLiteHarnessRuntimeBridge(
+            second_bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -416,7 +416,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -426,7 +426,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                 third_adapter = ScriptedTurnAdapter(
                     (needs_input_turn("pc110-consume-final", "inspect only the latest reply"),)
                 )
-                replay_bridge = SQLiteHarnessRuntimeBridge(
+                replay_bridge = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),
@@ -522,7 +522,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -531,7 +531,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                 adapter = ScriptedTurnAdapter(
                     (needs_input_turn("pc110-cross-resumed", "inspect restored cognition"),)
                 )
-                replay_bridge = SQLiteHarnessRuntimeBridge(
+                replay_bridge = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),
@@ -600,7 +600,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             should_not_run = ScriptedTurnAdapter(
                 (needs_input_turn("pc110-reject-should-not-run", "must not dispatch"),)
             )
-            resume_bridge = SQLiteHarnessRuntimeBridge(
+            resume_bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -756,14 +756,14 @@ class CallerCognitionIngressTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
                 )
                 retained_source = reopened.load_current_snapshot()
                 fail_if_invoked = FailIfInvokedAdapter()
-                replay_bridge = SQLiteHarnessRuntimeBridge(
+                replay_bridge = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),
@@ -800,7 +800,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             run_contract = cognition_contract("pc110-model-only-caller")
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store,
                 run_contract,
                 clock_ms=clock,
@@ -834,7 +834,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             first_adapter = ScriptedTurnAdapter(
                 (needs_input_turn("pc110-model-only-pause", "caller fact required"),)
             )
-            first_bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+            first_bridge = HarnessAgentBridge(run_contract, continuity)
             first = OrdivonAgentLoop(
                 first_adapter,
                 first_bridge,
@@ -857,7 +857,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             second_adapter = ScriptedTurnAdapter(
                 (needs_input_turn("pc110-model-only-final", "inspect caller ingress"),)
             )
-            second_bridge = SQLiteHarnessAgentBridge(
+            second_bridge = HarnessAgentBridge(
                 run_contract,
                 continuity,
                 provider_source=continuity.snapshot_provider_source(retained),

@@ -23,7 +23,7 @@ from ordivon_harness.ordivon.adaptive_edit_bridge import (
 from ordivon_harness.ordivon.deepseek import DeepSeekSettings, DeepSeekTurnAdapter
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunBudget
 from ordivon_harness.ordivon.model import AgentToolCall, AgentToolDefinition
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
 from ordivon_harness.runtime_port import HarnessRuntimeErrorDetail, HarnessRuntimeToolRejected
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
@@ -380,7 +380,7 @@ def verify(source: str, task_spec: LiveTaskSpec = DEFAULT_TASK) -> dict[str, boo
 
 
 def binding(
-    contract: HarnessRunContract, continuity: SQLiteHarnessRunContinuityStore
+    contract: HarnessRunContract, continuity: EventSourcedRunContinuity
 ) -> HarnessExecutionBinding:
     b = continuity.binding
     return HarnessExecutionBinding(
@@ -513,7 +513,7 @@ def run_one(
     with tempfile.TemporaryDirectory() as directory:
         store = SQLiteHarnessStore.initialize(Path(directory) / "state")
         store.create_run(contract)
-        continuity = SQLiteHarnessRunContinuityStore(store, contract)
+        continuity = EventSourcedRunContinuity(store, contract)
         bridge = TreatmentBridge(
             contract,
             continuity,

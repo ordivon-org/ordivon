@@ -15,9 +15,9 @@ from ordivon_harness.ordivon.model import (
     AgentTurnFailureCode,
     ScriptedTurnAdapter,
 )
-from ordivon_harness.ordivon.sqlite_agent_bridge import SQLiteHarnessAgentBridge
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.standalone import StandaloneHarnessRunner
 
@@ -28,7 +28,7 @@ from tests.test_p0_sqlite_agent_loop import (
     contract,
     needs_input_result,
 )
-from tests.test_p0_sqlite_runtime_bridge import (
+from tests.test_p0_runtime_bridge import (
     FakeRuntime,
     budget as runtime_budget,
     completed_turn,
@@ -61,8 +61,8 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
     def run_once(root: Path, run_contract, adapter, clock: FixedClock):
         store = SQLiteHarnessStore.initialize(root)
         store.create_run(run_contract)
-        continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
-        bridge = SQLiteHarnessAgentBridge(run_contract, continuity)
+        continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
+        bridge = HarnessAgentBridge(run_contract, continuity)
         result = OrdivonAgentLoop(
             adapter,
             bridge,
@@ -162,12 +162,12 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
             run_contract = runtime_contract("pc12a-full-root-scan")
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store,
                 run_contract,
                 clock_ms=clock,
             )
-            bridge = SQLiteHarnessRuntimeBridge(
+            bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -251,12 +251,12 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
             )
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store,
                 run_contract,
                 clock_ms=clock,
             )
-            bridge = SQLiteHarnessRuntimeBridge(
+            bridge = HarnessRuntimeBridge(
                 run_contract,
                 continuity,
                 execution_binding(run_contract, continuity),
@@ -375,13 +375,13 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
                 )
                 retained = reopened.load_current_snapshot()
-                bridge = SQLiteHarnessAgentBridge(
+                bridge = HarnessAgentBridge(
                     run_contract,
                     reopened,
                     provider_source=reopened.snapshot_provider_source(retained),

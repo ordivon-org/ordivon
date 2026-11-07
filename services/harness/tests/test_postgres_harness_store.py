@@ -35,7 +35,7 @@ import tests.test_p0_sqlite_tool_store as tool_fixture
 from ordivon_harness.store import (
     HarnessEventAdmission, HarnessEventWrite, HarnessStore,
 )
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from tests.test_p0_sqlite_provider_store import MutableClock, contract, state
 
 
@@ -200,13 +200,13 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         run = contract()
         self.store.create_run(run)
         clock = MutableClock()
-        continuity = SQLiteHarnessRunContinuityStore(self.store, run, clock_ms=clock)
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
         continuity.bind_state(state())
         self.assertTrue(continuity.binding)
         self.assertTrue(self.store.doctor()["healthy"])
         # New connection replays the exact persisted Agent continuity state.
         with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
-            resumed = SQLiteHarnessRunContinuityStore.open(
+            resumed = EventSourcedRunContinuity.open(
                 reopened, run.harness_run_id, clock_ms=clock,
             )
             self.assertEqual(resumed.binding, continuity.binding)
@@ -216,7 +216,7 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         run = pc13_fixture.cognition_contract("pg-pilot")
         self.store.create_run(run)
         clock = MutableClock()
-        continuity = SQLiteHarnessRunContinuityStore(self.store, run, clock_ms=clock)
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
         committed_source, pin_b, *_ = pc13_fixture.AgentOwnedWorkingSetTests.prepare(continuity)
         source_view_digest = compile_working_view(committed_source, self.store).digest
         proposal = AgentWorkingSetTransitionProposal(
@@ -232,7 +232,7 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         before = len(self.store.list_run_events(run.harness_run_id))
         self.assertEqual(first.pins, proposal.pins)
         with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
-            resumed = SQLiteHarnessRunContinuityStore.open(reopened, run.harness_run_id, clock_ms=clock)
+            resumed = EventSourcedRunContinuity.open(reopened, run.harness_run_id, clock_ms=clock)
             self.assertEqual(resumed.load_current_working_set(), first)
             self.assertEqual(resumed.apply_working_set_transition(
                 proposal,
@@ -270,7 +270,7 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         run = tool_fixture.private_tool_contract()
         self.store.create_run(run)
         clock = MutableClock()
-        continuity = SQLiteHarnessRunContinuityStore(self.store, run, clock_ms=clock)
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
         continuity.bind_state(state())
         binding = continuity.binding
         intent = HarnessToolStepIntent(
@@ -311,7 +311,7 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         with self.assertRaises(HarnessSuperseded):
             continuity.assert_dispatch_fence_current(fence)
         with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
-            replayed = SQLiteHarnessRunContinuityStore.open(reopened, run.harness_run_id, clock_ms=clock)
+            replayed = EventSourcedRunContinuity.open(reopened, run.harness_run_id, clock_ms=clock)
             self.assertEqual(replayed.load_current_tool_step().receipt, receipt)
             self.assertTrue(replayed.doctor()["healthy"])
 

@@ -11,17 +11,17 @@ from .completion import structured_completion_contract_digest
 from .core_contracts import HarnessRunContract
 from .execution_binding import HarnessExecutionBinding
 from .ordivon.model import AgentTurnAdapter
-from .ordivon.sqlite_agent_bridge import (
+from .ordivon.agent_bridge import (
     NO_TOOL_AGENT_GRANT_DIGEST,
     NO_TOOL_AGENT_SURFACE_DIGEST,
-    SQLiteHarnessAgentBridge,
+    HarnessAgentBridge,
 )
 from .ordivon.run_store_port import HarnessRunContinuityStore
-from .ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from .ordivon.sqlite_runtime_bridge import (
+from .ordivon.run_continuity import EventSourcedRunContinuity
+from .ordivon.runtime_bridge import (
     INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
     INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
-    SQLiteHarnessRuntimeBridge,
+    HarnessRuntimeBridge,
 )
 from .runtime_port import HarnessRuntimeClient
 from .sqlite_store import SQLiteHarnessStore
@@ -148,7 +148,7 @@ class HarnessAgentRun:
     ) -> HarnessAgentRun:
         root = Path(state_root).expanduser().resolve()
         with SQLiteHarnessStore(root) as store:
-            continuity = SQLiteHarnessRunContinuityStore.open(
+            continuity = EventSourcedRunContinuity.open(
                 store, harness_run_id, clock_ms=clock_ms
             )
             contract = continuity.contract
@@ -242,7 +242,7 @@ class HarnessAgentRun:
         def factory() -> PostgresHarnessStore:
             return PostgresHarnessStore(dsn, schema=schema)
         with factory() as store:
-            contract = SQLiteHarnessRunContinuityStore.open(
+            contract = EventSourcedRunContinuity.open(
                 store, harness_run_id, clock_ms=clock_ms
             ).contract
         cls._validate_structure(
@@ -462,8 +462,8 @@ class HarnessAgentRun:
             raise HarnessAgentRunCompositionError("Harness Store authority is not configured")
         return SQLiteHarnessStore(self.state_root)
 
-    def _continuity(self, store: HarnessStore) -> SQLiteHarnessRunContinuityStore:
-        return SQLiteHarnessRunContinuityStore.open(
+    def _continuity(self, store: HarnessStore) -> EventSourcedRunContinuity:
+        return EventSourcedRunContinuity.open(
             store, self.harness_run_id, clock_ms=self.clock_ms
         )
 
@@ -471,7 +471,7 @@ class HarnessAgentRun:
         self,
         store: HarnessStore,
         *,
-        continuity: SQLiteHarnessRunContinuityStore | None = None,
+        continuity: EventSourcedRunContinuity | None = None,
         provider_source=None,
     ) -> StandaloneHarnessRunner:
         active = continuity or self._continuity(store)
@@ -489,12 +489,12 @@ class HarnessAgentRun:
 
     def _bridge(
         self,
-        continuity: SQLiteHarnessRunContinuityStore,
+        continuity: EventSourcedRunContinuity,
         *,
         provider_source=None,
     ) -> ToolBridge:
         if self._no_tool_surface:
-            return SQLiteHarnessAgentBridge(
+            return HarnessAgentBridge(
                 self.contract, continuity, provider_source=provider_source
             )
         if self.tool_bridge_factory is not None:
@@ -507,7 +507,7 @@ class HarnessAgentRun:
             return self.tool_bridge
         assert self.execution_binding is not None
         assert self.runtime is not None
-        return SQLiteHarnessRuntimeBridge(
+        return HarnessRuntimeBridge(
             self.contract,
             continuity,
             self.execution_binding,

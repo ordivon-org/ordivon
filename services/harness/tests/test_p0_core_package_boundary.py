@@ -203,9 +203,9 @@ class HarnessCorePackageBoundaryTests(unittest.TestCase):
             "ordivon/loop.py",
             "ordivon/run_recovery.py",
             "ordivon/runtime_lowering.py",
-            "ordivon/sqlite_agent_bridge.py",
-            "ordivon/sqlite_run_store.py",
-            "ordivon/sqlite_runtime_bridge.py",
+            "ordivon/agent_bridge.py",
+            "ordivon/run_continuity.py",
+            "ordivon/runtime_bridge.py",
         )
         for relative in paths:
             with self.subTest(relative=relative):

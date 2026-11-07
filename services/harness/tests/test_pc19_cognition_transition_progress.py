@@ -6,8 +6,8 @@ import unittest
 
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunStopCode
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.working_view import (
     AgentWorkingSetTransitionProposal,
@@ -17,7 +17,7 @@ from ordivon_harness.working_view import (
     WorkingSetViewProjector,
 )
 
-from tests.test_p0_sqlite_runtime_bridge import FakeRuntime, FixedClock, execution_binding
+from tests.test_p0_runtime_bridge import FakeRuntime, FixedClock, execution_binding
 from tests.test_pc14_candidate_discovery_overlay import transition_turn
 from tests.test_pc15_epistemic_control import (
     needs_input_turn,
@@ -46,7 +46,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
         store = SQLiteHarnessStore.initialize(root)
         store.create_run(run_contract)
         clock = FixedClock()
-        continuity = SQLiteHarnessRunContinuityStore(
+        continuity = EventSourcedRunContinuity(
             store,
             run_contract,
             clock_ms=clock,
@@ -91,7 +91,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
         )
         continuity.record_working_set(initial)
         continuity.record_working_set(initial.commit("seed PC19 source A"))
-        bridge = SQLiteHarnessRuntimeBridge(
+        bridge = HarnessRuntimeBridge(
             run_contract,
             continuity,
             execution_binding(run_contract, continuity),
@@ -389,14 +389,14 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
                 )
                 retained = reopened.load_current_snapshot()
                 replay_runtime = FakeRuntime("direct")
-                replay_bridge = SQLiteHarnessRuntimeBridge(
+                replay_bridge = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),
@@ -493,7 +493,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -507,7 +507,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                         ),
                     )
                 )
-                replay_bridge = SQLiteHarnessRuntimeBridge(
+                replay_bridge = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),

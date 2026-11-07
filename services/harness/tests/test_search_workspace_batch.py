@@ -12,11 +12,11 @@ from ordivon_harness.agent_tool_observation import HarnessToolObservation
 from ordivon_harness.ordivon.control import CancellationToken, ExecutionControl, RunDeadline
 from ordivon_harness.ordivon.model import AgentToolCall
 from ordivon_harness.ordivon.run_recovery import _search_evidence
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
-from tests.test_p0_sqlite_runtime_bridge import (
+from tests.test_p0_runtime_bridge import (
     FakeRuntime,
     FixedClock,
     bound_state,
@@ -120,7 +120,7 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
         )
 
         def actual_bridge_observation(exit_code: int):
-            return SQLiteHarnessRuntimeBridge._observation_from_payload(
+            return HarnessRuntimeBridge._observation_from_payload(
                 tool_call_id=call.tool_call_id,
                 tool_name=call.name,
                 payload={
@@ -154,7 +154,7 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
         )
 
         def observation(exit_code: int):
-            return SQLiteHarnessRuntimeBridge._observation_from_payload(
+            return HarnessRuntimeBridge._observation_from_payload(
                 tool_call_id=call.tool_call_id,
                 tool_name=call.name,
                 payload={
@@ -179,7 +179,7 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
             name="search_workspace",
             arguments={"query": "needle", "relativePath": "src"},
         )
-        singular = SQLiteHarnessRuntimeBridge._observation_from_payload(
+        singular = HarnessRuntimeBridge._observation_from_payload(
             tool_call_id=single.tool_call_id,
             tool_name=single.name,
             payload={
@@ -218,8 +218,8 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
         store = SQLiteHarnessStore.initialize(root)
         store.create_run(run_contract)
         clock = FixedClock()
-        continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
-        bridge = SQLiteHarnessRuntimeBridge(
+        continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
+        bridge = HarnessRuntimeBridge(
             run_contract,
             continuity,
             execution_binding(run_contract, continuity),
@@ -307,10 +307,10 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
                 store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store, run_contract.harness_run_id, clock_ms=clock
                 )
-                fresh = SQLiteHarnessRuntimeBridge(
+                fresh = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),

@@ -21,13 +21,13 @@ from ordivon_harness.ordivon.model import (
     AgentTurnResult,
     ScriptedTurnAdapter,
 )
-from ordivon_harness.ordivon.sqlite_run_store import (
-    SQLiteHarnessRunContinuityStore,
+from ordivon_harness.ordivon.run_continuity import (
+    EventSourcedRunContinuity,
 )
-from ordivon_harness.ordivon.sqlite_runtime_bridge import (
+from ordivon_harness.ordivon.runtime_bridge import (
     INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
     INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
-    SQLiteHarnessRuntimeBridge,
+    HarnessRuntimeBridge,
     _runtime_delivery_state,
 )
 from ordivon_harness.protocol import HarnessRecoveryConsequence, HarnessToolStepStatus
@@ -84,7 +84,7 @@ class PatchGrant:
         raise KeyError(check_id)
 
 
-class WorkspaceChangeRuntimeBridge(SQLiteHarnessRuntimeBridge):
+class WorkspaceChangeRuntimeBridge(HarnessRuntimeBridge):
     recovery_consequence = HarnessRecoveryConsequence.WORKSPACE_CHANGE_POSSIBLE
 
 
@@ -338,8 +338,8 @@ def patch_bridge(root: Path, suffix: str, runtime: FakePatchRuntime, *, change_c
     store = SQLiteHarnessStore.initialize(root)
     store.create_run(run_contract)
     clock = FixedClock()
-    continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
-    bridge_type = WorkspaceChangeRuntimeBridge if change_consequence else SQLiteHarnessRuntimeBridge
+    continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
+    bridge_type = WorkspaceChangeRuntimeBridge if change_consequence else HarnessRuntimeBridge
     bridge = bridge_type(
         run_contract,
         continuity,
@@ -364,7 +364,7 @@ def patch_bridge(root: Path, suffix: str, runtime: FakePatchRuntime, *, change_c
 
 def execution_binding(
     run_contract: HarnessRunContract,
-    continuity: SQLiteHarnessRunContinuityStore,
+    continuity: EventSourcedRunContinuity,
 ) -> HarnessExecutionBinding:
     binding = continuity.binding
     references = (
@@ -465,7 +465,7 @@ def bound_state() -> HarnessRunState:
     )
 
 
-class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
+class HarnessRuntimeBridgeTests(unittest.TestCase):
     def test_workspace_patch_requires_explicit_workspace_change_consequence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             runtime = FakePatchRuntime("direct")
@@ -682,12 +682,12 @@ class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
         store = SQLiteHarnessStore.initialize(root)
         store.create_run(run_contract)
         clock = FixedClock()
-        continuity = SQLiteHarnessRunContinuityStore(
+        continuity = EventSourcedRunContinuity(
             store,
             run_contract,
             clock_ms=clock,
         )
-        bridge = SQLiteHarnessRuntimeBridge(
+        bridge = HarnessRuntimeBridge(
             run_contract,
             continuity,
             execution_binding(run_contract, continuity),
@@ -721,10 +721,10 @@ class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
                 try:
                     with SQLiteHarnessStore(root) as store:
                         clock = FixedClock()
-                        continuity = SQLiteHarnessRunContinuityStore.open(
+                        continuity = EventSourcedRunContinuity.open(
                             store, run_contract.harness_run_id, clock_ms=clock
                         )
-                        bridge = SQLiteHarnessRuntimeBridge(
+                        bridge = HarnessRuntimeBridge(
                             run_contract,
                             continuity,
                             execution_binding(run_contract, continuity),
@@ -1026,7 +1026,7 @@ class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
         for relative in (
             "runtime_port.py",
             "agent_tool_observation.py",
-            "ordivon/sqlite_runtime_bridge.py",
+            "ordivon/runtime_bridge.py",
         ):
             source = (root / relative).read_text(encoding="utf-8")
             for forbidden in (
