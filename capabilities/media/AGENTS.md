@@ -75,3 +75,32 @@ user project or bring back the retired menu Runner. Read the resulting
 `.receipt.json` and render in a separate native Processing profile.
 The installed scripting README is the API authority; the semantic
 `studio_equipment_propose` action alone does not perform the physical edit.
+
+## Agent: typed composition of existing Media LEGO
+
+1. Resolve an explicit `productionId`, Claim source revision and
+   Asset/Blob identities via existing Studio actions. Never guess from
+   most-recent files or rebuild an action registry.
+2. Pick the native editorial path: consecutive visual inputs or `--otio`
+   with optional native media relinking. On Windows use the existing
+   interactive-session Runtime authority and Blackmagic's installed API,
+   not an embedded menu Runner. Supply `--min-timeline-frames` from a real
+   consumer acceptance requirement, not an arbitrary universal threshold.
+3. Read back the Resolve project/timeline and the .drp/.mp4 digest receipt.
+   For OTIO, the receipt's `otioMediaReferencesIndependentlyVerified=false`
+   requires independent Asset/Blob reconciliation before fidelity claims.
+4. Compose existing providers by contract: Remotion renders a selected
+   animation, FFprobe/FFmpeg verifies video and Fairlight audio exports,
+   `otiotool` inspects editorial structure, `ttconv` handles TTML/SRT/VTT.
+   An ASR/translation provider is selected only when a named language/audio
+   consumer and real installed provider exist; it is never simulated by QC.
+5. Match the delivered bytes to the selected Output and actual consumer
+   review. Send publication through the named destination provider only,
+   then verify its returned identity/readback. `UNKNOWN` is not `PASS`.
+6. Garbage-collect only unreachable disposable workspace/cache bytes after
+   checking current source, Production and Output consumers; use native Git
+   and provider GC. Preserve selected editable masters and unique evidence.
+
+Each operation is a R2.1 LEGO with an externally owned effect, specific
+pre/post/invariants, content digests and observable result. A successful
+Runtime process does not establish semantic acceptance or release.

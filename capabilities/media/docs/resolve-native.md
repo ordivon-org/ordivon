@@ -75,11 +75,42 @@ tracks, exports the editable `.drp`, renders MP4 and records exact SHA-256
 source and output identities in a `.receipt.json`. It closes/deletes only
 its newly created isolated project unless `--keep-project` is specified.
 Use a selected short source or lower project dimensions for preview; default render covers the full timeline.
-preview. Do not infer publication from technical output; a named destination
-must actually receive and read back its artifact.
+Do not infer publication from technical output; a named destination must actually receive and read back its artifact.
 
 For native render-format selection, use values from `GetRenderCodecs('mp4')`.
 On the tested 21.0.3 install, the GUI label `H.264` maps to native codec
 identifier `H264`; the script selects the native identifier. Use the already
 published `studio_processing_profiles` action for FFprobe/FFmpeg, OTIO and
 TimedText checks rather than building parallel media parsers.
+
+## OTIO interchange as a native editing input
+
+When editorial cut structure already exists, choose `--otio` instead of
+`--visual`. The script calls the **installed Blackmagic**
+`MediaPool.ImportTimelineFromFile(path, options)` directly; it does not
+parse OTIO, define an Ordivon timeline language or emulate the editor:
+
+```powershell
+python scripts/resolve-native-produce.py --otio C:\media\cut.otio `
+  --source-clips-dir C:\media\sources `
+  --audio C:\media\voice.wav --output-dir C:\media\delivery `
+  --name cut-01 --min-timeline-frames 96 --grade-saturation 1.1
+```
+
+The API implements native relinking with `sourceClipsPath`; a successful
+import does **not** independently hash all references inside the OTIO.
+The receipt hashes the exact .otio input, optional separately supplied audio,
+editable DRP and rendered MP4 and reports the timeline's actual frame count.
+`otioMediaReferencesIndependentlyVerified=false` is an intentional evidence
+boundary, not a failed render. Reconcile linked media against the selected
+Production's Asset/Blob declarations before claiming source fidelity.
+
+Before editing, select a named Production, its sources and source digests.
+After editing, use the existing `studio_processing_profiles` and
+`studio_processing_probe_plan` actions with the native OTIO, FFprobe, audio
+loudness and timed-text adapters as applicable; the Runtime Job and generated
+raw receipts carry physical observations. Review real picture, speech,
+subtitle timing and color in Resolve/Fairlight; output approval is distinct
+from publishing to a particular provider and reading back its receipt.
+Keep only the selected editable source, accepted output and supporting
+consumer evidence. Do not retain every disposable render or test project.
