@@ -370,7 +370,11 @@ jobs:
               # A positive Paper DSN causes all database consumers to run;
               # failed connection is a failing test, never a hidden skip.
               # Container and credentials exist only in this GitHub job.
-              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" mise run "$task" </dev/null
+              # Separate Accounting schemas share this one ephemeral test DB.
+              # Real Paper and general Ledger consumers were both verified.
+              ORDIVON_CAPITAL_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              mise run "$task" </dev/null
             else
               mise run "$task" </dev/null
             fi
