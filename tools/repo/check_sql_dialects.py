@@ -55,10 +55,6 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     # Capital accounting and Media research have distinct consumer contracts:
     # do not promote the research executor or test-only ledger to live PG by analogy.
     'domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py': 1,
-    # One-shot, read-only historical source copy into qualified PostgreSQL.
-    # This is debt scheduled for retirement after installed producer quiescence,
-    # NOT a new SQLite accounting authority or permitted write path.
-    'domains/capital/src/ordivon_capital/accounting/postgres_ledger.py': 1,
     # Media has migrated durable TrialLedger to PostgreSQL; remaining SQLite is one-shot read-only import.
     'capabilities/media/scripts/migrate-r6-trials.py': 1,
     # RW12 source-only immutable SQLite snapshot importer into a NON-AUTHORITATIVE PG stage.
