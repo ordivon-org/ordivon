@@ -23,6 +23,7 @@ SOURCE_PASS is not APPLICATION_PASS. CONNECT 200 alone is not TLS success. A sam
 | Natural owner / capability LEGO | Mature implementation | Entry point |
 | --- | --- | --- |
 | Generic DNS / proxy | dnsproxy + sing-box + systemd | task core:validate / core:verify |
+| Shared namespace / carrier SourceCut | iproute2 netns + systemd + upstream Gluetun | task substrate:shared-egress:validate / verify |
 | Observability | Blackbox + Prometheus native scrape_config_files / rule_files | task core:verify and acceptance/observability |
 | Physical VPN / failover | one Gluetun Quadlet, native WireGuard, Podman Secret and healthcheck | task provider:gluetun:verify |
 | Surfshark profile/catalog | pinned Gluetun catalog | task provider:surfshark:verify-local |

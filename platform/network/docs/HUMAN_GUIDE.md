@@ -56,12 +56,20 @@ Chrome 使用 **自身的原生 Windows 策略**，而不是 Surfshark 桌面 GU
 
 验证时可以使用 Chrome 原生无界面模式和新的临时配置目录，且**不要传入代理命令行参数**，否则无法证明策略自动生效。用完删除临时目录。这只能证明被测试的 Chrome HTTPS 请求，**不自动涵盖 WebRTC、所有扩展、DNS/IPv6 泄漏或正常登录资料是否选择了相同设置**。不需要新建专用 Chrome 启动器。
 
-### 3. Windows Codex / ChatGPT锛氭甯稿惎鍔ㄨ嚜鍔ㄦ帴鍏?VPN
+### 3. Windows Codex / ChatGPT：正常启动自动使用 VPN
 
-褰撳墠 Windows 浜や簰鐢ㄦ埛鐨勭郴缁熶唬鐞嗘寚鍚?Ordivon 鐨?127.0.0.1:19781锛孿nCodex 鐨勫師鐢?respect_system_proxy 鍔熻兘宸插惎鐢ㄣ€傜洿鎺ョ偣鍑绘闈㈠簲鐢╘n鍗冲彲浣跨敤宸查厤缃殑浠ｇ悊锛屼笉闇€瑕?PowerShell 鍖呰鑴氭湰鎴栫壒娈婂惎鍔ㄥ懡浠ゃ€俓n
-Linux 鐨?127.0.0.1:19982 鏄?*鍙︿竴涓寖鍥村彈闄愮殑 Codex Consumer**锛孿n骞堕潪 Windows Desktop 鐨勯粯璁ょ綉缁滅瓥鐣ャ€侰hrome 鍒欎娇鐢ㄨ嚜宸辩殑鍘熺敓浠ｇ悊绛栫暐銆俓n
-楠屾敹椤哄簭锛氱郴缁熶唬鐞嗕笌 Codex 璁剧疆 鈫?瀹為檯妗岄潰杩涚▼鐨勬湰鍦颁唬鐞嗚繛鎺n鈫?搴旂敤鑷繁鐨勭湡瀹?HTTPS 璇锋眰 鈫?Network 涓嬫父 Consumer 涓?Gluetun銆俓n鏈夐檺鐨?TCP 鏍锋湰涓嶈兘璇佹槑鎵€鏈?DNS銆乁DP 鎴栨彃浠惰矾寰勫潎鏃犵粫琛屻€俓nWindows 閰嶇疆鎸佷箙鍖栧綊 Workstation锛汵etwork 璐熻矗杞戒綋銆佸彈闄愯矾鐢卞拰
-鐪熷疄娑堣垂鑰呴獙鏀躲€傛棫鐨勬墜鍔?CLI 鍚姩鍣ㄥ凡閫€褰癸紝涓嶅簲閲嶆柊寮曞叆銆俓n
+当前已验收的 Windows 交互用户系统代理是 `127.0.0.1:19781`，
+Codex 原生 `respect_system_proxy` 功能已启用。直接启动桌面应用即可
+使用既有 Ordivon 网络代理，不需要手动 CLI 启动器或特殊快捷方式。
+
+Linux 侧 `127.0.0.1:19982` 是独立的、目的域名受限的 Codex Consumer，
+并非普通 Windows Desktop 的默认代理。Chrome 则使用原生浏览器代理策略。
+
+遇到问题时，先读取 Windows 实际系统代理与 Codex 配置，再检查
+应用进程的真实代理连接和实际 HTTPS 请求，最后验证 Network 下游。
+这属于 Workstation 与 Network 两个 Owner 的组合，不要再造 VPN 管理器。
+有限 TCP 观测不等于所有 DNS、UDP、QUIC、扩展或子进程均已证明无绕行。
+
 ### 4. 让 iPad 或 iPhone 使用电脑提供的 VPN 出口
 
 服务器已通过 Tailscale 广告批准的 Exit Node：**ordivon-surfshark-exit**。
@@ -73,14 +81,29 @@ Linux 鐨?127.0.0.1:19982 鏄?*鍙︿竴涓寖鍥村彈闄愮殑 Codex Consum
 
 如果某台 iOS 设备离线，服务器无法代替它完成选择和出口验收。服务端运行正常 ≠ 手机流量已经被转发。
 
-### 鍚屼竴灞€鍩熺綉鐨?iPad 鐩磋繛浼樺寲
+### iPad 局域网直连与共享出口
 
-褰撳墠鍚屼竴 LAN 鍐呭凡瀹炴祴锛歩Pad 鍒板嚭鍙ｈ妭鐐圭敱涓滀含 DERP 涓户绾?400ms
-鏀瑰杽涓?Tailscale 鐩磋繛绾?8鈥?ms銆備娇鐢?Gluetun 瀹樻柟鏀寔鐨刓nFIREWALL_OUTBOUND_SUBNETS=192.168.0.0/24 瀹炵幇灞€鍩熺綉閫氫俊銆俓n
-**娉ㄦ剰锛氳繖鏄鏁翠釜灞€鍩熺綉缃戞鐨勫嚭绔欎緥澶栵紝涓嶆槸浠呮斁琛屼竴涓?UDP 绔彛銆?*
-鍏綉璇锋眰浠嶉』閫氳繃 Surfshark銆俰Pad 鍒囨崲鍒板叾浠栫綉缁滃悗鍙兘鎭㈠浣跨敤
-DERP锛涘鏋滃搴?LAN 缃戞鏇存敼锛岄渶瑕侀噸鏂版鏌?CIDR銆佸疄闄呰矾鐢便€乗n瀹㈡埛绔?IPinfo 涓?DNS锛屼笉鑳藉彧鍑?Exit Node 鏄剧ず READY 灏遍獙鏀躲€俓n
-Surfshark 褰撳墠娌℃湁鍙敤鐨勫叕缃?IPv6 鍑哄彛锛屼笉蹇呰拷姹?IPv6 寰楀垎锛孿n浣嗕篃涓嶅緱璁?IPv6 缁曡繃宸查€変腑鐨勫嚭鍙ｇ洿鎺ヨ闂叕缃戙€俓n
+同一局域网实测 iPad 到 Exit Node 的 Tailscale 链路从东京 DERP
+约 400ms 改为直连约 6–9ms。Gluetun 使用原生
+`FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/24` 实现局域网可达性。
+**这允许整个 LAN 网段的出站通信，并非只放行一个 UDP 端口。**
+公网流量仍应从 Surfshark 出口发出，iPad 进入外部网络时可能回退 DERP。
+如 LAN 网段更换，重新核对源配置、加载的路由及 iPad 自身 IPinfo/DNS。
+Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv6 绕开 VPN。
+
+### 共享网络基础层与应用 Consumer 如何分开验证
+
+共享 namespace、veth、转发与 Carrier 的源码已迁至
+`substrates/shared-egress/`，但当前仍保留生产中的旧 Unit 名字。
+
+- `task substrate:shared-egress:validate`：验证共享底座的源码。
+- `task substrate:shared-egress:verify`：比较生产安装字节，并实测 Carrier。
+- `task consumer:browserless:provider-carrier:verify`：验证旧兼容和恢复边界。
+- `task consumer:codex:verify` 或其他具体 Consumer：验证其允许与拒绝行为。
+
+这些结果不能替代应用自身请求，更不能单凭共享 Provider 的 READY
+就推断所有 Consumer 均 READY。Windows 开机恢复归 Workstation。
+
 ### 5. 改配置或恢复服务
 
 提交代码前，从 platform/network/ 执行：

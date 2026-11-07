@@ -185,16 +185,16 @@ awk 'BEGIN{done=0} /^hosts:/{print "hosts: files dns";done=1;next} {print} END{i
   /etc/nsswitch.conf >"/etc/netns/$NS/nsswitch.conf"
 
 install -m 0644 "$ROOT/consumers/browserless/config/provider-carrier.json" /etc/network-v2/browserless/provider-carrier.json
-for f in "$ROOT"/consumers/browserless/systemd/network-v2-browserless-netns.service \
-         "$ROOT"/consumers/browserless/systemd/network-v2-browserless-forward.service \
+for f in "$ROOT"/substrates/shared-egress/systemd/network-v2-browserless-netns.service \
+         "$ROOT"/substrates/shared-egress/systemd/network-v2-browserless-forward.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-wireguard.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-dns.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-provider-carrier.service \
-         "$ROOT"/consumers/browserless/systemd/network-v2-browserless.target \
+         "$ROOT"/substrates/shared-egress/systemd/network-v2-browserless.target \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-legacy-provider.target; do
   install -m 0644 "$f" "/etc/systemd/system/$(basename "$f")"
 done
-systemd-analyze verify "$ROOT"/consumers/browserless/systemd/network-v2-browserless-*.service "$ROOT"/consumers/browserless/systemd/network-v2-browserless.target "$ROOT"/consumers/browserless/systemd/network-v2-browserless-legacy-provider.target
+systemd-analyze verify "$ROOT"/consumers/browserless/systemd/network-v2-browserless-*.service "$ROOT"/substrates/shared-egress/systemd/network-v2-browserless-*.service "$ROOT"/substrates/shared-egress/systemd/network-v2-browserless.target "$ROOT"/consumers/browserless/systemd/network-v2-browserless-legacy-provider.target
 systemctl daemon-reload
 
 # Fence the legacy auto-recovery before releasing its exact generation.
@@ -226,7 +226,7 @@ systemctl start network-v2-browserless.target
 systemctl start network-v2-browserless-legacy-provider.target
 "$ROOT/consumers/browserless/acceptance/production-path.sh"
 
-GEN="sha256:$(cat "$PROFILE" "$ROOT"/consumers/browserless/systemd/network-v2-browserless-* | sha256sum | awk '{print $1}')"
+GEN="sha256:$(cat "$PROFILE" "$ROOT"/substrates/shared-egress/systemd/network-v2-browserless-* "$ROOT"/consumers/browserless/systemd/network-v2-browserless-* | sha256sum | awk '{print $1}')"
 python3 - "$QUADLET" "$OPERATOR" "$CONFIG" "$GEN" <<'PY'
 import json,re,sys
 quadlet,operator,config,generation=sys.argv[1:]

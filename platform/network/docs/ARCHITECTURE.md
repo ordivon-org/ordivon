@@ -39,7 +39,8 @@ This inventory is a source/installed/consumer map, not a second registry:
 | capabilities/failover/ | Ordered TCP primary/backup mechanism | Optional authorized failover workload |
 | providers/gluetun/ | Single physical Surfshark WireGuard, Podman Secret, native firewall and healing | Shared VPN carrier and mobile exit |
 | providers/surfshark/ | Provider catalog, explicit serial recovery materials | Inactive Browserless fallback path |
-| consumers/browserless/ | Shared namespace + carrier adapter plus Browserless recovery | Existing nv2-browserless-prod substrate |
+| substrates/shared-egress/ | Shared namespace, forwarding and carrier readiness | Existing nv2-browserless-prod and scoped consumers |
+| consumers/browserless/ | Legacy provider rollback and Browserless migration acceptance | Browserless-specific recovery only |
 | consumers/chat-ingress/ | Chat transport policy and relay | Chat workloads |
 | consumers/claude/ | Claude allowlist, client namespace and bridge | Claude Code |
 | consumers/codex/ | Scoped ChatGPT transport + read-only process observation | Codex consumer; Windows startup owned by Workstation |
