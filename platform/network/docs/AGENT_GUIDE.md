@@ -65,6 +65,26 @@ sing-box equivalence or real app process capture. Retain mise run behavior,
 task consumer:...:verify and live Carrier no-forward witnesses for those
 boundaries. An unsupported construct is NOT_PROVED, not silently admitted.
 
+### DNS cache state model: induction versus real dnsproxy
+
+The existing native mise run formal also runs
+formal/dns_cache_state.py. Upstream Z3 proves the source-admitted
+two-upstream TTL abstraction by inductive preservation under fail,
+recover, tick and query transitions. Its safety properties cover expired
+cache after all-upstream failure and live-substrate recovery without
+changing the proxy process; a deliberately stale-answer mutant produces
+a SAT counterexample. The model is bound to the actual systemd
+ExecStart flags and the native fault-injection acceptance entrypoint.
+It does NOT imply a proof of dnsproxy's implementation. Therefore
+retain task accept:dns-resilience and task core:verify for actual
+UDP/TCP replies, cache age, recovery, loaded unit bytes and PID stability.
+
+One Finance example-based route-equality test subsumed by the independent
+authority-to-sing-box SMT proof has been removed in this change. The
+cross-owner carrier liveness, loaded policy parity and native Finance
+nine-lane consumer-effect evidence remain. Any separate X/Supply Chain
+test subtraction belongs to that Owner's concurrently reviewed PR.
+
 ## 4. Targeted falsification selection
 
 - SOURCE-only: focused native tests + mise run ci; Green pytest does not certify a deployed VPN.

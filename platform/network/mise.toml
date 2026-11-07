@@ -42,4 +42,8 @@ run = 'python acceptance/egress/live-carrier-witness.py'
 # first-match sing-box source routing. Complements native consumer verification.
 [tasks.formal]
 description = "Prove 6 scoped HTTP policies and reject rogue-origin mutations with Z3"
-run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/egress_policy_refinement.py"
+run = """
+set -euo pipefail
+PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/egress_policy_refinement.py
+PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/dns_cache_state.py
+"""
