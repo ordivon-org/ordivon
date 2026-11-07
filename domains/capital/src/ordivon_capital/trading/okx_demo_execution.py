@@ -320,6 +320,29 @@ def main(argv: list[str] | None = None) -> int:
     parameters = request.get("parameters", {})
     if not isinstance(parameters, dict):
         raise ValueError("parameters must be object")
+    from ordivon_capital.trading.postgres_demo_intent import (
+        DemoIntent,
+        DemoIntentConflict,
+        PostgresDemoIntentStore,
+    )
+
+    def store() -> PostgresDemoIntentStore:
+        dsn = os.environ.get("ORDIVON_CAPITAL_PG_DSN", "")
+        if not dsn:
+            raise DemoIntentConflict("existing Capital PostgreSQL DSN required")
+        return PostgresDemoIntentStore(dsn)
+
+    if operation == "STAGE_INTENT":
+        result = store().stage(DemoIntent(**parameters))
+        print(json.dumps(result, sort_keys=True))
+        return 0
+    if operation == "INSPECT_INTENT":
+        record = store().inspect(str(request.get("intentId") or ""))
+        if record is None:
+            raise DemoIntentConflict("intent not found")
+        print(json.dumps(record, sort_keys=True))
+        return 0
+
     routes = {
         "ACCOUNT_CONFIG": "account_config",
         "BALANCE": "balance",
@@ -331,12 +354,58 @@ def main(argv: list[str] | None = None) -> int:
     }
     if operation not in routes:
         raise ValueError("unsupported Demo operator")
-    if operation in ("PLACE_LIMIT", "CANCEL") and not _demo_write_admitted(args.policy):
+    is_write = operation in ("PLACE_LIMIT", "CANCEL")
+    if is_write and not _demo_write_admitted(args.policy):
         raise OkxDemoError("Demo external write is not admitted by current Governance owner")
+
+    intent_id = str(request.get("intentId") or "")
+    durable = None
+    if is_write:
+        if not intent_id:
+            raise DemoIntentConflict("external writes require PG intentId")
+        durable = store()
+        snapshot = durable.inspect(intent_id)
+        if snapshot is None:
+            raise DemoIntentConflict("precommitted intent not found")
+        frozen = snapshot["intent"]
+        if operation == "PLACE_LIMIT":
+            if set(parameters) != {
+                "instrument_id", "side", "size", "limit_price", "client_order_id",
+            }:
+                raise DemoIntentConflict("order parameters differ from frozen intent schema")
+            expected = {
+                "instId": parameters["instrument_id"],
+                "side": parameters["side"],
+                "size": _positive_decimal(parameters["size"]),
+                "limitPrice": _positive_decimal(parameters["limit_price"]),
+                "clOrdId": parameters["client_order_id"],
+            }
+            if any(frozen[k] != v for k, v in expected.items()):
+                raise DemoIntentConflict("external order differs from immutable PG intent")
+        else:
+            if set(parameters) != {"instrument_id", "venue_order_id"}:
+                raise DemoIntentConflict("cancel parameters differ from intended order")
+            if (
+                frozen["instId"] != parameters["instrument_id"]
+                or snapshot["providerOrderId"] != parameters["venue_order_id"]
+            ):
+                raise DemoIntentConflict("cancel not bound to acknowledged PG order")
+
     client = OkxSpotDemoClient(
         credentials_from_systemd(), base_url=args.base_url, proxy_url=args.proxy_url,
     )
-    result = getattr(client, routes[operation])(**parameters)
+    if operation == "PLACE_LIMIT":
+        assert durable is not None
+        durable.claim_once(intent_id, snapshot["digest"])
+        result = client.place_limit(**parameters)
+        durable.record_ack(intent_id, result.venue_order_id)
+    elif operation == "CANCEL":
+        assert durable is not None
+        durable.claim_cancel_once(intent_id, parameters["venue_order_id"])
+        result = client.cancel(**parameters)
+        durable.record_cancel_ack(intent_id)
+    else:
+        result = getattr(client, routes[operation])(**parameters)
     print(json.dumps(asdict(result) if is_dataclass(result) else result, sort_keys=True))
     return 0
 
