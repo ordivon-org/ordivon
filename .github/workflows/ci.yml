@@ -243,17 +243,6 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Install Game native Bevy Linux dependencies
-        if: ${{ contains(format(',{0},', steps.affected.outputs.owners), ',game,') }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Bevy upstream Linux requirements, needed only for Game's real
-          # cargo test/check consumer (Wayland, X11, ALSA, udev).
-          # https://github.com/bevyengine/bevy/blob/main/docs/linux_dependencies.md
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends g++ pkg-config libx11-dev libasound2-dev libudev-dev libxkbcommon-x11-0 libwayland-dev libxkbcommon-dev
-
       - name: Verify affected owners
         shell: bash
         run: |
