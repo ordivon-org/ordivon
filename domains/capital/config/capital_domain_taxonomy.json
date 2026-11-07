@@ -49,7 +49,8 @@
       "execution_reconciliation.py",
       "fix44_projection.py",
       "okx_readonly_client.py",
-      "private_reality.py"
+      "private_reality.py",
+      "okx_demo_execution.py"
     ],
     "portfolio": [
       "portfolio_counterfactuals.py",

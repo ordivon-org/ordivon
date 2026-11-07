@@ -818,9 +818,16 @@
     },
     {
       "id": "trading-paper-fill-calendar",
-      "sourcePatterns": ["src/ordivon_capital/trading/paper_fill_calendar.py"],
-      "ownerClasses": ["ORDIVON_GLUE"],
-      "externalOwners": ["Exchange session notices", "DTC settlement notices"],
+      "sourcePatterns": [
+        "src/ordivon_capital/trading/paper_fill_calendar.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Exchange session notices",
+        "DTC settlement notices"
+      ],
       "localStanding": "OPERATOR_BOUND_PAPER_CALENDAR",
       "localResponsibility": "Validate bounded paper open fills and clearing dates against digest-bound operator evidence."
     },
@@ -905,6 +912,28 @@
       "localDependencies": [
         "Markets historical CSV admission and caller-frozen capital/weights/cost convention"
       ]
+    },
+    {
+      "id": "trading-okx-demo-provider-wire",
+      "sourcePatterns": [
+        "src/ordivon_capital/trading/okx_demo_execution.py",
+        "scripts/run-okx-demo-execution"
+      ],
+      "ownerClasses": [
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE",
+        "IMPLEMENTATION_CANDIDATE"
+      ],
+      "externalOwners": [
+        "OKX API v5 Demo provider order/account/fill authoritative reports",
+        "Existing Runtime CredentialAuthority for Demo-only encrypted credentials"
+      ],
+      "localStanding": "LOCAL_DEMO_WIRE_CANDIDATE_NOT_PROVIDER_ADMITTED",
+      "localResponsibility": "Provide bounded OKX SPOT cash Demo-only source effects and exact observed order/fill identity; leave external POST gating to current Governance admission and durable intent/effect to existing Trading/Accounting PostgreSQL. No proprietary OMS, no generic provider SDK, no live authority and no provider-real receipt yet.",
+      "candidateMechanics": [
+        "NautilusTrader OKXExecutionClient latest-stable candidate, requires exact-version owner qualification"
+      ],
+      "admittedMechanicsOwners": []
     }
   ],
   "notInstantiatedDomains": [
