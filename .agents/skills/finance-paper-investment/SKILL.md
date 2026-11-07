@@ -45,7 +45,7 @@ nonanticipative optimizer under `domains/capital/docs/MULTISTAGE_FINANCE_R1.md`.
 Optional `terminal_liabilities_r` requires an externally verified cash
 obligation for EVERY terminal leaf. Optimize CRRA on disposable surplus,
 report gross/obligation/net values separately; never treat future liabilities
-as today's broker collateral. This does not cover interim consumption.
+as today's broker collateral. Intermediate expenses are separately modeled by `node_outflow_after_contribution_r`.
 This additional contract only handles payments explicitly due after the
 current month 1r contribution; it does NOT authorize any early rescue of
 pre-contribution defaults or guarantee real broker liquidity.
@@ -66,6 +66,26 @@ broker or Paper Ledger receipt.
 intertemporal monthly cashflows still require genuine Bellman/MPC evidence.
 Never route research output into live or Paper execution without an
 independently established consumer contract.
+
+## Direct PIT research-to-Portfolio consumer
+
+Use the existing Research `pit_joint_forecast` --solve option for frozen,
+caller-supplied historical vintages and exact cross-ETF return scenarios.
+It calls the existing `portfolio.multistage_policy` solver directly,
+without inventing another financial optimizer or execution subsystem.
+
+From `domains/capital` run:
+`PYTHONPATH=src uv run --no-sync python -m ordivon_capital.research.pit_joint_forecast --input request.json --solve`.
+
+Without --solve the prior evidence-only JSON output is unchanged.
+Compare `forecast_evidence` with `conditional_allocation`. The former is an
+uncalibrated joint empirical/lagged-neighbor hypothesis. The latter is
+a conditional numerical solution under the caller's gamma/fees/funding/
+broker margin terms; the LP numerical optimality bound is NOT proof
+of market predictive skill. Both have `NONE_NO_TRADE_NO_ACCOUNTING` effects.
+The timestamp, raw-vintage evidence and actual broker contracts must be
+verified independently. Forward falsification uses the existing
+finance-experiment-review Skill.
 
 ## How to route the source LEGO registry (CA01—CA10)
 

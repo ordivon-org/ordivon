@@ -200,3 +200,21 @@ CLI 只写标准输出 JSON，无下单、账户读写、自动市场预测或�
 鍦ㄦ棤鍊熸涓斾笉娆犵淮鎸佷繚璇侀噾鐨勬儏鏅腑锛屾姇璧勮€呭彲浠ュ皢褰撴湀1r鍏ㄩ儴鐢ㄤ簬
 鐪熷疄鏀嚭锛屼娇娆℃湀鏂拌祫閲戝埌璐?*涔嬪墠**鐨勮处鎴锋潈鐩婃伆濂戒负闆躲€俓n瀹冨苟涓嶆槸璐熷€猴紝涔熶笉搴旇鏁板€煎唴鐐规潯浠惰涓哄繀鐒跺己鍒跺钩浠撱€俓n
 鎵€鏈変腑闂存湀鑺傜偣鍙姹?W^- >= 0 涓旀弧瓒崇湡瀹炵淮鎸佷繚璇侀噾 W^- >= M銆俓n鍙缁堢 CRRA 鍙敮閰嶄綑棰?W_T-L_T 瑕佹眰涓ユ牸姝ｇ殑鏁堢敤瀹氫箟鍩熴€俓n鍙鐐规悳绱€丼LSQP 鍘熷绾︽潫鍜岀嫭绔?HiGHS 鍒囪秴骞抽潰鏈€浼樺€间笂鐣孿n鍏ㄩ儴閲囩敤鐩稿悓鍙鍩燂紝閬垮厤鑷埗鈥滃畨鍏?epsilon鈥濆彉鎴愮粡娴庤鍒欍€俓n
+## PIT-to-Portfolio direct read-only consumer
+
+The existing Research point-in-time joint forecaster now has an opt-in
+`--solve` flag, so no Agent needs to create a second JSON bridge or duplicate
+the SciPy optimizer. It consumes only published price vintages at the stated
+decision time, preserving cross-ETF joint monthly outcomes and explicit
+economic input (CRRA gamma, cash/debt rates, cost and broker margins).
+
+Run from `domains/capital`:
+    PYTHONPATH=src uv run --no-sync python -m ordivon_capital.research.pit_joint_forecast --input request.json --solve
+
+The old evidence-only request (without --solve) remains backward compatible.
+`conditional_allocation` is conditional on `forecast_evidence` and the caller's
+economic contract. It is NOT a market-verified optimal policy, not a claimed
+real-world probability distribution and never authorizes a live trade.
+A future-published vintage cannot change the frozen earlier solution.
+The original research experiment review remains responsible for independent
+prospective proper-scoring and subsequent economic out-of-sample evidence.
