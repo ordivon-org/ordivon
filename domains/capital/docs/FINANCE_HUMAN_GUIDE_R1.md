@@ -1,5 +1,13 @@
 # Ordivon Finance — Human 操作指南（R1）
 
+> 研究模型最新口径：`ALGEBRAIC_FINANCE_POLICY_R1.md`。每月 `1r`
+> 为标准化外部入金；不能仅从历史最大回撤、任意 40%/35% 数字
+> 推导普适的最优杠杆。早期 `UNIT_R_DCA_LONG_HISTORY_R1.md` 中的
+> 回撤门槛、假设年化融资与额外压力缓冲都只是历史情景参数，
+> 不是经济学模型的默认值。优先查看由效用、融资合同和联合收益
+> 概率分布决定的代数可行政策族。
+
+
 **入口定位**：Finance 是 Ordivon Capital 的投资研究与模拟投资能力组合，不是独立交易机器人或独立 Agent Runtime。当前源码在 `domains/capital/`；所有示例均以仓库根目录为工作目录。首次体验先执行下方的无账户、只读示例；修改源码或验收工程变更时才运行 `mise run //domains/capital:verify`。无需为一个简单示例先跑全仓测试。
 
 ## 1. 我能用它做什么？
