@@ -391,6 +391,79 @@ def test_missing_legacy_source_requires_explicit_fresh_bootstrap(
     owner.assert_legacy_sealed(source, fresh_bootstrap=True)
 
 
+def test_fresh_empty_pg_activates_without_sqlite_import(
+    owner: PostgresWakeTurnMap, tmp_path: Path
+) -> None:
+    source = tmp_path / "not-created.sqlite"
+    receipt = owner.activate_empty_fresh(source)
+    assert receipt["migrationStanding"] == "fresh-empty-activated"
+    assert receipt["sourceRows"] == receipt["postgresRows"] == 0
+    assert not source.exists()
+    owner.assert_legacy_sealed(source, fresh_bootstrap=True)
+    result = owner.allocate(
+        campaign_ref="sha256:" + "a" * 64,
+        agent_id="A01",
+        wake_intent_id="wake:fresh-test",
+        prompt_digest="sha256:" + "b" * 64,
+    )
+    assert result["disposition"] == "created"
+    assert owner.get("wake:fresh-test")["turnRequestId"] == result["turnRequestId"]
+
+
+def test_fresh_pg_rejects_old_sqlite_without_mutating_pg(
+    owner: PostgresWakeTurnMap, tmp_path: Path
+) -> None:
+    source = tmp_path / "legacy.sqlite"
+    source.write_bytes(b"legacy-source-must-not-be-consumed")
+    with pytest.raises(WakeTurnConflict, match="requires absent"):
+        owner.activate_empty_fresh(source)
+    with psycopg.connect(owner.dsn) as pg:
+        assert pg.execute(
+            "SELECT 1 FROM ordivon_harness.wake_cutover LIMIT 1"
+        ).fetchone() is None
+
+
+def test_fresh_pg_rejects_pending_or_preexisting_identity(
+    owner: PostgresWakeTurnMap, tmp_path: Path
+) -> None:
+    with psycopg.connect(owner.dsn) as pg:
+        pg.execute(
+            "INSERT INTO ordivon_harness.wake_cutover "
+            "(cutover_id,state) VALUES('legacy','PENDING')"
+        )
+    with pytest.raises(WakeTurnConflict, match="pending historical"):
+        owner.activate_empty_fresh(tmp_path / "absent.sqlite")
+    with psycopg.connect(owner.dsn) as pg:
+        assert pg.execute(
+            "SELECT state FROM ordivon_harness.wake_cutover WHERE cutover_id='legacy'"
+        ).fetchone()[0] == "PENDING"
+
+
+def test_fresh_pg_refuses_nonempty_destination_without_authority(
+    owner: PostgresWakeTurnMap, tmp_path: Path
+) -> None:
+    with psycopg.connect(owner.dsn) as pg:
+        pg.execute(
+            "INSERT INTO ordivon_harness.wake_turn_map "
+            "(wake_intent_id,campaign_ref,agent_id,prompt_digest,turn_request_id,created_at_ms) "
+            "VALUES(%s,%s,%s,%s,%s,%s)",
+            (
+                "wake:existing",
+                "sha256:" + "a" * 64,
+                "A01",
+                "sha256:" + "b" * 64,
+                "019a9af0-7b00-7000-8000-000000000011",
+                1,
+            ),
+        )
+    with pytest.raises(WakeTurnConflict, match="existing destination"):
+        owner.activate_empty_fresh(tmp_path / "absent.sqlite")
+    with psycopg.connect(owner.dsn) as pg:
+        assert pg.execute(
+            "SELECT 1 FROM ordivon_harness.wake_cutover LIMIT 1"
+        ).fetchone() is None
+
+
 def test_sqlite_commit_failure_never_admits_a_postgres_wake(
     owner: PostgresWakeTurnMap, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
