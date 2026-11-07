@@ -268,6 +268,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         self.assertEqual(classify("platform/workstation/inventory/queries/uptime.sql"), "osquery")
         self.assertEqual(classify("studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql"), "postgresql")
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"), "postgresql")
+        self.assertEqual(classify("catalogs/capabilities/ele/schema.sql"), "postgresql")
 
     def test_full_host_package_queries_are_bounded_and_not_downgraded(self):
         self.assertEqual(OSQUERY_TIMEOUT_SECONDS["python_packages.sql"], 120)
