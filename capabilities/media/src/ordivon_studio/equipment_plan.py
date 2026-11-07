@@ -132,7 +132,34 @@ def compile_operation(
         height = int(parameters["height"])
         return EquipmentPlan(equipment_id, capability, "process", require_existing("/usr/bin/rsvg-convert"), ("--width", str(width), "--height", str(height), "-o", output, input_path))
     if equipment_id == "davinci-resolve":
-        return EquipmentPlan(equipment_id, capability, "existing-studio-adapter", None, (), ("Use `ordivon-studio resolve ...`; current adapter is version-specific and menu-mediated where required.",))
+        if capability == "deliver.render" and {"python", "script", "visuals", "output_dir", "name"} <= parameters.keys():
+            visuals = parameters["visuals"]
+            if not isinstance(visuals, list) or not visuals or not all(isinstance(p, str) and p for p in visuals):
+                raise ValueError("selected visuals must be a nonempty list of source paths")
+            args = [str(parameters["script"])]
+            for visual in visuals:
+                args.extend(("--visual", visual))
+            args.extend(("--output-dir", str(parameters["output_dir"]), "--name", str(parameters["name"])))
+            if parameters.get("audio"):
+                args.extend(("--audio", str(parameters["audio"])))
+            if parameters.get("grade_saturation") is not None:
+                args.extend(("--grade-saturation", str(parameters["grade_saturation"])))
+            return EquipmentPlan(
+                equipment_id, capability, "windows-native-active-user-process",
+                str(parameters["python"]), tuple(args),
+                (
+                    "Execute via Windows Runtime windowsAuthority=active_user in the logged-in desktop session.",
+                    "The official Resolve API produces MP4, editable DRP, and source/output SHA-256 receipt.",
+                ),
+            )
+        return EquipmentPlan(
+            equipment_id, capability, "resolve-official-python-api", None, (),
+            (
+                "Use the installed Resolve official Python API through Windows Runtime active_user.",
+                "To render supply python, script, visuals, output_dir, name to source-owned scripts/resolve-native-produce.py.",
+                "Do not restore the retired ordivon-studio resolve menu Runner.",
+            ),
+        )
     if equipment_id == "obs-studio":
         return EquipmentPlan(
             equipment_id,

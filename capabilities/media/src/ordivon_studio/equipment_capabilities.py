@@ -208,7 +208,7 @@ def verification_contract(equipment_id: str, capability: str, parameters: Mappin
             "kind": "OPERATION_RESULT_RECONCILIATION",
             "required": True,
             "ready": True,
-            "reason": "Read the operation-id-bound Resolve result and inspect declared project/artifact postconditions; do not redispatch after response loss.",
+            "reason": "Read native Resolve project/timeline and MP4/DRP/receipt outputs; reconcile Runtime Job before retry.",
         }
     output = parameters.get("output")
     if isinstance(output, str) and output:
@@ -229,12 +229,12 @@ def verification_contract(equipment_id: str, capability: str, parameters: Mappin
 
 _PROVIDER_MECHANICS: dict[str, dict[str, Any]] = {
     "davinci-resolve": {
-        "transport": "studio.resolve-adapter",
+        "transport": "resolve-official-python-api",
         "stateAuthority": "davinci-resolve-project",
-        "executionAuthority": "runtime-windows-native-plus-studio-adapter",
-        "secretBoundary": "none-for-local-adapter",
-        "convergence": "operation-result-plus-project/postcondition-inspection",
-        "recovery": "operation-id-bound-result-read; restore prior project/cleanup when declared by adapter",
+        "executionAuthority": "runtime-windows-native-active-user",
+        "secretBoundary": "local-desktop-user-session",
+        "convergence": "native-project-timeline-and-digest-readback",
+        "recovery": "reconcile Runtime Job and isolated project; inspect native output digest",
         "defaultLifecycle": "operator-workstation-state-preserved",
     },
     "obs-studio": {
