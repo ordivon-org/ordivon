@@ -144,7 +144,15 @@ def test_unqualified_route_and_unknown_credential_profile():
     ) == ["spot", "get", "--instId", "BTC-USDT", "--clOrdId", "testOne"]
     with pytest.raises(ValueError, match="outside"):
         OkxOfficialSpotDemoClient._route("POST", "/api/v5/account/transfer", None, {})
-    with patch.dict(os.environ, {"ORDIVON_OKX_SITE": "unsupported"}, clear=False):
-        if _installed():
+    if _installed():
+        with patch.dict(os.environ, {"ORDIVON_OKX_SITE": "unsupported"}, clear=False):
             with pytest.raises(OkxDemoError, match="site"):
                 OkxOfficialSpotDemoClient(OkxReadOnlyCredentials("a", "b", "c"))
+        with patch.dict(os.environ, {"ORDIVON_OKX_SITE": "eea"}, clear=False):
+            regional = OkxOfficialSpotDemoClient(OkxReadOnlyCredentials("a", "b", "c"))
+            assert regional._base_url == "https://eea.okx.com"
+            with pytest.raises(OkxDemoError, match="region"):
+                OkxOfficialSpotDemoClient(
+                    OkxReadOnlyCredentials("a", "b", "c"),
+                    base_url="https://us.okx.com",
+                )

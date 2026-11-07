@@ -62,8 +62,18 @@ class OkxOfficialSpotDemoClient(OkxSpotDemoClient):
         self._script = script
         self._official_proxy = proxy_url
         site = os.environ.get("ORDIVON_OKX_SITE", "global")
-        if site not in ("global", "eea", "us", "tr"):
+        official_origins = {
+            "global": "https://www.okx.com",
+            "eea": "https://eea.okx.com",
+            "us": "https://us.okx.com",
+            "tr": "https://tr.okx.com",
+        }
+        if site not in official_origins:
             raise OkxDemoError("OKX account site must be explicit supported site")
+        official_origin = official_origins[site]
+        if base_url != "https://www.okx.com" and base_url != official_origin:
+            raise OkxDemoError("OKX account region and API origin mismatch")
+        self._base_url = official_origin
         self._site = site
 
     @staticmethod
