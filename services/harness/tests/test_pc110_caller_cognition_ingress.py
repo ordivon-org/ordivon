@@ -19,7 +19,7 @@ from ordivon_harness.working_view import (
 )
 
 from tests.test_p0_sqlite_agent_loop import FailIfInvokedAdapter
-from tests.test_p0_runtime_bridge import FakeRuntime, FixedClock, execution_binding
+from tests.test_p0_sqlite_runtime_bridge import FakeRuntime, FixedClock, execution_binding
 from tests.test_pc13_agent_owned_working_set import cognition_budget, cognition_contract
 from tests.test_pc14_candidate_discovery_overlay import transition_turn
 from tests.test_pc15_epistemic_control import (

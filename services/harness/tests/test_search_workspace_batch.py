@@ -16,7 +16,7 @@ from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
-from tests.test_p0_runtime_bridge import (
+from tests.test_p0_sqlite_runtime_bridge import (
     FakeRuntime,
     FixedClock,
     bound_state,

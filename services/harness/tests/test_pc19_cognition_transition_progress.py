@@ -17,7 +17,7 @@ from ordivon_harness.working_view import (
     WorkingSetViewProjector,
 )
 
-from tests.test_p0_runtime_bridge import FakeRuntime, FixedClock, execution_binding
+from tests.test_p0_sqlite_runtime_bridge import FakeRuntime, FixedClock, execution_binding
 from tests.test_pc14_candidate_discovery_overlay import transition_turn
 from tests.test_pc15_epistemic_control import (
     needs_input_turn,

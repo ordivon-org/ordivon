@@ -37,7 +37,7 @@ from ordivon_harness.working_view import (
 )
 
 from tests.test_p0_sqlite_agent_loop import FixedClock, contract
-from tests.test_p0_runtime_bridge import FakeRuntime, execution_binding
+from tests.test_p0_sqlite_runtime_bridge import FakeRuntime, execution_binding
 from tests.test_pc15_epistemic_control import private_contract, run_budget
 
 

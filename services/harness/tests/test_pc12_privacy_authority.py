@@ -28,7 +28,7 @@ from tests.test_p0_sqlite_agent_loop import (
     contract,
     needs_input_result,
 )
-from tests.test_p0_runtime_bridge import (
+from tests.test_p0_sqlite_runtime_bridge import (
     FakeRuntime,
     budget as runtime_budget,
     completed_turn,

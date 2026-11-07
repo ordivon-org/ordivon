@@ -28,7 +28,7 @@ from ordivon_harness.working_view import (
     WorkingSetViewProjector,
 )
 
-from tests.test_p0_runtime_bridge import (
+from tests.test_p0_sqlite_runtime_bridge import (
     FakeRuntime,
     FixedClock,
     contract,

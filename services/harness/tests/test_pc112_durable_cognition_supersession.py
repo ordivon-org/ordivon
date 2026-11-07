@@ -31,7 +31,7 @@ from ordivon_harness.working_view import (
     WorkingSetViewProjector,
 )
 
-from tests.test_p0_runtime_bridge import FakeRuntime, FixedClock, execution_binding
+from tests.test_p0_sqlite_runtime_bridge import FakeRuntime, FixedClock, execution_binding
 from tests.test_pc111_interaction_durable_promotion import (
     deepseek_needs_input_response,
     promotion_turn,
