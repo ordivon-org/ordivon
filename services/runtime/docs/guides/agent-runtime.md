@@ -61,4 +61,4 @@ At the beginning of an operation, call `runtime.describe` on the **specific node
 
 These are capability/contract descriptions, not newly registered executable Tools. Design extensions using `(input, output, state, precondition, postcondition, invariant, effects, cost, uncertainty, provenance, decomposition)`. An unknown postcondition must remain UNKNOWN.
 
-See [Operator Guide](operator-runtime.md), [Execution Model](../runtime.md), and [Owner Audit](../audits/2026-11-07-runtime-owner-audit.md).
+See [Runtime LEGO Guide](runtime-legos.md) for capability and thinking LEGOs, [Operator Guide](operator-runtime.md), [Execution Model](../runtime.md), and [Owner Audit](../audits/2026-11-07-runtime-owner-audit.md).

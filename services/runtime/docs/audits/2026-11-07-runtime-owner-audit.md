@@ -27,7 +27,7 @@ related:
 
 ## Scope and evidence standing
 
-Audited the source tree at Linux commit `f52091fb1c8f920b7114c813142d1e7795ae8664` in isolated Workspace `ws-gpt6-runtime-owner-audit-20261107-r1`. Windows read-only comparison used commit `73196dc2bc076f148e905b688fafa34d40486a9c`. Findings are **time-scoped source and service observations**, not installed release acceptance. No system data was deleted.
+Audited the source tree at Linux commit `f52091fb1c8f920b7114c813142d1e7795ae8664` in isolated Workspace `ws-gpt6-runtime-owner-audit-20261107-r1`. Windows read-only comparison used commit `73196dc2bc076f148e905b688fafa34d40486a9c`. Findings are **time-scoped source and service observations**, not installed release acceptance. The initial census was read-only; later exact-path legacy SQLite/trace retirement is recorded below.
 
 Linux tracked directory census: `crates` 125 files (~3.10 MB), `research` 132 (~1.53 MB), `scripts` 62 (~1.53 MB), `docs` 24 (~0.39 MB), `planning` 8 (~0.15 MB), `formal` 14 (~0.07 MB), `platform` 3 (~0.18 MB), `packaging` 11 (~0.03 MB). File counts exclude untracked/ignored working data. Code scans found 24 tracked files referencing `registry.sqlite3` and 15 referencing `rusqlite` (scans included docs/tests where indicated).
 
@@ -140,3 +140,17 @@ A second `windows_native` Runtime execution (`job-01a1b631-dfc2-7e71-80d7-550c49
 An additional exact-path cleanup Job `job-01a1b634-0b11-72d7-942e-cd2e06020f40` deleted four unreferenced legacy trace files after checking both PG process file-descriptor sets, inactive legacy timers, immutable file identities, and absent file openers: `runtime-trace.jsonl` (59,341,977 bytes), `runtime-trace.jsonl.1` (67,108,711), `runtime-trace.jsonl.http.jsonl` (43,598,344), and `runtime-trace.jsonl.http.jsonl.1` (67,108,641). Total additional logical removal: **237,157,673 bytes**. Together with the earlier SQLite file, exact removed file byte lengths total **6,403,243,305**; this is not a measured disk-space delta.
 
 The `/var/lib/ordivon/registry/attempts/` subtree was **not removed**. An 8-second bounded `du` inventory timed out, so the actual recursive size and remaining consumer evidence are incomplete; do not equate the directory-entry size (32,948,224 bytes) with its real storage footprint. The old `admission.lock` and `dogfood-latest.json` were likewise not touched in this pass.
+
+## Second-pass PG modularization (source-only, 2026-11-07)
+
+The 1,504-line `crates/ordivon-runtime-core/src/runtime/pg_runtime.rs` mixed durable PG coordination with Workspace methods, public Job APIs, Artifact projection, and node discovery. The code was **physically split without public API or SQL contract changes**, keeping the root `PgRuntime` as the single implementation:
+
+- `runtime/pg_runtime.rs` — PG configuration, writer qualification, internal attempt/reconciliation/project logic; 600 lines after extraction.
+- `runtime/pg_runtime/node_query.rs` — public discovery and scoped Job listing (134 lines).
+- `runtime/pg_runtime/workspace.rs` — source-bound Workspace operations (210 lines).
+- `runtime/pg_runtime/job.rs` — Job admission/observation/cancellation/get (466 lines).
+- `runtime/pg_runtime/artifact.rs` — digest/length bounded Artifact reads (119 lines).
+
+The 7 native `pg_vertical` tests are **ignored by default**. This pass explicitly enabled them in a disposable local PostgreSQL cluster with `cargo test -p ordivon-runtime-mcp --features postgres-runtime --test pg_vertical -- --ignored --nocapture --test-threads=1`: 7 passed / 0 failed / 0 ignored. The PG MCP binary also passed `cargo check --locked`, scoped Rust PG unit tests 2/2 and `cargo clippy ... -D warnings`. Passing Linux PG acceptance does not prove Windows PG implementation or production deployment. Current Cargo still transitively compiles `rusqlite`.
+
+Human/Agent capability vs reasoning LEGO instructions are linked in [Runtime LEGO Guide](../guides/runtime-legos.md). The source module move is intentional **structure-only** refinement; `PostgresOnlyCargoDependencyGraph` remains NOT SATISFIED, and `WindowsNativePgWriter` remains NOT QUALIFIED. Future changes must not bundle these unresolved obligations into this source-only commit.

@@ -20,6 +20,8 @@ Read [`docs/recovery.md`](docs/recovery.md) only when operating on Registry inte
 - Result and Artifact files own their Digest-bound bytes.
 - Current tools, configuration, deployment, and health must be queried from the live system rather than copied into prose.
 
+For capability/reasoning decomposition, read [`docs/guides/runtime-legos.md`](docs/guides/runtime-legos.md). Keep source-level LEGOs distinct from deployed authority and never infer formal equivalence from a successful build.
+
 ## Component boundary
 
 This repository implements **Ordivon Runtime**, not the complete Ordivon system. Cognition, planning, memory, coordination, and product interfaces remain outside this repository unless a concrete Runtime contract requires them.

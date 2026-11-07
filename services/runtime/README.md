@@ -50,7 +50,7 @@ participant or Host admits work
 
 ## Start here
 
-- For human operations and safe cleanup use [`docs/guides/operator-runtime.md`](docs/guides/operator-runtime.md); for Agent execution and evidence use [`docs/guides/agent-runtime.md`](docs/guides/agent-runtime.md).
+- For human operations and safe cleanup use [`docs/guides/operator-runtime.md`](docs/guides/operator-runtime.md); for Agent execution and evidence use [`docs/guides/agent-runtime.md`](docs/guides/agent-runtime.md). The [Runtime LEGO Guide](docs/guides/runtime-legos.md) maps existing capability/thought LEGOs to their real consumers, rather than introducing a second execution framework.
 - For the 2026-11-07 directory and backend consumer audit use [`docs/audits/2026-11-07-runtime-owner-audit.md`](docs/audits/2026-11-07-runtime-owner-audit.md). Its findings are time-scoped, not production deployment proof.
 
 - Use [`docs/quickstart.md`](docs/quickstart.md) to build, verify, install, and exercise Runtime.
