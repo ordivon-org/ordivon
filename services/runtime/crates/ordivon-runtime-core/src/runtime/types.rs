@@ -821,6 +821,8 @@ pub(crate) struct RuntimeExecutionPlan {
     pub windows_execution_context: Option<WindowsExecutionContext>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub foreign_references: Vec<ForeignReference>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub host_dependencies: Vec<HostDependencyBinding>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub input_set_id: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
