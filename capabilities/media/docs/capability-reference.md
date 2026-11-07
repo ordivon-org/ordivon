@@ -30,6 +30,28 @@ The narrow, independently discoverable Agent entrypoints are
 and [Native Processing](../../../.agents/skills/media-native-processing/SKILL.md).
 Neither Skill implements media operations or grants source/effect authority.
 
+## Optional mature provider candidates 鈥?not yet admitted as LEGO
+
+For both Human and Agent users, **discover an actual consumer first**.
+Netflix [libvmaf](https://github.com/Netflix/vmaf) may compare a selected
+source and encoded video objectively when there is a meaningful reference,
+but its score does not prove artistry, legal clearance or audience response.
+[MediaInfo](https://mediaarea.net/en/MediaInfo) offers an alternative media
+metadata inspection surface; compare it against selected FFprobe fields
+before adding an adapter. Local/hosted ASR providers may be considered for
+an actual narration transcription consumer after observing real provider
+availability and source-language rights.
+
+Human: identify which visual/audio/linguistic defect a candidate measures,
+inspect an actual source/Output pair and decide whether the metric changes
+the creative or publication decision.
+
+Agent: require a named Production, exact source Blob/output, provider
+version and provenance, repeatable native measurement, an existing
+Output/Claim consumer and a distinct admission decision before adding
+any selected Profile to the current processing directory. A candidate
+listed here is **not installed, enabled, or proven** merely by listing it.
+
 ## Discover live actions (don't copy a second schema)
 
 From `capabilities/media`:

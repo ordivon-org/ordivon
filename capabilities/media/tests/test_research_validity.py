@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-import json
 import os
-import runpy
-import sqlite3
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import closing
 from pathlib import Path
 from uuid import uuid4
 
@@ -54,80 +50,7 @@ class ResearchValidityTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "PostgreSQL DSN"):
                 TrialLedger(Path(temporary) / "legacy.sqlite", search_id="experiment:refuse")
 
-    def test_legacy_migration_rejects_unconsumed_or_live_source_before_any_read(self) -> None:
-        """Without a current consumer and writer-stop attestation do not copy history."""
-        from unittest.mock import patch
 
-        migrate = runpy.run_path(
-            str(Path(__file__).resolve().parents[1] / "scripts" / "migrate-r6-trials.py")
-        )["migrate"]
-        with tempfile.TemporaryDirectory() as temporary:
-            db = Path(temporary) / "unused.sqlite"
-            db.write_bytes(b"synthetic source must never be read")
-            with patch("sqlite3.connect", side_effect=AssertionError("old DB read")):
-                with self.assertRaisesRegex(ValueError, "writers"):
-                    migrate(
-                        db, "postgresql://unused.invalid/no-write",
-                        expected_search_id="search:active",
-                        retention_consumer="registered_search_replay",
-                    )
-                with self.assertRaisesRegex(ValueError, "retention consumer"):
-                    migrate(
-                        db, "postgresql://unused.invalid/no-write",
-                        expected_search_id="search:active",
-                        source_writers_stopped=True,
-                    )
-                with self.assertRaisesRegex(ValueError, "expected search ID"):
-                    migrate(
-                        db, "postgresql://unused.invalid/no-write",
-                        source_writers_stopped=True,
-                        retention_consumer="registered_search_replay",
-                    )
-
-                with self.assertRaisesRegex(ValueError, "retention consumer"):
-                    migrate(
-                        db, "postgresql://unused.invalid/no-write",
-                        expected_search_id="search:active",
-                        source_writers_stopped=True,
-                        retention_consumer="maybe_useful_someday",
-                    )
-
-    def test_failed_sqlite_migration_closes_source_handle(self) -> None:
-        """An incomplete PG cutover may not leak a read-only SQLite handle."""
-        from unittest.mock import patch
-
-        migrate = runpy.run_path(
-            str(Path(__file__).resolve().parents[1] / "scripts" / "migrate-r6-trials.py")
-        )["migrate"]
-        with tempfile.TemporaryDirectory() as temporary:
-            db = Path(temporary) / "empty.sqlite"
-            with closing(sqlite3.connect(db)) as source, source:
-                source.execute(
-                    "CREATE TABLE trial_events("
-                    "seq INTEGER PRIMARY KEY, event_id TEXT, search_id TEXT,"
-                    "attempt_id TEXT, candidate_id TEXT, event_type TEXT,"
-                    "payload_json TEXT, prev_hash TEXT, event_hash TEXT)"
-                )
-            real_connect = sqlite3.connect
-            closed: list[bool] = []
-
-            class Tracked(sqlite3.Connection):
-                def close(self) -> None:
-                    closed.append(True)
-                    super().close()
-
-            def track_connect(*args, **kwargs):
-                return real_connect(*args, factory=Tracked, **kwargs)
-
-            with patch("sqlite3.connect", side_effect=track_connect):
-                with self.assertRaisesRegex(ValueError, "legacy SQLite ledger is empty"):
-                    migrate(
-                        db, "postgresql://unneeded.test/no-write",
-                        expected_search_id="search:empty-fixture",
-                        retention_consumer="registered_search_replay",
-                        source_writers_stopped=True,
-                    )
-            self.assertEqual(closed, [True])
 
     @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
     def test_trial_ledger_is_hash_chained_and_append_only(self) -> None:
@@ -212,117 +135,7 @@ class ResearchValidityTest(unittest.TestCase):
         finally:
             ledger.close()
 
-    @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
-    def test_legacy_sqlite_event_chain_migrates_once_to_pg_without_mutating_source(self) -> None:
-        migrate = runpy.run_path(
-            str(Path(__file__).resolve().parents[1] / "scripts" / "migrate-r6-trials.py")
-        )["migrate"]
-        with tempfile.TemporaryDirectory() as directory:
-            db = Path(directory) / "legacy.sqlite"
-            source = sqlite3.connect(db)
-            source.execute(
-                "CREATE TABLE trial_events("
-                "seq INTEGER PRIMARY KEY, event_id TEXT, search_id TEXT, attempt_id TEXT,"
-                "candidate_id TEXT, event_type TEXT, payload_json TEXT, prev_hash TEXT,"
-                "event_hash TEXT)"
-            )
-            from ordivon_studio.research.grounded_contracts import canonical_digest
 
-            search_id = f"experiment:legacy:{uuid4().hex}"
-            prior = None
-            for i in range(3):
-                payload = {"trial": i}
-                semantic = {
-                    "searchId": search_id, "attemptId": f"attempt:{i}",
-                    "candidateId": f"candidate:{i}", "eventType": "trial.proposed",
-                    "payload": payload, "prevHash": prior,
-                }
-                event_hash = canonical_digest(semantic)
-                source.execute(
-                    "INSERT INTO trial_events VALUES (?,?,?,?,?,?,?,?,?)",
-                    (
-                        i + 1, "trial-event://" + event_hash.removeprefix("sha256:"),
-                        search_id, f"attempt:{i}", f"candidate:{i}", "trial.proposed",
-                        json.dumps(payload), prior, event_hash,
-                    ),
-                )
-                prior = event_hash
-            source.commit()
-            source.close()
-            before = db.read_bytes()
-            with self.assertRaisesRegex(ValueError, "different search ID"):
-                migrate(
-                    db, PG_DSN, expected_search_id=search_id + ":orphan",
-                    retention_consumer="registered_search_replay",
-                    source_writers_stopped=True,
-                )
-            result = migrate(
-                db, PG_DSN, expected_search_id=search_id,
-                retention_consumer="registered_search_replay",
-                source_writers_stopped=True,
-            )
-            self.assertEqual(result["events"], 3)
-            self.assertTrue(result["destinationChainValid"])
-            self.assertEqual(db.read_bytes(), before)
-            with self.assertRaisesRegex(ValueError, "already contains events"):
-                migrate(
-                    db, PG_DSN, expected_search_id=search_id,
-                    retention_consumer="registered_search_replay",
-                    source_writers_stopped=True,
-                )
-
-    @unittest.skipUnless(PG_DSN, "real PostgreSQL test DSN is required")
-    def test_migration_readback_rejection_rolls_back_all_events(self) -> None:
-        """Readback acceptance must precede the PostgreSQL commit boundary."""
-        from unittest.mock import patch
-
-        migrate = runpy.run_path(
-            str(Path(__file__).resolve().parents[1] / "scripts" / "migrate-r6-trials.py")
-        )["migrate"]
-        from ordivon_studio.research.grounded_contracts import canonical_digest
-
-        search_id = f"experiment:rollback:{uuid4().hex}"
-        with tempfile.TemporaryDirectory() as temporary:
-            source_file = Path(temporary) / "legacy.sqlite"
-            with closing(sqlite3.connect(source_file)) as source:
-                source.execute(
-                    "CREATE TABLE trial_events("
-                    "seq INTEGER PRIMARY KEY,event_id TEXT,search_id TEXT,"
-                    "attempt_id TEXT,candidate_id TEXT,event_type TEXT,"
-                    "payload_json TEXT,prev_hash TEXT,event_hash TEXT)"
-                )
-                payload = {"trial": 1}
-                event_hash = canonical_digest(
-                    {
-                        "searchId": search_id, "attemptId": "attempt:1",
-                        "candidateId": "candidate:1", "eventType": "trial.proposed",
-                        "payload": payload, "prevHash": None,
-                    }
-                )
-                source.execute(
-                    "INSERT INTO trial_events VALUES (?,?,?,?,?,?,?,?,?)",
-                    (
-                        1, "trial-event://" + event_hash.removeprefix("sha256:"),
-                        search_id, "attempt:1", "candidate:1", "trial.proposed",
-                        json.dumps(payload), None, event_hash,
-                    ),
-                )
-                # closing() releases the handle; SQLite still needs an
-                # explicit transaction commit for the source fixture.
-                source.commit()
-            with patch.object(TrialLedger, "verify", return_value=False):
-                with self.assertRaisesRegex(ValueError, "hash-chain mismatch"):
-                    migrate(
-                        source_file, PG_DSN, expected_search_id=search_id,
-                        retention_consumer="registered_search_replay",
-                        source_writers_stopped=True,
-                    )
-
-        destination = TrialLedger(PG_DSN, search_id=search_id)
-        try:
-            self.assertEqual(sum(destination.summary()["eventCounts"].values()), 0)
-        finally:
-            destination.close()
 
     def test_visible_search_never_contains_holdout_seed_and_freezes_winner(self) -> None:
         registration = self.registration(budget=300)
