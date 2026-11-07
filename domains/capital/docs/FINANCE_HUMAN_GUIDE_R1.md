@@ -107,11 +107,12 @@ domains/capital/scripts/run-finance-lego assess-holdout < review.json
 
 ```sh
 domains/capital/scripts/run-paper-etf-replay-r1 \
-  --request domains/capital/examples/paper_fixed_mix_etf_20261106.json \
+  --request examples/paper_fixed_mix_etf_20261106.json \
   --source /path/to/verified/daily_adjclose.csv \
   --output /private/path/paper-replay-receipt.json
 ```
 
+脚本参数中的相对路径从 `domains/capital` 解析，外部文件可用绝对路径。
 上面的 `--source` 是**占位符**：必须先独立取得与请求摘要一致的授权数据，否则程序应拒绝。仓库示例文件并未自带真实数据；不要臆造“今天收益”。输出为 `RETROSPECTIVE_PAPER_REPLAY_NO_FORWARD_EDGE_CLAIM`，不等于实盘盈利或独立市场源验证。 可选的 --output 使用一次性原子创建的本地模拟收据：相同请求可复用既有文件，不同策略或数据版本不能覆盖已有路径；应选择新的收据路径。
 
 **第二级（有状态的模拟日结）**：仅在 Paper 专用 PostgreSQL 数据库 `ordivon_paper` 中使用 Accounting 的原生日结入口。配置 `ORDIVON_CAPITAL_PAPER_PG_DSN` 指向 Paper 专属角色，再提交已经明确交易所日期和持仓来源的 session：

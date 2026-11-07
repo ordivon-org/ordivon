@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 MARKET_TIME = ZoneInfo("America/New_York")
+_MAX_RECEIPT_MINOR = 2**63 - 1
 
 
 @dataclass(frozen=True)
@@ -183,9 +184,15 @@ def value_session(previous: PaperValuation | None, day: PaperSession) -> PaperVa
         raise ValueError("invalid closing mark")
     market_value = sum(shares * day.marks[symbol] for symbol, shares in positions.items())
     receivable = sum(pending_sales.values())
+    nav = cash - payable + market_value + receivable
+    # Risk reads the receipt's nonnegative signed-int64 fields. The reserve
+    # guard bounds protected and payable by cash. Positive marks and sums of
+    # nonnegative amounts bound shares and receivables by NAV.
+    if max(cash, nav) > _MAX_RECEIPT_MINOR:
+        raise ValueError("paper close receipt exceeds the signed int64 amount range")
     return PaperValuation(
         day.session, cash, protected, positions, pending, day.contribution_minor,
-        payable, cash + market_value - payable + receivable, settlement_dates,
+        payable, nav, settlement_dates,
         pending_sales, sale_settlement_dates, receivable,
     )
 

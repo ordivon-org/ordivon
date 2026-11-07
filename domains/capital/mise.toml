@@ -20,3 +20,12 @@ uv lock --check
 uv sync --locked --group test
 uv run --group test python -m pytest -m provider_qualification
 """
+
+[tasks."verify:paper-amounts"]
+description = "Check the Paper Accounting receipt amount model with pinned Lean"
+run = '''
+set -eu
+model="$PWD/formal/PaperCloseAmounts.lean"
+lean="$(mise -C ../../tools/formal which lean)"
+"$lean" "$model"
+'''
