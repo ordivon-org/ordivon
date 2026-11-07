@@ -32,7 +32,7 @@ SOURCE_PASS is not APPLICATION_PASS. CONNECT 200 alone is not TLS success. A sam
 | iOS Exit Node server | Tailscale userspace in Gluetun network namespace | task consumer:mobile-tailnet-exit:verify |
 | Optional fault/test mechanisms | Toxiproxy, isolated netns/TUN, HAProxy, tc/netem, containerlab | acceptance/, capabilities/, reference/linux/ |
 | Windows boot / app process bindings | Workstation, OS environment; Codex read-only process witness | consumers/codex/windows_process_egress.py |
-| New Windows native Codex CLI launch | Built-in PowerShell per-process proxy environment + installed upstream Codex binary (not Desktop injection) | consumers/codex/windows-native-cli.ps1 |
+| Normal Windows app startup | Workstation system proxy, native Codex respect_system_proxy, and actual process/request readback | consumers/codex/windows_process_egress.py (read-only) |
 | Work/Job/Workspace lifecycle | Host Work and Runtime native APIs | Do not implement a parallel registry |
 
 The generic Network Core MUST NOT own Finance/Claude/X destination policy. Observability may consume consumer scrape fragments via **native Prometheus includes**, but monitoring does not become business authority.
@@ -117,7 +117,13 @@ test subtraction belongs to that Owner's concurrently reviewed PR.
 - IPv4/IPv6/UDP QUIC: task accept:family-fallback, task accept:full-ip (isolated namespace).
 - DNS faults: task accept:dns-resilience; check cached answer, SERVFAIL under all-upstream outage, recovery and stable daemon PID.
 - Generic cold start: task accept:cold-start touches running R0. A full Windows boot→WSL→systemd→Podman→Consumer is **Workstation** acceptance, not the generic isolated cold-start test.
-- Windows app process: upstream psutil one-shot observer; read actual proxy environment/sockets, do not infer from .codex/.env. Fresh CLI doctor plus shared Carrier CONNECT remains correlated, not uniquely attributed. For a fresh native CLI only, prefer the source-owned thin Windows PowerShell launcher in consumers/codex/windows-native-cli.ps1: it sets child-only HTTP(S)/ALL proxy variables and delegates to the existing Codex binary. A real native CLI request returned NETWORK_EGRESS_OK with an observed TCP connection to 19982. Already-running Desktop processes remained UNSET and are not certified or restarted by the launcher.
+- Windows Desktop/Codex: normal user launches inherit the user-scoped Windows
+  system proxy at 127.0.0.1:19781; upstream Codex respect_system_proxy=true
+  was verified enabled on the installed client. Linux scoped Codex 19982 is a
+  different policy authority. Inspect actual OS proxy/Chrome policy, running
+  process sockets and successful application HTTPS. The upstream psutil
+  one-shot observer is read-only and cannot prove every protocol path.
+  Windows proxy persistence belongs to Workstation, not a Network wrapper.
 - Windows Chrome: `consumer:windows-real-chrome:verify` proves only the
   Linux proxy. Read the current interactive-user Chrome
   `HKCU\Software\Policies\Google\Chrome\ProxySettings` and
@@ -128,7 +134,7 @@ test subtraction belongs to that Owner's concurrently reviewed PR.
   Remove the disposable profile via OS-native cleanup. Proxied curl
   success is not browser-process proof; one Chrome HTTPS request is not
   universal WebRTC/DNS/IPv6 no-bypass proof. Do not add another Chrome
-  proxy launcher or Windows global proxy manager.
+  proxy launcher or second Windows proxy manager.
 - Mobile: native server ready is not an iPad/iPhone client selection; collect IPinfo and DNS evidence **on each device** separately.
 
 ### Shared-path incident classifier (native Prometheus, not a new controller)

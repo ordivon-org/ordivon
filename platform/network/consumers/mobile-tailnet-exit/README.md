@@ -24,3 +24,17 @@ Mobile verification: in the Tailscale iOS app select the approved exit node
 ordivon-surfshark-exit, then compare its public IP and DNS on both Wi-Fi and
 cellular data with the upstream provider. Disconnect/recovery tests must
 confirm that traffic does not silently fall back to a direct Internet route.
+
+## LAN directness and remote fallback
+
+The local iPad-to-exit Tailscale flow changed from Tokyo DERP at about
+400ms to direct encrypted UDP on the existing LAN at about 8-9ms.
+The mature enabling mechanism is Gluetun FIREWALL_OUTBOUND_SUBNETS in
+providers/gluetun/native_profile.py, not a second Tailscale daemon or
+custom polling process. That provider setting allows the entire private
+LAN subnet. An off-LAN iPad can fall back to DERP automatically.
+
+Measure separately: Tailscale peer direct/relay status, selected
+provider namespace, Gluetun public VPN IP, client-side iOS IPinfo/DNS,
+and no unexpected public direct route. Gluetun's successful health
+check is not sufficient to claim iOS DNS or application non-bypass.

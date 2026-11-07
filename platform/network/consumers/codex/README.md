@@ -3,9 +3,13 @@
 The consumer reuses ONE existing Network-v2 Gluetun/WireGuard physical provider.
 It is not a second VPN and does not manage the Surfshark Windows GUI.
 
-Windows Codex opts in through its per-application .codex/.env, pointing HTTP(S)
-proxy variables at 127.0.0.1:19982. Windows global proxy settings remain unchanged.
-The Network relay forwards from host 127.0.0.1:19982 to namespace
+Linux scoped Codex transport is available at 127.0.0.1:19982, but that
+is not the ordinary Windows Desktop startup path. The Windows interactive
+user instead uses its native system proxy at 127.0.0.1:19781, with the
+upstream Codex respect_system_proxy feature enabled in user config.
+Windows policy and boot persistence are owned by Workstation; Network
+owns the downstream shared carrier, scoped relay and proof obligations.
+The scoped Network relay forwards from host 127.0.0.1:19982 to namespace
 127.0.0.1:19980; the sing-box policy forwards admitted HTTPS destinations
 to the shared provider 10.252.246.2:19680. Its last rule rejects all
 unknown destinations, with no direct route or second client WireGuard identity.
@@ -57,37 +61,20 @@ socket alone cannot certify Codex API traffic or Gluetun upstream forwarding.
 Pair the result with the existing NS2 upstream spy and a fresh actual client
 request before any process-level route claim.
 
+## Windows normal application startup and evidence (2026-11-07)
 
-## Verified native Windows Codex CLI scoped launch (2026-11-07)
+The former PowerShell per-process launcher was superseded by normal Desktop
+launch with the upstream Windows system proxy; it never configured the Desktop
+itself and has no remaining supported consumer.
 
-The interactive-user psutil observation classified **18/18 already-running
-ChatGPT/Codex processes as proxyEnvironment=UNSET**. A correct .codex/.env
-file alone is not proxy-use evidence. A fresh native Codex CLI 0.166.0 process
-with scoped HTTP(S) proxy environment completed a real model request and
-returned NETWORK_EGRESS_OK. Its own TCP connection to the local 19982 proxy
-was observed; no nonlocal TLS socket was observed in that bounded sample.
+- The interactive Windows system proxy targets Ordivon's 127.0.0.1:19781
+  public-web VPN proxy. Native Codex respect_system_proxy is enabled.
+- The separate 127.0.0.1:19982 Linux Codex consumer remains scoped to
+  admitted ChatGPT destinations and rejects unknown origins.
+- The Windows Chrome app has its own native fixed_servers policy; it is not
+  configured through the former Codex launcher.
+- Check actual application sockets plus a real HTTPS request. A bounded
+  local-proxy TCP observation does not certify universal DNS/UDP/QUIC routes.
 
-For a **new CLI process only**, invoke the thin native PowerShell launcher
-from the Network repository, passing normal CLI arguments:
-
-    powershell.exe -NoProfile -File consumers/codex/windows-native-cli.ps1 exec --skip-git-repo-check --sandbox read-only "Reply only NETWORK_EGRESS_OK"
-
-The wrapper resolves an existing versioned native Codex installation,
-assigns HTTP(S)/ALL proxy variables to the child process environment, and
-delegates arguments to the original Codex binary. It does not set Windows
-global proxies, rewrite Desktop configuration, restart any app, start an
-additional VPN, or manage credentials. A missing expected Codex executable
-fails closed instead of falling back to an arbitrary executable on PATH.
-
-The original ChatGPT Desktop instance is **not fixed** by this CLI launcher.
-Its existing process environment and actual outbound traffic require a
-separate supported app-startup and real-request witness. The request sample
-is not a universal non-bypass proof, and Linux-side consumer:codex:verify
-alone cannot prove Windows process use.
-
-
-Windows PowerShell 5.1 maps normal native Codex progress on stderr to PowerShell
-ErrorRecords. The launcher keeps strict errors while selecting the executable,
-then uses native-process-compatible Continue handling during the Codex
-invocation and propagates the upstream process exit code. Do not interpret
-any stderr output alone as a Codex failure or as a successful request.
+Do not recreate a manual CLI wrapper, second physical WireGuard identity,
+or Network-owned Windows system-proxy manager.

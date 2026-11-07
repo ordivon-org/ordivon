@@ -27,6 +27,34 @@ The primary invariant is:
 MANAGEMENT PLANE MUST NOT DEPEND ON TESTED DATA PLANE
 ```
 
+## Consumer-backed module boundaries (DSM audit, 2026-11-07)
+
+Folder boundaries encode *responsibilities*, not isolated processes.
+This inventory is a source/installed/consumer map, not a second registry:
+
+| Actual folder | Responsibility | Consumer/replacement edge |
+| --- | --- | --- |
+| config/, systemd/ | Generic DNS, proxy, monitoring and systemd core | network-v2-r0.target |
+| capabilities/wireguard/ | Encrypted tunnel differential and lifecycle | Gluetun/reference acceptance |
+| capabilities/failover/ | Ordered TCP primary/backup mechanism | Optional authorized failover workload |
+| providers/gluetun/ | Single physical Surfshark WireGuard, Podman Secret, native firewall and healing | Shared VPN carrier and mobile exit |
+| providers/surfshark/ | Provider catalog, explicit serial recovery materials | Inactive Browserless fallback path |
+| consumers/browserless/ | Shared namespace + carrier adapter plus Browserless recovery | Existing nv2-browserless-prod substrate |
+| consumers/chat-ingress/ | Chat transport policy and relay | Chat workloads |
+| consumers/claude/ | Claude allowlist, client namespace and bridge | Claude Code |
+| consumers/codex/ | Scoped ChatGPT transport + read-only process observation | Codex consumer; Windows startup owned by Workstation |
+| consumers/developer-egress/ | Optional developer process network environment | Explicit caller only |
+| consumers/discord/ | Discord API/Gateway destination policy | Discord app |
+| consumers/finance/ | Exchange REST/WS and explicit macro direct routes | Finance Owner |
+| consumers/mobile-tailnet-exit/ | Tailscale Exit Node in Gluetun namespace | iPad/iPhone |
+| consumers/model-provider/ | Bounded model API HTTPS | Model callers |
+| consumers/supply-chain/ | OCI registry routing and Docker binding | Image acquisition |
+| consumers/windows-real-chrome/ | Public web proxy plus Windows-local relay | Chrome and native OS system proxy |
+| consumers/x-reality/ | X API exact destination | X client, auth external |
+| acceptance/, tests/, formal/ | Functional, implementation and abstract proof respectively | Effect witnesses, model contracts |
+| reference/linux/ | Standard Linux kernel and topology fidelity | Kernel/netem/containerlab/WireGuard comparisons |
+| docs/, evidence/, planning/ | Read-only guides, source evidence and plan | Host Work owns changing execution state |
+
 ## Generic live platform
 
 ```text
@@ -93,6 +121,33 @@ overwrite is authorized. Native source/fault tests:
 tests/test_monitoring_precommit.py, accepted through mise run ci.
 The preflight prevents static drift; it is not an atomic lock against another
 process changing live files after the check.
+
+## Rename and cleanup decision
+
+The stable units network-v2-r0.target and nv2-browserless-prod have active
+source, installed and loaded consumers. Their historical naming is imperfect,
+but a cosmetic rename would create a migration seam for several live scoped
+proxies. Do not clone the namespace, duplicate a provider, or add aliases
+merely to make directories appear tidy. An eventual rename requires a
+source-to-installed-to-consumer dependency graph and equivalent production
+request/denial/failover evidence.
+
+The provider rollback inputs in providers/surfshark and consumers/browserless
+are still referenced by explicit native recovery paths. They are not an
+active second tunnel or disposable log files. By contrast, the manually
+launched Windows Codex wrapper had no current startup consumer and was retired.
+The source directory is small; do not use file age or size as a deletion rule.
+Clean generated resources only through their natural owner (Git, Podman,
+systemd, Runtime) after consumer reachability is disproved.
+
+The Gluetun native LAN route setting is currently 192.168.0.0/24. Upstream
+FIREWALL_OUTBOUND_SUBNETS permits all outbound protocols to that private
+subnet and modifies routing/firewall; it is not a UDP-only ACL.
+The publicly routed default must continue to use Surfshark. The setting
+must not overlap the WireGuard tunnel range. On LAN renumbering, verify
+iPad direct-vs-DERP, loaded Gluetun rules, and actual client IPinfo
+before accepting the new SourceCut. For off-LAN iPad clients DERP is a
+functional but higher-latency fallback, not a public direct-IP escape.
 
 ## Reference environments
 

@@ -18,6 +18,47 @@ The Network E2E decision process starts from workload requirements and selects a
 | Process lifecycle | systemd | Process state only; not functional readiness |
 | Path/performance diagnosis | curl, dig, ss, mtr, iperf3, bpftrace | Diagnostics, not a custom control plane |
 
+## Capability LEGO and method LEGO selection
+
+A capability LEGO is a replaceable mechanism with actual runtime effects.
+A method LEGO guides a decision or proof but does not operate a network.
+Reuse the upstream mechanism before constructing a new Ordivon wrapper.
+
+| Problem | Capability LEGO / implementation | Method LEGO | Real consumer-bound acceptance |
+| --- | --- | --- | --- |
+| Query resolution | AdGuard dnsproxy parallel upstream/cache | State transition and Z3 induction | A/AAAA UDP/TCP, expired cache, outage recovery |
+| Generic application proxy | sing-box HTTP/SOCKS/TCP | Protocol and first-match route semantics | Actual origin TLS plus forbidden no-forward |
+| Physical VPN | Gluetun + native Surfshark WireGuard | Single-writer/identity invariant | One Podman secret/session, VPN exit, health recovery |
+| Mobile exit | Tailscale userspace in Gluetun netns | E2E source/installed/client witness | Admin-approved node, iOS-selected exit and IPinfo |
+| Scoped app access | sing-box bounded consumer policies | Assume/guarantee and Z3 refinement | Exact host+port admit, negative canary, no direct fallback |
+| Optional failover | HAProxy native TCP backend priority | Reliability fault tree / replay | Failover/failback of real accepted workload |
+| Observability | Blackbox + Prometheus native scrape/rules | Evidence provenance and signal completeness | Loaded scrape graph, target and failure time series |
+| Service lifecycle | systemd units/targets/restart/timers, Podman Quadlet | Dependency graph / DSM | Cold start, PID readback and functional readiness |
+| Linux fidelity | iproute2, netns, tc/netem, containerlab | Differential/causal fault experiments | Independently executed standard-Linux kernel lane |
+| Knowledge/architecture | Existing Human/Agent docs | DSM, C4 and Diataxis | Consumer can find owner, task and verification without a second registry |
+
+For an ADMITTED formal LEGO, use the repository Recursive LEGO R2.1 typed
+contract (I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold), not a new local
+calculus. A concrete mobile example: I is the authorized Tailscale peer and
+selected Provider; O is proxied IPv4 traffic and a recorded failure; pre is
+approved Exit Node plus healthy provider; inv is no second VPN identity and
+no default public direct egress; post is the device's actual public
+Surfshark IP or a scoped UNKNOWN; eff is the permitted namespace traffic.
+One TCP ping does not discharge the full postcondition.
+
+Human workflow: identify the affected app/device, check the actual public
+IP and real request, and consult its consumer task and operator guide.
+Agent workflow: identify owner/consumer, SourceCut and accepted assumptions;
+select one suitable mature mechanism, independently falsify a negative path,
+check source/installed/loaded/consumed, and publish through Git PR + CI.
+Do not add a new Network registry, VPN manager or custom DNS watcher.
+
+External references: systemd.unit (freedesktop.org), Tailscale connection
+types/exit nodes (tailscale.com), Gluetun native firewall/DNS/health options
+(github.com/qdm12/gluetun-wiki), MIT Eppinger/Browning DSM, and Diataxis.
+A documentation or model PASS is not evidence that a physical iOS request
+used the intended tunnel.
+
 ## Classification rules
 
 ```text

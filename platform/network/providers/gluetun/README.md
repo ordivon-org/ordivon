@@ -92,3 +92,18 @@ Asia Pacific endpoint followed by Gluetun-internal recovery, then successful
 Singapore/Japan selection and all 12 Network provider/consumer checks.
 This does not prove future arbitrary endpoint reachability or an iOS client
 actually selecting the Tailscale exit node.
+
+## Mobile Tailnet local underlay (2026-11-07)
+
+The upstream Gluetun FIREWALL_OUTBOUND_SUBNETS option now carries
+192.168.0.0/24 in the generated native provider env. The setting
+restores direct UDP connectivity for an iPad on that LAN, without
+changing the Tailscale Exit Node's selected physical VPN. It is
+CIDR-wide access to this private subnet, not a per-port UDP filter.
+Changing local LAN topology requires source/install/loaded rule proof,
+a direct-vs-DERP test and iPad public-IP revalidation. Avoid overlap
+with the tunnel 10.14.0.0/16. Upstream firewall options:
+https://github.com/qdm12/gluetun-wiki/blob/main/setup/options/firewall.md
+
+The source generator and the production 0600 native env are distinct
+SourceCuts. A syntactically valid file does not prove Tailscale route use.
