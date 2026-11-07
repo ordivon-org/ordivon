@@ -3,8 +3,10 @@
 import json
 import subprocess
 from copy import deepcopy
-from decimal import Decimal
+from datetime import UTC, datetime, timedelta
+from decimal import ROUND_HALF_EVEN, Context, Decimal, localcontext
 from pathlib import Path
+from random import Random
 
 import pytest
 
@@ -202,5 +204,132 @@ def test_unrepresentable_deposit_is_rejected_not_silently_lost():
         strategyGrossReturn="0",
         benchmarkGrossReturn="0",
     )
-    with pytest.raises(PassiveBenchmarkError, match="cash flow would be silently rounded"):
+    with pytest.raises(PassiveBenchmarkError, match="cash contribution exceeds valuation rounding budget"):
         evaluate([row], opening="10000000000000000000000000000")
+
+
+def _independent_context_oracle(opening: str, rows: list[dict[str, str]]) -> dict[str, Decimal]:
+    """Operational reference using explicit Python Decimal Context methods.
+
+    This is a differential *implementation witness*, not a symbolic proof.
+    It deliberately reproduces bounded 28-digit market-return rounding while
+    keeping the full external deposit ledger visible to the caller.
+    """
+    context = Context(prec=28, rounding=ROUND_HALF_EVEN)
+    opening_value = Decimal(opening)
+    balances = [opening_value, opening_value]
+    contributed = opening_value
+    for row in rows:
+        deposit = Decimal(row["depositAtStart"])
+        contributed = context.add(contributed, deposit)
+        for index, prefix in enumerate(("strategy", "benchmark")):
+            gross = Decimal(row[f"{prefix}GrossReturn"])
+            expense = Decimal(row[f"{prefix}ExpenseFractionAtStart"])
+            fee = Decimal(row[f"{prefix}FixedFeeAtStart"])
+            start = context.add(balances[index], deposit)
+            after_expense = context.multiply(start, context.subtract(Decimal(1), expense))
+            after_fee = context.subtract(after_expense, fee)
+            balances[index] = context.multiply(after_fee, context.add(Decimal(1), gross))
+    return {
+        "contributedCapital": contributed,
+        "strategyTerminalWealth": balances[0],
+        "benchmarkTerminalWealth": balances[1],
+        "strategyNetGainVsContributions": context.subtract(balances[0], contributed),
+        "benchmarkNetGainVsContributions": context.subtract(balances[1], contributed),
+        "terminalWealthDifference": context.subtract(balances[0], balances[1]),
+    }
+
+
+def test_arbitrary_finite_period_lengths_match_independent_decimal_context_oracle():
+    """Real bounded operational refinement evidence for 1..120 periods.
+
+    Deterministic differential corpus includes losses, gains, zero deposits,
+    fractional expenses and fixed fees on both independent paths. The Lean
+    proof covers arbitrary finite lengths of the *exact Rational* model;
+    these observations bind the actual Python semantics to a second oracle.
+    """
+    random = Random(20261107)
+    with localcontext(Context(prec=28, rounding=ROUND_HALF_EVEN)):
+        for count in (1, 2, 3, 7, 31, 120):
+            for _case in range(16):
+                opening = str(random.randrange(10000, 20001))
+                rows = []
+                for i in range(count):
+                    day = datetime(2026, 1, 1, tzinfo=UTC) + timedelta(days=i)
+                    rows.append({
+                        "periodEndAt": day.isoformat(),
+                        "depositAtStart": str(Decimal(random.randrange(0, 3000)) / 100),
+                        "strategyGrossReturn": str(Decimal(random.randrange(-70, 91)) / 1000),
+                        "benchmarkGrossReturn": str(Decimal(random.randrange(-60, 81)) / 1000),
+                        "strategyExpenseFractionAtStart": str(Decimal(random.randrange(0, 11)) / 10000),
+                        "benchmarkExpenseFractionAtStart": str(Decimal(random.randrange(0, 11)) / 10000),
+                        "strategyFixedFeeAtStart": str(Decimal(random.randrange(0, 20)) / 100),
+                        "benchmarkFixedFeeAtStart": str(Decimal(random.randrange(0, 20)) / 100),
+                    })
+                observed = evaluate(rows, opening=opening)
+                reference = _independent_context_oracle(opening, rows)
+                for key, expected in reference.items():
+                    assert Decimal(observed[key]) == expected, (count, key)
+                assert observed["periodCount"] == count
+                assert observed["standing"] == "DESCRIPTIVE_REPLAY_NO_MARKET_VALIDATION"
+                assert observed["capitalAuthority"] == "NONE"
+
+
+def test_arbitrarily_long_zero_return_paths_preserve_exact_external_cash():
+    """Zero fees and zero returns cannot reclassify deposits as profit."""
+    rows = []
+    for day in range(250):
+        row = sample_row()
+        row.update({
+            "periodEndAt": (datetime(2026, 1, 1, tzinfo=UTC) + timedelta(days=day)).isoformat(),
+            "depositAtStart": "0.01" if day % 3 else "100.25",
+            "strategyGrossReturn": "0",
+            "benchmarkGrossReturn": "0",
+        })
+        rows.append(row)
+    observed = evaluate(rows, opening="12345.67")
+    assert Decimal(observed["contributedCapital"]) == Decimal("12345.67") + sum(
+        (Decimal(row["depositAtStart"]) for row in rows), Decimal(0)
+    )
+    assert Decimal(observed["strategyTerminalWealth"]) == Decimal(observed["contributedCapital"])
+    assert Decimal(observed["benchmarkTerminalWealth"]) == Decimal(observed["contributedCapital"])
+    assert Decimal(observed["strategyNetGainVsContributions"]) == 0
+    assert Decimal(observed["benchmarkNetGainVsContributions"]) == 0
+    assert Decimal(observed["terminalWealthDifference"]) == 0
+
+
+def test_extreme_finite_decimal_return_fails_closed_with_typed_rejection(tmp_path):
+    """A syntactically finite 1e999999 return must not leak Decimal.Overflow."""
+    row = sample_row()
+    row.update(strategyGrossReturn="1e999999", depositAtStart="0")
+    with pytest.raises(PassiveBenchmarkError, match="arithmetic outside supported Decimal context"):
+        evaluate([row])
+    payload = {
+        "schemaVersion": 1,
+        "kind": "ordivon.capital.finance.passive-benchmark-input",
+        "openingBalance": "100",
+        "currency": "USD",
+        "periods": [row],
+    }
+    path = tmp_path / "overflow-admission.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    cli = subprocess.run(
+        [str(Path(__file__).resolve().parents[1] / "scripts/run-capability-python"),
+         "-m", "ordivon_capital.portfolio.passive_benchmark", "--input", str(path)],
+        text=True, capture_output=True, check=False, timeout=90,
+    )
+    assert cli.returncode == 2
+    assert json.loads(cli.stdout)["standing"] == "REJECTED"
+    assert "Traceback" not in cli.stderr
+
+
+def test_disabled_decimal_overflow_trap_cannot_create_nonfinite_public_valuation():
+    """Caller-specific context controls cannot smuggle Infinity into receipts."""
+    from decimal import Overflow
+
+    row = sample_row()
+    row.update(strategyGrossReturn="1e999999", depositAtStart="0")
+    context = Context(prec=28, rounding=ROUND_HALF_EVEN)
+    context.traps[Overflow] = False
+    with localcontext(context), pytest.raises(PassiveBenchmarkError, match="non-finite"):
+        evaluate([row])
