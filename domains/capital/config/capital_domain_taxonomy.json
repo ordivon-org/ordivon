@@ -51,7 +51,8 @@
       "okx_readonly_client.py",
       "private_reality.py",
       "okx_demo_execution.py",
-      "postgres_demo_intent.py"
+      "postgres_demo_intent.py",
+      "okx_official_cli.py"
     ],
     "portfolio": [
       "portfolio_counterfactuals.py",

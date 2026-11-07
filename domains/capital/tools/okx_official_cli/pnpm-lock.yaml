@@ -1,0 +1,46 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@okx_ai/okx-trade-cli':
+        specifier: 1.5.0
+        version: 1.5.0
+
+packages:
+
+  '@okx_ai/okx-trade-cli@1.5.0':
+    resolution: {integrity: sha512-1cB0r4ocd6KhRBtk4Umr0zzuv/Z0RZhv7fqRTGgmjVMEhQF5jTbHkaIZygj6MpqPjyNt0/JlYECjCLQqsJxTdg==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  pend@1.2.0:
+    resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
+
+  undici@6.29.1:
+    resolution: {integrity: sha512-EvRlUt/QqAEvXdQeRMYUfwOQsfzpDztykrG2owGEE/rBOBoYv9uF39ZzsNDh4lTFHhTr2XOZjKkYgueD12ZmGA==}
+    engines: {node: '>=18.17'}
+
+  yauzl@3.4.0:
+    resolution: {integrity: sha512-jIH9yLR9wqr0wOS0TpBvo/g/2UgZH5qePVbjgRliiF0BYvOZyaBknKsF+x9Iht0O6sqgnB93rCICdOZFecJuDw==}
+    engines: {node: '>=12'}
+
+snapshots:
+
+  '@okx_ai/okx-trade-cli@1.5.0':
+    dependencies:
+      undici: 6.29.1
+      yauzl: 3.4.0
+
+  pend@1.2.0: {}
+
+  undici@6.29.1: {}
+
+  yauzl@3.4.0:
+    dependencies:
+      pend: 1.2.0

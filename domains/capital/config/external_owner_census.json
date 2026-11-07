@@ -954,6 +954,32 @@
       "admittedMechanicsOwners": [
         "PostgreSQL 18.6 via psycopg3"
       ]
+    },
+    {
+      "id": "trading-okx-official-cli-v1p5",
+      "sourcePatterns": [
+        "src/ordivon_capital/trading/okx_official_cli.py",
+        "tools/okx_official_cli/package.json",
+        "tools/okx_official_cli/pnpm-lock.yaml"
+      ],
+      "ownerClasses": [
+        "PROVIDER_OWNER",
+        "IMPLEMENTATION_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Official OKX Agent Trade Kit @okx_ai/okx-trade-cli 1.5.0 (MIT)",
+        "OKX API v5 authoritative Demo order/account/fill events",
+        "Node.js and pnpm upstream execution mechanics"
+      ],
+      "localStanding": "QUALIFIED_OFFICIAL_DEMO_PROTOCOL_MECHANICS_PROVIDER_ACCOUNT_EFFECT_PENDING",
+      "localResponsibility": "Delegate OKX SPOT Demo-only signed REST and CLI event parsing to pinned upstream executable; Ordivon retains route/identity/UNKNOWN effect glue plus precommitted PostgreSQL Trading intent. Physical localhost proof is not exchange evidence. Python REST remains differential fallback pending actual Demo account effect.",
+      "admittedMechanicsOwners": [
+        "Official OKX Agent Trade Kit 1.5.0, bounded Demo protocol only"
+      ],
+      "candidateMechanics": [
+        "Future version upgrade requires exact pinned differential qualification"
+      ]
     }
   ],
   "notInstantiatedDomains": [

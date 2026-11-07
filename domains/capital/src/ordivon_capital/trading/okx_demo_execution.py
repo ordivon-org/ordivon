@@ -312,6 +312,7 @@ def main(argv: list[str] | None = None) -> int:
                         "config/demo_execution_policy.json")
     parser.add_argument("--base-url", default="https://www.okx.com")
     parser.add_argument("--proxy-url")
+    parser.add_argument("--transport", choices=("official", "reference"), default="official")
     args = parser.parse_args(argv)
     request = json.loads(args.request.read_text(encoding="utf-8"))
     if not isinstance(request, dict) or request.get("schemaVersion") != 1:
@@ -391,9 +392,19 @@ def main(argv: list[str] | None = None) -> int:
             ):
                 raise DemoIntentConflict("cancel not bound to acknowledged PG order")
 
-    client = OkxSpotDemoClient(
-        credentials_from_systemd(), base_url=args.base_url, proxy_url=args.proxy_url,
-    )
+    # Provider transport is a replaceable mechanics LEGO. The upstream CLI is
+    # the qualified default; the prior local REST client stays an exact fallback
+    # until real Demo provider and full Accounting effects establish equivalence.
+    if args.transport == "official":
+        from ordivon_capital.trading.okx_official_cli import OkxOfficialSpotDemoClient
+
+        client = OkxOfficialSpotDemoClient(
+            credentials_from_systemd(), base_url=args.base_url, proxy_url=args.proxy_url,
+        )
+    else:
+        client = OkxSpotDemoClient(
+            credentials_from_systemd(), base_url=args.base_url, proxy_url=args.proxy_url,
+        )
     if operation == "PLACE_LIMIT":
         assert durable is not None
         durable.claim_once(intent_id, snapshot["digest"])

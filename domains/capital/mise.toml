@@ -174,3 +174,17 @@ if [ "$observed" != "$expected" ]; then
 fi
 printf '%s\n' "$observed"
 """
+
+
+[tasks."provider:okx:install"]
+description = "Install exact official upstream OKX Agent Trade Kit CLI under Capital only; no global service"
+run = "mise exec pnpm@12.16.1 -- pnpm --dir tools/okx_official_cli install --ignore-scripts --frozen-lockfile"
+
+[tasks."verify:provider:okx-official"]
+description = "Qualify actual pinned official CLI and signed Demo protocol against loopback, not real exchange order"
+depends = ["provider:okx:install"]
+run = """
+set -euo pipefail
+uv sync --locked --group test
+uv run --locked --group test pytest -q -m provider_qualification tests/test_okx_official_cli.py
+"""
