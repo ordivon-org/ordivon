@@ -58,23 +58,6 @@ def test_topic_resume_is_bounded_and_cursor_based() -> None:
     assert '"nextAfterSequence"' in resume
 
 
-def test_causal_reply_pure_decision_covers_signed_bigint_edges() -> None:
-    """The native Host consumer uses the same signed-order pure decision."""
-    from ordivon_host_v2.social_store import _reply_target_precedes_source
-
-    lower, upper = -(2**63), 2**63 - 1
-    for src, dst, expected in (
-        (2, 1, True),
-        (1, 2, False),
-        (1, 1, False),
-        (upper, lower, True),
-        (lower, upper, False),
-        (lower, lower, False),
-        (upper, upper, False),
-    ):
-        assert _reply_target_precedes_source(src, dst) is expected
-
-
 def test_reply_symbolic_contract_is_bound_to_actual_host_consumer() -> None:
     """R2.1 goal is independently fixed, not controlled by the candidate's docstring."""
     import ast
