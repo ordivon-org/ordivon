@@ -20,11 +20,13 @@ import psycopg
 from psycopg.rows import dict_row
 
 try:
-    from sqlite_wake_turn_map import SQLiteWakeTurnMap, WakeTurnConflict, _digest, _text
+    from sqlite_wake_turn_map import SQLiteWakeTurnMap
     from standard_identifiers import require_uuid7
+    from wake_turn_contract import WakeTurnConflict, _digest, _text
 except ModuleNotFoundError:
-    from scripts.sqlite_wake_turn_map import SQLiteWakeTurnMap, WakeTurnConflict, _digest, _text
+    from scripts.sqlite_wake_turn_map import SQLiteWakeTurnMap
     from scripts.standard_identifiers import require_uuid7
+    from scripts.wake_turn_contract import WakeTurnConflict, _digest, _text
 
 
 class PostgresWakeTurnMap:

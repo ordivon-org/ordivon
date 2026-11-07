@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-08-19
+updated: 2026-11-07
 summary: Canonical world model for Harness as the durable cognitive execution substrate of an Agent, including cognition, control, effects, continuity and caller/Runtime/Host boundaries.
 evidence_status: verified
 readiness: READY
@@ -132,6 +132,41 @@ caller / domain / optional Host
 Harness does not own caller Task state, domain commitments, final acceptance, or Runtime Workspace/Job truth. Runtime does not know the Harness state machine. Host is an optional caller rather than a persistence prerequisite.
 
 > **Run terminality is not epistemic closure.** `candidate_completed` means the bounded Run formed a candidate result; it may retain explicit unresolved unknowns for caller/domain judgment.
+
+## Source layout and retention boundaries
+
+The following describes the current *source responsibilities*, not a certificate
+that every optional service or model is installed or running. Historical documents
+and evaluation fixtures are not authoritative execution entrypoints.
+
+| Path | Natural responsibility | Source-level treatment |
+| --- | --- | --- |
+| `src/ordivon_harness/` | Public Run API, Store port, PG implementation, external Tool/Gateway boundaries | Keep one public contract per responsibility; PG-only CLI, no implicit SQLite writer fallback |
+| `src/ordivon_harness/ordivon/` | Agent Loop, working-set projection, Provider/Tool continuity and bridges | Keep backend-neutral Run/Bridge classes; do not reconstruct an alternate agent framework |
+| `scripts/` | Provider adapters, Browserless, Agent Automation, PG cutover and operational tools | Keep real caller-bound scripts; move truly shared identity checks to `wake_turn_contract.py`; retire migration scripts only after consumer cutover |
+| `formal/` | Scoped TLA+/TLC models and counterexample probes | Model results do not imply Python/SQL refinement or installed effect success |
+| `tests/`, `evals/`, `fixtures/` | Native implementation consumers, evaluation and fixed input data | Retain tests for real boundaries; remove self-referential tests with retired implementations |
+| `planning/`, `schemas/`, `config/` | Existing LEGO graph, machine-readable input contracts and deployment/benchmark configuration | Update evidence paths and exact consumer contracts with source retirement, never create a second registry |
+| `docs/`, `research/`, `evidence/` | Current owner guidance, prior experiments and provenance | Keep the source-of-truth distinction explicit: historical results are not automatically current deployment claims |
+| `systemd/`, `containers/`, `.github/` | Service units, containers, native release automation | Verify installed revision and live consumer independently of a Git or CI result |
+
+`sqlite_store.py` and `scripts/sqlite_*` are still separately reachable legacy
+implementations or migration inputs; their existence does not authorize them as
+the active PostgreSQL write authority. The old `store_ops.py` SQLite-only backup
+implementation had no non-test current source consumer and is retired rather than
+kept as a misleading generic Store interface. Native PG backup/recovery belongs
+to the PostgreSQL owner and its installed operational workflow.
+
+**Human operators:** begin with `ordivon-harness doctor` and the existing
+`mise` Owner commands. Use a specifically disposable PostgreSQL test database
+for destructive DB admission/recovery tests. Determine service readiness from
+installed SourceCut and actual Runtime/Provider readback, not local package files.
+
+**Agents:** bind the exact Git SourceCut, `HarnessRunContract`, Store/Tool ports,
+affected consumers, and one scoped R2.1 proof obligation. Choose the existing
+Owner-native verifier, report model/source/real-PG/installed evidence separately,
+and retire code only after reaching the final consumers. UNKNOWN is not PASS.
+
 
 ## Run authority and external orchestration
 

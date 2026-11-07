@@ -117,6 +117,19 @@ property with Owner-native formal and real-consumer evidence. Report
 `PG_CONSUMER_VERIFIED/UNKNOWN` and `INSTALLED_VERIFIED/UNKNOWN` separately.
 Do not create aliases for deleted names or reinterpret UNKNOWN as FALSE.
 
+Browserless wake-turn identity validation now lives in
+`scripts/wake_turn_contract.py` (digest/text checks and `WakeTurnConflict`),
+shared by PostgreSQL and the legacy SQLite source reader. The PostgreSQL
+cutover adapter still imports `SQLiteWakeTurnMap` only when qualifying an
+explicit legacy source; this does not make SQLite a PG write authority.
+No new Store, persistence registry, or Owner is introduced.
+
+The unconsumed `store_ops.py` SQLite backup/restore utility and its dedicated
+self-contained tests are retired. The first-party CLI has already rejected
+those legacy commands; native PostgreSQL backup/recovery is a database Owner
+duty, not a second Harness SQLite restoration implementation.
+
+
 The direct `SQLiteHarnessStore` Python API remains a distinct legacy
 consumer; its removal requires PostgreSQL-native and real recovery
 qualification. Historical evidence preserves original file names.
