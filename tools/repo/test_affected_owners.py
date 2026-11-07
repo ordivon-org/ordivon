@@ -86,6 +86,9 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertTrue(verify(("apps/web/README.md", "tools/formal/verify.py")))
         self.assertFalse(verify(("tools/formalized/Proof.rs",)))
         self.assertFalse(verify(("tools/repo/check_architecture_docs.py",)))
+        self.assertTrue(verify(("capabilities/media/formal/MediaNativeProcessingAdmission.lean",)))
+        self.assertTrue(verify(("capabilities/media/src/ordivon_studio/agent_processing.py",)))
+        self.assertFalse(verify(("capabilities/media/docs/human-guide.md",)))
         with self.assertRaisesRegex(ValueError, "noncanonical"):
             verify(("tools/formal/../other.py",))
         self.assertEqual(

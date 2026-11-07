@@ -31,6 +31,8 @@ SOURCE_FILES = (
     "tools/formal/verify.py",
     "tools/formal/RecursiveLegoRefinement.lean",
     "tools/formal/RecursiveLegoVariationFrame.lean",
+    "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
+    "capabilities/media/src/ordivon_studio/agent_processing.py",
     "tools/formal/Proof.rs",
     "tools/formal/Proof.dfy",
     "tools/formal/ProofKani.rs",
@@ -425,7 +427,8 @@ def main() -> None:
     probes: list[dict[str, object]] = []
     source = ROOT / "RecursiveLegoRefinement.lean"
     variation = ROOT / "RecursiveLegoVariationFrame.lean"
-    for proof_file in (source, variation):
+    media_proof = REPO / "capabilities/media/formal/MediaNativeProcessingAdmission.lean"
+    for proof_file in (source, variation, media_proof):
         if re.search(r"\b(sorry|admit|axiom)\b", proof_file.read_text()):
             raise AssertionError("Unproved Lean shortcut in source")
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
@@ -438,6 +441,8 @@ def main() -> None:
             [executable("lean"), str(variation)],
             env_overlay={"LEAN_PATH": str(tmp)},
         ))
+        probes.append(run("Lean kernel Media processing admission model",
+                          [executable("lean"), str(media_proof)]))
         bad_lean = tmp / "Invalid.lean"
         bad_lean.write_text("theorem falseClaim (p : Prop) : p := by\n  exact True.intro\n")
         probes.append(run("Lean rejects false theorem", [executable("lean"), str(bad_lean)],

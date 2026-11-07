@@ -1370,6 +1370,8 @@
         "processing/bin/probe-otio.sh",
         "processing/bin/probe-timed-text.sh",
         "tests/test_agent_processing.py",
+        "formal/MediaNativeProcessingAdmission.lean",
+        "formal/README.md",
         "scripts/studio-agent-surface.py"
       ],
       "dependencies": [],
@@ -1387,7 +1389,8 @@
         "Real Linux Runtime executed one generated 1920x1080p30 FFprobe plan and returned actual technicalQc.ok=true with source/profile/raw probe digests.",
         "Owner verification and AV/audio/OTIO/timed-text native smoke passed; technical QC does not confer semantic/aesthetic/publication approval.",
         "The source-owned studio_processing_profiles action is accessible through system Python with an exact empty-object schema, before optional third-party Studio dependencies are materialized; other actions retain JSON Schema validation.",
-        "The existing native processing probe-plan action continues to validate selected profile/adapter digests and returns a nonexecuting Runtime proposal."
+        "The existing native processing probe-plan action continues to validate selected profile/adapter digests and returns a nonexecuting Runtime proposal.",
+        "Lean kernel checks the abstract native admission/digest-staleness and technical-QC-not-publication model. Source-to-Python implementation refinement remains UNKNOWN; selected Runtime OTIO consumer Job job-01a1b3da-8935-74a6-a65a-4fee61f281b4 supplies independent physical evidence."
       ],
       "r21": {
         "I": {

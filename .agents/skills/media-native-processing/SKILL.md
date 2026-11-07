@@ -69,6 +69,17 @@ another subprocess probe wrapper or infer profile approval from raw fields.
    actual consumer has read it. Keep source masters, selected production
    artifacts and exact provenance with their owning system.
 
+## Formal evidence and current proof standing
+
+The owner-scoped Lean model and proof obligations live in
+`capabilities/media/formal/README.md` and
+`capabilities/media/formal/MediaNativeProcessingAdmission.lean`.
+Use the existing root `formal:verify` gate for pinned-kernel proof checks.
+These theorems cover an **abstract admission model**; they do not prove Python
+implementation refinement or source-byte continuity after compilation.
+The existing Python drift consumer test and selected real native probes remain
+necessary. Do not delete them on the strength of model proof alone.
+
 ## Verification and formal boundary
 
 The current four native profile families are AV structure (FFprobe), audio

@@ -126,6 +126,59 @@ class ProcessingDiscoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "profile digest changed"):
             execute_surface_action("studio_processing_probe_plan", args, root=root)
 
+    def test_source_byte_drift_rebinds_both_profile_and_adapter(self) -> None:
+        """One real compiler-consumer trace, not a claim of mathematical code refinement."""
+        from ordivon_studio.agent_processing import processing_probe_plan
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile = root / "processing/profiles/video.json"
+            adapter = root / "processing/bin/probe-av.sh"
+            profile.parent.mkdir(parents=True)
+            adapter.parent.mkdir(parents=True)
+            value = {
+                "schemaVersion": 1,
+                "kind": "ordivon.media.v2.av-profile",
+                "id": "bound-video",
+                "video": {"codec": "h264"},
+            }
+            profile.write_text(json.dumps(value, sort_keys=True), encoding="utf-8")
+            adapter.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+
+            def compile_selected(row: dict[str, object]) -> dict[str, object]:
+                return processing_probe_plan(
+                    root,
+                    profile_id=str(row["id"]),
+                    expected_profile_digest=str(row["profileDigest"]),
+                    expected_adapter_digest=str(row["adapterDigest"]),
+                    input_path="selected-input.mp4",
+                    evidence_directory="consumer-evidence",
+                )
+
+            first = processing_profiles(root)["profiles"][0]
+            self.assertEqual(first["externalToolReadiness"], "not-observed")
+            accepted = compile_selected(first)
+            self.assertEqual(accepted["profileDigest"], first["profileDigest"])
+            self.assertEqual(accepted["adapterDigest"], first["adapterDigest"])
+            self.assertEqual(accepted["execution"]["args"][0], first["adapterPath"])
+
+            # A same-identity JSON edit must invalidate the old discovery.
+            value["video"]["codec"] = "hevc"
+            profile.write_text(json.dumps(value, sort_keys=True), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "profile digest changed"):
+                compile_selected(first)
+
+            second = processing_profiles(root)["profiles"][0]
+            self.assertNotEqual(second["profileDigest"], first["profileDigest"])
+            adapter.write_text("#!/bin/sh\nexit 2\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "adapter digest changed"):
+                compile_selected(second)
+
+            third = processing_profiles(root)["profiles"][0]
+            accepted_again = compile_selected(third)
+            self.assertEqual(accepted_again["adapterDigest"], third["adapterDigest"])
+            self.assertEqual(accepted_again["execution"]["args"][2], third["profilePath"])
+
     def test_duplicate_profile_identity_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

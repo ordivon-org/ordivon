@@ -487,8 +487,9 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         )
         self.assertEqual(set(current["sourceBlobs"]), set(formal.SOURCE_FILES))
         # The source-scoped Formal proof now binds the actual Harness
-        # execution adapter as well as ten existing proof/toolchain inputs.
-        self.assertEqual(len(current["sourceBlobs"]), 11)
+        # execution adapter and the selected Media producer/model, in the
+        # same exact Git source-bound proof readset.
+        self.assertEqual(len(current["sourceBlobs"]), 13)
         for relative, oid in current["sourceBlobs"].items():
             self.assertEqual(
                 oid,

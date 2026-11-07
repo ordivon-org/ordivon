@@ -9,7 +9,11 @@ This is an optional mise tool group; normal repo:ci does not download
 the large proof systems. No new mathematical kernel, graph authority,
 package manager or agent is created.
 
-Lean 4: kernel-checked relational/refinement lemmas.
+Lean 4: kernel-checked relational/refinement lemmas. The Media native-processing
+admission model is also proved by this existing runner and binds its current
+Python producer to the Git source cut. This DOES NOT prove the producer's
+Python control flow refines the Lean model; see
+`../../capabilities/media/formal/README.md` for the scoped obligations.
 Z3 and cvc5: independent SMT SAT/UNSAT.
 Verus: Rust proof obligations, including deliberately false postconditions.
 Dafny: contract verification with a negative counterexample.
