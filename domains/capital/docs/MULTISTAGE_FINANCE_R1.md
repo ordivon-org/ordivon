@@ -292,3 +292,11 @@ External mature references:
 - IBKR real-time liquidation https://www.interactivebrokers.co.uk/en/trading/marginRequirements/margin3.php
 - LEAN Buying Power https://www.quantconnect.com/docs/v2/writing-algorithms/reality-modeling/buying-power
 - LEAN Margin Call https://www.quantconnect.com/docs/v2/writing-algorithms/reality-modeling/margin-calls
+
+## 信息树合同和优化求解的源码边界（2026-11-07）
+
+- **表示与验证 Owner**：`src/ordivon_capital/portfolio/information_tree.py` 的 `InformationNode`、`MultistageProblem`、`validate_information_tree` 是纯 Python 基础 LEGO。它验证有唯一根节点、层级与月度连续性、分支条件概率之和、可观察分支的非预知性、融资/保证金参数、逐节点现金支出和逐叶负债；不依赖 NumPy/SciPy，也不执行优化。
+- **求解 Owner**：`src/ordivon_capital/portfolio/multistage_policy.py` 仍是唯一 `solve_multistage` 与 `python -m` 入口；先消费信息树合同，再用锁定的 SciPy SLSQP 和 HiGHS 作有限情景数值优化。当前 Research/PIT 继续使用原有 `multistage_policy.InformationNode/MultistageProblem` 导入；该导入是对同一类型对象的重导出，而非第二套定义。
+- **Human**：先识别每个节点的真实可观察信息、每月 1r 入金时间、当期应付负债和提供方融资合同，再选择是否求解。若市场发布时点、概率或券商合同未得到外部验证，不能把语义合同通过误写成真实可投资策略。
+- **Agent**：用 `from ordivon_capital.portfolio.information_tree import validate_information_tree` 作无优化器副作用的合同准入，再沿用 `ordivon_capital.portfolio.multistage_policy.solve_multistage`。分别记录合同验证、数值可行性及数值最优性上界；不要将 SciPy 成功、`ValidatedInformationTree` 或任何形式化抽象误报为真实价格/券商资格证据。
+- **成熟机制**：标准 PyPA `src/` 分层和 NumPy/SciPy 优化接口；参见 https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/ 和 https://docs.scipy.org/doc/scipy/reference/optimize.minimize-slsqp.html 。不新建平台、Solver、数据库或 Skill。

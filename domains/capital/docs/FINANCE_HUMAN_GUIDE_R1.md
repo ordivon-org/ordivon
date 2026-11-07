@@ -288,3 +288,9 @@ Agent 需要在实际操作中同时检查源码、`test_paper_close.py`
 - 理论来源：QuantConnect LEAN Algorithm Framework（分离资产选择、组合、风控与执行）、CFA Institute GIPS（现金流对收益的影响）、Agent Skills 开放格式（按需加载知识，不重复做 Agent Runtime）。
 
 投资结果、研究证据和金融效果分别由原有 Portfolio / Research / Accounting 与平台自然 Owner 管理；新增流程首先使用 `DELETE-CUSTOM → REUSE → COMPOSE`，不创建第二套记账、回测、权限或注册系统。
+
+## 多期策略的先验合同检查（2026-11-07）
+
+Finance Portfolio 的月度信息树现在由独立的 `portfolio/information_tree.py` 验证。人类使用时先明确：每月 1r 入金时点、当时真正可观察的分支、所有资产条件概率、逐期现金支出、最终负债以及提供方提供的保证金与融资合同。仅当数据、合同和效用足够完整，才用现有 `portfolio/multistage_policy.py` 进行数值优化，且仍为只读研究结果。
+
+这次拆分不新增任何交易入口、账本或 API。详细数学接口及 Agent 调用见 [多期模型与信息树合同](MULTISTAGE_FINANCE_R1.md)；对应的源码与已退役文件审计见 [Finance Owner/LEGO 审计](FINANCE_DIRECTORY_OWNER_AUDIT_R1.md)。

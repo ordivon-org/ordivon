@@ -333,3 +333,11 @@ receipt and check max_identity_residual_r and minimum_collateral_surplus_r.
 Positive terminal R is NOT investment profit without subtracting all
 contributed 1r and cash obligations. Only externally evidenced cash and
 broker contracts permit economic conclusions.
+
+## Reusable information-tree representation LEGO (source-only)
+
+Use `ordivon_capital.portfolio.information_tree` for the **pure, solver-free** representation and validation contract. Public entry: `validate_information_tree(MultistageProblem(...))` with its canonical `InformationNode` type. It checks observable information histories, monthly timing, conditional probabilities, branch discernibility, declared liabilities and supplier-provided margin assumptions. It does **not** authenticate data releases, prove conditional-probability calibration, qualify a broker, or certify optimality.
+
+Only after validation should an Agent call the **existing** `ordivon_capital.portfolio.multistage_policy.solve_multistage`; no duplicate optimizer, ledger or execution authority is created. The existing Research/PIT `multistage_policy.InformationNode` and `MultistageProblem` remain the **same Python types** as the canonical information-tree module, not shadow DTOs. Prefer the canonical `information_tree` import in new direct validators. To validate behavior, use `tests/test_multistage_policy.py`, `tests/test_pit_joint_forecast.py`, and `tests/test_capital_domain_taxonomy.py`.
+
+Human workflow and economic assumptions: `domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md` and `docs/MULTISTAGE_FINANCE_R1.md`. Always record source revision, original upstream market/broker evidence and resulting validation standing, separately from optimizer residuals and economic claims.

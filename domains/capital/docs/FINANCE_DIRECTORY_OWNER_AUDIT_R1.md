@@ -83,3 +83,9 @@ AST 显式跨 Owner 导入统计：Accounting→Markets(1)/Trading(1)；Portfoli
 - 数值计算使用锁定版本 NumPy/SciPy/scikit-learn；形式化使用 Z3/Lean；持久化由 PostgreSQL Accounting Owner 负责，发布复用 GitHub CI / Merge Queue。
 
 本文件是已由 README / Human Guide / Agent Skill 消费的单一目录审计结果，不是新增运行平台或第二套源码分类表。
+
+## 文件级拆分增量：Portfolio 信息树（2026-11-07）
+
+前述文件总数及 Owner 行数是首次审计快照 `32f07fb387df8b20e1cb510a54fe4934064e0c08` 的统计，不代表后续增量。实际复核发现 `portfolio/multistage_policy.py` 混合纯信息树校验与成熟求解器绑定，现将 `information_tree.py` 作为 Portfolio 内的**表示型基础 LEGO**，让它拥有唯一的类型、分支可观察性、概率、资金义务时点与融资合同检查；原 `multistage_policy.py` 只保留数值求解、LP 上界、结果与原 CLI。同步更新 `capital_domain_taxonomy.json` 的准确模块表及 `external_owner_census.json` 的来源映射。
+
+这不是新金融 Owner、新 Solver、PIT 模型或兼容套件。旧研究消费者的类型身份仍相同，核心函数语义没有被重写。下一步只在真实消费者给出重构必要性时继续拆分 Research/Risk/Accounting；对历史回放文件仍遵循消费者可达性，不按名字激进误删。
