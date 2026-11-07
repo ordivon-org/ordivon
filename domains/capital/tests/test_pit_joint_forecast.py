@@ -246,6 +246,36 @@ class PITResearchContract(unittest.TestCase):
                 evaluation_as_of=datetime.fromisoformat("2026-08-31T20:00:00+00:00"),
             )
 
+    def test_prequential_revisions_do_not_manufacture_realized_losses(self):
+        sessions, rows = self.fixture()
+        decision_at = datetime.fromisoformat("2026-09-30T22:00:00+00:00")
+        evaluated_at = datetime.fromisoformat("2026-10-30T22:00:00+00:00")
+        # Post-decision corporate action halves both historical price levels;
+        # the actual A interval return is still 54.45 / 49.5 = 1.1.
+        rows.extend((
+            rec("A", "2026-09-30", "2026-10-30T21:30:00+00:00", 49.5),
+            rec("A", "2026-10-30", "2026-10-30T21:30:00+00:00", 54.45),
+        ))
+        kwargs = dict(
+            records=rows, assets=("A", "B"), valuation_sessions=sessions,
+            decision_instants={sessions[2]: decision_at}, evaluation_as_of=evaluated_at,
+        )
+        (result,) = prequential_energy_evaluation(**kwargs)
+        self.assertAlmostEqual(result["realized_joint_gross"][0], 1.1)
+        self.assertAlmostEqual(result["realized_joint_gross"][1], 0.9)
+        self.assertNotAlmostEqual(result["realized_joint_gross"][0], 0.55)
+        self.assertEqual(
+            result["outcome_price_basis"], "MATCHED_EVALUATION_VINTAGE_ADJUSTED_CLOSE",
+        )
+        revisions = result["interval_vintage_revisions"]
+        self.assertEqual([r["revision_detected"] for r in revisions], [True, False])
+        self.assertEqual(revisions[0]["decision_adjusted_close"], 99.0)
+        self.assertEqual(revisions[0]["evaluation_adjusted_close"], 49.5)
+        # Events after the evaluation cutoff must not alter frozen scoring.
+        future = rec("A", "2026-09-30", "2026-11-08T12:00:00+00:00", 1e8)
+        (same,) = prequential_energy_evaluation(**{**kwargs, "records": rows + [future]})
+        self.assertEqual(result, same)
+
     def test_json_evidence_separate_from_optimizer_input(self):
         sessions, rows = self.fixture()
         payload = {

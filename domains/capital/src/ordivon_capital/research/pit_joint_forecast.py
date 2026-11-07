@@ -343,9 +343,11 @@ def prequential_energy_evaluation(
 
     Each (valuation session, decision instant) is an explicit ex-ante
     commitment. Outcomes are evaluated later, never fed into the forecast.
-    The period gross is measured from the then-known valuation close to
-    the subsequently available outcome close; adjusted-price revisions
-    must be disclosed separately for exact total-return attribution.
+    The realized gross ratio uses one evaluation-time adjusted-price vintage
+    for both interval endpoints. Mixing a decision-time close with a
+    subsequently back-adjusted close can manufacture split/dividend P&L.
+    Decision-time prices and later revisions are disclosed as audit evidence.
+    Vendor adjustment semantics still need external economic attestation.
     """
     evaluated_at = _utc(evaluation_as_of)
     calendar = tuple(valuation_sessions)
@@ -377,18 +379,39 @@ def prequential_energy_evaluation(
         )
         frozen_market = point_in_time_prices(records, as_of=t)
         realized = []
+        interval_vintage_revisions = []
+        outcome_source_digests: set[str] = set()
         for asset in names:
-            before = frozen_market.get((asset, valuation_session))
-            after = final_market.get((asset, next_session))
-            if before is None or after is None:
-                raise PointInTimeError("next-session market outcome not yet published")
-            realized.append(after.adjusted_close / before.adjusted_close)
+            decision_before = frozen_market.get((asset, valuation_session))
+            evaluation_before = final_market.get((asset, valuation_session))
+            evaluation_after = final_market.get((asset, next_session))
+            if any(x is None for x in (decision_before, evaluation_before, evaluation_after)):
+                raise PointInTimeError("next-session market outcome not yet published or matched evaluation baseline unavailable")
+            # Both endpoints use the same adjustment vintage. Never mix a
+            # decision-time denominator with an after-the-fact adjusted numerator.
+            realized.append(float(_exact_price_ratio(evaluation_after, evaluation_before)))
+            outcome_source_digests.update((
+                evaluation_before.raw_source_sha256, evaluation_after.raw_source_sha256,
+            ))
+            interval_vintage_revisions.append({
+                "asset": asset,
+                "revision_detected": decision_before != evaluation_before,
+                "decision_adjusted_close": decision_before.adjusted_close,
+                "evaluation_adjusted_close": evaluation_before.adjusted_close,
+                "decision_published_at_utc": _utc(decision_before.published_at).isoformat(),
+                "evaluation_published_at_utc": _utc(evaluation_before.published_at).isoformat(),
+                "decision_source_sha256": decision_before.raw_source_sha256,
+                "evaluation_source_sha256": evaluation_before.raw_source_sha256,
+            })
         result = {
             "valuation_session": valuation_session.isoformat(),
             "decision_time": t.isoformat(),
             "evaluation_as_of": evaluated_at.isoformat(),
             "outcome_session": next_session.isoformat(),
             "realized_joint_gross": realized,
+            "outcome_price_basis": "MATCHED_EVALUATION_VINTAGE_ADJUSTED_CLOSE",
+            "outcome_source_digests": sorted(outcome_source_digests),
+            "interval_vintage_revisions": interval_vintage_revisions,
             "training_n": distribution.training_return_count,
             "forecast_method": forecast_method,
             "variogram_score": (
