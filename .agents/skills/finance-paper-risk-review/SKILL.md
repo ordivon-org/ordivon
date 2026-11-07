@@ -60,6 +60,17 @@ observations; use `effectiveTailObservationWeight` rather than treating
 `tailObservationCount` as independent severe events. Do not turn this
 statistic into an automated risk-budget approval.
 
+Formal Accounting obligation: reuse the existing owner and the pinned Z3
+solver, not a second Finance/Risk verifier. Run
+mise run //domains/capital:verify:formal from repository root. The
+PaperCashSettlementR1.smt2 QF_LIA model proves aggregate cash, payable,
+receivable and NAV conservation plus same-session exclusion of settling
+sale proceeds. It must also produce concrete SAT counterexamples for the
+wrong liquidity and receivable-retention models. Its source-to-Python
+refinement is NOT_FORMALLY_PROVED; preserve owner implementation checks and
+isolated PostgreSQL readback for that boundary. See
+domains/capital/formal/README.md. This is not trading authorization.
+
 Qualification: mise run //domains/capital:verify plus actual isolated
 PostgreSQL paper receipt readback under disposable
 ORDIVON_CAPITAL_PAPER_PG_TEST_DSN against database ordivon_paper.

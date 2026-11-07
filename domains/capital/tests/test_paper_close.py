@@ -41,6 +41,85 @@ def test_paper_cash_settlement_does_not_create_or_destroy_nav():
     assert settled.protected_minor == 300_000
 
 
+def test_paper_cash_formal_equations_refine_mixed_buy_sell_settlement() -> None:
+    """Actual value_session consumer witnesses the one-step SMT field map.
+
+    The SMT model proves aggregate integer algebra; this test witnesses one
+    concrete code path with old/new payables and receivables simultaneously.
+    It is not a universal Python-to-SMT refinement theorem.
+    """
+    start = date(2026, 1, 6)
+    buy_day = date(2026, 1, 7)
+    sale_day = date(2026, 1, 8)
+    both_due = date(2026, 1, 9)
+
+    def buy(fill_id: str, prev_date: date, day: date, amount: int, due: date):
+        return paper_close.PaperBuy(
+            fill_id, "ETF", amount, 10_000, 100,
+            datetime.fromisoformat(f"{prev_date}T16:15:00-05:00"),
+            datetime.fromisoformat(f"{day}T09:30:00-05:00"),
+            settlement_date=due,
+        )
+
+    def sell(fill_id: str, prev_date: date, day: date, due: date):
+        return paper_close.PaperSell(
+            fill_id, "ETF", 1, 12_000, 100,
+            datetime.fromisoformat(f"{prev_date}T16:15:00-05:00"),
+            datetime.fromisoformat(f"{day}T09:30:00-05:00"),
+            settlement_date=due,
+        )
+
+    opening = paper_close.value_session(
+        None, paper_close.PaperSession(start, None, 150_000, 20_000, {}, ())
+    )
+    first = paper_close.value_session(
+        opening, paper_close.PaperSession(
+            buy_day, start, 0, 0, {"ETF": 10_000},
+            (buy("buy-old", start, buy_day, 5, both_due),),
+        )
+    )
+    before = paper_close.value_session(
+        first, paper_close.PaperSession(
+            sale_day, buy_day, 0, 0, {"ETF": 12_000}, (),
+            sells=(sell("sale-old", buy_day, sale_day, both_due),),
+        )
+    )
+    day = paper_close.PaperSession(
+        both_due, sale_day, 0, 0, {"ETF": 12_000},
+        (buy("buy-new", sale_day, both_due, 1, date(2026, 1, 13)),),
+        sells=(sell("sale-new", sale_day, both_due, date(2026, 1, 13)),),
+    )
+    after = paper_close.value_session(before, day)
+    due_buy = sum(before.payable_due_on(day.session).values())
+    due_sale = sum(before.receivable_due_on(day.session).values())
+    new_buy = sum(fill.cost_minor for fill in day.buys)
+    new_sale = sum(fill.proceeds_minor for fill in day.sells)
+    before_mark = before.nav_minor - before.cash_minor + before.payable_minor - before.receivable_minor
+    after_mark = sum(shares * day.marks[symbol] for symbol, shares in after.positions.items())
+
+    assert due_buy == 50_100 and due_sale == 11_900
+    assert after.cash_minor == before.cash_minor - due_buy + due_sale
+    assert after.payable_minor == before.payable_minor - due_buy + new_buy
+    assert after.receivable_minor == before.receivable_minor - due_sale + new_sale
+    assert after.protected_minor == before.protected_minor
+    assert (
+        after.nav_minor - before.nav_minor
+        == -new_buy + new_sale + after_mark - before_mark
+    )
+    assert after.cash_minor - after.payable_minor - due_sale >= after.protected_minor
+    # The incorrect guard would admit this buy using 11,900 cents settling
+    # today, even though they were not buying power at the intraday fill.
+    too_early = buy("buy-too-early", sale_day, both_due, 9, date(2026, 1, 13))
+    hypothetical_cash = before.cash_minor - due_buy + due_sale
+    hypothetical_payable = before.payable_minor - due_buy + too_early.cost_minor
+    assert hypothetical_cash - hypothetical_payable >= before.protected_minor
+    assert hypothetical_cash - hypothetical_payable - due_sale < before.protected_minor
+    with pytest.raises(ValueError, match="protected cash"):
+        paper_close.value_session(
+            before, replace(day, buys=(too_early,), sells=())
+        )
+
+
 def test_paper_valuation_must_fit_the_risk_receipt_integer_domain():
     day0, day1, _ = inputs()
     max_minor = 2**63 - 1
@@ -61,7 +140,6 @@ def test_paper_valuation_must_fit_the_risk_receipt_integer_domain():
         paper_close.value_session(
             opening, replace(day1, marks={"ETF": 2**62})
         )
-
 
 def test_paper_invalid_evidence_has_no_valuation():
     day0, day1, _ = inputs()

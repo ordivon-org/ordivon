@@ -180,6 +180,10 @@ Accounting/Markets/Risk 原生消费者给出。
 - **`capitalAuthority=NONE`、`executionAuthorized=false`**：从研究结果不能推出资本转移权限。
 - **收益率**：注意区别交易收益、净值变化和外部入金。未处理外部现金流时，不能把净值增加直接当投资利润；需要 GIPS 一致的时间加权或正确标注的现金流调整口径。
 
+### 账务形式化验证
+
+对模拟账户现金、应付、应收、保护储备与 NAV 的结算恒等式，可在仓库根目录运行 mise run //domains/capital:verify:formal。它复用现有 Z3 工具，对模型假设下的整数金额进行符号证明，并要求错误的结算规则能生成反例。结果只证明抽象数学模型，并不等于 Python/PostgreSQL 已被完整形式化证明。实现与真实账本仍需各自的消费者验收。证据边界见 domains/capital/formal/README.md。
+
 ## 5. Human 与 Agent 的职责差异
 
 **Human 决定**：投入目标、时间范围、储备现金、可承受风险、何时退出以及是否有适用的法律/经纪账户约束。需要人工确认的不是每次计算，而是这些不可由统计模型取代的经济偏好。
