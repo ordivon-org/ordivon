@@ -161,3 +161,22 @@ actually loaded into its video and audio tracks. Source digest
 verification and independent FFprobe observations cannot
 substitute for creative color review or published-platform
 readback. No approval is manufactured by the script.
+
+## Parameterized Remotion from existing components
+
+The source-owned \`runtime-flow\` Composition accepts JSON input props
+\`eyebrow\` and \`headline\` (defaults retained in \`src/runtime-flow-composition.tsx\`).
+When only title copy changes, do not fork the React/SVG layout or duplicate
+timeline data. Select a Production and approved copy; write a small \`props.json\`,
+then from \`capabilities/media/apps/motion-remotion\` run:
+
+\`\`\`bash
+pnpm exec remotion render src/index.ts runtime-flow /tmp/selected-animation.mp4 \\
+  --config=remotion.config.ts --props=/tmp/props.json
+\`\`\`
+
+The JSON file can contain \`{"eyebrow":"Media","headline":"A selected\\nmessage"}\`.
+Use \`pnpm tokens:build\` from the Media root beforehand. The renderer
+owns animation frames and timing, while the exact output bytes and
+source/props digests must be reviewed before attaching an Output.
+The existing Production Claim remains the authority for factual words.
