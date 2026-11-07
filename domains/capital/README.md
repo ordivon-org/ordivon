@@ -49,6 +49,18 @@ analysis are read-only; dedicated Accounting Paper closes write **only
 simulated** PostgreSQL ledger state. Neither path gives broker trading
 authority.
 
+### Paper Accounting verification
+
+From the repository root, run
+`mise run //domains/capital:verify:paper-amounts` with the Lean tool already
+pinned under `tools/formal`. The integer model checks signed-int64 Risk consumer
+fields under the reserve and nonnegative component assumptions, and shows
+that settling booked payables and receivables preserves NAV at fixed marks.
+It does not verify Python, PostgreSQL, time-bound market admission or a
+positive-equity Risk review. Use `mise run //domains/capital:verify` for the
+implementation, and a disposable `ORDIVON_CAPITAL_PAPER_PG_TEST_DSN` for
+committed receipt and Risk CLI read-back.
+
 ## Historical Capital qualifications
 
 The remaining portions of this README include frozen prior technology

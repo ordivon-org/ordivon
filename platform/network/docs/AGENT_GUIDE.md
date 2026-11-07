@@ -27,6 +27,8 @@ SOURCE_PASS is not APPLICATION_PASS. CONNECT 200 alone is not TLS success. A sam
 | Physical VPN / failover | one Gluetun Quadlet, native WireGuard, Podman Secret and healthcheck | task provider:gluetun:verify |
 | Surfshark profile/catalog | pinned Gluetun catalog | task provider:surfshark:verify-local |
 | Scoped application destination | consumer-owned sing-box policy, bounded relay | task consumer:<name>:validate / verify |
+| Scoped HTTP policy symbolic refinement | Z3 SMT with separate authority JSON and native sing-box route source | mise run formal (also native Network mise run ci) |
+
 | iOS Exit Node server | Tailscale userspace in Gluetun network namespace | task consumer:mobile-tailnet-exit:verify |
 | Optional fault/test mechanisms | Toxiproxy, isolated netns/TUN, HAProxy, tc/netem, containerlab | acceptance/, capabilities/, reference/linux/ |
 | Windows boot / app process bindings | Workstation, OS environment; Codex read-only process witness | consumers/codex/windows_process_egress.py |
@@ -44,6 +46,24 @@ The generic Network Core MUST NOT own Finance/Claude/X destination policy. Obser
 6. Publish through existing GitHub PR/required CI/merge queue. Re-fetch merged main; requalify deployed source and consumer effects. If main is new but live differs, say SOURCE_MERGED_LIVE_OLD rather than PASS.
 7. Before deleting a file, volume, unit or Workspace, check consumers for read/write/start/recovery dependency. Remove via the **native owner API**; never direct-delete an actively protected Runtime backing store.
 8. Report source commit, installed generation, loaded processes, real positive and negative consumer witness, deleted resources and remaining UNKNOWN. Host Work owns changing task state; do not create a second status file.
+
+### Formal scoped-route proof (source, not live effects)
+
+Run cd platform/network && mise run formal to prove equivalence of the
+independently declared authority and first-match sing-box routing policy for
+Claude, Discord, Model Provider, Supply Chain, X and nine Finance lanes.
+Symbolic variables are normalized HTTP CONNECT hostname, incoming scoped
+listener and TCP destination port; UNSAT means no differing routing outcome
+within this admitted model. The tool refuses unsupported policy constructs,
+confirms every declared lane is reachable, and deliberately introduces a
+rogue route to obtain a real SMT counterexample. Z3 is version-pinned in the
+Network-local mise task; this is not a new framework or Skill registry.
+
+This proof does NOT cover Chrome mixed/public-web policy, physical Gluetun,
+Unicode/IDN normalization, IP literals, UDP, DNS/DoH, installed/loaded
+sing-box equivalence or real app process capture. Retain mise run behavior,
+task consumer:...:verify and live Carrier no-forward witnesses for those
+boundaries. An unsupported construct is NOT_PROVED, not silently admitted.
 
 ## 4. Targeted falsification selection
 
