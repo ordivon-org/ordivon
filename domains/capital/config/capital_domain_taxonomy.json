@@ -81,7 +81,8 @@
       "experiment_protocol.py",
       "investment_candidate.py",
       "unit_r_dca.py",
-      "pit_joint_forecast.py"
+      "pit_joint_forecast.py",
+      "independent_policy_replay.py"
     ],
     "governance": [
       "policy_decision.py"

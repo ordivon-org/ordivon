@@ -763,7 +763,8 @@
         "src/ordivon_capital/research/standards_inventory.py",
         "src/ordivon_capital/research/experiment_protocol.py",
         "src/ordivon_capital/research/unit_r_dca.py",
-        "src/ordivon_capital/research/pit_joint_forecast.py"
+        "src/ordivon_capital/research/pit_joint_forecast.py",
+        "src/ordivon_capital/research/independent_policy_replay.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",

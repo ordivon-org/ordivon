@@ -247,3 +247,34 @@ investment mandate.
 References: https://github.com/agentskills/agentskills/blob/main/docs/specification.mdx ;
 https://www.quantconnect.com/docs/v2/writing-algorithms/algorithm-framework/overview ;
 https://www.gipsstandards.org/standards/gips-standards-for-firms/gips-standards-handbook-for-firms/
+
+## Independent multistage cashflow replay (Research falsifier)
+
+Use the EXISTING Portfolio multistage CRRA solver as the only optimizer.
+For independent falsification, package its exact input JSON as problem
+and its solution JSON as solution in one research-only JSON object.
+Run from domains/capital using the native environment:
+
+    PYTHONPATH=src uv run --frozen --no-sync --group test python -m ordivon_capital.research.independent_policy_replay --input /path/to/solver-pair.json
+
+This pure stdlib Research capability deliberately imports NO SciPy or
+Portfolio optimizer internals. It recomputes, from the public solution,
+each branch's before-deposit equity, pre-deposit maintenance, exactly
+one monthly 1r contribution, correctly dated due payments, turnover fees,
+post-trade budget, initial margin, terminal liabilities, probability mass,
+CRRA expected utility and certainty equivalents.
+
+Agent guidance: Always replay the EXACT frozen solver input and matching
+output before claiming numeric investment experiment results. Preserve
+returned input digest; never substitute realized future markets into
+the original information tree. REJECTED means a model/receipt mismatch.
+A passing result is NOT proof of optimizer optimality, trading
+authorization, or an audited data source; use independent analytic
+benchmarks and upstream solver's documented LP bound for numeric
+optimality evidence.
+
+Human guidance: Compare original obligation/return inputs with the replay
+receipt and check max_identity_residual_r and minimum_collateral_surplus_r.
+Positive terminal R is NOT investment profit without subtracting all
+contributed 1r and cash obligations. Only externally evidenced cash and
+broker contracts permit economic conclusions.
