@@ -133,6 +133,16 @@ PostgreSQL persistence, deployment or capital authority. Do not create
 a second ledger, copy Z3 into a private verifier or delete meaningful
 database tests on model-only evidence.
 
+For a symbolic **source implementation** check of the two-date no-trade
+Paper settlement subset, run `mise run //domains/capital:formal:paper:source`.
+This uses the original `value_session` in upstream CrossHair under actual
+signed-int64 prior-NAV and resulting-cash admission preconditions; its task
+must explicitly report `Confirmed over all paths.`. A model-only success
+is not implementation proof, and this scoped source check is not
+PostgreSQL crash/serialization proof or exchange/broker evidence.
+See the existing formal README. Reuse this task; do not create a parallel
+Skill, checker, ledger, or formal framework.
+
 ## Stateful Paper Accounting admission
 
 1. Check that the user/owner is asking for a **simulated** close and that
