@@ -107,3 +107,46 @@ requirement to know the forecast's scenario count before constructing
 economic_contract. If the real brokerage requires different maintenance
 by liquidation/volatility state, use the original per-scenario
 "scenario_maintenance" matrix. Neither form supplies defaults.
+
+## Prequential outcome-vintage consistency (same-clock realized returns)
+
+The forecast is frozen at the actual decision time t and must use only
+published-at-or-before-t vintages. Once the next month is observable, the
+realized **retrospective adjusted-price** return is evaluated with both
+endpoint prices selected at the SAME later information cutoff T:
+
+\[
+G^{(T)}_{i,s\to s+1}=
+\frac{P_{i,s+1}^{(T)}}{P_{i,s}^{(T)}} ,
+\qquad T>t,\quad
+\widehat F_t\in\mathcal F_t.
+\]
+
+The earlier mixed-clock ratio
+\(P_{i,s+1}^{(T)}/P_{i,s}^{(t)}\) was not invariant to
+backward adjustment of both ETF closes after splits/dividends. It could
+generate synthetic profits/losses despite unchanged economic holding-period
+returns. The existing prequential and paired comparison consumers now
+compute consistent same-T ratios and emit per-asset
+reference_revision_evidence (frozen/evaluation closes, revision ratio,
+both endpoint hashes, release times and source standing).
+
+This is **retrospective scoring evidence only**, not the actually executable
+share-account cash flow: Market Owner must certify corporate-action history,
+adjustment convention, dividends and historical vendor release times.
+Equal as-of selection does not itself authenticate normalization, and
+revisions to genuinely erroneous prices can still change retrospective
+outcome labels after the declared evaluation cutoff.
+
+Native mature patterns to reuse rather than invent a new adjustment engine:
+- QuantConnect LEAN raw/split-adjusted/total-return vs backward-adjusted
+  normalization: https://www.lean.io/docs/v2/lean-engine/class-reference/py/QuantConnect/
+- JPX J-Quants retroactive adjusted-price revision warning and raw-price /
+  historical corporate-action reconstruction: https://jpx-jquants.com/en/spec/eq-bars-daily/adj
+- CRSP holding-period returns and split/distribution factors:
+  https://www.crsp.org/wp-content/uploads/guides/CRSP_Calculations_and_Index_Methodologies.pdf
+
+Do not treat the scenario score as an investment P&L or evidence of alpha.
+Historical data still require externally authenticated point-in-time
+availability. Prefer existing Markets normalization/broker operators for
+any future actual trading or settlement consumer.

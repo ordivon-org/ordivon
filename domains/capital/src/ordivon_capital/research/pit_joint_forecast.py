@@ -325,9 +325,13 @@ def prequential_energy_evaluation(
 
     Each (valuation session, decision instant) is an explicit ex-ante
     commitment. Outcomes are evaluated later, never fed into the forecast.
-    The period gross is measured from the then-known valuation close to
-    the subsequently available outcome close; adjusted-price revisions
-    must be disclosed separately for exact total-return attribution.
+    The forecast and its decision-time price remain strictly frozen at t.
+    Realized gross returns are measured from BOTH endpoint prices selected
+    as of evaluation_as_of, so post-decision split/dividend back-adjustments
+    do not spuriously create a gain or loss by mixing price-normalization
+    bases. Decision versus evaluation reference revisions are separately
+    disclosed; authenticated corporate-action and total-return semantics
+    still belong to Markets, not this retrospective research component.
     """
     evaluated_at = _utc(evaluation_as_of)
     calendar = tuple(valuation_sessions)
@@ -359,18 +363,52 @@ def prequential_energy_evaluation(
         )
         frozen_market = point_in_time_prices(records, as_of=t)
         realized = []
+        reference_revision_evidence = []
         for asset in names:
-            before = frozen_market.get((asset, valuation_session))
-            after = final_market.get((asset, next_session))
-            if before is None or after is None:
+            frozen_before = frozen_market.get((asset, valuation_session))
+            evaluation_before = final_market.get((asset, valuation_session))
+            evaluation_after = final_market.get((asset, next_session))
+            if frozen_before is None or evaluation_before is None or evaluation_after is None:
                 raise PointInTimeError("next-session market outcome not yet published")
-            realized.append(after.adjusted_close / before.adjusted_close)
+            # Never divide a post-event adjusted close by a PRE-event vintage
+            # adjusted close: corporate-action back-adjustments can generate
+            # fake realized gains/losses across incompatible price bases.
+            # Freeze the forecast at t; measure both realized endpoints from
+            # the common evaluation-as-of snapshot, never from mixed clocks.
+            realized.append(evaluation_after.adjusted_close / evaluation_before.adjusted_close)
+            reference_revision_evidence.append(
+                {
+                    "asset": asset,
+                    "frozen_reference_close": frozen_before.adjusted_close,
+                    "evaluation_reference_close": evaluation_before.adjusted_close,
+                    "evaluation_outcome_close": evaluation_after.adjusted_close,
+                    "reference_revision_factor": (
+                        evaluation_before.adjusted_close / frozen_before.adjusted_close
+                    ),
+                    "reference_revised_since_decision": evaluation_before != frozen_before,
+                    "frozen_reference_source_sha256": frozen_before.raw_source_sha256,
+                    "evaluation_reference_source_sha256": evaluation_before.raw_source_sha256,
+                    "evaluation_outcome_source_sha256": evaluation_after.raw_source_sha256,
+                    "frozen_reference_source_standing": frozen_before.source_standing,
+                    "evaluation_reference_source_standing": evaluation_before.source_standing,
+                    "evaluation_outcome_source_standing": evaluation_after.source_standing,
+                    "frozen_reference_published_at": _utc(frozen_before.published_at).isoformat(),
+                    "evaluation_reference_published_at": _utc(
+                        evaluation_before.published_at
+                    ).isoformat(),
+                    "evaluation_outcome_published_at": _utc(
+                        evaluation_after.published_at
+                    ).isoformat(),
+                }
+            )
         result = {
             "valuation_session": valuation_session.isoformat(),
             "decision_time": t.isoformat(),
             "evaluation_as_of": evaluated_at.isoformat(),
             "outcome_session": next_session.isoformat(),
             "realized_joint_gross": realized,
+            "realized_price_basis": "EVALUATION_AS_OF_BOTH_ENDPOINTS_ADJUSTED",
+            "reference_revision_evidence": reference_revision_evidence,
             "training_n": distribution.training_return_count,
             "forecast_method": forecast_method,
             "variogram_score": (
@@ -388,7 +426,6 @@ def prequential_energy_evaluation(
         }
         results.append(result)
     return tuple(results)
-
 
 
 def compare_pit_prequential_forecasts(
@@ -418,19 +455,20 @@ def compare_pit_prequential_forecasts(
         decision_instants=decision_instants,
         evaluation_as_of=evaluation_as_of,
     )
-    reference = prequential_energy_evaluation(
-        **kwargs, forecast_method=baseline_method
-    )
-    candidate = prequential_energy_evaluation(
-        **kwargs, forecast_method=candidate_method
-    )
+    reference = prequential_energy_evaluation(**kwargs, forecast_method=baseline_method)
+    candidate = prequential_energy_evaluation(**kwargs, forecast_method=candidate_method)
     if not reference or len(reference) != len(candidate):
         raise PointInTimeError("paired evaluation requires common realized periods")
     pairs: list[dict[str, Any]] = []
     for before, after in zip(reference, candidate, strict=True):
         identity = (
-            "valuation_session", "decision_time", "evaluation_as_of",
-            "outcome_session", "realized_joint_gross",
+            "valuation_session",
+            "decision_time",
+            "evaluation_as_of",
+            "outcome_session",
+            "realized_joint_gross",
+            "realized_price_basis",
+            "reference_revision_evidence",
         )
         if any(before[key] != after[key] for key in identity):
             raise PointInTimeError(
@@ -443,13 +481,17 @@ def compare_pit_prequential_forecasts(
                 "decision_time": before["decision_time"],
                 "valuation_session": before["valuation_session"],
                 "outcome_session": before["outcome_session"],
+                "realized_joint_gross": before["realized_joint_gross"],
+                "realized_price_basis": before["realized_price_basis"],
+                "reference_revision_evidence": before["reference_revision_evidence"],
                 "baseline_forecast_sha256": before["frozen_forecast_sha256"],
                 "candidate_forecast_sha256": after["frozen_forecast_sha256"],
                 "baseline_energy": before["energy_score"],
                 "candidate_energy": after["energy_score"],
                 "candidate_minus_baseline_energy": delta,
                 "candidate_minus_baseline_variogram": (
-                    None if b_variogram is None or a_variogram is None
+                    None
+                    if b_variogram is None or a_variogram is None
                     else a_variogram - b_variogram
                 ),
             }
@@ -461,16 +503,17 @@ def compare_pit_prequential_forecasts(
         "candidateMethod": candidate_method,
         "matchedEvaluationCount": len(pairs),
         "meanCandidateMinusBaselineEnergy": (
-            math.fsum(row["candidate_minus_baseline_energy"] for row in pairs)
-            / len(pairs)
+            math.fsum(row["candidate_minus_baseline_energy"] for row in pairs) / len(pairs)
         ),
         "perEvaluation": pairs,
         "limitations": [
             "Caller-supplied historical timestamps are not independently attested.",
+            "Realized adjusted-price ratios use both endpoints at evaluation_as_of; Markets must attest their common corporate-action/total-return basis, never inferred executable fills.",
             "Descriptive energy loss differentials are not a serial-dependence-adjusted Diebold-Mariano inference or multiple-model SPA test.",
             "No optimal leverage, confidence level, statistical significance or prospective alpha is asserted.",
         ],
     }
+
 
 def make_one_step_optimizer_contract(
     forecast: EmpiricalJointForecast,
@@ -612,7 +655,6 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-
 def solve_pit_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Research-to-Portfolio native consumer, no second optimization engine.
 
@@ -634,21 +676,17 @@ def solve_pit_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     vectors = {"risky_gross", "maintenance", "initial_margin", "turnover_cost"}
     nodes = tuple(
         InformationNode(
-            **{
-                key: tuple(value) if key in vectors else value
-                for key, value in raw.items()
-            }
+            **{key: tuple(value) if key in vectors else value for key, value in raw.items()}
         )
         for raw in contract["nodes"]
     )
-    solution = solve_multistage(
-        MultistageProblem(gamma=contract["gamma"], nodes=nodes)
-    )
+    solution = solve_multistage(MultistageProblem(gamma=contract["gamma"], nodes=nodes))
     return {
         **result,
         "conditional_allocation": dataclasses.asdict(solution),
         "allocation_standing": "CONDITIONAL_UNCALIBRATED_ONE_STEP_RESEARCH",
     }
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(
@@ -656,17 +694,14 @@ def main() -> int:
     )
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument(
-        "--solve", action="store_true",
+        "--solve",
+        action="store_true",
         help="run the existing read-only one-step CRRA consumer, with no trades",
     )
     args = parser.parse_args()
     try:
         payload = json.loads(args.input.read_text(encoding="utf-8"))
-        outcome = (
-            solve_pit_payload(payload)
-            if args.solve
-            else from_json_payload(payload)
-        )
+        outcome = solve_pit_payload(payload) if args.solve else from_json_payload(payload)
     except (PointInTimeError, ValueError, TypeError, KeyError) as e:
         parser.error(f"incomplete point-in-time market/economic contract: {e}")
     print(json.dumps(outcome, ensure_ascii=False, sort_keys=True))
