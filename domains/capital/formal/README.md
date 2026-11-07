@@ -1,11 +1,13 @@
-# Portfolio contribution — model proof versus implementation evidence
+# Capital / Finance — formal model evidence and consumer boundaries
+
+## Portfolio contribution and passive benchmark
 
 The canonical Owner is `Portfolio` in `domains/capital`; there is no Finance
 verification service or separate financial authority. This directory contains
 one source-adjacent, versioned *mathematical model* of
 `src/ordivon_capital/portfolio/strategic_contribution.py`.
 
-## Scope and evidence
+### Scope and evidence
 
 `PortfolioContributionR1.smt2` uses Z3 QF_NIA on unbounded mathematical
 integers and three symbolically chosen asset deficits (`gap0..gap2`). It
@@ -19,7 +21,7 @@ Zero-contribution/zero-denominator and more than three assets are NOT proved
 by this model. Source/encoding equivalence, external market data, PostgreSQL,
 actual broker orders, and numerical performance are NOT proved.
 
-### Human
+#### Human
 
 From `domains/capital`, execute `mise run verify:formal:contribution` and
 expect `unsat, unsat, unsat, unsat, sat`. To see the read-only, real Python CLI
@@ -27,7 +29,7 @@ consumer use the repository's existing
 `scripts/run-strategic-contribution-brief < examples/strategic_contribution_r1.json`.
 The output is an allocation *projection*, not trading authorization.
 
-### Agent
+#### Agent
 
 Resolve the existing trusted project Skill `finance-paper-investment` (source:
 `.agents/skills/finance-paper-investment/SKILL.md`). Invoke the exact task
@@ -48,7 +50,7 @@ on the strength of this partial model. Do not count `unknown` / timeout as
 `unsat`; use the exact expected output gate in the existing mise task.
 The toolchain is reused from `tools/formal/mise.toml`, not installed here.
 
-## All-asset mathematical extension (Lean kernel)
+### All-asset mathematical extension (Lean kernel)
 
 `PortfolioApportionmentGeneral.lean` reuses the pinned Lean 4 compiler and
 proves quotient-plus-remainder identities for **arbitrary finite lists of
@@ -61,7 +63,7 @@ The specific *ranking* used for distributing residual cents remains
 three-asset model-checked, and the production Python refinement remains
 UNKNOWN. Do not infer an all-asset tie-break or broker correctness proof.
 
-## Passive benchmark — exact-arithmetic transition contract
+### Passive benchmark — exact-arithmetic transition contract
 
 `PortfolioPassiveBenchmarkR1.smt2` models **two ordered periods**, two
 portfolio paths with **the same external deposits**, proportional and fixed
@@ -120,7 +122,7 @@ and separate standing: spec/model VERIFIED; implementation refinement UNKNOWN;
 real financial outcome UNKNOWN. Compare only matched external deposits and fee
 timing, never infer trade authorization.
 
-## Passive benchmark — arbitrary finite periods (Lean) and bounded Python refinement evidence
+### Passive benchmark — arbitrary finite periods (Lean) and bounded Python refinement evidence
 
 `PortfolioPassiveBenchmarkGeneral.lean` uses Lean's pinned kernel and **exact
 rational arithmetic** with a list of any finite length, rather than extending
@@ -169,3 +171,103 @@ keep the `Lean arbitrary-period model = VERIFIED` observation separate from
 CLI and bounded differential/negative-case outcomes, preserve matched-cashflow
 semantics and non-live `capitalAuthority=NONE`, and do not turn mathematical
 properties or synthetic samples into prospective return evidence.
+
+---
+
+## Paper Accounting cash, settlement and reserve
+
+**Owner:** `domains/capital/src/ordivon_capital/accounting`. This is a bounded
+mathematical model of existing `paper_close.value_session` settlement and
+mark-to-market arithmetic, **not** a second ledger or a new Finance Owner.
+
+Run its existing-owner admission task from `domains/capital`:
+
+```sh
+mise run formal:paper
+```
+
+`mise run verify` also invokes this task after Capital's normal native
+tests. It uses upstream **Z3 5.3.3** via the exact `z3-solver==5.3.3.0`
+PyPI wheel, run through the owner's existing pinned `uvx` toolchain.
+The verification task calls Z3's upstream `Z3_eval_smtlib2_string` API
+directly on the same SMT-LIB source. No custom solver, application runtime
+dependency, parallel registry or extra release pipeline is introduced.
+
+### Why these equations, rather than hundreds of tiny mutation cases?
+
+Represent a preceding Paper close by settled cash `C₀`, open purchase
+payables `P₀`, open sale receivables `R₀`, marked position value `V₀`,
+protected reserve `Q₀`. All money is **integer minor units**.
+
+In the next session let `P_due` and `R_due` mature, `D` be the
+contribution, `Q_add` added reserve, `B` newly committed buy cost,
+`S` newly accrued sale proceeds, `ΔV` price movement on carried
+holdings, `V_b` today's bought-position mark, and `V_s` sold-position
+mark. Current Accounting defines:
+
+```text
+C₁ = C₀ + D − P_due + R_due
+P₁ = P₀ − P_due + B
+R₁ = R₀ − R_due + S
+Q₁ = Q₀ + Q_add
+V₁ = V₀ + ΔV + V_b − V_s
+
+NAV₁ = C₁ − P₁ + R₁ + V₁
+     = NAV₀ + D + ΔV + (V_b − B) + (S − V_s).
+```
+
+This algebra separates **a cash settlement (not income)** from a trade's
+actual mark-versus-cost difference. Without fees/market-price movement,
+settlement alone cannot change NAV. The exact formula for intraday
+buying-power admission also excludes cash newly received from same-day
+sale settlement:
+
+```text
+C₁ − P₁ − R_due ≥ Q₁.
+```
+
+That is stronger than simply `C₁ − P₁ ≥ Q₁`. Unsettled `R₁` contributes
+to economic NAV but never to unencumbered cash.
+
+### Checked result and limitation matrix
+
+| Layer | Exact claim and evidence | Standing |
+| --- | --- | --- |
+| **Specification** | `paper_cash_settlement_r1.smt2`, signed integer minor units and finite admitted inputs, no timestamp/identifier model | Declared |
+| **Model** | Exact Presburger arithmetic (`QF_LIA`) under nonnegative/open-liability/due/reserve preconditions | Defined |
+| **SMT proof** | 3 negated universal obligations UNSAT: NAV conservation, pure settlement neutrality, accepted reserve fence | MODEL_PROVED (unbounded mathematical integers) |
+| **Falsification** | 2 SAT witnesses: wrong model omits sale receivables; wrong model reuses matured proceeds as intraday buying power | WITNESS_FOUND for wrong models |
+| **Implementation refinement** | `paper_close.value_session` and `postgres_paper_close` source formulas match declared terms; existing real cash/settlement/fill tests exercise observed paths | PARTIAL, not machine-checked Python/model equivalence |
+| **Real consumer** | `tests/test_paper_close.py`, `tests/test_paper_close_risk.py`, and native physical PostgreSQL integration when disposable DSNs supplied | Native evidence only; external-market truth UNKNOWN |
+
+**What the proof does not establish:** signed-64/unsigned-64 host integer
+boundary safety, full Python path semantics, PostgreSQL serializability or
+crash recovery, corporate actions, data-source authenticity, fees/slippage
+calibration, external settlement, suitability, production deployment or
+broker capital authority. Python unbounded integer arithmetic agrees with
+the abstract integer domain for admitted ranges, but the complete source
+type/admission and serialization bridge is still unproved. Keep its
+owner-native execution/consumer tests.
+
+The two **SAT** checks deliberately confirm that important incorrect
+approximations are satisfiable. Neither result can be promoted into
+`MODEL_PROVED`. A verifier returning `unknown`, a changed query count or
+unexpected result **fails the task**; it never silently passes.
+
+### Exact consumers and future retirement boundary
+
+- [Accounting source transition](../src/ordivon_capital/accounting/paper_close.py)
+  remains the only pure Paper state authority.
+- [PostgreSQL Paper implementation](../src/ordivon_capital/accounting/postgres_paper_close.py)
+  retains durable identity and atomic receipt readback.
+- [Risk consumer](../src/ordivon_capital/risk/paper_close_risk.py)
+  composes admitted Markets marks and Accounting receipts.
+- [Finance Human guide](../docs/FINANCE_HUMAN_GUIDE_R1.md)
+  explains why a Paper NAV is not immediately spendable cash.
+- [Finance Agent Skill](../../../.agents/skills/finance-paper-investment/SKILL.md)
+  finds the exact native commands.
+
+To actually remove an example test, first prove that the affected source
+predicate is covered by the model **and** a valid implementation refinement
+link, and independently retain tests for real database/provider effects.
+These model-only proofs do **not** yet meet that deletion threshold.

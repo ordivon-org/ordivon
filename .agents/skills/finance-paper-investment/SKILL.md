@@ -122,6 +122,17 @@ differential/CLI tests are bounded consumer evidence, not a universal proof.
    implementation. The result indicates historical sensitivity, never
    prospective alpha.
 
+## Formal Accounting evidence (load only when checking cash invariants)
+
+Use `domains/capital/formal/paper_cash_settlement_r1.smt2` and the
+owner-native `mise run formal:paper` task for three SMT-Presburger
+invariants plus two deliberately satisfiable incorrect-model witnesses.
+The natural specification and proof-level caveats are in
+`domains/capital/formal/README.md`. Model proof != source refinement,
+PostgreSQL persistence, deployment or capital authority. Do not create
+a second ledger, copy Z3 into a private verifier or delete meaningful
+database tests on model-only evidence.
+
 ## Stateful Paper Accounting admission
 
 1. Check that the user/owner is asking for a **simulated** close and that

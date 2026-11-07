@@ -12,6 +12,27 @@ uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
 uv run --group test python -m pytest -m "not provider_qualification"
+mise run formal:paper
+"""
+
+[tasks."formal:paper"]
+description = "Prove Paper cash/settlement Presburger invariants using pinned upstream Z3 PyPI wheel"
+run = """
+set -euo pipefail
+# Reuse the existing pinned uv tool rather than the older GitHub mise
+# backend, which cannot resolve this upstream Z3 Release tag.
+uvx --python 3.15 --from z3-solver==5.3.3.0 python - <<'PYZ3'
+from pathlib import Path
+
+import z3
+
+raw = Path("formal/paper_cash_settlement_r1.smt2").read_bytes()
+observed = z3.z3core.Z3_eval_smtlib2_string(z3.main_ctx().ref(), raw).splitlines()
+expected = ["unsat", "unsat", "unsat", "sat", "sat"]
+if observed != expected:
+    raise SystemExit(f"Paper formal proof mismatch: {observed!r} != {expected!r}")
+print("paper_cash_settlement_r1: 3 universal QF_LIA checks UNSAT; 2 wrong-model witnesses SAT")
+PYZ3
 """
 
 [tasks."verify:provider"]
