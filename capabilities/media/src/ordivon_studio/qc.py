@@ -200,8 +200,14 @@ def validate_loudness(
     podcast, archive and platform delivery profiles can set different acceptance
     targets while sharing the same measurement semantics.
     """
-    if tolerance_lu < 0:
-        raise ValueError("loudness tolerance must be non-negative")
+    # NaN defeats comparison-based rejection; infinity makes finite
+    # measurements vacuously satisfy the selected delivery profile.
+    if not math.isfinite(tolerance_lu) or tolerance_lu < 0:
+        raise ValueError("loudness tolerance must be finite and non-negative")
+    if target_lufs is not None and not math.isfinite(target_lufs):
+        raise ValueError("loudness target must be finite")
+    if max_true_peak_dbtp is not None and not math.isfinite(max_true_peak_dbtp):
+        raise ValueError("true peak limit must be finite")
     errors: list[str] = []
     integrated = measurement.get("integratedLoudnessLufs")
     true_peak = measurement.get("truePeakDbtp")
