@@ -134,3 +134,9 @@ The independent `OrdivonRuntimePostgreSQL18` service is running, but there is no
 ### Windows live SQLite write correlation
 
 A second `windows_native` Runtime execution (`job-01a1b631-dfc2-7e71-80d7-550c4914eda0`) succeeded and re-read the same Registry file. It now measured **251,170,816 bytes** with mtime **2026-11-07 13:28:04.4129877 UTC**, a growth of **81,920 bytes** since the preceding observation, during new native Runtime Job activity. This materially strengthens the conclusion that the Windows Runtime remains SQLite-backed. The observation is correlated evidence, not an independent SQL transaction trace. Do not retire the Windows file until native PG writer and readback are proved in production.
+
+## Legacy trace retirement and remaining large subtree
+
+An additional exact-path cleanup Job `job-01a1b634-0b11-72d7-942e-cd2e06020f40` deleted four unreferenced legacy trace files after checking both PG process file-descriptor sets, inactive legacy timers, immutable file identities, and absent file openers: `runtime-trace.jsonl` (59,341,977 bytes), `runtime-trace.jsonl.1` (67,108,711), `runtime-trace.jsonl.http.jsonl` (43,598,344), and `runtime-trace.jsonl.http.jsonl.1` (67,108,641). Total additional logical removal: **237,157,673 bytes**. Together with the earlier SQLite file, exact removed file byte lengths total **6,403,243,305**; this is not a measured disk-space delta.
+
+The `/var/lib/ordivon/registry/attempts/` subtree was **not removed**. An 8-second bounded `du` inventory timed out, so the actual recursive size and remaining consumer evidence are incomplete; do not equate the directory-entry size (32,948,224 bytes) with its real storage footprint. The old `admission.lock` and `dogfood-latest.json` were likewise not touched in this pass.
