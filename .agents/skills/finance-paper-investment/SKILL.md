@@ -68,6 +68,38 @@ intertemporal monthly cashflows still require genuine Bellman/MPC evidence.
 Never route research output into live or Paper execution without an
 independently established consumer contract.
 
+
+
+## Provider-segment margin and declared liquidation evidence
+
+Use the existing Capital Risk facade `portfolio_risk`:
+`assess_provider_margin_segments` and `replay_declared_long_liquidation`.
+Do not create another broker, risk database or order executor.
+
+To assess a real reported margin observation, supply a timezone-aware
+snapshot, provider identity and per-segment actual margin equity,
+initial requirement, maintenance requirement and equity basis.
+For an IBKR Securities segment use EWL; for Commodities use NLV.
+Never let positive aggregate excess erase a negative individual segment.
+A margin breach does not establish whether or when the broker executed
+a discretionary forced liquidation.
+
+Only when you have a declared actual share-sale execution, supply the
+long-only original marks, fills, fees, cash, debt, debt repayment and
+explicit pre/post maintenance. Report the algebraic identity:
+
+    deltaEquity = sum(quantitySold * (fillPrice - referenceMark)) - fees.
+
+Preserve unpaid negative equity and residual loans; do not conjure
+profitable liquidation, a guaranteed execution price or the next 1r.
+These functions only certify a caller-supplied conditional mathematical
+state, never the actual broker. Have Markets/Trading authenticate the
+original broker source before any Finance state claim.
+
+Do not import the old experimental `unit_r_dca` defaults (40%, 45%,
+7%, margin cushions) as issuer/broker finance requirements.
+Formal: `mise run //domains/capital:verify:formal:broker-liquidation`.
+Tests: `tests/test_broker_margin_evidence.py`.
 ## Direct PIT research-to-Portfolio consumer
 
 Use the existing Research `pit_joint_forecast` --solve option for frozen,

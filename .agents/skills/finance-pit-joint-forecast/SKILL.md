@@ -127,8 +127,20 @@ only the Python standard library, and rejects fabricated profits. It does
 not certify predictive probabilities, brokerage liquidation behavior or
 the numerical solver's global optimality upper bound.
 
-## PIT adjusted-price revisions: matched evaluation basis
+## As-of outcome revisions and false-alpha falsification
 
-For human reviewers: an adjusted close is not a fixed historical currency print. A split or dividend can retrospectively restate prior values. A prequential realized gross return must divide evaluation-time adjusted prices at both interval endpoints; dividing a new numerator by the old decision-time denominator can create a false loss or gain. An evaluated price ratio is still not a verified brokerage P&L or cash-dividend ledger.
+Agent: Keep forecast and consumer input frozen at decision time. In
+prequential_energy_evaluation or compare_pit_prequential_forecasts,
+validate realized_price_basis =
+EVALUATION_AS_OF_BOTH_ENDPOINTS_ADJUSTED and retain the emitted per-asset
+reference_revision_evidence. Both realized adjusted closes must be
+selected at the later evaluation time. Never divide the later adjusted
+outcome close by a frozen, differently adjusted decision-date reference:
+split/dividend back-adjustments can create fake gains/losses. A source hash
+does not independently certify prices or the corporate-action methodology.
 
-For agents: call prequential_energy_evaluation; preserve outcome_price_basis=MATCHED_EVALUATION_VINTAGE_ADJUSTED_CLOSE, interval_vintage_revisions, outcome_source_digests, frozen_forecast_sha256, and cutoff timestamps in Artifact provenance. Use the decision vintage solely for frozen forecast conditioning, not as the denominator of an outcome measured from the evaluation vintage. Reject unproven adjustment conventions; never silently equate adjusted-close returns with account cashflows. Falsify with a synthetic 2:1 back-adjustment that leaves underlying gross return unchanged.
+Human: Read frozen-reference versus evaluation-reference prices, revision
+factor and source standing before interpreting scores. A revised
+retrospective adjusted-return label is not an executable fill, and a
+lower energy score is not investment profit. For actual broker position
+returns use existing Markets and Accounting corporate-action consumers.

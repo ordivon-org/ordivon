@@ -271,6 +271,48 @@ class EquipmentWorldTests(unittest.TestCase):
         self.assertIn("--grade-saturation", plan.args)
         self.assertTrue(any("active_user" in note for note in plan.notes))
 
+    def test_native_resolve_otio_plan_uses_official_import_and_relink(self) -> None:
+        plan = compile_operation(
+            "davinci-resolve",
+            "deliver.render",
+            {
+                "python": r"C:\\Python311\\python.exe",
+                "script": r"C:\\repo\\media\\resolve-native-produce.py",
+                "otio": r"C:\\edit\\assembly.otio",
+                "source_clips_dir": r"C:\\assets",
+                "output_dir": r"C:\\output",
+                "name": "timeline-cut",
+                "min_timeline_frames": 72,
+                "grade_saturation": 1.05,
+            },
+        )
+        self.assertEqual(plan.transport, "windows-native-active-user-process")
+        self.assertEqual(plan.args.count("--otio"), 1)
+        self.assertNotIn("--visual", plan.args)
+        self.assertEqual(plan.args[plan.args.index("--otio") + 1], r"C:\\edit\\assembly.otio")
+        self.assertEqual(plan.args[plan.args.index("--source-clips-dir") + 1], r"C:\\assets")
+        self.assertEqual(plan.args[plan.args.index("--min-timeline-frames") + 1], "72")
+
+    def test_native_resolve_plan_rejects_mixed_editorial_sources(self) -> None:
+        fields = {
+            "python": r"C:\\Python311\\python.exe",
+            "script": r"C:\\repo\\media\\resolve-native-produce.py",
+            "output_dir": r"C:\\output",
+            "name": "cut",
+        }
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            compile_operation(
+                "davinci-resolve", "deliver.render",
+                {**fields, "visuals": ["a.mp4"], "otio": "cut.otio"},
+            )
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            compile_operation("davinci-resolve", "deliver.render", fields)
+        with self.assertRaisesRegex(ValueError, "positive integer"):
+            compile_operation(
+                "davinci-resolve", "deliver.render",
+                {**fields, "otio": "cut.otio", "min_timeline_frames": 0},
+            )
+
     def test_external_equipment_plans_preserve_authority_boundaries(self) -> None:
         obs = compile_operation("obs-studio", "live.scene.switch", {})
         self.assertEqual(obs.transport, "provider-descriptor-only")
