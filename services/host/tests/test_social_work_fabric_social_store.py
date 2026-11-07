@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).parents[1]
 STORE = ROOT / "src" / "ordivon_host_v2" / "social_store.py"
 MSG_STORE = STORE.with_name("social_message_commands.py")
@@ -171,3 +173,16 @@ def test_two_writer_committed_prefix_interleaving_exhaustive() -> None:
     assert old_schedules > 0
     assert old_skipped > 0  # Clock serialization alone does not prove safety.
     assert locked_schedules > 0
+
+def test_work_cas_rejects_unincrementable_pg_revision_before_database_access() -> None:
+    """Formal proof assumes valid inputs; real WorkStore enforces that boundary."""
+    from ordivon_host_v2.work_store import WorkStore
+
+    with pytest.raises(ValueError, match="PostgreSQL BIGINT predecessor"):
+        WorkStore("postgresql://not-opened").commit_snapshot(
+            "work:boundary",
+            expected_revision=(1 << 63) - 1,
+            snapshot=None,
+            actor_ref="actor:boundary",
+            client_request_id="boundary-only",
+        )

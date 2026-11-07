@@ -12,7 +12,7 @@ Host v1 is a behavioral/source oracle only. Host v2 does not import `ordivon_hos
 - RFC 8785 owns canonical JSON bytes used for semantic digests.
 - the official MCP Python SDK v2 owns MCP protocol/transport behavior.
 - Alembic exclusively owns schema creation and migration; the running Host only verifies schema readiness.
-- pytest/Hypothesis remain the executable verification layer.
+- CrossHair checks pure Host source contracts symbolically; pytest/Hypothesis retain the database and real-consumer verification boundaries.
 
 ## Tests with mature upstream tools
 
@@ -24,6 +24,27 @@ Both tasks invoke installed pytest directly, not a new harness. Use
 `mise run verify` for the full Host Owner test gate; it can legitimately
 report database cases as SKIP without a database DSN, so focused/unit PASS
 never claims PostgreSQL integration qualification.
+
+## Host formal verification: Human and Agent entrypoints
+
+**Human:** From services/host, run mise run formal:reply-source to check both
+strict causal reply ordering and PostgreSQL-bounded Work revision increments
+through the locked CrossHair symbolic executor. Run mise run verify for the
+complete native Owner gate; a skipped PostgreSQL test is not a passing
+database integration test. The selected invariant is revision r >= 1,
+with r + 1 <= 2^63 - 1. A request at the signed BIGINT maximum is
+invalid before PostgreSQL access because the next revision would overflow.
+
+**Agent:** The proof subjects are the actual called functions
+social_message_commands._reply_target_precedes_source and
+work_store._next_work_revision, not separate model copies. Preserve their
+PEP 316 pre/postconditions, re-run the same native CrossHair entrypoint
+after changing these source files, and then qualify the Work CAS transaction
+and reply-edge SQL using existing Host PostgreSQL consumer tests.
+Formally confirmed pure arithmetic never certifies psycopg connection,
+commit, concurrency, installed release, or MCP effects. PostgreSQL
+numeric bounds are shared in postgres_bounds.py; do not recreate
+per-module constants.
 
 ## Current product surface
 

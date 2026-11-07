@@ -27,19 +27,19 @@ bash tools/host_queue_verify.sh
 
 
 [tasks."formal:reply-source"]
-description = "Exact Host reply decision: pinned mature CrossHair symbolic source verification"
+description = "Source-bound CrossHair proof: Host reply ordering and bounded Work CAS revisions"
 run = """
 set -euo pipefail
 uv lock --check
-if report="$(uv run --locked --group formal python -m crosshair check --analysis_kind PEP316 --per_condition_timeout 25 --report_all ordivon_host_v2.social_message_commands._reply_target_precedes_source 2>&1)"; then
+if report="$(uv run --locked --group formal python -m crosshair check --analysis_kind PEP316 --per_condition_timeout 25 --report_all ordivon_host_v2.social_message_commands._reply_target_precedes_source ordivon_host_v2.work_store._next_work_revision 2>&1)"; then
   printf '%s\\n' "$report"
 else
   printf '%s\\n' "$report" >&2
   exit 1
 fi
 confirmed="$(printf '%s\\n' "$report" | grep -c 'info: Confirmed over all paths' || true)"
-if [ "$confirmed" -ne 2 ]; then
-  printf 'Causal reply source refinement not confirmed: %s/2 obligations\\n' "$confirmed" >&2
+if [ "$confirmed" -ne 5 ]; then
+  printf 'Host causal reply and bounded Work revision not confirmed: %s/5 obligations\\n' "$confirmed" >&2
   exit 1
 fi
 """

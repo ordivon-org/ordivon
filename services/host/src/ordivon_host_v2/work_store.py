@@ -9,6 +9,7 @@ from psycopg.types.json import Jsonb
 from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ActorRefNotFound, ConflictError, WorkNotFound
+from .postgres_bounds import POSTGRES_BIGINT_MAX
 from .work_inputs import (
     ActorRefInput,
     WorkCreateInput,
@@ -18,6 +19,17 @@ from .work_inputs import (
     WorkState,
 )
 from .work_queries import WorkReadQueries
+
+
+def _next_work_revision(expected_revision: int) -> int:
+    """Advance a Host Work CAS revision without exceeding PostgreSQL BIGINT.
+
+    pre: 1 <= expected_revision < 2**63 - 1
+    post: __return__ == expected_revision + 1
+    post: 2 <= __return__ <= 2**63 - 1
+    post: __return__ > expected_revision
+    """
+    return expected_revision + 1
 
 
 class WorkStore(WorkReadQueries):
@@ -139,8 +151,11 @@ class WorkStore(WorkReadQueries):
     ) -> dict[str, Any]:
         # Revision is a typed CAS identity, not Python numeric equality:
         # bool is an int subclass, and 1.0 compares equal to 1.
-        if type(expected_revision) is not int or expected_revision < 1:
-            raise ValueError("expected_revision must be a positive integer")
+        if (
+            type(expected_revision) is not int
+            or not 1 <= expected_revision < POSTGRES_BIGINT_MAX
+        ):
+            raise ValueError("expected_revision must be a positive PostgreSQL BIGINT predecessor")
         payload = snapshot.canonical_payload()
         snapshot_digest = canonical_digest(payload)
         request = {
@@ -166,7 +181,7 @@ class WorkStore(WorkReadQueries):
             if current is None:
                 raise WorkNotFound(work_ref)
             current_revision = int(current["current_revision"])
-            next_revision = expected_revision + 1
+            next_revision = _next_work_revision(expected_revision)
             if current_revision == next_revision:
                 prior = conn.execute(
                     "SELECT snapshot_digest,writer_actor_ref FROM work_snapshots "
