@@ -50,6 +50,37 @@ def args():
         cash_gross_by_stage=(1.005,1.006), debt_gross_by_stage=(1.008,1.009))
 
 
+def monthly_json_payload():
+    x = args()
+    payload = {
+        "as_of": x["as_of"].isoformat(),
+        "assets": list(x["assets"]),
+        "trading_sessions": [d.isoformat() for d in x["trading_sessions"]],
+        "prices": [
+            {
+                "asset": r.asset,
+                "session": r.session.isoformat(),
+                "published_at": r.published_at.isoformat(),
+                "adjusted_close": r.adjusted_close,
+                "raw_source_sha256": r.raw_source_sha256,
+                "source_standing": r.source_standing,
+            }
+            for r in x["records"]
+        ],
+        "horizon_months": 2,
+        "economic_contract": {
+            k: [list(z) for z in v]
+            if k.endswith("by_stage") and k not in (
+                "cash_gross_by_stage", "debt_gross_by_stage",
+            )
+            else list(v)
+            for k, v in x.items() if k.endswith("by_stage")
+        },
+    }
+    payload["economic_contract"]["gamma"] = 2
+    return payload
+
+
 class MonthlyTree(unittest.TestCase):
     def test_month_end_calendar_never_finalizes_partial_month(self):
         sessions, _ = snapshot()
@@ -111,20 +142,7 @@ class MonthlyTree(unittest.TestCase):
         self.assertLess(result['forecast_evidence']['path_count'],5)
 
     def test_cli_evidence_json_contract_exact_and_not_execution(self):
-        x=args(); payload={
-            'as_of':x['as_of'].isoformat(), 'assets':list(x['assets']),
-            'trading_sessions':[d.isoformat() for d in x['trading_sessions']],
-            'prices':[{'asset':r.asset,'session':r.session.isoformat(),
-                       'published_at':r.published_at.isoformat(),
-                       'adjusted_close':r.adjusted_close,
-                       'raw_source_sha256':r.raw_source_sha256,
-                       'source_standing':r.source_standing} for r in x['records']],
-            'horizon_months':2,
-            'economic_contract':{k:[list(z) for z in v] if k.endswith('by_stage') and
-                                 k not in ('cash_gross_by_stage','debt_gross_by_stage') else list(v)
-                                 for k,v in x.items() if k.endswith('by_stage')},
-        }
-        payload['economic_contract']['gamma']=2
+        payload = monthly_json_payload()
         a=from_multiperiod_json_payload(payload)
         self.assertEqual(set(a['optimizer_input']),{'gamma','nodes'})
         self.assertEqual(a['effects'],'NONE_NO_TRADE_NO_ACCOUNTING')
@@ -141,6 +159,64 @@ class MonthlyTree(unittest.TestCase):
                                      'PYTHONPATH':str(Path(__file__).resolve().parents[1]/'src')})
             self.assertEqual(proc.returncode,0,proc.stderr)
             self.assertEqual(json.loads(proc.stdout),a)
+
+    def test_cli_monthly_solves_native_portfolio_with_explicit_terminal_claims(self):
+        # Historical structural valuation is not a forward-calibrated forecast.
+        import tempfile
+
+        payload = monthly_json_payload()
+        raw = from_multiperiod_json_payload(payload)
+        terminal_ids = {
+            n["id"] for n in raw["optimizer_input"]["nodes"] if n["terminal"]
+        }
+        self.assertTrue(terminal_ids)
+        payload["terminal_liabilities_r"] = {leaf: .25 for leaf in terminal_ids}
+        with tempfile.TemporaryDirectory() as directory:
+            src = Path(directory) / "monthly.json"
+            src.write_text(json.dumps(payload))
+            command = [
+                sys.executable, "-m", "ordivon_capital.research.pit_joint_forecast",
+                "--mode", "monthly-tree", "--solve", "--input", str(src),
+            ]
+            env = {
+                **__import__("os").environ,
+                "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src"),
+            }
+            proc = subprocess.run(
+                command, capture_output=True, text=True, env=env,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            data = json.loads(proc.stdout)
+            self.assertEqual(
+                data["allocation_standing"],
+                "STRUCTURAL_HISTORICAL_PATH_POLICY_NUMERIC_NOT_PREDICTIVE",
+            )
+            self.assertEqual(data["effects"], "NONE_NO_TRADE_NO_ACCOUNTING")
+            self.assertEqual(
+                set(data["optimizer_input"]["terminal_liabilities_r"]), terminal_ids,
+            )
+            solution = data["conditional_allocation"]
+            self.assertEqual(solution["contributions_r_per_path"], 2)
+            self.assertEqual(set(solution["terminal_distribution"]), terminal_ids)
+            self.assertAlmostEqual(
+                solution["expected_terminal_r"]
+                - solution["expected_disposable_terminal_r"],
+                .25, places=6,
+            )
+            self.assertGreaterEqual(
+                solution["concavity_global_utility_gap_upper"], 0,
+            )
+            # Missing terminal obligations are not silently filled with zero.
+            missing = dict(payload)
+            missing["terminal_liabilities_r"] = {
+                next(iter(sorted(terminal_ids))): .25
+            }
+            src.write_text(json.dumps(missing))
+            rejected = subprocess.run(
+                command, capture_output=True, text=True, env=env,
+            )
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn("terminal", rejected.stderr.lower())
 
     def test_monthly_pit_tree_consumed_by_existing_terminal_liability_solver(self):
         # This is a synthetic contract-consumption witness, not a predictive backtest.

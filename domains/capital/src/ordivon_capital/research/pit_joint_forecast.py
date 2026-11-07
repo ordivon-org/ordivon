@@ -631,13 +631,13 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 
 
-def solve_pit_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Research-to-Portfolio native consumer, no second optimization engine.
+def _solve_generated_research_tree(
+    result: Mapping[str, Any], *, allocation_standing: str
+) -> dict[str, Any]:
+    """Consume the existing Portfolio solver with one shared typed tree adapter.
 
-    The only market probabilities are the caller's past-visible empirical or
-    lagged-neighbor hypotheses. The caller must also supply actual economic
-    preferences and provider financing/margin terms. This function neither
-    authenticates those inputs nor creates any order/Paper event.
+    Forecast provenance and optimizer inputs remain separately inspectable;
+    this helper never modifies a brokerage account or an Accounting ledger.
     """
     import dataclasses
 
@@ -647,7 +647,6 @@ def solve_pit_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         solve_multistage,
     )
 
-    result = from_json_payload(payload)
     contract = result["optimizer_input"]
     vectors = {"risky_gross", "maintenance", "initial_margin", "turnover_cost"}
     nodes = tuple(
@@ -660,13 +659,31 @@ def solve_pit_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         for raw in contract["nodes"]
     )
     solution = solve_multistage(
-        MultistageProblem(gamma=contract["gamma"], nodes=nodes)
+        MultistageProblem(
+            gamma=contract["gamma"],
+            nodes=nodes,
+            terminal_liabilities_r=contract.get("terminal_liabilities_r"),
+        )
     )
     return {
         **result,
         "conditional_allocation": dataclasses.asdict(solution),
-        "allocation_standing": "CONDITIONAL_UNCALIBRATED_ONE_STEP_RESEARCH",
+        "allocation_standing": allocation_standing,
     }
+
+
+def solve_pit_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Research-to-Portfolio native consumer, retaining the one-step API.
+
+    Caller-supplied past-visible returns, utility, margin and financing terms
+    are uncalibrated economic inputs, not verified market truth or trade consent.
+    """
+    return _solve_generated_research_tree(
+        from_json_payload(payload),
+        allocation_standing="CONDITIONAL_UNCALIBRATED_ONE_STEP_RESEARCH",
+    )
+
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(
@@ -676,7 +693,7 @@ def main() -> int:
     parser.add_argument("--mode", choices=("one-step", "monthly-tree"), default="one-step")
     parser.add_argument(
         "--solve", action="store_true",
-        help="run the existing read-only CRRA Portfolio consumer without trading",
+        help="solve the supplied conditional finite research tree with the native Portfolio optimizer",
     )
     args = parser.parse_args()
     try:
@@ -684,9 +701,17 @@ def main() -> int:
         if args.mode == "monthly-tree":
             from ordivon_capital.research.pit_monthly_paths import from_multiperiod_json_payload
 
-            if args.solve:
-                parser.error("--solve in monthly-tree mode is not yet a calibrated forward model")
-            outcome = from_multiperiod_json_payload(payload)
+            result = from_multiperiod_json_payload(payload)
+            outcome = (
+                _solve_generated_research_tree(
+                    result,
+                    allocation_standing=(
+                        "STRUCTURAL_HISTORICAL_PATH_POLICY_NUMERIC_NOT_PREDICTIVE"
+                    ),
+                )
+                if args.solve
+                else result
+            )
         elif args.solve:
             outcome = solve_pit_payload(payload)
         else:

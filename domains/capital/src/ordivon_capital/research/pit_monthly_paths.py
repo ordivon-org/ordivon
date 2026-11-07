@@ -192,7 +192,7 @@ def historical_multiperiod_tree(
 def from_multiperiod_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Strict JSON adapter: never create a caller-owned broker/utility value."""
     expected = {"as_of", "assets", "trading_sessions", "prices", "economic_contract", "horizon_months"}
-    if set(payload) != expected:
+    if set(payload) not in (expected, expected | {"terminal_liabilities_r"}):
         raise PointInTimeError("expected exact monthly market/economic fields")
     rows = [PriceVintage(
         asset=x["asset"], session=date.fromisoformat(x["session"]),
@@ -213,5 +213,12 @@ def from_multiperiod_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         horizon_months=payload["horizon_months"], **economic,
     )
     canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    if "terminal_liabilities_r" in payload:
+        claims = payload["terminal_liabilities_r"]
+        if not isinstance(claims, dict):
+            raise PointInTimeError("terminal_liabilities_r must be a complete leaf mapping")
+        # The native Portfolio model verifies exactly one nonnegative finite
+        # obligation for each terminal information state; never fill missing claims.
+        result["optimizer_input"]["terminal_liabilities_r"] = claims
     result["input_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     return result

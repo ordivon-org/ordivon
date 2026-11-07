@@ -103,3 +103,17 @@ solver and effect standing. Use the existing `finance-experiment-review`
 Skill for forward-validation methodology.
 
 Run: `python -m pytest tests/test_pit_joint_forecast.py tests/test_pit_monthly_tree.py tests/test_terminal_liabilities.py` from `domains/capital`.
+
+
+### Single native optimization consumer for both time horizons
+
+`--mode one-step --solve` retains the previously published one-month
+conditional consumer. `--mode monthly-tree --solve` now passes the full
+historical multi-period information tree through that **same typed adapter**
+and the existing Portfolio solver (SciPy SLSQP with independent LP upper
+bound). An optional, caller-supplied `terminal_liabilities_r` mapping has
+exactly one entry per terminal leaf. Missing obligations are not inferred.
+The output labels monthly historical allocations
+`STRUCTURAL_HISTORICAL_PATH_POLICY_NUMERIC_NOT_PREDICTIVE`.
+The numeric optimization is a synthetic/conditional policy valuation, never
+prospective alpha, broker authorization or a booked Paper result.
