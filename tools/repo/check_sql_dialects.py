@@ -23,6 +23,7 @@ SQLITE_STORAGE = "services/runtime/crates/ordivon-runtime-core/src/runtime/"
 OSQUERY_PREFIX = "platform/workstation/inventory/queries/"
 POSTGRESQL_FILE = "studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql"
 POSTGRESQL_RUNTIME_EPOCH = "services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
+POSTGRESQL_ELE_STUDY_SCHEMA = "catalogs/capabilities/ele/schema.sql"
 
 # Exact full-host inventories can traverse thousands of installed Python/npm
 # packages on an ephemeral CI runner. Keep them executable and bounded, not
@@ -268,7 +269,7 @@ def classify(path: str) -> str | None:
         return "sqlite"
     if path.startswith(SQLITE_STORAGE) and path.endswith("_storage.sql"):
         return "sqlite"
-    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH}:
+    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_ELE_STUDY_SCHEMA}:
         return "postgresql"
     return None
 
@@ -504,6 +505,16 @@ def check(root: Path) -> tuple[list[str], list[str]]:
                     issues.append(
                         f"PostgreSQL fresh-epoch DDL statement structure changed: {name}"
                     )
+            elif name == POSTGRESQL_ELE_STUDY_SCHEMA:
+                # This PG-only Catalog read model is a schema, three source/section/head
+                # tables, a native FTS index and a read view. No DROP, GRANT, or
+                # cross-Owner schema mutation belongs in this source.
+                observed = tuple(type(statement.stmt).__name__ for statement in parsed)
+                if observed != (
+                    "CreateSchemaStmt", "CreateStmt", "CreateStmt", "CreateStmt",
+                    "IndexStmt", "ViewStmt",
+                ):
+                    issues.append(f"ELE PostgreSQL schema structure changed: {name}")
             elif len(parsed) != 1:
                 issues.append(f"PostgreSQL statement count changed unexpectedly: {name}")
         facts.append(f"PostgreSQL {current}: {len(grouped['postgresql'])} SQL source AST parsed with pglast")

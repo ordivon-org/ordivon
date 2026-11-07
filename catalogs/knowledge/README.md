@@ -16,6 +16,12 @@ Expected records include:
 Open upstream sources may be pinned or mirrored where redistribution permits. Restricted standards should be represented by metadata, version, official source references and permitted derived mappings rather than copied content.
 
 
+Project and method analyses with existing consumer value are indexed as
+source-bound sections in the Catalog-owned
+[ELE PostgreSQL study projection](../capabilities/ele/README.md).
+This searchable read model does not take over Knowledge's edited Git sources
+or the natural domain Owner's hypothesis and acceptance decisions.
+
 ## External-world learning: Human entry
 
 Use the [external-world evidence review Skill](../../.agents/skills/external-world-evidence-review/SKILL.md)
