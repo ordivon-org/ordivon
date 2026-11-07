@@ -9,6 +9,48 @@ Gateway owns only:
 - request/response compatibility;
 - correlation/reference normalization.
 
+**Formal Gateway authorization boundary (B02, source-model proof):** the
+protected `artifact.read` path is modeled by
+[`formal/GatewayCapabilityAuthzR1.tla`](formal/GatewayCapabilityAuthzR1.tla).
+It enumerates target validity, verified ingress identity, exact PDP binding,
+qualification, delegated v2 evidence and interactive AuthZEN v3 evidence.
+Safe forwarding requires all matching evidence; a decision mismatch,
+STEP_UP/DENY, unsupported version, or incomplete evidence cannot forward.
+The model is a **finite Owner-local transition abstraction**, not proof of
+Gateway Python implementation refinement, PDP correctness, live authentication,
+artifact bytes or installed behavior. No global registry or second PEP exists.
+
+- **Human:** from repository root, run `mise run gateway:formal:verify`
+  with a digest-verified TLA+ JAR; use the preinstalled shared Runtime JAR via
+  `ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar` when
+  the Workspace has no local cache. Inspect the four TLC invariants and the
+  two expected counterexamples. For physical behavior run `mise run gateway:verify`.
+- **Agent:** first pin the Git SourceCut, reuse
+  `src/ordivon_gateway/capability_authz.py` and
+  `tests/test_capability_authz_middleware.py` as the concrete
+  producer/consumer contract, then invoke `gateway:formal:verify`.
+  The safe model must complete exhaustive finite-state exploration; the
+  reachability and deliberately unsafe model must each yield the **named**
+  counterexample. Classify `MODEL_VERIFIED`, `SOURCE_CONSUMER_TESTED`,
+  `IMPLEMENTATION_REFINEMENT_UNKNOWN`, and `INSTALLED_UNKNOWN`
+  separately. Do not retire concrete auth tests until a real Python-to-model
+  refinement proof exists.
+
+LEGO R2.1 thought-contract B02:
+`I` = Gateway-derived target, verified ingress identity and Security decision;
+`O` = forward or reject;
+`S` = abstract PEP phase and bounded decision evidence;
+`pre` = target derives from protected Gateway routing, not caller identity;
+`post` = forwarding implies exact qualified binding and v2 delegated effects
+or v3 nondelegating AuthZEN evidence;
+`inv` = the four TLC safety properties;
+`eff` = none in the model (forwarded represents a call, not a real effect);
+`c` = finite-state model checking, no quantified runtime bound;
+`epsilon` = abstraction gap to Python, PDP, external effects and installed code;
+`prov` = TLC v1.7.4 plus current Git and native Gateway consumer tests;
+`unfold` = specification → TLC exploration/counterexamples → Python
+implementation readset → live Gateway consumer qualification.
+
 **Capability-routing LEGO (B01):** `routes=None` selects the default catalog,
 whereas an explicitly supplied empty route map is an intentional no-capability
 configuration. Every route entry must be a `CapabilityRoute` whose

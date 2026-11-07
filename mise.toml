@@ -311,6 +311,37 @@ uv run python -m pytest -q
 """
 
 
+# Optional owner-scoped TLC model checking. Reuse Runtime's pinned upstream
+# tla2tools JAR as a tool input; Gateway retains authority over its model.
+[tasks."gateway:formal:verify"]
+run = """
+set -euo pipefail
+jar="${ORDIVON_TLA_TOOLS_JAR:-$PWD/services/runtime/target/formal-tools/tla2tools-v1.7.4.jar}"
+if [[ "$jar" != /* || ! -f "$jar" || -L "$jar" ]]; then
+  echo "Gateway TLC needs a pinned absolute, regular TLA+ JAR" >&2
+  exit 2
+fi
+expected=$(python3 -c 'import json;print(json.load(open("services/runtime/formal/toolchain.lock.json"))["sha256"])')
+observed=$(sha256sum -- "$jar" | cut -d' ' -f1)
+test "$observed" = "$expected" || { echo "Unqualified TLA+ JAR digest" >&2; exit 2; }
+cd services/gateway/formal
+java -cp "$jar" tla2sany.SANY GatewayCapabilityAuthzR1.tla
+positive=$(java -cp "$jar" tlc2.TLC -workers 1   -config GatewayCapabilityAuthzR1.cfg GatewayCapabilityAuthzR1.tla)
+printf '%s\n' "$positive" | grep -F 'Model checking completed. No error has been found.'
+printf '%s\n' "$positive" | grep -E '^[0-9]+ states generated, [0-9]+ distinct states found, 0 states left on queue'
+for check in 'GatewayCapabilityAuthzR1.reachability.cfg:ForwardUnreachable'              'GatewayCapabilityAuthzR1.unsafe.cfg:ForwardImpliesBinding'; do
+  config="${check%%:*}"
+  invariant="${check#*:}"
+  set +e
+  output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayCapabilityAuthzR1.tla 2>&1)
+  result=$?
+  set -e
+  [[ $result -eq 12 ]] || { printf '%s\n' "$output" | tail -30; exit 1; }
+  printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
+  printf '%s\n' "$output" | grep -Eq '^State [1-9][0-9]*:'
+done
+"""
+
 [tasks."chaoxing:verify"]
 run = """
 set -euo pipefail
