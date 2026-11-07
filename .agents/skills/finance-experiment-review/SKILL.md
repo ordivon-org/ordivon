@@ -127,3 +127,21 @@ remain authoritative in `config/external_owner_census.json` and
 publisher authenticity, exhaustive search-family accounting, actual provider
 execution and independent real-money suitability are **UNKNOWN** until an
 observed consumer supplies qualifying evidence.
+
+## Monthly 1r historical-leverage Research: fee-aware rebalance contract
+
+Use `research/unit_r_dca.py` and `docs/UNIT_R_DCA_LONG_HISTORY_R1.md`,
+not a new brokerage, pricing engine, or research scheduler. The pure
+`solve_turnover_adjusted_exposure` is the sole Research local rebalance
+solver and evaluates `gross=target*(equity-fee*abs(gross-prior_gross))`.
+It rejects previous-position liquidation costs that would exhaust equity.
+The replay continues to own intraday margin checking, 1r monthly flow,
+strictly earlier data for risk signals, and descriptive XIRR/drawdown.
+
+Run existing owner verification: `mise run //domains/capital:verify`. Its
+formal prerequisites include `verify:formal:unit-r-margin` (two UNSAT, one
+SAT) and `verify:formal:unit-r-rebalance` (seven UNSAT, two SAT) using the
+repo's pinned Z3, no custom solver. These prove **exact-real static algebra**
+only; Python float behavior is supported separately by native consumer tests,
+not by an unbounded implementation-refinement proof. Source publisher rights,
+future margin gaps, broker liquidation and real alpha remain UNKNOWN.

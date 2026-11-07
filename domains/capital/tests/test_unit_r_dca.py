@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import date, timedelta
+from fractions import Fraction
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,7 @@ from ordivon_capital.research.unit_r_dca import (
     load_adjusted_bars,
     observed_max_drawdown,
     replay_unit_r,
+    solve_turnover_adjusted_exposure,
     stress_estimate,
 )
 
@@ -126,3 +128,67 @@ def test_crisis_memory_retains_old_tail_loss_without_future_data() -> None:
     assert memory["averageExposure"] < rolling["averageExposure"]
     assert memory["largestPriorKnownStressPct"] >= 90.0
     assert memory["maximumExposure"] < 0.50
+
+
+def test_rebalance_solver_matches_exact_fraction_equity_oracle() -> None:
+    """Real float calculator and exact rational fixed-point independent oracle.
+
+    Exercise both branches, an all-cash exit, and neutral zero-turnover case.
+    A fee is an investment cost, never a negative contribution.
+    """
+    cases = [
+        (Fraction(3, 2), Fraction(100), Fraction(25), Fraction(1, 1000)),
+        (Fraction(6, 5), Fraction(100), Fraction(175), Fraction(1, 1000)),
+        (Fraction(0), Fraction(100), Fraction(175), Fraction(1, 1000)),
+        (Fraction(1), Fraction(100), Fraction(100), Fraction(0)),
+        (Fraction(1, 4), Fraction(1000), Fraction(100), Fraction(1, 200)),
+    ]
+    for target, equity, previous, cost in cases:
+        if target * equity >= previous:
+            exact = target * (equity + cost * previous) / (1 + target * cost)
+        else:
+            exact = target * (equity - cost * previous) / (1 - target * cost)
+        exact_fee = cost * abs(exact - previous)
+        exact_equity = equity - exact_fee
+        assert exact == target * exact_equity
+        gross, fee, post = solve_turnover_adjusted_exposure(
+            target=float(target), equity_before_trade=float(equity),
+            previous_gross=float(previous), turnover_cost=float(cost),
+        )
+        assert gross == pytest.approx(float(exact), rel=1e-12)
+        assert fee == pytest.approx(float(exact_fee), rel=1e-12)
+        assert post == pytest.approx(float(exact_equity), rel=1e-12)
+        assert gross >= 0 and post > 0
+        assert gross == pytest.approx(float(target) * post, rel=1e-12)
+        cash = max(0, post - gross)
+        debt = max(0, gross - post)
+        assert gross + cash - debt == pytest.approx(post, rel=1e-12)
+
+
+def test_real_long_horizon_replay_consumes_fee_solver_without_free_returns() -> None:
+    """The actual Research consumer, not only the isolated fixed-point math."""
+    rows = series([1.0] * 895)
+    common = dict(borrow_annual=0, maintenance=.4)
+    no_fee = replay_unit_r(
+        rows, start=rows[756].session, policy="margin_cap",
+        assumptions=Assumptions(turnover_cost=0, **common),
+    )
+    with_fee = replay_unit_r(
+        rows, start=rows[756].session, policy="margin_cap",
+        assumptions=Assumptions(turnover_cost=.001, **common),
+    )
+    assert no_fee["status"] == with_fee["status"] == "COMPLETED"
+    assert no_fee["totalTradingFeesR"] == 0
+    assert no_fee["netGainR"] == pytest.approx(0)
+    assert with_fee["totalTradingFeesR"] > 0
+    assert with_fee["terminalR"] < no_fee["terminalR"]
+    assert with_fee["netGainR"] < 0
+    assert with_fee["paidInR"] == no_fee["paidInR"]
+
+
+def test_rebalance_rejects_fee_exhaustion_instead_of_negative_exposure() -> None:
+    with pytest.raises(UnitRModelError, match="liquidation fee exhausts"):
+        solve_turnover_adjusted_exposure(
+            target=.4, equity_before_trade=.20,
+            previous_gross=100, turnover_cost=.01,
+        )
