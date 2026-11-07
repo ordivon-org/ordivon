@@ -16,6 +16,8 @@ For a directory-by-directory explanation of what to keep, change or retire, see 
 
 ## Explore an existing work (no installation required)
 
+The no-argument `python3 scripts/studio-agent-surface.py` command displays the current nine Agent tool schemas without loading equipment/render/Production implementations. **Discovery is not execution**: select an exact Production or processing source before asking an Agent to run an action.
+
 From the repository:
 
 ```bash

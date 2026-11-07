@@ -1296,6 +1296,7 @@
       "evidence": [
         "src/ordivon_studio/agent_processing.py",
         "src/ordivon_studio/agent_surface.py",
+        "src/ordivon_studio/agent_surface_contracts.py",
         "processing/bin/probe-av.sh",
         "processing/bin/probe-audio.sh",
         "processing/bin/probe-otio.sh",
@@ -1410,6 +1411,7 @@
           "sourcePaths": [
             "src/ordivon_studio/agent_processing.py",
             "src/ordivon_studio/agent_surface.py",
+            "src/ordivon_studio/agent_surface_contracts.py",
             "tests/test_agent_processing.py",
             "processing/profiles/av-sdr-web-1080p30-noaudio.json",
             "processing/bin/probe-av.sh"
@@ -1423,6 +1425,7 @@
           "sourcePaths": [
             "src/ordivon_studio/agent_processing.py",
             "src/ordivon_studio/agent_surface.py",
+            "src/ordivon_studio/agent_surface_contracts.py",
             "tests/test_agent_processing.py"
           ],
           "nativeAdapterPaths": [
@@ -1635,6 +1638,7 @@
       "evidence": [
         "src/ordivon_studio/agent_processing.py",
         "src/ordivon_studio/agent_surface.py",
+        "src/ordivon_studio/agent_surface_contracts.py",
         "tests/test_agent_processing.py",
         "processing/tests/smoke.sh",
         "processing/tests/audio-smoke.sh",
