@@ -233,3 +233,62 @@ Research 宸叉湁 `prequential_energy_evaluation`銆佸鍙橀噺 Energy Scor
 鐞嗚锛欸neiting鈥揜aftery, Strictly Proper Scoring Rules (2007);
 Diebold鈥揗ariano, Comparing Predictive Accuracy (1995);
 Hansen, Superior Predictive Ability (2005).
+
+
+## Broker segment margin and declared liquidation evidence (Risk owner)
+
+The financial truth boundary is the broker's timestamped *account segment*
+report plus actual recorded cash, shares, debt and sale fills.
+For each broker segment s:
+
+    ExcessLiquidity_s = ProviderRecognizedEquity_s - MaintenanceRequirement_s
+
+For IBKR, securities use equity with loan value (EWL); commodities
+use net liquidation value (NLV). Do not sum independent segment cushions
+to declare a breached segment safe. A negative difference denotes a
+maintenance breach; it is not proof that the broker has already sold.
+
+The canonical Capital/Risk facade exposes two read-only operations:
+* `assess_provider_margin_segments`: provider, timestamp and exact per-segment
+  observed equity, initial margin and maintenance requirement, allowing
+  negative broker equity and no hardcoded house margin or loss limit.
+* `replay_declared_long_liquidation`: retrospective same-currency
+  long-only share/cash/debt conservation. It consumes explicit share
+  quantities, a fixed reference mark, actual fill price/quantity, fee,
+  debt repayment, and the actual pre/post broker maintenance requirements.
+  It does not decide which assets the broker must sell or when.
+
+For initial quantity q_i, mark p_i, sold share amount s_i, fill price f_i,
+cash c, loan b, fee F and debt paydown d, the account transitions obey
+
+    E_before = sum_i(q_i * p_i) + c - b
+    c_after  = c + sum_i(s_i * f_i) - F - d
+    b_after  = b - d
+    E_after  = sum_i((q_i - s_i) * p_i) + c_after - b_after
+
+and exact conservation:
+
+    E_after - E_before = sum_i[s_i * (f_i - p_i)] - F.
+
+Debt repayment does not create equity. Bad fills and fees reduce equity.
+Liquidating every share need not eliminate an unpaid loan. Broker post-fill
+maintenance must be supplied; do not silently estimate house-margin changes.
+
+Provider-observed margin equity is NOT generally the same as the simplified
+marked account equity used in the share-sale calculation. The two are
+separate independent evidence layers. If real provider values or fills
+are unavailable, return UNKNOWN rather than treating the research
+simulation as a live margin account or backdating future 1r deposits.
+
+Formal proof: `mise run //domains/capital:verify:formal:broker-liquidation`.
+Z3 checks exact accounting and a counterexample for residual debt, not
+live provider code, unpredictable market fills, intraday mark changes,
+interest accrual, taxes, collateral segregation or broker order selection.
+The Portfolio optimizer's no-margin-breach constraints are not a complete
+endogenous liquidation and recovery control process.
+
+External mature references:
+- IBKR Excess Liquidity https://www.interactivebrokers.com/campus/glossary-terms/current-excess-liquidity/
+- IBKR real-time liquidation https://www.interactivebrokers.co.uk/en/trading/marginRequirements/margin3.php
+- LEAN Buying Power https://www.quantconnect.com/docs/v2/writing-algorithms/reality-modeling/buying-power
+- LEAN Margin Call https://www.quantconnect.com/docs/v2/writing-algorithms/reality-modeling/margin-calls

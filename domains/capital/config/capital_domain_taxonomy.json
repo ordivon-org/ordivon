@@ -65,6 +65,7 @@
     ],
     "risk": [
       "portfolio_risk.py",
+      "broker_margin.py",
       "dependence_analysis.py",
       "tail_risk.py",
       "tail_report.py",

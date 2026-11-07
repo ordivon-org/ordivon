@@ -629,6 +629,7 @@
       "id": "risk-portfolio-observation-and-statistics",
       "sourcePatterns": [
         "src/ordivon_capital/risk/portfolio_risk.py",
+        "src/ordivon_capital/risk/broker_margin.py",
         "src/ordivon_capital/risk/dependence_analysis.py",
         "src/ordivon_capital/risk/tail_risk.py",
         "src/ordivon_capital/risk/tail_report.py",
