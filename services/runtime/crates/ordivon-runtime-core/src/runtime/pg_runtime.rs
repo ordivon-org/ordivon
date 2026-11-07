@@ -217,7 +217,8 @@ impl PgRuntime {
             "targets":[{
                 "target":"local_linux","configured":true,"available":true,
                 "executionProfiles":["trusted_local"],"structuredPlan":true,
-                "immutableInputs":false,"hostDependencyCommitments":false,
+                "immutableInputs":false,"hostDependencyCommitments":true,
+                "hostDependencyContinuityScope":"runtime_host_namespace_path_witness",
                 "executionProvider":{"contract":"local_linux_runner_v1","executableDigest":digest}
             }]
         }))
@@ -555,16 +556,22 @@ impl PgRuntime {
         let e = &proposal.execution;
         if e.execution_target != ExecutionTarget::LocalLinux
             || e.execution_profile != ExecutionProfile::TrustedLocal
-            || !e.host_dependencies.is_empty()
             || e.windows_context.is_some()
             || e.windows_authority != WindowsAuthority::Limited
             || !e.foreign_references.is_empty()
         {
             return Err(RuntimeError::invalid(
-                "PG vertical supports a single trusted_local local_linux command without bindings",
+                "PG vertical supports a trusted_local local_linux execution (only Host Dependency bindings supported)",
                 "execution",
             ));
         }
+        // Reuse the installed Runtime validator. The committed PG plan
+        // freezes the exact file set before native dispatch.
+        let host_dependencies = super::host_dependency::validate_bindings(
+            &e.host_dependencies,
+            e.execution_target,
+            e.execution_profile,
+        )?;
         let timeout = e
             .timeout_ms
             .unwrap_or(self.config.executor.max_runtime_ms.min(30_000));
@@ -683,6 +690,7 @@ impl PgRuntime {
             windows_context: None,
             windows_execution_context: None,
             foreign_references: vec![],
+            host_dependencies,
             input_set_id: None,
             effective_inputs: vec![],
             credential_set_id: None,
@@ -795,6 +803,9 @@ impl PgRuntime {
             {
                 return Err(error("native runner changed after admission"));
             }
+            // Revalidate the *committed* bytes before dispatch; Runner owns
+            // continuous path-drift witnessing after it starts.
+            super::host_dependency::verify_committed_bindings(&plan.host_dependencies)?;
             let token = universal::sha256_bytes(
                 format!("runtime-launch-v1\0{}\0{operation}", a.attempt_id).as_bytes(),
             );
@@ -816,7 +827,14 @@ impl PgRuntime {
                 build_target_backing: None,
                 input_presentation_root: None,
                 input_commitments: vec![],
-                host_dependencies: vec![],
+                host_dependencies: plan
+                    .host_dependencies
+                    .iter()
+                    .map(|binding| universal::RunnerHostDependencyCommitment {
+                        path: binding.path.clone(),
+                        digest: binding.expected_digest.clone(),
+                    })
+                    .collect(),
                 executable: plan.executable.clone(),
                 executable_digest: plan.executable_digest.clone(),
                 args: plan.args.clone(),

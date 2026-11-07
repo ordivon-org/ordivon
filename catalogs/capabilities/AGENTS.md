@@ -4,7 +4,8 @@ This is read-only discovery, routing knowledge and external LEGO evidence, **not
 
 **ELE source-bound project research:** For a searchable decomposition of the
 existing project studies, use the existing Catalog-owned
-[PostgreSQL read projection](ele/README.md) and its exact-source readback.
+[PostgreSQL read projection](ele/README.md), including
+`search --query`, `links --id` and `show --id`, with exact-source readback.
 Do not infer installed capability, project currentness or formal LEGO admission
 from imported research. Do not duplicate Host/Runtime or domain data.
 

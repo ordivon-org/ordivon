@@ -1427,3 +1427,121 @@ fn pg_runtime_refuses_privileged_session_hidden_behind_app_role() {
         "the authenticated session owner can regain stage-control authority via SET ROLE NONE"
     );
 }
+
+#[test]
+#[ignore = "launches disposable native PostgreSQL and systemd Runner; run explicitly"]
+fn pg_host_dependencies_real_runner_and_committed_idempotency() {
+    use sha2::Digest as _;
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let reference = fixture.root.join("pg-host-dependency.bin");
+    fs::write(&reference, b"immutable-fact-v1").unwrap();
+    let digest = format!(
+        "sha256:{}",
+        hex::encode(sha2::Sha256::digest(fs::read(&reference).unwrap()))
+    );
+
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-pg-prerequisite","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+
+    let proposal = |key: &str, committed_digest: &str| {
+        json!({
+            "clientRequestId":key,
+            "execution":{
+                "workspaceId":"ws-pg-prerequisite",
+                "executable":"/usr/bin/printf",
+                "args":["pg-prerequisite-witness"],
+                "cwdRelative":".",
+                "timeoutMs":10000,
+                "hostDependencies":[{
+                    "path":reference,
+                    "expectedDigest":committed_digest,
+                }]
+            },
+            "waitMs":12000,
+            "stdoutTailBytes":256,
+        })
+    };
+    let describe = call(&endpoint, "runtime.describe", json!({}));
+    assert_eq!(
+        describe["structuredContent"]["targets"][0]["hostDependencyCommitments"],
+        true
+    );
+    let rejected = call(
+        &endpoint,
+        "workspace.exec",
+        proposal(
+            "pg-prerequisite-wrong-0001",
+            &format!("sha256:{}", "0".repeat(64)),
+        ),
+    );
+    assert_eq!(rejected["isError"], true, "{rejected}");
+    let no_job: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM jobs WHERE client_request_id=$1",
+            &[&"pg-prerequisite-wrong-0001"],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(no_job, 0, "bad host bytes must not create a PostgreSQL Job");
+
+    let admitted = call(
+        &endpoint,
+        "workspace.exec",
+        proposal("pg-prerequisite-good-0001", &digest),
+    );
+    assert_ne!(admitted["isError"], true, "{admitted}");
+    assert_eq!(
+        admitted["structuredContent"]["executionDisposition"], "succeeded",
+        "{admitted}"
+    );
+    assert_eq!(
+        admitted["structuredContent"]["stdoutTail"],
+        "pg-prerequisite-witness"
+    );
+    let job = admitted["structuredContent"]["jobId"].as_str().unwrap();
+    let row = fixture
+        .db
+        .query_one(
+            "SELECT execution_plan_json FROM jobs WHERE job_id=$1",
+            &[&job],
+        )
+        .unwrap();
+    let committed_plan: Value = serde_json::from_str(row.get::<_, String>(0).as_str()).unwrap();
+    assert_eq!(
+        committed_plan["hostDependencies"][0]["expectedDigest"],
+        digest
+    );
+    // Exact replay resolves the original PostgreSQL Job before inspecting
+    // mutable external prerequisites. A new client key cannot ignore drift.
+    fs::write(&reference, b"changed-after-commit").unwrap();
+    let replay = call(
+        &endpoint,
+        "workspace.exec",
+        proposal("pg-prerequisite-good-0001", &digest),
+    );
+    assert_ne!(replay["isError"], true, "{replay}");
+    assert_eq!(replay["structuredContent"]["jobId"], job);
+    let post_drift = call(
+        &endpoint,
+        "workspace.exec",
+        proposal("pg-prerequisite-new-0001", &digest),
+    );
+    assert_eq!(post_drift["isError"], true, "{post_drift}");
+    let dispatched: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(dispatched, 1, "an exact replay must never launch again");
+}

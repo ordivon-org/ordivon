@@ -69,6 +69,11 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         current = tracked_owner_sqlite_calls(ROOT)
         self.assertEqual(current, SQLITE_LEGACY_SOURCE_CALLS)
         self.assertFalse(sqlite_debt_issues(current))
+        # The retired Finance importer must not reappear as direct SQLite debt.
+        self.assertNotIn(
+            "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
+            current,
+        )
         self.assertGreater(len(current), 10)
 
     def test_legacy_debt_includes_unfenced_domain_gateway_and_workstation_owners(self):
@@ -77,7 +82,6 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         for name in (
             "services/gateway/src/ordivon_gateway/external_worker.py",
             "domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py",
-            "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
             "capabilities/media/scripts/migrate-r6-trials.py",
             "platform/workstation/scripts/host_historical_projection.py",
             "services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py",

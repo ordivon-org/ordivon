@@ -55,10 +55,6 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     # Capital accounting and Media research have distinct consumer contracts:
     # do not promote the research executor or test-only ledger to live PG by analogy.
     'domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py': 1,
-    # One-shot, read-only historical source copy into qualified PostgreSQL.
-    # This is debt scheduled for retirement after installed producer quiescence,
-    # NOT a new SQLite accounting authority or permitted write path.
-    'domains/capital/src/ordivon_capital/accounting/postgres_ledger.py': 1,
     # Media has migrated durable TrialLedger to PostgreSQL; remaining SQLite is one-shot read-only import.
     'capabilities/media/scripts/migrate-r6-trials.py': 1,
     # RW12 source-only immutable SQLite snapshot importer into a NON-AUTHORITATIVE PG stage.
@@ -506,13 +502,14 @@ def check(root: Path) -> tuple[list[str], list[str]]:
                         f"PostgreSQL fresh-epoch DDL statement structure changed: {name}"
                     )
             elif name == POSTGRESQL_ELE_STUDY_SCHEMA:
-                # This PG-only Catalog read model is a schema, three source/section/head
-                # tables, a native FTS index and a read view. No DROP, GRANT, or
-                # cross-Owner schema mutation belongs in this source.
+                # This PG-only Catalog read model is a schema, four
+                # source/section/head/reference tables, two native indexes,
+                # and one read view. No DROP, GRANT or cross-Owner schema
+                # mutation belongs in this source.
                 observed = tuple(type(statement.stmt).__name__ for statement in parsed)
                 if observed != (
                     "CreateSchemaStmt", "CreateStmt", "CreateStmt", "CreateStmt",
-                    "IndexStmt", "ViewStmt",
+                    "CreateStmt", "IndexStmt", "IndexStmt", "ViewStmt",
                 ):
                     issues.append(f"ELE PostgreSQL schema structure changed: {name}")
             elif len(parsed) != 1:

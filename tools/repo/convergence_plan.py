@@ -92,6 +92,24 @@ def load_dependency_graph(
             if declared not in approved_tool_consumers:
                 raise ValueError("unapproved upstream toolchain-only seam")
             continue
+        if seam.get("kind") == "RESEARCH_SOURCE_PROJECTION":
+            # A pinned source-corpus citation is not an executable or runtime
+            # consumer edge. This is a narrow semantic projection, not a way
+            # to downgrade a live Owner dependency to read-only. Existing
+            # READ_ONLY_OWNER_PROJECTION runtime consumers retain their graph
+            # edge and mandatory verification closure.
+            reference_root = next(
+                owner.root for owner in owners if owner.name == right
+            )
+            if (
+                left != "capability-catalog"
+                or seam.get("source_glob") != "catalogs/capabilities/ele/studies.py"
+                or seam.get("contract_ref") != "catalogs/capabilities/ele/README.md"
+                or not isinstance(seam.get("allowed_fragment"), str)
+                or not seam["allowed_fragment"].startswith(reference_root)
+            ):
+                raise ValueError("unapproved source-only research projection seam")
+            continue
         if seam.get("kind") == "TEST_ONLY_SOURCE_CONTRACT":
             # A Composition test reads live Runtime SourceCut bytes to construct
             # an immutable *temporary* fixture. The fixture's later immutability

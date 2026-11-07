@@ -1002,6 +1002,30 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertIn("authority-catalog:verify", plan["verifyTasks"])
         self.assertIn("authority-catalog:verify", plan["queueVerifyTasks"])
 
+    def test_ele_source_research_projection_is_not_execution_coupling(self) -> None:
+        plan = MODULE.build_plan(
+            changed_files=["catalogs/capabilities/ele/studies.py"]
+        )
+        self.assertEqual(plan["directOwners"], ["capability-catalog"])
+        self.assertEqual(plan["verificationOwners"], ["capability-catalog"])
+        self.assertEqual(plan["queueVerifyTasks"], ["capability-catalog:verify"])
+
+    def test_unapproved_source_only_kind_cannot_suppress_live_owner_edge(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            shadow = Path(directory) / "dependency_contracts.toml"
+            source = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+            assert 'source_glob = "catalogs/capabilities/ele/studies.py"' in source
+            shadow.write_text(
+                source.replace(
+                    'source_glob = "catalogs/capabilities/ele/studies.py"',
+                    'source_glob = "services/harness/scripts/rogue.py"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "unapproved source-only"):
+                MODULE.load_dependency_graph(path=shadow)
+
     def test_media_change_expands_to_declared_interaction_component(self) -> None:
         plan = MODULE.build_plan(
             changed_files=["capabilities/media/src/ordivon_studio/agent_surface.py"]

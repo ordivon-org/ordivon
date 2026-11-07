@@ -311,11 +311,11 @@
       ],
       "externalOwners": [
         "PostgreSQL 18.6 native SERIALIZABLE, uniqueness, transactional DDL and advisory locks",
-        "SQLite historical read-only migration source and legacy offline CI only",
+        "SQLite disposable historical differential oracle and offline CI only",
         "TigerBeetle 0.17.9 historical/future distributed challenger"
       ],
       "localStanding": "PG_NATIVE_ACCOUNTING_CONSUMER_QUALIFIED_LEGACY_SOURCE_RETIRED_PENDING_INSTALLED_CUTOVER",
-      "localResponsibility": "Bind capital reservation/post/void/idempotency onto native PostgreSQL SERIALIZABLE transactions with 40001 whole-transaction retries, exact U128 source identity and pre-commit migration readback. Nonlive matrix selects PostgreSQL only on explicit DSN. Legacy SQLite remains historical/offline test input, not a new production authority. No external fund movement or installed PG cutover is entailed.",
+      "localResponsibility": "Bind capital reservation/post/void/idempotency onto native PostgreSQL SERIALIZABLE transactions with 40001 whole-transaction retries, exact U128 accounting identity and canonical PostgreSQL transaction readback. Nonlive matrix selects PostgreSQL only on explicit DSN. Legacy SQLite remains historical/offline test input, not a new production authority. No external fund movement or installed PG cutover is entailed.",
       "admittedMechanicsOwners": [
         "PostgreSQL 18.6 physically tested disposable cluster: native PG SERIALIZABLE with advisory transaction admission",
         "SQLite 3.54 historical/offline regression only, not an expansion target"
@@ -1193,7 +1193,7 @@
       },
       "standing": "HISTORICAL_SQLITE_VS_TIGERBEETLE_ONLY_PG_NATIVE_CUTOVER_PENDING",
       "tigerBeetleOwnerAdmitted": false,
-      "decision": "Original 400-step SQLite-vs-TigerBeetle comparison remains historical evidence, not a current SQLite preference. Native PostgreSQL ledger qualified on ephemeral PostgreSQL 18: account/transfer identity, whole SERIALIZABLE retry, no-overdraft concurrency, exact pending/POST/VOID, restart, read-only SQLite import before COMMIT with mismatch rollback, and non-live effect-matrix consumer on explicit PG DSN. Installed PG cutover, legacy producer shutdown, rollback and retirement are NOT proved.",
+      "decision": "Original 400-step SQLite-vs-TigerBeetle comparison remains historical evidence, not a current SQLite preference. Native PostgreSQL ledger qualified on ephemeral PostgreSQL 18: account/transfer identity, whole SERIALIZABLE retry, no-overdraft concurrency, exact pending/POST/VOID, restart, PostgreSQL committed readback, and non-live effect-matrix consumer on explicit PG DSN. Retired SQLite import has no active consumer. Installed PG cutover, legacy producer shutdown, rollback and retirement are NOT proved.",
       "nativePostgresQualification": {
         "consumer": "src/ordivon_capital/accounting/postgres_ledger.py",
         "tests": "tests/test_postgres_ledger.py",

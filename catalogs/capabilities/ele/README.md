@@ -18,6 +18,10 @@ The importer reads only these source families at an exact Git SourceCut:
 | `catalogs/knowledge/graphs/*.json` | Existing analysis/decomposition graphs |
 | `catalogs/knowledge/evidence/{analysis,acceptance}/*.json` | Analysis and acceptance evidence, retaining their original scope |
 | `catalogs/capabilities/authority-map-r1.md` and `RESEARCH_CAPABILITY_PACKAGE_R1.md` | Existing authority and package study |
+| `capabilities/artifact/docs/ARTIFACT_*DECOMPOSITION*.md` | Artifact decomposition and redecomposition waves, retaining their dated/PLANNING standing |
+| Named studies in `capabilities/preservation/docs/`, `domains/capital/docs/`, `profiles/research/tool-qualification/` | Preservation external composition, Finance project qualification, Research tool evidence |
+| Named comparisons in `platform/network/docs/`, `services/harness/docs/` | Network decision matrix and Harness architecture/provider comparisons |
+| `capabilities/media/research/expression/*.md` | Media research and conceptual models, not production release truth |
 
 Rolling daily GitHub radar, Host Work/Topic/Message, Runtime Job/Workspace,
 service logs, package caches and active Owner operational state are **not**
@@ -41,11 +45,19 @@ The `ele` schema is isolated from existing Host/Runtime tables:
 - `ele.study_heads` — which imported version is present in the latest
   **successful full Git import**; absent files are *soft-retired*, and prior
   versions stay queryable;
-- `ele.current_studies` — joined current-import read view.
+- `ele.current_studies` — joined current-import read view;
+- `ele.study_references` — reproducible source-location-bound pointers to
+  explicit Markdown links and exact code-span Git paths, or exact JSON path/URL
+  references. Each row identifies the originating study version, section, and
+  locator; a target which is also studied has its ELE ID for navigation.
+  Neither a path mention nor a JSON `consumerSources` field establishes
+  installed/adopted/accepted capability.
 
 The importer uses one PostgreSQL transaction, an advisory transaction lock,
 parameterized SQL, digest-keyed idempotent inserts and **readback before
-commit**. Re-importing an unchanged tree adds no versions or sections.
+commit**. Re-importing an unchanged tree adds no versions, sections or changed link
+projections. Every current section and explicit reference is compared to source
+material before commit, not only counted.
 Reverting a document to an earlier digest correctly repoints its head without
 losing history. A partial or failed transaction leaves the previous projection
 unchanged. There is **no SQLite fallback**.
@@ -73,7 +85,9 @@ python3 catalogs/capabilities/ele/studies.py migrate
 python3 catalogs/capabilities/ele/studies.py verify
 python3 catalogs/capabilities/ele/studies.py stats
 python3 catalogs/capabilities/ele/studies.py search --query 'recovery'
+python3 catalogs/capabilities/ele/studies.py search --query 'qualification' --kind finance_qualification
 python3 catalogs/capabilities/ele/studies.py show --id provider:worktrunk
+python3 catalogs/capabilities/ele/studies.py links --id candidate_evidence:worktrunk-candidate-20261106
 ```
 
 The importer requires the mature `psycopg 3` driver already used by

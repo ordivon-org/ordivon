@@ -175,6 +175,7 @@ impl Runtime {
             windows_context: explicit_windows_context,
             windows_execution_context,
             foreign_references: request.execution.foreign_references.clone(),
+            host_dependencies: Vec::new(),
             input_set_id: None,
             effective_inputs: Vec::new(),
             credential_set_id: None,

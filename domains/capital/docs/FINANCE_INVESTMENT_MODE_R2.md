@@ -37,9 +37,10 @@ files under `data/raw` and `data/derived`, and their redundant ignore
 exceptions. The actual ignore protections remain. `artifacts/.gitkeep`
 is retained because frozen external evidence includes its path. Legacy
 `accounting/sqlite_ledger.py` is likewise *not* a dead file: the PostgreSQL
-migration/oracle qualification tests actively import it and the PG adapter
-still uses a read-only SQLite legacy ingest seam. Retire it only with
-real consumer substitution and invariant readback, never by age or filename.
+historical differential/oracle qualification tests still import it. The
+retired SQLite-to-PG importer is no longer a consumer, and PG Accounting
+has no SQLite fallback. Retire the remaining historical oracle only when
+its real differential consumers have a substitute.
 
 This source contract is independent of investor performance and brokerage
 execution permissions. CFA Institute's GIPS treatment of external flows and

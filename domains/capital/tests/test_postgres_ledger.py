@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import closing
 from threading import Barrier
 
 import pytest
@@ -14,10 +13,10 @@ from ordivon_capital.accounting.durable import (
     binding_for_namespace,
 )
 from ordivon_capital.accounting.postgres_ledger import PostgresAccountingLedger
-from ordivon_capital.accounting.sqlite_ledger import LedgerApplyStatus
 from ordivon_capital.accounting.substrate import (
     AccountingAccount,
     AccountingOperation,
+    LedgerApplyStatus,
     reservation_instruction,
     resolution_instruction,
     stable_accounting_id,
@@ -129,41 +128,8 @@ def test_pg_concurrent_account_identity():
     with PostgresAccountingLedger(DSN) as ledger:
         assert ledger.create_account(AccountingAccount(505, False)) == LedgerApplyStatus.ID_CONFLICT
 
-def test_pg_migrates_only_quiesced_real_sqlite_source_and_rejects_duplicate(tmp_path):
-    from ordivon_capital.accounting.sqlite_ledger import SQLiteAccountingLedger
-    assert DSN
-    source = tmp_path / "capital#snapshot.sqlite3"
-    with SQLiteAccountingLedger(source) as legacy:
-        assert legacy.create_account(AccountingAccount(101)) == LedgerApplyStatus.CREATED
-        assert legacy.create_account(AccountingAccount(202)) == LedgerApplyStatus.CREATED
-        assert legacy.apply_immediate_transfer(
-            transfer_id=303, debit_account_id=101, credit_account_id=202, amount=42
-        ) == LedgerApplyStatus.CREATED
-    before = source.read_bytes()
-    with PostgresAccountingLedger(DSN) as pg:
-        with pytest.raises(RuntimeError, match="quiescence"):
-            pg.import_quiesced_sqlite(source)
-        witness = pg.import_quiesced_sqlite(source, confirmed_quiesced=True)
-        assert witness["standing"] == "VERIFIED_COPY_NOT_CONSUMER_CUTOVER"
-        assert witness["sourceAccounts"] == witness["postgresAccounts"] == 2
-        assert witness["sourceTransfers"] == witness["postgresTransfers"] == 1
-        assert pg.transfer(303).amount == 42
-        assert pg.account(101).debits_posted == 42
-        with pytest.raises(RuntimeError, match="empty"):
-            pg.import_quiesced_sqlite(source, confirmed_quiesced=True)
-    assert source.read_bytes() == before
 
 
-def test_pg_import_rejects_broken_sqlite_source_without_admitting_rows(tmp_path):
-    assert DSN
-    bad = tmp_path / "corrupt#source.sqlite3"
-    bad.write_bytes(b"not a database")
-    with PostgresAccountingLedger(DSN) as pg:
-        with pytest.raises(Exception):
-            pg.import_quiesced_sqlite(bad, confirmed_quiesced=True)
-        import psycopg
-        with psycopg.connect(DSN) as db:
-            assert db.execute("SELECT count(*) FROM ordivon_capital.accounts").fetchone()[0] == 0
 
 def test_pg_concurrent_scarcity_is_one_serializable_balance():
     assert DSN
@@ -211,124 +177,10 @@ def test_pg_twelve_concurrent_cold_schema_admissions_have_one_authority():
         ).fetchone()[0]==2
 
 
-def test_pg_import_readback_corruption_rolls_back_all_rows(tmp_path):
-    assert DSN
-    import psycopg
-
-    from ordivon_capital.accounting.sqlite_ledger import SQLiteAccountingLedger
-
-    source=tmp_path/"ledger#tamper.sqlite3"
-    with SQLiteAccountingLedger(source) as legacy:
-        assert legacy.create_account(AccountingAccount(801)) == LedgerApplyStatus.CREATED
-        assert legacy.create_account(AccountingAccount(802)) == LedgerApplyStatus.CREATED
-        assert legacy.apply_immediate_transfer(
-            transfer_id=803, debit_account_id=801,
-            credit_account_id=802, amount=25,
-        ) == LedgerApplyStatus.CREATED
-    pg=PostgresAccountingLedger(DSN)
-    with psycopg.connect(DSN) as db:
-        db.execute("""CREATE FUNCTION ordivon_capital.corrupt_import()
-            RETURNS trigger LANGUAGE plpgsql AS $$
-            BEGIN
-                UPDATE ordivon_capital.transfers
-                SET status='VOIDED' WHERE id=NEW.id;
-                RETURN NEW;
-            END $$""")
-        db.execute("""CREATE TRIGGER corrupt_import_after_insert
-            AFTER INSERT ON ordivon_capital.transfers
-            FOR EACH ROW EXECUTE FUNCTION ordivon_capital.corrupt_import()""")
-    try:
-        with pytest.raises(RuntimeError, match="readback"):
-            pg.import_quiesced_sqlite(source, confirmed_quiesced=True)
-        with psycopg.connect(DSN) as db:
-            for table in ("accounts", "transfers"):
-                assert db.execute(
-                    f"SELECT count(*) FROM ordivon_capital.{table}"
-                ).fetchone()[0] == 0
-    finally:
-        with psycopg.connect(DSN) as db:
-            db.execute(
-                "DROP TRIGGER IF EXISTS corrupt_import_after_insert "
-                "ON ordivon_capital.transfers"
-            )
-            db.execute("DROP FUNCTION IF EXISTS ordivon_capital.corrupt_import()")
 
 
-@pytest.mark.parametrize(
-    ("column", "malformed", "sqlite_storage"),
-    [
-        ("credits_posted", 1.75, "real"),
-        ("no_overdraft", "false", "text"),
-    ],
-)
-def test_pg_import_rejects_noncanonical_legacy_integer_cells(
-    tmp_path, column, malformed, sqlite_storage,
-):
-    """The source must be typed before its PG equality proof or digest."""
-    assert DSN
-    import sqlite3
-
-    import psycopg
-
-    from ordivon_capital.accounting.sqlite_ledger import SQLiteAccountingLedger
-
-    source = tmp_path / "typed#legacy.sqlite3"
-    with SQLiteAccountingLedger(source) as legacy:
-        assert legacy.create_account(AccountingAccount(101)) == LedgerApplyStatus.CREATED
-    with closing(sqlite3.connect(source)) as db, db:
-        db.execute(f"UPDATE accounts SET {column}=? WHERE id=?", (malformed, "101"))
-        observed = db.execute(
-            f"SELECT typeof({column}),{column} FROM accounts WHERE id='101'"
-        ).fetchone()
-    assert observed == (sqlite_storage, malformed)
-    with PostgresAccountingLedger(DSN) as pg:
-        with pytest.raises(ValueError, match="noncanonical"):
-            pg.import_quiesced_sqlite(source, confirmed_quiesced=True)
-    with psycopg.connect(DSN) as pg:
-        for table in ("accounts", "transfers"):
-            assert pg.execute(
-                f"SELECT count(*) FROM ordivon_capital.{table}"
-            ).fetchone()[0] == 0
 
 
-def test_pg_import_rejects_noncanonical_legacy_transfer_amount(tmp_path):
-    """A silent REAL-to-int conversion must never pass the source parity gate."""
-    assert DSN
-    import sqlite3
-
-    import psycopg
-
-    from ordivon_capital.accounting.sqlite_ledger import SQLiteAccountingLedger
-
-    source = tmp_path / "typed#transfer.sqlite3"
-    with SQLiteAccountingLedger(source) as legacy:
-        for account_id in (101, 202):
-            assert (
-                legacy.create_account(AccountingAccount(account_id))
-                == LedgerApplyStatus.CREATED
-            )
-        assert (
-            legacy.apply_immediate_transfer(
-                transfer_id=303,
-                debit_account_id=101,
-                credit_account_id=202,
-                amount=42,
-            )
-            == LedgerApplyStatus.CREATED
-        )
-    with closing(sqlite3.connect(source)) as db, db:
-        db.execute("UPDATE transfers SET amount=1.75 WHERE id='303'")
-        assert db.execute(
-            "SELECT typeof(amount), amount FROM transfers WHERE id='303'"
-        ).fetchone() == ("real", 1.75)
-    with PostgresAccountingLedger(DSN) as pg:
-        with pytest.raises(ValueError, match="noncanonical"):
-            pg.import_quiesced_sqlite(source, confirmed_quiesced=True)
-    with psycopg.connect(DSN) as pg:
-        for table in ("accounts", "transfers"):
-            assert pg.execute(
-                f"SELECT count(*) FROM ordivon_capital.{table}"
-            ).fetchone()[0] == 0
 
 def test_pg_rejects_counterfeit_existing_accounts_schema():
     """A same-name table is not proof of the authoritative accounting contract."""
