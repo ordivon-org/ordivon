@@ -83,6 +83,39 @@ HiGHS 独立计算全局效用值上界（对 `u(W-L)` 而不是 `u(W)`）。
 及 Desmettre–Wahl–Zagst (2022) surplus optimization
 https://doi.org/10.1007/s13385-021-00292-z 。
 
+## 2.2 月度现金义务：区分“入金之后支付”与“入金之前到期”
+
+终点负债不能替代投资期内的真实付款。现有非预见情景树增加
+`node_outflow_after_contribution_r`，由经济合同明确给出每个非终端
+信息节点 n 的已到期款项 D_n，额度单位依然为 r；没有默认支出额。
+本接口严格采用以下时间语义：
+
+市场回报及借款增长 → **先检查已有持仓保证金** →
+该月外部 `1r` 实际到账 → 支付当期明确为到账后应付的
+`D_n` → 交易费用与自融资再平衡。
+
+因此每个当月决策节点的完整预算为：
+
+    sum_i a_{n,i} + cash_n - debt_n + trade_cost_n
+      = W_n^before + 1r - D_n.
+
+这不是通过预设损失百分比决定杠杆，而是账户现金流守恒。
+输入必须恰好覆盖全部非终端决策节点，未提供时视为模型**没有**
+额外中期支出，而不是隐含已经支付了未输入的真实负债。
+如果某个已观察分支的给定应付额不能在真实现金流和约束下
+融资，模型返回 INFEASIBLE，绝不发明额外入金。
+全部已知合同满足时复用当前 SciPy/HiGHS 的凹效用优化
+和独立全局效用上界，原始 `terminal_liabilities_r` 可同时存在。
+
+每个节点输出 `contributionR`、`outflowAfterContributionR`，
+以及扣除付款后的 `postTradeEquityR`，方便 Human/Agent 检查
+付款是否被误计入收益。
+
+**严格限制**：不能把入金前或月中已经应付的负债挪到这个接口。
+提前到期的债务、实际资产出售流动性、券商冻结或强制平仓，
+需要更细的经济事件时钟和 Broker 合同消费；现阶段并未实现。
+也不能用“未来还有多次1r”充当已经可支配的现金或保证金。
+
 ## 3. 为什么它是数学上成熟的凸优化，而非自制求解器
 
 每一笔自融资、成交金额绝对值辅助变量、初始保证金和逐场景维持保证金都可以表达为**仿射等式/不等式**。形成凸可行多面体 `\mathcal F`，在 `W_\ell>0` 的域上：
@@ -163,3 +196,7 @@ CLI 只写标准输出 JSON，无下单、账户读写、自动市场预测或�
 - Skaf & Boyd, *Multi-Period Portfolio Optimization with Constraints and Transaction Costs*, 2009: dynamic programming approximations. https://stanford.edu/~boyd/papers/dyn_port_opt.html
 - Cvxportfolio official MultiPeriodOptimization manual: https://www.cvxportfolio.com/en/stable/optimization_policies.html
 - Merton (1969), Samuelson (1969): CRRA / lifetime portfolio decisions.
+\n### 鍒拌揪鏃剁偣闆舵潈鐩婄殑缁忔祹鍚堟硶鎬n
+鍦ㄦ棤鍊熸涓斾笉娆犵淮鎸佷繚璇侀噾鐨勬儏鏅腑锛屾姇璧勮€呭彲浠ュ皢褰撴湀1r鍏ㄩ儴鐢ㄤ簬
+鐪熷疄鏀嚭锛屼娇娆℃湀鏂拌祫閲戝埌璐?*涔嬪墠**鐨勮处鎴锋潈鐩婃伆濂戒负闆躲€俓n瀹冨苟涓嶆槸璐熷€猴紝涔熶笉搴旇鏁板€煎唴鐐规潯浠惰涓哄繀鐒跺己鍒跺钩浠撱€俓n
+鎵€鏈変腑闂存湀鑺傜偣鍙姹?W^- >= 0 涓旀弧瓒崇湡瀹炵淮鎸佷繚璇侀噾 W^- >= M銆俓n鍙缁堢 CRRA 鍙敮閰嶄綑棰?W_T-L_T 瑕佹眰涓ユ牸姝ｇ殑鏁堢敤瀹氫箟鍩熴€俓n鍙鐐规悳绱€丼LSQP 鍘熷绾︽潫鍜岀嫭绔?HiGHS 鍒囪秴骞抽潰鏈€浼樺€间笂鐣孿n鍏ㄩ儴閲囩敤鐩稿悓鍙鍩燂紝閬垮厤鑷埗鈥滃畨鍏?epsilon鈥濆彉鎴愮粡娴庤鍒欍€俓n
