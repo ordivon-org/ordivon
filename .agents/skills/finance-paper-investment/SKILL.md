@@ -102,6 +102,32 @@ Do not import the old experimental `unit_r_dca` defaults (40%, 45%,
 7%, margin cushions) as issuer/broker finance requirements.
 Formal: `mise run //domains/capital:verify:formal:broker-liquidation`.
 Tests: `tests/test_broker_margin_evidence.py`.
+
+## Markets capture admission: never backdate downloaded adjusted prices
+
+Use the existing Markets `historical_close_snapshot.admit_adjusted_close_csv`
+through the thin Research `pit_joint_forecast.market_capture_to_pit_vintages`.
+Supply the unmodified CSV bytes (Date + one column per ETF), exact SHA256,
+assets, requested dated range, source `captured_at` instant and caller-verified
+`last_session_close_at` (both timezone-aware).
+
+The function uses Markets' existing parser and SHA checks and returns
+existing `PriceVintage` objects with their **conservative knowledge bound**
+set to capture time. A newly retrieved five-year file DOES NOT certify
+five years of historical vintages. Its historical observations can enter
+only decisions occurring at or after this particular capture, never
+retrospectively in earlier holdings/backtests. Provider origin, publication
+times, total-return adjustment and corporate actions remain independent
+evidence. Do not relabel vendor-adjusted closes as raw tradeable fills.
+If you need genuine historical point-in-time backtests, acquire a
+sequence of separately archived historical captures with actual historical
+timestamps and independently recorded supplier evidence.
+
+The output carries only `SECONDARY_VENDOR_NOT_ATTESTED` and is research
+only, not valid as a Markets/Paper settlement mark. Preserve source byte
+digests and the raw downloaded bytes through the existing Artifact Owner;
+do not build a new market database or source registry.
+
 ## Direct PIT research-to-Portfolio consumer
 
 Use the existing Research `pit_joint_forecast` --solve option for frozen,
