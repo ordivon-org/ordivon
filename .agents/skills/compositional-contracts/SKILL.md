@@ -60,6 +60,39 @@ Produce:
 
 Promote only architecture-relevant obligations that must remain true across implementations, such as a stable interface contract, replacement condition, or explicit environmental assumption.
 
+## Formal proof and test substitution
+
+An architecture contract is not by itself a machine-checked theorem.
+When a caller proposes to remove duplicated tests or replace an Owner
+module, bind the exact original consumer, SourceCut and scope of the
+property. Route through the Owner's existing formal native toolchain,
+not a new checker. Require distinct evidence links:
+
+- Specification and assumptions -> faithful model and explicit bounds.
+- Model -> proof/model-checking result with falsifying controls.
+- Model -> actual Rust/Python/TypeScript refinement witness, not just
+  similar names or a successful compilation.
+- Code -> native installed/runtime consumer behavior for effects not
+  captured by the proof.
+
+A new LEGO is substitutable only if it does **not strengthen** the
+consuming assumptions or **weaken** required guarantees, preserves
+state/effect/provenance obligations and the R2.1 11-coordinate contract.
+A test is dominated only when its exact property and fault model are
+covered by the current proof **and** implementation refinement;
+otherwise retain the distinct real consumer check. Missing or stale
+evidence stays UNKNOWN. For physical source/Workspace retirement,
+traverse every final consumer, preserve unique original bytes in a
+read-back-verified native Artifact if needed, then invoke the existing
+Owner's deletion primitive with source-state comparison.
+
+Human readers: choose the desired observable outcome and decide
+whether remaining physical verification is worth its cost.
+Agents: resolve current SourceCut, obligations and real consumers,
+run the selected native proof and verification, and record the
+substitution/deletion evidence in the existing Host Work; never
+register another verifier, LEGO registry or lifecycle authority.
+
 ## Non-claims
 
 - Local correctness does not imply composed correctness unless assumptions are discharged.
