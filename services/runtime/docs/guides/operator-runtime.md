@@ -28,7 +28,7 @@ related:
 
 Record: node name, OS, installed binary digest, exact Git commit, service identity, Registry backend, active Job count, Workspace count, and configured consumer endpoint. Do not treat a repo checkout, candidate service, or green test as proof that the installed production path changed.
 
-Observed on 2026-11-07: the Linux machine has both `ordivon-runtime.service` and `ordivon-runtime-pg-candidate.service` active. Windows has the running `OrdivonRuntimeR6Candidate`, `OrdivonRuntimePrivilegedBroker`, and `OrdivonRuntimePostgreSQL18` services. This is a time-scoped observation, not a durable health guarantee.
+Observed on 2026-11-07: both active Linux `ordivon-runtime.service` and `ordivon-runtime-pg-candidate.service` execute a PG-native binary with `ORDIVON_PG_DSN` and `ORDIVON_PG_SCHEMA` present. The old SQLite file measured 6,166,085,632 bytes at first inspection; neither active PG process held it open. Subsequently it was removed after verifying no file opener, no active SQLite-referencing timers, and no PG Store Root within the old Registry tree; the Registry parent and other files remained intact. This is a completed **Linux file-only** retirement, not proof that Windows or all legacy SQLite source code has been retired. Windows has running `OrdivonRuntimeR6Candidate`, `OrdivonRuntimePrivilegedBroker`, and `OrdivonRuntimePostgreSQL18` services; a running PostgreSQL server alone does not confirm that Windows Runtime is PG-backed. A separate Windows inspection found a 251,088,896-byte SQLite Registry file under `C:\ProgramData\Ordivon\RuntimeCandidateR6\registry\`; qualify its native PG replacement before deleting it. These are time-scoped observations.
 
 ## Ordinary safe operations
 

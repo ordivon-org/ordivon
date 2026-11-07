@@ -31,7 +31,7 @@ Audited the source tree at Linux commit `f52091fb1c8f920b7114c813142d1e7795ae866
 
 Linux tracked directory census: `crates` 125 files (~3.10 MB), `research` 132 (~1.53 MB), `scripts` 62 (~1.53 MB), `docs` 24 (~0.39 MB), `planning` 8 (~0.15 MB), `formal` 14 (~0.07 MB), `platform` 3 (~0.18 MB), `packaging` 11 (~0.03 MB). File counts exclude untracked/ignored working data. Code scans found 24 tracked files referencing `registry.sqlite3` and 15 referencing `rusqlite` (scans included docs/tests where indicated).
 
-Linux service inspection found `ordivon-runtime.service` and `ordivon-runtime-pg-candidate.service` active together, with service main PIDs 133847 and 6026 in the sampled read-only state. Windows showed `OrdivonRuntimeR6Candidate`, `OrdivonRuntimePrivilegedBroker`, and `OrdivonRuntimePostgreSQL18` active. A running PostgreSQL server does not itself prove the Windows Runtime Registry uses PostgreSQL. The old Linux file `/var/lib/ordivon/registry/registry.sqlite3` existed and measured exactly 6,166,085,632 bytes; this is a priority retirement candidate, **not** yet approved for physical deletion because the legacy service is still running. `/var/lib/ordivon` is shared with other Owners. No installed backend or data was changed in this audit.
+Linux service inspection found both `ordivon-runtime.service` (PID 133847, port 8897) and `ordivon-runtime-pg-candidate.service` (PID 6026, port 28795) active. Crucially, `/proc/<pid>/exe` and process configuration showed **both were PG-native executables** with `ORDIVON_PG_DSN` and `ORDIVON_PG_SCHEMA` set, despite the first unit's historical name. Neither process held a file descriptor to `registry.sqlite3`. Windows showed `OrdivonRuntimeR6Candidate`, `OrdivonRuntimePrivilegedBroker`, and `OrdivonRuntimePostgreSQL18` active; this alone does not prove the Windows Runtime Registry uses PG. The old file `/var/lib/ordivon/registry/registry.sqlite3` measured exactly 6,166,085,632 bytes (last modified 2026-11-07 07:40:03 UTC). `fuser` reported no current opener at inspection, but this alone cannot rule out scheduled consumers. The `/var/lib/ordivon` root is shared across other Owners. Subsequent exact-path retirement was **completed** through Job `job-01a1b62d-29d9-7740-b0b2-fe5ae6510095`: both live Linux service binaries and PG configuration were reverified, their PG Store Roots were confirmed outside the old Registry tree, the SQLite-referencing lifecycle/storage-pressure timers were inactive and disabled, `fuser` found no opener, and the file identity (inode/size/mtime) was compared immediately before unlink. The command returned `file_now_absent=True`; the Registry parent directory and all its other contents were preserved. The deletion did not change installed Runtime binaries, unrelated Owner state, or the Windows Registry.
 
 ## Directory-by-directory disposition
 
@@ -59,7 +59,7 @@ Linux service inspection found `ordivon-runtime.service` and `ordivon-runtime-pg
 
 ## Observed specific candidates
 
-1. **P0**: `AGENTS.md` asserted “SQLite owns durable ... state” without distinguishing PG. Correct its truth boundary; treat PG as direction and resolve the active legacy writer before data deletion.
+1. **P0**: `AGENTS.md` asserted “SQLite owns durable ... state” without distinguishing PG. Corrected its truth boundary; live Linux inspection now shows two PG-native services. The remaining SQLite file and all scheduled consumers must be separately classified before deletion.
 2. **P0**: `docs/quickstart.md` used an undefined `$repo` variable in its deploy snippet. Correct the command.
 3. **P1**: Renamed `docs/runtime-vnext-decomposition.md` to [`docs/runtime-decomposition-history.md`](../runtime-decomposition-history.md) after finding zero literal filename references in tracked source; updated the document heading and marked it as historical implementation evidence, not live PG authority. The content was preserved.
 4. **P1**: `runtime/registry.rs`, `runtime/inspection.rs` and supporting scripts still refer to the former SQLite store. Removal requires a verified absence of live consumers, not solely a grep result.
@@ -102,7 +102,7 @@ Each LEGO definition should record `I, O, S, pre, post, inv, eff, c, epsilon, pr
 - **Backend P0**: identify each live service binary, Registry backend, PG writer epoch, and caller endpoints; every current Job consumer reads and writes the same target PG source. No SQLite fallback remains in the deployed execution path.
 - **PG functional**: real fresh admission, exact replay, Job observation, cancellation, terminal evidence, restart recovery, Workspace close, and concurrency correctness.
 - **Windows**: confirm native target and PG backend independently; native provider tests cannot be replaced by Linux tests.
-- **Cleanup**: only after absence of consumers, classify each candidate as remove/keep/unknown. Delete old SQLite operational data without historical migration if the live cutover is accepted, but not while the old writer is still active.
+- **Cleanup**: only after absence of active and scheduled consumers, classify each candidate as remove/keep/unknown. Delete old SQLite operational data without historical migration once its consumer set is closed. Both observed Linux services already execute PG-native binaries; confirm auxiliary jobs, scripts, and Windows separately rather than treating the old service name as SQLite proof.
 - **Formal/LEGO**: each replacement declares pre/post/invariants, evidence standing, and falsification. No new test for a claim already discharged by an existing stronger proof.
 - **Deployment**: release receipt and installed source/binary equality; unmerged Workspace source changes do not count as installed.
 
@@ -113,3 +113,24 @@ Each LEGO definition should record `I, O, S, pre, post, inv, eff, c, epsilon, pr
 3. Qualify a single PG writer and physical Linux/Windows acceptance.
 4. Remove obsolete SQLite source and associated scripts/migrations only after exact consumer graph closure.
 5. Recount tracked, ignored, and owner-managed data separately and reclaim only closure-proven candidates.
+
+## Verified PG-only source blocker
+
+The active Linux process uses the PG-native binary, but the **source dependency graph is not PG-only**:
+
+- `crates/ordivon-runtime-core/Cargo.toml` sets `default = ["transactional-runtime"]`, and that feature includes `dep:rusqlite`.
+- `crates/ordivon-runtime-mcp/Cargo.toml` depends on Core with `features = ["transactional-runtime"]` unconditionally; `postgres-runtime` only adds `postgres-registry-admission`.
+- `src/lib.rs` exports `PgRuntime` only when both `transactional-runtime` and `postgres-registry-admission` are enabled on Linux; `runtime/mod.rs` still declares `registry` and related SQLite modules.
+- Thus an installed PG executable need not open a SQLite database, but the source/build may still compile and link the legacy SQLite implementation. The file deletion alone is **not** a source-code deprecation.
+
+The next safe decomposition is to separate storage-neutral Job/Attempt/Workspace contracts and provider/evidence interfaces from the SQLite Runtime implementation, make PG admission/reconciliation the only production backend, retire the legacy MCP entry point and operator-only SQLite repair/tools after verifying consumers, and finally remove `rusqlite`, SQLite migrations, and obsolete tests. Preserve real native Windows execution and process recovery during this refactor. Accept the change only with a PG-only Cargo dependency tree, PG real-system tests, native Windows verification, and installed release receipts. Do **not** just remove the `transactional-runtime` feature: PG currently imports types under it, so that would cause broken builds rather than achieving modularity.
+
+## Windows Registry P0 evidence (2026-11-07)
+
+The running Windows service `OrdivonRuntimeR6Candidate` (PID 7276 at inspection) belongs to an older source tree (`73196dc...`) that lacks the Linux PG-native entry point and still contains SQLite Registry implementation. A bounded file inspection found `C:\ProgramData\Ordivon\RuntimeCandidateR6\registry\registry.sqlite3` with **251,088,896 bytes**, last modified **2026-11-07 13:25:53 UTC**. That first file-enumeration Job finished with exit code 1 after producing those file facts, so this is a partial, not comprehensive Windows storage survey.
+
+The independent `OrdivonRuntimePostgreSQL18` service is running, but there is no observed Windows Runtime PG-admission/readback/reconciliation cutover. Do not delete the Windows SQLite file on this evidence. P0 path: port the PG-only storage contract while preserving the native Windows SCM/Job Object supervisor; qualify one writer, execution-replay, cancel, terminal readback and crash recovery; switch endpoint consumers; then retire the R6 candidate name/path and old SQLite files. Do not change Windows service identity ahead of the approved native PG release.
+
+### Windows live SQLite write correlation
+
+A second `windows_native` Runtime execution (`job-01a1b631-dfc2-7e71-80d7-550c4914eda0`) succeeded and re-read the same Registry file. It now measured **251,170,816 bytes** with mtime **2026-11-07 13:28:04.4129877 UTC**, a growth of **81,920 bytes** since the preceding observation, during new native Runtime Job activity. This materially strengthens the conclusion that the Windows Runtime remains SQLite-backed. The observation is correlated evidence, not an independent SQL transaction trace. Do not retire the Windows file until native PG writer and readback are proved in production.

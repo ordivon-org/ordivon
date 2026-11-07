@@ -42,7 +42,7 @@ At the beginning of an operation, call `runtime.describe` on the **specific node
 ## Operating boundaries
 
 - Linux and Windows are independently native Runtime providers. Do not use a Linux node as an implicit Windows runner, or guess an elevated token.
-- PostgreSQL is the intended Registry direction for new Runtime implementation; the 2026-11-07 inventory found an active PG candidate **and** an active legacy Linux Runtime service. Do not treat the candidate's success as proof the other live service was switched.
+- PostgreSQL is the target Registry backend. The 2026-11-07 `/proc/<pid>/exe` inspection verified that **both** active Linux Runtime service processes execute `ordivon-runtime-pg` with PG environment keys, despite one legacy-named systemd unit. That does not prove both instances share one PostgreSQL schema or that Windows has switched. Inspect each node and epoch independently.
 - Never promote a test database, edit PG writer qualification rows, or remove SQLite data while a live consumer is unresolved.
 - Use existing Git, systemd, SCM, PostgreSQL, Cargo, and OS utilities instead of inventing equivalent custom tools.
 - Prefer focused, evidence-bearing verification of changed contracts. Rust unit/property tests and TLA+ exploration are different evidence classes; passing one does not prove the other.

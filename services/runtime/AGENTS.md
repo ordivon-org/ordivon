@@ -13,7 +13,8 @@ Read [`docs/recovery.md`](docs/recovery.md) only when operating on Registry inte
 - The user owns goals, preferences, risk posture, and final commitments.
 - The Agent owns implementation, testing, ordinary repair, and operation.
 - Git owns code history, diff, rollback, and Workspace identity.
-- The Registry backend used by the **connected installed Runtime node** owns durable request, Job, Attempt, reservation, cancellation, and resolution state. The PostgreSQL native Runtime is the target for new work; a separate legacy SQLite-backed service still exists in the 2026-11-07 Linux service inventory. Verify each installed writer and its consumers before declaring a cutover or deleting old state.
+- The Registry backend used by the **connected installed Runtime node** owns durable request, Job, Attempt, reservation, cancellation, and resolution state. On 2026-11-07, both active Linux Runtime services had an `ordivon-runtime-pg` executable and PostgreSQL configuration keys, despite one historical service name. Distinguish installed binary/backend truth from naming and unconsumed legacy SQLite files; verify future consumers before deletion.
+- Windows must be evaluated independently: on 2026-11-07 the R6 candidate's SQLite Registry file grew during new native Runtime Job activity; do not claim a fleet-wide PG-only state or delete that Windows Registry before native PG cutover.
 - Read [`docs/guides/agent-runtime.md`](docs/guides/agent-runtime.md) for execution/replay discipline and the legacy/PG truth boundary.
 - systemd and cgroups own observation and termination of live process trees.
 - Result and Artifact files own their Digest-bound bytes.
