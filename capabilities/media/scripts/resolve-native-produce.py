@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import sys
 import time
@@ -52,14 +53,37 @@ def main() -> int:
     ap.add_argument("--height", type=int, default=1080)
     ap.add_argument("--fps", type=int, default=24)
     ap.add_argument("--grade-saturation", type=float)
+    ap.add_argument("--grade-slope", help="ASC CDL R,G,B slope; comma-separated")
+    ap.add_argument("--grade-offset", help="ASC CDL R,G,B offset; comma-separated")
+    ap.add_argument("--grade-power", help="ASC CDL R,G,B power; comma-separated")
     ap.add_argument("--timeout", type=int, default=180)
     ap.add_argument("--min-timeline-frames", type=int, default=1, help="Consumer-selected minimum timeline length")
     ap.add_argument("--keep-project", action="store_true")
     args = ap.parse_args()
     if min(args.width, args.height, args.fps, args.timeout, args.min_timeline_frames) <= 0:
         ap.error("width, height, fps, timeout and min-timeline-frames must be positive")
-    if args.grade_saturation is not None and not (0 <= args.grade_saturation <= 4):
-        ap.error("grade-saturation must be 0..4")
+    if args.grade_saturation is not None and (
+            not math.isfinite(args.grade_saturation) or not 0 <= args.grade_saturation <= 4):
+        ap.error("grade-saturation must be finite and 0..4")
+    grade_requested = any(value is not None for value in (
+        args.grade_saturation, args.grade_slope, args.grade_offset, args.grade_power))
+    def parse_rgb(value: str | None, default: tuple[float, float, float], label: str):
+        if value is None:
+            return default
+        try:
+            rgb = tuple(float(piece) for piece in value.split(","))
+        except ValueError:
+            ap.error(label + " must contain exactly three numeric components")
+        if len(rgb) != 3 or not all(math.isfinite(component) for component in rgb):
+            ap.error(label + " must contain exactly three finite numeric components")
+        return rgb
+    grade = {
+        "NodeIndex": "1",
+        "Slope": " ".join(map(str, parse_rgb(args.grade_slope, (1.0, 1.0, 1.0), "--grade-slope"))),
+        "Offset": " ".join(map(str, parse_rgb(args.grade_offset, (0.0, 0.0, 0.0), "--grade-offset"))),
+        "Power": " ".join(map(str, parse_rgb(args.grade_power, (1.0, 1.0, 1.0), "--grade-power"))),
+        "Saturation": str(args.grade_saturation if args.grade_saturation is not None else 1.0),
+    } if grade_requested else None
     if not args.name or any(c in args.name for c in '<>:"/\\|?*'):
         ap.error("invalid output name")
     inputs = [Path(p).resolve() for p in (args.visual or [])]
@@ -137,12 +161,26 @@ def main() -> int:
                 or (audio and not timeline.GetItemListInTrack("audio", 1))
                 or timeline_frames < args.min_timeline_frames):
             raise RuntimeError("timeline readback failed: missing clips or insufficient frames")
-        if args.grade_saturation is not None:
+        if grade is not None:
             for clip in clips:
-                checked(clip.SetCDL({
-                    "NodeIndex": "1", "Slope": "1 1 1", "Offset": "0 0 0",
-                    "Power": "1 1 1", "Saturation": str(args.grade_saturation),
-                }), "SetCDL")
+                checked(clip.SetCDL(grade), "SetCDL")
+        timeline_media = []
+        for track_kind in ("video", "audio"):
+            for track_number in range(1, timeline.GetTrackCount(track_kind) + 1):
+                for item in timeline.GetItemListInTrack(track_kind, track_number) or []:
+                    media_pool_item = item.GetMediaPoolItem()
+                    properties = media_pool_item.GetClipProperty() if media_pool_item else None
+                    source_path = properties.get("File Path") if isinstance(properties, dict) else None
+                    linked_file = Path(source_path) if isinstance(source_path, str) and source_path else None
+                    verified = bool(linked_file and linked_file.is_file())
+                    timeline_media.append({
+                        "trackType": track_kind,
+                        "trackIndex": track_number,
+                        "clipName": item.GetName(),
+                        "sourcePath": source_path,
+                        "sourceDigest": digest(linked_file) if verified else None,
+                        "physicalReadback": "VERIFIED" if verified else "UNKNOWN",
+                    })
         checked(manager.SaveProject(), "SaveProject")
         checked(manager.ExportProject(project_name, str(drp)), "ExportProject")
         codec = project.GetRenderCodecs("mp4").get("H.264")
@@ -182,6 +220,7 @@ def main() -> int:
         if not isinstance(output_properties, dict):
             raise TypeError("Resolve rendered-media properties unavailable")
         receipt = {
+            "schemaVersion": 1,
             "kind": "ordivon.media.resolve-native-production-receipt",
             "nativeRenderedMediaReadback": {
                 key: output_properties.get(key) for key in
@@ -199,6 +238,10 @@ def main() -> int:
             "sourceClipsDirectory": str(source_clips_dir) if source_clips_dir else None,
             "audioTrackCount": timeline.GetTrackCount("audio"),
             "gradeSaturation": args.grade_saturation,
+            "gradeCDL": grade,
+            "nativeTimelineMediaReadback": timeline_media,
+            "nativeTimelineMediaReadbackComplete": bool(timeline_media) and all(
+                item["physicalReadback"] == "VERIFIED" for item in timeline_media),
             "sources": [{"path": str(p), "digest": digest(p)}
                         for p in inputs + ([otio] if otio else []) + ([audio] if audio else [])],
             "deliverables": [{"path": str(p), "digest": digest(p), "size": p.stat().st_size}

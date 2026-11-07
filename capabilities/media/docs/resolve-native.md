@@ -114,3 +114,49 @@ subtitle timing and color in Resolve/Fairlight; output approval is distinct
 from publishing to a particular provider and reading back its receipt.
 Keep only the selected editable source, accepted output and supporting
 consumer evidence. Do not retain every disposable render or test project.
+
+## Parameterized native Color CDL and loaded-source evidence
+
+The one-shot native producer now accepts the ASC-style CDL controls
+`--grade-slope R,G,B`, `--grade-offset R,G,B`,
+`--grade-power R,G,B`, plus `--grade-saturation N`. Each component
+must be finite. Unspecified channels use neutral RGB defaults, and no
+grade is applied unless an explicit grade argument is supplied.
+This is implemented by Resolve's installed `TimelineItem.SetCDL`,
+not an Ordivon color-correction engine. Other Color-page operations
+remain with the native application.
+
+Example using an existing OTIO timeline, audio and explicit color intent:
+
+```powershell
+python scripts/resolve-native-produce.py --otio C:\media\cut.otio `
+  --source-clips-dir C:\media\sources --audio C:\media\voice.wav `
+  --output-dir C:\media\delivery --name cut-02 `
+  --grade-slope 1.08,1.04,1.02 --grade-offset 0.01,0,0 `
+  --grade-power 1,0.98,1.02 --grade-saturation 1.08 `
+  --min-timeline-frames 96
+```
+
+The script reads back each timeline clip through Resolve's official
+`TimelineItem.GetMediaPoolItem()` and
+`MediaPoolItem.GetClipProperty("File Path")`; if the reported
+file exists, it records its SHA-256 as
+`nativeTimelineMediaReadback[].sourceDigest`. The
+`nativeTimelineMediaReadbackComplete` boolean means every observed
+timeline item's file was available and hashed. It is *not* proof that
+every external reference in the original OTIO has been interpreted
+identically, so `otioMediaReferencesIndependentlyVerified` continues
+to be false until the original OTIO/selected Assets are reconciled.
+Compare each observed digest against the selected Production's
+allowed Blob identities before claiming editorial source fidelity.
+The receipt keeps `schemaVersion=1` and the existing fields.
+
+Observed Windows Session 1 acceptance: Resolve Studio 21.0.3.7
+rendered two OTIO-referenced shots and a selected audio track
+under a non-neutral four-control CDL. Runtime Job
+`job-01a1b583-709d-7ca1-bf2f-428c1c0373a4` committed;
+independent FFprobe and SHA-256 readback Job
+`job-01a1b586-66da-7df3-9b17-778f1c249772` confirmed
+a 4.010667 s H.264/AAC MP4, three physically verified timeline
+source files and both output digests. This is a bounded native
+technical demonstration, not a platform publish.

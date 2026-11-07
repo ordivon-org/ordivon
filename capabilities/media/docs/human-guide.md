@@ -147,3 +147,17 @@ are separate states. Use the existing Creative Library index for discovery
 and `assets.py`/selected CAS or R2 for recovery, never as extra editorial
 truth stores. Discard unselected preview renders and scratch once no consumer
 references remain; do not delete masters or system directories by name alone.
+
+## Human: applying and evaluating a precise native grade
+
+Use the supported `--grade-slope`, `--grade-offset`,
+`--grade-power` and `--grade-saturation` inputs with
+`scripts/resolve-native-produce.py` for an isolated Resolve
+project. They map directly to the official Color CDL operation.
+Read `gradeCDL` in the receipt, inspect the real render on a
+calibrated display appropriate to the selected output, and retain
+the editable DRP. The receipt also shows which files Resolve
+actually loaded into its video and audio tracks. Source digest
+verification and independent FFprobe observations cannot
+substitute for creative color review or published-platform
+readback. No approval is manufactured by the script.

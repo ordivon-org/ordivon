@@ -104,3 +104,22 @@ The installed scripting README is the API authority; the semantic
 Each operation is a R2.1 LEGO with an externally owned effect, specific
 pre/post/invariants, content digests and observable result. A successful
 Runtime process does not establish semantic acceptance or release.
+
+## Native grade and actual media proof obligations
+
+For color edits supply only the non-neutral parameters justified by
+the caller, using `--grade-slope R,G,B`,
+`--grade-offset R,G,B`, `--grade-power R,G,B`, and/or
+`--grade-saturation N`. The producer delegates to Resolve's
+`SetCDL` with neutral defaults, and emits `gradeCDL` in its
+versioned receipt. Never infer target look or display correctness
+from successful API dispatch.
+
+Consume `nativeTimelineMediaReadback` as evidence of what Resolve
+actually loaded. `nativeTimelineMediaReadbackComplete=true` proves
+only that observed native timeline items resolved to readable,
+digest-verified files at execution time. Compare each `sourceDigest`
+with the selected Production's authorized Blob sources; preserve
+`UNKNOWN` when inaccessible. This observation does not elevate the
+OTIO file's own reference semantics to independent proof and does
+not approve the film or publish it.
