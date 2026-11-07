@@ -112,3 +112,13 @@ For programmatic Agent instructions, use [Media Agent guide](../AGENTS.md). This
 Use [Resolve's installed native API](resolve-native.md) in the approved interactive
 Windows session. The previous embedded Ordivon menu Runner and CLI staging
 bridge are retired. An independent OTIO probe does not prove a Studio edit.
+## Produce an editable native Resolve cut
+
+With selected local source media and a logged-in Resolve session, invoke
+`scripts/resolve-native-produce.py --visual SOURCE --audio VOICE --output-dir OUT --name CUT`.
+Repeat `--visual` for sequential scenes; add `--grade-saturation` to apply
+Resolve's actual Color CDL. Outputs: `.mp4`, editable `.drp`, and digest receipt.
+Read the exact invocation, session requirements and optional preview flags
+in [Resolve native production](resolve-native.md). For new shots or more
+complex Fusion/Fairlight work, extend the project with official Resolve APIs
+instead of introducing another Ordivon menu Runner.
