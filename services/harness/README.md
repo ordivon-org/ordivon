@@ -43,6 +43,36 @@ The caller binds one exact `HarnessRunContract`. Higher-level planning, resource
 
 It does **not** build the Agent's world model, decide which evidence is important, or decide whether a domain objective is finally satisfied.
 
+## PostgreSQL persistence direction (PG-first)
+
+Harness's long-term persistence backend is **PostgreSQL only**. PG owns the
+Harness Journal, content-addressed objects (`BYTEA` with verified canonical
+hashes), Run projections, and revision-fenced leases in an explicitly
+provisioned Harness schema. Host and Runtime retain their separate authority;
+shared database technology is *not* shared domain truth.
+
+The first consumer-qualified PG path is
+`PostgresHarnessStore(dsn, schema="harness", initialize=False)`, and the
+supported `HarnessAgentRun.create_postgres(...)` / `open_postgres(...)` APIs.
+The operator must provision the named Harness schema and supply the DSN; the
+Run API never silently creates a database, switches to SQLite, or dual-writes.
+A fresh test schema can be initialized explicitly with `initialize=True`.
+
+Run `HARNESS_PG_TEST_DSN='...' mise run pg:verify` against a dedicated
+PostgreSQL test database. The tests use separate temporary schemas and check
+real two-connection leases, atomic event admission, exact replay, H06
+cognition replan/commit, H04 Tool receipt fencing, and supported Run
+pause/reopen/resume. No real PostgreSQL service means **not qualified**, not
+an automatic success.
+
+**Cutover boundary:** the historic file-backed Store and its existing CLI
+callers have not all been retired. The default pre-existing `create/open`
+entrypoints remain legacy SQLite consumers during the transition. The new
+PG entrypoints are the migration target, but this does **not** yet establish
+installed PG-only operation, source-to-install refinement, or safe deletion of
+SQLite code. Delete those paths only after every real consumer is switched
+and PostgreSQL recovery/fault-injection checks remain green.
+
 ## Why Harness exists
 
 Consider a Tool-bearing Run:
