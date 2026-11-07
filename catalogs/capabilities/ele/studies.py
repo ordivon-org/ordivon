@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from relations import Reference, all_references
+
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA = Path(__file__).with_name("schema.sql")
 SOURCES = (
@@ -28,6 +30,44 @@ SOURCES = (
     ("research_evidence", "catalogs/knowledge/evidence/acceptance/*.json"),
     ("authority_map", "catalogs/capabilities/authority-map-r1.md"),
     ("research_package", "catalogs/capabilities/RESEARCH_CAPABILITY_PACKAGE_R1.md"),
+    # Curated cross-Owner research, read-only projections; execution stays with the Owner.
+    (
+        "artifact_decomposition",
+        "capabilities/artifact/docs/ARTIFACT_CAPABILITY_DECOMPOSITION_WAVE_A*.md",
+    ),
+    (
+        "artifact_decomposition",
+        "capabilities/artifact/docs/ARTIFACT_REDECOMPOSITION_R1.md",
+    ),
+    (
+        "preservation_comparison",
+        "capabilities/preservation/docs/creative-preservation-external-composition-r1.md",
+    ),
+    (
+        "preservation_comparison",
+        "capabilities/preservation/docs/creative-preservation-standards-migration-r8.md",
+    ),
+    (
+        "finance_qualification",
+        "domains/capital/docs/EXTERNAL_IMPLEMENTATION_QUALIFICATION_R1.md",
+    ),
+    (
+        "finance_qualification",
+        "domains/capital/docs/ORDIVON_CAPITAL_EXTERNAL_OWNER_CENSUS_R1.md",
+    ),
+    (
+        "research_qualification",
+        "profiles/research/tool-qualification/TOOL_QUALIFICATION_R1.md",
+    ),
+    ("research_qualification", "profiles/research/tool-qualification/examples/*.json"),
+    ("network_comparison", "platform/network/docs/DECISION_MATRIX.md"),
+    (
+        "harness_comparison",
+        "services/harness/docs/BROWSER_DECISION_PROVIDER_DUEL_R1.md",
+    ),
+    ("harness_comparison", "services/harness/docs/LAYA_ARCHITECTURE_DUEL_R1.md"),
+    ("harness_comparison", "services/harness/docs/BROWSER_CAPABILITY_ROUTER_R1.md"),
+    ("media_research", "capabilities/media/research/expression/*.md"),
 )
 HEADING = re.compile(r"^(#{1,6})[ \t]+(.+?)\s*$")
 FENCE = re.compile(r"^[ \t]*(" + chr(96) + r"{3,}|~{3,})")
@@ -250,7 +290,9 @@ def connect() -> Any:
     return psycopg.connect(dsn, connect_timeout=8)
 
 
-def verify_cursor(cur: Any, studies: list[Study]) -> dict[str, int]:
+def verify_cursor(
+    cur: Any, studies: list[Study], references: dict[str, tuple[Reference, ...]]
+) -> dict[str, int]:
     expected = {
         s.study_id: (s.sha256, s.source_path, s.title, len(s.sections)) for s in studies
     }
@@ -313,15 +355,53 @@ def verify_cursor(cur: Any, studies: list[Study]) -> dict[str, int]:
         raise ValueError(
             f"ELE PG section readback failed missing={missing}, changed={wrong}"
         )
+    expected_refs = {
+        (study.study_id, ref.ordinal): (
+            ref.section_ordinal,
+            ref.relation,
+            ref.locator,
+            ref.target,
+            ref.target_study_id,
+        )
+        for study in studies
+        for ref in references[study.study_id]
+    }
+    cur.execute(
+        """SELECT r.study_id,r.ordinal,r.section_ordinal,r.relation,
+                  r.locator,r.target,r.target_study_id
+           FROM ele.study_references AS r
+           JOIN ele.study_heads AS h
+             ON h.study_id=r.study_id AND h.sha256=r.sha256
+           WHERE h.present"""
+    )
+    actual_refs = {
+        (sid, ordinal): (section, relation, locator, target, target_id)
+        for sid, ordinal, section, relation, locator, target, target_id in cur.fetchall()
+    }
+    if actual_refs != expected_refs:
+        missing = sorted(expected_refs.keys() - actual_refs.keys())[:5]
+        wrong = sorted(
+            key
+            for key in expected_refs.keys() & actual_refs.keys()
+            if expected_refs[key] != actual_refs[key]
+        )[:5]
+        raise ValueError(
+            f"ELE PG source-reference readback mismatch missing={missing}, changed={wrong}"
+        )
     cur.execute("SELECT count(*) FROM ele.study_versions")
     return {
         "current_studies": len(actual),
         "current_sections": sum(value[1] for value in actual.values()),
+        "current_references": len(actual_refs),
         "retained_versions": cur.fetchone()[0],
     }
 
 
-def migrate(studies: list[Study], revision: str) -> dict[str, Any]:
+def migrate(
+    studies: list[Study],
+    revision: str,
+    references: dict[str, tuple[Reference, ...]],
+) -> dict[str, Any]:
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise ValueError("exact Git source revision required")
     if not studies:
@@ -334,6 +414,7 @@ def migrate(studies: list[Study], revision: str) -> dict[str, Any]:
         )
         added = 0
         sections_added = 0
+        references_rebuilt = 0
         for study in studies:
             cur.execute(
                 """INSERT INTO ele.study_versions
@@ -369,6 +450,46 @@ def migrate(studies: list[Study], revision: str) -> dict[str, Any]:
                 )
                 sections_added += cur.rowcount
             cur.execute(
+                """SELECT ordinal,section_ordinal,relation,locator,target,target_study_id
+                   FROM ele.study_references
+                   WHERE study_id=%s AND sha256=%s ORDER BY ordinal""",
+                (study.study_id, study.sha256),
+            )
+            expected = [
+                (
+                    ref.ordinal,
+                    ref.section_ordinal,
+                    ref.relation,
+                    ref.locator,
+                    ref.target,
+                    ref.target_study_id,
+                )
+                for ref in references[study.study_id]
+            ]
+            if cur.fetchall() != expected:
+                cur.execute(
+                    "DELETE FROM ele.study_references WHERE study_id=%s AND sha256=%s",
+                    (study.study_id, study.sha256),
+                )
+                for ref in references[study.study_id]:
+                    cur.execute(
+                        """INSERT INTO ele.study_references
+                           (study_id,sha256,ordinal,section_ordinal,relation,
+                            locator,target,target_study_id)
+                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
+                        (
+                            ref.study_id,
+                            ref.sha256,
+                            ref.ordinal,
+                            ref.section_ordinal,
+                            ref.relation,
+                            ref.locator,
+                            ref.target,
+                            ref.target_study_id,
+                        ),
+                    )
+                references_rebuilt += len(expected)
+            cur.execute(
                 """INSERT INTO ele.study_heads (study_id,sha256,source_cut,present)
                    VALUES (%s,%s,%s,true)
                    ON CONFLICT (study_id) DO UPDATE
@@ -380,10 +501,11 @@ def migrate(studies: list[Study], revision: str) -> dict[str, Any]:
             "UPDATE ele.study_heads SET present=false WHERE present AND source_cut <> %s",
             (revision,),
         )
-        report = verify_cursor(cur, studies)
+        report = verify_cursor(cur, studies, references)
         report.update(
             new_versions=added,
             new_sections=sections_added,
+            references_rebuilt=references_rebuilt,
             source_cut=revision,
         )
     return report
@@ -391,6 +513,7 @@ def migrate(studies: list[Study], revision: str) -> dict[str, Any]:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     studies = gather()
+    references = all_references(studies, ROOT)
     if args.action == "plan":
         counts: dict[str, int] = {}
         for study in studies:
@@ -399,19 +522,78 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "source_cut": source_cut(),
             "studies": len(studies),
             "sections": sum(len(study.sections) for study in studies),
+            "references": sum(len(group) for group in references.values()),
             "kinds": counts,
         }
     if args.action == "migrate":
         verify_source_cut(studies)
-        return migrate(studies, source_cut())
+        return migrate(studies, source_cut(), references)
     with connect() as conn, conn.cursor() as cur:
         if args.action == "verify":
-            return verify_cursor(cur, studies)
+            return verify_cursor(cur, studies, references)
         if args.action == "stats":
             cur.execute(
                 "SELECT kind,count(*) FROM ele.current_studies GROUP BY kind ORDER BY kind"
             )
-            return {"kinds": dict(cur.fetchall())}
+            by_kind = dict(cur.fetchall())
+            cur.execute(
+                """SELECT count(*) FROM ele.study_references AS r
+                   JOIN ele.study_heads AS h
+                     ON h.study_id=r.study_id AND h.sha256=r.sha256
+                   WHERE h.present"""
+            )
+            return {"kinds": by_kind, "references": cur.fetchone()[0]}
+        if args.action == "links":
+            if not args.id:
+                raise SystemExit("--id is required")
+            cur.execute(
+                """SELECT source_path,last_observed_source_cut,sha256
+                   FROM ele.current_studies WHERE study_id=%s""",
+                (args.id,),
+            )
+            source = cur.fetchone()
+            if not source:
+                raise SystemExit(f"study missing: {args.id}")
+            cur.execute(
+                """SELECT r.relation,r.locator,r.target,r.target_study_id,
+                          r.section_ordinal
+                   FROM ele.study_references AS r
+                   JOIN ele.study_heads AS h
+                     ON h.study_id=r.study_id AND h.sha256=r.sha256
+                   WHERE h.present AND r.study_id=%s ORDER BY r.ordinal""",
+                (args.id,),
+            )
+            outgoing = [
+                {
+                    "relation": rel,
+                    "locator": loc,
+                    "target": target,
+                    "study_id": sid,
+                    "section": section,
+                }
+                for rel, loc, target, sid, section in cur.fetchall()
+            ]
+            cur.execute(
+                """SELECT r.study_id,r.relation,r.locator,r.section_ordinal
+                   FROM ele.study_references AS r
+                   JOIN ele.study_heads AS h
+                     ON h.study_id=r.study_id AND h.sha256=r.sha256
+                   WHERE h.present AND r.target=%s
+                   ORDER BY r.study_id,r.ordinal""",
+                (source[0],),
+            )
+            incoming = [
+                {"study_id": sid, "relation": rel, "locator": loc, "section": section}
+                for sid, rel, loc, section in cur.fetchall()
+            ]
+            return {
+                "id": args.id,
+                "source_path": source[0],
+                "source_cut": source[1],
+                "sha256": source[2],
+                "outgoing": outgoing,
+                "incoming": incoming,
+            }
         if args.action == "show":
             if not args.id:
                 raise SystemExit("--id is required")
@@ -461,14 +643,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                      ON s.study_id=h.study_id AND s.sha256=h.sha256
                    JOIN ele.study_versions AS v
                      ON v.study_id=h.study_id AND v.sha256=h.sha256
-                   WHERE h.present AND
+                   WHERE h.present AND (%s IS NULL OR v.kind=%s) AND
                      (to_tsvector('simple',s.body) @@ plainto_tsquery('simple',%s)
                       OR s.body ILIKE ('%%' || %s || '%%'))
                    ORDER BY s.study_id,s.ordinal LIMIT %s""",
-                (args.query, args.query, args.limit),
+                (args.kind, args.kind, args.query, args.query, args.limit),
             )
             return {
                 "query": args.query,
+                "kind": args.kind,
                 "matches": [
                     {
                         "id": sid,
@@ -488,10 +671,12 @@ def main() -> None:
         description="Ordivon ELE project study PG projection"
     )
     parser.add_argument(
-        "action", choices=("plan", "migrate", "verify", "stats", "show", "search")
+        "action",
+        choices=("plan", "migrate", "verify", "stats", "show", "search", "links"),
     )
     parser.add_argument("--id")
     parser.add_argument("--query")
+    parser.add_argument("--kind")
     parser.add_argument("--limit", type=int, default=20)
     args = parser.parse_args()
     if not 1 <= args.limit <= 100:

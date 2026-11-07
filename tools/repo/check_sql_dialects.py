@@ -502,13 +502,14 @@ def check(root: Path) -> tuple[list[str], list[str]]:
                         f"PostgreSQL fresh-epoch DDL statement structure changed: {name}"
                     )
             elif name == POSTGRESQL_ELE_STUDY_SCHEMA:
-                # This PG-only Catalog read model is a schema, three source/section/head
-                # tables, a native FTS index and a read view. No DROP, GRANT, or
-                # cross-Owner schema mutation belongs in this source.
+                # This PG-only Catalog read model is a schema, four
+                # source/section/head/reference tables, two native indexes,
+                # and one read view. No DROP, GRANT or cross-Owner schema
+                # mutation belongs in this source.
                 observed = tuple(type(statement.stmt).__name__ for statement in parsed)
                 if observed != (
                     "CreateSchemaStmt", "CreateStmt", "CreateStmt", "CreateStmt",
-                    "IndexStmt", "ViewStmt",
+                    "CreateStmt", "IndexStmt", "IndexStmt", "ViewStmt",
                 ):
                     issues.append(f"ELE PostgreSQL schema structure changed: {name}")
             elif len(parsed) != 1:
