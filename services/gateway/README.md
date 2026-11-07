@@ -36,17 +36,16 @@ artifact bytes or installed behavior. No global registry or second PEP exists.
   separately. Do not retire concrete auth tests until a real Python-to-model
   refinement proof exists.
 
-LEGO R2.1 thought-contract B02:
-`I` = Gateway-derived target, verified ingress identity and Security decision;
-`O` = forward or reject;
-`S` = abstract PEP phase and bounded decision evidence;
-`pre` = target derives from protected Gateway routing, not caller identity;
-`post` = forwarding implies exact qualified binding and v2 delegated effects
-or v3 nondelegating AuthZEN evidence;
+R2.1 thought-LEGO B02 — SOURCE_CANDIDATE, not independently ADMITTED or CODE_REFINED:
+`I` = protected-call tuple (Gateway-derived target, ingress evidence, PDP decision);
+`O` = Forwarded | Rejected(reason), an abstract tagged result;
+`S` = finite PEPPhase × target/ingress/binding/evidence flags;
+`pre` = protected artifact.read call; Tool-supplied identity is nonauthoritative and PDP input may be invalid;
+`post` = Forwarded implies exact qualified binding and either v2 admitted delegated evidence or v3 valid nondelegating AuthZEN proof;
 `inv` = the four TLC safety properties;
-`eff` = none in the model (forwarded represents a call, not a real effect);
-`c` = finite-state model checking, no quantified runtime bound;
-`epsilon` = abstraction gap to Python, PDP, external effects and installed code;
+`eff` = abstract downstream call_next transition; the Python implementation can perform external effects, unproved by this model;
+`c` = UNKNOWN(real PDP/provider latency and cost; only finite TLC exploration measured);
+`epsilon` = UNKNOWN(concrete Python-to-TLA abstraction/refinement error, PDP and installed effects);
 `prov` = TLC v1.7.4 plus current Git and native Gateway consumer tests;
 `unfold` = specification → TLC exploration/counterexamples → Python
 implementation readset → live Gateway consumer qualification.
