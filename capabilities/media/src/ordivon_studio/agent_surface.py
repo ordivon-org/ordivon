@@ -21,7 +21,7 @@ def tool_definitions() -> list[dict[str, Any]]:
     return [
         {
             "name": "studio_dependencies_status",
-            "description": "Observe whether Studio JavaScript, core Python, and Resolve Python dependencies are exactly materialized in this Workspace. This never installs anything.",
+            "description": "Observe whether Studio JavaScript and core Python dependencies are exactly materialized in this Workspace. This never installs anything.",
             "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
         },
         {
@@ -29,7 +29,7 @@ def tool_definitions() -> list[dict[str, Any]]:
             "description": "Compile an explicit dependency-materialization proposal for one missing Studio capability. It does not execute the acquisition; ordinary execution must never acquire implicitly.",
             "inputSchema": {
                 "type": "object",
-                "properties": {"target": {"type": "string", "enum": ["js", "python", "resolve"]}},
+                "properties": {"target": {"type": "string", "enum": ["js", "python"]}},
                 "required": ["target"],
                 "additionalProperties": False,
             },

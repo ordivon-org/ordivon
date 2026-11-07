@@ -40,7 +40,6 @@ class AgentSurfaceTests(unittest.TestCase):
                 "schemaVersion": 1,
                 "kind": "ordivon.studio-python-materialization-receipt",
                 "inputs": inputs,
-                "extras": ["resolve"],
                 "python": "Python 3.12.13",
                 "uv": "uv test",
             }),
@@ -141,7 +140,7 @@ class AgentSurfaceTests(unittest.TestCase):
                 self.assertTrue(state["js"]["ready"])
                 self.assertTrue(state["js"]["resolverChecked"])
                 self.assertTrue(state["python"]["ready"])
-                self.assertTrue(state["resolve"]["ready"])
+                self.assertNotIn("resolve", state)
                 (root / "uv.lock").write_text("changed\n", encoding="utf-8")
                 stale = dependency_status(root)
             self.assertEqual(stale["python"]["reason"], "PYTHON_RECEIPT_STALE")
@@ -164,12 +163,13 @@ class AgentSurfaceTests(unittest.TestCase):
                 (root / name).write_text("x\n", encoding="utf-8")
             js = dependency_proposal("js", root)
             python = dependency_proposal("python", root)
-            resolve = dependency_proposal("resolve", root)
             self.assertTrue(js["effectRequired"])
             self.assertEqual(js["plan"]["executable"], shutil.which("pnpm"))
             self.assertEqual(js["plan"]["args"], ["install", "--frozen-lockfile"])
             self.assertEqual(python["plan"]["executable"], "/usr/bin/python3")
-            self.assertEqual(resolve["plan"]["args"], ["scripts/materialize-python.py", "--extra", "resolve"])
+            self.assertEqual(python["plan"]["args"], ["scripts/materialize-python.py"])
+            with self.assertRaisesRegex(ValueError, "dependency target must be js or python"):
+                dependency_proposal("resolve", root)
 
     def test_production_standing_enumerates_identity_without_inventing_current_intent(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

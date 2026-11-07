@@ -50,7 +50,6 @@ def main() -> int:
         "schemaVersion": 1,
         "kind": "ordivon.studio-python-materialization-receipt",
         "inputs": {name: digest(ROOT / name) for name in INPUTS},
-        "extras": [],
         "uv": command_output([uv, "--version"]),
         "python": command_output([str(python), "--version"]),
     }
