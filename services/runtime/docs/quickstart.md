@@ -124,7 +124,7 @@ manifest="$candidate/ordivon-deployment-manifest.json"
 cargo=$(command -v cargo)
 
 scripts/ordivon-runtime-deploy prepare \
-  --source-repo "$repo" \
+  --source-repo "$git_root" \
   --commit "$commit" \
   --candidate-dir "$candidate" \
   --candidate-manifest "$manifest" \
@@ -169,7 +169,7 @@ The exact Tool names and descriptions are generated in [`reference/tools.md`](re
 ## 8. Recover or remove
 
 - Reconnect to existing work through `workspace.list`, `workspace.get`, `job.list`, and `job.observe`.
-- Observe one Workspace locally without reconciliation with `ordivon-runtime-inspect workspace --database /var/lib/ordivon/registry/registry.sqlite3 --store-root /var/lib/ordivon/runtime --workspace-id <workspace> --pretty`; use ordinary `watch -n 1` when repeated terminal refresh is useful.
+- For a **verified legacy SQLite-backed instance only**, observe one Workspace locally without reconciliation with `ordivon-runtime-inspect workspace --database /var/lib/ordivon/registry/registry.sqlite3 --store-root /var/lib/ordivon/runtime --workspace-id <workspace> --pretty`. This CLI path does **not** inspect a PostgreSQL Registry; for a PG instance use its native `workspace.get`, `job.get` and `job.list` projections.
 - Back up and restore through `scripts/backup.py` and `scripts/restore.py`.
 - Repair only through the documented doctor/repair sequence in [`recovery.md`](recovery.md).
 - Release Workspaces through `workspace.close` or the receipted lifecycle tools, never by deleting directories directly.

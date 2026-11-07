@@ -39,7 +39,7 @@ This document states the stable public maturity, supported environment, known li
 
 ## Errors
 
-This page is not live state. It must not be used to infer active Jobs, installed release-artifact digests and modes, current storage size, service health, or semantic Task completion.
+This page is not live state. It must not be used to infer active Jobs, installed release-artifact digests and modes, current storage size, service health, or semantic Task completion. The 2026-11-07 [owner audit](audits/2026-11-07-runtime-owner-audit.md) found both active Linux Runtime services running PG-native executables despite a historically named systemd unit; the Windows Runtime code and backend must be qualified separately. It is not evidence that the whole fleet uses PostgreSQL.
 
 ## Compatibility
 
