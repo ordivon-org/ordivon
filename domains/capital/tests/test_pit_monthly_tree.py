@@ -206,6 +206,27 @@ class MonthlyTree(unittest.TestCase):
             self.assertGreaterEqual(
                 solution["concavity_global_utility_gap_upper"], 0,
             )
+            # Independent stdlib implementation checks cashflows and
+            # rejects fabricated economic profit independently of SciPy.
+            from ordivon_capital.research.independent_policy_replay import (
+                EconomicReplayMismatch,
+                replay_multistage_json,
+            )
+            verified = replay_multistage_json(
+                data["optimizer_input"], solution,
+            )
+            self.assertEqual(
+                verified["standing"],
+                "INDEPENDENT_STDLIB_CASHFLOW_REPLAY_NOT_OPTIMALITY_CERTIFICATE",
+            )
+            self.assertEqual(
+                verified["terminal_node_count"], len(terminal_ids),
+            )
+            self.assertLess(verified["max_identity_residual_r"], 1e-6)
+            falsified = dict(solution)
+            falsified["expected_terminal_r"] = solution["expected_terminal_r"] + .1
+            with self.assertRaises(EconomicReplayMismatch):
+                replay_multistage_json(data["optimizer_input"], falsified)
             # Missing terminal obligations are not silently filled with zero.
             missing = dict(payload)
             missing["terminal_liabilities_r"] = {

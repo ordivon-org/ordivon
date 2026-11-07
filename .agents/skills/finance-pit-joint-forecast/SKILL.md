@@ -117,3 +117,12 @@ The output labels monthly historical allocations
 `STRUCTURAL_HISTORICAL_PATH_POLICY_NUMERIC_NOT_PREDICTIVE`.
 The numeric optimization is a synthetic/conditional policy valuation, never
 prospective alpha, broker authorization or a booked Paper result.
+
+
+For every reported monthly conditional_allocation, independently replay
+optimizer_input and conditional_allocation through
+research.independent_policy_replay.replay_multistage_json. This recomputes
+cashflow identities, pre-deposit margin, terminal claims and utility using
+only the Python standard library, and rejects fabricated profits. It does
+not certify predictive probabilities, brokerage liquidation behavior or
+the numerical solver's global optimality upper bound.
