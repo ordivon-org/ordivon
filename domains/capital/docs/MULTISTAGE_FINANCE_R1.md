@@ -90,6 +90,23 @@
 调用：`solve_multistage(problem)`，无写入副作用。
 输出：每个信息节点的风险资产/现金/债务/费用 r、每个终端路径的权益与概率、期望终值 r、CRRA 确定性等价终值 r、现金流笔数、**可行性残差与全局效用上界残差**。
 
+**实际只读消费者，不新建执行平台：**
+
+    cd domains/capital
+    PYTHONPATH=src uv run --no-sync python -m ordivon_capital.portfolio.multistage_policy --input /path/to/authoritatively_supplied_tree.json
+
+输入 JSON 顶层必须严格只有 `gamma` 与 `nodes`。每个 nodes 项是
+`InformationNode` 的公开字段：`id`、`parent`、`t`、
+`conditional_probability`、`risky_gross`、`cash_gross`、
+`debt_gross`、`maintenance`、`initial_margin`、
+`turnover_cost`、`terminal`、`observed_label`。
+利率、概率、保证金与效用**不设政策默认值**；
+没有来源核验的数据明确标注为
+`CALLER_SUPPLIED_NOT_MARKET_ATTESTED`，经济效果状态明确为
+`READ_ONLY_NO_BROKER_NO_PAPER_LEDGER`。
+CLI 只写标准输出 JSON，无下单、账户读写、自动市场预测或数据库修改。
+
+
 源级数学检验：`domains/capital/formal/MultistageOneRCashflowR1.smt2`，Z3 预期 **UNSAT×5、SAT×1**：
 - 同根两枝分别新增 1r，正确资金守恒；
 - 终端资产收益与借款收益分别进入财富；

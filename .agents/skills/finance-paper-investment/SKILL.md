@@ -47,6 +47,12 @@ conditional probabilities. It separately reports feasible contract residuals,
 terminal wealth and an independent LP supporting-hyperplane bound on
 numerical utility optimality; neither proves a trusted market forecast.
 When circumstances do not support that tree, keep output UNKNOWN.
+Use the existing Python module consumer with an exact `gamma`/`nodes` JSON
+contract, not a bespoke service: `PYTHONPATH=src uv run --no-sync python -m
+ordivon_capital.portfolio.multistage_policy --input path/to/tree.json`.
+It returns only caller-supplied (unattested) research standing and a
+non-execution effect status. Never interpret its optimized r balances as a
+broker or Paper Ledger receipt.
 `solve_one_period` is a conditional one-period CRRA solution;
 intertemporal monthly cashflows still require genuine Bellman/MPC evidence.
 Never route research output into live or Paper execution without an

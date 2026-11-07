@@ -470,3 +470,70 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         inequality_residual=inequality_error,
         concavity_global_utility_gap_upper=gap,
     )
+
+def main() -> int:
+    """Existing Runtime native Python module consumer, not an execution API.
+
+    JSON shape:
+      {"gamma": positive_real, "nodes": [InformationNode field objects...]}
+    No return forecasts/borrowing terms or investor gamma are invented.
+    """
+    import argparse
+    import dataclasses
+    import json
+    import sys
+
+    parser = argparse.ArgumentParser(
+        description="Read-only finite-scenario 1r CRRA multi-period research"
+    )
+    parser.add_argument("--input", type=str, default="-")
+    args = parser.parse_args()
+    try:
+        if args.input == "-":
+            payload = json.load(sys.stdin)
+        else:
+            from pathlib import Path as _Path
+
+            with _Path(args.input).open(encoding="utf-8") as f:
+                payload = json.load(f)
+        if not isinstance(payload, dict) or set(payload) != {"gamma", "nodes"}:
+            raise AlgebraicPolicyError("expected only gamma and nodes")
+        if not isinstance(payload["nodes"], list):
+            raise AlgebraicPolicyError("nodes must be a JSON list of information sets")
+        allowed = set(InformationNode.__dataclass_fields__)
+        nodes = []
+        for raw in payload["nodes"]:
+            if not isinstance(raw, dict) or set(raw) - allowed:
+                raise AlgebraicPolicyError("unknown JSON information node fields")
+            normalized = dict(raw)
+            for key in (
+                "risky_gross", "maintenance", "initial_margin", "turnover_cost"
+            ):
+                if key in normalized:
+                    if not isinstance(normalized[key], list):
+                        raise AlgebraicPolicyError(f"{key} must be JSON array")
+                    normalized[key] = tuple(normalized[key])
+            nodes.append(InformationNode(**normalized))
+        result = solve_multistage(
+            MultistageProblem(gamma=payload["gamma"], nodes=tuple(nodes))
+        )
+    except (ValueError, TypeError, KeyError) as exc:
+        parser.error(f"invalid economic research input: {exc}")
+    print(
+        json.dumps(
+            {
+                "standing": result.standing,
+                "inputStanding": "CALLER_SUPPLIED_NOT_MARKET_ATTESTED",
+                "effectStanding": "READ_ONLY_NO_BROKER_NO_PAPER_LEDGER",
+                "model": "MULTISTAGE_MONTHLY_ONE_R_CONDITIONAL_CRRA",
+                "solution": dataclasses.asdict(result),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

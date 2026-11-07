@@ -232,3 +232,61 @@ def test_two_asset_joint_states_observe_only_current_branch_and_margin() -> None
     assert sol.equality_residual < 1e-7
     assert sol.inequality_residual < 1e-7
     assert sol.concavity_global_utility_gap_upper < 1e-5
+
+def test_native_module_consumer_accepts_exact_json_and_no_execution_authority() -> None:
+    import dataclasses
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    # Pytest adds src to sys.path via pythonpath config, but an independent
+    # Runtime child process needs the same explicit native source binding.
+    src = str(Path(__file__).resolve().parents[1] / "src")
+    inherited = os.environ.get("PYTHONPATH")
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = src + (
+        os.pathsep + inherited if inherited else ""
+    )
+    payload = {
+        "gamma": 2,
+        "nodes": [
+            dataclasses.asdict(root()),
+            dataclasses.asdict(
+                terminal(
+                    "terminal", "root", 1, 1, .8,
+                    cash=1.03, debt=1.04,
+                )
+            ),
+        ],
+    }
+    command = [
+        sys.executable,
+        "-m",
+        "ordivon_capital.portfolio.multistage_policy",
+        "--input",
+        "-",
+    ]
+    result = subprocess.run(
+        command,
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        check=True,
+        env=environment,
+    )
+    observed = json.loads(result.stdout)
+    assert observed["inputStanding"] == "CALLER_SUPPLIED_NOT_MARKET_ATTESTED"
+    assert observed["effectStanding"] == "READ_ONLY_NO_BROKER_NO_PAPER_LEDGER"
+    assert observed["solution"]["contributions_r_per_path"] == 1
+    assert observed["solution"]["expected_terminal_r"] == pytest.approx(
+        1.03, abs=1e-6
+    )
+    assert observed["solution"]["root_debt_r"] < 1e-6
+    missing = subprocess.run(
+        command, input='{"nodes":[]}', text=True,
+        capture_output=True, check=False, env=environment,
+    )
+    assert missing.returncode != 0
+    assert "expected only gamma and nodes" in missing.stderr
