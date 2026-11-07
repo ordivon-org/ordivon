@@ -73,6 +73,11 @@ Network v2 from those three management roots. An injected Runtime-to-Network
 edge is rejected by the same proof. The scope explicitly excludes native
 installed units/drop-ins, aliases, network-online.target internals and actual
 process behavior; check those with native systemd and real consumers.
+The three management Unit source locators are exact read-only cross-Owner
+proof input seams declared in the existing repository boundary policy
+(`tools/repo/dependency_contracts.toml`), not permission for Network to
+control Runtime, Host or Gateway. An Owner relocation invalidates the proof
+until the source binding is updated and requalified.
 
 This proof does NOT cover Chrome mixed/public-web policy, physical Gluetun,
 Unicode/IDN normalization, IP literals, UDP, DNS/DoH, installed/loaded
