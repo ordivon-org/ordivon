@@ -8,11 +8,6 @@ dependencies = [
   "psycopg[binary]>=3,<4",
 ]
 
-[project.optional-dependencies]
-resolve = [
-  "opentimelineio==0.18.1",
-]
-
 [project.scripts]
 ordivon-studio = "ordivon_studio.cli:main"
 

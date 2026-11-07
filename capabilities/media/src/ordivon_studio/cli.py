@@ -37,15 +37,6 @@ from .cli_handlers.media import (
     _command_review_video,
     _command_timed_text,
 )
-from .cli_handlers.resolve import (
-    _command_resolve_install,
-    _command_resolve_paths,
-    _command_resolve_prepare_assembly_conform,
-    _command_resolve_prepare_compatibility,
-    _command_resolve_prepare_probe,
-    _command_resolve_prepare_smoke,
-    _command_resolve_result,
-)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -240,62 +231,6 @@ def build_parser() -> argparse.ArgumentParser:
     figma_route.add_argument("--prefer-remote", action="store_true")
     figma_route.set_defaults(handler=_command_figma_route)
 
-    resolve_parser = commands.add_parser("resolve", help="operate the DaVinci Resolve-specific adapter")
-    resolve_commands = resolve_parser.add_subparsers(dest="resolve_command", required=True)
-
-    resolve_paths = resolve_commands.add_parser("paths", help="show discovered Windows adapter paths")
-    resolve_paths.set_defaults(handler=_command_resolve_paths)
-
-    resolve_install = resolve_commands.add_parser("install", help="install the internal Resolve menu runner")
-    resolve_install.add_argument("--scripts-directory")
-    resolve_install.add_argument("--control-directory")
-    resolve_install.add_argument("--windows-control-directory")
-    resolve_install.set_defaults(handler=_command_resolve_install)
-
-    resolve_prepare = resolve_commands.add_parser("prepare-probe", help="prepare one read-only Resolve probe")
-    resolve_prepare.add_argument("--control-directory")
-    resolve_prepare.add_argument("--operation-id")
-    resolve_prepare.set_defaults(handler=_command_resolve_prepare_probe)
-
-    resolve_smoke = resolve_commands.add_parser(
-        "prepare-smoke", help="prepare one bounded Resolve project mutation acceptance"
-    )
-    resolve_smoke.add_argument("--control-directory")
-    resolve_smoke.add_argument("--media", help="WSL path to the smoke media fixture")
-    resolve_smoke.add_argument("--windows-media-path", help="matching absolute Windows media path")
-    resolve_smoke.add_argument("--operation-id")
-    resolve_smoke.set_defaults(handler=_command_resolve_prepare_smoke)
-
-    resolve_compatibility = resolve_commands.add_parser(
-        "prepare-compatibility",
-        help="prepare a Resolve Free 21.0.3.7 version-specific compatibility probe",
-    )
-    resolve_compatibility.add_argument("--control-directory")
-    resolve_compatibility.add_argument("--media", help="WSL path to the compatibility media fixture")
-    resolve_compatibility.add_argument("--windows-media-path", help="matching absolute Windows media path")
-    resolve_compatibility.add_argument("--developer-readme", help="WSL path to the installed Developer README")
-    resolve_compatibility.add_argument("--operation-id")
-    resolve_compatibility.set_defaults(handler=_command_resolve_prepare_compatibility)
-
-    resolve_assembly_conform = resolve_commands.add_parser(
-        "prepare-assembly-conform",
-        help="prepare a disposable Resolve 21.0.3.7 native OTIO conform acceptance",
-    )
-    resolve_assembly_conform.add_argument("--production-id", default="runtime-introduction")
-    resolve_assembly_conform.add_argument("--production-root")
-    resolve_assembly_conform.add_argument("--control-directory")
-    resolve_assembly_conform.add_argument("--media-root")
-    resolve_assembly_conform.add_argument("--windows-media-root")
-    resolve_assembly_conform.add_argument("--resolve-otio-root")
-    resolve_assembly_conform.add_argument("--windows-resolve-otio-root")
-    resolve_assembly_conform.add_argument("--developer-readme")
-    resolve_assembly_conform.add_argument("--operation-id")
-    resolve_assembly_conform.set_defaults(handler=_command_resolve_prepare_assembly_conform)
-
-    resolve_result = resolve_commands.add_parser("result", help="validate and print the latest Resolve result")
-    resolve_result.add_argument("--control-directory")
-    resolve_result.add_argument("--operation-id")
-    resolve_result.set_defaults(handler=_command_resolve_result)
     return parser
 
 

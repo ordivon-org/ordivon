@@ -106,3 +106,9 @@ those questions. A model PASS is not a production release receipt.
 - **Old work or cache:** preserve only selected source/evidence with a real consumer; discard rebuildable local caches using the owning tool's native cleanup procedure.
 
 For programmatic Agent instructions, use [Media Agent guide](../AGENTS.md). This page is a task guide; the existing source files and tool schemas are the technical reference.
+
+## Optional DaVinci Resolve native editing
+
+Use [Resolve's installed native API](resolve-native.md) in the approved interactive
+Windows session. The previous embedded Ordivon menu Runner and CLI staging
+bridge are retired. An independent OTIO probe does not prove a Studio edit.
