@@ -49,12 +49,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             global_limit: 4,
         },
     );
+    let mut transport = StreamableHttpServerConfig::default();
+    if let Some(hosts) = pg_auth::optional_env("ORDIVON_PG_ALLOWED_HOSTS_JSON")? {
+        transport
+            .allowed_hosts
+            .extend(serde_json::from_str::<Vec<String>>(&hosts)?);
+    }
     let service: StreamableHttpService<PgRuntimeServer, LocalSessionManager> =
-        StreamableHttpService::new(
-            move || Ok(server.clone()),
-            Default::default(),
-            StreamableHttpServerConfig::default(),
-        );
+        StreamableHttpService::new(move || Ok(server.clone()), Default::default(), transport);
     let app = axum::Router::new()
         .nest_service("/mcp", service)
         .layer(axum::middleware::from_fn(

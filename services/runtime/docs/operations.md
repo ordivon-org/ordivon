@@ -641,6 +641,10 @@ the existing RS256 Access verifier, including issuer, audience, expiry and JWKS
 validation. `ORDIVON_CF_ACCESS_JWKS_URL` is optional. JWKS are loaded lazily, so a
 provider outage denies Access requests without breaking either Bearer path.
 Missing or invalid credentials return HTTP 401 before MCP session admission.
+The MCP transport keeps its default loopback Host allowlist. Public Tunnel ingress
+must additionally declare exact public hostnames in `ORDIVON_PG_ALLOWED_HOSTS_JSON`
+(a JSON string array). An authenticated request using any other Host is rejected
+with HTTP 403; authentication success does not bypass Host validation.
 Restore the operator-owned JWKS direct-egress environment when replacing service
 EnvironmentFile lists; do not silently drop its NO_PROXY configuration.
 

@@ -11,7 +11,7 @@ pub(crate) struct PgAuth {
     access: Option<Arc<CloudflareAccessVerifier>>,
 }
 
-fn optional_env(key: &str) -> Result<Option<String>, Box<dyn std::error::Error>> {
+pub(crate) fn optional_env(key: &str) -> Result<Option<String>, Box<dyn std::error::Error>> {
     match std::env::var(key) {
         Ok(value) if !value.trim().is_empty() => Ok(Some(value)),
         Ok(_) => Err(format!("{key} must not be empty").into()),
