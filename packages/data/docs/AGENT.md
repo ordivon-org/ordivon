@@ -15,7 +15,13 @@ Discovery metadata is only a candidate until its producing owner confirms it.
   and PyArrow differential reader. Do not replace with ad-hoc CSV parsing.
 - Analytics/transformations -> DuckDB, native domain SQL/Python/Polars
   when available in that task's lockfile; do not assume global Python imports.
-- Product discovery -> current DCAT projection and this read-only CLI.
+- Product discovery -> the frozen DCAT projection for historical acceptance,
+  or `scripts/project_owned_products.py` to derive a fresh read-only DCAT
+  projection from currently tracked owner ODPS records. Do not confuse the
+  two-source Git projection with the three-product frozen 2026-09 snapshot.
+  Do not mint port UUIDs, URLs, digest or reuse rights; ODPS v1.1 outputPort
+  IDs and versions are optional and their versions need not match the product.
+
 - Product contract -> producing owner's ODCS/ODPS document and native tests.
 - Job/Attempt/process/Artifact effect -> Runtime; not this package.
 - Long-lived general workflow -> proven Temporal/runtime owner; persistent
@@ -46,6 +52,20 @@ Discovery metadata is only a candidate until its producing owner confirms it.
 7. For cleanup, use actual consumer/recovery/retention paths; no age-based
    deletion, guessed rename or wiping shared worktrees. Prefer owner-native
    Git/workspace management and temporary cache pruning.
+
+Local producer byte binding: use explicit `--bind-local` only after reading
+the producer's declared ODPS properties, qualified owner root and *exact*
+output-port name. The tool checks the actual regular file SHA-256 and emits DCAT 3
+`spdx:checksum` without overwriting `dct:identifier`. Never fabricate
+port/file matching, claim a portable URL, or promote a missing
+Episode Parquet materialization to VERIFIED. Native consumers must recheck
+byte identity at their read boundary.
+
+For publication/retirement changes, reuse the Lean `formal/DataPublication.lean`
+safety model. It proves *abstract* publish-after-validate/commit and
+reclaim-after-zero-readers/retention-release, but an installed SQL/Artifact
+implementation requires independent transaction/refinement/read-back evidence.
+Do not auto-delete data based on model success alone.
 
 Formal contract: [FORMAL_VERIFICATION.md](FORMAL_VERIFICATION.md).
 Run `mise run data:formal:verify` for Lean / CrossHair evidence; the result

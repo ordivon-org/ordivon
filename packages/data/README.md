@@ -60,6 +60,66 @@ file URI rather than silently rewriting the frozen evidence. The source owner
 should emit canonical URIs in a **new** versioned DCAT projection, preserving
 the historical R2 acceptance.
 
+## Current producer-owned ODPS discovery (no new registry)
+
+`python3 packages/data/scripts/project_owned_products.py` projects the
+currently **Git-tracked** producer-owned ODPS v1.1 records into a deterministic
+DCAT 3 JSON-LD view. The two presently tracked documents belong to Capital
+and Experimental Episode; the frozen three-product September federation still
+contains Research's external product. The generated view is **not** a claim
+that all three current products are accessible, installed, or publishable.
+
+```sh
+python3 packages/data/scripts/project_owned_products.py > /tmp/owner-products.jsonld
+python3 packages/data/scripts/inspect_federation.py --catalog /tmp/owner-products.jsonld --verify-local
+# To project a specific external owner's qualified ODPS 1.1 document:
+python3 packages/data/scripts/project_owned_products.py --product /approved/path/odps.json
+```
+
+The projection consumes upstream ODPS product IDs, versions, output ports and
+declared ODRL policy IDs without rewriting the owners' files. Output-port IDs
+and versions are **optional** under ODPS 1.1; a port version may differ from
+its containing product version. Missing port IDs never acquire invented
+stable IDs. A generated Distribution has no physical `dcat:accessURL` or
+file digest without an explicit owner binding, so the verifier returns
+`UNKNOWN`, not false `VERIFIED`. Producer source bytes are SHA-256 bound
+into the content-derived catalog identity. No central catalog daemon, new
+database or persisted product state is added.
+
+## Optional qualified owner-file binding
+
+The default projection does NOT infer physical availability. For an actual local
+file, use explicit producer ODPS `customProperties` as the authority for the
+relative source path and SHA-256. The operator selects the exact product, port,
+property names and owner root; the adapter hashes the opened regular file and
+rejects any mismatch or escape from the explicit root. Only then does it emit
+a local file URI and W3C DCAT 3 `spdx:checksum`, retaining `dct:identifier`
+for the producer's port identity. Legacy `sha256:` identifiers remain
+readable for the historical frozen catalog. That local URI is **not portable** to other
+workspaces or an implicit redistribution permission.
+
+```sh
+repo="$(git rev-parse --show-toplevel)"
+python3 packages/data/scripts/project_owned_products.py \
+  --bind-local d14d7457-c9aa-59e0-8bf5-7783cea39c1c \
+    public-shadow-json sourceRelativePath sourceSha256 "$repo/domains/capital" \
+  --bind-local 4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b \
+    episode-corpus-manifest-json corpusManifestRelativePath corpusManifestSha256 "$repo" \
+  > /tmp/ordivon-qualified-products.jsonld
+
+python3 packages/data/scripts/inspect_federation.py \
+  --catalog /tmp/ordivon-qualified-products.jsonld --verify-local
+```
+
+For this source cut, the producer-owned Finance JSON and Episode manifest are
+both Git-tracked with matching SHA-256 declarations and can be VERIFIED.
+The rebuildable Episode Parquet file is **not** present in Git, so remains
+UNKNOWN. The strict `--require-verified` gate appropriately refuses to
+declare the *whole* catalog publishable with that unbound port. The optional
+binding is a current observation: consumers must read back the file against
+its declared digest before using it, since mutable pathnames can change.
+Never persist this ephemeral local URI as the canonical cross-host identity.
+
 ## Verification and user instructions
 
 - Native: `mise run data:verify` (Owner's CLI and exact existing study contracts).
@@ -68,7 +128,7 @@ the historical R2 acceptance.
 - [Directory audit and decisions](docs/AUDIT_2026-11-07.md)
 - [Capability and thought LEGO inventory](docs/LEGO_CENSUS.md)
 - [Property-first formal verification / test disposition](docs/FORMAL_VERIFICATION.md)
-- Opt-in kernel/symbolic check: `mise run data:formal:verify` (Lean + CrossHair/Z3)
+- Opt-in kernel/symbolic check: `mise run data:formal:verify` (Lean DataProduct/DataPublication + CrossHair/Z3). The publication state model proves abstract safety; it does **not** implement atomic PostgreSQL commits or automatic data deletion.
 
 **Data product standard version law:** ODPS 1.1 is consumed by current historical
 products; ODPS 4.2 (released 2026-10-26) has a different document root and

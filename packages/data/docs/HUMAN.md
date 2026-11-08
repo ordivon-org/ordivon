@@ -43,6 +43,39 @@ proofs from bounded CrossHair implementation search and actual source/consumer
 read-back. Retire synthetic tests only after the relevant Python/Rust/SQL
 implementation refinement is established, not from abstract proofs alone.
 
+## Inspect actual producer-owned product metadata
+
+Run `python3 packages/data/scripts/project_owned_products.py` for a live
+**checkout-relative** ODPS-to-DCAT projection over Git-tracked products.
+Use `--product` to select a particular owner's qualified document. The current
+repository contains Capital and Experimental Episode ODPS records; Research's
+historical record remains in the frozen federation and cannot be promoted to
+a current live product by copying September's catalog.
+
+The CLI provides product discovery only. It deliberately does not invent file
+locations, access grants or physical integrity. A readable product record
+and an output port do not establish available bytes; real product release
+still requires the producing owner's ODCS/ODPS contract and read-back.
+
+## Explicit producer evidence, not inferred paths
+
+If the source owner has an existing relative path and SHA-256 in its ODPS
+`customProperties`, pass an explicit `--bind-local PRODUCT_ID PORT_NAME
+PATH_PROPERTY SHA_PROPERTY OWNER_ROOT` to the projection CLI. This names
+the qualified mapping; there is no automatic search for coincidentally
+matching hashes or guessed file locations. The current Finance JSON and
+Experimental Episode manifest can be verified from their Git-tracked source
+bytes. The Episode Parquet index has only a reproducibility digest and no
+currently accessible file in this repo; it remains UNKNOWN.
+
+The new DCAT 3 projection uses `spdx:checksum` for SHA-256 and leaves
+`dct:identifier` as the distribution's identity. Contradictory legacy and
+SPDX digests are rejected; historical frozen digests remain readable.
+
+A verified SHA-256 observation establishes only one current byte match.
+It cannot establish provider rights, future pathname stability, a complete
+product publication, or approval to delete source records.
+
 ## Version and status warnings
 
 - ODPS 1.1 historical consumers must not be silently switched to ODPS 4.2.

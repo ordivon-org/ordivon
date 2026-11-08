@@ -26,6 +26,26 @@ a total, exact digest-equality relation. Real SHA-256 digest values are modeled
 abstractly: digest equality proves only hash equality, not metaphysical byte
 identity, origin authenticity, producer authorization, or permission to publish.
 
+## Bounded publication and retirement state model
+
+`formal/DataPublication.lean` now specifies a finite control-state protocol:
+candidate → validated → committed → published → retired → reclaimed,
+plus reader acquisition/release and producer-controlled retention release.
+Lean 4.35 proves by induction over every reachable abstract state that:
+
+- Published implies validation evidence **and** a commit receipt.
+- Reclaimed implies **zero** outstanding reader leases and retention release.
+- Bypassing validation/commit with naive direct publish violates the model.
+
+The state transition is an abstract atomic relation, **not** installed PG/SQL,
+filesystem, Runtime, or Crash/Concurrency refinement. There is no proof of
+durable multi-version snapshot isolation, wait-free readers, physical GC,
+eventual completion or absence of filesystem races. The implementation owner
+must discharge transaction ordering, reader leases, independent recovery,
+source rights and retention release before any concrete auto-GC. This model
+is a reusable *thought LEGO*, not a deployed publisher. No storage engine or
+central registry has been implemented for it.
+
 ## Formal boundary / proof obligations
 
 - **Identity and version:** for the same `(product_id, version)`, admission
@@ -83,6 +103,39 @@ actual owner read-back at I/O edges. Record exact code SourceCut, verifier
 version, assumptions, negative oracle and relevant native consumer outcome.
 Never relabel `UNKNOWN` as `FALSIFIED` and never report bounded symbolic
 exploration as full installed-code refinement.
+
+## Read-only product projection evidence boundary
+
+`src/ordivon_data/odps_projection.py` is a concrete ODPS v1.1-to-DCAT 3
+metadata adapter, not an additional product registry or executable publishing
+transaction. The source ODPS byte digests are bound into the resulting
+catalog identity; output-port ID and version absence is faithfully preserved
+under the upstream Bitol standard. New native tests check determinism,
+duplicate product identity, optional port fields, malformed input and
+compatibility with the existing DCAT inspector. A separate locked-version
+RDFLib 7.6 parser read-back validates the actual JSON-LD graph. These are
+implementation/format witnesses, **not** abstract proof or installed data
+availability. The owner-native data and rights policies remain external.
+
+## Conditional I/O refinement from real producer metadata
+
+`local_evidence.py` provides the missing I/O evidence for selected exact
+product-output boundaries, using only producer-declared ODPS source path
+and SHA-256 fields plus an operator-specified owner root. A current
+regular-file read is hashed and mismatches reject the projection. This
+binds two present JSON files in the tested checkout; the Episode Parquet
+index remains unavailable/UNKNOWN. Native positive and negative tests
+cover real file digest, corrupted bytes, incorrect port, missing property,
+duplicate binding, and `..` traversal. W3C DCAT 3 `spdx:checksum`
+preserves producer port `dct:identifier` and allows RDFLib readback.
+A contradictory legacy SHA-256 declaration rejects the source; the
+frozen legacy federation still supports the older digest shape.
+
+This is **not** a formal proof that symbolic file paths never change,
+that SHA-256 is collision-free, or that port/source association was proved
+from ODPS alone (the explicit operator binding is an additional assumption).
+Source identity, physical availability, rights and downstream acceptance
+must remain distinct from the Lean abstract digest verdict.
 
 ## Cross-owner adoption without a new platform
 
