@@ -75,6 +75,26 @@ shared-forwarding dependency on the Browserless legacy target.
 Production installation requires native source/install/loaded-unit readback;
 the static closure is not a substitute for a real cold recovery test.
 
+## Non-disruptive legacy Docker FORWARD convergence
+
+The legacy Docker FORWARD policy remains in force; this project owns only
+the two exact IPv4 veth/CIDR exceptions. The source-installed
+`shared-egress-forward ensure` uses native iptables-legacy `-S`,
+`-C`, and `-I` with xtables lock waiting. Existing rules are reused
+without delete/reinsert, missing exact rules are inserted and verified,
+and unexpected or duplicated Owner marker rules fail closed. A systemd
+stop/restart does not automatically delete live shared forwarding rules.
+The native Task materializes the helper before its Unit and verifies
+installed-byte equality. Deliberate final removal requires quiescing
+all consumers and an explicit operator-owned retirement action.
+
+This reduces the restart interruption path but does not prove cross-process
+atomicity between discovery and rule insertion. Docker/other concurrent
+iptables writers remain an external stability assumption, with the exact
+kernel count and real Carrier HTTP checks required after installation.
+Do not replace this with nftables-only ACCEPT until the Docker FORWARD
+backend/consumer effects justify the change.
+
 ## Cold-boot independence from external network availability
 
 The shared namespace/veth Unit creates a **local kernel topology** and does

@@ -1,5 +1,5 @@
 [Unit]
-Description=Network v2 Browserless production forwarding policy
+Description=Network v2 shared egress legacy Docker forwarding exception
 Requires=network-v2-browserless-netns.service
 After=network-v2-browserless-netns.service
 BindsTo=network-v2-browserless-netns.service
@@ -9,11 +9,7 @@ PartOf=network-v2-shared-egress.target
 Type=oneshot
 RemainAfterExit=yes
 EnvironmentFile=/etc/network-v2/browserless/provider.env
-# Docker may set the legacy FORWARD policy to DROP. Own only the Browserless veth/CIDR
-# exception and leave Docker's chains and global policy untouched.
-ExecStartPre=-/usr/bin/iptables-legacy -D FORWARD -i ${HOST_IF} -s ${NS_CIDR} -m comment --comment network-v2-browserless-forward-v1 -j ACCEPT
-ExecStartPre=-/usr/bin/iptables-legacy -D FORWARD -o ${HOST_IF} -d ${NS_CIDR} -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment network-v2-browserless-forward-v1 -j ACCEPT
-ExecStart=/usr/bin/iptables-legacy -I FORWARD 1 -i ${HOST_IF} -s ${NS_CIDR} -m comment --comment network-v2-browserless-forward-v1 -j ACCEPT
-ExecStart=/usr/bin/iptables-legacy -I FORWARD 1 -o ${HOST_IF} -d ${NS_CIDR} -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment network-v2-browserless-forward-v1 -j ACCEPT
-ExecStop=-/usr/bin/iptables-legacy -D FORWARD -i ${HOST_IF} -s ${NS_CIDR} -m comment --comment network-v2-browserless-forward-v1 -j ACCEPT
-ExecStop=-/usr/bin/iptables-legacy -D FORWARD -o ${HOST_IF} -d ${NS_CIDR} -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment network-v2-browserless-forward-v1 -j ACCEPT
+# Docker's legacy FORWARD DROP still needs two exact owned exceptions.
+# Do not delete-and-reinsert live exceptions on restart or stop.
+# Physical retirement is an explicit operation after all consumers quiesce.
+ExecStart=/usr/bin/python3 /usr/local/libexec/network-v2/shared-egress-forward ensure
