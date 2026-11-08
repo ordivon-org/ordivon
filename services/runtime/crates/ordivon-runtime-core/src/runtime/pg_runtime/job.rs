@@ -421,6 +421,25 @@ impl PgRuntime {
         }
         let mut db = self.store()?;
         self.authorize(&mut db, &request.job_id, principal)?;
+        // A generic Job cancellation is not an operator Release rollback.
+        let is_release: bool = db
+            .client
+            .query_one(
+                "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects WHERE job_id=$1)",
+                &[&request.job_id],
+            )
+            .map_err(io)
+            .map_err(|e| e.with_operation_id(&request.job_id))?
+            .get(0);
+        if is_release {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::DeploymentInProgress,
+                "Runtime ReleaseEffect requires operator receipt reconciliation",
+                Some("runtimeReleaseEffect"),
+                false,
+            )
+            .with_operation_id(&request.job_id));
+        }
         db.request_cancel_intent(&PgCancelIntent {
             job_id: request.job_id.clone(),
             observed_at_ms: now()?,

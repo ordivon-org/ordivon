@@ -84,6 +84,36 @@ impl PgRuntime {
         job: &str,
         allow_dispatch: bool,
     ) -> RuntimeResult<()> {
+        // ReleaseEffect identity is not a normal process Task. Until the
+        // operator-qualified PG release installer owns its separate dispatch
+        // and receipt, NEVER send this Job to the generic native Runner.
+        let is_release: bool = db
+            .client
+            .query_one(
+                "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects WHERE job_id=$1)",
+                &[&job],
+            )
+            .map_err(io)?
+            .get(0);
+        if is_release {
+            // Accepted means no physical release dispatch occurred. Any other
+            // Attempt state without a release-specific operator receipt is
+            // inconsistent; never reconcile it through the generic Runner.
+            let row = db.client.query_opt(
+                "SELECT state FROM attempts WHERE job_id=$1 ORDER BY attempt_number DESC LIMIT 1",
+                &[&job],
+            ).map_err(io)?;
+            return match row.map(|value| value.get::<_, String>(0)).as_deref() {
+                Some("accepted") => Ok(()),
+                _ => Err(RuntimeError::new(
+                    RuntimeErrorCode::ReconciliationRequired,
+                    "ReleaseEffect requires operator receipt reconciliation",
+                    Some("runtimeReleaseEffect"),
+                    false,
+                )
+                .with_operation_id(job)),
+            };
+        }
         let (mut a, plan, operation) = self.attempt(db, job)?;
         let provider: serde_json::Value = decode(
             &db.client

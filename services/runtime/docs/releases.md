@@ -46,6 +46,16 @@ A release version helps users discuss change. It does not replace the stronger i
 
 ## PostgreSQL-native release readback boundary (2026-11-08)
 
+The PG Core also has an *internal, operator-qualified* atomic admission
+primitive for Job + ReleaseEffect. The independent operator must qualify the
+protected release row in the existing _stage_control table; the app role cannot
+create that qualification. Job/Attempt/idempotency key/effect binding share one
+SERIALIZABLE transaction and exact replay resolves before later revocation.
+Ordinary ResourceScheduling, native Runner reconciliation and Job cancellation
+cannot dispatch/interpret an Accepted ReleaseEffect; only a qualified native
+installer may own that effect. This primitive is **not** a deployed release,
+and it is deliberately not exposed as public MCP release.apply.
+
 A qualified PostgreSQL Runtime may expose a read-only release.get Tool
 without enabling a release writer. It resolves clientRequestId under the
 authenticated principal, checks the committed PostgreSQL release-effect

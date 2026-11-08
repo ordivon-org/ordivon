@@ -445,6 +445,275 @@ fn pg_release_get_never_claims_deployed_without_verified_operator_receipt() {
     );
 }
 
+/// The PG installer is not yet published. This proves its low-level
+/// transactional ReleaseEffect + Job identity has an independent operator
+/// qualification and cannot be dispatched or cancelled as an ordinary Job.
+#[test]
+#[ignore = "launches a disposable PostgreSQL cluster with native HTTP MCP"]
+fn pg_release_effect_atomic_admission_and_generic_dispatch_fence() {
+    use ordivon_runtime_core::pg_admission::{
+        PgAdmissionError, PgAdmissionInput, PgAdmissionOutcome, PgAdmissionStore,
+    };
+    use ordivon_runtime_core::{
+        runtime_release_effect_id, runtime_release_request_identity_digest, RuntimeReleaseRequest,
+    };
+    use sha2::{Digest, Sha256};
+    #[derive(serde::Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Binding<'a> {
+        contract: &'static str,
+        effect_id: &'a str,
+        request_digest: &'a str,
+        workspace_id: &'a str,
+        commit: &'a str,
+        candidate_manifest_digest: &'a str,
+        expected_tool_count: u32,
+        receipt_path: &'a str,
+    }
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let commit = String::from_utf8(
+        Command::new("git")
+            .arg("-C")
+            .arg(&repo)
+            .args(["rev-parse", "HEAD"])
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap()
+    .trim()
+    .to_string();
+    let endpoint = fixture.endpoint();
+    let open = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-pg-release-native","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(open["isError"], true, "{open}");
+    let control = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-release-fixture-plan-001","execution":{
+            "workspaceId":"ws-pg-release-native","executable":"/usr/bin/true",
+            "cwdRelative":".","timeoutMs":5000},"waitMs":5000}),
+    );
+    assert_ne!(control["isError"], true, "{control}");
+    let row = fixture.db.query_one(
+        "SELECT j.execution_plan_json,j.execution_plan_digest,j.workspace_snapshot_json FROM jobs j WHERE j.client_request_id='pg-release-fixture-plan-001'",
+        &[],
+    ).unwrap();
+    let plan: String = row.get(0);
+    let plan_digest: String = row.get(1);
+    let snapshot_raw: String = row.get(2);
+
+    let request = RuntimeReleaseRequest {
+        schema_version: 1,
+        client_request_id: "pg-release-atomic-fixture-001".into(),
+        principal: "pg-consumer".into(),
+        workspace_id: "ws-pg-release-native".into(),
+        commit,
+        candidate_manifest_digest: format!("sha256:{}", "b".repeat(64)),
+        expected_tool_count: 20,
+    };
+    let request_digest = runtime_release_request_identity_digest(&request).unwrap();
+    let effect_id = runtime_release_effect_id(&request);
+    let receipt = fixture.root.join("release-receipt-atomic-fixture");
+    let receipt_s = receipt.to_string_lossy().into_owned();
+    let binding = Binding {
+        contract: "runtime_release_v1",
+        effect_id: &effect_id,
+        request_digest: &request_digest,
+        workspace_id: &request.workspace_id,
+        commit: &request.commit,
+        candidate_manifest_digest: &request.candidate_manifest_digest,
+        expected_tool_count: request.expected_tool_count,
+        receipt_path: &receipt_s,
+    };
+    let binding_json = serde_json::to_vec(&binding).unwrap();
+    let digest = format!("sha256:{}", hex::encode(Sha256::digest(binding_json)));
+    let mut snapshot: Value = serde_json::from_str(&snapshot_raw).unwrap();
+    snapshot["runtimeReleaseEffectDigest"] = json!(digest);
+    let job = format!("job-{}", Uuid::now_v7());
+    let attempt = format!("attempt-{}", Uuid::now_v7());
+    let input = PgAdmissionInput {
+        job_id: job.clone(),
+        attempt_id: attempt.clone(),
+        reservation_id: format!("reservation-{attempt}"),
+        principal: request.principal.clone(),
+        client_request_id: request.client_request_id.clone(),
+        request_digest,
+        operation_digest: format!("sha256:{}", "c".repeat(64)),
+        workspace_id: request.workspace_id.clone(),
+        workspace_snapshot_json: snapshot.to_string(),
+        execution_plan_json: plan,
+        execution_plan_digest: plan_digest,
+        launch_token_digest: format!("sha256:{}", "d".repeat(64)),
+        bundle_path: fixture
+            .root
+            .join("store/pg-attempts")
+            .join(&attempt)
+            .to_string_lossy()
+            .into_owned(),
+        unit_name: format!("ordivon-pg-{attempt}.service"),
+        global_limit: 0,
+        created_at_ms: 123456789,
+        expected_source_sha256: "a".repeat(64),
+    };
+    let dsn = format!(
+        "host={} user=runtime_app dbname=postgres",
+        fixture.root.display()
+    );
+    let mut app = PgAdmissionStore::connect(&dsn, "fresh").unwrap();
+
+    assert!(
+        matches!(
+            app.admit_release_effect(&input, &request, &receipt),
+            Err(PgAdmissionError::Unqualified)
+        ),
+        "a qualified general Job writer cannot self-qualify a ReleaseEffect"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM jobs WHERE client_request_id=$1",
+                &[&request.client_request_id],
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        0
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM job_runtime_release_effects", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        0
+    );
+
+    // Operator is *independent* of runtime_app; test-only synthetic evidence.
+    fixture
+        .db
+        .execute(
+            "INSERT INTO _stage_control VALUES('release','QUALIFIED_RELEASE',$1,true)",
+            &[&"a".repeat(64)],
+        )
+        .unwrap();
+    assert_eq!(
+        app.admit_release_effect(&input, &request, &receipt)
+            .unwrap(),
+        PgAdmissionOutcome::Created(job.clone())
+    );
+    assert_eq!(
+        app.admit_release_effect(&input, &request, &receipt)
+            .unwrap(),
+        PgAdmissionOutcome::Existing(job.clone()),
+        "exact replay must not create another effect"
+    );
+    // Revoking future release authority cannot hide the already committed
+    // immutable effect. Replay resolves BEFORE mutable operator eligibility.
+    fixture
+        .db
+        .execute(
+            "UPDATE _stage_control SET promotion_allowed=false WHERE id='release'",
+            &[],
+        )
+        .unwrap();
+    assert_eq!(
+        app.admit_release_effect(&input, &request, &receipt)
+            .unwrap(),
+        PgAdmissionOutcome::Existing(job.clone()),
+        "exact replay after release revocation must retain original identity"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM job_runtime_release_effects WHERE job_id=$1",
+                &[&job],
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs WHERE job_id=$1", &[&job])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM job_events WHERE job_id=$1", &[&job])
+            .unwrap()
+            .get::<_, i64>(0),
+        3
+    );
+
+    // Background scheduling and explicit observe cannot use generic Runner.
+    thread::sleep(Duration::from_millis(1_100));
+    let observed = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0}),
+    );
+    assert_ne!(observed["isError"], true, "{observed}");
+    assert_eq!(observed["structuredContent"]["attemptState"], "accepted");
+    assert_eq!(observed["structuredContent"]["executionTerminal"], false);
+    assert_eq!(fixture.db.query_one(
+        "SELECT count(*) FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active'",
+        &[&job],
+    ).unwrap().get::<_,i64>(0),0);
+    assert_eq!(
+        fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+                &[&job],
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        0
+    );
+    let cancel = call(&endpoint, "job.cancel", json!({"jobId":job}));
+    assert_eq!(
+        cancel["structuredContent"]["error"]["code"],
+        "DEPLOYMENT_IN_PROGRESS"
+    );
+    let get = call(
+        &endpoint,
+        "release.get",
+        json!({"clientRequestId":request.client_request_id}),
+    );
+    assert_ne!(get["isError"], true, "{get}");
+    assert_eq!(get["structuredContent"]["effectDisposition"], "admitted");
+    assert_eq!(get["structuredContent"]["receiptAvailable"], false);
+    assert_eq!(get["structuredContent"]["effectTerminal"], false);
+
+    let ordinary = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-release-fenced-ordinary-001","execution":{
+            "workspaceId":"ws-pg-release-native","executable":"/usr/bin/true",
+            "cwdRelative":".","timeoutMs":5000},"waitMs":0}),
+    );
+    assert_eq!(
+        ordinary["isError"], true,
+        "new ordinary admission must be fenced: {ordinary}"
+    );
+    assert_eq!(fixture.db.query_one(
+        "SELECT count(*) FROM jobs WHERE client_request_id='pg-release-fenced-ordinary-001'", &[]
+    ).unwrap().get::<_,i64>(0),0);
+    // This fixture must NOT install any release. A durable pending ReleaseEffect
+    // is deliberately separated from qualified external installer authority.
+}
+
 #[test]
 #[ignore = "launches a disposable native PostgreSQL cluster; run explicitly"]
 fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
