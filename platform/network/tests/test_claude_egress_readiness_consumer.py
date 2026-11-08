@@ -272,7 +272,7 @@ def test_n08_source_consumer_contract_matches_install_and_proxy_policy() -> None
     ) in taskfile
     assert "consumer:claude:materialize" in consumers
     assert "test_claude_egress_readiness_consumer.py" in consumers
-    assert "CONNECT=403" in n08["behavioralContract"][0]
+    assert "NOT_EVALUATED" in n08["behavioralContract"][0]
     assert "CONNECT=407" in n08["behavioralContract"][0]
     assert "CONNECT=200" in n08["behavioralContract"][0]
     assert "%{http_code}|%{http_connect}" in readiness

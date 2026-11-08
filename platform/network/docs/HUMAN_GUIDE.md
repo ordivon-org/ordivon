@@ -112,7 +112,7 @@ Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv
     mise run behavior
     task all:validate
 
-检查生产配置，执行 task core:verify 和受影响的 consumer:*:verify。task core:converge 已采用 Go Task 原生幂等机制：**当前配置已通过验收时不会重复安装**；只有修复确有必要时才可能重新安装或重启通用 Network 服务。Gluetun 物理 Provider 的准备与启动是不同操作，不要混为一谈。
+检查生产配置，执行 task core:verify 和受影响的 consumer:*:verify。task core:converge 先验证源码，再根据独立的 `core:sourcecut`（已安装字节与服务 enable 状态）决定是否安装；不会仅因外部网站、DNS 或 Blackbox 临时失效而重新安装。随后使用原生 `systemctl start` 恢复未运行的服务，并运行 `core:verify` 对真实网络结果单独验收。健康检查失败仍返回失败，但不触发盲目重新安装。Gluetun 物理 Provider 的准备与启动是不同操作，不要混为一谈。
 
 源码发布走仓库现有的 GitHub PR、必需 CI、合并队列；只有合并之后再进行生产读回，才算实际发布完成。
 

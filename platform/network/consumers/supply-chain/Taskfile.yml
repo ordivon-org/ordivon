@@ -55,7 +55,7 @@ tasks:
       - ./consumers/supply-chain/acceptance/docker-rebind-smoke.sh
 
   consumer:supply-chain:verify:
-    desc: Verify deployed bytes, retired proxy absence, live scoped consequence, Docker binding, and pinned OPA availability
+    desc: Verify deployed SourceCut, positive origin HTTPS, independent upstream no-forward, and Docker proxy binding
     cmds:
       - cmp -s consumers/supply-chain/config/authority.json /etc/network-v2/supply-chain/authority.json
       - cmp -s consumers/supply-chain/config/egress.json /etc/network-v2/supply-chain/egress.json
@@ -66,6 +66,9 @@ tasks:
       - test ! -e /etc/network-v2/supply-chain/provider-endpoints.json
       - systemctl is-enabled --quiet network-v2-supply-chain.target
       - /usr/local/libexec/network-v2/supply-chain-ready
+      # Native packet observer: forbidden hostname/port/IP-literals must never
+      # reach the shared carrier. CONNECT status alone is not a denial oracle.
+      - python3 acceptance/egress/live-carrier-witness.py --consumers supply-chain
       - |
         docker info 2>/dev/null | grep -F 'HTTP Proxy: http://127.0.0.1:19581' >/dev/null
         docker info 2>/dev/null | grep -F 'HTTPS Proxy: http://127.0.0.1:19581' >/dev/null

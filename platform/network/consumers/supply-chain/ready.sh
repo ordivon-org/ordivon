@@ -47,22 +47,8 @@ auth_code=$(probe 'https://auth.docker.io/token?service=registry.docker.io&scope
 gcr_code=$(probe https://gcr.io/v2/ '200|401')
 artifact_code=$(probe https://us-central1-docker.pkg.dev/v2/ '200|401')
 elastic_code=$(probe https://docker.elastic.co/v2/ '200|401')
-remaining=$((readiness_deadline - SECONDS))
-((remaining > 0)) || { echo 'Supply-Chain readiness total deadline expired' >&2; exit 1; }
-max_time=$((remaining < 8 ? remaining : 8))
-# A failed curl transport is not proof that the Network allowlist rejected
-# this destination. Demand the HTTP proxy's explicit CONNECT=403 policy denial;
-# CONNECT=000 (DNS/TLS/proxy outage), 407 (proxy auth), and CONNECT=200
-# (origin reachable, even with an application 403) are all insufficient.
-# Do not apply curl --fail: the denial must be parsed from the same attempt.
-deny_receipt=$(curl -q -4 --noproxy "" -x "$proxy" -I -sS \
-  --connect-timeout 4 --max-time "$max_time" -o /dev/null \
-  -w '%{http_code} %{http_connect}' https://example.com/ 2>/dev/null) || deny_receipt="${deny_receipt:-}"
-read -r deny_code deny_connect deny_extra <<< "$deny_receipt"
-if [[ "$deny_connect" != 403 || -n "$deny_extra" ]]; then
-  echo "ERROR: unknown Supply-Chain destination lacks explicit CONNECT denial (http=${deny_code:-000} CONNECT=${deny_connect:-000})" >&2
-  exit 41
-fi
+# Allowed OCI HTTPS origins are checked above. Rejection/no-forwarding must
+# be witnessed independently by consumer:supply-chain:verify against the
+# actual loaded and installed sing-box policy and carrier.
 ((SECONDS < readiness_deadline)) || { echo 'Supply-Chain readiness total deadline expired' >&2; exit 1; }
-printf '{"schemaVersion":1,"kind":"ordivon.network-v2.supply-chain-readiness","standing":"READY","proxy":"%s","registryHttpStatus":%s,"authHttpStatus":%s,"gcrHttpStatus":%s,"artifactRegistryHttpStatus":%s,"elasticHttpStatus":%s,"unknownDestination":"REJECTED","directFallback":false}
-' "$proxy" "$registry_code" "$auth_code" "$gcr_code" "$artifact_code" "$elastic_code"
+printf '{"schemaVersion":1,"kind":"ordivon.network-v2.supply-chain-readiness","standing":"READY","scope":"allowed-origin-https-only","proxy":"%s","registryHttpStatus":%s,"authHttpStatus":%s,"gcrHttpStatus":%s,"artifactRegistryHttpStatus":%s,"elasticHttpStatus":%s,"unknownDestination":"NOT_EVALUATED","directFallback":"NOT_EVALUATED"}\n' "$proxy" "$registry_code" "$auth_code" "$gcr_code" "$artifact_code" "$elastic_code"

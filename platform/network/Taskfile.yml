@@ -67,14 +67,36 @@ tasks:
 
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, substrate:shared-egress:validate, provider:surfshark:validate, provider:gluetun:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate, consumer:codex:validate, consumer:mobile-tailnet-exit:validate, consumer:discord:validate, consumer:model-provider:validate, consumer:windows-real-chrome:validate]
+    deps: [core:validate, consumer:claude:validate, consumer:chat-ingress:validate, substrate:shared-egress:validate, provider:surfshark:validate, provider:gluetun:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate, consumer:codex:validate, consumer:mobile-tailnet-exit:validate, consumer:discord:validate, consumer:model-provider:validate, consumer:windows-real-chrome:validate]
 
+  core:sourcecut:
+    desc: Verify installed generic Core config/Unit byte identity and enablement without remote health probes
+    cmds:
+      - cmp -s systemd/network-v2-r0.target /etc/systemd/system/network-v2-r0.target
+      - cmp -s systemd/network-v2-dnsproxy.service /etc/systemd/system/network-v2-dnsproxy.service
+      - cmp -s systemd/network-v2-singbox.service /etc/systemd/system/network-v2-singbox.service
+      - cmp -s systemd/network-v2-blackbox.service /etc/systemd/system/network-v2-blackbox.service
+      - cmp -s systemd/network-v2-prometheus.service /etc/systemd/system/network-v2-prometheus.service
+      - cmp -s config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
+      - cmp -s config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
+      - cmp -s config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
+      - cmp -s config/prometheus/consumer.rules.yml /etc/network-v2/prometheus/consumer.rules.yml
+      - |
+        for fragment in config/prometheus/consumers/*.yml; do
+          cmp -s "$fragment" /etc/network-v2/prometheus/consumers/"$(basename "$fragment")" || exit 1
+        done
+      - cmp -s config/sysctl/90-network-v2-forwarding.conf /etc/sysctl.d/90-network-v2-forwarding.conf
+      - systemctl is-enabled --quiet network-v2-r0.target
+      - test "$(systemctl is-enabled network-v2-dnsproxy.service 2>/dev/null || true)" = disabled
+      - test "$(systemctl is-enabled network-v2-singbox.service 2>/dev/null || true)" = disabled
+      - test "$(systemctl is-enabled network-v2-blackbox.service 2>/dev/null || true)" = disabled
+      - test "$(systemctl is-enabled network-v2-prometheus.service 2>/dev/null || true)" = disabled
   core:install:
-    desc: Materialize the exact validated R0 source generation; skip effects when the installed generation already verifies
-    # Reuse Go Task's native up-to-date check: no service restart if the
-    # deployed SourceCut, process and real consumer probes already verify.
+    desc: Materialize only when the installed generic SourceCut differs; no upstream health prerequisite
+    # Configuration drift alone admits installation; upstream health failures do not.
+    # Live failures are repaired by native systemd start and then verified separately.
     status:
-      - task core:verify
+      - task core:sourcecut
     cmds:
       - task: core:validate
       - /usr/bin/python3 scripts/monitoring-sourcecut-preflight.py --source config --live /etc/network-v2
@@ -99,29 +121,11 @@ tasks:
       - systemctl restart network-v2-r0.target
 
   core:verify:
-    desc: Fail closed unless live R0 bytes, systemd composition root, dual-stack data plane, probe plane, and evidence plane match source
+    desc: Verify current loaded core services and real DNS/HTTP/Blackbox consequences
+    deps: [core:sourcecut]
     cmds:
-      - cmp -s systemd/network-v2-r0.target /etc/systemd/system/network-v2-r0.target
-      - cmp -s systemd/network-v2-dnsproxy.service /etc/systemd/system/network-v2-dnsproxy.service
-      - cmp -s systemd/network-v2-singbox.service /etc/systemd/system/network-v2-singbox.service
-      - cmp -s systemd/network-v2-blackbox.service /etc/systemd/system/network-v2-blackbox.service
-      - cmp -s systemd/network-v2-prometheus.service /etc/systemd/system/network-v2-prometheus.service
-      - cmp -s config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
-      - cmp -s config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
-      - cmp -s config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
-      - cmp -s config/prometheus/consumer.rules.yml /etc/network-v2/prometheus/consumer.rules.yml
-      - |
-        for fragment in config/prometheus/consumers/*.yml; do
-          cmp -s "$fragment" /etc/network-v2/prometheus/consumers/"$(basename "$fragment")" || exit 1
-        done
-      - cmp -s config/sysctl/90-network-v2-forwarding.conf /etc/sysctl.d/90-network-v2-forwarding.conf
       - test "$(sysctl -n net.ipv4.ip_forward)" = 1
       - systemctl is-active --quiet network-v2-r0.target
-      - systemctl is-enabled --quiet network-v2-r0.target
-      - test "$(systemctl is-enabled network-v2-dnsproxy.service 2>/dev/null || true)" = disabled
-      - test "$(systemctl is-enabled network-v2-singbox.service 2>/dev/null || true)" = disabled
-      - test "$(systemctl is-enabled network-v2-blackbox.service 2>/dev/null || true)" = disabled
-      - test "$(systemctl is-enabled network-v2-prometheus.service 2>/dev/null || true)" = disabled
       - systemctl is-active --quiet network-v2-dnsproxy.service
       - systemctl is-active --quiet network-v2-singbox.service
       - systemctl is-active --quiet network-v2-blackbox.service
@@ -141,9 +145,13 @@ tasks:
       - ./acceptance/observability/live-prometheus-ready.sh
 
   core:converge:
-    desc: Validate, materialize, and prove one exact live R0 generation
+    desc: Validate, converge config, start only inactive services, then prove live health
     cmds:
+      - task: core:validate
       - task: core:install
+      # systemctl start is a no-op for already active units, unlike restart.
+      - systemctl start network-v2-r0.target
+      - systemctl start network-v2-dnsproxy.service network-v2-singbox.service network-v2-blackbox.service network-v2-prometheus.service
       - task: core:verify
 
   accept:connectivity:

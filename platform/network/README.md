@@ -95,7 +95,7 @@ task core:validate
 # Verify the currently installed live generation
 task core:verify
 
-# Converge idempotently: skip installation when core:verify already passes
+# Converge config using byte-identical SourceCut; validate live health separately
 task core:converge
 
 # Isolated generic tests without live convergence

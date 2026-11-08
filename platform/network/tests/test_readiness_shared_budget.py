@@ -6,10 +6,19 @@ import json
 import os
 import subprocess
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _logged_target_host(command: str) -> str:
+    # The fixture logs curl arguments with the URL in the final position.
+    # Match the parsed host, never a substring of an arbitrary URL/command.
+    parsed = urlsplit(command.rsplit(" ", 1)[-1])
+    assert parsed.scheme == "https" and parsed.hostname is not None
+    return parsed.hostname
 
 
 @pytest.mark.parametrize("consumer", ("supply-chain",))
@@ -131,16 +140,12 @@ def test_namespace_and_chat_readiness_share_one_deadline(
         ("denied", False),
         ("valid", True),
         ("wrong_origin", False),
-        ("unknown_http_forbidden", False),
-        ("unknown_transport_failure", False),
-        ("unknown_proxy_auth_failure", False),
-        ("unknown_origin_forbidden", False),
     ),
 )
-def test_supply_chain_requires_connect_and_allowed_origin_status(
+def test_supply_chain_positive_transport_requires_connect_and_allowed_origin_status(
     tmp_path: Path, transport: str, expected_ready: bool
 ) -> None:
-    """Exercise five actual registry probes; reject forged/denied CONNECT evidence."""
+    """Test five admitted OCI origins; no unsupported inference about denied traffic."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     shims = {
@@ -150,32 +155,10 @@ def test_supply_chain_requires_connect_and_allowed_origin_status(
         "curl": (
             "#!/bin/sh\n"
             'printf "%s\n" "$*" >> "$SUPPLY_CURL_RECORD"\n'
-            'case "$*" in *example.com*)\n'
-            '  if [ "$SUPPLY_TEST_TRANSPORT" = valid ]; then\n'
-            '    printf "000 403"\n'
-            '    exit 56\n'
-            '  fi\n'
-            '  if [ "$SUPPLY_TEST_TRANSPORT" = unknown_transport_failure ]; then\n'
-            '    printf "000 000"\n'
-            '    exit 56\n'
-            '  fi\n'
-            '  if [ "$SUPPLY_TEST_TRANSPORT" = unknown_proxy_auth_failure ]; then\n'
-            '    printf "000 407"\n'
-            '    exit 56\n'
-            '  fi\n'
-            '  if [ "$SUPPLY_TEST_TRANSPORT" = unknown_origin_forbidden ]; then\n'
-            '    printf "403 200"\n'
-            '    exit 0\n'
-            '  fi\n'
-            '  if [ "$SUPPLY_TEST_TRANSPORT" = unknown_http_forbidden ]; then\n'
-            '    case "$*" in *" -f"*) exit 22;; esac\n'
-            '    exit 0\n'
-            '  fi\n'
-            '  exit 7;; esac\n'
             'case "$SUPPLY_TEST_TRANSPORT" in\n'
             '  denied) printf "200 407";;\n'
             '  wrong_origin) printf "500 200";;\n'
-            '  valid|unknown_*) printf "200 200";;\n'
+            '  valid) printf "200 200";;\n'
             'esac\n'
         ),
     }
@@ -198,23 +181,26 @@ def test_supply_chain_requires_connect_and_allowed_origin_status(
         check=False,
     )
     calls = call_log.read_text().splitlines() if call_log.exists() else []
-    assert calls and "registry-1.docker.io" in calls[0], (proc.stderr, calls)
+    assert calls and _logged_target_host(calls[0]) == "registry-1.docker.io", (proc.stderr, calls)
+    probed_hosts = [_logged_target_host(line) for line in calls]
+    allowed_hosts = {
+        "registry-1.docker.io", "auth.docker.io", "gcr.io",
+        "us-central1-docker.pkg.dev", "docker.elastic.co",
+    }
+    assert set(probed_hosts).issubset(allowed_hosts)
     if expected_ready:
         assert proc.returncode == 0, (proc.stdout, proc.stderr, calls)
         payload = json.loads(proc.stdout)
         assert payload["standing"] == "READY"
+        assert payload["scope"] == "allowed-origin-https-only"
+        assert payload["unknownDestination"] == "NOT_EVALUATED"
+        assert payload["directFallback"] == "NOT_EVALUATED"
         assert payload["registryHttpStatus"] == 200
-        for domain in (
-            "auth.docker.io", "gcr.io", "us-central1-docker.pkg.dev", "docker.elastic.co",
-        ):
-            assert any(domain in line for line in calls)
+        assert set(probed_hosts) == allowed_hosts
     else:
         assert proc.returncode != 0, (proc.stdout, proc.stderr, calls)
         assert '"standing":"READY"' not in proc.stdout
-        # The first required registry must block all later registry consumers.
-        if transport.startswith("unknown_"):
-            assert any("https://example.com/" in line for line in calls)
-        else:
-            assert all("registry-1.docker.io" in line for line in calls)
+        # The first required registry must block all later origin checks.
+        assert set(probed_hosts) == {"registry-1.docker.io"}
     assert all("-q" in line and "--noproxy" in line for line in calls)
-    assert all("%{http_connect}" in line for line in calls if "example.com" not in line)
+    assert all("%{http_connect}" in line for line in calls)
