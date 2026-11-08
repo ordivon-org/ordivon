@@ -1,0 +1,44 @@
+{
+  "assets": {
+    ".nojekyll": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "index.html": {
+      "bytes": 9301,
+      "sha256": "9c5314ad0fa8c320e53c2e9afd576bda8f471f2d06f60be051ab071fd12a6981"
+    },
+    "media/field-note-cover.png": {
+      "bytes": 22846,
+      "sha256": "76b7ff2f7016006c6b641d093d836756133ce411e1859f312532703ac77aab43"
+    },
+    "media/field-note.pdf": {
+      "bytes": 91412,
+      "sha256": "5da906509f9bd07c730f1b4d6aa91a14560a091e66ea14b0348b8d7c92ee54d6"
+    },
+    "media/live-relay-poster.png": {
+      "bytes": 148270,
+      "sha256": "2ea8fabed997b2c89e3ae07ff0e551420bb112e677e0858738a5eab9f54de3b2"
+    },
+    "media/live-relay.mp4": {
+      "bytes": 16481768,
+      "sha256": "d78adcac09885dab71678c742061c83dd24ee2c0e768b9c84d5e5e9f97bb19b5"
+    },
+    "media/sonic-ident.ogg": {
+      "bytes": 42367,
+      "sha256": "0d61a9e5791d08b25c57f3af3e247c216c823074a85948ca256f5ea8a1e1eb0b"
+    },
+    "media/sonic-waveform.png": {
+      "bytes": 12873,
+      "sha256": "c853c96a1a0f9f092935882fb6a912e9d196a3ddf9e3390cc1d3453d0a37f3ac"
+    }
+  },
+  "audienceEngagement": "NOT_MEASURED",
+  "delivery": "GitHub Pages static site",
+  "kind": "ordivon.media.public-delivery-byte-manifest",
+  "publicationStatus": "NOT_CONFIRMED_UNTIL_HTTP_READBACK",
+  "schemaVersion": 1,
+  "sourceRepo": "https://github.com/ordivon-org/ordivon",
+  "sourceRevision": "9f1b681e5049bd97b902c3c104872da938bba6a8",
+  "standing": "staged-file-bytes-only"
+}
