@@ -447,12 +447,13 @@
       "classification": "CONTROL",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
-      "purpose": "Enforce temporal separation between a frozen decision and aligned post-decision holdout observations without claiming causal identification.",
+      "purpose": "Calendar-only alignment of caller-declared dates after a frozen decision; never an observation or prospective-holdout availability certificate.",
       "materiality": "NOT_APPLICABLE",
       "assumptions": [],
       "limitations": [
-        "Post-decision timing prevents look-ahead leakage but does not establish causality.",
-        "All required series must share an eligible session date before the holdout is considered available."
+        "Candidate date-set intersection is not authenticated market-source data.",
+        "Date-only inputs cannot establish capture time, provider publication, market rights or an as-of evaluation boundary.",
+        "Prospective market outcome and out-of-sample economic inference remain UNKNOWN until separate Markets and Research consumers attest evidence."
       ],
       "validation": {
         "standing": "NOT_APPLICABLE",
@@ -465,9 +466,10 @@
         "requirements": []
       },
       "permittedUses": [
-        "Prospective holdout eligibility control."
+        "Identify calendar candidates requiring independent post-decision market-source and holdout evidence."
       ],
       "prohibitedUses": [
+        "Claiming post-decision holdout data is actually available based on dates alone.",
         "Causal-effect inference.",
         "Automatic strategy-performance conclusion."
       ]

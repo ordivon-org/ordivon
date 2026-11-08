@@ -300,3 +300,11 @@ Finance Portfolio 的月度信息树现在由独立的 `portfolio/information_tr
 Finance 的持久化账本由 Accounting 的 PostgresAccountingLedger 负责。对于每月入金、预留、消费、释放和 Paper 结算，先核实真实资金合同、命名空间和 PostgreSQL 连接；研究模型输出不等于账本回执。测试应当使用专用、可销毁的 PostgreSQL 数据库，环境变量为 ORDIVON_CAPITAL_PG_TEST_DSN，绝不把测试运行到生产金融数据库。
 
 旧 SQLite 引擎、R0-R5 脚本和差分测试已退役。36 条两操作情景直接对真实 PostgreSQL 和独立账务预期进行比较，无需迁移旧 SQLite 数据。Human 可从 scripts/run-nonlive-capital-effect-matrix 了解模拟资金效果；这仍需要显式 PG DSN，且不构成外部交易授权。Agent 的操作顺序见现有 finance-paper-investment Skill。
+
+## Prospective Validation：日期对齐与真实数据证据
+
+`research/prospective_validation.py` 只负责一项纯计算：在冻结的决策时点与交易所时区下，找出所有必需资产**共同拥有、严格晚于决策日**的候选交易日期。它不接触行情原始响应，也无法核实首次观测时间、数据发布时间、使用许可和企业行动。
+
+**Human：** `postDecisionSessionDatesAligned=true` 只说明日历条件满足；`POST_DECISION_DATES_ALIGNED_SOURCE_UNVERIFIED` 不是“样本外数据已经可用”。当前返回的 `postDecisionHoldoutAvailable=false` 是刻意保留的证据边界。不可把回填日期或尚未发生的日期当成真实的未来收益观察。
+
+**Agent：** 先固定 `decision_boundary` 与 `session_timezone`，调用已有 Research 日历算子得到 `alignedCommonSessionDates`；再到现有 Markets 与 Research Owner 核验原始来源摘要、首次观测/发布时间、企业行动和真实评价时点。上述证据缺失时保持 UNKNOWN，不得宣称 PIT 验证、OOS 评价完成、经济优越性或实盘交易权限。禁止再建时间数据目录、专用证明服务或第二套研究执行器。
