@@ -184,6 +184,26 @@ scripts/run-capability-python -m ordivon_capital.accounting.postgres_paper_close
 它**不独立证明**行情是某个交易所当天发布的，也不以账面 NAV 代替收益率。
 没有新、完整、可核验的合格收盘价就报告 `NOT_SETTLED`，不要重置本金或伪造结算。
 
+**Paper 提交与读取隔离验证**（数据库内核精化，不是行情真实性证明）：
+Accounting 已使用 PostgreSQL `SERIALIZABLE` 写事务，最新/历史日结读者
+使用 `REPEATABLE READ READ ONLY`。新增的真实数据库反例位于
+`tests/test_paper_head_readback.py`，覆盖三种情况：
+
+- 写入现金账与回执、尚未提交时，其他消费者不能看见半完成日结；
+  已建立的只读快照在另一个事务提交新日期后仍看见原日结。
+- 两个针对相同 `account_key + session` 的不同请求同时写入时，只允许一个
+  提交；另一笔不能覆盖已承诺请求。
+- 在 SQL 写入完成、事务提交前实际终止该 PostgreSQL 后端时，未提交数据
+  回滚；旧日结仍可读取，随后新的完整重试能够提交并被读回。
+
+在已配置且确认**可以销毁**的独立 `ordivon_paper` 测试数据库中：
+`ORDIVON_CAPITAL_PAPER_PG_TEST_DSN=... uv run --group test pytest -q
+tests/test_paper_head_readback.py`。测试会写入随机模拟账户，
+其中一项还会终止**它自己的**数据库写入会话；绝不可把生产 DSN 用作测试 DSN。
+如果未提供测试 DSN，相关测试会标记为 `SKIP`，不能视为通过真实 PG 验证。
+这些反例证明 Paper 数据库内部的原子可见与恢复边界，不能证明 Git 产品元数据、
+外部 Parquet 文件与 PostgreSQL 已经获得跨系统原子事务或业务时点数据可信性。
+
 ### Paper 账本到 Risk：检查已承诺的模拟账户
 
 如果已经由 Accounting 在**专用** `ordivon_paper` PostgreSQL 数据库

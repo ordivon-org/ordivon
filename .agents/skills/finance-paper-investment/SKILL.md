@@ -103,6 +103,26 @@ Do not import the old experimental `unit_r_dca` defaults (40%, 45%,
 Formal: `mise run //domains/capital:verify:formal:broker-liquidation`.
 Tests: `tests/test_broker_margin_evidence.py`.
 
+## PostgreSQL Paper publication/read-isolation qualification
+
+Use the existing Accounting `postgres_paper_close.py` transactional close
+and `read_committed_paper_close` / `read_latest_committed_paper_close`
+readers. Do NOT introduce a second transaction manager or Data registry.
+A `SERIALIZABLE` write and a `REPEATABLE READ READ ONLY` reader have
+separate commit/visibility semantics. PostgreSQL requires retrying the
+**entire transaction** on SQLSTATE 40001, never only its last SQL command.
+
+For source-to-PG refinement, supply an isolated disposable PostgreSQL
+18-compatible database named `ordivon_paper`, set
+`ORDIVON_CAPITAL_PAPER_PG_TEST_DSN` to **that disposable instance only**,
+and execute `uv run --locked --group test pytest -q
+tests/test_paper_head_readback.py`. The test exercises actual uncommitted
+receipt invisibility, stable reader snapshots, same-key two-writer
+conflict, forced termination of its own uncommitted backend, and replay.
+A missing DSN causes SKIP, **not** VERIFIED. Never reuse the production
+`ORDIVON_CAPITAL_PAPER_PG_DSN` for this destructive acceptance exercise.
+Provider timestamps, external files and real broker state remain separate.
+
 ## Markets capture admission: never backdate downloaded adjusted prices
 
 Use the existing Markets `historical_close_snapshot.admit_adjusted_close_csv`
