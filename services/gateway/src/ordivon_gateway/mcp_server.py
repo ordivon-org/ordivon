@@ -85,6 +85,16 @@ def _verified_execution_scope(context: Context | None) -> tuple[str, str] | None
     return issuer, principal
 
 
+def _require_http_execution_identity(context: Context | None) -> None:
+    """HTTP execution tools must not downgrade to unqualified STDIO semantics.
+
+    In normal HTTP requests Cloudflare/loopback ingress populates verified
+    request state; an absent/malformed context must reject before an owner RPC.
+    """
+    if _verified_execution_scope(context) is None:
+        raise ToolError("HTTP execution requires verified ingress Principal identity")
+
+
 def _verified_execution_request_id(
     public_request_id: str,
     capability: str,
@@ -147,6 +157,7 @@ def build_server(
     *,
     capability_authorizer: CapabilityAuthorizer | None = None,
     protect_artifact_reads: bool = False,
+    require_http_execution_identity: bool = False,
 ) -> MCPServer:
     gateway = service or GatewayService(McpOwnerCaller.from_env())
 
@@ -218,6 +229,8 @@ def build_server(
         authorityReferences: list[dict[str, Any]] | None = None,
         ctx: Context = None,
     ) -> ExecutionReceipt:
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         owner_request_id = _verified_execution_request_id(requestId, capability, ctx)
         return await _owner_boundary(
             gateway.execution_submit(
@@ -238,6 +251,8 @@ def build_server(
     async def execution_resolve(
         capability: str, requestId: str, ctx: Context = None
     ) -> ExecutionResolution:
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         owner_request_id = _verified_execution_request_id(requestId, capability, ctx)
         result = await _owner_boundary(
             gateway.execution_resolve(capability=capability, request_id=owner_request_id)
@@ -257,6 +272,8 @@ def build_server(
         capability: str | None = None,
         ctx: Context = None,
     ) -> ExecutionObservation:
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.execution_get(operationRef, event_limit=eventLimit, wait_ms=waitMs)
@@ -269,6 +286,8 @@ def build_server(
         capability: str | None = None,
         ctx: Context = None,
     ) -> ExecutionReceipt:
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(gateway.execution_cancel(operationRef))
 
@@ -284,6 +303,8 @@ def build_server(
     ) -> ArtifactChunk:
         # Artifact bytes have the same original execution owner as observe/cancel.
         # Reuse the trusted HTTP ingress identity fence before any owner read.
+        if require_http_execution_identity:
+            _require_http_execution_identity(ctx)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
@@ -429,6 +450,7 @@ def main() -> None:
         gateway,
         capability_authorizer=_capability_authorizer_from_env(),
         protect_artifact_reads=(transport == "streamable-http"),
+        require_http_execution_identity=(transport == "streamable-http"),
     )
     if transport == "stdio":
         server.run()

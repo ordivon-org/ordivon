@@ -430,6 +430,7 @@ def test_gateway_main_http_installs_artifact_pep_with_or_without_pdp(
     monkeypatch.setattr(mcp_server.uvicorn, "run", lambda *_args, **_kw: None)
     mcp_server.main()
     assert observed["protect_artifact_reads"] is True
+    assert observed["require_http_execution_identity"] is True
     if configured:
         assert isinstance(
             observed["capability_authorizer"],
