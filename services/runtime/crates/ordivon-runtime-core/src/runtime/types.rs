@@ -710,6 +710,8 @@ pub(crate) struct EffectiveInputBinding {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ExecutionBudget {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheduling: Option<crate::resource_scheduling::ResourceScheduling>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(range(min = 1))]
     pub memory_max_bytes: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -722,7 +724,8 @@ pub struct ExecutionBudget {
 
 impl ExecutionBudget {
     pub fn is_empty(&self) -> bool {
-        self.memory_max_bytes.is_none()
+        self.scheduling.is_none()
+            && self.memory_max_bytes.is_none()
             && self.tasks_max.is_none()
             && self.cpu_quota_percent.is_none()
     }

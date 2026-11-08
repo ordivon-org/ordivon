@@ -62,17 +62,34 @@ impl PgRuntime {
         tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
             .map_err(io)?;
         self.require_qualified_writer_tx(&mut tx)?;
-        let active:i64=tx.query_one(
-            "SELECT count(*) FROM jobs j WHERE j.workspace_id=$1 AND (j.resolution IS NULL OR              EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations r              ON r.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND r.state IN ('active','held_orphaned')))",
-            &[&request.workspace_id]
-        ).map_err(io)?.get(0);
-        if active != 0 {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::ConcurrencyLimit,
-                "Workspace has PG-owned active or held Jobs",
-                Some("workspaceId"),
-                false,
-            ));
+        request
+            .validate_shape()
+            .map_err(super::super::error::map_universal_error)?;
+        let paths = request
+            .mutations
+            .iter()
+            .map(|m| m.relative_path.clone())
+            .collect::<Vec<_>>();
+        let access = crate::resource_scheduling::WorkspaceAccess {
+            read_only: false,
+            read_paths: paths.clone(),
+            write_paths: paths,
+        };
+        let consumers=tx.query("SELECT execution_plan_json FROM jobs j WHERE j.workspace_id=$1 AND (j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND r.state IN ('active','held_orphaned')))",&[&request.workspace_id]).map_err(io)?;
+        for row in consumers {
+            let plan: RuntimeExecutionPlan = decode(&row.get::<_, String>(0))?;
+            if self
+                .scheduling_contract(&plan)?
+                .workspace_access
+                .conflicts(&access)
+            {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::ConcurrencyLimit,
+                    "Mutation conflicts with a committed Workspace read/write lease",
+                    Some("mutations"),
+                    true,
+                ));
+            }
         }
         let result = universal::mutate_workspace(&self.config.executor, request)
             .map_err(super::super::error::map_universal_error)?;

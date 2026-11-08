@@ -247,3 +247,48 @@ related:
 **Physical node resource snapshot:** WSL2 Linux kernel 6.18.54.1, 16 visible CPUs, 9.7 GiB memory, ~4.8 GiB MemAvailable, 4.0 GiB swap entirely occupied, IO pressure `full avg10=6.52`, memory pressure `full avg10=1.01`, CPU pressure `some avg10=0.00`. Thus removing fixed Job count without memory/IO feedback could cause real overcommit; the durable resource-aware admission/queue migration remains separate from this qualified native-cancellation source change.
 
 **Git standing:** prior Runtime owner PR #1779 was independently observed **MERGED** with all five checks successful. This follow-up source change remains uncommitted in its isolated branch until the subsequent Git step; do not confuse running installed binary versions with candidate source revisions.
+
+## 2026-11-08 18:30+08 mainline integration verification (source, not deployment)
+
+Isolated workspace: ws-gpt6-runtime-main-integrate-20261108-r1; branch
+feat/runtime-native-resource-main-integrate-20261108. Merge base at review:
+bc45390991ae. The parent resource scheduling branch was merged with explicit
+four-state native-cgroup fact preservation, confirmed Linux cgroup2 mount for
+positive removal, durable issued-Job reconciliation and idempotent native-stop
+receipt. Two disjoint source commits were then included: the immutable pending
+candidate/DRF query cache (source PR #1842) and the exact committed PG
+operation identity on post-admission observation errors (source PR #1851).
+
+On the final combined code (before documentation/SQL governance edits):
+- Cargo format check: PASS.
+- Core and MCP strict Clippy, warnings denied: PASS.
+- PostgreSQL Runtime Core tests: 416 passed, 0 failed, 61 ignored.
+- MCP tests: 79 passed, 0 failed.
+- Disposable PostgreSQL, real HTTP MCP and systemd integration: 9/9 passed,
+  including cancellation, native runner identity, resource fairness/borrowing,
+  access leases and restart.
+- Full existing TLA+/TLC check and falsification suites: PASS; ResourceQueue
+  generated 5,221 states (1,080 distinct), depth 19, no invariant violations.
+- Kani on actual integrated native-stop classifier: 0/14 failures and
+  six covers; on resource-fit: 0/10 failures and three covers.
+
+Repository SQL dialect governance has been updated for the resource allocation
+table and pg_resource_scheduler_v1.sql operator migration. The full gate
+was independently executed against SHA3-256-verified official SQLite 3.54.1,
+PostgreSQL 18.6 and pinned pglast 8.6: 20/20 tracked SQL files mapped,
+all six osquery native queries passed, PostgreSQL AST verification passed,
+0 NONCOMPLIANT issues; tools.repo.test_sql_dialects 28/28 PASS.
+
+A separate read-only inspection Job once exited LOST with no Runner result
+after about 15 seconds; its PG reservation was released. LOST is not semantic
+failure or evidence of effect rollback. The SQL gate was subsequently
+re-executed under a new exact Job identity and fully passed.
+
+Release boundary: this is source-only verification. Do not infer
+installation from local Cargo/TLC/Kani success. Installed Linux
+runtime.describe.structuredReleaseConfigured=false at inspection, so
+structured production self-release is not authorized through this controller.
+Windows capacity remains independently unqualified. Never use generic
+workspace.exec to bypass release.apply/release.get receipt semantics. Existing
+cross-Owner SQLite direct-call inventory is 65 callsites across 33 paths and
+NOT_CUT_OVER, not a Runtime PG failure or justification to delete them.

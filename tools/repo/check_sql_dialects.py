@@ -23,6 +23,7 @@ SQLITE_STORAGE = "services/runtime/crates/ordivon-runtime-core/src/runtime/"
 OSQUERY_PREFIX = "platform/workstation/inventory/queries/"
 POSTGRESQL_FILE = "studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql"
 POSTGRESQL_RUNTIME_EPOCH = "services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
+POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER = "services/runtime/sql/pg_resource_scheduler_v1.sql"
 POSTGRESQL_ELE_STUDY_SCHEMA = "catalogs/capabilities/ele/schema.sql"
 
 # Exact full-host inventories can traverse thousands of installed Python/npm
@@ -262,7 +263,7 @@ def classify(path: str) -> str | None:
         return "sqlite"
     if path.startswith(SQLITE_STORAGE) and path.endswith("_storage.sql"):
         return "sqlite"
-    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_ELE_STUDY_SCHEMA}:
+    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, POSTGRESQL_ELE_STUDY_SCHEMA}:
         return "postgresql"
     return None
 
@@ -481,22 +482,63 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         for name in grouped["postgresql"]:
             parsed = parse_sql((root / name).read_text(encoding="utf-8"))
             if name == POSTGRESQL_RUNTIME_EPOCH:
-                # Actual fresh-epoch provider uses BEGIN, a typed operator DO
-                # fence, eight CREATE TABLEs, one index and COMMIT. Parse the
-                # *whole* source; a trailing DROP or extra grant must not pass
-                # on the strength of the existing single-SELECT PG fixture.
+                # Parse the exact complete fresh-epoch DDL, including the
+                # resource scheduler allocation table + index. Do not silently
+                # admit additional DROP/GRANT or unmanaged tables.
                 observed = tuple(type(statement.stmt).__name__ for statement in parsed)
                 expected = (
                     "TransactionStmt", "DoStmt",
                     "CreateStmt", "CreateStmt", "CreateStmt", "CreateStmt",
-                    "CreateStmt", "CreateStmt", "IndexStmt", "CreateStmt",
-                    "CreateStmt", "TransactionStmt",
+                    "CreateStmt", "IndexStmt", "CreateStmt", "CreateStmt",
+                    "IndexStmt", "CreateStmt", "CreateStmt", "TransactionStmt",
                 )
-                if observed != expected or (
-                    parsed[0].stmt.kind != 0 or parsed[-1].stmt.kind != 2
+                named = [
+                    (type(statement.stmt).__name__,
+                     statement.stmt.relation.relname,
+                     getattr(statement.stmt, "idxname", None))
+                    for statement in parsed
+                    if type(statement.stmt).__name__ in ("CreateStmt", "IndexStmt")
+                ]
+                expected_named = [
+                    ("CreateStmt", name, None)
+                    for name in ("jobs", "attempts", "idempotency_keys",
+                                 "concurrency_reservations", "job_allocations")
+                ] + [
+                    ("IndexStmt", "job_allocations", "idx_job_allocations_active"),
+                    ("CreateStmt", "job_events", None),
+                    ("CreateStmt", "job_runtime_release_effects", None),
+                    ("IndexStmt", "job_runtime_release_effects",
+                     "idx_runtime_release_effect_request"),
+                    ("CreateStmt", "artifacts", None),
+                    ("CreateStmt", "_stage_control", None),
+                ]
+                if (
+                    observed != expected
+                    or named != expected_named
+                    or parsed[0].stmt.kind != 0
+                    or parsed[-1].stmt.kind != 2
                 ):
                     issues.append(
                         f"PostgreSQL fresh-epoch DDL statement structure changed: {name}"
+                    )
+            elif name == POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER:
+                # Resource allocation schema is a schema-owner migration,
+                # never a GRANT/DROP or unscoped public-table side effect.
+                # Keep a full-file AST gate instead of blanket extension approval.
+                observed = tuple(type(statement.stmt).__name__ for statement in parsed)
+                if (
+                    observed != (
+                        "TransactionStmt", "DoStmt", "CreateStmt",
+                        "IndexStmt", "TransactionStmt",
+                    )
+                    or parsed[0].stmt.kind != 0
+                    or parsed[-1].stmt.kind != 2
+                    or parsed[2].stmt.relation.relname != "job_allocations"
+                    or parsed[3].stmt.idxname != "idx_job_allocations_active"
+                    or parsed[3].stmt.relation.relname != "job_allocations"
+                ):
+                    issues.append(
+                        f"PostgreSQL resource scheduler DDL structure changed: {name}"
                     )
             elif name == POSTGRESQL_ELE_STUDY_SCHEMA:
                 # This PG-only Catalog read model is a schema, four

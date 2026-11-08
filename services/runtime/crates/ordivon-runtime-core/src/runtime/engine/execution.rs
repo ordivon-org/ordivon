@@ -420,6 +420,7 @@ impl Runtime {
             ));
         }
         let request = RunnerRequest {
+ workspace_read_paths: None,
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             job_id: Some(job.job_id.clone()),
             attempt_id: Some(attempt.attempt_id.clone()),
