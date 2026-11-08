@@ -377,17 +377,17 @@
         "mode": "read-only-census-and-cutover-obligation-not-live-migration"
       },
       "latestRequalification": {
-        "observedAt": "2026-10-26T03:34:00+08:00",
-        "sourceCut": "cb80b5017f3ca861f63bf0aa7c0802a958614f62",
-        "standing": "PG_NATIVE_IMPL_AND_BOUNDED_TESTS_MERGED_CUTOVER_NOT_PROVEN",
+        "observedAt": "2026-11-08T12:56:33+08:00",
+        "sourceCut": "60565a94f4d8e85898dc89ee70375ea3f50e02aa",
+        "standing": "PG_ONLY_SOURCE_AND_DISPOSABLE_TESTS_VERIFIED_LIVE_CUTOVER_UNKNOWN",
         "cutoverAdmission": "NOT_ADMITTED",
         "nativeConsumerEvidence": [
           "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
           "domains/capital/tests/test_postgres_ledger.py",
-          "domains/capital/tests/test_postgres_trace_refinement.py"
+          "domains/capital/tests/test_postgres_accounting_traces.py"
         ],
-        "remainingUnknown": "Live writer quiescence, source-state mapping, production consumer switch and rollback admission not evidenced by merged PR755 or 36 bounded sequential traces.",
-        "proofScope": "Source presence and already reported Owner-native tests; not live PostgreSQL writer/consumer cutover."
+        "remainingUnknown": "Production installed PG source identity, actual live reader/writer cutover, historical data state and external broker effects are not attested by an offline test.",
+        "proofScope": "Capital source at stated commit; existing AccountingReservationR1 Z3 model (7 UNSAT, 2 SAT); 12 real disposable PostgreSQL 18.6 tests including 36 ordered trace combinations; not universal SQL refinement or live production evidence."
       }
     },
     {
