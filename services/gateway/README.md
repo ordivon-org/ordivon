@@ -187,3 +187,14 @@ For tools installed on a node, see the [Workstation live inventory]
 (../../platform/workstation/inventory/README.md). For procedure selection
 use the [Capability Catalog](../../catalogs/capabilities/README.md) and
 relevant Agent Skill. None changes Gateway routing or execution authority.
+
+Research route discovery differs from executable provider discovery: its
+configured=true means that the local composition resolver exists, while
+available=false and an UNKNOWN observation explicitly mean that no live
+scientific tool/provider readiness has been proved. Research remains queryable
+through default capability.search and resolvable via capability.resolve;
+includeUnavailable=false must not treat advisory routes as live-ready tools.
+The existing search contract deliberately retains entries with an observation
+error (UNKNOWN) even under includeUnavailable=false; consumers MUST inspect
+each returned descriptor's available and observation_error fields rather than
+assuming that search filtering proves a ready provider.
