@@ -8,9 +8,6 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-import psycopg
-from psycopg.rows import dict_row
-
 from .attention_sql import ATTENTION_DELTA_SQL
 from .canonical_json import canonical_bytes
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
@@ -39,7 +36,7 @@ class AttentionReadProjections:
         if (after_target_kind is None) != (after_target_ref is None):
             raise ValueError("after_target_kind and after_target_ref must be supplied together")
         validate_max_bytes(max_bytes)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_actor(conn, actor_ref)
             rows = conn.execute(
@@ -104,7 +101,7 @@ class AttentionReadProjections:
         limit: int = 100,
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_actor(conn, actor_ref)
             row = conn.execute(
@@ -126,7 +123,7 @@ class AttentionReadProjections:
         if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_actor(conn, actor_ref)
             high = int(
@@ -225,7 +222,7 @@ class AttentionReadProjections:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         if after_sequence is None:
-            with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+            with self._connect() as conn, conn.transaction():
                 conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
                 self._require_actor(conn, actor_ref)
                 row = conn.execute(
@@ -270,7 +267,7 @@ class AttentionReadProjections:
             ]
             cursors: dict[str, int] = {}
             if topic_refs:
-                with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+                with self._connect() as conn, conn.transaction():
                     conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
                     rows = conn.execute(
                         "SELECT topic_ref,cursor FROM topic_consumption_cursors "

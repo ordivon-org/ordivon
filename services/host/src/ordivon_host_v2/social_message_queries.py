@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import Any
 
 import psycopg
-from psycopg.rows import dict_row
 
 from .canonical_json import canonical_digest
 from .collaboration_inputs import MessageRelationKind
@@ -47,7 +46,7 @@ class SocialMessageReadQueries:
         if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_message(conn, message_ref)
             rows = conn.execute(
@@ -136,7 +135,7 @@ class SocialMessageReadQueries:
         *,
         expected_digest: str | None = None,
     ) -> dict[str, Any]:
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             row = conn.execute(
                 "SELECT sequence,message_ref,space_ref,topic_ref,author_actor_ref,message_kind,"
@@ -214,7 +213,7 @@ class SocialMessageReadQueries:
             if cjk_literal
             else "PostgreSQL full-text locator"
         )
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             if space_ref is not None:
                 self._require_space(conn, space_ref)

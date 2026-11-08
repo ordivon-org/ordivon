@@ -120,3 +120,21 @@ Production releases are immutable Git-SHA directories with a release-local `.ven
 Host v2 intentionally does not restore v1's SQLite Journal/WAL/file-lock machinery, filesystem CAS for normal JSON payloads, separate SQLite Board FTS sidecar, Runtime/Harness/provider proxying, historical cognition execution stack, or a separate ContinuityLens subsystem.
 
 See `docs/SOCIAL_WORK_FABRIC_R2_SPEC.md` for the active Social Work Fabric contracts and `docs/SOCIAL_WORK_FABRIC_R2_IMPLEMENTATION.md` for source-bound implementation receipts. `docs/SOCIAL_WORK_FABRIC_R1.md` is historical evidence, not current schema or API authority.
+
+
+### PostgreSQL connection lifecycle
+
+The MCP process owns one native Psycopg ConnectionPool, created in main()
+and closed on stdio/HTTP server exit. Work, Social, Attention and Host status
+all borrow from that same bounded pool; each operation retains its existing
+Psycopg transaction and isolation level. build_server(dsn) and direct Store
+constructors still use single-use native Psycopg connections for callers that
+own no process pool (e.g. schema preflight and isolated tests).
+
+ORDIVON_HOST_V2_PG_POOL_MAX_SIZE defaults to 8 (accepted 1..64).
+The queue is limited to 64 waiters and checkout timeout is 5 seconds.
+This is backpressure, not a claim about domain completion or automatic retry.
+Use mise run test:postgres:disposable to run actual PostgreSQL 18 / Alembic
+and native-pool rollback, bound and full MCP consumer tests. Ordinary pytest
+runs without the disposable DSN skip PostgreSQL tests and do not constitute
+an installed-Host qualification.
