@@ -76,6 +76,7 @@ async function opaEval<T>(
 
 function effectInput(projection: AuthorityProjection): unknown {
   return {
+    schemaVersion: 2,
     actorIds: [projection.actorId],
     authorities: [
       {
@@ -124,7 +125,12 @@ export class OpaAdmissionEngine {
       this.opaPath,
     );
 
-    if (!effect.admitted) {
+    if (
+      !effect.admitted ||
+      effect.inputContractVersion !== 2 ||
+      effect.authorityDigestBound !== true ||
+      effect.authorityDigest !== agent.authorityProjection.authorityDigest
+    ) {
       throw new AdmissionLabError(
         "effect_admission_rejected",
         `Existing effect admission rejected projection: ${effect.reason}`,

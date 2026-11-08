@@ -23,15 +23,22 @@ The evaluator composes:
 ```text
 agent_admission.rego
         |
-        | ALLOW authorityProjection
+        | ALLOW authorityProjection + authorityDigest
         v
-effect_admission.rego
+effect_admission.rego (source-bound input schemaVersion=2)
 ```
 
 Output is a single JSON Agent/Effect admission chain.
 
 The evaluator owns policy-location knowledge. Consumers must invoke this
 contract rather than import Rego files or Security lab implementation sources.
+The public Agent envelope remains schemaVersion 1, but its **internal Effect
+Admission input** must be version 2. The adapter checks the policy response's
+inputContractVersion, authorityDigestBound and exact authorityDigest before it
+returns an admitted Effect. The Rego decision validates binding to its supplied
+Authority record; actual source trust and commit-time currentness remain the
+natural Owner's responsibilities. Unversioned direct policy requests are
+rejected; do not downgrade the contract on a missing digest.
 
 This contract does **not**:
 

@@ -43,6 +43,9 @@ class AgentAdmissionContractTests(unittest.TestCase):
         result = _run(payload)
         self.assert_outcome(result, "ALLOW", "admitted")
         self.assertIs(result["effect"]["admitted"], True)
+        self.assertEqual(result["effect"]["inputContractVersion"], 2)
+        self.assertIs(result["effect"]["authorityDigestBound"], True)
+        self.assertEqual(result["effect"]["authorityDigest"], payload["grant"]["grantDigest"])
         self.assertEqual(result["effect"]["requestId"], payload["effect"]["effectId"])
 
     def test_public_contract_preserves_step_up_without_effect_projection(self) -> None:

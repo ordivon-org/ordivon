@@ -73,6 +73,7 @@ def _validate_input(payload: dict[str, Any]) -> None:
 
 def _effect_input(projection: dict[str, Any]) -> dict[str, Any]:
     return {
+        "schemaVersion": 2,
         "actorIds": [projection["actorId"]],
         "authorities": [
             {
@@ -104,6 +105,13 @@ def evaluate(payload: dict[str, Any]) -> dict[str, Any]:
             "data.ordivon.security.v2.effect_admission.decision",
             _effect_input(projection),
         )
+        if (
+            effect.get("admitted") is not True
+            or effect.get("inputContractVersion") != 2
+            or effect.get("authorityDigestBound") is not True
+            or effect.get("authorityDigest") != projection["authorityDigest"]
+        ):
+            raise RuntimeError("effect admission omitted exact bound-authority evidence")
     return {
         "schemaVersion": 1,
         "kind": "ordivon.security.agent-admission-chain",
