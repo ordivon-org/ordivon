@@ -67,7 +67,7 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     'services/harness/scripts/browser_security_witness_source.py': 1,
     'services/harness/scripts/campaign_materialization.py': 1,
     'services/harness/scripts/cft_human_session.py': 2,
-    'services/harness/scripts/harness_p0_scale_acceptance.py': 1,
+    # Harness scale acceptance now uses disposable PostgreSQL schemas.
     'services/harness/scripts/materialization_reconciliation_archive.py': 1,
     'services/harness/scripts/playwright_browserless_turn_once.py': 1,
     'services/harness/scripts/sqlite_conversation_binding.py': 3,

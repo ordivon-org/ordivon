@@ -77,7 +77,16 @@ The second mode does not make the index semantic truth owner. It binds repositor
 
 A `verified` entry is current only while no later invalidating implementation path has changed after its bound revision. Once that condition fails, the evidence remains useful historical evidence but must be demoted rather than silently certifying current code.
 
-## P0 scale acceptance
+## P0 PostgreSQL scale acceptance
+
+Use a disposable PostgreSQL test database and set HARNESS_PG_TEST_DSN before
+running the scale program or scripts/local-acceptance run. The program creates
+a fresh uniquely named schema, checks PostgreSQL Run/Event/CAS digest
+referential completeness and full history after reconnect, and drops only that
+schema. The receipt kind is ordivon.harness-pg-scale-acceptance; it is not
+comparable to historical SQLite filesystem/object-file measurements. No old
+Run data are migrated, retained, or required.
+
 
 The full P0 persistence closeout uses:
 
@@ -89,7 +98,7 @@ uv run python scripts/harness_p0_scale_acceptance.py \
   --output evidence/hho-p0-scale-1000x100-<revision>.json
 ```
 
-The receipt must bind the exact implementation revision and prove 1,000 Runs, 100,000 Events, a healthy full-history Doctor after reopen, exact object-reference/file agreement, and sampled current-Run inspection below the recorded one-second gate. Thresholds and machine measurements remain in the receipt rather than becoming timeless prose.
+The receipt must bind the exact implementation revision and prove 1,000 Runs, 100,000 Events, a healthy full-history Doctor after reopen, PostgreSQL object/digest reference closure, and sampled current-Run inspection below the recorded one-second gate. Thresholds and machine measurements remain in the receipt rather than becoming timeless prose.
 
 ## Historical live receipts
 
