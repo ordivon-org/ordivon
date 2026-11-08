@@ -70,16 +70,28 @@ def resolve_request_path(raw: str) -> Path:
 
 
 def load_function(relative: str, name: str) -> tuple[Callable[..., dict[str, Any]], str]:
-    path = ROOT / relative
+    """Bind the executed Python entrypoint to one exact source-byte observation.
+
+    Do not hash the pathname *after* import: replacement between import and
+    hashing would falsely attribute executed code to different source bytes.
+    This binds this module only, not imports, native subprocesses or the host.
+    """
+    path = (ROOT / relative).resolve()
+    if ROOT not in path.parents or path.suffix != ".py":
+        raise RuntimeError(f"verifier module is outside Artifact Python source: {relative}")
     spec = importlib.util.spec_from_file_location("artifact_verify_delegate_" + path.stem, path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load verifier module: {relative}")
+    source = path.read_bytes()
+    observed_sha256 = hashlib.sha256(source).hexdigest()
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Compile exactly the bytes hashed above, avoiding a second file read and
+    # the import loader's possible stale pyc optimization.
+    exec(compile(source, str(path), "exec"), module.__dict__)
     fn = getattr(module, name, None)
     if not callable(fn):
         raise RuntimeError(f"verifier function missing: {relative}:{name}")
-    return fn, sha256_file(path)
+    return fn, observed_sha256
 
 
 def verify_request(request_path: Path) -> dict[str, Any]:
@@ -121,6 +133,15 @@ def verify_request(request_path: Path) -> dict[str, Any]:
             )
         except (OSError, ValueError) as error:
             return request_fail(request_id, [str(error)], request_digest=request_digest)
+        # Registry resolution and snapshot staging are separate filesystem
+        # operations. The request could otherwise bind newly replaced bytes
+        # after the registry had certified different canonical Profile bytes.
+        if profile_input.sha256 != profile_record.canonical_sha256:
+            return request_fail(
+                request_id,
+                ["profile snapshot differs from indexed canonical Profile authority"],
+                request_digest=request_digest,
+            )
         profile = load_json(profile_input.path)
         if profile.get("profileVersion") != 2 or profile.get("id") != profile_id:
             return request_fail(request_id, ["profile identity/version differs from request"], request_digest=request_digest)
@@ -212,12 +233,21 @@ def verify_request(request_path: Path) -> dict[str, Any]:
             contract_sha256=contract_fact["sha256"] if contract_fact else None,
             require_complete=binding.require_claim_results,
         )
+        raw_failures = delegated.get("failures", [])
+        failures_shape_valid = isinstance(raw_failures, list) and all(
+            isinstance(item, str) for item in raw_failures
+        )
+        service_failures = list(raw_failures) if failures_shape_valid else [
+            "native verifier failures field is not a list of strings"
+        ]
+        # A native PASS with explicit failure observations is contradictory:
+        # it must never be promoted, even if the claim/identity projections pass.
         verified = (
             delegated_status == "PASS"
+            and not service_failures
             and not claim_failure
             and not native_identity["rejected"]
         )
-        service_failures = list(delegated.get("failures") or [])
         if native_identity["rejected"]:
             service_failures.extend(native_identity["mismatches"])
             service_failures.extend(
@@ -239,7 +269,12 @@ def verify_request(request_path: Path) -> dict[str, Any]:
             "subject": {"path": str(subject_path), "sha256": subject_sha, "size": subject_size},
             "objectContract": contract_fact,
             "capabilityBinding": {"path": str(binding.standing_path), "sha256": binding.standing_sha256, "standing": binding.standing},
-            "verifier": {"path": verifier_relative, "sha256": verifier_sha, "function": verifier_name, "capabilityId": binding.capability_id},
+            "verifier": {
+                "path": verifier_relative, "sha256": verifier_sha,
+                "function": verifier_name, "capabilityId": binding.capability_id,
+                "sourceIdentityScope": "EXACT_PYTHON_MODULE_BYTES_EXECUTED",
+                "nativeToolchainIdentity": "NOT_ATTESTED_BY_SERVICE",
+            },
             "consumer": request.get("consumer"),
             "verification": delegated,
             "inputIdentity": {
@@ -270,7 +305,10 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 "never promoted; missing fields are NOT_EVALUATED on legacy "
                 "bindings. No service result establishes consuming-application "
                 "acceptance, publication, "
-                "deployment, or Profile-v2 production promotion."
+                "deployment, or Profile-v2 production promotion. The reported verifier "
+                "source digest binds executed entrypoint module bytes only; imported Python "
+                "dependencies and native subprocess toolchain identities are not attested "
+                "by this service. Historic LOCAL_LIVE_PROVEN bindings are not live tool inventory."
             ),
         }
         (evidence_dir / "service-result.json").write_text(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False) + "\n")

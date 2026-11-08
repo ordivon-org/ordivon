@@ -96,6 +96,20 @@ The actual executable examples and negative controls are `tests/test_artifact_co
 
 Do not introduce a new `consumer registry` or a mandatory OCI/attestation stage merely because an artifact has multiple readers. Consumers own domain acceptance and deployment proof.
 
+**Provider observation boundary (2026-11-08):** the verification service
+now hashes exactly the Python entrypoint source bytes it compiles for an
+invocation, rather than hashing a potentially replaced pathname after import.
+The receipt labels this as `EXACT_PYTHON_MODULE_BYTES_EXECUTED`; it does
+**not** attest transitively imported Python modules, subprocess binaries,
+native decoder versions, the operating system or a consumer's actual readback.
+`LOCAL_LIVE_PROVEN` in historical binding records remains a qualification
+snapshot, **not** present-node provider discovery. A native aggregate PASS
+with explicit failures is a service FAIL. A Profile snapshot must also match
+the indexed canonical authority digest, closing the index-to-snapshot drift
+window. For Human use, inspect the service's exact limits and consumer-specific
+readback; for Agents, keep unobserved dependencies UNKNOWN and request current
+Runtime/Workstation provider observations when stronger guarantees are needed.
+
 **Exact-byte identity across native verification:** `artifact_core/input_snapshot.py`
 reuses standard library `os.open`/`fstat`, streaming SHA-256 and private temporary
 files instead of another CAS. The service freezes the canonical Profile bytes.

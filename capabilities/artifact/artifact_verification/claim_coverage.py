@@ -32,10 +32,11 @@ def assess_required_evidence(
     profile: dict[str, Any],
     native_result: dict[str, Any],
 ) -> dict[str, Any]:
-    """Return explicit completeness and counterevidence; never infer from overall status.
+    """Return mandatory claim completeness; never infer from aggregate status.
 
-    PASS/FAIL claims must point at a native result node with the *same* status.
-    NOT_EVALUATED is not treated as FAIL or PASS: incomplete claims stay unknown.
+    Only declarations with required=True are mandatory. Optional observations
+    remain in raw native evidence. PASS/FAIL required claims need matching native
+    pointers; NOT_EVALUATED is neither PASS nor FAIL.
     """
     required = profile.get("requiredEvidence")
     if not isinstance(required, dict) or not required:
@@ -47,7 +48,33 @@ def assess_required_evidence(
             "issues": ["profile does not declare requiredEvidence"],
         }
 
-    expected = sorted(required)
+    invalid = [
+        str(name)
+        for name, declaration in required.items()
+        if not isinstance(declaration, dict)
+        or type(declaration.get("required")) is not bool
+    ]
+    if invalid:
+        return {
+            "status": "INVALID_DECLARATION",
+            "complete": False,
+            "expectedClaims": [],
+            "claimStatuses": {},
+            "issues": [f"invalid requiredEvidence declaration: {name}" for name in invalid],
+        }
+
+    # A v2 Profile may declare optional observations alongside mandatory ones.
+    # Optional failures remain available in raw evidence, but cannot silently
+    # enlarge the mandatory gate. An all-optional gate is not a vacuous PASS.
+    expected = sorted(name for name, declaration in required.items() if declaration["required"])
+    if not expected:
+        return {
+            "status": "NOT_DECLARED",
+            "complete": False,
+            "expectedClaims": [],
+            "claimStatuses": {},
+            "issues": ["profile declares no mandatory requiredEvidence claims"],
+        }
     raw = native_result.get("claimResults")
     if not isinstance(raw, dict):
         return {
