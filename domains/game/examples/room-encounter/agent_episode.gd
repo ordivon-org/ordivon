@@ -132,14 +132,19 @@ func run_episode() -> void:
                 and dialogue_after.visible and dialogue_after.available_responses.is_empty()):
             await dialogue_after.response_settled
         var after: Dictionary = _observation(game, rules, observation_mode)
-        steps.append({
+        # A player-mode step contains only the chosen input and real visible
+        # before/after observations. Private admission/dispatch diagnostics
+        # belong solely to the opt-in debug channel.
+        var observed_step: Dictionary = {
             "action": action,
-            "control_path": control_path,
-            "recognized": action in ["attack", "guard", "advance"],
-            "accepted": accepted,
             "before": before,
             "after": after
-        })
+        }
+        if observation_mode == "debug":
+            observed_step["control_path"] = control_path
+            observed_step["recognized"] = action in ["attack", "guard", "advance"]
+            observed_step["accepted"] = accepted
+        steps.append(observed_step)
 
     var last: Dictionary = rules.snapshot().duplicate(true)
     print(PREFIX + JSON.stringify({

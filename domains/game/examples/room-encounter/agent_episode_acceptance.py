@@ -56,10 +56,11 @@ def main():
     assert "player_health" not in visible["initial"] and "phase" not in visible["initial"]
     assert visible["steps"][0]["after"]["dialogue"]["responses"]
     assert visible["steps"][0]["after"]["actions"]["advance"]
-    assert visible["steps"][1]["accepted"]
+    assert all(set(step) == {"action", "before", "after"} for step in visible["steps"])
+    assert visible["steps"][1]["before"] != visible["steps"][1]["after"]
     assert visible["steps"][1]["after"]["status"].startswith("ROOM 2/3")
     assert "dialogue" not in visible["steps"][1]["after"]
-    assert visible["steps"][2]["accepted"]
+    assert visible["steps"][2]["before"] != visible["steps"][2]["after"]
     # Every observation, including those after terminal/failed transitions,
     # has a small UI-only key set rather than an accidentally leaked state.
     observed = [visible["initial"], visible["final"]]

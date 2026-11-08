@@ -585,7 +585,7 @@
       ],
       "outputs": [
         "one prefixed schema_version=2 JSON receipt containing default player-visible native HUD/dialogue observation or explicitly requested privileged debug snapshots, action acceptance, final and terminal state",
-        "step-local control_path identifying real native rule or enabled dialogue choice"
+        "debug-only step-local control_path identifying real native rule or enabled dialogue choice; player-mode step has action and UI before/after only"
       ],
       "behavioralContract": "Each fresh Godot scene uses rules for attack/guard; advance selects the Dialogue Manager response tagged intent=unlock using native response next_id. A passage_advanced event, not UI button order, guessed frames or unequal snapshots, establishes commitment. No second simulator or Human-playtest claim.",
       "acceptance": [

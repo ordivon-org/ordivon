@@ -72,9 +72,10 @@ storage engine or renderer is introduced.
 The single `GAME_AGENT_EPISODE_JSON=` line uses `schema_version=2`.
 By default, `--observation player` projects only what the native
 Godot HUD and currently visible dialogue controls show: status, encounter
-text, enabled player inputs and visible dialogue response text. It does not
-expose the authoritative rules snapshot; the step's accepted/recognized
-result and control path are diagnostic metadata, not an observation.
+text, enabled player inputs and visible dialogue response text. It does not expose the authoritative rules snapshot. Each player-mode
+step contains only the submitted action and the visible before/after UI.
+Private accepted/recognized results and the internal control path are
+**debug-only**, not exposed to a player-mode Agent.
 
 For privileged diagnostics, pass `--observation debug` explicitly.
 That mode returns the full EncounterRules snapshot in the initial,
