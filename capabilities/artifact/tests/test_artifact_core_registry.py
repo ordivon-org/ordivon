@@ -81,7 +81,24 @@ class ArtifactCoreRegistryTests(unittest.TestCase):
         self.assertEqual(binding.entrypoint.module, "scripts/artifact_audio.py")
         self.assertEqual(binding.entrypoint.callable, "verify_flac")
         self.assertTrue(binding.object_contract_required)
+        self.assertFalse(binding.snapshot_inputs)
         self.assertEqual(binding.standing, "LOCAL_LIVE_PROVEN")
+
+    def test_parquet_input_snapshot_is_independent_of_required_claim_results(self) -> None:
+        registry = CapabilityBindingRegistry(ART)
+        parquet = registry.resolve("dataset-parquet-flat-r1", "verify")
+        self.assertTrue(parquet.snapshot_inputs)
+        self.assertFalse(parquet.require_claim_results)
+        legacy = registry.resolve("audio-ogg-vorbis-r1", "verify")
+        self.assertFalse(legacy.snapshot_inputs)
+        self.assertFalse(legacy.require_claim_results)
+
+    def test_snapshot_flag_must_be_a_boolean(self) -> None:
+        registry = CapabilityBindingRegistry(ART)
+        key = ("dataset-parquet-flat-r1", "verify")
+        registry._entries[key]["snapshotInputs"] = "true"
+        with self.assertRaisesRegex(RuntimeError, "invalid Artifact snapshotInputs flag"):
+            registry.resolve(*key)
 
     def test_binding_registry_is_data_driven_not_derived_from_artifact_verify_source(self) -> None:
         registry = CapabilityBindingRegistry(ART)

@@ -194,6 +194,9 @@ pq.write_table(pa.Table.from_pylist(rows, schema=schema), sys.argv[1], compressi
             self.assertEqual(result["status"], "PASS", result)
             self.assertFalse(result["profileVerificationComplete"])
             self.assertEqual(result["requiredEvidenceAssessment"]["status"], "NOT_EVALUATED")
+            self.assertEqual(result["inputIdentity"]["subject"], "EXACT_BYTES_SNAPSHOT")
+            self.assertEqual(result["inputIdentity"]["objectContract"], "EXACT_BYTES_SNAPSHOT")
+            self.assertNotEqual(result["verification"]["artifact"]["path"], str(subject))
             safe_path = str(subject).replace("'", "''")
             consumer = subprocess.run([
                 str(dataset.DUCKDB), "-json", "-c",

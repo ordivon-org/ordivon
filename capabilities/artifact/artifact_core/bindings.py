@@ -22,6 +22,7 @@ class CapabilityBinding:
     entrypoint: Entrypoint
     object_contract_required: bool
     require_claim_results: bool
+    snapshot_inputs: bool
     standing: str
     standing_path: Path
     standing_sha256: str
@@ -76,6 +77,11 @@ class CapabilityBindingRegistry:
             raise RuntimeError(
                 f"capability binding standing mismatch for {profile_id}:{operation}: {standing!r} != {required!r}"
             )
+        snapshot_inputs = item.get("snapshotInputs", False)
+        if type(snapshot_inputs) is not bool:
+            raise RuntimeError(
+                f"invalid Artifact snapshotInputs flag for {profile_id}:{operation}"
+            )
         entrypoint = item.get("entrypoint", {})
         return CapabilityBinding(
             profile_id=profile_id,
@@ -84,6 +90,7 @@ class CapabilityBindingRegistry:
             entrypoint=Entrypoint(module=str(entrypoint["module"]), callable=str(entrypoint["callable"])),
             object_contract_required=bool(item.get("objectContractRequired", False)),
             require_claim_results=item.get("requireClaimResults") is True,
+            snapshot_inputs=snapshot_inputs,
             standing=standing,
             standing_path=standing_path,
             standing_sha256=standing_sha,

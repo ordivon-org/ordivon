@@ -164,10 +164,10 @@ def verify_request(request_path: Path) -> dict[str, Any]:
         subject_path = resolve_request_path(request["subject"]["path"])
         if not subject_path.is_file():
             return request_fail(request_id, ["subject is not a regular file"], request_digest=request_digest)
-        # Single-file profiles can be verified against an exact private byte
-        # snapshot. Formats with sidecars retain the historical path precheck
-        # until their native dependency graph is explicitly frozen as a unit.
-        pinned = binding.require_claim_results
+        # Snapshot qualification and claim-level completeness are distinct.
+        # Parquet is a self-contained file despite lacking qualified v2 claim
+        # results; sidecar-bearing formats remain on legacy path admission.
+        pinned = binding.require_claim_results or binding.snapshot_inputs
         if pinned:
             try:
                 subject_input = stage_verified_input(
@@ -304,8 +304,8 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 "Profile claim to be independently present, PASS, and linked to a "
                 "matching native-status evidence node. Other bindings retain legacy "
                 "native-verifier PASS without claiming complete Profile evidence. "
-                "For claim-complete single-file bindings, native tools verify a "
-                "private snapshot whose bytes matched the request commitment; "
+                "For explicitly snapshot-qualified self-contained bindings, "
+                "native tools verify private input bytes bound to the request; "
                 "the original source path can change after admission. Legacy "
                 "formats retain admission-time identity only. Native reports "
                 "with contradictory Profile/subject/contract identity are "

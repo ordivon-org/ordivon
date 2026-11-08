@@ -138,6 +138,79 @@ class SnapshotIdentityTests(unittest.TestCase):
             self.assertTrue(all(not path.exists() for path in observed_paths))
             self.assertNotEqual(subject.read_bytes(), initial)
 
+    def test_parquet_snapshot_is_pinned_without_claim_level_promotion(self):
+        # The dataset has one self-contained file; eligibility for exact-byte
+        # staging must not depend on v2 claim-level qualification.
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "asset.parquet"
+            contract = root / "contract.json"
+            before = b"fixed-parquet-representative-bytes"
+            policy = b'{"contractVersion": 1, "id": "data"}'
+            subject.write_bytes(before)
+            contract.write_bytes(policy)
+            profile = ROOT / "artifact-delivery/shadow-v2/examples/dataset-parquet-flat-r1-v2.json"
+            request = {
+                "schemaVersion": 1, "kind": "artifact-verification-request",
+                "requestId": "parquet-snapshot-independent-of-evidence",
+                "profile": {"id": "dataset-parquet-flat-r1", "path": str(profile), "sha256": digest(profile.read_bytes())},
+                "subject": {"path": str(subject), "sha256": digest(before)},
+                "objectContract": {"path": str(contract), "sha256": digest(policy)},
+                "evidenceDirectory": str(root / "evidence"),
+            }
+            request_path = root / "request.json"
+            request_path.write_text(json.dumps(request))
+            staged_paths: list[Path] = []
+
+            def swap_after_staging(_relative: str, _function: str):
+                subject.write_bytes(b"new-dataset-bytes-not-admitted")
+                contract.write_bytes(b"new-contract-not-admitted")
+
+                def native(staged_subject: Path, staged_contract: Path, _evidence: Path):
+                    staged_paths.extend([staged_subject, staged_contract])
+                    self.assertEqual(staged_subject.read_bytes(), before)
+                    self.assertEqual(staged_contract.read_bytes(), policy)
+                    return {
+                        "profileId": "dataset-parquet-flat-r1",
+                        "status": "PASS", "failures": [],
+                        "artifact": {"sha256": digest(staged_subject.read_bytes()), "size": len(before)},
+                        "contract": {"sha256": digest(staged_contract.read_bytes())},
+                    }
+                return native, "f" * 64
+
+            with mock.patch.object(SERVICE, "load_function", side_effect=swap_after_staging):
+                result = SERVICE.verify_request(request_path)
+            self.assertEqual(result["status"], "PASS", result)
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertEqual(result["requiredEvidenceAssessment"]["status"], "NOT_EVALUATED")
+            self.assertEqual(result["inputIdentity"]["subject"], "EXACT_BYTES_SNAPSHOT")
+            self.assertEqual(result["inputIdentity"]["objectContract"], "EXACT_BYTES_SNAPSHOT")
+            self.assertEqual(result["nativeIdentityAssessment"]["status"], "COMPLETE")
+            self.assertEqual(len(staged_paths), 2)
+            self.assertTrue(all(not path.exists() for path in staged_paths))
+
+    def test_parquet_snapshot_digest_drift_rejects_before_native_verifier(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "asset.parquet"
+            subject.write_bytes(b"new-bytes")
+            profile = ROOT / "artifact-delivery/shadow-v2/examples/dataset-parquet-flat-r1-v2.json"
+            request = {
+                "schemaVersion": 1, "kind": "artifact-verification-request",
+                "requestId": "parquet-snapshot-stale-commitment",
+                "profile": {"id": "dataset-parquet-flat-r1", "path": str(profile), "sha256": digest(profile.read_bytes())},
+                "subject": {"path": str(subject), "sha256": digest(b"old-bytes")},
+                "evidenceDirectory": str(root / "evidence"),
+            }
+            request_path = root / "request.json"
+            request_path.write_text(json.dumps(request))
+            with mock.patch.object(SERVICE, "load_function") as loaded:
+                result = SERVICE.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL")
+            self.assertIn("subject bytes differ from request digest", result["failures"])
+            loaded.assert_not_called()
+            self.assertFalse((root / "evidence").exists())
+
     def test_snapshot_drift_does_not_create_a_service_receipt(self):
         with tempfile.TemporaryDirectory() as root:
             directory = Path(root)

@@ -99,14 +99,18 @@ Do not introduce a new `consumer registry` or a mandatory OCI/attestation stage 
 **Exact-byte identity across native verification:** `artifact_core/input_snapshot.py`
 reuses standard library `os.open`/`fstat`, streaming SHA-256 and private temporary
 files instead of another CAS. The service freezes the canonical Profile bytes.
-For three qualified self-contained FLAC/WAVE/PNG bindings it also freezes the
-subject and optional object contract, preserving basename/extension for native
-tools. The temporary snapshots are deleted after verification. The new
+For three claim-qualified FLAC/WAVE/PNG bindings, and the separately
+snapshot-qualified self-contained Parquet binding, it also freezes the subject
+and optional object contract, preserving basename/extension for native tools. The temporary snapshots are deleted after verification. The new
 `inputIdentity` records `EXACT_BYTES_SNAPSHOT` versus `ADMISSION_DIGEST_ONLY`.
 Legacy sidecar-bearing formats retain path admission semantics until their
 complete dependencies can be frozen without breaking relative references.
-A verified snapshot says nothing about source pathname continuity or what a
-later consumer opened; consumers must hash their actual inputs. A process
+Snapshot eligibility is independent of `requireClaimResults`: Parquet can
+have exact-byte input identity while its legacy aggregate PASS still leaves
+`profileVerificationComplete=false`. Sidecar-bearing or otherwise unqualified
+formats retain path-only admission. A verified snapshot says nothing about
+source pathname continuity or what a later consumer opened; consumers must
+hash their actual inputs. A process
 holding the same principal may still modify private files; no process-isolation
 claim is made. See `tests/test_artifact_input_snapshot.py`.
 

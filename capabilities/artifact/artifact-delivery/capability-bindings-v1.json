@@ -42,6 +42,7 @@
     },
     {
       "profileId": "dataset-parquet-flat-r1",
+      "snapshotInputs": true,
       "operation": "verify",
       "capabilityId": "artifact.verify.dataset-parquet-flat-r1",
       "entrypoint": {
