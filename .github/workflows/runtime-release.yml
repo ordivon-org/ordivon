@@ -29,6 +29,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Network - acquire verified Python via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
+
       - name: Network - acquire verified mise via official GitHub API
         shell: bash
         env:

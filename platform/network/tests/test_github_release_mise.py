@@ -104,3 +104,28 @@ def test_partial_binary_fails_before_install(
     with pytest.raises(ValueError, match="partial download"):
         imported.provision()
     assert not (tmp_path / "bin/mise").exists()
+
+
+
+def test_cached_python_interpreter_digest_mutation_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MISE_DATA_DIR", str(tmp_path))
+    bin_dir = tmp_path / "installs" / "python" / "3.15.1" / "bin"
+    bin_dir.mkdir(parents=True)
+    (bin_dir / "python3.15").write_bytes(b"fake executable whose version may lie")
+    (bin_dir / "python").symlink_to("python3.15")
+
+    def no_exec(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("a digest-mismatched Python binary must never execute")
+
+    monkeypatch.setattr(imported.subprocess, "run", no_exec)
+    with pytest.raises(ValueError, match="pinned upstream"):
+        imported.provision_python()
+
+
+def test_python_release_metadata_pin_is_unambiguous() -> None:
+    assert imported.PYTHON_REPO == "astral-sh/python-build-standalone"
+    assert imported.PYTHON_ASSET_ID == 663549456
+    assert imported.PYTHON_ASSET_SIZE == 38075450
+    assert len(imported.PYTHON_EXECUTABLE_SHA256) == 64

@@ -24,3 +24,18 @@ verification is required to prove that consumer.
 
 Official upstream: https://docs.github.com/en/rest/releases/assets
 Action: https://github.com/jdx/mise-action
+
+
+The same GitHub Runner counterexample then affected the pinned Python
+3.15.1 standalone distribution. The --python mode fetches upstream
+astral-sh/python-build-standalone asset ID 663549456 (38,075,450 bytes),
+checks its official SHA-256 and the extracted Python 3.15.1 executable
+digest, and stages the official install_only_stripped archive into
+mise's native installs/python/3.15.1 layout. Native mise install python@3.15.1
+then reports already installed and mise which python resolves that exact
+interpreter. This is reuse of an upstream relocatable Python distribution
+and of mise's own installation layout, not a Python build system or a new
+toolchain manager. A mismatched existing executable fails closed.
+
+Locally qualified with a fresh disposable MISE_DATA_DIR, an actual GitHub
+API 38 MB download and a native mise install/which consumer readback.
