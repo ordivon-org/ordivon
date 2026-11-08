@@ -78,6 +78,7 @@ mod job;
 mod native_stop;
 mod node_query;
 mod reconciliation;
+mod release;
 mod scheduling;
 mod workspace;
 
