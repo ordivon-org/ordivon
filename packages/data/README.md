@@ -60,6 +60,32 @@ file URI rather than silently rewriting the frozen evidence. The source owner
 should emit canonical URIs in a **new** versioned DCAT projection, preserving
 the historical R2 acceptance.
 
+## Current producer-owned ODPS discovery (no new registry)
+
+`python3 packages/data/scripts/project_owned_products.py` projects the
+currently **Git-tracked** producer-owned ODPS v1.1 records into a deterministic
+DCAT 3 JSON-LD view. The two presently tracked documents belong to Capital
+and Experimental Episode; the frozen three-product September federation still
+contains Research's external product. The generated view is **not** a claim
+that all three current products are accessible, installed, or publishable.
+
+```sh
+python3 packages/data/scripts/project_owned_products.py > /tmp/owner-products.jsonld
+python3 packages/data/scripts/inspect_federation.py --catalog /tmp/owner-products.jsonld --verify-local
+# To project a specific external owner's qualified ODPS 1.1 document:
+python3 packages/data/scripts/project_owned_products.py --product /approved/path/odps.json
+```
+
+The projection consumes upstream ODPS product IDs, versions, output ports and
+declared ODRL policy IDs without rewriting the owners' files. Output-port IDs
+and versions are **optional** under ODPS 1.1; a port version may differ from
+its containing product version. Missing port IDs never acquire invented
+stable IDs. A generated Distribution has no physical `dcat:accessURL` or
+file digest without an explicit owner binding, so the verifier returns
+`UNKNOWN`, not false `VERIFIED`. Producer source bytes are SHA-256 bound
+into the content-derived catalog identity. No central catalog daemon, new
+database or persisted product state is added.
+
 ## Verification and user instructions
 
 - Native: `mise run data:verify` (Owner's CLI and exact existing study contracts).

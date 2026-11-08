@@ -15,7 +15,13 @@ Discovery metadata is only a candidate until its producing owner confirms it.
   and PyArrow differential reader. Do not replace with ad-hoc CSV parsing.
 - Analytics/transformations -> DuckDB, native domain SQL/Python/Polars
   when available in that task's lockfile; do not assume global Python imports.
-- Product discovery -> current DCAT projection and this read-only CLI.
+- Product discovery -> the frozen DCAT projection for historical acceptance,
+  or `scripts/project_owned_products.py` to derive a fresh read-only DCAT
+  projection from currently tracked owner ODPS records. Do not confuse the
+  two-source Git projection with the three-product frozen 2026-09 snapshot.
+  Do not mint port UUIDs, URLs, digest or reuse rights; ODPS v1.1 outputPort
+  IDs and versions are optional and their versions need not match the product.
+
 - Product contract -> producing owner's ODCS/ODPS document and native tests.
 - Job/Attempt/process/Artifact effect -> Runtime; not this package.
 - Long-lived general workflow -> proven Temporal/runtime owner; persistent

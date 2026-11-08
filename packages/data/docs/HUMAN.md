@@ -43,6 +43,20 @@ proofs from bounded CrossHair implementation search and actual source/consumer
 read-back. Retire synthetic tests only after the relevant Python/Rust/SQL
 implementation refinement is established, not from abstract proofs alone.
 
+## Inspect actual producer-owned product metadata
+
+Run `python3 packages/data/scripts/project_owned_products.py` for a live
+**checkout-relative** ODPS-to-DCAT projection over Git-tracked products.
+Use `--product` to select a particular owner's qualified document. The current
+repository contains Capital and Experimental Episode ODPS records; Research's
+historical record remains in the frozen federation and cannot be promoted to
+a current live product by copying September's catalog.
+
+The CLI provides product discovery only. It deliberately does not invent file
+locations, access grants or physical integrity. A readable product record
+and an output port do not establish available bytes; real product release
+still requires the producing owner's ODCS/ODPS contract and read-back.
+
 ## Version and status warnings
 
 - ODPS 1.1 historical consumers must not be silently switched to ODPS 4.2.

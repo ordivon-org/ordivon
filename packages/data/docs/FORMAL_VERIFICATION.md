@@ -84,6 +84,19 @@ version, assumptions, negative oracle and relevant native consumer outcome.
 Never relabel `UNKNOWN` as `FALSIFIED` and never report bounded symbolic
 exploration as full installed-code refinement.
 
+## Read-only product projection evidence boundary
+
+`src/ordivon_data/odps_projection.py` is a concrete ODPS v1.1-to-DCAT 3
+metadata adapter, not an additional product registry or executable publishing
+transaction. The source ODPS byte digests are bound into the resulting
+catalog identity; output-port ID and version absence is faithfully preserved
+under the upstream Bitol standard. New native tests check determinism,
+duplicate product identity, optional port fields, malformed input and
+compatibility with the existing DCAT inspector. A separate locked-version
+RDFLib 7.6 parser read-back validates the actual JSON-LD graph. These are
+implementation/format witnesses, **not** abstract proof or installed data
+availability. The owner-native data and rights policies remain external.
+
 ## Cross-owner adoption without a new platform
 
 - Runtime/Host/Harness: use their existing state-transition models, Rust

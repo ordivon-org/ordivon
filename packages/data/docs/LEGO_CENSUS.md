@@ -33,6 +33,19 @@ consumes this pure predicate. These are a **bounded model and implementation
 candidate**, not a newly admitted universal LEGO, proof of filesystem I/O,
 or independent data producer. See `docs/FORMAL_VERIFICATION.md`.
 
+## Current read-only ODPS-to-DCAT composition
+
+The `odps_projection.py` + `scripts/project_owned_products.py` pair is
+a thin capability candidate that consumes real owner ODPS 1.1 records and
+produces deterministic DCAT 3 discovery metadata. Its only global discovery
+source is Git's tracked-file index; no central dataset registry or file store
+is created. It preserves declared policy references while omitting physical
+URLs and per-port digests unless producers explicitly bind them. Real Bitol
+ODPS 1.1 permits absent port IDs and versions, and port versions are
+independent of product versions. Its correctness remains bounded by
+upstream metadata, native parsing and downstream consumer read-back; the
+DataProduct Lean digest proof does **not** prove RDF conversion.
+
 ## Thought LEGO source laws
 
 - **Representation:** W3C DCAT/PROV, ODCS/ODPS, SDMX and Arrow/Parquet are
