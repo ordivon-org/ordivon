@@ -1,6 +1,17 @@
 //! PostgreSQL Runtime Job admission, observation, cancellation, and projection.
 use super::*;
 
+// Once PG has durably admitted this Job (including an exact idempotent replay),
+// a later observation failure cannot retract the committed operation identity.
+// The existing MCP error projection uses this witness to demand reconciliation
+// instead of falsely reporting commitState=not_committed.
+fn preserve_committed_job_identity<T>(
+    job_id: &str,
+    observed: RuntimeResult<T>,
+) -> RuntimeResult<T> {
+    observed.map_err(|error| error.with_operation_id(job_id))
+}
+
 impl PgRuntime {
     pub fn run(&self, proposal: &JobRunProposal) -> RuntimeResult<JobObservation> {
         super::engine::validate_resource_run_proposal_structure(proposal)?;
@@ -17,7 +28,11 @@ impl PgRuntime {
         // Replay before consulting mutable Workspace/executable state or policy.
         if let Some(row) = db.client.query_opt("SELECT job_id,request_digest FROM jobs WHERE principal=$1 AND client_request_id=$2", &[&proposal.principal,&proposal.client_request_id]).map_err(io)? {
             if row.get::<_,String>(1)!=identity { return Err(pg(PgAdmissionError::IdempotencyConflict)); }
-            return self.observe(&proposal.principal, &JobObserveRequest { schema_version:1,job_id:row.get(0),wait_ms:proposal.wait_ms,wait_until:JobObserveWaitUntil::Terminal,stdout_tail_bytes:proposal.stdout_tail_bytes,stderr_tail_bytes:proposal.stderr_tail_bytes,stdout_offset:None,stderr_offset:None });
+            let committed_job: String = row.get(0);
+            return preserve_committed_job_identity(
+                &committed_job,
+                self.observe(&proposal.principal, &JobObserveRequest { schema_version:1,job_id:committed_job.clone(),wait_ms:proposal.wait_ms,wait_until:JobObserveWaitUntil::Terminal,stdout_tail_bytes:proposal.stdout_tail_bytes,stderr_tail_bytes:proposal.stderr_tail_bytes,stdout_offset:None,stderr_offset:None }),
+            );
         }
         let e = &proposal.execution;
         if e.execution_target != ExecutionTarget::LocalLinux
@@ -288,18 +303,21 @@ impl PgRuntime {
             PgAdmissionOutcome::Created(j) | PgAdmissionOutcome::Existing(j) => j,
         };
         let _ = self.schedule_pending_jobs();
-        self.observe(
-            &proposal.principal,
-            &JobObserveRequest {
-                schema_version: 1,
-                job_id: job,
-                wait_ms: proposal.wait_ms,
-                wait_until: JobObserveWaitUntil::Terminal,
-                stdout_tail_bytes: proposal.stdout_tail_bytes,
-                stderr_tail_bytes: proposal.stderr_tail_bytes,
-                stdout_offset: None,
-                stderr_offset: None,
-            },
+        preserve_committed_job_identity(
+            &job,
+            self.observe(
+                &proposal.principal,
+                &JobObserveRequest {
+                    schema_version: 1,
+                    job_id: job.clone(),
+                    wait_ms: proposal.wait_ms,
+                    wait_until: JobObserveWaitUntil::Terminal,
+                    stdout_tail_bytes: proposal.stdout_tail_bytes,
+                    stderr_tail_bytes: proposal.stderr_tail_bytes,
+                    stdout_offset: None,
+                    stderr_offset: None,
+                },
+            ),
         )
     }
     pub fn observe(
@@ -597,5 +615,27 @@ impl PgRuntime {
             timeline,
             events_truncated: events.len() > event_limit as usize,
         })
+    }
+}
+
+#[cfg(test)]
+mod committed_observation_tests {
+    use super::*;
+
+    #[test]
+    fn post_admission_observation_error_keeps_committed_job_identity() {
+        let failed: RuntimeResult<()> = Err(RuntimeError::new(
+            RuntimeErrorCode::RegistryUnavailable,
+            "serializable PG observation failed after Job admission",
+            None,
+            false,
+        ));
+        let error = preserve_committed_job_identity("job-exact", failed).unwrap_err();
+        assert_eq!(error.operation_id.as_deref(), Some("job-exact"));
+        assert_eq!(error.code, RuntimeErrorCode::RegistryUnavailable);
+        assert_eq!(
+            preserve_committed_job_identity("job-exact", Ok::<_, RuntimeError>(7)).unwrap(),
+            7
+        );
     }
 }
