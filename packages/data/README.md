@@ -93,7 +93,9 @@ file, use explicit producer ODPS `customProperties` as the authority for the
 relative source path and SHA-256. The operator selects the exact product, port,
 property names and owner root; the adapter hashes the opened regular file and
 rejects any mismatch or escape from the explicit root. Only then does it emit
-a local file URI and bound digest. That local URI is **not portable** to other
+a local file URI and W3C DCAT 3 `spdx:checksum`, retaining `dct:identifier`
+for the producer's port identity. Legacy `sha256:` identifiers remain
+readable for the historical frozen catalog. That local URI is **not portable** to other
 workspaces or an implicit redistribution permission.
 
 ```sh

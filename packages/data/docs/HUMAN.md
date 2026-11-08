@@ -68,6 +68,10 @@ Experimental Episode manifest can be verified from their Git-tracked source
 bytes. The Episode Parquet index has only a reproducibility digest and no
 currently accessible file in this repo; it remains UNKNOWN.
 
+The new DCAT 3 projection uses `spdx:checksum` for SHA-256 and leaves
+`dct:identifier` as the distribution's identity. Contradictory legacy and
+SPDX digests are rejected; historical frozen digests remain readable.
+
 A verified SHA-256 observation establishes only one current byte match.
 It cannot establish provider rights, future pathname stability, a complete
 product publication, or approval to delete source records.

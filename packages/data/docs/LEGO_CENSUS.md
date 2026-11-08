@@ -52,7 +52,8 @@ The optional `local_evidence.py` is a small **file-evidence adapter**, not
 a new owner/registry or generic provenance service. It accepts explicit
 operator-selected ODPS source-path and SHA-256 properties, binds one exact
 named output port and a canonical owner root, checks actual regular-file
-bytes, and emits only a short-lived local URI. The existing Artifact
+bytes, and emits only a short-lived local URI plus the W3C DCAT 3 native
+`spdx:Checksum` value. Port identifiers remain independent of file digests. The existing Artifact
 family remains natural owner of durable, format-level Dataset verification.
 The adapter does not certify the environment against later path replacement;
 recheck bytes at consumer read-back.

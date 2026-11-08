@@ -55,8 +55,9 @@ Discovery metadata is only a candidate until its producing owner confirms it.
 
 Local producer byte binding: use explicit `--bind-local` only after reading
 the producer's declared ODPS properties, qualified owner root and *exact*
-output-port name. The tool checks the actual regular file SHA-256. Never
-fabricate port/file matching, claim a portable URL, or promote a missing
+output-port name. The tool checks the actual regular file SHA-256 and emits DCAT 3
+`spdx:checksum` without overwriting `dct:identifier`. Never fabricate
+port/file matching, claim a portable URL, or promote a missing
 Episode Parquet materialization to VERIFIED. Native consumers must recheck
 byte identity at their read boundary.
 

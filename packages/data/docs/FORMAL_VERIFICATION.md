@@ -26,6 +26,26 @@ a total, exact digest-equality relation. Real SHA-256 digest values are modeled
 abstractly: digest equality proves only hash equality, not metaphysical byte
 identity, origin authenticity, producer authorization, or permission to publish.
 
+## Bounded publication and retirement state model
+
+`formal/DataPublication.lean` now specifies a finite control-state protocol:
+candidate → validated → committed → published → retired → reclaimed,
+plus reader acquisition/release and producer-controlled retention release.
+Lean 4.35 proves by induction over every reachable abstract state that:
+
+- Published implies validation evidence **and** a commit receipt.
+- Reclaimed implies **zero** outstanding reader leases and retention release.
+- Bypassing validation/commit with naive direct publish violates the model.
+
+The state transition is an abstract atomic relation, **not** installed PG/SQL,
+filesystem, Runtime, or Crash/Concurrency refinement. There is no proof of
+durable multi-version snapshot isolation, wait-free readers, physical GC,
+eventual completion or absence of filesystem races. The implementation owner
+must discharge transaction ordering, reader leases, independent recovery,
+source rights and retention release before any concrete auto-GC. This model
+is a reusable *thought LEGO*, not a deployed publisher. No storage engine or
+central registry has been implemented for it.
+
 ## Formal boundary / proof obligations
 
 - **Identity and version:** for the same `(product_id, version)`, admission
@@ -106,7 +126,10 @@ regular-file read is hashed and mismatches reject the projection. This
 binds two present JSON files in the tested checkout; the Episode Parquet
 index remains unavailable/UNKNOWN. Native positive and negative tests
 cover real file digest, corrupted bytes, incorrect port, missing property,
-duplicate binding, and `..` traversal.
+duplicate binding, and `..` traversal. W3C DCAT 3 `spdx:checksum`
+preserves producer port `dct:identifier` and allows RDFLib readback.
+A contradictory legacy SHA-256 declaration rejects the source; the
+frozen legacy federation still supports the older digest shape.
 
 This is **not** a formal proof that symbolic file paths never change,
 that SHA-256 is collision-free, or that port/source association was proved
