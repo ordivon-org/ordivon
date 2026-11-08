@@ -1,5 +1,35 @@
 # Ordivon Capital Architecture
 
+## Finance Agent roles / Security authorization composition (2026-11-08)
+
+Finance retains seven source owners. Dynamic Agent roles are task
+instructions, not deployment identities or financial authority. A Research
+Director may schedule Discovery, Quant Researcher, Independent Reviewer,
+Portfolio/Risk Challenger and Operations tasks through existing Harness
+and Runtime. No Finance Agent registry, policy engine, new role-owned database
+or third orchestration process is created.
+
+Security owns delegated Agent authorization: trusted authenticated
+Principal/Agent/Grant projection -> existing public Agent Admission v1
+evaluator (OPA + digest-bound Effect Admission) -> ALLOW/STEP_UP/DENY.
+Gateway/Runtime and each effect owner retain real enforcement and durable
+effect state. Role descriptions and Finance research JSON do not assert
+verified identity or expand financial effects. The Security v0 grant
+remainingEffects field is a non-atomic policy snapshot, not durable quota.
+
+Research operations remain freeze-experiment, assess-holdout,
+fingerprint-policy and review-candidate in scripts/run-finance-lego.
+They do not grant orders or capital. Independent review needs independently
+controlled experiment evidence, not another Agent agreeing with the author.
+External execution separately requires Governance, Trading qualification,
+provider confirmation and Accounting reconciliation.
+
+tests/test_finance_agent_role_composition.py directly invokes Finance CLI
+and the public upstream Security OPA evaluator with synthetic trusted inputs.
+It is proof of contract composition, NOT production authentication or real
+market execution. Human and Agent procedure is in the existing
+.agents/skills/finance-experiment-review/SKILL.md.
+
 ## Finance investment program — source boundary (2026-11-06)
 
 The Finance economic program **reuses** Capital's seven real source owners.

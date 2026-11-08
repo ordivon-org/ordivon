@@ -311,6 +311,27 @@ Finance 的持久化账本由 Accounting 的 PostgresAccountingLedger 负责。�
 
 旧 SQLite 引擎、R0-R5 脚本和差分测试已退役。36 条两操作情景直接对真实 PostgreSQL 和独立账务预期进行比较，无需迁移旧 SQLite 数据。Human 可从 scripts/run-nonlive-capital-effect-matrix 了解模拟资金效果；这仍需要显式 PG DSN，且不构成外部交易授权。Agent 的操作顺序见现有 finance-paper-investment Skill。
 
+## Agent 研究角色与权限：Human / Agent 指引（2026-11-08）
+
+**Human：** 决定真实经济研究问题、期限、现金/被动基准和研究资源预算。
+可以将普通研究和非实盘实验委托给 Agent，无需逐次审批每次代码运行；
+研究结束或另一 Agent 同意都不代表获得真实资金授权。
+真实账户效果始终由经独立资格验证的 Trading/Governance 消费者控制。
+
+**Agent：** 按任务组合 Research Director、Discovery、Quant Researcher
+和 Independent Reviewer 等角色，不创建七个常驻 Owner Agent。
+使用现有 finance-experiment-review Skill 的冻结实验、Holdout
+评价与候选经济重放，避免新建研究引擎。Reviewer 独立性来自
+分离的输入、评价合同及可追溯结果，不来自 role 文字标签。
+不得自己创建 Security 委派 Grant，也不得把研究自报结果提升
+为真实行情来源、已证实的 Alpha 或真实金融交易权限。
+
+**验证：** tests/test_finance_agent_role_composition.py 用真实 Research
+CLI 和 Security Owner OPA 合同测试了研究角色委派、越权动作、
+资源越界、Grant 过期、预算耗尽和高风险升级。测试身份和授权
+输入均为合成的已认证投影，未证明生产入口的身份认证、预算扣减
+或实际金融效果。
+
 ## Prospective Validation：日期对齐与真实数据证据
 
 `research/prospective_validation.py` 只负责一项纯计算：在冻结的决策时点与交易所时区下，找出所有必需资产**共同拥有、严格晚于决策日**的候选交易日期。它不接触行情原始响应，也无法核实首次观测时间、数据发布时间、使用许可和企业行动。
