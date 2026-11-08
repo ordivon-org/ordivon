@@ -59,8 +59,9 @@ use sha2::{Digest, Sha256};
 use std::path::Path;
 
 use super::engine::{
-    latest_output_modified_ms, load_runner_progress_if_present, map_universal_error,
+    latest_output_modified_ms, load_runner_progress_if_present,
 };
+use crate::runtime::error::map_universal_error;
 use crate::universal::{
     load_workspace_record, workspace_change_projection_at, workspace_head_revision_at,
     UniversalExecutorConfig,

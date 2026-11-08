@@ -14,11 +14,11 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use super::{
-    canonical_directory, now_unix_ms, sha256_file, workspace_source_state_digest_at,
-    write_json_atomic, write_resource_receipt_from_cgroup_root, CapturedOutput,
-    RunnerExecutionStep, RunnerProgress, RunnerRequest, RunnerResult, RunnerStartEvidence,
-    RunnerStepResult, RunnerTerminalStatus, UniversalExecError, UniversalExecErrorCode,
-    UNIVERSAL_EXEC_SCHEMA_VERSION,
+    canonical_directory, now_unix_ms, sha256_file, workspace_source_readset_digest_at,
+    workspace_source_state_digest_at, write_json_atomic, write_resource_receipt_from_cgroup_root,
+    CapturedOutput, RunnerExecutionStep, RunnerProgress, RunnerRequest, RunnerResult,
+    RunnerStartEvidence, RunnerStepResult, RunnerTerminalStatus, UniversalExecError,
+    UniversalExecErrorCode, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 
 const REQUEST_FILE: &str = "request.json";
@@ -154,7 +154,11 @@ fn observe_workspace_source(request: &RunnerRequest) -> Result<Option<String>, U
         ),
         "workspacePath",
     )?;
-    workspace_source_state_digest_at(&workspace).map(Some)
+    if let Some(paths) = request.workspace_read_paths.as_deref() {
+        workspace_source_readset_digest_at(&workspace, paths).map(Some)
+    } else {
+        workspace_source_state_digest_at(&workspace).map(Some)
+    }
 }
 
 fn write_workspace_source_observation(
