@@ -123,6 +123,48 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
                         with self.assertRaises(ValueError):
                             M.load_function(relative, "verify")
 
+    def test_native_pass_cannot_promote_stale_executable_digest(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, _ = self.request(root, subject)
+            binary = root / "decoder"
+            binary.write_bytes(b"previous-binary")
+            reported_sha = sha(binary)
+            profile = json.loads(self.profile()[0].read_text())
+            facts = {
+                name: {"status": "PASS"} for name, declaration
+                in profile["requiredEvidence"].items() if declaration["required"]
+            }
+
+            def contradictory_native(*_args):
+                binary.write_bytes(b"replacement-binary")
+                return {
+                    "status": "PASS",
+                    "profileId": "still-image-png-srgb-r1",
+                    "artifact": {"sha256": sha(subject), "size": subject.stat().st_size},
+                    "nativeFacts": facts,
+                    "claimResults": {
+                        name: {"status": "PASS", "nativePointers": [f"/nativeFacts/{name}"]}
+                        for name in facts
+                    },
+                    "tools": {"decoder": {"path": str(binary), "sha256": reported_sha}},
+                    "failures": [],
+                }
+
+            with mock.patch.object(
+                M, "load_function", return_value=(contradictory_native, "f" * 64)
+            ):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertTrue(result["toolIdentityAssessment"]["rejected"])
+            self.assertIn(
+                "native tool digest drift after verification: decoder",
+                result["failures"],
+            )
+
     def test_exact_still_image_request_delegates_and_digest_binds_result(self):
         self.require_png_tools()
         with tempfile.TemporaryDirectory() as d:

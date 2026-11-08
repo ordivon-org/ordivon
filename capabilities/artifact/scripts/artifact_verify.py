@@ -31,6 +31,7 @@ from artifact_core.json_validation import load_json
 from artifact_core.profiles import ProfileRegistry
 from artifact_verification.claim_coverage import assess_required_evidence
 from artifact_verification.native_identity import assess_native_identity
+from artifact_verification.tool_identity import assess_native_tool_paths
 
 ART = ROOT / "artifact-delivery"
 REQUEST_SCHEMA = ART / "verification/request-v1.schema.json"
@@ -247,10 +248,12 @@ def verify_request(request_path: Path) -> dict[str, Any]:
             contract_sha256=contract_fact["sha256"] if contract_fact else None,
             require_complete=binding.require_claim_results,
         )
+        tool_identity = assess_native_tool_paths(delegated)
         verified = (
             delegated_status == "PASS"
             and not claim_failure
             and not native_identity["rejected"]
+            and not tool_identity["rejected"]
         )
         service_failures = list(delegated.get("failures") or [])
         if native_identity["rejected"]:
@@ -259,6 +262,8 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 f"native evidence identity not evaluated: {field}"
                 for field in native_identity["notEvaluated"]
             )
+        if tool_identity["rejected"]:
+            service_failures.extend(tool_identity["issues"])
         if claim_failure:
             service_failures.append(
                 "profile requiredEvidence is not fully verified by explicit native claimResults"
@@ -295,6 +300,7 @@ def verify_request(request_path: Path) -> dict[str, Any]:
             },
             "requiredEvidenceAssessment": assessment,
             "nativeIdentityAssessment": native_identity,
+            "toolIdentityAssessment": tool_identity,
             "profileVerificationComplete": bool(
                 assessment["complete"] and native_identity["complete"] and verified
             ),
@@ -313,6 +319,9 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 "bindings. The verifier source digest binds exactly the executed "
                 "entrypoint source bytes, not imported modules, interpreter, "
                 "native tools, or complete execution environment. "
+                "Declared native tool identities are independently observed after "
+                "verification; contradictory digests fail, but this is not an "
+                "executable-at-spawn or full dependency-closure attestation. "
                 "No service result establishes consuming-application "
                 "acceptance, publication, "
                 "deployment, or Profile-v2 production promotion."

@@ -105,6 +105,10 @@ class ArtifactConsumerServiceTests(unittest.TestCase):
             self.assertEqual(result["status"], "PASS", result)
             self.assertTrue(result["profileVerificationComplete"], result)
             self.assertEqual(result["requiredEvidenceAssessment"]["status"], "COMPLETE")
+            self.assertEqual(
+                result["toolIdentityAssessment"]["status"], "OBSERVED_POSTRUN_CONSISTENT"
+            )
+            self.assertFalse(result["toolIdentityAssessment"]["dependenciesComplete"])
             with wave.open(str(subject), "rb") as consumer:
                 self.assertEqual(consumer.getnchannels(), 2)
                 self.assertEqual(consumer.getsampwidth(), 2)
@@ -196,6 +200,9 @@ pq.write_table(pa.Table.from_pylist(rows, schema=schema), sys.argv[1], compressi
             self.assertEqual(result["requiredEvidenceAssessment"]["status"], "NOT_EVALUATED")
             self.assertEqual(result["inputIdentity"]["subject"], "EXACT_BYTES_SNAPSHOT")
             self.assertEqual(result["inputIdentity"]["objectContract"], "EXACT_BYTES_SNAPSHOT")
+            self.assertEqual(
+                result["toolIdentityAssessment"]["status"], "OBSERVED_POSTRUN_CONSISTENT"
+            )
             self.assertNotEqual(result["verification"]["artifact"]["path"], str(subject))
             safe_path = str(subject).replace("'", "''")
             consumer = subprocess.run([

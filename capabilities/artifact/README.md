@@ -131,6 +131,15 @@ that differ from the indexed authority. This guards the interval between
 filesystem pathname continuity after staging. The adversarial stale-index
 regression is in `tests/test_artifact_verify.py`.
 
+**Native executable post-run observation:** The service independently rereads
+the native verifier's already-declared executable paths and compares actual
+SHA-256 to the reported `tools` facts. An explicit contradiction invalidates
+service PASS; missing tool inventories remain `NOT_EVALUATED`. This reuses
+`FileCommitment`, not a new dependency registry. `toolIdentityAssessment`
+cannot establish which executable bytes the earlier subprocess loaded,
+whether imports/dynamic libraries changed, or full dependency completeness.
+See `tests/test_artifact_tool_identity.py`.
+
 **Provider entrypoint identity:** The verification service loads each native
 Python verifier from one captured source byte sequence, computes the digest
 from those same bytes, and records `EXECUTED_ENTRYPOINT_SOURCE_BYTES`.
