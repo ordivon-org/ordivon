@@ -106,29 +106,24 @@ def main() -> int:
     if not approved:
         return emit("ADVERTISED_PENDING_ADMIN_APPROVAL", **common)
 
-    # A healthy Tailscale daemon advertises an exit, but cannot prove its
-    # upstream VPN carries traffic. Reuse the existing physical provider
-    # consumer probe rather than inventing a second VPN readiness policy.
+    # Tailscale joins the Gluetun container namespace directly, not the
+    # shared Browserless HTTP Carrier. Check the provider using its own
+    # upstream healthcheck rather than requiring unrelated finance/model APIs.
+    # Gluetun's healthcheck does not establish a real iOS client exit.
     try:
-        carrier = run(
-            "/usr/local/libexec/network-v2/browserless-provider-carrier-ready",
-            timeout=90,
+        health = run(
+            "/usr/bin/podman", "exec", CTR, "/gluetun-entrypoint", "healthcheck",
+            timeout=12,
         )
     except (OSError, subprocess.TimeoutExpired):
-        return emit("PROVIDER_EGRESS_NOT_READY", **common)
-    try:
-        carrier_status = json.loads(carrier.stdout)
-    except json.JSONDecodeError:
-        carrier_status = None
-    if (
-        carrier.returncode != 0
-        or not isinstance(carrier_status, dict)
-        or carrier_status.get("kind") != "ordivon.network-v2.shared-provider-readiness"
-        or carrier_status.get("standing") != "READY"
-        or carrier_status.get("mechanism") != "gluetun"
-    ):
-        return emit("PROVIDER_EGRESS_NOT_READY", **common)
-    return emit("READY", **common)
+        return emit("PROVIDER_HEALTH_NOT_READY", **common)
+    if health.returncode != 0:
+        return emit("PROVIDER_HEALTH_NOT_READY", **common)
+    return emit(
+        "READY", providerHealth="NATIVE_OK",
+        providerHealthMechanism="gluetun-healthcheck",
+        clientPublicExit="NOT_EVALUATED", **common,
+    )
 
 
 if __name__ == "__main__":

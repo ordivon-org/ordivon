@@ -9,7 +9,7 @@ tasks:
       - systemd-analyze verify consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service
 
   consumer:mobile-tailnet-exit:verify:
-    desc: Verify installed Mobile Exit SourceCut, Tailscale approval and provider consequence
+    desc: Verify installed Mobile Exit SourceCut, Tailscale approval and Gluetun-native health (not iOS client egress)
     deps: [consumer:mobile-tailnet-exit:validate]
     cmds:
       - cmp -s consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run
