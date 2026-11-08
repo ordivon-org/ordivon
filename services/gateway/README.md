@@ -135,6 +135,32 @@ are UNKNOWN until deployment observation. Native consumer:
 `formal/GatewayCapabilityAuthzR1.tla`. Model safety, source-code
 behavior and installed release remain separate evidence grades.
 
+## HTTP execution identity cannot downgrade to STDIO (2026-11-08)
+
+The normal HTTP CLI server sets `require_http_execution_identity=True`
+for `execution.submit`, `execution.resolve`, `execution.get`,
+`execution.cancel` and `artifact.read`. Each of those tools now requires
+verified ingress Principal and issuer from the trusted HTTP request state
+**before** calling Runtime. Missing or malformed MCP `Context` must not
+downgrade a public HTTP operation into legacy, unscoped `requestId`
+or skip operation-reference qualification.
+
+This composes two already-existing facts, without another authorization
+registry: Gateway derives a Principal-bound owner request ID; for observe,
+cancel and Artifact bytes it also resolves the exact operationRef using
+that same original requestId and capability. The Runtime Owner remains
+responsible for admission, Job/Attempt and physical effects. This does
+**not** prove that every authenticated Principal may run an arbitrary
+workspace/capability: those scopes and actual Grant/PEP coverage still
+require natural Owner evidence.
+
+STDIO is an explicitly separate local OS trust boundary. Its legacy
+unqualified request IDs remain supported for local callers; they are not
+proof of remote authenticated identity. Native consumer regression:
+`tests/test_execution_principal_request_namespace.py`, plus the actual
+HTTP `main()` wiring check. Inspect the installed Gateway and Owner
+readback before claiming this source refinement is deployed.
+
 ## Host northbound boundary
 
 The default external Plugin connects only to Gateway. Gateway exposes normal Host continuity and collaboration actions through stable northbound names while Host remains the semantic owner.

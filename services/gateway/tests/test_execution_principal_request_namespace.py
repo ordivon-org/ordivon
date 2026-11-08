@@ -250,3 +250,82 @@ def test_verified_http_artifact_read_requires_original_owner_request_identity() 
         assert owner.calls[-1][1] == "artifact.read"
 
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    "tool_name, arguments",
+    [
+        (
+            "execution.submit",
+            {
+                "capability": "execution.linux",
+                "requestId": "request:unqualified",
+                "workspaceId": "ws-test",
+                "executable": "/usr/bin/true",
+                "args": [],
+            },
+        ),
+        (
+            "execution.resolve",
+            {"capability": "execution.linux", "requestId": "request:unqualified"},
+        ),
+        (
+            "execution.get",
+            {"operationRef": "ordivon-exec:v1:runtime.linux:job-1"},
+        ),
+        (
+            "execution.cancel",
+            {"operationRef": "ordivon-exec:v1:runtime.linux:job-1"},
+        ),
+        (
+            "artifact.read",
+            {"operationRef": "ordivon-exec:v1:runtime.linux:job-1", "artifactId": "stdout"},
+        ),
+    ],
+)
+def test_http_missing_verified_execution_identity_cannot_reach_runtime(
+    tool_name: str,
+    arguments: dict[str, Any],
+) -> None:
+    """Prevent missing MCP context from downgrading to unscoped STDIO authority."""
+    owner = PrincipalScopedOwner()
+    server = build_server(GatewayService(owner), require_http_execution_identity=True)
+    unverified = Context(
+        request_context=SimpleNamespace(request=SimpleNamespace(scope={"state": {}})),
+        mcp_server=server,
+    )
+    before = len(owner.calls)
+    with pytest.raises(ToolError, match="verified ingress Principal"):
+        asyncio.run(server.call_tool(tool_name, arguments, unverified))
+    assert len(owner.calls) == before
+
+
+def test_http_execution_identity_requirement_preserves_verified_and_stdio_paths() -> None:
+    """HTTP verified identity is required; local STDIO compatibility remains explicit."""
+
+    async def run() -> None:
+        owner = PrincipalScopedOwner()
+        protected = build_server(GatewayService(owner), require_http_execution_identity=True)
+        verified = _context(protected, "principal:cf-access:A")
+        command = {
+            "capability": "execution.linux",
+            "requestId": "request:bound",
+            "workspaceId": "ws-test",
+            "executable": "/usr/bin/true",
+            "args": [],
+        }
+        receipt = await protected.call_tool("execution.submit", command, verified)
+        assert not receipt.is_error
+        assert owner.calls[-1][2]["clientRequestId"].startswith("request:gw-principal:")
+
+        local_owner = PrincipalScopedOwner()
+        stdio = build_server(GatewayService(local_owner))
+        unverified = Context(
+            request_context=SimpleNamespace(request=SimpleNamespace(scope={})),
+            mcp_server=stdio,
+        )
+        local_result = await stdio.call_tool("execution.submit", command, unverified)
+        assert not local_result.is_error
+        assert local_owner.calls[-1][2]["clientRequestId"] == "request:bound"
+
+    asyncio.run(run())

@@ -40,6 +40,23 @@ effects. The existing private token loader and PDP adapter are reused.
 Check `gateway:verify` and `gateway:formal:verify`, then inspect live
 deployed middleware/configuration and downstream owner readback separately.
 
+## HTTP execution Principal — separate from STDIO
+
+**Human:** the HTTP CLI now requires verified request state for
+`execution.submit/resolve/get/cancel` and `artifact.read`. If the
+MCP request `Context` lacks a trusted Principal/issuer, a Tool error
+must occur before an Owner RPC. Test the actual entrypoint and the
+Principal-scoped requestId/operationRef consumers; do not equate this
+identity binding with a PDP permit or Runtime effect realization.
+
+**Agent:** compare the source `main() -> build_server` transport mode
+with `_require_http_execution_identity` and natural Owner calls. Run
+`gateway:verify` and `test_execution_principal_request_namespace.py`,
+including the no-ingress and normal-STDIO cases. Keep HTTP-bound
+source behavior, deployed Gateway configuration, live Runtime consumer
+readback, and full Host Tool authorization distinct. Unsupported or
+unobserved properties remain UNKNOWN.
+
 ## Cleanup and release
 Search imports, CI, skills, releases, and live consumers before retiring a
 module. The unserved SQLite external pull transport has been removed from
