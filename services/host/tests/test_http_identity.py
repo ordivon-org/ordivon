@@ -138,6 +138,23 @@ def test_actual_host_mcp_sdk_tools_list_requires_workload_bearer(tmp_path: Path)
                     "/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
                 )
                 assert rejected.status_code == 401
+                # Complete direct-Owner surface: every actually discovered
+                # Host MCP Tool is behind the same HTTP identity boundary.
+                for name in sorted(names):
+                    denied = await http.post(
+                        "/mcp",
+                        json={
+                            "jsonrpc": "2.0",
+                            "id": 2,
+                            "method": "tools/call",
+                            "params": {
+                                "name": name,
+                                "arguments": {"actorRef": "actor:forged"},
+                                "_meta": {"ordivon_access_principal": "forged"},
+                            },
+                        },
+                    )
+                    assert denied.status_code == 401, name
 
     asyncio.run(exercise())
 
@@ -153,6 +170,7 @@ def test_http_cli_refuses_missing_credential_before_network_bind(
     with pytest.raises(RuntimeError, match="ORDIVON_HOST_V2_BEARER_TOKEN_FILE"):
         main()
 
+
 def test_systemd_credential_group_read_is_supported(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -162,9 +180,7 @@ def test_systemd_credential_group_read_is_supported(
     credential.write_text("n" * 48, encoding="utf-8")
     credential.chmod(0o440)
     monkeypatch.setenv("CREDENTIALS_DIRECTORY", str(directory))
-    verifier = HostServiceTokenVerifier(
-        str(credential), "http://127.0.0.1:8898/mcp"
-    )
+    verifier = HostServiceTokenVerifier(str(credential), "http://127.0.0.1:8898/mcp")
     assert asyncio.run(verifier.verify_token("n" * 48)) is not None
     monkeypatch.delenv("CREDENTIALS_DIRECTORY")
     with pytest.raises(ValueError, match="permissive"):
