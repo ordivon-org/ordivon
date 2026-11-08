@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class StrictModel(BaseModel):
@@ -29,6 +29,26 @@ class CapabilityDescriptor(StrictModel):
     truth_boundary: str
     description: str = ""
     tags: list[str] = Field(default_factory=list)
+
+    readiness_state: Literal["ready", "not_ready", "unknown"] = "unknown"
+
+    @model_validator(mode="after")
+    def derive_readiness_state(self) -> CapabilityDescriptor:
+        """Single truth rule, represented as a normal MCP-schema field.
+
+        MCP's tool response validation uses the validation-mode JSON Schema.
+        Pydantic computed fields appear only in the serialization schema and
+        would be rejected by MCP as extra output: derive a declared field here.
+        """
+        if self.available:
+            self.readiness_state = "ready"
+        elif self.observation_error is not None:
+            # Configuration is a distinct fact. A failed observation does not
+            # establish the natural Owner's operational readiness either way.
+            self.readiness_state = "unknown"
+        else:
+            self.readiness_state = "not_ready"
+        return self
 
 
 class CapabilitySearchMatch(StrictModel):

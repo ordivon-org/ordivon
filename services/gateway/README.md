@@ -227,6 +227,23 @@ No Gateway Job store, Owner effect retry or MCP protocol reimplementation is
 introduced. Run Gateway source tests plus native loopback and installed-Owner
 readback to distinguish transport correctness from deployed availability.
 
+## Contextual readiness projection (not a tool registry)
+
+Each Gateway CapabilityDescriptor includes the computed `readiness_state`:
+`ready` for observed positive provider readiness, `not_ready` for a
+negative observation without diagnostic uncertainty, and `unknown` when an
+Owner cannot be observed or returns invalid status. Local Gateway
+`configured` is a separate fact and never implies Owner readiness. The
+legacy `available` boolean remains for existing clients; consuming it alone
+loses the critical unknown distinction. The discriminator is computed from
+the existing fields and is **not** a second truth database or an admission
+decision. In particular, an observation of execution-target readiness does
+not prove that an individual Runtime workspace API or domain consumer can
+perform a given operation. The Runtime's Job/Attempt and domain consumer own
+those respective proofs. For an uncertainty, use direct Owner observation
+under the actual intended execution identity; do not permanently blacklist
+the capability based on a Gateway timeout.
+
 ## Agent tool exposure and transient owner observations
 
 Gateway `capability.describe` is a bounded, *read-only current observation* of
