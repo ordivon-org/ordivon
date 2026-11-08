@@ -34,6 +34,9 @@ class OwnerEndpoint:
     bearer_token_file: str | None = None
     access_client_id_file: str | None = None
     access_client_secret_file: str | None = None
+    # Delegate protocol negotiation entirely to the upstream MCP Python SDK.
+    # "auto" remains the compatibility default; opt in only for a verified Owner.
+    mcp_mode: str = "auto"
 
 
 def _runtime_identity_configured(endpoint: OwnerEndpoint) -> bool:

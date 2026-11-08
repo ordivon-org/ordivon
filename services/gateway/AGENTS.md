@@ -81,6 +81,17 @@ retries for effectful Tool calls. For native evidence, exercise the real
 Gateway->Owner SDK transport including cancellation, credential rotation,
 long-lived sessions, and service stop.
 
+## R04a SDK-native protocol mode (opt-in)
+
+The SDK `Client(mode="auto")` remains the default for all Owners.
+`ORDIVON_GATEWAY_WINDOWS_RUNTIME_MCP_MODE=2026-07-28` is a verified
+Windows-only opt-in to skip `server/discover`; no bespoke negotiation,
+handshake cache or Runtime authority. Test exact Window Runtime version
+with the true Gateway service identity before enabling. Fail closed
+on an unsupported fixed version; do not retry effectful tools to hide
+protocol mismatches. The SDK also supports `legacy` for a confirmed
+handshake-era Owner. Keep credentials refreshed per HTTP request.
+
 ## R05 Owner observation timeout diagnosis (cancellation phase)
 The Gateway upstream adapter emits one warning when the MCP SDK task is
 cancelled, with natural Owner ID, tool name, phase and monotonic elapsed
