@@ -4,7 +4,7 @@ tasks:
   consumer:chat-ingress:validate:
     desc: Validate the scoped ChatIngress proxy over the existing Browserless Network v2 authority
     cmds:
-      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.chat-ingress-egress" and .listen.host=="127.0.0.1" and .listen.port==19081 and .networkAuthority.namespace=="nv2-browserless-prod" and .networkAuthority.serviceUnit=="network-v2-browserless.target" and .directFallback==false' consumers/chat-ingress/config/egress.json >/dev/null
+      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.chat-ingress-egress" and .listen.host=="127.0.0.1" and .listen.port==19081 and .networkAuthority.namespace=="nv2-browserless-prod" and .networkAuthority.serviceUnit=="network-v2-shared-egress.target" and .directFallback==false' consumers/chat-ingress/config/egress.json >/dev/null
       - /usr/bin/sing-box check -c consumers/chat-ingress/config/sing-box.json
       - |
         set -eu

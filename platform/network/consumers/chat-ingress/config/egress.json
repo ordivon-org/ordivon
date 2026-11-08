@@ -6,7 +6,7 @@
     "kind": "network-v2",
     "name": "browserless-prod",
     "namespace": "nv2-browserless-prod",
-    "serviceUnit": "network-v2-browserless.target"
+    "serviceUnit": "network-v2-shared-egress.target"
   },
   "directFallback": false,
   "allowedOrigins": ["https://chatgpt.com"]

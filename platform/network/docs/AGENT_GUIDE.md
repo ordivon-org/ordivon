@@ -144,6 +144,25 @@ Use existing `NetworkCorrelatedConsumerOutage` alongside the individual `Network
 
 Triage: source+loaded Prometheus rule parity → `/api/v1/alerts` plus Blackbox history → native Gluetun health and endpoint-rotation journal → Provider HTTPS `verify` → exact impacted Consumer request. Match source timestamps, target/PID, installed generation and origin HTTPS. Gluetun's official native check/auto-heal owns physical recovery; do not add an Agent polling loop, a second tunnel or an IPinfo scraper. Any new endpoint/health-target policy is justified only with independent before/after consumer SLO evidence.
 
+## 4a. SourceCut, service state, and external health are independent
+
+Install selection uses native Go Task status with the local-only
+core:sourcecut predicate (11 byte-parity checks and native
+Prometheus fragment inventory). External DNS/TLS outage cannot trigger
+an install or restart on unchanged installed bytes. core:activate starts
+only missing systemd units; core:verify remains the independent loaded
+and real network-effect witness. The existing core:converge composes all
+three in order.
+
+mise run formal-core-convergence binds Z3 to the selected task source
+and proves six symbolic selection invariants, including a negative
+control for the former live-health-as-install-status coupling.
+mise run formal-shared-egress-alias proves the 13-unit and two-authority
+source dependency graph is equivalent after canonicalizing the native
+systemd target Alias. Neither proof covers installed drop-ins, loaded
+systemd internals, process survival or actual DNS/VPN/iPad traffic.
+Keep native loaded-state and actual consumer verification.
+
 ## 5. Concrete task snippets
 
 From platform/network/:

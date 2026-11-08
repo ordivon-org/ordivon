@@ -4,7 +4,7 @@ python = "3.15.1"
 uv = "0.13.5"
 
 [tasks.ci]
-depends = ["formal", "formal-dns", "formal-control-plane"]
+depends = ["formal", "formal-dns", "formal-control-plane", "formal-core-convergence", "formal-shared-egress-alias"]
 run = """
 set -euo pipefail
 test -n "$(git ls-files -- '*.sh' | head -1)"
@@ -56,3 +56,13 @@ run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-s
 [tasks.formal-dns]
 description = "Prove upstream DNS TTL, outage and recovery in Z3 state abstraction"
 run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/dns_cache_state.py"
+
+
+[tasks.formal-core-convergence]
+description = "Source-bound Z3 proof: external network outage cannot trigger core reinstallation"
+run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/core_convergence_refinement.py"
+
+
+[tasks.formal-shared-egress-alias]
+description = "Finite graph/source refinement proof of legacy Browserless target versus Shared Egress alias for four consumers"
+run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 python formal/shared_egress_alias_refinement.py"

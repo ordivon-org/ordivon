@@ -24,7 +24,7 @@ def test_claude_egress_is_scoped_to_the_single_shared_http_carrier() -> None:
 
 def test_claude_proxy_waits_for_substrate_not_inactive_legacy_dns() -> None:
     source = (ROOT / "consumers/claude/systemd/network-v2-claude-proxy.service").read_text()
-    assert "After=network-v2-browserless.target" in source
+    assert "After=network-v2-shared-egress.target" in source
     assert "network-v2-browserless-dns.service" not in source
 
 
