@@ -44,6 +44,7 @@ class PriceVintage:
     adjusted_close: float
     raw_source_sha256: str
     source_standing: str
+    price_basis: str = "PROVIDER_ADJUSTED_CLOSE_UNATTESTED"
 
     def __post_init__(self) -> None:
         if not self.asset or not self.asset.strip():
@@ -57,11 +58,19 @@ class PriceVintage:
             char not in "0123456789abcdef" for char in self.raw_source_sha256
         ):
             raise PointInTimeError("exact source SHA256 required")
-        if self.source_standing not in (
-            "SECONDARY_VENDOR_NOT_ATTESTED",
-            "PROVIDER_ORIGIN_VERIFIED",
-        ):
+        # No independent provider-origin verifier is installed in this Owner:
+        # a raw research record or JSON cannot self-promote by string alone.
+        if self.source_standing == "PROVIDER_ORIGIN_VERIFIED":
+            raise PointInTimeError(
+                "verified provider origin requires independent Markets attestation"
+            )
+        if self.source_standing != "SECONDARY_VENDOR_NOT_ATTESTED":
             raise PointInTimeError("explicit source standing required")
+        if self.price_basis not in (
+            "PROVIDER_ADJUSTED_CLOSE_UNATTESTED",
+            "RAW_UNADJUSTED_ACTION_FREE_DECLARED",
+        ):
+            raise PointInTimeError("explicit supported price basis required")
 
 
 @dataclass(frozen=True)
@@ -81,6 +90,8 @@ class EmpiricalJointForecast:
     scenarios: tuple[JointScenario, ...]
     training_sessions: tuple[str, ...]
     source_digests: tuple[str, ...]
+    price_bases: tuple[str, ...] = ()
+    source_standings: tuple[str, ...] = ()
     standing: str = "PAST_ONLY_EMPIRICAL_JOINT_BASELINE_NOT_CALIBRATED"
     conditioning: dict[str, Any] | None = None
 
@@ -101,6 +112,8 @@ class EmpiricalJointForecast:
             ],
             "training_sessions": list(self.training_sessions),
             "source_digests": list(self.source_digests),
+            "price_bases": list(self.price_bases),
+            "source_standings": list(self.source_standings),
             "standing": self.standing,
         }
         if self.conditioning is not None:
@@ -178,6 +191,49 @@ def market_capture_to_pit_vintages(
     )
 
 
+def etf_eod_capture_to_pit_vintages(snapshot: Any) -> tuple[PriceVintage, ...]:
+    """Conservatively consume Markets' already-admitted raw action-free ETF EOD.
+
+    This cannot authenticate vendor release times, calendar rights or action
+    coverage: those remain operator declarations in Markets. In particular
+    mark.available_at (even SOURCE_REPORTED) is NEVER used to backdate the
+    snapshot to an earlier historical decision. Only the snapshot capture
+    instant establishes a mechanically supported information-time boundary.
+    No new data provider, asset adjustment engine, or research scheduler.
+    """
+    from ordivon_capital.markets.etf_eod_snapshot import AdmittedEtfEodSnapshot
+
+    if not isinstance(snapshot, AdmittedEtfEodSnapshot):
+        raise PointInTimeError("Markets admitted ETF EOD snapshot required")
+    captured = _utc(snapshot.captured_at)
+    if captured > _utc(snapshot.decision_at):
+        raise PointInTimeError("market capture cannot follow its decision")
+    if not snapshot.marks:
+        raise PointInTimeError("empty ETF EOD snapshot")
+    source_digest = snapshot.sha256.removeprefix("sha256:")
+    vintages = []
+    for mark in snapshot.marks:
+        if captured < _utc(mark.session_close_at) or captured < _utc(mark.available_at):
+            raise PointInTimeError("market observation cannot precede its source close")
+        # Research probability/optimizer consumers use floats, not exact
+        # currency amounts: above 2**53, integer USD cents lose exactness
+        # on conversion and a bogus return could result.
+        if type(mark.price_minor) is not int or not 0 < mark.price_minor <= 2**53:
+            raise PointInTimeError("ETF price minor units exceed exact float conversion")
+        vintages.append(
+            PriceVintage(
+                asset=mark.instrument_id,
+                session=date.fromisoformat(mark.session_date),
+                published_at=captured,
+                adjusted_close=mark.price_minor / 100,
+                raw_source_sha256=source_digest,
+                source_standing="SECONDARY_VENDOR_NOT_ATTESTED",
+                price_basis="RAW_UNADJUSTED_ACTION_FREE_DECLARED",
+            )
+        )
+    return tuple(vintages)
+
+
 def point_in_time_prices(
     records: Sequence[PriceVintage], *, as_of: datetime
 ) -> dict[tuple[str, date], PriceVintage]:
@@ -243,6 +299,8 @@ def empirical_joint_forecast(
     included_indices: list[int] = []
     used_sessions: list[str] = []
     digests: set[str] = set()
+    bases: set[str] = set()
+    source_standings: set[str] = set()
     excluded = 0
     for j in range(1, last + 1):
         older, newer = sessions[j - 1], sessions[j]
@@ -250,6 +308,12 @@ def empirical_joint_forecast(
         if any(before is None or after is None for before, after in pairs):
             excluded += 1
             continue
+        # LEAN's RAW and ADJUSTED are not interchangeable price series.
+        # Equality of the label only establishes consistent semantics for
+        # the numerator and denominator; it does NOT certify any dividend
+        # or split declaration supplied by the operator.
+        if any(before.price_basis != after.price_basis for before, after in pairs):
+            raise PointInTimeError("incompatible price basis within a return interval")
         gross = tuple(after.adjusted_close / before.adjusted_close for before, after in pairs)
         if not all(_finite_positive(g) for g in gross):
             raise PointInTimeError("nonfinite joint return")
@@ -259,6 +323,9 @@ def empirical_joint_forecast(
         for before, after in pairs:
             digests.add(before.raw_source_sha256)
             digests.add(after.raw_source_sha256)
+            bases.add(before.price_basis)
+            source_standings.add(before.source_standing)
+            source_standings.add(after.source_standing)
     if not included:
         raise PointInTimeError("no complete observed one-month joint returns")
     selected = included
@@ -314,6 +381,8 @@ def empirical_joint_forecast(
         scenarios=scenarios,
         training_sessions=tuple(used_sessions),
         source_digests=tuple(sorted(digests)),
+        price_bases=tuple(sorted(bases)),
+        source_standings=tuple(sorted(source_standings)),
         standing=standing,
         conditioning=conditioning,
     )
@@ -677,6 +746,7 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
             adjusted_close=float(raw["adjusted_close"]),
             raw_source_sha256=raw["raw_source_sha256"],
             source_standing=raw["source_standing"],
+            price_basis=raw.get("price_basis", "PROVIDER_ADJUSTED_CLOSE_UNATTESTED"),
         )
 
     forecast = empirical_joint_forecast(

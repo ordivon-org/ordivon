@@ -4,13 +4,13 @@
 
 ## Mathematical representation
 
-Let \(o=(i,s,v,p,h)\) denote a price vintage: asset \(i\), exchange session \(s\), adjusted price \(v>0\), the exact public availability instant \(p\), and the raw source SHA256 commitment \(h\). For information time \(t\), the valid price table is
+Let \(o=(i,s,v,p,h)\) denote a price vintage: asset \(i\), exchange session \(s\), a price \(v>0\) with an explicit price-basis label, the declared effective availability instant \(p\), and the raw source SHA256 commitment \(h\). This is a conditional mathematical model, not proof that a declared provider publication time is genuine. For information time \(t\), the selected price table is
 
 \[
 P_{i,s}^{(t)}=\operatorname*{argmax}_{o:\,o.i=i,\,o.s=s,\,o.p\le t}\operatorname{publishedAt}(o).\text{value}
 \]
 
-No observation with `published_at > t` is accepted. Thus late vendor revisions to old prices appear **only after the revision actually became available**, and equally-timed contradictory claims are rejected. Price provenance is stored independently from the economic model; the `source_standing` field explicitly separates secondary provider data from verified provider-origin records. An unverified SHA256 proves byte identity, not market-price accuracy.
+No observation after the declared effective availability time is selected for a decision. Late revisions are visible only after their declared admissible instant; equally timed contradictory claims are rejected. A source SHA256 proves byte identity, not vendor authenticity. Caller-supplied provider verification labels are not evidence: Research rejects an unauthenticated PROVIDER_ORIGIN_VERIFIED assertion until Markets has a real independent authentication consumer.
 
 Let \(\mathcal C\) be the externally owned, consecutive monthly valuation endpoint series (one observable month-end closing session per month; not a daily trading calendar). The joint complete-case return observations are:
 
@@ -27,6 +27,40 @@ Missing calendar endpoints are explicitly excluded and counted: **no forward-fil
 
 Identical vectors are aggregated with observed frequency weights. This is **unconditional, uncalibrated** historical research; it does *not* claim to estimate the true conditional law \(\mathbb P(R_{t+1},Z_{t+1}\mid\mathcal F_t)\). Future conditional-factor, regime and stochastic-volatility models must be compared against this baseline using prequential, strictly past-only forecasts.
 
+## Conservative Markets ETF EOD capture -> Research PIT adapter
+
+Reuse the Markets-owned admit_etf_eod_snapshot result with
+etf_eod_capture_to_pit_vintages, rather than adding another provider,
+source registry or research scheduler. The Markets admission checks
+exact raw USD-cent bytes and digest, operator source/right/action references,
+exchange session closes and capture/decision ordering; it does NOT authenticate
+the operator's vendor, rights or market-calendar assertions.
+
+The adapter uses captured_at as the effective Research published_at for
+EVERY mark. Even if a historic row claims an earlier SOURCE_REPORTED
+availableAt, an archive downloaded today cannot enter a past decision.
+Revisions appear under their separate snapshot digests only after their
+respective captures.
+
+The currently admitted ETF snapshot excludes nonempty corporate action
+events. The Research consumer therefore labels the prices as
+RAW_UNADJUSTED_ACTION_FREE_DECLARED, distinct from the legacy
+PROVIDER_ADJUSTED_CLOSE_UNATTESTED. This is an operator declaration of
+an action-free interval, not verified dividend/split truth. The estimator
+rejects a return interval mixing these bases; no silent raw/adjusted ratio.
+The output forecast_evidence carries price_bases and source_standings
+alongside training sessions and source digests. All projected ETF records
+remain SECONDARY_VENDOR_NOT_ATTESTED.
+
+The read-only adapter limits its float research values to exactly
+representable integer USD cents, without changing Markets source limits;
+no market/provider/Accounting write effects occur.
+
+Mature reference semantics: Databento distinguishes ts_event and ts_recv
+(https://databento.tech/docs/conventions/common-fields-enums-types);
+LEAN distinguishes Raw and Adjusted normalization
+(https://www.lean.io/docs/v2/lean-engine/class-reference/namespaceQuantConnect.html).
+
 ## Proper probability scoring
 
 For a frozen forecast distribution \(F\) over joint gross-return vectors and subsequently realized outcome \(y\), the energy score is:
@@ -42,7 +76,7 @@ Lower is better; no arbitrary absolute score threshold is supplied. Evaluate acr
 `python -m ordivon_capital.research.pit_joint_forecast --input source-and-economic-contract.json` writes only an output JSON with:
 
 - `optimizer_input`: **exact** `{"gamma":...,"nodes":[...]}` grammar consumed by `ordivon_capital.portfolio.multistage_policy` (first-period root plus terminal sample nodes).
-- `forecast_evidence`: data timing, sample counts, duplicate aggregation, source digests and explicit uncalibrated status.
+- `forecast_evidence`: data timing, sample counts, duplicate aggregation, source digests, price bases, source standings and explicit uncalibrated status.
 - `effects`: `NONE_NO_TRADE_NO_ACCOUNTING`.
 - `input_sha256`: reproducible canonical input commitment.
 
