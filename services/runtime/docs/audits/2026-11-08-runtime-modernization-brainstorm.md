@@ -27,6 +27,18 @@ related:
 
 # Runtime 现代化审计与头脑风暴 — 2026-11-08
 
+## 最新现场复核：历史取消已收敛，动态准入仍缺失（当日后续记录）
+
+> 此节是本审计的**最新状态**，覆盖下方较早的历史故障快照。不可继续引用下方“4 个 stopping / active 未收敛”的旧结论作为当前状态。
+
+- **四个旧 Attempt 已收敛。** 再次用已连接 Linux Runtime 精确 `job.get` 核验 Security、Finance Updater、Finance Differential、Data：全部 `state=lost`、`reservation=released`、`mechanicallyConverged=true`，事件链有 `PROCESS_EXITED` 与 `JOB_TERMINAL`。这不意味着不透明外部业务副作用已撤销。
+- **源码已经提交**：隔离 Workspace HEAD 为 `6299d94657e13ed317d9732f7b2b3552b51c5d7d`，提交名 `refactor(runtime): reconcile native cgroup stop evidence with PostgreSQL`；读取时 Git 工作树 clean。早期“未提交、未验证”描述仅对前一历史阶段有效；此前本审计末尾的验收补记已经记录 7/7 PG/systemd 原生集成、410 项 Core 测试、Kani 与 TLC 的各自通过证据。**本次没有独立核验当前已安装服务的发布修订号，故不能推断已生产发布。**
+- **固定并发未解决**：Linux Runtime 仍显示 `globalExecutionLimit=4`，Windows Runtime 仍显示 `12`；Linux `pg_main.rs` 的 `global_limit:4` 与 `node_query.rs` 的 `globalExecutionLimit:4` 仍独立硬编码；PG `workspace_count>=1 || global_count>=global_limit` 仍基于 Job 数，不读取真实资源向量。
+- **可运行真实 Linux 只读测量已取得**：当前 Linux 是 WSL2 kernel `6.18.54.1-microsoft-standard-WSL2`，systemd `261`。一次只读 PSI 采样：CPU `some avg10=0.00`、内存 `full avg10=0.00`、I/O `full avg10=0.23`，`MemAvailable=4,025,908 kB`。这些是**特定时刻**的观测，不能据此保证放开所有 Job 后不会 OOM/IO thrash。它们足以说明“固定 4”并非来自此次内核压力测量。
+- **活任务是新的 Job**：最新 `job.list` 已出现 Host、Game 等新的 `starting` Job，不能把它们算作原来的四条历史 stuck reservation。
+- **新 P0 应转向**：将持久 Pending 队列与物理 Allocation 分开；统一单一资源能力权威；让维护/取消/对账独立于普通 Job admission；按 CPU、内存、IO、pids 与 PSI 进行分层、work-conserving 调度；区分 Workspace 写互斥与工作任务并发。继承现有 PostgreSQL 事务 CAS 和原生 systemd/cgroup、Windows Job Objects，不增加第二套进程管理器。
+- **外界对照**：Linux PSI https://docs.kernel.org/accounting/psi.html；systemd resource-control https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html；Kueue https://kueue.sigs.k8s.io/docs/overview/；Nomad scheduling https://developer.hashicorp.com/nomad/docs/concepts/scheduling/how-scheduling-works；Kubernetes controller pattern https://github.com/kubernetes/client-go/blob/master/ARCHITECTURE.md；PostgreSQL NOTIFY https://www.postgresql.org/docs/current/sql-notify.html。复用对应成熟接口与思想，而非引入完整 K8s/Kueue 依赖栈。
+
 ## 判定范围与证据等级
 
 本文件是一次可消费的 Owner 审计，不是新框架规格，也不是已经发布的系统现状。源目录：隔离 Workspace `ws-gpt6-runtime-pg-boundary-20261107-r1`，以 `6de375a567a6` 为基础，有尚未提交的 Runtime 修复。此文件中的源码观察针对该工作区的文件；**生产运行态**仅由连接的 Linux/Windows Runtime 查询证实。严禁把源分支、模型、证明 Harness 或测试修改称为已部署。
