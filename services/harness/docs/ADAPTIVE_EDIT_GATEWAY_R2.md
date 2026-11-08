@@ -130,7 +130,7 @@ Historical P2 evidence remains contextual rather than replayed benchmark data: i
 
 ## Live model-specific profile
 
-`scripts/run_adaptive_edit_r2_live_ab.py` now provides an explicit, opt-in live Provider A/B runner. Ordinary regression tests import and test its treatment fencing and Runtime-shaped in-memory fixture but do not contact DeepSeek.
+`scripts/run_adaptive_edit_r2_live_ab.py` now provides an explicit, opt-in live Provider A/B runner. It requires explicit Harness PostgreSQL DSN authority, creates one fresh temporary owner-local schema per evaluation, and drops that schema on completion or failure; the old SQLite per-run Store is retired. Ordinary regression tests import and test its treatment fencing and Runtime-shaped in-memory fixture but do not contact DeepSeek.
 
 The first corrected live profile used:
 

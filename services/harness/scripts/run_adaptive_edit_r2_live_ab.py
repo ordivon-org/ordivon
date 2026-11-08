@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -10,6 +11,10 @@ import shutil
 import subprocess
 import tempfile
 import time
+import uuid
+
+import psycopg
+from psycopg import sql
 
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
 from ordivon_harness.agent_tool_observation import HarnessToolObservation
@@ -26,7 +31,7 @@ from ordivon_harness.ordivon.model import AgentToolCall, AgentToolDefinition
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
 from ordivon_harness.runtime_port import HarnessRuntimeErrorDetail, HarnessRuntimeToolRejected
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore, configured_postgres
 
 ROOT = Path.cwd()
 CODECS = ("exact-replacement-v1", "anchored-line-v1")
@@ -412,6 +417,21 @@ def binding(
     )
 
 
+@contextmanager
+def isolated_live_eval_store(dsn: str):
+    # One bounded ephemeral, owner-local PostgreSQL schema per experiment.
+    # Never touch existing Harness/Host/Runtime schemas or migrate SQLite data.
+    schema = "heval_" + uuid.uuid4().hex[:20]
+    try:
+        with PostgresHarnessStore(dsn, schema=schema, initialize=True) as store:
+            yield store
+    finally:
+        with psycopg.connect(dsn, autocommit=True) as conn:
+            conn.execute(
+                sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(sql.Identifier(schema))
+            )
+
+
 def run_one(
     codec: str,
     replicate: int,
@@ -510,8 +530,8 @@ def run_one(
         },
         {"role": "user", "content": objective},
     )
-    with tempfile.TemporaryDirectory() as directory:
-        store = SQLiteHarnessStore.initialize(Path(directory) / "state")
+    dsn, _schema = configured_postgres()
+    with isolated_live_eval_store(dsn) as store:
         store.create_run(contract)
         continuity = EventSourcedRunContinuity(store, contract)
         bridge = TreatmentBridge(
@@ -581,7 +601,6 @@ def run_one(
                 "oracleExact": source == task_spec.oracle.read_text(),
                 **outcome,
             }
-        store.close()
         return record
 
 
