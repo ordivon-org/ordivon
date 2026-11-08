@@ -17,12 +17,12 @@ def module():
 
 def event(record=1, *, pid=42, name="chatgpt.exe", eid=5157,
           protocol=17, direction="%%14592", dest="224.0.0.251",
-          port=5353, at="2026-11-08T10:00:01Z"):
+          port=5353, at="2026-11-08T10:00:01Z", proc_field="ProcessID"):
     return (f'<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">'
             f'<System><Provider Name="Microsoft-Windows-Security-Auditing"/>'
             f'<EventID>{eid}</EventID><TimeCreated SystemTime="{at}"/>'
             f'<EventRecordID>{record}</EventRecordID><Channel>Security</Channel></System>'
-            f'<EventData><Data Name="ProcessID">{pid}</Data>'
+            f'<EventData><Data Name="{proc_field}">{pid}</Data>'
             f'<Data Name="Application">\\device\\harddiskvolume2\\{name}</Data>'
             f'<Data Name="Direction">{direction}</Data>'
             f'<Data Name="DestAddress">{dest}</Data><Data Name="DestPort">{port}</Data>'
@@ -75,7 +75,8 @@ def test_real_process_proxy_and_public_connection_are_distinct():
     ref = module()
     result = ref.summarize(envelope([
         event(1, eid=5156, protocol=6, direction="%%14593",
-              dest="127.0.0.1", port=19781, name="codex.exe"),
+              dest="127.0.0.1", port=19781, name="codex.exe",
+              proc_field="ProcessId"),
         event(2, eid=5156, protocol=6, direction="%%14593",
               dest="1.1.1.1", port=443, name="codex.exe"),
         event(3, eid=5157, protocol=17, direction="%%14593",

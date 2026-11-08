@@ -83,25 +83,27 @@ def decode_event(raw: str) -> dict:
     fields = {}
     for entry in root.findall("e:EventData/e:Data", NS):
         if entry.get("Name"):
-            fields[entry.get("Name")] = entry.text or ""
-    required = ("ProcessID", "Application", "Direction",
-                "DestAddress", "DestPort", "Protocol")
+            # Windows 11 emits ProcessId in 5156 and ProcessID in 5157.
+            # WFP EventData names are case-variant across native event IDs.
+            fields[entry.get("Name").casefold()] = entry.text or ""
+    required = ("processid", "application", "direction",
+                "destaddress", "destport", "protocol")
     if any(not fields.get(k) for k in required):
         raise ValueError("Incomplete WFP connection event")
-    app = fields["Application"].replace("\\", "/").split("/")[-1].casefold()
+    app = fields["application"].replace("\\", "/").split("/")[-1].casefold()
     try:
-        pid = int(fields["ProcessID"], 0)
-        dest_port = int(fields["DestPort"])
-        protocol = int(fields["Protocol"])
+        pid = int(fields["processid"], 0)
+        dest_port = int(fields["destport"])
+        protocol = int(fields["protocol"])
     except ValueError as exc:
         raise ValueError("Invalid WFP connection scalar") from exc
     if pid < 0 or not 0 <= dest_port <= 65535:
         raise ValueError("Invalid PID or port")
-    direction = DIRECTIONS.get(fields["Direction"], "UNKNOWN")
+    direction = DIRECTIONS.get(fields["direction"], "UNKNOWN")
     return {
         "id": event_id, "recordId": record, "at": at,
         "process": app, "pid": pid, "protocol": protocol,
-        "direction": direction, "destination": address_class(fields["DestAddress"]),
+        "direction": direction, "destination": address_class(fields["destaddress"]),
         "port": dest_port,
     }
 
