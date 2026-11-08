@@ -402,14 +402,76 @@ impl PgAdmissionStore {
         Ok(Self { client })
     }
 
+    /// Internal PG-only release admission. No MCP caller can invoke this until
+    /// an independently qualified operator installation/reconciliation contract
+    /// exists. No filesystem or systemd effects occur in this transaction.
+    pub fn admit_release_effect(
+        &mut self,
+        input: &PgAdmissionInput,
+        request: &crate::runtime::RuntimeReleaseRequest,
+        receipt_path: &std::path::Path,
+    ) -> Result<PgAdmissionOutcome, PgAdmissionError> {
+        use crate::runtime::{
+            runtime_release_effect_id, runtime_release_request_identity_digest,
+            ReleaseStateContract, RuntimeReleaseContract, RuntimeReleaseEffectBinding,
+        };
+        ReleaseStateContract::validate_request(request)
+            .map_err(|_| PgAdmissionError::InvalidInput)?;
+        let _ = i32::try_from(request.expected_tool_count)
+            .map_err(|_| PgAdmissionError::InvalidInput)?;
+        if !receipt_path.is_absolute()
+            || receipt_path
+                .components()
+                .any(|part| matches!(part, std::path::Component::ParentDir))
+            || request.principal != input.principal
+            || request.client_request_id != input.client_request_id
+            || request.workspace_id != input.workspace_id
+            || runtime_release_request_identity_digest(request)
+                .map_err(|_| PgAdmissionError::InvalidInput)?
+                != input.request_digest
+        {
+            return Err(PgAdmissionError::InvalidInput);
+        }
+        let binding = RuntimeReleaseEffectBinding {
+            contract: RuntimeReleaseContract::RuntimeReleaseV1,
+            effect_id: runtime_release_effect_id(request),
+            request_digest: input.request_digest.clone(),
+            workspace_id: request.workspace_id.clone(),
+            commit: request.commit.clone(),
+            candidate_manifest_digest: request.candidate_manifest_digest.clone(),
+            expected_tool_count: request.expected_tool_count,
+            receipt_path: receipt_path.to_string_lossy().into_owned(),
+        };
+        let json = serde_json::to_string(&binding).map_err(|_| PgAdmissionError::InvalidInput)?;
+        let digest = format!("sha256:{}", hex::encode(Sha256::digest(json.as_bytes())));
+        let snapshot: serde_json::Value = serde_json::from_str(&input.workspace_snapshot_json)
+            .map_err(|_| PgAdmissionError::InvalidInput)?;
+        if snapshot
+            .get("runtimeReleaseEffectDigest")
+            .and_then(serde_json::Value::as_str)
+            != Some(digest.as_str())
+        {
+            return Err(PgAdmissionError::InvalidInput);
+        }
+        self.admit_inner(input, Some((&binding, &digest)))
+    }
+
     /// One atomic admission. No dispatch/terminal/repair effect is authorized.
     pub fn admit(&mut self, i: &PgAdmissionInput) -> Result<PgAdmissionOutcome, PgAdmissionError> {
+        self.admit_inner(i, None)
+    }
+
+    fn admit_inner(
+        &mut self,
+        i: &PgAdmissionInput,
+        release: Option<(&crate::runtime::RuntimeReleaseEffectBinding, &str)>,
+    ) -> Result<PgAdmissionOutcome, PgAdmissionError> {
         // PostgreSQL SERIALIZABLE can abort at a row lock while the scheduler
         // updates its qualified epoch or an adjacent state transition. Retry
         // only an explicitly failed, pre-COMMIT transaction: its effects
         // have rolled back. Never replay an UNKNOWN COMMIT acknowledgement.
         retry_aborted_transaction(
-            || self.admit_once(i),
+            || self.admit_once(i, release),
             |e| {
                 matches!(
                     e,
@@ -422,7 +484,11 @@ impl PgAdmissionStore {
         )
     }
 
-    fn admit_once(&mut self, i: &PgAdmissionInput) -> Result<PgAdmissionOutcome, PgAdmissionError> {
+    fn admit_once(
+        &mut self,
+        i: &PgAdmissionInput,
+        release: Option<(&crate::runtime::RuntimeReleaseEffectBinding, &str)>,
+    ) -> Result<PgAdmissionOutcome, PgAdmissionError> {
         i.validate()?;
         let mut tx = self
             .client
@@ -460,8 +526,42 @@ impl PgAdmissionStore {
             if request_digest != i.request_digest {
                 return Err(PgAdmissionError::IdempotencyConflict);
             }
+            let existing = tx.query_opt(
+                "SELECT effect_id,request_digest,workspace_id,commit_revision,candidate_manifest_digest,expected_tool_count,receipt_path,binding_digest FROM job_runtime_release_effects WHERE job_id=$1",
+                &[&job_id],
+            )?;
+            match (release, existing) {
+                (None, None) => (),
+                (Some((binding, digest)), Some(row))
+                    if row.get::<_, String>(0) == binding.effect_id
+                        && row.get::<_, String>(1) == binding.request_digest
+                        && row.get::<_, String>(2) == binding.workspace_id
+                        && row.get::<_, String>(3) == binding.commit
+                        && row.get::<_, String>(4) == binding.candidate_manifest_digest
+                        && row.get::<_, i32>(5) == binding.expected_tool_count as i32
+                        && row.get::<_, String>(6) == binding.receipt_path
+                        && row.get::<_, String>(7) == digest => {}
+                _ => return Err(PgAdmissionError::IdempotencyConflict),
+            }
             tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
             return Ok(PgAdmissionOutcome::Existing(job_id));
+        }
+        if release.is_some() {
+            // release is a separately operator-qualified capability.
+            // The app role only has SELECT on _stage_control and cannot grant
+            // itself this authority even if it owns the Job and its contents.
+            let qualified = tx.query_opt(
+                "SELECT state,source_sha256,promotion_allowed FROM _stage_control WHERE id='release' FOR SHARE",
+                &[],
+            )?;
+            let approved = qualified.is_some_and(|row| {
+                row.get::<_, String>(0) == "QUALIFIED_RELEASE"
+                    && row.get::<_, String>(1) == i.expected_source_sha256
+                    && row.get::<_, bool>(2)
+            });
+            if !approved {
+                return Err(PgAdmissionError::Unqualified);
+            }
         }
         // This predicate fences new writer effects, not read-only replay of a
         // previously committed identity. Resolving the exact idempotency key
@@ -491,6 +591,17 @@ impl PgAdmissionStore {
         tx.execute(
             "INSERT INTO concurrency_reservations(reservation_id,attempt_id,global_limit,state,acquired_at_ms,state_observed_at_ms) VALUES($1,$2,$3,'active',$4,$4)",
             &[&i.reservation_id,&i.attempt_id,&i64::from(i.global_limit),&i.created_at_ms])?;
+        if let Some((binding, digest)) = release {
+            // Exact ReleaseEffect side truth and Job must COMMIT atomically.
+            // Normal Job admission, native dispatch and reconciliation are
+            // independently fenced from these release-specific Accepted Jobs.
+            tx.execute(
+                "INSERT INTO job_runtime_release_effects(job_id,effect_id,contract,request_digest,workspace_id,commit_revision,candidate_manifest_digest,expected_tool_count,receipt_path,binding_digest) VALUES($1,$2,'runtime_release_v1',$3,$4,$5,$6,$7,$8,$9)",
+                &[&i.job_id,&binding.effect_id,&binding.request_digest,&binding.workspace_id,
+                  &binding.commit,&binding.candidate_manifest_digest,
+                  &(binding.expected_tool_count as i32),&binding.receipt_path,&digest],
+            )?;
+        }
         let events = [
             (
                 "REQUEST_RECEIVED",

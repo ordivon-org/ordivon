@@ -12,6 +12,8 @@ All user-visible changes to Ordivon Runtime are recorded here. The repository fo
 
 ## Unreleased
 
+- PostgreSQL Runtime now has a release-specific, operator-qualified **internal** atomic Job+ReleaseEffect admission primitive with exact request replay before mutable release authority checks, receipt-binding digests and a fail-closed generic Runner dispatch/cancel fence. Only the separate release reader is exposed in PG MCP; the PG-specific installer and public release.apply remain unavailable. Disposable PG/systemd tests prove no-effect on absent operator qualification, consistent exactly-once admission, revocation-safe replay and no generic systemd launch.
+
 - PostgreSQL SERIALIZABLE Job admission now retries only fully aborted SQLSTATE 40001 transactions, replaying the complete admission decision against a fresh snapshot with a bounded 8-attempt exponential-backoff window. UNKNOWN COMMIT and external process effects are never retried. Deterministic regressions test bounded exhaustion and fail-closed unknown-commit behavior. After job.observe successfully authorizes a durable Job, subsequent PG/Reconciliation errors retain the exact operationId for reconcile-first responses rather than suggesting the Job did not exist.
 
 - PostgreSQL Runtime now exposes principal-scoped, read-only release.get for durable job_runtime_release_effects and strict operator receipt reconciliation. PG release.apply remains unavailable and structuredReleaseConfigured=false until an independently qualified PG-native installer can commit and recover replacement effects. No SQLite release state is introduced and terminal Job status is not treated as installation proof.
