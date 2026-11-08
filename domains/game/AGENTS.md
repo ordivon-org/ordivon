@@ -376,3 +376,12 @@ semantic dialogue keyboard focus are the Human UI source; G11 player
 observation must project all visible state-dependent tips and actual
 Button enabled state. visual_capture.gd creates real OpenGL PNG
 evidence in isolated Xvfb, which never counts as Human comprehension.
+
+**Tactical Trial actual-result HUD (2026-11-08):** When checking Player
+comprehension or Agent observations, distinguish the pre-action forecast
+from the AFTER/LAST MOVE result. Both are read-only native Godot HUD
+projections; only the second consumes action_accepted after state_changed.
+Neither is a second Rule authority, hidden Agent debug channel, persisted
+telemetry, or a Human playtest result. See the existing G11 plan and
+docs/room-encounter-playtest.md; run native_scene_acceptance.py,
+agent_episode_acceptance.py, and six-frame visual_capture.gd.
