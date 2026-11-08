@@ -113,6 +113,15 @@ def test_read_only_verify_never_inserts_rules(monkeypatch):
     assert fake.insertions == []
 
 
+def test_native_kernel_task_calls_source_forward_verifier_read_only():
+    task = (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()
+    kernel_task = task.split("  substrate:shared-egress:kernel:verify:", 1)[1].split(
+        "  substrate:shared-egress:verify:", 1
+    )[0]
+    assert 'HOST_IF="$HOST_IF" NS_CIDR="$NS_CIDR" /usr/bin/python3 substrates/shared-egress/forward.py verify' in kernel_task
+    assert "forward.py ensure" not in kernel_task
+
+
 def test_owner_materializes_helper_before_unit_and_verifies_installed_bytes():
     text = (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()
     helper = "install -m 0755 substrates/shared-egress/forward.py /usr/local/libexec/network-v2/shared-egress-forward"

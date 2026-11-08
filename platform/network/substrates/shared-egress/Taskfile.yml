@@ -65,6 +65,9 @@ tasks:
         /usr/bin/iptables-legacy -w 5 -C FORWARD -o "$HOST_IF" -d "$NS_CIDR" -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment network-v2-browserless-forward-v1 -j ACCEPT
         owned_count=$(/usr/bin/iptables-legacy -w 5 -S FORWARD | /usr/bin/grep -c -F -- '--comment network-v2-browserless-forward-v1' || true)
         test "$owned_count" -eq 2
+        # Independently bind the actual kernel to the new source checker. The
+        # helper runs in verify mode and cannot insert/delete firewall rules.
+        HOST_IF="$HOST_IF" NS_CIDR="$NS_CIDR" /usr/bin/python3 substrates/shared-egress/forward.py verify
         echo 'SHARED_EGRESS_KERNEL_FORWARDING=PASS'
 
   substrate:shared-egress:verify:
