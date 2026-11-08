@@ -96,17 +96,6 @@ The actual executable examples and negative controls are `tests/test_artifact_co
 
 Do not introduce a new `consumer registry` or a mandatory OCI/attestation stage merely because an artifact has multiple readers. Consumers own domain acceptance and deployment proof.
 
-**Independent input snapshot qualification:** binding `snapshotInputs=true`
-now expressly controls exact private byte staging, separately from
-`requireClaimResults`. FLAC/WAVE/PNG retain both qualifications; the
-single-file Parquet verifier now freezes its Parquet and separate JSON contract
-inputs even though its legacy claim coverage remains incomplete. Parquet
-`status=PASS` still does **not** imply `profileVerificationComplete=true`.
-Formats with sidecars or other relative file dependencies remain
-`ADMISSION_DIGEST_ONLY` until the complete input graph can be committed and
-tested without disrupting family-native references. The snapshot lifetime is
-one verification invocation, not consumer readback or installed-tool identity.
-
 **Exact-byte identity across native verification:** `artifact_core/input_snapshot.py`
 reuses standard library `os.open`/`fstat`, streaming SHA-256 and private temporary
 files instead of another CAS. The service freezes the canonical Profile bytes.
@@ -155,3 +144,14 @@ Qualify an upstream project against exact user-facing acceptance and negative ca
 - The A1–A14 historical decomposition-wave documents had no text-path consumers in the audited tracked source and are removed from this isolated source candidate; their bytes remain retrievable from the base Git revision. A15 remains because the R2 plan references it. This source-retirement evidence does not establish the absence of external/dynamic consumers.
 - Caches (`.venv`, `__pycache__`, `.pytest_cache`) should be cleaned only with native local project tools after verifying ownership. Never recursively delete system files, active Runtime Workspaces, source materials or another Owner's state.
 - Stop decomposition when further files only add glue. Existing semantic seams and consumer-accepted native tools take priority over a prettier directory tree.
+
+**Independent input snapshot qualification:** binding `snapshotInputs=true`
+now expressly controls exact private byte staging, separately from
+`requireClaimResults`. FLAC/WAVE/PNG retain both qualifications; the
+single-file Parquet verifier now freezes its Parquet and separate JSON contract
+inputs even though its legacy claim coverage remains incomplete. Parquet
+`status=PASS` still does **not** imply `profileVerificationComplete=true`.
+Formats with sidecars or other relative file dependencies remain
+`ADMISSION_DIGEST_ONLY` until the complete input graph can be committed and
+tested without disrupting family-native references. The snapshot lifetime is
+one verification invocation, not consumer readback or installed-tool identity.
