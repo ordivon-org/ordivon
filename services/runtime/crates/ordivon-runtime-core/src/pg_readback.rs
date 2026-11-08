@@ -86,10 +86,22 @@ fn terminal_events_coherent(
     let Some(resolution) = snapshot.resolution.as_deref() else {
         return Ok(true);
     };
-    let rows = tx.query(
-        "SELECT event_type,origin,new_state,detail_json,detail_digest FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type IN ('PROCESS_EXITED','JOB_TERMINAL')",
-        &[&snapshot.job_id, &snapshot.attempt_id],
+    // ReleaseEffect has an independently privileged *operator* and its own
+    // receipt. It is not a systemd Runner process; forging PROCESS_EXITED
+    // would violate the physical-evidence model. Admit a distinct, digest-
+    // bound operator terminal event only when this Job has committed release
+    // side truth. The filesystem receipt is separately verified by
+    // ReleaseStateContract on release.get.
+    let release = tx.query_opt(
+        "SELECT effect_id,request_digest FROM job_runtime_release_effects WHERE job_id=$1",
+        &[&snapshot.job_id],
     )?;
+    let event_query = if release.is_some() {
+        "SELECT event_type,origin,new_state,detail_json,detail_digest FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type IN ('RELEASE_EFFECT_RECEIPTED','JOB_TERMINAL')"
+    } else {
+        "SELECT event_type,origin,new_state,detail_json,detail_digest FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type IN ('PROCESS_EXITED','JOB_TERMINAL')"
+    };
+    let rows = tx.query(event_query, &[&snapshot.job_id, &snapshot.attempt_id])?;
     if rows.len() != 2 {
         return Ok(false);
     }
@@ -121,6 +133,11 @@ fn terminal_events_coherent(
     } else {
         Some(pg_artifact_manifest_digest(&artifacts))
     };
+    // A structured installer owns its receipt, not a native Runner Artifact.
+    // Unexpected generic Artifacts invalidate its dedicated terminal proof.
+    if release.is_some() && !artifacts.is_empty() {
+        return Ok(false);
+    }
     let mut process_observed = false;
     let mut terminal_recorded = false;
     for row in rows {
@@ -141,6 +158,24 @@ fn terminal_events_coherent(
             return Ok(false);
         };
         match event_type.as_str() {
+            "RELEASE_EFFECT_RECEIPTED" if origin == "OPERATOR_OBSERVED" && release.is_some() => {
+                let authority = release.as_ref().expect("guarded release binding");
+                let bound_effect: String = authority.get(0);
+                let bound_request: String = authority.get(1);
+                if process_observed
+                    || detail.get("resultDigest").and_then(|v| v.as_str())
+                        != snapshot.result_digest.as_deref()
+                    || detail.get("receiptDigest").and_then(|v| v.as_str())
+                        != snapshot.result_digest.as_deref()
+                    || detail.get("effectId").and_then(|v| v.as_str())
+                        != Some(bound_effect.as_str())
+                    || detail.get("requestDigest").and_then(|v| v.as_str())
+                        != Some(bound_request.as_str())
+                {
+                    return Ok(false);
+                }
+                process_observed = true;
+            }
             "PROCESS_EXITED" if origin == "SYSTEM_OBSERVED" => {
                 if process_observed
                     || detail.get("resultDigest").and_then(|v| v.as_str())

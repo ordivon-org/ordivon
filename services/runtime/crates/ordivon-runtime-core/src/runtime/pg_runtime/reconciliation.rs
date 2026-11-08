@@ -579,7 +579,15 @@ impl PgRuntime {
             .map_err(pg)?
         {
             PgJobReadback::Observed(s) => s,
-            _ => return Err(error("inconclusive PG lifecycle")),
+            PgJobReadback::Inconclusive => {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::ReconciliationRequired,
+                    "committed PG Job lacks coherent exact lifecycle evidence",
+                    Some("jobId"),
+                    false,
+                )
+                .with_operation_id(&request.job_id))
+            }
         };
         let (a, p, operation) = self.attempt(db, &request.job_id)?;
         let terminal = snapshot.resolution.is_some();

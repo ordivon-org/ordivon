@@ -381,12 +381,15 @@ fn pg_release_get_never_claims_deployed_without_verified_operator_receipt() {
         "release.get",
         json!({"clientRequestId":client_id}),
     );
-    assert_ne!(readback["isError"], true, "{readback}");
-    let projection = &readback["structuredContent"];
-    assert_eq!(projection["jobId"], job);
-    assert_eq!(projection["receiptAvailable"], false);
-    assert_ne!(projection["effectDisposition"], "deployed");
-    assert_eq!(projection["semanticCompletionEvaluated"], false);
+    // This fixture has deliberately grafted ReleaseEffect data onto a
+    // *normal Runner-exited Job*, without any operator dispatch or
+    // RELEASE_EFFECT_RECEIPTED event. Never mistake its PROCESS_EXITED
+    // event for a qualified installer terminal proof.
+    assert_eq!(readback["isError"], true, "{readback}");
+    assert_eq!(
+        readback["structuredContent"]["error"]["code"], "RECONCILIATION_REQUIRED",
+        "synthetic Runner terminal is not a ReleaseEffect receipt: {readback}"
+    );
 
     fs::create_dir(&receipt).unwrap();
     fs::write(
@@ -399,14 +402,10 @@ fn pg_release_get_never_claims_deployed_without_verified_operator_receipt() {
         "release.get",
         json!({"clientRequestId":client_id}),
     );
-    assert_ne!(forged["isError"], true, "{forged}");
+    assert_eq!(forged["isError"], true, "{forged}");
     assert_eq!(
-        forged["structuredContent"]["effectDisposition"],
-        "reconciliation_required"
-    );
-    assert_eq!(
-        forged["structuredContent"]["reconciliationIssue"],
-        "RELEASE_EFFECT_REQUEST_MISMATCH"
+        forged["structuredContent"]["error"]["code"], "RECONCILIATION_REQUIRED",
+        "false Runner terminal must fail before even opening the forged receipt"
     );
 
     fixture
