@@ -309,6 +309,29 @@ Mature tools such as CrossHair, Kani, Verus, Quint and Pacti remain conditional
 choices driven by a concrete property and available implementation-refinement
 path, not mandatory installations.
 
+## 2026-11-08 VFR frame identity audit and native consumer
+
+The existing perception pipeline multiplied `pts_time` by an average FPS
+and rounded to recover a purported original frame number. This fails for
+VFR sources and can invent frames beyond the actual decoder count.
+`perception_video_io.py` now recovers frame identity from the native
+source-owned selection-step/filter-output index, and preserves the
+original native `pts_time` for sampled change peaks. Both
+`perception.py` and `rich_perception.py` share the thin rational
+`perception_timing.py` representation. Missing container `nb_frames`
+triggers native FFprobe `-count_frames` at execution rather than
+promoting duration*average-rate to exact count.
+
+Real FFmpeg VFR counterexample (20 decoded frames with PTS gap at frame
+10): original estimate 40, native frame count 20, exact sampled indexes
+5/10/15 and PTS 0.5/3.0/3.5. Native media/perception selected output
+and rich profile both consumed this source. Other selected frames not
+present in the sampled native metadata remain labeled
+`average-rate-estimate-not-source-pts`. Correctness is **bounded to
+the exact FFmpeg filter graph and native readback**; this is not a
+general VFR timecode engine, not a universal source decoder proof, and
+not a reason to add a separate media task runner.
+
 ## Mature external baseline
 
 - [PyPA src-layout guidance](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/):

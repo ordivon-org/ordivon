@@ -6,6 +6,7 @@ existing FFmpeg; no inference, model, source ownership or quality verdict.
 
 from __future__ import annotations
 
+import json
 import math
 import re
 import subprocess
@@ -15,7 +16,7 @@ from typing import Any
 
 from .assets import hash_file
 
-_FRAME_LINE = re.compile(r"^frame:\d+\s+pts:\S+\s+pts_time:(?P<time>-?[0-9.]+)$")
+_FRAME_LINE = re.compile(r"^frame:(?P<filtered>\d+)\s+pts:\S+\s+pts_time:(?P<time>-?[0-9.]+)$")
 _YAVG_LINE = re.compile(r"^lavfi\.signalstats\.YAVG=(?P<value>[0-9.]+)$")
 
 
@@ -49,33 +50,70 @@ def _extract_frame(video_path: Path, frame: int, output_path: Path, ffmpeg: str)
         raise RuntimeError(f"ffmpeg produced no review frame for {frame}")
 
 
-def _parse_change_metadata(text: str, *, fps: float, total_frames: int) -> list[dict[str, Any]]:
+def count_video_frames(video_path: Path, ffprobe: str = "/usr/bin/ffprobe") -> int:
+    """Request an exact decoded-frame count from the established native tool.
+
+    A duration multiplied by average FPS is not a frame count for VFR.
+    Only use this extra I/O pass when the initial stream has no nb_frames.
+    """
+    result = subprocess.run(
+        [
+            ffprobe, "-v", "error", "-select_streams", "v:0",
+            "-count_frames", "-show_entries", "stream=nb_read_frames",
+            "-of", "json", str(video_path),
+        ],
+        check=False, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or "ffprobe frame count failed")
+    value = json.loads(result.stdout)
+    streams = value.get("streams") if isinstance(value, dict) else None
+    if not isinstance(streams, list) or len(streams) != 1:
+        raise ValueError("native video frame count is unavailable")
+    raw = streams[0].get("nb_read_frames")
+    if not isinstance(raw, str) or not raw.isdigit() or int(raw) < 1:
+        raise ValueError("native video frame count is unavailable")
+    return int(raw)
+
+
+def _parse_change_metadata(
+    text: str, *, sample_step_frames: int, total_frames: int,
+) -> list[dict[str, Any]]:
+    # FFmpeg's select keeps original frames 0, step, 2*step ... .
+    # tblend discards the first selected frame. The printed frame index
+    # therefore maps to original frame (filtered_index + 1) * step,
+    # independently of variable presentation timestamps and average FPS.
+    if sample_step_frames < 1 or total_frames < 1:
+        raise ValueError("sample step and frame count must be positive")
     samples: list[dict[str, Any]] = []
-    current_time: float | None = None
+    current: tuple[int, float] | None = None
     for raw_line in text.splitlines():
         line = raw_line.strip()
         frame_match = _FRAME_LINE.match(line)
         if frame_match:
-            current_time = float(frame_match.group("time"))
+            original = (int(frame_match.group("filtered")) + 1) * sample_step_frames
+            if original >= total_frames:
+                raise ValueError("native change metadata references an unavailable source frame")
+            current = (original, float(frame_match.group("time")))
             continue
         value_match = _YAVG_LINE.match(line)
-        if value_match and current_time is not None:
-            original_frame = min(total_frames - 1, max(0, int(round(current_time * fps))))
+        if value_match and current is not None:
+            original_frame, native_pts = current
             samples.append(
                 {
                     "frame": original_frame,
-                    "timeSeconds": round(original_frame / fps, 6),
+                    "timeSeconds": native_pts,
+                    "timeSecondsBasis": "native-ffmpeg-filter-pts",
                     "meanAbsoluteLumaDifference": float(value_match.group("value")),
                 }
             )
-            current_time = None
+            current = None
     return samples
 
 
 def analyze_temporal_change(
     video_path: Path,
     *,
-    fps: float,
     total_frames: int,
     sample_step_frames: int,
     ffmpeg: str,
@@ -99,7 +137,10 @@ def analyze_temporal_change(
         )
         if result.returncode != 0:
             raise RuntimeError(result.stderr.strip() or "ffmpeg temporal-change analysis failed")
-        return _parse_change_metadata(metadata_path.read_text(encoding="utf-8"), fps=fps, total_frames=total_frames)
+        return _parse_change_metadata(
+            metadata_path.read_text(encoding="utf-8"),
+            sample_step_frames=sample_step_frames, total_frames=total_frames,
+        )
     finally:
         metadata_path.unlink(missing_ok=True)
 

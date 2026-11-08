@@ -433,6 +433,7 @@
           "type": "predicate",
           "guarantees": [
             "technical probe/loudness violations are explicit",
+            "selected sampled video change peaks preserve source-frame index and native FFmpeg PTS instead of FPS-rounded index",
             "measurements remain attached to selected media identity"
           ]
         },
@@ -441,6 +442,7 @@
           "guarantees": [
             "a mechanical PASS never implies artistic approval",
             "nonfinite/invalid numeric evidence is not silently admitted",
+            "estimated video timing never claims to be native source PTS",
             "no native Resolve edit is claimed without a matched host receipt"
           ]
         },
@@ -475,7 +477,10 @@
             "src/ordivon_studio/qc.py",
             "src/ordivon_studio/review.py",
             "src/ordivon_studio/assets.py",
-            "tests/test_qc.py"
+            "tests/test_qc.py",
+            "src/ordivon_studio/perception_timing.py",
+            "src/ordivon_studio/perception_video_io.py",
+            "tests/test_perception.py"
           ],
           "consumerEvidence": "Existing owner-native test and implementation source, not an independent machine-checked universal proof",
           "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
@@ -486,7 +491,10 @@
             "src/ordivon_studio/qc.py",
             "src/ordivon_studio/review.py",
             "src/ordivon_studio/assets.py",
-            "tests/test_qc.py"
+            "tests/test_qc.py",
+            "src/ordivon_studio/perception_timing.py",
+            "src/ordivon_studio/perception_video_io.py",
+            "tests/test_perception.py"
           ]
         }
       }
