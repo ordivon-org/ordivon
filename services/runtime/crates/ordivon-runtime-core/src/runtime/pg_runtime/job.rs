@@ -318,7 +318,8 @@ impl PgRuntime {
                 &json!({"requestedAtMs":now()?}),
             )
             .map_err(io)?;
-            if a.bundle_digest.is_none() {
+            if a.state == AttemptState::Accepted {
+                self.reconcile(&mut db, &request.job_id)?;
                 return self.project(
                     &mut db,
                     &JobObserveRequest {

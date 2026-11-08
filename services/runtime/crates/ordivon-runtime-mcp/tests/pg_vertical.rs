@@ -1285,6 +1285,70 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         count, 1,
         "cancellation must not cause a second physical launch"
     );
+    // A genuinely admitted Attempt that never crossed dispatch can cancel
+    // without any invented native-process evidence. Use the public admission
+    // store and an existing valid plan, never hand-edit live lifecycle rows.
+    let record = fixture.db.query_one(
+        "SELECT workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest FROM jobs WHERE job_id=$1",
+        &[&job.as_str().unwrap()],
+    ).unwrap();
+    let pending_job = format!("job-{}", Uuid::now_v7());
+    let pending_attempt = format!("attempt-{}", Uuid::now_v7());
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let input = ordivon_runtime_core::pg_admission::PgAdmissionInput {
+        job_id: pending_job.clone(),
+        attempt_id: pending_attempt.clone(),
+        reservation_id: format!("reservation-{}", Uuid::now_v7()),
+        principal: "pg-consumer".into(),
+        client_request_id: "cancel-before-dispatch-native".into(),
+        request_digest: format!("sha256:{}", "b".repeat(64)),
+        operation_digest: format!("sha256:{}", "c".repeat(64)),
+        workspace_id: record.get(0),
+        workspace_snapshot_json: record.get(1),
+        execution_plan_json: record.get(2),
+        execution_plan_digest: record.get(3),
+        launch_token_digest: format!("sha256:{}", "d".repeat(64)),
+        bundle_path: fixture
+            .root
+            .join("store/pg-attempts")
+            .join(&pending_attempt)
+            .to_string_lossy()
+            .into_owned(),
+        unit_name: format!("ordivon-pg-{pending_attempt}.service"),
+        global_limit: 4,
+        created_at_ms: now,
+        expected_source_sha256: "a".repeat(64),
+    };
+    let dsn = format!(
+        "host={} user=runtime_app dbname=postgres",
+        fixture.root.display()
+    );
+    ordivon_runtime_core::pg_admission::PgAdmissionStore::connect(&dsn, "fresh")
+        .unwrap()
+        .admit(&input)
+        .unwrap();
+    let cancelled = call(&endpoint, "job.cancel", json!({"jobId":pending_job}));
+    assert_ne!(cancelled["isError"], true, "{cancelled}");
+    assert_eq!(
+        cancelled["structuredContent"]["executionDisposition"],
+        "cancelled"
+    );
+    assert_eq!(cancelled["structuredContent"]["resultAvailable"], false);
+    let dispatched: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&pending_job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        dispatched, 0,
+        "cancelled pre-dispatch Attempt was physically launched"
+    );
 }
 
 // Source qualification must be checked at the time of each new effect.

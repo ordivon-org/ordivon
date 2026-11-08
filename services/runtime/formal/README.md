@@ -461,3 +461,11 @@ OS-only LOST evidence in list, detail and observation projections.
 These checks do not qualify resource scheduling, persistent pending queues,
 Workspace concurrency or Windows PG cutover. They remain separate acceptance
 obligations from native cancellation convergence.
+
+
+The pre-dispatch cancellation branch is separately qualified by the real PG
+admission/CAS contract: a committed stop intent on an `accepted` Attempt blocks
+eligible_attempt, and terminalization compares the same Attempt row version.
+The native MCP test now directly admits an unissued Attempt and checks a
+cancelled terminal projection, no execution Result and zero dispatch events.
+This SQL/consumer property is not included in the pure native-stop Kani claim.

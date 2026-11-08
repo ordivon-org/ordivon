@@ -77,3 +77,11 @@ Failed observations remain pending and retry. Neither mode blindly releases a
 reservation, fabricates an execution Result, nor claims an external effect failed.
 Observe waits use inotify and cgroup.events wakeups with a bounded fallback;
 notifications are hints and never authority to commit terminal state.
+
+Cancellation before dispatch has a separate PG fact boundary: an `accepted`
+Attempt with committed stop intent cannot pass the dispatch admission CAS. It
+therefore commits `cancelled` with `admission_cancel_evidence`, without inventing
+Runner or cgroup evidence. Its Result availability remains false. A real
+PostgreSQL/MCP test admits such an Attempt through PgAdmissionStore, cancels it,
+and verifies zero DISPATCH_ISSUED events. This is distinct from an already
+launched Attempt with missing Result, whose external outcome remains LOST.
