@@ -239,7 +239,95 @@ fn rpc(url: &str, method: &str, params: Value) -> Value {
     })
 }
 fn call(url: &str, name: &str, args: Value) -> Value {
-    rpc(url, "tools/call", json!({"name":name,"arguments":args}))
+    let response = rpc(url, "tools/call", json!({"name":name,"arguments":args}));
+    // This integration client consumes the committed identity, not a
+    // transport success boolean. Only read/reconcile the SAME Job after
+    // a qualified post-COMMIT 40001; no duplicate workspace.exec submission.
+    if name == "workspace.exec" || name == "workspace.execPlan" {
+        observe_committed_40001(url, response)
+    } else {
+        response
+    }
+}
+
+/// An admitted Job's MCP response can encounter a *later* database
+/// serialization abort while reconciling its native result. The consumer
+/// must use the committed operationId to re-observe the SAME Job, never
+/// resubmit the executable as a new request.
+fn committed_40001_job_id(result: &Value) -> Option<&str> {
+    let error = result.get("structuredContent")?.get("error")?;
+    if result.get("isError")?.as_bool() != Some(true)
+        || error.get("commitState")?.as_str() != Some("committed")
+        || error.get("retryClass")?.as_str() != Some("reconcile_first")
+        || error.get("code")?.as_str() != Some("REGISTRY_UNAVAILABLE")
+        || !error.get("message")?.as_str()?.contains("E40001")
+    {
+        return None;
+    }
+    error
+        .get("operationId")?
+        .as_str()
+        .filter(|id| id.starts_with("job-") && id.len() > "job-".len())
+}
+
+fn observe_committed_40001(url: &str, original: Value) -> Value {
+    let Some(job_id) = committed_40001_job_id(&original) else {
+        return original;
+    };
+    let deadline = Instant::now() + Duration::from_secs(25);
+    loop {
+        // This is a different *read/observe* MCP operation. Do not invoke
+        // workspace.exec again after its admission has already committed.
+        let observed = call(
+            url,
+            "job.observe",
+            json!({"jobId": job_id, "waitMs": 4000,
+                "stdoutTailBytes":8192,"stderrTailBytes":8192}),
+        );
+        if observed["isError"] == true {
+            assert_eq!(
+                committed_40001_job_id(&observed),
+                Some(job_id),
+                "new or unqualified observation error: {observed}"
+            );
+        } else {
+            assert_eq!(
+                observed["structuredContent"]["jobId"], job_id,
+                "readback must bind the original committed Job"
+            );
+            if observed["structuredContent"]["executionTerminal"] == true {
+                return observed;
+            }
+        }
+        assert!(
+            Instant::now() < deadline,
+            "committed 40001 Job did not converge: {observed}"
+        );
+        thread::sleep(Duration::from_millis(20));
+    }
+}
+
+#[test]
+fn committed_observation_retry_never_reclassifies_uncommitted_effect() {
+    let value = json!({"isError":true,"structuredContent":{"error":{
+        "commitState":"committed","retryClass":"reconcile_first",
+        "code":"REGISTRY_UNAVAILABLE","operationId":"job-known",
+        "message":"PostgreSQL: SqlState(E40001)"
+    }}});
+    assert_eq!(committed_40001_job_id(&value), Some("job-known"));
+    for replacement in [
+        json!({"commitState":"not_committed"}),
+        json!({"retryClass":"safe_same_request"}),
+        json!({"code":"INVALID_ARGUMENT"}),
+        json!({"message":"other database failure"}),
+        json!({"operationId":null}),
+    ] {
+        let mut mutant = value.clone();
+        for (key, value) in replacement.as_object().unwrap() {
+            mutant["structuredContent"]["error"][key] = value.clone();
+        }
+        assert_eq!(committed_40001_job_id(&mutant), None, "{mutant}");
+    }
 }
 
 /// A real PG+MCP contract test: an ordinary executed Job is NOT a Release
