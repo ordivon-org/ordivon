@@ -1175,6 +1175,26 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     );
     assert_ne!(sleep["isError"], true, "{sleep}");
     let job = &sleep["structuredContent"]["jobId"];
+    // Establish the physical launch identity before requesting systemd stop.
+    // Otherwise an absent transient Unit could race with dispatch and cannot
+    // justify an OS-only LOST terminal transition.
+    let bundle: String = fixture
+        .db
+        .query_one(
+            "SELECT a.bundle_path FROM attempts a WHERE a.job_id=$1",
+            &[&job.as_str().unwrap()],
+        )
+        .unwrap()
+        .get(0);
+    let start_path = PathBuf::from(bundle).join("runner-start.json");
+    let start_deadline = Instant::now() + Duration::from_secs(8);
+    while !start_path.exists() && Instant::now() < start_deadline {
+        thread::sleep(Duration::from_millis(50));
+    }
+    assert!(
+        start_path.exists(),
+        "physical cancellation test requires bound Runner start evidence"
+    );
     let unsafe_write = call(
         &endpoint,
         "workspace.mutate",
@@ -1187,25 +1207,50 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     );
     let cancelled = call(&endpoint, "job.cancel", json!({"jobId":job}));
     assert_ne!(cancelled["isError"], true, "{cancelled}");
-    let observed = call(
-        &endpoint,
-        "job.observe",
-        json!({"jobId":job,"waitMs":10000}),
-    );
-    // A stop request is not proof of an OS terminal outcome. If the Runner
-    // does not publish terminal evidence, retain the honest stopping state.
+    let mut observed = call(&endpoint, "job.observe", json!({"jobId":job,"waitMs":3000}));
+    for _ in 0..10 {
+        if observed["structuredContent"]["executionTerminal"] == true {
+            break;
+        }
+        observed = call(&endpoint, "job.observe", json!({"jobId":job,"waitMs":3000}));
+    }
+    // A submitted stop alone was never proof of termination. This physical
+    // test first observed a bound native Runner start, then requires the
+    // installed provider to converge after systemd's cgroup shutdown.
     assert_eq!(
         observed["structuredContent"]["terminationIntent"], "stop_requested",
         "{observed}"
     );
-    if observed["structuredContent"]["executionTerminal"] != true {
-        assert_eq!(
-            observed["structuredContent"]["attemptState"], "stopping",
-            "{observed}"
-        );
+    assert_eq!(
+        observed["structuredContent"]["executionTerminal"], true,
+        "native stop failed to converge: {observed}"
+    );
+    assert_ne!(
+        observed["structuredContent"]["executionDisposition"], "succeeded",
+        "a requested native stop cannot fabricate successful effect: {observed}"
+    );
+    let reservation: String = fixture
+        .db
+        .query_one(
+            "SELECT r.state FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id WHERE a.job_id=$1",
+            &[&job.as_str().unwrap()],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        reservation, "released",
+        "native quiescence did not release capacity"
+    );
+    if observed["structuredContent"]["executionDisposition"] == "lost" {
         assert_eq!(
             observed["structuredContent"]["resultAvailable"], false,
-            "{observed}"
+            "OS-only LOST terminal must not advertise a Runner result: {observed}"
+        );
+        assert!(
+            observed["structuredContent"]["artifacts"]
+                .as_array()
+                .is_some_and(|items| items.iter().any(|v| v["kind"] == "native_stop_evidence")),
+            "LOST terminal must retain digest-bound native stop evidence: {observed}"
         );
     }
     let count: i64 = fixture

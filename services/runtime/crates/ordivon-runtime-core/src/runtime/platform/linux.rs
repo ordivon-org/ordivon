@@ -617,7 +617,40 @@ pub(crate) fn supervisor_identity(attempt: &AttemptRecord) -> RuntimeResult<Supe
     })
 }
 
-pub(crate) fn cgroup_has_processes(control_group: &str) -> RuntimeResult<bool> {
+/// cgroup v2 native observation. A removed cgroup is different from an
+/// existing one whose population could not be read. Systemd unloads completed
+/// transient services; Linux cannot remove a cgroup containing processes.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum CgroupPopulation {
+    Populated,
+    Unpopulated,
+    Removed,
+    Unknown,
+}
+
+impl CgroupPopulation {
+    pub(crate) const fn as_str(self) -> &'static str {
+        match self {
+            Self::Populated => "populated",
+            Self::Unpopulated => "unpopulated",
+            Self::Removed => "removed",
+            Self::Unknown => "unknown",
+        }
+    }
+    pub(crate) const fn observed_population(self) -> Option<bool> {
+        match self {
+            Self::Populated => Some(true),
+            Self::Unpopulated => Some(false),
+            Self::Removed | Self::Unknown => None,
+        }
+    }
+}
+
+/// Report only the kernel's actual population facts. In particular, an
+/// existing cgroup with an unreadable or missing cgroup.events is UNKNOWN.
+/// Reading an empty cgroup.procs is insufficient to prove all descendants
+/// are empty, whereas cgroup.events is recursive.
+pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopulation> {
     if !control_group.starts_with('/')
         || control_group
             .split('/')
@@ -631,22 +664,62 @@ pub(crate) fn cgroup_has_processes(control_group: &str) -> RuntimeResult<bool> {
         ));
     }
     let root = Path::new("/sys/fs/cgroup").join(control_group.trim_start_matches('/'));
+    match fs::metadata(&root) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(CgroupPopulation::Removed);
+        }
+        Err(error) => return Err(io_error("inspect cgroup", error)),
+        Ok(metadata) if !metadata.is_dir() => {
+            return Err(RuntimeError::invalid(
+                "cgroup root is not a directory",
+                "controlGroup",
+            ));
+        }
+        Ok(_) => {}
+    }
     let events_path = root.join("cgroup.events");
-    if events_path.is_file() {
-        let content = fs::read_to_string(events_path)
-            .map_err(|error| io_error("read cgroup population state", error))?;
-        return parse_cgroup_populated(&content);
+    match fs::read_to_string(events_path) {
+        Ok(content) => Ok(if parse_cgroup_populated(&content)? {
+            CgroupPopulation::Populated
+        } else {
+            CgroupPopulation::Unpopulated
+        }),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            // A positive direct process membership observation remains useful,
+            // but zero direct PIDs cannot prove all descendant groups empty.
+            let processes_path = root.join("cgroup.procs");
+            match fs::read_to_string(processes_path) {
+                Ok(content)
+                    if content
+                        .lines()
+                        .any(|line| line.trim().parse::<u32>().is_ok()) =>
+                {
+                    Ok(CgroupPopulation::Populated)
+                }
+                Ok(_) => Ok(CgroupPopulation::Unknown),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    Ok(CgroupPopulation::Unknown)
+                }
+                Err(error) => Err(io_error("read cgroup process membership", error)),
+            }
+        }
+        Err(error) => Err(io_error("read cgroup population", error)),
     }
+}
 
-    let processes_path = root.join("cgroup.procs");
-    if !processes_path.is_file() {
-        return Ok(false);
+/// Existing Runner-terminal validation gets an explicit error when the
+/// descendant population is unknown, not a fabricated 'no processes' result.
+pub(crate) fn cgroup_has_processes(control_group: &str) -> RuntimeResult<bool> {
+    match cgroup_population(control_group)? {
+        CgroupPopulation::Populated => Ok(true),
+        CgroupPopulation::Unpopulated | CgroupPopulation::Removed => Ok(false),
+        CgroupPopulation::Unknown => Err(RuntimeError::new(
+            RuntimeErrorCode::ToolFailed,
+            "native cgroup population is unknown",
+            Some("controlGroup"),
+            true,
+        )),
     }
-    let content = fs::read_to_string(processes_path)
-        .map_err(|error| io_error("read cgroup process membership", error))?;
-    Ok(content
-        .lines()
-        .any(|line| line.trim().parse::<u32>().is_ok()))
 }
 
 pub(crate) fn parse_cgroup_populated(content: &str) -> RuntimeResult<bool> {

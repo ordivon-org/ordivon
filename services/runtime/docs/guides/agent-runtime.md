@@ -48,6 +48,10 @@ At the beginning of an operation, call `runtime.describe` on the **specific node
 - Prefer focused, evidence-bearing verification of changed contracts. Rust unit/property tests and TLA+ exploration are different evidence classes; passing one does not prove the other.
 - Run cleanup only against explicitly owned roots and use Runtime Workspace lifecycle APIs rather than raw directory deletion. Protect dirty workspaces, running/held Jobs, linked worktrees, deployment assets, and system paths.
 
+## Kernel-native stop / Agent decision
+
+For a Job with cancellation already committed, use the exact Job/Attempt identity and `job.observe` rather than dispatching a replacement attempt. A successful `systemctl stop` request alone does not prove cgroup quiescence. Never enumerate PIDs and kill by broad process name; use systemd/cgroup identity on Linux and the installed Job Object owner on Windows. If the exact native group has stopped but the Runner produced no terminal evidence, preserve `lost`/UNKNOWN effect semantics. If no valid Runner start evidence exists, do not infer termination merely from an absent transient Unit because dispatch may still be in flight. `CONCURRENCY_LIMIT` is not proof of actual kernel resource exhaustion. See [Runtime LEGO Guide](runtime-legos.md) and [Operator Guide](operator-runtime.md).
+
 ## Useful conceptual LEGOs
 
 | LEGO | Preconditions | Observable postcondition | Evidence |

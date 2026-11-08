@@ -13,14 +13,14 @@ Read [`docs/recovery.md`](docs/recovery.md) only when operating on Registry inte
 - The user owns goals, preferences, risk posture, and final commitments.
 - The Agent owns implementation, testing, ordinary repair, and operation.
 - Git owns code history, diff, rollback, and Workspace identity.
-- The Registry backend used by the **connected installed Runtime node** owns durable request, Job, Attempt, reservation, cancellation, and resolution state. On 2026-11-07, both active Linux Runtime services had an `ordivon-runtime-pg` executable and PostgreSQL configuration keys, despite one historical service name. Distinguish installed binary/backend truth from naming and unconsumed legacy SQLite files; verify future consumers before deletion.
+- The Registry backend used by the **connected installed Runtime node** owns durable request, Job, Attempt, reservation, cancellation, and resolution state. On 2026-11-07 both Linux Runtime services executed `ordivon-runtime-pg`; the unconsumed Linux SQLite Registry and historical Attempts were retired and the legacy Registry root removed. This is time-scoped, not a claim that source dependencies or Windows Runtime are PG-only. Use current installed node, kernel and PostgreSQL evidence—not historical service names—to determine authority.
 - Windows must be evaluated independently: on 2026-11-07 the R6 candidate's SQLite Registry file grew during new native Runtime Job activity; do not claim a fleet-wide PG-only state or delete that Windows Registry before native PG cutover.
 - Read [`docs/guides/agent-runtime.md`](docs/guides/agent-runtime.md) for execution/replay discipline and the legacy/PG truth boundary.
-- systemd and cgroups own observation and termination of live process trees.
+- Linux systemd/cgroup v2 and Windows Job Objects own native process-group supervision. The Linux launcher already configures `KillMode=control-group`, `TimeoutStopSec=2s`, and `SendSIGKILL=yes`; do not add a duplicate PID walker, custom kill escalation, or arbitrary process manager. A PostgreSQL reservation ceiling is not evidence of kernel CPU/memory/pids exhaustion. Resolve stuck `stopping` Jobs only through exact native identity, cgroup observations and the existing PG atomic terminal transaction—never by inventing a timeout-derived terminal result or manually editing live reservations.
 - Result and Artifact files own their Digest-bound bytes.
 - Current tools, configuration, deployment, and health must be queried from the live system rather than copied into prose.
 
-For capability/reasoning decomposition, read [`docs/guides/runtime-legos.md`](docs/guides/runtime-legos.md). Keep source-level LEGOs distinct from deployed authority and never infer formal equivalence from a successful build.
+For capability/reasoning decomposition, read [`docs/guides/runtime-legos.md`](docs/guides/runtime-legos.md). For measured modernization defects, the dynamic-capacity design alternatives and action ranking, read [`docs/audits/2026-11-08-runtime-modernization-brainstorm.md`](docs/audits/2026-11-08-runtime-modernization-brainstorm.md); distinguish observed facts from hypotheses. Keep source-level LEGOs distinct from deployed authority and never infer formal equivalence from a successful build.
 
 ## Component boundary
 
@@ -35,5 +35,9 @@ Prefer an absolute executable and explicit arguments. Use `bash -c` only for a g
 Ordivon Runtime is trusted-local. Put untrusted code behind an external isolation boundary rather than adding a second policy or sandbox Runtime inside it.
 
 ## Verification
+
+Verification is **Formal-first, not test-count-first**. Use the existing Runtime TLA+/TLC dispatch model for finite concurrent safety claims, the production `pg_runtime/native_stop.rs` decision function's Kani harness for all finite cancellation evidence inputs, and existing PostgreSQL CAS/schema tests for actual atomicity. Trace specification → bounded model/proof → executable refinement → real native consumer; none may substitute for another. Kani checks on code are not proof that systemd or PostgreSQL returned truthful observations. An ignored physical test is not a PASS until explicitly run.
+
+Delete or consolidate a conventional test only when an actually executed proof covers its exact property and the relevant implementation refinement is established. Keep the single opt-in `pg_vertical` native systemd/PG test for cancellation, terminal evidence, capacity release and real deployment behavior; neither Kani nor TLC can prove Linux cgroup behavior. Never mark unrun checks PASS, skip formal counterexamples, or invent a new verification DSL. See `formal/README.md` for the traceability contract.
 
 Run the smallest checks that can invalidate the changed boundary. CI is the machine-owned default verification contract.
