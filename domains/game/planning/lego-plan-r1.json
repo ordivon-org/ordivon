@@ -584,13 +584,13 @@
         "Godot-imported room scene and one 0..64 action-name sequence: attack, guard, advance"
       ],
       "outputs": [
-        "one prefixed schema_version=1 JSON receipt containing initial, accepted/rejected action transitions, final and terminal state",
-        "step-local control_path identifying real native rule or enabled dialogue choice"
+        "one prefixed schema_version=2 JSON receipt containing default player-visible native HUD/dialogue observation or explicitly requested privileged debug snapshots, action acceptance, final and terminal state",
+        "debug-only step-local control_path identifying real native rule or enabled dialogue choice; player-mode step has action and UI before/after only"
       ],
       "behavioralContract": "Each fresh Godot scene uses rules for attack/guard; advance selects the Dialogue Manager response tagged intent=unlock using native response next_id. A passage_advanced event, not UI button order, guessed frames or unequal snapshots, establishes commitment. No second simulator or Human-playtest claim.",
       "acceptance": [
-        "Godot editor import followed by actual native scene execution and deterministic repeated episode",
-        "Rejected/unknown actions preserve rule snapshots; an action-limited input fails",
+        "Godot editor import followed by actual native scene execution; default player-visible observation and explicit debug mode both have deterministic repeated episodes",
+        "Rejected/unknown actions preserve the native rule state; the corresponding player-visible observation remains unchanged; an action-limited input fails",
         "A complete real three-room win produces terminal=true, phase=won",
         "An advance before clearing the room is rejected; every accepted advance activates the actual native Unlock choice, consistent with the independent Human-narrative acceptance",
         "Agent advance uses the same semantic tagged response port as Human and requires passage_advanced effect event for accepted transition"
@@ -618,10 +618,10 @@
       "recursiveLegoR21": {
         "I": [
           "Native imported Godot PackedScene",
-          "bounded sequence of native actions"
+          "bounded sequence of native actions and optional --observation player|debug"
         ],
         "O": [
-          "JSON state-transition receipt",
+          "schema-v2 JSON episode receipt with player-visible UI by default, privileged debug snapshot only by explicit request",
           "nonzero process result on invalid invocation or unavailable native game"
         ],
         "S": [
@@ -629,24 +629,24 @@
         ],
         "pre": [
           "Godot native script and imported Dialogue Manager available",
-          "exactly one --actions argument with at most 64 actions"
+          "required --actions sequence with at most 64 actions, optional --observation player|debug; invalid invocation fails closed"
         ],
         "post": [
-          "Every accepted attack/guard uses native EncounterRules; accepted advance selects the enabled native dialogue Unlock choice; after equals the real rule snapshot",
-          "unrecognized or illegal actions retain the prior state"
+          "Every accepted attack/guard uses native EncounterRules; accepted advance selects the enabled native dialogue Unlock choice; before/after represent HUD-only observations by default, actual rule snapshots only in debug mode",
+          "unrecognized or illegal actions retain the prior native state and do not falsely report committed effects"
         ],
         "inv": [
-          "EncounterRules remains sole authority of combat/room state",
+          "EncounterRules remains sole authority of combat/room state; default Agent observation never emits raw rule snapshots",
           "each invocation starts a fresh run and does not access SaveSlot storage",
           "No Agent advance may invoke EncounterRules.advance directly or bypass the Human narrative gate",
           "Dialogue Manager native tagged response owns choice validity; Human and Agent share the selection port",
-          "No Agent action depends on get_child(0), guessed rendered frame count or rule-snapshot inequality"
+          "No Agent action depends on get_child(0), guessed rendered frame count or rule-snapshot inequality; node-ready and native dialogue signals are synchronization boundaries"
         ],
         "eff": [
           "Godot headless scene instantiation, game Signals, stdout JSON and process termination"
         ],
-        "c": "At most 64 native state calls plus finite Dialogue Manager frame waits; engine initialization overhead not measured",
-        "epsilon": "Human preference/experience, visual perception, interactive streaming, hardware audio and other-game transfer UNKNOWN; not a universal formal proof",
+        "c": "At most 64 native action calls plus native asynchronous dialogue completion; per-process startup and rendering latency unmeasured",
+        "epsilon": "Human preference/experience, visual perception from pixels, interactive streaming, hardware audio and other-game transfer UNKNOWN; player mode is semantic UI projection, not visual perception or a universal formal proof",
         "prov": [
           "examples/room-encounter/README.md",
           "domains/game/mise.toml Godot 4.7.2 declared pin",
