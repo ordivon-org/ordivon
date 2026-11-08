@@ -58,3 +58,36 @@ identities remain unchanged for other consumers. See
 formal/shared_egress_alias_refinement.py for the exact, source-bound
 graph refinement against the merged #1783 baseline, then verify
 native loaded unit dependency state and real Consumer requests.
+
+
+## Non-destructive namespace lifecycle (native systemd + iproute2)
+
+`network-v2-browserless-netns.service` remains the same installed identity,
+but it now runs the one-shot `shared-egress-netns ensure` under systemd.
+On an empty cold boot it creates the named namespace and its veth once;
+when the topology already exists it verifies both veth peer ifindices,
+exact IPv4 addresses, link-UP flags, and absence of any IPv4/IPv6 default
+route, then **reuses existing resources without changes**. Partial or
+mismatched resources fail closed, without `ip netns del` or `ip link del`.
+No extra scheduler, daemon, registry, or restart loop is introduced.
+
+A systemd stop/restart of this shared Unit no longer implicitly deletes
+kernel namespace or veth resources; existing sockets can keep using their
+current namespace identity. The stop of a **dependent application Unit**
+can still stop that application; preserving the kernel topology does not
+promise zero application downtime for all systemd operations. Linux
+releases the namespace on reboot; deliberate retirement must first stop
+all consumers, verify namespace PIDs and dependencies, and explicitly
+remove the resource using native `ip netns del` / `ip link del` under
+operator control. A failed cold creation intentionally retains partial
+evidence for investigation rather than guessing ownership and deleting.
+
+The source `substrates/shared-egress/netns.py` is installed as one
+executable helper *before* the systemd Unit is updated. The source check
+`task substrate:shared-egress:netns:verify` is read-only; the substrate
+`verify` additionally checks installed bytes, exact kernel forwarding
+exceptions and real allowed HTTPS Carrier consequences.
+
+This follows the Linux network namespace lifetime model and the
+non-destructive resource persistence approach in systemd-networkd;
+it does not claim that networkd itself owns these manually-placed veths.

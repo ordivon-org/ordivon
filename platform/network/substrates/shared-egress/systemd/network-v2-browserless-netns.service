@@ -1,5 +1,5 @@
 [Unit]
-Description=Network v2 Browserless production network namespace
+Description=Network v2 shared egress network namespace (legacy installed unit name)
 After=network-online.target
 Wants=network-online.target
 PartOf=network-v2-browserless.target
@@ -8,15 +8,10 @@ PartOf=network-v2-browserless.target
 Type=oneshot
 RemainAfterExit=yes
 EnvironmentFile=/etc/network-v2/browserless/provider.env
-ExecStartPre=-/usr/bin/ip netns del nv2-browserless-prod
-ExecStartPre=-/usr/bin/ip link del ${HOST_IF}
-ExecStart=/usr/bin/ip netns add nv2-browserless-prod
-ExecStart=/usr/bin/ip link add ${HOST_IF} type veth peer name ${NS_IF}
-ExecStart=/usr/bin/ip link set ${NS_IF} netns nv2-browserless-prod
-ExecStart=/usr/bin/ip addr add ${HOST_ADDR} dev ${HOST_IF}
-ExecStart=/usr/bin/ip link set ${HOST_IF} up
-ExecStart=/usr/bin/ip -n nv2-browserless-prod addr add ${NS_ADDR} dev ${NS_IF}
-ExecStart=/usr/bin/ip -n nv2-browserless-prod link set lo up
-ExecStart=/usr/bin/ip -n nv2-browserless-prod link set ${NS_IF} up
-ExecStop=-/usr/bin/ip netns del nv2-browserless-prod
-ExecStopPost=-/usr/bin/ip link del ${HOST_IF}
+# Cold creation; a complete running namespace is verified and reused.
+# Partial/drifted topology fails closed rather than deleting live consumers.
+ExecStart=/usr/bin/python3 /usr/local/libexec/network-v2/shared-egress-netns ensure
+TimeoutStartSec=90s
+# Deliberately no ExecStop/ExecStopPost: stopping this dependency must not
+# delete the namespace/veth while unrelated processes still reference them.
+# Explicit retirement requires quiescing every consumer and operator review.
