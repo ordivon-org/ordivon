@@ -43,6 +43,17 @@ Build providers, verifier plugins, trust overlays, OCI package assembly and dura
 
 Reference: `docs/ARTIFACT_VERIFICATION_SERVICE_R1.md` and `planning/lego-plan-r2.json`, checked against their current source files.
 
+**Profile authority and refinement:** `artifact_core/profiles.py` now
+binds parsed JSON and SHA-256 to the same indexed source bytes, reuses
+Draft 2020-12 Schema validation, and rejects malformed, ambiguous or
+drifted Profile authority. The mixed v1 examples directory still permits
+non-Profile request/source fixtures. Eight production v1 Profiles have a
+checked v2 common-semantic interpretation (ID, family, construction,
+outputs, primary renderer), **not** a proof that all v1 gates equal all
+v2 evidence requirements. Build/Verify bindings also reject stale source
+registries and ambiguous provider standing data. Reference:
+`docs/ARTIFACT_PROFILE_AUTHORITY_REFINEMENT_R1.md`.
+
 ## Human guide: produce or verify one real outcome
 
 1. Name the real consumer, primary native format, optional companion outputs, actual source and material identities, target app and acceptance predicates. An editable PPTX + PDF requires target-render evidence when its Profile requires it.

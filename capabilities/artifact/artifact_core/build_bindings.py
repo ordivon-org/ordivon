@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
+
+from .contracts import sha256_file
+from .json_validation import load_json_with_digest
 
 
 @dataclass(frozen=True)
@@ -25,7 +27,9 @@ class BuildCapabilityBindingRegistry:
     def __init__(self, artifact_root: Path) -> None:
         self.artifact_root = artifact_root.resolve()
         self.registry_path = self.artifact_root / "build-capability-bindings-v1.json"
-        value = json.loads(self.registry_path.read_text(encoding="utf-8"))
+        value, self._registry_sha256 = load_json_with_digest(self.registry_path)
+        if not isinstance(value, dict):
+            raise RuntimeError("Artifact build capability binding registry is not an object")
         if value.get("schemaVersion") != 1 or value.get("kind") != "artifact-build-capability-binding-registry":
             raise RuntimeError("invalid Artifact build capability binding registry identity")
         self._entries: dict[tuple[str, str], BuildCapabilityBinding] = {}
@@ -43,7 +47,12 @@ class BuildCapabilityBindingRegistry:
                 raise RuntimeError(f"duplicate Artifact build capability binding: {key}")
             self._entries[key] = binding
 
+    def _require_current_authority(self) -> None:
+        if sha256_file(self.registry_path) != self._registry_sha256:
+            raise RuntimeError("Artifact build capability binding registry changed after indexing")
+
     def resolve(self, artifact_class: str, source_kind: str) -> BuildCapabilityBinding:
+        self._require_current_authority()
         try:
             return self._entries[(artifact_class, source_kind)]
         except KeyError as error:
@@ -52,4 +61,5 @@ class BuildCapabilityBindingRegistry:
             ) from error
 
     def list(self) -> list[BuildCapabilityBinding]:
+        self._require_current_authority()
         return [self._entries[key] for key in sorted(self._entries)]
