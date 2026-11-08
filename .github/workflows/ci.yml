@@ -763,6 +763,63 @@ jobs:
           tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
           echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
 
+      - name: Preinstall selected Owner tools with native mise
+        shell: bash
+        env:
+          # This read-only job token is scoped to package acquisition only;
+          # the later verification task does not inherit it.
+          GITHUB_TOKEN: ${{ github.token }}
+          OWNER_TASKS_JSON: ${{ toJSON(matrix.tasks) }}
+        run: |
+          set -euo pipefail
+          # Owner selection was admitted by the source-qualified preflight.
+          # Only resolve native tool manifests for the exact selected tasks.
+          selected_roots="$RUNNER_TEMP/ordivon-selected-owner-toolroots.txt"
+          python3 - "$selected_roots" <<'PYOWNERS'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, "tools/repo")
+          from affected_owners import OWNERS
+
+          tasks = json.loads(os.environ["OWNER_TASKS_JSON"])
+          if not isinstance(tasks, list) or not all(isinstance(t, str) for t in tasks):
+              raise SystemExit("invalid selected Owner task list")
+          if len(tasks) != len(set(tasks)):
+              raise SystemExit("duplicate selected Owner task")
+          by_task = {owner.queue_task: owner.root.rstrip("/") for owner in OWNERS}
+          if any(task not in by_task for task in tasks):
+              raise SystemExit("unregistered selected Owner task")
+          roots = []
+          for task in tasks:
+              root = by_task[task]
+              # Some Owners use a root-managed task rather than an adjacent
+              # native mise.toml. Those do not gain an invented manifest.
+              if (Path(root) / "mise.toml").is_file() and root not in roots:
+                  roots.append(root)
+          Path(sys.argv[1]).write_text(
+              "".join(root + "\n" for root in roots), encoding="utf-8"
+          )
+          PYOWNERS
+          while IFS= read -r root || [[ -n "$root" ]]; do
+            [[ -z "$root" ]] && continue
+            # mise install is idempotent: a retry visits only missing pinned
+            # tools. Limit concurrent GitHub downloads and retries without
+            # changing pins, skipping checks, or installing other Owners.
+            for attempt in 1 2 3; do
+              if MISE_JOBS=2 MISE_HTTP_TIMEOUT=45 mise --cd "$root" install; then
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "SELECTED_OWNER_TOOLCHAIN_UNAVAILABLE: $root after 3 native attempts" >&2
+                exit 1
+              fi
+              sleep "$attempt"
+            done
+          done < "$selected_roots"
+
       - name: Verify affected owners
         shell: bash
         env:

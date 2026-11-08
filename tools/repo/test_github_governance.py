@@ -298,6 +298,80 @@ exit 0
                     ["2,30,install"] * expected_calls,
                 )
 
+    def test_selected_owner_preinstall_is_native_scoped_and_bounded(self) -> None:
+        """Actual CI preflight installs only selected native Owner toolchains."""
+        import os
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = {row["name"]: row for row in workflow["jobs"]["owner-verification"]["steps"]}
+        script = steps["Preinstall selected Owner tools with native mise"]["run"]
+        self.assertEqual(
+            steps["Preinstall selected Owner tools with native mise"]["env"]["GITHUB_TOKEN"],
+            "$" + "{{ github.token }}",
+        )
+        self.assertNotIn("GITHUB_TOKEN", steps["Verify affected owners"].get("env", {}))
+        self.assertIn('mise --cd "$root" install', script)
+        self.assertIn('for attempt in 1 2 3; do', script)
+        self.assertNotIn("--monorepo", script)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fake = root / "mise"
+            record = root / "calls"
+            fake.write_text(
+                '#!/usr/bin/env bash\n'
+                'if [[ "$1" != --cd || "$3" != install ]]; then exit 91; fi\n'
+                'printf "%s,%s,%s,%s\\n" "$MISE_JOBS" "$MISE_HTTP_TIMEOUT" '
+                '"${GITHUB_TOKEN:+token}" "$2" >> "$RECORD"\n'
+                'if [[ "${ALWAYS_FAIL:-0}" == 1 ]]; then exit 41; fi\n'
+                'if [[ "$2" == services/runtime && $(grep -c "services/runtime" "$RECORD") == 1 ]]; then exit 42; fi\n',
+                encoding="utf-8",
+            )
+            fake.chmod(0o755)
+            env = os.environ.copy()
+            env.update({
+                "PATH": str(root) + os.pathsep + env.get("PATH", ""),
+                "RUNNER_TEMP": str(root),
+                "RECORD": str(record),
+                "GITHUB_TOKEN": "bounded-test-read-only-token",
+                "OWNER_TASKS_JSON": json.dumps(["runtime:verify", "game:verify"]),
+            })
+            success = subprocess.run(
+                ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=18,
+            )
+            self.assertEqual(success.returncode, 0, success.stderr)
+            self.assertEqual(
+                record.read_text().splitlines(),
+                [
+                    "2,45,token,services/runtime",
+                    "2,45,token,services/runtime",
+                    "2,45,token,domains/game",
+                ],
+            )
+            record.write_text("")
+            env["ALWAYS_FAIL"] = "1"
+            env["OWNER_TASKS_JSON"] = json.dumps(["runtime:verify"])
+            failure = subprocess.run(
+                ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=18,
+            )
+            self.assertNotEqual(failure.returncode, 0)
+            self.assertEqual(
+                record.read_text().splitlines(),
+                ["2,45,token,services/runtime"] * 3,
+            )
+            record.write_text("")
+            env["ALWAYS_FAIL"] = "0"
+            env["OWNER_TASKS_JSON"] = "[]"
+            empty = subprocess.run(
+                ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=18,
+            )
+            self.assertEqual(empty.returncode, 0, empty.stderr)
+            self.assertEqual(record.read_text(), "")
+
     def test_formal_cold_install_reuses_scoped_github_job_token(self) -> None:
         """Native GitHub release backend must not use anonymous 60/hour API quota."""
         import yaml
