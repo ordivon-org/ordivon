@@ -40,6 +40,24 @@ effects. The existing private token loader and PDP adapter are reused.
 Check `gateway:verify` and `gateway:formal:verify`, then inspect live
 deployed middleware/configuration and downstream owner readback separately.
 
+## AuthZEN conditional decisions — Human / Agent
+
+**Human:** a PDP permit with unfulfilled obligations is not an executable
+authorization. The existing Gateway PEP cannot perform step-up, notification
+or other mandatory obligations: preserve denial, and qualify the PDP only
+after validating identity, resource scope, response request-ID binding,
+bearer authentication, positive/negative policy cases and live Owner reads.
+Do not promote an experimental provider or an unauthenticated loopback
+canary to production.
+
+**Agent:** inspect `src/ordivon_gateway/authzen_authorizer.py` and the
+real middleware tests. Run `gateway:verify` and pinned
+`gateway:formal:verify`; the latter must detect the
+`NoUnfulfilledV3Obligations` unsafe counterexample.
+Separate PDP_PROVIDER_QUALIFIED, MODEL_VERIFIED,
+SOURCE_CONSUMER_TESTED and INSTALLED_VERIFIED; leave missing results
+UNKNOWN rather than inventing an authenticated PDP.
+
 ## Cleanup and release
 Search imports, CI, skills, releases, and live consumers before retiring a
 module. The unserved SQLite external pull transport has been removed from

@@ -50,6 +50,23 @@ Review the claim/evidence ledger before using a candidate release. Reuse
 TLA+, CrossHair (pure Python only), static typing and existing release scripts.
 Do not invent a second policy decision or rollout framework.
 
+## AuthZEN response-obligation refinement
+
+For v3 PDP evidence, raw `decision=true` does not imply permission if
+`context.obligations` contains a required operation the PEP cannot perform.
+The native `AuthZenPrincipalAuthorizer` deliberately supports no
+obligations: nonempty or malformed obligations fail closed. Ordinary
+optional context with no obligations is not itself an authority signal.
+
+Agents should compare the model
+`GatewayCapabilityAuthzR1.tla::NoUnfulfilledV3Obligations` and the
+negative `GatewayCapabilityAuthzR1.unsafe-obligation.cfg` counterexample
+with the concrete `tests/test_authzen_authorizer.py` and real middleware
+tests. Use OpenID AuthZEN official PDP certification/conformance tests
+before provider promotion. Do not infer from a running HTTP endpoint that
+PDP identity, policy freshness, or caller authorization exists; never relax
+the response `X-Request-ID` echo check to accommodate an unqualified PDP.
+
 ## B03 Owner observation: strict truth contract
 
 Pure Owner observation contract: Runtime status fields configured and available

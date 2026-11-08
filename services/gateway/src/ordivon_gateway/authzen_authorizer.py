@@ -133,6 +133,21 @@ class AuthZenPrincipalAuthorizer:
         if not isinstance(body, dict) or not isinstance(body.get("decision"), bool):
             raise AuthZenAuthorizerError("AuthZEN PDP returned an invalid evaluation response")
 
+        # AuthZEN 1.0 permits response context. The draft Obligations profile
+        # makes every returned obligation mandatory, including on PERMIT.
+        # This thin PEP cannot execute any obligations. Never discard them
+        # and turn a conditional PDP permit into an unconditional ALLOW.
+        if "context" in body:
+            context = body["context"]
+            if not isinstance(context, dict):
+                raise AuthZenAuthorizerError("AuthZEN PDP returned invalid decision context")
+            if "obligations" in context:
+                obligations = context["obligations"]
+                if not isinstance(obligations, list) or obligations:
+                    raise AuthZenAuthorizerError(
+                        "AuthZEN PDP obligations are not supported by this PEP"
+                    )
+
         allowed = body["decision"]
         return {
             "schemaVersion": 3,

@@ -372,7 +372,7 @@ java -cp "$jar" tla2sany.SANY GatewayCapabilityAuthzR1.tla
 positive=$(java -cp "$jar" tlc2.TLC -workers 1   -config GatewayCapabilityAuthzR1.cfg GatewayCapabilityAuthzR1.tla)
 printf '%s\n' "$positive" | grep -F 'Model checking completed. No error has been found.'
 printf '%s\n' "$positive" | grep -E '^[0-9]+ states generated, [0-9]+ distinct states found, 0 states left on queue'
-for check in 'GatewayCapabilityAuthzR1.reachability.cfg:ForwardUnreachable'              'GatewayCapabilityAuthzR1.unsafe.cfg:ForwardImpliesBinding'; do
+for check in 'GatewayCapabilityAuthzR1.reachability.cfg:ForwardUnreachable'              'GatewayCapabilityAuthzR1.unsafe.cfg:ForwardImpliesBinding' 'GatewayCapabilityAuthzR1.unsafe-obligation.cfg:NoUnfulfilledV3Obligations'; do
   config="${check%%:*}"
   invariant="${check#*:}"
   set +e
