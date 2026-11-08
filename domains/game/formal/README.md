@@ -1,4 +1,4 @@
-# G07 formal source cut 鈥?Orbit Collector
+# G07 formal source cut —Orbit Collector
 
 State = (phase, collected, target, lives) on u2/u64/u64/u8 machine sorts.
 Constructor: target > 0 and lives > 0. Invariant:
@@ -34,3 +34,34 @@ Source/consumer binding remains in planning/lego-plan-r1.json; Ordivon
 Composition already owns the cross-Owner verification obligation mechanism.
 Do not create a parallel Game proof registry or claim rendered gameplay from
 these mathematical proofs.
+
+
+## G10 room-rule signed arithmetic / actual Godot consumer
+
+`formal/verify_room_arithmetic.py` reuses the existing upstream Z3 4.15.4.0
+environment and signed **64-bit bitvector** semantics. It proves eleven
+one-step obligations on an abstract, source-informed state model:
+- precondition: capacity > 0, 0 <= stamina <= capacity, restore > 0,
+  nonnegative turn, valid attack cost, health and damage tuning;
+- guard gain: `min(restore, capacity - stamina)`, then add. The operation
+  remains within bounds and never decreases stamina or overflows;
+- turn counter: increment only below `INT64_MAX`, otherwise saturate;
+- retaliation preserves nonnegative bounded health; attack stamina
+  subtraction remains nonnegative when the attack precondition holds.
+
+A falsification control finds a real machine overflow under the former
+`min(capacity, stamina + restore)` formula, at maximal stamina and restore=1.
+That bug was independently reproduced in Godot 4.7.2; a restored maximum
+turn also wrapped on the next legal action. Run `mise run verify:room-smt`.
+
+The solver output includes the SHA-256 of the current
+`examples/room-encounter/encounter_rules.gd` but this is merely a source
+identity, **not proof that GDScript refines the Z3 model**. Native bounded
+implementation evidence comes from `mise run test:encounter`: the real
+scene/rule node exercises `guard()`, `attack()` and
+`restore_checkpoint()` with machine-maximal tuning and turn, including
+the imported ConfigFile consumer. No theorem for arbitrary GDScript
+execution, UI, storage durability or Human enjoyment is claimed.
+
+Reuse Composition's task-local verification obligations; do not create
+another Game verifier service or proof registry.

@@ -1,6 +1,10 @@
 # Ordivon Game — operating contract for all Game agents
 
 This is the **canonical Game-owner instruction**. Read the root `AGENTS.md` first.
+For Room signed arithmetic see [formal/README.md](formal/README.md).
+Z3 proves the abstract signed-i64 model; separate Godot native consumers
+witness machine-boundary behavior. Neither is a blanket GDScript proof.
+
 Current G01鈥揋11 native Human/Agent entrypoints: [Game Owner authority](docs/authority.md).
 Keep this file current with the actual `domains/game` source, native consumers
 and independent product outcomes. The three long-running projects below are

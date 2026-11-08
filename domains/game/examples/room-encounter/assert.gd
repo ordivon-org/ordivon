@@ -108,6 +108,34 @@ func run_acceptance() -> void:
     expect(replacement_view.get_node("Encounter").text.contains("CLEARED"),
         "alternative view consumes native Signal")
 
+    # Machine-arithmetic consumer witness for formal/verify_room_arithmetic.py:
+    # the native GDScript used to overflow before the fix, although tuning and
+    # restored turns at INT64_MAX are admitted by the existing rules contract.
+    var i64_max: int = 9223372036854775807
+    var extremal: Resource = load("res://configs/default.tres").duplicate(true)
+    extremal.stamina_capacity = i64_max
+    extremal.guard_restore = 1
+    extremal.enemy_damage = 0
+    extremal.attack_damage = 1
+    expect(rules.reset_run(extremal), "valid machine-int max stamina tuning is admitted")
+    expect(rules.guard(), "native guard accepted at full maximal stamina")
+    expect(rules.snapshot()["stamina"] == i64_max, "guard at capacity never overflows")
+
+    var maximal_checkpoint: Dictionary = rules.checkpoint()
+    maximal_checkpoint["state"]["turn"] = i64_max
+    expect(rules.restore_checkpoint(maximal_checkpoint), "restored maximum turn is valid")
+    expect(rules.guard(), "guard operates after restored maximum turn")
+    expect(rules.snapshot()["turn"] == i64_max, "guard turn counter saturates without wrapping")
+    expect(rules.attack(), "attack operates after restored maximum turn")
+    expect(rules.snapshot()["turn"] == i64_max, "attack turn counter saturates without wrapping")
+    expect(rules.snapshot()["stamina"] == i64_max - 2, "attack spends stamina without underflow")
+
+    extremal.guard_restore = i64_max
+    expect(rules.reset_run(extremal), "valid maximal stamina restoration accepted")
+    expect(rules.attack(), "attack leaves capacity for maximum restoration")
+    expect(rules.guard(), "native guard applies maximal restoration")
+    expect(rules.snapshot()["stamina"] == i64_max, "maximal restoration is capped before addition")
+
     # 3^5 = 243 distinct bounded action sequences through the real rule node.
     for trace in range(243):
         expect(rules.reset_run(), "reset canonical resource")

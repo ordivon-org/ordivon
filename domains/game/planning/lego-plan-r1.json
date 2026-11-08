@@ -508,11 +508,13 @@
       "acceptance": [
         "Real PackedScene Save/Load reads back after reset",
         "Existing audio and alternative HUD work; resume is silent",
-        "Native consumer rejects mismatched tuning and damaged values"
+        "Native consumer rejects mismatched tuning and damaged values",
+        "Model: full-width signed i64 Z3 guard/turn obligations; implementation: native Godot maximum-value guard/attack/restore acceptance; universal GDScript refinement remains UNKNOWN."
       ],
       "evidence": [
         "examples/room-encounter/encounter_rules.gd",
-        "examples/room-encounter/encounter_save_slot.gd"
+        "examples/room-encounter/encounter_save_slot.gd",
+        "formal/verify_room_arithmetic.py"
       ],
       "dependencies": [],
       "sharedRefs": [],
@@ -548,23 +550,26 @@
         ],
         "inv": [
           "Rules only state authority",
-          "audio consumes accepted combat actions"
+          "audio consumes accepted combat actions",
+          "Admitted signed-64 stamina is 0..capacity; a valid restored turn is nonnegative and saturates at MAX rather than wrapping"
         ],
         "eff": [
           "native file read/write and UI Signal"
         ],
         "c": "O(number of configured rooms) state-identity checks plus native serialization; latency unmeasured",
-        "epsilon": "Power-loss durability, migration, player value UNKNOWN",
+        "epsilon": "Power-loss durability, migration, player value UNKNOWN; model proof does not establish GDScript code refinement beyond the bounded native boundary witnesses",
         "prov": [
           "Godot 4.7.2 built-in ConfigFile and native consumer",
-          "domains/game/mise.toml"
+          "domains/game/mise.toml",
+          "formal/verify_room_arithmetic.py: pinned Z3 4.15.4.0 signed-i64 model and negative overflow falsification control"
         ],
         "unfold": [
           "examples/room-encounter/encounter_rules.gd",
           "examples/room-encounter/encounter_save_slot.gd",
           "examples/room-encounter/encounter_root.gd",
           "examples/room-encounter/encounter_audio_feedback.gd",
-          "examples/room-encounter/assert.gd"
+          "examples/room-encounter/assert.gd",
+          "formal/verify_room_arithmetic.py"
         ]
       }
     },

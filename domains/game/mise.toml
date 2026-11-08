@@ -4,7 +4,7 @@ pnpm = "12.16.1"
 godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:orbit-smt && mise run test:native && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:bevy && mise run test:autonomous-study"
+run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:orbit-smt && mise run verify:room-smt && mise run test:native && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:bevy && mise run test:autonomous-study"
 
 
 [tasks."test:native"]
@@ -91,3 +91,8 @@ run = "uv run --no-project --with z3-solver==4.15.4.0 python3 formal/verify_orbi
 [tasks."verify:orbit-kani"]
 description = "Rust rule implementation proof with upstream Kani 0.68.0"
 run = "kani examples/orbit-collector/src/rules.rs"
+
+
+[tasks."verify:room-smt"]
+description = "Prove signed i64 Godot Room arithmetic model with upstream Z3; native source acceptance is separate"
+run = "uv run --no-project --with z3-solver==4.15.4.0 python3 formal/verify_room_arithmetic.py"

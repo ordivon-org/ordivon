@@ -149,6 +149,8 @@ existence is not a reason for preserving live code.
 
 For all G01鈥揋11 Human and Agent tools see [current Game Owner authority](docs/authority.md).
 
+Source-bound signed-integer proof and separate native Room evidence: [formal/README.md](formal/README.md).
+
 ## Two native operation modes
 
 - **Human:** Launch `examples/room-encounter` with the Godot GUI; buttons and keyboard act on EncounterRules. Evaluate comprehension, difficulty and enjoyment from actual players, not from headless test output.
