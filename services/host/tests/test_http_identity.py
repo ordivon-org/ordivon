@@ -185,3 +185,27 @@ def test_systemd_credential_group_read_is_supported(
     monkeypatch.delenv("CREDENTIALS_DIRECTORY")
     with pytest.raises(ValueError, match="permissive"):
         HostServiceTokenVerifier(str(credential), "http://127.0.0.1:8898/mcp")
+
+
+def test_host_http_main_installs_native_bearer_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from ordivon_host_v2 import mcp_server
+    from ordivon_host_v2.http_identity import AuthenticatedHostApp
+
+    credential, _resource = provision(tmp_path)
+    monkeypatch.setenv("ORDIVON_HOST_V2_TRANSPORT", "streamable-http")
+    monkeypatch.setenv("ORDIVON_HOST_V2_DSN", "postgresql://invalid-host-test-dsn")
+    monkeypatch.setenv("ORDIVON_HOST_V2_BEARER_TOKEN_FILE", str(credential))
+    observed = {}
+
+    def capture_server(app, *, host, port, log_level):
+        observed.update({"app": app, "host": host, "port": port})
+
+    monkeypatch.setattr(mcp_server.uvicorn, "run", capture_server)
+    mcp_server.main()
+    assert isinstance(observed["app"], AuthenticatedHostApp)
+    assert observed["host"] in {"127.0.0.1", "localhost", "::1"}
+    assert observed["port"] == 8898
+    # The actual CLI-composed app, not only a helper unit, rejects without identity.
+    assert asyncio.run(request(observed["app"])).status_code == 401
