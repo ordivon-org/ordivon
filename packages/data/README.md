@@ -54,8 +54,8 @@ allowed roots can become VERIFIED. A digest mismatch becomes FALSIFIED.
 Missing data, malformed file URI authority, missing accessURL, and files
 outside the explicit scope remain UNKNOWN rather than FALSE.
 
-Local verification opens every path component relative to an already-opened
-directory descriptor with no symlink following, and computes SHA-256 from the
+Both producer evidence binding and consumer verification open each path
+component relative to an already-opened directory descriptor with no symlink following, and computes SHA-256 from the
 same regular-file descriptor. An out-of-scope or symlinked path never becomes
 VERIFIED. On systems lacking the needed POSIX descriptor operations, the
 result is UNKNOWN (`scoped_descriptor_unavailable`), not an unsafe fallback.

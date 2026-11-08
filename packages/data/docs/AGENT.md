@@ -40,7 +40,7 @@ Discovery metadata is only a candidate until its producing owner confirms it.
    global product PASS. The unmaterialized Episode Parquet stays UNKNOWN. Do not interpret these as a right to publish.
    directory path or catalog version as proof of deployed data.
 2. Verify the exact physical bytes under explicit scope. On supported
-   POSIX hosts the inspector uses no-symlink, descriptor-relative traversal
+   POSIX hosts both the producer binder and inspector use no-symlink, descriptor-relative traversal
    and hashes the same opened regular file; other platforms, symlink paths,
    and observed in-place mutations stay UNKNOWN. This protects the local
    check/open boundary but does not freeze mutable bytes or grant later

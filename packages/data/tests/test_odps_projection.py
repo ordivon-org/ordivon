@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
-import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[3]
 import sys
@@ -229,6 +232,63 @@ class OwnerProductProjectionTests(unittest.TestCase):
                     prop["value"] = "../out-of-root.json"
             candidate.write_text(json.dumps(props), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "must not escape"):
+                project_catalog([candidate], bindings=(binding,))
+
+    def test_producer_parent_swap_does_not_admit_attacker_digest(self) -> None:
+        """A substituted pathname cannot redirect the hash out of its owner root."""
+        product = json.loads(self.sources[0].read_text(encoding="utf-8"))
+        with TemporaryDirectory() as tmp:
+            outer = Path(tmp)
+            owner_root = outer / "owner"
+            owner_root.mkdir()
+            owner_dir = owner_root / "safe"
+            owner_dir.mkdir()
+            (owner_dir / "capture.json").write_bytes(b"owner source")
+            attacker_dir = outer / "attacker"
+            attacker_dir.mkdir()
+            attacker_bytes = b"attacker-controlled"
+            (attacker_dir / "capture.json").write_bytes(attacker_bytes)
+            for item in product["customProperties"]:
+                if item.get("property") == "sourceRelativePath":
+                    item["value"] = "safe/capture.json"
+                if item.get("property") == "sourceSha256":
+                    # A malicious substitution would match this digest, but
+                    # the directory-anchored original owner bytes must not.
+                    item["value"] = hashlib.sha256(attacker_bytes).hexdigest()
+            candidate = outer / "odps.json"
+            candidate.write_text(json.dumps(product), encoding="utf-8")
+            binding = LocalEvidenceBinding(
+                product["id"],
+                "public-shadow-json",
+                "sourceRelativePath",
+                "sourceSha256",
+                owner_root,
+            )
+            real_open = os.open
+            swapped = [False]
+
+            def replace_parent_before_file_open(
+                name, flags, mode=0o777, *, dir_fd=None
+            ):
+                if name == "capture.json" and dir_fd is not None and not swapped[0]:
+                    owner_dir.rename(owner_root / "previous-safe")
+                    owner_dir.symlink_to(attacker_dir, target_is_directory=True)
+                    swapped[0] = True
+                return real_open(name, flags, mode, dir_fd=dir_fd)
+
+            with (
+                patch(
+                    "ordivon_data.local_files.os.open",
+                    side_effect=replace_parent_before_file_open,
+                ),
+                self.assertRaisesRegex(ValueError, "digest differs"),
+            ):
+                project_catalog([candidate], bindings=(binding,))
+            self.assertTrue(swapped[0])
+
+            # The attacker file exactly matches the declaration, but the
+            # static symlinked path also fails scoped producer admission.
+            with self.assertRaisesRegex(ValueError, "not verifiable"):
                 project_catalog([candidate], bindings=(binding,))
 
     def test_cli_verified_binding_is_read_only_and_missing_is_unknown(self) -> None:

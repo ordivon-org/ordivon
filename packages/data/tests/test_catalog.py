@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import patch
-import os
 from tempfile import TemporaryDirectory
 from unittest import TestCase
+from unittest.mock import patch
 
 DATA_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = DATA_ROOT.parents[1]
@@ -136,7 +136,9 @@ class CatalogProjectionTests(TestCase):
                     switched[0] = True
                 return real_open(file, flags, mode, dir_fd=dir_fd)
 
-            with patch("ordivon_data.catalog.os.open", side_effect=swap_before_final_open):
+            with patch(
+                "ordivon_data.local_files.os.open", side_effect=swap_before_final_open
+            ):
                 observed = inspect_distribution(
                     {
                         "dcat:accessURL": {"@id": (safe / "payload.json").as_uri()},
@@ -158,7 +160,7 @@ class CatalogProjectionTests(TestCase):
             payload = root / "payload.json"
             payload.write_bytes(b"valid owner payload")
             with patch(
-                "ordivon_data.catalog.hashlib.file_digest",
+                "ordivon_data.local_files.hashlib.file_digest",
                 side_effect=AssertionError("unbound distribution must not hash bytes"),
             ):
                 observed = inspect_distribution(
@@ -174,11 +176,12 @@ class CatalogProjectionTests(TestCase):
             root = Path(tmp)
             payload = root / "payload.json"
             payload.write_bytes(b"valid")
-            with patch("ordivon_data.catalog._SCOPED_OPEN_SUPPORTED", False):
+            with patch("ordivon_data.local_files._SCOPED_OPEN_SUPPORTED", False):
                 observed = inspect_distribution(
                     {
                         "dcat:accessURL": {"@id": payload.as_uri()},
-                        "dct:identifier": "sha256:" + hashlib.sha256(b"valid").hexdigest(),
+                        "dct:identifier": "sha256:"
+                        + hashlib.sha256(b"valid").hexdigest(),
                     },
                     (root,),
                     True,
@@ -200,7 +203,7 @@ class CatalogProjectionTests(TestCase):
                 return real_digest(stream, algorithm)
 
             with patch(
-                "ordivon_data.catalog.hashlib.file_digest",
+                "ordivon_data.local_files.hashlib.file_digest",
                 side_effect=mutate_while_hashing,
             ):
                 observed = inspect_distribution(

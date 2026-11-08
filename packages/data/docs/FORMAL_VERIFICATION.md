@@ -12,7 +12,7 @@ Recursive LEGO R2.1 contracts and shared formal toolchain already exist at
 | Specification | `formal/DataProduct.lean` | Optional digest observations and `(id, version)` registry identities | SHA-256 collision resistance and factual truth |
 | Model and proof | Lean 4.35 kernel | Missing digest => UNKNOWN; VERIFIED requires two matching observations; FALSIFIED requires distinct observations; a unique product registry stays unique on admission | Python installed-code correctness |
 | Implementation candidate | `src/ordivon_data/verification.py` | Pure `digest_verdict` with PEP 316 contracts; CrossHair 0.0.112 / Z3 searches symbolic executions | CrossHair bounded search is not a theorem |
-| File/consumer refinement | `src/ordivon_data/catalog.py` and `tests/test_catalog.py` | Scoped directory-descriptor traversal and same-open-FD SHA-256; symlink and parent-rename race witnesses; mutation/unavailable/out-of-scope UNKNOWN | Atomic immutable snapshots against in-place concurrent writes, later consumer read, universal URI/JSON-LD semantics |
+| Producer/consumer file refinement | `src/ordivon_data/local_files.py`, `catalog.py`, `local_evidence.py` and native tests | Shared scoped directory-descriptor traversal and same-open-FD SHA-256; producer/consumer parent-rename witnesses; mutation/unavailable/out-of-scope UNKNOWN | Atomic immutable snapshots against in-place concurrent writes, later consumer read, universal URI/JSON-LD semantics |
 | Native consumer | `studies/data-lifecycle/tests` + domain-specific consumers | Selected frozen Data Lifecycle, Capital/Finance, Episode and Artifact contracts | Live finance API freshness, scientific causal validity, external distribution rights |
 
 Formal command: `mise run data:formal:verify`.
@@ -72,7 +72,7 @@ central registry has been implemented for it.
   this scope rule nor the Lean abstract model proves full product
   publishability. Keep an actual multi-port consumer test.
 - **Physical I/O:** on platforms supporting Python `os.open(dir_fd=...)`,
-  the catalog verifier traverses each component with `O_NOFOLLOW`, anchors
+  both producer evidence binding and the catalog verifier traverse each component with `O_NOFOLLOW`, anchors
   the final regular-file open to a directory FD, and hashes that same FD.
   A deterministic parent-directory replacement test demonstrates the former
   check/open redirect is closed. Unsupported platforms and symlink components
