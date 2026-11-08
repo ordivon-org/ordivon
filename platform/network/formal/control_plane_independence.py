@@ -2,7 +2,7 @@
 """Finite SMT proof: Ordivon management units do not depend on tested Network v2.
 
 Scope: checked-in Linux systemd [Unit] relationships only. This does NOT prove
-deployed drop-ins, alias expansion, external network-online.target,
+deployed drop-ins, alias symlink installation, external network-online.target,
 ExecStart program effects, network reachability, or management availability.
 """
 
@@ -133,6 +133,32 @@ def unit_dependencies(source: Path) -> set[str]:
     return deps
 
 
+
+def source_aliases(unit_name: str, source: Path) -> set[str]:
+    """Parse native systemd [Install] aliases; fail closed on unsupported names."""
+    section = ""
+    result: set[str] = set()
+    for raw in source.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith(("#", ";")):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            section = line[1:-1]
+            continue
+        if section != "Install" or not line.startswith("Alias="):
+            continue
+        names = line.partition("=")[2].split()
+        if not names:
+            raise UnsupportedSource(f"empty or reset Alias directive: {source}")
+        for alias in names:
+            if (not UNIT_NAME.fullmatch(alias) or alias == unit_name
+                    or alias.rsplit(".", 1)[-1] != unit_name.rsplit(".", 1)[-1]
+                    or "@" in alias or "@" in unit_name
+                    or alias in result):
+                raise UnsupportedSource(f"unmodeled or duplicate systemd Alias={alias}: {source}")
+            result.add(alias)
+    return result
+
 def source_graph() -> tuple[dict[str, set[str]], list[str], int]:
     files = [p for suffix in (".service", ".target", ".timer", ".socket", ".path")
              for p in NETWORK.rglob("*" + suffix)]
@@ -152,7 +178,19 @@ def source_graph() -> tuple[dict[str, set[str]], list[str], int]:
     data = sorted(name for name in sources if name.startswith("network-v2-"))
     if len(data) < 20:
         raise UnsupportedSource("Network v2 source coverage unexpectedly small")
-    graph = {name: unit_dependencies(file) for name, file in sources.items()}
+    # systemd Alias= is a source-declared name for the SAME canonical Unit,
+    # not an additional process or graph node. Installed symlink is checked
+    # separately by native systemctl; here we prove source graph semantics.
+    aliases: dict[str, str] = {}
+    for canonical, file in sources.items():
+        for alias in source_aliases(canonical, file):
+            if alias in sources or alias in aliases:
+                raise UnsupportedSource(f"conflicting systemd Alias name: {alias}")
+            aliases[alias] = canonical
+    graph = {
+        name: {aliases.get(dep, dep) for dep in unit_dependencies(file)}
+        for name, file in sources.items()
+    }
     missing_network = sorted({
         name for deps in graph.values() for name in deps
         if name.startswith("network-v2-") and name not in graph
@@ -244,7 +282,7 @@ def proof() -> dict[str, object]:
         "negativeControl": "SAT: adding Runtime Wants=network-v2-r0.target",
         "unproved": [
             "deployed systemd unit and drop-in parity",
-            "external network-online.target dependencies or native alias expansion",
+            "external network-online.target dependencies and actual installed Alias symlinks",
             "ExecStart and runtime process network effects",
             "Windows services and active user processes",
             "physical management availability during provider failure",

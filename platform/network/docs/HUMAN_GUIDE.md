@@ -25,6 +25,7 @@
 | 你想知道什么 | 直接运行 | 实际证明了什么 |
 | --- | --- | --- |
 | 有哪些实际能力？ | task --list-all | 当前 Owner 可用的任务接口 |
+| 本地 SourceCut 是否与安装文件相同？ | task core:sourcecut | 仅比较本地配置，不访问外网 |
 | Linux 通用 Network 是否健康？ | task core:verify | 已安装配置、DNS、代理、监控的真实读回 |
 | Surfshark 隧道是否正常？ | task provider:gluetun:verify | Gluetun 配置与实际 Provider 路径 |
 | VPN 当前走哪个公网出口？ | task provider:gluetun:observe-exit | 通过 https://ipinfo.io/json 进行一次真实 HTTPS 采样 |
@@ -159,3 +160,10 @@ Surfshark 没有公网 IPv6 出口，不追求 IPv6 得分，但不能允许 IPv
 - [C4 Model](https://c4model.com/)：跨角色理解系统、容器与组件
 - [Gluetun 原生 DNS 选项](https://github.com/qdm12/gluetun-wiki/blob/main/setup/options/dns.md)
 - [Gluetun 原生健康检查](https://github.com/qdm12/gluetun-wiki/blob/main/setup/options/healthcheck.md)
+
+## 核心配置与公网故障的独立处理
+
+不要把外部网站的暂时故障当成本地配置损坏。
+先执行 `task core:sourcecut` 检查配置；再用 `task core:verify` 检查 DNS、HTTPS 与监控。
+正常收敛使用 `task core:converge`：源码匹配时不重复安装，已经运行的 systemd 服务不重启，外部网络故障由各自成熟的服务恢复机制处理。
+形式化检查：`mise run formal-core-convergence`；共享 Target 表示精化：`mise run formal-shared-egress-alias`。这两项仅证明指定的源码逻辑，不能代替真实公网访问验收。

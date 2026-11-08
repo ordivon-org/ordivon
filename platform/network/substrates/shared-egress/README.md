@@ -46,3 +46,15 @@ Retain stable installed unit names until consumer-by-consumer migration.
 Upstream primitives: iproute2 netns/veth, systemd units/dependencies,
 Gluetun provider/firewall/health, Tailscale Exit Node.
 No duplicate namespace manager, VPN identity, registry or watchdog.
+
+
+## Native neutral Target alias migration
+
+The canonical network-v2-browserless.target now provides the
+network-v2-shared-egress.target systemd Alias, not a duplicate Target.
+Codex, Windows Chrome, Chat Ingress and Claude systemd sources depend
+on the neutral alias. The existing namespace and legacy rollback
+identities remain unchanged for other consumers. See
+formal/shared_egress_alias_refinement.py for the exact, source-bound
+graph refinement against the merged #1783 baseline, then verify
+native loaded unit dependency state and real Consumer requests.

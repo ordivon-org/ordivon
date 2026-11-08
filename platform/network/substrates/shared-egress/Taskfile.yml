@@ -6,6 +6,7 @@ tasks:
     cmds:
       - /usr/bin/systemd-analyze verify substrates/shared-egress/systemd/network-v2-browserless-netns.service substrates/shared-egress/systemd/network-v2-browserless-forward.service substrates/shared-egress/systemd/network-v2-browserless.target
       - /usr/bin/bash -n substrates/shared-egress/carrier-ready.sh
+      - grep -qx Alias=network-v2-shared-egress.target substrates/shared-egress/systemd/network-v2-browserless.target
 
   substrate:shared-egress:materialize:
     desc: Install the existing shared substrate source without restarting physical VPN
@@ -16,6 +17,8 @@ tasks:
       - cmp -s substrates/shared-egress/systemd/network-v2-browserless-forward.service /etc/systemd/system/network-v2-browserless-forward.service
       - cmp -s substrates/shared-egress/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
       - cmp -s substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+      - test -L /etc/systemd/system/network-v2-shared-egress.target
+      - test /etc/systemd/system/network-v2-shared-egress.target -ef /etc/systemd/system/network-v2-browserless.target
     cmds:
       - install -d -m 0755 /usr/local/libexec/network-v2
       - install -m 0644 substrates/shared-egress/systemd/network-v2-browserless-netns.service /etc/systemd/system/network-v2-browserless-netns.service
@@ -23,6 +26,7 @@ tasks:
       - install -m 0644 substrates/shared-egress/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
       - install -m 0755 substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
       - systemctl daemon-reload
+      - systemctl enable network-v2-browserless.target
 
   substrate:shared-egress:kernel:verify:
     desc: Read back exact veth addresses and both legacy FORWARD exceptions from the live kernel without mutation
@@ -54,7 +58,10 @@ tasks:
       - cmp -s substrates/shared-egress/systemd/network-v2-browserless-forward.service /etc/systemd/system/network-v2-browserless-forward.service
       - cmp -s substrates/shared-egress/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
       - cmp -s substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+      - test -L /etc/systemd/system/network-v2-shared-egress.target
+      - test /etc/systemd/system/network-v2-shared-egress.target -ef /etc/systemd/system/network-v2-browserless.target
       - systemctl is-active --quiet network-v2-browserless.target
+      - systemctl is-active --quiet network-v2-shared-egress.target
       - systemctl is-active --quiet network-v2-browserless-netns.service
       - task: substrate:shared-egress:kernel:verify
       - systemctl is-active --quiet network-v2-browserless-forward.service

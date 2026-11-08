@@ -8,3 +8,4 @@ After=network-v2-browserless-netns.service network-v2-browserless-forward.servic
 
 [Install]
 WantedBy=multi-user.target
+Alias=network-v2-shared-egress.target
