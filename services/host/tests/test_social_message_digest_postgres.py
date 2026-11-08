@@ -103,3 +103,37 @@ def test_postgresql_search_cjk_substring_reaches_original_message() -> None:
     found = social.search_messages("终端消费", topic_ref=original.topic_ref)
     assert [row["messageRef"] for row in found["messages"]] == [inserted.message_ref]
     assert social.search_messages("完全无关词", topic_ref=original.topic_ref)["messages"] == []
+
+def test_postgresql_cjk_trigram_pattern_is_literal_with_reserved_chars() -> None:
+    # Actual PostgreSQL consumer proves the LIKE escaping preserves strpos.
+    assert DSN
+    from ordivon_host_v2.social_message_queries import _cjk_literal_like_pattern
+    social, original = _new_message()
+    phrases = ("终端消费", "终端%消费", "终端_消费", "终端#消费",
+               "终端\\消费", "中文测试")
+    for i, phrase in enumerate(phrases):
+        copied = original.model_copy(update={
+            "message_ref": f"{original.message_ref}:trgm:{i}",
+            "client_request_id": f"post:{original.message_ref}:trgm:{i}",
+            "body": f"证据边界:{phrase}:有真实消费者",
+        })
+        assert social.post_message(copied)["admission"] == "committed"
+    with psycopg.connect(DSN) as conn:
+        index = conn.execute(
+            "SELECT i.indisvalid FROM pg_index i "
+            "WHERE i.indexrelid=to_regclass('message_body_trgm_idx')"
+        ).fetchone()
+        assert index == (True,)
+        for i, phrase in enumerate(phrases):
+            pattern = _cjk_literal_like_pattern(phrase)
+            actual = conn.execute(
+                "SELECT strpos(%s::text,%s)>0, %s::text LIKE %s ESCAPE '#'",
+                (f"证据边界:{phrase}:有真实消费者",phrase,
+                 f"证据边界:{phrase}:有真实消费者",pattern),
+            ).fetchone()
+            assert actual == (True,True)
+            found = social.search_messages(phrase, topic_ref=original.topic_ref)
+            assert [row["messageRef"] for row in found["messages"]] == [
+                f"{original.message_ref}:trgm:{i}"
+            ]
+    assert social.search_messages("中文测试_%#不匹配", topic_ref=original.topic_ref)["messages"] == []

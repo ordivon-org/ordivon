@@ -19,7 +19,7 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 | src/ordivon_host_v2/attention_store.py、attention_projections.py、attention_sql.py | 订阅/游标、变更派生投影、SQL | 保留；将只有 SQL 的文件改为明确名称 |
 | src/ordivon_host_v2/mcp_server.py、mcp_tool_registration.py、mcp_*_tools.py | 官方 MCP SDK 服务和工具适配 | 保留；规范注册文件命名，外部工具名未变 |
 | src/ordivon_host_v2/*contracts.py、canonical_json.py、command_receipts.py、collection_pagination.py、postgres_bounds.py | 类型契约、RFC 8785、幂等、界限 | 保留小型共用能力，不重复造库 |
-| migrations/、alembic.ini | schema 0001–0011 必需迁移链，线上版本 11 | 保留全部迁移链；旧编号不等于垃圾 |
+| migrations/、alembic.ini | schema 0001–0012 迁移链，升级至版本 12 | 保留全部迁移链；旧编号不等于垃圾 |
 | tests/ | MCP、PG 并发、因果关系、CAS 与源契约 | 保留有真实消费者边界的测试；更新文件名依赖 |
 | packaging/、tools/ | Git SHA 发布、systemd、tool surface、资格验证 | 保留，不触碰已安装系统服务 |
 | planning/lego-plan-r1.json | 仓库级 LEGO 图检查的现行输入 | 保留，不能仅凭 r1 删除 |
@@ -121,3 +121,21 @@ Human: use `mise run formal:work-graph` and `mise run test:postgres:disposable`,
 The theorem reuses the existing pinned Lean 4 toolchain from `tools/formal/mise.toml` instead of adding Lean to Host's Python lock or global package manager. Run `mise run formal:dag-theorem` from the Host directory; Host source verification invokes CrossHair, Z3 and this Lean theorem with its existing pinned upstream toolchain; the exact Lean proof can also be rerun on demand. For Work DAG changes run both the Lean theorem and disposable PostgreSQL 18 integration/oracle checks. Do not substitute toy-model PASS for implementation refinement or physical consumer verification.
 
 Proof classification: `ABSTRACT_THEOREM_PROVED`; `BOUNDED_MODEL_VERIFIED`; `IMPLEMENTATION_REFINEMENT_PARTIAL` (SQL semantics plus real native PG oracle); `INSTALLED_CURRENT` must be checked against exact release SHA after publication.
+
+
+## 11. PostgreSQL-native literal search, no second search authority
+
+The original Host CJK substring lookup used strpos(body, query) without an
+index-supported predicate. Schema 0012 installs the trusted PostgreSQL
+pg_trgm extension and a concurrent GIN index on messages.body. For unspaced
+CJK queries with three or more CJK codepoints, the implementation generates
+a bound LIKE pattern with ESCAPE '#', escaping '#', '%' and '_'. Shorter
+CJK queries retain strpos. Non-CJK and spaced queries retain simple FTS.
+Order stays descending message sequence, not relevance ranking.
+
+Human: run the isolated PostgreSQL 18 consumer verification and inspect
+EXPLAIN for actual indexed semantics, not assumed speedups. Agent: call the
+published message.search with a literal phrase and bounded cursor. A '%',
+'_' or '#' in a phrase is content, not a search operator.
+
+Upstream: https://www.postgresql.org/docs/current/pgtrgm.html
