@@ -25,16 +25,6 @@ from .errors import ConflictError
 from .social_errors import MessageNotFound
 
 
-def _cjk_literal_like_pattern(query: str) -> str:
-    """Literal substring pattern for PostgreSQL LIKE ... ESCAPE '#'.
-
-    Escape the escape marker first, then the two LIKE wildcard characters.
-    Parameter binding protects the statement; this function protects search
-    semantics from user-provided wildcard characters.
-    """
-    return "%" + query.replace("#", "##").replace("%", "#%").replace("_", "#_") + "%"
-
-
 class SocialMessageReadQueries:
     """Read-only PostgreSQL projections; SocialStore remains the sole write authority."""
 
@@ -206,20 +196,20 @@ class SocialMessageReadQueries:
         cjk_literal = any("\u3400" <= char <= "\u9fff" for char in query) and not any(
             char.isspace() for char in query.strip()
         )
-        trigram_candidate = cjk_literal and sum(
+        unicode_gram_candidate = cjk_literal and sum(
             "\u3400" <= char <= "\u9fff" for char in query
         ) >= 3
         search_predicate = (
-            "body LIKE %s ESCAPE '#'"
-            if trigram_candidate
+            "host_unicode_ngrams3(body) @> host_unicode_ngrams3(%s) "
+            "AND strpos(body,%s)>0"
+            if unicode_gram_candidate
             else "strpos(body,%s)>0"
             if cjk_literal
             else "to_tsvector('simple',body) @@ websearch_to_tsquery('simple',%s)"
         )
-        bound_query = _cjk_literal_like_pattern(query) if trigram_candidate else query
         search_boundary = (
-            "PostgreSQL CJK literal trigram locator"
-            if trigram_candidate
+            "PostgreSQL CJK indexed Unicode-gram locator"
+            if unicode_gram_candidate
             else "PostgreSQL CJK literal substring locator"
             if cjk_literal
             else "PostgreSQL full-text locator"
@@ -238,7 +228,8 @@ class SocialMessageReadQueries:
                 "AND (%s::text IS NULL OR space_ref=%s) AND (%s::text IS NULL OR topic_ref=%s) "
                 "AND (%s::bigint IS NULL OR sequence<%s) ORDER BY sequence DESC LIMIT %s",
                 (
-                    bound_query,
+                    query,
+                    *((query,) if unicode_gram_candidate else ()),
                     space_ref,
                     space_ref,
                     topic_ref,

@@ -166,9 +166,9 @@ def test_host_search_preserves_cjk_literal_substring_and_english_fts(monkeypatch
         assert len(observed) == 1
         sql, args = observed[0]
         if mode == "trigram":
-            from ordivon_host_v2.social_message_queries import _cjk_literal_like_pattern
-            assert "body LIKE %s ESCAPE '#'" in sql
-            assert args[0] == _cjk_literal_like_pattern(query)
+            assert "host_unicode_ngrams3(body) @> host_unicode_ngrams3(%s)" in sql
+            assert "AND strpos(body,%s)>0" in sql
+            assert args[0] == query and args[1] == query
         elif mode == "strpos":
             assert "strpos(body,%s)>0" in sql
             assert args[0] == query
