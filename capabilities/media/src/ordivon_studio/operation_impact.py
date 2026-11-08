@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
 
@@ -59,32 +60,23 @@ def _file_observation(root: Path, record: dict[str, str]) -> dict[str, Any]:
 
 
 def _order(steps: list[dict[str, Any]]) -> list[str]:
+    """Use Python's native graphlib, not a hand-rolled dependency walker."""
     by_id = {step["id"]: step for step in steps}
     if len(by_id) != len(steps):
         raise ValueError("operation lineage has duplicate step ids")
-    state: dict[str, int] = {}
-    ordered: list[str] = []
-
-    def visit(step_id: str) -> None:
-        if step_id not in by_id:
-            raise ValueError(f"operation lineage references unknown step: {step_id}")
-        marker = state.get(step_id, 0)
-        if marker == 1:
-            raise ValueError(f"operation lineage has a dependency cycle: {step_id}")
-        if marker == 2:
-            return
-        state[step_id] = 1
+    graph: dict[str, list[str]] = {}
+    for step_id in sorted(by_id):
         dependencies = by_id[step_id]["dependsOn"]
         if len(dependencies) != len(set(dependencies)):
             raise ValueError(f"operation lineage repeats a dependency: {step_id}")
-        for predecessor in sorted(dependencies):
-            visit(predecessor)
-        state[step_id] = 2
-        ordered.append(step_id)
-
-    for step_id in sorted(by_id):
-        visit(step_id)
-    return ordered
+        for dependency in dependencies:
+            if dependency not in by_id:
+                raise ValueError(f"operation lineage references unknown step: {dependency}")
+        graph[step_id] = sorted(dependencies)
+    try:
+        return list(TopologicalSorter(graph).static_order())
+    except CycleError as exc:
+        raise ValueError(f"operation lineage has a dependency cycle: {exc}") from exc
 
 
 def project_operation_impact(
