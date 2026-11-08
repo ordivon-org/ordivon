@@ -21,6 +21,21 @@ Gluetun retains the single physical Surfshark identity.
 
 Human: from platform/network run `task substrate:shared-egress:verify`,
 then `task consumer:<application>:verify` and a real app request.
+The substrate verifier now composes the independent, read-only
+`task substrate:shared-egress:kernel:verify`: actual veth interface/IPv4
+addresses, the two exact `iptables-legacy -C FORWARD` exceptions, and no
+surplus rules carrying this Owner's comment marker. Unit `active` is not
+considered proof that the kernel still has those rules. The existing Carrier
+witness continues to check no default namespace route and actual HTTPS.
+
+**Firewall succession boundary:** Production currently has Docker-managed
+legacy iptables chains and Netavark nftables tables. An nftables `accept`
+verdict cannot override a separate legacy `DROP`; replacing these two
+legacy exceptions with only nftables would be an unproved (and potentially
+broken) transition. Do not mutate Docker's chains, flush host rules, or
+restart the shared namespace to modernize the syntax. Qualify the native
+Docker firewall backend and the full consumer forwarding behavior before
+retiring legacy rules; the read-only kernel witness is the present authority.
 For iPad use Exit Node verify AND actual iPad IPinfo/DNS.
 
 Agent: bind source/installed bytes/loaded namespace/consumer; prove the
