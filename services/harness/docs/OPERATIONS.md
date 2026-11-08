@@ -13,7 +13,7 @@ audience:
   - operator
   - builder
   - agent
-updated: 2026-08-08
+updated: 2026-11-07
 summary: Canonical operational contract for Harness Run execution, concurrent worker fencing, targeted reopen validation, Doctor, recovery, and escalation.
 evidence_status: verified
 readiness: READY
@@ -28,34 +28,34 @@ related:
 
 ## Authority
 
-One state root means one independent Harness Journal/CAS. There is no Host-backed writer and no cutover mode.
+The first-party CLI uses one operator-provisioned PostgreSQL Harness schema.
+It is independent of Host and Runtime truth and never falls back to SQLite.
 
 ```bash
-ordivon-harness --state-root /path/to/harness-state doctor
-ordivon-harness --state-root /path/to/harness-state status HARNESS_RUN_ID
-ordivon-harness --state-root /path/to/harness-state inspect HARNESS_RUN_ID
+export HARNESS_PG_DSN='postgresql://<provisioned-role>@<host>/<db>'
+ordivon-harness doctor
+ordivon-harness status HARNESS_RUN_ID
+ordivon-harness inspect HARNESS_RUN_ID
 ```
 
 ## Store administration
 
 ```bash
-ordivon-harness --state-root /path/to/harness-state store-init
-ordivon-harness --state-root /path/to/harness-state store-doctor
-ordivon-harness --state-root /path/to/harness-state store-events HARNESS_RUN_ID
-ordivon-harness --state-root /path/to/harness-state store-backup /path/to/backup
-ordivon-harness store-verify-backup /path/to/backup
-ordivon-harness store-restore /path/to/backup /new/state/root
+ordivon-harness store-init
+ordivon-harness store-doctor
+ordivon-harness store-events HARNESS_RUN_ID
 ```
 
-Only `store-init` creates an authority root. Backup/restore refuse unsafe destination reuse and verification checks both database and retained CAS object truth.
-
-Ordinary Store open performs global schema/SQLite/CAS validation. It deliberately does not replay every Run history. A Run is semantically replay-validated when its Continuity Store is opened, before Provider or Tool execution can resume. `doctor` / `store-doctor` remains the explicit authority-wide check that replays all Run histories.
+The CLI `store-backup`, `store-verify-backup`, and `store-restore` verbs
+reject PostgreSQL mode; use native PostgreSQL administration under the DBA's
+authority instead. `doctor` / `store-doctor` checks the selected Harness
+Store; external Provider/Runtime effects require their own reconciliation.
 
 ## Run handling
 
 A CREATED Run is executed with `run`. A PAUSED Run requires `resume`. A terminal Run is inspected rather than executed again. Contract digest conflicts fail closed.
 
-Multiple workers may open the same authority root, but execution leases and Provider claim holders are instance-unique. Competing workers must lose before physical Provider/Runtime delivery; deterministic event identity is for replay/idempotency, not permission for multiple workers to execute the same dispatch.
+Multiple workers may open the same PostgreSQL Harness schema, but execution leases and Provider claim holders are instance-unique. Competing workers must lose before physical Provider/Runtime delivery; deterministic event identity is for replay/idempotency, not permission for multiple workers to execute the same dispatch.
 
 ## Provider recovery
 
@@ -76,7 +76,16 @@ Tool intents and dispatch fences bind the exact Runtime operation and request id
 
 Harness may read externally supplied evidence during reconciliation but does not replace another owner's repair procedure.
 
-## PostgreSQL role-binding cutover (independent H04 subowner)
+## Browserless identity/effect migration procedures (independent consumers)
+
+The remaining procedures describe *separate* Browserless conversation, wake,
+and effect authorities, not the first-party Harness Run Store. Existing legacy
+migration paths are not prerequisites for a fresh PG-only Harness Run epoch.
+Where disposable legacy runtime data is intentionally discarded, use the
+specific fresh bootstrap path only if that consumer supports it; do not
+infer a live sender has stopped from the absence of its SQLite file.
+
+### PostgreSQL role-binding cutover (independent H04 subowner)
 
 This procedure concerns only Browserless conversation-role adoption and
 affinity binding. It does not migrate general Harness Journal/CAS, CFT/session/

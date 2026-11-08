@@ -1,5 +1,13 @@
 # Changelog
 
+- 2026-11-08 ToolProgram reference/evidence integrity: resolve references against the observation's sealed canonical snapshot rather than its publicly mutable `structured_content` view; added an adversarial mutation regression. A separate isolated Python 3.13 check of six SHA-256-matched source/test files passed six test methods including 1,000 finite ToolBridge traces, under stand-in dependency ports. Native Python 3.15/PG/TLC/Provider qualification remains unverified.
+
+- 2026-11-08 P0-1 Agent Loop functional-core extraction: `ordivon/run_deadline_selection.py` and `ordivon/provider_retry_policy.py` now drive the real `OrdivonAgentLoop._run` decision paths. Added finite differential and real Provider/Run consumer tests (11/11 focused); wider 15-suite Windows Python 3.12 trial: 106 passed, 3 blocked by old SQLite `os.O_NONBLOCK`. PG/TLC/pinned 3.15.1/installed release qualification are not claimed. See `docs/VERIFICATION.md`.
+
+- 2026-11-08 Formal-first Harness candidate: added the bounded TLA+ ToolProgramSafetyR1 state machine with three counterexample probes, a native `mise run formal:tool-program` task reusing the Runtime-pinned TLC toolchain, and a 1,000-case actual-executor ToolBridge-trace refinement test. Bound source, model, implementation, physical consumers and test-retirement decisions in `docs/VERIFICATION.md`. TLC/real-Python tests remain NOT_RUN in the constrained Linux execution environment; these files alone do not assert proof, merge or deployment.
+
+- 2026-11-07 source-scoped Harness modular audit: extracted pure ToolProgram observation-reference resolution from effectful execution, separated PostgreSQL Journal DDL from Store transactions, added focused resolution tests and scoped Human/Agent LEGO navigation. Updated active CLI/operator documentation to distinguish PG-only CLI from unretired direct-Python SQLite consumers. Runtime tests and deployed-consumer acceptance remain to be executed before merging or releasing; this entry is a source-change record, not a deployment claim.
+
 - live-verified R6.1 generic Browser Use cold-on-demand operation: Agent Automation release activation passed NO_OBSERVED_DRIFT qualification, a fresh Runtime-backed fixed click trial reconciled as BENCHMARK_EXECUTED/PASS, and browser-agent-22 returned to fully cold state after close; S5 is now blocked only by the Jev TypeSafe credential.
 
 - fixed the R6 generic Browser Use migration dependency closure: Browserless display-auth now admits production instance 22 while retaining masked legacy 21 for rollback compatibility; live activation had failed before provider effects because the immutable Agent Automation release still carried the pre-migration display instance allowlist.

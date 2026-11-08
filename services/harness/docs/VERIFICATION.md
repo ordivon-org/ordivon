@@ -14,7 +14,7 @@ audience:
   - operator
   - researcher
   - agent
-updated: 2026-09-18
+updated: 2026-11-08
 summary: Claim classes, evidence strength, historical evidence interpretation and current release gates.
 evidence_status: verified
 readiness: READY
@@ -38,6 +38,104 @@ related:
 | historical closeout/report | design evolution and prior decisions | current implementation correctness |
 
 No implementation-bound evidence should be cited without its Harness/implementation revision and dependency context.
+
+## Formal-first proof-to-consumer frontier (ToolProgram, source-scoped)
+
+**Claim under verification:** an already-admitted three-step ToolProgram never
+broadens the current Tool grant, never exceeds its remaining physical Tool Call
+budget, and never dispatches subsequent steps after a non-observed Tool result.
+This is a **safety** obligation; an UNKNOWN step may have produced an external
+side effect before its response was lost. A partial ToolProgram is not atomic.
+
+| Stage | Owner-native artifact | Exact claim / status |
+| --- | --- | --- |
+| Specification | `tool_program_contract.py`, `agent_tool_observation.py`; `ToolProgramSafetyR1.tla` | Frozen exact-turn grant, pre-admission budget, ordered step outcomes. Source declaration only |
+| Abstract model | `formal/ToolProgramSafetyR1.tla`, `formal/ToolProgramSafetyR1.cfg` | MaxSteps=3, all budgets 0..3, granted/denied, five observation statuses; abstract ToolBridge identity assumed |
+| Independent falsification | `ToolProgramSafetyR1.{unknown,partial,complete}-probe.cfg` | Expected reachable counterexamples: UNKNOWN, non-atomic partial effects, success; probes must fail the **named** deliberately false invariants |
+| Model checking | `mise run formal:tool-program` using Runtime's existing pinned TLC jar | **NOT_RUN** until the command completes on this source; no TLC PASS may be inferred from the TLA file |
+| Implementation refinement | `tests/test_tool_program_model_refinement.py` exercises the **actual** `HarnessToolProgramExecutor` over 1,000 finite cases and compares ToolBridge traces/results | **PASS** on Windows Python 3.12 actual package (6 focused tests overall); pinned 3.15.1 and universal proof remain open |
+| Consumer seam | `tests/test_p2_tool_program_provider_loop.py`, `tests/test_p2_tool_program_recovery.py`, existing Runtime/Gateway and PG fault paths | **20 Windows Python 3.12 Provider/ToolProgram/transport tests PASS**; real external-effect, PG and installed release acceptance not executed |
+| Release / installation | owner `mise run verify`, `mise run pg:verify`, wheel check, source/installed consumer readback | **NOT_RUN** for this change; no merged/installed-current claim |
+
+**Observed executable defect and remediation:** The original
+`tool_program_resolution._resolve_template` consumed the mutable public
+`HarnessToolObservation.structured_content` view, although observation
+evidence digests are derived from a construction-time canonical snapshot.
+A later actor mutating that convenience view could redirect a referenced
+argument without changing the retained digest. The implementation now resolves
+references through `observation.to_dict()["structuredContent"]`, which reads
+sealed canonical bytes. The test
+`test_mutable_observation_projection_cannot_redirect_next_tool` is a
+property-specific falsification witness. In an isolated Python environment,
+six exact SHA-256-matched production and test source files were exercised
+in an isolated Python 3.13 environment: 6 component/test-methods passed,
+including 1,000 finite ToolBridge traces, using substituted canonical JSON,
+model-value and ToolBridge ports. An independent receipt is produced outside
+the Ordivon repository; this does **not** establish full-package, TLC or
+deployed-Python qualification.
+
+**Implementation refinement map (bounded):**
+`admitted` ↔ every step's name in `HarnessToolProgramExecutor.admitted_tools`;
+`initialBudget` ↔ `remaining_tool_calls`; `issued` ↔ count of actual
+`ToolBridge.execute` invocations; `observed` ↔ leading successfully observed
+steps; `stopped` ↔ first returned non-`observed` status; `completed` ↔
+all steps observed and final template resolved. The model abstracts away
+argument-dependent template failures, mismatched bridge receipts, persisted
+reconciliation, dynamic cancellation, and external effects. The Python
+executor may raise rather than return a terminal result for those failures;
+that is not a model failure unless the admitted refinement relation claims
+otherwise.
+
+**Retirement rule:** Only remove a traditional test when its distinct
+property/fault model is already entailed by a checked specification *and* a
+validated current model-to-implementation refinement or the test has
+independently proven zero consumers. Candidate redundancies include the
+single-example ToolProgram budget/grant/UNKNOWN tests *after* the bounded
+state/refinement checks have passed, but they are deliberately **retained**
+for now. Keep PG serializability/readback, real Provider/Gateway delivery,
+packaging/install and release checks: this model does not cover them.
+Do not convert a CrossHair timeout, TLC bounded PASS, test SKIP, or
+static source equality into a universal proof.
+
+## P0-1 execution-loop decision refinement (source candidate, 2026-11-08)
+
+The first split of the 2,121-line `OrdivonAgentLoop._run` extracts only
+two side-effect-free, O(1) operators: `run_deadline_selection.py` and
+`provider_retry_policy.py`. The enclosing loop retains dynamic clock
+reads, Tool/Provider authority, reconciliation and external-effect truth.
+No new scheduler, generic model router or persistence registry is created.
+
+- **Specification:** Earliest effective deadline with original tie priority;
+  only pre-dispatch-safe, transient Provider failures are eligible for
+  bounded retry, subject to remaining Run authority and cancellation.
+- **Implementation:** `src/ordivon_harness/ordivon/loop.py` consumes both
+  operators; unsafe Provider outcomes bypass live clock/deadline reads and
+  cannot be retried.
+- **Differential refinement:** `tests/test_loop_decision_operators.py`
+  compares finite products of the new decisions with the previous loop's
+  explicit arithmetic and predicate. This is *bounded*, not a universal
+  mathematical proof.
+- **Real consumer:** `tests/test_loop_decision_consumer.py` invokes the
+  real `OrdivonAgentLoop.run()` with an in-memory scripted Provider:
+  expired assignment rejects dispatch; earlier external deadline wins;
+  pre-dispatch-safe transient error retries once; ambiguous dispatch
+  results in `PROVIDER_STATE_UNKNOWN` without redispatch.
+- **Native evidence:** Windows Runtime workspace
+  `ws-gpt6-harness-formal-windows-20261108-r2`, baseline
+  `fc0fbfdf43c53a988b7af27a762856e491151ce1`, QGIS Python 3.12.13:
+  11 focused tests PASS; 32 tests across five core suites PASS;
+  20 Provider/ToolProgram/transport tests PASS; 15 selected suites:
+  106 PASS, 3 FAIL at old SQLite Store `os.O_NONBLOCK` before the
+  intended assertions (95 subtests PASS). The scopes overlap.
+- **Open verification obligations:** Python 3.15.1 locked environment,
+  complete test suite, PG test DSN and real database behavior, SANY/TLC,
+  source-to-wheel publication, deployed consumer read-back. No production
+  deployment, Git merge or full formal proof is claimed on this evidence.
+- **Legacy removal:** Current source still imports SQLite from
+  `agent_run.py`, `independent_cli.py`, and other product/tests/scripts.
+  Do not infer zero consumers from PG-only CLI. Delete when a replacement
+  consumer graph plus native PG evidence actually closes that seam; do not
+  construct another SQLite migration for disposable Runtime data.
 
 ## Current portable gate
 

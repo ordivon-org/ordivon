@@ -31,6 +31,8 @@ from .model import (
     AgentTurnFailureCode,
 )
 from .provider_lifecycle import ProviderCallLifecycle, ProviderLifecycleError
+from .provider_retry_policy import bounded_retry_delay_ms, pre_dispatch_retry_permitted
+from .run_deadline_selection import select_run_deadline
 from .run_contract import AgentLoopResult, RunBudget, RunStopCode
 from .run_recovery import (
     _advance_turn_evidence,
@@ -426,36 +428,25 @@ class OrdivonAgentLoop:
                 )
 
         observed_wall_time_ms = self.clock_ms()
-        if observed_wall_time_ms < 0:
-            raise ValueError("Harness wall clock returned a negative time")
-        assignment_remaining_ms = (
-            None
-            if self.assignment_deadline_ms is None
-            else max(0, self.assignment_deadline_ms - observed_wall_time_ms)
-        )
-        effective_remaining_ms = remaining_wall_time_ms
-        deadline_source = "active_wall_time"
-        if (
-            assignment_remaining_ms is not None
-            and assignment_remaining_ms <= effective_remaining_ms
-        ):
-            effective_remaining_ms = assignment_remaining_ms
-            deadline_source = "assignment_deadline"
         started_at_ms = self.monotonic_ms()
-        internal_deadline_expires_at_ms = started_at_ms + effective_remaining_ms
-        if (
-            external_deadline is not None
-            and external_deadline.expires_at_ms <= internal_deadline_expires_at_ms
-        ):
+        deadline_selection = select_run_deadline(
+            active_remaining_ms=remaining_wall_time_ms,
+            prior_elapsed_ms=prior_elapsed_ms,
+            observed_wall_time_ms=observed_wall_time_ms,
+            assignment_deadline_ms=self.assignment_deadline_ms,
+            started_at_ms=started_at_ms,
+            external_deadline_expires_at_ms=(
+                None if external_deadline is None else external_deadline.expires_at_ms
+            ),
+        )
+        assignment_remaining_ms = deadline_selection.assignment_remaining_ms
+        effective_remaining_ms = deadline_selection.remaining_ms
+        deadline_source = deadline_selection.source
+        if external_deadline is not None and deadline_source == "external_deadline":
             deadline = external_deadline
-            effective_remaining_ms = max(0, deadline.expires_at_ms - started_at_ms)
-            deadline_source = "external_deadline"
         else:
-            deadline = RunDeadline(
-                internal_deadline_expires_at_ms,
-                self.monotonic_ms,
-            )
-        effective_total_wall_budget_ms = prior_elapsed_ms + effective_remaining_ms
+            deadline = RunDeadline(deadline_selection.expires_at_ms, self.monotonic_ms)
+        effective_total_wall_budget_ms = deadline_selection.total_wall_budget_ms
         control = ExecutionControl(cancellation, deadline)
         recorder = TraceRecorder(
             harness_run_id, clock_ms=self.clock_ms, event_sink=self.event_sink
@@ -1620,27 +1611,24 @@ class OrdivonAgentLoop:
                             "replayedDurableFailure": failure_was_replayed,
                         },
                     )
-                    retryable = (
-                        error.dispatch_safety
-                        is AgentTurnDispatchSafety.PRE_DISPATCH_SAFE
-                        and error.failure_code
-                        in {
-                            AgentTurnFailureCode.TRANSPORT_FAILED,
-                            AgentTurnFailureCode.UNAVAILABLE,
-                        }
+                    retryable = pre_dispatch_retry_permitted(
+                        dispatch_safety=error.dispatch_safety,
+                        failure_code=error.failure_code,
+                        retries_used=model_retries,
+                        retry_limit=self.budget.max_model_retries,
+                        cancelled=cancellation.cancelled,
                     )
+                    # Preserve short circuiting: never consult a mutable clock
+                    # or assignment deadline for an unsafe Provider dispatch.
                     if (
                         retryable
-                        and model_retries < self.budget.max_model_retries
-                        and not cancellation.cancelled
                         and control.remaining_ms > 1
                         and not assignment_deadline_expired()
                     ):
                         model_retries += 1
-                        delay_ms = min(
-                            2_000,
-                            250 * (2 ** min(model_retries - 1, 3)),
-                            max(0, control.remaining_ms - 1),
+                        delay_ms = bounded_retry_delay_ms(
+                            retry_index=model_retries,
+                            remaining_ms=control.remaining_ms,
                         )
                         recorder.record(
                             "model_call_retry_scheduled",
