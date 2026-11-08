@@ -99,11 +99,8 @@ def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.Monkey
     observed: dict[str, object] = {}
 
     class FakeHttpContext:
-        async def __aenter__(self):
-            return object()
-
-        async def __aexit__(self, exc_type, exc, tb):
-            return False
+        async def aclose(self) -> None:
+            pass
 
     class FakeClient:
         def __init__(self, transport, **kwargs):
@@ -126,7 +123,7 @@ def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.Monkey
             )
 
     fake_transport = object()
-    monkeypatch.setattr(upstream, "create_mcp_http_client", lambda headers=None: FakeHttpContext())
+    monkeypatch.setattr(upstream, "create_mcp_http_client", lambda **kwargs: FakeHttpContext())
     monkeypatch.setattr(
         upstream,
         "streamable_http_client",
@@ -188,11 +185,8 @@ def test_host_failure_survives_real_gateway_owner_call_boundary(
     observed: list[tuple[str, dict[str, object]]] = []
 
     class FakeHttpContext:
-        async def __aenter__(self):
-            return object()
-
-        async def __aexit__(self, exc_type, exc, tb):
-            return False
+        async def aclose(self) -> None:
+            pass
 
     class FakeClient:
         def __init__(self, transport, **kwargs):
@@ -221,7 +215,7 @@ def test_host_failure_survives_real_gateway_owner_call_boundary(
                 ),
             )
 
-    monkeypatch.setattr(upstream, "create_mcp_http_client", lambda headers=None: FakeHttpContext())
+    monkeypatch.setattr(upstream, "create_mcp_http_client", lambda **kwargs: FakeHttpContext())
     monkeypatch.setattr(upstream, "streamable_http_client", lambda url, http_client=None: object())
     monkeypatch.setattr(upstream, "Client", FakeClient)
     caller = McpOwnerCaller({"host": OwnerEndpoint("http://127.0.0.1:8898/mcp")})

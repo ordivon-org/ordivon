@@ -49,3 +49,33 @@ source conformance -> real consumer -> installed candidate proof.
 Review the claim/evidence ledger before using a candidate release. Reuse
 TLA+, CrossHair (pure Python only), static typing and existing release scripts.
 Do not invent a second policy decision or rollout framework.
+
+## B03 Owner observation: strict truth contract
+
+Pure Owner observation contract: Runtime status fields configured and available
+must be literal booleans. available=True requires configured=True. A truthy
+string, integer, missing field, or contradictory pair is not positive evidence
+and must carry an observation error. Gateway retains its non-authoritative
+boundary; malformed observations are UNKNOWN, not proof Runtime is down.
+
+Agents: run uv run python formal/check_owner_status_contract.py through the
+existing Gateway verification target. The checker enumerates 100 adversarial
+status pairs through execution and Artifact projections. Compare with live
+runtime.describe and Gateway capability.describe; synthetic enumeration is
+not a physical RPC success.
+
+Humans: inspect capability_projection.py and capability_catalog.py for the
+implementation; read observation errors before classifying Runtime unavailable.
+Retain real MCP consumer readback and native Windows identity and PG integration
+checks where appropriate.
+
+## R04 Transport composition LEGO (capability + reasoning)
+Gateway upstream transport owns only HTTP sockets and is explicitly scoped to
+McpOwnerCaller. Prefer upstream MCP SDK Client protocol negotiation and
+httpx2 connection pooling; do not replace SDK with a custom JSON-RPC client.
+Auth material is read on each request through OwnerEndpointAuth, including
+when a connection is reused. MCPServer lifespan must close pooled clients.
+Validate exact Owner semantics through independent real loopback RPCs, not
+only mocked connector calls; do not infer production latency from loopback.
+Preserve long-running Runtime Jobs on HTTP cancellation; never blindly replay
+an execution submission after uncertain delivery.

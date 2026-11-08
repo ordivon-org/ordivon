@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from typing import Any, Protocol
 
+import httpx2
 from mcp import Client
 from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
 from mcp.shared._otel import inject_trace_context
@@ -96,6 +97,23 @@ class OwnerToolCaller(Protocol):
     def is_configured(self, owner_id: str) -> bool: ...
 
 
+class OwnerEndpointAuth(httpx2.Auth):
+    """Resolve Owner credentials for each HTTP request, not at pool creation.
+
+    A long-lived HTTP pool must not freeze rotated bearer or Access credentials.
+    Existing endpoint file permissions and secrets policy remain authoritative.
+    """
+
+    def __init__(self, endpoint: OwnerEndpoint) -> None:
+        self._endpoint = endpoint
+
+    def auth_flow(self, request: httpx2.Request) -> Generator[httpx2.Request, httpx2.Response]:
+        headers = _headers_for_endpoint(self._endpoint)
+        if headers:
+            request.headers.update(headers)
+        yield request
+
+
 class McpOwnerCaller:
     def __init__(self, owners: Mapping[str, str | OwnerEndpoint]) -> None:
         normalized: dict[str, OwnerEndpoint] = {}
@@ -121,6 +139,27 @@ class McpOwnerCaller:
                 access_client_secret_file=endpoint.access_client_secret_file,
             )
         self._owners = normalized
+        # One HTTP connection pool per natural Owner. MCP Client protocol
+        # sessions remain request-local to avoid cross-call state ownership.
+        self._http_clients: dict[str, httpx2.AsyncClient] = {}
+        self._closed = False
+
+    def _http_client(self, owner_id: str, endpoint: OwnerEndpoint) -> httpx2.AsyncClient:
+        if self._closed:
+            raise OwnerCallError("Owner transport is closed", owner_id=owner_id)
+        client = self._http_clients.get(owner_id)
+        if client is None:
+            client = create_mcp_http_client(auth=OwnerEndpointAuth(endpoint))
+            self._http_clients[owner_id] = client
+        return client
+
+    async def aclose(self) -> None:
+        """Drain process-owned HTTP pools when the MCP server stops."""
+        self._closed = True
+        clients = tuple(self._http_clients.values())
+        self._http_clients.clear()
+        for client in clients:
+            await client.aclose()
 
     @classmethod
     def from_env(cls) -> McpOwnerCaller:
@@ -195,19 +234,20 @@ class McpOwnerCaller:
         assert endpoint is not None
 
         try:
-            headers = _headers_for_endpoint(endpoint)
-            async with create_mcp_http_client(headers=headers) as http_client:
-                transport = streamable_http_client(endpoint.url, http_client=http_client)
-                # MCP v2 Client owns modern discovery, output-schema validation, and
-                # legacy fallback. Gateway does not hand-code protocol negotiation.
-                async with Client(transport, mode="auto", raise_exceptions=False) as client:
-                    meta: dict[str, Any] = {}
-                    inject_trace_context(meta)
-                    result = await client.call_tool(
-                        tool_name,
-                        arguments,
-                        meta=meta or None,
-                    )
+            transport = streamable_http_client(
+                endpoint.url, http_client=self._http_client(owner_id, endpoint)
+            )
+            # MCP v2 Client owns modern discovery, output-schema validation,
+            # and legacy fallback. Only HTTP sockets are pooled; each call
+            # retains an independent SDK protocol lifecycle and cancellation.
+            async with Client(transport, mode="auto", raise_exceptions=False) as client:
+                meta: dict[str, Any] = {}
+                inject_trace_context(meta)
+                result = await client.call_tool(
+                    tool_name,
+                    arguments,
+                    meta=meta or None,
+                )
         except OwnerCallError:
             raise
         except Exception as exc:

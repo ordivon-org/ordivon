@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from contextlib import asynccontextmanager
 from importlib.metadata import version as package_version
 from typing import Any
 from urllib.parse import urlsplit
@@ -146,7 +147,21 @@ def build_server(
     capability_authorizer: CapabilityAuthorizer | None = None,
 ) -> MCPServer:
     gateway = service or GatewayService(McpOwnerCaller.from_env())
-    server = MCPServer("ordivon-gateway", version=package_version("ordivon-gateway"))
+
+    @asynccontextmanager
+    async def gateway_lifespan(_server):
+        try:
+            yield {}
+        finally:
+            close = getattr(gateway, "aclose", None)
+            if callable(close):
+                await close()
+
+    server = MCPServer(
+        "ordivon-gateway",
+        version=package_version("ordivon-gateway"),
+        lifespan=gateway_lifespan,
+    )
     server.middleware.append(GatewayAuditMiddleware())
     if capability_authorizer is not None:
         server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))

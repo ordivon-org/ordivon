@@ -79,6 +79,12 @@ class GatewayService:
         self._catalog = CapabilityCatalog(caller, self._routes, projection_timeout_seconds)
         self._execution = ExecutionCoordinator(caller, self._routes)
 
+    async def aclose(self) -> None:
+        """Close only process-owned upstream transports, never Owner Jobs."""
+        close = getattr(self._caller, "aclose", None)
+        if callable(close):
+            await close()
+
     def system_describe(self) -> SystemDescription:
         return self._catalog.system_describe()
 

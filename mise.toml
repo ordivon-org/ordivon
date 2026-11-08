@@ -324,6 +324,7 @@ uv run ruff check .
 uv run ruff format --check .
 uv run python -m pytest -q
 uv run python formal/check_routing_conformance.py
+uv run python formal/check_owner_status_contract.py
 """
 
 
@@ -349,6 +350,19 @@ for check in 'GatewayRoutingR1.reachability.cfg:NeverForward' 'GatewayRoutingR1.
   invariant=$(printf '%s' "$check" | cut -d: -f2)
   set +e
   output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayRoutingR1.tla 2>&1)
+  result=$?
+  set -e
+  [[ $result -eq 12 ]] || { printf '%s\n' "$output" | tail -30; exit 1; }
+  printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
+done
+java -cp "$jar" tla2sany.SANY GatewayOwnerObservationR1.tla
+owner_positive=$(java -cp "$jar" tlc2.TLC -workers 1 -config GatewayOwnerObservationR1.cfg GatewayOwnerObservationR1.tla)
+printf '%s\n' "$owner_positive" | grep -F 'Model checking completed. No error has been found.'
+for check in 'GatewayOwnerObservationR1.reachability.cfg:NeverAvailable' 'GatewayOwnerObservationR1.unsafe.cfg:NoFalsePositive'; do
+  config=$(printf '%s' "$check" | cut -d: -f1)
+  invariant=$(printf '%s' "$check" | cut -d: -f2)
+  set +e
+  output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayOwnerObservationR1.tla 2>&1)
   result=$?
   set -e
   [[ $result -eq 12 ]] || { printf '%s\n' "$output" | tail -30; exit 1; }
