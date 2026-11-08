@@ -19,7 +19,7 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 | src/ordivon_host_v2/attention_store.py、attention_projections.py、attention_sql.py | 订阅/游标、变更派生投影、SQL | 保留；将只有 SQL 的文件改为明确名称 |
 | src/ordivon_host_v2/mcp_server.py、mcp_tool_registration.py、mcp_*_tools.py | 官方 MCP SDK 服务和工具适配 | 保留；规范注册文件命名，外部工具名未变 |
 | src/ordivon_host_v2/*contracts.py、canonical_json.py、command_receipts.py、collection_pagination.py、postgres_bounds.py | 类型契约、RFC 8785、幂等、界限 | 保留小型共用能力，不重复造库 |
-| migrations/、alembic.ini | schema 0001–0012 迁移链，升级至版本 12 | 保留全部迁移链；旧编号不等于垃圾 |
+| migrations/、alembic.ini | schema 0001–0013 迁移链，已升级至版本 13 | 保留全部迁移链；旧编号不等于垃圾 |
 | tests/ | MCP、PG 并发、因果关系、CAS 与源契约 | 保留有真实消费者边界的测试；更新文件名依赖 |
 | packaging/、tools/ | Git SHA 发布、systemd、tool surface、资格验证 | 保留，不触碰已安装系统服务 |
 | planning/lego-plan-r1.json | 仓库级 LEGO 图检查的现行输入 | 保留，不能仅凭 r1 删除 |
@@ -139,3 +139,36 @@ published message.search with a literal phrase and bounded cursor. A '%',
 '_' or '#' in a phrase is content, not a search operator.
 
 Upstream: https://www.postgresql.org/docs/current/pgtrgm.html
+
+
+## 12. Unicode index refinement, driven by production counterexample
+
+The production database has LC_CTYPE=C. On the actual schema 12 release,
+show_trgm('终端消费') returned the empty set. A valid 54 MB pg_trgm index
+was never used for CJK retrieval: EXPLAIN still selected Seq Scan + Sort.
+This falsified the performance hypothesis; isolated correctness tests had
+not measured production index extraction.
+
+Schema 0013 replaces that index with a PostgreSQL GIN array_ops expression
+over host_unicode_ngrams3(body), an immutable, strict, parallel-safe SQL
+function returning distinct 3-codepoint text windows. For unspaced queries
+with three-or-more CJK characters, Host uses the necessary candidate filter
+host_unicode_ngrams3(body) @> host_unicode_ngrams3(query), followed by the
+unchanged exact predicate strpos(body,query)>0. Short CJK queries still use
+strpos and other queries native FTS; returned order stays message sequence.
+
+Soundness argument: if q is a contiguous substring of b, every 3-codepoint
+window in q also occurs in b, so grams3(q) is a subset of grams3(b).
+The reverse implication is false; exact strpos remains the final semantic
+oracle. This preserves '%' '_' '#' and backslashes literally and avoids
+locale-dependent byte reinterpretations. The new index is built CONCURRENTLY
+before retiring only the known obsolete 0012 index. PG GIN array_ops, not
+a second search engine, remains the sole derived index authority.
+
+Human: run the disposable PostgreSQL consumer tests and compare production
+EXPLAIN with the same bound query before and after release, including
+physical index validity and Host integrity. Agent: use public message.search
+and do not infer ranking or domain completion from search results.
+
+Sources: https://www.postgresql.org/docs/current/gin.html
+https://www.postgresql.org/docs/current/sql-createindex.html

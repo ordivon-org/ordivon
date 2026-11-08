@@ -98,7 +98,7 @@ Work Graph relation commands and cycle detection now live in src/ordivon_host_v2
 
 ## Current product surface
 
-Host v2 runs Social Work Fabric schema 12. The release-owned
+Host v2 runs Social Work Fabric schema 13. The release-owned
 [`mcp-surface.json`](mcp-surface.json) is the single declared inventory of
 MCP tools; native tests compare that manifest with the actual server surface.
 Do not maintain an independent count or partial list of current tools here.

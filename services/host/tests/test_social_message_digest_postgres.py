@@ -107,7 +107,6 @@ def test_postgresql_search_cjk_substring_reaches_original_message() -> None:
 def test_postgresql_cjk_trigram_pattern_is_literal_with_reserved_chars() -> None:
     # Actual PostgreSQL consumer proves the LIKE escaping preserves strpos.
     assert DSN
-    from ordivon_host_v2.social_message_queries import _cjk_literal_like_pattern
     social, original = _new_message()
     phrases = ("终端消费", "终端%消费", "终端_消费", "终端#消费",
                "终端\\消费", "中文测试")
@@ -121,15 +120,18 @@ def test_postgresql_cjk_trigram_pattern_is_literal_with_reserved_chars() -> None
     with psycopg.connect(DSN) as conn:
         index = conn.execute(
             "SELECT i.indisvalid FROM pg_index i "
-            "WHERE i.indexrelid=to_regclass('message_body_trgm_idx')"
+            "WHERE i.indexrelid=to_regclass('message_unicode_ngrams3_idx')"
         ).fetchone()
         assert index == (True,)
+        assert conn.execute(
+            "SELECT host_unicode_ngrams3(%s)", ("终端消费",)
+        ).fetchone()[0] == ["端消费", "终端消"]
         for i, phrase in enumerate(phrases):
-            pattern = _cjk_literal_like_pattern(phrase)
             actual = conn.execute(
-                "SELECT strpos(%s::text,%s)>0, %s::text LIKE %s ESCAPE '#'",
+                "SELECT strpos(%s::text,%s)>0, "
+                "host_unicode_ngrams3(%s::text) @> host_unicode_ngrams3(%s::text)",
                 (f"证据边界:{phrase}:有真实消费者",phrase,
-                 f"证据边界:{phrase}:有真实消费者",pattern),
+                 f"证据边界:{phrase}:有真实消费者",phrase),
             ).fetchone()
             assert actual == (True,True)
             found = social.search_messages(phrase, topic_ref=original.topic_ref)
