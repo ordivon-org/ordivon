@@ -201,21 +201,30 @@ installed release or external Tool effect proof.
 | `evidence/` | exact evidence artifacts | KEEP where indexed/digest-cited; no age-only delete |
 | `docs/`, `.ordivon/`, `.github/` | current guidance, publication and release configuration | update current docs; do not rename paths before reference checks |
 
-### Misleading names and dependency-bearing legacy
+### Current backend-neutral owner split and residual naming debt
 
-These are **observed source-level naming debts**, not permission to mass-rename:
+**Post-rebase consumer inspection at `4ec1ba906`:** The upstream
+Harness changes have already retired `ordivon/sqlite_run_store.py`,
+`ordivon/sqlite_agent_bridge.py` and
+`ordivon/sqlite_runtime_bridge.py`. Do **not** recreate these modules
+or tell Agents to migrate their former consumers a second time.
 
-| Current name / pattern | Why misleading | Proposed standard boundary | Safe immediate action |
-| --- | --- | --- | --- |
-| `ordivon/sqlite_run_store.py` / `SQLiteHarnessRunContinuityStore` | Also consumed by the PostgreSQL CLI's `independent_cli._inspect` and PG continuity tests; implementation name implies an SQLite-only contract | `run_continuity` for the generic contract, `sqlite_run_store` only for physical SQLite storage when/if needed | KEEP until complete Python import/serialized-effect consumer graph and PG integration tests; avoid a secondary forwarding wrapper |
-| `ordivon/sqlite_agent_bridge.py` | Canonical no-tool grant constants are reused by PG CLI | Caller-granted `agent_execution_bridge` with Provider-independent boundary | KEEP until current importer graph is migrated, then delete old file and its tests/exports together |
-| `independent_cli.py` | The first-party PG-only CLI routes to it; “independent” does not describe the behavior | `run_cli.py` or `run_commands.py` if consumers prove name is internal | Do not create an alias before migration/CI |
-| `ordivon_harness/ordivon/` | Duplicates the project name and obscures package responsibilities | `agent_runtime/` or narrower owner-native modules after real dependency DSM | KEEP while API, tests and installed imports depend on that namespace |
-| `anc_canonical` compatibility shim | Historic label, but canonical issued identity codecs consume it | Retire only when persisted digest/protocol compatibility obligations are closed | KEEP; no cosmetic rename of persisted identity codecs |
-| Browserless `sqlite_*.py` scripts | Multiple distinct conversation, wake, materialization and effect ledgers, with PG conversions at different seams | Owner-specific PG modules after installed workers and service configuration qualified | Do not infer whole-browserless PG conversion from Run CLI conversion |
+| Exact current code | Owner responsibility / consumer evidence | Next safe step |
+| --- | --- | --- |
+| `ordivon/run_continuity.py` / `EventSourcedRunContinuity` | backend-neutral Run continuity; consumed by `agent_run.py` and PG CLI `independent_cli.py` | Keep the canonical behavior; verify its PG persistence and recovery consumers |
+| `ordivon/agent_bridge.py` / `HarnessAgentBridge` | backend-neutral Agent and Tool authorization bridge | Keep; no SQLite-named forwarding wrapper |
+| `ordivon/runtime_bridge.py` / `HarnessRuntimeBridge` | backend-neutral Runtime Tool integration, consumed by `agent_run.py`, `plugin_gateway_effect.py` and `adaptive_edit_bridge.py` | Keep effects with Runtime, not a second Harness dispatcher |
+| `sqlite_store.py` / `SQLiteHarnessStore` | still imported by `agent_run.py` and `ordivon/continuity_guards.py`; direct-Python consumers remain | Retire only once corresponding PG/native consumers and recovery qualify |
+| `independent_cli.py` | current first-party PostgreSQL CLI, old name | Consider `run_cli.py` only if public entrypoints and all imports can change atomically |
+| `ordivon_harness/ordivon/` | existing Python import namespace with real consumers | Keep until proved safe; avoid alias-only reorganization |
+| `anc_canonical` | canonical evidence/digest codec currently consumed by issued wire values | Keep exact identities; do not rename without protocol/byte evidence |
+| Browserless `sqlite_*.py` scripts | separate materialization, wake and effect consumers with mixed backing stores | Determine installed worker consumers independently of PG-only Run CLI |
 
-**Consumer-ranked deletion:** source-backed tests, wheel checks and deployment scripts reference SQLite implementations, and old H1/H5 documents are used as historical provenance. There is no verified current-source *closed* consumer graph authorizing deletion of those artifacts. The older Windows-source checkout yielded no ignored-cache candidates in `git clean -ndX -- services/harness`; that observation is not a Linux/current-source cleanup proof. Do not wipe persisted Run or Browserless data based on filenames.
-
-**Existing legacy:** `sqlite_store.py`, `ordivon/sqlite_*.py`, SQLite tests/scripts, `--state-root` parser compatibility and older PG migration prose require a **consumer-retirement proof**. PG-only CLI does not prove full library or Browserless materialization migration. Do not invent migration work for disposable runtime data; do not delete old writers while any live execution can still use them.
+**Consumer-ranked deletion:** The remaining `sqlite_store.py`, its
+direct Python API and browserless SQLite paths require source, installed-worker
+and native PG readback evidence before deletion. Old H1/H5 research materials
+can retain historical names without becoming active code. No disposable
+Runtime SQLite data migration is required by this audit. The evidence index
+must not be treated as a backup of active run state.
 
 **Safe cleanup:** inspect `git status --short`, `git clean -ndX -- services/harness`, `git grep -n` and current unit/entrypoint references. Delete only confirmed ignored generated files inside this owner root, or tracked files with zero active consumers and verified replacement. System directories, external state roots, databases and other agents' workspaces are out of scope. Avoid unexplained abbreviations/new aliases; prefer full terms such as `tool_program_resolution` and keep wire IDs stable unless versioned intentionally.

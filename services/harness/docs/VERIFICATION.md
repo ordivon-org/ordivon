@@ -131,11 +131,14 @@ No new scheduler, generic model router or persistence registry is created.
   complete test suite, PG test DSN and real database behavior, SANY/TLC,
   source-to-wheel publication, deployed consumer read-back. No production
   deployment, Git merge or full formal proof is claimed on this evidence.
-- **Legacy removal:** Current source still imports SQLite from
-  `agent_run.py`, `independent_cli.py`, and other product/tests/scripts.
-  Do not infer zero consumers from PG-only CLI. Delete when a replacement
-  consumer graph plus native PG evidence actually closes that seam; do not
-  construct another SQLite migration for disposable Runtime data.
+- **Legacy removal after upstream backend-neutral refactor:** The
+  former `ordivon/sqlite_run_store.py`, `ordivon/sqlite_agent_bridge.py` and
+  `ordivon/sqlite_runtime_bridge.py` are already gone; `run_continuity.py`,
+  `agent_bridge.py` and `runtime_bridge.py` are their actual consumers.
+  `sqlite_store.py` remains imported by `agent_run.py` and
+  `ordivon/continuity_guards.py`; do not infer that direct Python API
+  is retired from PG-only CLI. Require native PG evidence and actual installed
+  consumer replacement; do not migrate disposable Runtime SQLite data.
 
 ## Current portable gate
 
