@@ -9,3 +9,6 @@ extends Resource
 @export var attack_cost: int = 2
 @export var guard_restore: int = 3
 @export var guard_block: int = 1
+
+# Product-scoped opt-in. Default Classic preserves its historical rules.
+@export var tactical_trial: bool = false

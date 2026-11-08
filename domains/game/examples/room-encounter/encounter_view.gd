@@ -7,7 +7,12 @@ func render_state(state: Dictionary) -> void:
     ]
     match state["phase"]:
         "fighting":
-            var f: Dictionary = state["forecast"]
+            var f: Dictionary = state.get("forecast", {})
+            if f.is_empty():
+                $Encounter.text = "ENCOUNTER: %d foes | active enemy HP %d" % [
+                    state["foes"], state["enemy_health"]
+                ]
+                return
             $Encounter.text = (
                 "ENCOUNTER: %d foes | active enemy HP %d\n"
                 + "NEXT FOE HIT: %d | ATTACK: %d damage, -%d stamina, %d HP at risk\n"

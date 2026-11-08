@@ -104,7 +104,7 @@ func _record_turn() -> void:
 # ledger, no randomized hidden information, and no additional save state.
 func _incoming_damage() -> int:
     var damage: int = active.enemy_damage
-    if damage > 0 and turn % 3 == 2 and damage < MAX_TURN:
+    if active.tactical_trial and damage > 0 and turn % 3 == 2 and damage < MAX_TURN:
         damage += 1
     return damage
 
@@ -112,7 +112,7 @@ func _incoming_damage() -> int:
 # blocks the announced strike completely. It buys safety but spends a turn
 # instead of reducing enemy HP; ordinary Guard remains the tuned block value.
 func _guard_protection(incoming: int) -> int:
-    return incoming if turn % 3 == 2 else active.guard_block
+    return incoming if active.tactical_trial and turn % 3 == 2 else active.guard_block
 
 func _retaliate(block: int, incoming: int) -> void:
     player_health = maxi(0, player_health - maxi(0, incoming - block))
@@ -120,7 +120,7 @@ func _retaliate(block: int, incoming: int) -> void:
         phase = "lost"
 
 func _forecast() -> Dictionary:
-    if phase != "fighting":
+    if phase != "fighting" or not active.tactical_trial:
         return {}
     var threat: int = _incoming_damage()
     # Killing the last foe finishes combat before retaliation.
@@ -135,7 +135,7 @@ func _forecast() -> Dictionary:
     }
 
 func snapshot() -> Dictionary:
-    return {
+    var observed: Dictionary = {
         "room": room,
         "total_rooms": active.enemies_per_room.size() if active != null else 0,
         "foes": foes,
@@ -144,16 +144,19 @@ func snapshot() -> Dictionary:
         "stamina": stamina,
         "attack_cost": active.attack_cost if active != null else 0,
         "turn": turn,
-        "phase": phase,
-        "forecast": _forecast() if active != null else {}
+        "phase": phase
     }
+    # Classic retains its original snapshot schema and combat semantics.
+    if active != null and active.tactical_trial:
+        observed["forecast"] = _forecast()
+    return observed
 
 # Rule-owned checkpoint contract; ConfigFile alone owns storage bytes.
 func checkpoint() -> Dictionary:
     # Do not persist recomputable UI forecast.
     var persisted: Dictionary = snapshot()
     persisted.erase("forecast")
-    return {"tuning": {
+    var identity: Dictionary = {
         "enemies_per_room": active.enemies_per_room,
         "player_health": active.player_health,
         "enemy_health": active.enemy_health,
@@ -163,7 +166,12 @@ func checkpoint() -> Dictionary:
         "attack_cost": active.attack_cost,
         "guard_restore": active.guard_restore,
         "guard_block": active.guard_block
-    }, "state": persisted}
+    }
+    # Backward-compatible Classic checkpoint bytes stay unchanged.
+    # Trial opt-in is an explicit part of the saved tuning identity.
+    if active.tactical_trial:
+        identity["tactical_trial"] = true
+    return {"tuning": identity, "state": persisted}
 
 func restore_checkpoint(saved: Variant) -> bool:
     if active == null or not saved is Dictionary:

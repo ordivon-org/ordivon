@@ -126,6 +126,11 @@ three rooms (2,3,3 foes), five HP per foe, and the unchanged Attack,
 Guard, Save, Load and native Unlock controls. R restarts the selected
 Trial, and C / the Classic button returns to original tuning.
 
+Only the optional Trial enables the stronger strike and parry; Classic retains
+its previous third-turn damage, Guard behavior and rule-snapshot schema.
+Existing Classic checkpoint identities remain compatible; Trial tuning has
+an explicit mode discriminator to reject incompatible restores.
+
 The existing EncounterRules owner publishes a *pre-action* forecast
 showing next incoming damage, attack health loss, guard health loss and
 stamina restoration. The third turn telegraphs a stronger enemy strike;
@@ -149,7 +154,7 @@ interactive Gymnasium environment, a screen reader or a Human proxy.
 Evidence: mise run verify:room-smt checks signed-i64 arithmetic,
 telegraph/parry/forecast bounds and two negative controls.
 mise run test:encounter checks the actual scene, forecast-versus-real
-HP loss across bounded native actions, trial completion, the Human
+HP loss across 243 Trial traces and 243 Classic preservation traces, trial completion, the Human
 button and restart, ConfigFile readback, and one policy comparison.
 One first attempt at guarding every charged turn was falsified by the
 native baseline: it could guard when a killing attack avoided damage.
@@ -165,3 +170,5 @@ comprehension, decision, completion or abandonment, approximate
 duration and voluntary feedback without personal identifiers. The
 decision to inform is whether to KEEP/MODIFY/DELETE telegraph/parry
 after actual Human evidence, not a synthetic enjoyment score.
+
+Classic preservation: native test:encounter verifies 243 Classic and 243 Trial five-step traces; Classic's third-turn damage, ordinary guard, HUD, snapshot and checkpoint tuning identity are unchanged. The Trial Resource opts in explicitly. This excludes a silent change to installed Classic saves.

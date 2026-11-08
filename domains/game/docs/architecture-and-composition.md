@@ -152,3 +152,5 @@ Native trial action equals the Human Trial button; source-bound
 Model/Proof/Consumer evidence stays under existing G10/G11,
 formal/verify_room_arithmetic.py, and test:encounter. A measured
 policy contrast is not a player-experience result.
+
+Classic remains the historical default: tactical_trial=false in the existing tuning Resource. Only the explicit Trial Resource enables forecast/charged parry; ConfigFile Classic state identity stays byte-structure compatible. The native dual-mode 486 bounded traces and full-width 17-property Z3 model are the current targeted evidence, not independent Human evidence.

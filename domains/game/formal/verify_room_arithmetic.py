@@ -8,7 +8,7 @@ A passing solver result does not imply bytecode refinement or frame/GUI effects.
 from pathlib import Path
 import hashlib
 
-from z3 import And, BitVec, BitVecVal, If, Not, Solver, sat, unsat
+from z3 import And, BitVec, BitVecVal, Bool, If, Not, Solver, sat, unsat
 
 WIDTH = 64
 ZERO = BitVecVal(0, WIDTH)
@@ -47,10 +47,11 @@ next_turn = If(turn < MAX, turn + ONE, turn)
 # harmless and signed i64 maximum saturates rather than overflowing.
 THREE = BitVecVal(3, WIDTH)
 TWO = BitVecVal(2, WIDTH)
+trial_mode = Bool("trial_mode")
 charged = turn % THREE == TWO
-threat = If(And(charged, enemy_damage > ZERO, enemy_damage < MAX),
+threat = If(And(trial_mode, charged, enemy_damage > ZERO, enemy_damage < MAX),
             enemy_damage + ONE, enemy_damage)
-effective_block = If(charged, threat, guard_block)
+effective_block = If(And(trial_mode, charged), threat, guard_block)
 damage_taken = If(threat > effective_block, threat - effective_block, ZERO)
 guard_loss = If(health > damage_taken, damage_taken, health)
 next_health = health - guard_loss
@@ -89,7 +90,7 @@ def main():
     prove("telegraph_machine_range", valid,
           And(threat >= enemy_damage, threat >= ZERO, threat <= MAX))
     prove("telegraph_exact_schedule_and_saturation", valid,
-          If(And(charged, enemy_damage > ZERO, enemy_damage < MAX),
+          If(And(trial_mode, charged, enemy_damage > ZERO, enemy_damage < MAX),
              threat == enemy_damage + ONE, threat == enemy_damage))
     prove("retaliation_nonnegative_damage", valid,
           And(damage_taken >= ZERO, damage_taken <= threat))
@@ -100,8 +101,13 @@ def main():
     prove("guard_forecast_equals_hp_delta", valid,
           And(guard_loss >= ZERO, guard_loss <= health,
               next_health == health - guard_loss))
-    prove("charged_perfect_parry_absorbs_threat", And(valid, charged),
+    prove("charged_perfect_parry_absorbs_threat", And(valid, trial_mode, charged),
           And(damage_taken == ZERO, guard_loss == ZERO))
+    prove("classic_preserves_historical_damage_and_block", And(valid, Not(trial_mode)),
+          And(threat == enemy_damage,
+              effective_block == guard_block,
+              damage_taken == If(enemy_damage > guard_block,
+                                 enemy_damage - guard_block, ZERO)))
     combat_valid = And(valid, foes > ZERO, enemy_health > ZERO, attack_damage > ZERO)
     prove("attack_forecast_in_hp_bounds", combat_valid,
           And(attack_loss >= ZERO, attack_loss <= health,
@@ -124,7 +130,7 @@ def main():
     # A pre-action forecast based solely on enemy_damage would be false for
     # the real charged third turn. Independently force this counterexample.
     bad_intent = Solver()
-    bad_intent.add(valid, turn == TWO, enemy_damage == TWO, guard_block == ONE,
+    bad_intent.add(valid, trial_mode, turn == TWO, enemy_damage == TWO, guard_block == ONE,
                    threat != enemy_damage)
     if bad_intent.check() != sat:
         raise AssertionError("constant-damage forecast negative control not falsified")
@@ -133,7 +139,7 @@ def main():
     # identity in the evidence, but never call a source hash a refinement proof.
     source = Path(__file__).resolve().parents[1] / "examples/room-encounter/encounter_rules.gd"
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
-    print(f"GAME_ROOM_SMT_PASS proved=16 source_sha256={digest} implementation_refinement=NATIVE_BOUNDARY_ONLY")
+    print(f"GAME_ROOM_SMT_PASS proved=17 source_sha256={digest} implementation_refinement=NATIVE_BOUNDARY_ONLY")
 
 
 if __name__ == "__main__":

@@ -365,3 +365,5 @@ is part of existing Room Encounter and G10/G11 contracts, not a new
 LEGO or custom runtime. See examples/room-encounter/README.md for
 separate Human and Agent instructions and the missing Human evidence.
 Verify with verify:room-smt, test:encounter, test:agent-episode.
+
+Classic preservation verification (2026-11-08): tactical_trial is a per-Resource opt-in. The unchanged Classic rules/snapshot/HUD/checkpoint identity are exercised in native Godot; 243 Classic and 243 Trial five-action sequences test the separate consumers. Do not promote an abstract 17-property Z3 model to universal GDScript proof.

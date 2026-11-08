@@ -509,7 +509,8 @@
         "Real PackedScene Save/Load reads back after reset",
         "Existing audio and alternative HUD work; resume is silent",
         "Native consumer rejects mismatched tuning and damaged values",
-        "Model: full-width signed i64 Z3 guard/turn obligations; implementation: native Godot maximum-value guard/attack/restore acceptance; universal GDScript refinement remains UNKNOWN."
+        "Model: full-width signed i64 Z3 guard/turn obligations; implementation: native Godot maximum-value guard/attack/restore acceptance; universal GDScript refinement remains UNKNOWN.",
+        "Native Classic regression checks retain exact former damage, block, HUD/snapshot and stored checkpoint tuning identity; Tactical Trial is explicit Resource opt-in with distinct persisted tuning identity"
       ],
       "evidence": [
         "examples/room-encounter/encounter_rules.gd",
@@ -551,7 +552,8 @@
         "inv": [
           "Rules only state authority",
           "audio consumes accepted combat actions",
-          "Admitted signed-64 stamina is 0..capacity; turn saturates at MAX; derived pre-action threat/guard forecasts are recomputed, never stored in checkpoint"
+          "Admitted signed-64 stamina is 0..capacity; turn saturates at MAX; derived pre-action threat/guard forecasts are recomputed, never stored in checkpoint",
+          "Classic mode=false preserves existing rule/visible schema and ConfigFile tuning identity; Trial opt-in forecast is derived only, not stored"
         ],
         "eff": [
           "native file read/write and UI Signal"
@@ -561,7 +563,7 @@
         "prov": [
           "Godot 4.7.2 built-in ConfigFile and native consumer",
           "domains/game/mise.toml",
-          "formal/verify_room_arithmetic.py: Z3 4.15.4.0, 16 signed-i64 model obligations, scheduled telegraph and perfect charged parry; two negative falsification controls"
+          "formal/verify_room_arithmetic.py: Z3 4.15.4.0, 17 signed-i64 model obligations, scheduled telegraph and perfect charged parry; two negative falsification controls"
         ],
         "unfold": [
           "examples/room-encounter/encounter_rules.gd",
@@ -581,7 +583,7 @@
       "authority": "Existing EncounterRules owns action admission and game state; native Godot owns SceneTree; this adapter owns only episode I/O and receipt",
       "state": "IMPLEMENTED",
       "inputs": [
-        "Godot-imported room scene and one 0..64 action-name sequence: attack, guard, advance, trial, classic"
+        "Godot-imported room scene and one 0..64 action-name sequence: attack, guard, advance, trial, classic, classic"
       ],
       "outputs": [
         "one prefixed schema_version=2 JSON receipt containing default player-visible native HUD/dialogue observation or explicitly requested privileged debug snapshots, action acceptance, final and terminal state",
@@ -593,7 +595,8 @@
         "Rejected/unknown actions preserve the native rule state; the corresponding player-visible observation remains unchanged; an action-limited input fails",
         "A complete real three-room win produces terminal=true, phase=won",
         "An advance before clearing the room is rejected; every accepted advance activates the actual native Unlock choice, consistent with the independent Human-narrative acceptance",
-        "Agent advance uses the same semantic tagged response port as Human and requires passage_advanced effect event for accepted transition"
+        "Agent advance uses the same semantic tagged response port as Human and requires passage_advanced effect event for accepted transition",
+        "Both native Classic and Trial modes tested with 243 five-step action traces each (486 total); trial/classic Human buttons and Agent commands agree and player observations remain UI-only"
       ],
       "evidence": [
         "examples/room-encounter/agent_episode.gd",
@@ -640,7 +643,8 @@
           "each invocation starts a fresh run and does not access SaveSlot storage",
           "No Agent advance may invoke EncounterRules.advance directly or bypass the Human narrative gate",
           "Dialogue Manager native tagged response owns choice validity; Human and Agent share the selection port",
-          "No Agent action depends on get_child(0), guessed rendered frame count or rule-snapshot inequality; node-ready and native dialogue signals are synchronization boundaries"
+          "No Agent action depends on get_child(0), guessed rendered frame count or rule-snapshot inequality; node-ready and native dialogue signals are synchronization boundaries",
+          "Classic mode remains the original rules; trial mode is explicit Resource opt-in, not a global rule change"
         ],
         "eff": [
           "Godot headless scene instantiation, game Signals, stdout JSON and process termination"

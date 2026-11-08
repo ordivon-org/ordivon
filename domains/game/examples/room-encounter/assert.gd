@@ -228,29 +228,58 @@ func run_acceptance() -> void:
         "Classic button returns to original game tuning")
     expect(view.get_node("Title").text.contains("ORIGINAL"),
         "Human-visible title reflects selected native mode")
+    expect(not rules.snapshot().has("forecast"),
+        "Classic keeps original snapshot schema without trial-only forecast")
+    expect(view.get_node("Encounter").text == "ENCOUNTER: 1 foes | active enemy HP 3",
+        "Classic keeps original brief HUD without trial telegraph")
+    var original_classic: Resource = load("res://configs/default.tres").duplicate(true)
+    original_classic.enemy_health = 100
+    original_classic.attack_damage = 1
+    original_classic.enemy_damage = 3
+    original_classic.player_health = 50
+    expect(not original_classic.tactical_trial, "Classic opt-in false in unchanged default tuning")
+    expect(rules.reset_run(original_classic), "long Classic combat for regression checks")
+    expect(rules.attack() and rules.attack(), "advance Classic turn to the third action")
+    var hp_before_third: int = rules.snapshot()["player_health"]
+    expect(rules.attack(), "third Classic attack accepted")
+    expect(hp_before_third - rules.snapshot()["player_health"] == 3,
+        "third Classic turn has no extra trial strike")
+    expect(rules.reset_run(original_classic), "prepare Classic guard comparison")
+    expect(rules.attack() and rules.attack(), "two Classic attacks before guard")
+    hp_before_third = rules.snapshot()["player_health"]
+    expect(rules.guard(), "third Classic guard accepted")
+    expect(hp_before_third - rules.snapshot()["player_health"] == 2,
+        "third Classic guard keeps tuned block, not perfect trial parry")
+    expect(not rules.checkpoint()["tuning"].has("tactical_trial"),
+        "Classic checkpoint tuning remains backward compatible")
+    expect(rules.reset_run(), "return to original fixture before bounded traces")
 
-    # 3^5 = 243 distinct bounded action sequences through the real rule node.
-    for trace in range(243):
-        expect(rules.reset_run(), "reset canonical resource")
-        var code: int = trace
-        for step in range(5):
-            var action: int = code % 3
-            code = floori(float(code) / 3.0)
-            var state_before: Dictionary = rules.snapshot()
-            var result: bool = false
-            if action == 0:
-                result = rules.attack()
-            elif action == 1:
-                result = rules.guard()
-            else:
-                result = rules.advance()
-            var state_after: Dictionary = rules.snapshot()
-            if result and state_before["phase"] == "fighting" and action < 2:
-                var prediction: Dictionary = state_before["forecast"]
-                var key: String = "attack_health_loss" if action == 0 else "guard_health_loss"
-                expect(state_before["player_health"] - state_after["player_health"] ==
-                    prediction[key], "every accepted native action obeys its pre-action forecast")
-            invariant(state_after)
+    # Run 3^5 bounded native traces under both historical Classic and Trial
+    # without creating a second simulator. 486 total traces.
+    var trace_trial: Resource = load("res://configs/tactical_trial.tres")
+    for trial_variant in range(2):
+        for trace in range(243):
+            expect(rules.reset_run(trace_trial if trial_variant == 1 else null),
+                "reset correct native recipe for bounded traces")
+            var code: int = trace
+            for step in range(5):
+                var action: int = code % 3
+                code = floori(float(code) / 3.0)
+                var state_before: Dictionary = rules.snapshot()
+                var result: bool = false
+                if action == 0:
+                    result = rules.attack()
+                elif action == 1:
+                    result = rules.guard()
+                else:
+                    result = rules.advance()
+                var state_after: Dictionary = rules.snapshot()
+                if result and state_before["phase"] == "fighting" and action < 2 and state_before.has("forecast"):
+                    var prediction: Dictionary = state_before["forecast"]
+                    var key: String = "attack_health_loss" if action == 0 else "guard_health_loss"
+                    expect(state_before["player_health"] - state_after["player_health"] ==
+                        prediction[key], "every accepted native action obeys its pre-action forecast")
+                invariant(state_after)
 
     var damaged := ConfigFile.new()
     damaged.set_value("run", "schema_version", 1)
@@ -273,7 +302,7 @@ func run_acceptance() -> void:
     replacement_clip = null
     await create_timer(0.15).timeout
     if failures.is_empty():
-        print("GAME_ROOM_ENCOUNTER_PASS assertions=%d traces=243" % checks)
+        print("GAME_ROOM_ENCOUNTER_PASS assertions=%d traces=486" % checks)
         quit(0)
     else:
         print("GAME_ROOM_ENCOUNTER_FAIL failures=%d checks=%d" % [failures.size(), checks])
