@@ -52,10 +52,10 @@ side effect before its response was lost. A partial ToolProgram is not atomic.
 | Specification | `tool_program_contract.py`, `agent_tool_observation.py`; `ToolProgramSafetyR1.tla` | Frozen exact-turn grant, pre-admission budget, ordered step outcomes. Source declaration only |
 | Abstract model | `formal/ToolProgramSafetyR1.tla`, `formal/ToolProgramSafetyR1.cfg` | MaxSteps=3, all budgets 0..3, granted/denied, five observation statuses; abstract ToolBridge identity assumed |
 | Independent falsification | `ToolProgramSafetyR1.{unknown,partial,complete}-probe.cfg` | Expected reachable counterexamples: UNKNOWN, non-atomic partial effects, success; probes must fail the **named** deliberately false invariants |
-| Model checking | `mise run formal:tool-program` using Runtime's existing pinned TLC jar | **NOT_RUN** until the command completes on this source; no TLC PASS may be inferred from the TLA file |
-| Implementation refinement | `tests/test_tool_program_model_refinement.py` exercises the **actual** `HarnessToolProgramExecutor` over 1,000 finite cases and compares ToolBridge traces/results | **PASS** on Windows Python 3.12 actual package (6 focused tests overall); pinned 3.15.1 and universal proof remain open |
-| Consumer seam | `tests/test_p2_tool_program_provider_loop.py`, `tests/test_p2_tool_program_recovery.py`, existing Runtime/Gateway and PG fault paths | **20 Windows Python 3.12 Provider/ToolProgram/transport tests PASS**; real external-effect, PG and installed release acceptance not executed |
-| Release / installation | owner `mise run verify`, `mise run pg:verify`, wheel check, source/installed consumer readback | **NOT_RUN** for this change; no merged/installed-current claim |
+| Model checking | `mise run formal:tool-program`, Runtime-pinned TLC 1.7.4 | PASS: native SANY/TLC explored 36 generated / 33 distinct bounded states; 3/3 deliberate false-invariant probes produced the expected counterexample; not universal Python/effect proof |
+| Implementation refinement | `tests/test_tool_program_model_refinement.py` invokes the actual `HarnessToolProgramExecutor` for 1,000 finite combinations | PASS on locked Python 3.15.1, bounded executable differential witness, not proof for arbitrary Tool Bridges |
+| Consumer seam | `tests/test_p2_tool_program_provider_loop.py`, `tests/test_p2_tool_program_recovery.py`, `tests/test_postgres_harness_store.py`, `tests/test_postgres_cli.py` | PASS for native Python 3.15.1 full suite and real isolated PostgreSQL 18.6 (13/13); deployed external effects remain unverified |
+| Release / installation | `mise run verify`, `mise run pg:verify`, offline wheel build and installed CLI readback | PASS for source candidate: official `mise run verify` exit 0, 12 CLI checks, wheel `ordivon_harness-0.6.0-py3-none-any.whl`; production installation NOT_RUN |
 
 **Observed executable defect and remediation:** The original
 `tool_program_resolution._resolve_template` consumed the mutable public
@@ -127,10 +127,12 @@ No new scheduler, generic model router or persistence registry is created.
   20 Provider/ToolProgram/transport tests PASS; 15 selected suites:
   106 PASS, 3 FAIL at old SQLite Store `os.O_NONBLOCK` before the
   intended assertions (95 subtests PASS). The scopes overlap.
-- **Open verification obligations:** Python 3.15.1 locked environment,
-  complete test suite, PG test DSN and real database behavior, SANY/TLC,
-  source-to-wheel publication, deployed consumer read-back. No production
-  deployment, Git merge or full formal proof is claimed on this evidence.
+- **Re-qualified source:** Locked Python 3.15.1, complete tests, native SANY/TLC,
+  real isolated PostgreSQL 18.6, pinned Ruff, `mise run verify`, source-built
+  wheel and isolated installed CLI readback now PASS. Remaining distinct
+  obligations: deployed production PG/Runtime/Gateway/Provider reconciliation,
+  real production consumer readback and domain acceptance. Bounded models are
+  not unbounded Python proofs.
 - **Legacy removal after upstream backend-neutral refactor:** The
   former `ordivon/sqlite_run_store.py`, `ordivon/sqlite_agent_bridge.py` and
   `ordivon/sqlite_runtime_bridge.py` are already gone; `run_continuity.py`,
@@ -140,6 +142,27 @@ No new scheduler, generic model router or persistence registry is created.
   is retired from PG-only CLI. Require native PG evidence and actual installed
   consumer replacement; do not migrate disposable Runtime SQLite data.
 
+## Native qualification — bounded source candidate (2026-11-08)
+
+**Source:** Linux Runtime workspace `ws-gpt6-harness-verification-20261108-r3`,
+imported as an exact SHA-256-verified Git bundle from the Windows candidate.
+Execution-core Ruff corrections were captured in `e8f969ef31b681a3c29575cddda717d85f5b119d`;
+the feature branch was subsequently rebased onto updated upstream main.
+Any subsequent source change requires re-running affected gates.
+
+| Gate | Native evidence / explicit boundary |
+| --- | --- |
+| Python / lock | Python 3.15.1, `uv lock --check --offline` and `uv sync --locked` PASS; pinned Playwright 1.63.0 installed |
+| Static / contracts | Ruff 0.17.2 PASS after two small fixes; CrossHair reported 2 confirmed postconditions in official `mise run verify` |
+| Formal | Runtime-pinned TLC 1.7.4: ToolProgram 33 distinct bounded states and 3/3 negative probes PASS; ProviderClaim 78 states / 5 probes PASS; ConversationBinding 10 states / 3 probes PASS |
+| Full source tests | `mise run verify`: **1,404 PASS, 86 conditional SKIP, 254 subtests PASS**, zero failures, `ResourceWarning` treated as an error |
+| PostgreSQL | Real isolated PostgreSQL **18.6**, local Unix socket and temporary storage, `mise run pg:verify` **13 PASS / 0 SKIP**; stopped and deleted after tests |
+| Release candidate | Official `mise run verify` exit 0: `pip-audit`, doc/evidence/dependency checks, deterministic Agent Run demo, offline-built `ordivon_harness-0.6.0-py3-none-any.whl` with 12 installed CLI checks |
+| Outside tested scope | Production installed revision, physical Provider/Runtime effects and domain acceptance remain **NOT_RUN**; TLC state exploration does not establish arbitrary implementation refinement |
+
+PG integration and the 86 conditional skips belong to separate scopes: do
+not count the skipped tests as passed. Do not treat a source-built installed
+wheel in a temporary environment as production deployment.
 ## Current portable gate
 
 The current release gate includes:
