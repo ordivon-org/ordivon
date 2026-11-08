@@ -1781,5 +1781,46 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
+
+class DataProducerToConsumerImpactTests(unittest.TestCase):
+    """Protect the actual GitHub owner queue from missed Data consumers."""
+
+    def test_capital_odps_change_requires_data_consumer_without_reverse_edge(self) -> None:
+        upstream = MODULE.build_plan(
+            changed_files=["domains/capital/data-products/crypto-public-shadow-r2/odps.json"]
+        )
+        self.assertEqual(upstream["directOwners"], ["capital"])
+        self.assertEqual(upstream["verificationOwners"], ["capital", "data"])
+        self.assertEqual(upstream["taskLocalTestConsumers"], ["data"])
+        self.assertIn("data:verify", upstream["queueVerifyTasks"])
+
+        downstream = MODULE.build_plan(
+            changed_files=["packages/data/src/ordivon_data/odps_projection.py"]
+        )
+        self.assertEqual(downstream["verificationOwners"], ["data"])
+        self.assertNotIn("capital", downstream["taskLocalTestConsumers"])
+
+    def test_test_only_consumer_source_must_be_actual_exact_registered_file(self) -> None:
+        policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+        source = 'source_glob = "packages/data/tests/test_odps_projection.py"'
+        self.assertEqual(policy.count(source), 1)
+        with tempfile.TemporaryDirectory() as temp:
+            target = Path(temp) / "contract.toml"
+            for fake in (
+                "packages/data/tests/*.py",
+                "packages/data/tests/nonexistent.py",
+                "packages/data/README.md",
+            ):
+                with self.subTest(fake=fake):
+                    target.write_text(
+                        policy.replace(source, f'source_glob = "{fake}"'),
+                        encoding="utf-8",
+                    )
+                    with self.assertRaisesRegex(
+                        ValueError, "unapproved test-only source contract"
+                    ):
+                        MODULE.load_dependency_graph(path=target)
+
+
 if __name__ == "__main__":
     unittest.main()

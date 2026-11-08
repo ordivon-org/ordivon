@@ -115,8 +115,28 @@ For this source cut, the producer-owned Finance JSON and Episode manifest are
 both Git-tracked with matching SHA-256 declarations and can be VERIFIED.
 The rebuildable Episode Parquet file is **not** present in Git, so remains
 UNKNOWN. The strict `--require-verified` gate appropriately refuses to
-declare the *whole* catalog publishable with that unbound port. The optional
-binding is a current observation: consumers must read back the file against
+declare the *whole* catalog publishable with that unbound port.
+
+For a consumer that reads **only one** verified product output, use a
+version-bound port-specific gate; the full catalog still reports
+`NOT_ESTABLISHED` when another port is unbound:
+
+```sh
+python3 packages/data/scripts/inspect_federation.py \
+  --catalog /tmp/ordivon-qualified-products.jsonld \
+  --verify-local \
+  --require-port 4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b 1.0.0 \
+    urn:uuid:4664e208-2cdc-5d4f-a83d-e70e187b046a
+```
+
+`selectedPortIntegrityGate=PASS` means the exact selected product,
+version and distribution passed the current scoped digest check; it is
+**not** full product publication or proof about other output ports, rights,
+freshness or scientific quality. Unknown/wrong-version port selections
+exit 3; evidence mismatch exits 2. Unrelated observed falsification also
+blocks the CLI rather than silently admitting a partially corrupted catalog.
+
+The optional binding is a current observation: consumers must read back the file against
 its declared digest before using it, since mutable pathnames can change.
 Never persist this ephemeral local URI as the canonical cross-host identity.
 
