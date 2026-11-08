@@ -68,6 +68,29 @@ The existing `.agents/skills/artifact-work/SKILL.md` is the Agent method entrypo
 5. Invoke optional Trust, Temporal, OCI, transfer and publication capabilities only when the consumer needs them and through the actual effect Owner. A Job exit, signed bundle or uploaded file is not itself domain acceptance.
 6. Return scoped OBSERVED / VERIFIED / UNKNOWN / FALSIFIED evidence; distinguish current source, installed provider and consumer readback. Never remove source solely because a static filename search found no references.
 
+## Consumer-accepted workflows: current source contract
+
+A `consumer.id` in a request only names the intended caller; it does **not** execute that caller. For each common artifact operation, use the native format producer, Artifact verification service, then an independently executed consuming reader/application:
+
+| Consumer use | Native producer | Profile verifier | Separate readback | What still is not proven |
+| --- | --- | --- | --- | --- |
+| Game/runtime PCM asset | Python standard `wave` writer for fixture | libsndfile, FFprobe, SoX, FFmpeg WAVE matrix | `wave.open` sample/frame readback | Sound design, actual Bevy/Godot load, gameplay suitability |
+| Media FLAC interchange | Reference `flac` encoder | FLAC full-stream + FFmpeg independent decode | FFmpeg decoded-PCM bytes readback | Mastering, copyright, playback quality |
+| Still-image display | Pillow PNG writer with explicit sRGB chunk | pngcheck, ExifTool, ImageMagick/libvips | Pillow image dimensions and pixels | Aesthetics, accessibility, production display |
+| Research/Finance flat dataset | PyArrow Parquet writer | PyArrow/DuckDB cross-reader | DuckDB ordered query and row readback | Data origin, statistical validity, financial correctness |
+
+The actual executable examples and negative controls are `tests/test_artifact_consumer_acceptance.py`. The Skill's Human/Agent guide is `.agents/skills/artifact-work/references/consumer-acceptance.md`.
+
+**Evidence boundary:** `scripts/artifact_verify.py` now records `requiredEvidenceAssessment` and `profileVerificationComplete`, separate from native verifier `status`. The existing `artifact-delivery/capability-bindings-v1.json` is the **single** operation/profile binding authority; `requireClaimResults` is enabled for native FLAC, WAVE and PNG, where explicit claimResults have been qualified. For these bindings, a native overall PASS without exact required claims and matching native-status pointers is a service FAIL. For as-yet unconverted formats such as Parquet, legacy native PASS is preserved but `profileVerificationComplete=false`; do not market that as complete claim-level validation.
+
+Do not introduce a new `consumer registry` or a mandatory OCI/attestation stage merely because an artifact has multiple readers. Consumers own domain acceptance and deployment proof.
+
+## Formal-first verification and genuine test retirement
+
+The normative **safety property** is “a missing/unknown/failed or self-witnessing required claim cannot become complete Profile evidence.” The pure evaluator and its bounded executable refinement checker are `artifact_verification/claim_coverage.py` and `artifact_verification/formal/verify_claim_coverage.py`. The mathematical statement, source/proof bridge, limitations, Human/Agent guidance, and test-retirement argument are in `docs/ARTIFACT_CLAIM_COVERAGE_FORMAL_R1.md`.
+
+Both `mise run verify` and `mise run queue` run this finite model check for real FLAC/WAVE/PNG Profile key sets, followed by necessary physical/consumer tests. Its finite PASS does **not** prove all JSON shapes, arbitrary provider outputs or consumer behavior. Four pure illustrative tests were removed once the stronger abstract-state cross-product checker replaced their explicit cases; real decoder, negative-admission, native file readback and end-to-end checks remain.
+
 ## Mature external LEGO suppliers: reuse, do not reimplement
 
 | Concern | Existing mature semantics/providers to qualify |

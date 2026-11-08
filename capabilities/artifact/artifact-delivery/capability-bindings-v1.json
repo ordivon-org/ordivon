@@ -4,6 +4,7 @@
   "bindings": [
     {
       "profileId": "audio-flac-pcm16-r1",
+      "requireClaimResults": true,
       "operation": "verify",
       "capabilityId": "artifact.audio.flac.verify",
       "entrypoint": {
@@ -28,6 +29,7 @@
     },
     {
       "profileId": "audio-wave-pcm16-r1",
+      "requireClaimResults": true,
       "operation": "verify",
       "capabilityId": "artifact.verify.audio-wave-pcm16-r1",
       "entrypoint": {
@@ -196,6 +198,7 @@
     },
     {
       "profileId": "still-image-png-srgb-r1",
+      "requireClaimResults": true,
       "operation": "verify",
       "capabilityId": "artifact.verify.still-image-png-srgb-r1",
       "entrypoint": {

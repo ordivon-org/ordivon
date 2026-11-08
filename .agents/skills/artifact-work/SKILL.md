@@ -25,6 +25,14 @@ Use mature native formats, standards, tools, and validators. Do not invent an Or
 9. **Keep external publication separate.** Upload/publish/provider effects belong to the applicable Distribution/provider capability and its own authority/read-back rules.
 10. **Return bounded standing and evidence.** State exactly what passed, what remains unverified, and which evidence supports the result.
 
+## Formal-first evidence sufficiency
+
+For claim completeness and no-false-PASS promotion, read [Artifact formal claim coverage](../../../capabilities/artifact/docs/ARTIFACT_CLAIM_COVERAGE_FORMAL_R1.md). Source-bound Profile claim sets are checked by the native finite model checker; native tools and consuming applications still require real readback. The `recursive-lego-calculus` Skill owns the general compositional/formal method, not this Artifact Skill.
+
+## Cross-family consumer acceptance
+
+- Real native output, verification evidence and independent consumer readback: [references/consumer-acceptance.md](references/consumer-acceptance.md). Use for build/verify/consume workflows; do not infer domain acceptance from a request's consumer ID.
+
 ## Family references
 
 - Presentation / PPTX / PowerPoint: [references/presentation.md](references/presentation.md)
