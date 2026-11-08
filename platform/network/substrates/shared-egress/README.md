@@ -75,6 +75,16 @@ shared-forwarding dependency on the Browserless legacy target.
 Production installation requires native source/install/loaded-unit readback;
 the static closure is not a substitute for a real cold recovery test.
 
+## Cold-boot independence from external network availability
+
+The shared namespace/veth Unit creates a **local kernel topology** and does
+not need DNS, a WAN default route, a VPN handshake, or `network-online.target`.
+The systemd native network-online synchronization point is intentionally
+absent from this Unit: external network outages must not block creation of
+the local substrate. This is a startup-order refinement only, not a change
+to Provider readiness or a claim that applications have Internet access.
+The existing Carrier and Consumer verifiers remain the liveness authority.
+
 ## Non-destructive namespace lifecycle (native systemd + iproute2)
 
 `network-v2-browserless-netns.service` remains the same installed identity,
