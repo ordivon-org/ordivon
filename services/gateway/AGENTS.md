@@ -112,3 +112,13 @@ downstream Owner PEP. All `downstreamAuthorization` entries are explicitly
 one Runtime Artifact does not authorize Host mutations or Runtime execution.
 Before promoting a release, check the deployed HTTP entrypoint, real trusted
 request state, and Owner-side authorization independently.
+
+## Host upstream identity after Host HTTP hardening
+
+Gateway's Host owner endpoint now requires a configured credential
+(`ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE`) before it is projected as
+configured/available. Use the private-file loader on each outgoing request;
+Host must independently verify that same credential with its native MCP
+HTTP bearer middleware. This protects the transport; the caller-supplied
+`actorRef` is not a verified Human or Agent identity, and no Host
+object-level allow should be inferred from connection success.

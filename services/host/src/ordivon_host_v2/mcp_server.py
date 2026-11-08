@@ -4,10 +4,12 @@ import os
 from importlib.metadata import version as package_version
 from typing import Literal
 
+import uvicorn
 from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 
 from .contracts import HostStatusResponse
+from .http_identity import protect_host_http_app
 from .mcp_tool_registration import register_social_work_tools
 from .service import HostV2
 
@@ -67,10 +69,8 @@ def main() -> None:
         allowed_hosts.append(parsed.netloc)
         allowed_origins.append(canonical_public_origin)
 
-    server.run(
-        transport="streamable-http",
+    app = server.streamable_http_app(
         host=host,
-        port=port,
         streamable_http_path=path,
         stateless_http=True,
         json_response=True,
@@ -81,3 +81,22 @@ def main() -> None:
             allowed_origins=allowed_origins,
         ),
     )
+
+    # Host is the enforcement boundary for its own HTTP network ingress:
+    # Gateway authorization does not protect a directly reachable Host port.
+    # STDIO remains a separate operator-local transport contract.
+    credential_file = os.environ.get("ORDIVON_HOST_V2_BEARER_TOKEN_FILE", "").strip()
+    if not credential_file:
+        raise RuntimeError(
+            "Host HTTP requires ORDIVON_HOST_V2_BEARER_TOKEN_FILE: "
+            "an operator-managed credential shared with Gateway's Host client"
+        )
+    resource_host = "127.0.0.1" if host == "localhost" else host
+    host_literal = f"[{resource_host}]" if ":" in resource_host else resource_host
+    resource_url = f"http://{host_literal}:{port}{path}"
+    protected = protect_host_http_app(
+        app,
+        credential_file=credential_file,
+        resource_url=resource_url,
+    )
+    uvicorn.run(protected, host=host, port=port, log_level="info")
