@@ -147,6 +147,9 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
     let mut command = Command::new("systemd-run");
     command
         .arg(format!("--unit={unit_name}"))
+        // Matches NodeResources measurement of system.slice and its ancestors.
+        // Make the target explicit instead of relying on systemd-run defaults.
+        .arg("--slice=system.slice")
         .arg("--no-block")
         .args([
             "--property=Type=exec",
@@ -168,6 +171,41 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
         command.arg(format!("--property=CPUQuota={cpu_quota_percent}%"));
     }
 
+    if let Some(schedule) = &budget.scheduling {
+        command.arg(format!(
+            "--property=CPUWeight={}",
+            (schedule.resources.cpu_millis / 10).clamp(1, 10000)
+        ));
+        if let Some(high) = schedule.memory_high_bytes {
+            command.arg(format!("--property=MemoryHigh={high}"));
+        }
+        if let Some(weight) = schedule.io_weight {
+            command.arg(format!("--property=IOWeight={weight}"));
+        }
+        let access = &schedule.workspace_access;
+        if access.read_only || !access.write_paths.is_empty() {
+            let mut readonly = vec![systemd_path_value(workspace_path)?];
+            if let Some(common) = workspace_git_common_dir {
+                readonly.push(systemd_path_value(common)?);
+            }
+            command.arg(format!("--property=ReadOnlyPaths={}", readonly.join(" ")));
+            let mut writes = Vec::new();
+            for relative in &access.write_paths {
+                let path = fs::canonicalize(workspace_path.join(relative))
+                    .map_err(|e| io_error("resolve scoped write directory", e))?;
+                if !path.starts_with(workspace_path) {
+                    return Err(RuntimeError::invalid(
+                        "write path escaped Workspace",
+                        "execution.budget.scheduling.workspaceAccess",
+                    ));
+                }
+                writes.push(systemd_path_value(&path)?);
+            }
+            if !writes.is_empty() {
+                command.arg(format!("--property=ReadWritePaths={}", writes.join(" ")));
+            }
+        }
+    }
     match execution_profile {
         crate::runtime::ExecutionProfile::TrustedLocal => {
             append_trusted_environment(&mut command);
@@ -666,7 +704,11 @@ pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopu
     let root = Path::new("/sys/fs/cgroup").join(control_group.trim_start_matches('/'));
     match fs::metadata(&root) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            return Ok(CgroupPopulation::Removed);
+            return Ok(if cgroup_removed(control_group)? {
+                CgroupPopulation::Removed
+            } else {
+                CgroupPopulation::Unknown
+            });
         }
         Err(error) => return Err(io_error("inspect cgroup", error)),
         Ok(metadata) if !metadata.is_dir() => {
@@ -704,6 +746,26 @@ pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopu
             }
         }
         Err(error) => Err(io_error("read cgroup population", error)),
+    }
+}
+
+/// A vanished path is positive evidence only if cgroup2 is mounted.
+pub(crate) fn cgroup_removed(control_group: &str) -> RuntimeResult<bool> {
+    let root = std::ffi::CString::new("/sys/fs/cgroup").expect("static cgroup root");
+    let mut info = std::mem::MaybeUninit::<libc::statfs>::uninit();
+    // SAFETY: NUL-terminated root and initialized output only on success.
+    if unsafe { libc::statfs(root.as_ptr(), info.as_mut_ptr()) } != 0 {
+        return Ok(false);
+    }
+    // SAFETY: statfs initialized info on successful return.
+    if unsafe { info.assume_init() }.f_type != libc::CGROUP2_SUPER_MAGIC {
+        return Ok(false);
+    }
+    let path = Path::new("/sys/fs/cgroup").join(control_group.trim_start_matches('/'));
+    match fs::symlink_metadata(path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(true),
+        Ok(_) => Ok(false),
+        Err(error) => Err(io_error("observe cgroup disappearance", error)),
     }
 }
 
@@ -780,6 +842,79 @@ fn tool_error(context: &str, error: std::io::Error) -> RuntimeError {
         None,
         true,
     )
+}
+
+/// Kernel notifications are wake-up hints only; callers re-read durable state.
+/// Inotify covers Result publication and output growth; cgroup.events covers
+/// process-tree population. A bounded fallback handles watch setup races.
+#[cfg(feature = "postgres-registry-admission")]
+pub(crate) fn wait_for_attempt_change(bundle: &Path, control_group: Option<&str>, wait: Duration) {
+    use std::io::Read;
+    use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+    let wait = wait.min(Duration::from_secs(1));
+    if wait.is_zero() {
+        return;
+    }
+    // SAFETY: no pointers; a successful descriptor is transferred to OwnedFd.
+    let raw = unsafe { libc::inotify_init1(libc::IN_CLOEXEC | libc::IN_NONBLOCK) };
+    let inotify = if raw >= 0 {
+        Some(unsafe { OwnedFd::from_raw_fd(raw) })
+    } else {
+        None
+    };
+    let mut descriptors = Vec::new();
+    if let (Some(fd), Some(path)) = (
+        &inotify,
+        bundle.to_str().and_then(|p| std::ffi::CString::new(p).ok()),
+    ) {
+        // SAFETY: fd is live, path NUL terminated and the mask is valid.
+        if unsafe {
+            libc::inotify_add_watch(
+                fd.as_raw_fd(),
+                path.as_ptr(),
+                libc::IN_MODIFY | libc::IN_MOVED_TO | libc::IN_CREATE | libc::IN_DELETE,
+            )
+        } >= 0
+        {
+            descriptors.push(libc::pollfd {
+                fd: fd.as_raw_fd(),
+                events: libc::POLLIN,
+                revents: 0,
+            });
+        }
+    }
+    let mut events = control_group
+        .filter(|path| cgroup_population(path).is_ok())
+        .and_then(|path| {
+            fs::File::open(
+                Path::new("/sys/fs/cgroup")
+                    .join(path.trim_start_matches('/'))
+                    .join("cgroup.events"),
+            )
+            .ok()
+        });
+    if let Some(file) = events.as_mut() {
+        let mut initial = String::new();
+        if file.read_to_string(&mut initial).is_ok() {
+            descriptors.push(libc::pollfd {
+                fd: file.as_raw_fd(),
+                events: libc::POLLPRI | libc::POLLERR,
+                revents: 0,
+            });
+        }
+    }
+    if descriptors.is_empty() {
+        thread::sleep(wait.min(Duration::from_millis(250)));
+        return;
+    }
+    // SAFETY: descriptors and their backing Files stay alive through poll.
+    let _ = unsafe {
+        libc::poll(
+            descriptors.as_mut_ptr(),
+            descriptors.len() as libc::nfds_t,
+            wait.as_millis().min(i32::MAX as u128) as i32,
+        )
+    };
 }
 
 #[cfg(test)]
@@ -900,6 +1035,7 @@ mod tests {
         })
         .unwrap();
         assert!(command.get_args().any(|arg| arg == "--no-block"));
+        assert!(command.get_args().any(|arg| arg == "--slice=system.slice"));
     }
 
     #[test]

@@ -1579,6 +1579,7 @@ fn runner_rejects_workspace_source_drift_before_spawning_target() {
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1638,6 +1639,7 @@ fn runner_projects_private_build_target_through_stable_inherited_fd() {
     .unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1698,6 +1700,7 @@ fn runner_rejects_host_dependency_drift_before_spawning_target() {
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1765,6 +1768,7 @@ fn runner_fails_when_host_dependency_drifts_after_target_start() {
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1856,6 +1860,7 @@ fn runner_ignores_ancestor_metadata_event_when_host_dependency_identity_is_uncha
     let task_dir = sandbox.root.join("task-host-dependency-ancestor-metadata");
     fs::create_dir_all(&task_dir).unwrap();
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1944,6 +1949,7 @@ fn runner_ignores_ancestor_metadata_event_when_executable_identity_is_unchanged(
     let task_dir = sandbox.root.join("task-script-ancestor-metadata");
     fs::create_dir_all(&task_dir).unwrap();
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -2033,6 +2039,7 @@ fn runner_fails_when_symlinked_executable_target_is_modified_in_place() {
     let task_dir = sandbox.root.join("task-symlink-target-runtime-modify");
     fs::create_dir_all(&task_dir).unwrap();
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -2110,6 +2117,7 @@ fn runner_preserves_shebang_path_semantics_but_fails_on_runtime_executable_drift
     let task_dir = sandbox.root.join("task-script-runtime-drift");
     fs::create_dir_all(&task_dir).unwrap();
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -2194,6 +2202,7 @@ fn runner_rejects_immutable_input_drift_before_spawning_target() {
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -2261,6 +2270,7 @@ fn runner_rejects_undeclared_input_directory_before_spawning_target() {
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -3534,6 +3544,7 @@ fn runner_executes_model_authored_script_and_bounds_output() {
     .unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -3598,6 +3609,7 @@ fn runner_shared_overall_deadline_is_independent_of_step_timeout_sum() {
         continue_on_error: false,
     };
     let fast = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -3668,6 +3680,7 @@ fn runner_timeout_is_a_durable_failed_result() {
     fs::write(workspace.join("tool.py"), "import time\ntime.sleep(5)\n").unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -3710,6 +3723,7 @@ fn runner_timeout_terminates_descendant_pipe_holders_before_result() {
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/bash");
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -4111,6 +4125,7 @@ fn resource_receipt_writer_binds_attempt_identity_and_writes_separate_file() {
     .unwrap();
     let executable = real_executable("/usr/bin/true");
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: Some("job-resource-receipt".to_string()),
         attempt_id: Some("attempt-resource-receipt".to_string()),
@@ -4169,6 +4184,7 @@ fn runner_result_wire_shape_remains_legacy_with_best_effort_resource_observation
     fs::create_dir_all(&workspace).unwrap();
     let executable = real_executable("/usr/bin/true");
     let request = RunnerRequest {
+        workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: Some("job-separate-resource-receipt".to_string()),
         attempt_id: Some("attempt-separate-resource-receipt".to_string()),

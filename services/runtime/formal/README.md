@@ -442,3 +442,55 @@ Earlier notes in this file described the new Kani and native PG tests as **UNRUN
 - `scripts/tla-formal bootstrap` verified upstream-locked TLC 1.7.4 bytes; `scripts/tla-formal verify` **PASS**.
 
 Scope: Kani proves the bounded production classifier, not authenticity of kernel observation or SQL atomicity. TLC proves its finite transition system, not compiled Rust refinement; the native PG integration test is complementary. As of this source qualification no installed production release of the new source is proven.
+
+### 2026-11-08 native recovery implementation
+
+The production classifier now accepts either an observed unpopulated cgroup or
+positive path removal from a verified mounted cgroup2 filesystem. A missing or
+unreadable population interface alone remains UNKNOWN. A nonempty population
+always holds, even if another input claims removal. The caller binds the exact
+Job/Attempt, launch token, Unit, InvocationID (when retained), cgroup and admitted
+Runner digest. Loaded inactive/failed Units and collected Units are distinguished.
+
+In the original resource-scheduler candidate, Kani ran a separate
+no_lost_resolution_without_complete_native_evidence harness. The 2026-11-08
+mainline integration retains the previously verified mainline production
+native_stop_releases_only_with_qualified_os_evidence harness and its
+four-state cgroup observation contract. These are distinct source revisions:
+the candidate proof must NOT be represented as proof of the integrated
+production function. Rerun the retained mainline harness on integrated HEAD
+before formal acceptance. OS observation truth remains outside a pure proof.
+The seven disposable PG/systemd MCP tests were explicitly executed and passed.
+The cancellation test now stops observing after requesting cancellation and checks
+PG convergence from the service-owned recovery worker before making another
+`job.observe` call. Strict Clippy including MCP test targets passed.
+
+The immutable native receipt includes its own finish timestamp, so exact retries
+reuse the same Artifact metadata after a lost PG COMMIT acknowledgement. Receipt
+publication is serialized with an OS file lock; PG terminal and reservation
+release still use the existing atomic transaction. `resultAvailable` is false for
+OS-only LOST evidence in list, detail and observation projections.
+
+These checks do not qualify resource scheduling, persistent pending queues,
+Workspace concurrency or Windows PG cutover. They remain separate acceptance
+obligations from native cancellation convergence.
+
+
+The pre-dispatch cancellation branch is separately qualified by the real PG
+admission/CAS contract: a committed stop intent on an `accepted` Attempt blocks
+eligible_attempt, and terminalization compares the same Attempt row version.
+The native MCP test now directly admits an unissued Attempt and checks a
+cancelled terminal projection, no execution Result and zero dispatch events.
+This SQL/consumer property is not included in the pure native-stop Kani claim.
+
+
+The issued-work recovery query excludes natural `accepted` Attempts, preserving
+the existing dispatch boundary. A real native test restarts the MCP process while
+a systemd Runner Unit executes, obtains terminal success without client observe,
+and checks the dispatch count remains one. Recovery is separate from scheduling
+new accepted work; these tests do not qualify a pending queue or resource policy.
+
+
+### Resource queue R1
+
+`RuntimeResourceQueueR1.tla/.cfg`: three Jobs, finite resource supply and Workspace read/write conflicts. TLC explored 5,221 states (1,080 distinct, depth 19) without invariant violations. Checked properties: capacity, pending owns no physical allocation, active conflicting writers excluded, one native dispatch, cancellation retains allocations until exit evidence, and restart preserves durable state. This is bounded safety, not a fairness/liveness proof. `resource_fit.rs` Kani harness checks all finite integer inputs against a u128 specification (one harness, three reachability covers). The production claim transaction invokes this function under the PG advisory transaction lock; real PG CAS tests and `pg_vertical` native tests remain required.

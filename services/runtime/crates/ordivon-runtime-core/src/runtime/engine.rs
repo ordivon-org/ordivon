@@ -1719,6 +1719,7 @@ mod trusted_systemd_command_tests {
             memory_max_bytes: Some(512 * 1024 * 1024),
             tasks_max: Some(64),
             cpu_quota_percent: Some(250),
+            scheduling: None,
         };
         let environment = BTreeMap::new();
         let command = build_systemd_run_command(&SystemdRunSpec {
