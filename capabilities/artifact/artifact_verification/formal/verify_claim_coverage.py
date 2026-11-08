@@ -1,8 +1,9 @@
 """Bounded, executable refinement check for Artifact required-evidence promotion.
 
-SPEC: successful profile evidence iff every *declared* claim has an explicit
-PASS and matching independent native status witness. The claim record itself
-is never a native witness.
+SPEC: successful profile evidence iff every mandatory (required=True) claim
+has an explicit PASS and matching native status witness. Optional claims do not
+strengthen the mandatory gate; malformed or all-optional declarations fail
+closed. A claim record cannot be its own native witness.
 
 MODEL: full Cartesian product of six abstract claim states over the real
 FLAC/WAVE/PNG required-evidence key sets (7/5/4 claims respectively).
@@ -114,6 +115,31 @@ def check_profile(profile_id: str) -> dict:
     assert not assess_required_evidence(profile, good)["complete"]
     assert not assess_required_evidence(profile, {"status": "PASS"})["complete"]
     assert not assess_required_evidence({"requiredEvidence": {}}, good)["complete"]
+
+    # Outside the equal-size real Profile state products, independently test
+    # the optional-vs-required interpretation and malformed declaration gates.
+    mixed = {"requiredEvidence": {
+        "mandatory": {"required": True}, "optional": {"required": False}
+    }}
+    native = {
+        "status": "PASS",
+        "observed": {"mandatory": {"status": "PASS"}},
+        "claimResults": {"mandatory": {
+            "status": "PASS", "nativePointers": ["/observed/mandatory"]
+        }},
+    }
+    assessed = assess_required_evidence(mixed, native)
+    assert assessed["complete"] and assessed["expectedClaims"] == ["mandatory"]
+    native["claimResults"]["optional"] = {"status": "FAIL"}
+    assert assess_required_evidence(mixed, native)["complete"]
+    native["claimResults"]["undeclared"] = {"status": "PASS"}
+    assert not assess_required_evidence(mixed, native)["complete"]
+    assert not assess_required_evidence(
+        {"requiredEvidence": {"mandatory": {"required": "true"}}}, native
+    )["complete"]
+    assert not assess_required_evidence(
+        {"requiredEvidence": {"optional": {"required": False}}}, native
+    )["complete"]
 
     return {
         "profileId": profile_id,

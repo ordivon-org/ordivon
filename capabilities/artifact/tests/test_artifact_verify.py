@@ -8,6 +8,7 @@ import tempfile
 import unittest
 import zlib
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 MONOREPO_ROOT = ROOT.parents[1]
@@ -86,6 +87,40 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         mod = M.load_function("scripts/artifact_still_image.py", "verify_png_srgb")[0]
         # Importing through the service is enough; delegate itself reports tool absence.
         self.assertTrue(callable(mod))
+
+    def test_verifier_digest_identifies_executed_source_not_replaced_path(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            scripts = root / "scripts"
+            scripts.mkdir()
+            entrypoint = scripts / "self_modifying.py"
+            original = (
+                "from pathlib import Path\n"
+                "Path(__file__).write_text("
+                "'def verify(*_args):\\n    return {\\\"status\\\": \\\"AFTER\\\"}\\n')\n"
+                "def verify(*_args):\n"
+                "    return {'status': 'BEFORE'}\n"
+            )
+            entrypoint.write_text(original)
+            with mock.patch.object(M, "ROOT", root):
+                function, observed_sha = M.load_function("scripts/self_modifying.py", "verify")
+            self.assertEqual(function()["status"], "BEFORE")
+            self.assertEqual(observed_sha, hashlib.sha256(original.encode()).hexdigest())
+            self.assertNotEqual(observed_sha, sha(entrypoint))
+            self.assertIn("AFTER", entrypoint.read_text())
+
+    def test_verifier_entrypoint_rejects_untrusted_paths(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "scripts").mkdir()
+            outside = root / "outside.py"
+            outside.write_text("def verify(): return {'status': 'PASS'}")
+            (root / "scripts" / "redirect.py").symlink_to(outside)
+            with mock.patch.object(M, "ROOT", root):
+                for relative in ("../outside.py", str(outside), "scripts/redirect.py"):
+                    with self.subTest(relative=relative):
+                        with self.assertRaises(ValueError):
+                            M.load_function(relative, "verify")
 
     def test_exact_still_image_request_delegates_and_digest_binds_result(self):
         self.require_png_tools()

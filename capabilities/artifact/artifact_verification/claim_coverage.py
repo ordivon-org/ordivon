@@ -32,10 +32,10 @@ def assess_required_evidence(
     profile: dict[str, Any],
     native_result: dict[str, Any],
 ) -> dict[str, Any]:
-    """Return explicit completeness and counterevidence; never infer from overall status.
+    """Report mandatory claim completeness without upgrading optional observations.
 
-    PASS/FAIL claims must point at a native result node with the *same* status.
-    NOT_EVALUATED is not treated as FAIL or PASS: incomplete claims stay unknown.
+    PASS/FAIL required claims need matching native status witnesses; missing or
+    NOT_EVALUATED required claims cannot establish completeness.
     """
     required = profile.get("requiredEvidence")
     if not isinstance(required, dict) or not required:
@@ -47,7 +47,32 @@ def assess_required_evidence(
             "issues": ["profile does not declare requiredEvidence"],
         }
 
-    expected = sorted(required)
+    malformed = [
+        str(name)
+        for name, declaration in required.items()
+        if not isinstance(declaration, dict)
+        or type(declaration.get("required")) is not bool
+    ]
+    if malformed:
+        return {
+            "status": "INVALID_DECLARATION",
+            "complete": False,
+            "expectedClaims": [],
+            "claimStatuses": {},
+            "issues": [f"invalid requiredEvidence declaration: {name}" for name in malformed],
+        }
+
+    # v2 Profiles can also request optional observations. An optional FAIL or
+    # NOT_EVALUATED remains in the raw result, not in mandatory completeness.
+    expected = sorted(name for name, declaration in required.items() if declaration["required"])
+    if not expected:
+        return {
+            "status": "NOT_DECLARED",
+            "complete": False,
+            "expectedClaims": [],
+            "claimStatuses": {},
+            "issues": ["profile declares no mandatory requiredEvidence claims"],
+        }
     raw = native_result.get("claimResults")
     if not isinstance(raw, dict):
         return {

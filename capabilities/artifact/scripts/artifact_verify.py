@@ -70,16 +70,40 @@ def resolve_request_path(raw: str) -> Path:
 
 
 def load_function(relative: str, name: str) -> tuple[Callable[..., dict[str, Any]], str]:
-    path = ROOT / relative
+    """Execute exactly the entrypoint source bytes identified in the receipt.
+
+    This is only entrypoint-source identity, not an import closure, interpreter
+    attestation, or a digest of external FFmpeg/Office/native tools.
+    """
+    candidate = Path(relative)
+    if (
+        candidate.is_absolute()
+        or not candidate.parts
+        or candidate.parts[0] != "scripts"
+        or ".." in candidate.parts
+        or candidate.suffix != ".py"
+    ):
+        raise ValueError(f"invalid Artifact verifier entrypoint path: {relative}")
+    scripts_root = (ROOT / "scripts").resolve(strict=True)
+    path = (ROOT / candidate).resolve(strict=True)
+    if scripts_root not in path.parents or not path.is_file():
+        raise ValueError(f"Artifact verifier entrypoint escapes scripts authority: {relative}")
+
+    # Importlib's ordinary source loader may re-open the file or load a pyc.
+    # Compile and execute the *same captured bytes* used for the SHA-256 fact.
+    # If the source path changes during module execution, the returned digest
+    # still identifies what was compiled, not what later occupied that path.
+    source = path.read_bytes()
+    source_sha256 = hashlib.sha256(source).hexdigest()
     spec = importlib.util.spec_from_file_location("artifact_verify_delegate_" + path.stem, path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load verifier module: {relative}")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    exec(compile(source, str(path), "exec", dont_inherit=True), module.__dict__)
     fn = getattr(module, name, None)
     if not callable(fn):
         raise RuntimeError(f"verifier function missing: {relative}:{name}")
-    return fn, sha256_file(path)
+    return fn, source_sha256
 
 
 def verify_request(request_path: Path) -> dict[str, Any]:
@@ -239,7 +263,14 @@ def verify_request(request_path: Path) -> dict[str, Any]:
             "subject": {"path": str(subject_path), "sha256": subject_sha, "size": subject_size},
             "objectContract": contract_fact,
             "capabilityBinding": {"path": str(binding.standing_path), "sha256": binding.standing_sha256, "standing": binding.standing},
-            "verifier": {"path": verifier_relative, "sha256": verifier_sha, "function": verifier_name, "capabilityId": binding.capability_id},
+            "verifier": {
+                "path": verifier_relative,
+                "sha256": verifier_sha,
+                "function": verifier_name,
+                "capabilityId": binding.capability_id,
+                "sourceIdentityScope": "EXECUTED_ENTRYPOINT_SOURCE_BYTES",
+                "dependencyClosure": "NOT_ATTESTED",
+            },
             "consumer": request.get("consumer"),
             "verification": delegated,
             "inputIdentity": {
@@ -268,7 +299,10 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 "formats retain admission-time identity only. Native reports "
                 "with contradictory Profile/subject/contract identity are "
                 "never promoted; missing fields are NOT_EVALUATED on legacy "
-                "bindings. No service result establishes consuming-application "
+                "bindings. The verifier source digest binds exactly the executed "
+                "entrypoint source bytes, not imported modules, interpreter, "
+                "native tools, or complete execution environment. "
+                "No service result establishes consuming-application "
                 "acceptance, publication, "
                 "deployment, or Profile-v2 production promotion."
             ),

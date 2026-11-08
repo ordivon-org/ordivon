@@ -110,6 +110,17 @@ later consumer opened; consumers must hash their actual inputs. A process
 holding the same principal may still modify private files; no process-isolation
 claim is made. See `tests/test_artifact_input_snapshot.py`.
 
+**Provider entrypoint identity:** The verification service loads each native
+Python verifier from one captured source byte sequence, computes the digest
+from those same bytes, and records `EXECUTED_ENTRYPOINT_SOURCE_BYTES`.
+An on-import edit can no longer make the reported digest describe different
+source than the executed function. This is a bounded source-identity claim:
+the interpreter, imported Python modules, native executables, environment,
+and complete dependency closure remain `NOT_ATTESTED`. Follow Nix-style
+explicit inputs when a real consumer needs reproducible execution; do not
+conflate historical binding qualification with live provider observation.
+See `tests/test_artifact_verify.py`.
+
 **Native result identity:** `artifact_verification/native_identity.py` checks
 reported Profile ID, subject SHA-256/size and object-contract SHA-256 against
 the admitted input commitments. Contradictions reject service `PASS`, while
