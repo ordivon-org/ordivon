@@ -239,3 +239,62 @@ def test_sdk_list_after_completed_owner_call_preserves_observation_uncertainty(
         and "phase=sdk_client_call_cancelled" in rec.message
         for rec in caplog.records
     )
+
+
+@pytest.mark.parametrize("bad_schema_version", [True, 1.0, "1", False, None])
+def test_typed_runtime_status_read_requires_literal_integer_schema_version(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    bad_schema_version: object,
+) -> None:
+    """Python bool/int equality must never select the reduced SDK path."""
+    observed: list[str] = []
+
+    class FakePool:
+        async def aclose(self) -> None:
+            pass
+
+    class FakeClient:
+        def __init__(self, transport, *, mode, raise_exceptions):
+            assert mode == "2026-07-28"
+            assert not raise_exceptions
+            self.session = self
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *unused):
+            return False
+
+        async def send_request(self, request, response_type):
+            raise AssertionError("non-literal schemaVersion must not take typed fast path")
+
+        async def call_tool(self, name, args, *, meta=None):
+            observed.append(name)
+            assert args["schemaVersion"] == bad_schema_version
+            return SimpleNamespace(
+                is_error=False, structured_content={"path": "high_level"}, content=[]
+            )
+
+    monkeypatch.setattr(upstream, "create_mcp_http_client", lambda **kwargs: FakePool())
+    monkeypatch.setattr(upstream, "streamable_http_client", lambda url, http_client: object())
+    monkeypatch.setattr(upstream, "Client", FakeClient)
+    token = _private(tmp_path / "fixture-only-token", "not-a-real-secret")
+    caller = McpOwnerCaller(
+        {
+            "runtime.windows": OwnerEndpoint(
+                "http://owner.test/mcp",
+                bearer_token_file=token,
+                mcp_mode="2026-07-28",
+            )
+        }
+    )
+
+    async def verify() -> None:
+        assert await caller.call_tool(
+            "runtime.windows", "runtime.describe", {"schemaVersion": bad_schema_version}
+        ) == {"path": "high_level"}
+        await caller.aclose()
+
+    asyncio.run(verify())
+    assert observed == ["runtime.describe"]

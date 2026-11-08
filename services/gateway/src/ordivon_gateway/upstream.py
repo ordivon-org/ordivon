@@ -274,7 +274,9 @@ class McpOwnerCaller:
                     owner_id == "runtime.windows"
                     and endpoint.mcp_mode == "2026-07-28"
                     and tool_name == "runtime.describe"
-                    and arguments == {"schemaVersion": 1}
+                    and len(arguments) == 1
+                    and type(arguments.get("schemaVersion")) is int
+                    and arguments["schemaVersion"] == 1
                 )
                 phase = "typed_readonly_call" if typed_runtime_read else "sdk_client_call"
                 meta: dict[str, Any] = {}
