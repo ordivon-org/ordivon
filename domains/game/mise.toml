@@ -4,7 +4,7 @@ pnpm = "12.16.1"
 godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:orbit-smt && mise run verify:room-smt && mise run test:native && mise run test:native-receipt-selftest && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:bevy && mise run test:autonomous-study"
+run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:orbit-smt && mise run verify:room-smt && mise run test:native && mise run test:native-receipt-selftest && mise run test:human-playtest-protocol && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:bevy && mise run test:autonomous-study"
 
 
 [tasks."test:native"]
@@ -31,6 +31,11 @@ run = "python3 examples/room-encounter/native_scene_acceptance.py --suite dialog
 [tasks."test:autonomous-study"]
 description = "Native R7 study evaluator/selftest from Game owner"
 run = "uv run --with check-jsonschema==0.38.0 python research/autonomous-interest-r7/protocol_selftest.py"
+
+[tasks."test:human-playtest-protocol"]
+description = "Falsify human-study CSV consent, digest, planned order and UNKNOWN/NO confusion via synthetic temporary fixtures"
+run = "python3 -m unittest discover -s research -p 'test_room_encounter_playtest.py' -v"
+
 
 [tasks."test:agent-episode"]
 description = "Exercise a real Godot room scene through bounded Agent action/observation JSON after editor import"

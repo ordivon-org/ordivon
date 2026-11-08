@@ -210,3 +210,12 @@ and is NOT claimed as passed. The Linux OpenGL capture uses Mesa
 llvmpipe, not proof of physical GPU throughput.
 
 Human study runnable protocol and empty anonymous observation template: ../../docs/room-encounter-playtest.md and ../../docs/room-encounter-playtest-template.csv. These are methods and blank tools only; no independent participant result has been collected, so Human comprehension remains UNKNOWN.
+
+
+## Optional consent-gated Human study
+
+See ../../docs/room-encounter-playtest.md for the offline anonymous
+AB/BA plan generator, local CSV integrity validator and observer
+summary. The plan is tied to an exact exported build SHA-256; the
+report never counts empty, declined or synthetic tests as Human
+experience. Run mise run test:human-playtest-protocol.

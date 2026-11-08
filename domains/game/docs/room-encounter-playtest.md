@@ -15,17 +15,27 @@ Methods: Godot official keyboard and controller focus guidance:
 https://docs.godotengine.org/en/4.5/tutorials/ui/gui_navigation.html
 Games User Research, The Think-Aloud Protocol (Oxford, 2018):
 https://doi.org/10.1093/oso/9780198794844.003.0012
+UCSC Game User Research methods:
+https://gur.ucsc.edu/testing-methods
+Game User Research playtest method choice:
+https://gamesuserresearch.com/choose-the-right-playtest-method/
 Avoid making causal claims from one exploratory think-aloud session;
-speaking during play can change behavior.
+speaking during play can change behavior. Use an uncoached first
+run and optional retrospective questions rather than interrupting
+every decision.
 
 ## Human procedure — no coaching during first encounter
 
 Use the actual extracted Windows executable or a version-identical
 Linux package. Verify its SHA-256 against the QA receipt. Start a
-fresh Game run. Let the participant choose Classic or Tactical Trial,
-or use counterbalanced AB/BA order across participants. The Trial is
-selected with T or its button; C returns to Classic. Observe whether
-the person can find the controls using the onscreen labels.
+fresh Game run. Ask for consent to keep anonymous session notes
+BEFORE recording anything. Declines get no notes or measures.
+Follow balanced AB/BA assignments in the private study plan; never
+change assignment retrospectively or instruct the participant
+how to win. Classic has no charged-strike forecast, therefore its
+forecast/parry entries are not_applicable rather than failed.
+The Trial is selected with T or its button; C returns to Classic.
+Observe whether the person finds controls from the onscreen labels.
 
 The facilitator says only: "Play this game as you normally would.
 You can talk about what you are trying to do. Please let me know if
@@ -82,3 +92,72 @@ operation; its successful run must never be counted as a Human
 playtest or five-minute Human session.
 
 Canonical empty template: docs/room-encounter-playtest-template.csv. Game's res:// scene never imports research-only CSV.
+
+
+## Offline anonymous study plan, validator and report
+
+From domains/game/, supply the actual exported Windows/ Linux archive.
+For a balanced four-pair design (8 planned sessions), use:
+
+    python3 research/room_encounter_playtest.py prepare \
+      --build dist/room-encounter/room-encounter-windows-x86_64.zip \
+      --platform windows --pairs 4 \
+      --out dist/room-encounter/private-study-01
+
+The local command computes the archive SHA-256 and randomizes equal
+numbers of Classic-then-Trial and Trial-then-Classic within-subject
+pairs. It creates plan.csv and observations.csv with only blank
+response fields. Those are NOT Human observations. It refuses to
+overwrite a study directory. Keep this directory private; do not
+commit raw responses or participant identifiers.
+
+The facilitator follows the plan period order, asks consent, then
+enters one row for each session using a plain CSV editor:
+- consent_to_notes: yes/no; no => all response fields empty.
+- session_seconds: elapsed time in seconds (1..21600), not an
+  inferred enjoyment or engagement score.
+- outcome: win/loss/quit/unknown; quitting is not a loss.
+- controls_discovered: pipe-separated names A, G, N, R, T, C, S, L,
+  unlock, or unknown if nothing was observed.
+- forecast_interpretation: understood/misunderstood/unknown/
+  not_applicable. Use not_applicable in Classic.
+- parry_decision_observed, keyboard_focus_issue, and
+  blocked_or_clipped_content: yes/no/unknown/not_applicable. Missing
+  evidence is unknown, never automatically no.
+- post_session_feedback and observer_uncertainty: optional short
+  non-identifying notes (<=500 characters). Do not enter names,
+  emails, device IDs, IPs or recordings, or a formula beginning with
+  =, +, -, or @. Notes are not included in aggregate reports.
+- session_code, condition, platform and build_sha256 are frozen
+  assignment metadata, not editable outcomes.
+
+Validate and describe after actual consenting Human sessions:
+
+    python3 research/room_encounter_playtest.py report \
+      --plan dist/room-encounter/private-study-01/plan.csv \
+      --observations dist/room-encounter/private-study-01/observations.csv \
+      --build dist/room-encounter/room-encounter-windows-x86_64.zip
+
+The reader rejects malformed/unplanned/duplicated session codes,
+wrong randomized condition or SHA-256, invalid categorical values,
+unconsented data, and spreadsheet formula injection. It counts
+planned, declined, pending, completed and missing evidence
+separately. UNKNOWN is not NO. Aggregate condition summaries are
+descriptive (with explicit denominators); no p-values, causal
+claim, claim of game enjoyment or automatic product decision.
+
+This is deliberately a small offline CSV layer, not a second
+database, in-game tracking system, or fake Human evidence. It cannot
+verify that an actual person played; human recruitment and authentic
+observation are separate external conditions.
+
+Execute the synthetic falsification controls before use:
+
+    mise run test:human-playtest-protocol
+
+A passing protocol test or empty study preparation always leaves
+real Human comprehension and enjoyment at UNKNOWN.
+
+On POSIX the generated private study directory and CSVs are created with mode 0700/0600. On Windows, verify the local NTFS ACL grants access only to the intended observer; chmod alone does not establish Windows ACL isolation.
+
+The assignment CSV itself is an editable local file, not a signed research attestation. Validation checks internal shape, counterbalancing and consistency, but cannot authenticate the investigator or prevent coordinated modification of both plan and responses.

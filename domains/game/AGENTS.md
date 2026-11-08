@@ -376,3 +376,15 @@ semantic dialogue keyboard focus are the Human UI source; G11 player
 observation must project all visible state-dependent tips and actual
 Button enabled state. visual_capture.gd creates real OpenGL PNG
 evidence in isolated Xvfb, which never counts as Human comprehension.
+
+
+**Human study evidence boundary (2026-11-08):** Do not treat G11
+Agent episodes, generated blank study assignments, native visual
+captures, solver proofs or synthetic protocol tests as real Human
+play. The opt-in offline observer-entry kit is
+research/room_encounter_playtest.py; protocol and blank template are
+docs/room-encounter-playtest*. Inputs bind to actual exported
+artifact SHA-256, preserve UNKNOWN vs NO, and reject unconsented or
+forged rows. The report cannot authenticate participants and must not
+claim subjective enjoyment or statistical efficacy.
+Run mise run test:human-playtest-protocol.
