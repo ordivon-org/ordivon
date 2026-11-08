@@ -32,7 +32,12 @@ The audio encodes a creative interpretation of Ordivon concepts. It is not a Run
 The file `operation-lineage.json` is an opt-in, schema-validated **declared**
 topology of five native processing steps: `generate-source` (script to PCM
 source WAV), `master-audio` (SoX master), `encode-flac`, `encode-ogg`
-and `render-waveform` (FFmpeg). It does **not** encode exact original
+and `render-waveform` (FFmpeg). Each downstream `inputFiles` now
+references the actual path and SHA-256 of its selected predecessor
+carrier (source WAV or mastered WAV). A false parent/input linkage is
+rejected rather than treated as a valid transitive dependency. These
+are current local carrier bindings, **not proof of historical provider use**.
+It does **not** encode exact original
 commands, build environments, automatic cache keys or historical Runtime
 Job replay. The current `sourceCarrier` and `outputCarrier` byte
 observations remain a separate source of physical evidence.

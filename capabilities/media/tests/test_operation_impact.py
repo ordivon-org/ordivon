@@ -71,14 +71,14 @@ def make_case(root: Path) -> tuple[Path, Path, Path]:
                 "id": "mastering",
                 "dependsOn": ["synthesize"],
                 "toolFamily": "SoX",
-                "inputFiles": [],
+                "inputFiles": [{"path": "render/source.wav", "digest": digest(intermediate.read_bytes())}],
                 "outputIds": ["master"],
             },
             {
                 "id": "deliver",
                 "dependsOn": ["mastering"],
                 "toolFamily": "unqualified",
-                "inputFiles": [],
+                "inputFiles": [{"path": "render/master.wav", "digest": digest(master.read_bytes())}],
                 "outputIds": ["delivery"],
             },
         ],
@@ -135,6 +135,45 @@ class ProductionOperationImpactTests(unittest.TestCase):
             changed = impact(root)
             self.assertEqual(changed["revalidateStepIds"], ["deliver"])
             self.assertEqual(changed["steps"][1]["impactStanding"], "NO_BYTE_DRIFT_OBSERVED")
+
+    def test_dependency_edges_require_exact_predecessor_carrier_and_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            make_case(root)
+            path = root / "operation-lineage.json"
+            original = json.loads(path.read_text())
+            projection = impact(root)
+            master = next(x for x in projection["steps"] if x["stepId"] == "mastering")
+            self.assertEqual(len(master["dependencyByteLinks"]), 1)
+            edge = master["dependencyByteLinks"][0]
+            self.assertEqual(edge["fromStep"], "synthesize")
+            self.assertEqual(edge["path"], "render/source.wav")
+            self.assertEqual(edge["observedRelation"], "MATCHES_DECLARED_DIGEST")
+            self.assertFalse(edge["historicalExecutionUseProven"])
+            self.assertEqual(master["dependencyStanding"], "DECLARED_CARRIER_MATCH_ONLY")
+
+            wrong_digest = json.loads(json.dumps(original))
+            wrong_digest["operations"][1]["inputFiles"][0]["digest"] = digest(b"forged")
+            path.write_text(json.dumps(wrong_digest))
+            with self.assertRaisesRegex(ValueError, "no matching input artifact carrier/digest"):
+                impact(root)
+
+            false_path = json.loads(json.dumps(original))
+            false_path["operations"][1]["inputFiles"] = [
+                {"path": "generate.py", "digest": original["operations"][0]["inputFiles"][0]["digest"]}
+            ]
+            path.write_text(json.dumps(false_path))
+            with self.assertRaisesRegex(ValueError, "no matching input artifact carrier/digest"):
+                impact(root)
+
+            duplicated_path = json.loads(json.dumps(original))
+            duplicated_path["operations"][1]["inputFiles"] *= 2
+            path.write_text(json.dumps(duplicated_path))
+            with self.assertRaisesRegex(ValueError, "repeats an input path"):
+                impact(root)
+
+            path.write_text(json.dumps(original))
+            self.assertEqual(impact(root)["revalidateStepIds"], [])
 
     def test_missing_input_is_unknown_and_does_not_assert_rebuild(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

@@ -111,6 +111,7 @@ def project_operation_impact(
     observations = {row["outputId"]: row for row in byte_observations}
     owned_outputs: set[str] = set()
     results: dict[str, dict[str, Any]] = {}
+    produced_refs: dict[str, set[tuple[str, str]]] = {}
 
     for step_id in ordered:
         step = by_id[step_id]
@@ -123,9 +124,47 @@ def project_operation_impact(
             if output_id in owned_outputs:
                 raise ValueError(f"operation lineage claims output twice: {output_id}")
             owned_outputs.add(output_id)
-        observed_files = [_file_observation(root, record) for record in step["inputFiles"]]
+        inputs = step["inputFiles"]
+        input_paths = [record["path"] for record in inputs]
+        if len(input_paths) != len(set(input_paths)):
+            raise ValueError(f"operation lineage repeats an input path: {step_id}")
+        observed_files = [_file_observation(root, record) for record in inputs]
+        input_refs = {(record["path"], record["digest"]) for record in inputs}
+        dependency_links: list[dict[str, Any]] = []
+        for predecessor in step["dependsOn"]:
+            # A declared dataflow edge is not enough: the selected downstream
+            # input must match a specific predecessor artifact by path + digest.
+            selected_refs = sorted(produced_refs[predecessor] & input_refs)
+            if not selected_refs:
+                raise ValueError(
+                    f"operation lineage dependency {predecessor!r} -> {step_id!r} "
+                    "has no matching input artifact carrier/digest"
+                )
+            for path, digest in selected_refs:
+                observed = next(
+                    row for row in observed_files if row["path"] == path
+                )
+                dependency_links.append({
+                    "fromStep": predecessor,
+                    "path": path,
+                    "declaredDigest": digest,
+                    "observedRelation": observed["relation"],
+                    "historicalExecutionUseProven": False,
+                })
         if "retainedFile" in step:
             observed_files.append(_file_observation(root, step["retainedFile"]))
+        result_refs: set[tuple[str, str]] = set()
+        if "retainedFile" in step:
+            retained = step["retainedFile"]
+            result_refs.add((retained["path"], retained["digest"]))
+        for output_id in output_ids:
+            output = declared_outputs[output_id]
+            carrier = output.get("outputCarrier") or output.get("sourceCarrier")
+            digest = output.get("blobDigest")
+            if isinstance(carrier, str) and isinstance(digest, str):
+                _read_production_file(root, carrier)
+                result_refs.add((carrier, digest))
+        produced_refs[step_id] = result_refs
         output_relations = [
             {"outputId": output_id, "relation": observations[output_id]["relation"]}
             for output_id in output_ids
@@ -153,6 +192,8 @@ def project_operation_impact(
             "directByteStanding": own_standing,
             "impactStanding": impact,
             "fileObservations": observed_files,
+            "dependencyByteLinks": dependency_links,
+            "dependencyStanding": "DECLARED_CARRIER_MATCH_ONLY",
             "outputObservations": output_relations,
             "actionKey": None,
             "cacheReuseAuthorized": False,
@@ -170,6 +211,7 @@ def project_operation_impact(
         "executionOrPublicationAuthorized": False,
         "rule": (
             "Dependency impacts are revalidation candidates, not build/rebuild obligations. "
+            "A path+digest link validates declared carrier identity, not historical execution use. "
             "A matching byte cut is not an action cache hit; unknown inputs never imply unchanged."
         ),
         "steps": [results[step_id] for step_id in ordered],

@@ -79,5 +79,27 @@ theorem isolated_delivery_drift_does_not_change_master :
     dependentImpact .drift [sonicMaster .matches] = .revalidate := by
   constructor <;> rfl
 
+-- Path and SHA-256 tokens are opaque Nat identifiers here. Matching both
+-- is necessary for a declared local carrier link; the Python witness checks
+-- actual strings and file digests independently.
+def declaredCarrierLink (fromPath toPath fromDigest toDigest : Nat) : Prop :=
+  fromPath = toPath ∧ fromDigest = toDigest
+
+theorem mismatched_digest_rejects_carrier_link
+    (path expected observed : Nat) (different : expected ≠ observed) :
+    ¬ declaredCarrierLink path path expected observed := by
+  intro claimed
+  exact different claimed.2
+
+theorem mismatched_path_rejects_carrier_link
+    (fromPath toPath digest : Nat) (different : fromPath ≠ toPath) :
+    ¬ declaredCarrierLink fromPath toPath digest digest := by
+  intro claimed
+  exact different claimed.1
+
+theorem exact_path_digest_is_linkable (path digest : Nat) :
+    declaredCarrierLink path path digest digest := by
+  exact ⟨rfl, rfl⟩
+
 -- No theorem grants cache reuse or provider/publication authority.
 end OrdivonMedia

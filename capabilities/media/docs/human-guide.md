@@ -80,7 +80,11 @@ uv run --frozen ordivon-studio production-context \
 ```
 
 The `operationLineage` field names five source-owned native production
-steps. `revalidateStepIds` contains only steps in the known byte-change
+steps. It now rejects a dependency edge unless the downstream
+`inputFiles` contains the exact path and SHA-256 of an upstream retained
+file or selected Output carrier. Check `dependencyByteLinks` for the
+named bytes; it does **not** prove the historical command consumed them.
+`revalidateStepIds` contains only steps in the known byte-change
 closure. `unresolvedStepIds` retains missing/invalid evidence as UNKNOWN.
 No step may claim a reusable cache key because historical tools, full
 commands and environment inputs have not been qualified. Matching bytes

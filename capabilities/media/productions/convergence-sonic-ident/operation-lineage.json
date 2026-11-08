@@ -24,7 +24,12 @@
       "dependsOn": [
         "generate-source"
       ],
-      "inputFiles": [],
+      "inputFiles": [
+        {
+          "path": "render/convergence-source.wav",
+          "digest": "sha256:7b739776af6c5902f7cb42f70f27db4f8c0f5fb4e7a4eea56532d1dc8b26b25e"
+        }
+      ],
       "outputIds": [
         "convergence-master"
       ],
@@ -35,7 +40,12 @@
       "dependsOn": [
         "master-audio"
       ],
-      "inputFiles": [],
+      "inputFiles": [
+        {
+          "path": "render/convergence-master.wav",
+          "digest": "sha256:8579aab3edc7e45817d3191bad56c6a387e8d5216ceca6dc923533a4a1f7a102"
+        }
+      ],
       "outputIds": [
         "convergence-archive"
       ],
@@ -46,7 +56,12 @@
       "dependsOn": [
         "master-audio"
       ],
-      "inputFiles": [],
+      "inputFiles": [
+        {
+          "path": "render/convergence-master.wav",
+          "digest": "sha256:8579aab3edc7e45817d3191bad56c6a387e8d5216ceca6dc923533a4a1f7a102"
+        }
+      ],
       "outputIds": [
         "convergence-delivery"
       ],
@@ -57,7 +72,12 @@
       "dependsOn": [
         "master-audio"
       ],
-      "inputFiles": [],
+      "inputFiles": [
+        {
+          "path": "render/convergence-master.wav",
+          "digest": "sha256:8579aab3edc7e45817d3191bad56c6a387e8d5216ceca6dc923533a4a1f7a102"
+        }
+      ],
       "outputIds": [
         "convergence-waveform"
       ],

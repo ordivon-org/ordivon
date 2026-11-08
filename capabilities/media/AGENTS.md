@@ -107,8 +107,13 @@ source-owned steps. `studio_production_context` exposes the
 document is explicitly declared. No generic repo scan, provider state,
 implicit agent execution, or new scheduler is involved.
 
-The projection verifies selected source/intermediate/final-file digests and
-traverses the declared downstream dependency edges. Distinguish
+The projection verifies selected source/intermediate/final-file digests.
+Every declared predecessor edge must name a downstream `inputFiles` carrier
+whose **path and SHA-256** match an explicitly retained file or declared
+Output carrier of that predecessor. `dependencyByteLinks` reports these
+exact local declarations; `historicalExecutionUseProven=false` deliberately
+does not claim those bytes were read by a historical provider. This is
+stricter than merely trusting `dependsOn`. Distinguish
 `REVALIDATE_REQUIRED` (a byte changed in a dependency closure),
 `UNKNOWN_UPSTREAM` (insufficient evidence), and
 `NO_BYTE_DRIFT_OBSERVED` (only the explicitly declared byte cut matched).

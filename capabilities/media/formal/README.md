@@ -197,8 +197,11 @@ propagation, including isolated leaf changes and missing-source uncertainty.
 against `schemas/operation-lineage.schema.json` and uses existing
 `assets.hash_file` observations plus the declared Output carrier readback.
 `tests/test_operation_impact.py` supplies live five-step Sonic evidence,
-input mutation, leaf-only mutation, missing-source, cycle, escape and unknown
-reference falsifiers. The real Production explicitly lists this document
+input mutation, leaf-only mutation, missing-source, cycle, escape, unknown
+reference, and forged predecessor path/digest falsifiers. A declared
+`dependsOn` edge additionally requires a downstream input file whose
+path and digest match an upstream retained or declared Output carrier.
+This is a local carrier-identity check, not historical invocation use. The real Production explicitly lists this document
 under `sources.sourceDocuments`.
 
 Formal/CI registers the model, schema, selected graph and consumers as exact
