@@ -134,3 +134,22 @@ downstream Owner PEP. All `downstreamAuthorization` entries are explicitly
 one Runtime Artifact does not authorize Host mutations or Runtime execution.
 Before promoting a release, check the deployed HTTP entrypoint, real trusted
 request state, and Owner-side authorization independently.
+
+## R06 SDK typed Windows status read (bounded performance and correctness)
+
+**Human:** The official MCP SDK v2 short-lived Client call currently follows
+MCP tools/call with tools/list for output-schema discovery. On an explicitly
+verified 2026-07-28 Windows Owner only, Gateway sends the exact read-only
+runtime.describe schemaVersion=1 via the SDK public typed ClientSession.send_request,
+removing the extra wire RTT. This does NOT claim complete SDK output-schema
+validation: the adapter checks version/node/targets and B03 checks readiness
+booleans. Malformed observations remain UNKNOWN. Lower RTT is not proof the
+Owner can admit and execute physical work.
+
+**Agent:** Run test_windows_runtime_typed_status_read.py on real TCP including
+malformed envelope/status, cancellation and high-level fallback cases.
+Effectful Owner calls and non-exact status requests MUST retain the SDK
+high-level path (MRTR, schema checks, header mismatch handling). Preserve
+credential-file identity per request; do not cache tokens, persist MCP sessions,
+retry effects or interpret timeout as an Owner outage. Record exact package,
+protocol mode, SourceCut, wire methods and installed consumer before opt-in.

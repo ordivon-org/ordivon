@@ -267,6 +267,32 @@ idempotent request IDs. Avoid enabling the pin solely from the SDK
 package version. Gateway cancellation warnings remain bounded by the
 existing observation deadline. See the Gateway Owner R04/R05 guidance.
 
+## MCP SDK typed Windows Runtime status read (0.10.7 candidate)
+
+The verified Windows-only `2026-07-28` protocol opt-in has one narrow
+read-only optimization: an exact `runtime.describe({"schemaVersion":1})`
+uses the official SDK `ClientSession.send_request` with its typed MCP
+`CallToolRequest`/`CallToolResult`. The SDK `Client.call_tool` driver
+otherwise makes a `tools/list` request after each call to discover the
+output schema in a fresh session. The typed path avoids that extra network
+read but preserves SDK-managed transport, request headers and result typing.
+The adapter checks the status response's literal schemaVersion=1, node identity
+and targets-list envelope without claiming full output-schema equivalence.
+The existing strict B03 projection validates the Runtime's configured and
+available booleans; malformed values remain UNKNOWN.
+
+This exception is **not** a general faster tools/call facility. It does
+not implement automatic MRTR, output schema refresh, or HEADER_MISMATCH retry,
+so its gate is one non-interactive, schema-versioned Owner observation
+under an explicitly pinned modern Windows connection only. All other
+Owner calls—including Runtime Job effects—continue through the high-level
+SDK Client with its full validation and recovery behavior. No new cache,
+persistent session, credential identity or effect retry is introduced.
+On cancellation, `typed_readonly_call_cancelled` attributes only the SDK
+request boundary, not the Runtime's physical availability. Measure
+installed-service identity and live Owner observation independently before
+enabling protocol opt-in on production.
+
 ## Contextual readiness projection (not a tool registry)
 
 Each Gateway CapabilityDescriptor includes the computed `readiness_state`:
