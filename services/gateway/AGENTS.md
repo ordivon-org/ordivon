@@ -100,11 +100,15 @@ The Gateway upstream adapter emits one warning when the MCP SDK task is
 cancelled, with natural Owner ID, tool name, phase and monotonic elapsed
 milliseconds. session_close includes possible SDK cleanup latency;
 phase_before_cleanup_ms estimates time before cleanup, while total_ms covers
-the entire call. On cancellation *during* tools/call, the phase is
-`tool_call_cancelled` (and `phase_before_cleanup_ms` is measured at
-cancellation); only a completed tools/call reaches `session_close`.
-SDK cleanup may still delay propagation of the cancelled observation.
-Neither phase proves Runtime availability or identifies the remote cause.
+the entire call. Cancellation inside SDK `Client.call_tool` is
+`sdk_client_call_cancelled`, which does NOT establish that wire
+`tools/call` was interrupted: the SDK can finish the Owner tool, then
+send `tools/list` to validate its result's schema. The before-cleanup
+coordinate is measured at SDK-call cancellation; only a completed SDK call
+reaches `session_close`. Preserve upstream output validation and
+protocol-defined HEADER_MISMATCH recovery. SDK cleanup may still delay
+propagation of the cancelled observation. Neither phase proves Runtime
+availability or identifies the remote cause.
 Do not log payloads, auth headers, credentials, or Owner response bodies.
 Never interpret a projection timeout as a physical Owner outage. Compare
 native Owner RPC, Gateway projection, Windows SCM source cut and Owner logs.
