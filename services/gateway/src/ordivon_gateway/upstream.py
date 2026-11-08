@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 import os
+import time
 from collections.abc import Generator, Mapping
 from typing import Any, Protocol
 
@@ -31,6 +34,8 @@ from .upstream_identity import (
 from .upstream_identity import (
     _validate_windows_private_secret_file as _validate_windows_private_secret_file,
 )
+
+_LOG = logging.getLogger("ordivon_gateway.upstream")
 
 
 def _exception_summary(exc: BaseException, *, limit: int = 4) -> str:
@@ -233,21 +238,42 @@ class McpOwnerCaller:
             )
         assert endpoint is not None
 
+        started = time.perf_counter()
+        phase = "transport_open"
+        tool_elapsed_ms: int | None = None
         try:
             transport = streamable_http_client(
                 endpoint.url, http_client=self._http_client(owner_id, endpoint)
             )
-            # MCP v2 Client owns modern discovery, output-schema validation,
-            # and legacy fallback. Only HTTP sockets are pooled; each call
-            # retains an independent SDK protocol lifecycle and cancellation.
+            # The SDK owns negotiation; the only shared object is the HTTP pool.
+            phase = "session_open"
             async with Client(transport, mode="auto", raise_exceptions=False) as client:
+                phase = "tool_call"
                 meta: dict[str, Any] = {}
                 inject_trace_context(meta)
-                result = await client.call_tool(
-                    tool_name,
-                    arguments,
-                    meta=meta or None,
-                )
+                try:
+                    result = await client.call_tool(
+                        tool_name,
+                        arguments,
+                        meta=meta or None,
+                    )
+                finally:
+                    tool_elapsed_ms = int((time.perf_counter() - started) * 1000)
+                    phase = "session_close"
+        except asyncio.CancelledError:
+            # Observation deadlines cancel the SDK task; its session cleanup
+            # can then add latency. Log the exact phase without payloads,
+            # credentials, response bodies, or a new Gateway state store.
+            _LOG.warning(
+                "gateway_owner_rpc_cancelled owner=%s tool=%s phase=%s "
+                "total_ms=%d phase_before_cleanup_ms=%s",
+                owner_id,
+                tool_name,
+                phase,
+                int((time.perf_counter() - started) * 1000),
+                tool_elapsed_ms,
+            )
+            raise
         except OwnerCallError:
             raise
         except Exception as exc:
