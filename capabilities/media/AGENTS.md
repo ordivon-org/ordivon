@@ -53,6 +53,21 @@ python3 scripts/studio-agent-surface.py studio_processing_profiles --arguments '
 
 Choose the returned `id` plus **both** exact `profileDigest` and `adapterDigest`. Call `studio_processing_probe_plan` with those digests, a real `inputPath` and `evidenceDirectory`; execute the returned plan using Runtime, then read the emitted native evidence. The profile `id` may differ from its filename. FFprobe/FFmpeg, OTIO and ttconv are replaceable native providers; never copy their parsers, or treat QC PASS as rights/aesthetic/publication acceptance. See `../../.agents/skills/media-native-processing/SKILL.md` from the repository root.
 
+## Video perception timing and actual evidence
+
+Source video frame identity is a decoded-frame index. Do not recover it
+by multiplying presentation time by average FPS: VFR media may have
+arbitrary PTS gaps. The existing
+`perception_video_io.analyze_temporal_change` uses the selected FFmpeg
+filter index and native PTS, while `perception_timing.video_timing`
+interprets rate as a rational from FFprobe; if the container omits
+`nb_frames`, native `ffprobe -count_frames` is the current observed
+frame count. The result distinguishes `native-ffmpeg-filter-pts`
+from `average-rate-estimate-not-source-pts`. Do not use estimated
+selected-frame times for exact edit-point, subtitle or sync claims. See
+`docs/artifact-perception.md` and keep native VFR counterexample
+testing when this filter graph or its parsing changes.
+
 ## Test, publishing and retirement
 
 For source or contract changes use affected Owner tests (`scripts/owner-environment test`, specific `processing/tests/*-smoke.sh` for changed providers). Use standard Git branch/PR/CI/merge queue; don't replace the repository's release system. Verify current consumers before deleting data; native Git GC/worktree removal and existing cache mechanisms supersede custom cleanup frameworks. Retain selected masters, unique source, rights and actual read-back evidence, not speculative historical copies. A local test PASS is not end-to-end Production publication.

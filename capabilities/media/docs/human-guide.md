@@ -149,6 +149,12 @@ animation, edit the existing React/SVG composition and render only the
 selected output; import it into Resolve as visual media if appropriate.
 For sound, review Fairlight's actual mix, run the existing FFmpeg loudnorm
 profile on the selected audio master, and listen to the final rendered output.
+For video perceptual review, distinguish frames by actual decoded source
+index and selected native PTS. When reviewing VFR input, an average
+frame-rate time estimate is not an exact timeline position; watch the
+native clip to judge pacing and synchronization. See
+[perception timing](artifact-perception.md).
+
 For technical video QC, invoke the existing FFprobe/FFmpeg profile. A measured
 codec or loudness PASS does not mean the cut is good or correctly subtitled.
 
