@@ -24,6 +24,29 @@ tasks:
       - install -m 0755 substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
       - systemctl daemon-reload
 
+  substrate:shared-egress:kernel:verify:
+    desc: Read back exact veth addresses and both legacy FORWARD exceptions from the live kernel without mutation
+    cmds:
+      - |
+        set -euo pipefail
+        # This is the root-owned provider.env already consumed by the systemd
+        # namespace/forward units, not an independent policy registry.
+        source /etc/network-v2/browserless/provider.env
+        : "${HOST_IF:?}" "${NS_IF:?}" "${HOST_ADDR:?}" "${NS_ADDR:?}" "${NS_CIDR:?}"
+        test -e /run/netns/nv2-browserless-prod
+        /usr/bin/ip link show dev "$HOST_IF" >/dev/null
+        /usr/bin/ip -n nv2-browserless-prod link show dev "$NS_IF" >/dev/null
+        /usr/bin/ip -o -4 addr show dev "$HOST_IF" | /usr/bin/grep -F "inet $HOST_ADDR " >/dev/null
+        /usr/bin/ip -n nv2-browserless-prod -o -4 addr show dev "$NS_IF" | /usr/bin/grep -F "inet $NS_ADDR " >/dev/null
+        # An nftables ACCEPT cannot override a legacy Docker FORWARD DROP.
+        # Keep this source-owned legacy exception until a Docker-compatible
+        # successor and a live forwarding counterexample have been verified.
+        /usr/bin/iptables-legacy -w 5 -C FORWARD -i "$HOST_IF" -s "$NS_CIDR" -m comment --comment network-v2-browserless-forward-v1 -j ACCEPT
+        /usr/bin/iptables-legacy -w 5 -C FORWARD -o "$HOST_IF" -d "$NS_CIDR" -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment network-v2-browserless-forward-v1 -j ACCEPT
+        owned_count=$(/usr/bin/iptables-legacy -w 5 -S FORWARD | /usr/bin/grep -c -F -- '--comment network-v2-browserless-forward-v1' || true)
+        test "$owned_count" -eq 2
+        echo 'SHARED_EGRESS_KERNEL_FORWARDING=PASS'
+
   substrate:shared-egress:verify:
     desc: Prove source and installed byte identity plus live namespace, forwarding and provider effect
     cmds:
@@ -33,5 +56,6 @@ tasks:
       - cmp -s substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
       - systemctl is-active --quiet network-v2-browserless.target
       - systemctl is-active --quiet network-v2-browserless-netns.service
+      - task: substrate:shared-egress:kernel:verify
       - systemctl is-active --quiet network-v2-browserless-forward.service
       - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
