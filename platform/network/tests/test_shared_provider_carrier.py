@@ -79,6 +79,18 @@ def test_production_provider_defaults_to_cross_consumer_qualified_site():
     assert cutover.index("if [[ -e /etc/network-v2/gluetun/m4-owned-mode.selected ]]; then") < cutover.index("SCRIPT=$(readlink")
 
 
+def test_legacy_rollback_only_tears_down_browserless_provider():
+    """A failed cold cutover must never disable the multi-consumer substrate."""
+    script = (BROWSERLESS / "production-cutover.sh").read_text()
+    rollback = script.split("rollback_after_lease() {", 1)[1].split("\n}\n", 1)[0]
+    assert "systemctl disable --now network-v2-browserless-legacy-provider.target" in rollback
+    assert "systemctl stop network-v2-browserless-provider-carrier.service" in rollback
+    assert "network-v2-browserless-dns.service network-v2-browserless-wireguard.service" in rollback
+    assert "systemctl disable --now network-v2-browserless.target" not in rollback
+    assert "systemctl stop network-v2-browserless.target" not in rollback
+    assert "systemctl stop network-v2-shared-egress.target" not in rollback
+
+
 def test_semantic_consumers_survive_physical_carrier_loss():
     for directory, name, carrier in (
         (FINANCE, "finance", "network-v2-gluetun-owned-adapter.service"),
