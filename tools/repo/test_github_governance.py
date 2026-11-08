@@ -252,6 +252,33 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                         mechanics.index("Repository mechanics"))
         self.assertIn("Verify affected owners", owner)
 
+    def test_root_mise_installs_get_scoped_native_github_token(self) -> None:
+        """Keep bootstrap authenticated without exporting token to Owner code."""
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        token = "$" + "{{ github.token }}"
+        self.assertEqual(workflow["permissions"], {"contents": "read"})
+        for job_name in ("root-preflight", "repo-mechanics", "owner-verification"):
+            job = workflow["jobs"][job_name]
+            self.assertNotIn("env", job)
+            matches = [
+                step for step in job["steps"]
+                if step.get("name") == "Install root verification tools"
+            ]
+            self.assertEqual(len(matches), 1, job_name)
+            self.assertEqual(matches[0].get("env"), {"MISE_GITHUB_TOKEN": token})
+            self.assertEqual(matches[0]["run"].strip(), "set -euo pipefail\nmise install")
+        for job_name, source_step in (
+            ("repo-mechanics", "Repository mechanics"),
+            ("owner-verification", "Verify affected owners"),
+        ):
+            step = next(
+                entry for entry in workflow["jobs"][job_name]["steps"]
+                if entry.get("name") == source_step
+            )
+            self.assertNotIn("MISE_GITHUB_TOKEN", step.get("env", {}))
+
     def test_formal_cold_install_reuses_scoped_github_job_token(self) -> None:
         """Native GitHub release backend must not use anonymous 60/hour API quota."""
         import yaml
@@ -260,8 +287,8 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(workflow["permissions"], {"contents": "read"})
         steps = {step["name"]: step for step in
                  required_ci_steps(workflow)}
-        # Only the selected Formal owner gets this token, not every arbitrary
-        # unselected Owner task or the entire job.
+        # Unlike the three scoped bootstrap installers, the Formal task's
+        # additional token is only exposed inside its selected proof step.
         self.assertNotIn("env", workflow["jobs"]["root-preflight"])
         formal = steps["Verify changed core Formal source"]
         self.assertEqual(formal["env"]["GITHUB_TOKEN"], "$" + "{{ github.token }}")

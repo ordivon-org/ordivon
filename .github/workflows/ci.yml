@@ -47,6 +47,10 @@ jobs:
           cache: true
 
       - name: Install root verification tools
+        # mise-action's GitHub token is scoped to its action. This separate
+        # native install otherwise uses anonymous GitHub Releases API calls.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -589,6 +593,10 @@ jobs:
           cache: true
 
       - name: Install root verification tools
+        # mise-action's GitHub token is scoped to its action. This separate
+        # native install otherwise uses anonymous GitHub Releases API calls.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -666,6 +674,10 @@ jobs:
           cache: true
 
       - name: Install root verification tools
+        # mise-action's GitHub token is scoped to its action. This separate
+        # native install otherwise uses anonymous GitHub Releases API calls.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
