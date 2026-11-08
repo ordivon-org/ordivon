@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import subprocess
@@ -205,30 +206,51 @@ def owners_for_paths(
     return tuple(selected)
 
 
-def requires_core_formal_verification(paths: Iterable[str]) -> bool:
-    """Route proof-source edits to the *existing* Formal task, not a new Owner.
+def _formal_source_files() -> frozenset[str]:
+    """Read the Formal producer's literal SOURCE_FILES, without importing or executing it.
 
-    The affected-owner queue alone can legitimately be empty for tools/formal/.
-    A separate source-bound check is required so those edits never skip
-    verification in the protected root GitHub workflow.
+    There is one declaration of qualified proof inputs. The selector fails
+    closed if this declaration stops being a static literal tuple.
     """
-    # The root task definition consumes the Formal verifier too:
-    # editing the task wiring can change effects without changing proof files.
+    source = MANIFEST_PATH.resolve().parents[2] / "tools/formal/verify.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+    values = [
+        statement.value
+        for statement in tree.body
+        if isinstance(statement, ast.Assign)
+        and any(
+            isinstance(target, ast.Name) and target.id == "SOURCE_FILES"
+            for target in statement.targets
+        )
+    ]
+    if len(values) != 1:
+        raise ValueError("Formal verifier must own exactly one literal SOURCE_FILES declaration")
+    paths = ast.literal_eval(values[0])
+    if (
+        not isinstance(paths, tuple)
+        or not paths
+        or not all(isinstance(path, str) and path and path == _normalize(path)
+                   for path in paths)
+        or len(set(paths)) != len(paths)
+    ):
+        raise ValueError("Formal SOURCE_FILES must be unique canonical relative paths")
+    return frozenset(paths)
+
+
+def requires_core_formal_verification(paths: Iterable[str]) -> bool:
+    """Select existing Formal gate from its producer-owned exact SOURCE_FILES.
+
+    Broad tools/formal edits retain their existing gate. All other paths are
+    admitted only when present in the authoritative source readset; no second
+    hand-maintained per-Owner registry or general media/doc blanket rule.
+    """
+    qualified_inputs = _formal_source_files()
     return any(
         (normalized := _normalize(path)) == "mise.toml"
         or normalized.startswith("tools/formal/")
-        # This exact Harness adapter is an executable input of the existing
-        # Formal SOURCE_FILES readset. Changing it invalidates the native
-        # timeout bridge proof regardless of owner-root classification.
-        or normalized == "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
-        or normalized.startswith("capabilities/media/formal/")
-        or normalized == "capabilities/media/src/ordivon_studio/agent_processing.py"
-        or normalized == "capabilities/media/src/ordivon_studio/creative_index_library.py"
-        or normalized == "capabilities/media/tests/test_creative_index.py"
-        or normalized == "capabilities/media/src/ordivon_studio/qc.py"
+        or normalized in qualified_inputs
         for path in paths
     )
-
 
 def changed_paths(base: str, head: str) -> tuple[str, ...]:
     # Preserve both sides of a cross-owner move, rather than allowing Git's
