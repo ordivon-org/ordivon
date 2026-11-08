@@ -66,24 +66,6 @@ jobs:
           tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
           echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
 
-      - name: Repository mechanics
-        run: |
-          # Pin the *actual executable task source* to this checkout's Git tree,
-          # not only the already-selected task names. This is a pre-run witness,
-          # not a claim of immutable task bytes during child execution.
-          if [[ -n "${GITHUB_SHA:-}" ]] &&
-             [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
-            echo "ERROR: root task checkout differs from provider GITHUB_SHA" >&2
-            exit 43
-          fi
-          if [[ ! -f mise.toml || -L mise.toml ]] ||
-             ! git --no-replace-objects ls-tree HEAD -- mise.toml | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]mise\.toml$' ||
-             ! git --no-replace-objects show HEAD:mise.toml | cmp -s - mise.toml; then
-            echo "ERROR: root task source differs from exact Git HEAD" >&2
-            exit 43
-          fi
-          "$RUNNER_TEMP/ordivon-bash-5.3.20/bin/bash" -c 'set -euo pipefail; mise run repo:ci'
-
       - name: Select affected owners
         id: affected
         shell: bash
@@ -582,6 +564,69 @@ jobs:
         shell: bash
         run: tools/repo/check_tracked_secrets.sh
 
+  # The repository mechanics test suite has no data dependency on the
+  # source-qualified Owner selector. Execute it in an independent checkout
+  # from the same exact SHA, concurrently with admission and Owner execution.
+  # Final root-verification requires both results (not either one).
+  repo-mechanics:
+    name: repo-mechanics
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install monorepo toolchain
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          version: 2026.9.12
+          # Avoid eager --monorepo tool installation: Owner queue tasks already
+          # install their own toolchain only when the consumer selects them.
+          install: false
+          cache: true
+
+      - name: Install root verification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          mise install
+
+      - name: Install verified GNU Bash 5.3.20
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
+          echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned SQL validation CLIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
+          echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
+
+      - name: Repository mechanics
+        run: |
+          # Pin the *actual executable task source* to this checkout's Git tree,
+          # not only the already-selected task names. This is a pre-run witness,
+          # not a claim of immutable task bytes during child execution.
+          if [[ -n "${GITHUB_SHA:-}" ]] &&
+             [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
+            echo "ERROR: root task checkout differs from provider GITHUB_SHA" >&2
+            exit 43
+          fi
+          if [[ ! -f mise.toml || -L mise.toml ]] ||
+             ! git --no-replace-objects ls-tree HEAD -- mise.toml | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]mise\.toml$' ||
+             ! git --no-replace-objects show HEAD:mise.toml | cmp -s - mise.toml; then
+            echo "ERROR: root task source differs from exact Git HEAD" >&2
+            exit 43
+          fi
+          "$RUNNER_TEMP/ordivon-bash-5.3.20/bin/bash" -c 'set -euo pipefail; mise run repo:ci'
+
+
   owner-verification:
     name: owner-shard-${{ matrix.shard }}
     needs: root-preflight
@@ -809,7 +854,7 @@ jobs:
   root-verification:
     name: root-verification
     if: always()
-    needs: [root-preflight, owner-verification]
+    needs: [root-preflight, repo-mechanics, owner-verification]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -817,12 +862,17 @@ jobs:
         shell: bash
         env:
           PREFLIGHT_RESULT: ${{ needs.root-preflight.result }}
+          REPO_MECHANICS_RESULT: ${{ needs.repo-mechanics.result }}
           OWNER_RESULT: ${{ needs.owner-verification.result }}
           HAS_OWNER_TASKS: ${{ needs.root-preflight.outputs.has_owner_tasks }}
         run: |
           set -euo pipefail
           if [[ "$PREFLIGHT_RESULT" != "success" ]]; then
             echo "ERROR: source-qualified repository preflight failed or was skipped" >&2
+            exit 1
+          fi
+          if [[ "$REPO_MECHANICS_RESULT" != "success" ]]; then
+            echo "ERROR: independent source-qualified repository mechanics failed or was skipped" >&2
             exit 1
           fi
           if [[ "$HAS_OWNER_TASKS" == "true" ]]; then

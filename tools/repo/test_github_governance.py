@@ -21,7 +21,11 @@ def required_ci_steps(workflow: dict) -> list[dict]:
     task execution lives in the dependent jobs, not in that check itself.
     """
     jobs = workflow["jobs"]
-    return [*jobs["root-preflight"]["steps"], *jobs["owner-verification"]["steps"]]
+    return [
+        *jobs["root-preflight"]["steps"],
+        *jobs["repo-mechanics"]["steps"],
+        *jobs["owner-verification"]["steps"],
+    ]
 
 
 VERIFY = """
@@ -235,10 +239,18 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         root_install = by_name["Install root verification tools"]["run"]
         self.assertEqual(root_install.strip(), "set -euo pipefail\nmise install")
         self.assertNotIn("--monorepo", root_install)
-        names = [step["name"] for step in steps]
-        self.assertLess(names.index("Install root verification tools"), names.index("Repository mechanics"))
-        self.assertLess(names.index("Repository mechanics"), names.index("Select affected owners"))
-        self.assertLess(names.index("Select affected owners"), names.index("Verify affected owners"))
+        jobs = workflow["jobs"]
+        self.assertNotIn("needs", jobs["root-preflight"])
+        self.assertNotIn("needs", jobs["repo-mechanics"])
+        preflight = [step["name"] for step in jobs["root-preflight"]["steps"]]
+        mechanics = [step["name"] for step in jobs["repo-mechanics"]["steps"]]
+        owner = [step["name"] for step in jobs["owner-verification"]["steps"]]
+        self.assertLess(preflight.index("Install root verification tools"),
+                        preflight.index("Select affected owners"))
+        self.assertNotIn("Repository mechanics", preflight)
+        self.assertLess(mechanics.index("Install root verification tools"),
+                        mechanics.index("Repository mechanics"))
+        self.assertIn("Verify affected owners", owner)
 
     def test_formal_cold_install_reuses_scoped_github_job_token(self) -> None:
         """Native GitHub release backend must not use anonymous 60/hour API quota."""
@@ -1588,87 +1600,6 @@ class GovernanceAcceptanceTests(unittest.TestCase):
 
 
 class ParallelRootVerificationTests(unittest.TestCase):
-    """Actual GitHub aggregate must fail if any mandatory native lane fails."""
-
-    @staticmethod
-    def workflow() -> dict:
-        import yaml
-
-        return yaml.safe_load(
-            (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        )
-
-    def test_native_matrix_preserves_existing_required_check_identity(self) -> None:
-        jobs = self.workflow()["jobs"]
-        self.assertEqual(
-            set(jobs), {"root-preflight", "owner-verification", "root-verification"}
-        )
-        preflight = jobs["root-preflight"]
-        owners = jobs["owner-verification"]
-        required = jobs["root-verification"]
-        self.assertEqual(required["name"], "root-verification")
-        self.assertEqual(required["needs"],
-                         ["root-preflight", "owner-verification"])
-        self.assertEqual(required["if"], "always()")
-        self.assertEqual(owners["strategy"]["fail-fast"], False)
-        self.assertEqual(owners["strategy"]["max-parallel"], 4)
-        self.assertEqual(
-            owners["strategy"]["matrix"],
-            "$" + "{{ fromJSON(needs.root-preflight.outputs.shards) }}",
-        )
-        self.assertEqual(
-            owners["if"], "needs.root-preflight.outputs.has_owner_tasks == 'true'"
-        )
-        self.assertEqual(
-            preflight["outputs"]["shards"],
-            "$" + "{{ steps.affected.outputs.shards }}",
-        )
-        self.assertIn("ci_owner_shards.py",
-                      next(step["run"] for step in preflight["steps"]
-                           if step["name"] == "Select affected owners"))
-        runner = next(step for step in owners["steps"]
-                      if step["name"] == "Verify affected owners")
-        self.assertEqual(
-            runner["env"]["OWNER_TASKS_JSON"],
-            "$" + "{{ toJSON(matrix.tasks) }}",
-        )
-        self.assertIn('mise run "$task"', runner["run"])
-        self.assertIn("git --no-replace-objects show HEAD:mise.toml", runner["run"])
-        self.assertIn("paper_postgres", owners["services"])
-        self.assertNotIn("services", preflight)
-
-    def test_required_check_is_a_real_fail_closed_aggregate(self) -> None:
-        import os
-
-        job = self.workflow()["jobs"]["root-verification"]
-        command = job["steps"][0]["run"]
-        combinations = (
-            ("success", "success", "true", 0),
-            ("success", "failure", "true", 1),
-            ("success", "cancelled", "true", 1),
-            ("success", "skipped", "true", 1),
-            ("success", "skipped", "false", 0),
-            ("success", "success", "false", 1),
-            ("failure", "skipped", "false", 1),
-            ("cancelled", "skipped", "false", 1),
-            ("success", "skipped", "", 1),
-        )
-        for preflight, owners, has_owners, expect in combinations:
-            with self.subTest(preflight=preflight, owners=owners,
-                              has_owners=has_owners):
-                result = subprocess.run(
-                    ["/usr/bin/bash", "-c", command],
-                    cwd=ROOT,
-                    env={**os.environ, "PREFLIGHT_RESULT": preflight,
-                         "OWNER_RESULT": owners, "HAS_OWNER_TASKS": has_owners},
-                    capture_output=True, text=True, check=False, timeout=10,
-                )
-                self.assertEqual(result.returncode == 0, expect == 0,
-                                 result.stdout + result.stderr)
-
-
-
-class ParallelRootVerificationTests(unittest.TestCase):
     """Protect the real GitHub required check and native task partition."""
 
     def test_matrix_tasks_and_required_check_identity(self) -> None:
@@ -1678,13 +1609,13 @@ class ParallelRootVerificationTests(unittest.TestCase):
             (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         )["jobs"]
         self.assertEqual(set(jobs),
-                         {"root-preflight", "owner-verification", "root-verification"})
+                         {"root-preflight", "repo-mechanics", "owner-verification", "root-verification"})
         preflight, owners, required = (
             jobs["root-preflight"], jobs["owner-verification"],
             jobs["root-verification"],
         )
         self.assertEqual(required["name"], "root-verification")
-        self.assertEqual(required["needs"], ["root-preflight", "owner-verification"])
+        self.assertEqual(required["needs"], ["root-preflight", "repo-mechanics", "owner-verification"])
         self.assertEqual(required["if"], "always()")
         self.assertEqual(owners["strategy"]["fail-fast"], False)
         self.assertEqual(owners["strategy"]["max-parallel"], 4)
@@ -1707,6 +1638,13 @@ class ParallelRootVerificationTests(unittest.TestCase):
                       runner["run"])
         self.assertIn("paper_postgres", owners["services"])
         self.assertNotIn("services", preflight)
+        mechanics = jobs["repo-mechanics"]
+        self.assertNotIn("needs", mechanics)
+        self.assertNotIn("needs", preflight)
+        self.assertIn("Repository mechanics",
+                      [step["name"] for step in mechanics["steps"]])
+        self.assertNotIn("Repository mechanics",
+                         [step["name"] for step in preflight["steps"]])
 
     def test_required_check_fails_on_any_failed_or_skipped_required_lane(self) -> None:
         import os
@@ -1716,24 +1654,29 @@ class ParallelRootVerificationTests(unittest.TestCase):
             (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         )["jobs"]
         script = jobs["root-verification"]["steps"][0]["run"]
-        for before, owner, selected, should_pass in (
-            ("success", "success", "true", True),
-            ("success", "failure", "true", False),
-            ("success", "cancelled", "true", False),
-            ("success", "skipped", "true", False),
-            ("success", "skipped", "false", True),
-            ("success", "success", "false", False),
-            ("failure", "skipped", "false", False),
-            ("cancelled", "skipped", "false", False),
-            ("success", "skipped", "", False),
+        for before, mechanics, owner, selected, should_pass in (
+            ("success", "success", "success", "true", True),
+            ("success", "failure", "success", "true", False),
+            ("success", "cancelled", "success", "true", False),
+            ("success", "skipped", "success", "true", False),
+            ("success", "success", "failure", "true", False),
+            ("success", "success", "cancelled", "true", False),
+            ("success", "success", "skipped", "true", False),
+            ("success", "success", "skipped", "false", True),
+            ("success", "failure", "skipped", "false", False),
+            ("success", "success", "success", "false", False),
+            ("failure", "success", "skipped", "false", False),
+            ("cancelled", "success", "skipped", "false", False),
+            ("success", "success", "skipped", "", False),
         ):
-            with self.subTest(before=before, owner=owner, selected=selected):
+            with self.subTest(before=before, mechanics=mechanics, owner=owner, selected=selected):
                 completed = subprocess.run(
                     ["/usr/bin/bash", "-c", script],
                     cwd=ROOT, text=True, capture_output=True, timeout=10,
                     check=False,
                     env={**os.environ, "PREFLIGHT_RESULT": before,
-                         "OWNER_RESULT": owner, "HAS_OWNER_TASKS": selected},
+                         "OWNER_RESULT": owner, "REPO_MECHANICS_RESULT": mechanics,
+                         "HAS_OWNER_TASKS": selected},
                 )
                 self.assertEqual(completed.returncode == 0, should_pass,
                                  completed.stderr)
