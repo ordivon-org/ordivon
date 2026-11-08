@@ -51,6 +51,14 @@ cd capabilities/media
 python3 scripts/studio-agent-surface.py studio_processing_profiles --arguments '{}'
 ```
 
+For actual Blob identity, the existing `assets.hash_file` computes size
+and hash from one opened stream and rejects observed changes during the
+read; it does not prove a hostile concurrent writer cannot mutate bytes
+without visible metadata changes. Freeze selected source media before
+durable admission, and read back a recovered CAS object under the
+actual Artifact/Production consumer. Do not add a Media-private CAS
+registry; see `docs/storage-layout.md`.
+
 Choose the returned `id` plus **both** exact `profileDigest` and `adapterDigest`. Call `studio_processing_probe_plan` with those digests, a real `inputPath` and `evidenceDirectory`; execute the returned plan using Runtime, then read the emitted native evidence. The profile `id` may differ from its filename. FFprobe/FFmpeg, OTIO and ttconv are replaceable native providers; never copy their parsers, or treat QC PASS as rights/aesthetic/publication acceptance. See `../../.agents/skills/media-native-processing/SKILL.md` from the repository root.
 
 ## Test, publishing and retirement
