@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from ordivon_studio.assets import archive_blob, hash_file, materialize_blob, r2_object_key
 
@@ -20,6 +23,47 @@ class AssetTests(unittest.TestCase):
         self.assertEqual(blob.digest, f"sha256:{expected}")
         self.assertEqual(blob.size_bytes, len(payload))
         self.assertEqual(r2_object_key(blob.digest), f"objects/sha256/{expected[:2]}/{expected}")
+
+    def test_hash_stream_size_and_digest_are_one_observation(self) -> None:
+        payload = bytes(range(256)) * 41
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "large.bin"
+            source.write_bytes(payload)
+            for chunk_size in (1, 19, 1024, len(payload) + 100):
+                with self.subTest(chunk_size=chunk_size):
+                    result = hash_file(source, chunk_size=chunk_size)
+                    self.assertEqual(result.size_bytes, len(payload))
+                    self.assertEqual(result.digest, "sha256:" + hashlib.sha256(payload).hexdigest())
+            with self.assertRaisesRegex(ValueError, "positive integer"):
+                hash_file(source, chunk_size=0)
+
+    def test_hash_rejects_source_metadata_drift_on_open_descriptor(self) -> None:
+        payload = b"content under concurrent writer pressure"
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "selected.bin"
+            source.write_bytes(payload)
+            real_fstat = os.fstat
+            calls = 0
+
+            def changed_on_second_observation(fd):
+                nonlocal calls
+                calls += 1
+                observed = real_fstat(fd)
+                if calls == 1:
+                    return observed
+                return SimpleNamespace(
+                    st_dev=observed.st_dev,
+                    st_ino=observed.st_ino,
+                    st_size=observed.st_size + 1,
+                    st_mtime_ns=observed.st_mtime_ns,
+                    st_ctime_ns=observed.st_ctime_ns,
+                )
+
+            with patch("ordivon_studio.assets.os.fstat", side_effect=changed_on_second_observation):
+                with self.assertRaisesRegex(RuntimeError, "changed during hashing"):
+                    hash_file(source)
+            self.assertEqual(calls, 2)
+            self.assertEqual(source.read_bytes(), payload)
 
     def test_archive_blob_creates_and_reuses_verified_object(self) -> None:
         payload = b"selected production bytes\n"

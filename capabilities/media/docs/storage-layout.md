@@ -29,6 +29,26 @@ uv run ordivon-studio materialize <sha256:digest> <working-path> --cache-root /m
 
 `archive` hashes the source, derives the immutable object key, copies through a temporary file, verifies the copied bytes, and admits the object without overwriting an existing digest address. Repeating the same exact Blob converges.
 
+`assets.hash_file` binds the SHA-256 and `sizeBytes` to the **same
+opened stream** rather than reading the hash and then using a later,
+possibly changed pathname `stat` for size. The two `fstat` observations
+of the opened descriptor must agree on identity, size and change-time
+metadata, and bytes actually consumed must equal its size; otherwise
+the hash operation rejects a changing source. This is a practical
+native-filesystem consistency check, **not** a universal snapshot proof:
+a hostile writer able to mutate file data while preserving all
+observable metadata, or a filesystem with weak metadata coherence, is
+outside the guarantee. Selected editable masters should be frozen
+before declaring their durable Blob identity.
+
+The updated implementation successfully archived and materialized
+`productions/live-relay-001/render/live-relay-001-source.mp4` (16,481,768
+bytes) from an independent, disposable local CAS. The exact digest and
+FFprobe stream structure matched after recovery. The original source,
+four-file Production manifest, canonical assets and remote R2 store were
+not altered. No new Blob registry, cleanup service or custom hashing
+engine was introduced.
+
 `materialize` verifies the cached object before copying, verifies the working copy, and never overwrites different destination bytes. A missing or corrupt cache object fails closed.
 
 This is sufficient for Workspace/process loss. It is **not** sufficient to claim tolerance of loss of the workstation or its D: volume.

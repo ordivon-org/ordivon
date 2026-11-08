@@ -557,6 +557,7 @@
           "type": "predicate",
           "guarantees": [
             "digest computed from actual bytes",
+            "reported size comes from the same observed stream that determines the SHA-256 digest",
             "existing object reused only after hash and size check",
             "new cache object checked before admission",
             "forged sourceCarrier digest rejected"
@@ -567,7 +568,8 @@
           "guarantees": [
             "byte identity independent of downstream publication",
             "derived transformations not forced equal to unrelated carriers",
-            "conflicting digest address is never overwritten"
+            "conflicting digest address is never overwritten",
+            "an observable change of the opened source file descriptor rejects identity admission"
           ]
         },
         "eff": {
@@ -603,7 +605,7 @@
             "tests/test_models.py",
             "tests/test_assets.py"
           ],
-          "consumerEvidence": "Existing owner-native test and implementation source, not an independent machine-checked universal proof",
+          "consumerEvidence": "Selected 16,481,768-byte Live Relay source archived and materialized through independent local CAS with matching SHA-256 and FFprobe streams; exact temporary source descriptor observations, not universal concurrent-writer snapshot proof",
           "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
         },
         "unfold": {
