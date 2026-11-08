@@ -36,6 +36,7 @@ impl PgRuntimeServer {
             if t.name.as_ref()=="runtime.describe"{
                 t.output_schema=Some(std::sync::Arc::new(json!({"type":"object","properties":{"globalExecutionLimit":{"type":["integer","null"],"description":"Null: native allocations are resource governed, not Job-count governed."},"scheduling":{"type":"object"},"node":{"type":"object"}},"additionalProperties":true}).as_object().unwrap().clone()));
             }
+            qualify_pg_scheduling_output_schema(&mut t);
             t.description=Some(description.into());
             Some(t)
         }).collect()
