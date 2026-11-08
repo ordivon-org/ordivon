@@ -88,3 +88,16 @@ A successful export, executable launch, or archive is evidence of a native, plat
 Run `mise run export:room-windows` from `domains/game/` with the official Godot **4.7.2** Windows x86_64 templates installed. It uses the same project source and rule/narrative state as Linux, plus the native Godot Windows Desktop export preset. The ignored output is `dist/room-encounter/windows-x86_64/room-encounter.exe` and a `room-encounter-windows-x86_64.zip` containing the executable and both upstream license notices. No Godot SDK or Ordivon Runtime is needed by the eventual Windows player. Run the exported Windows executable on a real Windows host to verify its launch; a Linux build command alone does not establish Windows runtime readiness.
 
 For both platforms, the Godot export preset excludes the standalone first-party Agent and assertion scripts. They stay available in source for mechanical verification but do not belong in the playable package. Linux and Windows builds are **technical previews**, not Human-validated indie game releases or store-certified products.
+
+
+## Signed arithmetic and checkpoint invariants
+
+`EncounterRules.guard` restores only the remaining stamina instead
+of adding before clamping. The authoritative turn counter is monotone
+and saturates at the maximum signed 64-bit value, including after
+loading a valid maximal checkpoint.
+
+**Human:** normal Save/Load, combat and UI behavior remain unchanged.
+**Agent:** run `mise run verify:room-smt` for the signed-i64 Z3 model,
+and `mise run test:encounter` for native Godot implementation checks.
+Their evidence scopes are not interchangeable.

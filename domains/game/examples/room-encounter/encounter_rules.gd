@@ -4,6 +4,7 @@ extends Node
 const Tuning = preload("res://encounter_tuning.gd")
 signal state_changed(state: Dictionary)
 signal action_accepted(action: String)
+const MAX_TURN: int = 9223372036854775807
 @export var tuning: Resource = preload("res://configs/default.tres")
 
 var active: Resource
@@ -48,7 +49,7 @@ func attack() -> bool:
     if phase != "fighting" or stamina < active.attack_cost:
         return false
     stamina -= active.attack_cost
-    turn += 1
+    _record_turn()
     enemy_health -= active.attack_damage
     if enemy_health <= 0:
         foes -= 1
@@ -66,8 +67,11 @@ func attack() -> bool:
 func guard() -> bool:
     if phase != "fighting":
         return false
-    stamina = mini(active.stamina_capacity, stamina + active.guard_restore)
-    turn += 1
+    # Do not add before clamping: signed 64-bit addition could wrap even
+    # when the final logical stamina should equal capacity.
+    var missing_capacity: int = active.stamina_capacity - stamina
+    stamina += mini(missing_capacity, active.guard_restore)
+    _record_turn()
     _retaliate(active.guard_block)
     state_changed.emit(snapshot())
     action_accepted.emit("guard")
@@ -85,6 +89,12 @@ func advance() -> bool:
         phase = "fighting"
     state_changed.emit(snapshot())
     return true
+
+# A restored valid checkpoint can contain MAX_TURN; never wrap the
+# monotone logical turn count to a negative number on the next action.
+func _record_turn() -> void:
+    if turn < MAX_TURN:
+        turn += 1
 
 func _retaliate(block: int) -> void:
     player_health = maxi(0, player_health - maxi(0, active.enemy_damage - block))
