@@ -142,6 +142,28 @@ No new scheduler, generic model router or persistence registry is created.
   is retired from PG-only CLI. Require native PG evidence and actual installed
   consumer replacement; do not migrate disposable Runtime SQLite data.
 
+### CI PostgreSQL coverage closure (2026-11-08)
+
+The exact source candidate was retested with five distinct databases in one
+isolated, disposable PostgreSQL 18.6 cluster. All previously conditional
+PG suites passed **86/86**, followed by the full locked Python 3.15.1 suite
+with **1,490 PASS, zero SKIP/FAIL, and 254 subtests PASS**. This verifies
+fixed-schema operations, real transactional accounting, concurrent Turn
+Effects and Wake/Conversation Binding consumers. The server was stopped
+and its temporary data were deleted.
+
+The existing Monorepo Required `owner-verification` GitHub Actions job
+already has a per-shard `postgres:18.6` service for other native Owners.
+When selecting `harness:verify`, its workflow now creates five dedicated
+databases in **that same ephemeral service** and passes five DSNs to the
+existing `mise run verify`. Absent service/database/connection must FAIL
+instead of yielding quiet PostgreSQL skips. Explicit `mise run pg:verify`
+requires all five DSNs and runs the five native PostgreSQL test modules.
+
+**Remote CI status:** this new workflow wiring is source-authored and still
+requires live PR #1835 job evidence after push. Local 1,490/1,490 and
+GitHub CI acceptance remain distinct claims, and neither proves production
+deployment or physical Provider delivery.
 ## Native qualification — bounded source candidate (2026-11-08)
 
 **Source:** Linux Runtime workspace `ws-gpt6-harness-verification-20261108-r3`,
