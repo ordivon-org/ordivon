@@ -31,7 +31,8 @@ def assess_native_tool_paths(native: dict[str, Any]) -> dict[str, Any]:
 
     observed: dict[str, dict[str, Any]] = {}
     issues: list[str] = []
-    for name, fact in sorted(tools.items()):
+    for name in sorted(tools, key=str):
+        fact = tools[name]
         if not isinstance(name, str) or not name or not isinstance(fact, dict):
             issues.append(f"invalid native tool declaration: {name!r}")
             continue

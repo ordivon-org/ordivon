@@ -48,6 +48,7 @@ class NativeToolIdentityTests(unittest.TestCase):
             {"tools": {"decoder": {"path": "relative", "sha256": "0" * 64}}},
             {"tools": {"decoder": {"path": "/missing/tool"}}},
             {"tools": {"decoder": "not-a-fact"}},
+            {"tools": {1: {"path": "/missing/tool"}, "decoder": {"path": "/missing/tool"}}},
         ):
             with self.subTest(native=native):
                 report = assess_native_tool_paths(native)
