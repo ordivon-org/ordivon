@@ -35,3 +35,30 @@ samples denied hostname, denied port and local TCP direct-fallback canaries.
 This proves sampled IPv4 HTTPS behavior and local no-fallback, not universal
 DNS/IPv6 noninterference, process memory identity or financial-write authority.
 No new VPN session, monitor or long-running service is introduced.
+
+
+## Real public market-data business acceptance
+
+From the Network directory, run `mise run business-finance` **opt-in**.
+This one-shot witness goes beyond TLS readiness: it fetches and parses a real
+BTC/USDT ticker from OKX, Binance Spot and Binance USD-M, plus the FRED
+DGS10 public CSV. All requests use the *already installed* dedicated Finance
+loopback proxy ports, never a generic host proxy. It verifies the exact
+source/installed Finance route policy and observes the corresponding expected
+Carrier CONNECT effects, including **zero Carrier CONNECT** for the explicitly
+authorized FRED public-direct lane.
+
+Human result: `standing=PASS` means four public read-only payloads were
+accepted and parsed through their expected scoped path *in the bounded sample*.
+Source timestamps are recorded where the upstream provides them; Binance
+prices are not a synchronized cross-venue comparison and must not be used as
+a trading signal. This witness makes no order or account API calls.
+
+Agent contract: do not infer full Finance feed availability from these four
+samples. Keep the nine-lane negative/control-plane acceptance in
+`finance-lane-witness.py`; `business-finance` measures four real downstream
+payloads, not all seven VPN channels. If a provider rate-limits, changes JSON,
+or FRED is unreachable, preserve the error/UNKNOWN or FAIL rather than
+turning a CONNECT 200 into market-data PASS. No persistent monitor is
+introduced. Network only provides the transport acceptance; Finance owns
+research, model utility and trading decisions.
