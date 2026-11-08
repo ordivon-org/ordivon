@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.operation-lineage",
+  "productionId": "convergence-sonic-ident",
+  "operations": [
+    {
+      "id": "generate-source",
+      "dependsOn": [],
+      "inputFiles": [
+        {
+          "path": "generate.py",
+          "digest": "sha256:b7ad8b444311c7da3fd0464720c8e5bb16c90706c7d143c79c08cf669f320eeb"
+        }
+      ],
+      "retainedFile": {
+        "path": "render/convergence-source.wav",
+        "digest": "sha256:7b739776af6c5902f7cb42f70f27db4f8c0f5fb4e7a4eea56532d1dc8b26b25e"
+      },
+      "outputIds": [],
+      "toolFamily": "Python"
+    },
+    {
+      "id": "master-audio",
+      "dependsOn": [
+        "generate-source"
+      ],
+      "inputFiles": [],
+      "outputIds": [
+        "convergence-master"
+      ],
+      "toolFamily": "SoX"
+    },
+    {
+      "id": "encode-flac",
+      "dependsOn": [
+        "master-audio"
+      ],
+      "inputFiles": [],
+      "outputIds": [
+        "convergence-archive"
+      ],
+      "toolFamily": "unqualified FLAC encoder"
+    },
+    {
+      "id": "encode-ogg",
+      "dependsOn": [
+        "master-audio"
+      ],
+      "inputFiles": [],
+      "outputIds": [
+        "convergence-delivery"
+      ],
+      "toolFamily": "unqualified Vorbis encoder"
+    },
+    {
+      "id": "render-waveform",
+      "dependsOn": [
+        "master-audio"
+      ],
+      "inputFiles": [],
+      "outputIds": [
+        "convergence-waveform"
+      ],
+      "toolFamily": "FFmpeg"
+    }
+  ]
+}

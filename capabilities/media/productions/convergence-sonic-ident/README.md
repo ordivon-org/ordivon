@@ -26,3 +26,30 @@ The piece is intentionally compact and functional rather than cinematic. It can 
 ## Truth boundary
 
 The audio encodes a creative interpretation of Ordivon concepts. It is not a Runtime, Host, Research, or system-state authority.
+
+## Bounded operation dependency impact (current read-only consumer)
+
+The file `operation-lineage.json` is an opt-in, schema-validated **declared**
+topology of five native processing steps: `generate-source` (script to PCM
+source WAV), `master-audio` (SoX master), `encode-flac`, `encode-ogg`
+and `render-waveform` (FFmpeg). It does **not** encode exact original
+commands, build environments, automatic cache keys or historical Runtime
+Job replay. The current `sourceCarrier` and `outputCarrier` byte
+observations remain a separate source of physical evidence.
+
+```bash
+cd capabilities/media
+uv run --frozen ordivon-studio production-context \
+  productions/convergence-sonic-ident
+uv run --frozen python -m unittest discover -s tests -p test_operation_impact.py -v
+```
+
+Inspect `operationLineage.steps` and `revalidateStepIds`. A source
+change affects all downstream steps; a mutation of the OGG delivery carrier
+affects only its selected leaf. A file unavailable for readback is UNKNOWN;
+the contract never implies "unchanged" or a production/publishing failure.
+`actionKey=null` and `cacheReuseAuthorized=false` until independent
+hermetic recipe, qualified tool/OS environment and replay evidence exists.
+The current Python source generator was independently rerun in an isolated
+temporary directory under Python 3.15.1 with matching source WAV SHA-256,
+but that one replay is not a cross-host proof.

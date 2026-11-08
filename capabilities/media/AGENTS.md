@@ -98,6 +98,40 @@ selected Production source carrier. Neither proves SHA-256, atomic file
 readback, provider authority or end-to-end publication. Preserve native
 consumer tests. The formal proof is registered in the existing Formal CI gate.
 
+## Operation dependency impact: source-only, no cache or executor
+
+The selected Sonic Ident Production now declares one bounded native
+`sources.sourceDocuments` entry: `operation-lineage.json`, with five
+source-owned steps. `studio_production_context` exposes the
+`operationLineage` read-only projection automatically when this exact
+document is explicitly declared. No generic repo scan, provider state,
+implicit agent execution, or new scheduler is involved.
+
+The projection verifies selected source/intermediate/final-file digests and
+traverses the declared downstream dependency edges. Distinguish
+`REVALIDATE_REQUIRED` (a byte changed in a dependency closure),
+`UNKNOWN_UPSTREAM` (insufficient evidence), and
+`NO_BYTE_DRIFT_OBSERVED` (only the explicitly declared byte cut matched).
+Do **not** treat the last state as reproducible execution, cache authorization,
+semantic quality, or a licence to skip work. Every row has `actionKey=null`,
+`cacheReuseAuthorized=false`, unknown full tool/environment/recipe identity.
+
+**Agent:** read the selected production, inspect the 5-step `operationLineage`
+and `revalidateStepIds`/`unresolvedStepIds`. On a changed source, propose
+only the downstream checks to the human or Runtime planner; do not invoke
+SoX/FFmpeg or accept cache results without separately qualified invocation,
+tool and environment evidence. On missing bytes, preserve UNKNOWN. On local
+file-match observations, do not infer historical Runtime Job recovery or
+publication. Use `tests/test_operation_impact.py` for independent falsifiers.
+
+**Human:** use `uv run --frozen ordivon-studio production-context
+productions/convergence-sonic-ident` and inspect `operationLineage`. Change
+one source in an isolated test workspace to see the scoped effects. The
+current `generate.py` can reproduce `render/convergence-source.wav` in a
+temporary directory under the selected Python 3.15.1 environment, but
+historical SoX/FLAC/Vorbis/FFmpeg invocation parameter closure is not yet
+qualified. See `productions/convergence-sonic-ident/README.md`.
+
 ## Selected processing example
 
 ```bash

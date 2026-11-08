@@ -187,3 +187,28 @@ status, domain Claims and publication remain separate authorities.
 publication rights separately. **Agent:** observe real selected bytes, preserve
 UNKNOWN when not bound, and do not currentize historical receipts.
 See `../docs/human-guide.md` and `../AGENTS.md`.
+
+## Native operation dependency closure (Lean + live consumer)
+
+`ProductionDependencyImpact.lean` proves a *three-valued abstraction* of
+unchanged/changed/unknown local byte observations and downstream impact
+propagation, including isolated leaf changes and missing-source uncertainty.
+`operation_impact.py` validates one source-owned `operation-lineage.json`
+against `schemas/operation-lineage.schema.json` and uses existing
+`assets.hash_file` observations plus the declared Output carrier readback.
+`tests/test_operation_impact.py` supplies live five-step Sonic evidence,
+input mutation, leaf-only mutation, missing-source, cycle, escape and unknown
+reference falsifiers. The real Production explicitly lists this document
+under `sources.sourceDocuments`.
+
+Formal/CI registers the model, schema, selected graph and consumers as exact
+source files. The current graph is a **declaration**, NOT a verified historical
+execution trace. This graph does not prove the FFmpeg/SoX command parameters,
+environment closure, hermeticity or deterministic execution. Action cache and
+CAS are separate external owners; all `actionKey` values remain null and
+`cacheReuseAuthorized` remains false. This is a read-only dependency impact
+observation, not a new workflow scheduler or permission to re-render.
+
+Human users should check changed file bytes and execute approved steps
+separately; Agents should preserve UNKNOWN, select only the implicated
+dependency closure, and obtain independent Runtime + provider evidence.

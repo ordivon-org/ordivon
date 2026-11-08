@@ -34,7 +34,7 @@ def tool_definitions() -> list[dict[str, Any]]:
         },
         {
             "name": "studio_production_context",
-            "description": "Read one selected Studio Production with source/Claim/Output standing and exact byte observations for declared sourceCarrier/outputCarrier. Optional outputFiles maps Output IDs to explicitly selected file paths. This never renders, edits, publishes, or infers semantic currentness.",
+            "description": "Read one selected Studio Production with source/Claim/Output standing, exact declared-carrier byte observations, and an optional bounded declared operationLineage dependency impact projection (never a cache hit). outputFiles maps Output IDs to explicitly selected local paths. No rendering, editing, publishing, or inferred semantic currentness.",
             "inputSchema": {
                 "type": "object",
                 "properties": {

@@ -272,6 +272,10 @@ def build_production_context(
         for output in outputs
     ]
 
+    from .operation_impact import project_operation_impact
+
+    operation_impact = project_operation_impact(root, production, output_observations)
+
     projected_outputs = []
     for output in outputs:
         if not isinstance(output, dict):
@@ -299,6 +303,7 @@ def build_production_context(
             "items": projected_claims,
         },
         "outputs": projected_outputs,
+        "operationLineage": operation_impact,
         "inputManifestIdentity": {
             "productionManifestSha256": production_manifest_digest,
             "claimsManifestSha256": claims_manifest_digest,

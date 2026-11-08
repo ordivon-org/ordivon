@@ -32,6 +32,9 @@
       "consumption-evidence.json",
       "friction.json",
       "friction-validation-env.json"
+    ],
+    "sourceDocuments": [
+      "operation-lineage.json"
     ]
   },
   "outputs": [

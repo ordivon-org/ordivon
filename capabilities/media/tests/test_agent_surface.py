@@ -316,6 +316,22 @@ class AgentSurfaceTests(unittest.TestCase):
                         root=real_root,
                     )
 
+    def test_agent_context_consumes_bounded_real_sonic_impact_without_cache_claim(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        selected = execute_surface_action(
+            "studio_production_context",
+            {"productionId": "convergence-sonic-ident"},
+            root=root,
+        )
+        self.assertEqual(selected["production"]["id"], "convergence-sonic-ident")
+        lineage = selected["operationLineage"]
+        self.assertEqual(lineage["productionId"], "convergence-sonic-ident")
+        self.assertEqual(len(lineage["steps"]), 5)
+        self.assertFalse(lineage["cacheReuseAuthorized"])
+        self.assertFalse(lineage["executionOrPublicationAuthorized"])
+        self.assertEqual(lineage["revalidateStepIds"], [])
+        self.assertTrue(all(step["actionKey"] is None for step in lineage["steps"]))
+
     def test_creative_index_query_defaults_to_media_hosted_creative_library(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

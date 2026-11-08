@@ -34,6 +34,12 @@ SOURCE_FILES = (
     "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
     "capabilities/media/formal/CreativeLibraryAcceptance.lean",
     "capabilities/media/formal/ProductionOutputByteIdentity.lean",
+    "capabilities/media/formal/ProductionDependencyImpact.lean",
+    "capabilities/media/schemas/operation-lineage.schema.json",
+    "capabilities/media/src/ordivon_studio/operation_impact.py",
+    "capabilities/media/tests/test_operation_impact.py",
+    "capabilities/media/productions/convergence-sonic-ident/operation-lineage.json",
+    "capabilities/media/productions/convergence-sonic-ident/production.json",
     "capabilities/media/src/ordivon_studio/production_context.py",
     "capabilities/media/tests/test_production_context.py",
     "capabilities/media/src/ordivon_studio/production_validation.py",
@@ -444,7 +450,9 @@ def main() -> None:
     media_proof = REPO / "capabilities/media/formal/MediaNativeProcessingAdmission.lean"
     media_library_proof = REPO / "capabilities/media/formal/CreativeLibraryAcceptance.lean"
     media_output_proof = REPO / "capabilities/media/formal/ProductionOutputByteIdentity.lean"
-    for proof_file in (source, variation, media_proof, media_library_proof, media_output_proof):
+    media_dependency_proof = REPO / "capabilities/media/formal/ProductionDependencyImpact.lean"
+    for proof_file in (source, variation, media_proof, media_library_proof,
+                       media_output_proof, media_dependency_proof):
         if re.search(r"\b(sorry|admit|axiom)\b", proof_file.read_text()):
             raise AssertionError("Unproved Lean shortcut in source")
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
@@ -463,6 +471,8 @@ def main() -> None:
                           [executable("lean"), str(media_library_proof)]))
         probes.append(run("Lean kernel Media Output byte identity",
                           [executable("lean"), str(media_output_proof)]))
+        probes.append(run("Lean kernel Media dependency impact model",
+                          [executable("lean"), str(media_dependency_proof)]))
         # Check all three FP queries, including the historical NaN
         # counterexample. Z3 process success by itself is not a proof.
         media_fp = REPO / "capabilities/media/formal/LoudnessProfileSafety.smt2"
