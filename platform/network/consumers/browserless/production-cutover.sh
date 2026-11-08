@@ -59,7 +59,10 @@ rollback_after_lease() {
   set +e
   systemctl stop ordivon-browserless-operator-proxy@11.service ordivon-browserless-operator-proxy@12.service ordivon-browserless-operator-proxy@13.service >/dev/null 2>&1
   systemctl stop ordivon-browserless@11.service ordivon-browserless@12.service ordivon-browserless@13.service >/dev/null 2>&1
-  systemctl disable --now network-v2-browserless.target >/dev/null 2>&1
+  # This rollback owns only the legacy Browserless provider. The shared
+  # namespace/forward target belongs to all consumers and must stay active.
+  systemctl disable --now network-v2-browserless-legacy-provider.target >/dev/null 2>&1
+  systemctl stop network-v2-browserless-provider-carrier.service network-v2-browserless-dns.service network-v2-browserless-wireguard.service >/dev/null 2>&1
   [ -f "$backup/browserless.container" ] && install -m 0644 "$backup/browserless.container" "$QUADLET"
   [ -f "$backup/operator.service" ] && install -m 0644 "$backup/operator.service" "$OPERATOR"
   [ -f "$backup/agent-config.json" ] && install -m 0600 "$backup/agent-config.json" "$CONFIG"
