@@ -617,7 +617,9 @@ pub(crate) fn supervisor_identity(attempt: &AttemptRecord) -> RuntimeResult<Supe
     })
 }
 
-pub(crate) fn cgroup_has_processes(control_group: &str) -> RuntimeResult<bool> {
+/// Observed population of the exact cgroup. A vanished or unreadable
+/// population interface is *not* an observed zero: keep unknown as None.
+pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<Option<bool>> {
     if !control_group.starts_with('/')
         || control_group
             .split('/')
@@ -635,18 +637,41 @@ pub(crate) fn cgroup_has_processes(control_group: &str) -> RuntimeResult<bool> {
     if events_path.is_file() {
         let content = fs::read_to_string(events_path)
             .map_err(|error| io_error("read cgroup population state", error))?;
-        return parse_cgroup_populated(&content);
+        return parse_cgroup_populated(&content).map(Some);
     }
+    Ok(None)
+}
 
-    let processes_path = root.join("cgroup.procs");
-    if !processes_path.is_file() {
+/// Positive disappearance observation, distinct from unreadable population.
+/// cgroup2 forbids removal of a populated subtree. An absent path is usable
+/// only while the actual cgroup2 hierarchy is still mounted and observable.
+pub(crate) fn cgroup_removed(control_group: &str) -> RuntimeResult<bool> {
+    // Reuse path validation even when the group no longer exists.
+    let _ = cgroup_population(control_group)?;
+    let root = std::ffi::CString::new("/sys/fs/cgroup").expect("static path");
+    let mut info = std::mem::MaybeUninit::<libc::statfs>::uninit();
+    // SAFETY: root is NUL terminated; info is writable and read only on success.
+    let mounted = unsafe { libc::statfs(root.as_ptr(), info.as_mut_ptr()) } == 0;
+    if !mounted {
         return Ok(false);
     }
-    let content = fs::read_to_string(processes_path)
-        .map_err(|error| io_error("read cgroup process membership", error))?;
-    Ok(content
-        .lines()
-        .any(|line| line.trim().parse::<u32>().is_ok()))
+    // SAFETY: statfs succeeded and initialized info.
+    if unsafe { info.assume_init() }.f_type != libc::CGROUP2_SUPER_MAGIC {
+        return Ok(false);
+    }
+    let path = Path::new("/sys/fs/cgroup").join(control_group.trim_start_matches('/'));
+    match fs::symlink_metadata(path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(true),
+        Ok(_) => Ok(false),
+        Err(error) => Err(io_error("observe cgroup disappearance", error)),
+    }
+}
+
+pub(crate) fn cgroup_has_processes(control_group: &str) -> RuntimeResult<bool> {
+    match cgroup_population(control_group)? {
+        Some(populated) => Ok(populated),
+        None => Ok(!cgroup_removed(control_group)?),
+    }
 }
 
 pub(crate) fn parse_cgroup_populated(content: &str) -> RuntimeResult<bool> {
@@ -900,4 +925,76 @@ mod tests {
         }));
         assert!(!args.iter().any(|arg| arg.contains("sha256:")));
     }
+}
+
+/// Kernel notifications are wake-up hints only; callers re-read durable state.
+/// Inotify covers Result publication and output growth; cgroup.events covers
+/// process-tree population. A bounded fallback handles watch setup races.
+pub(crate) fn wait_for_attempt_change(bundle: &Path, control_group: Option<&str>, wait: Duration) {
+    use std::io::Read;
+    use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+    let wait = wait.min(Duration::from_secs(1));
+    if wait.is_zero() {
+        return;
+    }
+    // SAFETY: no pointers; a successful descriptor is transferred to OwnedFd.
+    let raw = unsafe { libc::inotify_init1(libc::IN_CLOEXEC | libc::IN_NONBLOCK) };
+    let inotify = if raw >= 0 {
+        Some(unsafe { OwnedFd::from_raw_fd(raw) })
+    } else {
+        None
+    };
+    let mut descriptors = Vec::new();
+    if let (Some(fd), Some(path)) = (
+        &inotify,
+        bundle.to_str().and_then(|p| std::ffi::CString::new(p).ok()),
+    ) {
+        // SAFETY: fd is live, path NUL terminated and the mask is valid.
+        if unsafe {
+            libc::inotify_add_watch(
+                fd.as_raw_fd(),
+                path.as_ptr(),
+                libc::IN_MODIFY | libc::IN_MOVED_TO | libc::IN_CREATE | libc::IN_DELETE,
+            )
+        } >= 0
+        {
+            descriptors.push(libc::pollfd {
+                fd: fd.as_raw_fd(),
+                events: libc::POLLIN,
+                revents: 0,
+            });
+        }
+    }
+    let mut events = control_group
+        .filter(|path| cgroup_population(path).is_ok())
+        .and_then(|path| {
+            fs::File::open(
+                Path::new("/sys/fs/cgroup")
+                    .join(path.trim_start_matches('/'))
+                    .join("cgroup.events"),
+            )
+            .ok()
+        });
+    if let Some(file) = events.as_mut() {
+        let mut initial = String::new();
+        if file.read_to_string(&mut initial).is_ok() {
+            descriptors.push(libc::pollfd {
+                fd: file.as_raw_fd(),
+                events: libc::POLLPRI | libc::POLLERR,
+                revents: 0,
+            });
+        }
+    }
+    if descriptors.is_empty() {
+        thread::sleep(wait.min(Duration::from_millis(250)));
+        return;
+    }
+    // SAFETY: descriptors and their backing Files stay alive through poll.
+    let _ = unsafe {
+        libc::poll(
+            descriptors.as_mut_ptr(),
+            descriptors.len() as libc::nfds_t,
+            wait.as_millis().min(i32::MAX as u128) as i32,
+        )
+    };
 }

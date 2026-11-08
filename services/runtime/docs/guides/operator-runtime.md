@@ -28,7 +28,7 @@ related:
 
 Record: node name, OS, installed binary digest, exact Git commit, service identity, Registry backend, active Job count, Workspace count, and configured consumer endpoint. Do not treat a repo checkout, candidate service, or green test as proof that the installed production path changed.
 
-Observed on 2026-11-07: both active Linux `ordivon-runtime.service` and `ordivon-runtime-pg-candidate.service` execute a PG-native binary with `ORDIVON_PG_DSN` and `ORDIVON_PG_SCHEMA` present. The old SQLite file measured 6,166,085,632 bytes at first inspection; neither active PG process held it open. Subsequently it was removed after verifying no file opener, no active SQLite-referencing timers, and no PG Store Root within the old Registry tree; the Registry parent and other files remained intact. This is a completed **Linux file-only** retirement, not proof that Windows or all legacy SQLite source code has been retired. Windows has running `OrdivonRuntimeR6Candidate`, `OrdivonRuntimePrivilegedBroker`, and `OrdivonRuntimePostgreSQL18` services; a running PostgreSQL server alone does not confirm that Windows Runtime is PG-backed. A separate Windows inspection found a 251,088,896-byte SQLite Registry file under `C:\ProgramData\Ordivon\RuntimeCandidateR6\registry\`; qualify its native PG replacement before deleting it. These are time-scoped observations.
+Observed on 2026-11-07: both active Linux `ordivon-runtime.service` and `ordivon-runtime-pg-candidate.service` execute a PG-native binary with `ORDIVON_PG_DSN` and `ORDIVON_PG_SCHEMA` present. The legacy SQLite database, four obsolete trace files, 428,509 retired Attempt directories and the remaining two orphaned marker files were removed after explicit consumer verification. The old Linux `/var/lib/ordivon/registry/` directory itself was also removed. Other Owner roots and current PG stores were not touched. This is a completed **Linux legacy Registry data-root** retirement, not proof that Windows Runtime or all legacy SQLite source code has been retired. Windows has running `OrdivonRuntimeR6Candidate`, `OrdivonRuntimePrivilegedBroker`, and `OrdivonRuntimePostgreSQL18` services; a running PostgreSQL server alone does not confirm that Windows Runtime is PG-backed. A separate Windows inspection found a 251,088,896-byte SQLite Registry file under `C:\ProgramData\Ordivon\RuntimeCandidateR6\registry\`; qualify its native PG replacement before deleting it. These are time-scoped observations.
 
 ## Ordinary safe operations
 
@@ -49,8 +49,31 @@ Cleanup eligibility is established by **consumer reachability**, not naming, age
 
 For ordinary Linux service directory management, prefer systemd `StateDirectory=`, `CacheDirectory=`, `RuntimeDirectory=`, and an explicit `tmpfiles.d` policy with the correct retention meaning. Do not make an active store 'temporary' to facilitate cleanup.
 
+## Native cancellation and stuck capacity (Linux)
+
+The kernel and systemd already manage process lifetime. Use the installed Runtime's exact Job and native Unit identity rather than `ps | grep` PID-tree scripts. Human diagnosis: inspect `job.get`, `systemctl show <exact-unit>`, `systemctl status <exact-unit>`, the recorded cgroup's `cgroup.events` `populated` value, and (where supported) `systemctl kill --kill-whom=cgroup --signal=SIGKILL <exact-unit>`. The native Unit must be tied to the admitted Attempt before any physical signal. Never kill a broad `ordivon-*` wildcard or the PG server service itself. `cgroup.kill` is the Linux kernel's native recursive process termination primitive.
+
+`systemctl --no-block stop` only queues a stop; it is not terminal evidence. If the Unit is no longer active and a committed `runner-start.json` binds Job/Attempt/launch token and kernel cgroup population has reached zero, an absent Runner result permits an honest *lost execution result*, not a fabricated successful cancellation. If Runner start is missing, a not-found Unit can race with pending launch; preserve UNKNOWN and investigate native dispatch admission. The application-level effect remains unproven even if the kernel confirms there are no processes.
+
+Linux references: https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html and https://www.freedesktop.org/software/systemd/man/latest/systemctl.html. Windows counterpart: https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects (TerminateJobObject / kill-on-close with identity-bound handle). Do not manually mutate live PostgreSQL reservations or treat a source-only change as installed service behavior.
+
 ## Changes and acceptance
 
 Use an isolated Git Workspace, validate the smallest affected contract, then use the **existing** release/receipt path. Acceptance evidence includes code diff, selected Rust tests, MCP tool discovery, native Linux and Windows execution where applicable, PG restart/recovery, and installed binary/endpoint confirmation. A source change without deployment remains source-only.
 
 Read [Agent Execution Guide](agent-runtime.md), [Operations](../operations.md), [Recovery](../recovery.md), and [Owner Audit](../audits/2026-11-07-runtime-owner-audit.md).
+
+
+### PG cancellation recovery without an execution slot
+
+The installed PG binary accepts `--reconcile-cancelled` as an operator-only native
+invocation. Load the same private EnvironmentFiles as the installed service; run
+it through systemd or the operator shell, not through `workspace.exec`. It only
+reconciles already committed cancelled Jobs, up to 100 per invocation, and does
+not admit a command, change request identity or consume execution capacity.
+The service also runs a bounded cancellation recovery pass every two seconds;
+clients can disconnect without leaving cancellation dependent on later polling.
+Failed observations remain pending and retry. Neither mode blindly releases a
+reservation, fabricates an execution Result, nor claims an external effect failed.
+Observe waits use inotify and cgroup.events wakeups with a bounded fallback;
+notifications are hints and never authority to commit terminal state.

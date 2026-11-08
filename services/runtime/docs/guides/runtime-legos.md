@@ -46,7 +46,7 @@ A LEGO is described by `(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`: inputs/
 
 ### Source layout of the PG implementation
 
-`runtime/pg_runtime.rs` owns configuration, PG persistence access and internal reconciliation. Its submodules separate `node_query.rs` (discovery/list), `workspace.rs` (Workspace operations), `job.rs` (admission/observe/cancel/get), and `artifact.rs` (Artifact projection). The split preserves the public API and is not yet a PG-only Cargo dependency graph: the current feature tree still builds `rusqlite`.
+`runtime/pg_runtime.rs` owns PG configuration and writer qualification. Its submodules separate `node_query.rs` (discovery/list), `workspace.rs` (Workspace operations), `job.rs` (admission/observe/cancel/get), `reconciliation.rs` (Attempt readback, OS reconciliation and result projection), `native_stop.rs` (pure kernel-evidence admission classifier with Kani proof harness), and `artifact.rs` (Artifact projection). Runtime errors use `runtime/error/universal.rs` for executor-to-domain mapping, while `runtime/error/sqlite.rs` is a gated **legacy** Registry adapter. PostgreSQL clients must use the neutral error mapper rather than importing the legacy Engine. These are source-level structure improvements, **not a PG-only Cargo dependency graph**: `postgres-runtime` still transitively enables `rusqlite`, and Windows PG-native execution is not yet qualified.
 
 ## Reasoning LEGOs — reusable human/agent decisions
 
@@ -74,6 +74,10 @@ For code changes, use `cargo fmt`, `cargo check`, focused Rust tests, the reposi
 5. Make a module replacement only when a consumer and invariant show why the new seam matters. Reuse mature Git, PostgreSQL, systemd, Windows Job Objects, Cargo, and OpenTelemetry instead of a custom duplicate control plane.
 6. Never present a source-only change, a passing Linux-only test, or an empty-epoch PG candidate as Windows production cutover or fleet-wide truth.
 
+## Existing Skill reuse (do not duplicate)
+
+The installed Ordivon Skills catalog currently exposes the approved advisory Skill `ecc-native/enterprise-agent-ops` (operational lifecycle, observability, release/rollback, incident response and owner metrics). Human operators can consult it for established incident practice; Agents should resolve its current binding before reading and treat its instructions as **advisory**, never as execution authority. Apply native Runtime Job/Attempt and PG evidence for all changes. No new overlapping Runtime operations Skill needs to be registered just to restate those practices.
+
 ## Relevant external authorities (use their native mechanisms)
 
 - [Rust API Guidelines — naming](https://rust-lang.github.io/api-guidelines/naming.html)
@@ -84,6 +88,20 @@ For code changes, use `cargo fmt`, `cargo check`, focused Rust tests, the reposi
 - [Windows Job Objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects)
 - [OpenTelemetry semantic convention naming](https://opentelemetry.io/docs/specs/semconv/general/naming/)
 - [cargo-nextest](https://nexte.st/)
+
+### Kernel-owned process-group cancellation LEGO
+
+This capability is composed from existing native APIs, **not a custom process-tree algorithm**. Precondition: exact Job→Attempt→Unit identity, committed cancel intent, and authoritative systemd service state. Linux action: request Unit stop; the existing systemd transient Unit already enforces `KillMode=control-group`, `TimeoutStopSec=2s` and `SendSIGKILL=yes`, so no additional per-PID or immediate-SIGKILL wrapper is justified. Windows action: use the already-owned Job Object handle rather than enumerating child PIDs. Postcondition: kernel process group absent or unpopulated, independently observed and retained as an immutable digest-bound `native-stop-evidence.json` Artifact within the existing PG terminal transaction; no claim of semantic task completion. Uncertainty: an unloaded Unit without bound Runner start evidence can race with dispatch. Implementation target: `runtime/platform/linux.rs`, `runtime/pg_runtime/job.rs`, and `runtime/pg_runtime/reconciliation.rs`. Source changes are **not deployed or physically qualified** until native tests and release receipt pass.
+
+### Kernel-native liveness vs durable reservation
+
+`globalExecutionLimit` is currently a product/PG admission cap, **not a Linux kernel process limit**. A pool blocked by stale `stopping` reservations is a control-plane reconciliation failure; adding an arbitrary timeout, artificially increasing a counter, or deleting PG rows is not kernel-based resolution. Prefer systemd `TasksMax`, `MemoryMax`, `CPUQuota`, cgroup v2 `pids.max`, and actual provider observations for physical resource control; retain only justified transaction-level admission/backpressure invariants. Do not conflate kernel process absence with the business outcome of arbitrary executed commands.
+
+## Capacity and reconciliation: Human / Agent instructions
+
+Human: inspect the node's `runtime.describe` capacity, then `job.list` and `job.get`. If a Job has durable cancellation intent but its Attempt still shows `stopping`, use `job.observe` to obtain the installed provider's current evidence. Do not manually delete a Job reservation, kill an unrelated process by name, or treat an operator UI timeout as proof of process termination. Follow the installed supervisor/recovery contract when the state cannot converge.
+
+Agent: on `CONCURRENCY_LIMIT` with `commitState=not_started`, preserve the original operation identity; do **not** invent a new `clientRequestId` or claim a Job was accepted. Inspect other live work only if its identity is relevant. For an already committed Job, observe that exact identity. When process state is unknown, emit UNKNOWN and cite its actual Job/Attempt evidence; capacity must not be reclaimed by guessing a terminal outcome.
 
 ## Retirement and evidence standing
 

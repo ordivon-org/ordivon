@@ -42,6 +42,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     };
     let runtime = tokio::task::spawn_blocking(move || PgRuntime::new(config)).await??;
+    // Native administration runs independently of ordinary execution admission.
+    // The CLI can repair exact committed cancellations even when all slots are held.
+    let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments == ["--reconcile-cancelled"] {
+        let report =
+            tokio::task::spawn_blocking(move || runtime.reconcile_cancelled_jobs(100)).await??;
+        println!("{report}");
+        return Ok(());
+    }
+    if !arguments.is_empty() {
+        return Err("unsupported PG Runtime arguments".into());
+    }
+    let recovery = runtime.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(2));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        loop {
+            interval.tick().await;
+            let runtime = recovery.clone();
+            match tokio::task::spawn_blocking(move || runtime.reconcile_cancelled_jobs(32)).await {
+                Ok(Ok(report)) if report["inspected"].as_u64().unwrap_or(0) > 0 => {
+                    eprintln!("PG cancellation reconciliation: {report}")
+                }
+                Ok(Err(_)) | Err(_) => {
+                    eprintln!("PG cancellation reconciliation unavailable; retained for retry")
+                }
+                _ => (),
+            }
+        }
+    });
     let server = PgRuntimeServer::new(
         runtime,
         ExecutionContext {

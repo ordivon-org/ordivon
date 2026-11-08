@@ -5,7 +5,7 @@
 //! plugin registry or dynamic provider marketplace: provider selection remains statically owned
 //! by Runtime and committed provider identity remains persisted in `ExecutionProviderSnapshot`.
 
-use super::engine::map_universal_error;
+use super::error::map_universal_error;
 use super::platform::{observe_linux_process_owner, systemd_run, validate_runner, SystemdRunSpec};
 use super::supervisor::{SupervisorIdentity, SupervisorObservation};
 use super::{

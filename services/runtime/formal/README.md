@@ -1,5 +1,7 @@
 # Runtime formal specifications
 
+> **Currentness note (2026-11-07):** `RuntimePgCutoverR1` formalizes a historical **SQLite snapshot migration and content-parity cutover**; `RuntimeWindowsFirstPgR1` formalizes a historical **Windows-first rollout order**. Neither is the current operator requirement: expendable legacy Runtime state is intentionally discarded, Linux is already PG-native, and Windows still requires separate PG admission/readback and native execution acceptance. Keep these models as bounded historical evidence while referenced by the formal harness; do **not** require their migration/parity or Windows-first constraints for the current fresh-PG epoch. `RuntimeDispatchR1` retains valid at-most-once and ambiguity invariants, but is not a proof of the installed native PG stopping/cgroup reconciliation implementation.
+
 This directory contains small TLA+ models for concurrency/recovery properties that are
 more important than prose-only architecture claims.
 
@@ -398,3 +400,64 @@ consumer-owned replay proof is supplied by this abstract action. The live
 PG18 staging import remains VERIFIED_NON_AUTHORITY with promotion_allowed
 false. A real service cutover is not authorized by this model and must not
 run before independently authenticated downstream obligations are satisfied.
+
+## Formal-first replacement ladder: native cancellation → PG reservation
+
+**Specification / invariant (owner):** for a committed, exact Attempt, native process quiescence is a necessary condition to release a cancellation-held reservation without a Runner result. An unqualified physical observation must never release capacity, and absence of a Result must never be interpreted as an external effect succeeding.
+
+A useful Hoare-style obligation for the no-Runner-result branch is:
+
+```text
+PRE:
+  cancel_intent_committed
+  ∧ exact Job / Attempt / Unit / Runner-start identity
+  ∧ systemd_unit_inactive
+  ∧ no_pending_systemd_job
+  ∧ (cgroup_population_observed = false OR positive_cgroup2_removal_observation)
+  ∧ no Runner terminal result
+
+POST:
+  PostgreSQL terminal outcome = lost (not succeeded)
+  ∧ native_stop_evidence Artifact digest bound to immutable bytes
+  ∧ reservation released only within the same PG terminal transaction
+  ∧ external effect outcome = UNKNOWN
+```
+
+**Executable refinement:** `runtime/pg_runtime/native_stop.rs::decide_native_stop` is the actual pure production decision function called by `runtime/pg_runtime/reconciliation.rs`. Its `#[cfg(kani)]` proof harness uses symbolic booleans, an optional cgroup observation, an independent truth-table specification, and non-vacuity `kani::cover!` obligations. All possible decision inputs are finite. This does **not** prove that an external systemd or cgroup read was truthful, that the caller preserved the identity precondition, or that PostgreSQL faithfully committed a transaction.
+
+**Model checking:** `RuntimeDispatchR1.tla` remains the established attempt-dispatch and ambiguity model. It does not currently model Linux-native cgroup stop; do not claim a TLA refinement proof for cancellation from its existing TLC receipt. The older SQLite-parity and Windows-first models are historical only.
+
+**Physical/refinement evidence:** keep the existing disposable PG plus real systemd `pg_vertical` test until native execution validates the concrete refinement. Its cancellation section now requires a recorded Runner start before native stop, a terminal outcome, a released PG reservation, and a digest-bound native-stop Artifact if the no-Runner-result branch yields `lost`. This is one strong native consumer test, not a new pile of special cases. It remains `#[ignore]` and must be explicitly executed on an authorized Linux/systemd node.
+
+**Deletion policy:** remove redundant example-based tests **only after** their exact property is mapped to an executed proof harness and implementation refinement, and the relevant native effect has independent acceptance. Do not remove tests of real SQL isolation, systemd/cgroup, Windows Job Object, installer/deployment or external network behavior on the strength of a pure Rust decision proof.
+
+**Truth status as of this pass:** production classifier and Kani proof source written; formal Kani execution NOT RUN; native PG/systemd integration NOT RUN; installed Runtime NOT UPDATED; four stale `stopping` reservations still block Linux ordinary execution. Local source mutation is not proof, release or consumer acceptance.
+
+
+### 2026-11-08 native recovery implementation
+
+The production classifier now accepts either an observed unpopulated cgroup or
+positive path removal from a verified mounted cgroup2 filesystem. A missing or
+unreadable population interface alone remains UNKNOWN. A nonempty population
+always holds, even if another input claims removal. The caller binds the exact
+Job/Attempt, launch token, Unit, InvocationID (when retained), cgroup and admitted
+Runner digest. Loaded inactive/failed Units and collected Units are distinguished.
+
+Kani 0.68.0 standalone directly included the production `native_stop.rs` module
+and executed `no_lost_resolution_without_complete_native_evidence`: one harness
+verified, zero failures; all five non-vacuity covers satisfied. The finite Boolean
+and Option input space is exhaustive; OS observation truth remains outside it.
+The seven disposable PG/systemd MCP tests were explicitly executed and passed.
+The cancellation test now stops observing after requesting cancellation and checks
+PG convergence from the service-owned recovery worker before making another
+`job.observe` call. Strict Clippy including MCP test targets passed.
+
+The immutable native receipt includes its own finish timestamp, so exact retries
+reuse the same Artifact metadata after a lost PG COMMIT acknowledgement. Receipt
+publication is serialized with an OS file lock; PG terminal and reservation
+release still use the existing atomic transaction. `resultAvailable` is false for
+OS-only LOST evidence in list, detail and observation projections.
+
+These checks do not qualify resource scheduling, persistent pending queues,
+Workspace concurrency or Windows PG cutover. They remain separate acceptance
+obligations from native cancellation convergence.

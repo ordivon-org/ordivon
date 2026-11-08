@@ -59,7 +59,7 @@ impl PgRuntime {
             .ok_or_else(|| error("native runner required"))?;
         super::platform::validate_runner(runner)?;
         let record = universal::load_workspace_record(&self.config.executor, &e.workspace_id)
-            .map_err(super::engine::map_universal_error)?;
+            .map_err(super::super::error::map_universal_error)?;
         let cwd =
             universal::resolve_workspace_cwd(&record, &e.cwd_relative, "execution.cwdRelative")
                 .map_err(io)?;
@@ -266,9 +266,29 @@ impl PgRuntime {
             {
                 return Ok(value);
             }
-            thread::sleep(
-                Duration::from_millis(50).min(deadline.saturating_duration_since(Instant::now())),
-            );
+            if let Some(attempt_id) = value.attempt_id.as_deref() {
+                let bundle = self
+                    .config
+                    .executor
+                    .store_root
+                    .join("pg-attempts")
+                    .join(attempt_id);
+                let start = fs::read(bundle.join("runner-start.json"))
+                    .ok()
+                    .and_then(|bytes| serde_json::from_slice::<RunnerStartEvidence>(&bytes).ok());
+                super::platform::wait_for_attempt_change(
+                    &bundle,
+                    start
+                        .as_ref()
+                        .map(|evidence| evidence.control_group.as_str()),
+                    deadline.saturating_duration_since(Instant::now()),
+                );
+            } else {
+                thread::sleep(
+                    Duration::from_millis(250)
+                        .min(deadline.saturating_duration_since(Instant::now())),
+                );
+            }
         }
     }
     pub fn cancel(
@@ -313,12 +333,27 @@ impl PgRuntime {
                     },
                 );
             }
-            let output = super::platform::stop_unit_no_block(&a.unit_name)?;
-            if !output.status.success() {
-                return Err(error(format!(
-                    "cancel intent persisted; native stop not confirmed for {}",
-                    request.job_id
-                )));
+            // systemd-run already sets KillMode=control-group,
+            // TimeoutStopSec=2s and SendSIGKILL=yes. Reuse that native
+            // stop policy: no extra PID walker, custom signal escalation or
+            // immediate hard-kill wrapper is needed.
+            if a.unit_name != format!("ordivon-pg-{}.service", a.attempt_id) {
+                return Err(error("Attempt native unit identity mismatch"));
+            }
+            let stop = super::platform::stop_unit_no_block(&a.unit_name)?;
+            if !stop.status.success() {
+                // A transient Unit may already have been collected. This
+                // failed submission is not proof of an active process; native
+                // reconciliation owns the terminal/no-result decision.
+                let unit = super::platform::systemctl_show(&a.unit_name)?;
+                if super::platform::unit_is_active(&unit)
+                    || super::platform::unit_has_pending_job(&unit)
+                {
+                    return Err(error(format!(
+                        "cancel intent persisted; native stop not confirmed for {}",
+                        request.job_id
+                    )));
+                }
             }
         }
         self.observe(
@@ -443,7 +478,7 @@ impl PgRuntime {
                 finished_at_ms: snapshot.finished_at_ms.map(|v| v as u64),
                 duration_ms: None,
                 exit_code: exit,
-                result_available: terminal,
+                result_available: terminal && by_kind.contains_key("execution_result"),
                 reservation_state: ReservationState::parse(&snapshot.reservation_state)?,
                 reservation_release_reason: None,
                 conditions: vec![],
