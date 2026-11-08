@@ -85,6 +85,20 @@ The actual executable examples and negative controls are `tests/test_artifact_co
 
 Do not introduce a new `consumer registry` or a mandatory OCI/attestation stage merely because an artifact has multiple readers. Consumers own domain acceptance and deployment proof.
 
+**Exact-byte identity across native verification:** `artifact_core/input_snapshot.py`
+reuses standard library `os.open`/`fstat`, streaming SHA-256 and private temporary
+files instead of another CAS. The service freezes the canonical Profile bytes.
+For three qualified self-contained FLAC/WAVE/PNG bindings it also freezes the
+subject and optional object contract, preserving basename/extension for native
+tools. The temporary snapshots are deleted after verification. The new
+`inputIdentity` records `EXACT_BYTES_SNAPSHOT` versus `ADMISSION_DIGEST_ONLY`.
+Legacy sidecar-bearing formats retain path admission semantics until their
+complete dependencies can be frozen without breaking relative references.
+A verified snapshot says nothing about source pathname continuity or what a
+later consumer opened; consumers must hash their actual inputs. A process
+holding the same principal may still modify private files; no process-isolation
+claim is made. See `tests/test_artifact_input_snapshot.py`.
+
 ## Formal-first verification and genuine test retirement
 
 The normative **safety property** is “a missing/unknown/failed or self-witnessing required claim cannot become complete Profile evidence.” The pure evaluator and its bounded executable refinement checker are `artifact_verification/claim_coverage.py` and `artifact_verification/formal/verify_claim_coverage.py`. The mathematical statement, source/proof bridge, limitations, Human/Agent guidance, and test-retirement argument are in `docs/ARTIFACT_CLAIM_COVERAGE_FORMAL_R1.md`.

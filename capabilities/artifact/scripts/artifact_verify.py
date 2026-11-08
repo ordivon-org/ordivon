@@ -13,6 +13,7 @@ import hashlib
 import importlib.util
 import json
 import sys
+import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,7 @@ if str(ROOT) not in sys.path:
 
 from artifact_core.bindings import CapabilityBindingRegistry
 from artifact_core.contracts import sha256_file
+from artifact_core.input_snapshot import stage_verified_input
 from artifact_core.json_validation import load_json
 from artifact_core.profiles import ProfileRegistry
 from artifact_verification.claim_coverage import assess_required_evidence
@@ -104,88 +106,137 @@ def verify_request(request_path: Path) -> dict[str, Any]:
     except (KeyError, RuntimeError) as error:
         return request_fail(request_id, [f"registered profile unavailable: {error}"], request_digest=request_digest)
 
-    profile_path = resolve_request_path(profile_ref["path"])
-    expected_profile_root = PROFILE_ROOT.resolve()
-    if expected_profile_root not in profile_path.parents:
-        return request_fail(request_id, ["profile path is outside the normalized Artifact profile authority"], request_digest=request_digest)
-    if not profile_path.is_file():
-        return request_fail(request_id, ["profile file is unavailable"], request_digest=request_digest)
-    if sha256_file(profile_path) != profile_ref["sha256"]:
-        return request_fail(request_id, ["profile bytes differ from request digest"], request_digest=request_digest)
-    profile = load_json(profile_path)
-    if profile.get("profileVersion") != 2 or profile.get("id") != profile_id:
-        return request_fail(request_id, ["profile identity/version differs from request"], request_digest=request_digest)
-    if profile_path != profile_record.canonical_path:
-        return request_fail(request_id, ["profile path does not match the registered canonical profile"], request_digest=request_digest)
+    with tempfile.TemporaryDirectory(prefix="artifact-verify-input-") as temporary:
+        scratch = Path(temporary)
+        profile_path = resolve_request_path(profile_ref["path"])
+        expected_profile_root = PROFILE_ROOT.resolve()
+        if expected_profile_root not in profile_path.parents:
+            return request_fail(request_id, ["profile path is outside the normalized Artifact profile authority"], request_digest=request_digest)
+        if not profile_path.is_file():
+            return request_fail(request_id, ["profile file is unavailable"], request_digest=request_digest)
+        try:
+            profile_input = stage_verified_input(
+                profile_path, profile_ref["sha256"], scratch, role="profile"
+            )
+        except (OSError, ValueError) as error:
+            return request_fail(request_id, [str(error)], request_digest=request_digest)
+        profile = load_json(profile_input.path)
+        if profile.get("profileVersion") != 2 or profile.get("id") != profile_id:
+            return request_fail(request_id, ["profile identity/version differs from request"], request_digest=request_digest)
+        if profile_path != profile_record.canonical_path:
+            return request_fail(request_id, ["profile path does not match the registered canonical profile"], request_digest=request_digest)
 
-    subject_path = resolve_request_path(request["subject"]["path"])
-    if not subject_path.is_file():
-        return request_fail(request_id, ["subject is not a regular file"], request_digest=request_digest)
-    subject_sha = sha256_file(subject_path)
-    if subject_sha != request["subject"]["sha256"]:
-        return request_fail(request_id, ["subject bytes differ from request digest"], request_digest=request_digest)
+        subject_path = resolve_request_path(request["subject"]["path"])
+        if not subject_path.is_file():
+            return request_fail(request_id, ["subject is not a regular file"], request_digest=request_digest)
+        # Single-file profiles can be verified against an exact private byte
+        # snapshot. Formats with sidecars retain the historical path precheck
+        # until their native dependency graph is explicitly frozen as a unit.
+        pinned = binding.require_claim_results
+        if pinned:
+            try:
+                subject_input = stage_verified_input(
+                    subject_path, request["subject"]["sha256"], scratch, role="subject"
+                )
+            except (OSError, ValueError) as error:
+                return request_fail(request_id, [str(error)], request_digest=request_digest)
+            subject_sha = subject_input.sha256
+            subject_size = subject_input.size
+            delegated_subject = subject_input.path
+        else:
+            subject_sha = sha256_file(subject_path)
+            subject_size = subject_path.stat().st_size
+            delegated_subject = subject_path
+            if subject_sha != request["subject"]["sha256"]:
+                return request_fail(request_id, ["subject bytes differ from request digest"], request_digest=request_digest)
 
-    contract_path: Path | None = None
-    contract_fact: dict[str, Any] | None = None
-    if request.get("objectContract"):
-        contract_path = resolve_request_path(request["objectContract"]["path"])
-        if not contract_path.is_file():
-            return request_fail(request_id, ["object contract is not a regular file"], request_digest=request_digest)
-        contract_sha = sha256_file(contract_path)
-        if contract_sha != request["objectContract"]["sha256"]:
-            return request_fail(request_id, ["object contract bytes differ from request digest"], request_digest=request_digest)
-        contract_fact = {"path": str(contract_path), "sha256": contract_sha}
-    elif binding.object_contract_required:
-        return request_fail(request_id, [f"profile requires an object contract: {profile_id}"], request_digest=request_digest)
+        contract_path: Path | None = None
+        contract_fact: dict[str, Any] | None = None
+        if request.get("objectContract"):
+            contract_path = resolve_request_path(request["objectContract"]["path"])
+            if not contract_path.is_file():
+                return request_fail(request_id, ["object contract is not a regular file"], request_digest=request_digest)
+            if pinned:
+                try:
+                    contract_input = stage_verified_input(
+                        contract_path, request["objectContract"]["sha256"],
+                        scratch, role="contract"
+                    )
+                except (OSError, ValueError) as error:
+                    label = str(error).replace("contract bytes", "object contract bytes")
+                    return request_fail(request_id, [label], request_digest=request_digest)
+                contract_sha = contract_input.sha256
+                delegated_contract = contract_input.path
+            else:
+                contract_sha = sha256_file(contract_path)
+                delegated_contract = contract_path
+                if contract_sha != request["objectContract"]["sha256"]:
+                    return request_fail(request_id, ["object contract bytes differ from request digest"], request_digest=request_digest)
+            contract_fact = {"path": str(contract_path), "sha256": contract_sha}
+        elif binding.object_contract_required:
+            return request_fail(request_id, [f"profile requires an object contract: {profile_id}"], request_digest=request_digest)
 
-    evidence_dir = resolve_request_path(request["evidenceDirectory"])
-    evidence_dir.mkdir(parents=True, exist_ok=True)
-    verifier_relative = binding.entrypoint.module
-    verifier_name = binding.entrypoint.callable
-    verifier, verifier_sha = load_function(verifier_relative, verifier_name)
-    if binding.object_contract_required:
-        assert contract_path is not None
-        delegated = verifier(subject_path, contract_path, evidence_dir)
-    else:
-        delegated = verifier(subject_path, evidence_dir)
+        evidence_dir = resolve_request_path(request["evidenceDirectory"])
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        verifier_relative = binding.entrypoint.module
+        verifier_name = binding.entrypoint.callable
+        verifier, verifier_sha = load_function(verifier_relative, verifier_name)
+        if binding.object_contract_required:
+            assert contract_path is not None
+            delegated = verifier(delegated_subject, delegated_contract, evidence_dir)
+        else:
+            delegated = verifier(delegated_subject, evidence_dir)
 
-    delegated_status = delegated.get("status")
-    assessment = assess_required_evidence(profile, delegated)
-    claim_failure = binding.require_claim_results and not assessment["complete"]
-    verified = delegated_status == "PASS" and not claim_failure
-    service_failures = list(delegated.get("failures") or [])
-    if claim_failure:
-        service_failures.append(
-            "profile requiredEvidence is not fully verified by explicit native claimResults"
-        )
-        service_failures.extend(assessment["issues"])
-    result = {
-        "schemaVersion": 1,
-        "kind": "artifact-verification-result",
-        "requestId": request_id,
-        "requestDigest": request_digest,
-        "status": "PASS" if verified else "FAIL",
-        "profile": {"id": profile_id, "path": str(profile_path), "sha256": profile_ref["sha256"], "standing": "SHADOW_PROFILE_LIVE_VERIFIER"},
-        "subject": {"path": str(subject_path), "sha256": subject_sha, "size": subject_path.stat().st_size},
-        "objectContract": contract_fact,
-        "capabilityBinding": {"path": str(binding.standing_path), "sha256": binding.standing_sha256, "standing": binding.standing},
-        "verifier": {"path": verifier_relative, "sha256": verifier_sha, "function": verifier_name, "capabilityId": binding.capability_id},
-        "consumer": request.get("consumer"),
-        "verification": delegated,
-        "requiredEvidenceAssessment": assessment,
-        "profileVerificationComplete": bool(assessment["complete"] and verified),
-        "failures": service_failures,
-        "boundary": (
-            "For requireClaimResults bindings, service PASS requires every required "
-            "Profile claim to be independently present, PASS, and linked to a "
-            "matching native-status evidence node. Other bindings retain legacy "
-            "native-verifier PASS without claiming complete Profile evidence. "
-            "No service result establishes consuming-application acceptance, "
-            "publication, deployment, or Profile-v2 production promotion."
-        ),
-    }
-    (evidence_dir / "service-result.json").write_text(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
-    return result
+        delegated_status = delegated.get("status")
+        assessment = assess_required_evidence(profile, delegated)
+        claim_failure = binding.require_claim_results and not assessment["complete"]
+        verified = delegated_status == "PASS" and not claim_failure
+        service_failures = list(delegated.get("failures") or [])
+        if claim_failure:
+            service_failures.append(
+                "profile requiredEvidence is not fully verified by explicit native claimResults"
+            )
+            service_failures.extend(assessment["issues"])
+        result = {
+            "schemaVersion": 1,
+            "kind": "artifact-verification-result",
+            "requestId": request_id,
+            "requestDigest": request_digest,
+            "status": "PASS" if verified else "FAIL",
+            "profile": {"id": profile_id, "path": str(profile_path), "sha256": profile_ref["sha256"], "standing": "SHADOW_PROFILE_LIVE_VERIFIER"},
+            "subject": {"path": str(subject_path), "sha256": subject_sha, "size": subject_size},
+            "objectContract": contract_fact,
+            "capabilityBinding": {"path": str(binding.standing_path), "sha256": binding.standing_sha256, "standing": binding.standing},
+            "verifier": {"path": verifier_relative, "sha256": verifier_sha, "function": verifier_name, "capabilityId": binding.capability_id},
+            "consumer": request.get("consumer"),
+            "verification": delegated,
+            "inputIdentity": {
+                "profile": "EXACT_BYTES_SNAPSHOT",
+                "subject": "EXACT_BYTES_SNAPSHOT" if pinned else "ADMISSION_DIGEST_ONLY",
+                "objectContract": (
+                    "EXACT_BYTES_SNAPSHOT" if pinned else "ADMISSION_DIGEST_ONLY"
+                ) if contract_path is not None else "NOT_APPLICABLE",
+                "snapshotLifetime": "this verification invocation only",
+                "sourcePathContinuity": "NOT_CLAIMED",
+            },
+            "requiredEvidenceAssessment": assessment,
+            "profileVerificationComplete": bool(assessment["complete"] and verified),
+            "failures": service_failures,
+            "boundary": (
+                "For requireClaimResults bindings, service PASS requires every required "
+                "Profile claim to be independently present, PASS, and linked to a "
+                "matching native-status evidence node. Other bindings retain legacy "
+                "native-verifier PASS without claiming complete Profile evidence. "
+                "For claim-complete single-file bindings, native tools verify a "
+                "private snapshot whose bytes matched the request commitment; "
+                "the original source path can change after admission. Legacy "
+                "formats retain admission-time identity only. No service result "
+                "establishes consuming-application acceptance, publication, "
+                "deployment, or Profile-v2 production promotion."
+            ),
+        }
+        (evidence_dir / "service-result.json").write_text(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
+        return result
 
 
 def main() -> int:

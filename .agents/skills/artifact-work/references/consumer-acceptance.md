@@ -18,6 +18,12 @@ Artifact verification and consumer acceptance are **different statements**. This
 - Source owner: `capabilities/artifact/`, with exact profile/Capability Binding and native tool identities.
 - Execution owner: the current Runtime/Harness Job mechanism; never replace an in-progress Job with an invented terminal state.
 - Consumer owner: Game, Media, Research, Finance or the real target application. Use its own readback/acceptance mechanism. Merely putting a consumer ID in the Artifact request **does not execute the consumer**.
+- Read `inputIdentity` before promoting native evidence. For self-contained
+  FLAC/WAVE/PNG the verifier reads a digest-bound private snapshot. The canonical
+  Profile is also snapshot-bound. Legacy sidecar-bearing formats still report
+  `ADMISSION_DIGEST_ONLY`; do not infer stronger identity. Temporary native paths
+  such as `verification.artifact.path` do **not** survive a service invocation.
+  Independently hash the actual bytes opened by the target consumer.
 - Evidence must preserve three independent boundaries:
   1. **Byte identity** — the exact subject and contract that were validated
   2. **Profile claims** — every required native claim that is actually supported and complete
