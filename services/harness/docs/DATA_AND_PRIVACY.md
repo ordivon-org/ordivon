@@ -14,7 +14,7 @@ audience:
   - operator
   - builder
   - agent
-updated: 2026-08-24
+updated: 2026-11-07
 summary: Privacy authority for model and Tool content, durable metadata, recovery, retention, export and deletion boundaries.
 evidence_status: verified
 readiness: READY
@@ -70,7 +70,7 @@ The same principle applies to pause/resume and Tool recovery. Exact cross-proces
 
 Working View source material is model-visible content. Product-level materialization therefore goes through the Continuity privacy boundary (`store_working_view_source`) before the source is admitted to WorkingSet history. Model authority is required; a source containing structured Tool projection also requires Tool authority. A raw discovery result is not itself a WorkingSet pin: materialization returns the actual Harness CAS object identity, and that stored-object digest must be used as `resolvedDigest`. A source's semantic digest is not interchangeable with its CAS envelope identity.
 
-`SQLiteHarnessStore` remains a low-level mechanical CAS/Journal primitive. A privileged caller that deliberately bypasses Continuity and writes arbitrary bytes directly to the Store is exercising its own storage authority; the Run privacy policy cannot stop a process that already has filesystem/Store write authority from doing that. Continuity still rejects an unauthorized mechanically present Working View source from becoming valid cognition history.
+The legacy direct-Python `SQLiteHarnessStore` remains a low-level mechanical CAS/Journal primitive pending consumer retirement. The first-party CLI uses a separate PostgreSQL Harness Store. A privileged caller that deliberately bypasses Continuity and writes arbitrary bytes directly to the Store is exercising its own storage authority; the Run privacy policy cannot stop a process that already has filesystem/Store write authority from doing that. Continuity still rejects an unauthorized mechanically present Working View source from becoming valid cognition history.
 
 The mature Loop may also receive an ephemeral Working View projector. The selected WorkingView remains the exact prefix, but two separately authorized transient layers may follow it. After a `needs_input` Snapshot, exact plain caller `user` messages supplied on resume become **caller interaction cognition**: they require model-content authority, do not require Tool-content authority, do not become WorkingSet pins, remain visible across Agent WorkingSet transitions during that interaction, and are consumed when the next `needs_input` Snapshot becomes the new caller boundary. Provider-authored Tool exchanges remain attempt-local and require their existing model/Tool authority. Continuity orders both layers from Journal/Snapshot evidence, so a pre-pause Tool exchange precedes caller ingress and a post-reply Tool exchange follows it. An unbound user message, caller-supplied `system`/`assistant`/Tool structure, isolated Tool Observation, or replacement projection is not valid model-visible cognition. Fresh-process recovery reconstructs only bytes authorized by the Contract; digest-only evidence can fence effects but cannot recreate omitted caller or Tool cognition.
 
@@ -123,13 +123,13 @@ Do not place secrets in Context unless disclosure to the configured Provider is 
 
 ## Retention
 
-Harness retains its private SQLite Journal and immutable CAS for the exact objects authorized by the Contract plus metadata/digests required for audit, recovery and idempotency. Runtime separately controls Artifact and Workspace retention. Provider-side retention follows the Provider's service or local-process policy; caller/domain state follows its owning system.
+The PG-only first-party CLI retains a Harness-owned PostgreSQL Journal and content-addressed immutable objects for exactly the material authorized by the Contract, plus metadata/digests needed for audit, recovery and idempotency. Legacy direct-Python SQLite state is a separate unfinished consumer-retirement boundary. Runtime separately controls Artifact and Workspace retention. Provider-side retention follows the Provider's service or local-process policy; caller/domain state follows its owning system.
 
 Do not delete individual Harness CAS objects or Journal events manually. Selective erasure requires a versioned Harness archival/redaction contract that preserves causal and digest relationships.
 
 ## Export and migration
 
-Use Harness `store-backup` / `store-verify-backup` / `store-restore` for independent Run state. A complete operational migration may also require:
+For the PG-only first-party CLI, use the database owner's native PostgreSQL `pg_dump`/`pg_restore` or equivalent approved backup and recovery mechanism. Legacy CLI `store-backup`, `store-verify-backup` and `store-restore` commands are not valid PostgreSQL operations. There is no requirement to migrate disposable historical SQLite Run data to activate a fresh PostgreSQL epoch. A complete operational recovery may also require:
 
 - caller-authorized content that was intentionally not retained by metadata-only Harness state;
 - Runtime Artifacts and Workspace state;
@@ -148,7 +148,7 @@ To retire an instance:
 2. inspect or reconcile active Provider Calls and Tool Steps;
 3. back up required Harness state and separately export any required caller/domain and Runtime state;
 4. stop Harness/Provider processes;
-5. remove the independent Harness state root only after required backups are verified;
+5. retire only the identified, Harness-owned PostgreSQL schema/data after identifying current consumers and verifying any actually required retention; treat a legacy SQLite state-root as a separate consumer-specific retirement, never as the current CLI's authority;
 6. remove Runtime state through Runtime policy when appropriate;
 7. delete local Provider secrets and rotate credentials;
 8. review callers, Providers and domain systems for retained data or committed effects.

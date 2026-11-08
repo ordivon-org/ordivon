@@ -114,7 +114,7 @@ def provision_runtime_dependencies() -> None:
 def config_address() -> str | None:
     try:
         value = json.loads(CONFIG.read_text())
-    except OSError, json.JSONDecodeError:
+    except (OSError, json.JSONDecodeError):
         return None
     address = value.get("temporalAddress") if isinstance(value, dict) else None
     return address if isinstance(address, str) else None

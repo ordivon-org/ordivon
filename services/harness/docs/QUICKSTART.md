@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-09-22
+updated: 2026-11-07
 summary: Minimal path from a clean checkout to deterministic verification, operator inspection and live read-only acceptance.
 evidence_status: verified
 readiness: READY
@@ -43,18 +43,21 @@ uv build --wheel --out-dir dist
 python scripts/check_wheel.py "$(find dist -maxdepth 1 -type f -name '*.whl' -print -quit)"
 ```
 
-The base wheel keeps a small Host-free runtime dependency graph: pinned `httpx==0.28.1` for cancellable DeepSeek HTTP/TLS transport and `jsonschema` for opt-in local structured-result conformance verification. Standard Agent Plugin MCP consumption is isolated behind the exact `mcp` extra (`ordivon-harness[mcp]`), pinned to the official `mcp==2.3.0` Python SDK. Historical Harness identity canonicalization is packaged locally as the `anc_canonical` compatibility shim; it is not an external dependency and must not be extended into a new shared protocol layer. It does not install Host or expose a Host extra.
+The base wheel keeps a small Host-free runtime dependency graph: pinned `httpx==0.28.1` for cancellable DeepSeek HTTP/TLS transport, `psycopg` for PostgreSQL Journal/CAS, and `jsonschema` for opt-in local structured-result conformance verification. Standard Agent Plugin MCP consumption is isolated behind the exact `mcp` extra (`ordivon-harness[mcp]`), pinned to the official `mcp==2.3.0` Python SDK. Historical Harness identity canonicalization is packaged locally as the `anc_canonical` compatibility shim; it is not an external dependency and must not be extended into a new shared protocol layer. It does not install Host or expose a Host extra.
 
-## Initialize independent state
+## Initialize PostgreSQL-backed Harness state
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness store-init
-ordivon-harness capabilities
+export HARNESS_PG_DSN='postgresql://<provisioned-role>@<host>/<db>'
+# Optional: export HARNESS_PG_SCHEMA='harness'
+ordivon-harness store-init
+ordivon-harness doctor
 ```
 
-## Run
+No SQLite Run data is migrated by this command. The first-party CLI rejects
+`--state-root`; legacy direct Python paths require separate consumer retirement.
 
-Create one caller-authored `HarnessRunContract` JSON. Harness begins at that exact authority boundary; cross-Run planning, resource allocation, successor selection and retry policy are external.
+## Run
 
 Harness uses one current sequential Agent-loop scheduling kernel. Workloads that need an explicit deliberation phase compose a caller/domain-owned no-Tool `AgentTurnRequest` and then pass the resulting cognition evidence into the retained `DomainToolLoopRunner`; Harness no longer owns a generic two-phase deliberation lifecycle helper.
 
@@ -75,7 +78,7 @@ budget = RunBudget(
     max_total_tokens=16_384,
 )
 # Supply caller/objective/context/provider/system identities, the exact Tool catalog/grant
-# digests reported by the selected `ordivon-harness capabilities` execution profile, and `budget.to_contract_dict()` to
+# digests actually bound by the selected caller-owned Tool catalog/grant, and `budget.to_contract_dict()` to
 # HarnessRunContract. Persist `contract.to_dict()` as RUN_CONTRACT.json.
 ```
 
@@ -87,15 +90,13 @@ rejection. Older schema-v1 Contracts that omit `maxConclusionCorrections` remain
 readable with the historical default of 3.
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness \
-  run RUN_CONTRACT.json --message 'Start the bounded Run'
-
-ordivon-harness --state-root /var/lib/ordivon/harness status HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness explain HARNESS_RUN_ID
+ordivon-harness run RUN_CONTRACT.json --message 'Start the bounded Run'
+ordivon-harness status HARNESS_RUN_ID
+ordivon-harness inspect HARNESS_RUN_ID
+ordivon-harness explain HARNESS_RUN_ID
 ```
 
-`capabilities` reports only the execution profiles the CLI actually supports, including their exact source-owned Tool catalog/grant digests. Durable `inspect` exposes the exact retained Run/Contract/Provider/Snapshot/Recovery facts directly. CLI `explain` adds proof boundaries to that same view, while `HarnessAgentRun.explain()` reports validated in-process composition. No aggregate workbench or installed-capability registry sits between those owners and the caller.
+The retired `capabilities` CLI verb is not an authority source; use the caller-owned Contract, the selected Tool catalog/grant and the exact per-turn admitted actions. Durable `inspect` exposes the exact retained Run/Contract/Provider/Snapshot/Recovery facts directly. CLI `explain` adds proof boundaries to that same view, while `HarnessAgentRun.explain()` reports validated in-process composition. No aggregate workbench or installed-capability registry sits between those owners and the caller.
 
 For the built-in DeepSeek profile, the Contract must bind the canonical no-Tool catalog/grant and the configured DeepSeek Adapter/model. The current adapter reserves a conservative request-token upper bound equal to the serialized Provider request bytes plus its 8,192-token completion ceiling. A small Contract such as `max_total_tokens=4_096` can therefore be rejected safely before the first Provider dispatch; `16_384` is a practical starting bound for a small no-Tool Run, not a universal required value.
 
@@ -219,9 +220,8 @@ Provide both the SQL connection and the exact owner schema through the
 operator-controlled environment, then use the same standard CLI verbs:
 
 ```sh
-export ORDIVON_HARNESS_PG_ONLY=1
-export ORDIVON_HARNESS_PG_DSN='postgresql://<operator-provisioned-private-role>'
-export ORDIVON_HARNESS_PG_SCHEMA=ordivon_harness_runs
+export HARNESS_PG_DSN='postgresql://<operator-provisioned-private-role>'
+export HARNESS_PG_SCHEMA=harness
 ordivon-harness store-init
 ordivon-harness doctor
 ordivon-harness run /path/to/contract.json --message 'start'
@@ -229,12 +229,10 @@ ordivon-harness status HARNESS_RUN_ID
 ordivon-harness resume HARNESS_RUN_ID --message 'continue'
 ```
 
-The schema is an existing PostgreSQL authority managed by the caller; `store-init`
-creates only the supplied Harness schema/tables using its existing database
-role and does not read, migrate, or delete SQLite data. With PG-only enabled
-but a missing DSN or schema the CLI fails *before* opening any SQLite Store.
-A partially configured PG DSN without the explicit selector also fails
-rather than guessing a backend. `store-backup`, `store-verify-backup` and
+The database and role are operator-provisioned; `store-init` creates only the
+selected Harness schema/tables and does not read, migrate or delete SQLite data.
+A missing `HARNESS_PG_DSN` fails closed; no PG-only selector or SQLite fallback
+is supported by the first-party CLI. `store-backup`, `store-verify-backup` and
 `store-restore` reject PG-only mode: use native PostgreSQL tools such as
 `pg_dump`/restore under the DBA's database ownership. No Provider effect,
 Runtime physical execution, Host Work authority, or external domain completion
@@ -322,7 +320,7 @@ The exact completion Contract is part of `HarnessRunContract.digest`. `Standalon
 ## Pause and resume
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness \
+ordivon-harness \
   resume HARNESS_RUN_ID --message 'Additional caller input'
 ```
 
@@ -331,8 +329,8 @@ ordivon-harness --state-root /var/lib/ordivon/harness \
 Inspect the exact durable Run first, then resume only through the normal execution path when its concrete Provider/Runtime boundary admits that action:
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness resume HARNESS_RUN_ID --message 'Additional caller input'
+ordivon-harness inspect HARNESS_RUN_ID
+ordivon-harness resume HARNESS_RUN_ID --message 'Additional caller input'
 ```
 
 Harness does not maintain a generic `recover` command or write a second Recovery Assessment. Provider/Tool response loss is reconciled by the existing durable call/intent identities and the concrete owner that can observe the physical effect. An ambiguous physical outcome is never converted into safe redispatch merely by an operator projection.

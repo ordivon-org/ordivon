@@ -14,7 +14,7 @@ audience:
   - operator
   - researcher
   - agent
-updated: 2026-09-18
+updated: 2026-11-08
 summary: Claim classes, evidence strength, historical evidence interpretation and current release gates.
 evidence_status: verified
 readiness: READY
@@ -49,6 +49,152 @@ and drop only those schemas. Local verification must provide an equivalent
 test-only DSN; no old SQLite Run data are migrated or replayed. Missing PG
 authority is SKIPPED or NOT_RUN for native tests, never a PASS receipt.
 
+## Formal-first proof-to-consumer frontier (ToolProgram, source-scoped)
+
+**Claim under verification:** an already-admitted three-step ToolProgram never
+broadens the current Tool grant, never exceeds its remaining physical Tool Call
+budget, and never dispatches subsequent steps after a non-observed Tool result.
+This is a **safety** obligation; an UNKNOWN step may have produced an external
+side effect before its response was lost. A partial ToolProgram is not atomic.
+
+| Stage | Owner-native artifact | Exact claim / status |
+| --- | --- | --- |
+| Specification | `tool_program_contract.py`, `agent_tool_observation.py`; `ToolProgramSafetyR1.tla` | Frozen exact-turn grant, pre-admission budget, ordered step outcomes. Source declaration only |
+| Abstract model | `formal/ToolProgramSafetyR1.tla`, `formal/ToolProgramSafetyR1.cfg` | MaxSteps=3, all budgets 0..3, granted/denied, five observation statuses; abstract ToolBridge identity assumed |
+| Independent falsification | `ToolProgramSafetyR1.{unknown,partial,complete}-probe.cfg` | Expected reachable counterexamples: UNKNOWN, non-atomic partial effects, success; probes must fail the **named** deliberately false invariants |
+| Model checking | `mise run formal:tool-program`, Runtime-pinned TLC 1.7.4 | PASS: native SANY/TLC explored 36 generated / 33 distinct bounded states; 3/3 deliberate false-invariant probes produced the expected counterexample; not universal Python/effect proof |
+| Implementation refinement | `tests/test_tool_program_model_refinement.py` invokes the actual `HarnessToolProgramExecutor` for 1,000 finite combinations | PASS on locked Python 3.15.1, bounded executable differential witness, not proof for arbitrary Tool Bridges |
+| Consumer seam | `tests/test_p2_tool_program_provider_loop.py`, `tests/test_p2_tool_program_recovery.py`, `tests/test_postgres_harness_store.py`, `tests/test_postgres_cli.py` | PASS for native Python 3.15.1 full suite and real isolated PostgreSQL 18.6 (13/13); deployed external effects remain unverified |
+| Release / installation | `mise run verify`, `mise run pg:verify`, offline wheel build and installed CLI readback | PASS for source candidate: official `mise run verify` exit 0, 12 CLI checks, wheel `ordivon_harness-0.6.0-py3-none-any.whl`; production installation NOT_RUN |
+
+**Observed executable defect and remediation:** The original
+`tool_program_resolution._resolve_template` consumed the mutable public
+`HarnessToolObservation.structured_content` view, although observation
+evidence digests are derived from a construction-time canonical snapshot.
+A later actor mutating that convenience view could redirect a referenced
+argument without changing the retained digest. The implementation now resolves
+references through `observation.to_dict()["structuredContent"]`, which reads
+sealed canonical bytes. The test
+`test_mutable_observation_projection_cannot_redirect_next_tool` is a
+property-specific falsification witness. In an isolated Python environment,
+six exact SHA-256-matched production and test source files were exercised
+in an isolated Python 3.13 environment: 6 component/test-methods passed,
+including 1,000 finite ToolBridge traces, using substituted canonical JSON,
+model-value and ToolBridge ports. An independent receipt is produced outside
+the Ordivon repository; this does **not** establish full-package, TLC or
+deployed-Python qualification.
+
+**Implementation refinement map (bounded):**
+`admitted` ↔ every step's name in `HarnessToolProgramExecutor.admitted_tools`;
+`initialBudget` ↔ `remaining_tool_calls`; `issued` ↔ count of actual
+`ToolBridge.execute` invocations; `observed` ↔ leading successfully observed
+steps; `stopped` ↔ first returned non-`observed` status; `completed` ↔
+all steps observed and final template resolved. The model abstracts away
+argument-dependent template failures, mismatched bridge receipts, persisted
+reconciliation, dynamic cancellation, and external effects. The Python
+executor may raise rather than return a terminal result for those failures;
+that is not a model failure unless the admitted refinement relation claims
+otherwise.
+
+**Retirement rule:** Only remove a traditional test when its distinct
+property/fault model is already entailed by a checked specification *and* a
+validated current model-to-implementation refinement or the test has
+independently proven zero consumers. Candidate redundancies include the
+single-example ToolProgram budget/grant/UNKNOWN tests *after* the bounded
+state/refinement checks have passed, but they are deliberately **retained**
+for now. Keep PG serializability/readback, real Provider/Gateway delivery,
+packaging/install and release checks: this model does not cover them.
+Do not convert a CrossHair timeout, TLC bounded PASS, test SKIP, or
+static source equality into a universal proof.
+
+## P0-1 execution-loop decision refinement (source candidate, 2026-11-08)
+
+The first split of the 2,121-line `OrdivonAgentLoop._run` extracts only
+two side-effect-free, O(1) operators: `run_deadline_selection.py` and
+`provider_retry_policy.py`. The enclosing loop retains dynamic clock
+reads, Tool/Provider authority, reconciliation and external-effect truth.
+No new scheduler, generic model router or persistence registry is created.
+
+- **Specification:** Earliest effective deadline with original tie priority;
+  only pre-dispatch-safe, transient Provider failures are eligible for
+  bounded retry, subject to remaining Run authority and cancellation.
+- **Implementation:** `src/ordivon_harness/ordivon/loop.py` consumes both
+  operators; unsafe Provider outcomes bypass live clock/deadline reads and
+  cannot be retried.
+- **Differential refinement:** `tests/test_loop_decision_operators.py`
+  compares finite products of the new decisions with the previous loop's
+  explicit arithmetic and predicate. This is *bounded*, not a universal
+  mathematical proof.
+- **Real consumer:** `tests/test_loop_decision_consumer.py` invokes the
+  real `OrdivonAgentLoop.run()` with an in-memory scripted Provider:
+  expired assignment rejects dispatch; earlier external deadline wins;
+  pre-dispatch-safe transient error retries once; ambiguous dispatch
+  results in `PROVIDER_STATE_UNKNOWN` without redispatch.
+- **Native evidence:** Windows Runtime workspace
+  `ws-gpt6-harness-formal-windows-20261108-r2`, baseline
+  `fc0fbfdf43c53a988b7af27a762856e491151ce1`, QGIS Python 3.12.13:
+  11 focused tests PASS; 32 tests across five core suites PASS;
+  20 Provider/ToolProgram/transport tests PASS; 15 selected suites:
+  106 PASS, 3 FAIL at old SQLite Store `os.O_NONBLOCK` before the
+  intended assertions (95 subtests PASS). The scopes overlap.
+- **Re-qualified source:** Locked Python 3.15.1, complete tests, native SANY/TLC,
+  real isolated PostgreSQL 18.6, pinned Ruff, `mise run verify`, source-built
+  wheel and isolated installed CLI readback now PASS. Remaining distinct
+  obligations: deployed production PG/Runtime/Gateway/Provider reconciliation,
+  real production consumer readback and domain acceptance. Bounded models are
+  not unbounded Python proofs.
+- **Legacy removal after upstream backend-neutral refactor:** The
+  former `ordivon/sqlite_run_store.py`, `ordivon/sqlite_agent_bridge.py` and
+  `ordivon/sqlite_runtime_bridge.py` are already gone; `run_continuity.py`,
+  `agent_bridge.py` and `runtime_bridge.py` are their actual consumers.
+  `sqlite_store.py` remains imported by `agent_run.py` and
+  `ordivon/continuity_guards.py`; do not infer that direct Python API
+  is retired from PG-only CLI. Require native PG evidence and actual installed
+  consumer replacement; do not migrate disposable Runtime SQLite data.
+
+### CI PostgreSQL coverage closure (2026-11-08)
+
+The exact source candidate was retested with five distinct databases in one
+isolated, disposable PostgreSQL 18.6 cluster. All previously conditional
+PG suites passed **86/86**, followed by the full locked Python 3.15.1 suite
+with **1,490 PASS, zero SKIP/FAIL, and 254 subtests PASS**. This verifies
+fixed-schema operations, real transactional accounting, concurrent Turn
+Effects and Wake/Conversation Binding consumers. The server was stopped
+and its temporary data were deleted.
+
+The existing Monorepo Required `owner-verification` GitHub Actions job
+already has a per-shard `postgres:18.6` service for other native Owners.
+When selecting `harness:verify`, its workflow now creates five dedicated
+databases in **that same ephemeral service** and passes five DSNs to the
+existing `mise run verify`. Absent service/database/connection must FAIL
+instead of yielding quiet PostgreSQL skips. Explicit `mise run pg:verify`
+requires all five DSNs and runs the five native PostgreSQL test modules.
+
+**Remote CI status:** this new workflow wiring is source-authored and still
+requires live PR #1835 job evidence after push. Local 1,490/1,490 and
+GitHub CI acceptance remain distinct claims, and neither proves production
+deployment or physical Provider delivery.
+## Native qualification — bounded source candidate (2026-11-08)
+
+**Source:** Linux Runtime workspace `ws-gpt6-harness-verification-20261108-r3`,
+imported as an exact SHA-256-verified Git bundle from the Windows candidate.
+Execution-core Ruff corrections were captured in `e8f969ef31b681a3c29575cddda717d85f5b119d`;
+the feature branch was subsequently rebased onto updated upstream main.
+Any subsequent source change requires re-running affected gates.
+
+| Gate | Native evidence / explicit boundary |
+| --- | --- |
+| Python / lock | Python 3.15.1, `uv lock --check --offline` and `uv sync --locked` PASS; pinned Playwright 1.63.0 installed |
+| Static / contracts | Ruff 0.17.2 PASS after two small fixes; CrossHair reported 2 confirmed postconditions in official `mise run verify` |
+| Formal | Runtime-pinned TLC 1.7.4: ToolProgram 33 distinct bounded states and 3/3 negative probes PASS; ProviderClaim 78 states / 5 probes PASS; ConversationBinding 10 states / 3 probes PASS |
+| Full source tests | `mise run verify`: **1,404 PASS, 86 conditional SKIP, 254 subtests PASS**, zero failures, `ResourceWarning` treated as an error |
+| PostgreSQL | Real isolated PostgreSQL **18.6**, local Unix socket and temporary storage, `mise run pg:verify` **13 PASS / 0 SKIP**; stopped and deleted after tests |
+| Release candidate | Official `mise run verify` exit 0: `pip-audit`, doc/evidence/dependency checks, deterministic Agent Run demo, offline-built `ordivon_harness-0.6.0-py3-none-any.whl` with 12 installed CLI checks |
+| Outside tested scope | Production installed revision, physical Provider/Runtime effects and domain acceptance remain **NOT_RUN**; TLC state exploration does not establish arbitrary implementation refinement |
+
+PG integration and the 86 conditional skips belong to separate scopes: do
+not count the skipped tests as passed. Do not treat a source-built installed
+wheel in a temporary environment as production deployment.
 ## Current portable gate
 
 The current release gate includes:
