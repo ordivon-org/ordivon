@@ -28,6 +28,13 @@ mandatory workflow. The rules below govern consequential changes.
 
 ## Practical consumer routing
 
+### Live local-tool discovery
+
+- For local executables, start at [Workstation inventory](platform/workstation/inventory/README.md); probe the **actual node and Runtime execution identity** on demand, not a dated machine snapshot or another user's PATH.
+- Classify the needed capability via [Capability Catalog](catalogs/capabilities/README.md), then read the selected Owner's README, closer AGENTS.md (if present), and relevant Skill; see [Agent first-run](docs/start/agent-first-run.md).
+- Resolve callable operations from live MCP tool definitions, Owner-native CLI help or `mise tasks ls`; do not reconstruct interfaces from prose. A trusted Skill, installed application, discovered command and authorized domain effect are distinct evidence.
+- Do not copy tool inventory into this file or create a second tool registry. Verify actual provider readback and the final consuming task.
+
 - Use the Human and Agent owner navigation in README.md, mechanically backed by tools/repo/owners.toml. Choose the Owner by the actual **fact or effect**, not where a helper happens to live. Nearest scoped AGENTS.md instructions take precedence for local methods, not Owner authority.
 - Method-first discovery: the existing .agents/skills/method-router/SKILL.md; select only the relevant trusted method or supplier. Use design-structure-matrix for evidenced dependency clustering, skill-supply-chain-audit for external candidates, recursive-lego-calculus for a real R2.1 contract. Do not create one file per LEGO or a second capability registry.
 - **External Learning & Evolution (ELE):** For material external facts, research results, counterexamples or changed standards, activate `.agents/skills/external-world-evidence-review/SKILL.md`; for upstream projects, tools, algorithms or Skills, activate `.agents/skills/external-capability-evaluation/SKILL.md`. Bind the natural Owner and actual consumer before adoption; keep discovery, qualification, Owner acceptance, Git merge, installation and consumer read-back distinct. Without a qualified consumer, retain discovery only. Detailed methods belong in the two Skills, not a new ELE Owner, registry or workflow engine.

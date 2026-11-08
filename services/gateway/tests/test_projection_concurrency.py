@@ -84,6 +84,8 @@ def test_slow_owner_becomes_unknown_without_hiding_healthy_owner() -> None:
         assert not by_id["execution.linux"].available
         assert by_id["execution.linux"].configured
         assert "TimeoutError" in (by_id["execution.linux"].observation_error or "")
+        assert "Owner readiness UNKNOWN" in (by_id["execution.linux"].observation_error or "")
+        assert "budget=0.02s" in (by_id["execution.linux"].observation_error or "")
         assert by_id["execution.windows"].available
         assert by_id["continuity.external"].available
         assert by_id["artifact.runtime"].available

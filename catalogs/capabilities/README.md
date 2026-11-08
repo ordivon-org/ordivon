@@ -51,4 +51,24 @@ provider state or an executable/formal LEGO registry.
 
 For a real consumer, see the [Human review guide](docs/HUMAN_EXTERNAL_LEGO_REVIEW_R1.md), [Agent Owner instructions](AGENTS.md), and [architecture/contract](docs/EXTERNAL_CAPABILITY_EVALUATION_R1.md). The reusable Agent Skill is under .agents/skills/external-capability-evaluation/SKILL.md.
 
-Catalog records discovery and evidence, not live provider status, installation, R2.1 admission, or Owner promotion.
+Catalog records discovery and evidence, not live provider status, installation, R2.1 admission, or Owner promotion.\r\n\r\n## Tool discovery facets (not another tool registry)
+
+For an Agent requesting a tool, retain these separate observations instead of
+flattening them into a single `available=true` classification:
+
+| Question | Existing natural source |
+| --- | --- |
+| What problem/capability is needed? | This Catalog's capability/authority map, then the domain Owner |
+| What procedure should the Agent use? | Relevant project or trusted external Agent Skill |
+| Which callable carrier exists? | Live MCP tool definitions, provider-native CLI/API, or `mise tasks ls` |
+| Which node/identity can resolve it? | [Workstation inventory](../../platform/workstation/inventory/README.md), probed in the target Runtime context |
+| Is the tool currently usable? | Provider-native version/health and execution/readback in that context |
+| Is the requested effect accepted? | Natural domain/provider Owner; not the Catalog or a Skill |
+
+Tool facets are **many-to-many**: FFmpeg may satisfy Media, Artifact and Game
+consumers without becoming three separate installs or three duplicated registries.
+Use the existing [web route profile](profiles/web-interaction-r1.json) and
+[web routing Skill](../../.agents/skills/web-provider-routing/SKILL.md)
+as the demonstrated on-demand route/probe pattern; other domains retain their
+native provider contracts. An unknown or stale observation must not be
+silently promoted to a current, callable tool.

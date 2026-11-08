@@ -60,13 +60,36 @@ def test_research_projection_is_discoverable_without_becoming_an_execution_owner
     assert item.owner_id == "research.composition"
     assert item.category == "research"
     assert item.configured is True
-    assert item.available is True
+    assert item.available is False  # no real provider readiness observation
+    assert "UNKNOWN" in (item.observation_error or "")
     assert "scientific truth" in item.truth_boundary
     assert caller.calls == []
 
     result = asyncio.run(service.capability_search(query="statistical analysis"))
     assert result.total_matches == 1
     assert result.matches[0].capability.capability == "research.statistical.analysis"
+    # UNKNOWN entries remain discoverable even with an availability filter;
+    only_ready = asyncio.run(
+        service.capability_search(query="statistical analysis", include_unavailable=False)
+    )
+    assert only_ready.total_matches == 1
+    assert only_ready.matches[0].capability.available is False
+    assert "UNKNOWN" in (only_ready.matches[0].capability.observation_error or "")
+    assert caller.calls == []
+
+
+def test_research_metadata_catalog_never_claims_live_provider_readiness() -> None:
+    # Finite source-cut invariant over every declared research composition route.
+    caller = ResolverCaller()
+    projection = asyncio.run(GatewayService(caller).capability_describe())
+    research = [item for item in projection.capabilities if item.category == "research"]
+    assert {item.capability for item in research} == set(research_capabilities())
+    assert research
+    for item in research:
+        assert item.configured is True  # native metadata resolver exists
+        assert item.available is False  # no provider readiness observation
+        assert "UNKNOWN" in (item.observation_error or "")
+        assert "scientific truth" in item.truth_boundary
     assert caller.calls == []
 
 

@@ -82,10 +82,21 @@ class CapabilityCatalog:
         async def observe_owner(
             owner_id: str, tool_name: str, arguments: dict[str, Any]
         ) -> tuple[dict[str, Any] | None, str | None]:
+            # Read-only observation timeout => UNKNOWN owner readiness.
+            # No invented unavailable truth and no cross-request cache.
+            started = asyncio.get_running_loop().time()
             try:
                 async with asyncio.timeout(self._projection_timeout_seconds):
                     result = await self._caller.call_tool(owner_id, tool_name, arguments)
                 return result, None
+            except TimeoutError:
+                elapsed_ms = int((asyncio.get_running_loop().time() - started) * 1000)
+                return (
+                    None,
+                    f"TimeoutError: observation {owner_id}/{tool_name} timed out "
+                    f"after {elapsed_ms}ms (budget={self._projection_timeout_seconds:g}s); "
+                    "Owner readiness UNKNOWN",
+                )
             except Exception as exc:
                 return None, f"{type(exc).__name__}: {str(exc)[:240]}"
 
@@ -149,8 +160,14 @@ class CapabilityCatalog:
                         owner_id=route.owner_id,
                         category=route.category,
                         configured=True,
-                        available=True,
+                        # Local Research metadata is queryable/resolvable; this
+                        # does not establish live provider readiness.
+                        available=False,
                         context_mode=route.context_mode,  # type: ignore[arg-type]
+                        observation_error=(
+                            "Research composition route only; live provider readiness "
+                            "UNKNOWN. Use capability.resolve for advisory selection."
+                        ),
                         truth_boundary=route.truth_boundary,
                     )
                 )
