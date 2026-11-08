@@ -23,6 +23,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- sealed Harness-native ToolProgram Action admission against schema-valid nested JSON mutation and detached public serialization from its authority bytes; both live execution and recovery now reject post-admission drift before another Tool effect. Shared continuity Tool-event validation now depends on the neutral HarnessStore port, not the legacy SQLite-specific type; no new persistence or migration layer was introduced.
+
 - extended the H2 Gateway effect adapter with cooperative control cancellation: the generic Runtime bridge now has an opt-in owner cancellation hook, Gateway-backed Runs issue `execution.cancel` only after a durable owner Job handle exists, and non-terminal acknowledgements remain `cancel-requested` / `cancel_unknown` until later reconciliation proves a terminal state;
 - added the H2 durable Agent Plugin Gateway execution adapter: caller-fixed capability/workspace/executable authority, ToolBridge factory injection, durable pre-dispatch intent/fence propagation, bounded Gateway polling, and response-loss reconciliation through read-only request-identity resolution rather than blind effect redispatch;
 - added a thin Agent Plugins v1 ingestion path for the canonical Harness consumer: portable Skills project into caller-selected cognition sources, portable Streamable HTTP MCP components use the official MCP 2.2.0 client, observation-only Gateway Tools are catalog/grant digest-bound and fail closed on drift, while effectful Gateway Tools remain excluded until they can reuse durable Tool intent/receipt/reconciliation semantics;
