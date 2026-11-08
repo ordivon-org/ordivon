@@ -246,16 +246,16 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         """Complete caller surface, including recovery, without a SQLite file."""
         clock = supported_run_fixture.FixedClock()
         run = supported_run_fixture.contract("postgres-real")
-        active = HarnessAgentRun.create_postgres(
+        active = HarnessAgentRun.create(
             self.dsn, self.schema, run,
             lambda _value: ScriptedTurnAdapter((supported_run_fixture.needs_input(),)),
             clock_ms=clock, monotonic_ms=clock,
         )
-        self.assertIsNone(active.state_root)
+        self.assertFalse(hasattr(active, "state_root"))
         paused = active.run(({"role": "user", "content": "start PG vertical slice"},))
         self.assertTrue(paused.paused)
         self.assertEqual(active.status()["status"], "paused")
-        resumed = HarnessAgentRun.open_postgres(
+        resumed = HarnessAgentRun.open(
             self.dsn, self.schema, run.harness_run_id,
             lambda _value: ScriptedTurnAdapter((supported_run_fixture.completed(),)),
             clock_ms=clock, monotonic_ms=clock,

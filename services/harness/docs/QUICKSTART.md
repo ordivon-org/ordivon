@@ -141,7 +141,7 @@ bridge = PluginMcpObservationBridge(
 #   tool_catalog_digest = bridge.catalog_digest
 #   tool_grant_digest   = bridge.grant_digest
 run = HarnessAgentRun.create(
-    state_root,
+    dsn, schema,
     contract,
     adapter_factory,
     tool_bridge=bridge,
@@ -181,7 +181,7 @@ factory = PluginGatewayExecutionBridgeFactory(
 #   tool_catalog_digest = factory.catalog_digest
 #   tool_grant_digest   = factory.grant_digest
 run = HarnessAgentRun.create(
-    state_root,
+    dsn, schema,
     contract,
     adapter_factory,
     tool_bridge_factory=factory,
@@ -212,8 +212,9 @@ This is an incremental compatibility path over the current Gateway execution pro
 
 ### PostgreSQL-only independent CLI (fresh Run epoch)
 
-The supported CLI now reuses the existing PostgreSQL HarnessStore port.
-An explicitly selected new epoch skips all SQLite historical Run records.
+The supported CLI and Python Agent Run entrypoints reuse the existing
+PostgreSQL HarnessStore port. A fresh Run epoch does not read old SQLite
+historical Run records.
 Provide both the SQL connection and the exact owner schema through the
 operator-controlled environment, then use the same standard CLI verbs:
 
@@ -237,17 +238,17 @@ rather than guessing a backend. `store-backup`, `store-verify-backup` and
 `store-restore` reject PG-only mode: use native PostgreSQL tools such as
 `pg_dump`/restore under the DBA's database ownership. No Provider effect,
 Runtime physical execution, Host Work authority, or external domain completion
-is inferred from a successful PG Store operation. The remaining Harness
-Python API, Browserless materialization and installed Agent Automation
-versions must each qualify their own production consumer route.
+is inferred from a successful PG Store operation. The Python Agent Run public entrypoints now use PostgreSQL; Browserless
+materialization and installed Agent Automation versions must still qualify
+their own production consumer route.
 
-For normal Python execution, use `HarnessAgentRun` rather than composing the SQLite Store, Continuity, Provider bridge and `StandaloneHarnessRunner` yourself. The caller still owns the exact Contract and Provider choice; Harness passes the persisted Contract to the caller-supplied Adapter factory before execution. On reopen/resume, Harness mechanically reconstructs Continuity and the exact Snapshot-bound Provider source.
+For normal Python execution, use HarnessAgentRun.create(dsn, schema, ...) / open(dsn, schema, ...); these supported APIs use an existing PostgreSQL schema and never select SQLite. The caller still owns the exact Contract and Provider choice; Harness passes the persisted Contract to the caller-supplied Adapter factory before execution. On reopen/resume, Harness mechanically reconstructs Continuity and the exact Snapshot-bound Provider source.
 
 ```python
 from ordivon_harness.api import HarnessAgentRun, DeepSeekTurnAdapter
 
 run = HarnessAgentRun.create(
-    "/var/lib/ordivon/harness",
+    dsn, schema,
     contract,
     lambda exact_contract: DeepSeekTurnAdapter(
         settings, completion_contract=exact_contract.completion_contract
@@ -256,7 +257,7 @@ run = HarnessAgentRun.create(
 execution = run.run(({"role": "user", "content": "Start the bounded Run"},))
 
 run = HarnessAgentRun.open(
-    "/var/lib/ordivon/harness",
+    dsn, schema,
     contract.harness_run_id,
     lambda exact_contract: DeepSeekTurnAdapter(
         settings, completion_contract=exact_contract.completion_contract

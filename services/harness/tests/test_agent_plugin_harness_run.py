@@ -148,7 +148,7 @@ def _contract(
     )
 
 
-def test_harness_agent_run_consumes_plugin_skill_and_gateway_observation_tool() -> None:
+def test_harness_agent_run_consumes_plugin_skill_and_gateway_observation_tool(pg_schema) -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         plugin_root = root / "plugin"
@@ -197,7 +197,7 @@ def test_harness_agent_run_consumes_plugin_skill_and_gateway_observation_tool() 
         clock = FixedClock()
 
         run = HarnessAgentRun.create(
-            root / "state",
+            pg_schema[0], pg_schema[1],
             contract,
             lambda _contract: adapter,
             tool_bridge=bridge,

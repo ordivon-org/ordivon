@@ -78,7 +78,7 @@ REQUIRED_MEMBERS = {
     "ordivon_harness/core_contracts.py",
     "ordivon_harness/independent_cli.py",
     "ordivon_harness/independent_result.py",
-    "ordivon_harness/sqlite_store.py",
+    "ordivon_harness/postgres_store.py",
     "ordivon_harness/standalone.py",
     "ordivon_harness/store.py",
     "ordivon_harness/tool_program.py",
@@ -274,6 +274,16 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
             fail("extracted Skills owner reappeared in isolated Harness installation")
         if probe["mcpInstalled"]:
             fail("base Harness installation unexpectedly pulled the optional MCP adapter")
+        checked([str(python), "-c", (
+            "import inspect,sys;"
+            "from ordivon_harness.api import HarnessAgentRun;"
+            "assert tuple(inspect.signature(HarnessAgentRun.create).parameters)[:4]"
+            " == ('dsn','schema','contract','adapter_factory');"
+            "assert tuple(inspect.signature(HarnessAgentRun.open).parameters)[:4]"
+            " == ('dsn','schema','harness_run_id','adapter_factory');"
+            "assert 'state_root' not in HarnessAgentRun.__dataclass_fields__;"
+            "assert 'ordivon_harness.sqlite_store' not in sys.modules"
+        )])
         checked([str(python), str(ROOT / "scripts/check_harness_without_host.py")])
         help_text = checked([str(cli), "--help"]).stdout
         for command in CLI_COMMANDS:

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 import tempfile
 
 import pytest
@@ -27,7 +26,7 @@ from ordivon_harness.plugin_gateway_effect import (
     PluginGatewayExecutionBridgeFactory,
     PluginGatewayExecutionGrant,
 )
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.runtime_port import HarnessRuntimeClientError
 
 
@@ -247,14 +246,14 @@ def _adapter(timeout_ms: int | None = 5_000) -> ScriptedTurnAdapter:
     )
 
 
-def test_omitted_timeout_is_bounded_by_actual_harness_grant() -> None:
+def test_omitted_timeout_is_bounded_by_actual_harness_grant(pg_schema) -> None:
     """A valid optional tool input must not acquire Runtime's wider default."""
-    with tempfile.TemporaryDirectory() as directory:
+    with tempfile.TemporaryDirectory():
         client = GatewayExecutionFixture()
         factory = _factory(client)  # exact caller grant: 10,000ms
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            Path(directory),
+            pg_schema[0], pg_schema[1],
             _contract(factory),
             lambda _contract: _adapter(timeout_ms=None),
             tool_bridge_factory=factory,
@@ -270,13 +269,12 @@ def test_omitted_timeout_is_bounded_by_actual_harness_grant() -> None:
         assert calls[0][1]["timeoutMs"] == 10_000
 
 
-def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch() -> None:
-    with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
+def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch(pg_schema) -> None:
+    with tempfile.TemporaryDirectory():
         observed_pre_dispatch = {"checked": False}
 
         def probe(arguments) -> None:
-            with SQLiteHarnessStore(root) as store:
+            with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
                 continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
                 step = continuity.load_current_tool_step()
                 assert step.receipt is None
@@ -294,7 +292,7 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
         contract = _contract(factory)
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            root,
+            pg_schema[0], pg_schema[1],
             contract,
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
@@ -318,8 +316,8 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
 
 
 @pytest.mark.parametrize("tamper", ("request_id", "capability"))
-def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str) -> None:
-    with tempfile.TemporaryDirectory() as directory:
+def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str, pg_schema) -> None:
+    with tempfile.TemporaryDirectory():
         client = GatewayExecutionFixture(response_loss=True)
         original = client.call_tool
 
@@ -334,7 +332,7 @@ def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str) 
         factory = _factory(client)
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            Path(directory),
+            pg_schema[0], pg_schema[1],
             _contract(factory),
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
@@ -347,16 +345,15 @@ def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str) 
         assert names == ["execution.submit", "execution.resolve"]
 
 
-def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch() -> None:
-    with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
+def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch(pg_schema) -> None:
+    with tempfile.TemporaryDirectory():
         client = GatewayExecutionFixture(response_loss=True)
         factory = _factory(client)
         contract = _contract(factory)
         clock = FixedClock()
         adapter = _adapter()
         run = HarnessAgentRun.create(
-            root,
+            pg_schema[0], pg_schema[1],
             contract,
             lambda _contract: adapter,
             tool_bridge_factory=factory,
@@ -373,7 +370,7 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch() -> 
         assert names.count("execution.submit") == 1
         assert client.calls[1][1]["requestId"] == client.calls[0][1]["requestId"]
 
-        with SQLiteHarnessStore(root) as store:
+        with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
             continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
             step = continuity.load_current_tool_step()
             assert step.receipt is not None
@@ -388,8 +385,8 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch() -> 
 
 
 @pytest.mark.parametrize("mutation", ("missing_workspace", "wrong_workspace"))
-def test_gateway_recovery_requires_owner_observed_workspace(mutation: str) -> None:
-    with tempfile.TemporaryDirectory() as directory:
+def test_gateway_recovery_requires_owner_observed_workspace(mutation: str, pg_schema) -> None:
+    with tempfile.TemporaryDirectory():
         client = GatewayExecutionFixture(response_loss=True)
         original_call_tool = client.call_tool
 
@@ -406,7 +403,7 @@ def test_gateway_recovery_requires_owner_observed_workspace(mutation: str) -> No
         client.call_tool = forged_resolution  # type: ignore[method-assign]
         factory = _factory(client)
         run = HarnessAgentRun.create(
-            Path(directory),
+            pg_schema[0], pg_schema[1],
             _contract(factory),
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
@@ -522,9 +519,8 @@ def test_gateway_rejected_submit_receipt_does_not_poison_operation_map(invalid: 
     assert adapter._operation_requests == {}
 
 
-def test_gateway_effect_bridge_propagates_cooperative_control_cancellation() -> None:
-    with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
+def test_gateway_effect_bridge_propagates_cooperative_control_cancellation(pg_schema) -> None:
+    with tempfile.TemporaryDirectory():
         clock = FixedClock()
         cancellation = CancellationToken(monotonic_ms=clock)
         client = GatewayExecutionFixture(cancellation=cancellation)
@@ -532,7 +528,7 @@ def test_gateway_effect_bridge_propagates_cooperative_control_cancellation() -> 
         contract = _contract(factory)
         adapter = _adapter()
         run = HarnessAgentRun.create(
-            root,
+            pg_schema[0], pg_schema[1],
             contract,
             lambda _contract: adapter,
             tool_bridge_factory=factory,
@@ -547,7 +543,7 @@ def test_gateway_effect_bridge_propagates_cooperative_control_cancellation() -> 
         assert client.calls[1][1]["capability"] == "execution.linux"
         assert result.loop_result.stop_code.value == "cancel_unknown"
 
-        with SQLiteHarnessStore(root) as store:
+        with PostgresHarnessStore(pg_schema[0], schema=pg_schema[1]) as store:
             continuity = EventSourcedRunContinuity.open(store, "harness-run:plugin-h2")
             step = continuity.load_current_tool_step()
             assert step.receipt is not None
@@ -651,7 +647,7 @@ def test_gateway_adapter_waits_for_committed_but_incomplete_artifact_projection(
 
 
 @pytest.mark.parametrize("invalid", [None, True, False, 0, -1, 10_001, "10"])
-def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object) -> None:
+def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object, pg_schema) -> None:
     """An invalid canonical JSON value must not reach Gateway execution.submit."""
     from dataclasses import replace
 
@@ -671,10 +667,10 @@ def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object) -
         second,
     )
 
-    with tempfile.TemporaryDirectory() as directory:
+    with tempfile.TemporaryDirectory():
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            Path(directory),
+            pg_schema[0], pg_schema[1],
             _contract(factory),
             lambda _contract: adapter,
             tool_bridge_factory=factory,

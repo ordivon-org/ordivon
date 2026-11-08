@@ -842,6 +842,12 @@ jobs:
               ORDIVON_CAPITAL_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
               ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
               mise run "$task" </dev/null
+            elif [[ "$task" == "harness:queue" ]]; then
+              # Reuse disposable CI PostgreSQL, admitting only isolated Harness
+              # test schemas; no production state or SQLite migration.
+              # The DSN makes the PG consumers actual tests, not skipped tests.
+              HARNESS_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              mise run "$task" </dev/null
             else
               mise run "$task" </dev/null
             fi

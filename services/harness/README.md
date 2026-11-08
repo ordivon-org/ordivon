@@ -53,7 +53,7 @@ shared database technology is *not* shared domain truth.
 
 The first consumer-qualified PG path is
 `PostgresHarnessStore(dsn, schema="harness", initialize=False)`, and the
-supported `HarnessAgentRun.create_postgres(...)` / `open_postgres(...)` APIs.
+supported `HarnessAgentRun.create(...)` / `open(...)` APIs.
 The operator must provision the named Harness schema and supply the DSN; the
 Run API never silently creates a database, switches to SQLite, or dual-writes.
 A fresh test schema can be initialized explicitly with `initialize=True`.
