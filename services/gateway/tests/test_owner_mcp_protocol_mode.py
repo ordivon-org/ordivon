@@ -49,6 +49,7 @@ def test_modern_pin_is_windows_only_explicit_and_preserves_identity(
         def __init__(self, transport, *, mode, raise_exceptions):
             observed.append(mode)
             assert raise_exceptions is False
+            self.session = self
 
         async def __aenter__(self):
             return self
@@ -56,11 +57,23 @@ def test_modern_pin_is_windows_only_explicit_and_preserves_identity(
         async def __aexit__(self, *unused):
             return False
 
-        async def call_tool(self, tool, args, *, meta=None):
-            assert tool == "runtime.describe"
-            assert args == {"schemaVersion": 1}
+        async def send_request(self, request, result_type):
+            from mcp import types
+
+            assert isinstance(request, types.CallToolRequest)
+            assert request.params.name == "runtime.describe"
+            assert request.params.arguments == {"schemaVersion": 1}
+            assert result_type is types.CallToolResult
             return SimpleNamespace(
-                is_error=False, structured_content={"schemaVersion": 1}, content=[]
+                is_error=False,
+                structured_content={
+                    "schemaVersion": 1,
+                    "node": {"nodeId": "fixture-windows"},
+                    "targets": [
+                        {"target": "windows_native", "configured": True, "available": True}
+                    ],
+                },
+                content=[],
             )
 
     monkeypatch.setattr(upstream, "create_mcp_http_client", lambda **kwargs: FakePool())
@@ -70,7 +83,11 @@ def test_modern_pin_is_windows_only_explicit_and_preserves_identity(
     async def verify() -> None:
         assert await caller.call_tool(
             "runtime.windows", "runtime.describe", {"schemaVersion": 1}
-        ) == {"schemaVersion": 1}
+        ) == {
+            "schemaVersion": 1,
+            "node": {"nodeId": "fixture-windows"},
+            "targets": [{"target": "windows_native", "configured": True, "available": True}],
+        }
         await caller.aclose()
 
     asyncio.run(verify())
@@ -135,7 +152,7 @@ def test_sdk_list_after_completed_owner_call_preserves_observation_uncertainty(
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Real MCP HTTP: an SDK validation timeout is not a wire tools/call failure."""
+    """Real Host MCP HTTP: the retained full SDK path still validates output."""
     import socket
 
     import uvicorn
@@ -146,15 +163,12 @@ def test_sdk_list_after_completed_owner_call_preserves_observation_uncertainty(
     private_token = _private(tmp_path / "fake-owner-token", "fixture-only-token")
     wire_methods: list[str] = []
     completed_tool_responses: list[int] = []
-    server = MCPServer("fixture-windows", version="fixture")
+    server = MCPServer("fixture-host", version="fixture")
 
-    @server.tool(name="runtime.describe")
-    async def runtime_describe(schemaVersion: int = 1) -> dict:
-        return {
-            "schemaVersion": schemaVersion,
-            "node": {"nodeId": "fixture-windows"},
-            "targets": [{"target": "windows_native", "configured": True, "available": True}],
-        }
+    @server.tool(name="host.status")
+    async def host_status(detail: str = "summary") -> dict:
+        assert detail == "summary"
+        return {"schemaVersion": 3, "kind": "ordivon.host-status"}
 
     app = server.streamable_http_app(
         streamable_http_path="/mcp",
@@ -196,7 +210,7 @@ def test_sdk_list_after_completed_owner_call_preserves_observation_uncertainty(
             assert uv.started
             caller = McpOwnerCaller(
                 {
-                    "runtime.windows": OwnerEndpoint(
+                    "host": OwnerEndpoint(
                         f"http://127.0.0.1:{port}/mcp",
                         bearer_token_file=private_token,
                         mcp_mode="2026-07-28",
@@ -206,7 +220,7 @@ def test_sdk_list_after_completed_owner_call_preserves_observation_uncertainty(
             try:
                 return await GatewayService(
                     caller, projection_timeout_seconds=0.08
-                ).capability_describe("execution.windows")
+                ).capability_describe("continuity.external")
             finally:
                 await caller.aclose()
         finally:
