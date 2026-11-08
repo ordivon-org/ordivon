@@ -108,3 +108,25 @@ Neither phase proves Runtime availability or identifies the remote cause.
 Do not log payloads, auth headers, credentials, or Owner response bodies.
 Never interpret a projection timeout as a physical Owner outage. Compare
 native Owner RPC, Gateway projection, Windows SCM source cut and Owner logs.
+
+## HTTP MCP ingress security coverage (source cut)
+
+**Human:** HTTP mode uses `GatewayHTTPIngressGuard` before the narrow Runtime
+Artifact AuthZEN PEP. Only `system.describe`, `capability.describe`, and
+`capability.search` are anonymous *metadata* tools. All other registered
+(and newly introduced/unknown) Tools require the verified Principal and issuer
+placed in request-local state by the configured ingress verifier; a forged
+Tool argument or `_meta` is not an identity. The guard prevents unauthenticated
+Owner calls; it is not resource authorization. Without a trusted HTTP credential
+provider, protected calls intentionally fail closed.
+
+**Agent:** Compare `enforcement-surface.json` with the *actual* MCP SDK
+`tools/list` and `mcp-surface.json`; changes to a Tool require explicit
+classification and tests. Run `uv run --offline --project services/gateway
+pytest services/gateway/tests/test_http_ingress_coverage.py` from the repo
+root. The source consumer verifies the finite HTTP ingress property, not every
+downstream Owner PEP. All `downstreamAuthorization` entries are explicitly
+`UNKNOWN` pending real Owner enforcement-path evidence. An AuthZEN ALLOW for
+one Runtime Artifact does not authorize Host mutations or Runtime execution.
+Before promoting a release, check the deployed HTTP entrypoint, real trusted
+request state, and Owner-side authorization independently.
