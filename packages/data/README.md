@@ -39,6 +39,9 @@ source registry, scheduler, or opaque custom verification scheme.
 ```sh
 python3 packages/data/scripts/inspect_federation.py
 python3 packages/data/scripts/inspect_federation.py --verify-local
+# Optional artifact-integrity admission gate: rejects UNKNOWN and zero observations.
+# The frozen historical catalog currently cannot pass this gate without corrected source-owned URIs.
+python3 packages/data/scripts/inspect_federation.py --verify-local --require-verified
 # Read a specific externally owned path only after confirming it and its owner:
 python3 packages/data/scripts/inspect_federation.py --verify-local --allow-root /absolute/approved/data/root
 mise run data:verify
@@ -64,6 +67,8 @@ the historical R2 acceptance.
 - [Agent workflow](docs/AGENT.md)
 - [Directory audit and decisions](docs/AUDIT_2026-11-07.md)
 - [Capability and thought LEGO inventory](docs/LEGO_CENSUS.md)
+- [Property-first formal verification / test disposition](docs/FORMAL_VERIFICATION.md)
+- Opt-in kernel/symbolic check: `mise run data:formal:verify` (Lean + CrossHair/Z3)
 
 **Data product standard version law:** ODPS 1.1 is consumed by current historical
 products; ODPS 4.2 (released 2026-10-26) has a different document root and

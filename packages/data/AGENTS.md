@@ -15,5 +15,7 @@
    or recovery obligations. Check consumer reachability and owner-native disposal.
 7. For formal LEGO admission, use the repo's Recursive LEGO R2.1 Skill and
    typed eleven-field contract, rather than inventing a private data calculus.
-8. Owner verification: `mise run data:verify`; then run the specific affected
-   downstream consumer's native verification.
+8. Formal-first proof chain: `docs/FORMAL_VERIFICATION.md` is the scoped
+   specification/model/implementation/consumer map; run `mise run
+   data:formal:verify`, then `mise run data:verify` and the affected native
+   consumer. Never claim CrossHair bounded search is a universal code proof.

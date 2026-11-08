@@ -23,6 +23,16 @@ consumer. A Skill is instructional knowledge, not an executable LEGO.
 | Agent exploration and statistical methods | existing trusted Skills | EDA/statistics/experimental design/visualization | ADVISORY |
 | Pipeline throughput optimization | existing data-throughput-accelerator Skill | instruction available; no deployed Data accelerator service | ADVISORY |
 
+## Formal carrier qualification
+
+`formal/DataProduct.lean` specializes existing Lean/Recursive LEGO formal
+methodology to Data's digest-evidence and `(id, version)` uniqueness
+properties. `src/ordivon_data/verification.py` uses ordinary PEP 316
+contracts and bounded CrossHair/Z3 symbolic exploration; `catalog.py`
+consumes this pure predicate. These are a **bounded model and implementation
+candidate**, not a newly admitted universal LEGO, proof of filesystem I/O,
+or independent data producer. See `docs/FORMAL_VERIFICATION.md`.
+
 ## Thought LEGO source laws
 
 - **Representation:** W3C DCAT/PROV, ODCS/ODPS, SDMX and Arrow/Parquet are

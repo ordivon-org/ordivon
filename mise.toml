@@ -148,6 +148,13 @@ cd packages/data
 mise run verify
 """
 
+[tasks."data:formal:verify"]
+run = """
+set -euo pipefail
+cd packages/data
+mise run verify:formal
+"""
+
 [tasks."control-plugin:verify"]
 run = """
 set -euo pipefail

@@ -25,6 +25,10 @@ Discovery metadata is only a candidate until its producing owner confirms it.
 ## Execution and proof
 
 1. Read `README.md` and run the inspection CLI; never treat the returned
+   zero exit in discovery mode as a product-integrity admission. Use
+   `--verify-local --require-verified` when requiring real byte evidence;
+   exit 3 means UNKNOWN/not established, while exit 2 means a conflicting
+   digest or invalid catalog. Do not interpret these as a right to publish.
    directory path or catalog version as proof of deployed data.
 2. Verify the exact physical bytes under explicit scope. Unknown remains
    typed UNKNOWN rather than FALSE or PASS. A file digest match does not
@@ -42,6 +46,12 @@ Discovery metadata is only a candidate until its producing owner confirms it.
 7. For cleanup, use actual consumer/recovery/retention paths; no age-based
    deletion, guessed rename or wiping shared worktrees. Prefer owner-native
    Git/workspace management and temporary cache pruning.
+
+Formal contract: [FORMAL_VERIFICATION.md](FORMAL_VERIFICATION.md).
+Run `mise run data:formal:verify` for Lean / CrossHair evidence; the result
+is NOT a proof that path reads, source licenses, network I/O, or domain
+semantics refine the model. Preserve necessary negative and real-consumer
+witnesses when implementation-to-model refinement is partial.
 
 Native verification: `mise run data:verify`, followed by the affected domain
 consumer's own verify task. Agent Skills are advice, not execution authority.

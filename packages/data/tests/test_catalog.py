@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -112,3 +113,67 @@ class CatalogProjectionTests(TestCase):
             path.write_text(json.dumps(catalog), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "identifier and version"):
                 inspect_catalog(path)
+
+    def test_cli_integrity_gate_distinguishes_unknown_from_verified(self):
+        """CLI process success does not certify an unverified distribution."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = root / "sample.json"
+            data.write_bytes(b'{"observed":true}')
+            digest = hashlib.sha256(data.read_bytes()).hexdigest()
+            catalog = root / "catalog.json"
+            catalog.write_text(
+                json.dumps(
+                    {
+                        "@type": "dcat:Catalog",
+                        "dcat:dataset": [
+                            {
+                                "@type": "dcat:Dataset",
+                                "dct:identifier": "urn:example:verified",
+                                "dcat:version": "v1",
+                                "dcat:distribution": [
+                                    {
+                                        "dcat:accessURL": {"@id": data.as_uri()},
+                                        "dct:identifier": "sha256:" + digest,
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            script = DATA_ROOT / "scripts" / "inspect_federation.py"
+
+            def invoke(*options: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [sys.executable, str(script), "--catalog", str(catalog), *options],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=15,
+                )
+
+            gate = ("--verify-local", "--allow-root", str(root), "--require-verified")
+            accepted = invoke(*gate)
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
+            summary = json.loads(accepted.stdout)["inspection"]
+            self.assertEqual(summary["integrityGate"], "PASS")
+            self.assertEqual(summary["verifiedCount"], 1)
+
+            data.write_bytes(b'{"observed":false}')
+            corrupted = invoke(*gate)
+            self.assertEqual(corrupted.returncode, 2, corrupted.stderr)
+            self.assertEqual(
+                json.loads(corrupted.stdout)["inspection"]["falsifiedCount"], 1
+            )
+
+            data.unlink()
+            missing = invoke(*gate)
+            self.assertEqual(missing.returncode, 3, missing.stderr)
+            self.assertEqual(
+                json.loads(missing.stdout)["inspection"]["unknownCount"], 1
+            )
+            discovery_only = invoke("--require-verified")
+            self.assertEqual(discovery_only.returncode, 2)
+            self.assertIn("requires --verify-local", discovery_only.stderr)

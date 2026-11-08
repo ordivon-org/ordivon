@@ -17,7 +17,13 @@ central database or take data custody from Research/Finance/Artifact.
 3. Inspect the existing federation with
    `python3 packages/data/scripts/inspect_federation.py`. This only lists
    metadata; it does not prove that the data file still exists.
-4. Run `--verify-local`. If a source is outside the repository, first
+4. Run `--verify-local` to inspect available evidence. For an actual
+   integrity admission gate use `--verify-local --require-verified`:
+   exit 0 only when every distribution has a scoped, matching SHA-256;
+   exit 2 for a detected digest conflict and exit 3 for unknown/unverified
+   evidence (including an empty list). Neither result certifies data quality,
+   license rights, source freshness, or the decision to publish.
+   If a source is outside the repository, first
    identify its current valid path and owner, then explicitly pass
    `--allow-root /absolute/approved/root`. Never guess a replacement path.
 5. For a Parquet dataset, run Artifact's existing Dataset verification with
@@ -28,6 +34,14 @@ central database or take data custody from Research/Finance/Artifact.
 7. Measure usefulness (not merely row count), update only invalidated
    partitions/models/decisions, and retire data only if consumers and actual
    retention/recovery requirements permit it.
+
+## Formal-first review
+
+Read [Data formal verification](FORMAL_VERIFICATION.md), run
+`mise run data:formal:verify`, and separate kernel-checked *abstract* model
+proofs from bounded CrossHair implementation search and actual source/consumer
+read-back. Retire synthetic tests only after the relevant Python/Rust/SQL
+implementation refinement is established, not from abstract proofs alone.
 
 ## Version and status warnings
 

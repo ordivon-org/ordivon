@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
+from .verification import digest_verdict
+
 
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -76,7 +78,7 @@ def inspect_distribution(
         return result
     observed = _sha256(path)
     result["observedDigest"] = "sha256:" + observed
-    result["verification"] = "VERIFIED" if observed == hexdigest else "FALSIFIED"
+    result["verification"] = digest_verdict(hexdigest, observed)
     result["reason"] = "digest_match" if observed == hexdigest else "digest_mismatch"
     return result
 

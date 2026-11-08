@@ -36,7 +36,14 @@ def main() -> int:
         default=[],
         help="Additional trusted local root for read-only byte verification",
     )
+    parser.add_argument(
+        "--require-verified",
+        action="store_true",
+        help="Require every distribution to have a verified scoped digest; UNKNOWN is not success",
+    )
     args = parser.parse_args()
+    if args.require_verified and not args.verify_local:
+        parser.error("--require-verified requires --verify-local")
     try:
         result = inspect_catalog(
             args.catalog,
@@ -46,13 +53,28 @@ def main() -> int:
     except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
         print(f"catalog inspection failed: {error}", file=sys.stderr)
         return 2
-    print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
-    if any(
-        dist["verification"] == "FALSIFIED"
+    observed = [
+        distribution["verification"]
         for product in result["products"]
-        for dist in product["distributions"]
-    ):
+        for distribution in product["distributions"]
+    ]
+    result["inspection"] = {
+        "distributionCount": len(observed),
+        "verifiedCount": observed.count("VERIFIED"),
+        "unknownCount": observed.count("UNKNOWN"),
+        "falsifiedCount": observed.count("FALSIFIED"),
+        "notCheckedCount": observed.count("NOT_CHECKED"),
+        "integrityGate": (
+            "PASS"
+            if observed and all(state == "VERIFIED" for state in observed)
+            else "NOT_ESTABLISHED"
+        ),
+    }
+    print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
+    if "FALSIFIED" in observed:
         return 2
+    if args.require_verified and result["inspection"]["integrityGate"] != "PASS":
+        return 3
     return 0
 
 
