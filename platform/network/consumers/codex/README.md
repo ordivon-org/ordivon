@@ -117,7 +117,6 @@ on the active desktop: it can generate very high volume. Do not add global
 outbound firewall rules without a separate disposable Windows experiment,
 a real consumer need and post-change independent application acceptance.
 
-
 ### Native WFP event refinement (bounded, no raw endpoint export)
 
 Use `windows_wfp_evidence.py` to classify a bounded JSON envelope of native
@@ -140,6 +139,24 @@ The 2026-11-08 native elevated, bounded audit probe generated 5156/5157
 and confirmed audit restoration; 8 observed `chatgpt.exe` UDP/5353
 5157 blocks were inbound IPv4/IPv6 multicast, not outbound VPN leaks.
 Do not keep success auditing enabled after the bounded experiment.
+
+## Windows MSIX token-to-firewall identity refinement (2026-11-08)
+
+See [PACKAGE_TOKEN_EVIDENCE.md](PACKAGE_TOKEN_EVIDENCE.md) and the one-shot
+`windows_package_token_evidence.py` witness. The installed
+`OpenAI.Codex_2p2nqsd0c76g0` package contains full-trust Win32 entrypoints.
+The upstream Windows token APIs were read against **all 18 currently sampled
+ChatGPT.exe, codex.exe and codex-code-mode-host.exe processes**: 18/18 token
+reads succeeded, zero process tokens were AppContainer, and zero tokens exposed
+the native derived package SID in TokenAppContainerSid or TokenGroups.
+
+This is an evidence-backed reason **not** to assume an MSIX package identity
+automatically yields an enforceable package-only firewall policy. Per-package
+NetFirewallRule effectiveness remains UNKNOWN until independently tested with
+a disposable packaged application that actually generates the same network
+traffic. Existing per-program native Windows Filtering Platform experiments
+are distinct from this package identity observation; no production filtering
+was changed by the token witness.
 
 Current cross-owner backlog: [Windows Codex WFP and carrier proof #1824](https://github.com/ordivon-org/ordivon/issues/1824).
 
