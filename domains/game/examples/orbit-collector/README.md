@@ -65,3 +65,17 @@ feature and test the native dependency on that target.
 The exact source binding remains Cargo.toml plus Cargo.lock and the
 existing Game native test/build commands. Graphical Human play is
 still a distinct acceptance claim.
+
+## Native fixed-step simulation (Bevy 0.20)
+
+Movement, goal collection, hazard patrol and damage resolution run in the
+engine-owned `FixedUpdate` schedule; restart input and HUD projection remain
+in per-frame `Update`. A rendered frame may contain zero or more fixed
+steps. Bevy's generic `Time` in the fixed schedule is `Time<Fixed>`.
+
+The real ECS acceptance uses upstream
+`TimeUpdateStrategy::FixedTimesteps(0)` to establish that a display-only
+frame does not collect a goal. Exactly one provider-owned fixed step
+collects it and updates the Human HUD. This is native schedule evidence,
+not a universal deterministic replay proof, real FPS measurement or
+physical input-latency proof. No second Ordivon scheduler is introduced.

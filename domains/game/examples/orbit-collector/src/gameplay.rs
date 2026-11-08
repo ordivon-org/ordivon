@@ -52,18 +52,15 @@ impl Plugin for OrbitCollectorPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<GameRun>()
             .add_systems(Startup, setup)
+            // Use Bevy's native fixed-timestep schedule for the authoritative
+            // simulation. A rendered frame may contain zero or multiple
+            // fixed steps; gameplay must not depend on the presentation FPS.
             .add_systems(
-                Update,
-                (
-                    restart,
-                    move_player,
-                    collect_goals,
-                    patrol_hazard,
-                    resolve_hazard,
-                    update_status,
-                )
-                    .chain(),
-            );
+                FixedUpdate,
+                (move_player, collect_goals, patrol_hazard, resolve_hazard).chain(),
+            )
+            // Read input and render HUD once per presentation frame.
+            .add_systems(Update, (restart, update_status).chain());
     }
 }
 
@@ -218,12 +215,14 @@ fn update_status(run: Res<GameRun>, mut labels: Query<&mut Text, With<StatusText
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bevy::time::TimeUpdateStrategy;
 
     #[test]
     fn actual_bevy_plugin_assembles_game_components_and_rules() {
         let mut app = App::new();
         app.add_plugins(MinimalPlugins)
             .init_resource::<ButtonInput<KeyCode>>()
+            .insert_resource(TimeUpdateStrategy::FixedTimesteps(1))
             .add_plugins(OrbitCollectorPlugin);
         app.update();
 
@@ -251,6 +250,7 @@ mod tests {
         let mut app = App::new();
         app.add_plugins(MinimalPlugins)
             .init_resource::<ButtonInput<KeyCode>>()
+            .insert_resource(TimeUpdateStrategy::FixedTimesteps(1))
             .add_plugins(OrbitCollectorPlugin);
         app.update();
 
@@ -260,8 +260,14 @@ mod tests {
             let mut player = query.single_mut(world).expect("player spawned by plugin");
             player.translation = GOALS[0].extend(2.0);
         }
+        // One display-only frame cannot secretly advance game rules.
+        app.insert_resource(TimeUpdateStrategy::FixedTimesteps(0));
         app.update();
+        assert_eq!(app.world().resource::<GameRun>().rules.collected(), 0);
 
+        // One actual native Bevy fixed step collects the goal.
+        app.insert_resource(TimeUpdateStrategy::FixedTimesteps(1));
+        app.update();
         assert_eq!(app.world().resource::<GameRun>().rules.collected(), 1);
         let world = app.world_mut();
         assert_eq!(
