@@ -26,6 +26,43 @@ mandatory workflow. The rules below govern consequential changes.
 15. **Agent decision evidence:** distinguish OBSERVED, DECLARED, DERIVED, VERIFIED, UNKNOWN and FALSIFIED with provenance and currentness. Treat hypotheses and predictions as candidates; consider rival explanations and value of further evidence where material. A model belief, Skill read, evidence graph or Tool discovery never confers effect authority. Finish real work with implementation or justified subtraction, actual execution/observation, affected verification and repair; report explicit remaining UNKNOWN rather than fictitious success.
 16. **Integration discipline:** compare current main, relevant branches/PRs and actual consumers before retaining changes. For cross-Owner or PR-sized work, exchange evidence and counterexamples in the existing Space when useful; a message or Owner opinion is not a proof or a permission gate. Prefer the smallest verified contribution and retire superseded code rather than accumulating parallel implementations.
 
+## Evidence-backed detailed reporting and handoffs
+
+When a user requests a detailed progress/completion report, or when handing off a
+consequential multi-Owner or production change, report against **the actual
+consumer and acceptance authority**, not the amount of Agent activity.
+Keep routine replies concise; do not require every section for a trivial edit.
+
+- **Decision and standing:** lead with what is complete, what is not, and the
+  real consumer consequence. State the exact scope and the as-of time.
+- **Source and change identity:** record the exact Git revision/PR and
+  changed or retired responsibilities, distinguishing proposal, committed
+  branch, merged main and deployed source. Link the original evidence.
+- **Independent realization:** distinguish, when relevant, `SOURCE`,
+  `MERGED`, `INSTALLED`, `LOADED`, `EXECUTED` and `CONSUMED`.
+  Use owner-native exact readback (bytes, process/generation, kernel or
+  external provider) and the consumer's real acceptance, not job exit alone.
+- **Verification and falsification:** name the native commands, observed
+  results, tested assumptions and relevant negative controls. Mark failed,
+  skipped, unavailable and not-run checks distinctly; never inflate a
+  model, static source, CI, or service-health PASS into domain success.
+- **Open work:** give only consequential `UNKNOWN` or `FALSIFIED`
+  properties, their actual blocker or competing explanation, natural Owner,
+  next executable action and observable closure condition. Do not invent a
+  completion percentage, ETA, approval, deployment or ongoing monitoring.
+- **Incident mode only:** when an incident actually occurred, add observed
+  impact, chronological events, contributing causes and tracked mitigation
+  and prevention actions. Do not turn every engineering report into a
+  postmortem.
+
+This is a **presentation and handoff contract**, not a new status database,
+runtime, universal report generator or mandatory Skill. Reuse existing Host
+Work/Topic, GitHub PR/checks, Owner-native verification and domain receipts.
+Follow the scoped Owner Agent guide for concrete evidence (Network example:
+`platform/network/docs/AGENT_GUIDE.md`); use
+`.agents/skills/task-space-reentry/SKILL.md` only when a real Work/Space
+handoff is required.
+
 ## Practical consumer routing
 
 ### Live local-tool discovery
