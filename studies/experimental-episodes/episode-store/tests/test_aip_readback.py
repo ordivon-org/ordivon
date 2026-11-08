@@ -118,6 +118,8 @@ def test_exact_aip_source_readback_uses_recovered_file(
         "/data/objects/episode-source.jsonl",
         "../data/objects/episode-source.jsonl",
         "wrong-00000000-0000-4000-8000-000000000002/data/objects/episode-source.jsonl",
+        f"-option-injection-{UUID}/data/objects/episode-source.jsonl",
+        f"@listfile-{UUID}/data/objects/episode-source.jsonl",
         f"synthetic-aip-{UUID}/data/objects/../episode-source.jsonl",
         f"synthetic-aip-{UUID}/data/objects/*.jsonl",
         f"synthetic-aip-{UUID}/other/objects/episode-source.jsonl",

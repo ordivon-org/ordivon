@@ -43,6 +43,8 @@ def _exact_object_entry(aip_uuid: str, entry: str) -> str:
         or path.is_absolute()
         or str(path) != entry
         or len(path.parts) < 4
+        # 7z treats leading '-' and '@' operands as switches/listfile names.
+        or not path.parts[0][0].isalnum()
         or not path.parts[0].endswith("-" + uuid)
         or path.parts[1:3] != ("data", "objects")
         or any(part in (".", "..") for part in entry.split("/"))
