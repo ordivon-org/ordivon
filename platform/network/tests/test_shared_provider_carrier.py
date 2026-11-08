@@ -64,9 +64,73 @@ def test_browserless_owns_one_internal_provider_carrier():
     assert "network-v2-browserless-wireguard.service" not in target
     assert "network-v2-browserless-dns.service" not in target
     legacy = (BROWSERLESS / "systemd/network-v2-browserless-legacy-provider.target").read_text()
-    assert "Requires=network-v2-browserless.target" in legacy
+    assert "Requires=network-v2-shared-egress.target" in legacy
     assert "Wants=network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service" in legacy
     assert "ConditionPathExists=!/etc/network-v2/gluetun/m4-owned-mode.selected" in legacy
+
+
+def test_shared_egress_and_legacy_provider_have_independent_stop_closures():
+    """Source-bound systemd stop-propagation model; not a live-stop experiment."""
+    sources = {
+        "network-v2-browserless.target": SHARED_EGRESS / "systemd/network-v2-browserless.target",
+        "network-v2-browserless-netns.service": SHARED_EGRESS / "systemd/network-v2-browserless-netns.service",
+        "network-v2-browserless-forward.service": SHARED_EGRESS / "systemd/network-v2-browserless-forward.service",
+        "network-v2-browserless-legacy-provider.target": BROWSERLESS / "systemd/network-v2-browserless-legacy-provider.target",
+        "network-v2-browserless-wireguard.service": BROWSERLESS / "systemd/network-v2-browserless-wireguard.service",
+        "network-v2-browserless-dns.service": BROWSERLESS / "systemd/network-v2-browserless-dns.service",
+        "network-v2-browserless-provider-carrier.service": BROWSERLESS / "systemd/network-v2-browserless-provider-carrier.service",
+        "network-v2-codex.target": ROOT / "consumers/codex/systemd/network-v2-codex.target",
+    }
+    legacy = "network-v2-browserless-legacy-provider.target"
+    shared = "network-v2-browserless.target"
+    neutral = "network-v2-shared-egress.target"
+    # Alias canonicalization: systemd resolves both names to one loaded unit.
+    def canonical(unit: str) -> str:
+        return shared if unit == neutral else unit
+
+    def stop_closure(contents: dict[str, str], start: str) -> set[str]:
+        # systemd.unit(5): stopping a dependency propagates to dependents via
+        # Requires/BindsTo; PartOf propagates stop/restart from target to member.
+        reverse: dict[str, set[str]] = {}
+        for name, content in contents.items():
+            section = ""
+            for raw in content.splitlines():
+                line = raw.strip()
+                if line.startswith("[") and line.endswith("]"):
+                    section = line[1:-1]
+                elif section == "Unit" and "=" in line and not line.startswith("#"):
+                    key, value = line.split("=", 1)
+                    if key in {"PartOf", "Requires", "BindsTo"}:
+                        for dependency in value.split():
+                            reverse.setdefault(canonical(dependency), set()).add(name)
+        closure = {start}
+        pending = [start]
+        while pending:
+            for child in reverse.get(pending.pop(), ()):
+                if child not in closure:
+                    closure.add(child)
+                    pending.append(child)
+        return closure
+
+    unit_text = {name: path.read_text() for name, path in sources.items()}
+    stopped = stop_closure(unit_text, legacy)
+    assert stopped == {
+        legacy,
+        "network-v2-browserless-wireguard.service",
+        "network-v2-browserless-dns.service",
+        "network-v2-browserless-provider-carrier.service",
+    }
+    assert shared not in stopped
+    assert "network-v2-browserless-forward.service" not in stopped
+    assert "network-v2-browserless-netns.service" not in stopped
+    assert "network-v2-codex.target" not in stopped
+
+    # Counterexample: accidentally making forwarding PartOf legacy must fail.
+    bad = dict(unit_text)
+    bad["network-v2-browserless-forward.service"] += (
+        "\n[Unit]\nPartOf=network-v2-browserless-legacy-provider.target\n"
+    )
+    assert "network-v2-browserless-forward.service" in stop_closure(bad, legacy)
 
 
 def test_production_provider_defaults_to_cross_consumer_qualified_site():
@@ -77,6 +141,25 @@ def test_production_provider_defaults_to_cross_consumer_qualified_site():
     assert "systemctl start network-v2-browserless-legacy-provider.target" in cutover
     assert "if [[ -e /etc/network-v2/gluetun/m4-owned-mode.selected ]]; then" in cutover
     assert cutover.index("if [[ -e /etc/network-v2/gluetun/m4-owned-mode.selected ]]; then") < cutover.index("SCRIPT=$(readlink")
+
+
+def test_cold_legacy_materialization_installs_complete_owner_stack_without_starting():
+    tasks = (BROWSERLESS / "Taskfile.yml").read_text()
+    materialize = tasks.split("  consumer:browserless:provider-carrier:materialize:", 1)[1]
+    materialize = materialize.split("\n  consumer:browserless:provider-carrier:ready:", 1)[0]
+    selected, legacy = materialize.split(
+        "if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then", 1
+    )[1].split("\n        else", 1)
+    for unit in ("wireguard", "dns", "provider-carrier"):
+        line = (f"install -m 0644 consumers/browserless/systemd/network-v2-browserless-{unit}.service "
+                f"/etc/systemd/system/network-v2-browserless-{unit}.service")
+        assert line in legacy
+        assert line not in selected
+    assert "systemctl restart" not in materialize
+    verify = tasks.split("  consumer:browserless:provider-carrier:verify:", 1)[1]
+    for unit in ("wireguard", "dns"):
+        assert (f"cmp -s consumers/browserless/systemd/network-v2-browserless-{unit}.service "
+                f"/etc/systemd/system/network-v2-browserless-{unit}.service") in verify
 
 
 def test_legacy_rollback_only_tears_down_browserless_provider():
@@ -119,7 +202,7 @@ def test_no_current_consumer_materializes_duplicate_provider_identity():
 
 def test_provider_switch_uses_wg_quick_compatible_temp_profile_and_restores_target():
     switch = (BROWSERLESS / "provider-switch.sh").read_text()
-    assert 'TARGET=network-v2-browserless.target' in switch
+    assert 'TARGET=network-v2-browserless-legacy-provider.target' in switch
     assert 'mktemp --suffix=.conf "$STATE_DIR/nv2blwg.XXXXXX"' in switch
     assert switch.count('systemctl start "$TARGET"') >= 2
     assert 'wg-quick strip "$tmp_profile"' in switch

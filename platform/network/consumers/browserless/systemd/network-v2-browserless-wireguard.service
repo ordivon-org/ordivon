@@ -3,7 +3,7 @@ Description=Network v2 Browserless production WireGuard carrier
 Requires=network-v2-browserless-netns.service
 After=network-v2-browserless-netns.service
 BindsTo=network-v2-browserless-netns.service
-PartOf=network-v2-browserless.target
+PartOf=network-v2-browserless-legacy-provider.target
 
 [Service]
 Type=oneshot

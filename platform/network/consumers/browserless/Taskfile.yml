@@ -27,6 +27,8 @@ tasks:
         else
           install -d -m 0755 /etc/network-v2/browserless /usr/local/libexec/network-v2
           install -m 0644 consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
+          install -m 0644 consumers/browserless/systemd/network-v2-browserless-wireguard.service /etc/systemd/system/network-v2-browserless-wireguard.service
+          install -m 0644 consumers/browserless/systemd/network-v2-browserless-dns.service /etc/systemd/system/network-v2-browserless-dns.service
           install -m 0644 consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
           install -m 0644 consumers/browserless/systemd/network-v2-browserless-legacy-provider.target /etc/systemd/system/network-v2-browserless-legacy-provider.target
           install -m 0755 consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
@@ -78,6 +80,8 @@ tasks:
           cmp -s providers/gluetun/quadlet/network-v2-gluetun-owned.container /etc/containers/systemd/network-v2-gluetun-owned.container
           cmp -s providers/gluetun/config/carrier-adapter.json /etc/network-v2/browserless/provider-carrier-gluetun-candidate.json
         else
+          cmp -s consumers/browserless/systemd/network-v2-browserless-wireguard.service /etc/systemd/system/network-v2-browserless-wireguard.service
+          cmp -s consumers/browserless/systemd/network-v2-browserless-dns.service /etc/systemd/system/network-v2-browserless-dns.service
           cmp -s consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
           cmp -s consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
           cmp -s substrates/shared-egress/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target

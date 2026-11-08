@@ -3,7 +3,7 @@ Description=Network v2 Browserless production DNS
 Requires=network-v2-browserless-wireguard.service
 After=network-v2-browserless-wireguard.service
 BindsTo=network-v2-browserless-wireguard.service
-PartOf=network-v2-browserless.target
+PartOf=network-v2-browserless-legacy-provider.target
 
 [Service]
 Type=simple

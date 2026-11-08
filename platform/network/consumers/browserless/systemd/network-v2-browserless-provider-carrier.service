@@ -2,7 +2,7 @@
 Description=Network v2 shared provider carrier inside Browserless WireGuard authority
 Requires=network-v2-browserless-dns.service network-v2-browserless-forward.service
 After=network-v2-browserless-dns.service network-v2-browserless-forward.service
-PartOf=network-v2-browserless.target
+PartOf=network-v2-browserless-legacy-provider.target
 
 [Service]
 Type=simple
