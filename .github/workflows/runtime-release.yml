@@ -34,7 +34,8 @@ jobs:
         with:
           version: 2026.9.12
           install: true
-          cache: true
+          # A publishing job never restores caches from a PR/default branch.
+          cache: false
 
       - name: Bind Runtime tag to repository and owner revisions
         id: release
@@ -64,13 +65,27 @@ jobs:
       - name: Verify Runtime owner
         run: mise run runtime:verify
 
+      # Tagged releases never restore PR-writable caches; use a freshly
+      # fetched official Release Asset API archive, independently SHA256-verified.
+      - name: Install verified cargo-deny
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 tools/repo/install_verified_cargo_deny.py \
+            --cache-dir "$RUNNER_TEMP/ordivon-cargo-deny/archive" \
+            --bin-dir "$RUNNER_TEMP/ordivon-cargo-deny/bin"
+          echo "$RUNNER_TEMP/ordivon-cargo-deny/bin" >> "$GITHUB_PATH"
+
       - name: Runtime dependency and license policy
-        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
-        with:
-          rust-version: "1.99.1"
-          manifest-path: services/runtime/Cargo.toml
-          command: check
-          arguments: --config services/runtime/deny.toml
+        shell: bash
+        run: |
+          set -euo pipefail
+          # cargo-deny common flags precede the "check" subcommand.
+          mise -C services/runtime exec -- cargo deny \
+            --manifest-path Cargo.toml \
+            --config deny.toml check
 
       - name: Build exact canonical Runtime release artifact set
         shell: bash
