@@ -201,11 +201,20 @@ class CapabilityCatalog:
                         if isinstance(node, dict) and isinstance(node.get("nodeId"), str)
                         else None
                     )
+                    targets = result.get("targets")
+                    # An ill-typed or contradictory Owner projection is UNKNOWN.
+                    # Never promote truthy strings or integers into Runtime truth.
+                    if not isinstance(targets, list) or any(
+                        not isinstance(item, dict)
+                        or type(item.get("configured")) is not bool
+                        or type(item.get("available")) is not bool
+                        or (item.get("available") is True and item.get("configured") is False)
+                        for item in targets
+                    ):
+                        errors.append(f"{owner_id}: invalid Runtime target status projection")
+                        continue
                     owner_available = any(
-                        isinstance(item, dict)
-                        and bool(item.get("configured", False))
-                        and bool(item.get("available", False))
-                        for item in result.get("targets", [])
+                        item["configured"] is True and item["available"] is True for item in targets
                     )
                     if owner_available:
                         available = True

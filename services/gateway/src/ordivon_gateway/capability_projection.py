@@ -71,6 +71,26 @@ def project_execution_capability(
             truth_boundary=route.truth_boundary,
         )
 
+    configured_status = target.get("configured")
+    available_status = target.get("available")
+    # Runtime observation is untrusted JSON, not a Python truthiness contract.
+    # Invalid or contradictory status is UNKNOWN, never proof of availability.
+    if (
+        type(configured_status) is not bool
+        or type(available_status) is not bool
+        or (available_status is True and configured_status is False)
+    ):
+        return CapabilityDescriptor(
+            capability=route.capability,
+            owner_id=route.owner_id,
+            category=route.category,
+            configured=False,
+            available=False,
+            context_mode=route.context_mode,  # type: ignore[arg-type]
+            observation_error="owner returned invalid execution-target status",
+            truth_boundary=route.truth_boundary,
+        )
+
     node = owner_response.get("node")
     node_id = (
         str(node["nodeId"])
@@ -100,8 +120,8 @@ def project_execution_capability(
         capability=route.capability,
         owner_id=route.owner_id,
         category=route.category,
-        configured=bool(target.get("configured", False)),
-        available=bool(target.get("available", False)),
+        configured=configured_status,
+        available=available_status,
         context_mode=context_mode,  # type: ignore[arg-type]
         contexts=contexts,
         owner_node_id=node_id,

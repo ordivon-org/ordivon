@@ -33,3 +33,19 @@ Gateway source in the cleanup branch; natural PG Owner state belongs to
 Runtime/Host. Keep system directories and live service data intact. Use the
 existing Gateway candidate install/verify/activate procedure only after
 source build, locked formal checks and native consumer readback.
+
+## B03 strict Owner observation
+Runtime configured/available fields must be literal JSON booleans;
+contradictory or malformed values are UNKNOWN, with an observation error.
+Run the bounded formal/check_owner_status_contract.py in the locked Gateway
+environment. Never treat a model result as proof of a live Runtime RPC.
+
+## R04 Owner HTTP pool (MCP SDK native)
+McpOwnerCaller uses a process-scoped per-Owner HTTP connection pool and a
+request-scoped MCP SDK Client/transport. The pool does not own Owner Jobs or
+MCP session identity. OwnerEndpointAuth rechecks exact credential files on
+every HTTP request; never cache bearer material as a fixed pool header.
+MCPServer lifespan closes the process-owned HTTP pools. Do not enable blind
+retries for effectful Tool calls. For native evidence, exercise the real
+Gateway->Owner SDK transport including cancellation, credential rotation,
+long-lived sessions, and service stop.

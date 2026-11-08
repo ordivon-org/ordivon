@@ -156,3 +156,12 @@ BOUNDED_IMPLEMENTATION_CHECKED, SOURCE_CONSUMER_TESTED, INSTALLED_VERIFIED.
 General Python-to-TLA refinement, PDP correctness, service identity and physical
 effects remain UNKNOWN until independently established. See AGENTS.md and
 .agents/skills/gateway-formal-routing/SKILL.md for Human/Agent procedures.
+
+### Owner RPC transport lifecycle
+Gateway pools HTTP connections by natural Owner using the upstream MCP SDK's
+`httpx2.AsyncClient`; MCP SDK Client protocol sessions remain call-local.
+The Gateway server lifespan closes owned HTTP pools. Credentials are resolved
+and checked for every HTTP request instead of being frozen at pool creation.
+No Gateway Job store, Owner effect retry or MCP protocol reimplementation is
+introduced. Run Gateway source tests plus native loopback and installed-Owner
+readback to distinguish transport correctness from deployed availability.
