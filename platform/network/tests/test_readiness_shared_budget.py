@@ -6,10 +6,19 @@ import json
 import os
 import subprocess
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _logged_target_host(command: str) -> str:
+    # The fixture logs curl arguments with the URL in the final position.
+    # Match the parsed host, never a substring of an arbitrary URL/command.
+    parsed = urlsplit(command.rsplit(" ", 1)[-1])
+    assert parsed.scheme == "https" and parsed.hostname is not None
+    return parsed.hostname
 
 
 @pytest.mark.parametrize("consumer", ("supply-chain",))
@@ -172,7 +181,13 @@ def test_supply_chain_positive_transport_requires_connect_and_allowed_origin_sta
         check=False,
     )
     calls = call_log.read_text().splitlines() if call_log.exists() else []
-    assert calls and "registry-1.docker.io" in calls[0], (proc.stderr, calls)
+    assert calls and _logged_target_host(calls[0]) == "registry-1.docker.io", (proc.stderr, calls)
+    probed_hosts = [_logged_target_host(line) for line in calls]
+    allowed_hosts = {
+        "registry-1.docker.io", "auth.docker.io", "gcr.io",
+        "us-central1-docker.pkg.dev", "docker.elastic.co",
+    }
+    assert set(probed_hosts).issubset(allowed_hosts)
     if expected_ready:
         assert proc.returncode == 0, (proc.stdout, proc.stderr, calls)
         payload = json.loads(proc.stdout)
@@ -181,15 +196,11 @@ def test_supply_chain_positive_transport_requires_connect_and_allowed_origin_sta
         assert payload["unknownDestination"] == "NOT_EVALUATED"
         assert payload["directFallback"] == "NOT_EVALUATED"
         assert payload["registryHttpStatus"] == 200
-        for domain in (
-            "auth.docker.io", "gcr.io", "us-central1-docker.pkg.dev", "docker.elastic.co",
-        ):
-            assert any(domain in line for line in calls)
+        assert set(probed_hosts) == allowed_hosts
     else:
         assert proc.returncode != 0, (proc.stdout, proc.stderr, calls)
         assert '"standing":"READY"' not in proc.stdout
         # The first required registry must block all later origin checks.
-        assert all("registry-1.docker.io" in line for line in calls)
-    assert not any("example.com" in line for line in calls)
+        assert set(probed_hosts) == {"registry-1.docker.io"}
     assert all("-q" in line and "--noproxy" in line for line in calls)
     assert all("%{http_connect}" in line for line in calls)
