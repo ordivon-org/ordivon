@@ -196,7 +196,7 @@ class GatewayCapabilityAuthorizationMiddleware:
 
     def __init__(
         self,
-        authorizer: CapabilityAuthorizer,
+        authorizer: CapabilityAuthorizer | None,
         *,
         target_resolver: AuthorizationTargetResolver = resolve_authorization_target,
     ) -> None:
@@ -237,6 +237,13 @@ class GatewayCapabilityAuthorizationMiddleware:
             return _error(
                 "CAPABILITY_AUTHZ_INGRESS_IDENTITY_MISSING",
                 "Protected capability requires verified ingress identity.",
+                capability=capability,
+            )
+
+        if self._authorizer is None:
+            return _error(
+                "CAPABILITY_AUTHZ_UNAVAILABLE",
+                "Protected capability requires an installed Security authorizer.",
                 capability=capability,
             )
 

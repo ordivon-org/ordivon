@@ -26,6 +26,20 @@ Keep SPECIFIED, MODEL_VERIFIED, BOUNDED_IMPLEMENTATION_CHECKED,
 SOURCE_CONSUMER_TESTED and INSTALLED_VERIFIED as distinct facts;
 unexecuted or unqualified stages are UNKNOWN.
 
+## HTTP Security PEP and actual CLI wiring
+
+For human and Agent alike, do not infer Gateway capability protection from
+the existence of `AuthZenPrincipalAuthorizer` or an injected test. The actual
+`main()` now builds the HTTP server with
+`protect_artifact_reads=True`. `artifact.read` without a configured PDP
+does not forward; configure both
+`ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT` and
+`ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE` for authenticated AuthZEN
+decisions. Only a Runtime Artifact read belongs to this PEP, not all MCP
+effects. The existing private token loader and PDP adapter are reused.
+Check `gateway:verify` and `gateway:formal:verify`, then inspect live
+deployed middleware/configuration and downstream owner readback separately.
+
 ## Cleanup and release
 Search imports, CI, skills, releases, and live consumers before retiring a
 module. The unserved SQLite external pull transport has been removed from

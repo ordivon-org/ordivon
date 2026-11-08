@@ -6,6 +6,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from ordivon_gateway.access_auth import CloudflareAccessMiddleware
 from ordivon_gateway.capability_authz import (
     GatewayCapabilityAuthorizationMiddleware,
@@ -356,3 +358,107 @@ def test_build_server_adds_pep_only_when_trusted_authorizer_is_injected() -> Non
     assert names.index("GatewayCapabilityAuthorizationMiddleware") > names.index(
         "GatewayAuditMiddleware"
     )
+
+
+def test_http_artifact_pep_without_pdp_denies_instead_of_bypassing() -> None:
+    """The CLI HTTP path must not silently omit the protected Artifact PEP."""
+    server = build_server(service=object(), protect_artifact_reads=True)  # type: ignore[arg-type]
+    peps = [
+        entry
+        for entry in server.middleware
+        if isinstance(entry, GatewayCapabilityAuthorizationMiddleware)
+    ]
+    assert len(peps) == 1
+    reached = False
+
+    async def forbidden_owner(_ctx: Any) -> dict[str, Any]:
+        nonlocal reached
+        reached = True
+        return {"structuredContent": {"ownerReached": True}}
+
+    denied = asyncio.run(peps[0](_ctx(state=_verified_state()), forbidden_owner))
+    assert denied.is_error is True
+    assert denied.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_UNAVAILABLE"
+    assert reached is False
+
+    # The PEP intentionally owns only the qualified Runtime Artifact target.
+    discovered = asyncio.run(
+        peps[0](_ctx(tool="capability.search", state=_verified_state()), _next)
+    )
+    assert discovered["structuredContent"]["ok"] is True
+
+
+@pytest.mark.parametrize("configured", [False, True])
+def test_gateway_main_http_installs_artifact_pep_with_or_without_pdp(
+    monkeypatch,
+    tmp_path: Path,
+    configured: bool,
+) -> None:
+    """Exercise actual CLI server composition in both protected HTTP modes."""
+    from ordivon_gateway import mcp_server
+
+    monkeypatch.setenv("ORDIVON_GATEWAY_TRANSPORT", "streamable-http")
+    monkeypatch.delenv("ORDIVON_GATEWAY_TRUST_CF_ACCESS", raising=False)
+    monkeypatch.delenv("ORDIVON_GATEWAY_LOCAL_BEARER_TOKEN_FILE", raising=False)
+    monkeypatch.delenv("ORDIVON_GATEWAY_PUBLIC_ORIGIN", raising=False)
+    if configured:
+        credential = tmp_path / "authzen.token"
+        credential.write_text("x" * 48, encoding="utf-8")
+        credential.chmod(0o600)
+        monkeypatch.setenv(
+            "ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT",
+            "https://pdp.example.test/access/v1/evaluation",
+        )
+        monkeypatch.setenv(
+            "ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE",
+            str(credential),
+        )
+    else:
+        monkeypatch.delenv("ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT", raising=False)
+        monkeypatch.delenv("ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE", raising=False)
+
+    observed: dict[str, Any] = {}
+    monkeypatch.setattr(mcp_server.McpOwnerCaller, "from_env", lambda: object())
+    monkeypatch.setattr(mcp_server, "GatewayService", lambda _owner: object())
+
+    def capture_build(_service: Any, **kwargs: Any) -> object:
+        observed.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(mcp_server, "build_server", capture_build)
+    monkeypatch.setattr(mcp_server, "build_http_app", lambda *_args, **_kw: object())
+    monkeypatch.setattr(mcp_server.uvicorn, "run", lambda *_args, **_kw: None)
+    mcp_server.main()
+    assert observed["protect_artifact_reads"] is True
+    if configured:
+        assert isinstance(
+            observed["capability_authorizer"],
+            mcp_server.AuthZenPrincipalAuthorizer,
+        )
+    else:
+        assert observed["capability_authorizer"] is None
+
+
+def test_gateway_authzen_env_requires_paired_private_token_file(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    """Reuse the existing private-file loader; no new secret store."""
+    from ordivon_gateway.authzen_authorizer import AuthZenPrincipalAuthorizer
+    from ordivon_gateway.mcp_server import _capability_authorizer_from_env
+
+    monkeypatch.setenv(
+        "ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT",
+        "https://pdp.example.test/access/v1/evaluation",
+    )
+    monkeypatch.delenv("ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE", raising=False)
+    with pytest.raises(RuntimeError, match="both"):
+        _capability_authorizer_from_env()
+
+    file = tmp_path / "pdp.token"
+    file.write_text("t" * 48, encoding="utf-8")
+    file.chmod(0o600)
+    monkeypatch.setenv("ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE", str(file))
+    adapter = _capability_authorizer_from_env()
+    assert isinstance(adapter, AuthZenPrincipalAuthorizer)
+    assert adapter._bearer_token_provider() == "t" * 48

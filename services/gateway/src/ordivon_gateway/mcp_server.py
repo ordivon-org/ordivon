@@ -22,6 +22,7 @@ from .access_auth import (
     CloudflareAccessVerifier,
 )
 from .audit import GatewayAuditMiddleware
+from .authzen_authorizer import AuthZenPrincipalAuthorizer
 from .capability_authz import CapabilityAuthorizer, GatewayCapabilityAuthorizationMiddleware
 from .contracts import (
     ArtifactChunk,
@@ -35,7 +36,7 @@ from .contracts import (
 )
 from .host_tools import register_host_tools
 from .service import GatewayError, GatewayService
-from .upstream import McpOwnerCaller, OwnerCallError
+from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
 
 
 def _owner_error_result(exc: OwnerCallError) -> CallToolResult:
@@ -145,6 +146,7 @@ def build_server(
     service: GatewayService | None = None,
     *,
     capability_authorizer: CapabilityAuthorizer | None = None,
+    protect_artifact_reads: bool = False,
 ) -> MCPServer:
     gateway = service or GatewayService(McpOwnerCaller.from_env())
 
@@ -163,7 +165,7 @@ def build_server(
         lifespan=gateway_lifespan,
     )
     server.middleware.append(GatewayAuditMiddleware())
-    if capability_authorizer is not None:
+    if capability_authorizer is not None or protect_artifact_reads:
         server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
 
     @server.tool(name="system.describe")
@@ -396,11 +398,38 @@ def _reject_retired_worker_database_config() -> None:
         )
 
 
+def _capability_authorizer_from_env() -> CapabilityAuthorizer | None:
+    """Bind the existing AuthZEN PDP to Gateway's protected HTTP Tool path.
+
+    Read token bytes through the mature private-file helper per decision,
+    rather than freezing credentials at process start or exposing them to Tool
+    arguments. The policy service, not Gateway, owns authorization truth.
+    """
+    endpoint = os.environ.get("ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT", "").strip()
+    token_file = os.environ.get("ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE", "").strip()
+    if bool(endpoint) != bool(token_file):
+        raise RuntimeError(
+            "Gateway AuthZEN requires both evaluation endpoint and private token file"
+        )
+    if not endpoint:
+        return None
+    return AuthZenPrincipalAuthorizer(
+        endpoint,
+        bearer_token_provider=lambda: _read_private_secret_file(
+            token_file, "Gateway AuthZEN bearer token"
+        ),
+    )
+
+
 def main() -> None:
     _reject_retired_worker_database_config()
-    gateway = GatewayService(McpOwnerCaller.from_env())
-    server = build_server(gateway)
     transport = os.environ.get("ORDIVON_GATEWAY_TRANSPORT", "stdio")
+    gateway = GatewayService(McpOwnerCaller.from_env())
+    server = build_server(
+        gateway,
+        capability_authorizer=_capability_authorizer_from_env(),
+        protect_artifact_reads=(transport == "streamable-http"),
+    )
     if transport == "stdio":
         server.run()
         return
