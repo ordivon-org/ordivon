@@ -100,6 +100,41 @@ B01 is intentionally small. The public schema avoids fast-moving closed enums su
 For `execution.windows`, Gateway accepts either the legacy provider-defined string context or a provider-defined JSON object. A string is forwarded as Runtime `windowsAuthority`; an object is forwarded unchanged as Runtime `windowsContext`. Capability projection prefers Runtime `windowsContexts` when the owner advertises them, so identity/privilege composition remains Runtime-owned rather than duplicated in Gateway.
 
 
+## HTTP Artifact Policy Enforcement — source contract, 2026-11-08
+
+The normal CLI `main()` previously called `build_server(gateway)` without
+installing the existing Security capability middleware even on authenticated
+HTTP ingress. Merely having `AuthZenPrincipalAuthorizer` and unit tests did
+**not** mean the actual CLI served a protected artifact PEP. The HTTP path now
+sets `protect_artifact_reads=True` and installs
+`GatewayCapabilityAuthorizationMiddleware` before protected Tool forwarding.
+
+Set both optional environment keys for a live AuthZEN PDP:
+
+- `ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT` — a complete HTTPS
+  `/access/v1/evaluation` endpoint (validated by the existing AuthZEN adapter)
+- `ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE` — absolute private
+  credential-file path; the existing Owner private-file helper reads and checks
+  its permissions per decision. No secret is logged or included in Tool output.
+
+If both are absent, HTTP starts without a PDP but denies **qualified
+`artifact.read`** with `CAPABILITY_AUTHZ_UNAVAILABLE` rather than silently
+calling its owner. An incomplete pair fails at startup. An unverified ingress
+identity fails before PDP; target validation and principal/resource binding
+remain server-derived. The accepted v3 AuthZEN decision is not an Agent Grant
+or proof of physical bytes. The existing stdio lane has a different local OS
+trust boundary and is **not** claimed to use HTTP ingress/PDP authentication.
+
+This PEP is **not a global Gateway security gate**: it qualifies only Runtime
+Artifact reads. `capability.search`, Host collaboration, execution submit,
+cancel and observations are not newly authorized by this specific PEP; their
+natural Owner and verified-operation fences must be independently reviewed.
+The real installed service profile, PDP availability and complete PEP coverage
+are UNKNOWN until deployment observation. Native consumer:
+`tests/test_capability_authz_middleware.py`. Abstract model:
+`formal/GatewayCapabilityAuthzR1.tla`. Model safety, source-code
+behavior and installed release remain separate evidence grades.
+
 ## Host northbound boundary
 
 The default external Plugin connects only to Gateway. Gateway exposes normal Host continuity and collaboration actions through stable northbound names while Host remains the semantic owner.
