@@ -59,13 +59,24 @@ func run_visual_capture() -> void:
         "HUD before narrative in native layout")
     await capture(game, directory, "01-classic")
     check(game.start_tactical_trial(), "same Human Trial action")
+    var view: VBoxContainer = game.get_node("View")
+    check(view.get_node("Outcome").visible,
+        "native Trial feedback panel is visible at the beginning")
     await capture(game, directory, "02-tactical")
     var rules: Node = game.get_node("Rules")
-    check(rules.attack() and rules.attack(), "two native attacks reach charged telegraph")
+    check(rules.attack(), "native first attack resolves")
+    check(view.get_node("Outcome").text.contains("Attack dealt 3 enemy HP"),
+        "post-action feedback reads actual native attack result")
+    await capture(game, directory, "03-attack-feedback")
+    check(rules.attack(), "second attack reaches the announced strong turn")
     check(rules.snapshot()["forecast"]["threat_damage"] == 4,
         "third-turn threat prediction actually visible")
-    await capture(game, directory, "03-charged-threat")
+    await capture(game, directory, "04-charged-threat")
     check(rules.guard(), "real native charged parry")
+    check(view.get_node("Outcome").text.contains("PERFECT PARRY") and
+        view.get_node("Outcome").text.contains("lost 0 HP"),
+        "post-action charged parry result is player-visible and exact")
+    await capture(game, directory, "05-parry-feedback")
     check(rules.attack() and rules.attack(), "first trial room cleared")
     check(rules.snapshot()["phase"] == "cleared", "real room clear")
     var dialogue: Node = game.get_node("GateDialogue")
@@ -77,7 +88,7 @@ func run_visual_capture() -> void:
     var focus: Control = root.gui_get_focus_owner()
     check(focus is Button and focus.text.contains("Unlock"),
         "native keyboard focus moves to enabled semantic passage choice")
-    await capture(game, directory, "04-gate-dialogue")
+    await capture(game, directory, "06-gate-dialogue")
     if failures == 0:
         print("GAME_NATIVE_VISUAL_CAPTURE_PASS frames=%d geometry_checks=%d mode=real_viewport_not_human" %
             [captured.size(), checks])

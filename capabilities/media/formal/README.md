@@ -156,3 +156,62 @@ is evidence for an older SourceCut, not proof your current Library is ready.
 Agent: report model proof, bounded Python refinement, native byte readback,
 and external browsing/rights acceptance separately. Missing either digest
 remains UNKNOWN rather than FALSE or PASS; do not silently rewrite receipts.
+
+## Production Output byte identity (Lean model and real consumer)
+
+`ProductionOutputByteIdentity.lean` proves a small, explicit decision rule:
+if declared/observed opaque digest identities are absent, equality is UNKNOWN;
+if both are known, equality/mismatch is decisive for *byte identity only*.
+The Output lifecycle state is preserved independent of this observation.
+No `sorry`, `axiom` or `admit` is permitted; the existing
+`tools/formal/verify.py` and CI source-scoped gate register this proof,
+the Python producer, the Production Schema/semantic validator, and bounded
+consumer tests as exact source inputs. Eight real Production manifests now
+declare 18 previously unbound local Output carriers; those actual files are
+checked by consumer tests, not by the abstract Lean theorem.
+
+The actual Python producer `production_context.py` reuses `assets.hash_file`;
+`tests/test_production_context.py` checks a genuine approved source-carrier
+consumer and mutated, unavailable, unauthorized-path and explicitly chosen
+transformed-file cases. Local `outputCarrier` and historical
+`sourceCarrier` remain distinct; the former can become physically unavailable
+without logically negating its historical Output declaration. The schema
+rejects ambiguous dual-carrier claims; semantic validation checks opt-in
+present bytes and read-only projections preserve UNKNOWN for missing files.
+This is a bounded **implementation witness**, not a
+kernel proof of Python, SHA-256 correctness, filesystem transactionality or
+liveness. File bytes can change after inspection. The source-owned Output
+status, domain Claims and publication remain separate authorities.
+
+**Human:** select a real Production/Output, verify observed digest and
+publication rights separately. **Agent:** observe real selected bytes, preserve
+UNKNOWN when not bound, and do not currentize historical receipts.
+See `../docs/human-guide.md` and `../AGENTS.md`.
+
+## Native operation dependency closure (Lean + live consumer)
+
+`ProductionDependencyImpact.lean` proves a *three-valued abstraction* of
+unchanged/changed/unknown local byte observations and downstream impact
+propagation, including isolated leaf changes and missing-source uncertainty.
+`operation_impact.py` validates one source-owned `operation-lineage.json`
+against `schemas/operation-lineage.schema.json` and uses existing
+`assets.hash_file` observations plus the declared Output carrier readback.
+`tests/test_operation_impact.py` supplies live five-step Sonic evidence,
+input mutation, leaf-only mutation, missing-source, cycle, escape, unknown
+reference, and forged predecessor path/digest falsifiers. A declared
+`dependsOn` edge additionally requires a downstream input file whose
+path and digest match an upstream retained or declared Output carrier.
+This is a local carrier-identity check, not historical invocation use. The real Production explicitly lists this document
+under `sources.sourceDocuments`.
+
+Formal/CI registers the model, schema, selected graph and consumers as exact
+source files. The current graph is a **declaration**, NOT a verified historical
+execution trace. This graph does not prove the FFmpeg/SoX command parameters,
+environment closure, hermeticity or deterministic execution. Action cache and
+CAS are separate external owners; all `actionKey` values remain null and
+`cacheReuseAuthorized` remains false. This is a read-only dependency impact
+observation, not a new workflow scheduler or permission to re-render.
+
+Human users should check changed file bytes and execute approved steps
+separately; Agents should preserve UNKNOWN, select only the implicated
+dependency closure, and obtain independent Runtime + provider evidence.

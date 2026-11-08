@@ -47,6 +47,10 @@ jobs:
           cache: true
 
       - name: Install root verification tools
+        # mise-action's GitHub token is scoped to its action. This separate
+        # native install otherwise uses anonymous GitHub Releases API calls.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -330,6 +334,12 @@ jobs:
           # even when the Formal mise install has succeeded. Preserve the
           # native proof gate and install its prerequisite instead of skipping.
           rustup toolchain install 1.99.1 --profile minimal
+          # Kani 0.68.0's pinned proxy auto-installs its release bundle and
+          # rustup toolchain on first invocation. Do this BEFORE the 90-second
+          # mathematical proof timeouts; never count network/bootstrap as
+          # a proof, suppress initialization failures or accept a stale receipt.
+          # The same KANI_HOME in this step is used by the later verifier.
+          mise -C tools/formal exec -- kani --version
           receipt="$RUNNER_TEMP/ordivon-core-formal-report.json"
           mise run formal:verify > "$receipt"
           qualify_formal_prefix || {
@@ -352,6 +362,8 @@ jobs:
               "Lean kernel qualified variation frame and countermodels": 0,
               "Lean kernel Media processing admission model": 0,
               "Lean kernel Media Creative Library Catalog acceptance": 0,
+              "Lean kernel Media Output byte identity": 0,
+              "Lean kernel Media dependency impact model": 0,
               "Z3 IEEE-754 Media loudness profile model": 0,
               "Lean rejects false theorem": 1,
               "Z3: sat": 0,
@@ -372,10 +384,28 @@ jobs:
               "mise.toml",
               "tools/formal/mise.toml",
               "tools/formal/verify.py",
+              "tools/repo/affected_owners.py",
+              "tools/repo/test_affected_owners.py",
+              "tools/repo/test_formal_source_contract.py",
               "tools/formal/RecursiveLegoRefinement.lean",
               "tools/formal/RecursiveLegoVariationFrame.lean",
               "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
               "capabilities/media/formal/CreativeLibraryAcceptance.lean",
+              "capabilities/media/formal/ProductionOutputByteIdentity.lean",
+              "capabilities/media/formal/ProductionDependencyImpact.lean",
+              "capabilities/media/schemas/operation-lineage.schema.json",
+              "capabilities/media/src/ordivon_studio/operation_impact.py",
+              "capabilities/media/tests/test_operation_impact.py",
+              "capabilities/media/productions/convergence-sonic-ident/operation-lineage.json",
+              "capabilities/media/productions/convergence-sonic-ident/production.json",
+              "capabilities/media/src/ordivon_studio/production_context.py",
+              "capabilities/media/tests/test_production_context.py",
+              "capabilities/media/src/ordivon_studio/production_validation.py",
+              "capabilities/media/schemas/production.schema.json",
+              "capabilities/media/tests/test_models.py",
+              "capabilities/media/src/ordivon_studio/agent_surface.py",
+              "capabilities/media/src/ordivon_studio/agent_surface_contracts.py",
+              "capabilities/media/tests/test_agent_surface.py",
               "capabilities/media/formal/LoudnessProfileSafety.smt2",
               "capabilities/media/src/ordivon_studio/agent_processing.py",
               "capabilities/media/src/ordivon_studio/creative_index_library.py",
@@ -589,6 +619,10 @@ jobs:
           cache: true
 
       - name: Install root verification tools
+        # mise-action's GitHub token is scoped to its action. This separate
+        # native install otherwise uses anonymous GitHub Releases API calls.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -666,6 +700,10 @@ jobs:
           cache: true
 
       - name: Install root verification tools
+        # mise-action's GitHub token is scoped to its action. This separate
+        # native install otherwise uses anonymous GitHub Releases API calls.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail

@@ -22,6 +22,7 @@ class CapabilityBinding:
     entrypoint: Entrypoint
     object_contract_required: bool
     require_claim_results: bool
+    snapshot_inputs: bool
     standing: str
     standing_path: Path
     standing_sha256: str
@@ -42,6 +43,10 @@ class CapabilityBindingRegistry:
         entries = value.get("bindings", [])
         self._entries: dict[tuple[str, str], dict[str, Any]] = {}
         for item in entries:
+            if "snapshotInputs" in item and type(item["snapshotInputs"]) is not bool:
+                raise RuntimeError(
+                    f"Artifact snapshotInputs must be a boolean: {item.get('profileId')}"
+                )
             key = (str(item["profileId"]), str(item["operation"]))
             if key in self._entries:
                 raise RuntimeError(f"duplicate Artifact capability binding: {key}")
@@ -84,6 +89,7 @@ class CapabilityBindingRegistry:
             entrypoint=Entrypoint(module=str(entrypoint["module"]), callable=str(entrypoint["callable"])),
             object_contract_required=bool(item.get("objectContractRequired", False)),
             require_claim_results=item.get("requireClaimResults") is True,
+            snapshot_inputs=item.get("snapshotInputs") is True,
             standing=standing,
             standing_path=standing_path,
             standing_sha256=standing_sha,

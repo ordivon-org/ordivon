@@ -65,6 +65,49 @@ class ToolProgramRecoveryP2Tests(unittest.TestCase):
         self.assertEqual(result.program_digest, original)
         self.assertEqual(result.output, {"written": "authorized"})
 
+    def test_public_action_serialization_cannot_mutate_admitted_wire(self) -> None:
+        action = self.action("serialized")
+        original_digest = action.digest
+        wire = action.to_dict()
+        wire["program"]["steps"][0]["arguments"]["key"] = "forged"
+        self.assertEqual(action.digest, original_digest)
+        self.assertEqual(action.to_dict()["program"]["steps"][0]["arguments"]["key"], "source")
+
+    def test_valid_nested_mutation_after_admission_fails_before_tool_effect(self) -> None:
+        # A schema-valid mutation still changes physical Tool arguments and
+        # the derived idempotency identity, so it must be rejected.
+        action = self.action("sealed")
+        original_digest = action.digest
+        action.program.steps[0].arguments["key"] = "forged"
+        self.assertNotEqual(original_digest, action.program.digest)
+        bridge = Bridge()
+        for operation in (
+            lambda: action.digest,
+            lambda: action.to_dict(),
+            lambda: derive_tool_program_inner_call(action, 0, ()),
+            lambda: derive_tool_program_step_id(action, 0, step_prefix="sealed"),
+            lambda: recover_tool_program_action(action, ()),
+            lambda: HarnessToolProgramActionExecutor(bridge, (READ,)).execute(
+                action, remaining_tool_calls=2, step_prefix="sealed"
+            ),
+        ):
+            with self.subTest(operation=operation):
+                with self.assertRaisesRegex(ValueError, "changed after admission"):
+                    operation()
+        self.assertEqual(bridge.calls, [])
+
+    def test_mutation_of_caller_owned_nested_json_is_not_admission_authority(self) -> None:
+        params = {"key": {"path": ["original"]}}
+        program = HarnessToolProgram(
+            steps=(HarnessToolProgramStep("read", "read_value", params),), outputs={}
+        )
+        action = HarnessToolProgramAction(
+            action_call_id="program-action:p2:caller-alias", program=program
+        )
+        params["key"]["path"].append("forged")
+        with self.assertRaisesRegex(ValueError, "changed after admission"):
+            recover_tool_program_action(action, ())
+
     def test_recovery_rejects_invalid_mutated_action_before_next_call(self) -> None:
         action = HarnessToolProgramAction(
             action_call_id="program-action:p2:recovery-validation",
@@ -74,10 +117,10 @@ class ToolProgramRecoveryP2Tests(unittest.TestCase):
             ),
         )
         action.program.outputs["unsafe"] = observation_ref("missing", "written")
-        with self.assertRaisesRegex(ValueError, "unknown step"):
+        with self.assertRaisesRegex(ValueError, "changed after admission"):
             recover_tool_program_action(action, ())
         bridge = Bridge()
-        with self.assertRaisesRegex(ValueError, "unknown step"):
+        with self.assertRaisesRegex(ValueError, "changed after admission"):
             HarnessToolProgramActionExecutor(bridge, (WRITE,)).execute(
                 action, remaining_tool_calls=1, step_prefix="recover-before-effect"
             )

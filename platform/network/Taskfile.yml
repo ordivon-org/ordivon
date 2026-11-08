@@ -43,6 +43,9 @@ includes:
   mobile-tailnet-exit:
     taskfile: ./consumers/mobile-tailnet-exit/Taskfile.yml
     flatten: true
+  zte-u30pro:
+    taskfile: ./providers/zte-u30pro/Taskfile.yml
+    flatten: true
   discord:
     taskfile: ./consumers/discord/Taskfile.yml
     flatten: true

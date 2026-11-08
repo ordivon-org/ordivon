@@ -652,6 +652,22 @@ imply that a production Operator/Artifact/service has been installed.
 The PG transport must still connect MCP release.apply and the
 independent Operator invocation/restart acceptance before that claim.
 
+### PostgreSQL serialization-abort admission (2026-11-08)
+
+PostgreSQL SQLSTATE 40001 means a Serializable transaction was aborted and
+the complete admission read/decision/write sequence must be replayed from a
+new snapshot. Runtime retries only a proven, pre-COMMIT 40001 from its
+PostgreSQL admission transaction, with bounded 4/8/16/32/64/64/64ms pauses
+and at most eight attempts. If contention persists, the last 40001 remains
+visible rather than falsely claiming the Job was delivered.
+
+This must not be generalized to a failed transport response, an uncertain
+COMMIT acknowledgement, post-admission observation, or an effect-opaque
+workspace.exec that may have run a Git command. Those require exact
+clientRequestId/Job/Artifact/consumer readback before redispatch, not another
+automatic execution. On job.observe, successful principal-scoped authorization establishes durable Job identity; errors after that observation retain operationId and require reconcile-first recovery. PostgreSQL's documented transaction-retry rule applies
+to database transactions, not arbitrary process side effects.
+
 ## Real-system release acceptance
 
 Portable CI proves source, schema, Registry, protocol, operational-script, documentation, dependency, and secret-scanning contracts. It cannot prove the production systemd/cgroup path.

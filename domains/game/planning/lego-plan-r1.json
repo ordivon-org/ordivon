@@ -587,7 +587,8 @@
       ],
       "outputs": [
         "one prefixed schema_version=2 JSON receipt containing default player-visible native HUD/dialogue/visible tactical hint observation or explicitly requested privileged debug snapshots, action acceptance, final and terminal state",
-        "debug-only step-local control_path identifying real native rule or enabled dialogue choice; player-mode step has action and UI before/after only"
+        "debug-only step-local control_path identifying real native rule or enabled dialogue choice; player-mode step has action and UI before/after only",
+        "optional Trial-only player-visible post-action Outcome text, derived solely from the native Rule post-resolution Signal; never authoritative state or a telemetry log"
       ],
       "behavioralContract": "Each fresh Godot scene uses rules for attack/guard; trial selects the Resource via the same Human root action; advance selects the Dialogue Manager response tagged intent=unlock using native response next_id. A passage_advanced event, not UI button order, guessed frames or unequal snapshots, establishes commitment. No second simulator or Human-playtest claim.",
       "acceptance": [
@@ -598,12 +599,16 @@
         "Agent advance uses the same semantic tagged response port as Human and requires passage_advanced effect event for accepted transition",
         "Both native Classic and Trial modes tested with 243 five-step action traces each (486 total); trial/classic Human buttons and Agent commands agree and player observations remain UI-only",
         "Actual native HUD disables exhausted Attack and reassigns unusable keyboard focus; real dialogue semantic Unlock response receives focus",
-        "Four native OpenGL Viewport PNGs under Xvfb verify layout geometry, mode contrast and charged telegraph; independent Human comprehension remains UNKNOWN"
+        "Four native OpenGL Viewport PNGs under Xvfb verify layout geometry, mode contrast and charged telegraph; independent Human comprehension remains UNKNOWN",
+        "Godot real view renders Attack damage, player HP loss and charged perfect-parry feedback from accepted native actions; rejected moves preserve the existing result, Load clears it, and Classic shows no Trial-only result",
+        "Six actual Godot OpenGL viewport captures show Classic, Trial, first attack feedback, charged threat, parry feedback and native dialogue, with geometry checks; these are machine visuals, not Human research"
       ],
       "evidence": [
         "examples/room-encounter/agent_episode.gd",
         "examples/room-encounter/agent_episode_acceptance.py",
-        "examples/room-encounter/README.md"
+        "examples/room-encounter/README.md",
+        "examples/room-encounter/visual_capture.gd",
+        "docs/room-encounter-playtest.md"
       ],
       "dependencies": [],
       "sharedRefs": [],
@@ -618,16 +623,19 @@
         "examples/room-encounter/agent_episode_acceptance.py",
         "examples/room-encounter/agent_episode.gd",
         "examples/room-encounter/README.md",
-        "mise.toml"
+        "mise.toml",
+        "examples/room-encounter/visual_capture.gd"
       ],
       "recursiveLegoR21": {
         "I": [
           "Native imported Godot PackedScene",
-          "bounded sequence of native actions and optional --observation player|debug"
+          "bounded sequence of native actions and optional --observation player|debug",
+          "Native state_changed and post-resolution action_accepted event sequences"
         ],
         "O": [
           "schema-v2 JSON episode receipt with player-visible UI by default, privileged debug snapshot only by explicit request",
-          "nonzero process result on invalid invocation or unavailable native game"
+          "nonzero process result on invalid invocation or unavailable native game",
+          "Visible transient last-action outcome only for Tactical Trial; optional in default player-only observation"
         ],
         "S": [
           "ephemeral EncounterRules state for one process; no persistent independent state"
@@ -647,13 +655,14 @@
           "Dialogue Manager native tagged response owns choice validity; Human and Agent share the selection port",
           "No Agent action depends on get_child(0), guessed rendered frame count or rule-snapshot inequality; node-ready and native dialogue signals are synchronization boundaries",
           "Classic mode remains the original rules; trial mode is explicit Resource opt-in, not a global rule change",
-          "Player-projected UI includes visible forecast hint and exact enabled buttons; no hidden authoritative state is leaked"
+          "Player-projected UI includes visible forecast hint and exact enabled buttons; no hidden authoritative state is leaked",
+          "Only accepted combat actions produce action-result text; rejected action has no fictitious result; Trial feedback is absent from Classic and never written into ConfigFile"
         ],
         "eff": [
           "Godot headless scene instantiation, game Signals, stdout JSON and process termination"
         ],
         "c": "At most 64 native action calls plus native asynchronous dialogue completion; per-process startup and rendering latency unmeasured",
-        "epsilon": "Human preference/experience, visual perception from pixels, interactive streaming, hardware audio and other-game transfer UNKNOWN; player mode is semantic UI projection, not visual perception or a universal formal proof; real Windows foreground keyboard traversal and uncoached independent Human study remain UNKNOWN",
+        "epsilon": "Human preference/experience, visual perception from pixels, interactive streaming, hardware audio and other-game transfer UNKNOWN; player mode is semantic UI projection, not visual perception or a universal formal proof; real Windows foreground keyboard traversal and uncoached independent Human study remain UNKNOWN; independent Human readability/comprehension and physical hardware audio remain UNKNOWN",
         "prov": [
           "examples/room-encounter/README.md",
           "domains/game/mise.toml Godot 4.7.2 declared pin",

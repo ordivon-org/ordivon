@@ -3,7 +3,7 @@
   "version": "0.1.0-alpha.1",
   "private": true,
   "type": "module",
-  "description": "Game LEGO source-bound research and retrieval; no bundled first-party games",
+  "description": "Game factory source queries and native composition consumer tests",
   "engines": {
     "node": "26.12.1"
   },
@@ -16,8 +16,7 @@
     "knowledge:mechanisms": "node scripts/mechanism-experience-query.ts",
     "knowledge:relationships": "node scripts/mechanism-relationship-query.ts",
     "knowledge:counterexamples": "node scripts/design-counterexample-query.ts",
-    "knowledge:counterexample-themes": "node scripts/counterexample-synthesis-query.ts",
-    "composition:inspect": "node scripts/prototype-composition-query.ts"
+    "knowledge:counterexample-themes": "node scripts/counterexample-synthesis-query.ts"
   },
   "license": "Apache-2.0",
   "devDependencies": {

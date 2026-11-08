@@ -9,6 +9,7 @@ from ordivon_host_v2.mcp_server import build_server
 
 EXPECTED = {
     "host.status",
+    "host.pool.stats",
     "actor.declare",
     "work.create",
     "work.get",

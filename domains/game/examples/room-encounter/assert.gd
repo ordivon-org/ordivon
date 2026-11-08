@@ -151,6 +151,9 @@ func run_acceptance() -> void:
     # not a claim that real people enjoy this encounter.
     var tactical_button: Button = view.get_node("Actions/Trial")
     tactical_button.pressed.emit()
+    var outcome_label: Label = view.get_node("Outcome")
+    expect(outcome_label.visible and outcome_label.text.contains("AFTER YOUR MOVE"),
+        "opt-in Trial begins with a visible native action-result explanation")
     expect(rules.snapshot()["foes"] == 2 and rules.snapshot()["enemy_health"] == 5,
         "trial button selects native Resource and starts a real tactical encounter")
     expect(view.get_node("Encounter").text.contains("NEXT FOE HIT"),
@@ -163,6 +166,7 @@ func run_acceptance() -> void:
         "checkpoint excludes recomputable player-facing forecast")
     # In native action traces, the forecast must predict actual HP effect.
     var tactical_steps: int = 0
+    var saw_parry_feedback: bool = false
     var tactical_guards: int = 0
     var tactical_attacks: int = 0
     while rules.snapshot()["phase"] in ["fighting", "cleared"] and tactical_steps < 120:
@@ -188,14 +192,28 @@ func run_acceptance() -> void:
             tactical_guards += 1
             expect(after_tactical["stamina"] - current["stamina"] == f["guard_stamina_gain"],
                 "forecast guard stamina gain equals native result")
+            if f.get("charged", false):
+                saw_parry_feedback = true
+                expect(outcome_label.text.contains("PERFECT PARRY") and
+                    outcome_label.text.contains("lost 0 HP"),
+                    "native UI confirms actual complete charged strike parry")
         else:
             tactical_attacks += 1
+            if tactical_steps == 0:
+                expect(outcome_label.text.contains("Attack dealt 3 enemy HP") and
+                    outcome_label.text.contains("you lost 3 HP"),
+                    "native UI states first real attack damage and retaliation")
+                var accepted_feedback: String = outcome_label.text
+                expect(not rules.advance(), "illegal Trial passage action rejected")
+                expect(outcome_label.text == accepted_feedback,
+                    "rejected Trial action cannot fabricate a post-action result")
         tactical_steps += 1
     var tactical_final_hp: int = rules.snapshot()["player_health"]
     expect(rules.snapshot()["phase"] == "won",
         "telegraph-aware tactical policy can win the entire native Trial")
     expect(tactical_guards >= 3 and tactical_attacks >= 8,
         "Trial creates nontrivial attack/guard choices")
+    expect(saw_parry_feedback, "native Trial demonstrates at least one visible charged parry")
     expect(tactical_steps >= 20 and tactical_steps <= 120,
         "Trial has bounded nontrivial native combat length")
     # Restart remains within Trial: mode is not silently dropped on R.
@@ -205,8 +223,14 @@ func run_acceptance() -> void:
     # Native persistence works with Trial tuning, not the unrelated default.
     expect(save_slot.save_rules(rules), "tactical trial save through real ConfigFile")
     expect(rules.attack(), "modify tactical game after saving")
-    expect(save_slot.load_rules(rules), "same-tuning tactical checkpoint restores")
+    view.get_node("Actions/Load").pressed.emit()
+    expect(view.get_node("Storage").text == "Run resumed.",
+        "native Trial UI Load invokes the same real ConfigFile adapter")
     expect(rules.snapshot()["turn"] == 0, "trial restore exact authoritative turn")
+    expect(outcome_label.visible and outcome_label.text.contains("AFTER YOUR MOVE"),
+        "native Load removes stale action-result text without altering game state")
+    expect(not rules.checkpoint()["state"].has("outcome"),
+        "transient UI result is never serialized into checkpoint")
 
     # Native control comparison: naive attack-if-possible policy vs explicitly
     # observing the third-turn telegraph. This is a bounded design hypothesis,
@@ -240,6 +264,8 @@ func run_acceptance() -> void:
         "Human-visible title reflects selected native mode")
     expect(not rules.snapshot().has("forecast"),
         "Classic keeps original snapshot schema without trial-only forecast")
+    expect(not outcome_label.visible and outcome_label.text.is_empty(),
+        "Classic does not inherit optional Trial outcome panel")
     expect(view.get_node("Encounter").text == "ENCOUNTER: 1 foes | active enemy HP 3",
         "Classic keeps original brief HUD without trial telegraph")
     var original_classic: Resource = load("res://configs/default.tres").duplicate(true)

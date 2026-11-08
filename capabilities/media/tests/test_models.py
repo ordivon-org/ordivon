@@ -97,6 +97,46 @@ class ModelTests(unittest.TestCase):
         self.assertTrue(any("unknown binding" in e
                             for e in _validate_production_semantics(path, production, unbound_claim, None)))
 
+    def test_output_carrier_schema_and_consumer_byte_falsification(self) -> None:
+        import tempfile
+        from pathlib import Path
+
+        base = ROOT / "productions/studio-expression-card"
+        original = json.loads((base / "production.json").read_text(encoding="utf-8"))
+        claims = json.loads((base / "claims.json").read_text(encoding="utf-8"))
+        self.assertEqual(list(_validator("production.schema.json").iter_errors(original)), [])
+        self.assertEqual(_validate_production_semantics(base / "production.json", original, claims, None), [])
+        with tempfile.TemporaryDirectory() as directory:
+            # A real consumer under the selected Production root, independent
+            # of JSON schema's purely structural checks.
+            from unittest import mock
+
+            test_root = Path(directory)
+            (test_root / "out").mkdir()
+            (test_root / "out/card.png").write_bytes(b"forged output")
+            counterfeit = copy.deepcopy(original)
+            counterfeit["outputs"][0]["outputCarrier"] = "out/card.png"
+            fake_production_path = test_root / "production.json"
+            with mock.patch("ordivon_studio.production_validation.ROOT", test_root):
+                self.assertEqual(
+                    list(_validator("production.schema.json").iter_errors(counterfeit)), []
+                )
+                errors = _validate_production_semantics(
+                    fake_production_path, counterfeit, claims, None
+                )
+                self.assertTrue(any("outputCarrier digest mismatch" in e for e in errors), errors)
+
+                escaped = copy.deepcopy(counterfeit)
+                escaped["outputs"][0]["outputCarrier"] = "../outside.png"
+                errors = _validate_production_semantics(
+                    fake_production_path, escaped, claims, None
+                )
+                self.assertTrue(any("invalid outputCarrier path" in e for e in errors))
+
+            double_carrier = copy.deepcopy(original)
+            double_carrier["outputs"][0]["sourceCarrier"] = "story.mdx"
+            self.assertTrue(list(_validator("production.schema.json").iter_errors(double_carrier)))
+
     def test_local_claims_require_exact_historical_git_witness(self) -> None:
         production_root = ROOT / "productions/fishing-fable-lego-study-r1"
         production_path = production_root / "production.json"

@@ -1567,7 +1567,47 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         ]},
         "waitMs":12000,"stdoutTailBytes":8192
     });
-    let planned = call(&endpoint, "workspace.execPlan", plan_request.clone());
+    let planned_first = call(&endpoint, "workspace.execPlan", plan_request.clone());
+    // The physical Job can already be committed when a later PostgreSQL
+    // reconciliation/observation snapshot reports 40001. In that case do
+    // NOT resubmit the effect: retain the exact committed operation identity
+    // and reconcile by Job ID, as the public MCP retry contract requires.
+    let planned = if planned_first["isError"] == true {
+        assert_eq!(
+            planned_first["structuredContent"]["error"]["commitState"], "committed",
+            "{planned_first}"
+        );
+        assert_eq!(
+            planned_first["structuredContent"]["error"]["retryClass"], "reconcile_first",
+            "{planned_first}"
+        );
+        let committed = planned_first["structuredContent"]["error"]["operationId"]
+            .as_str()
+            .expect("known committed operationId")
+            .to_string();
+        let mut observed = serde_json::Value::Null;
+        for _ in 0..5 {
+            observed = call(
+                &endpoint,
+                "job.observe",
+                json!({"jobId":committed,"waitMs":12000,"stdoutTailBytes":8192}),
+            );
+            if observed["isError"] != true {
+                break;
+            }
+            assert_eq!(
+                observed["structuredContent"]["error"]["commitState"], "committed",
+                "{observed}"
+            );
+            assert_eq!(
+                observed["structuredContent"]["error"]["operationId"], committed,
+                "{observed}"
+            );
+        }
+        observed
+    } else {
+        planned_first
+    };
     assert_ne!(planned["isError"], true, "{planned}");
     assert_eq!(
         planned["structuredContent"]["executionDisposition"], "succeeded",

@@ -54,7 +54,11 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
         from .production_context import build_production_context
 
         production_id = str(arguments["productionId"])
-        return build_production_context(_production_root(root, production_id))
+        selected_files = arguments.get("outputFiles") or {}
+        return build_production_context(
+            _production_root(root, production_id),
+            output_files={output_id: Path(path) for output_id, path in selected_files.items()},
+        )
     if name == "studio_learning_context":
         from .agent_productions import _production_root
         from .learning_context import build_learning_context
