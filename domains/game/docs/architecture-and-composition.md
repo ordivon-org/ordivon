@@ -141,3 +141,14 @@ Dialogue Manager. Human buttons and the Agent both call choose_response
 through the engine next_id. The Agent observes passage_advanced, not the
 first Button, guessed rendered frames or rule-snapshot inequality.
 No generic Game engine, token ledger, or second verifier is introduced.
+
+## Tactical Trial actual native consumer (2026-11-08)
+
+The optional local Resource config composes a longer game into
+EncounterRules without a second model of combat. A derived pre-action
+threat preview flows to the existing Human HUD over state_changed,
+and to player-mode Agent observations through the same visible UI.
+Native trial action equals the Human Trial button; source-bound
+Model/Proof/Consumer evidence stays under existing G10/G11,
+formal/verify_room_arithmetic.py, and test:encounter. A measured
+policy contrast is not a player-experience result.

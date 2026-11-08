@@ -117,3 +117,51 @@ loading a valid maximal checkpoint.
 **Agent:** run `mise run verify:room-smt` for the signed-i64 Z3 model,
 and `mise run test:encounter` for native Godot implementation checks.
 Their evidence scopes are not interchangeable.
+
+## Tactical Trial — native product slice (2026-11-08)
+
+Human: In the existing Room Encounter press T or the Tactical Trial
+button. This selects the native configs/tactical_trial.tres Resource:
+three rooms (2,3,3 foes), five HP per foe, and the unchanged Attack,
+Guard, Save, Load and native Unlock controls. R restarts the selected
+Trial, and C / the Classic button returns to original tuning.
+
+The existing EncounterRules owner publishes a *pre-action* forecast
+showing next incoming damage, attack health loss, guard health loss and
+stamina restoration. The third turn telegraphs a stronger enemy strike;
+Guard on that turn performs a perfect parry, while a lethal Attack
+against the final foe cancels retaliation. Stamina scarcity creates
+a choice: timing matters, but neither action is always best. Forecast
+is derived, and checkpoint excludes it; restore recomputes the UI.
+No second authoritative ledger or custom battle framework was added.
+
+Agent: the existing native short-episode command supports the trial
+action, calling the same root action as the Human button.
+The classic action and Classic button both restore original tuning. Example:
+
+    godot --headless --path examples/room-encounter --script res://agent_episode.gd -- --actions trial,attack,guard
+
+Default player-mode receipts include only actual displayed Godot
+HUD/dialogue and action names. Debug-only state and acceptance/control
+diagnostics require explicit --observation debug. This is not an
+interactive Gymnasium environment, a screen reader or a Human proxy.
+
+Evidence: mise run verify:room-smt checks signed-i64 arithmetic,
+telegraph/parry/forecast bounds and two negative controls.
+mise run test:encounter checks the actual scene, forecast-versus-real
+HP loss across bounded native actions, trial completion, the Human
+button and restart, ConfigFile readback, and one policy comparison.
+One first attempt at guarding every charged turn was falsified by the
+native baseline: it could guard when a killing attack avoided damage.
+The corrected policy considers both pre-action loss and final-kill
+opportunity. Mechanical evidence does not prove a five-minute session,
+player comprehension, balance or subjective enjoyment.
+
+Human evaluation (NOT YET EXECUTED): ask an independent tester to play
+a desktop build without coaching after reading the onscreen controls;
+observe whether they can explain the telegraphed threat and identify
+a moment where Guard was preferable to Attack. Record condition,
+comprehension, decision, completion or abandonment, approximate
+duration and voluntary feedback without personal identifiers. The
+decision to inform is whether to KEEP/MODIFY/DELETE telegraph/parry
+after actual Human evidence, not a synthetic enjoyment score.

@@ -136,6 +136,99 @@ func run_acceptance() -> void:
     expect(rules.guard(), "native guard applies maximal restoration")
     expect(rules.snapshot()["stamina"] == i64_max, "maximal restoration is capped before addition")
 
+    # Product Trial uses the same real Rule/Signal/HUD/SaveSlot seams.
+    # A fixed-policy native game run is a mechanical reproducibility witness,
+    # not a claim that real people enjoy this encounter.
+    var tactical_button: Button = view.get_node("Actions/Trial")
+    tactical_button.pressed.emit()
+    expect(rules.snapshot()["foes"] == 2 and rules.snapshot()["enemy_health"] == 5,
+        "trial button selects native Resource and starts a real tactical encounter")
+    expect(view.get_node("Encounter").text.contains("NEXT FOE HIT"),
+        "player HUD receives source-of-truth damage forecast")
+    expect(rules.snapshot()["forecast"]["attack_health_loss"] == 3,
+        "first risky attack has an explicit nonzero health forecast")
+    expect(rules.snapshot()["forecast"]["guard_health_loss"] == 0,
+        "guard blocks first ordinary enemy strike")
+    expect(not rules.checkpoint()["state"].has("forecast"),
+        "checkpoint excludes recomputable player-facing forecast")
+    # In native action traces, the forecast must predict actual HP effect.
+    var tactical_steps: int = 0
+    var tactical_guards: int = 0
+    var tactical_attacks: int = 0
+    while rules.snapshot()["phase"] in ["fighting", "cleared"] and tactical_steps < 120:
+        var current: Dictionary = rules.snapshot()
+        if current["phase"] == "cleared":
+            expect(rules.advance(), "real room transition in tactical Trial")
+            continue
+        var f: Dictionary = current["forecast"]
+        # A blind "guard on every charged turn" policy was falsified:
+        # it sometimes guarded when a killing attack would cancel retaliation.
+        # Use the *actual* non-mutating native forecast as decision evidence.
+        var choose_guard: bool = (current["stamina"] < f["attack_cost"]
+            or (f["threat_damage"] > 3
+                and f["guard_health_loss"] < f["attack_health_loss"]))
+        var committed: bool = rules.guard() if choose_guard else rules.attack()
+        expect(committed, "chosen native tactical action accepted")
+        var after_tactical: Dictionary = rules.snapshot()
+        expect(current["player_health"] - after_tactical["player_health"] ==
+            f["guard_health_loss"] if choose_guard else
+            current["player_health"] - after_tactical["player_health"] ==
+            f["attack_health_loss"], "HUD damage prediction refines actual native result")
+        if choose_guard:
+            tactical_guards += 1
+            expect(after_tactical["stamina"] - current["stamina"] == f["guard_stamina_gain"],
+                "forecast guard stamina gain equals native result")
+        else:
+            tactical_attacks += 1
+        tactical_steps += 1
+    var tactical_final_hp: int = rules.snapshot()["player_health"]
+    expect(rules.snapshot()["phase"] == "won",
+        "telegraph-aware tactical policy can win the entire native Trial")
+    expect(tactical_guards >= 3 and tactical_attacks >= 8,
+        "Trial creates nontrivial attack/guard choices")
+    expect(tactical_steps >= 20 and tactical_steps <= 120,
+        "Trial has bounded nontrivial native combat length")
+    # Restart remains within Trial: mode is not silently dropped on R.
+    view.get_node("Actions/Restart").pressed.emit()
+    expect(rules.snapshot()["enemy_health"] == 5 and rules.snapshot()["foes"] == 2,
+        "restart retains selected tactical mode")
+    # Native persistence works with Trial tuning, not the unrelated default.
+    expect(save_slot.save_rules(rules), "tactical trial save through real ConfigFile")
+    expect(rules.attack(), "modify tactical game after saving")
+    expect(save_slot.load_rules(rules), "same-tuning tactical checkpoint restores")
+    expect(rules.snapshot()["turn"] == 0, "trial restore exact authoritative turn")
+
+    # Native control comparison: naive attack-if-possible policy vs explicitly
+    # observing the third-turn telegraph. This is a bounded design hypothesis,
+    # not a Human enjoyment, balance or statistical-significance claim.
+    expect(game.start_tactical_trial(), "same tactical resource resets naive control")
+    var naive_steps: int = 0
+    while rules.snapshot()["phase"] in ["fighting", "cleared"] and naive_steps < 120:
+        var naive: Dictionary = rules.snapshot()
+        if naive["phase"] == "cleared":
+            expect(rules.advance(), "naive Trial advances through same native rules")
+            continue
+        var naive_action: bool = rules.guard() if naive["stamina"] < naive["attack_cost"] else rules.attack()
+        expect(naive_action, "naive tactical action accepted")
+        naive_steps += 1
+    var naive_final: Dictionary = rules.snapshot()
+    print("GAME_TACTICAL_TRIAL_COMPARISON aware_hp=%d aware_actions=%d naive_phase=%s naive_hp=%d naive_actions=%d" %
+        [tactical_final_hp, tactical_steps, naive_final["phase"], naive_final["player_health"], naive_steps])
+    expect(tactical_final_hp > 0, "aware trial retains health after win")
+    expect(tactical_final_hp > naive_final["player_health"] or
+        naive_final["phase"] == "lost",
+        "telegraph-aware native policy outperforms naive attack-first control")
+    # Native policy divergence is a design falsification candidate; actual
+    # Human player comprehension remains UNKNOWN.
+
+    expect(view.get_node("Actions") is HFlowContainer,
+        "native FlowContainer wraps expanded action list without custom layout")
+    view.get_node("Actions/Classic").pressed.emit()
+    expect(rules.snapshot()["foes"] == 1 and rules.snapshot()["enemy_health"] == 3,
+        "Classic button returns to original game tuning")
+    expect(view.get_node("Title").text.contains("ORIGINAL"),
+        "Human-visible title reflects selected native mode")
+
     # 3^5 = 243 distinct bounded action sequences through the real rule node.
     for trace in range(243):
         expect(rules.reset_run(), "reset canonical resource")
@@ -143,13 +236,21 @@ func run_acceptance() -> void:
         for step in range(5):
             var action: int = code % 3
             code = floori(float(code) / 3.0)
+            var state_before: Dictionary = rules.snapshot()
+            var result: bool = false
             if action == 0:
-                rules.attack()
+                result = rules.attack()
             elif action == 1:
-                rules.guard()
+                result = rules.guard()
             else:
-                rules.advance()
-            invariant(rules.snapshot())
+                result = rules.advance()
+            var state_after: Dictionary = rules.snapshot()
+            if result and state_before["phase"] == "fighting" and action < 2:
+                var prediction: Dictionary = state_before["forecast"]
+                var key: String = "attack_health_loss" if action == 0 else "guard_health_loss"
+                expect(state_before["player_health"] - state_after["player_health"] ==
+                    prediction[key], "every accepted native action obeys its pre-action forecast")
+            invariant(state_after)
 
     var damaged := ConfigFile.new()
     damaged.set_value("run", "schema_version", 1)

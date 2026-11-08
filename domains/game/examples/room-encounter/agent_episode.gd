@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Bounded, engine-native symbolic episode port for this one game fixture.
-# Input: -- --actions attack,guard,advance [--observation player|debug].
+# Input: -- --actions attack,guard,advance,trial,classic [--observation player|debug].
 # Default player mode projects native rendered HUD/dialogue, never full rules state.
 # This is not a generic Game service, screen reader, or human-playtest proxy.
 const MAX_ACTIONS: int = 64
@@ -12,12 +12,13 @@ func _player_observation(game: Control) -> Dictionary:
     var view: VBoxContainer = game.get_node("View")
     var dialogue: VBoxContainer = game.get_node("GateDialogue")
     var actions: Dictionary = {}
-    for action in ["Attack", "Guard", "Next"]:
+    for action in ["Attack", "Guard", "Next", "Trial", "Classic"]:
         var control: Button = view.get_node("Actions/" + action)
-        actions[{"Attack": "attack", "Guard": "guard", "Next": "advance"}[action]] = (
+        actions[{"Attack": "attack", "Guard": "guard", "Next": "advance", "Trial": "trial", "Classic": "classic"}[action]] = (
             control.visible and not control.disabled
         )
     var observation: Dictionary = {
+        "title": view.get_node("Title").text,
         "status": view.get_node("Status").text,
         "encounter": view.get_node("Encounter").text,
         "actions": actions
@@ -102,6 +103,12 @@ func run_episode() -> void:
             "guard":
                 accepted = rules.guard()
                 control_path = "native.rules"
+            "trial":
+                accepted = game.start_tactical_trial()
+                control_path = "native.trial_resource"
+            "classic":
+                accepted = game.start_classic_run()
+                control_path = "native.classic_resource"
             "advance":
                 control_path = "dialogue.unavailable"
                 if rules.snapshot()["phase"] == "cleared":
@@ -142,7 +149,7 @@ func run_episode() -> void:
         }
         if observation_mode == "debug":
             observed_step["control_path"] = control_path
-            observed_step["recognized"] = action in ["attack", "guard", "advance"]
+            observed_step["recognized"] = action in ["attack", "guard", "advance", "trial", "classic"]
             observed_step["accepted"] = accepted
         steps.append(observed_step)
 
@@ -151,7 +158,7 @@ func run_episode() -> void:
         "schema_version": 2,
         "game": "room-encounter",
         "observation_mode": "player_visible_ui" if observation_mode == "player" else "authoritative_debug_state_not_pixels",
-        "actions": ["attack", "guard", "advance"],
+        "actions": ["attack", "guard", "advance", "trial", "classic"],
         "initial": initial,
         "steps": steps,
         "final": _observation(game, rules, observation_mode),

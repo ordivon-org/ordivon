@@ -7,8 +7,15 @@ func render_state(state: Dictionary) -> void:
     ]
     match state["phase"]:
         "fighting":
-            $Encounter.text = "ENCOUNTER: %d foes | active enemy HP %d" % [
-                state["foes"], state["enemy_health"]
+            var f: Dictionary = state["forecast"]
+            $Encounter.text = (
+                "ENCOUNTER: %d foes | active enemy HP %d\n"
+                + "NEXT FOE HIT: %d | ATTACK: %d damage, -%d stamina, %d HP at risk\n"
+                + "GUARD: +%d stamina, %d HP at risk | every third turn: perfect parry"
+            ) % [
+                state["foes"], state["enemy_health"], f["threat_damage"],
+                f["attack_damage"], f["attack_cost"], f["attack_health_loss"],
+                f["guard_stamina_gain"], f["guard_health_loss"]
             ]
         "cleared":
             $Encounter.text = "ROOM CLEARED! Open the door to continue."

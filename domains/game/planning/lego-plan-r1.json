@@ -551,7 +551,7 @@
         "inv": [
           "Rules only state authority",
           "audio consumes accepted combat actions",
-          "Admitted signed-64 stamina is 0..capacity; a valid restored turn is nonnegative and saturates at MAX rather than wrapping"
+          "Admitted signed-64 stamina is 0..capacity; turn saturates at MAX; derived pre-action threat/guard forecasts are recomputed, never stored in checkpoint"
         ],
         "eff": [
           "native file read/write and UI Signal"
@@ -561,7 +561,7 @@
         "prov": [
           "Godot 4.7.2 built-in ConfigFile and native consumer",
           "domains/game/mise.toml",
-          "formal/verify_room_arithmetic.py: pinned Z3 4.15.4.0 signed-i64 model and negative overflow falsification control"
+          "formal/verify_room_arithmetic.py: Z3 4.15.4.0, 16 signed-i64 model obligations, scheduled telegraph and perfect charged parry; two negative falsification controls"
         ],
         "unfold": [
           "examples/room-encounter/encounter_rules.gd",
@@ -581,13 +581,13 @@
       "authority": "Existing EncounterRules owns action admission and game state; native Godot owns SceneTree; this adapter owns only episode I/O and receipt",
       "state": "IMPLEMENTED",
       "inputs": [
-        "Godot-imported room scene and one 0..64 action-name sequence: attack, guard, advance"
+        "Godot-imported room scene and one 0..64 action-name sequence: attack, guard, advance, trial, classic"
       ],
       "outputs": [
         "one prefixed schema_version=2 JSON receipt containing default player-visible native HUD/dialogue observation or explicitly requested privileged debug snapshots, action acceptance, final and terminal state",
         "debug-only step-local control_path identifying real native rule or enabled dialogue choice; player-mode step has action and UI before/after only"
       ],
-      "behavioralContract": "Each fresh Godot scene uses rules for attack/guard; advance selects the Dialogue Manager response tagged intent=unlock using native response next_id. A passage_advanced event, not UI button order, guessed frames or unequal snapshots, establishes commitment. No second simulator or Human-playtest claim.",
+      "behavioralContract": "Each fresh Godot scene uses rules for attack/guard; trial selects the Resource via the same Human root action; advance selects the Dialogue Manager response tagged intent=unlock using native response next_id. A passage_advanced event, not UI button order, guessed frames or unequal snapshots, establishes commitment. No second simulator or Human-playtest claim.",
       "acceptance": [
         "Godot editor import followed by actual native scene execution; default player-visible observation and explicit debug mode both have deterministic repeated episodes",
         "Rejected/unknown actions preserve the native rule state; the corresponding player-visible observation remains unchanged; an action-limited input fails",
