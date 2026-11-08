@@ -67,7 +67,7 @@ tasks:
         test "$owned_count" -eq 2
         # Independently bind the actual kernel to the new source checker. The
         # helper runs in verify mode and cannot insert/delete firewall rules.
-        HOST_IF="$HOST_IF" NS_CIDR="$NS_CIDR" /usr/bin/python3 substrates/shared-egress/forward.py verify
+        HOST_IF="$HOST_IF" HOST_ADDR="$HOST_ADDR" NS_ADDR="$NS_ADDR" NS_CIDR="$NS_CIDR" /usr/bin/python3 substrates/shared-egress/forward.py verify
         echo 'SHARED_EGRESS_KERNEL_FORWARDING=PASS'
 
   substrate:shared-egress:verify:

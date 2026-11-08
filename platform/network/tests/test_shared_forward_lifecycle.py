@@ -113,12 +113,54 @@ def test_read_only_verify_never_inserts_rules(monkeypatch):
     assert fake.insertions == []
 
 
+@pytest.mark.parametrize(
+    ("cidr", "host", "peer"),
+    (
+        ("0.0.0.0/0", "10.252.246.1/30", "10.252.246.2/30"),
+        ("10.252.0.0/16", "10.252.246.1/30", "10.252.246.2/30"),
+        ("10.252.246.0/30", "10.252.247.1/30", "10.252.247.2/30"),
+        ("10.252.246.0/30", "10.252.246.1/30", "10.252.246.1/30"),
+        ("10.252.246.0/30", "", "10.252.246.2/30"),
+        ("10.252.246.0/30", "10.252.246.1/30", ""),
+    ),
+)
+def test_wide_or_drifted_forwarding_subnet_rejected_before_kernel_mutation(
+    monkeypatch, cidr, host, peer
+):
+    forward = load()
+    monkeypatch.setenv("HOST_IF", "nv2blph")
+    monkeypatch.setenv("NS_CIDR", cidr)
+    monkeypatch.setenv("HOST_ADDR", host)
+    monkeypatch.setenv("NS_ADDR", peer)
+    fake = KernelRules([])
+    monkeypatch.setattr(forward, "command", fake)
+    with pytest.raises(forward.ForwardError):
+        forward.ensure(forward.rules(*forward.config()))
+    assert not fake.insertions
+
+
+@pytest.mark.parametrize(
+    ("cidr", "host", "peer"),
+    (
+        ("10.252.246.0/30", "10.252.246.1/30", "10.252.246.2/30"),
+        ("10.252.246.0/31", "10.252.246.0/31", "10.252.246.1/31"),
+    ),
+)
+def test_two_endpoint_veth_forward_config_is_accepted(monkeypatch, cidr, host, peer):
+    forward = load()
+    monkeypatch.setenv("HOST_IF", "nv2blph")
+    monkeypatch.setenv("NS_CIDR", cidr)
+    monkeypatch.setenv("HOST_ADDR", host)
+    monkeypatch.setenv("NS_ADDR", peer)
+    assert forward.config() == ("nv2blph", cidr)
+
+
 def test_native_kernel_task_calls_source_forward_verifier_read_only():
     task = (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()
     kernel_task = task.split("  substrate:shared-egress:kernel:verify:", 1)[1].split(
         "  substrate:shared-egress:verify:", 1
     )[0]
-    assert 'HOST_IF="$HOST_IF" NS_CIDR="$NS_CIDR" /usr/bin/python3 substrates/shared-egress/forward.py verify' in kernel_task
+    assert 'HOST_IF="$HOST_IF" HOST_ADDR="$HOST_ADDR" NS_ADDR="$NS_ADDR" NS_CIDR="$NS_CIDR" /usr/bin/python3 substrates/shared-egress/forward.py verify' in kernel_task
     assert "forward.py ensure" not in kernel_task
 
 

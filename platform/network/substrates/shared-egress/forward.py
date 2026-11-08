@@ -24,7 +24,18 @@ def config() -> tuple[str, str]:
     cidr = os.environ.get("NS_CIDR", "")
     if not re.fullmatch(r"[A-Za-z0-9_.-]{1,15}", interface):
         raise ForwardError("invalid HOST_IF")
-    network = ipaddress.IPv4Network(cidr, strict=True)
+    try:
+        network = ipaddress.IPv4Network(cidr, strict=True)
+        host = ipaddress.IPv4Interface(os.environ.get("HOST_ADDR", ""))
+        peer = ipaddress.IPv4Interface(os.environ.get("NS_ADDR", ""))
+    except ValueError as exc:
+        raise ForwardError("invalid shared forwarding IPv4 configuration") from exc
+    # One veth pair needs only two endpoints (/30, or RFC 3021 /31).
+    # Never accept a drifted wide subnet merely because it parses as IPv4.
+    if network.prefixlen not in (30, 31):
+        raise ForwardError("shared forwarding subnet must be point-to-point sized")
+    if host.network != network or peer.network != network or host.ip == peer.ip:
+        raise ForwardError("shared forwarding subnet does not match veth endpoints")
     return interface, str(network)
 
 
