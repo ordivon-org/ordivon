@@ -138,3 +138,12 @@ Use mise run test:postgres:disposable to run actual PostgreSQL 18 / Alembic
 and native-pool rollback, bound and full MCP consumer tests. Ordinary pytest
 runs without the disposable DSN skip PostgreSQL tests and do not constitute
 an installed-Host qualification.
+
+When a native pool checkout times out or its waiting queue rejects an
+unadmitted request, MCP returns a bounded typed Host error:
+DEADLINE_EXCEEDED for PoolTimeout, or RESOURCE_EXHAUSTED for
+TooManyRequests, with retryable=true and retry-with-bounded-backoff.
+These Psycopg errors occur before a connection checkout; the adapter
+does not retry effects or expose DSN/internal exception messages. Other
+operational failures such as a closed pool retain the normal generic
+internal error boundary.

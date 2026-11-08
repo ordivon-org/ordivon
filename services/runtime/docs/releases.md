@@ -44,6 +44,29 @@ Runtime does not compress every compatibility question into one SemVer number.
 
 A release version helps users discuss change. It does not replace the stronger identities required for replay, recovery, migration, or rollback.
 
+## PostgreSQL-native release readback boundary (2026-11-08)
+
+A qualified PostgreSQL Runtime may expose a read-only release.get Tool
+without enabling a release writer. It resolves clientRequestId under the
+authenticated principal, checks the committed PostgreSQL release-effect
+row against immutable Job/request/snapshot digest bindings, and then uses
+the existing bounded ReleaseStateContract receipt inspection. Missing or
+mismatched receipts never imply deployment merely because a Job terminated.
+A different principal receives JOB_NOT_FOUND without leaking receipt paths.
+
+release.get availability is NOT structuredReleaseConfigured=true.
+The latter requires an operator-qualified PG release.apply, atomic exact
+effect admission, executable installation and durable receipt reconciliation.
+The older SQLite-registry release deployer cannot simply be pointed at PG:
+its database locks, migration history and rollback contracts concern another
+backend. Never invoke that deployer's apply through workspace.exec to claim
+a structured PG release.
+
+This PG readback adds a Tool to the catalog, so external client catalog
+refresh/review remains an independent consumer acceptance requirement.
+Disposable PG tests use synthetic operator receipts only as falsifiers:
+they are not installed production releases.
+
 ## Current version stage
 
 The repository is pre-1.0. Version `0.1.0` represents the first operational baseline, not a promise that every public field is permanently stable.

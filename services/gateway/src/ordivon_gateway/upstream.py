@@ -9,7 +9,7 @@ from collections.abc import Generator, Mapping
 from typing import Any, Protocol
 
 import httpx2
-from mcp import Client
+from mcp import Client, types
 from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
 from mcp.shared._otel import inject_trace_context
 
@@ -36,6 +36,9 @@ from .upstream_identity import (
 )
 
 _LOG = logging.getLogger("ordivon_gateway.upstream")
+
+# SDK-supported choices; this is not a new Gateway protocol or a cache.
+_SUPPORTED_OWNER_MCP_MODES = frozenset({"auto", "legacy", "2026-07-28"})
 
 
 def _exception_summary(exc: BaseException, *, limit: int = 4) -> str:
@@ -137,11 +140,17 @@ class McpOwnerCaller:
                 raise OwnerCallError(
                     "owner bearer and Cloudflare Access service identity are mutually exclusive"
                 )
+            if endpoint.mcp_mode not in _SUPPORTED_OWNER_MCP_MODES:
+                raise OwnerCallError(
+                    "unsupported MCP SDK protocol mode for configured Owner",
+                    owner_id=owner_id,
+                )
             normalized[owner_id] = OwnerEndpoint(
                 url=url,
                 bearer_token_file=endpoint.bearer_token_file,
                 access_client_id_file=endpoint.access_client_id_file,
                 access_client_secret_file=endpoint.access_client_secret_file,
+                mcp_mode=endpoint.mcp_mode,
             )
         self._owners = normalized
         # One HTTP connection pool per natural Owner. MCP Client protocol
@@ -179,6 +188,7 @@ class McpOwnerCaller:
                 "bearer": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_BEARER_TOKEN_FILE",
                 "access_id": "ORDIVON_GATEWAY_WINDOWS_ACCESS_CLIENT_ID_FILE",
                 "access_secret": "ORDIVON_GATEWAY_WINDOWS_ACCESS_CLIENT_SECRET_FILE",
+                "mcp_mode": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_MCP_MODE",
             },
             "host": {
                 "url": "ORDIVON_GATEWAY_HOST_URL",
@@ -198,11 +208,14 @@ class McpOwnerCaller:
             access_secret_key = keys.get("access_secret")
             access_id = os.environ.get(str(access_id_key)) if access_id_key else None
             access_secret = os.environ.get(str(access_secret_key)) if access_secret_key else None
+            mode_key = keys.get("mcp_mode")
+            mcp_mode = os.environ.get(str(mode_key), "auto").strip() if mode_key else "auto"
             owners[owner_id] = OwnerEndpoint(
                 url=url,
                 bearer_token_file=token_file.strip() if token_file else None,
                 access_client_id_file=access_id.strip() if access_id else None,
                 access_client_secret_file=access_secret.strip() if access_secret else None,
+                mcp_mode=mcp_mode,
             )
         return cls(owners)
 
@@ -247,17 +260,57 @@ class McpOwnerCaller:
             )
             # The SDK owns negotiation; the only shared object is the HTTP pool.
             phase = "session_open"
-            async with Client(transport, mode="auto", raise_exceptions=False) as client:
-                phase = "tool_call"
+            async with Client(transport, mode=endpoint.mcp_mode, raise_exceptions=False) as client:
+                # The pinned modern Windows Runtime status read is a bounded,
+                # read-only, non-interactive contract. The SDK's high-level
+                # Client.call_tool() follows its tools/call with tools/list to
+                # validate output schemas on *each* fresh ClientSession, even
+                # after the Owner has completed the status read. Use the SDK's
+                # public typed send_request only for this one operation;
+                # Gateway then validates Runtime status with strict B03 rules.
+                # All effectful and other calls retain the full SDK driver,
+                # including MRTR, schema checks, and error handling.
+                typed_runtime_read = (
+                    owner_id == "runtime.windows"
+                    and endpoint.mcp_mode == "2026-07-28"
+                    and tool_name == "runtime.describe"
+                    and arguments == {"schemaVersion": 1}
+                )
+                phase = "typed_readonly_call" if typed_runtime_read else "sdk_client_call"
                 meta: dict[str, Any] = {}
                 inject_trace_context(meta)
                 try:
-                    result = await client.call_tool(
-                        tool_name,
-                        arguments,
-                        meta=meta or None,
+                    if typed_runtime_read:
+                        result = await client.session.send_request(
+                            types.CallToolRequest(
+                                params=types.CallToolRequestParams(
+                                    name=tool_name,
+                                    arguments=arguments,
+                                    _meta=meta or None,
+                                )
+                            ),
+                            types.CallToolResult,
+                        )
+                    else:
+                        result = await client.call_tool(
+                            tool_name,
+                            arguments,
+                            meta=meta or None,
+                        )
+                except asyncio.CancelledError:
+                    # An SDK Client.call_tool can issue tools/list AFTER an
+                    # already-completed wire tools/call. Cancellation here
+                    # does not prove Owner failure, only the SDK boundary.
+                    # The direct typed read has no SDK post-call list phase.
+                    tool_elapsed_ms = int((time.perf_counter() - started) * 1000)
+                    phase = (
+                        "typed_readonly_call_cancelled"
+                        if typed_runtime_read
+                        else "sdk_client_call_cancelled"
                     )
-                finally:
+                    raise
+                else:
+                    # Only a completed call reaches session teardown normally.
                     tool_elapsed_ms = int((time.perf_counter() - started) * 1000)
                     phase = "session_close"
         except asyncio.CancelledError:
@@ -296,18 +349,51 @@ class McpOwnerCaller:
                 tool_name=tool_name,
                 error=_extract_owner_tool_error(result, owner_id=owner_id, tool_name=tool_name),
             )
-        if isinstance(result.structured_content, dict):
-            return dict(result.structured_content)
+        payload: dict[str, Any] | None = (
+            dict(result.structured_content) if isinstance(result.structured_content, dict) else None
+        )
+        if payload is None:
+            for item in result.content:
+                text = getattr(item, "text", None)
+                if not isinstance(text, str):
+                    continue
+                try:
+                    value = json.loads(text)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(value, dict):
+                    payload = value
+                    break
 
-        for item in result.content:
-            text = getattr(item, "text", None)
-            if not isinstance(text, str):
-                continue
-            try:
-                value = json.loads(text)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(value, dict):
-                return value
+        if payload is None:
+            raise OwnerCallError(
+                f"owner tool returned no structured object: {owner_id}/{tool_name}"
+            )
 
-        raise OwnerCallError(f"owner tool returned no structured object: {owner_id}/{tool_name}")
+        if typed_runtime_read:
+            # The narrow typed SDK path does not perform the high-level
+            # tool-output-schema lookup. Guard the versioned envelope here,
+            # then defer readiness truth (including malformed booleans) to
+            # the existing B03 strict owner projection.
+            node = payload.get("node")
+            targets = payload.get("targets")
+            if (
+                type(payload.get("schemaVersion")) is not int
+                or payload["schemaVersion"] != 1
+                or not isinstance(node, dict)
+                or not isinstance(node.get("nodeId"), str)
+                or not node["nodeId"]
+                or not isinstance(targets, list)
+                or not all(isinstance(target, dict) for target in targets)
+            ):
+                raise OwnerCallError(
+                    "Owner returned invalid runtime.describe status envelope",
+                    owner_id=owner_id,
+                    tool_name=tool_name,
+                    error={
+                        "code": "OWNER_INVALID_STATUS_ENVELOPE",
+                        "message": "runtime.describe status envelope is malformed",
+                        "origin": "gateway_adapter",
+                    },
+                )
+        return payload

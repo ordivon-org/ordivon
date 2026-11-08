@@ -117,4 +117,53 @@ on the active desktop: it can generate very high volume. Do not add global
 outbound firewall rules without a separate disposable Windows experiment,
 a real consumer need and post-change independent application acceptance.
 
+
+### Native WFP event refinement (bounded, no raw endpoint export)
+
+Use `windows_wfp_evidence.py` to classify a bounded JSON envelope of native
+Windows Security Event 5156/5157 XML emitted by `Get-WinEvent` while the
+appropriate audit policy is explicitly active. The script never changes
+firewall/audit policy and exposes only per-process *counts*; no destination
+addresses, raw XML, credentials or packet payloads are printed. The envelope
+requires `windowStartUtc`, `windowEndUtc`,
+`auditEnabledDuringWindow`, `captureComplete`, and `events` (XML strings).
+These booleans are *input claims*, not independent proof of audit continuity.
+
+For the Windows Security resource values, `%%14592` is **inbound** and
+`%%14593` is **outbound**; do not reverse them. IPv4/IPv6 multicast DNS
+on UDP/5353, including local discovery blocked by WFP, is not public
+unicast egress. A real allowed public-unicast *outbound* event is a
+bounded socket-level counterexample candidate, not automatic proof of
+completed application requests or a policy violation.
+
+The 2026-11-08 native elevated, bounded audit probe generated 5156/5157
+and confirmed audit restoration; 8 observed `chatgpt.exe` UDP/5353
+5157 blocks were inbound IPv4/IPv6 multicast, not outbound VPN leaks.
+Do not keep success auditing enabled after the bounded experiment.
+
 Current cross-owner backlog: [Windows Codex WFP and carrier proof #1824](https://github.com/ordivon-org/ordivon/issues/1824).
+
+## Native Windows direct-versus-proxy counterexample (2026-11-08)
+
+Run the read-only, upstream-curl-based witness from a real Windows interactive
+user (no administrator permission is required):
+
+    python consumers/codex/windows_exit_differential.py
+
+This invokes `curl.exe -q` twice using explicit no-proxy and explicit
+`127.0.0.1:19781` proxy settings. The only external call is a GET to
+`https://ipinfo.io/json`; raw returned public IPs are replaced in-memory
+with per-run secret-key HMAC tags (not reversible deterministic IPv4 hashes). Distinct successful public exits constitute a
+**concrete counterexample to treating Windows system proxy as mandatory VPN
+isolation**, but do not attribute any native Codex/ChatGPT request, establish
+WFP enforcement, or prove no UDP/DoH/IPv6 bypass. If the two results happen
+to match, or a request fails, the evidence remains UNKNOWN rather than PASS.
+
+The 2026-11-08 interactive-user live test observed a successful Windows direct
+request and a successful explicitly proxied request with different public IP
+fingerprints. The proxied fingerprint matched independently observed Gluetun;
+Windows WFP Security Event 5156 also observed controlled curl.exe outbound
+connections to both local port 19781 and remote TCP/443 in a separate bounded
+administrator experiment. This establishes proxy bypass *capability for curl*;
+Codex mandatory routing remains UNKNOWN. Enforcement belongs to Workstation
+and Security; do not add a global outbound DROP or custom driver from Network.

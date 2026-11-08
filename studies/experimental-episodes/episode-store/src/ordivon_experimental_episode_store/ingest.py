@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import re
+import stat
+import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO, TextIO
 
 import psycopg
 from psycopg import sql
@@ -20,12 +25,44 @@ class EpisodeStoreError(ValueError):
     pass
 
 
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
+@contextmanager
+def _frozen_source(path: Path) -> Iterator[tuple[BinaryIO, str, int]]:
+    """Freeze bytes from ONE regular-file descriptor before parsing or PG commit.
+
+    Reuse the OS's O_NOFOLLOW, fstat and private anonymous temporary file.
+    The immutable copy makes the parsed rows and committed source digest
+    refer to exactly the same observed bytes. It does not prove external
+    source authenticity or protect against privileged writers in the OS.
+    """
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NONBLOCK", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    handle = os.open(path, flags)
+    with (
+        os.fdopen(handle, "rb") as source,
+        tempfile.TemporaryFile(mode="w+b") as frozen,
+    ):
+        before = os.fstat(source.fileno())
+        if not stat.S_ISREG(before.st_mode):
+            raise EpisodeStoreError("source must be a regular file")
+        digest = hashlib.sha256()
+        size = 0
+        for block in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(block)
+            size += len(block)
+            frozen.write(block)
+        after = os.fstat(source.fileno())
+
+        def identity(st: os.stat_result) -> tuple[int, int, int, int, int]:
+            return st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns
+
+        if identity(before) != identity(after) or size != before.st_size:
+            raise EpisodeStoreError("source changed during byte snapshot")
+        frozen.seek(0)
+        yield frozen, "sha256:" + digest.hexdigest(), size
 
 
 def _canonical_digest(value: Any) -> str:
@@ -47,39 +84,44 @@ def _simple_identifier(value: str, label: str) -> str:
     return value
 
 
-def _load_episodes(path: Path, profile_id: str) -> list[dict[str, Any]]:
+def _load_episodes_from_lines(
+    handle: TextIO, profile_id: str, label: Path
+) -> list[dict[str, Any]]:
     episodes: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
-    with path.open("r", encoding="utf-8") as handle:
-        for line_number, line in enumerate(handle, start=1):
-            if not line.strip():
-                continue
-            value = json.loads(line)
-            if not isinstance(value, dict):
-                raise EpisodeStoreError(f"{path}:{line_number}: root must be object")
-            if value.get("kind") != "ordivon.experimental-episode-binding":
-                raise EpisodeStoreError(f"{path}:{line_number}: unexpected kind")
-            if value.get("profileId") != profile_id:
-                raise EpisodeStoreError(
-                    f"{path}:{line_number}: profileId does not match {profile_id}"
-                )
-            episode_id = value.get("episodeId")
-            projection_digest = value.get("projectionDigest")
-            if not isinstance(episode_id, str) or not episode_id:
-                raise EpisodeStoreError(f"{path}:{line_number}: invalid episodeId")
-            if not isinstance(projection_digest, str):
-                raise EpisodeStoreError(
-                    f"{path}:{line_number}: missing projectionDigest"
-                )
-            _require_sha256(projection_digest, "projectionDigest")
-            key = (episode_id, projection_digest)
-            if key in seen:
-                raise EpisodeStoreError(
-                    f"{path}:{line_number}: duplicate episode/projection identity"
-                )
-            seen.add(key)
-            episodes.append(value)
+    for line_number, line in enumerate(handle, start=1):
+        if not line.strip():
+            continue
+        value = json.loads(line)
+        if not isinstance(value, dict):
+            raise EpisodeStoreError(f"{label}:{line_number}: root must be object")
+        if value.get("kind") != "ordivon.experimental-episode-binding":
+            raise EpisodeStoreError(f"{label}:{line_number}: unexpected kind")
+        if value.get("profileId") != profile_id:
+            raise EpisodeStoreError(
+                f"{label}:{line_number}: profileId does not match {profile_id}"
+            )
+        episode_id = value.get("episodeId")
+        projection_digest = value.get("projectionDigest")
+        if not isinstance(episode_id, str) or not episode_id:
+            raise EpisodeStoreError(f"{label}:{line_number}: invalid episodeId")
+        if not isinstance(projection_digest, str):
+            raise EpisodeStoreError(f"{label}:{line_number}: missing projectionDigest")
+        _require_sha256(projection_digest, "projectionDigest")
+        key = (episode_id, projection_digest)
+        if key in seen:
+            raise EpisodeStoreError(
+                f"{label}:{line_number}: duplicate episode/projection identity"
+            )
+        seen.add(key)
+        episodes.append(value)
     return episodes
+
+
+def _load_episodes(path: Path, profile_id: str) -> list[dict[str, Any]]:
+    """Keep the existing standalone parser interface for bounded local tests."""
+    with path.open("r", encoding="utf-8") as handle:
+        return _load_episodes_from_lines(handle, profile_id, path)
 
 
 def build_ingest_identity(
@@ -230,8 +272,9 @@ def ingest_file(
     schema_digest: str,
     adapter_digest: str,
 ) -> dict[str, Any]:
-    episodes = _load_episodes(path, profile_id)
-    source_digest = _sha256_file(path)
+    with _frozen_source(path) as (frozen, source_digest, _source_size):
+        with io.TextIOWrapper(frozen, encoding="utf-8") as lines:
+            episodes = _load_episodes_from_lines(lines, profile_id, path)
     ingest_id, identity = build_ingest_identity(
         corpus_id=corpus_id,
         profile_id=profile_id,
@@ -241,28 +284,46 @@ def ingest_file(
         adapter_digest=adapter_digest,
     )
 
+    def replay(existing: dict[str, Any]) -> dict[str, Any]:
+        expected = {
+            "ingest_id": ingest_id,
+            "corpus_id": corpus_id,
+            "profile_id": profile_id,
+            "source_file_digest": source_digest,
+            "projection_set_digest": identity["projectionSetDigest"],
+            "schema_digest": identity["schemaDigest"],
+            "adapter_digest": identity["adapterDigest"],
+            "episode_count": len(episodes),
+            "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST",
+        }
+        if any(existing[key] != value for key, value in expected.items()):
+            raise EpisodeStoreError(
+                "existing ingest receipt conflicts with source identity"
+            )
+        return {
+            "ingestId": ingest_id,
+            "profileId": profile_id,
+            "sourceFileDigest": source_digest,
+            "episodeCount": existing["episode_count"],
+            "insertedProjectionCountThisRun": 0,
+            "retainedOriginalInsertedProjectionCount": existing[
+                "inserted_projection_count"
+            ],
+            "replayExistingIngest": True,
+            "standing": existing["standing"],
+        }
+
     with psycopg.connect(dsn, row_factory=dict_row) as conn, conn.transaction():
         _set_role(conn, db_role)
         existing = conn.execute(
             "SELECT * FROM projection_ingests WHERE ingest_id = %s", (ingest_id,)
         ).fetchone()
         if existing is not None:
-            return {
-                "ingestId": ingest_id,
-                "profileId": profile_id,
-                "sourceFileDigest": source_digest,
-                "episodeCount": existing["episode_count"],
-                "insertedProjectionCountThisRun": 0,
-                "retainedOriginalInsertedProjectionCount": existing[
-                    "inserted_projection_count"
-                ],
-                "replayExistingIngest": True,
-                "standing": existing["standing"],
-            }
+            return replay(existing)
 
         inserted = sum(_insert_episode(conn, episode) for episode in episodes)
         standing = "PASS_IDEMPOTENT_PROJECTION_INGEST"
-        conn.execute(
+        admitted = conn.execute(
             """
             INSERT INTO projection_ingests(
               ingest_id, corpus_id, profile_id, source_file_digest,
@@ -270,6 +331,8 @@ def ingest_file(
               episode_count, inserted_projection_count, standing
             )
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            ON CONFLICT (ingest_id) DO NOTHING
+            RETURNING ingest_id
             """,
             (
                 ingest_id,
@@ -283,7 +346,20 @@ def ingest_file(
                 inserted,
                 standing,
             ),
-        )
+        ).fetchone()
+        if admitted is None:
+            # Two writers observed no receipt concurrently. The unique index
+            # waits for the winner to commit; a fresh READ COMMITTED query
+            # can then inspect the winner without an application-level lock.
+            winner = conn.execute(
+                "SELECT * FROM projection_ingests WHERE ingest_id = %s",
+                (ingest_id,),
+            ).fetchone()
+            if winner is None:
+                raise EpisodeStoreError(
+                    "concurrent ingest conflict lacks committed receipt"
+                )
+            return replay(winner)
 
     return {
         "ingestId": ingest_id,
@@ -294,6 +370,64 @@ def ingest_file(
         "retainedOriginalInsertedProjectionCount": inserted,
         "replayExistingIngest": False,
         "standing": standing,
+    }
+
+
+def read_committed_ingest_source(
+    *,
+    dsn: str,
+    db_role: str | None,
+    ingest_id: str,
+    path: Path,
+) -> dict[str, Any]:
+    """Independently recheck one committed ingest against physical source bytes.
+
+    PostgreSQL owns the durable ingest receipt. The caller supplies the exact
+    ingest identity and explicit file; this reader never infers a storage path
+    or changes the DB. An isolated DB snapshot is not a filesystem lease.
+    """
+    if not dsn or re.fullmatch(r"ingest:sha256:[0-9a-f]{64}", ingest_id) is None:
+        raise EpisodeStoreError(
+            "explicit database and exact ingest identity are required"
+        )
+    with psycopg.connect(dsn, row_factory=dict_row) as conn:
+        conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+        _set_role(conn, db_role)
+        row = conn.execute(
+            "SELECT * FROM projection_ingests WHERE ingest_id = %s", (ingest_id,)
+        ).fetchone()
+        if row is None:
+            raise EpisodeStoreError("no committed projection ingest for identity")
+        calculated, _ = build_ingest_identity(
+            corpus_id=row["corpus_id"],
+            profile_id=row["profile_id"],
+            source_file_digest=row["source_file_digest"],
+            projection_set_digest=row["projection_set_digest"],
+            schema_digest=row["schema_digest"],
+            adapter_digest=row["adapter_digest"],
+        )
+        if (
+            calculated != ingest_id
+            or row["standing"] != "PASS_IDEMPOTENT_PROJECTION_INGEST"
+            or row["episode_count"] < 0
+        ):
+            raise EpisodeStoreError(
+                "committed projection ingest identity is inconsistent"
+            )
+        with _frozen_source(path) as (frozen, digest, size):
+            if digest != row["source_file_digest"]:
+                raise EpisodeStoreError("source bytes disagree with committed ingest")
+            with io.TextIOWrapper(frozen, encoding="utf-8") as lines:
+                episodes = _load_episodes_from_lines(lines, row["profile_id"], path)
+            if len(episodes) != row["episode_count"]:
+                raise EpisodeStoreError("committed episode count disagrees with source")
+    return {
+        "ingestId": ingest_id,
+        "profileId": row["profile_id"],
+        "sourceFileDigest": digest,
+        "sourceByteLength": size,
+        "episodeCount": len(episodes),
+        "standing": "PASS_COMMITTED_INGEST_SOURCE_READBACK",
     }
 
 
@@ -341,6 +475,14 @@ def _parser() -> argparse.ArgumentParser:
     ingest.add_argument("--schema-digest", required=True)
     ingest.add_argument("--adapter-digest", required=True)
 
+    readback = sub.add_parser("readback")
+    readback.add_argument("input", type=Path)
+    readback.add_argument("--ingest-id", required=True)
+    readback.add_argument("--dsn", default=os.environ.get("ORDIVON_EXPERIMENTAL_DSN"))
+    readback.add_argument(
+        "--db-role", default=os.environ.get("ORDIVON_EXPERIMENTAL_DB_ROLE")
+    )
+
     summary = sub.add_parser("summary")
     summary.add_argument("--dsn", default=os.environ.get("ORDIVON_EXPERIMENTAL_DSN"))
     summary.add_argument(
@@ -353,6 +495,15 @@ def main() -> int:
     args = _parser().parse_args()
     if not args.dsn:
         raise SystemExit("set --dsn or ORDIVON_EXPERIMENTAL_DSN")
+    if args.command == "readback":
+        result = read_committed_ingest_source(
+            dsn=args.dsn,
+            db_role=args.db_role,
+            ingest_id=args.ingest_id,
+            path=args.input,
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
     if args.command == "summary":
         print(
             json.dumps(store_summary(args.dsn, args.db_role), indent=2, sort_keys=True)

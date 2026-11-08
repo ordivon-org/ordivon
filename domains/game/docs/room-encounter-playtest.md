@@ -42,6 +42,15 @@ Record in the blank CSV template only:
 - observed focus/keyboard navigation trouble, clipping or hidden controls;
 - participant's voluntary, brief post-session response to "What would you change?"
 
+In Trial, a LAST MOVE result panel now states the actual post-action
+effects. Without prompting the player toward a correct strategy, observe
+whether they notice the difference between a predicted strike, a committed
+action and its actual HP/stamina result. Ask them after the first run to
+describe one result in their own words. Record the response and uncertainty
+in the existing template's forecast_interpretation and observer_uncertainty
+fields; do not invent numerical comprehension scores or collect automatic
+player telemetry.
+
 After first run, ask: "What does NEXT FOE HIT tell you?",
 "When would Guard be better than Attack here?", and
 "What happened to your health or stamina after a Guard?"
@@ -70,7 +79,7 @@ not evidence of Human preferences or statistical significance.
 
 Experimental evidence remains UNKNOWN until actual independent people
 play and submit optional non-identifying observations. Do not mark the
-product ready just because automated tests, four Viewport screenshots,
+product ready just because automated tests, six native Viewport screenshots,
 and a Windows native window-smoke pass.
 
 ## Agent operation — distinct from Human results

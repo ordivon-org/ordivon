@@ -73,7 +73,7 @@ def main():
     for step in visible["steps"]:
         observed.extend([step["before"], step["after"]])
     for value in observed:
-        assert set(value).issubset({"title", "status", "encounter", "actions", "hint", "dialogue"})
+        assert set(value).issubset({"title", "status", "encounter", "actions", "hint", "outcome", "dialogue"})
         assert isinstance(value["status"], str) and isinstance(value["encounter"], str)
     status_repeat, visible_repeat, _ = episode("attack,advance,guard", "player")
     assert status_repeat == 0 and visible_repeat == visible
@@ -97,6 +97,17 @@ def main():
     assert all(set(step) == {"action", "before", "after"} for step in visible_tactic["steps"])
     assert visible_tactic["initial"]["actions"]["trial"]
     assert visible_tactic["steps"][0]["after"]["status"].startswith("ROOM 1/3")
+    # This panel is projected only from the native post-resolution Signal.
+    # No privileged debug status appears in the default player channel.
+    status, last_action, _ = episode("trial,attack,attack,guard", "player")
+    assert status == 0
+    assert "LAST MOVE: Attack dealt 3 enemy HP; you lost 3 HP" in (
+        last_action["steps"][1]["after"]["outcome"])
+    assert "PERFECT PARRY" in last_action["final"]["outcome"]
+    assert "blocked the announced 4 damage" in last_action["final"]["outcome"]
+    assert "you lost 0 HP" in last_action["final"]["outcome"]
+    status, classic_outcome, _ = episode("trial,classic,attack", "player")
+    assert status == 0 and "outcome" not in classic_outcome["final"]
     status, exhausted, _ = episode("trial,attack,attack,attack", "player")
     assert status == 0
     assert exhausted["final"]["actions"]["attack"] is False, (
@@ -141,7 +152,7 @@ def main():
     assert all(step["accepted"] for step in finished["steps"])
     assert all(step["control_path"] == "dialogue.unlock_choice"
                for step in finished["steps"] if step["action"] == "advance")
-    print("GAME_AGENT_EPISODE_PASS native_episodes=17 player_ui_default=yes debug_opt_in=yes deterministic=yes terminal_win=yes narrative_gate=yes")
+    print("GAME_AGENT_EPISODE_PASS native_episodes=19 player_ui_default=yes debug_opt_in=yes deterministic=yes terminal_win=yes narrative_gate=yes")
 
 
 if __name__ == "__main__":

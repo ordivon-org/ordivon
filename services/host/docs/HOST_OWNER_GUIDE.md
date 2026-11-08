@@ -205,3 +205,31 @@ sequence_desc and bounded cursor behavior.
 Proof tiers: SPECIFICATION → ABSTRACT_LEAN_THEOREM → NATIVE_SQL_REFINEMENT
 → INSTALLED_INDEX_PLAN → MCP_CONSUMER. None proves provenance or domain
 acceptance of the retrieved messages.
+
+
+## 14. Attention re-entry single-snapshot MVCC contract (2026-11-08)
+
+attention.get, attention.delta, and attention.reentry each establish one native
+PostgreSQL REPEATABLE READ, READ ONLY transaction per public call.
+For re-entry this single snapshot covers the actor's attention cursor (when
+omitted), the change horizon, the delta event projection, any adaptive maxBytes
+page reduction, and the related Topic consumption cursors. It does not hold
+a database transaction across multiple MCP calls; separate pages may
+legitimately observe later commits.
+
+Counterexample addressed: after delta captures a prior change horizon, another
+Agent commits topic.cursor.ack. Under the former multi-connection implementation
+reentry could return a Topic resume cursor from that newer commit while
+returning older delta events. The new read keeps the prior cursor; a fresh
+re-entry request sees the newer acknowledgement. No event bus, copy of messages,
+custom MVCC algorithm, schema migration or extra cross-request lock is needed.
+
+Proof tier: native PG18 tests schedule concurrent ack after _delta_in_tx
+under both pooled and direct Psycopg connections. Separate checkout-count tests
+require exactly one DB checkout per public read. These are concrete SQL/behavior
+oracles, not a general proof of future latency or all possible schedules.
+
+Human: run mise run test:postgres:disposable; distinguish Attention change
+horizons from Topic Message sequences. Agent: attention.reentry is navigation,
+not scheduling or domain acceptance. Never infer latest global state from a
+historical page; call the published tool again to obtain a fresh snapshot.
