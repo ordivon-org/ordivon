@@ -33,6 +33,7 @@ effect_bound_approval if {
 	input.approval.method == "webauthn"
 	input.approval.principalId == input.principal.principalId
 	input.approval.effectId == input.effect.effectId
+	input.approval.effectDigest == input.effect.effectDigest
 }
 
 reason := "principal-not-authenticated" if {

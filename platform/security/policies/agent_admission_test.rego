@@ -42,6 +42,7 @@ base_input := {
 		"verified": false,
 		"principalId": null,
 		"effectId": null,
+		"effectDigest": null,
 		"method": null,
 	},
 }
@@ -120,6 +121,7 @@ test_step_up_approval_must_bind_same_effect if {
 		"verified": true,
 		"principalId": base_input.principal.principalId,
 		"effectId": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		"effectDigest": base_input.effect.effectDigest,
 		"method": "webauthn",
 	}
 	x := object.union_n([base_input, {"effect": effect}, {"approval": approval}])
@@ -132,6 +134,7 @@ test_effect_bound_webauthn_step_up_allows_high_risk_effect if {
 		"verified": true,
 		"principalId": base_input.principal.principalId,
 		"effectId": base_input.effect.effectId,
+		"effectDigest": base_input.effect.effectDigest,
 		"method": "webauthn",
 	}
 	x := object.union_n([base_input, {"effect": effect}, {"approval": approval}])
@@ -139,4 +142,30 @@ test_effect_bound_webauthn_step_up_allows_high_risk_effect if {
 	decision.authorityProjection.actorId == base_input.agent.agentId with input as x
 	decision.authorityProjection.authorityId == base_input.grant.grantId with input as x
 	decision.authorityProjection.capability == base_input.effect.action with input as x
+}
+
+test_step_up_approval_rejects_same_id_changed_effect_content if {
+  effect := object.union(base_input.effect, {"riskClass": "R4"})
+  approval := {
+    "verified": true,
+    "principalId": base_input.principal.principalId,
+    "effectId": base_input.effect.effectId,
+    "effectDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "method": "webauthn",
+  }
+  x := object.union_n([base_input, {"effect": effect}, {"approval": approval}])
+  decision.outcome == "STEP_UP" with input as x
+  decision.reason == "principal-step-up-required" with input as x
+}
+
+test_legacy_id_only_high_risk_approval_is_not_content_bound if {
+  effect := object.union(base_input.effect, {"riskClass": "R4"})
+  approval := {
+    "verified": true,
+    "principalId": base_input.principal.principalId,
+    "effectId": base_input.effect.effectId,
+    "method": "webauthn",
+  }
+  x := object.union_n([base_input, {"effect": effect}, {"approval": approval}])
+  decision.outcome == "STEP_UP" with input as x
 }

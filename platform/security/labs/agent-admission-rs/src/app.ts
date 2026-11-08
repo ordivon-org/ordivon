@@ -92,7 +92,7 @@ function effectDigest(
 }
 
 async function noApproval(): Promise<VerifiedApproval> {
-  return { verified: false, principalId: null, effectId: null, method: null };
+  return { verified: false, principalId: null, effectId: null, effectDigest: null, method: null };
 }
 
 function admissionInput(

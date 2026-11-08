@@ -599,7 +599,7 @@ export class WebStore {
     principalId: string,
     effect: AgentEffectRequest,
     now: number,
-  ): { verified: boolean; principalId: string | null; effectId: string | null; method: "webauthn" | null } {
+  ): { verified: boolean; principalId: string | null; effectId: string | null; effectDigest: string | null; method: "webauthn" | null } {
     const row = this.db
       .prepare(`
         SELECT effect_id
@@ -614,11 +614,12 @@ export class WebStore {
       | { effect_id: string }
       | undefined;
     return row === undefined
-      ? { verified: false, principalId: null, effectId: null, method: null }
+      ? { verified: false, principalId: null, effectId: null, effectDigest: null, method: null }
       : {
           verified: true,
           principalId,
           effectId: effect.effectId,
+          effectDigest: effect.effectDigest,
           method: "webauthn",
         };
   }

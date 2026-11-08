@@ -30,4 +30,5 @@ run = """
 set -euo pipefail
 cd ../../tools/formal
 MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- lean ../../platform/security/formal/ConsequenceEvidence.lean
+MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- lean ../../platform/security/formal/AgentApprovalBinding.lean
 """

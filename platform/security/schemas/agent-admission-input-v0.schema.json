@@ -73,6 +73,7 @@
         "verified": {"type": "boolean"},
         "principalId": {"type": ["string", "null"]},
         "effectId": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+        "effectDigest": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
         "method": {"type": ["string", "null"], "enum": ["webauthn", null]}
       }
     }
