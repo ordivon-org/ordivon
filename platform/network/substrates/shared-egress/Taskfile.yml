@@ -6,6 +6,7 @@ tasks:
     cmds:
       - /usr/bin/systemd-analyze verify substrates/shared-egress/systemd/network-v2-browserless-netns.service substrates/shared-egress/systemd/network-v2-browserless-forward.service substrates/shared-egress/systemd/network-v2-browserless.target
       - /usr/bin/bash -n substrates/shared-egress/carrier-ready.sh
+      - python3 -c 'import ast; ast.parse(open("substrates/shared-egress/netns.py").read())'
       - grep -qx Alias=network-v2-shared-egress.target substrates/shared-egress/systemd/network-v2-browserless.target
 
   substrate:shared-egress:materialize:
@@ -17,16 +18,28 @@ tasks:
       - cmp -s substrates/shared-egress/systemd/network-v2-browserless-forward.service /etc/systemd/system/network-v2-browserless-forward.service
       - cmp -s substrates/shared-egress/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
       - cmp -s substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+      - cmp -s substrates/shared-egress/netns.py /usr/local/libexec/network-v2/shared-egress-netns
       - test -L /etc/systemd/system/network-v2-shared-egress.target
       - test /etc/systemd/system/network-v2-shared-egress.target -ef /etc/systemd/system/network-v2-browserless.target
     cmds:
       - install -d -m 0755 /usr/local/libexec/network-v2
+      - install -m 0755 substrates/shared-egress/netns.py /usr/local/libexec/network-v2/shared-egress-netns
       - install -m 0644 substrates/shared-egress/systemd/network-v2-browserless-netns.service /etc/systemd/system/network-v2-browserless-netns.service
       - install -m 0644 substrates/shared-egress/systemd/network-v2-browserless-forward.service /etc/systemd/system/network-v2-browserless-forward.service
       - install -m 0644 substrates/shared-egress/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
       - install -m 0755 substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
       - systemctl daemon-reload
       - systemctl enable network-v2-browserless.target
+
+  substrate:shared-egress:netns:verify:
+    desc: Verify the existing namespace, paired veth interfaces, addresses, link flags, and no default route
+    cmds:
+      - |
+        set -euo pipefail
+        set -a
+        source /etc/network-v2/browserless/provider.env
+        set +a
+        /usr/bin/python3 substrates/shared-egress/netns.py verify
 
   substrate:shared-egress:kernel:verify:
     desc: Read back exact veth addresses and both legacy FORWARD exceptions from the live kernel without mutation
@@ -58,11 +71,13 @@ tasks:
       - cmp -s substrates/shared-egress/systemd/network-v2-browserless-forward.service /etc/systemd/system/network-v2-browserless-forward.service
       - cmp -s substrates/shared-egress/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
       - cmp -s substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+      - cmp -s substrates/shared-egress/netns.py /usr/local/libexec/network-v2/shared-egress-netns
       - test -L /etc/systemd/system/network-v2-shared-egress.target
       - test /etc/systemd/system/network-v2-shared-egress.target -ef /etc/systemd/system/network-v2-browserless.target
       - systemctl is-active --quiet network-v2-browserless.target
       - systemctl is-active --quiet network-v2-shared-egress.target
       - systemctl is-active --quiet network-v2-browserless-netns.service
+      - task: substrate:shared-egress:netns:verify
       - task: substrate:shared-egress:kernel:verify
       - systemctl is-active --quiet network-v2-browserless-forward.service
       - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
