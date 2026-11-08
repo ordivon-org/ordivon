@@ -61,12 +61,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         loop {
             interval.tick().await;
             let runtime = recovery.clone();
-            match tokio::task::spawn_blocking(move || runtime.reconcile_cancelled_jobs(32)).await {
+            match tokio::task::spawn_blocking(move || runtime.reconcile_issued_jobs(32)).await {
                 Ok(Ok(report)) if report["inspected"].as_u64().unwrap_or(0) > 0 => {
-                    eprintln!("PG cancellation reconciliation: {report}")
+                    eprintln!("PG native reconciliation: {report}")
                 }
                 Ok(Err(_)) | Err(_) => {
-                    eprintln!("PG cancellation reconciliation unavailable; retained for retry")
+                    eprintln!("PG native reconciliation unavailable; retained for retry")
                 }
                 _ => (),
             }

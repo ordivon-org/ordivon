@@ -85,3 +85,12 @@ Runner or cgroup evidence. Its Result availability remains false. A real
 PostgreSQL/MCP test admits such an Attempt through PgAdmissionStore, cancels it,
 and verifies zero DISPATCH_ISSUED events. This is distinct from an already
 launched Attempt with missing Result, whose external outcome remains LOST.
+
+
+The periodic worker also reconciles already-issued nonterminal Attempts, including
+natural completion after a disconnected client. It never dispatches a natural
+`accepted` Attempt. The native `--reconcile-cancelled` CLI remains restricted to
+committed cancellation intent. A disposable PG/systemd test restarts only the MCP
+control process while a native Unit runs, then verifies automatic terminal
+readback and exactly one DISPATCH_ISSUED event. This permits control-plane recovery
+without treating Runtime service restart as native Job termination.

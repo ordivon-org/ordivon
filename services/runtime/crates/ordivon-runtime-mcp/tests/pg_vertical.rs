@@ -1349,6 +1349,58 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         dispatched, 0,
         "cancelled pre-dispatch Attempt was physically launched"
     );
+    // Restart only the MCP control process while its independent native Unit
+    // runs. Recovery must consume the existing result, never launch again.
+    let running = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+        "clientRequestId":"native-control-restart", "execution":{
+            "workspaceId":input.workspace_id,"executable":"/usr/bin/sleep",
+            "args":["2"],"cwdRelative":".","timeoutMs":15000},"waitMs":0}),
+    );
+    assert_ne!(running["isError"], true, "{running}");
+    let running_job = running["structuredContent"]["jobId"].as_str().unwrap();
+    let old_control = fixture.endpoint.as_mut().unwrap();
+    old_control.kill().unwrap();
+    old_control.wait().unwrap();
+    let restarted_endpoint = fixture.endpoint();
+    let deadline = Instant::now() + Duration::from_secs(12);
+    loop {
+        let resolution: Option<String> = fixture
+            .db
+            .query_one(
+                "SELECT resolution FROM jobs WHERE job_id=$1",
+                &[&running_job],
+            )
+            .unwrap()
+            .get(0);
+        if resolution.as_deref() == Some("succeeded") {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "native result did not converge after control-plane restart"
+        );
+        thread::sleep(Duration::from_millis(100));
+    }
+    let after_restart = call(&restarted_endpoint, "job.get", json!({"jobId":running_job}));
+    assert_eq!(
+        after_restart["structuredContent"]["job"]["mechanicallyConverged"],
+        true
+    );
+    let dispatches: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&running_job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        dispatches, 1,
+        "control-plane restart duplicated physical execution"
+    );
 }
 
 // Source qualification must be checked at the time of each new effect.

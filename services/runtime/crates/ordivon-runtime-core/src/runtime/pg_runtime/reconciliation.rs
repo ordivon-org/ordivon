@@ -5,13 +5,24 @@ impl PgRuntime {
     /// Service-owned recovery path. Does not admit commands or consume Job capacity.
     /// Each cancellation retains its original principal and exact durable Job identity.
     pub fn reconcile_cancelled_jobs(&self, limit: u32) -> RuntimeResult<serde_json::Value> {
+        self.reconcile_committed_jobs(limit, true)
+    }
+    /// Reconcile already issued native work, never dispatch an unissued Job.
+    pub fn reconcile_issued_jobs(&self, limit: u32) -> RuntimeResult<serde_json::Value> {
+        self.reconcile_committed_jobs(limit, false)
+    }
+    fn reconcile_committed_jobs(
+        &self,
+        limit: u32,
+        cancelled_only: bool,
+    ) -> RuntimeResult<serde_json::Value> {
         if limit == 0 || limit > 100 {
             return Err(RuntimeError::invalid("limit must be 1..100", "limit"));
         }
         let mut db = self.store()?;
         let pending = db.client.query(
-            "SELECT job_id,principal FROM jobs WHERE desired_state='cancelled' AND resolution IS NULL ORDER BY created_at_ms,job_id LIMIT $1",
-            &[&i64::from(limit)],
+            "SELECT j.job_id,j.principal,j.desired_state FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id WHERE j.resolution IS NULL AND (j.desired_state='cancelled' OR (NOT $2 AND a.state IN ('starting','running','stopping','recovering'))) ORDER BY j.created_at_ms,j.job_id LIMIT $1",
+            &[&i64::from(limit),&cancelled_only],
         ).map_err(io)?;
         drop(db);
         let mut terminal = 0_u32;
@@ -21,7 +32,24 @@ impl PgRuntime {
                 schema_version: 1,
                 job_id: row.get(0),
             };
-            match self.cancel(&row.get::<_, String>(1), &request) {
+            let outcome = if row.get::<_, String>(2) == "cancelled" {
+                self.cancel(&row.get::<_, String>(1), &request)
+            } else {
+                self.observe(
+                    &row.get::<_, String>(1),
+                    &JobObserveRequest {
+                        schema_version: 1,
+                        job_id: request.job_id,
+                        wait_ms: 0,
+                        wait_until: JobObserveWaitUntil::Terminal,
+                        stdout_tail_bytes: 0,
+                        stderr_tail_bytes: 0,
+                        stdout_offset: None,
+                        stderr_offset: None,
+                    },
+                )
+            };
+            match outcome {
                 Ok(value) if value.execution_terminal => terminal += 1,
                 Ok(_) => (),
                 Err(_) => errors += 1,

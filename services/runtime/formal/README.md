@@ -469,3 +469,10 @@ eligible_attempt, and terminalization compares the same Attempt row version.
 The native MCP test now directly admits an unissued Attempt and checks a
 cancelled terminal projection, no execution Result and zero dispatch events.
 This SQL/consumer property is not included in the pure native-stop Kani claim.
+
+
+The issued-work recovery query excludes natural `accepted` Attempts, preserving
+the existing dispatch boundary. A real native test restarts the MCP process while
+a systemd Runner Unit executes, obtains terminal success without client observe,
+and checks the dispatch count remains one. Recovery is separate from scheduling
+new accepted work; these tests do not qualify a pending queue or resource policy.
