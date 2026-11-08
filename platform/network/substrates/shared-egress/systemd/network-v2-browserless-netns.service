@@ -1,7 +1,7 @@
 [Unit]
 Description=Network v2 shared egress network namespace (legacy installed unit name)
-After=network-online.target
-Wants=network-online.target
+# Creating local network namespaces and paired veth does not require
+# WAN/DNS/VPN reachability. Do not gate the shared substrate on network-online.
 PartOf=network-v2-shared-egress.target
 
 [Service]
