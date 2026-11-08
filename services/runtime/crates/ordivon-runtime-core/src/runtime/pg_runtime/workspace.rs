@@ -42,7 +42,7 @@ impl PgRuntime {
             ));
         }
         let result = universal::remove_git_workspace(&self.config.executor, request)
-            .map_err(super::engine::map_universal_error)?;
+            .map_err(super::super::error::map_universal_error)?;
         workspace_effect_commit(tx.commit(), "workspace.close")?;
         Ok(result)
     }
@@ -75,7 +75,7 @@ impl PgRuntime {
             ));
         }
         let result = universal::mutate_workspace(&self.config.executor, request)
-            .map_err(super::engine::map_universal_error)?;
+            .map_err(super::super::error::map_universal_error)?;
         workspace_effect_commit(tx.commit(), "workspace.mutate")?;
         Ok(result)
     }
@@ -94,13 +94,13 @@ impl PgRuntime {
             ));
         }
         let record = universal::load_workspace_record(&self.config.executor, &request.workspace_id)
-            .map_err(super::engine::map_universal_error)?;
+            .map_err(super::super::error::map_universal_error)?;
         // Reuse the canonical Git status-v2 snapshot already consumed by the
         // installed Runtime. HEAD revision, attached/detached mode and dirty
         // state are one physical observation, not two speculative probes.
         let (head, head_mode, dirty) =
             universal::workspace_head_and_dirty_at(Path::new(&record.workspace_path))
-                .map_err(super::engine::map_universal_error)?;
+                .map_err(super::super::error::map_universal_error)?;
         let digest =
             universal::workspace_source_state_digest(&self.config.executor, &request.workspace_id)
                 .map_err(io)?;
@@ -130,12 +130,12 @@ impl PgRuntime {
         // Reuse the canonical physical Workspace inventory. Silently dropping
         // corrupt candidates would falsely imply that the Workspace is absent.
         let inventory = universal::list_open_workspace_record_inventory(&self.config.executor)
-            .map_err(super::engine::map_universal_error)?;
+            .map_err(super::super::error::map_universal_error)?;
         let issues = inventory
             .issues
             .into_iter()
             .map(|issue| {
-                let error = super::engine::map_universal_error(issue.error);
+                let error = super::super::error::map_universal_error(issue.error);
                 json!({
                     "workspaceId": issue.workspace_id,
                     "stage": "inventory",
@@ -203,7 +203,7 @@ impl PgRuntime {
             .map_err(io)?;
         self.require_qualified_writer_tx(&mut tx)?;
         let result = universal::create_git_workspace(&self.config.executor, request)
-            .map_err(super::engine::map_universal_error)?;
+            .map_err(super::super::error::map_universal_error)?;
         workspace_effect_commit(tx.commit(), "workspace.open")?;
         Ok(result)
     }
