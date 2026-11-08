@@ -35,6 +35,7 @@ from .contracts import (
     SystemDescription,
 )
 from .host_tools import register_host_tools
+from .http_ingress_guard import GatewayHTTPIngressGuard
 from .service import GatewayError, GatewayService
 from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
 
@@ -176,6 +177,8 @@ def build_server(
         lifespan=gateway_lifespan,
     )
     server.middleware.append(GatewayAuditMiddleware())
+    if require_http_execution_identity:
+        server.middleware.append(GatewayHTTPIngressGuard())
     if capability_authorizer is not None or protect_artifact_reads:
         server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
 
