@@ -63,7 +63,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mise install
+          # Network acquisition resilience: native mise remains the owner of
+          # tool installation/checksums. Re-run only missing pinned tools.
+          # Bounded retries avoid treating transient GitHub Release 502/504
+          # as a toolchain or repository failure.
+          for attempt in 1 2 3; do
+            if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
 
       - name: Install verified GNU Bash 5.3.20
         shell: bash
@@ -618,7 +631,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mise install
+          # Network acquisition resilience: native mise remains the owner of
+          # tool installation/checksums. Re-run only missing pinned tools.
+          # Bounded retries avoid treating transient GitHub Release 502/504
+          # as a toolchain or repository failure.
+          for attempt in 1 2 3; do
+            if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
 
       - name: Install verified GNU Bash 5.3.20
         shell: bash
@@ -708,7 +734,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mise install
+          # Network acquisition resilience: native mise remains the owner of
+          # tool installation/checksums. Re-run only missing pinned tools.
+          # Bounded retries avoid treating transient GitHub Release 502/504
+          # as a toolchain or repository failure.
+          for attempt in 1 2 3; do
+            if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
 
       - name: Install verified GNU Bash 5.3.20
         shell: bash

@@ -39,3 +39,13 @@ toolchain manager. A mismatched existing executable fails closed.
 
 Locally qualified with a fresh disposable MISE_DATA_DIR, an actual GitHub
 API 38 MB download and a native mise install/which consumer readback.
+
+
+The GitHub-hosted runner also observed transient 502/503/504 on mise's
+native aqua releases for uv and gitleaks after the official Python
+distribution was recovered. The root verification jobs therefore use
+mise install itself, limiting native install parallelism to two with a
+three-attempt outer bound. Already installed tools are reused by mise;
+checksums, Owner tests and required GitHub jobs are not skipped.
+If every attempt fails, the job exits nonzero with an explicit upstream
+network blocker, rather than reporting test PASS.

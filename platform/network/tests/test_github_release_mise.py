@@ -129,3 +129,9 @@ def test_python_release_metadata_pin_is_unambiguous() -> None:
     assert imported.PYTHON_ASSET_ID == 663549456
     assert imported.PYTHON_ASSET_SIZE == 38075450
     assert len(imported.PYTHON_EXECUTABLE_SHA256) == 64
+
+def test_github_ci_preserves_native_mise_with_bounded_download_retries() -> None:
+    workflow = (Path(__file__).parents[3] / ".github/workflows/ci.yml").read_text()
+    assert workflow.count("MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install") == 3
+    assert workflow.count("NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE") == 3
+    assert workflow.count("for attempt in 1 2 3; do") >= 3
