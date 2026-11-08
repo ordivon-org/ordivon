@@ -147,3 +147,31 @@ These Psycopg errors occur before a connection checkout; the adapter
 does not retry effects or expose DSN/internal exception messages. Other
 operational failures such as a closed pool retain the normal generic
 internal error boundary.
+
+## Native PostgreSQL pool diagnostics (MCP Host surface epoch 6)
+
+The read-only host.pool.stats MCP tool uses Psycopg's official
+ConnectionPool.get_stats() in the serving Host process. It does not
+open a new database connection, run SQL, mutate counters, or introduce a
+metrics database/collector. Direct (unpooled) test servers report
+connectionMode=direct and stats=null, rather than pretending that
+a PostgreSQL pool exists. A real Host server reports the fixed set of
+15 upstream integer fields, filling omitted upstream zero-valued keys
+with 0 and never returning credentials, DSN or private exception details.
+
+Human: inspect host.pool.stats to read pool_size/pool_available,
+requests_waiting, requests_queued, requests_errors, requests_wait_ms,
+and connections_errors while diagnosing connection pressure. Stats are
+per-process snapshots: after systemd restart, counters start fresh.
+requests_wait_ms and usage_ms are cumulative milliseconds, not
+p95/p99 latency histograms. For those quantiles, use a time-series
+telemetry consumer with correct histogram instruments rather than
+mislabelled derived averages.
+
+Agent: treat this tool as process-local operational diagnostics, not Host
+Work/Social/Attention domain truth and not PostgreSQL-cluster-wide state.
+Do not call pop_stats() from a monitoring reader: it resets counters,
+so repeated consumers would interfere with each other. Never derive
+domain acceptance, scheduling priority, or a safe command retry from
+a pool gauge alone; typed pre-checkout rejections have their own
+MCP error contract.
