@@ -61,6 +61,12 @@ port/file matching, claim a portable URL, or promote a missing
 Episode Parquet materialization to VERIFIED. Native consumers must recheck
 byte identity at their read boundary.
 
+For publication/retirement changes, reuse the Lean `formal/DataPublication.lean`
+safety model. It proves *abstract* publish-after-validate/commit and
+reclaim-after-zero-readers/retention-release, but an installed SQL/Artifact
+implementation requires independent transaction/refinement/read-back evidence.
+Do not auto-delete data based on model success alone.
+
 Formal contract: [FORMAL_VERIFICATION.md](FORMAL_VERIFICATION.md).
 Run `mise run data:formal:verify` for Lean / CrossHair evidence; the result
 is NOT a proof that path reads, source licenses, network I/O, or domain

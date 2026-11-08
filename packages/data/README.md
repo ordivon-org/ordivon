@@ -128,7 +128,7 @@ Never persist this ephemeral local URI as the canonical cross-host identity.
 - [Directory audit and decisions](docs/AUDIT_2026-11-07.md)
 - [Capability and thought LEGO inventory](docs/LEGO_CENSUS.md)
 - [Property-first formal verification / test disposition](docs/FORMAL_VERIFICATION.md)
-- Opt-in kernel/symbolic check: `mise run data:formal:verify` (Lean + CrossHair/Z3)
+- Opt-in kernel/symbolic check: `mise run data:formal:verify` (Lean DataProduct/DataPublication + CrossHair/Z3). The publication state model proves abstract safety; it does **not** implement atomic PostgreSQL commits or automatic data deletion.
 
 **Data product standard version law:** ODPS 1.1 is consumed by current historical
 products; ODPS 4.2 (released 2026-10-26) has a different document root and
