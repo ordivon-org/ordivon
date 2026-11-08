@@ -9,6 +9,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tools.formal.verify import SOURCE_FILES as _FORMAL_SOURCE_FILES
+
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "tools/repo/check_github_governance.py"
 DEPENDABOT = ROOT / ".github/dependabot.yml"
@@ -53,27 +55,16 @@ raise SystemExit(module.main())
 
 # Exact finite Formal receipt acceptance fixture for the existing GitHub consumer.
 # This models the expected checker output, not a real mathematical proof.
-_FORMAL_SOURCE_FILES = (
-    "mise.toml", "tools/formal/mise.toml", "tools/formal/verify.py",
-    "tools/formal/RecursiveLegoRefinement.lean",
-    "tools/formal/RecursiveLegoVariationFrame.lean",
-    "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
-    "capabilities/media/formal/CreativeLibraryAcceptance.lean",
-    "capabilities/media/formal/LoudnessProfileSafety.smt2",
-    "capabilities/media/src/ordivon_studio/agent_processing.py",
-    "capabilities/media/src/ordivon_studio/creative_index_library.py",
-    "capabilities/media/tests/test_creative_index.py",
-    "capabilities/media/src/ordivon_studio/qc.py",
-    "tools/formal/Proof.rs", "tools/formal/Proof.dfy",
-    "tools/formal/ProofKani.rs", "tools/formal/Proof.qnt",
-    "tools/formal/Proof.als",
-    "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
-)
+# The fixture uses the Formal producer's single qualified source universe.
+# Independent expected probes still falsify a missing or forged theorem.
+
 _FORMAL_PROBE_ORACLES = (
     ("Lean kernel R2.1 relational composition", 0),
     ("Lean kernel qualified variation frame and countermodels", 0),
     ("Lean kernel Media processing admission model", 0),
     ("Lean kernel Media Creative Library Catalog acceptance", 0),
+    ("Lean kernel Media Output byte identity", 0),
+    ("Lean kernel Media dependency impact model", 0),
     ("Z3 IEEE-754 Media loudness profile model", 0),
     ("Lean rejects false theorem", 1),
     ("Z3: sat", 0), ("Z3: unsat", 0),
@@ -617,7 +608,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                          fixture_registry / "affected_owners.py")
             shutil.copy2(ROOT / "tools/repo/owners.toml",
                          fixture_registry / "owners.toml")
-            # The real verifier consumes 13 exact source inputs; the disposable
+            # The real verifier consumes a declared source readset; the disposable
             # Git fixture must contain the same declared source universe.
             for rel in _FORMAL_SOURCE_FILES:
                 file = repo / rel
