@@ -88,6 +88,25 @@ chmod -R a+rX "$RELEASE"
 # Gateway package's existing official MCP SDK surface contract before promote.
 "$RELEASE/.venv/bin/python" "$RELEASE/packaging/windows/verify_release.py"
 
+# In a live systemd deployment, root-side SDK checks alone cannot prove that
+# the service's DynamicUser can traverse the selected interpreter/shebang.
+# Prefer the native runuser command for the explicit release service identity.
+# Keep this opt-in so disposable CI/other prefixes need no host service account.
+SERVICE_USER=${ORDIVON_GATEWAY_RELEASE_SERVICE_USER:-}
+if [ -n "$SERVICE_USER" ]; then
+  if ! command -v runuser >/dev/null 2>&1; then
+    echo "service-user preflight requires runuser" >&2
+    exit 1
+  fi
+  if ! id "$SERVICE_USER" >/dev/null 2>&1; then
+    echo "release service user is unavailable" >&2
+    exit 1
+  fi
+  runuser -u "$SERVICE_USER" -- "$RELEASE/.venv/bin/python" -c 'import ordivon_gateway'
+  runuser -u "$SERVICE_USER" -- "$RELEASE/.venv/bin/opentelemetry-instrument" --help >/dev/null
+  printf 'service_user_preflight=pass user=%s\n' "$SERVICE_USER"
+fi
+
 ln -sfn "releases/$COMMIT" "$PREFIX/current.next"
 mv -Tf "$PREFIX/current.next" "$PREFIX/current"
 

@@ -153,3 +153,24 @@ high-level path (MRTR, schema checks, header mismatch handling). Preserve
 credential-file identity per request; do not cache tokens, persist MCP sessions,
 retry effects or interpret timeout as an Owner outage. Record exact package,
 protocol mode, SourceCut, wire methods and installed consumer before opt-in.
+
+
+## R07 Gateway native Linux release interpreter preflight
+
+**Human:** For production releases, prefer an already qualified Python
+3.15.1 interpreter in the Gateway /opt deployment prefix. systemd
+DynamicUser= and ProtectHome= mean a Python executable beneath /root is
+not usable by the real service even if root can import the release.
+Pass ORDIVON_GATEWAY_RELEASE_SERVICE_USER=ordivon-gateway to the existing
+installer so it checks the installed interpreter and OpenTelemetry
+entrypoint using native runuser before moving the release pointer.
+Inspect actual systemd health and the installed source SHA after restart.
+Do not loosen the service's home-directory protection to work around a
+root-private interpreter.
+
+**Agent:** Distinguish SDK source contract, real release service UID
+execution, and running-service HTTP/Owner readback as separate evidence.
+The service-user preflight is explicitly opted in for production; never
+claim successful service admission from an unprivileged staging install.
+On 203/EXEC investigate the interpreter shebang and complete parent path,
+retain the last healthy release, and correct the interpreter location.
