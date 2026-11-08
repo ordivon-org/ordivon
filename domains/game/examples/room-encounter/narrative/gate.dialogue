@@ -1,7 +1,7 @@
 ~ start
 Guide: The passage needs one token.
-- Unlock the passage [if game.tokens > 0 /] => unlock
-- Leave without unlocking => leave
+- Unlock the passage [if game.tokens > 0 /] [#intent=unlock] => unlock
+- Leave without unlocking [#intent=leave] => leave
 
 ~ unlock
 $> game.spend_token()

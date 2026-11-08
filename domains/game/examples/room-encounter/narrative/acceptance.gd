@@ -46,11 +46,11 @@ func run_product() -> void:
     gate.show_line("start")
     await process_frame
     await process_frame
-    choices.get_child(0).pressed.emit()
-    await process_frame
-    await process_frame
+    expect(gate.choose_response("unlock"), "semantic Unlock choice is legal")
+    await gate.response_settled
     expect(rules.snapshot()["room"] == 2, "dialogue unlock invokes actual legal room advance")
     expect(not gate.visible, "dialogue hidden after transition")
+    expect(not gate.choose_response("unlock"), "cannot reselect Unlock outside cleared state")
     expect(audio.observed_play_count == 1, "dialogue does not fake combat audio")
     expect(rules.attack() and rules.attack(), "room two still playable")
     await process_frame
