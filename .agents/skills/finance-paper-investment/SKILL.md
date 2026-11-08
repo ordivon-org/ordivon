@@ -128,6 +128,39 @@ only, not valid as a Markets/Paper settlement mark. Preserve source byte
 digests and the raw downloaded bytes through the existing Artifact Owner;
 do not build a new market database or source registry.
 
+## Markets admitted ETF EOD -> Research: no retroactive publication
+
+After the existing Markets etf_eod_snapshot.admit_etf_eod_snapshot
+has bound raw source bytes, SHA256, reported source/rights/actions and
+exchange close times, use the thin Research adapter
+pit_joint_forecast.etf_eod_capture_to_pit_vintages. Do not create another
+data service, registry or financial scheduler.
+
+Every projected Research vintage uses the snapshot captured_at as its
+effective published_at even when a historic mark claims an earlier
+availableAt. A modern download cannot become a historical investor's
+pre-download data. The result is SECONDARY_VENDOR_NOT_ATTESTED with
+RAW_UNADJUSTED_ACTION_FREE_DECLARED price basis (operator-declared
+action-free window). This is not the same as provider adjusted prices
+or total-return cashflows; cross-basis ratios are rejected. A caller
+cannot self-promote source verification through a string enum. The Research
+JSON ingress also rejects boolean or numeric-string historical prices,
+rather than converting them silently to floats.
+
+Human: confirm when the source bytes were first actually observed and
+the calendar, rights and corporate action declarations; separate these
+from independently attested provider facts. The date printed in an
+old market row is not itself a historical-time witness.
+
+Agent: check forecast_evidence price_bases, source_standings, source_digests
+and as_of_utc before sending a read-only scenario tree to Portfolio.
+No investment forecast is certified by this adapter. No live or Demo
+trading and no PG Accounting authority is granted.
+
+Tests: test_pit_etf_eod_composition.py; full canonical verification:
+mise run //domains/capital:verify. Keep the existing Finance experiment
+review Skill for frozen holdout falsification.
+
 ## Direct PIT research-to-Portfolio consumer
 
 Use the existing Research `pit_joint_forecast` --solve option for frozen,

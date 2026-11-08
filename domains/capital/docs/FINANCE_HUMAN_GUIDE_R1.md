@@ -33,6 +33,16 @@
 这些模块分别归属 Markets、Portfolio、Research、Risk、Governance、Accounting、Trading 七个已有源码 Owner。**Human 先选择目的，Agent 再选择经过验证的最小 LEGO；不能反过来因为存在某个模块就自动授予它资金权限。**
 
 
+### 历史行情的两个不同时间（Human 指南）
+
+Markets ETF EOD 原始快照中的 availableAt 可能只是数据源声称的发布时间；
+capturedAt 则是本次快照声明的采集时刻。在没有独立认证的历史归档时，
+Research 一律按本次采集时刻判定整份快照可用，绝不把今天下载的旧行情
+回填到过去投资者的决策。新增 etf_eod_capture_to_pit_vintages 复用原有
+Markets 准入，保留 SECONDARY_VENDOR_NOT_ATTESTED 来源状态及价格基准，
+并通过已有 Portfolio 条件优化消费者使用，不自动证明分红、拆股、实际
+发布时间或未来投资收益。详细合同见 PIT_JOINT_FORECAST_R1.md。
+
 ### 源码 LEGO 索引：CA01—CA10 的实际消费者是什么？
 
 下表指的是当前 `planning/lego-plan-r1.json` 内**已有的源级合同**（全部标记为 IMPLEMENTED），而不是声称所有外部工具、形式化证明或真实市场接入都完成。每项是否能用于某个结果，仍由该源的实际证据决定。
