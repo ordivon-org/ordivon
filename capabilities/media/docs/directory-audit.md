@@ -222,6 +222,93 @@ FFV1 preservation master, source MP4, poster and QC contact sheet also
 matched their existing four-file SHA-256 manifest. Neither this sample nor
 tool-discovery equality grants publication authority.
 
+## 2026-11-07 follow-up: selected-action import boundary
+
+The source-only Schema split was merged. The additional consumer graph check
+showed that importing the existing selected-action dispatcher still eagerly
+imported Production, Equipment, Processing, Creative Index and learning
+implementations. This changes the current dispatcher **itself**, not a new
+registry/router: only after an existing JSON Schema accepts the selected
+action's arguments does its branch import its natural implementation.
+
+| Action family | Native import owner | Human task | Agent requirement |
+| --- | --- | --- | --- |
+| Dependency status / proposal | `agent_dependencies.py` | Know if source-declared Python/pnpm environments are ready | Only observe or propose; never install as a side effect |
+| Production standing | `agent_productions.py` | Enumerate actual work identities | Do not guess caller intent or import creative index |
+| Production context | `agent_productions.py` + `production_context.py` | Check claims, source revision and declared outputs | Validate `productionId` before loading Production context |
+| Learning context | `agent_productions.py` + `learning_context.py` | Review scoped evidence and creative learning | Do not elevate one observation to general taste |
+| Creative search | `creative_index.py` | Find existing works/rights/provenance | Read derived index without mutating sources |
+| Native profile discovery/planning | `agent_processing.py` | Select FFprobe/FFmpeg/OTIO/TTML processing contract | Bind profile and adapter digests, actual input and evidence output |
+| Equipment proposal | `equipment.py` | Choose suitable installed/editing tool | Native provider proposal is not execution or readiness |
+
+The prior full-module `python -S` cold-import sample was **35.8 ms /
+119 loaded modules**. A sample with selected-action imports deferred was
+**6.7 ms / 56 modules**. This is a local observation, not a guaranteed
+startup SLA. A separate interpreter's `studio_production_standing` call
+witnessed `agent_productions` loading without `equipment`,
+`creative_index`, `agent_processing` or `production_context`.
+Existing code continues to export `execute_surface_action`,
+`surface_projection` and unchanged nine wire schemas; action module
+imports remain static and visible in their branches (no custom plugin
+loader).
+
+**Cleanup decision:** there is no new operational reason to delete the
+Media Ecology pilot, R4/R5/R6 experiment entry points, SAPI narration
+source, creative-library derived catalog, or approved Live Relay source
+and FFV1 master. Their named tests, Production source references or
+exact source/output identities remain current. Keep those consumers;
+do not silently rewrite historical paths for aesthetic naming.
+
+## Creative Library currentness audit 鈥?2026-11-07
+
+The six source-bounded derived previews and three provenance receipt
+classes (Godot, KiCad and cross-work CAD) have matching on-disk
+SHA-256 digests. These files have current catalogue/Creative Index
+consumers and must not be deleted solely because they are derived.
+
+The current Catalog was updated on 2026-11-06 after the R1/R2 evidence
+was added to the monorepo (2026-09-21). Its file SHA-256 is
+`56bc6240f46daf16b0c57826c21f99afe0824beadc70cd2b8afa154a46e5ee0f`
+and the semantic `catalogDigest` is
+`sha256:a4aa0a483a441aee3674fb58427332cb9cb2edc36747b264535604c9f510bd04`.
+The R2 acceptance references a different digest,
+`sha256:ba53bb826b202262f44429794b2f640e4d466f67b91b69b3af7ef450103b8ad4`;
+the R1 receipt also differs. Neither legacy receipt certifies the
+selected current Catalog.
+
+**Fix in existing Creative Index:** `creative_index_library.py`
+now projects `selectedCatalogRelation` for each historical acceptance,
+checking both selected semantic digest and (if supplied) exact file digest.
+It retains `declaredStanding` as original evidence, but the index-visible
+`standing` becomes `HISTORICAL_ACCEPTANCE_NOT_CURRENT` on a mismatch.
+Missing selected Catalog is explicitly UNKNOWN. This is a mechanical
+source-bound check, not human approval or new publication.
+
+Human: inspect the current Catalog and selected previews; verify source,
+rights, review and Output standing before relying on results.
+Agent: read `selectedCatalogRelation.relation` and
+`declaredStanding` separately. Never promote a historical PASS into a
+current Catalog, physical realization or Human acceptance claim.
+
+## Formal-first substitution and verification matrix 鈥?current audit
+
+| Real area | Native specification/model evidence | Implementation and external evidence | Test decision |
+| --- | --- | --- | --- |
+| `src/ordivon_studio/creative_index_library.py`, `artifacts/creative-library/` | Lean `formal/CreativeLibraryAcceptance.lean`: current binding iff both selected identities are known and equal | 625 equality/presence representative Python refinement cases; selected Catalog and historical receipts actually loaded | Retire redundant mismatched-file specimen; retain selected Catalog-to-Index and exact SHA-256 readback |
+| `src/ordivon_studio/agent_processing.py`, `processing/` | Lean `MediaNativeProcessingAdmission.lean`: exact source-profile and adapter admission | Real digest-drift check, FFprobe/FFmpeg/OTIO/TTML native provider tests | Retain until general Python implementation refinement is proved |
+| `src/ordivon_studio/qc.py` | Z3 `LoudnessProfileSafety.smt2`: IEEE-754 finite-profile decision | Selected Python finite parameters and real FFmpeg audio | Retain mechanical and physical checks; model is not the Python implementation |
+| `src/ordivon_studio/agent_surface.py`, `schemas/` | Existing JSON Schema and read-only/non-effectful selected-action contract | Source-only discovery, invalid action rejection and selected Production call | Retain bounded implementation tests; no verified dispatch state-machine theorem |
+| `apps/`, `packages/`, `productions/`, `play/` | Native DTCG/Remotion, Production source/Output and Host ecology contract | Real rendering, editable masters, provenance and current play fixture | Retain consumer/hardware/media proof; no formal substitution yet |
+| `research/`, `scripts/`, `planning/`, `formal/`, `tests/`, `docs/` | Source-owned experiment hypotheses, R2.1 planning, source-cut native proof gate | Exact Git revision, selected R4鈥揜6 experiment and independent provider | Delete only when no final consumer; leave uncertain implementation linkage UNKNOWN |
+
+Lean-kernel checking and the 625-case finite equality quotient address different
+obligations. Neither proves arbitrary Python execution, archive PG, SHA-256
+collision resistance, browser/renderer effects or human approval. No new
+registry, orchestration runtime, formal DSL or parallel release gate was added.
+Mature tools such as CrossHair, Kani, Verus, Quint and Pacti remain conditional
+choices driven by a concrete property and available implementation-refinement
+path, not mandatory installations.
+
 ## Mature external baseline
 
 - [PyPA src-layout guidance](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/):

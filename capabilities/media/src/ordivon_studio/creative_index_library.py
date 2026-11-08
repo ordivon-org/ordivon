@@ -3,11 +3,39 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from .creative_index_source_utils import _json
+
+
+def _catalog_acceptance_relation(
+    selected_semantic: str | None,
+    accepted_semantic: str | None,
+    selected_file: str | None,
+    accepted_file: str | None,
+) -> str:
+    """Compare full source-bound Catalog identity, not a legacy PASS label.
+
+    This pure equality-only function admits current binding iff both opaque
+    semantic and exact file identities are present and equal. A missing file
+    digest is UNKNOWN, not current. The Lean model proves this abstract
+    decision law; the consumer integration still needs real byte readback.
+    """
+    if selected_semantic is None:
+        return "UNKNOWN_NO_SELECTED_CATALOG"
+    if accepted_semantic is None:
+        return "UNKNOWN_UNBOUND_ACCEPTANCE"
+    if selected_semantic != accepted_semantic:
+        return "HISTORICAL_DIFFERENT_CATALOG"
+    if selected_file is None or accepted_file is None:
+        return "UNKNOWN_UNBOUND_CATALOG_FILE"
+    if selected_file != accepted_file:
+        return "HISTORICAL_DIFFERENT_CATALOG"
+    return "MATCHES_SELECTED_CATALOG"
 
 
 def project_creative_library_source(
@@ -19,8 +47,15 @@ def project_creative_library_source(
 ) -> None:
     """Only source-owned library catalog/work evidence; never write it back."""
     catalog_path = creative_library_root / "artifacts/creative-library/catalog-v1.json"
+    selected_catalog_digest = None
+    selected_catalog_file_digest = None
     if catalog_path.is_file():
-        catalog = _json(catalog_path)
+        catalog_bytes = catalog_path.read_bytes()
+        catalog = json.loads(catalog_bytes)
+        if not isinstance(catalog, dict):
+            raise ValueError(f"expected JSON object: {catalog_path}")
+        selected_catalog_digest = catalog.get("catalogDigest")
+        selected_catalog_file_digest = "sha256:" + hashlib.sha256(catalog_bytes).hexdigest()
         catalog_relpath = str(catalog_path.relative_to(creative_library_root))
         summary = catalog.get("summary") if isinstance(catalog.get("summary"), dict) else {}
         catalog_evidence_id = "evidence:creative-library:catalog-v1"
@@ -134,6 +169,31 @@ def project_creative_library_source(
             source_repository = row.get("sourceRepo")
             source_revision = row.get("sourceRevision")
             source_path_value = row.get("sourcePath")
+        declared_standing = None
+        catalog_relation = None
+        if value.get("kind") == "ordivon.creative-library.acceptance":
+            # Earlier acceptance evidence remains historically valid as scoped
+            # observation, but an old ACCEPTED label must not be projected as
+            # acceptance of a later, changed catalog.
+            declared_standing = standing
+            accepted_digest = value.get("catalogDigest")
+            accepted_file_digest = value.get("catalogFileSha256")
+            relation = _catalog_acceptance_relation(
+                selected_catalog_digest if isinstance(selected_catalog_digest, str) else None,
+                accepted_digest if isinstance(accepted_digest, str) else None,
+                selected_catalog_file_digest,
+                accepted_file_digest if isinstance(accepted_file_digest, str) else None,
+            )
+            catalog_relation = {
+                "relation": relation,
+                "acceptedCatalogDigest": accepted_digest,
+                "selectedCatalogDigest": selected_catalog_digest,
+                "acceptedCatalogFileSha256": accepted_file_digest,
+                "selectedCatalogFileSha256": selected_catalog_file_digest,
+                "truthBoundary": "mechanical selected-catalog binding only; not human/editorial approval",
+            }
+            if relation != "MATCHES_SELECTED_CATALOG":
+                standing = "HISTORICAL_ACCEPTANCE_NOT_CURRENT"
         derived_projection = {}
         if row is not None:
             for key in (
@@ -162,6 +222,8 @@ def project_creative_library_source(
             owner="media",
             evidenceKind=value.get("kind", "creative-library"),
             standing=standing,
+            declaredStanding=declared_standing,
+            selectedCatalogRelation=catalog_relation,
             renderer=renderer_tool,
             sourcePath=str(candidate.relative_to(creative_library_root)),
             derivedProjection=derived_projection or None,

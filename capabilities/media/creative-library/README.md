@@ -56,6 +56,36 @@ python3 scripts/creative_library.py serve \
 
 Then open `http://127.0.0.1:8765/`.
 
+## Historical acceptance is source-cut scoped
+
+The catalog file was refreshed on 2026-11-06 from the PostgreSQL Archive
+source, while `artifacts/creative-library/evidence/acceptance-r1.json`
+and `acceptance-r2.json` are older observations carried into the monorepo
+on 2026-09-21. They do **not** certify the current catalog. In particular:
+
+- Current catalog file SHA-256:
+  `56bc6240f46daf16b0c57826c21f99afe0824beadc70cd2b8afa154a46e5ee0f`.
+- Current semantic `catalogDigest`:
+  `sha256:a4aa0a483a441aee3674fb58427332cb9cb2edc36747b264535604c9f510bd04`.
+- The R2 receipt's old catalog semantic digest is
+  `sha256:ba53bb826b202262f44429794b2f640e4d466f67b91b69b3af7ef450103b8ad4`.
+
+The Creative Index retains the old evidence but computes
+`selectedCatalogRelation` against the actual selected catalog. A mismatch
+is surfaced as `HISTORICAL_ACCEPTANCE_NOT_CURRENT` while the original
+`declaredStanding` is still available as historical provenance. Matching
+catalog identity is mechanical evidence **only**, not rights, human approval
+or contemporary Git/physical source availability. Because old R1 does not
+carry an exact `catalogFileSha256`, even matching semantic identity alone
+must return `UNKNOWN_UNBOUND_CATALOG_FILE`, never a current acceptance.
+The model obligation is now Lean-kernel checked in
+[`formal/CreativeLibraryAcceptance.lean`](../formal/CreativeLibraryAcceptance.lean);
+Python refinement and real byte readback have distinct evidence.
+
+These values describe this source cut. Rerun a file digest and the Index
+projection after future catalog updates; do not copy them into a persistent
+version-agnostic acceptance rule.
+
 ## Derived previews
 
 R2 adds a separate digest-bound preview layer for historical engineering/game works whose exact source roots do not already contain a useful browser-native visual carrier. These previews are never inserted into the original `carriers` array. The catalog records them as `derivedPreview`, the server exposes them only through `/derived/<work-id>`, and the UI labels them **Derived preview**.

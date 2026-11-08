@@ -10,13 +10,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from ordivon_studio.agent_surface import (
-    dependency_proposal,
-    dependency_status,
-    execute_surface_action,
-    production_standing,
-    surface_projection,
-)
+from ordivon_studio.agent_dependencies import dependency_proposal, dependency_status
+from ordivon_studio.agent_productions import production_standing
+from ordivon_studio.agent_surface import execute_surface_action, surface_projection
 
 
 class AgentSurfaceTests(unittest.TestCase):
@@ -106,7 +102,7 @@ class AgentSurfaceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)
             with mock.patch(
-                "ordivon_studio.agent_surface.production_standing"
+                "ordivon_studio.agent_productions.production_standing"
             ) as observe:
                 with self.assertRaisesRegex(ValueError, "invalid arguments"):
                     execute_surface_action(
@@ -117,7 +113,7 @@ class AgentSurfaceTests(unittest.TestCase):
                 observe.assert_not_called()
 
             with mock.patch(
-                "ordivon_studio.agent_surface.dependency_proposal"
+                "ordivon_studio.agent_dependencies.dependency_proposal"
             ) as propose:
                 with self.assertRaisesRegex(ValueError, "invalid arguments"):
                     execute_surface_action(
@@ -126,7 +122,7 @@ class AgentSurfaceTests(unittest.TestCase):
                 propose.assert_not_called()
 
             with mock.patch(
-                "ordivon_studio.agent_surface.load_equipment_world"
+                "ordivon_studio.equipment.load_equipment_world"
             ) as equipment:
                 with self.assertRaisesRegex(ValueError, "invalid arguments"):
                     execute_surface_action(
@@ -142,6 +138,30 @@ class AgentSurfaceTests(unittest.TestCase):
                 )
             with self.assertRaisesRegex(ValueError, "unsupported Studio Agent surface action"):
                 execute_surface_action("studio_not_declared", {}, root=root)
+
+    def test_selected_action_imports_only_its_natural_implementation(self) -> None:
+        """Independent Python process witnesses the real selected-action import boundary."""
+        root = Path(__file__).resolve().parents[1]
+        source = root / "src"
+        code = (
+            "import sys; "
+            f"sys.path.insert(0, {str(source)!r}); "
+            "from ordivon_studio.agent_surface import execute_surface_action; "
+            "assert not any(name.startswith(('ordivon_studio.equipment', "
+            "'ordivon_studio.creative_index', 'ordivon_studio.agent_processing', "
+            "'ordivon_studio.production_context')) for name in sys.modules); "
+            f"result=execute_surface_action('studio_production_standing', {{}}, root=__import__('pathlib').Path({str(root)!r})); "
+            "assert result['kind'] == 'ordivon.studio-production-standing'; "
+            "assert 'ordivon_studio.agent_productions' in sys.modules; "
+            "assert not any(name.startswith(('ordivon_studio.equipment', "
+            "'ordivon_studio.creative_index', 'ordivon_studio.agent_processing', "
+            "'ordivon_studio.production_context')) for name in sys.modules)"
+        )
+        result = subprocess.run(
+            [sys.executable, "-S", "-c", code],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_media_activation_boundary_precedes_studio_lowering(self) -> None:
         root = Path(__file__).resolve().parents[1]
@@ -277,9 +297,9 @@ class AgentSurfaceTests(unittest.TestCase):
             fake_index = {"nodes": [], "relations": []}
             expected = {"nodes": []}
             with mock.patch.dict("ordivon_studio.agent_surface.os.environ", {}, clear=True), mock.patch(
-                "ordivon_studio.agent_surface.build_creative_index", return_value=fake_index
+                "ordivon_studio.creative_index.build_creative_index", return_value=fake_index
             ) as build, mock.patch(
-                "ordivon_studio.agent_surface.query_creative_index", return_value=expected
+                "ordivon_studio.creative_index.query_creative_index", return_value=expected
             ):
                 result = execute_surface_action(
                     "studio_creative_index_query", {"term": "needle"}, root=root
@@ -290,8 +310,8 @@ class AgentSurfaceTests(unittest.TestCase):
 
     def test_equipment_surface_reuses_truthful_proposal_not_a_second_registry(self) -> None:
         fake = {"ready": False, "blockers": ["AUTH_REQUIRED"]}
-        with mock.patch("ordivon_studio.agent_surface.load_equipment_world", return_value={"equipment": []}), mock.patch(
-            "ordivon_studio.agent_surface.propose_operation", return_value=fake
+        with mock.patch("ordivon_studio.equipment.load_equipment_world", return_value={"equipment": []}), mock.patch(
+            "ordivon_studio.equipment.propose_operation", return_value=fake
         ) as propose:
             result = execute_surface_action(
                 "studio_equipment_propose",

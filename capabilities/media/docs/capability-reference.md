@@ -4,7 +4,7 @@
 
 | Real capability / LEGO | Natural implementation / existing mature dependency | Human task | Agent input → observed output and boundary |
 | --- | --- | --- | --- |
-| Agent tool discovery | [source-only contracts](../src/ordivon_studio/agent_surface_contracts.py), [selected dispatcher](../src/ordivon_studio/agent_surface.py) | See the available actions without installing or running a media provider | Nine stable schemas, zero provider imports for discovery; selecting an action loads real implementation and honors its own pre/post/evidence |
+| Agent tool discovery | [source-only contracts](../src/ordivon_studio/agent_surface_contracts.py), [selected dispatcher](../src/ordivon_studio/agent_surface.py) | See the available actions without installing or running a media provider | Nine stable schemas; discovery imports no providers, and validated selection imports only its needed implementation before exercising existing pre/post/evidence |
 | Media activation / representation | [Constitution](../MEDIA.md), [authority](authority.md) | Decide whether a specific expression really needs Media | Source binding → scoped observer projection; not new source truth |
 | Production / Claim / Output | [production context](../src/ordivon_studio/production_context.py), [models](media-model.md), [real works](../productions/) | Select work and review Claims | `studio_production_standing` then explicitly selected `studio_production_context`; no invented current intent |
 | Exact Blob and local CAS | [assets.py](../src/ordivon_studio/assets.py), [storage](storage-layout.md) | `ordivon-studio hash`, `archive`, `materialize` | Selected files → SHA-256 and verified recovery; Artifact/source owns bytes |

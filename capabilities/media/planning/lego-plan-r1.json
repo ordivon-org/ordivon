@@ -84,6 +84,7 @@
           "type": "predicate",
           "guarantees": [
             "projection does not become source truth",
+            "historical Creative Library acceptance needs both known exact matching semantic and file digests for current standing",
             "external owner source is not silently rewritten",
             "physical source availability alone does not establish semantic truth"
           ]
@@ -117,9 +118,10 @@
             "src/ordivon_studio/creative_index.py",
             "src/ordivon_studio/creative_index_artifact.py",
             "src/ordivon_studio/creative_index_library.py",
+            "formal/CreativeLibraryAcceptance.lean",
             "tests/test_creative_index.py"
           ],
-          "consumerEvidence": "Existing owner-native test and implementation source, not an independent machine-checked universal proof",
+          "consumerEvidence": "Lean kernel checked the bounded Creative Library two-digest model; 625 equality/presence quotient cases witness the actual Python decision; current Catalog R1/R2 readback shows historical acceptance. Other Media outputs and effects remain UNKNOWN.",
           "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
         },
         "unfold": {
@@ -1633,7 +1635,8 @@
         "Four native AV, audio loudness, timed-text and OTIO profile smoke paths pass with positive/negative cases.",
         "Exact profile/adapter digest selection is checked before plan compilation.",
         "One compiled plan was executed by Linux Runtime and yielded real FFprobe technicalQC evidence.",
-        "Source Media Production, Archive and optional Studio state are untouched by planning."
+        "Source Media Production, Archive and optional Studio state are untouched by planning.",
+        "Selected Studio action imports only its natural implementation after Schema validation; source-only tool discovery and unrelated Equipment/Creative Index/Production consumers remain unaffected."
       ],
       "evidence": [
         "src/ordivon_studio/agent_processing.py",
