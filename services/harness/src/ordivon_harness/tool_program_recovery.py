@@ -45,6 +45,7 @@ def derive_tool_program_inner_call(
     if len(prior_observations) != step_index:
         raise ValueError("ToolProgram prior observation count differs from step index")
 
+    action.require_admitted_snapshot()
     token = _action_token(action)
     by_step: dict[str, HarnessToolObservation] = {}
     for index, observation in enumerate(prior_observations):
@@ -82,6 +83,7 @@ def derive_tool_program_step_id(
         raise ValueError("ToolProgram step prefix must be non-empty, trimmed and bounded")
     if type(step_index) is not int or not 0 <= step_index < len(action.program.steps):
         raise ValueError("ToolProgram step index is outside the program")
+    action.require_admitted_snapshot()
     step = action.program.steps[step_index]
     return f"{step_prefix}:program:{_action_token(action)}:{step_index + 1}:{step.step_id}"
 
@@ -127,8 +129,8 @@ def recover_tool_program_action(
 ) -> HarnessToolProgramRecoveryProjection:
     """Reconstruct exact next work or terminal result without executing a Tool."""
 
-    # Recovery must reject mutable JSON contract drift before deriving any
-    # next effect, and use one stable action identity for all projections.
+    # Check admission identity before constructing an effect-free recovery image.
+    action.require_admitted_snapshot()
     action = HarnessToolProgramAction.from_dict(copy.deepcopy(action.to_dict()))
     if len(observations) > len(action.program.steps):
         raise ValueError("ToolProgram durable observation prefix exceeds program length")
@@ -224,8 +226,9 @@ class HarnessToolProgramActionExecutor:
     ) -> HarnessToolProgramResult:
         if type(remaining_tool_calls) is not int or remaining_tool_calls < 0:
             raise ValueError("ToolProgram remaining Tool budget must be non-negative")
-        # Freeze and revalidate the entire admitted action before Tool calls.
-        # Nested JSON mappings remain mutable despite frozen dataclasses.
+        # Verify admission identity, then snapshot for the entire effect batch.
+        # Callbacks may mutate the caller's object without changing our copy.
+        action.require_admitted_snapshot()
         action = HarnessToolProgramAction.from_dict(copy.deepcopy(action.to_dict()))
         if action.physical_tool_calls > remaining_tool_calls:
             raise ValueError("ToolProgram exceeds remaining Tool Call budget")

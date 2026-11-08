@@ -1,6 +1,7 @@
 // Request structure and admission policy qualification, separate from durable admission effects.
 // No new policy authority, side effects, or public wire surface.
-fn validate_run_request_structure(request: &JobRunRequest) -> RuntimeResult<()> {
+fn validate_run_request_structure(request:&JobRunRequest)->RuntimeResult<()>{validate_run_request_structure_mode(request,true)}
+fn validate_run_request_structure_mode(request: &JobRunRequest,legacy_count:bool) -> RuntimeResult<()> {
     if request.schema_version != RUNTIME_SCHEMA_VERSION {
         return Err(RuntimeError::invalid(
             "unsupported runtime schema version",
@@ -14,7 +15,7 @@ fn validate_run_request_structure(request: &JobRunRequest) -> RuntimeResult<()> 
     ] {
         validate_text_id(value, field)?;
     }
-    if request.global_limit == 0 {
+    if legacy_count && request.global_limit == 0 {
         return Err(RuntimeError::invalid(
             "concurrency limits must be positive",
             "globalLimit",
@@ -185,7 +186,10 @@ fn validate_exec_payload_for_target(
     }
 }
 
-pub(crate) fn validate_run_proposal_structure(proposal: &super::JobRunProposal) -> RuntimeResult<()> {
+pub(crate) fn validate_run_proposal_structure(proposal:&super::JobRunProposal)->RuntimeResult<()>{validate_run_proposal_mode(proposal,true)}
+#[cfg(feature="postgres-registry-admission")]
+pub(crate) fn validate_resource_run_proposal_structure(proposal:&super::JobRunProposal)->RuntimeResult<()>{validate_run_proposal_mode(proposal,false)}
+fn validate_run_proposal_mode(proposal: &super::JobRunProposal,legacy_count:bool) -> RuntimeResult<()> {
     let validation_request = JobRunRequest {
         schema_version: proposal.schema_version,
         client_request_id: proposal.client_request_id.clone(),
@@ -226,7 +230,7 @@ pub(crate) fn validate_run_proposal_structure(proposal: &super::JobRunProposal) 
         stdout_tail_bytes: proposal.stdout_tail_bytes,
         stderr_tail_bytes: proposal.stderr_tail_bytes,
     };
-    validate_run_request_structure(&validation_request)
+    validate_run_request_structure_mode(&validation_request,legacy_count)
 }
 
 fn validate_new_admission_policy(

@@ -824,13 +824,56 @@ PY_WORKSPACE_CLOSE
   )
 }
 
+check_runtime_resource_queue() {
+  verify_jar
+  java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY \
+    "$ROOT/formal/RuntimeResourceQueueR1.tla"
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config RuntimeResourceQueueR1.cfg RuntimeResourceQueueR1.tla)
+}
+
+falsify_runtime_resource_queue() {
+  verify_jar
+  (
+    tmp_dir=$(mktemp -d -t ordivon-resource-queue-XXXXXX)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
+    cp "$ROOT/formal/RuntimeResourceQueueR1.tla" "$tmp_dir/"
+    cp "$ROOT/formal/RuntimeResourceQueueR1.cfg" "$tmp_dir/"
+    python3 - "$tmp_dir/RuntimeResourceQueueR1.tla" <<'PY_RESOURCE_QUEUE'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+source = path.read_text(encoding="utf-8")
+guard = " /\\ CpuUsed(allocations)+Cpu(j)<=2"
+assert source.count(guard) == 1, "resource guard drift"
+path.write_text(source.replace(guard, "", 1), encoding="utf-8")
+PY_RESOURCE_QUEUE
+    local output="$tmp_dir/result.log" result
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimeResourceQueueR1.cfg RuntimeResourceQueueR1.tla) > "$output" 2>&1
+    result=$?
+    set -e
+    if [[ "$result" -ne 12 ]] ||
+      ! grep -Fxq 'Error: Invariant Capacity is violated.' "$output" ||
+      ! grep -Eq '^State [1-9][0-9]*:' "$output"; then
+      echo "Runtime resource queue negative control FAILED" >&2
+      tail -40 "$output" >&2
+      exit 1
+    fi
+    echo "Runtime resource queue negative control PASS: Capacity"
+  )
+}
+
 case "${1:-check}" in
   bootstrap) bootstrap ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
   check-dispatch) check_runtime_dispatch ;;
-  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close ;;
+  check-resource) check_runtime_resource_queue ;;
+  falsify-resource) falsify_runtime_resource_queue ;;
+  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_runtime_resource_queue ;;
   falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
-  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples ;;
+  falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_runtime_resource_queue ;;
   *)
     echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify]" >&2
     exit 2

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 import psycopg
-from psycopg.rows import dict_row
 
 from .canonical_json import canonical_digest
 from .collaboration_inputs import (
@@ -46,7 +45,7 @@ class SocialMessageCommands:
                 "recordedAtMs": value.recorded_at_ms,
             }
         )
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(
                 conn, value.client_request_id, "message.post", request_digest
             )
@@ -119,7 +118,7 @@ class SocialMessageCommands:
     ) -> dict[str, Any]:
         request = {"operation": "message.relation.add", **value.model_dump(mode="json")}
         request_digest = canonical_digest(request)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(
                 conn, client_request_id, "message.relation.add", request_digest
             )

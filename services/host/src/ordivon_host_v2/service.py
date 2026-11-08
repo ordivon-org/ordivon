@@ -4,16 +4,14 @@ import time
 from typing import Any
 
 import psycopg
-from psycopg.rows import dict_row
 
 from .canonical_json import canonical_digest
+from .postgres_connections import HostPostgresConnections
 
 REQUIRED_SCHEMA_VERSION = 13
 
 
-class HostV2:
-    def __init__(self, dsn: str) -> None:
-        self.dsn = dsn
+class HostV2(HostPostgresConnections):
 
     def initialize(self) -> None:
         """Verify that Alembic already initialized the authority schema.
@@ -22,7 +20,7 @@ class HostV2:
         Production and tests must run ``alembic upgrade head`` before Host opens authority.
         """
         try:
-            with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
+            with self._connect() as conn:
                 row = conn.execute(
                     "SELECT schema_version FROM host_v2_schema WHERE singleton"
                 ).fetchone()
@@ -41,7 +39,7 @@ class HostV2:
         if detail not in {"summary", "integrity", "history"}:
             raise ValueError("detail must be summary, integrity, or history")
         observed_at_ms = time.time_ns() // 1_000_000
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
+        with self._connect() as conn:
             schema_row = conn.execute(
                 "SELECT schema_version FROM host_v2_schema WHERE singleton"
             ).fetchone()

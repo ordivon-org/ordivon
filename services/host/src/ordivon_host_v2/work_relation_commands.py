@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 import psycopg
-from psycopg.rows import dict_row
 
 from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
@@ -22,7 +21,7 @@ class WorkRelationCommands:
         value.validate_not_self_relation()
         request = {"operation": "work.relation.add", **value.model_dump(mode="json")}
         request_digest = canonical_digest(request)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(
                 conn, client_request_id, "work.relation.add", request_digest
             )

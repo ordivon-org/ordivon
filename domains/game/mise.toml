@@ -4,7 +4,7 @@ pnpm = "12.16.1"
 godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:orbit-smt && mise run verify:room-smt && mise run test:native && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:bevy && mise run test:autonomous-study"
+run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:orbit-smt && mise run verify:room-smt && mise run test:native && mise run test:native-receipt-selftest && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:bevy && mise run test:autonomous-study"
 
 
 [tasks."test:native"]
@@ -12,24 +12,20 @@ description = "Run source-bound native Godot composition acceptance (requires in
 run = "godot --headless --path examples/native-composition --script res://assert.gd && godot --headless --path examples/native-composition --script res://assert_audio.gd"
 
 [tasks."test:encounter"]
-description = "Run native room gameplay, save/restore, and separate-process restart acceptance"
-run = """
-set -eu
-godot --headless --editor --import --path examples/room-encounter
-godot --headless --path examples/room-encounter --script res://assert.gd
-room_restart_slot_dir="$(mktemp -d)"
-trap 'rm -rf "$room_restart_slot_dir"' EXIT
-godot --headless --path examples/room-encounter --script res://assert_process_restart.gd -- --phase save --slot "$room_restart_slot_dir/run.cfg"
-godot --headless --path examples/room-encounter --script res://assert_process_restart.gd -- --phase load --slot "$room_restart_slot_dir/run.cfg"
-"""
+description = "Fail-closed native Godot battle and process-restart acceptance; script errors fail even if Godot exits 0"
+run = "python3 examples/room-encounter/native_scene_acceptance.py --suite encounter"
+
+[tasks."test:native-receipt-selftest"]
+description = "Falsify deceptive Godot exit-0+PASS receipts containing SCRIPT ERROR"
+run = "python3 examples/room-encounter/native_scene_acceptance.py --suite selftest"
 
 [tasks."test:visual-native"]
 description = "Import a real CC0 sprite pack and verify Godot PackedScene appearance substitution"
 run = "godot --headless --path examples/kenney-visual-composition --editor --import && godot --headless --path examples/kenney-visual-composition --script res://acceptance.gd && godot --headless --path examples/kenney-visual-composition --quit-after 2"
 
 [tasks."test:dialogue-native"]
-description = "Run source-locked Dialogue Manager 4.2.0 under pinned Godot: import, branches and game state"
-run = "godot --headless --path examples/room-encounter --editor --import && godot --headless --path examples/room-encounter --script res://narrative/acceptance.gd && godot --headless --path examples/room-encounter --quit-after 2"
+description = "Fail-closed real Dialogue Manager integration and native project launch"
+run = "python3 examples/room-encounter/native_scene_acceptance.py --suite dialogue"
 
 
 [tasks."test:autonomous-study"]
@@ -96,3 +92,57 @@ run = "kani examples/orbit-collector/src/rules.rs"
 [tasks."verify:room-smt"]
 description = "Prove signed i64 Godot Room arithmetic model with upstream Z3; native source acceptance is separate"
 run = "uv run --no-project --with z3-solver==4.15.4.0 python3 formal/verify_room_arithmetic.py"
+
+# Thin compositions of existing native tasks, not a second execution engine.
+[tasks."factory:validate:godot"]
+description = "Factory gate: source readers, real Godot scenes, dialogue, Agent and math model"
+run = """
+set -euo pipefail
+pnpm install --frozen-lockfile
+pnpm check
+mise run test:native
+mise run test:native-receipt-selftest
+mise run test:encounter
+mise run test:agent-episode
+mise run test:visual-native
+mise run test:dialogue-native
+mise run verify:room-smt
+echo GAME_FACTORY_GODOT_VALIDATED
+"""
+
+[tasks."factory:package:room"]
+description = "Factory preview: actual Godot acceptance, Linux/Windows export and source/package digests"
+run = """
+set -euo pipefail
+mise run factory:validate:godot
+mise run export:room-linux
+mise run export:room-windows
+test -s dist/room-encounter/room-encounter-linux-x86_64.tar.gz
+test -s dist/room-encounter/room-encounter-windows-x86_64.zip
+printf 'GAME_FACTORY_SOURCE_SHA='
+git rev-parse HEAD
+sha256sum dist/room-encounter/room-encounter-linux-x86_64.tar.gz dist/room-encounter/room-encounter-windows-x86_64.zip
+echo GAME_FACTORY_ROOM_PACKAGES_READY_NATIVE_PREVIEW_NOT_STORE_RELEASE
+"""
+
+[tasks."factory:validate:bevy"]
+description = "Factory gate: locked Rust ECS consumer and upstream Z3 model"
+run = """
+set -euo pipefail
+mise run verify:orbit-smt
+mise run test:bevy
+echo GAME_FACTORY_BEVY_VALIDATED
+"""
+
+[tasks."factory:build:bevy"]
+description = "Factory build: native Bevy executable, no installer claim"
+run = """
+set -euo pipefail
+mise run factory:validate:bevy
+mise run build:bevy
+test -s examples/orbit-collector/target/debug/orbit-collector
+printf 'GAME_FACTORY_SOURCE_SHA='
+git rev-parse HEAD
+sha256sum examples/orbit-collector/target/debug/orbit-collector
+echo GAME_FACTORY_BEVY_NATIVE_BUILD_READY_NOT_PACKAGED
+"""

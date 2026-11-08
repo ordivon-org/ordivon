@@ -205,3 +205,50 @@ sequence_desc and bounded cursor behavior.
 Proof tiers: SPECIFICATION → ABSTRACT_LEAN_THEOREM → NATIVE_SQL_REFINEMENT
 → INSTALLED_INDEX_PLAN → MCP_CONSUMER. None proves provenance or domain
 acceptance of the retrieved messages.
+
+
+## 14. Attention re-entry single-snapshot MVCC contract (2026-11-08)
+
+attention.get, attention.delta, and attention.reentry each establish one native
+PostgreSQL REPEATABLE READ, READ ONLY transaction per public call.
+For re-entry this single snapshot covers the actor's attention cursor (when
+omitted), the change horizon, the delta event projection, any adaptive maxBytes
+page reduction, and the related Topic consumption cursors. It does not hold
+a database transaction across multiple MCP calls; separate pages may
+legitimately observe later commits.
+
+Counterexample addressed: after delta captures a prior change horizon, another
+Agent commits topic.cursor.ack. Under the former multi-connection implementation
+reentry could return a Topic resume cursor from that newer commit while
+returning older delta events. The new read keeps the prior cursor; a fresh
+re-entry request sees the newer acknowledgement. No event bus, copy of messages,
+custom MVCC algorithm, schema migration or extra cross-request lock is needed.
+
+Proof tier: native PG18 tests schedule concurrent ack after _delta_in_tx
+under both pooled and direct Psycopg connections. Separate checkout-count tests
+require exactly one DB checkout per public read. These are concrete SQL/behavior
+oracles, not a general proof of future latency or all possible schedules.
+
+Human: run mise run test:postgres:disposable; distinguish Attention change
+horizons from Topic Message sequences. Agent: attention.reentry is navigation,
+not scheduling or domain acceptance. Never infer latest global state from a
+historical page; call the published tool again to obtain a fresh snapshot.
+
+## Host release SourceCut content-anchor refinement
+
+The native packaging entrypoint accepts an optional fourth argument:
+install_release.sh <repo> <main_commit> <prefix> <reviewed_host_tree_oid>.
+
+Human: obtain expected Host Git tree ID from the independently reviewed PR
+head via git rev-parse <head>:services/host; cross-check the actual merge
+event against fetched main ancestry and commit subject. Pass the reviewed
+tree ID as argument four. A wrong adjacent Merge Queue SHA with a different
+Host tree fails before directory creation, dependency resolution or symlink
+mutation. The three-argument native installation path stays compatible.
+
+Agent: never compute the expected tree from the *same untrusted release
+commit*: that would prove an identity against itself. Git native tree objects
+obviate a second hash or independent custom release registry. This is a
+content identity witness, not a signed SLSA provenance attestation or proof
+of builder identity. Continue Git chronology, Merge Queue checks, immutable
+archive verification and live MCP consumer readback. UNKNOWN remains UNKNOWN.
