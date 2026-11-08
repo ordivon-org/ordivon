@@ -80,7 +80,9 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     'services/harness/src/ordivon_harness/sqlite_store.py': 2,
     'services/harness/src/ordivon_harness/store_ops.py': 3,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/doctor.rs': 1,
-    'services/runtime/crates/ordivon-runtime-core/src/runtime/error.rs': 1,
+    # Runtime refactor: SQLite-only error conversion moved from common error.rs
+    # to backend-specific error/sqlite.rs; call count and backend authority unchanged.
+    'services/runtime/crates/ordivon-runtime-core/src/runtime/error/sqlite.rs': 1,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/inspection.rs': 1,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/inspection/operator.rs': 1,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/registry.rs': 7,
