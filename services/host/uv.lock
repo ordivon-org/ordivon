@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = "==3.15.1"
 
 [[package]]
@@ -507,7 +507,7 @@ wheels = [
 
 [[package]]
 name = "ordivon-host-v2"
-version = "0.7.0"
+version = "0.7.1"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
@@ -515,6 +515,7 @@ dependencies = [
     { name = "psycopg", extra = ["binary", "pool"] },
     { name = "pydantic" },
     { name = "rfc8785" },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -536,6 +537,7 @@ requires-dist = [
     { name = "psycopg", extras = ["binary", "pool"], specifier = "==3.3.6" },
     { name = "pydantic", specifier = ">=2,<3" },
     { name = "rfc8785", specifier = "==0.1.4" },
+    { name = "uvicorn", specifier = "==0.53.0" },
 ]
 
 [package.metadata.requires-dev]

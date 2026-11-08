@@ -55,7 +55,7 @@ def test_epoch5_surface_release_advances_package_identity_from_epoch4(tmp_path: 
     )
     assert result.returncode == 0, result.stderr
     assert "epoch=5" in result.stdout
-    assert "version=0.7.0" in result.stdout
+    assert f"version={candidate['packageVersion']}" in result.stdout
     assert "changed=true" in result.stdout
 
 

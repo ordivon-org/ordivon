@@ -93,7 +93,9 @@ def test_windows_service_identity_env_is_file_reference_only(
     assert endpoint.access_client_secret_file == client_secret
 
 
-def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_conforming_owner_uses_first_class_mcp_client(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     import ordivon_gateway.upstream as upstream
 
     observed: dict[str, object] = {}
@@ -147,6 +149,7 @@ def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.Monkey
         {
             "host": OwnerEndpoint(
                 "https://host.example/mcp",
+                bearer_token_file=_secret(tmp_path / "host-bearer", "x" * 48),
             )
         }
     )
@@ -168,7 +171,7 @@ def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.Monkey
 
 @pytest.mark.parametrize("error_carrier", ["structured", "host_text"])
 def test_host_failure_survives_real_gateway_owner_call_boundary(
-    monkeypatch: pytest.MonkeyPatch, error_carrier: str
+    monkeypatch: pytest.MonkeyPatch, error_carrier: str, tmp_path: Path
 ) -> None:
     """The MCP client's owner error must not turn into a Gateway success."""
 
@@ -218,7 +221,14 @@ def test_host_failure_survives_real_gateway_owner_call_boundary(
     monkeypatch.setattr(upstream, "create_mcp_http_client", lambda **kwargs: FakeHttpContext())
     monkeypatch.setattr(upstream, "streamable_http_client", lambda url, http_client=None: object())
     monkeypatch.setattr(upstream, "Client", FakeClient)
-    caller = McpOwnerCaller({"host": OwnerEndpoint("http://127.0.0.1:8898/mcp")})
+    caller = McpOwnerCaller(
+        {
+            "host": OwnerEndpoint(
+                "http://127.0.0.1:8898/mcp",
+                bearer_token_file=_secret(tmp_path / "host-bearer", "z" * 48),
+            )
+        }
+    )
 
     with pytest.raises(OwnerCallError) as raised:
         asyncio.run(caller.call_tool("host", "work.get", {"workRef": "work:absent"}))
@@ -268,10 +278,23 @@ def test_runtime_endpoint_requires_explicit_owner_identity_before_configured() -
     }
 
 
-def test_host_endpoint_may_remain_unauthenticated_loopback_contract() -> None:
+def test_host_endpoint_requires_explicit_service_identity(tmp_path: Path) -> None:
     caller = McpOwnerCaller({"host": OwnerEndpoint("http://127.0.0.1:8898/mcp")})
-    assert caller.is_configured("host") is True
-    assert caller.configuration_error("host") is None
+    assert caller.is_configured("host") is False
+    assert caller.configuration_error("host") == "owner authentication is not configured"
+    with pytest.raises(OwnerCallError) as captured:
+        asyncio.run(caller.call_tool("host", "work.get", {"workRef": "work:test"}))
+    assert captured.value.error["code"] == "OWNER_AUTH_NOT_CONFIGURED"
+
+    qualified = McpOwnerCaller(
+        {
+            "host": OwnerEndpoint(
+                "http://127.0.0.1:8898/mcp",
+                bearer_token_file=_secret(tmp_path / "host-bearer", "a" * 48),
+            )
+        }
+    )
+    assert qualified.is_configured("host") is True
 
 
 def test_exception_summary_exposes_nested_task_group_leaf() -> None:

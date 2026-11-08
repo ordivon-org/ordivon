@@ -211,7 +211,7 @@ class McpOwnerCaller:
         if endpoint is None:
             return "owner endpoint is not configured"
         if (
-            owner_id.startswith("runtime.") or owner_id == "skills"
+            owner_id.startswith("runtime.") or owner_id in {"skills", "host"}
         ) and not _runtime_identity_configured(endpoint):
             return "owner authentication is not configured"
         return None

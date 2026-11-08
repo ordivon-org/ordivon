@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import Counter
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -163,7 +164,10 @@ def test_invalid_observation_budget_is_rejected(timeout: float) -> None:
 
 @pytest.mark.parametrize("cancel_explicitly", [False, True])
 def test_real_sdk_legacy_cleanup_is_awaited_without_task_leaks(
-    monkeypatch: pytest.MonkeyPatch, cancel_explicitly: bool, caplog: pytest.LogCaptureFixture
+    monkeypatch: pytest.MonkeyPatch,
+    cancel_explicitly: bool,
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
 ) -> None:
     import json
 
@@ -223,8 +227,17 @@ def test_real_sdk_legacy_cleanup_is_awaited_without_task_leaks(
             "create_mcp_http_client",
             lambda **kwargs: httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
         )
+        bearer = tmp_path / "host-bearer"
+        bearer.write_text("s" * 48, encoding="utf-8")
+        bearer.chmod(0o600)
         service = GatewayService(
-            upstream.McpOwnerCaller({"host": "http://owner.test/mcp"}),
+            upstream.McpOwnerCaller(
+                {
+                    "host": upstream.OwnerEndpoint(
+                        "http://owner.test/mcp", bearer_token_file=str(bearer)
+                    )
+                }
+            ),
             projection_timeout_seconds=2 if cancel_explicitly else 0.2,
         )
         task = asyncio.create_task(service.capability_describe("continuity.external"))
