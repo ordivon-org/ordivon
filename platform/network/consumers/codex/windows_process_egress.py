@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import ipaddress
 import json
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -65,29 +66,56 @@ def observe(psutil: object, profile: Path, port: int) -> dict:
             older = modified is not None and process.create_time() < modified
         except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
             older = None
-        proxy_count = tls_count = 0
-        socket_readable = True
+        proxy_count = tls_count = public_tcp = other_tcp = 0
+        tcp_readable = True
+        malformed_remote = False
         try:
             for conn in process.net_connections(kind="tcp"):
                 if conn.status != "ESTABLISHED" or not conn.raddr:
                     continue
-                ip, remote_port = conn.raddr
+                ip, remote_port = conn.raddr[:2]
                 if ip in ("127.0.0.1", "::1") and remote_port == port:
                     proxy_count += 1
-                elif ip not in ("127.0.0.1", "::1") and remote_port == 443:
+                    continue
+                other_tcp += 1
+                if ip not in ("127.0.0.1", "::1") and remote_port == 443:
                     tls_count += 1
+                try:
+                    public_tcp += bool(ipaddress.ip_address(ip).is_global)
+                except ValueError:
+                    malformed_remote = True
         except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
-            socket_readable = False
+            tcp_readable = False
+        udp_count = None
+        try:
+            # A UDP endpoint records a local bind, not successful QUIC/DNS
+            # datagrams, their destination, or their actual forwarding path.
+            udp_count = len(process.net_connections(kind="udp"))
+        except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
+            pass
         observed.append({
             "process": process.info.get("name"),
             "pid": process.pid,
             "profileNewerThanProcess": older,
             "proxyEnvironment": env,
-            "proxyTcpSockets": proxy_count if socket_readable else None,
-            "nonlocalTlsTcpSockets": tls_count if socket_readable else None,
+            "proxyTcpSockets": proxy_count if tcp_readable else None,
+            "nonlocalTlsTcpSockets": tls_count if tcp_readable else None,
+            "otherTcpSockets": other_tcp if tcp_readable else None,
+            "publicTcpSockets": public_tcp if tcp_readable else None,
+            "publicTcpStanding": (
+                "DIRECT_PUBLIC_TCP_SOCKET_OBSERVED" if public_tcp
+                else "UNKNOWN" if not tcp_readable or malformed_remote
+                else "NOT_OBSERVED_IN_SNAPSHOT"
+            ),
+            "udpBoundEndpoints": udp_count,
+            "udpStanding": (
+                "UNKNOWN" if udp_count is None else
+                "BOUND_ENDPOINTS_NOT_DATAGRAM_FLOW" if udp_count
+                else "NOT_OBSERVED_IN_SNAPSHOT"
+            ),
             "socketObservation": (
                 socket_observation(env, proxy_count, tls_count)
-                if socket_readable else "UNREADABLE"
+                if tcp_readable else "UNREADABLE"
             ),
         })
     return {
@@ -100,7 +128,7 @@ def observe(psutil: object, profile: Path, port: int) -> dict:
             "windows-desktop-shared-carrier" if port == 19781
             else "explicitly-selected-proxy"
         ),
-        "processSocketScope": "point-in-time TCP, not complete application egress",
+        "processSocketScope": "point-in-time TCP and UDP bind metadata; no historical flows",
         "windowsSystemProxyPolicy": "NOT_EVALUATED",
         "profileExists": modified is not None,
         "observedProcessCount": len(observed),
@@ -110,7 +138,9 @@ def observe(psutil: object, profile: Path, port: int) -> dict:
             "independent same-request Gluetun Carrier forwarding",
             "all process descendants and unobserved short-lived sockets",
             "interactive-user system proxy configuration",
-            "Windows UDP/QUIC, DNS/DoH, IPv6 and direct bypass",
+            "Windows WFP permitted/blocked flow auditing",
+            "UDP/QUIC and DNS/DoH datagram destinations or content",
+            "historical, short-lived, child-process and unsampled IPv6 bypass",
         ],
     }
 
