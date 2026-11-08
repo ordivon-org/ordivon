@@ -197,8 +197,8 @@ mise run test:encounter and mise run test:dialogue-native.
 
 For rendered evidence (not headless semantics) use a private Xvfb X11
 display and the actual Godot --script res://visual_capture.gd -- --out
-/absolute/output/path. It produces four real Viewport PNG images:
-Classic, Trial, announced charge and source-backed gate dialogue.
+/absolute/output/path. It produces six real Viewport PNG images:
+Classic, Trial, native Attack outcome, announced charge, native perfect-parry outcome and source-backed gate dialogue.
 Native runtime checks focus on the semantic Unlock response plus
 bounded viewport geometry and no HUD/narrative overlap. This is
 visual QA evidence, not a Human playtest.
@@ -210,3 +210,24 @@ and is NOT claimed as passed. The Linux OpenGL capture uses Mesa
 llvmpipe, not proof of physical GPU throughput.
 
 Human study runnable protocol and empty anonymous observation template: ../../docs/room-encounter-playtest.md and ../../docs/room-encounter-playtest-template.csv. These are methods and blank tools only; no independent participant result has been collected, so Human comprehension remains UNKNOWN.
+
+## Native post-action feedback for uncoached Player Trials (2026-11-08)
+
+The optional Tactical Trial now shows a LAST MOVE result panel after each
+accepted Attack or Guard. It reports **actual** enemy damage, player HP lost,
+Guard stamina restored and whether the third-turn strike was perfectly
+parried. This uses the existing Godot state_changed then action_accepted
+signal order; the view compares its last two real Rule observations and
+never decides whether an action is legal. No new gameplay owner, save
+schema, telemetry service or online analytics is introduced. The Result
+panel is hidden in Classic mode, cleared on new encounters and compatible
+Save/Load, and absent from ConfigFile. Rejected moves do not fabricate a
+new result.
+
+The native visual_capture.gd now samples six actual rendered states including
+first-attack feedback and charged parry outcome (not human observations).
+The same visible Outcome label is in G11 player-only projected observations;
+privileged debug snapshots remain unavailable by default. Agents do not
+become Human research participants by reading this text.
+
+Rendered geometry checks passed with both the project-native 1152x648 viewport and the compact 800x500 command-line window; those two view sizes do not establish every device or accessibility requirement.

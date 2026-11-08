@@ -1,6 +1,62 @@
 extends VBoxContainer
 
+# A disposable UI projection of the previous and current Rule snapshots.
+# Never participates in action admission, save data, or game authority.
+var _prior_view_state: Dictionary = {}
+var _current_view_state: Dictionary = {}
+
+func reset_action_feedback() -> void:
+    if $Outcome.visible:
+        $Outcome.text = "AFTER YOUR MOVE: This panel will show the actual result."
+    else:
+        $Outcome.text = ""
+
+func render_combat_result(action: String) -> void:
+    # EncounterRules emits action_accepted only after state_changed. Compare
+    # the last two real native snapshots, never predict or replay a battle.
+    if not _prior_view_state.has("forecast") or _prior_view_state.get("phase") != "fighting":
+        return
+    if action not in ["attack", "guard"] or not $Outcome.visible:
+        return
+    var hp_loss: int = maxi(0, int(_prior_view_state["player_health"]) -
+        int(_current_view_state["player_health"]))
+    if action == "attack":
+        var damage: int = 0
+        if int(_current_view_state["foes"]) < int(_prior_view_state["foes"]):
+            damage = int(_prior_view_state["enemy_health"])
+        else:
+            damage = maxi(0, int(_prior_view_state["enemy_health"]) -
+                int(_current_view_state["enemy_health"]))
+        $Outcome.text = "LAST MOVE: Attack dealt %d enemy HP; you lost %d HP.%s" % [
+            damage, hp_loss,
+            " Room cleared; find the passage choice." if _current_view_state["phase"] == "cleared" else ""
+        ]
+    else:
+        var gained: int = maxi(0, int(_current_view_state["stamina"]) -
+            int(_prior_view_state["stamina"]))
+        if _prior_view_state["forecast"].get("charged", false):
+            $Outcome.text = (
+                "LAST MOVE: PERFECT PARRY blocked the announced %d damage; "
+                + "gained %d stamina; you lost %d HP."
+            ) % [int(_prior_view_state["forecast"]["threat_damage"]), gained, hp_loss]
+        else:
+            $Outcome.text = "LAST MOVE: Guard gained %d stamina; you lost %d HP." % [
+                gained, hp_loss
+            ]
+
 func render_state(state: Dictionary) -> void:
+    _prior_view_state = _current_view_state
+    _current_view_state = state.duplicate(true)
+    $Outcome.visible = (state.has("forecast") or (
+        _prior_view_state.has("forecast") and state["phase"] in ["cleared", "lost"]
+    ))
+    if $Outcome.visible and (
+        int(state["turn"]) == 0 or
+        (not _prior_view_state.is_empty() and state["room"] != _prior_view_state["room"])
+    ):
+        reset_action_feedback()
+    elif not $Outcome.visible:
+        $Outcome.text = ""
     var forecast: Dictionary = state.get("forecast", {})
     $Hint.visible = state["phase"] == "fighting" and not forecast.is_empty()
     if $Hint.visible:

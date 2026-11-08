@@ -170,3 +170,16 @@ not human enjoyment or physical GPU performance.
 Layer 5: uncoached independent Human comprehension/playtesting
 (UNKNOWN); the single source method is docs/room-encounter-playtest.md.
 Do not extrapolate automatic gameplay traces into user preference.
+
+## Human-visible post-action evidence (2026-11-08)
+
+Godot's existing Rule state_changed and action_accepted Signals are also
+consumed by the Room Encounter HUD to show actual Attack/Guard outcomes,
+including damage, HP lost, stamina restored, and charged parry. This is
+an ephemeral presentation-only projection of two successive native Rule
+observations, not a new state authority or storage format. Only the Trial
+mode renders it. The existing G11 Agent player observer reads the same
+visible label without privileged debug fields. The rendered six-frame
+capture can verify screen geometry, but human comprehension or usability
+still requires independent Human participation under
+room-encounter-playtest.md.
