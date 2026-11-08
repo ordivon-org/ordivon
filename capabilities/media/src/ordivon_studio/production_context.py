@@ -124,27 +124,29 @@ def _output_blob_observation(
 ) -> dict[str, Any]:
     """One bounded, read-only byte comparison, not approval or publication.
 
-    A declared source carrier is an exact-byte promise. Transformed outputs
-    require an explicit consumer-selected file; they cannot be inferred from
-    unrelated source bytes, paths, statuses, or historical receipts.
+    A sourceCarrier is an exact-byte source assertion; outputCarrier names
+    one owner-declared local materialization of a transformed Output.
+    Neither a local path nor an explicit consumer-selected file proves
+    ongoing availability, domain acceptance, or publication.
     """
     expected = output.get("blobDigest")
     carrier = output.get("sourceCarrier")
+    output_carrier = output.get("outputCarrier")
     row: dict[str, Any] = {
         "outputId": output.get("id"),
         "declaredStatus": output.get("status"),
         "expectedBlobDigest": expected,
         "sourceCarrier": carrier,
+        "outputCarrier": output_carrier,
         "sourceSelection": None,
         "relation": "UNKNOWN_NO_SELECTED_BYTES",
         "observedBlob": None,
     }
     selected: Path | None = None
-    if selected_file is not None:
-        row["sourceSelection"] = "explicit-consumer-file"
-        selected = selected_file
-    elif carrier is not None:
-        row["sourceSelection"] = "declared-exact-source-carrier"
+    if carrier is not None and output_carrier is not None:
+        row["relation"] = "INVALID_MULTIPLE_CARRIERS"
+        return row
+    if carrier is not None:
         if not isinstance(carrier, str) or carrier not in declared_source_files:
             row["relation"] = "INVALID_UNDECLARED_SOURCE_CARRIER"
             return row
@@ -153,6 +155,20 @@ def _output_blob_observation(
         except ValueError:
             row["relation"] = "INVALID_ESCAPING_SOURCE_CARRIER"
             return row
+        row["sourceSelection"] = "declared-exact-source-carrier"
+    elif output_carrier is not None:
+        if not isinstance(output_carrier, str) or not output_carrier or "\\" in output_carrier:
+            row["relation"] = "INVALID_OUTPUT_CARRIER"
+            return row
+        try:
+            selected = _relative_child(root, output_carrier)
+        except ValueError:
+            row["relation"] = "INVALID_ESCAPING_OUTPUT_CARRIER"
+            return row
+        row["sourceSelection"] = "declared-local-output-carrier"
+    if selected_file is not None:
+        row["sourceSelection"] = "explicit-consumer-file"
+        selected = selected_file
     if selected is None:
         return row
     row["selectedPath"] = str(selected.resolve())
@@ -263,7 +279,7 @@ def build_production_context(
         projected_outputs.append(
             {
                 key: output[key]
-                for key in ("id", "kind", "status", "profile", "blobDigest")
+                for key in ("id", "kind", "status", "profile", "blobDigest", "outputCarrier")
                 if key in output
             }
         )
@@ -295,8 +311,9 @@ def build_production_context(
             "publicationAuthorization": "not-evaluated",
             "rule": (
                 "Digest equality establishes only observed byte identity at inspection. "
-                "Missing bindings are UNKNOWN, not FALSE. Neither Output status, physical "
-                "file equality, nor historical receipts authorize publication."
+                "Missing bindings are UNKNOWN, not FALSE. Declared outputCarrier paths "
+                "are local materializations, not durable Artifact ownership. Neither Output "
+                "status, file equality, nor historical receipts authorize publication."
             ),
             "observations": output_observations,
         },

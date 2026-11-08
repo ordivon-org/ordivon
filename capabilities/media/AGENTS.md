@@ -48,9 +48,14 @@ Use existing `.agents/skills/design-structure-matrix` for observed coupling and 
 
 Use the existing `production-context` operation, not a second asset registry.
 The projection exposes `outputByteIdentity.observations` next to owner-declared
-Output metadata. For a declared `sourceCarrier`, it reads the source path
-within the selected Production and compares SHA-256. For a transformed output
-(video, audio, rendered image, etc.), select the *actual final file* explicitly:
+Output metadata. The source-owned `sourceCarrier` names a declared source
+that is byte-identical to the Output. A different opt-in field,
+`outputCarrier`, names a Production-relative materialized output (e.g.
+`render/master.wav`), never its original source or Artifact storage owner.
+The consumer checks actual bytes in both cases at read time.
+
+For rendered outputs without a declared local carrier (notably external
+Resolve/R2 carriers), select the *actual final file* explicitly:
 
 ```bash
 cd capabilities/media
@@ -73,8 +78,11 @@ destination. Never infer publication authorization from `approved`.
 **Agent:** first select the Production by caller intent. Read
 `studio_production_context` with optional typed `outputFiles` (Output ID
 to selected absolute file path), or use the CLI with `--output-file`.
-Both check declared source carriers by default and compare explicitly selected
-transformed outputs when requested. Require exact `MATCHES_DECLARED_DIGEST` on the selected output before
+Both check declared source and local output carriers by default and compare
+explicitly selected transformed outputs when requested. An inaccessible
+`outputCarrier` returns `UNKNOWN_SELECTED_FILE_UNAVAILABLE`, rather than
+revoking historical Output status. Require exact `MATCHES_DECLARED_DIGEST`
+on the selected output before
 asserting local byte identity; preserve `UNKNOWN` and `DIFFERS` and name
 the actual bound path and SourceCut in the decision. Do not infer physical
 availability from Creative Index, or trust a historical Runtime receipt as

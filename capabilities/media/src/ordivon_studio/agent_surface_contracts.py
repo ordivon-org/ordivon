@@ -34,7 +34,7 @@ def tool_definitions() -> list[dict[str, Any]]:
         },
         {
             "name": "studio_production_context",
-            "description": "Read one selected Studio Production as a bounded owner-native context projection with source/Claim/Output standing and optional exact output-file byte comparison. outputFiles maps Output IDs to explicitly selected local paths. This never renders, edits, publishes, or infers semantic currentness.",
+            "description": "Read one selected Studio Production with source/Claim/Output standing and exact byte observations for declared sourceCarrier/outputCarrier. Optional outputFiles maps Output IDs to explicitly selected file paths. This never renders, edits, publishes, or infers semantic currentness.",
             "inputSchema": {
                 "type": "object",
                 "properties": {

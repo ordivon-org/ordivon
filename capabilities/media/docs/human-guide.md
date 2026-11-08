@@ -47,9 +47,11 @@ The context is a read-only projection, not a render or publication action. Use `
 ## Verify the bytes of a selected Output
 
 Choose the actual Production and one Output. The read-only Production Context
-now includes `outputByteIdentity`. If the Output declares a `sourceCarrier`,
-its exact current file bytes are compared with the Output's declared SHA-256.
-For rendered/encoded Outputs, supply the actual local final file:
+now includes `outputByteIdentity`. A `sourceCarrier` names bytes directly
+taken from a declared source; an `outputCarrier` names a locally materialized,
+possibly transformed deliverable. Both are Production-relative, SHA-256
+checked when inspected, and separate from rights or publication. For an
+external rendered/encoded Output with neither carrier, supply the actual file:
 
 ```bash
 cd capabilities/media
@@ -61,8 +63,9 @@ uv run --frozen ordivon-studio production-context \
 `MATCHES_DECLARED_DIGEST` verifies only the observed bytes at inspection.
 `DIFFERS_FROM_DECLARED_DIGEST` means the selected file does not match the
 declared Output; `UNKNOWN_*` means no usable byte observation was made.
-The original Output status (e.g., `approved`) and parent Production status
-remain independently source-owned. A matching digest never grants rights,
+An absent local `outputCarrier` yields UNKNOWN, without invalidating the
+historical Output. The original Output status (e.g., `approved`) and parent
+Production status remain independently source-owned. A matching digest never grants rights,
 human approval or authorization to publish; those need separate real evidence.
 
 ## Inspect technical processing options

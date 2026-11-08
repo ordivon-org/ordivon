@@ -165,12 +165,20 @@ if both are known, equality/mismatch is decisive for *byte identity only*.
 The Output lifecycle state is preserved independent of this observation.
 No `sorry`, `axiom` or `admit` is permitted; the existing
 `tools/formal/verify.py` and CI source-scoped gate register this proof,
-the Python producer, and its integration test as exact source inputs.
+the Python producer, the Production Schema/semantic validator, and bounded
+consumer tests as exact source inputs. Eight real Production manifests now
+declare 18 previously unbound local Output carriers; those actual files are
+checked by consumer tests, not by the abstract Lean theorem.
 
 The actual Python producer `production_context.py` reuses `assets.hash_file`;
 `tests/test_production_context.py` checks a genuine approved source-carrier
 consumer and mutated, unavailable, unauthorized-path and explicitly chosen
-transformed-file cases. This is a bounded **implementation witness**, not a
+transformed-file cases. Local `outputCarrier` and historical
+`sourceCarrier` remain distinct; the former can become physically unavailable
+without logically negating its historical Output declaration. The schema
+rejects ambiguous dual-carrier claims; semantic validation checks opt-in
+present bytes and read-only projections preserve UNKNOWN for missing files.
+This is a bounded **implementation witness**, not a
 kernel proof of Python, SHA-256 correctness, filesystem transactionality or
 liveness. File bytes can change after inspection. The source-owned Output
 status, domain Claims and publication remain separate authorities.

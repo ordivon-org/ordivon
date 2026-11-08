@@ -42,21 +42,24 @@
       "kind": "image",
       "status": "approved",
       "profile": "editable-svg-1600x1000",
-      "blobDigest": "sha256:51abed191124000f3457b0cf94f1ab002fbe5a88664cc72d94650491c7867b31"
+      "blobDigest": "sha256:51abed191124000f3457b0cf94f1ab002fbe5a88664cc72d94650491c7867b31",
+      "outputCarrier": "render/ordivon-system-constellation.svg"
     },
     {
       "id": "system-constellation-png",
       "kind": "image",
       "status": "approved",
       "profile": "png-inspection-1600x1000",
-      "blobDigest": "sha256:b13d7497e5693c33e555780f3fdfb2faae982b6bd43504a63cb6ac05e8d5d56e"
+      "blobDigest": "sha256:b13d7497e5693c33e555780f3fdfb2faae982b6bd43504a63cb6ac05e8d5d56e",
+      "outputCarrier": "render/ordivon-system-constellation.png"
     },
     {
       "id": "system-constellation-gpkg",
       "kind": "publication-package",
       "status": "approved",
       "profile": "geopackage-vector-local-engineering-crs",
-      "blobDigest": "sha256:9429fd06b37dcde665909addb28d9afcffe910720f0050b93e5ef9aaab29e6fa"
+      "blobDigest": "sha256:9429fd06b37dcde665909addb28d9afcffe910720f0050b93e5ef9aaab29e6fa",
+      "outputCarrier": "render/ordivon-system-constellation.gpkg"
     }
   ]
 }
