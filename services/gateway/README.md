@@ -232,6 +232,34 @@ transport, so a Gateway timeout does not prove Owner failure.
 Run Gateway source tests plus native loopback and installed-Owner
 readback to distinguish transport correctness from deployed availability.
 
+### Verified Owner protocol pin (opt-in; MCP SDK native)
+
+With upstream MCP Python SDK v2, `Client(mode="auto")` probes
+`server/discover` and falls back to a legacy initialize handshake. For
+**a specifically verified** Windows Runtime that supports the 2026-07-28
+stateless MCP protocol, set `ORDIVON_GATEWAY_WINDOWS_RUNTIME_MCP_MODE=2026-07-28`
+on the Gateway service. The SDK then sends the tool request directly,
+without the per-call discovery round trip. The default remains `auto`
+for every Owner, including Windows, and `legacy` remains available if
+a confirmed Owner depends on handshake-era features. Invalid values
+fail closed during Owner endpoint construction.
+
+This is only an SDK connection-mode selection. It changes neither
+access credentials, per-request Authorization headers, Endpoint identity,
+Owner execution/admission authority, cancellation, nor HTTP connection
+pooling. Version pinning must be tested with real Owner `runtime.describe`
+under the Gateway service identity, including an unsupported-version
+negative control. A future incompatible Owner upgrade must remove or
+change the pin before deployment; the fixed modern mode does not silently
+fall back to an older protocol. The upstream Client may perform the
+spec-defined one-time re-list and resend after a `HEADER_MISMATCH` rejection,
+which a conforming server rejects before dispatch; Gateway adds no
+application-level retries. Validate that the actual Owner enforces the
+header/body boundary, especially for effectful Tools, and preserves
+idempotent request IDs. Avoid enabling the pin solely from the SDK
+package version. Gateway cancellation warnings remain bounded by the
+existing observation deadline. See the Gateway Owner R04/R05 guidance.
+
 ## Contextual readiness projection (not a tool registry)
 
 Each Gateway CapabilityDescriptor includes the computed `readiness_state`:

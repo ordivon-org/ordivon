@@ -37,6 +37,9 @@ from .upstream_identity import (
 
 _LOG = logging.getLogger("ordivon_gateway.upstream")
 
+# SDK-supported choices; this is not a new Gateway protocol or a cache.
+_SUPPORTED_OWNER_MCP_MODES = frozenset({"auto", "legacy", "2026-07-28"})
+
 
 def _exception_summary(exc: BaseException, *, limit: int = 4) -> str:
     leaves: list[BaseException] = []
@@ -137,11 +140,17 @@ class McpOwnerCaller:
                 raise OwnerCallError(
                     "owner bearer and Cloudflare Access service identity are mutually exclusive"
                 )
+            if endpoint.mcp_mode not in _SUPPORTED_OWNER_MCP_MODES:
+                raise OwnerCallError(
+                    "unsupported MCP SDK protocol mode for configured Owner",
+                    owner_id=owner_id,
+                )
             normalized[owner_id] = OwnerEndpoint(
                 url=url,
                 bearer_token_file=endpoint.bearer_token_file,
                 access_client_id_file=endpoint.access_client_id_file,
                 access_client_secret_file=endpoint.access_client_secret_file,
+                mcp_mode=endpoint.mcp_mode,
             )
         self._owners = normalized
         # One HTTP connection pool per natural Owner. MCP Client protocol
@@ -179,6 +188,7 @@ class McpOwnerCaller:
                 "bearer": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_BEARER_TOKEN_FILE",
                 "access_id": "ORDIVON_GATEWAY_WINDOWS_ACCESS_CLIENT_ID_FILE",
                 "access_secret": "ORDIVON_GATEWAY_WINDOWS_ACCESS_CLIENT_SECRET_FILE",
+                "mcp_mode": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_MCP_MODE",
             },
             "host": {
                 "url": "ORDIVON_GATEWAY_HOST_URL",
@@ -198,11 +208,14 @@ class McpOwnerCaller:
             access_secret_key = keys.get("access_secret")
             access_id = os.environ.get(str(access_id_key)) if access_id_key else None
             access_secret = os.environ.get(str(access_secret_key)) if access_secret_key else None
+            mode_key = keys.get("mcp_mode")
+            mcp_mode = os.environ.get(str(mode_key), "auto").strip() if mode_key else "auto"
             owners[owner_id] = OwnerEndpoint(
                 url=url,
                 bearer_token_file=token_file.strip() if token_file else None,
                 access_client_id_file=access_id.strip() if access_id else None,
                 access_client_secret_file=access_secret.strip() if access_secret else None,
+                mcp_mode=mcp_mode,
             )
         return cls(owners)
 
@@ -247,7 +260,7 @@ class McpOwnerCaller:
             )
             # The SDK owns negotiation; the only shared object is the HTTP pool.
             phase = "session_open"
-            async with Client(transport, mode="auto", raise_exceptions=False) as client:
+            async with Client(transport, mode=endpoint.mcp_mode, raise_exceptions=False) as client:
                 phase = "tool_call"
                 meta: dict[str, Any] = {}
                 inject_trace_context(meta)
