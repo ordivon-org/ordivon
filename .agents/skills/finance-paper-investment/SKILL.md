@@ -143,7 +143,9 @@ pre-download data. The result is SECONDARY_VENDOR_NOT_ATTESTED with
 RAW_UNADJUSTED_ACTION_FREE_DECLARED price basis (operator-declared
 action-free window). This is not the same as provider adjusted prices
 or total-return cashflows; cross-basis ratios are rejected. A caller
-cannot self-promote source verification through a string enum.
+cannot self-promote source verification through a string enum. The Research
+JSON ingress also rejects boolean or numeric-string historical prices,
+rather than converting them silently to floats.
 
 Human: confirm when the source bytes were first actually observed and
 the calendar, rights and corporate action declarations; separate these

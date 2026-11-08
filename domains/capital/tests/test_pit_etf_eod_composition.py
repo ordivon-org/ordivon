@@ -20,6 +20,7 @@ from ordivon_capital.research.pit_joint_forecast import (
     PriceVintage,
     empirical_joint_forecast,
     etf_eod_capture_to_pit_vintages,
+    from_json_payload,
     point_in_time_prices,
     solve_pit_payload,
 )
@@ -167,3 +168,47 @@ def test_corporate_actions_and_capture_boundaries_remain_market_owner_authority(
         admit(request)
     with pytest.raises(SnapshotAdmissionError, match="captured after"):
         admit(source(), decision="2026-04-30T22:00:00Z")
+
+
+
+def test_python_bool_cannot_become_a_price_vintage():
+    with pytest.raises(PointInTimeError, match="positive finite"):
+        PriceVintage(
+            asset="A", session=date(2026, 1, 30),
+            published_at=datetime(2026, 1, 30, 21, tzinfo=UTC),
+            adjusted_close=True, raw_source_sha256="a" * 64,
+            source_standing="SECONDARY_VENDOR_NOT_ATTESTED",
+        )
+
+
+@pytest.mark.parametrize("coercible", [True, False, "100", "1e4"])
+def test_research_json_does_not_coerce_invalid_price_types(coercible):
+    payload = {
+        "as_of": "2026-02-28T12:00:00Z",
+        "valuation_session": "2026-02-27",
+        "assets": ["A"],
+        "valuation_sessions": ["2026-01-30", "2026-02-27"],
+        "prices": [
+            {
+                "asset": "A", "session": "2026-01-30",
+                "published_at": "2026-01-30T21:00:00Z",
+                "adjusted_close": coercible,
+                "raw_source_sha256": "a" * 64,
+                "source_standing": "SECONDARY_VENDOR_NOT_ATTESTED",
+            },
+            {
+                "asset": "A", "session": "2026-02-27",
+                "published_at": "2026-02-27T21:00:00Z",
+                "adjusted_close": 110.0,
+                "raw_source_sha256": "b" * 64,
+                "source_standing": "SECONDARY_VENDOR_NOT_ATTESTED",
+            },
+        ],
+        "economic_contract": {
+            "gamma": 2.0, "initial_margin": [0.5], "turnover_cost": [0.001],
+            "maintenance_by_asset": [0.3], "cash_gross": 1.0,
+            "debt_gross": 1.01,
+        },
+    }
+    with pytest.raises(PointInTimeError, match="JSON price"):
+        from_json_payload(payload)

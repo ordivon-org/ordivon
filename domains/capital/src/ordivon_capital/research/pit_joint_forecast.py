@@ -33,7 +33,12 @@ def _utc(instant: datetime) -> datetime:
 
 
 def _finite_positive(x: float) -> bool:
-    return isinstance(x, (int, float)) and math.isfinite(x) and x > 0
+    return (
+        isinstance(x, (int, float))
+        and not isinstance(x, bool)
+        and math.isfinite(x)
+        and x > 0
+    )
 
 
 @dataclass(frozen=True)
@@ -739,11 +744,14 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         raise PointInTimeError("expected exact data and economic-contract input fields")
 
     def record(raw: Mapping[str, Any]) -> PriceVintage:
+        numeric_price = raw["adjusted_close"]
+        if type(numeric_price) not in (int, float) or not _finite_positive(numeric_price):
+            raise PointInTimeError("JSON price must be a positive finite number")
         return PriceVintage(
             asset=raw["asset"],
             session=date.fromisoformat(raw["session"]),
             published_at=datetime.fromisoformat(raw["published_at"]),
-            adjusted_close=float(raw["adjusted_close"]),
+            adjusted_close=float(numeric_price),
             raw_source_sha256=raw["raw_source_sha256"],
             source_standing=raw["source_standing"],
             price_basis=raw.get("price_basis", "PROVIDER_ADJUSTED_CLOSE_UNATTESTED"),

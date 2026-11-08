@@ -54,7 +54,10 @@ remain SECONDARY_VENDOR_NOT_ATTESTED.
 
 The read-only adapter limits its float research values to exactly
 representable integer USD cents, without changing Markets source limits;
-no market/provider/Accounting write effects occur.
+no market/provider/Accounting write effects occur. The parallel Research JSON
+ingress accepts only genuine positive finite numeric price values:
+boolean and numeric-string coercions are forbidden, because even a JSON
+true could otherwise become a spurious 1.0 price.
 
 Mature reference semantics: Databento distinguishes ts_event and ts_recv
 (https://databento.tech/docs/conventions/common-fields-enums-types);
