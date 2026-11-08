@@ -47,6 +47,14 @@ ledger transfer observation; None preserves historical full-post semantics.
 An isolated PostgreSQL test cluster and the Accounting Z3 integer model
 verify the bounded local accounting properties.
 
+**PG state-refinement witness.** A durable reservation comparison now requires
+both the pending transfer's actual PostgreSQL status and the terminal transfer
+status. RESERVED must observe PENDING; RELEASED requires VOIDED; CONSUMED
+requires POSTED. A missing status is INCOMPLETE_NO_REPAIR, not a certified
+MATCH; contradictory status is CONTRADICTION_NO_REPAIR. Native PG consumers
+must pass the status returned by ledger.transfer() into
+LedgerTransferObservation rather than inventing a local terminal outcome.
+
 This capability is **not** a Trading authorization or automatic per-fill
 settlement. With missing provider-certified final state, denomination,
 fee treatment or original reservation identity, retain

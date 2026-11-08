@@ -72,6 +72,7 @@ class LedgerTransferObservation:
     operation: AccountingOperation
     amount: int
     pending_id: int = 0
+    status: str | None = None
 
 
 @dataclass(frozen=True)
@@ -147,6 +148,20 @@ def reconcile_durable_history(
             "ledger reservation transfer contradicts the exact reservation binding",
         )
 
+    expected_pending_status = {
+        ReservationStanding.RESERVED: "PENDING",
+        ReservationStanding.RELEASED: "VOIDED",
+        ReservationStanding.CONSUMED: "POSTED",
+    }[history.standing]
+    if pending.status != expected_pending_status:
+        return _result(
+            LedgerReconciliationStanding.LEDGER_INCOMPLETE_NO_REPAIR
+            if pending.status is None
+            else LedgerReconciliationStanding.CONTRADICTION_NO_REPAIR,
+            history,
+            "ledger reservation status is missing or contradicts durable history",
+        )
+
     if history.standing is ReservationStanding.RESERVED:
         if resolution is None:
             return _result(
@@ -187,6 +202,17 @@ def reconcile_durable_history(
             LedgerReconciliationStanding.CONTRADICTION_NO_REPAIR,
             history,
             "ledger resolution contradicts exact terminal reservation history",
+        )
+    expected_resolution_status = (
+        "POSTED" if operation is AccountingOperation.POST_PENDING_TRANSFER else "VOIDED"
+    )
+    if resolution.status != expected_resolution_status:
+        return _result(
+            LedgerReconciliationStanding.LEDGER_INCOMPLETE_NO_REPAIR
+            if resolution.status is None
+            else LedgerReconciliationStanding.CONTRADICTION_NO_REPAIR,
+            history,
+            "ledger terminal resolution status is missing or contradicts durable history",
         )
     if resolution.amount != expected.amount:
         return _result(

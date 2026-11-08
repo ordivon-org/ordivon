@@ -112,7 +112,10 @@ POSTED is terminal even when the posted amount is smaller than reserved:
 another POST, VOID, or amount-changing replay cannot post again.
 DurableReservationHistory(CONSUMED, posted_amount=...) must match the exact
 read-back amount; absent explicit amount means the historical full-post case.
-Independent Z3 model obligations and disposable PostgreSQL concurrency
+Durable PG refinement requires the original pending transfer and terminal
+resolution to carry their actual persisted statuses; missing or inconsistent
+status is not a successful MATCH. Independent Z3 model obligations and
+disposable PostgreSQL concurrency
 tests cover this bounded invariant, not venue or source authenticity.
 
 Trading still returns PARTIAL_EXECUTION_UNSETTLED / NO_MUTATION for an

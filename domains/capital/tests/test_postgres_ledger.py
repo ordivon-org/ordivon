@@ -377,3 +377,59 @@ def test_pg_partial_resolve_competing_once():
         assert actual.debits_pending == 0
         assert actual.debits_posted in (240, 310)
         assert ledger.account(ns.encumbrance_account_id).credits_posted == actual.debits_posted
+
+
+
+def test_pg_partial_post_readback_refines_history_including_status():
+    assert DSN
+    from ordivon_capital.accounting.durable import (
+        DurableReservationHistory,
+        LedgerReconciliationStanding,
+        LedgerTransferObservation,
+        ReservationStanding,
+        reconcile_durable_history,
+    )
+    ns = CapitalAccountNamespace("owner:partial", "parcel:usd:durable-refinement")
+    fund = AccountingAccount(stable_accounting_id("partial-refinement", "fund"))
+    b = binding_for_namespace(namespace=ns, reservation_ref="partial:refinement", amount=700)
+    resolution = resolution_instruction(
+        binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+        resolution_ref="partial:refinement:post", posted_amount=240,
+    )
+    assert resolution is not None
+    with PostgresAccountingLedger(DSN) as ledger:
+        for account in (fund, ns.account(CapitalAccountRole.AVAILABLE),
+                        ns.account(CapitalAccountRole.ENCUMBRANCE)):
+            assert ledger.create_account(account) is LedgerApplyStatus.CREATED
+        assert ledger.apply_immediate_transfer(
+            transfer_id=stable_accounting_id("partial-refinement", "funding"),
+            debit_account_id=fund.account_id, credit_account_id=ns.available_account_id,
+            amount=1000,
+        ) is LedgerApplyStatus.CREATED
+        assert ledger.apply_instruction(reservation_instruction(b)) is LedgerApplyStatus.CREATED
+        assert ledger.apply_instruction(resolution) is LedgerApplyStatus.CREATED
+    with PostgresAccountingLedger(DSN) as ledger:
+        p = ledger.transfer(b.pending_transfer_id)
+        r = ledger.transfer(resolution.transfer_id)
+        assert p is not None and r is not None
+        assert p.status == "POSTED" and r.status == "POSTED"
+        pending = LedgerTransferObservation(
+            p.transfer_id, AccountingOperation.PENDING, p.amount, 0, status=p.status
+        )
+        terminal = LedgerTransferObservation(
+            r.transfer_id, AccountingOperation.POST_PENDING_TRANSFER,
+            r.amount, r.pending_id, status=r.status,
+        )
+        history = DurableReservationHistory(
+            b, ReservationStanding.CONSUMED, "partial:refinement:post", posted_amount=240
+        )
+        verified = reconcile_durable_history(
+            history=history, pending=pending, resolution=terminal
+        )
+        assert verified.standing is LedgerReconciliationStanding.MATCH
+        forged = LedgerTransferObservation(
+            p.transfer_id, AccountingOperation.PENDING, p.amount, 0, status="PENDING"
+        )
+        assert reconcile_durable_history(
+            history=history, pending=forged, resolution=terminal
+        ).standing is LedgerReconciliationStanding.CONTRADICTION_NO_REPAIR

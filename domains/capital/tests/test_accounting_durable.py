@@ -31,12 +31,13 @@ def binding():
     )
 
 
-def pending_obs():
+def pending_obs(status: str = 'PENDING'):
     b = binding()
     return LedgerTransferObservation(
         transfer_id=b.pending_transfer_id,
         operation=AccountingOperation.PENDING,
         amount=b.amount,
+        status=status,
     )
 
 
@@ -53,6 +54,9 @@ def terminal_obs(operation: AccountingOperation, resolution_ref: str):
         operation=instruction.operation,
         amount=instruction.amount,
         pending_id=instruction.pending_id,
+        status=(
+            "POSTED" if operation is AccountingOperation.POST_PENDING_TRANSFER else "VOIDED"
+        ),
     )
 
 
@@ -96,7 +100,7 @@ def test_consumed_history_survives_missing_resolution_without_reopening():
             ReservationStanding.CONSUMED,
             "effect:consume",
         ),
-        pending=pending_obs(),
+        pending=pending_obs("POSTED"),
         resolution=None,
     )
     assert result.standing is LedgerReconciliationStanding.LEDGER_INCOMPLETE_NO_REPAIR
@@ -111,7 +115,7 @@ def test_consumed_and_released_history_match_exact_resolution():
             ReservationStanding.CONSUMED,
             "effect:consume",
         ),
-        pending=pending_obs(),
+        pending=pending_obs('POSTED'),
         resolution=terminal_obs(
             AccountingOperation.POST_PENDING_TRANSFER,
             "effect:consume",
@@ -125,7 +129,7 @@ def test_consumed_and_released_history_match_exact_resolution():
             ReservationStanding.RELEASED,
             "effect:release",
         ),
-        pending=pending_obs(),
+        pending=pending_obs('VOIDED'),
         resolution=terminal_obs(
             AccountingOperation.VOID_PENDING_TRANSFER,
             "effect:release",
@@ -141,7 +145,7 @@ def test_terminal_contradiction_never_repairs_ledger():
             ReservationStanding.RELEASED,
             "effect:release",
         ),
-        pending=pending_obs(),
+        pending=pending_obs('VOIDED'),
         resolution=terminal_obs(
             AccountingOperation.POST_PENDING_TRANSFER,
             "effect:consume",
@@ -197,16 +201,16 @@ def test_partial_consumption_history_checks_exact_settled_amount():
     assert resolution is not None
     observed = LedgerTransferObservation(
         resolution.transfer_id, resolution.operation,
-        resolution.amount, resolution.pending_id,
+        resolution.amount, resolution.pending_id, status='POSTED',
     )
     assert reconcile_durable_history(
-        history=history, pending=pending_obs(), resolution=observed
+        history=history, pending=pending_obs('POSTED'), resolution=observed
     ).standing is LedgerReconciliationStanding.MATCH
     mismatch = LedgerTransferObservation(
-        resolution.transfer_id, resolution.operation, 700, resolution.pending_id
+        resolution.transfer_id, resolution.operation, 700, resolution.pending_id, status='POSTED'
     )
     actual = reconcile_durable_history(
-        history=history, pending=pending_obs(), resolution=mismatch
+        history=history, pending=pending_obs('POSTED'), resolution=mismatch
     )
     assert actual.standing is LedgerReconciliationStanding.CONTRADICTION_NO_REPAIR
 
@@ -226,3 +230,39 @@ def test_non_consumed_history_must_not_claim_partial_post():
             binding(), ReservationStanding.RELEASED,
             "effect:release", posted_amount=240,
         )
+
+
+def test_observed_reservation_status_cannot_lie_about_posted_money():
+    result = reconcile_durable_history(
+        history=DurableReservationHistory(binding(), ReservationStanding.RESERVED),
+        pending=pending_obs("POSTED"),
+        resolution=None,
+    )
+    assert result.standing is LedgerReconciliationStanding.CONTRADICTION_NO_REPAIR
+
+
+def test_missing_reservation_status_does_not_prove_state():
+    pending = pending_obs()
+    absent_status = LedgerTransferObservation(
+        transfer_id=pending.transfer_id, operation=pending.operation,
+        amount=pending.amount, pending_id=pending.pending_id,
+    )
+    result = reconcile_durable_history(
+        history=DurableReservationHistory(binding(), ReservationStanding.RESERVED),
+        pending=absent_status, resolution=None,
+    )
+    assert result.standing is LedgerReconciliationStanding.LEDGER_INCOMPLETE_NO_REPAIR
+
+
+def test_wrong_terminal_resolution_status_is_contradiction():
+    wrong = terminal_obs(AccountingOperation.POST_PENDING_TRANSFER, "effect:consume")
+    wrong = LedgerTransferObservation(
+        wrong.transfer_id, wrong.operation, wrong.amount, wrong.pending_id, status="PENDING"
+    )
+    result = reconcile_durable_history(
+        history=DurableReservationHistory(
+            binding(), ReservationStanding.CONSUMED, "effect:consume"
+        ),
+        pending=pending_obs("POSTED"), resolution=wrong,
+    )
+    assert result.standing is LedgerReconciliationStanding.CONTRADICTION_NO_REPAIR
