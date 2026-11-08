@@ -133,7 +133,7 @@ fn move_player(
     mut players: Query<&mut Transform, With<Player>>,
     run: Res<GameRun>,
 ) {
-    if run.rules.phase != Phase::Playing {
+    if run.rules.phase() != Phase::Playing {
         return;
     }
     let x = (keys.pressed(KeyCode::ArrowRight) || keys.pressed(KeyCode::KeyD)) as i32
@@ -155,7 +155,7 @@ fn collect_goals(
     goals: Query<(Entity, &Transform), With<Goal>>,
     mut run: ResMut<GameRun>,
 ) {
-    if run.rules.phase != Phase::Playing {
+    if run.rules.phase() != Phase::Playing {
         return;
     }
     let Ok(player) = players.single() else { return };
@@ -182,7 +182,7 @@ fn resolve_hazard(
     hazards: Query<&Transform, With<Hazard>>,
     mut run: ResMut<GameRun>,
 ) {
-    if run.rules.phase != Phase::Playing
+    if run.rules.phase() != Phase::Playing
         || time.elapsed_secs() - run.last_hit_at < HIT_COOLDOWN_SECS
     {
         return;
@@ -201,14 +201,17 @@ fn update_status(run: Res<GameRun>, mut labels: Query<&mut Text, With<StatusText
     let Ok(mut label) = labels.single_mut() else {
         return;
     };
-    let outcome = match run.rules.phase {
+    let outcome = match run.rules.phase() {
         Phase::Playing => "Collect the golden beacons. Avoid the red drone.",
         Phase::Won => "YOU WON! All beacons collected. Press R to replay.",
         Phase::Lost => "RUN ENDED! Press R to retry.",
     };
     **label = format!(
         "ORBIT COLLECTOR   {}/{}   Lives: {}\n{}\nWASD / arrows: move     R: restart",
-        run.rules.collected, run.rules.target, run.rules.lives, outcome
+        run.rules.collected(),
+        run.rules.target(),
+        run.rules.lives(),
+        outcome
     );
 }
 
@@ -240,7 +243,7 @@ mod tests {
         assert_eq!(goal_count, GOALS.len());
         assert_eq!(player_count, 1);
         assert_eq!(hud_count, 1);
-        assert_eq!(world.resource::<GameRun>().rules.phase, Phase::Playing);
+        assert_eq!(world.resource::<GameRun>().rules.phase(), Phase::Playing);
     }
 
     #[test]
@@ -259,7 +262,7 @@ mod tests {
         }
         app.update();
 
-        assert_eq!(app.world().resource::<GameRun>().rules.collected, 1);
+        assert_eq!(app.world().resource::<GameRun>().rules.collected(), 1);
         let world = app.world_mut();
         assert_eq!(
             world
@@ -279,8 +282,8 @@ mod tests {
     #[test]
     fn recipe_goal_count_matches_state_goal() {
         let run = GameRun::default();
-        assert_eq!(run.rules.target, GOALS.len());
-        assert_eq!(run.rules.lives, INITIAL_LIVES);
+        assert_eq!(run.rules.target(), GOALS.len());
+        assert_eq!(run.rules.lives(), INITIAL_LIVES);
         assert!(
             GOALS
                 .iter()

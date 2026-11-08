@@ -253,13 +253,18 @@
       "acceptance": [
         "Pin the actual Bevy version and Cargo.lock.",
         "Native Rust rule and Bevy Plugin/system tests pass.",
-        "Compile Bevy application with cargo check --locked --all-targets; physical player input/output remains unverified without a graphical run."
+        "Compile Bevy application with cargo check --locked --all-targets; physical player input/output remains unverified without a graphical run.",
+        "Z3 4.15.4.0 proves nine bitvector model properties over full u64/u8 widths; source refinement remains separate",
+        "Kani 0.68.0 verifies four actual Rust source harnesses; at 2026-11-08 four successfully verified, zero failed, 81 checks",
+        "Bevy native ECS consumer and compile acceptance stay mandatory for real engine-effect claims"
       ],
       "evidence": [
         "examples/orbit-collector/Cargo.toml",
         "examples/orbit-collector/Cargo.lock",
         "examples/orbit-collector/src/rules.rs",
-        "examples/orbit-collector/src/gameplay.rs"
+        "examples/orbit-collector/src/gameplay.rs",
+        "formal/verify_orbit_rules.py",
+        "formal/README.md"
       ],
       "dependencies": [],
       "sharedRefs": [],
@@ -273,7 +278,8 @@
         "examples/orbit-collector/src/main.rs",
         "examples/orbit-collector/src/gameplay.rs",
         "examples/orbit-collector/README.md",
-        "examples/orbit-collector/Cargo.toml"
+        "examples/orbit-collector/Cargo.toml",
+        "formal/verify_orbit_rules.py"
       ],
       "recursiveLegoR21": {
         "I": [
@@ -295,7 +301,9 @@
         ],
         "inv": [
           "terminal rules do not mutate collected/lives",
-          "engine-native ECS and rendering retain upstream ownership"
+          "engine-native ECS and rendering retain upstream ownership",
+          "The private RunState type prevents ordinary Rust consumers from forging an invalid reachable state",
+          "Playing implies collected<target and lives>0; Won implies collected=target; Lost implies lives=0; both terminal states absorb collect/hit"
         ],
         "eff": [
           "Bevy ECS world state, native window and graphics effects when launched; current source verifies compile/tests but not an installed graphical session"
@@ -305,12 +313,15 @@
         "prov": [
           "examples/orbit-collector/Cargo.toml pins =0.20.1",
           "examples/orbit-collector/Cargo.lock",
-          "examples/orbit-collector/README.md"
+          "examples/orbit-collector/README.md",
+          "formal/verify_orbit_rules.py",
+          "formal/README.md"
         ],
         "unfold": [
           "examples/orbit-collector/src/rules.rs",
           "examples/orbit-collector/src/gameplay.rs",
-          "examples/orbit-collector/src/main.rs"
+          "examples/orbit-collector/src/main.rs",
+          "formal/verify_orbit_rules.py"
         ]
       }
     },
@@ -453,7 +464,8 @@
         "inv": [
           "EncounterRules alone owns gameplay state",
           "narrative has no second token ledger",
-          "sound only on legitimate combat"
+          "sound only on legitimate combat",
+          "Dialogue Manager native tagged response owns choice validity; Human and Agent share the selection port"
         ],
         "eff": [
           "native source-pinned import, UI Button, rule transition and Signal projection"
@@ -567,12 +579,13 @@
         "one prefixed schema_version=1 JSON receipt containing initial, accepted/rejected action transitions, final and terminal state",
         "step-local control_path identifying real native rule or enabled dialogue choice"
       ],
-      "behavioralContract": "Each fresh native episode delegates attack/guard to the real EncounterRules; advance selects the actual enabled Dialogue Manager Unlock choice only when cleared, and never invokes EncounterRules.advance directly; invalid actions leave the rule state unchanged. No save writes, duplicate simulation, or Human-preference verdict.",
+      "behavioralContract": "Each fresh Godot scene uses rules for attack/guard; advance selects the Dialogue Manager response tagged intent=unlock using native response next_id. A passage_advanced event, not UI button order, guessed frames or unequal snapshots, establishes commitment. No second simulator or Human-playtest claim.",
       "acceptance": [
         "Godot editor import followed by actual native scene execution and deterministic repeated episode",
         "Rejected/unknown actions preserve rule snapshots; an action-limited input fails",
         "A complete real three-room win produces terminal=true, phase=won",
-        "An advance before clearing the room is rejected; every accepted advance activates the actual native Unlock choice, consistent with the independent Human-narrative acceptance"
+        "An advance before clearing the room is rejected; every accepted advance activates the actual native Unlock choice, consistent with the independent Human-narrative acceptance",
+        "Agent advance uses the same semantic tagged response port as Human and requires passage_advanced effect event for accepted transition"
       ],
       "evidence": [
         "examples/room-encounter/agent_episode.gd",
@@ -617,7 +630,9 @@
         "inv": [
           "EncounterRules remains sole authority of combat/room state",
           "each invocation starts a fresh run and does not access SaveSlot storage",
-          "No Agent advance may invoke EncounterRules.advance directly or bypass the Human narrative gate"
+          "No Agent advance may invoke EncounterRules.advance directly or bypass the Human narrative gate",
+          "Dialogue Manager native tagged response owns choice validity; Human and Agent share the selection port",
+          "No Agent action depends on get_child(0), guessed rendered frame count or rule-snapshot inequality"
         ],
         "eff": [
           "Godot headless scene instantiation, game Signals, stdout JSON and process termination"

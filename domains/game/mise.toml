@@ -4,7 +4,7 @@ pnpm = "12.16.1"
 godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check && mise run test:native && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:bevy && mise run test:autonomous-study"
+run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:orbit-smt && mise run test:native && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:bevy && mise run test:autonomous-study"
 
 
 [tasks."test:native"]
@@ -82,3 +82,12 @@ cp examples/room-encounter/assets/LICENSE.txt "$export_dir/KENNEY_ASSETS_LICENSE
 (cd "$export_dir" && python3 -m zipfile -c "../room-encounter-windows-x86_64.zip" room-encounter.exe DIALOGUE_MANAGER_LICENSE.txt KENNEY_ASSETS_LICENSE.txt)
 sha256sum "$export_dir/room-encounter.exe" "$export_dir/../room-encounter-windows-x86_64.zip"
 """
+
+
+[tasks."verify:orbit-smt"]
+description = "Full-width Orbit Collector invariant proof with upstream Z3"
+run = "uv run --no-project --with z3-solver==4.15.4.0 python3 formal/verify_orbit_rules.py"
+
+[tasks."verify:orbit-kani"]
+description = "Rust rule implementation proof with upstream Kani 0.68.0"
+run = "kani examples/orbit-collector/src/rules.rs"

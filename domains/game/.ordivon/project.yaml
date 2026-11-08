@@ -10,6 +10,8 @@ managed_paths:
   - AGENTS.md
   - docs/authority.md
   - docs/architecture-and-composition.md
+  - formal/README.md
+  - formal/verify_orbit_rules.py
   - docs/external-knowledge-base-r1.md
   - docs/mechanism-experience-library-r1.md
   - docs/mechanism-relationship-graph-r1.md

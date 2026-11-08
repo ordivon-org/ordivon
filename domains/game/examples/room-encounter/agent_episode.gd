@@ -67,20 +67,25 @@ func run_episode() -> void:
             "advance":
                 control_path = "dialogue.unavailable"
                 if before["phase"] == "cleared":
-                    # The Agent must select the same native narrative gate choice
-                    # available to a Human, not bypass G09 with rules.advance().
-                    var gate: VBoxContainer = game.get_node("GateDialogue")
-                    await process_frame
-                    await process_frame
-                    var choices: HBoxContainer = gate.get_node("Choices")
-                    if gate.visible and choices.get_child_count() > 0:
-                        var unlock: Button = choices.get_child(0)
-                        if not unlock.disabled:
-                            unlock.pressed.emit()
-                            await process_frame
-                            await process_frame
-                            control_path = "dialogue.unlock_choice"
-                            accepted = rules.snapshot() != before
+                    # Shared semantic response ID, not a button index or visual tree.
+                    var dialogue: VBoxContainer = game.get_node("GateDialogue")
+                    if dialogue.visible:
+                        if dialogue.available_responses.is_empty():
+                            await dialogue.response_settled
+                        var native_gate: Node = dialogue.get_node("GameState")
+                        var committed: Array[bool] = [false]
+                        var on_committed: Callable = func(): committed[0] = true
+                        native_gate.passage_advanced.connect(on_committed, CONNECT_ONE_SHOT)
+                        var selected: bool = dialogue.choose_response("unlock")
+                        if selected:
+                            await dialogue.response_settled
+                            accepted = committed[0]
+                            if accepted:
+                                control_path = "dialogue.unlock_choice"
+                            else:
+                                control_path = "dialogue.not_committed"
+                        if native_gate.passage_advanced.is_connected(on_committed):
+                            native_gate.passage_advanced.disconnect(on_committed)
             _:
                 pass
         var after: Dictionary = rules.snapshot().duplicate(true)

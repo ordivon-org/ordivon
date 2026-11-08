@@ -128,3 +128,16 @@ Human players launch the original Godot scene and use its buttons and keyboard. 
 ## G11 native narrative gate consistency (2026-11-07)
 
 G11's bounded Agent `advance` must not call `EncounterRules.advance` directly. It now activates the native, enabled first Unlock response from the existing Dialogue Manager after actual room-clear state. It leaves rules/scene/Dialogue Manager as their natural authorities and does not create an independent quest or token state. The JSON trace names `control_path=dialogue.unlock_choice` when that native choice was selected. `mise run test:agent-episode` checks rejected advance before clear and a full terminal win; the separate `mise run test:dialogue-native` checks the Human button and narrative choices. This bounds the claim to symbolic native state transitions; it is not pixel-based gameplay or player enjoyment evidence.
+
+
+## G07 formal rules and G11 semantic choice (2026-11-08)
+
+The actual pure Rust source carries Kani proof harnesses, and a separate Z3
+model checks the full-width one-step bitvector invariants. See formal/README.md
+for exact proof scope, assumptions and native Bevy consumer tests.
+
+G11 uses first-party intent=unlock and intent=leave tags supported by native
+Dialogue Manager. Human buttons and the Agent both call choose_response
+through the engine next_id. The Agent observes passage_advanced, not the
+first Button, guessed rendered frames or rule-snapshot inequality.
+No generic Game engine, token ledger, or second verifier is introduced.
