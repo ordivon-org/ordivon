@@ -39,6 +39,10 @@ func run_acceptance() -> void:
     var first = rules.snapshot()
     expect(first["phase"] == "fighting" and first["foes"] == 1, "native encounter starts")
     expect(view.get_node("Status").text.contains("ROOM 1/3"), "native UI observes initial state")
+    expect(game is VBoxContainer and view.get_parent() == game,
+        "Godot native VBoxContainer owns HUD and narrative layout")
+    expect(view.get_index() < game.get_node("GateDialogue").get_index(),
+        "native UI order places HUD above dialogue")
     expect(not rules.advance(), "closed room rejects door")
     expect(audio.observed_play_count == 0, "illegal door action produces no audio")
     expect(rules.snapshot() == first, "illegal transition preserves state")
@@ -46,6 +50,12 @@ func run_acceptance() -> void:
     expect(rules.snapshot()["phase"] == "cleared", "native button input reaches authoritative rules")
     expect(audio.observed_play_count == 1 and audio.playing, "button input to rules to sound")
     expect(view.get_node("Encounter").text.contains("CLEARED"), "UI observes clear by Signal")
+    await process_frame
+    expect(not view.get_node("Actions/Attack").has_focus(),
+        "focus does not remain on disabled Attack after room clear")
+    expect(game.get_node("GateDialogue").get_global_rect().position.y >=
+        view.get_global_rect().end.y,
+        "native Container places narrative under HUD without absolute-position overlap")
     var first_clear: Dictionary = rules.snapshot().duplicate(true)
     view.get_node("Actions/Save").pressed.emit()
     expect(FileAccess.file_exists(save_slot.slot_path), "native ConfigFile saved current run")
@@ -244,6 +254,10 @@ func run_acceptance() -> void:
     expect(rules.attack(), "third Classic attack accepted")
     expect(hp_before_third - rules.snapshot()["player_health"] == 3,
         "third Classic turn has no extra trial strike")
+    expect(view.get_node("Actions/Attack").disabled,
+        "Classic player-facing Attack disables at zero stamina; no stale early-return")
+    expect(not view.get_node("Actions/Guard").disabled,
+        "Classic still offers native Guard when Attack is exhausted")
     expect(rules.reset_run(original_classic), "prepare Classic guard comparison")
     expect(rules.attack() and rules.attack(), "two Classic attacks before guard")
     hp_before_third = rules.snapshot()["player_health"]

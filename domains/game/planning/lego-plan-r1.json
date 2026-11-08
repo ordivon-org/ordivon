@@ -586,7 +586,7 @@
         "Godot-imported room scene and one 0..64 action-name sequence: attack, guard, advance, trial, classic, classic"
       ],
       "outputs": [
-        "one prefixed schema_version=2 JSON receipt containing default player-visible native HUD/dialogue observation or explicitly requested privileged debug snapshots, action acceptance, final and terminal state",
+        "one prefixed schema_version=2 JSON receipt containing default player-visible native HUD/dialogue/visible tactical hint observation or explicitly requested privileged debug snapshots, action acceptance, final and terminal state",
         "debug-only step-local control_path identifying real native rule or enabled dialogue choice; player-mode step has action and UI before/after only"
       ],
       "behavioralContract": "Each fresh Godot scene uses rules for attack/guard; trial selects the Resource via the same Human root action; advance selects the Dialogue Manager response tagged intent=unlock using native response next_id. A passage_advanced event, not UI button order, guessed frames or unequal snapshots, establishes commitment. No second simulator or Human-playtest claim.",
@@ -596,7 +596,9 @@
         "A complete real three-room win produces terminal=true, phase=won",
         "An advance before clearing the room is rejected; every accepted advance activates the actual native Unlock choice, consistent with the independent Human-narrative acceptance",
         "Agent advance uses the same semantic tagged response port as Human and requires passage_advanced effect event for accepted transition",
-        "Both native Classic and Trial modes tested with 243 five-step action traces each (486 total); trial/classic Human buttons and Agent commands agree and player observations remain UI-only"
+        "Both native Classic and Trial modes tested with 243 five-step action traces each (486 total); trial/classic Human buttons and Agent commands agree and player observations remain UI-only",
+        "Actual native HUD disables exhausted Attack and reassigns unusable keyboard focus; real dialogue semantic Unlock response receives focus",
+        "Four native OpenGL Viewport PNGs under Xvfb verify layout geometry, mode contrast and charged telegraph; independent Human comprehension remains UNKNOWN"
       ],
       "evidence": [
         "examples/room-encounter/agent_episode.gd",
@@ -644,13 +646,14 @@
           "No Agent advance may invoke EncounterRules.advance directly or bypass the Human narrative gate",
           "Dialogue Manager native tagged response owns choice validity; Human and Agent share the selection port",
           "No Agent action depends on get_child(0), guessed rendered frame count or rule-snapshot inequality; node-ready and native dialogue signals are synchronization boundaries",
-          "Classic mode remains the original rules; trial mode is explicit Resource opt-in, not a global rule change"
+          "Classic mode remains the original rules; trial mode is explicit Resource opt-in, not a global rule change",
+          "Player-projected UI includes visible forecast hint and exact enabled buttons; no hidden authoritative state is leaked"
         ],
         "eff": [
           "Godot headless scene instantiation, game Signals, stdout JSON and process termination"
         ],
         "c": "At most 64 native action calls plus native asynchronous dialogue completion; per-process startup and rendering latency unmeasured",
-        "epsilon": "Human preference/experience, visual perception from pixels, interactive streaming, hardware audio and other-game transfer UNKNOWN; player mode is semantic UI projection, not visual perception or a universal formal proof",
+        "epsilon": "Human preference/experience, visual perception from pixels, interactive streaming, hardware audio and other-game transfer UNKNOWN; player mode is semantic UI projection, not visual perception or a universal formal proof; real Windows foreground keyboard traversal and uncoached independent Human study remain UNKNOWN",
         "prov": [
           "examples/room-encounter/README.md",
           "domains/game/mise.toml Godot 4.7.2 declared pin",
@@ -661,7 +664,11 @@
           "examples/room-encounter/encounter_rules.gd",
           "examples/room-encounter/agent_episode_acceptance.py",
           "examples/room-encounter/narrative/encounter_dialogue.gd",
-          "examples/room-encounter/narrative/gate.dialogue"
+          "examples/room-encounter/narrative/gate.dialogue",
+          "examples/room-encounter/room_theme.tres",
+          "examples/room-encounter/visual_capture.gd",
+          "examples/room-encounter/native_scene_acceptance.py",
+          "docs/room-encounter-playtest.md"
         ]
       }
     }

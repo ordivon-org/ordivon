@@ -127,6 +127,7 @@ func _forecast() -> Dictionary:
     var last_kill: bool = foes == 1 and enemy_health <= active.attack_damage
     return {
         "threat_damage": threat,
+        "charged": turn % 3 == 2,
         "attack_damage": active.attack_damage,
         "attack_health_loss": 0 if last_kill else mini(player_health, threat),
         "guard_health_loss": mini(player_health, maxi(0, threat - _guard_protection(threat))),

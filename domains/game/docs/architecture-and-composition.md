@@ -154,3 +154,19 @@ formal/verify_room_arithmetic.py, and test:encounter. A measured
 policy contrast is not a player-experience result.
 
 Classic remains the historical default: tactical_trial=false in the existing tuning Resource. Only the explicit Trial Resource enables forecast/charged parry; ConfigFile Classic state identity stays byte-structure compatible. The native dual-mode 486 bounded traces and full-width 17-property Z3 model are the current targeted evidence, not independent Human evidence.
+
+## Native product slice evidence hierarchy (2026-11-08)
+
+Layer 1: source/Resource and existing G10/G11 authority.
+Layer 2: 17 signed-i64 Z3 model properties plus actual native Godot
+rule and save/restore acceptance.
+Layer 3: fail-closed receipt runner that rejects real GDScript errors;
+17 bounded Agent episodes using projected visible UI, no privileged
+state by default.
+Layer 4: a real native Windows Session 1 GUI window smoke, plus four
+Godot GL Compatibility OpenGL Viewport captures under isolated Xvfb
+with verified focus/layout geometry. These test actual presentation,
+not human enjoyment or physical GPU performance.
+Layer 5: uncoached independent Human comprehension/playtesting
+(UNKNOWN); the single source method is docs/room-encounter-playtest.md.
+Do not extrapolate automatic gameplay traces into user preference.

@@ -367,3 +367,12 @@ separate Human and Agent instructions and the missing Human evidence.
 Verify with verify:room-smt, test:encounter, test:agent-episode.
 
 Classic preservation verification (2026-11-08): tactical_trial is a per-Resource opt-in. The unchanged Classic rules/snapshot/HUD/checkpoint identity are exercised in native Godot; 243 Classic and 243 Trial five-action sequences test the separate consumers. Do not promote an abstract 17-property Z3 model to universal GDScript proof.
+
+Native GUI reliability (2026-11-08): native_scene_acceptance.py owns
+fail-closed positive receipt and script-error stderr inspection; Godot
+exit=0 alone is insufficient. test:native-receipt-selftest includes
+falsifying negative controls. Native Theme, built-in Containers and
+semantic dialogue keyboard focus are the Human UI source; G11 player
+observation must project all visible state-dependent tips and actual
+Button enabled state. visual_capture.gd creates real OpenGL PNG
+evidence in isolated Xvfb, which never counts as Human comprehension.

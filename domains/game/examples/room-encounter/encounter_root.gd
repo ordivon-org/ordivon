@@ -33,6 +33,10 @@ func _ready() -> void:
     view = view_scene.instantiate()
     view.name = "View"
     add_child(view)
+    # Keep the existing direct-child paths for all native and Agent consumers,
+    # but let Godot's VBoxContainer stack HUD and Dialogue responsively.
+    move_child(view, 0)
+    view.get_node("Actions/Attack").grab_focus.call_deferred()
     view.get_node("Actions/Attack").pressed.connect(func(): rules.attack())
     view.get_node("Actions/Guard").pressed.connect(func(): rules.guard())
     view.get_node("Actions/Next").pressed.connect(request_door)

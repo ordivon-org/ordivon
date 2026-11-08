@@ -172,3 +172,41 @@ decision to inform is whether to KEEP/MODIFY/DELETE telegraph/parry
 after actual Human evidence, not a synthetic enjoyment score.
 
 Classic preservation: native test:encounter verifies 243 Classic and 243 Trial five-step traces; Classic's third-turn damage, ordinary guard, HUD, snapshot and checkpoint tuning identity are unchanged. The Trial Resource opts in explicitly. This excludes a silent change to installed Classic saves.
+
+## Player-readable native UI and fail-closed acceptance (2026-11-08)
+
+This owner slice reuses only Godot 4.7.2 built-ins:
+VBoxContainer for HUD above dialogue, HFlowContainer for actions,
+Theme/StyleBoxFlat for contrast, labels with word wrap and native font
+sizes, and focus transfer if the previous action becomes disabled.
+The upstream Dialogue Manager semantic intent=unlock response receives
+keyboard focus when ready. No custom layout engine, duplicate rules
+or second game-state authority was added.
+
+Real original defect: Classic render_state returned before refreshing
+Attack disabled when stamina was zero. Both Human buttons and the
+Agent player-visible port could then misrepresent action availability.
+Native and Agent tests now check actual Button disabled state.
+
+Real verification defect: Godot may emit SCRIPT ERROR and still
+print PASS or exit 0. The native_scene_acceptance.py wrapper requires
+a success receipt, exit=0, and no script or parse errors in stderr or
+stdout. Run mise run test:native-receipt-selftest to reject the four
+bad-control cases and admit the one valid case; then run
+mise run test:encounter and mise run test:dialogue-native.
+
+For rendered evidence (not headless semantics) use a private Xvfb X11
+display and the actual Godot --script res://visual_capture.gd -- --out
+/absolute/output/path. It produces four real Viewport PNG images:
+Classic, Trial, announced charge and source-backed gate dialogue.
+Native runtime checks focus on the semantic Unlock response plus
+bounded viewport geometry and no HUD/narrative overlap. This is
+visual QA evidence, not a Human playtest.
+
+A native Windows Session 1 exported-executable launch with a responsive
+real GUI window has been observed. A separate Windows foreground
+keyboard/screenshot test was blocked by process foreground privileges
+and is NOT claimed as passed. The Linux OpenGL capture uses Mesa
+llvmpipe, not proof of physical GPU throughput.
+
+Human study runnable protocol and empty anonymous observation template: ../../docs/room-encounter-playtest.md and ../../docs/room-encounter-playtest-template.csv. These are methods and blank tools only; no independent participant result has been collected, so Human comprehension remains UNKNOWN.
