@@ -460,6 +460,18 @@ four-state cgroup observation contract. These are distinct source revisions:
 the candidate proof must NOT be represented as proof of the integrated
 production function. Rerun the retained mainline harness on integrated HEAD
 before formal acceptance. OS observation truth remains outside a pure proof.
+
+2026-11-08 integrated-HEAD follow-up: the retained
+native_stop_releases_only_with_qualified_os_evidence harness was executed with
+Kani 0.68.0 (0/14 failed, 6/6 coverage claims); the separate
+allocation_never_exceeds_observed_supply production function harness executed
+with 0/10 failures and 3/3 cover. ResourceQueueR1 TLC completed 5,221
+generated/1,080 distinct states with no invariant violation, and the mutant
+resource-budget negative control produced the required counterexample. The
+full TLA+ check/falsify suite passed. Nine disposable PostgreSQL plus native
+systemd integration consumers passed on the combined source tree. These do
+not prove Windows PG cutover, global starvation freedom, kernel observation
+authenticity, or an installed production release.
 The seven disposable PG/systemd MCP tests were explicitly executed and passed.
 The cancellation test now stops observing after requesting cancellation and checks
 PG convergence from the service-owned recovery worker before making another
