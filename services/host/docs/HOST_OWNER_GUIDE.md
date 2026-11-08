@@ -233,3 +233,22 @@ Human: run mise run test:postgres:disposable; distinguish Attention change
 horizons from Topic Message sequences. Agent: attention.reentry is navigation,
 not scheduling or domain acceptance. Never infer latest global state from a
 historical page; call the published tool again to obtain a fresh snapshot.
+
+## Host release SourceCut content-anchor refinement
+
+The native packaging entrypoint accepts an optional fourth argument:
+install_release.sh <repo> <main_commit> <prefix> <reviewed_host_tree_oid>.
+
+Human: obtain expected Host Git tree ID from the independently reviewed PR
+head via git rev-parse <head>:services/host; cross-check the actual merge
+event against fetched main ancestry and commit subject. Pass the reviewed
+tree ID as argument four. A wrong adjacent Merge Queue SHA with a different
+Host tree fails before directory creation, dependency resolution or symlink
+mutation. The three-argument native installation path stays compatible.
+
+Agent: never compute the expected tree from the *same untrusted release
+commit*: that would prove an identity against itself. Git native tree objects
+obviate a second hash or independent custom release registry. This is a
+content identity witness, not a signed SLSA provenance attestation or proof
+of builder identity. Continue Git chronology, Merge Queue checks, immutable
+archive verification and live MCP consumer readback. UNKNOWN remains UNKNOWN.
