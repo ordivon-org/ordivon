@@ -1,4 +1,5 @@
-use super::error::map_universal_error;
+// Runtime inspection consumers intentionally use this shared projection.
+pub(super) use super::error::map_universal_error;
 use super::lifecycle_locks::WorkspaceLeaseTable;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
