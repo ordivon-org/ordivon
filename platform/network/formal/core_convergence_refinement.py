@@ -6,6 +6,8 @@ systemd behavior, real DNS, or reachability of an actual external endpoint.
 from __future__ import annotations
 
 import json
+import shlex
+from urllib.parse import urlsplit
 from pathlib import Path
 import z3
 
@@ -20,6 +22,28 @@ def section(source: str, name: str) -> str:
     lines = tail.splitlines(keepends=True)
     boundary = next((i for i, value in enumerate(lines) if value.startswith('  ') and not value.startswith('   ') and value.strip().endswith(':')), len(lines))
     return ''.join(lines[:boundary])
+
+
+
+def has_exact_https_origin_probe(check: str) -> bool:
+    """Require native curl tokens plus parsed origin identity, not a URL substring."""
+    for raw in check.splitlines():
+        line = raw.strip()
+        if not line.startswith("- curl --fail --silent --show-error "):
+            continue
+        argv = shlex.split(line.removeprefix("- "))
+        if not argv or argv[0] != "curl" or "--proxy" not in argv:
+            continue
+        index = argv.index("--proxy")
+        if index + 1 >= len(argv) or argv[index + 1] != "http://127.0.0.1:28080":
+            continue
+        target = urlsplit(argv[-1])
+        if (target.scheme == "https" and target.hostname == "example.com"
+                and target.port in (None, 443) and target.path == "/"
+                and not target.username and not target.password
+                and not target.query and not target.fragment):
+            return True
+    return False
 
 
 def admit_implementation() -> dict:
@@ -43,7 +67,7 @@ def admit_implementation() -> dict:
     assert "systemctl restart " not in activation
     assert "deps: [core:sourcecut]" in check
     assert "--check-loaded-prometheus" in check
-    assert "https://example.com/" in check
+    assert has_exact_https_origin_probe(check)
     steps = ("task: core:validate", "task: core:install", "systemctl start network-v2-r0.target", "task: core:verify")
     assert [converge.index(step) for step in steps] == sorted(converge.index(step) for step in steps)
     return {"localCmpChecks": source.count("cmp -s"), "convergeSteps": list(steps)}
