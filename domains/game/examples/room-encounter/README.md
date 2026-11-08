@@ -69,11 +69,26 @@ storage engine or renderer is introduced.
 
     godot --headless --path examples/room-encounter --script res://agent_episode.gd -- --actions attack,advance,attack,attack
 
-The single `GAME_AGENT_EPISODE_JSON=` line is machine-readable and contains `schema_version=1`, `observation_mode=authoritative_state_not_pixels`, the initial state, ordered steps (`action`, `recognized`, `accepted`, `before`, `after`), final state and terminal status. Accepted action names are `attack`, `guard` and `advance`. Agent `advance` chooses the enabled Dialogue Manager response tagged `[#intent=unlock]` through its upstream `next_id`. The Human UI uses the same `choose_response` method, while the Agent requires the actual `passage_advanced` signal to confirm commitment. It neither directly calls `EncounterRules.advance` nor depends on a Button index, a fixed frame delay or snapshot inequality. Each step includes `control_path` (accepted unlock: `dialogue.unlock_choice`). Invalid/rejected actions do not mutate the rule state.
+The single `GAME_AGENT_EPISODE_JSON=` line uses `schema_version=2`.
+By default, `--observation player` projects only what the native
+Godot HUD and currently visible dialogue controls show: status, encounter
+text, enabled player inputs and visible dialogue response text. It does not
+expose the authoritative rules snapshot; the step's accepted/recognized
+result and control path are diagnostic metadata, not an observation.
+
+For privileged diagnostics, pass `--observation debug` explicitly.
+That mode returns the full EncounterRules snapshot in the initial,
+before/after and final fields under the label
+`authoritative_debug_state_not_pixels`. This mode must never be
+claimed as a fair player-information Agent. Both modes use the real
+Dialogue Manager `choose_response("unlock")` API and real
+`passage_advanced` commit event. The agent no longer waits an
+arbitrary number of frames for startup, but native dialogue completion
+remains asynchronous. Neither mode proves pixel perception or enjoyment.
 
 Each process starts a new scene and fresh run, does not write save files, and accepts at most 64 actions. Agents may submit a growing action prefix to inspect later states; this is bounded deterministic replay, **not** a persistent online environment, browser controller or visual playtest.
 
-`mise run test:agent-episode` verifies native scene transitions, deterministic replay, pre-clear narrative gate rejection, an actual terminal win through the native Unlock choice, and the action limit. `mise run verify` first imports the native dialogue asset through `test:encounter`, then runs this Agent acceptance. Real players and Agents use the same authoritative encounter rules; they do not share an evidence claim about subjective experience.
+`mise run test:agent-episode` verifies HUD-only default observations, explicit debug mode, native scene transitions, deterministic replay, pre-clear narrative gate rejection, an actual terminal win through the native Unlock choice, and the action limit. `mise run verify` first imports the native dialogue asset through `test:encounter`, then runs this Agent acceptance. Real players and Agents use the same authoritative encounter rules; they do not share an evidence claim about subjective experience.
 
 
 ## Native Linux x86_64 export and package

@@ -154,6 +154,6 @@ Source-bound signed-integer proof and separate native Room evidence: [formal/REA
 ## Two native operation modes
 
 - **Human:** Launch `examples/room-encounter` with the Godot GUI; buttons and keyboard act on EncounterRules. Evaluate comprehension, difficulty and enjoyment from actual players, not from headless test output.
-- **Agent:** After native editor import, run `godot --headless --path examples/room-encounter --script res://agent_episode.gd -- --actions attack,advance`. The prefixed JSON output is a bounded symbolic action/observation receipt from the **same** Godot scene, with no claim of screenshot perception or persistent interactive agent sessions. Use `mise run test:agent-episode` for the actual native acceptance. Full instructions: `examples/room-encounter/README.md`.
+- **Agent:** After native editor import, run `godot --headless --path examples/room-encounter --script res://agent_episode.gd -- --actions attack,advance`. The schema-v2 prefixed JSON now defaults to player-visible Godot HUD/dialogue (privileged snapshots require explicit --observation debug) from the **same** Godot scene, with no claim of screenshot perception or persistent interactive agent sessions. Use `mise run test:agent-episode` for the actual native acceptance. Full instructions: `examples/room-encounter/README.md`.
 
 This is a concrete G11 native consumer port rather than a reusable Game-wide runner or a new runtime service.
