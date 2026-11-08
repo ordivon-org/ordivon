@@ -237,7 +237,14 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         setup = by_name["Install monorepo toolchain"]
         self.assertIs(setup["with"]["install"], False)
         root_install = by_name["Install root verification tools"]["run"]
-        self.assertEqual(root_install.strip(), "set -euo pipefail\nmise install")
+        # Assert semantic constraints rather than freezing an exact Bash
+        # rendering; native mise may retry a transient upstream download.
+        self.assertIn("set -euo pipefail", root_install)
+        self.assertEqual(root_install.count("mise install"), 1)
+        self.assertIn("MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install", root_install)
+        self.assertIn("for attempt in 1 2 3; do", root_install)
+        self.assertIn('if [ "$attempt" -eq 3 ]; then', root_install)
+        self.assertIn("exit 1", root_install)
         self.assertNotIn("--monorepo", root_install)
         jobs = workflow["jobs"]
         self.assertNotIn("needs", jobs["root-preflight"])
@@ -251,6 +258,45 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertLess(mechanics.index("Install root verification tools"),
                         mechanics.index("Repository mechanics"))
         self.assertIn("Verify affected owners", owner)
+
+    def test_root_mise_retry_runs_only_native_install_and_preserves_failures(self) -> None:
+        """A finite upstream outage retries missing tools and never masks exhaustion."""
+        import os
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        script = next(
+            step["run"] for step in workflow["jobs"]["repo-mechanics"]["steps"]
+            if step["name"] == "Install root verification tools"
+        )
+        for fail_until, expected_rc, expected_calls in ((1, 0, 2), (9, 1, 3)):
+            with self.subTest(fail_until=fail_until), tempfile.TemporaryDirectory() as tmp:
+                folder = Path(tmp)
+                tool = folder / "mise"
+                record = folder / "calls"
+                tool.write_text(r"""#!/usr/bin/env bash
+if [[ "$#" != 1 || "$1" != install ]]; then exit 91; fi
+printf "%s,%s,%s\n" "$MISE_JOBS" "$MISE_HTTP_TIMEOUT" "$*" >> "$RECORD"
+n=$(wc -l < "$RECORD")
+if ((n <= FAIL_UNTIL)); then exit 7; fi
+exit 0
+""")
+                tool.chmod(0o755)
+                env = os.environ.copy()
+                env.update({
+                    "PATH": str(folder) + os.pathsep + env.get("PATH", ""),
+                    "RECORD": str(record),
+                    "FAIL_UNTIL": str(fail_until),
+                })
+                observed = subprocess.run(
+                    ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                    capture_output=True, text=True, timeout=20,
+                )
+                self.assertEqual(observed.returncode, expected_rc, observed.stderr)
+                self.assertEqual(
+                    record.read_text().splitlines(),
+                    ["2,30,install"] * expected_calls,
+                )
 
     def test_formal_cold_install_reuses_scoped_github_job_token(self) -> None:
         """Native GitHub release backend must not use anonymous 60/hour API quota."""
