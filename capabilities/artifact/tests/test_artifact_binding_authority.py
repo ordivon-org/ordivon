@@ -100,6 +100,30 @@ class ArtifactBindingAuthorityTests(unittest.TestCase):
             result = CapabilityBindingRegistry(root).resolve("example", "verify")
             self.assertEqual(result.standing_sha256, sha256_file(standing))
 
+    def test_snapshot_policy_is_separate_from_claim_completeness(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1] / "artifact-delivery"
+        registry = CapabilityBindingRegistry(root)
+        parquet = registry.resolve("dataset-parquet-flat-r1", "verify")
+        self.assertTrue(parquet.snapshot_inputs)
+        self.assertFalse(parquet.require_claim_results)
+        for profile_id in ("audio-flac-pcm16-r1", "audio-wave-pcm16-r1", "still-image-png-srgb-r1"):
+            with self.subTest(profile=profile_id):
+                binding = registry.resolve(profile_id, "verify")
+                self.assertTrue(binding.snapshot_inputs)
+                self.assertTrue(binding.require_claim_results)
+        self.assertFalse(registry.resolve("still-image-svg-static-r1", "verify").snapshot_inputs)
+
+    def test_registry_rejects_non_boolean_snapshot_configuration(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = self._test_root(Path(d))
+            record = self._verify_record()
+            record["bindings"][0]["snapshotInputs"] = "true"
+            (root / "capability-bindings-v1.json").write_text(json.dumps(record))
+            with self.assertRaisesRegex(RuntimeError, "snapshotInputs must be a boolean"):
+                CapabilityBindingRegistry(root)
+
     def test_duplicate_build_fields_and_stale_binding_are_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             root = self._test_root(Path(d))

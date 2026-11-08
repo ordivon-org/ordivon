@@ -205,6 +205,58 @@ pq.write_table(pa.Table.from_pylist(rows, schema=schema), sys.argv[1], compressi
                 [{"id": 1, "name": "alpha"}, {"id": 2, "name": "beta"}, {"id": 3, "name": "gamma"}],
             )
 
+    def test_parquet_single_file_snapshot_is_independent_of_claim_evaluation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subject = root / "table.parquet"
+            contract = root / "contract.json"
+            initial_subject = b"admission-bound-parquet-test-bytes"
+            initial_contract = b'{"contractVersion":1,"id":"test"}'
+            subject.write_bytes(initial_subject)
+            contract.write_bytes(initial_contract)
+            request = make_request(root, "dataset-parquet-flat-r1", subject, contract)
+            received = []
+
+            def fake_loader(_module, _function):
+                # Replacement after staging must not change bytes delegated to
+                # the native verifier, even though claim evidence is incomplete.
+                subject.write_bytes(b"uncommitted-replacement")
+                contract.write_bytes(b'{"changed":true}')
+                def readback(staged_subject, staged_contract, _evidence_dir):
+                    received.append((
+                        staged_subject.read_bytes(),
+                        staged_contract.read_bytes(),
+                        staged_subject.suffix,
+                    ))
+                    return {"status": "PASS", "failures": []}
+                return readback, "f" * 64
+
+            with mock.patch.object(SERVICE, "load_function", side_effect=fake_loader):
+                result = SERVICE.verify_request(request)
+            self.assertEqual(result["status"], "PASS", result)
+            self.assertEqual(result["inputIdentity"]["subject"], "EXACT_BYTES_SNAPSHOT")
+            self.assertEqual(result["inputIdentity"]["objectContract"], "EXACT_BYTES_SNAPSHOT")
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertEqual(result["requiredEvidenceAssessment"]["status"], "NOT_EVALUATED")
+            self.assertEqual(received, [(initial_subject, initial_contract, ".parquet")])
+            self.assertNotEqual(subject.read_bytes(), initial_subject)
+
+    def test_parquet_snapshot_mismatch_rejects_before_provider_execution(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subject = root / "table.parquet"
+            contract = root / "contract.json"
+            subject.write_bytes(b"initial")
+            contract.write_bytes(b"initial-contract")
+            request = make_request(root, "dataset-parquet-flat-r1", subject, contract)
+            subject.write_bytes(b"changed-before-admission")
+            with mock.patch.object(SERVICE, "load_function") as loader:
+                result = SERVICE.verify_request(request)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertIn("subject bytes differ from request digest", result["failures"])
+            loader.assert_not_called()
+            self.assertFalse((root / "artifact-evidence").exists())
+
     def test_aggregate_pass_missing_claims_is_not_accepted_by_strict_service(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
