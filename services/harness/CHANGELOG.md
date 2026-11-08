@@ -23,6 +23,10 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- migrated the opt-in Adaptive Edit live A/B executor from disposable SQLite Harness Run stores to a schema-isolated native PostgreSQL Store, with explicit DSN authority, no legacy migration, and cleanup-on-success/failure regression tests.
+
+- converted active Adaptive Edit ToolBridge, Run Continuity port, Standalone Runner, and Runtime batch-search consumer tests from disposable SQLite state roots to isolated real PostgreSQL schemas, including concurrent Provider claims, read/edit, stale-digest rejection, Tool identity, restart, bounded search output, and response-loss reconciliation; no dual-write or compatibility store was added.
+
 - retired the SQLite-backed P0 scale-acceptance executable path in favor of isolated PostgreSQL Run/Event/CAS acceptance, including a unique temporary schema, real reopen/full-history Doctor, PostgreSQL-native object-reference closure and clean teardown; reduced the legacy SQLite source-call budget without a migration. Local acceptance now requires a real test PG DSN. Immutable SQLite scale receipts remain historical.
 
 

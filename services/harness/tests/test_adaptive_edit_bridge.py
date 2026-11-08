@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
 from hashlib import sha256
-import tempfile
 import unittest
 
 from anc_canonical import JsonValue, canonical_digest
@@ -24,7 +22,8 @@ from ordivon_harness.ordivon.model import (
 )
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
+from tests.pg_test_support import isolated_harness_schema
 
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
@@ -156,9 +155,9 @@ def binding(run_contract: HarnessRunContract, continuity) -> HarnessExecutionBin
     )
 
 
-def setup_bridge(root: Path, suffix: str, runtime: FakeRuntime):
+def setup_bridge(dsn: str, schema: str, suffix: str, runtime: FakeRuntime):
     run_contract = contract(suffix)
-    store = SQLiteHarnessStore.initialize(root)
+    store = PostgresHarnessStore(dsn, schema=schema)
     store.create_run(run_contract)
     clock = FixedClock()
     continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
@@ -243,10 +242,10 @@ def scripted_completion(suffix: str) -> AgentTurnResult:
 
 class AdaptiveEditBridgeTests(unittest.TestCase):
     def test_full_agent_loop_reads_edits_and_concludes(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema):
             runtime = FakeRuntime()
             store, continuity, bridge = setup_bridge(
-                Path(directory) / "state", "agent-loop", runtime
+                dsn, schema, "agent-loop", runtime
             )
             adapter = ScriptedTurnAdapter(
                 (
@@ -296,9 +295,9 @@ class AdaptiveEditBridgeTests(unittest.TestCase):
         )
 
     def test_editable_read_returns_exact_source_digest_and_harness_generated_anchors(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema):
             runtime = FakeRuntime()
-            store, _, bridge = setup_bridge(Path(directory) / "state", "read", runtime)
+            store, _, bridge = setup_bridge(dsn, schema, "read", runtime)
             observation = bridge.execute(read_call("read"), step_id="turn-1-read")
             snapshot = observation.structured_content["editSnapshot"]
             self.assertEqual(snapshot["sourceDigest"], SOURCE_DIGEST)
@@ -311,10 +310,10 @@ class AdaptiveEditBridgeTests(unittest.TestCase):
             store.close()
 
     def test_exact_edit_re_reads_digest_then_lowers_to_one_durable_patch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema):
             runtime = FakeRuntime()
             store, continuity, bridge = setup_bridge(
-                Path(directory) / "state", "exact", runtime
+                dsn, schema, "exact", runtime
             )
             observation = bridge.execute(exact_edit_call("exact"), step_id="turn-2-edit")
             self.assertEqual(observation.status, "observed")
@@ -331,13 +330,13 @@ class AdaptiveEditBridgeTests(unittest.TestCase):
             store.close()
 
     def test_claimed_source_digest_must_match_actual_bytes_before_patch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema):
             runtime = FakeRuntime()
             # A forged Runtime read can repeat the *expected* digest while
             # returning different bytes. The bridge must not dispatch Patch.
             runtime.content += "# forged contents\\n"
             store, _, bridge = setup_bridge(
-                Path(directory) / "state", "forged", runtime
+                dsn, schema, "forged", runtime
             )
             with self.assertRaisesRegex(ToolBridgeError, "source bytes disagree"):
                 bridge.execute(exact_edit_call("forged"), step_id="turn-2-edit")
@@ -346,18 +345,18 @@ class AdaptiveEditBridgeTests(unittest.TestCase):
             store.close()
 
     def test_stale_source_digest_rejects_before_patch_admission(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema):
             runtime = FakeRuntime(changed=True)
-            store, _, bridge = setup_bridge(Path(directory) / "state", "stale", runtime)
+            store, _, bridge = setup_bridge(dsn, schema, "stale", runtime)
             with self.assertRaisesRegex(ToolBridgeError, "sourceDigest is stale"):
                 bridge.execute(exact_edit_call("stale"), step_id="turn-2-edit")
             self.assertEqual([name for name, _ in runtime.calls], ["workspace.read"])
             store.close()
 
     def test_anchored_edit_uses_harness_generated_anchor_and_same_patch_backend(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema):
             runtime = FakeRuntime()
-            store, _, bridge = setup_bridge(Path(directory) / "state", "anchor", runtime)
+            store, _, bridge = setup_bridge(dsn, schema, "anchor", runtime)
             read = bridge.execute(read_call("anchor"), step_id="turn-1-read")
             anchors = read.structured_content["editSnapshot"]["lineAnchors"]
             line2 = anchors[1]["anchor"]
@@ -383,10 +382,10 @@ class AdaptiveEditBridgeTests(unittest.TestCase):
             store.close()
 
     def test_patch_response_loss_reconciles_without_second_physical_patch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema):
             runtime = FakeRuntime(patch_loss=True)
             store, continuity, bridge = setup_bridge(
-                Path(directory) / "state", "loss", runtime
+                dsn, schema, "loss", runtime
             )
             observation = bridge.execute(exact_edit_call("loss"), step_id="turn-2-edit")
             self.assertEqual(observation.status, "observed")
@@ -400,10 +399,10 @@ class AdaptiveEditBridgeTests(unittest.TestCase):
             store.close()
 
     def test_recovery_of_prepared_edit_uses_original_edit_tool_identity(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema):
             runtime = FakeRuntime(patch_loss=True)
             store, continuity, bridge = setup_bridge(
-                Path(directory) / "state", "identity", runtime
+                dsn, schema, "identity", runtime
             )
             call = exact_edit_call("identity")
             observation = bridge.execute(call, step_id="turn-2-edit")

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import inspect
 from pathlib import Path
-import tempfile
 import unittest
 
 from ordivon_harness.ordivon.run_store_port import (
     HarnessRunContinuityStore,
 )
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
+from tests.pg_test_support import isolated_harness_schema
 from tests.test_p0_sqlite_provider_store import MutableClock, contract
 
 ROOT = Path(__file__).resolve().parents[1] / "src" / "ordivon_harness"
@@ -26,7 +26,7 @@ class HarnessRunStorePortTests(unittest.TestCase):
             self.assertNotIn("_host_compat", source)
             self.assertNotIn("HostHarnessRunStore", source)
 
-    def test_sqlite_store_supplies_every_port_operation(self) -> None:
+    def test_postgres_store_supplies_every_port_operation(self) -> None:
         required = {
             name
             for name, value in HarnessRunContinuityStore.__dict__.items()
@@ -40,10 +40,9 @@ class HarnessRunStorePortTests(unittest.TestCase):
             if not hasattr(EventSourcedRunContinuity, name)
         )
         self.assertEqual(missing, [])
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             run_contract = contract()
-            with SQLiteHarnessStore.initialize(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=MutableClock()
