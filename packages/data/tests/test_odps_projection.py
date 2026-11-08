@@ -5,10 +5,11 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
-import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[3]
 import sys
@@ -16,6 +17,7 @@ import sys
 sys.path.insert(0, str(ROOT / "packages/data/src"))
 
 from ordivon_data.catalog import inspect_catalog
+from ordivon_data.git_sources import committed_owner_products
 from ordivon_data.local_evidence import LocalEvidenceBinding
 from ordivon_data.odps_projection import project_catalog
 
@@ -82,6 +84,131 @@ class OwnerProductProjectionTests(unittest.TestCase):
                     for dist in product["distributions"]
                 )
             )
+
+    def test_git_commit_view_ignores_worktree_and_index_mutations(self) -> None:
+        """A published metadata SourceCut must be one Git tree, not mutable files."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+
+            def git(*args: str) -> bytes:
+                return subprocess.run(
+                    ["/usr/bin/git", "-C", str(repo), *args],
+                    check=True,
+                    capture_output=True,
+                ).stdout
+
+            git("init", "-q")
+            entry = repo / "domains/capital/data-products/candidate/odps.json"
+            entry.parent.mkdir(parents=True)
+            initial = self.sources[0].read_bytes()
+            entry.write_bytes(initial)
+            git("add", ".")
+            git(
+                "-c",
+                "user.name=Data Test",
+                "-c",
+                "user.email=data@example.invalid",
+                "commit",
+                "-qm",
+                "admit source version one",
+            )
+            original_commit, original_blobs = committed_owner_products(repo, "HEAD")
+            self.assertEqual(original_blobs, [initial])
+            frozen_view = project_catalog(original_blobs)
+            self.assertEqual(frozen_view, project_catalog([entry]))
+
+            mutated = json.loads(initial)
+            mutated["version"] = "deliberately-uncommitted-v2"
+            entry.write_text(json.dumps(mutated), encoding="utf-8")
+            git("add", ".")
+            # Index now points to an uncommitted v2, but commit-scoped readers
+            # still see the old v1, unlike default live working tree projection.
+            unchanged_commit, unchanged_blobs = committed_owner_products(repo, "HEAD")
+            self.assertEqual(unchanged_commit, original_commit)
+            self.assertEqual(project_catalog(unchanged_blobs), frozen_view)
+            self.assertNotEqual(project_catalog([entry]), frozen_view)
+
+            git(
+                "-c",
+                "user.name=Data Test",
+                "-c",
+                "user.email=data@example.invalid",
+                "commit",
+                "-qm",
+                "publish source version two",
+            )
+            next_commit, new_blobs = committed_owner_products(repo, "HEAD")
+            self.assertNotEqual(next_commit, original_commit)
+            self.assertNotEqual(project_catalog(new_blobs), frozen_view)
+            prior_commit, prior_blobs = committed_owner_products(repo, original_commit)
+            self.assertEqual(prior_commit, original_commit)
+            self.assertEqual(project_catalog(prior_blobs), frozen_view)
+
+    def test_git_view_rejects_symlinks_and_invalid_revision(self) -> None:
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+
+            def git(*args: str) -> None:
+                subprocess.run(
+                    ["/usr/bin/git", "-C", str(repo), *args],
+                    check=True,
+                    capture_output=True,
+                )
+
+            git("init", "-q")
+            entry = repo / "catalogs/data-products/test/odps.json"
+            entry.parent.mkdir(parents=True)
+            entry.symlink_to("/tmp/outside-file.json")
+            git("add", ".")
+            git(
+                "-c",
+                "user.name=Data Test",
+                "-c",
+                "user.email=data@example.invalid",
+                "commit",
+                "-qm",
+                "symlink is not ODPS bytes",
+            )
+            with self.assertRaisesRegex(ValueError, "not a regular Git blob"):
+                committed_owner_products(repo, "HEAD")
+            with self.assertRaisesRegex(ValueError, "cannot be resolved"):
+                committed_owner_products(repo, "not-a-commit")
+            with self.assertRaisesRegex(ValueError, "nonempty revision"):
+                committed_owner_products(repo, "--help")
+
+    def test_exact_current_repo_git_view_matches_committed_owner_metadata(self) -> None:
+        script = ROOT / "packages/data/scripts/project_owned_products.py"
+        source = subprocess.run(
+            [sys.executable, str(script), "--at-commit", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        commit = subprocess.run(
+            ["/usr/bin/git", "-C", str(ROOT), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        self.assertIn(f"sourceCommit={commit}", source.stderr)
+        self.assertEqual(json.loads(source.stdout), project_catalog(self.sources))
+        invalid = subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                "--at-commit",
+                "HEAD",
+                "--product",
+                str(self.sources[0]),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=20,
+        )
+        self.assertEqual(invalid.returncode, 2)
+        self.assertIn("mutually exclusive", invalid.stderr)
 
     def test_duplicate_product_version_cannot_be_silently_overridden(self) -> None:
         with self.assertRaisesRegex(ValueError, "duplicate owner product"):

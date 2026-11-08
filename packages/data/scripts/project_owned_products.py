@@ -12,6 +12,7 @@ from pathlib import Path
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPO = PACKAGE_ROOT.parents[1]
 sys.path.insert(0, str(PACKAGE_ROOT / "src"))
+from ordivon_data.git_sources import committed_owner_products
 from ordivon_data.local_evidence import LocalEvidenceBinding
 from ordivon_data.odps_projection import project_catalog
 
@@ -64,8 +65,18 @@ def main() -> int:
             "No source paths or port mappings are inferred."
         ),
     )
+    parser.add_argument(
+        "--at-commit",
+        metavar="REVISION",
+        help=(
+            "Read ODPS metadata from one exact committed Git tree, ignoring "
+            "uncommitted changes. The commit does not freeze separately bound "
+            "local data file bytes."
+        ),
+    )
     args = parser.parse_args()
-    source_files = args.product or tracked_owner_products(REPO)
+    if args.at_commit and args.product:
+        parser.error("--at-commit and --product are mutually exclusive")
     bindings = tuple(
         LocalEvidenceBinding(
             product_id=product_id,
@@ -77,11 +88,24 @@ def main() -> int:
         for product_id, port_name, path_property, digest_property, owner_root in args.bind_local
     )
     try:
+        if args.at_commit:
+            revision, source_files = committed_owner_products(REPO, args.at_commit)
+        else:
+            revision = None
+            source_files = args.product or tracked_owner_products(REPO)
         projected = project_catalog(source_files, bindings=bindings)
-    except (OSError, ValueError, TypeError, json.JSONDecodeError) as error:
+    except (
+        OSError,
+        ValueError,
+        TypeError,
+        UnicodeError,
+        json.JSONDecodeError,
+    ) as error:
         print(f"ODPS discovery projection failed: {error}", file=sys.stderr)
         return 2
     print(json.dumps(projected, sort_keys=True, indent=2, ensure_ascii=False))
+    if revision is not None:
+        print(f"sourceCommit={revision} (metadata only)", file=sys.stderr)
     return 0
 
 

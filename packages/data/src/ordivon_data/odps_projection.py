@@ -36,10 +36,19 @@ def _text(value: Any, *, field: str) -> str:
 
 
 def project_odps(
-    source: Path, *, bindings: tuple[LocalEvidenceBinding, ...] = ()
+    source: Path | bytes, *, bindings: tuple[LocalEvidenceBinding, ...] = ()
 ) -> tuple[dict[str, Any], str]:
-    """Project ONE owner-declared DataProduct, never its physical availability."""
-    raw = source.read_bytes()
+    """Project one ODPS metadata blob, never its physical availability.
+
+    Bytes may originate from an exact Git commit, while Path remains the
+    explicit live/local mode consumed by existing owner workflows.
+    """
+    if isinstance(source, Path):
+        raw = source.read_bytes()
+    elif isinstance(source, bytes):
+        raw = source
+    else:
+        raise TypeError("ODPS input must be a Path or immutable bytes")
     product = json.loads(raw)
     if not isinstance(product, dict):
         raise TypeError("ODPS document must be an object")
@@ -140,7 +149,7 @@ def project_odps(
 
 
 def project_catalog(
-    sources: list[Path], *, bindings: tuple[LocalEvidenceBinding, ...] = ()
+    sources: list[Path | bytes], *, bindings: tuple[LocalEvidenceBinding, ...] = ()
 ) -> dict[str, Any]:
     """Build an immutable-source-fingerprinted DCAT discovery view, not a registry."""
     if not sources:

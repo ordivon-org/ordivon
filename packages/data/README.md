@@ -86,6 +86,35 @@ file digest without an explicit owner binding, so the verifier returns
 into the content-derived catalog identity. No central catalog daemon, new
 database or persisted product state is added.
 
+## Commit-pinned metadata discovery (reproducible SourceCut)
+
+Live discovery enumerates Git-tracked products but reads their *working-tree*
+files. This is useful during authoring, **not** a committed metadata snapshot.
+For an exact, stable producer contract, use Git's native immutable tree/blob
+storage instead of introducing a parallel Data metadata registry:
+
+```sh
+python3 packages/data/scripts/project_owned_products.py --at-commit HEAD > /tmp/owner-products-at-commit.jsonld
+```
+
+`--at-commit` resolves the revision once to an exact commit OID, lists only
+regular tracked `*/odps.json` blobs from that tree, and hashes **those committed
+bytes**, ignoring staged, unstaged and untracked working-tree changes.
+The command reports `sourceCommit=<exact Git OID>` on stderr; it rejects
+symlinked ODPS blobs, missing/invalid commits and unbounded ODPS sources.
+For immutable source provenance retain the exact commit OID with the emitted
+catalog. The output catalog remains deterministic and content-derived;
+an unrelated code commit with unchanged ODPS metadata does not create a new
+catalog identity.
+
+This is **metadata version isolation**, not atomic publication of the underlying
+Parquet/JSON bytes, a runtime activation claim, a PostgreSQL transaction, or
+a right to distribute data. `--bind-local` still measures actual local data
+bytes at inspection time; it cannot make them immutable, lease them to later
+readers or turn incomplete products into publishable ones.
+An explicit `--product` instead selects live files and cannot be combined with
+`--at-commit`.
+
 ## Optional qualified owner-file binding
 
 The default projection does NOT infer physical availability. For an actual local
