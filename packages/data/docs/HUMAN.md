@@ -52,6 +52,15 @@ repository contains Capital and Experimental Episode ODPS records; Research's
 historical record remains in the frozen federation and cannot be promoted to
 a current live product by copying September's catalog.
 
+For a **reproducible metadata SourceCut**, run
+`python3 packages/data/scripts/project_owned_products.py --at-commit HEAD`
+and retain the reported exact `sourceCommit` together with the DCAT view.
+The CLI uses Git's committed tree and blob bytes; a staged or unstaged
+source edit cannot silently change that view. `--product` selects live
+working-tree files instead and is mutually exclusive with `--at-commit`.
+Neither mode proves that separately referenced Parquet/JSON bytes remain
+available or that the product has been transactionally published.
+
 The CLI provides product discovery only. It deliberately does not invent file
 locations, access grants or physical integrity. A consumer needing only one
 bound port may use `inspect_federation.py --verify-local --require-port

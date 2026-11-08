@@ -21,6 +21,13 @@ Discovery metadata is only a candidate until its producing owner confirms it.
   two-source Git projection with the three-product frozen 2026-09 snapshot.
   Do not mint port UUIDs, URLs, digest or reuse rights; ODPS v1.1 outputPort
   IDs and versions are optional and their versions need not match the product.
+- Immutable metadata SourceCut -> `scripts/project_owned_products.py
+  --at-commit REVISION`. Record its exact `sourceCommit` from stderr,
+  hash-bound DCAT output and chosen consumer. Git commit blobs, not the
+  working-tree/index, are the authority for this discovery. `--bind-local`
+  still measures physical bytes **now**, not at historical commit time.
+  Neither result is a PG publish receipt, file lease, authorization or
+  temporal as-of truth.
 
 - Product contract -> producing owner's ODCS/ODPS document and native tests.
 - Job/Attempt/process/Artifact effect -> Runtime; not this package.
@@ -37,8 +44,9 @@ Discovery metadata is only a candidate until its producing owner confirms it.
    digest or invalid catalog. For a consumer bound to one stable output-port
    identity, use `--verify-local --require-port PRODUCT_ID PRODUCT_VERSION
    DISTRIBUTION_URN`. A selected-port PASS must not be promoted to a
-   global product PASS. The unmaterialized Episode Parquet stays UNKNOWN. Do not interpret these as a right to publish.
-   directory path or catalog version as proof of deployed data.
+   global product PASS. The unmaterialized Episode Parquet stays UNKNOWN.
+   Do not interpret metadata paths or catalog versions as proof of deployed
+   data or a right to publish.
 2. Verify the exact physical bytes under explicit scope. Unknown remains
    typed UNKNOWN rather than FALSE or PASS. A file digest match does not
    prove statistics, correctness, licenses, or scientific causal claims.
