@@ -16,7 +16,7 @@ For each consequential change, independently record:
 - CONSUMED: the actual application request, app process binding, and its real return.
 - UNKNOWN: all unsampled paths. A historical PASS expires when its relevant source/installation/process/evironment/consumer edge changes.
 
-SOURCE_PASS is not APPLICATION_PASS. CONNECT 200 alone is not TLS success. A sample of zero upstream CONNECT is not universal noninterference across IPv6, DNS/DoH or other clients.
+SOURCE_PASS is not APPLICATION_PASS. CONNECT 200 alone is not TLS success. A sample of zero upstream CONNECT is not universal noninterference across IPv6, DNS/DoH or other clients. During NS2 negative-flow sampling, tcpdump/reader loss or capture overflow invalidates the witness; do not convert an unobserved packet into a policy PASS.
 
 ## 2. Capability → owner → native interface
 
