@@ -81,6 +81,7 @@ CROSS_CUTTING_PATHS = frozenset(
         "tools/repo/affected_owners.py",
         "tools/repo/test_affected_owners.py",
         "tools/repo/convergence_plan.py",
+        "tools/repo/ci_owner_shards.py",
         "tools/repo/test_convergence_plan.py",
         "tools/repo/check_github_governance.py",
         "tools/repo/dependency_contracts.toml",

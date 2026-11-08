@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from itertools import combinations
 import os
 import subprocess
@@ -1668,21 +1669,24 @@ class OwnerVerificationExecutionTests(unittest.TestCase):
         # This consumer runs only the Owner step. Including the following
         # Formal YAML step changes textwrap's indentation and makes nested
         # Bash heredocs appear malformed even though Actions parses them.
-        section = section.split("      - name: Verify changed core Formal source\n", 1)[0]
+        section = section.split("  # Preserve the repository", 1)[0]
         return textwrap.dedent(section.split("        run: |\n", 1)[1]).rstrip()
 
     @staticmethod
     def verify_tasks(tasks: str) -> tuple[subprocess.CompletedProcess[str], list[str]]:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "ordivon-affected-tasks.txt").write_text(tasks, encoding="utf-8")
+            # The matrix shard receives canonical Owner task IDs as JSON.
+            tasks_array = tasks.splitlines()
+            if tasks_array != ["artifact:queue", "data:verify"]:
+                raise ValueError("unexpected Owner verification fixture")
             fake = root / "mise"
             fake.write_text(
                 '#!/bin/sh\n'
                 'if [ "$1" = "--cd" ] && [ "$3" = "config" ]; then echo "[]"; exit 0; fi\n'
                 'printf "%s\\n" "$2" >> "$RUNNER_TEMP/called"\n'
                 'cat >/dev/null\n'
-                'if [ "$2" = "fail:verify" ]; then exit 29; fi\n',
+                'if [ "$2" = "data:verify" ]; then exit 29; fi\n',
                 encoding="utf-8",
             )
             fake.chmod(0o755)
@@ -1693,6 +1697,7 @@ class OwnerVerificationExecutionTests(unittest.TestCase):
                     **os.environ,
                     "PATH": f"{root}:{os.environ['PATH']}",
                     "RUNNER_TEMP": str(root),
+                    "OWNER_TASKS_JSON": json.dumps(tasks_array),
                 },
                 capture_output=True,
                 text=True,
@@ -1706,14 +1711,14 @@ class OwnerVerificationExecutionTests(unittest.TestCase):
             return proc, called
 
     def test_earlier_owner_consuming_stdin_cannot_skip_failing_next_owner(self) -> None:
-        proc, called = self.verify_tasks("first:verify\nfail:verify\n")
+        proc, called = self.verify_tasks("artifact:queue\ndata:verify\n")
         self.assertEqual(proc.returncode, 29, proc.stdout + proc.stderr)
-        self.assertEqual(called, ["first:verify", "fail:verify"])
+        self.assertEqual(called, ["artifact:queue", "data:verify"])
 
     def test_final_task_without_newline_must_not_be_skipped(self) -> None:
-        proc, called = self.verify_tasks("first:verify\nfail:verify")
+        proc, called = self.verify_tasks("artifact:queue\ndata:verify")
         self.assertEqual(proc.returncode, 29, proc.stdout + proc.stderr)
-        self.assertEqual(called, ["first:verify", "fail:verify"])
+        self.assertEqual(called, ["artifact:queue", "data:verify"])
 
 class OwnerSelectorFailClosedRegression(unittest.TestCase):
     """Run the actual protected GitHub Actions shell, not a Python stand-in."""
@@ -1724,7 +1729,7 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
         path = Path(__file__).resolve().parents[2] / ".github/workflows/ci.yml"
         workflow = path.read_text(encoding="utf-8")
         start = workflow.index("      - name: Select affected owners\n")
-        end = workflow.index("      - name: Verify affected owners\n", start)
+        end = workflow.index("      - name: Verify changed core Formal source\n", start)
         section = workflow[start:end]
         assert section.count("        run: |\n") == 1
         return textwrap.dedent(section.split("        run: |\n", 1)[1])
