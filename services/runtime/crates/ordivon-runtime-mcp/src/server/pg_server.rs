@@ -27,6 +27,7 @@ impl PgRuntimeServer {
                 "workspace.open" => "Create a fresh Git Workspace using the native Workspace contract. No SQLite history is imported.",
                 "workspace.execPlan" => "Run an ordered plan with the mature native Runner; PG commits the exact immutable step plan before physical launch. No input or credential bindings.",
                 "workspace.exec" => "Fresh PostgreSQL execution vertical: one trusted_local local_linux command. Host Dependencies are admitted as exact file commitments and rechecked before native launch; foreignReferences and Windows context are rejected. PostgreSQL commits admission and dispatch intent before the existing systemd runner launches. A starting Attempt is dispatch intent, not proof of a running process. Ambiguous launches are never automatically reissued. Use job.observe to reconcile native runner evidence.",
+                "release.get" => "Read an authenticated principal-owned, durably bound PostgreSQL ReleaseEffect and validate its immutable operator receipt. Never dispatches, retries, or claims a release merely because the Runtime Job terminated. release.apply is unavailable until PG-native qualified installation is implemented.",
                 "job.get" => "Read a PostgreSQL Job projection without dispatch or reconciliation. migrationVersion=0 identifies the fresh PG schema rather than SQLite migrations.",
                 "job.observe" => "Observe and reconcile a principal-owned PostgreSQL Job using native runner evidence; may dispatch an accepted Job once. Supports terminal and change_or_terminal waiting with bounded output offsets. Does not claim domain semantic completion.",
                 "job.cancel" => "Persist PostgreSQL cancellation intent before requesting the native systemd cgroup stop. A stop submission never proves terminal execution. Pending work cancels before dispatch; issued work requires native terminal evidence.",
@@ -110,6 +111,14 @@ impl PgRuntimeServer {
                         return Err(ToolError::invalid("schemaVersion must be 1", "schemaVersion"));
                     }
                     value(runtime.describe())
+                },
+                "release.get" => {
+                    let request: RuntimeReleaseGetToolRequest = parse(arguments)?;
+                    value(runtime.get_runtime_release_effect(&RuntimeReleaseGetRequest {
+                        schema_version: request.schema_version,
+                        client_request_id: request.client_request_id,
+                        principal: execution.principal.clone(),
+                    }))
                 },
                 "job.list" => value(runtime.list(&execution.principal,&parse::<RuntimeJobListRequest>(arguments)?)),
                 "workspace.get" => value(runtime.get_workspace(&parse::<RuntimeWorkspaceGetRequest>(arguments)?)),

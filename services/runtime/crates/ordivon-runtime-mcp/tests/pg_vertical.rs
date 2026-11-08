@@ -129,6 +129,9 @@ impl Fixture {
         }
     }
     fn endpoint(&mut self) -> String {
+        self.endpoint_for_principal("pg-consumer")
+    }
+    fn endpoint_for_principal(&mut self, principal: &str) -> String {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let bind = listener.local_addr().unwrap();
         drop(listener);
@@ -162,7 +165,7 @@ impl Fixture {
                 .env("ORDIVON_PG_EXECUTABLE_ROOTS_JSON", r#"["/usr/bin","/bin"]"#)
                 .env("ORDIVON_PG_BIND", bind.to_string())
                 .env("ORDIVON_PG_TOKEN", "p".repeat(32))
-                .env("ORDIVON_PG_PRINCIPAL", "pg-consumer")
+                .env("ORDIVON_PG_PRINCIPAL", principal)
                 .stdout(Stdio::null())
                 .stderr(output)
                 .spawn()
@@ -239,6 +242,209 @@ fn call(url: &str, name: &str, args: Value) -> Value {
     rpc(url, "tools/call", json!({"name":name,"arguments":args}))
 }
 
+/// A real PG+MCP contract test: an ordinary executed Job is NOT a Release
+/// effect; the operator fixture explicitly commits the release side truth.
+/// No installer is invoked. This exercises readback integrity, not deployment.
+#[test]
+#[ignore = "launches a disposable PostgreSQL cluster and native MCP"]
+fn pg_release_get_never_claims_deployed_without_verified_operator_receipt() {
+    use ordivon_runtime_core::{
+        runtime_release_effect_id, runtime_release_request_identity_digest, RuntimeReleaseRequest,
+    };
+    use sha2::{Digest, Sha256};
+    #[derive(serde::Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Binding<'a> {
+        contract: &'static str,
+        effect_id: &'a str,
+        request_digest: &'a str,
+        workspace_id: &'a str,
+        commit: &'a str,
+        candidate_manifest_digest: &'a str,
+        expected_tool_count: u32,
+        receipt_path: &'a str,
+    }
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let commit = String::from_utf8(
+        Command::new("git")
+            .arg("-C")
+            .arg(&repo)
+            .args(["rev-parse", "HEAD"])
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap()
+    .trim()
+    .to_string();
+    let endpoint = fixture.endpoint();
+    let tools = rpc(&endpoint, "tools/list", json!({}));
+    let names = tools["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert!(names.contains(&"release.get"));
+    assert!(
+        !names.contains(&"release.apply"),
+        "no unqualified release writer"
+    );
+    let describe = call(&endpoint, "runtime.describe", json!({}));
+    assert_eq!(
+        describe["structuredContent"]["structuredReleaseConfigured"],
+        false
+    );
+    let missing = call(
+        &endpoint,
+        "release.get",
+        json!({"clientRequestId":"release-no-such-id"}),
+    );
+    assert_eq!(
+        missing["structuredContent"]["error"]["code"],
+        "JOB_NOT_FOUND"
+    );
+
+    let open = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-release-readback","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(open["isError"], true, "{open}");
+    let client_id = "pg-release-readback-test-001";
+    let exec = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":client_id,"execution":{
+            "workspaceId":"ws-release-readback","executable":"/usr/bin/true",
+            "cwdRelative":".","timeoutMs":5000},"waitMs":5000}),
+    );
+    assert_ne!(exec["isError"], true, "{exec}");
+    let job = exec["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let release = RuntimeReleaseRequest {
+        schema_version: 1,
+        client_request_id: client_id.into(),
+        principal: "pg-consumer".into(),
+        workspace_id: "ws-release-readback".into(),
+        commit,
+        candidate_manifest_digest: format!("sha256:{}", "a".repeat(64)),
+        expected_tool_count: 20,
+    };
+    let digest = runtime_release_request_identity_digest(&release).unwrap();
+    let effect = runtime_release_effect_id(&release);
+    let receipt = fixture.root.join("test-release-receipt");
+    let receipt_str = receipt.to_string_lossy().to_string();
+    let binding = Binding {
+        contract: "runtime_release_v1",
+        effect_id: &effect,
+        request_digest: &digest,
+        workspace_id: &release.workspace_id,
+        commit: &release.commit,
+        candidate_manifest_digest: &release.candidate_manifest_digest,
+        expected_tool_count: release.expected_tool_count,
+        receipt_path: &receipt_str,
+    };
+    let binding_bytes = serde_json::to_vec(&binding).unwrap();
+    let binding_digest = format!("sha256:{}", hex::encode(Sha256::digest(&binding_bytes)));
+    let original: String = fixture
+        .db
+        .query_one(
+            "SELECT workspace_snapshot_json FROM jobs WHERE job_id=$1",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    let mut snapshot: Value = serde_json::from_str(&original).unwrap();
+    snapshot["runtimeReleaseEffectDigest"] = json!(binding_digest);
+    fixture
+        .db
+        .execute(
+            "UPDATE jobs SET request_digest=$1,workspace_snapshot_json=$2 WHERE job_id=$3",
+            &[&digest, &snapshot.to_string(), &job],
+        )
+        .unwrap();
+    fixture.db.execute(
+        "INSERT INTO job_runtime_release_effects(job_id,effect_id,contract,request_digest,\
+         workspace_id,commit_revision,candidate_manifest_digest,expected_tool_count,receipt_path,binding_digest)\
+         VALUES($1,$2,'runtime_release_v1',$3,$4,$5,$6,$7,$8,$9)",
+        &[&job,&effect,&digest,&release.workspace_id,&release.commit,
+          &release.candidate_manifest_digest,&(20_i32),&receipt_str,&binding_digest],
+    ).unwrap();
+
+    let readback = call(
+        &endpoint,
+        "release.get",
+        json!({"clientRequestId":client_id}),
+    );
+    assert_ne!(readback["isError"], true, "{readback}");
+    let projection = &readback["structuredContent"];
+    assert_eq!(projection["jobId"], job);
+    assert_eq!(projection["receiptAvailable"], false);
+    assert_ne!(projection["effectDisposition"], "deployed");
+    assert_eq!(projection["semanticCompletionEvaluated"], false);
+
+    fs::create_dir(&receipt).unwrap();
+    fs::write(
+        receipt.join("effect-request.json"),
+        b"{\"contract\":\"fake\"}",
+    )
+    .unwrap();
+    let forged = call(
+        &endpoint,
+        "release.get",
+        json!({"clientRequestId":client_id}),
+    );
+    assert_ne!(forged["isError"], true, "{forged}");
+    assert_eq!(
+        forged["structuredContent"]["effectDisposition"],
+        "reconciliation_required"
+    );
+    assert_eq!(
+        forged["structuredContent"]["reconciliationIssue"],
+        "RELEASE_EFFECT_REQUEST_MISMATCH"
+    );
+
+    fixture
+        .db
+        .execute(
+            "UPDATE job_runtime_release_effects SET binding_digest=$1 WHERE job_id=$2",
+            &[&format!("sha256:{}", "0".repeat(64)), &job],
+        )
+        .unwrap();
+    let corrupted = call(
+        &endpoint,
+        "release.get",
+        json!({"clientRequestId":client_id}),
+    );
+    assert_eq!(
+        corrupted["structuredContent"]["error"]["code"],
+        "REGISTRY_CORRUPT"
+    );
+    fixture
+        .db
+        .execute(
+            "UPDATE job_runtime_release_effects SET binding_digest=$1 WHERE job_id=$2",
+            &[&binding_digest, &job],
+        )
+        .unwrap();
+
+    if let Some(mut old) = fixture.endpoint.take() {
+        old.kill().unwrap();
+        old.wait().unwrap();
+    }
+    let other = fixture.endpoint_for_principal("different-principal");
+    let denied = call(&other, "release.get", json!({"clientRequestId":client_id}));
+    assert_eq!(
+        denied["structuredContent"]["error"]["code"], "JOB_NOT_FOUND",
+        "release identity must not be visible across principals: {denied}"
+    );
+}
+
 #[test]
 #[ignore = "launches a disposable native PostgreSQL cluster; run explicitly"]
 fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
@@ -252,7 +458,7 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect::<Vec<_>>();
-    assert_eq!(names.len(), 19);
+    assert_eq!(names.len(), 20);
     // Operator startup receipt must describe the *same* catalog advertised
     // by the mature MCP SDK; it cannot silently retain an obsolete count.
     let startup = fs::read_to_string(fixture.root.join("endpoint.log")).unwrap();
