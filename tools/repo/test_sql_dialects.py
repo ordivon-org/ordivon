@@ -74,6 +74,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
             current,
         )
+        self.assertNotIn("domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py", current)
         self.assertGreater(len(current), 10)
         # The retired Gateway transport is not a surviving SQLite authority.
         retired = "services/gateway/src/ordivon_gateway/external_worker.py"
@@ -84,7 +85,6 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         current = tracked_owner_sqlite_calls(ROOT)
         # Each is a real tracked and currently differently qualified consumer.
         for name in (
-            "domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py",
             "platform/workstation/scripts/host_historical_projection.py",
             "services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py",
             "apps/chaoxing-autosign/chaoxing_mvp/ledger.py",

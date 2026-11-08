@@ -45,7 +45,7 @@
 | CA04 · PortfolioCounterfactualComposition | 如果调整仓位，组合会发生什么变化？ | Portfolio 的情景推演，再交独立 Risk 约束 |
 | CA05 · NonLiveExecutionPolicyAdmission | 本次操作仅允许模拟，还是有额外效果？ | Governance 的 NON_LIVE 准入；拒绝越权执行 |
 | CA06 · AmbiguousExecutionReconciliation | 某笔订单状态到底确认了吗？ | Trading 的提供方观测核对；证据不足为 UNKNOWN |
-| CA07 · DurableCapitalReservationLedger | 预留、释放和最终入账如何保持一致？ | Accounting 的持久交易/预约模型；旧 SQLite 为迁移对照，不是新首选 |
+| CA07 · DurableCapitalReservationLedger | 预留、释放和最终入账如何保持一致？ | Accounting 唯一 PostgreSQL 账本，真实 PG 重启、并发和 36 条会计合同轨迹；无 SQLite 后备数据库 |
 | CA08 · ProspectiveStrategyEvidenceValidation | 研究结果是否发生在冻结假设之后？ | Research 的前瞻有效性检验 |
 | CA09 · StrategicContributionOnlyAllocation | 如何保留现金并分配新资金？ | Portfolio 的贡献式分配 CLI（下面可立即运行） |
 | CA10 · FrozenExperimentProtocolReview | 研究方案是否先冻结、再观察结果？ | Research 的 `run-finance-lego` 与现有研究 Skill |
@@ -294,3 +294,9 @@ Agent 需要在实际操作中同时检查源码、`test_paper_close.py`
 Finance Portfolio 的月度信息树现在由独立的 `portfolio/information_tree.py` 验证。人类使用时先明确：每月 1r 入金时点、当时真正可观察的分支、所有资产条件概率、逐期现金支出、最终负债以及提供方提供的保证金与融资合同。仅当数据、合同和效用足够完整，才用现有 `portfolio/multistage_policy.py` 进行数值优化，且仍为只读研究结果。
 
 这次拆分不新增任何交易入口、账本或 API。详细数学接口及 Agent 调用见 [多期模型与信息树合同](MULTISTAGE_FINANCE_R1.md)；对应的源码与已退役文件审计见 [Finance Owner/LEGO 审计](FINANCE_DIRECTORY_OWNER_AUDIT_R1.md)。
+
+## PostgreSQL 会计唯一入口与人类操作（2026-11-07）
+
+Finance 的持久化账本由 Accounting 的 PostgresAccountingLedger 负责。对于每月入金、预留、消费、释放和 Paper 结算，先核实真实资金合同、命名空间和 PostgreSQL 连接；研究模型输出不等于账本回执。测试应当使用专用、可销毁的 PostgreSQL 数据库，环境变量为 ORDIVON_CAPITAL_PG_TEST_DSN，绝不把测试运行到生产金融数据库。
+
+旧 SQLite 引擎、R0-R5 脚本和差分测试已退役。36 条两操作情景直接对真实 PostgreSQL 和独立账务预期进行比较，无需迁移旧 SQLite 数据。Human 可从 scripts/run-nonlive-capital-effect-matrix 了解模拟资金效果；这仍需要显式 PG DSN，且不构成外部交易授权。Agent 的操作顺序见现有 finance-paper-investment Skill。

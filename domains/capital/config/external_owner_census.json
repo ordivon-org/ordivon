@@ -302,8 +302,7 @@
         "src/ordivon_capital/accounting/durable.py",
         "src/ordivon_capital/accounting/postgres_ledger.py",
         "src/ordivon_capital/accounting/paper_close.py",
-        "src/ordivon_capital/accounting/postgres_paper_close.py",
-        "src/ordivon_capital/accounting/sqlite_ledger.py"
+        "src/ordivon_capital/accounting/postgres_paper_close.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -315,7 +314,7 @@
         "TigerBeetle 0.17.9 historical/future distributed challenger"
       ],
       "localStanding": "PG_NATIVE_ACCOUNTING_CONSUMER_QUALIFIED_LEGACY_SOURCE_RETIRED_PENDING_INSTALLED_CUTOVER",
-      "localResponsibility": "Bind capital reservation/post/void/idempotency onto native PostgreSQL SERIALIZABLE transactions with 40001 whole-transaction retries, exact U128 accounting identity and canonical PostgreSQL transaction readback. Nonlive matrix selects PostgreSQL only on explicit DSN. Legacy SQLite remains historical/offline test input, not a new production authority. No external fund movement or installed PG cutover is entailed.",
+      "localResponsibility": "Bind capital reservation/post/void/idempotency onto native PostgreSQL SERIALIZABLE transactions with 40001 whole-transaction retries, exact U128 accounting identity and canonical PostgreSQL transaction readback. Nonlive matrix selects PostgreSQL only on explicit DSN. PostgreSQL alone owns durable writes; no alternate SQLite backend, historical importer or differential oracle is retained. No external fund movement or installed PG cutover is entailed.",
       "admittedMechanicsOwners": [
         "PostgreSQL 18.6 physically tested disposable cluster: native PG SERIALIZABLE with advisory transaction admission",
         "SQLite 3.54 historical/offline regression only, not an expansion target"
@@ -1223,74 +1222,6 @@
       "standing": "LOCAL_DETERMINISTIC_POLICY_PREFERRED",
       "externalOwnerAdmitted": false,
       "decision": "Remove OPA from the current core policy decision path. Retain OPA 1.20.2 Rego only as historical differential evidence and a future challenger if the contract grows into a true independent policy-distribution boundary."
-    },
-    {
-      "contractId": "bounded-capital-accounting-substrate",
-      "scope": "single-host mechanical accounting: atomic funding, no-overdraft scarcity, pending reservation, post/void, exact idempotent replay, intact database restart",
-      "localBaseline": {
-        "primitiveOwner": "SQLite",
-        "primitiveVersion": "3.53.1 bundled with canonical Python 3.14.7",
-        "implementation": [
-          "src/ordivon_capital/accounting/substrate.py",
-          "src/ordivon_capital/accounting/sqlite_ledger.py",
-          "src/ordivon_capital/accounting/durable.py"
-        ],
-        "temporaryMinimalBaselineSourceLines": 175,
-        "productionBindingSourceLines": 744
-      },
-      "externalCandidate": {
-        "name": "TigerBeetle",
-        "version": "0.17.9",
-        "latestStableObserved": true,
-        "python3147ClientQualification": "PASS",
-        "historicalTools": "tools/tigerbeetle_0_17_9/"
-      },
-      "evidence": {
-        "tigerBeetleSmoke": [
-          "PASS_EPHEMERAL_MECHANICAL_ONLY",
-          "PASS_RESERVATION_RESOLUTION_MECHANICAL_COMPOSITION",
-          "PASS_DURABLE_RESTART_RECONCILIATION"
-        ],
-        "sqliteBaseline": "PASS_SQLITE_BOUNDED_LEDGER_BASELINE",
-        "sqliteRestartSmoke": "PASS_SQLITE_DURABLE_RESTART_RECONCILIATION",
-        "randomizedDifferentialSteps": 400,
-        "randomizedStatusMismatches": 0,
-        "randomizedBalanceMismatches": 0,
-        "sqliteExtraFault": "transaction rollback fault passed",
-        "tigerBeetleAdvantages": [
-          "distributed replication and cluster recovery design",
-          "purpose-built high-throughput financial transaction engine",
-          "larger production state space for multi-node accounting"
-        ],
-        "currentContractDoesNotRequire": [
-          "distributed replication",
-          "multi-host consensus",
-          "high-throughput OLTP",
-          "cluster recovery"
-        ]
-      },
-      "standing": "HISTORICAL_SQLITE_VS_TIGERBEETLE_ONLY_PG_NATIVE_CUTOVER_PENDING",
-      "tigerBeetleOwnerAdmitted": false,
-      "decision": "Original 400-step SQLite-vs-TigerBeetle comparison remains historical evidence, not a current SQLite preference. Native PostgreSQL ledger qualified on ephemeral PostgreSQL 18: account/transfer identity, whole SERIALIZABLE retry, no-overdraft concurrency, exact pending/POST/VOID, restart, PostgreSQL committed readback, and non-live effect-matrix consumer on explicit PG DSN. Retired SQLite import has no active consumer. Installed PG cutover, legacy producer shutdown, rollback and retirement are NOT proved.",
-      "nativePostgresQualification": {
-        "consumer": "src/ordivon_capital/accounting/postgres_ledger.py",
-        "tests": "tests/test_postgres_ledger.py",
-        "operations": [
-          "unique-account",
-          "replay",
-          "reserve-post-void",
-          "serializable-scarcity",
-          "cold-schema-lock",
-          "quiesced-import",
-          "negative-readback-rollback",
-          "native-pg-catalog-structure-and-constraint-admission",
-          "reject-counterfeit-account-columns",
-          "reject-weakened-balance-check",
-          "reject-unlogged-non-durable-table"
-        ],
-        "standing": "QUALIFIED_DISPOSABLE_PG18_NO_INSTALLED_CUTOVER",
-        "schemaAdmissionProofBoundary": "PostgreSQL 18.6 pg_catalog names/types, permanent relation persistence, required primary/foreign keys and exact PG18-deparsed CHECK expressions are validated inside the schema-admission transaction under native advisory lock. Real PG counterfeit-table and weakened-check tests were RED before the change and GREEN afterward. This is not a universal SQL-expression proof and cannot certify installed production state."
-      }
     },
     {
       "contractId": "bounded-us-equity-execution-feasibility",

@@ -52,9 +52,7 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     # The Gateway's SQLite external-worker transport was retired after
     # natural-owner routing cutover. A new direct SQLite call in Gateway
     # must fail this exact source-frozen debt gate, not be grandfathered.
-    # Capital accounting and Media research have distinct consumer contracts:
-    # do not promote the research executor or test-only ledger to live PG by analogy.
-    'domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py': 1,
+    # Capital SQLite Accounting retired with its direct test-only consumers.
     # RW12 source-only immutable SQLite snapshot importer into a NON-AUTHORITATIVE PG stage.
     # Retire this one-shot reader after native Rust PostgreSQL consumer promotion.
     'services/runtime/scripts/postgres_registry_stage.py': 1,

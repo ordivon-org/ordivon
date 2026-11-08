@@ -18,7 +18,6 @@ def test_legacy_replay_registry_is_explicit_and_paths_are_isolated():
 
 def test_current_canonical_pipeline_does_not_call_legacy_replay_tools():
     current = (
-        "scripts/run-r0-r5-closure",
         "scripts/run-capital-trading-fullpath-closure",
         "scripts/run-canonical-tests",
         "mise.toml",

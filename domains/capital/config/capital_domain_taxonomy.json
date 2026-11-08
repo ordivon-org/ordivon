@@ -95,7 +95,6 @@
     "accounting": [
       "durable.py",
       "postgres_ledger.py",
-      "sqlite_ledger.py",
       "substrate.py",
       "paper_close.py",
       "postgres_paper_close.py"

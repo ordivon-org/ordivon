@@ -18,6 +18,7 @@ uv sync --locked --group test
 uv run --group test ruff check .
 uv run --group test python -m pytest -m "not provider_qualification"
 mise run formal:paper
+mise run formal:accounting-reservation
 mise run formal:paper:source
 """
 
@@ -201,4 +202,20 @@ run = """
 set -euo pipefail
 uv sync --locked --group test
 uv run --locked --group test pytest -q -m provider_qualification tests/test_okx_official_cli.py
+"""
+
+[tasks."formal:accounting-reservation"]
+description = "Prove Accounting reservation and two-phase settlement state invariants with pinned upstream Z3"
+run = """
+set -euo pipefail
+uvx --python 3.15 --from z3-solver==5.3.3.0 python - <<'PYZ3'
+from pathlib import Path
+import z3
+raw = Path("formal/AccountingReservationR1.smt2").read_bytes()
+observed = z3.z3core.Z3_eval_smtlib2_string(z3.main_ctx().ref(), raw).splitlines()
+expected = ["unsat"] * 7 + ["sat", "sat"]
+if observed != expected:
+    raise SystemExit(f"Accounting reservation formal obligations mismatch: {observed!r} != {expected!r}")
+print("AccountingReservationR1: 7 universal QF_LIA checks UNSAT; 2 invalid-state counterexamples SAT")
+PYZ3
 """
