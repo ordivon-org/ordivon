@@ -111,10 +111,11 @@ def execute_verify_stage(
 
     if artifact_class in {"presentation", "document", "spreadsheet"}:
         raw = hooks.verify_openxml_artifact(artifact)
+        output = raw.get("validatorOutput")
+        validator = output.get("validator") if isinstance(output, dict) else None
         version = str(
-            raw.get("validatorOutput", {})
-            .get("validator", {})
-            .get("packageVersion", "unknown")
+            validator.get("packageVersion", "unknown")
+            if isinstance(validator, dict) else "unknown"
         )
         receipts["structural"] = write_gate_receipt(
             output_dir,
@@ -229,7 +230,11 @@ def execute_verify_stage(
             )
     elif artifact_class == "web":
         conformance = hooks.verify_html_conformance(artifact)
-        vnu_version = str(conformance.get("validator", {}).get("version") or "unknown")
+        html_validator = conformance.get("validator")
+        vnu_version = str(
+            html_validator.get("version") if isinstance(html_validator, dict)
+            else "unknown"
+        )
         receipts["conformance"] = write_gate_receipt(
             output_dir,
             "conformance",

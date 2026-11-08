@@ -34,6 +34,26 @@ This is exhaustive **within that explicitly finite abstraction** (7, 5, 4 requir
 
 The proof does **not** cover arbitrary nested JSON shapes, concurrency, file-system races, integrity of external tools, or the veracity of a native validator's claims. Those require separate source/effect and real-consumer evidence.
 
+## Input identity and executable refinement obligation
+
+A pathname is not a content identity. The previous `hash(path)` followed by
+`verifier(path)` had a TOCTOU gap. For qualified self-contained formats,
+`artifact_core/input_snapshot.py` copies and hashes bytes from **one open
+descriptor**, checks the request digest, and delegates the same private file.
+
+Precondition: regular readable file, expected SHA-256, private scratch root.
+Postcondition: if staging succeeds, SHA-256 of the snapshot's streamed bytes
+equals the request digest; native verifier receives that snapshot rather than
+the mutable original pathname.
+
+The claim depends on SHA-256 and normal OS descriptor/read/write semantics.
+It excludes malicious same-principal modifications of private scratch,
+all concurrent external sidecars, later source-path identity, and actual
+consumer-domain acceptance. The native tests cover digest mismatch, source
+replacement, symlink/FIFO inputs, and service delegation after a pathname
+mutation. Unlike the finite abstract claim proof, this is an effectful
+property supported by real execution rather than a universal theorem.
+
 ## Execution and evidence
 
 `mise run verify` and the existing GitHub queue task invoke the model/refinement checker **before** running the necessary native tests. Its output reports the exact source/profile SHA-256 commitments, bounded state counts, accepted states and counterexample count.
