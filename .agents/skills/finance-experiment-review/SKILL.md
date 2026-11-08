@@ -184,3 +184,24 @@ repo's pinned Z3, no custom solver. These prove **exact-real static algebra**
 only; Python float behavior is supported separately by native consumer tests,
 not by an unbounded implementation-refinement proof. Source publisher rights,
 future margin gaps, broker liquidation and real alpha remain UNKNOWN.
+
+## Prospective session-date alignment is not data authentication
+
+The existing `ordivon_capital.research.prospective_validation` is deliberately
+limited to calendar alignment of caller-declared date sets. Its standing
+`POST_DECISION_DATES_ALIGNED_SOURCE_UNVERIFIED` means that *dates* are aligned
+after the frozen session boundary. It always returns
+`postDecisionHoldoutAvailable=false` and
+`marketSourceObservationVerified=false`, because its inputs contain no provider
+bytes, actual publication/capture timestamps, publisher authentication,
+instrument corporate actions or evaluation-as-of receipt.
+
+**Agent procedure:** Freeze the exact decision instant and timezone. Use this
+pure helper solely to determine candidate post-decision session dates. Then
+request real Markets source and observation evidence, preserving source digest,
+first-observed availability and total-return/corporate-action semantics.
+Use the existing `experiment_protocol` holdout evaluator and independent
+economic replay for separate qualification. Do not promote calendar
+intersection (including far-future dates) to `PIT_VERIFIED`,
+`HOLDOUT_AVAILABLE`, `OOS_VALIDATED`, capital authority or strategy alpha.
+No new data catalog, temporal proof service or Agent is needed.
