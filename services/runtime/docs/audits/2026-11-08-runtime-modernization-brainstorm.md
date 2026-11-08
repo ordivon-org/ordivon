@@ -235,3 +235,8 @@ queue scheduling), Owner fairness and Windows native PG cutover are not claimed
 implemented by this slice. Their designs must distinguish resource requests from
 hard limits, preserve exact idempotency and dispatch fencing, and prove actual
 consumer behavior before replacing the existing capacity gates.
+
+
+## Resource scheduler implementation follow-up, 2026-11-08
+
+The prior first-batch status for fixed global/per-Workspace count gates is superseded in branch `fix/runtime-native-recovery-20261108`: count-based admission is removed from the Linux PG path. Durable pending Jobs, atomic resource allocations, native pressure observations, Workspace access conflicts, scoped source commitments and daemon scheduling are implemented. See the runtime/operator guide for the actual contract and verification bounds. Deployment qualification and exact commit/binary receipts accompany the installed release; source presence alone is not installation evidence. Windows PG-only cutover, heterogeneous cross-node placement, weighted owners, preemption and replacement of the advisory transaction lock are not claimed by this scheduler change.

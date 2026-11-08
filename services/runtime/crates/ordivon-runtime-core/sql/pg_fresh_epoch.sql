@@ -43,6 +43,12 @@ CREATE TABLE concurrency_reservations(
  reservation_id text PRIMARY KEY,attempt_id text NOT NULL UNIQUE REFERENCES attempts(attempt_id),
  global_limit bigint NOT NULL,state text NOT NULL, acquired_at_ms bigint NOT NULL,
  state_observed_at_ms bigint NOT NULL, released_at_ms bigint, release_reason text);
+CREATE TABLE job_allocations(
+ attempt_id text PRIMARY KEY REFERENCES attempts(attempt_id),
+ resources_json text NOT NULL,workspace_access_json text NOT NULL,owner text NOT NULL,
+ state text NOT NULL CHECK(state IN ('active','released')),
+ acquired_at_ms bigint NOT NULL,released_at_ms bigint);
+CREATE INDEX idx_job_allocations_active ON job_allocations(state,attempt_id);
 CREATE TABLE job_events(
  event_id text PRIMARY KEY,job_id text NOT NULL REFERENCES jobs(job_id),
  attempt_id text REFERENCES attempts(attempt_id),

@@ -29,10 +29,13 @@ impl PgRuntimeServer {
                 "workspace.exec" => "Fresh PostgreSQL execution vertical: one trusted_local local_linux command. Host Dependencies are admitted as exact file commitments and rechecked before native launch; foreignReferences and Windows context are rejected. PostgreSQL commits admission and dispatch intent before the existing systemd runner launches. A starting Attempt is dispatch intent, not proof of a running process. Ambiguous launches are never automatically reissued. Use job.observe to reconcile native runner evidence.",
                 "job.get" => "Read a PostgreSQL Job projection without dispatch or reconciliation. migrationVersion=0 identifies the fresh PG schema rather than SQLite migrations.",
                 "job.observe" => "Observe and reconcile a principal-owned PostgreSQL Job using native runner evidence; may dispatch an accepted Job once. Supports terminal and change_or_terminal waiting with bounded output offsets. Does not claim domain semantic completion.",
-                "job.cancel" => "Persist PostgreSQL cancellation intent before requesting the native systemd cgroup stop. A stop submission never proves terminal execution. Unissued cancelled work remains reserved pending recovery.",
+                "job.cancel" => "Persist PostgreSQL cancellation intent before requesting the native systemd cgroup stop. A stop submission never proves terminal execution. Pending work cancels before dispatch; issued work requires native terminal evidence.",
                 "artifact.read" => "Read a bounded verified UTF-8 range of a PostgreSQL-registered Artifact. Revalidates retained bytes against their digest and length.",
                 _ => return None,
             };
+            if t.name.as_ref()=="runtime.describe"{
+                t.output_schema=Some(std::sync::Arc::new(json!({"type":"object","properties":{"globalExecutionLimit":{"type":["integer","null"],"description":"Null: native allocations are resource governed, not Job-count governed."},"scheduling":{"type":"object"},"node":{"type":"object"}},"additionalProperties":true}).as_object().unwrap().clone()));
+            }
             t.description=Some(description.into());
             Some(t)
         }).collect()
@@ -89,6 +92,7 @@ impl PgRuntimeServer {
         }
         let runtime=self.runtime.clone();
         let execution=self.execution.clone();
+        let annotation_runtime=runtime.clone();
         let result=tokio::task::spawn_blocking(move || -> Result<serde_json::Value, ToolError> {
             fn parse<T: serde::de::DeserializeOwned>(v: serde_json::Value) -> Result<T,ToolError> {
                 serde_json::from_value(v).map_err(|e|ToolError::invalid(e.to_string(),"arguments"))
@@ -164,7 +168,13 @@ impl PgRuntimeServer {
             }
         }).await.map_err(|e|McpError::internal_error(e.to_string(),None))?;
         match result {
-            Ok(value) => Ok(CallToolResult::structured(value)),
+            Ok(value) => {
+                let runtime=annotation_runtime;
+                let value=tokio::task::spawn_blocking(move||runtime.annotate_scheduling(value)).await
+                    .map_err(|e|McpError::internal_error(e.to_string(),None))?
+                    .map_err(|e|McpError::internal_error(e.to_string(),None))?;
+                Ok(CallToolResult::structured(value))
+            },
             Err(e) => Ok(CallToolResult::structured_error(json!({"error":e}))),
         }
     }

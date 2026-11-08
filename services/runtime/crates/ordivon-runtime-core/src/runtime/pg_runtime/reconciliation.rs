@@ -76,6 +76,14 @@ impl PgRuntime {
         Ok((a, decode(&r.get::<_, String>(9))?, r.get(10)))
     }
     pub(super) fn reconcile(&self, db: &mut PgAdmissionStore, job: &str) -> RuntimeResult<()> {
+        self.reconcile_inner(db, job, false)
+    }
+    pub(super) fn reconcile_inner(
+        &self,
+        db: &mut PgAdmissionStore,
+        job: &str,
+        allow_dispatch: bool,
+    ) -> RuntimeResult<()> {
         let (mut a, plan, operation) = self.attempt(db, job)?;
         let provider: serde_json::Value = decode(
             &db.client
@@ -89,6 +97,9 @@ impl PgRuntime {
         if a.state == AttemptState::Accepted
             && a.termination_intent == AttemptTerminationIntent::Natural
         {
+            if !allow_dispatch {
+                return Ok(());
+            }
             let runner = self
                 .config
                 .executor
@@ -110,7 +121,17 @@ impl PgRuntime {
             if universal::sha256_bytes(token.as_bytes()) != a.launch_token_digest {
                 return Err(error("launch token mismatch"));
             }
+            if !self.claim_resources(db, &a, &plan)? {
+                return Ok(());
+            }
             let req = RunnerRequest {
+                workspace_read_paths: plan.budget.scheduling.as_ref().and_then(|s| {
+                    if s.workspace_access.read_paths.is_empty() {
+                        None
+                    } else {
+                        Some(s.workspace_access.read_paths.clone())
+                    }
+                }),
                 schema_version: 1,
                 job_id: Some(job.into()),
                 attempt_id: Some(a.attempt_id.clone()),
@@ -200,7 +221,7 @@ impl PgRuntime {
                     .ok_or_else(|| error("runner missing"))?,
                 bundle_path: Path::new(&a.bundle_path),
                 workspace_path: Path::new(&plan.workspace_path),
-                workspace_git_common_dir: None,
+                workspace_git_common_dir: plan.workspace_git_common_dir.as_deref().map(Path::new),
                 input_set_path: None,
                 credential_source_root: None,
                 credential_names: &[],
@@ -347,9 +368,7 @@ impl PgRuntime {
                 .collect::<Vec<_>>();
             db.commit_terminal_with_artifacts(&input, &artifacts)
                 .map_err(pg)?;
-        } else if !a.state.is_terminal()
-            && a.termination_intent == AttemptTerminationIntent::StopRequested
-        {
+        } else if !a.state.is_terminal() {
             // The kernel may have terminated the systemd-owned process tree
             // before Runner could write result.json. A missing result file is
             // not evidence that the process is still alive. Observe the exact

@@ -1726,3 +1726,359 @@ fn pg_host_dependencies_real_runner_and_committed_idempotency() {
         .get(0);
     assert_eq!(dispatched, 1, "an exact replay must never launch again");
 }
+
+#[test]
+#[ignore = "real PostgreSQL/systemd resource queue and mount contract"]
+fn resource_queue_shared_workspace_restart_and_native_write_leases() {
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let mut endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-resource-queue","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let node = call(&endpoint, "runtime.describe", json!({}));
+    assert!(node["structuredContent"]["globalExecutionLimit"].is_null());
+    let cpu = node["structuredContent"]["scheduling"]["node"]["cpuMillis"]
+        .as_u64()
+        .unwrap();
+    let schedule = |cpu: u64, access: Value| json!({"resources":{"cpuMillis":cpu,"memoryBytes":16777216,"pids":8},"workspaceAccess":access});
+    let submit = |endpoint: &str, id: &str, args: Vec<&str>, cpu: u64, access: Value| {
+        call(
+            endpoint,
+            "workspace.exec",
+            json!({"clientRequestId":id,"execution":{"workspaceId":"ws-resource-queue","executable":"/usr/bin/sh","args":args,"cwdRelative":".","timeoutMs":120000,"budget":{"scheduling":schedule(cpu,access)}},"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0}),
+        )
+    };
+    let wait = |db: &mut Client, jobs: &[String]| {
+        let deadline = Instant::now() + Duration::from_secs(20);
+        loop {
+            let count: i64 = db
+                .query_one(
+                    "SELECT count(*) FROM jobs WHERE job_id=ANY($1) AND resolution IS NULL",
+                    &[&jobs],
+                )
+                .unwrap()
+                .get(0);
+            if count == 0 {
+                break;
+            }
+            assert!(Instant::now() < deadline, "queued jobs failed to converge");
+            thread::sleep(Duration::from_millis(100));
+        }
+    };
+    // A full CPU request blocks a CPU-consuming peer but not CPU-free waiting work.
+    let release_blocker = fixture.root.join("release-blocker");
+    let blocker_script = format!(
+        "while [ ! -f '{}' ]; do sleep 0.1; done",
+        release_blocker.display()
+    );
+    let blocker = submit(
+        &endpoint,
+        "resource-blocker",
+        vec!["-c", blocker_script.as_str()],
+        cpu,
+        json!({"readOnly":true}),
+    );
+    assert_ne!(blocker["isError"], true, "{blocker}");
+    let blocked = submit(
+        &endpoint,
+        "resource-pending",
+        vec!["-c", "true"],
+        100,
+        json!({"readOnly":true}),
+    );
+    assert_ne!(blocked["isError"], true, "{blocked}");
+    assert_eq!(
+        blocked["structuredContent"]["scheduling"]["state"], "pending",
+        "{blocked}"
+    );
+    let replay = submit(
+        &endpoint,
+        "resource-pending",
+        vec!["-c", "true"],
+        100,
+        json!({"readOnly":true}),
+    );
+    assert_eq!(
+        replay["structuredContent"]["jobId"],
+        blocked["structuredContent"]["jobId"]
+    );
+    let queued_cancel = submit(
+        &endpoint,
+        "resource-pending-cancel",
+        vec!["-c", "true"],
+        100,
+        json!({"readOnly":true}),
+    );
+    let cancelled = call(
+        &endpoint,
+        "job.cancel",
+        json!({"jobId":queued_cancel["structuredContent"]["jobId"]}),
+    );
+    assert_eq!(
+        cancelled["structuredContent"]["executionDisposition"], "cancelled",
+        "{cancelled}"
+    );
+    let control = fixture.endpoint.as_mut().unwrap();
+    assert!(Command::new("kill")
+        .args(["-INT", &control.id().to_string()])
+        .status()
+        .unwrap()
+        .success());
+    let shutdown_deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        if let Some(status) = control.try_wait().unwrap() {
+            assert!(status.success(), "unclean scheduler shutdown");
+            break;
+        }
+        assert!(
+            Instant::now() < shutdown_deadline,
+            "scheduler prevented graceful control shutdown"
+        );
+        thread::sleep(Duration::from_millis(50));
+    }
+    endpoint = fixture.endpoint();
+    fs::write(&release_blocker, b"release").unwrap();
+    wait(
+        &mut fixture.db,
+        &[
+            blocker["structuredContent"]["jobId"]
+                .as_str()
+                .unwrap()
+                .into(),
+            blocked["structuredContent"]["jobId"]
+                .as_str()
+                .unwrap()
+                .into(),
+        ],
+    );
+    let release = fixture.root.join("release-readers");
+    let shared_wait = format!("while [ ! -f '{}' ]; do sleep 0.1; done", release.display());
+    let mut shared = Vec::new();
+    for n in 0..6 {
+        let result = submit(
+            &endpoint,
+            &format!("shared-reader-{n}"),
+            vec!["-c", shared_wait.as_str()],
+            0,
+            json!({"readOnly":true}),
+        );
+        assert_ne!(result["isError"], true, "{result}");
+        shared.push(
+            result["structuredContent"]["jobId"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+        );
+    }
+    let allocated:i64=fixture.db.query_one("SELECT count(*) FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=ANY($1) AND x.state='active'",&[&shared]).unwrap().get(0);
+    assert!(
+        allocated >= 5,
+        "fixed global or per-Workspace count still limits shared work: {allocated}"
+    );
+    fs::write(&release, b"release").unwrap();
+    wait(&mut fixture.db, &shared);
+    let changed = call(
+        &endpoint,
+        "workspace.mutate",
+        json!({"workspaceId":"ws-resource-queue","mutations":[{"mode":"WRITE","relativePath":"left/.keep","content":"left"},{"mode":"WRITE","relativePath":"right/.keep","content":"right"}]}),
+    );
+    assert_ne!(changed["isError"], true, "{changed}");
+    let release_writes = fixture.root.join("release-writes");
+    let left_script = format!(
+        "set -e; echo left > left/out; while [ ! -f '{}' ]; do sleep 0.1; done",
+        release_writes.display()
+    );
+    let right_script = format!(
+        "set -e; echo right > right/out; while [ ! -f '{}' ]; do sleep 0.1; done",
+        release_writes.display()
+    );
+    let left = submit(
+        &endpoint,
+        "scope-left",
+        vec!["-c", left_script.as_str()],
+        0,
+        json!({"readPaths":["left"],"writePaths":["left"]}),
+    );
+    let right = submit(
+        &endpoint,
+        "scope-right",
+        vec!["-c", right_script.as_str()],
+        0,
+        json!({"readPaths":["right"],"writePaths":["right"]}),
+    );
+    assert_ne!(left["isError"], true, "{left}");
+    assert_ne!(right["isError"], true, "{right}");
+    assert_eq!(
+        left["structuredContent"]["scheduling"]["state"], "allocated",
+        "{left}"
+    );
+    assert_eq!(
+        right["structuredContent"]["scheduling"]["state"], "allocated",
+        "{right}"
+    );
+    let conflict = submit(
+        &endpoint,
+        "scope-conflict",
+        vec!["-c", "echo serial > left/later"],
+        0,
+        json!({"readPaths":["left"],"writePaths":["left"]}),
+    );
+    assert_eq!(
+        conflict["structuredContent"]["scheduling"]["state"], "pending",
+        "{conflict}"
+    );
+    let independent_mutation = call(
+        &endpoint,
+        "workspace.mutate",
+        json!({"workspaceId":"ws-resource-queue","mutations":[{"mode":"WRITE","relativePath":"other/independent","content":"independent"}]}),
+    );
+    assert_ne!(
+        independent_mutation["isError"], true,
+        "unrelated mutation was blocked by a Workspace count: {independent_mutation}"
+    );
+    let conflicting_mutation = call(
+        &endpoint,
+        "workspace.mutate",
+        json!({"workspaceId":"ws-resource-queue","mutations":[{"mode":"WRITE","relativePath":"left/blocked","content":"must wait"}]}),
+    );
+    assert_eq!(
+        conflicting_mutation["structuredContent"]["error"]["code"],
+        "CONCURRENCY_LIMIT"
+    );
+    fs::write(&release_writes, b"release").unwrap();
+    let ids = [left, right, conflict]
+        .iter()
+        .map(|v| {
+            v["structuredContent"]["jobId"]
+                .as_str()
+                .unwrap()
+                .to_string()
+        })
+        .collect::<Vec<_>>();
+    wait(&mut fixture.db, &ids);
+    for job in &ids {
+        let state: String = fixture
+            .db
+            .query_one("SELECT resolution FROM jobs WHERE job_id=$1", &[job])
+            .unwrap()
+            .get(0);
+        if state != "succeeded" {
+            let bundle: String = fixture
+                .db
+                .query_one("SELECT bundle_path FROM attempts WHERE job_id=$1", &[job])
+                .unwrap()
+                .get(0);
+            for name in ["result.json", "stderr.log", "stderr.bin", "stderr"] {
+                if let Ok(content) = fs::read_to_string(PathBuf::from(&bundle).join(name)) {
+                    eprintln!(
+                        "SCOPE_DIAGNOSTIC {job} {name}: {}",
+                        &content[..content.len().min(8000)]
+                    );
+                }
+            }
+            eprintln!(
+                "SCOPE_BUNDLE_FILES {:?}",
+                fs::read_dir(&bundle)
+                    .unwrap()
+                    .map(|v| v.unwrap().file_name())
+                    .collect::<Vec<_>>()
+            );
+        }
+        assert_eq!(state, "succeeded", "scoped native write failed for {job}");
+    }
+    let denied = submit(
+        &endpoint,
+        "scope-denied",
+        vec!["-c", "touch outside-scope"],
+        0,
+        json!({"readOnly":true}),
+    );
+    let denied_id = denied["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    wait(&mut fixture.db, std::slice::from_ref(&denied_id));
+    let state: String = fixture
+        .db
+        .query_one("SELECT resolution FROM jobs WHERE job_id=$1", &[&denied_id])
+        .unwrap()
+        .get(0);
+    assert_eq!(state, "failed", "native read-only boundary was bypassed");
+    let listed = call(&endpoint, "job.list", json!({"limit":100}));
+    assert_ne!(listed["isError"], true, "{listed}");
+}
+
+#[test]
+#[ignore = "real PostgreSQL/systemd dominant-share and idle borrowing"]
+fn resource_queue_owner_fairness_and_idle_borrowing() {
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-owner-fairness","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let describe = call(&endpoint, "runtime.describe", json!({}));
+    let cpu = describe["structuredContent"]["scheduling"]["node"]["cpuMillis"]
+        .as_u64()
+        .unwrap();
+    let release_blocker = fixture.root.join("release-borrower");
+    let release_owners = fixture.root.join("release-owners");
+    let submit = |id: &str, owner: &str, cpu: u64, marker: &PathBuf| {
+        let script = format!("while [ ! -f '{}' ]; do sleep 0.1; done", marker.display());
+        let result = call(
+            &endpoint,
+            "workspace.exec",
+            json!({"clientRequestId":id,"execution":{"workspaceId":"ws-owner-fairness","executable":"/usr/bin/sh","args":["-c",script],"cwdRelative":".","timeoutMs":120000,"budget":{"scheduling":{"owner":owner,"resources":{"cpuMillis":cpu,"memoryBytes":16777216,"pids":8},"workspaceAccess":{"readOnly":true}}}},"waitMs":0}),
+        );
+        assert_ne!(result["isError"], true, "{result}");
+        result["structuredContent"]["jobId"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let borrower = submit("idle-borrower", "idle-owner", cpu, &release_blocker);
+    let borrowed:bool=fixture.db.query_one("SELECT EXISTS(SELECT 1 FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active')",&[&borrower]).unwrap().get(0);
+    assert!(borrowed, "idle capacity was artificially capped per owner");
+    let a1 = submit("owner-a-first", "owner-a", cpu / 2, &release_owners);
+    let a2 = submit("owner-a-second", "owner-a", cpu / 2, &release_owners);
+    let b1 = submit("owner-b-first", "owner-b", cpu / 2, &release_owners);
+    fs::write(&release_blocker, b"release").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let owners=fixture.db.query("SELECT x.owner FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=ANY($1) AND x.state='active' ORDER BY x.owner",&[&vec![a1.clone(),a2.clone(),b1.clone()]]).unwrap().iter().map(|r|r.get::<_,String>(0)).collect::<Vec<_>>();
+        if owners == vec!["owner-a".to_string(), "owner-b".to_string()] {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "dominant-share scheduling did not share released capacity: {owners:?}"
+        );
+        thread::sleep(Duration::from_millis(100));
+    }
+    let second_a_allocated:bool=fixture.db.query_one("SELECT EXISTS(SELECT 1 FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active')",&[&a2]).unwrap().get(0);
+    assert!(
+        !second_a_allocated,
+        "FIFO owner monopolized shared capacity"
+    );
+    fs::write(&release_owners, b"release").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let pending: i64 = fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs WHERE resolution IS NULL", &[])
+            .unwrap()
+            .get(0);
+        if pending == 0 {
+            break;
+        }
+        assert!(Instant::now() < deadline, "fair-share jobs did not finish");
+        thread::sleep(Duration::from_millis(100));
+    }
+}

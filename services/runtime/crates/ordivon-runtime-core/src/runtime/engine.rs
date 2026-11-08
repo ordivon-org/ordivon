@@ -1715,6 +1715,7 @@ mod trusted_systemd_command_tests {
     #[test]
     fn execution_budget_maps_to_systemd_resource_properties() {
         let budget = crate::ExecutionBudget {
+            scheduling: None,
             memory_max_bytes: Some(512 * 1024 * 1024),
             tasks_max: Some(64),
             cpu_quota_percent: Some(250),

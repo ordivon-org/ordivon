@@ -54,29 +54,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !arguments.is_empty() {
         return Err("unsupported PG Runtime arguments".into());
     }
-    let recovery = runtime.clone();
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(2));
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-        loop {
-            interval.tick().await;
-            let runtime = recovery.clone();
-            match tokio::task::spawn_blocking(move || runtime.reconcile_issued_jobs(32)).await {
-                Ok(Ok(report)) if report["inspected"].as_u64().unwrap_or(0) > 0 => {
-                    eprintln!("PG native reconciliation: {report}")
-                }
-                Ok(Err(_)) | Err(_) => {
-                    eprintln!("PG native reconciliation unavailable; retained for retry")
-                }
-                _ => (),
-            }
-        }
-    });
+    let shutdown = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let worker_shutdown = shutdown.clone();
+    let scheduler = runtime.clone();
+    tokio::task::spawn_blocking(move || scheduler.serve_scheduler(worker_shutdown));
     let server = PgRuntimeServer::new(
         runtime,
         ExecutionContext {
             principal: required("ORDIVON_PG_PRINCIPAL")?,
-            global_limit: 4,
+            global_limit: 0,
         },
     );
     let mut transport = StreamableHttpServerConfig::default();
@@ -112,8 +98,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         PgRuntimeServer::catalog().len()
     );
     axum::serve(listener, app)
-        .with_graceful_shutdown(async {
+        .with_graceful_shutdown(async move {
             let _ = tokio::signal::ctrl_c().await;
+            shutdown.store(true, std::sync::atomic::Ordering::Release);
         })
         .await?;
     Ok(())
