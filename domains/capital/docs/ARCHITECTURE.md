@@ -95,8 +95,14 @@ canonical Capital Accounting.
 Neither internal accounting substrate proves exchange settlement, legal
 ownership, withdrawability or venue trade reality. Reconciliation still
 distinguishes unknown effect (`NO_MUTATION`), authoritative proven no-effect
-(`VOID_PENDING_TRANSFER`) and positive execution
-(`POST_PENDING_TRANSFER`) without resurrecting terminal history.
+(`VOID_PENDING_TRANSFER`) and **fully reconciled exact-quantity execution**
+(`POST_PENDING_TRANSFER`) without resurrecting terminal history. A positive
+**partial** execution is PARTIAL_EXECUTION_UNSETTLED -> NO_MUTATION, including
+partial-fill-then-cancel: it must not post an entire pending reservation or
+void a reservation whose venue effect is positive. Trading retains the
+authoritative fill/remaining-quantity evidence until a separately qualified,
+amount-aware Accounting consumer exists. Venue trade IDs are deduplicated and
+an ambiguous reused client order ID never selects an arbitrary order.
 For installed truth, inspect the actual Accounting owner/Runtime release
 and live service rather than inferring it from this architecture page.
 

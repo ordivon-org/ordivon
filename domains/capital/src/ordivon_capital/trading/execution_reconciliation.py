@@ -33,6 +33,7 @@ _RESOLUTION_BY_STANDING = {
     "UNKNOWN": "NO_MUTATION",
     "AMBIGUOUS": "NO_MUTATION",
     "PARTIAL_OPEN": "NO_MUTATION",
+    "PARTIAL_EXECUTION_UNSETTLED": "NO_MUTATION",
     "CONTRADICTORY": "NO_MUTATION",
     "PROVEN_NO_EFFECT": "VOID_PENDING_TRANSFER",
     "RECONCILED_ZERO_FILL_TERMINAL": "VOID_PENDING_TRANSFER",
@@ -49,9 +50,12 @@ def reservation_resolution_for_standing(standing: str) -> str:
 
 def _dec(value: Any) -> Decimal:
     try:
-        return Decimal(str(value if value is not None else '0'))
+        result = Decimal(str(value if value is not None else '0'))
     except (InvalidOperation, ValueError, TypeError) as exc:
-        raise ReconciliationError(f'invalid decimal: {value!r}') from exc
+        raise ReconciliationError(f'invalid quantity: {value!r}') from exc
+    if not result.is_finite() or result < 0:
+        raise ReconciliationError(f'invalid nonnegative finite quantity: {value!r}')
+    return result
 
 
 def _status_to_fix(venue: str, status: str | None) -> tuple[str | None, str | None]:
@@ -103,25 +107,62 @@ def reconcile_fix_intent(
     orders=_find_orders(reality,clid)
     fills=_matched_fills(reality,orders)
 
-    if fills:
-        order=orders[-1] if orders else None
-        exec_type,ord_status=_status_to_fix(venue,(order or {}).get('status'))
-        lifecycle=_lifecycle(order,exec_type or 'F',ord_status or '2') if order else {'execType':'F','ordStatus':'2'}
-        return _result(intent,venue,'POSITIVE_EXECUTION',lifecycle,fills,'authoritative venue fill observed')
-
+    if orders and len({str(row.get('venueOrderId')) for row in orders}) != 1:
+        return _result(intent, venue, 'AMBIGUOUS', None, fills,
+                       'client order identity maps to multiple venue orders')
     if orders:
-        order=orders[-1]
-        executed=_dec(order.get('executedQty','0'))
-        exec_type,ord_status=_status_to_fix(venue,order.get('status'))
-        lifecycle=_lifecycle(order,exec_type,ord_status)
-        if executed > 0 or ord_status in {'1','2'}:
-            return _result(intent,venue,'POSITIVE_EXECUTION',lifecycle,[], 'authoritative order reports positive executed quantity')
-        coverage=reality.get('coverage') or {}
-        fills_complete=coverage.get('fillsComplete') is True
-        if (exec_type,ord_status) in _TERMINAL_ZERO and fills_complete:
-            standing='RECONCILED_ZERO_FILL_TERMINAL'
-            return _result(intent,venue,standing,lifecycle,[], 'terminal zero-fill order with complete fill query')
-        return _result(intent,venue,'PARTIAL_OPEN',lifecycle,[], 'order exists but effect is not terminal zero-fill or positive execution')
+        # Positive partial execution is evidence of a fill, not proof that an
+        # order-wide pending reservation can be posted in full.
+        order = orders[-1]
+        exec_type, ord_status = _status_to_fix(venue, order.get('status'))
+        lifecycle = _lifecycle(order, exec_type, ord_status)
+        requested = _dec(intent.get('orderQty'))
+        original = _dec(order.get('originalQty'))
+        executed = _dec(order.get('executedQty'))
+        if requested <= 0 or original != requested or executed > original:
+            return _result(intent, venue, 'CONTRADICTORY', lifecycle, fills,
+                           'order amount differs from committed intent or exceeds original')
+
+        if fills:
+            trade_ids = [row.get('venueTradeId') for row in fills]
+            if any(not isinstance(t, str) or not t.strip() for t in trade_ids) or len(set(trade_ids)) != len(trade_ids):
+                return _result(intent, venue, 'CONTRADICTORY', lifecycle, fills,
+                               'venue trade identity absent or duplicated')
+            amounts = [_dec(row.get('qty')) for row in fills]
+            if any(amount <= 0 for amount in amounts):
+                return _result(intent, venue, 'CONTRADICTORY', lifecycle, fills,
+                               'fill quantity must be positive')
+            fill_sum = sum(amounts, Decimal('0'))
+            complete = (reality.get('coverage') or {}).get('fillsComplete') is True
+            if fill_sum > executed or (complete and fill_sum != executed):
+                return _result(intent, venue, 'CONTRADICTORY', lifecycle, fills,
+                               'venue fill quantity contradicts cumulative execution')
+            if fill_sum < executed:
+                return _result(intent, venue, 'AMBIGUOUS', lifecycle, fills,
+                               'incomplete fill coverage; complete reconciliation required')
+
+        if ord_status == '2':
+            if executed == original and not fills:
+                return _result(intent, venue, 'AMBIGUOUS', lifecycle, fills,
+                               'filled order report lacks per-trade execution evidence')
+            if executed == original:
+                return _result(intent, venue, 'POSITIVE_EXECUTION', lifecycle, fills,
+                               'venue reports fully filled intent with reconciled trade quantities')
+            return _result(intent, venue, 'CONTRADICTORY', lifecycle, fills,
+                           'FILLED status contradicts incomplete executed quantity')
+        if executed > 0:
+            return _result(intent, venue, 'PARTIAL_EXECUTION_UNSETTLED', lifecycle, fills,
+                           'positive partial execution; whole reservation remains unresolved')
+        if ord_status == '1':
+            return _result(intent, venue, 'CONTRADICTORY', lifecycle, fills,
+                           'partially filled status has no executed quantity')
+        coverage = reality.get('coverage') or {}
+        fills_complete = coverage.get('fillsComplete') is True
+        if (exec_type, ord_status) in _TERMINAL_ZERO and fills_complete:
+            return _result(intent, venue, 'RECONCILED_ZERO_FILL_TERMINAL', lifecycle, fills,
+                           'terminal zero-fill order with complete fill query')
+        return _result(intent, venue, 'PARTIAL_OPEN', lifecycle, fills,
+                       'order exists but terminal zero-fill or complete execution is not proven')
 
     if exact_lookup is not None:
         if exact_lookup.get('venue') != venue or exact_lookup.get('clientOrderId') != clid:

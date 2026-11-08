@@ -47,6 +47,23 @@ Accounting PostgreSQL owns journal truth, Runtime owns Job/Attempt recovery.
    actual effect reconciliation and durable readback. Missing history
    stays UNKNOWN; no-fill cannot be inferred from a recent fills window.
 
+## Partial fill and reservation safety
+
+A provider-confirmed **partial** fill, including a partial fill followed by
+cancel, is real external economic effect but **not** sufficient to POST the
+entire precommitted PG reservation. Current Trading's bounded reconciliation
+returns PARTIAL_EXECUTION_UNSETTLED / NO_MUTATION: retain the pending
+reservation and reconcile venue trade IDs, executed/remaining quantities and
+fees independently. Do not VOID or fully POST merely because an order was
+canceled, a positive fill appeared, or a Runtime Job completed. A fully filled
+order must match the committed original order quantity and include matching
+trade evidence; order-only FILLED status leaves accounting unresolved.
+Duplicate trade IDs or
+a reused client order ID associated with multiple venue orders prevent
+automatic settlement. This is a fail-closed boundary, not an implementation
+of a per-fill Accounting journal or automatic partial-reservation release.
+Escalate unresolved fills to evidence-based reconciliation, not replayed POST.
+
 ## Human guidance
 
 This is OKX SPOT cash Demo only, never LIVE. Report account readiness,

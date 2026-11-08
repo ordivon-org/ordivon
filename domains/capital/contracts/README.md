@@ -18,4 +18,18 @@ valid-transition consumers live in `tests/test_accounting_durable.py`.
 The acceptance boundary is `mise run verify` (non-provider owner tests),
 not a new state registry or cross-domain authority.
 
+**Trading/Accounting amount boundary.** A complete exact-quantity provider
+fill and a positive partial fill are not interchangeable. The current
+order-wide reservation mapping permits POST_PENDING_TRANSFER only for a
+fully filled, quantity-consistent order with matching trade evidence;
+order-only fill claims and partial execution (even if canceled
+later) returns PARTIAL_EXECUTION_UNSETTLED / NO_MUTATION. This preserves
+the original reservation pending while the authoritative executed quantity,
+per-trade identities, fees and final unfilled quantity are independently
+reconciled. Do not automatically VOID a partially filled order or invent
+per-fill ledger transfers. See trading/execution_reconciliation.py,
+its negative tests and the separately qualified Accounting state machine.
+NO_MUTATION is an unresolved state, not evidence that no external economic
+effect occurred.
+
 Legacy protocol-v1 contracts are retained under contracts/legacy_protocol_v1/ for provenance only. Current runtime code does not load them or auto-upgrade v1 documents. Replaying v1 evidence uses the historical source revision or frozen bundle that owned those contracts.
