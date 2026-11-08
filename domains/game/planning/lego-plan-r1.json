@@ -249,14 +249,15 @@
         "native Bevy App assembly",
         "bounded Rust rule and Bevy system test evidence"
       ],
-      "behavioralContract": "Goal collection, hazard damage and restart are game-owned transitions; Bevy-native systems consume those rules. Cargo compile and test do not prove rendered GPU output or human enjoyment.",
+      "behavioralContract": "Goal collection, hazard damage and restart are game-owned transitions; Bevy-native systems consume those rules. Cargo compile and test do not prove rendered GPU output or human enjoyment. Native FixedUpdate advances movement, collection and hazard rules while Update owns restart input and HUD; frame rate may change how many fixed steps occur in one rendered frame.",
       "acceptance": [
         "Pin the actual Bevy version and Cargo.lock.",
         "Native Rust rule and Bevy Plugin/system tests pass.",
         "Compile Bevy application with cargo check --locked --all-targets; physical player input/output remains unverified without a graphical run.",
         "Z3 4.15.4.0 proves nine bitvector model properties over full u64/u8 widths; source refinement remains separate",
         "Kani 0.68.0 verifies four actual Rust source harnesses; at 2026-11-08 four successfully verified, zero failed, 81 checks",
-        "Bevy native ECS consumer and compile acceptance stay mandatory for real engine-effect claims"
+        "Bevy native ECS consumer and compile acceptance stay mandatory for real engine-effect claims",
+        "Native TimeUpdateStrategy::FixedTimesteps(0) causes no collection in one display frame; FixedTimesteps(1) advances exactly one actual Bevy simulation step and HUD projection"
       ],
       "evidence": [
         "examples/orbit-collector/Cargo.toml",
@@ -290,7 +291,8 @@
           "Bevy ECS changes, Sprite/Text projections and compiled application"
         ],
         "S": [
-          "RunState phase, collected goals, lives and last-hit time"
+          "RunState phase, collected goals, lives and last-hit time",
+          "Bevy Time<Fixed> controls simulation advancement independently of presentation Update"
         ],
         "pre": [
           "Bevy =0.20.1 and Cargo.lock source dependencies available",
@@ -306,10 +308,11 @@
           "Playing implies collected<target and lives>0; Won implies collected=target; Lost implies lives=0; both terminal states absorb collect/hit"
         ],
         "eff": [
-          "Bevy ECS world state, native window and graphics effects when launched; current source verifies compile/tests but not an installed graphical session"
+          "Bevy ECS world state, native window and graphics effects when launched; current source verifies compile/tests but not an installed graphical session",
+          "Bevy FixedUpdate simulation and per-frame Update display/input separate effects; actual runtime FPS is UNKNOWN"
         ],
         "c": "Rule transitions O(1); ECS/frame scheduling and renderer cost depend on runtime/scene and are not measured",
-        "epsilon": "Graphical runtime, frame rate, input latency and human experience are UNKNOWN; compile PASS is not graphical execution proof",
+        "epsilon": "Graphical runtime, frame rate, input latency and human experience are UNKNOWN; compile PASS is not graphical execution proof Exact deterministic replay across platforms and physical input latency are UNKNOWN; fixed timestep does not itself prove either",
         "prov": [
           "examples/orbit-collector/Cargo.toml pins =0.20.1",
           "examples/orbit-collector/Cargo.lock",
