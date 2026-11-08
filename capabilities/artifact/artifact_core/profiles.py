@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from .contracts import sha256_file
+from .json_validation import load_json
 
 
 @dataclass(frozen=True)
@@ -36,22 +36,29 @@ class ProfileRegistry:
         self._canonical = self._index_profiles(self.canonical_root, version=2)
         self._production = self._index_profiles(self.production_root, version=1)
 
-    @staticmethod
-    def _load_json(path: Path) -> Any:
-        return json.loads(path.read_text(encoding="utf-8"))
-
     def _index_profiles(self, root: Path, *, version: int) -> dict[str, tuple[Path, dict[str, Any]]]:
         result: dict[str, tuple[Path, dict[str, Any]]] = {}
         for path in sorted(root.glob("*.json")):
             try:
-                value = self._load_json(path)
-            except (OSError, json.JSONDecodeError):
+                value = load_json(path)
+            except (OSError, UnicodeError, ValueError) as error:
+                raise RuntimeError(f"invalid Artifact profile authority JSON: {path}: {error}") from error
+            if not isinstance(value, dict):
+                raise RuntimeError(f"Artifact profile authority JSON is not an object: {path}")
+            # Production examples also contain legitimate build requests/sources.
+            # A profile-looking record, or any canonical v2 entry, must instead
+            # be valid and visible: silently dropping it hides an authority error.
+            if (
+                version == 1
+                and "profileVersion" not in value
+                and not any(key in value for key in ("artifactClass", "primaryOutput", "gates"))
+            ):
                 continue
-            if not isinstance(value, dict) or value.get("profileVersion") != version:
-                continue
+            if value.get("profileVersion") != version:
+                raise RuntimeError(f"Artifact profile version must equal {version}: {path}")
             profile_id = value.get("id")
             if not isinstance(profile_id, str) or not profile_id:
-                continue
+                raise RuntimeError(f"Artifact profile id missing or invalid: {path}")
             if profile_id in result:
                 raise RuntimeError(f"duplicate Artifact profile id in {root}: {profile_id}")
             result[profile_id] = (path.resolve(), value)

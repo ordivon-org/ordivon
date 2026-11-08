@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -44,6 +45,60 @@ class ArtifactCoreRegistryTests(unittest.TestCase):
         self.assertEqual(shadow.canonical["classification"]["family"], "still-image")
         self.assertEqual(shadow.source_kind, "native-v2-shadow")
         self.assertEqual(shadow.source_path.name, "still-image-png-srgb-r1-v2.json")
+
+    def test_profile_registry_accepts_explicit_non_profile_examples(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            canonical = root / "shadow-v2/examples"
+            canonical.mkdir(parents=True)
+            (root / "examples").mkdir()
+            (canonical / "sample.json").write_text(json.dumps({
+                "profileVersion": 2,
+                "id": "sample",
+                "classification": {"family": "test"},
+            }))
+            (root / "examples/request.json").write_text(
+                json.dumps({"kind": "artifact-request", "schemaVersion": 1})
+            )
+            self.assertEqual(ProfileRegistry(root).ids(), ["sample"])
+
+    def test_profile_registry_rejects_ambiguous_or_broken_authority(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            canonical = root / "shadow-v2/examples"
+            canonical.mkdir(parents=True)
+            (root / "examples").mkdir()
+            path = canonical / "sample.json"
+            for raw in (
+                "{",
+                '{"profileVersion":2,"id":"first","id":"shadowed"}',
+            ):
+                path.write_text(raw)
+                with self.assertRaisesRegex(RuntimeError, "invalid Artifact profile authority JSON"):
+                    ProfileRegistry(root)
+            path.write_text(json.dumps({"profileVersion": 2, "classification": {"family": "test"}}))
+            with self.assertRaisesRegex(RuntimeError, "profile id missing"):
+                ProfileRegistry(root)
+            path.write_text(json.dumps({"profileVersion": 1, "id": "sample"}))
+            with self.assertRaisesRegex(RuntimeError, "profile version must equal 2"):
+                ProfileRegistry(root)
+
+    def test_profile_registry_rejects_hidden_production_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            canonical = root / "shadow-v2/examples"
+            canonical.mkdir(parents=True)
+            (root / "examples").mkdir()
+            (canonical / "sample.json").write_text(json.dumps({
+                "profileVersion": 2,
+                "id": "sample",
+                "classification": {"family": "test"},
+            }))
+            (root / "examples/hidden.json").write_text(
+                json.dumps({"id": "sample", "artifactClass": "web"})
+            )
+            with self.assertRaisesRegex(RuntimeError, "profile version must equal 1"):
+                ProfileRegistry(root)
 
     def test_capability_binding_registry_replaces_python_route_table(self) -> None:
         registry = CapabilityBindingRegistry(ART)
