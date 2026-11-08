@@ -7,7 +7,8 @@ The owner response remains a transient read-only projection.
 from __future__ import annotations
 
 import re
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, Literal
 
 from .contracts import (
     CapabilityDescriptor,
@@ -132,6 +133,65 @@ def project_execution_capability(
     )
 
 
+def _metadata_match_kind(
+    *,
+    capability: str,
+    category: str,
+    owner_id: str,
+    description: str,
+    tags: tuple[str, ...] | list[str],
+    query: str,
+    query_tokens: set[str],
+) -> Literal["exact", "prefix", "token", "substring"] | None:
+    """One lexical matching rule for prefiltering and observed search results."""
+    name = capability.casefold()
+    corpus = " ".join(
+        value.casefold() for value in (capability, category, owner_id, description, *tags) if value
+    )
+    corpus_tokens = set(re.findall(r"[a-z0-9]+", corpus))
+    if query == name:
+        return "exact"
+    if name.startswith(query):
+        return "prefix"
+    if query_tokens and query_tokens.issubset(corpus_tokens):
+        return "token"
+    if query in corpus:
+        return "substring"
+    return None
+
+
+def candidate_routes_for_search(
+    routes: Mapping[str, CapabilityRoute],
+    *,
+    query: str,
+    category: str | None,
+    owner_id: str | None,
+) -> list[CapabilityRoute]:
+    """Pure selection: never observe unrelated Owners just to rank static metadata."""
+    normalized = query.casefold()
+    tokens = set(re.findall(r"[a-z0-9]+", normalized))
+    priority = {"exact": 0, "prefix": 1, "token": 2, "substring": 3}
+    ranked: list[tuple[int, str, CapabilityRoute]] = []
+    for route in routes.values():
+        if category is not None and route.category != category:
+            continue
+        if owner_id is not None and route.owner_id != owner_id:
+            continue
+        kind = _metadata_match_kind(
+            capability=route.capability,
+            category=route.category,
+            owner_id=route.owner_id,
+            description=route.description,
+            tags=route.tags,
+            query=normalized,
+            query_tokens=tokens,
+        )
+        if kind is not None:
+            ranked.append((priority[kind], route.capability, route))
+    ranked.sort(key=lambda item: (item[0], item[1]))
+    return [route for _, _, route in ranked]
+
+
 def project_capability_search(
     projection: CapabilityProjection,
     *,
@@ -156,26 +216,15 @@ def project_capability_search(
         if not include_unavailable and not item.available and item.observation_error is None:
             continue
 
-        capability_name = item.capability.casefold()
-        corpus_values = [
-            item.capability,
-            item.category,
-            item.owner_id,
-            item.description,
-            *item.tags,
-        ]
-        corpus = " ".join(value.casefold() for value in corpus_values if value)
-        corpus_tokens = set(re.findall(r"[a-z0-9]+", corpus))
-
-        match_kind: str | None = None
-        if normalized == capability_name:
-            match_kind = "exact"
-        elif capability_name.startswith(normalized):
-            match_kind = "prefix"
-        elif query_tokens and query_tokens.issubset(corpus_tokens):
-            match_kind = "token"
-        elif normalized in corpus:
-            match_kind = "substring"
+        match_kind = _metadata_match_kind(
+            capability=item.capability,
+            category=item.category,
+            owner_id=item.owner_id,
+            description=item.description,
+            tags=item.tags,
+            query=normalized,
+            query_tokens=query_tokens,
+        )
         if match_kind is None:
             continue
 
@@ -191,6 +240,7 @@ def project_capability_search(
     return CapabilitySearchProjection(
         query=query,
         projection_digest=projection.projection_digest,
+        route_digest=projection.route_digest,
         total_matches=total_matches,
         matches=matches,
     )

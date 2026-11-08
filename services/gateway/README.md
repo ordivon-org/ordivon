@@ -244,6 +244,33 @@ those respective proofs. For an uncertainty, use direct Owner observation
 under the actual intended execution identity; do not permanently blacklist
 the capability based on a Gateway timeout.
 
+## Search observation isolation and immutable route identity (0.10.3)
+
+`capability.search` first matches capability names, descriptions and tags against the
+in-process route table. Only matching routes may cause read-only Owner observations.
+A Research-only query or unknown capability has zero Owner RPCs; querying
+`execution.linux` does not preflight the Windows Runtime. This is an optimization
+of *discovery*, not a bypass of the existing Owner authorization/admission checks.
+The `includeUnavailable` filter is applied **after** matched Owner observations,
+so unknown readiness is still returned under the existing compatibility rule.
+
+`route_digest` is the canonical SHA-256 of the **entire immutable in-process**
+route table, including identity, mappings and public descriptive metadata but
+excluding credentials, endpoint addresses, and all live observations. It remains
+stable when an Owner changes readiness. It is not a signed source/installed-release
+attestation and says nothing about whether an operation is authorized or executable.
+`system.describe`, `capability.describe`, and `capability.search` expose this
+independent route identity. The pre-existing `projection_digest` remains a
+**dynamic observation-content digest**. On a search, it now covers all metadata
+matched candidates (before `includeUnavailable` and `limit` filtering), not
+the entire catalog; it may change when an Owner status or timeout message changes.
+Call `capability.describe` for an explicit live readiness observation, and use
+`system.describe` for the fastest route-inventory read.
+
+This follows MCP's deterministic discovery / cache hint semantics rather than
+adding a Gateway cache, database, queue, or authority. The route map stays
+process-scoped and must pass the standard SDK surface/SourceCut release gates.
+
 ## Agent tool exposure and transient owner observations
 
 Gateway `capability.describe` is a bounded, *read-only current observation* of

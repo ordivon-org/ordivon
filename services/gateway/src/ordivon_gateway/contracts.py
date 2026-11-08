@@ -64,6 +64,7 @@ class CapabilitySearchProjection(StrictModel):
     )
     query: str
     projection_digest: str
+    route_digest: str | None = None
     total_matches: int
     matches: list[CapabilitySearchMatch]
 
@@ -72,6 +73,7 @@ class SystemDescription(StrictModel):
     schema_version: Literal[1] = 1
     kind: Literal["ordivon.gateway-system-description"] = "ordivon.gateway-system-description"
     gateway_version: str
+    route_digest: str | None = None
     truth_role: Literal["non-authoritative-routing-projection"] = (
         "non-authoritative-routing-projection"
     )
@@ -86,6 +88,7 @@ class CapabilityProjection(StrictModel):
         "rebuildable-non-authoritative-projection"
     )
     projection_digest: str
+    route_digest: str | None = None
     capabilities: list[CapabilityDescriptor]
 
 

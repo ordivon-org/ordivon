@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kind": "ordivon.mcp-tool-surface",
   "service": "ordivon-gateway",
-  "packageVersion": "0.10.2",
-  "surfaceEpoch": 8,
+  "packageVersion": "0.10.3",
+  "surfaceEpoch": 9,
   "tools": [
     "actor.declare",
     "artifact.read",
@@ -44,5 +44,5 @@
     "work.list",
     "work.snapshot.commit"
   ],
-  "contractDigest": "sha256:2c2a1a557c364198235530f08b8e2feea5797be017e72661468f1658397bb1a1"
+  "contractDigest": "sha256:fcf0bd94a1e4db6e5c72ad0e825c57d9fcff2424d4275074af088982451055fa"
 }
