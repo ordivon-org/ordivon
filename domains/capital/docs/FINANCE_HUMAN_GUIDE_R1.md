@@ -63,6 +63,13 @@
 真实投资结果尚无相应实现精化证明，详见
 `domains/capital/formal/RiskExposureBound.md`。
 
+### 金额级预留与终止部分成交：Human / Agent 分工
+
+- **Human**：首先确认订单是否真正终止、成交记录是否完整、扣费币种和实际扣款金额是否有提供方原始凭据。只看到“部分成交”或者“取消成功”并不足以认定结算完成。
+- **Agent**：Trading 的 PARTIAL_EXECUTION_UNSETTLED 一律保持 NO_MUTATION，不自动结算。Accounting 的 resolution_instruction(..., posted_amount=...) 可以对已获独立认证的终止订单进行**一次**精确整数金额的 PG POST，并原子释放原预留的剩余部分；DurableReservationHistory(CONSUMED, posted_amount=...) 必须与 PG 的实际读回相符。
+- **举例**：保留 700 美分的预留，最终确认消费 240 美分，PG 把 240 美分转入已入账，释放 460 美分；重复的交易所回执不得产生第二笔消费。
+- **边界**：形式化模型与独立 PG 测试可证明给定金额下的账务状态性质，但**不能**证实券商真实成交、费用或时间。本能力尚未自动接入正式订单执行和真实资金结算。
+
 ## 2. 立即可复现：给长期投资账户规划一笔虚拟新增资金
 
 这是最简单的无账户、无数据库、无网络金融效果的起步任务：

@@ -183,3 +183,46 @@ def test_raw_released_state_cannot_be_interpreted_as_consumed() -> None:
         )
         if result.standing is LedgerReconciliationStanding.MATCH:
             pytest.fail("raw RELEASED was interpreted as consumed")
+
+
+def test_partial_consumption_history_checks_exact_settled_amount():
+    b = binding()
+    history = DurableReservationHistory(
+        b, ReservationStanding.CONSUMED, "effect:partial", posted_amount=240
+    )
+    resolution = resolution_instruction(
+        binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+        resolution_ref="effect:partial", posted_amount=240,
+    )
+    assert resolution is not None
+    observed = LedgerTransferObservation(
+        resolution.transfer_id, resolution.operation,
+        resolution.amount, resolution.pending_id,
+    )
+    assert reconcile_durable_history(
+        history=history, pending=pending_obs(), resolution=observed
+    ).standing is LedgerReconciliationStanding.MATCH
+    mismatch = LedgerTransferObservation(
+        resolution.transfer_id, resolution.operation, 700, resolution.pending_id
+    )
+    actual = reconcile_durable_history(
+        history=history, pending=pending_obs(), resolution=mismatch
+    )
+    assert actual.standing is LedgerReconciliationStanding.CONTRADICTION_NO_REPAIR
+
+
+@pytest.mark.parametrize("invalid", [0, -1, 701, True, "240", 1.5])
+def test_partial_consumption_history_rejects_false_amount(invalid):
+    with pytest.raises(AccountingMappingError, match="posted_amount"):
+        DurableReservationHistory(
+            binding(), ReservationStanding.CONSUMED,
+            "effect:partial", posted_amount=invalid,
+        )
+
+
+def test_non_consumed_history_must_not_claim_partial_post():
+    with pytest.raises(AccountingMappingError, match="posted_amount"):
+        DurableReservationHistory(
+            binding(), ReservationStanding.RELEASED,
+            "effect:release", posted_amount=240,
+        )

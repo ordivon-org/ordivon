@@ -79,6 +79,7 @@ class DurableReservationHistory:
     binding: CapitalReservationBinding
     standing: ReservationStanding
     resolution_ref: str | None = None
+    posted_amount: int | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.standing, ReservationStanding):
@@ -88,6 +89,14 @@ class DurableReservationHistory:
                 raise AccountingMappingError("RESERVED history cannot carry a resolution_ref")
         elif not self.resolution_ref or not self.resolution_ref.strip():
             raise AccountingMappingError("terminal reservation history requires resolution_ref")
+        if self.standing is not ReservationStanding.CONSUMED:
+            if self.posted_amount is not None:
+                raise AccountingMappingError("posted_amount requires CONSUMED history")
+        elif self.posted_amount is not None:
+            if type(self.posted_amount) is not int or not (
+                0 < self.posted_amount <= self.binding.amount
+            ):
+                raise AccountingMappingError("posted_amount must be within reserved amount")
 
 
 @dataclass(frozen=True)
@@ -160,6 +169,7 @@ def reconcile_durable_history(
         binding=history.binding,
         operation=operation,
         resolution_ref=history.resolution_ref or "",
+        posted_amount=history.posted_amount,
     )
     assert expected is not None
     if resolution is None:
@@ -178,14 +188,11 @@ def reconcile_durable_history(
             history,
             "ledger resolution contradicts exact terminal reservation history",
         )
-    if (
-        operation is AccountingOperation.POST_PENDING_TRANSFER
-        and resolution.amount != history.binding.amount
-    ):
+    if resolution.amount != expected.amount:
         return _result(
             LedgerReconciliationStanding.CONTRADICTION_NO_REPAIR,
             history,
-            "ledger consume amount differs from terminal reservation amount",
+            "ledger resolution amount differs from exact terminal history",
         )
     return _result(
         LedgerReconciliationStanding.MATCH,

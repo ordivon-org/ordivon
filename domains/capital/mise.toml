@@ -213,9 +213,9 @@ from pathlib import Path
 import z3
 raw = Path("formal/AccountingReservationR1.smt2").read_bytes()
 observed = z3.z3core.Z3_eval_smtlib2_string(z3.main_ctx().ref(), raw).splitlines()
-expected = ["unsat"] * 7 + ["sat", "sat"]
+expected = ["unsat"] * 7 + ["sat", "sat"] + ["unsat", "unsat", "sat", "sat"]
 if observed != expected:
     raise SystemExit(f"Accounting reservation formal obligations mismatch: {observed!r} != {expected!r}")
-print("AccountingReservationR1: 7 universal QF_LIA checks UNSAT; 2 invalid-state counterexamples SAT")
+print("AccountingReservationR1: 9 universal QF_LIA checks UNSAT; 4 invalid-state counterexamples SAT")
 PYZ3
 """

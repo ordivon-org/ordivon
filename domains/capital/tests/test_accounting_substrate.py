@@ -116,3 +116,36 @@ def test_resolution_helper_rejects_raw_void_before_emitting_transfer() -> None:
             operation="VOID_PENDING_TRANSFER",  # type: ignore[arg-type]
             resolution_ref="effect:untyped-void",
         )
+
+
+def test_partial_terminal_post_uses_one_exact_integer_amount():
+    b = binding()
+    partial = resolution_instruction(
+        binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+        resolution_ref="effect:partial", posted_amount=240,
+    )
+    assert partial is not None
+    assert partial.amount == 240
+    assert partial.pending_id == b.pending_transfer_id
+    assert resolution_instruction(
+        binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+        resolution_ref="effect:partial",
+        posted_amount=240,
+    ) == partial
+
+
+@pytest.mark.parametrize("invalid", [0, -1, 701, True, 3.5, "240"])
+def test_partial_post_rejects_invalid_money_and_overpost(invalid):
+    with pytest.raises(AccountingMappingError, match="posted_amount"):
+        resolution_instruction(
+            binding=binding(), operation=AccountingOperation.POST_PENDING_TRANSFER,
+            resolution_ref="effect:partial", posted_amount=invalid,
+        )
+
+
+def test_void_cannot_smuggle_partial_post_amount():
+    with pytest.raises(AccountingMappingError, match="posted_amount"):
+        resolution_instruction(
+            binding=binding(), operation=AccountingOperation.VOID_PENDING_TRANSFER,
+            resolution_ref="effect:void", posted_amount=50,
+        )

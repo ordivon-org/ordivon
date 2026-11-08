@@ -238,3 +238,142 @@ def test_pg_rejects_unlogged_accounting_authority():
         with psycopg.connect(DSN, autocommit=True) as db:
             db.execute("DROP SCHEMA IF EXISTS ordivon_capital CASCADE")
         PostgresAccountingLedger(DSN)
+
+
+def test_pg_partial_post_is_one_atomic_resolution_and_releases_remainder():
+    assert DSN
+    ns = CapitalAccountNamespace("owner:partial", "parcel:usd:partial")
+    fund = AccountingAccount(stable_accounting_id("test-partial", "fund"))
+    b = binding_for_namespace(namespace=ns, reservation_ref="partial:700", amount=700)
+    with PostgresAccountingLedger(DSN) as ledger:
+        for account in (fund, ns.account(CapitalAccountRole.AVAILABLE),
+                        ns.account(CapitalAccountRole.ENCUMBRANCE)):
+            assert ledger.create_account(account) is LedgerApplyStatus.CREATED
+        assert ledger.apply_immediate_transfer(
+            transfer_id=stable_accounting_id("test-partial", "funding"),
+            debit_account_id=fund.account_id, credit_account_id=ns.available_account_id,
+            amount=1000,
+        ) is LedgerApplyStatus.CREATED
+        assert ledger.apply_instruction(reservation_instruction(b)) is LedgerApplyStatus.CREATED
+        consumed = resolution_instruction(
+            binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+            resolution_ref="effect:partial-terminal", posted_amount=240,
+        )
+        assert consumed is not None
+        assert ledger.apply_instruction(consumed) is LedgerApplyStatus.CREATED
+    with PostgresAccountingLedger(DSN) as ledger:
+        assert ledger.apply_instruction(consumed) is LedgerApplyStatus.EXISTS
+        available = ledger.account(ns.available_account_id)
+        encumbrance = ledger.account(ns.encumbrance_account_id)
+        assert available.debits_pending == 0
+        assert available.debits_posted == 240
+        assert available.credits_posted == 1000
+        assert encumbrance.credits_pending == 0
+        assert encumbrance.credits_posted == 240
+        assert ledger.transfer(b.pending_transfer_id).status == "POSTED"
+        assert ledger.transfer(consumed.transfer_id).amount == 240
+        assert ledger.apply_instruction(
+            resolution_instruction(
+                binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+                resolution_ref="effect:another-post", posted_amount=100,
+            )
+        ) is LedgerApplyStatus.PENDING_TRANSFER_ALREADY_POSTED
+        later = binding_for_namespace(
+            namespace=ns, reservation_ref="partial:remaining-available", amount=760,
+        )
+        assert ledger.apply_instruction(reservation_instruction(later)) is LedgerApplyStatus.CREATED
+
+
+def test_pg_rejects_overposting_without_mutating_pending_balance():
+    assert DSN
+    ns = CapitalAccountNamespace("owner:partial", "parcel:usd:bounds")
+    b = binding_for_namespace(namespace=ns, reservation_ref="partial:300", amount=300)
+    with PostgresAccountingLedger(DSN) as ledger:
+        for acct in (ns.account(CapitalAccountRole.AVAILABLE),
+                     ns.account(CapitalAccountRole.ENCUMBRANCE)):
+            assert ledger.create_account(acct) is LedgerApplyStatus.CREATED
+        ledger.apply_immediate_transfer(
+            transfer_id=stable_accounting_id("test-partial", "seed"),
+            debit_account_id=ns.encumbrance_account_id,
+            credit_account_id=ns.available_account_id, amount=300,
+        )
+        assert ledger.apply_instruction(reservation_instruction(b)) is LedgerApplyStatus.CREATED
+        from ordivon_capital.accounting.substrate import AccountingInstruction
+        over = AccountingInstruction(
+            operation=AccountingOperation.POST_PENDING_TRANSFER,
+            transfer_id=stable_accounting_id("test-partial", "over"),
+            debit_account_id=b.source_account_id,
+            credit_account_id=b.encumbrance_account_id,
+            amount=301, pending_id=b.pending_transfer_id,
+        )
+        assert ledger.apply_instruction(over) is LedgerApplyStatus.PENDING_TRANSFER_AMOUNT_MISMATCH
+        assert ledger.account(b.source_account_id).debits_pending == 300
+        assert ledger.account(b.encumbrance_account_id).credits_pending == 300
+        assert ledger.transfer(over.transfer_id) is None
+
+
+
+@pytest.mark.parametrize("posted", [1, 77, 699, 700])
+def test_pg_partial_post_accounting_identity_at_boundary_values(posted: int):
+    assert DSN
+    ns = CapitalAccountNamespace("owner:partial", "parcel:usd:boundary")
+    fund = AccountingAccount(stable_accounting_id("test-partial-bound", "fund"))
+    b = binding_for_namespace(namespace=ns, reservation_ref="partial:bound", amount=700)
+    with PostgresAccountingLedger(DSN) as ledger:
+        for account in (fund, ns.account(CapitalAccountRole.AVAILABLE),
+                        ns.account(CapitalAccountRole.ENCUMBRANCE)):
+            assert ledger.create_account(account) == LedgerApplyStatus.CREATED
+        assert ledger.apply_immediate_transfer(
+            transfer_id=stable_accounting_id("test-partial-bound", "funding"),
+            debit_account_id=fund.account_id, credit_account_id=ns.available_account_id,
+            amount=1000,
+        ) == LedgerApplyStatus.CREATED
+        assert ledger.apply_instruction(reservation_instruction(b)) == LedgerApplyStatus.CREATED
+        resolution = resolution_instruction(
+            binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+            resolution_ref="partial:bound:effect", posted_amount=posted,
+        )
+        assert ledger.apply_instruction(resolution) == LedgerApplyStatus.CREATED
+        available = ledger.account(ns.available_account_id)
+        held = ledger.account(ns.encumbrance_account_id)
+        assert available.debits_pending == 0
+        assert available.debits_posted == posted
+        assert available.credits_posted - available.debits_posted == 1000 - posted
+        assert held.credits_pending == 0
+        assert held.credits_posted == posted
+        assert ledger.transfer(resolution.transfer_id).amount == posted
+
+
+def test_pg_partial_resolve_competing_once():
+    assert DSN
+    ns = CapitalAccountNamespace("owner:partial", "parcel:usd:race")
+    fund = AccountingAccount(stable_accounting_id("partial-race", "fund"))
+    b = binding_for_namespace(namespace=ns, reservation_ref="partial:race", amount=700)
+    with PostgresAccountingLedger(DSN) as ledger:
+        for account in (fund, ns.account(CapitalAccountRole.AVAILABLE),
+                        ns.account(CapitalAccountRole.ENCUMBRANCE)):
+            assert ledger.create_account(account) == LedgerApplyStatus.CREATED
+        assert ledger.apply_immediate_transfer(
+            transfer_id=stable_accounting_id("partial-race", "funding"),
+            debit_account_id=fund.account_id, credit_account_id=ns.available_account_id,
+            amount=1000,
+        ) == LedgerApplyStatus.CREATED
+        assert ledger.apply_instruction(reservation_instruction(b)) == LedgerApplyStatus.CREATED
+    gate = Barrier(2)
+    def resolve(value: int):
+        resolution = resolution_instruction(
+            binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+            resolution_ref=f"partial:race:{value}", posted_amount=value,
+        )
+        gate.wait(timeout=15)
+        with PostgresAccountingLedger(DSN) as ledger:
+            return ledger.apply_instruction(resolution)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(resolve, (240, 310)))
+    assert results.count(LedgerApplyStatus.CREATED) == 1
+    assert results.count(LedgerApplyStatus.PENDING_TRANSFER_ALREADY_POSTED) == 1
+    with PostgresAccountingLedger(DSN) as ledger:
+        actual = ledger.account(ns.available_account_id)
+        assert actual.debits_pending == 0
+        assert actual.debits_posted in (240, 310)
+        assert ledger.account(ns.encumbrance_account_id).credits_posted == actual.debits_posted

@@ -32,4 +32,24 @@ its negative tests and the separately qualified Accounting state machine.
 NO_MUTATION is an unresolved state, not evidence that no external economic
 effect occurred.
 
+**One-time partial terminal settlement.** accounting/substrate.py now allows
+an explicit integer posted_amount for POST_PENDING_TRANSFER, with
+0 < posted_amount <= reserved. The PostgreSQL ledger subtracts the complete
+original reserved amount from both pending sides, posts only posted_amount
+on both booked sides and atomically releases reserved - posted_amount.
+This matches TigerBeetle's two-phase transfer semantics:
+https://docs.tigerbeetle.com/coding/two-phase-transfers/ .
+A pending transfer is resolved **once**, not once per exchange fill. An exact
+replay returns EXISTS; conflicting amount / second terminal resolution must
+not mutate balances. DurableReservationHistory(CONSUMED, posted_amount=...)
+carries the terminal amount and independently compares it to the
+ledger transfer observation; None preserves historical full-post semantics.
+An isolated PostgreSQL test cluster and the Accounting Z3 integer model
+verify the bounded local accounting properties.
+
+This capability is **not** a Trading authorization or automatic per-fill
+settlement. With missing provider-certified final state, denomination,
+fee treatment or original reservation identity, retain
+PARTIAL_EXECUTION_UNSETTLED / NO_MUTATION rather than invent the spend value.
+
 Legacy protocol-v1 contracts are retained under contracts/legacy_protocol_v1/ for provenance only. Current runtime code does not load them or auto-upgrade v1 documents. Replaying v1 evidence uses the historical source revision or frozen bundle that owned those contracts.
