@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
+import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -20,10 +22,32 @@ from ordivon_data.odps_projection import project_catalog
 
 class OwnerProductProjectionTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.sources = [
-            ROOT / "domains/capital/data-products/crypto-public-shadow-r2/odps.json",
-            ROOT / "catalogs/data-products/experimental-episode-corpus-r1/odps.json",
+        # Discover real currently tracked producer contracts via Git, not
+        # physical paths hard-coded into a second Owner's tests.
+        discovered = subprocess.run(
+            ["/usr/bin/git", "-C", str(ROOT), "ls-files", "-z", "--", "*/odps.json"],
+            check=True,
+            capture_output=True,
+        )
+        paths = [
+            ROOT / raw.decode("utf-8") for raw in discovered.stdout.split(b"\0") if raw
         ]
+        records = {
+            json.loads(path.read_text(encoding="utf-8"))["id"]: path for path in paths
+        }
+        self.sources = [
+            records["d14d7457-c9aa-59e0-8bf5-7783cea39c1c"],
+            records["4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b"],
+        ]
+        owner_rows = tomllib.loads((ROOT / "tools/repo/owners.toml").read_text())[
+            "owners"
+        ]
+        source_relative = self.sources[0].relative_to(ROOT).as_posix()
+        matches = [
+            row["root"] for row in owner_rows if source_relative.startswith(row["root"])
+        ]
+        self.assertEqual(len(matches), 1)
+        self.finance_root = ROOT / matches[0]
 
     def test_real_owner_products_project_to_dcat_without_fake_access(self) -> None:
         projected = project_catalog(self.sources)
@@ -102,7 +126,7 @@ class OwnerProductProjectionTests(unittest.TestCase):
                 "public-shadow-json",
                 "sourceRelativePath",
                 "sourceSha256",
-                ROOT / "domains/capital",
+                self.finance_root,
             ),
             LocalEvidenceBinding(
                 "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b",
@@ -216,7 +240,7 @@ class OwnerProductProjectionTests(unittest.TestCase):
             "public-shadow-json",
             "sourceRelativePath",
             "sourceSha256",
-            str(ROOT / "domains/capital"),
+            str(self.finance_root),
             "--bind-local",
             "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b",
             "episode-corpus-manifest-json",
@@ -249,7 +273,7 @@ class OwnerProductProjectionTests(unittest.TestCase):
             "public-shadow-json",
             "sourceRelativePath",
             "sourceSha256",
-            ROOT / "domains/capital",
+            self.finance_root,
         )
         with TemporaryDirectory() as tmp:
             path = Path(tmp) / "modified-odps.json"
