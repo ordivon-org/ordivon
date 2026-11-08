@@ -15,7 +15,7 @@ import platform
 import re
 import shutil
 import socket
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$")
 
@@ -42,7 +42,7 @@ def observe(names: list[str], *, path: str | None = None) -> dict:
     return {
         "kind": "ordivon.workstation.executable-path-observation",
         "schemaVersion": 1,
-        "observedAt": datetime.now(timezone.utc).isoformat(),
+        "observedAt": datetime.now(UTC).isoformat(),
         "node": socket.gethostname(),
         "platform": platform.system(),
         "userHint": getpass.getuser(),

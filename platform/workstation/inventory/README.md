@@ -67,7 +67,9 @@ Runtime execution availability != task authorization
  task authorization            != domain semantic success
 ```
 
-No inventory result may be promoted to a global `capability=true`, production authorization, or domain acceptance verdict without the actual owner-specific evidence.\r\n\r\n## Live executable observation for Agents
+No inventory result may be promoted to a global `capability=true`, production authorization, or domain acceptance verdict without the actual owner-specific evidence.
+
+## Live executable observation for Agents
 
 The bounded, dependency-free `inventory/probe_executables.py` reads **the current
 process PATH**, reporting node, a process user hint, PATH digest, and resolved
@@ -94,7 +96,8 @@ upgrading inventory into a global capability result.
 Agent routing: [root AGENTS.md](../../../AGENTS.md) →
 [Capability Catalog](../../../catalogs/capabilities/README.md) →
 natural Owner's own CLI/MCP/Skill → provider and consumer readback.
-\r\n### Windows service and interactive-user probes
+
+### Windows service and interactive-user probes
 
 Windows does not require Python for command lookup. Run the bundled
 `probe_executables.ps1` through the **target** Windows Runtime identity:
