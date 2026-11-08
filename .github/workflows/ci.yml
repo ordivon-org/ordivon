@@ -578,14 +578,41 @@ jobs:
           PY
 
 
+      # Cache untrusted archive bytes, never install authority. The helper
+      # rehashes every hit before extraction; non-Runtime jobs skip download.
+      - name: Cache pinned cargo-deny archive
+        if: steps.affected.outputs.runtime == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ordivon/ci-cargo-deny/0.20.2/cargo-deny.tar.gz
+          key: ci-cargo-deny-0.20.2-${{ runner.os }}-${{ runner.arch }}-sha256-9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f
+
+      # Upstream Docker cargo-deny-action uses unchecked curl | tar; direct
+      # Releases 504s appeared as invalid gzip. Official REST Asset API
+      # transfers exact pinned bytes with fail-closed metadata and SHA-256.
+      - name: Install verified cargo-deny
+        if: steps.affected.outputs.runtime == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 tools/repo/install_verified_cargo_deny.py \
+            --cache-dir "$HOME/.cache/ordivon/ci-cargo-deny/0.20.2" \
+            --bin-dir "$RUNNER_TEMP/ordivon-cargo-deny/bin"
+          echo "$RUNNER_TEMP/ordivon-cargo-deny/bin" >> "$GITHUB_PATH"
+
       - name: Runtime supply-chain policy
         if: steps.affected.outputs.runtime == 'true'
-        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
-        with:
-          rust-version: "1.99.1"
-          manifest-path: services/runtime/Cargo.toml
-          command: check
-          arguments: --config services/runtime/deny.toml
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Existing Runtime Owner controls its exact Rust 1.99.1 toolchain.
+          # Preserve the existing policy and manifest; no pass-through skip.
+          # cargo-deny common flags precede the "check" subcommand.
+          mise -C services/runtime exec -- cargo deny \
+            --manifest-path Cargo.toml \
+            --config deny.toml check
 
       - name: Repository-wide secret scan
         run: mise run repo:secrets:verify

@@ -1249,14 +1249,24 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(route.returncode, 0, route.stderr)
         self.assertEqual(route.stdout.strip(), "distribution:verify")
 
-    def test_release_policy_uses_exact_runtime_rust_toolchain(self) -> None:
-        """Release dependency policy must use the checked consumer Rust compiler."""
+    def test_release_policy_uses_pinned_native_cargo_deny_and_exact_rust(self) -> None:
+        """A cached archive is untrusted; source identity and exact digest are required."""
+
+        import runpy
         import tomllib
         import yaml
 
         toolchain = tomllib.loads(
             (ROOT / "services/runtime/rust-toolchain.toml").read_text()
         )["toolchain"]["channel"]
+        runtime_mise = tomllib.loads(
+            (ROOT / "services/runtime/mise.toml").read_text()
+        )
+        self.assertEqual(runtime_mise["tools"]["rust"]["version"], toolchain)
+        asset = runpy.run_path(str(ROOT / "tools/repo/install_verified_cargo_deny.py"))
+        self.assertEqual(asset["VERSION"], "0.20.2")
+        self.assertEqual(asset["ASSET_ID"], 471598214)
+        self.assertEqual(len(asset["ASSET_SHA256"]), 64)
         root = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         release = yaml.safe_load(
             (ROOT / ".github/workflows/runtime-release.yml").read_text()
@@ -1264,10 +1274,84 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         for workflow, job in ((root, "root-preflight"),
                               (release, "runtime-release")):
             steps = workflow["jobs"][job]["steps"]
-            matches = [step for step in steps
-                       if step.get("uses", "").startswith("EmbarkStudios/cargo-deny-action@")]
-            self.assertEqual(len(matches), 1)
-            self.assertEqual(matches[0]["with"]["rust-version"], toolchain)
+            installers = [
+                step for step in steps
+                if step.get("name") == "Install verified cargo-deny"
+            ]
+            self.assertEqual(len(installers), 1)
+            installer = installers[0]
+            self.assertIn("set -euo pipefail", installer["run"])
+            self.assertIn(
+                "python3 tools/repo/install_verified_cargo_deny.py", installer["run"]
+            )
+            self.assertEqual(installer["env"]["GH_TOKEN"], "$" + "{{ github.token }}")
+            self.assertIn("--bin-dir", installer["run"])
+            self.assertIn("GITHUB_PATH", installer["run"])
+            self.assertNotIn("continue-on-error", installer)
+            self.assertFalse(
+                any(
+                    "EmbarkStudios/cargo-deny-action@" in str(step.get("uses", ""))
+                    for step in steps
+                )
+            )
+            if job == "root-preflight":
+                self.assertEqual(
+                    installer["if"], "steps.affected.outputs.runtime == 'true'"
+                )
+            policies = [
+                step for step in steps
+                if step["name"] in (
+                    "Runtime supply-chain policy",
+                    "Runtime dependency and license policy",
+                )
+            ]
+            self.assertEqual(len(policies), 1)
+            policy = policies[0]
+            self.assertLess(steps.index(installer), steps.index(policy))
+            self.assertIn("set -euo pipefail", policy["run"])
+            self.assertIn("mise -C services/runtime exec -- cargo deny", policy["run"])
+            self.assertIn("--config deny.toml check", policy["run"])
+            self.assertIn("--manifest-path Cargo.toml", policy["run"])
+            self.assertIn("--config deny.toml", policy["run"])
+            self.assertNotIn("|| true", policy["run"])
+            self.assertNotIn("continue-on-error", policy)
+
+        # Native GitHub Actions cache is limited to PR gate, and only the
+        # pinned archive is cached. The helper verifies its digest before use.
+        preflight = root["jobs"]["root-preflight"]["steps"]
+        caches = [s for s in preflight if s["name"] == "Cache pinned cargo-deny archive"]
+        self.assertEqual(len(caches), 1)
+        cache = caches[0]
+        self.assertEqual(
+            cache["uses"],
+            "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+        )
+        self.assertEqual(cache["if"], "steps.affected.outputs.runtime == 'true'")
+        self.assertEqual(
+            cache["with"]["path"],
+            "~/.cache/ordivon/ci-cargo-deny/0.20.2/cargo-deny.tar.gz",
+        )
+        self.assertIn(asset["ASSET_SHA256"], cache["with"]["key"])
+        self.assertLess(
+            preflight.index(cache),
+            next(i for i, step in enumerate(preflight)
+                 if step["name"] == "Install verified cargo-deny"),
+        )
+        self.assertNotIn(
+            "Cache pinned cargo-deny archive",
+            [s.get("name") for s in release["jobs"]["runtime-release"]["steps"]],
+        )
+        self.assertIn(
+            '"$RUNNER_TEMP/ordivon-cargo-deny/archive"',
+            [s["run"] for s in release["jobs"]["runtime-release"]["steps"]
+             if s.get("name") == "Install verified cargo-deny"][0],
+        )
+        release_mise = [
+            step for step in release["jobs"]["runtime-release"]["steps"]
+            if step["name"] == "Install monorepo toolchain"
+        ]
+        self.assertEqual(len(release_mise), 1)
+        self.assertIs(release_mise[0]["with"]["cache"], False)
 
     def test_runtime_release_attestations_verify_every_subject_and_fail_closed(self) -> None:
         """Exercise official verifier CLI orchestration, not cryptographic trust."""
