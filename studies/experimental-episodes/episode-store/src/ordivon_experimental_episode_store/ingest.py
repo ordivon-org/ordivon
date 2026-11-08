@@ -8,6 +8,7 @@ import os
 import re
 import stat
 import tempfile
+from collections import Counter
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -261,6 +262,153 @@ def _insert_episode(conn: psycopg.Connection[Any], episode: dict[str, Any]) -> b
     return inserted
 
 
+# Columns are fixed by this Owner's existing Alembic schema. Reuse that
+# schema rather than adding an ingest-to-projection tracking table.
+_PROJECTION_COLUMNS: dict[str, tuple[str, ...]] = {
+    "episode_projections": (
+        "episode_id",
+        "projection_digest",
+        "profile_id",
+        "data_class",
+        "anchor_owner_id",
+        "anchor_object_kind",
+        "anchor_object_id",
+        "source_record_digest",
+    ),
+    "episode_owner_refs": (
+        "episode_id",
+        "projection_digest",
+        "owner_id",
+        "object_kind",
+        "object_id",
+        "relation",
+        "digest",
+    ),
+    "episode_evidence_bindings": (
+        "episode_id",
+        "projection_digest",
+        "kind",
+        "evidence_count",
+        "set_digest",
+        "total_bytes",
+        "truncated_count",
+    ),
+    "episode_dimensions": (
+        "episode_id",
+        "projection_digest",
+        "name",
+        "value",
+    ),
+    "episode_measures": (
+        "episode_id",
+        "projection_digest",
+        "name",
+        "value",
+        "unit",
+    ),
+}
+_PROJECTION_READ_BATCH = 256
+
+
+def _expected_projection_rows(
+    episode: dict[str, Any],
+) -> dict[str, list[tuple[Any, ...]]]:
+    key = (episode["episodeId"], episode["projectionDigest"])
+    anchor = episode["anchor"]
+    return {
+        "episode_projections": [
+            key
+            + (
+                episode["profileId"],
+                episode["dataClass"],
+                anchor["ownerId"],
+                anchor["objectKind"],
+                anchor["objectId"],
+                anchor["sourceRecordDigest"],
+            )
+        ],
+        "episode_owner_refs": [
+            key
+            + (
+                item["ownerId"],
+                item["objectKind"],
+                item["objectId"],
+                item["relation"],
+                item.get("digest"),
+            )
+            for item in episode["ownerRefs"]
+        ],
+        "episode_evidence_bindings": [
+            key
+            + (
+                item["kind"],
+                item["count"],
+                item["setDigest"],
+                item.get("totalBytes"),
+                item.get("truncatedCount"),
+            )
+            for item in episode["evidenceBindings"]
+        ],
+        "episode_dimensions": [
+            key + (item["name"], item["value"]) for item in episode["dimensions"]
+        ],
+        "episode_measures": [
+            key + (item["name"], float(item["value"]), item.get("unit"))
+            for item in episode["measures"]
+        ],
+    }
+
+
+def _check_stored_projection_rows(
+    conn: psycopg.Connection[Any], episodes: list[dict[str, Any]]
+) -> None:
+    """Compare all five native SQL projection tables to exact parsed input.
+
+    Chunk tuple-key lookups instead of introducing an index/registry/second
+    database, per-episode N+1 SQL calls, or materializing all historical
+    projections. Caller already holds the transaction or reader snapshot.
+    """
+    for offset in range(0, len(episodes), _PROJECTION_READ_BATCH):
+        batch = episodes[offset : offset + _PROJECTION_READ_BATCH]
+        expected: dict[str, Counter[str]] = {
+            table: Counter() for table in _PROJECTION_COLUMNS
+        }
+        for record in batch:
+            for table, rows in _expected_projection_rows(record).items():
+                expected[table].update(
+                    json.dumps(row, sort_keys=True, ensure_ascii=False, allow_nan=False)
+                    for row in rows
+                )
+
+        keys = [
+            value
+            for record in batch
+            for value in (record["episodeId"], record["projectionDigest"])
+        ]
+        placeholders = sql.SQL(", ").join(sql.SQL("(%s, %s)") for _ in batch)
+        for table, columns in _PROJECTION_COLUMNS.items():
+            query = sql.SQL(
+                "SELECT {} FROM {} WHERE (episode_id, projection_digest) IN ({})"
+            ).format(
+                sql.SQL(", ").join(map(sql.Identifier, columns)),
+                sql.Identifier(table),
+                placeholders,
+            )
+            actual = Counter(
+                json.dumps(
+                    tuple(row[column] for column in columns),
+                    sort_keys=True,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                )
+                for row in conn.execute(query, keys).fetchall()
+            )
+            if actual != expected[table]:
+                raise EpisodeStoreError(
+                    f"committed projection rows differ from source: {table}"
+                )
+
+
 def ingest_file(
     *,
     dsn: str,
@@ -319,9 +467,11 @@ def ingest_file(
             "SELECT * FROM projection_ingests WHERE ingest_id = %s", (ingest_id,)
         ).fetchone()
         if existing is not None:
+            _check_stored_projection_rows(conn, episodes)
             return replay(existing)
 
         inserted = sum(_insert_episode(conn, episode) for episode in episodes)
+        _check_stored_projection_rows(conn, episodes)
         standing = "PASS_IDEMPOTENT_PROJECTION_INGEST"
         admitted = conn.execute(
             """
@@ -359,6 +509,7 @@ def ingest_file(
                 raise EpisodeStoreError(
                     "concurrent ingest conflict lacks committed receipt"
                 )
+            _check_stored_projection_rows(conn, episodes)
             return replay(winner)
 
     return {
@@ -421,6 +572,7 @@ def read_committed_ingest_source(
                 episodes = _load_episodes_from_lines(lines, row["profile_id"], path)
             if len(episodes) != row["episode_count"]:
                 raise EpisodeStoreError("committed episode count disagrees with source")
+            _check_stored_projection_rows(conn, episodes)
     return {
         "ingestId": ingest_id,
         "profileId": row["profile_id"],

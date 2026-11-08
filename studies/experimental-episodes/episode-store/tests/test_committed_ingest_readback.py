@@ -348,3 +348,192 @@ def test_distinct_committed_byte_versions_coexist_without_replacing_prior_reader
             ).fetchone()[0]
             == 2
         )
+
+
+def populated_input(tmp_path: Path, name: str) -> Path:
+    source = input_file(tmp_path, name)
+    item = json.loads(source.read_text(encoding="utf-8"))
+    item["ownerRefs"] = [
+        {
+            "ownerId": "runtime",
+            "objectKind": "event",
+            "objectId": "event:test",
+            "relation": "produced-by",
+            "digest": sha("e"),
+        }
+    ]
+    item["evidenceBindings"] = [
+        {
+            "kind": "artifact",
+            "count": 3,
+            "setDigest": sha("c"),
+            "totalBytes": 91,
+            "truncatedCount": 0,
+        }
+    ]
+    item["dimensions"] = [{"name": "settings", "value": {"list": [1, "two"]}}]
+    item["measures"] = [{"name": "cost", "value": 2.5, "unit": "seconds"}]
+    source.write_text(json.dumps(item, sort_keys=True) + "\n", encoding="utf-8")
+    return source
+
+
+@pytest.mark.parametrize(
+    ("table", "mutation"),
+    [
+        (
+            "episode_projections",
+            "UPDATE episode_projections SET data_class = 'DERIVED' "
+            "WHERE episode_id = %s AND projection_digest = %s",
+        ),
+        (
+            "episode_owner_refs",
+            "UPDATE episode_owner_refs SET relation = 'tampered' "
+            "WHERE episode_id = %s AND projection_digest = %s",
+        ),
+        (
+            "episode_evidence_bindings",
+            "UPDATE episode_evidence_bindings SET evidence_count = 17 "
+            "WHERE episode_id = %s AND projection_digest = %s",
+        ),
+        (
+            "episode_dimensions",
+            "UPDATE episode_dimensions SET value = '{\"changed\": true}'::jsonb "
+            "WHERE episode_id = %s AND projection_digest = %s",
+        ),
+        (
+            "episode_measures",
+            "UPDATE episode_measures SET value = 17 "
+            "WHERE episode_id = %s AND projection_digest = %s",
+        ),
+    ],
+)
+def test_pg_readback_rejects_modified_projection_table(
+    pg_dsn: str, tmp_path: Path, table: str, mutation: str
+) -> None:
+    path = populated_input(tmp_path, "all-projection-tables.jsonl")
+    accepted = admit(pg_dsn, path, corpus=tmp_path.name)
+    assert readback(pg_dsn, accepted, path)["episodeCount"] == 1
+    episode_row = json.loads(path.read_text(encoding="utf-8"))
+    with psycopg.connect(pg_dsn) as conn:
+        changed = conn.execute(
+            mutation,
+            (episode_row["episodeId"], episode_row["projectionDigest"]),
+        )
+        assert changed.rowcount == 1
+    with pytest.raises(EpisodeStoreError, match=f"projection rows differ.*{table}"):
+        readback(pg_dsn, accepted, path)
+    # No incomplete/changed projection may be mislabeled a successful
+    # idempotent replay of a previously accepted logical ingest.
+    with pytest.raises(EpisodeStoreError, match=f"projection rows differ.*{table}"):
+        admit(pg_dsn, path, corpus=tmp_path.name)
+
+
+def test_pg_refuses_different_payload_under_existing_projection_identity(
+    pg_dsn: str, tmp_path: Path
+) -> None:
+    original = populated_input(tmp_path, "v1.jsonl")
+    corpus = "projection-conflict:" + uuid4().hex
+    first = admit(pg_dsn, original, corpus=corpus)
+    record = json.loads(original.read_text(encoding="utf-8"))
+    # The source file differs, yet declares an already occupied logical
+    # episode_id + projection_digest. No alternative payload may be accepted.
+    record["dataClass"] = "DERIVED"
+    alternate = tmp_path / "v2.jsonl"
+    alternate.write_text(json.dumps(record, sort_keys=True) + "\n", encoding="utf-8")
+    assert (
+        hashlib.sha256(original.read_bytes()).digest()
+        != hashlib.sha256(alternate.read_bytes()).digest()
+    )
+    with pytest.raises(EpisodeStoreError, match="episode_projections"):
+        admit(pg_dsn, alternate, corpus=corpus)
+    assert readback(pg_dsn, first, original)["episodeCount"] == 1
+    with psycopg.connect(pg_dsn) as conn:
+        count = conn.execute(
+            "SELECT count(*) FROM projection_ingests WHERE corpus_id = %s",
+            (corpus,),
+        ).fetchone()[0]
+        assert count == 1
+
+
+def test_pg_exact_projection_readback_batches_large_corpus(
+    pg_dsn: str, tmp_path: Path
+) -> None:
+    source = populated_input(tmp_path, "batch.jsonl")
+    prototype = json.loads(source.read_text(encoding="utf-8"))
+    prefix = uuid4().hex
+    with source.open("w", encoding="utf-8") as stream:
+        for index in range(513):
+            record = dict(prototype)
+            record["episodeId"] = f"episode:batch:{prefix}:{index}"
+            stream.write(json.dumps(record, sort_keys=True) + "\n")
+    receipt = admit(pg_dsn, source, corpus=tmp_path.name)
+    assert receipt["episodeCount"] == 513
+    assert readback(pg_dsn, receipt, source)["episodeCount"] == 513
+
+
+def test_repeatable_read_keeps_old_projection_snapshot_then_detects_mutation(
+    pg_dsn: str, tmp_path: Path
+) -> None:
+    source = populated_input(tmp_path, "snapshot.jsonl")
+    receipt = admit(pg_dsn, source, corpus=tmp_path.name)
+    record = json.loads(source.read_text(encoding="utf-8"))
+    at_verification = Event()
+    resume = Event()
+    real_check = ingest._check_stored_projection_rows
+
+    def hold_after_receipt_read(db, records):
+        at_verification.set()
+        if not resume.wait(timeout=20):
+            raise TimeoutError("consumer transaction snapshot barrier timed out")
+        return real_check(db, records)
+
+    with patch.object(ingest, "_check_stored_projection_rows", hold_after_receipt_read):
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(readback, pg_dsn, receipt, source)
+            try:
+                assert at_verification.wait(timeout=20)
+                with psycopg.connect(pg_dsn) as writer:
+                    writer.execute(
+                        "UPDATE episode_measures SET value = 100.0 "
+                        "WHERE episode_id = %s AND projection_digest = %s",
+                        (record["episodeId"], record["projectionDigest"]),
+                    )
+            finally:
+                resume.set()
+            assert future.result(timeout=30)["episodeCount"] == 1
+
+    with pytest.raises(EpisodeStoreError, match="episode_measures"):
+        readback(pg_dsn, receipt, source)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_table"),
+    [
+        (
+            "DELETE FROM episode_measures WHERE episode_id = %s "
+            "AND projection_digest = %s",
+            "episode_measures",
+        ),
+        (
+            "INSERT INTO episode_dimensions "
+            "(episode_id, projection_digest, name, value) "
+            "VALUES (%s, %s, 'unexpected', '{\"extra\": true}'::jsonb)",
+            "episode_dimensions",
+        ),
+    ],
+)
+def test_pg_source_readback_rejects_missing_or_extra_projected_rows(
+    pg_dsn: str, tmp_path: Path, mutation: str, expected_table: str
+) -> None:
+    file = populated_input(tmp_path, "exact-multiset.jsonl")
+    receipt = admit(pg_dsn, file, corpus=tmp_path.name)
+    source = json.loads(file.read_text(encoding="utf-8"))
+    with psycopg.connect(pg_dsn) as conn:
+        changed = conn.execute(
+            mutation, (source["episodeId"], source["projectionDigest"])
+        )
+        assert changed.rowcount == 1
+    with pytest.raises(EpisodeStoreError, match=expected_table):
+        readback(pg_dsn, receipt, file)
+    with pytest.raises(EpisodeStoreError, match=expected_table):
+        admit(pg_dsn, file, corpus=tmp_path.name)

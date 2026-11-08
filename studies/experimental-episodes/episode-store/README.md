@@ -60,9 +60,12 @@ uv run ordivon-episode-store readback /absolute/path/source.jsonl   --ingest-id 
 
 These digests and paths are **input placeholders**, not ready-to-run evidence.
 Retain the exact returned ingest ID. Readback is read-only: it checks the
-committed `projection_ingests` identity, current input SHA-256 and Episode
-count. It fails if the file is unavailable, altered, uncommitted or the
-database receipt is contradictory. Independent Artifact
+committed `projection_ingests` identity, current input SHA-256, Episode
+count **and every matching row in the five existing PG projection tables**.
+It fails if the file is unavailable, altered, uncommitted, or if any stored
+projection row is missing, unexpected, or differs from the frozen source.
+The native implementation uses parameterized, bounded 256-key batches
+inside one PG reader snapshot; no new schema or per-Episode N+1 query loop. Independent Artifact
 `artifact_core.input_snapshot.stage_verified_input` can freeze that same
 SHA-bound file for a downstream native verifier. The DB receipt is not a
 filesystem lease, a provider-rights grant, a Parquet validation or proof
@@ -79,8 +82,11 @@ ingest package; compose their independently callable contracts.
   it never auto-migrates.
 - Identical concurrent ingestion is resolved through PostgreSQL's unique
   `ingest_id` index and `ON CONFLICT ... DO NOTHING RETURNING`. One writer
-  commits; the other checks the now-committed receipt and returns a replay
-  result with zero new projections. No ad hoc process lock.
+  commits; the other checks the now-committed receipt **and its matching
+  projection rows** and returns a replay result with zero new projections.
+  The producer verifies the five native projection tables before writing
+  a new successful ingest receipt, so an already-occupied projection identity
+  with incompatible content aborts the entire attempt. No ad hoc process lock.
 - Readback uses an explicitly supplied ingest ID and input path, a
   `REPEATABLE READ READ ONLY` PostgreSQL transaction and a fresh exact
   file-byte observation. Do not infer absent paths, input-rights, true source
@@ -94,8 +100,9 @@ ingest package; compose their independently callable contracts.
   tamper with their own test ingest rows. Never point this environment
   variable at production.
 - Retain negative witnesses for swapped files, source/receipt digest conflict,
-  identity tamper, uncommitted invisibility, interrupted transactions and
-  competing same-ingest writers. Do not infer physical file GC safety from
+  identity tamper, missing/extra/modified projections in all five PG tables,
+  stable read snapshots, bounded 513-row batch verification, uncommitted
+  invisibility, interrupted transactions and competing same-ingest writers. Do not infer physical file GC safety from
   PostgreSQL MVCC alone.
 
 This is one instance-level PG+byte contract and still requires upstream
