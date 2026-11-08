@@ -442,3 +442,8 @@ Earlier notes in this file described the new Kani and native PG tests as **UNRUN
 - `scripts/tla-formal bootstrap` verified upstream-locked TLC 1.7.4 bytes; `scripts/tla-formal verify` **PASS**.
 
 Scope: Kani proves the bounded production classifier, not authenticity of kernel observation or SQL atomicity. TLC proves its finite transition system, not compiled Rust refinement; the native PG integration test is complementary. As of this source qualification no installed production release of the new source is proven.
+
+
+### Resource queue R1
+
+`RuntimeResourceQueueR1.tla/.cfg`: three Jobs, finite resource supply and Workspace read/write conflicts. TLC explored 5,221 states (1,080 distinct, depth 19) without invariant violations. Checked properties: capacity, pending owns no physical allocation, active conflicting writers excluded, one native dispatch, cancellation retains allocations until exit evidence, and restart preserves durable state. This is bounded safety, not a fairness/liveness proof. `resource_fit.rs` Kani harness checks all finite integer inputs against a u128 specification (one harness, three reachability covers). The production claim transaction invokes this function under the PG advisory transaction lock; real PG CAS tests and `pg_vertical` native tests remain required.

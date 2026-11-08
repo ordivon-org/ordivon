@@ -247,3 +247,69 @@ related:
 **Physical node resource snapshot:** WSL2 Linux kernel 6.18.54.1, 16 visible CPUs, 9.7 GiB memory, ~4.8 GiB MemAvailable, 4.0 GiB swap entirely occupied, IO pressure `full avg10=6.52`, memory pressure `full avg10=1.01`, CPU pressure `some avg10=0.00`. Thus removing fixed Job count without memory/IO feedback could cause real overcommit; the durable resource-aware admission/queue migration remains separate from this qualified native-cancellation source change.
 
 **Git standing:** prior Runtime owner PR #1779 was independently observed **MERGED** with all five checks successful. This follow-up source change remains uncommitted in its isolated branch until the subsequent Git step; do not confuse running installed binary versions with candidate source revisions.
+
+
+## Parallel resource scheduler evidence — 2026-11-08
+
+Source evidence from PR #1816; not a replacement for the newer main cancellation analysis above and not installed-release proof.
+
+## Independent resource scheduler refinement — 2026-11-08
+
+- Source baseline: committed `257dba2ce979` (`fix/runtime-native-recovery-20261108`), copied into independent Workspace `ws-gpt6-runtime-resource-independent-review-20261108-r1`; other Agent's dirty `feat/runtime-native-pressure-capacity-20261108` tree remains untouched.
+- Native observation: real transient `ordivon-pg-<Attempt>.service` was observed beneath `/system.slice`, while manager `ordivon-runtime.service` has its own sibling cgroup and `TasksMax=11923`. The root-only resource observer would ignore tighter `system.slice` controller limits; counting the management service's own group instead would also be wrong.
+- Source change: resource accounting intersects root and `system.slice` CPU, memory and pids constraints. The launcher pins `--slice=system.slice` so accounting and execution placement cannot silently drift. Added two bounded native-controller parsing tests; **2/2 passed**. Rust fmt/check/strict Clippy **passed** on the independent candidate.
+- Formal model: removed an unrelated `Cardinality(allocations)<2` predicate and the redundant count invariant; resource safety remains `CpuUsed(allocations)<=2` in the finite model. Wired that existing model into the canonical TLA check and an intentional negative control. **TLC 5,221 states generated / 1,080 distinct / zero invariant errors; negative control PASS with a named Capacity counterexample**. No claim of unbounded scheduler liveness or implementation refinement from this alone.
+- Live execution: three distinct short Jobs were accepted in one Workspace and all independently became `succeeded`. This proves durable acceptance and eventual execution, but not simultaneous physical execution or fairness under saturation.
+- Pressure/consumer boundary: a Cargo build + native PG test attempt was cancelled after node PSI observed memory full avg10 `49.82%` and I/O full avg10 `63.94%`. Its exact Job converged to `lost`, reservation `released`; later measured `0.55%` and `3.88%`. **Native PG/systemd full-test acceptance was NOT obtained for this new source change; do not mark it PASS**. The workload declared generic defaults, proving the need for realistic resource estimates before trusting high-density scheduling.
+- Real deployment: current connected Linux Runtime advertises `resource_aware_persistent_queue`, `globalExecutionLimit=null`, and `workspaceConcurrency=access_leases`; this is an observed installed capability, not proof that the independent source patch was deployed. Windows PG-only and dynamic resources remain separate, unqualified.
+
+## Independent acceptance closure — 2026-11-08
+
+The committed scheduler base is `257dba2ce979` with independent source changes in `ws-gpt6-runtime-resource-independent-review-20261108-r1`:
+
+- Native worker controllers are now measured from `/sys/fs/cgroup` and `/sys/fs/cgroup/system.slice`, with systemd-run explicitly pinned to `--slice=system.slice`. CPU, memory, and PID bounds take the tightest effective limit. Two dedicated tests and the native systemd command-shape test passed.
+- The resource queue TLA+ specification no longer contains a special fixed-count allocation guard; resource conservation is the active capacity predicate. TLC visited 1,080 distinct states with no invariant failures. Deliberately deleting the CPU resource guard generated the expected named `Capacity` counterexample.
+- A concurrent scheduler and serializable PG admission produced real SQLSTATE 40001 before COMMIT; `PgAdmissionStore::admit` now retries only proven pre-COMMIT transaction aborts, bounded to 5 attempts. Unknown COMMIT outcomes still block automatic replay. This is the standard PostgreSQL serializable transaction retry boundary, not an external-effect retry.
+- Verification: `cargo fmt --check`, Rust PG `cargo check`, `cargo clippy -D warnings`, two controller unit tests, native command-shape test, TLC model and falsifier all PASS. The first nine-test physical run failed in one failfast scenario; a targeted rerun then passed, followed by a full **9/9 disposable PostgreSQL + native systemd/MCP physical integration PASS (0 failed)** after the serialized admission correction. The separately cancelled resource-intensive prior attempt had `lost/released`; not incorrectly reported PASS.
+- Agent boundary gap: connected ChatGPT Runtime's published `execution.budget` schema still rejects the nested `scheduling` field that the installed server says it supports; request validation fails before native admission. This is a real consumer contract mismatch requiring connector/tool schema synchronization; only legacy budget hard ceilings were used for acceptance commands. Do not advertise external Agent-level scheduling fields as proven end-to-end.
+- Production has independently advertised `resource_aware_persistent_queue` and `globalExecutionLimit=null`; the independent Slice/PG admission changes are **source-only until committed, reviewed and installed**. Windows Registry PG cutover is not covered.
+
+
+## Mainline conflict integration acceptance — 2026-11-08
+
+Evidence-scope: isolated Workspace `ws-gpt6-pg-scheduler-main-merge-20261108-r1`, current upstream main SourceCut
+`bc45390991ae2fb72de4940b811ee8372d9f9be9` joined by Git's
+standard three-way merge with scheduler PR #1816 HEAD
+`06eca93e573ad8e34875e5c991b1d81a05eba0d8`.
+Nine text conflicts were resolved explicitly. The newer main native-stop
+cgroup `CgroupPopulation`/Kani classifier remains authoritative; the
+scheduler's native system.slice, resource claims, workspace access leases and
+service-owned reconciliation are composed with it. This does not authorize
+substituting the unverified older classifier for main.
+
+Observed checks on the merged source: `cargo check --locked` PG binary PASS;
+MCP library 79/79; Core library 413/413 with 61 physical-opt-in tests
+intentionally not run in that library command; strict Clippy PASS; docs PASS.
+After building `ordivon-runtime-runner`, first native 9-test PG/systemd
+run reported 8 pass / 1 SQLSTATE 40001 pre-COMMIT serialization abort.
+A bounded complete-transaction retry was then added at
+`PgAdmissionStore::admit`, limited to confirmed aborted transactions with
+exponential backoff, leaving UNKNOWN COMMIT excluded.
+Subsequent targeted prerequisite integration PASS and full disposable
+PostgreSQL/systemd/MCP run **9/9 PASS**. Passing does not assert every
+possible scheduling interleaving is impossible.
+
+Formal execution: `scripts/tla-formal check` checked five existing
+models including ResourceQueue (5,221 generated / 1,080 distinct states);
+`scripts/tla-formal falsify-resource` found the expected Capacity
+counterexample; Kani verified the merged native-stop production classifier
+with **0/14 failures and 6/6 coverage obligations satisfied**.
+These bounded/pure witnesses do not prove external platform truth or
+SQL transaction implementation correctness independently of native tests.
+
+Release boundary: these are **candidate-source** results only. The installed
+Linux PG Runtime currently reports `structuredReleaseConfigured=false`.
+Do not equate a passing source merge, CI, or Docker/systemd build with an
+installed Runtime receipt. Windows PG-only migration, Agent connector
+`consumerReleased` and HTTP `execution.get` authorization parameters remain
+separate consumer scope.

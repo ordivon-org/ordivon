@@ -1,4 +1,8 @@
-//! Separate opt-in loopback endpoint. No installed service or Registry is changed.
+//! PostgreSQL Runtime loopback endpoint with local and explicit remote authentication.
+#[cfg(target_os = "linux")]
+mod access_auth;
+#[cfg(target_os = "linux")]
+mod pg_auth;
 #[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -19,6 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if token.len() < 32 {
         return Err("ORDIVON_PG_TOKEN requires at least 32 characters".into());
     }
+    let auth = pg_auth::PgAuth::from_env(&token)?;
     let config = PgRuntimeConfig {
         dsn: required("ORDIVON_PG_DSN")?,
         schema: required("ORDIVON_PG_SCHEMA")?,
@@ -37,31 +42,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     };
     let runtime = tokio::task::spawn_blocking(move || PgRuntime::new(config)).await??;
+    // Native administration runs independently of ordinary execution admission.
+    // The CLI can repair exact committed cancellations even when all slots are held.
+    let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments == ["--reconcile-cancelled"] {
+        let report =
+            tokio::task::spawn_blocking(move || runtime.reconcile_cancelled_jobs(100)).await??;
+        println!("{report}");
+        return Ok(());
+    }
+    if !arguments.is_empty() {
+        return Err("unsupported PG Runtime arguments".into());
+    }
+    let shutdown = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let worker_shutdown = shutdown.clone();
+    let scheduler = runtime.clone();
+    tokio::task::spawn_blocking(move || scheduler.serve_scheduler(worker_shutdown));
     let server = PgRuntimeServer::new(
         runtime,
         ExecutionContext {
             principal: required("ORDIVON_PG_PRINCIPAL")?,
-            global_limit: 4,
+            global_limit: 0,
         },
     );
+    let mut transport = StreamableHttpServerConfig::default();
+    if let Some(hosts) = pg_auth::optional_env("ORDIVON_PG_ALLOWED_HOSTS_JSON")? {
+        transport
+            .allowed_hosts
+            .extend(serde_json::from_str::<Vec<String>>(&hosts)?);
+    }
     let service: StreamableHttpService<PgRuntimeServer, LocalSessionManager> =
-        StreamableHttpService::new(
-            move || Ok(server.clone()),
-            Default::default(),
-            StreamableHttpServerConfig::default(),
-        );
-    let expected = format!("Bearer {token}");
+        StreamableHttpService::new(move || Ok(server.clone()), Default::default(), transport);
     let app = axum::Router::new()
         .nest_service("/mcp", service)
         .layer(axum::middleware::from_fn(
             move |request: axum::extract::Request, next: axum::middleware::Next| {
-                let authorized = request
-                    .headers()
-                    .get(axum::http::header::AUTHORIZATION)
-                    .and_then(|v| v.to_str().ok())
-                    .is_some_and(|v| v == expected);
+                let auth = auth.clone();
                 async move {
-                    if authorized {
+                    if auth.authorized(request.headers()).await {
                         next.run(request).await
                     } else {
                         axum::response::Response::builder()
@@ -80,8 +98,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         PgRuntimeServer::catalog().len()
     );
     axum::serve(listener, app)
-        .with_graceful_shutdown(async {
+        .with_graceful_shutdown(async move {
             let _ = tokio::signal::ctrl_c().await;
+            shutdown.store(true, std::sync::atomic::Ordering::Release);
         })
         .await?;
     Ok(())

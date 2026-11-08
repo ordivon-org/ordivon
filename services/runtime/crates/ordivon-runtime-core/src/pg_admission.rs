@@ -144,7 +144,7 @@ impl PgAdmissionInput {
         ];
         if strings.iter().any(|s| s.is_empty())
             || self.created_at_ms < 0
-            || self.global_limit < 1
+            || self.global_limit < 0
             || self.expected_source_sha256.len() != 64
             || !self
                 .expected_source_sha256
@@ -253,6 +253,8 @@ fn qualified_schema_constraints(client: &mut Client, schema: &str) -> Result<(),
         })
         .collect();
     let required: &[(&str, &str, &[&str], &str)] = &[
+        ("job_allocations", "p", &["attempt_id"], ""),
+        ("job_allocations", "f", &["attempt_id"], "attempts"),
         ("jobs", "p", &["job_id"], ""),
         ("jobs", "u", &["principal", "client_request_id"], ""),
         ("attempts", "p", &["attempt_id"], ""),
@@ -323,13 +325,41 @@ impl PgAdmissionStore {
 
     /// One atomic admission. No dispatch/terminal/repair effect is authorized.
     pub fn admit(&mut self, i: &PgAdmissionInput) -> Result<PgAdmissionOutcome, PgAdmissionError> {
+        // PostgreSQL SERIALIZABLE can abort at a row lock while the scheduler
+        // updates its qualified epoch or an adjacent state transition. Retry
+        // only an explicitly failed, pre-COMMIT transaction: its effects
+        // have rolled back. Never replay an UNKNOWN COMMIT acknowledgement.
+        // The advisory transaction lock prevents overlapping effect commits,
+        // but a SERIALIZABLE snapshot can predate a competing transaction that
+        // held that lock. Immediate yield/retry keeps racing on busy nodes.
+        // Re-run the WHOLE aborted transaction with bounded backoff; this
+        // branch never handles an uncertain COMMIT or an external side effect.
+        const MAX_ABORTED_TRANSACTION_ATTEMPTS: u32 = 8;
+        for attempt in 0..MAX_ABORTED_TRANSACTION_ATTEMPTS {
+            match self.admit_once(i) {
+                Err(PgAdmissionError::Database(ref error))
+                    if error.code()
+                        == Some(&postgres::error::SqlState::T_R_SERIALIZATION_FAILURE)
+                        && attempt + 1 < MAX_ABORTED_TRANSACTION_ATTEMPTS =>
+                {
+                    // 4, 8, 16, 32, 64, 64, 64 ms. Under contention, allow
+                    // the other transaction to commit before a fresh snapshot.
+                    std::thread::sleep(std::time::Duration::from_millis(4_u64 << attempt.min(4)));
+                }
+                result => return result,
+            }
+        }
+        unreachable!("bounded serializable admission attempts must return")
+    }
+
+    fn admit_once(&mut self, i: &PgAdmissionInput) -> Result<PgAdmissionOutcome, PgAdmissionError> {
         i.validate()?;
         let mut tx = self
             .client
             .build_transaction()
             .isolation_level(IsolationLevel::Serializable)
             .start()?;
-        // Serialize the global+per-Workspace capacity predicates and replay.
+        // Serialize admission identity and lifecycle effect fencing.
         tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])?;
         let authority = tx.query_opt(
             "SELECT state,source_sha256,promotion_allowed FROM _stage_control WHERE id='source' FOR UPDATE", &[]
@@ -371,14 +401,8 @@ impl PgAdmissionStore {
         if pending {
             return Err(PgAdmissionError::PendingEffect);
         }
-        let workspace_count:i64=tx.query_one(
-            "SELECT count(*) FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id JOIN jobs j ON j.job_id=a.job_id WHERE r.state IN ('active','held_orphaned') AND j.workspace_id=$1",
-            &[&i.workspace_id])?.get(0);
-        let global_count:i64=tx.query_one(
-            "SELECT count(*) FROM concurrency_reservations WHERE state IN ('active','held_orphaned')",&[])?.get(0);
-        if workspace_count >= 1 || global_count >= i64::from(i.global_limit) {
-            return Err(PgAdmissionError::Capacity);
-        }
+        // Admission is durable intent, never a physical execution slot.
+        // Resource allocation and Workspace access leases are claimed at dispatch.
         tx.execute(
             "INSERT INTO jobs(job_id,principal,client_request_id,request_digest,operation_digest,workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest,created_at_ms,desired_state,resolution,current_attempt_id,row_version) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'run',NULL,NULL,0)",
             &[&i.job_id,&i.principal,&i.client_request_id,&i.request_digest,&i.operation_digest,
@@ -426,6 +450,10 @@ impl PgAdmissionStore {
                   &((idx+1) as i64),event_type,next_state,reason,&encoded,&digest,&i.created_at_ms])?;
         }
         // A failed COMMIT is UNKNOWN, not a retryable assertion of no effect.
+        tx.query_one(
+            "SELECT pg_notify('ordivon_runtime_schedule',current_schema())",
+            &[],
+        )?;
         tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
         Ok(PgAdmissionOutcome::Created(i.job_id.clone()))
     }
@@ -832,6 +860,11 @@ impl PgAdmissionStore {
                 return Err(PgAdmissionError::Blocked);
             }
         }
+        tx.execute("UPDATE job_allocations SET state='released',released_at_ms=$1 WHERE attempt_id=$2 AND state='active'", &[&i.finished_at_ms,&i.attempt_id])?;
+        tx.query_one(
+            "SELECT pg_notify('ordivon_runtime_schedule',current_schema())",
+            &[],
+        )?;
         let changed=tx.execute(
             "UPDATE jobs SET resolution=$1,current_attempt_id=NULL,row_version=row_version+1 WHERE job_id=$2 AND resolution IS NULL",
             &[&i.terminal_state,&job_id])?;
@@ -1400,6 +1433,11 @@ mod live_pg_tests {
             ));
         }
     }
+    fn allocate_fixture(scratch: &mut Scratch, input: &PgAdmissionInput) {
+        // Test-only scheduling decision. These SQL tests qualify transaction
+        // fencing, not a native-resource probe or physical process launch.
+        scratch.admin.execute("INSERT INTO job_allocations(attempt_id,resources_json,workspace_access_json,owner,state,acquired_at_ms) VALUES($1,'{}','{}',$2,'active',$3)",&[&input.attempt_id,&input.principal,&input.created_at_ms]).unwrap();
+    }
     fn payload(client_key: &str, job: &str, workspace: &str, cap: i32) -> PgAdmissionInput {
         PgAdmissionInput {
             job_id: job.to_string(),
@@ -1587,12 +1625,22 @@ mod live_pg_tests {
         ));
         assert!(matches!(
             store.admit(&payload("request-B", "job-B", "workspace-A", 2)),
-            Err(PgAdmissionError::Capacity)
+            Ok(PgAdmissionOutcome::Created(_))
         ));
         assert!(matches!(
-            store.admit(&payload("request-B", "job-B", "workspace-B", 1)),
-            Err(PgAdmissionError::Capacity)
+            store.admit(&payload(
+                "request-B-global",
+                "job-B-global",
+                "workspace-B",
+                1
+            )),
+            Ok(PgAdmissionOutcome::Created(_))
         ));
+        assert_eq!(
+            scratch.count("job_allocations"),
+            0,
+            "pending Jobs consumed physical resources"
+        );
 
         // A row uniqueness error after inserting Job must rollback every
         // consumer-visible part of this admission.
@@ -1602,18 +1650,18 @@ mod live_pg_tests {
             store.admit(&duplicate_attempt),
             Err(PgAdmissionError::Database(_))
         ));
-        assert_eq!(scratch.count("jobs"), 1);
-        assert_eq!(scratch.count("attempts"), 1);
-        assert_eq!(scratch.count("idempotency_keys"), 1);
-        assert_eq!(scratch.count("job_events"), 3);
+        assert_eq!(scratch.count("jobs"), 3);
+        assert_eq!(scratch.count("attempts"), 3);
+        assert_eq!(scratch.count("idempotency_keys"), 3);
+        assert_eq!(scratch.count("job_events"), 9);
         assert_eq!(
             store
                 .admit(&payload("request-D", "job-D", "workspace-B", 2))
                 .unwrap(),
             PgAdmissionOutcome::Created("job-D".into())
         );
-        assert_eq!(scratch.count("jobs"), 2);
-        assert_eq!(scratch.count("job_events"), 6);
+        assert_eq!(scratch.count("jobs"), 4);
+        assert_eq!(scratch.count("job_events"), 12);
     }
 
     #[test]
@@ -1692,9 +1740,9 @@ mod live_pg_tests {
         assert_eq!(held, "held_orphaned");
         assert!(matches!(
             store.admit(&payload("after-orphan", "job-after", "workspace-term", 2)),
-            Err(PgAdmissionError::Capacity)
+            Ok(PgAdmissionOutcome::Created(_))
         ));
-        assert_eq!(scratch.count("jobs"), 2);
+        assert_eq!(scratch.count("jobs"), 3);
     }
 
     #[test]
@@ -1931,7 +1979,7 @@ mod live_pg_tests {
         assert_eq!(scratch.count("job_events"), 4);
         assert!(matches!(
             store.admit(&payload("new-job", "new-job", "ws-a", 2)),
-            Err(PgAdmissionError::Capacity)
+            Ok(PgAdmissionOutcome::Created(_))
         ));
         let wrong_source = PgCancelIntent {
             expected_source_sha256: "b".repeat(64),
@@ -1941,7 +1989,7 @@ mod live_pg_tests {
             store.request_cancel_intent(&wrong_source),
             Err(PgAdmissionError::Unqualified)
         ));
-        assert_eq!(scratch.count("job_events"), 4);
+        assert_eq!(scratch.count("job_events"), 7);
     }
 
     #[test]
@@ -2179,6 +2227,7 @@ mod live_pg_tests {
             store.admit(&a).unwrap(),
             PgAdmissionOutcome::Created(a.job_id.clone())
         );
+        allocate_fixture(&mut scratch, &a);
         let digest = format!("sha256:{}", "b".repeat(64));
         let issued = PgDispatchIssued {
             attempt_id: a.attempt_id.clone(),
@@ -2280,6 +2329,7 @@ mod live_pg_tests {
             store.admit(&a).unwrap(),
             PgAdmissionOutcome::Created(a.job_id.clone())
         );
+        allocate_fixture(&mut scratch, &a);
         let digest = format!("sha256:{}", "d".repeat(64));
         let ready = PgBundleReady {
             attempt_id: a.attempt_id.clone(),
@@ -2679,6 +2729,7 @@ mod live_pg_tests {
             store.admit(&request).unwrap(),
             PgAdmissionOutcome::Created(request.job_id.clone())
         );
+        allocate_fixture(&mut scratch, &request);
         let bundle = PgBundleReady {
             attempt_id: request.attempt_id.clone(),
             expected_row_version: 0,

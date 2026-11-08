@@ -3,7 +3,15 @@ use super::*;
 
 impl PgRuntime {
     pub fn run(&self, proposal: &JobRunProposal) -> RuntimeResult<JobObservation> {
-        super::engine::validate_run_proposal_structure(proposal)?;
+        super::engine::validate_resource_run_proposal_structure(proposal)?;
+        proposal
+            .execution
+            .budget
+            .scheduling
+            .clone()
+            .unwrap_or_default()
+            .validate()
+            .map_err(|e| RuntimeError::invalid(e, "execution.budget.scheduling"))?;
         let identity = super::types::proposal_request_identity_digest(proposal)?;
         let mut db = self.store()?;
         // Replay before consulting mutable Workspace/executable state or policy.
@@ -125,7 +133,7 @@ impl PgRuntime {
                 "execution.timeoutMs",
             ));
         }
-        let plan = RuntimeExecutionPlan {
+        let mut plan = RuntimeExecutionPlan {
             schema_version: 1,
             workspace_id: e.workspace_id.clone(),
             workspace_path: record.workspace_path.clone(),
@@ -154,6 +162,82 @@ impl PgRuntime {
             credential_set_id: None,
             principal: proposal.principal.clone(),
         };
+        let mut contract = self.scheduling_contract(&plan)?;
+        if e.budget.scheduling.is_none() {
+            if let Some(max) = plan.budget.memory_max_bytes {
+                contract.resources.memory_bytes = contract.resources.memory_bytes.min(max);
+            }
+            if let Some(max) = plan.budget.tasks_max {
+                contract.resources.pids = contract.resources.pids.min(max);
+            }
+            if let Some(max) = plan.budget.cpu_quota_percent {
+                contract.resources.cpu_millis =
+                    contract.resources.cpu_millis.min(max.saturating_mul(10));
+            }
+        }
+        if plan
+            .budget
+            .memory_max_bytes
+            .is_some_and(|v| v < contract.resources.memory_bytes)
+            || plan
+                .budget
+                .tasks_max
+                .is_some_and(|v| v < contract.resources.pids)
+            || plan
+                .budget
+                .cpu_quota_percent
+                .is_some_and(|v| v.saturating_mul(10) < contract.resources.cpu_millis)
+        {
+            return Err(RuntimeError::invalid(
+                "resource request exceeds its hard execution ceiling",
+                "execution.budget.scheduling",
+            ));
+        }
+        if let (Some(high), Some(max)) = (contract.memory_high_bytes, plan.budget.memory_max_bytes)
+        {
+            if high > max {
+                return Err(RuntimeError::invalid(
+                    "memoryHighBytes exceeds memoryMaxBytes",
+                    "execution.budget.scheduling",
+                ));
+            }
+        }
+        for relative in &contract.workspace_access.write_paths {
+            let path =
+                fs::canonicalize(Path::new(&plan.workspace_path).join(relative)).map_err(io)?;
+            if !path.starts_with(&plan.workspace_path) || !path.is_dir() {
+                return Err(RuntimeError::invalid(
+                    "writePaths requires existing contained directories",
+                    "execution.budget.scheduling.workspaceAccess",
+                ));
+            }
+        }
+        if contract.workspace_access.read_only || !contract.workspace_access.write_paths.is_empty()
+        {
+            plan.workspace_git_common_dir = Some(
+                universal::workspace_git_common_dir_at(Path::new(&plan.workspace_path))
+                    .map_err(io)?
+                    .to_string_lossy()
+                    .into_owned(),
+            );
+        }
+        if !contract.workspace_access.write_paths.is_empty() {
+            let _ = universal::workspace_source_readset_digest_at(
+                Path::new(&plan.workspace_path),
+                &contract.workspace_access.write_paths,
+            )
+            .map_err(io)?;
+        }
+        if !contract.workspace_access.read_paths.is_empty() {
+            plan.workspace_source_digest = Some(
+                universal::workspace_source_readset_digest_at(
+                    Path::new(&plan.workspace_path),
+                    &contract.workspace_access.read_paths,
+                )
+                .map_err(io)?,
+            );
+        }
+        plan.budget.scheduling = Some(contract);
         let plan_json = encode(&plan)?;
         let plan_digest = universal::sha256_bytes(plan_json.as_bytes());
         // An Operation commits to the resolved execution world and native
@@ -196,13 +280,14 @@ impl PgRuntime {
             launch_token_digest: universal::sha256_bytes(token.as_bytes()),
             bundle_path: bundle.to_string_lossy().into_owned(),
             unit_name: format!("ordivon-pg-{attempt}.service"),
-            global_limit: i32::try_from(proposal.global_limit).map_err(io)?,
+            global_limit: 0,
             created_at_ms: now()?,
             expected_source_sha256: self.config.source_sha256.clone(),
         };
         let job = match db.admit(&input).map_err(pg)? {
             PgAdmissionOutcome::Created(j) | PgAdmissionOutcome::Existing(j) => j,
         };
+        let _ = self.schedule_pending_jobs();
         self.observe(
             &proposal.principal,
             &JobObserveRequest {
@@ -234,8 +319,8 @@ impl PgRuntime {
         }
         let deadline = Instant::now() + Duration::from_millis(request.wait_ms);
         let mut initial_signature = None;
+        let mut db = self.store()?;
         loop {
-            let mut db = self.store()?;
             self.authorize(&mut db, &request.job_id, principal)?;
             self.reconcile(&mut db, &request.job_id)?;
             let value = self.project(&mut db, request)?;
@@ -266,9 +351,43 @@ impl PgRuntime {
             {
                 return Ok(value);
             }
-            thread::sleep(
-                Duration::from_millis(50).min(deadline.saturating_duration_since(Instant::now())),
-            );
+            if value.attempt_state == Some(AttemptState::Accepted) {
+                use postgres::fallible_iterator::FallibleIterator;
+                db.client
+                    .batch_execute("LISTEN ordivon_runtime_schedule")
+                    .map_err(io)?;
+                let wait = deadline
+                    .saturating_duration_since(Instant::now())
+                    .min(Duration::from_secs(1));
+                let _ = db
+                    .client
+                    .notifications()
+                    .timeout_iter(wait)
+                    .next()
+                    .map_err(io)?;
+            } else if let Some(attempt_id) = value.attempt_id.as_deref() {
+                let bundle = self
+                    .config
+                    .executor
+                    .store_root
+                    .join("pg-attempts")
+                    .join(attempt_id);
+                let start = fs::read(bundle.join("runner-start.json"))
+                    .ok()
+                    .and_then(|bytes| serde_json::from_slice::<RunnerStartEvidence>(&bytes).ok());
+                super::platform::wait_for_attempt_change(
+                    &bundle,
+                    start
+                        .as_ref()
+                        .map(|evidence| evidence.control_group.as_str()),
+                    deadline.saturating_duration_since(Instant::now()),
+                );
+            } else {
+                thread::sleep(
+                    Duration::from_millis(250)
+                        .min(deadline.saturating_duration_since(Instant::now())),
+                );
+            }
         }
     }
     pub fn cancel(
@@ -298,7 +417,8 @@ impl PgRuntime {
                 &json!({"requestedAtMs":now()?}),
             )
             .map_err(io)?;
-            if a.bundle_digest.is_none() {
+            if a.state == AttemptState::Accepted {
+                self.reconcile(&mut db, &request.job_id)?;
                 return self.project(
                     &mut db,
                     &JobObserveRequest {
@@ -458,7 +578,7 @@ impl PgRuntime {
                 finished_at_ms: snapshot.finished_at_ms.map(|v| v as u64),
                 duration_ms: None,
                 exit_code: exit,
-                result_available: terminal,
+                result_available: terminal && by_kind.contains_key("execution_result"),
                 reservation_state: ReservationState::parse(&snapshot.reservation_state)?,
                 reservation_release_reason: None,
                 conditions: vec![],
