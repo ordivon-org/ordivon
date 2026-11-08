@@ -3,7 +3,7 @@ Description=Network v2 Browserless production forwarding policy
 Requires=network-v2-browserless-netns.service
 After=network-v2-browserless-netns.service
 BindsTo=network-v2-browserless-netns.service
-PartOf=network-v2-browserless.target
+PartOf=network-v2-shared-egress.target
 
 [Service]
 Type=oneshot

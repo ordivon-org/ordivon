@@ -2,7 +2,7 @@
 Description=Network v2 shared egress network namespace (legacy installed unit name)
 After=network-online.target
 Wants=network-online.target
-PartOf=network-v2-browserless.target
+PartOf=network-v2-shared-egress.target
 
 [Service]
 Type=oneshot

@@ -60,6 +60,21 @@ graph refinement against the merged #1783 baseline, then verify
 native loaded unit dependency state and real Consumer requests.
 
 
+## Owner-local stop propagation (systemd.unit native semantics)
+
+The live, legacy-named namespace/forward units now declare
+`PartOf=network-v2-shared-egress.target`; the inactive rollback
+WireGuard/DNS/carrier units declare
+`PartOf=network-v2-browserless-legacy-provider.target`.
+Stopping the latter must not stop or disable the shared target,
+forwarding, namespace, or unrelated Consumer. This is the same
+alias-backed physical shared Target, not a new Unit or VPN identity.
+The source-bound stop-closure regression in
+`tests/test_shared_provider_carrier.py` rejects an accidental
+shared-forwarding dependency on the Browserless legacy target.
+Production installation requires native source/install/loaded-unit readback;
+the static closure is not a substitute for a real cold recovery test.
+
 ## Non-destructive namespace lifecycle (native systemd + iproute2)
 
 `network-v2-browserless-netns.service` remains the same installed identity,
