@@ -440,7 +440,6 @@ class OrdivonAgentLoop:
             ),
         )
         assignment_remaining_ms = deadline_selection.assignment_remaining_ms
-        effective_remaining_ms = deadline_selection.remaining_ms
         deadline_source = deadline_selection.source
         if external_deadline is not None and deadline_source == "external_deadline":
             deadline = external_deadline

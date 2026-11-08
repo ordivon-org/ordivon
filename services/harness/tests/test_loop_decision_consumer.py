@@ -59,7 +59,8 @@ def _result() -> AgentTurnResult:
 
 
 def _run(adapter, *, assignment_deadline_ms=None, external_expiry_ms=None):
-    clock = lambda: 100
+    def clock() -> int:
+        return 100
     loop = OrdivonAgentLoop(
         adapter,
         NoEffectBridge(),
