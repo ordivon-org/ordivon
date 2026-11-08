@@ -397,3 +397,32 @@ omit the release service user setting.
 This is a service-account execution acceptance test, not a proof of all
 systemd namespace isolation or production effect correctness. See the
 upstream systemd.exec User, DynamicUser and ProtectHome contracts.
+
+## Linux PG Runtime business delivery (temporary installed-schema adapter)
+
+The actual production Linux Runtime has returned a successfully executed Job
+and retained stdout Artifacts, but its installed MCP tool outputSchema still
+omits the scheduling field present in the physical PostgreSQL Job projections.
+The high-level MCP Python SDK correctly rejects this schema mismatch AFTER
+the Owner has committed and completed a Job, so Gateway submission receipts,
+request recovery, and Artifact reads are unusable through that route.
+
+The Runtime source already contains exact PostgreSQL scheduling output schema
+declarations. Until that source is published to the active Runtime service,
+Gateway uses the upstream MCP SDK public ClientSession.send_request with typed
+CallToolRequest and CallToolResult only for the six Linux Runtime operations
+actually consumed here: workspace.exec, job.list, job.observe, job.get,
+job.cancel, and artifact.read. The SDK still owns HTTP transport, credential
+refresh, session negotiation, structured errors and result decoding. Gateway
+keeps its strict Job/Workspace/Artifact identity checks. There is NO retry of
+uncertain effects, no second Job registry and no homemade wire client.
+
+This is deliberately not a permanent replacement for complete SDK
+output-schema validation. Do not copy the exception to Host, Skills, or
+Windows effect calls. Retire the limited Linux bridge when the installed
+Runtime advertises conformant schemas AND a real Gateway submit -> resolve ->
+observe -> artifact.read business workflow succeeds with high-level SDK calls.
+
+Proof of business delivery requires the original owner Job identity, terminal
+evidence, source-qualified output bytes, and an independently verified Artifact
+digest. Gateway route readiness and HTTP /health alone do not prove it.
