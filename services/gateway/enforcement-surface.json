@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "truthBoundary": "SOURCE_CONSUMER_ONLY",
+  "description": "Gateway HTTP ingress and object PEP source projection. UNKNOWN means no downstream Owner authorization proof; does not assert absence of authorization.",
+  "tools": [
+    {
+      "name": "actor.declare",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "artifact.read",
+      "routeOwner": "runtime",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "runtime-artifact-authzen",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "attention.ack",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "attention.delta",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "attention.get",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "attention.reentry",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "capability.describe",
+      "routeOwner": "gateway",
+      "operation": "metadata",
+      "httpIngress": "public-metadata",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "capability.resolve",
+      "routeOwner": "skills",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "capability.search",
+      "routeOwner": "gateway",
+      "operation": "metadata",
+      "httpIngress": "public-metadata",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "execution.cancel",
+      "routeOwner": "runtime",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "execution.get",
+      "routeOwner": "runtime",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "execution.resolve",
+      "routeOwner": "runtime",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "execution.submit",
+      "routeOwner": "runtime",
+      "operation": "execute",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "host.status",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "message.post",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "message.relation.add",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "message.relation.list",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "message.search",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "space.create",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "space.get",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "space.list",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "space.participation.list",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "space.participation.set",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "space.subject.list",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "subscription.follow",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "subscription.list",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "subscription.unfollow",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "system.describe",
+      "routeOwner": "gateway",
+      "operation": "metadata",
+      "httpIngress": "public-metadata",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "topic.create",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "topic.cursor.ack",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "topic.cursor.get",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "topic.list",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "topic.resume",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "topic.state.set",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "work.create",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "work.get",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "work.list",
+      "routeOwner": "host",
+      "operation": "read",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    },
+    {
+      "name": "work.snapshot.commit",
+      "routeOwner": "host",
+      "operation": "write",
+      "httpIngress": "verified-principal",
+      "gatewayObjectPep": "none",
+      "downstreamAuthorization": "UNKNOWN"
+    }
+  ]
+}
