@@ -25,12 +25,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from artifact_core.bindings import CapabilityBindingRegistry
-from artifact_core.contracts import sha256_file
+from artifact_core.contracts import FileCommitment, sha256_file
 from artifact_core.input_snapshot import stage_verified_input
 from artifact_core.json_validation import load_json
 from artifact_core.profiles import ProfileRegistry
 from artifact_verification.claim_coverage import assess_required_evidence
 from artifact_verification.native_identity import assess_native_identity
+from artifact_verification.tool_identity import assess_native_tool_paths
 
 ART = ROOT / "artifact-delivery"
 REQUEST_SCHEMA = ART / "verification/request-v1.schema.json"
@@ -145,8 +146,9 @@ def verify_request(request_path: Path) -> dict[str, Any]:
             subject_size = subject_input.size
             delegated_subject = subject_input.path
         else:
-            subject_sha = sha256_file(subject_path)
-            subject_size = subject_path.stat().st_size
+            subject_fact = FileCommitment.from_path(subject_path)
+            subject_sha = subject_fact.sha256
+            subject_size = subject_fact.size
             delegated_subject = subject_path
             if subject_sha != request["subject"]["sha256"]:
                 return request_fail(request_id, ["subject bytes differ from request digest"], request_digest=request_digest)
@@ -169,7 +171,7 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 contract_sha = contract_input.sha256
                 delegated_contract = contract_input.path
             else:
-                contract_sha = sha256_file(contract_path)
+                contract_sha = FileCommitment.from_path(contract_path).sha256
                 delegated_contract = contract_path
                 if contract_sha != request["objectContract"]["sha256"]:
                     return request_fail(request_id, ["object contract bytes differ from request digest"], request_digest=request_digest)
@@ -212,10 +214,12 @@ def verify_request(request_path: Path) -> dict[str, Any]:
             contract_sha256=contract_fact["sha256"] if contract_fact else None,
             require_complete=binding.require_claim_results,
         )
+        tool_identity = assess_native_tool_paths(delegated)
         verified = (
             delegated_status == "PASS"
             and not claim_failure
             and not native_identity["rejected"]
+            and not tool_identity["rejected"]
         )
         service_failures = list(delegated.get("failures") or [])
         if native_identity["rejected"]:
@@ -224,6 +228,8 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 f"native evidence identity not evaluated: {field}"
                 for field in native_identity["notEvaluated"]
             )
+        if tool_identity["rejected"]:
+            service_failures.extend(tool_identity["issues"])
         if claim_failure:
             service_failures.append(
                 "profile requiredEvidence is not fully verified by explicit native claimResults"
@@ -253,6 +259,7 @@ def verify_request(request_path: Path) -> dict[str, Any]:
             },
             "requiredEvidenceAssessment": assessment,
             "nativeIdentityAssessment": native_identity,
+            "toolIdentityAssessment": tool_identity,
             "profileVerificationComplete": bool(
                 assessment["complete"] and native_identity["complete"] and verified
             ),

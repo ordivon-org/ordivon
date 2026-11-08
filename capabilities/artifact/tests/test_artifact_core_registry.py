@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
+from artifact_core import contracts
 from artifact_core.bindings import CapabilityBindingRegistry
 from artifact_core.contracts import FileCommitment, sha256_file
 from artifact_core.profiles import ProfileRegistry
@@ -31,6 +34,30 @@ class ArtifactCoreRegistryTests(unittest.TestCase):
             subject.write_bytes(b"artifact-core-r2")
             with self.assertRaisesRegex(RuntimeError, "SHA-256 drift"):
                 commitment.verify()
+
+    def test_size_and_digest_are_one_stream_observation_under_path_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            subject = Path(d) / "subject.bin"
+            original = b"first-stream"
+            replacement = b"new-and-much-longer-path-content"
+            actual_read = contracts._sha256_and_size
+
+            def race(path: Path) -> tuple[str, int]:
+                fact = actual_read(path)
+                path.write_bytes(replacement)
+                return fact
+
+            for build in (
+                lambda p: contracts.file_fact(p),
+                lambda p: FileCommitment.from_path(p).as_dict(),
+            ):
+                subject.write_bytes(original)
+                with mock.patch.object(contracts, "_sha256_and_size", side_effect=race):
+                    fact = build(subject)
+                self.assertEqual(fact["size"], len(original))
+                actual_sha = fact.get("sha256", fact.get("digest", {}).get("sha256"))
+                self.assertEqual(actual_sha, hashlib.sha256(original).hexdigest())
+                self.assertEqual(subject.read_bytes(), replacement)
 
     def test_profile_registry_normalizes_v1_and_native_v2_to_one_shape(self) -> None:
         registry = ProfileRegistry(ART)
