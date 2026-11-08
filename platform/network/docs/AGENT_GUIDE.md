@@ -157,7 +157,8 @@ three in order.
 mise run formal-core-convergence binds Z3 to the selected task source
 and proves six symbolic selection invariants, including a negative
 control for the former live-health-as-install-status coupling.
-mise run formal-shared-egress-alias proves the 13-unit and two-authority
+mise run formal-shared-egress-alias now proves 14 units (including the Gluetun
+physical Provider target) and two Consumer authorities
 source dependency graph is equivalent after canonicalizing the native
 systemd target Alias. Neither proof covers installed drop-ins, loaded
 systemd internals, process survival or actual DNS/VPN/iPad traffic.
