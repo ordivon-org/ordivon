@@ -16,7 +16,7 @@ This file is a **scoped navigation pointer**, not a new policy registry, databas
 - **Attention:** `attention_store.py` (subscriptions/acks), `attention_projections.py` and `attention_sql.py` (rebuildable navigation).
 - **MCP:** `mcp_server.py`, `mcp_tool_registration.py`, `mcp_*_tools.py`; do not invent additional northbound tools.
 - **Schema/release:** `migrations/versions/` via Alembic; `packaging/` handles immutable release and systemd.
-- **Validation:** `mise run verify` for source gate, `mise run test:postgres:disposable` for isolated real PostgreSQL 18, and `mise run formal:reply-source` for the scoped pure source obligations. A skip is not a database PASS.
+- **Validation:** `mise run verify` for source gate, `mise run test:postgres:disposable` for isolated real PostgreSQL 18, and `mise run formal:reply-source` (Python PEP316 obligations) and `mise run formal:work-graph` (bounded Z3 DAG model and negative control); run `mise run formal:dag-theorem` for the axiom-free general Lean DAG theorem using the repo's pinned Lean toolchain for the scoped pure source obligations. A skip is not a database PASS.
 
 ## Agent re-entry and effects
 

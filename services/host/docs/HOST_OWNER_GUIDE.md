@@ -103,3 +103,21 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 ## 8. 待进一步验证的边界
 
 Coordination Intent 与 Work Relation 有内部能力和数据库消费者，但并非全部显式 MCP 工具，不能把“代码存在”直接宣称外部产品可用。跨包更名 ordivon_host_v2、删除 R1 图方案、删除不可逆迁移或重写 PG 状态必须先有消费者迁移与发布验收；重构范围越广，不代表系统越优。
+
+## 9. Formal-first evidence: Work Graph DAG (2026-11-08)
+
+The owner-native task `mise run formal:work-graph` evaluates `formal/work_graph_dag.py` using the existing CrossHair/Z3 formal dependency group. It checks **all directed adjacency assignments** for 2, 3, and 4 labeled vertices using SMT transitive closure; under the **acyclic pre-state** assumption, insertion `source → target` preserves acyclicity exactly when `target` cannot already reach `source`. A deliberately swapped guard must yield a SAT counterexample. This is `MODEL_VERIFIED` for finite sizes, not a general theorem for arbitrary vertex counts.
+
+The SQL implementation performs `pg_advisory_xact_lock`, a recursive CTE and `INSERT` in one transaction in `work_relation_commands.py`. The existing three-vertex PostgreSQL oracle, concurrent insertion tests and receipt tests remain necessary **implementation/refinement and real-consumer evidence**. No source-derived model alone proves PostgreSQL lock fairness, transaction atomicity, negative evidence closure or installed state. The SQL CTE, Python command and model must each be checked at the same exact Git SourceCut.
+
+Verification tier: `Specification → finite SMT Model → source/SQL refinement via native PG tests → installed consumer readback`. The five CrossHair obligations remain limited to the actual pure helper functions. This package does **not** automatically migrate every Host test to SMT: contract parser, persistence, races, MCP, Alembic and installed API tests remain meaningful. Do not remove a consumer test until a stronger proof and an actual refinement bridge cover its property. `MODEL_VERIFIED`, `CODE_REFINED`, `INSTALLED_CURRENT` and `DOMAIN_ACCEPTED` are separate claims.
+
+Human: use `mise run formal:work-graph` and `mise run test:postgres:disposable`, record both SourceCut and actual result, preserve independent counterexample controls. Agent: discover `services/host/AGENTS.md`, inspect the current live MCP tools, verify the model source binding, and label any unverified proof step **UNKNOWN** rather than PASS. Do not create a second DAG implementation or runtime registry.
+
+## 10. General Lean theorem (2026-11-08)
+
+`formal/HostWorkDAG.lean` proves `insert_acyclic_iff_no_backpath` for an arbitrary type of vertices and arbitrary binary edge relation. The inductive `Walk` construction covers paths of any finite length; if the original relation is acyclic, inserting `source → target` preserves acyclicity exactly when `target` does not already reach `source`. `#print axioms` must report **no axioms**. This replaces a merely bounded graph law with a general abstract theorem. It does not establish runtime transaction isolation, the recursive SQL implementation, or installed behavior.
+
+The theorem reuses the existing pinned Lean 4 toolchain from `tools/formal/mise.toml` instead of adding Lean to Host's Python lock or global package manager. Run `mise run formal:dag-theorem` from the Host directory; Host source verification invokes CrossHair, Z3 and this Lean theorem with its existing pinned upstream toolchain; the exact Lean proof can also be rerun on demand. For Work DAG changes run both the Lean theorem and disposable PostgreSQL 18 integration/oracle checks. Do not substitute toy-model PASS for implementation refinement or physical consumer verification.
+
+Proof classification: `ABSTRACT_THEOREM_PROVED`; `BOUNDED_MODEL_VERIFIED`; `IMPLEMENTATION_REFINEMENT_PARTIAL` (SQL semantics plus real native PG oracle); `INSTALLED_CURRENT` must be checked against exact release SHA after publication.
