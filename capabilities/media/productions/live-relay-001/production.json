@@ -67,21 +67,24 @@
       "kind": "video",
       "status": "approved",
       "profile": "obs-32.2.2-h264-aac-digital-silence-event-source",
-      "blobDigest": "sha256:d78adcac09885dab71678c742061c83dd24ee2c0e768b9c84d5e5e9f97bb19b5"
+      "blobDigest": "sha256:d78adcac09885dab71678c742061c83dd24ee2c0e768b9c84d5e5e9f97bb19b5",
+      "outputCarrier": "render/live-relay-001-source.mp4"
     },
     {
       "id": "live-relay-preservation-master",
       "kind": "video",
       "status": "approved",
       "profile": "moving-image-matroska-ffv1-v3-r1",
-      "blobDigest": "sha256:05763a34936df0af7e58737711477a86b9b0b1043a22c109752feb6e363f1f65"
+      "blobDigest": "sha256:05763a34936df0af7e58737711477a86b9b0b1043a22c109752feb6e363f1f65",
+      "outputCarrier": "render/live-relay-001-master.mkv"
     },
     {
       "id": "live-relay-poster",
       "kind": "image",
       "status": "approved",
       "profile": "png-1280x720-final-recording-programme-hero",
-      "blobDigest": "sha256:2ea8fabed997b2c89e3ae07ff0e551420bb112e677e0858738a5eab9f54de3b2"
+      "blobDigest": "sha256:2ea8fabed997b2c89e3ae07ff0e551420bb112e677e0858738a5eab9f54de3b2",
+      "outputCarrier": "render/live-relay-001-poster.png"
     }
   ]
 }

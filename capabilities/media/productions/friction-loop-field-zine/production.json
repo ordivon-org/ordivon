@@ -4,7 +4,11 @@
   "title": "Make Things / Find Friction — Field Note 001",
   "status": "review",
   "intent": "Create a compact editable Typst publication that turns the Creative Works + Tool Dogfood practice into a visual field note, then consume the PDF through real local PDF tooling and preserve the resulting production evidence.",
-  "audiences": ["ordivon-human", "ordivon-agent", "creative-library-consumer"],
+  "audiences": [
+    "ordivon-human",
+    "ordivon-agent",
+    "creative-library-consumer"
+  ],
   "sourceBindings": [
     {
       "id": "media",
@@ -29,7 +33,8 @@
       "kind": "publication-package",
       "status": "rendered",
       "profile": "typst-a5-eight-page-pdf",
-      "blobDigest": "sha256:5da906509f9bd07c730f1b4d6aa91a14560a091e66ea14b0348b8d7c92ee54d6"
+      "blobDigest": "sha256:5da906509f9bd07c730f1b4d6aa91a14560a091e66ea14b0348b8d7c92ee54d6",
+      "outputCarrier": "render/make-things-find-friction-field-note-001.pdf"
     }
   ]
 }
