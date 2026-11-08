@@ -90,7 +90,10 @@ handshake cache or Runtime authority. Test exact Window Runtime version
 with the true Gateway service identity before enabling. Fail closed
 on an unsupported fixed version; do not retry effectful tools to hide
 protocol mismatches. The SDK also supports `legacy` for a confirmed
-handshake-era Owner. Keep credentials refreshed per HTTP request.
+handshake-era Owner. The SDK may re-list and resend once only after
+the protocol-defined HEADER_MISMATCH rejection; verify the Owner rejects
+before executing an effect. Gateway itself must not retry an uncertain
+effectful Tool call. Keep credentials refreshed per HTTP request.
 
 ## R05 Owner observation timeout diagnosis (cancellation phase)
 The Gateway upstream adapter emits one warning when the MCP SDK task is

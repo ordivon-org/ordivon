@@ -250,10 +250,15 @@ Owner execution/admission authority, cancellation, nor HTTP connection
 pooling. Version pinning must be tested with real Owner `runtime.describe`
 under the Gateway service identity, including an unsupported-version
 negative control. A future incompatible Owner upgrade must remove or
-change the pin before deployment; the modern pin intentionally does not
-fall back or silently retry effects. Avoid enabling it solely from the
-SDK package version. Gateway cancellation warnings are still bounded by
-the existing observation deadline. See the Gateway Owner R04/R05 guidance.
+change the pin before deployment; the fixed modern mode does not silently
+fall back to an older protocol. The upstream Client may perform the
+spec-defined one-time re-list and resend after a `HEADER_MISMATCH` rejection,
+which a conforming server rejects before dispatch; Gateway adds no
+application-level retries. Validate that the actual Owner enforces the
+header/body boundary, especially for effectful Tools, and preserves
+idempotent request IDs. Avoid enabling the pin solely from the SDK
+package version. Gateway cancellation warnings remain bounded by the
+existing observation deadline. See the Gateway Owner R04/R05 guidance.
 
 ## Contextual readiness projection (not a tool registry)
 
