@@ -78,6 +78,10 @@ def validate_timed_text_delivery(
     errors: list[str] = []
     raw_cues = document.get("cues", [])
     for cue, raw in zip(cues, raw_cues, strict=True):
+        try:
+            _delivery_interval_milliseconds(cue, ticks_per_second)
+        except ValueError as error:
+            errors.append(str(error))
         if cue.end_tick > media_duration_ticks:
             errors.append(
                 f"cue {cue.cue_id} ends at tick {cue.end_tick} after media duration {media_duration_ticks}"
@@ -107,7 +111,20 @@ def validate_timed_text_delivery(
 
 
 def _milliseconds(tick: int, ticks_per_second: int) -> int:
-    return round(tick * 1000 / ticks_per_second)
+    # WebVTT/SRT are millisecond-precision delivery formats. Round exactly
+    # (ties-to-even as before), not through an imprecise floating point number.
+    return round(Fraction(tick * 1000, ticks_per_second))
+
+
+def _delivery_interval_milliseconds(cue: Cue, ticks_per_second: int) -> tuple[int, int]:
+    start = _milliseconds(cue.start_tick, ticks_per_second)
+    end = _milliseconds(cue.end_tick, ticks_per_second)
+    if end <= start:
+        raise ValueError(
+            f"cue {cue.cue_id} interval collapses at millisecond delivery precision; "
+            "retain the source ticks and choose a representable cue interval"
+        )
+    return start, end
 
 
 def _timestamp(milliseconds: int, separator: str) -> str:
@@ -121,8 +138,9 @@ def export_webvtt(document: dict[str, Any]) -> str:
     ticks_per_second, cues = _validated_cues(document)
     lines = ["WEBVTT", ""]
     for cue in cues:
-        start = _timestamp(_milliseconds(cue.start_tick, ticks_per_second), ".")
-        end = _timestamp(_milliseconds(cue.end_tick, ticks_per_second), ".")
+        start_ms, end_ms = _delivery_interval_milliseconds(cue, ticks_per_second)
+        start = _timestamp(start_ms, ".")
+        end = _timestamp(end_ms, ".")
         lines.extend([cue.cue_id, f"{start} --> {end}", cue.text, ""])
     return "\n".join(lines)
 
@@ -131,8 +149,9 @@ def export_srt(document: dict[str, Any]) -> str:
     ticks_per_second, cues = _validated_cues(document)
     lines: list[str] = []
     for index, cue in enumerate(cues, start=1):
-        start = _timestamp(_milliseconds(cue.start_tick, ticks_per_second), ",")
-        end = _timestamp(_milliseconds(cue.end_tick, ticks_per_second), ",")
+        start_ms, end_ms = _delivery_interval_milliseconds(cue, ticks_per_second)
+        start = _timestamp(start_ms, ",")
+        end = _timestamp(end_ms, ",")
         lines.extend([str(index), f"{start} --> {end}", cue.text, ""])
     return "\n".join(lines)
 

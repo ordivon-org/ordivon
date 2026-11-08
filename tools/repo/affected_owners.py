@@ -224,6 +224,8 @@ def requires_core_formal_verification(paths: Iterable[str]) -> bool:
         or normalized == "capabilities/media/src/ordivon_studio/agent_processing.py"
         or normalized == "capabilities/media/src/ordivon_studio/creative_index_library.py"
         or normalized == "capabilities/media/tests/test_creative_index.py"
+        or normalized == "capabilities/media/src/ordivon_studio/timed_text.py"
+        or normalized == "capabilities/media/tests/test_timed_text.py"
         or normalized == "capabilities/media/src/ordivon_studio/qc.py"
         for path in paths
     )

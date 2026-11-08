@@ -309,6 +309,23 @@ Mature tools such as CrossHair, Kani, Verus, Quint and Pacti remain conditional
 choices driven by a concrete property and available implementation-refinement
 path, not mandatory installations.
 
+## P0 TimedText precision 鈥?2026-11-08
+
+A real `10000 Hz, ticks 1..2` source Cue exposed an invalid conversion to
+`00:00:00.000 --> 00:00:00.000`, violating the W3C WebVTT requirement
+that output end time exceed start. `timed_text.py` now converts using
+exact `Fraction` arithmetic and uses one shared positive-delivery guard
+in validator, WebVTT and SRT. The source ticks are not edited.
+
+Proof chain: specification (W3C cue order) -> Lean abstract quotient/
+remainder model `formal/TimedTextDeliveryPrecision.lean` -> bounded
+independent `divmod` Python implementation witness -> real
+`runtime-introduction` nine-Cue captions parsed by FFprobe, plus
+existing pinned `ttconv` smoke. Model proof does not establish general
+Python correctness, FFmpeg soundness, accessibility or publication.
+The existing R2.1 RenderQC contract and exact Git SourceCut remain the
+single capability/proof authority: no new engine or registry.
+
 ## Mature external baseline
 
 - [PyPA src-layout guidance](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/):

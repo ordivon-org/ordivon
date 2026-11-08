@@ -156,3 +156,58 @@ is evidence for an older SourceCut, not proof your current Library is ready.
 Agent: report model proof, bounded Python refinement, native byte readback,
 and external browsing/rights acceptance separately. Missing either digest
 remains UNKNOWN rather than FALSE or PASS; do not silently rewrite receipts.
+
+
+## TimedText millisecond delivery precision: source ticks -> native consumer
+
+The selected Production's editable TimedText uses positive integer
+`ticksPerSecond` and source Cue intervals `startTick < endTick`.
+WebVTT and SRT output only represent integer milliseconds, and W3C WebVTT
+requires the end timestamp to be *strictly greater* than start.
+Rounding distinct source ticks may collapse to the same delivery millisecond:
+the former exporter generated `00:00:00.000 --> 00:00:00.000` for
+`ticksPerSecond=10000, startTick=1, endTick=2`.
+
+**Specification:** nearest-millisecond rational conversion with ties to
+even, without binary64 float conversion. A source Cue can be exported only
+if its two converted timestamps remain strictly ordered; otherwise reject
+it without modifying source ticks or silently stretching its duration.
+
+**Model and proof:** `TimedTextDeliveryPrecision.lean` models the pure
+Nat quotient/remainder rounding rule and representability predicate.
+Lean checks that admitted intervals have positive delivery duration, that
+a collapsed interval or zero tick base cannot be admitted, and real
+counterexample/positive/tie-to-even witnesses. These are abstract
+mathematical claims about the selected conversion rule, not the Python
+interpreter or the FFmpeg implementation.
+
+**Implementation refinement:** `timed_text._milliseconds` computes
+`round(Fraction(tick*1000, ticksPerSecond))` exactly. The shared
+`_delivery_interval_milliseconds` controls both exports and is checked
+by the delivery validator. `tests/test_timed_text.py` compares the
+implementation with an independent `divmod` oracle over 9 time bases
+and 92 distinct tick examples, including ties and large integers; this is
+a bounded refinement witness and not universal proof.
+
+**Real consumer:** Production `runtime-introduction` has nine locked
+narration cues and exactly 78 seconds of source duration. Both actual
+WebVTT and SRT exports parsed as nine positive-duration packets in native
+FFprobe. The existing pinned TTML/ttconv native positive/negative smoke
+also passed. Their exact bytes and codec/parser behavior are not proven
+by the Lean model.
+
+**R2.1 standing:** SPEC/MODEL/LEAN proof PASS, bounded source implementation
+refinement PASS, native selected Production readback PASS; general
+implementation refinement, arbitrary subtitle semantics and human
+accessibility remain UNKNOWN. Source-derived files, rights claims, and
+finished delivery are distinct from technical cue correctness.
+
+Human: inspect the source cue time base before delivery, and edit a Cue
+if its intended duration cannot be represented by SRT/WebVTT. Do not
+discard higher-resolution timing just to silence an exporter.
+
+Agent: call `validate_timed_text_delivery` with the actual media duration
+before generating a delivery file, then call `export_srt` or
+`export_webvtt` and inspect native parsed timestamps. An unrepresentable
+Cue is a clear failure of that delivery format, not a reason to mutate
+the canonical source time.

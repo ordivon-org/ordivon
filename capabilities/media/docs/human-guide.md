@@ -143,7 +143,12 @@ interpreter confirmed compatible with the installed Resolve API (3.11.9 on
 the tested Windows workstation). Read back the editable DRP, MP4, receipt
 and independent FFprobe facts, and inspect the actual cut before approval.
 
-For captions, review the source TimedText cues, then use the pinned
+For captions, review the source TimedText cues and verify
+`validate_timed_text_delivery` against the actual programme duration.
+The source time is integer ticks; SRT/WebVTT are only millisecond precision
+and must never represent a valid source interval as a zero-duration cue.
+If a Cue is too short to represent, adjust the selected source edit rather
+than letting an exporter silently extend it. Then use the pinned
 `ttconv`/TTML processing profile to derive SRT or WebVTT. For a Remotion
 animation, edit the existing React/SVG composition and render only the
 selected output; import it into Resolve as visual media if appropriate.
