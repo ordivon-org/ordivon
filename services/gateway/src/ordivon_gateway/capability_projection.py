@@ -84,6 +84,9 @@ def project_execution_capability(
             capability=route.capability,
             owner_id=route.owner_id,
             category=route.category,
+            # Invalid Owner data proves neither target configuration nor
+            # readiness. Keep legacy configured=False and express UNKNOWN
+            # through the independent observation diagnostic.
             configured=False,
             available=False,
             context_mode=route.context_mode,  # type: ignore[arg-type]
