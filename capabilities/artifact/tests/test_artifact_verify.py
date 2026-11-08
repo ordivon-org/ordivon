@@ -102,6 +102,43 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(result["requestDigest"], M.canonical_sha256(request))
             self.assertTrue((root / "evidence/service-result.json").is_file())
 
+    def test_corrupt_or_missing_registry_authority_is_a_bounded_failure(self):
+        from unittest import mock
+
+        for error in (
+            ValueError("duplicate JSON key: status"),
+            FileNotFoundError("provider standing was removed"),
+            RuntimeError("capability registry changed after indexing"),
+        ):
+            with self.subTest(error=str(error)), tempfile.TemporaryDirectory() as d:
+                root = Path(d)
+                subject = root / "subject.png"
+                minimal_png(subject)
+                request_path, _ = self.request(root, subject)
+                with mock.patch.object(M.BINDING_REGISTRY, "resolve", side_effect=error):
+                    result = M.verify_request(request_path)
+                self.assertEqual(result["status"], "FAIL")
+                self.assertIn(str(error), result["failures"][0])
+                self.assertFalse((root / "evidence").exists())
+
+    def test_missing_indexed_profile_is_a_bounded_failure(self):
+        from unittest import mock
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, _ = self.request(root, subject)
+            with mock.patch.object(
+                M.PROFILE_REGISTRY,
+                "resolve",
+                side_effect=FileNotFoundError("canonical Profile vanished"),
+            ):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL")
+            self.assertIn("canonical Profile vanished", result["failures"][0])
+            self.assertFalse((root / "evidence").exists())
+
     def test_subject_digest_drift_fails_before_family_verifier(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d); subject = root / "subject.png"; minimal_png(subject)

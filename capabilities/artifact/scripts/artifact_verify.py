@@ -99,12 +99,12 @@ def verify_request(request_path: Path) -> dict[str, Any]:
         binding = BINDING_REGISTRY.resolve(profile_id, "verify")
     except KeyError:
         return request_fail(request_id, [f"profile is not on the Artifact verification R1 service surface: {profile_id}"], request_digest=request_digest)
-    except RuntimeError as error:
+    except (RuntimeError, ValueError, OSError) as error:
         return request_fail(request_id, [f"profile capability binding unavailable: {error}"], request_digest=request_digest)
 
     try:
         profile_record = PROFILE_REGISTRY.resolve(profile_id)
-    except (KeyError, RuntimeError) as error:
+    except (KeyError, RuntimeError, ValueError, OSError) as error:
         return request_fail(request_id, [f"registered profile unavailable: {error}"], request_digest=request_digest)
 
     with tempfile.TemporaryDirectory(prefix="artifact-verify-input-") as temporary:
