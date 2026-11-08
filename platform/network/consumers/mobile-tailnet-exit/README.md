@@ -8,7 +8,7 @@ and no Windows or WSL host default-route takeover.
 The Tailscale daemon advertises Exit Node routes. Tailnet administrative
 approval and device-level selection are separate requirements. ready.py verifies
 service, namespace, Tailscale online state, advertised routes, admin approval
-and upstream Gluetun readiness. If the provider PID changes, the child daemon
+and Gluetun's **native healthcheck** by executing `/gluetun-entrypoint healthcheck` inside the exact provider container. It does not require unrelated OKX, OpenAI, Anthropic or Docker Registry responses to report the mobile Exit Node as healthy. `clientPublicExit=NOT_EVALUATED` makes explicit that this is **not** iOS client public-exit verification. If the provider PID changes, the child daemon
 is terminated and the service loops into a fresh provider namespace.
 
 The deployment initially used constant 3-second systemd service restarts while
