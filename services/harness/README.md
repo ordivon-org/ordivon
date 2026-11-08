@@ -426,4 +426,15 @@ See [`docs/DATA_AND_PRIVACY.md`](docs/DATA_AND_PRIVACY.md) and [`SECURITY.md`](S
 
 ## License
 
-Apache License 2.0. See [`LICENSE`](LICENSE).
+Apache License 2.0. See [`LICENSE`](LICENSE).\r\n\r\n## Agent tool selection and local execution
+
+Start with the real Agent run, tool call or provider continuity requirement.
+Current interfaces and consumers are documented by
+[domain tool bridge](docs/DOMAIN-TOOL-BRIDGE-P0.md) and
+[browser routing](docs/BROWSER_CAPABILITY_ROUTER_R1.md); executable Tool
+definitions belong to the actual connected provider, not this README.
+[Capability Catalog](../../catalogs/capabilities/README.md) describes
+advisory routing, while [Workstation inventory](../../platform/workstation/inventory/README.md)
+observes command resolution only inside the chosen Runtime target/identity.
+A Skill is procedure, MCP/CLI is callable transport, Runtime is physical
+execution, and the consuming domain decides semantic success.

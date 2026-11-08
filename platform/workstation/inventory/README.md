@@ -67,4 +67,43 @@ Runtime execution availability != task authorization
  task authorization            != domain semantic success
 ```
 
-No inventory result may be promoted to a global `capability=true`, production authorization, or domain acceptance verdict without the actual owner-specific evidence.
+No inventory result may be promoted to a global `capability=true`, production authorization, or domain acceptance verdict without the actual owner-specific evidence.\r\n\r\n## Live executable observation for Agents
+
+The bounded, dependency-free `inventory/probe_executables.py` reads **the current
+process PATH**, reporting node, a process user hint, PATH digest, and resolved
+command paths. Run it **under the intended Runtime execution target/identity**:
+
+```bash
+python platform/workstation/inventory/probe_executables.py git gh mise uv python pnpm cargo
+```
+
+On Windows where Python is not available to a service identity, use the native
+PowerShell `Get-Command <name> -CommandType Application -ErrorAction SilentlyContinue`
+from that **same** identity. When Python is available, the script works for both
+Windows and Linux. Do not run the inventory under an interactive account and
+apply the result to a service account or vice versa.
+
+An `on_path` result is only command resolution; `not_on_path` is **not**
+an installation verdict. Windows installed applications are separately observed
+from WinGet/uninstall registry, Linux packages from the actual package manager,
+Runtime target/context from `runtime.describe`, and authorization/readiness
+from the actual provider. Use `mise which`, `mise tasks ls`, provider-native
+`--version`/health, or locked toolchain commands as relevant, without silently
+upgrading inventory into a global capability result.
+
+Agent routing: [root AGENTS.md](../../../AGENTS.md) →
+[Capability Catalog](../../../catalogs/capabilities/README.md) →
+natural Owner's own CLI/MCP/Skill → provider and consumer readback.
+\r\n### Windows service and interactive-user probes
+
+Windows does not require Python for command lookup. Run the bundled
+`probe_executables.ps1` through the **target** Windows Runtime identity:
+
+```powershell
+pwsh -NoProfile -NonInteractive -Command "& './platform/workstation/inventory/probe_executables.ps1' -Names @('git','gh','mise','uv','pnpm')"
+```
+
+The result includes `executionPrincipal`, current-node identity and a PATH digest.
+Invoke it separately with service and `active_user` Runtime authorities.
+Do not merge the two observations: a missing service PATH entry does not
+establish that the application is absent from the interactive user.

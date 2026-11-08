@@ -165,3 +165,25 @@ and checked for every HTTP request instead of being frozen at pool creation.
 No Gateway Job store, Owner effect retry or MCP protocol reimplementation is
 introduced. Run Gateway source tests plus native loopback and installed-Owner
 readback to distinguish transport correctness from deployed availability.
+
+## Agent tool exposure and transient owner observations
+
+Gateway `capability.describe` is a bounded, *read-only current observation* of
+the natural owner; it is not an installed-software inventory or a stable
+readiness certificate. An `available=false` response accompanied by an
+`observation_error` such as `TimeoutError` means the projection **failed to
+observe owner availability**, not that Windows Runtime execution was proven
+unavailable. Do not confuse it with `configured=false` or treat it as permission.
+
+For a Windows mismatch: compare `execution.windows` via Gateway
+`capability.describe` with direct Windows Runtime `runtime.describe`,
+the service's listening socket and authenticated `runtime.describe` from
+the Gateway service identity. Retry the read-only observation only when it
+can change the selection; preserve failed observations rather than fabricating
+an `available=true` cache. The Runtime owner remains the authority for Job,
+Workspace, Target, executable and Windows execution context.
+
+For tools installed on a node, see the [Workstation live inventory]
+(../../platform/workstation/inventory/README.md). For procedure selection
+use the [Capability Catalog](../../catalogs/capabilities/README.md) and
+relevant Agent Skill. None changes Gateway routing or execution authority.

@@ -62,7 +62,7 @@ Reference: `docs/ARTIFACT_VERIFICATION_SERVICE_R1.md` and `planning/lego-plan-r2
 The existing `.agents/skills/artifact-work/SKILL.md` is the Agent method entrypoint; load only the relevant format family reference.
 
 1. Bind an actual consumer, SourceCut, outcome and evidence predicates. Prefer DELETE unnecessary custom → REUSE mature tools → COMPOSE → minimal evidenced adapter.
-2. Discover executable MCP/CLI/native-target providers in the **current** execution environment. A binding is not proof of node-local provider availability.
+2. Discover executable MCP/CLI/native-target providers in the **current** execution environment. A binding is not proof of node-local provider availability. Probe the target node and exact Runtime identity using [Workstation inventory](../../platform/workstation/inventory/README.md) before selecting a local executable.
 3. Resolve exact subject/Profile/optional contract identity and check immutable input digests and binding standing at admission.
 4. Delegate native-format checks to specialist tools; preserve raw observations, explicit limitations and non-claims. Do not invent a cross-family “validated” boolean for unsupported assertions.
 5. Invoke optional Trust, Temporal, OCI, transfer and publication capabilities only when the consumer needs them and through the actual effect Owner. A Job exit, signed bundle or uploaded file is not itself domain acceptance.

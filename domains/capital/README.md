@@ -420,4 +420,17 @@ checks that via pg_attribute.attnotnull and compares other constraints
 independently. The strict PG deparser comparison deliberately fails closed
 after a server upgrade until the actual installed version is requalified.
 These checks do not amount to a proof of arbitrary SQL equivalence or a
-production deployment certificate.
+production deployment certificate.\r\n\r\n## Agent tool selection and local execution
+
+Select the financial consumer first: `markets/` for market observations,
+`research/` for hypotheses/experiments, `portfolio/` for decisions,
+`risk/` for exposure, `accounting/` for simulated ledger effects, and
+`trading/` for execution adapters. The
+[Finance Paper Investment Skill](../../.agents/skills/finance-paper-investment/SKILL.md)
+and [Finance Experiment Review Skill](../../.agents/skills/finance-experiment-review/SKILL.md)
+give methods, **not** market-data credentials or broker authority.
+Executable entrypoints remain the source-backed `scripts/run-finance-lego`,
+`scripts/run-strategic-contribution-brief` and Owner-native `mise tasks ls`.
+Probe chosen provider/tool in the exact node/identity via
+[Workstation inventory](../../platform/workstation/inventory/README.md);
+read back actual financial consumer evidence before claiming completion.
