@@ -53,7 +53,7 @@ AST 显式跨 Owner 导入统计：Accounting→Markets(1)/Trading(1)；Portfoli
 
 1. **DELETE `docs/WAVE_A_M1.md`**：它描述已经退休的 GLEIF/MLflow/equal-weight 构建路径；当前 Capital/Finance 测试、配置、代码和 Skill 没有对这个文档路径的直接引用。源代码之外的历史归档不由本次删除动作处理。
 2. **KEEP `wave_b/fixtures/wave_a_target_portfolio.json`**：`tests/test_wave_b_contract.py`、Wave-B 回放工具和 `config/legacy_replay_surface_registry.json` 有真实引用。
-3. **KEEP（仅差分测试）`accounting/sqlite_ledger.py`**：`tests/test_sqlite_ledger.py`、`tests/test_postgres_trace_refinement.py` 和历史 restart-smoke Runner 仍引用。它不是 PostgreSQL 的生产回退，不需要迁移旧 SQLite 运行数据。彻底删除时同步退休真实消费者并更新 taxonomy/census。
+3. **DELETE (Accounting SQLite 历史实现)**：移除旧 sqlite_ledger.py、旧 SQLite 专项测试、历史 R0-R5 runner 与重启 smoke；原 36 个两操作情景使用真实 PostgreSQL 及独立账务预期核验，不迁移旧行、不保留兼容后端。
 4. **KEEP** 两个 SHA-256 完全相同的 `packages.lock.json`：分别属于 LEAN Wave-B 和 QuickFIX/n 的独立 .NET 项目构建边界，跨目录硬去重并不能让结构更好。
 5. **KEEP `artifacts/.gitkeep`**：零字节且当前 `.gitignore` 保留这个工作目录；不是需要删除的运行时垃圾。
 6. **没有触碰系统文件、账户数据、用户 Workspace 或其他 Agent 工作树。** 本次没有发现被 Git 跟踪的 `.venv`、`__pycache__` 缓存。
@@ -89,3 +89,7 @@ AST 显式跨 Owner 导入统计：Accounting→Markets(1)/Trading(1)；Portfoli
 前述文件总数及 Owner 行数是首次审计快照 `32f07fb387df8b20e1cb510a54fe4934064e0c08` 的统计，不代表后续增量。实际复核发现 `portfolio/multistage_policy.py` 混合纯信息树校验与成熟求解器绑定，现将 `information_tree.py` 作为 Portfolio 内的**表示型基础 LEGO**，让它拥有唯一的类型、分支可观察性、概率、资金义务时点与融资合同检查；原 `multistage_policy.py` 只保留数值求解、LP 上界、结果与原 CLI。同步更新 `capital_domain_taxonomy.json` 的准确模块表及 `external_owner_census.json` 的来源映射。
 
 这不是新金融 Owner、新 Solver、PIT 模型或兼容套件。旧研究消费者的类型身份仍相同，核心函数语义没有被重写。下一步只在真实消费者给出重构必要性时继续拆分 Research/Risk/Accounting；对历史回放文件仍遵循消费者可达性，不按名字激进误删。
+
+## Accounting 逐文件退役（2026-11-07）
+
+完成 Accounting SQLite 旧源码、test-only 差分后端及历史验收脚本的消费者穿透，删除不再需要的实现、重复测试和旧比较记录。同步更新 taxonomy、external-owner census、仓库 SQL dialect 约束、人类指南及现有 Agent Skill。原 36 个两操作轨迹保留为真实 PostgreSQL 测试，检查会计状态、超支、幂等、资金守恒。其环境必须是独立临时 PostgreSQL 数据库，不能接入生产财务库。

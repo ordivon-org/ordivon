@@ -341,3 +341,43 @@ Use `ordivon_capital.portfolio.information_tree` for the **pure, solver-free** r
 Only after validation should an Agent call the **existing** `ordivon_capital.portfolio.multistage_policy.solve_multistage`; no duplicate optimizer, ledger or execution authority is created. The existing Research/PIT `multistage_policy.InformationNode` and `MultistageProblem` remain the **same Python types** as the canonical information-tree module, not shadow DTOs. Prefer the canonical `information_tree` import in new direct validators. To validate behavior, use `tests/test_multistage_policy.py`, `tests/test_pit_joint_forecast.py`, and `tests/test_capital_domain_taxonomy.py`.
 
 Human workflow and economic assumptions: `domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md` and `docs/MULTISTAGE_FINANCE_R1.md`. Always record source revision, original upstream market/broker evidence and resulting validation standing, separately from optimizer residuals and economic claims.
+
+## PostgreSQL-only Accounting retirement (no legacy oracle)
+
+The only current durable Accounting ledger is
+ordivon_capital.accounting.postgres_ledger. Use the existing
+accounting.substrate typed instructions. For nonlive effects, route to
+scripts/run-nonlive-capital-effect-matrix, which requires an explicit PG DSN.
+Never restore or select SQLite, start a second ledger, or promote a Paper
+accounting receipt to actual broker evidence.
+
+For independent mechanical verification use a disposable,
+purpose-named ORDIVON_CAPITAL_PG_TEST_DSN with
+tests/test_postgres_ledger.py and tests/test_postgres_accounting_traces.py.
+The latter executes 36 ordered two-action traces against a genuine PG backend
+with independent expected statuses, cash conservation and visibility.
+Never run mutation tests on a production financial database. Retired:
+SQLite source, data importer, differential oracle, old restart smoke and
+the unconsumed R0-R5 historical acceptance runner.
+
+Human guidance is in domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md.
+
+## Accounting reservation formal LEGO: model versus physical refinement
+
+For pure mathematical obligations, run the existing Capital task
+\`mise run formal:accounting-reservation\` and inspect the single source
+\`domains/capital/formal/AccountingReservationR1.smt2\`. The Z3 model
+checks 7 universally quantified integer-safe transition properties and
+2 SAT witnesses for unsafe alternatives. This is \`MODEL_PROVED\`,
+**not** source, PostgreSQL transaction, or external-provider proof.
+
+For actual refinement evidence, use the existing PostgreSQL Accounting
+Owner only: \`tests/test_postgres_ledger.py\`,
+\`tests/test_postgres_accounting_traces.py\` and the nonlive effect
+matrix. Supply a physically disposable test database via
+\`ORDIVON_CAPITAL_PG_TEST_DSN\` and the required
+\`ordivon_capital_test_*\` database-name fence. If PG credentials are
+absent, record \`NATIVE_CONSUMER_UNKNOWN\`, never promote a skip to PASS.
+Account-state snapshots and original pending transfer status can be
+updated by the current PG implementation; do not falsely assume
+TigerBeetle's immutable-original-transfer storage model.

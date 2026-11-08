@@ -35,12 +35,11 @@ recognizes native Python parent-relative imports, not only absolute syntax.
 Consumer-based cleanup retired only two zero-byte empty directory marker
 files under `data/raw` and `data/derived`, and their redundant ignore
 exceptions. The actual ignore protections remain. `artifacts/.gitkeep`
-is retained because frozen external evidence includes its path. Legacy
-`accounting/sqlite_ledger.py` is likewise *not* a dead file: the PostgreSQL
-historical differential/oracle qualification tests still import it. The
-retired SQLite-to-PG importer is no longer a consumer, and PG Accounting
-has no SQLite fallback. Retire the remaining historical oracle only when
-its real differential consumers have a substitute.
+is retained because frozen external evidence includes its path. The old Accounting SQLite ledger, differential-only tests and historical
+smoke have been retired. Native PostgreSQL keeps 36 two-action traces with
+expected statuses and cash conservation defined independently of any legacy
+persistent database. No old SQLite data is migrated; Accounting has one
+durable implementation.
 
 This source contract is independent of investor performance and brokerage
 execution permissions. CFA Institute's GIPS treatment of external flows and

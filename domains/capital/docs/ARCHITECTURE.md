@@ -86,9 +86,11 @@ The canonical source authority is
 PostgreSQL SERIALIZABLE/uniqueness/advisory-transaction evidence belongs to
 the Accounting owner; do not reinterpret that test PASS as an automatic
 production install/cutover. The one-time SQLite source importer is retired:
-no historical SQLite row backfill is required. `accounting/sqlite_ledger.py`
-is retained only for consumed disposable differential regression tests. TigerBeetle
-is a challenger rather than the canonical current ledger.
+no historical SQLite row backfill is required. Capital's old SQLite ledger,
+its differential-only tests and historical smoke are retired. Current
+physical Accounting tests run against disposable PostgreSQL and check the
+same domain contract directly. TigerBeetle remains a candidate, not
+canonical Capital Accounting.
 
 Neither internal accounting substrate proves exchange settlement, legal
 ownership, withdrawability or venue trade reality. Reconciliation still

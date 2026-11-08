@@ -301,3 +301,53 @@ To actually remove an example test, first prove that the affected source
 predicate is covered by the model **and** a valid implementation refinement
 link, and independently retain tests for real database/provider effects.
 These model-only proofs do **not** yet meet that deletion threshold.
+
+## Accounting reservation state machine: model proof and real PostgreSQL consumer
+
+The Capital Accounting owner now has an independent mathematical model at
+\`formal/AccountingReservationR1.smt2\`. The model is deliberately **not**
+another Python ledger or another event store. Its state is an integer
+budget \`B\`, posted consumption \`S\`, pending reservations \`P\`,
+and a reservation resolution status \`{0=absent,1=pending,2=posted,3=voided}\`.
+The safety invariant is \`B >= S + P >= 0\` with \`S,P >= 0\`.
+An admitted reservation adds \`a>0\` to pending only if \`S+P+a <= B\`;
+POST transfers \`a\` from pending to posted, and VOID removes \`a\` from pending.
+Resolution status cannot legally transition twice.
+
+Running \`mise run formal:accounting-reservation\` from \`domains/capital\`
+uses **upstream pinned Z3 5.3.3** via the existing owner's \`uvx\`
+verification pathway. Exactly **7** universal negated properties must be
+\`UNSAT\`; two intentionally broken models must each be \`SAT\`.
+A solver error, \`unknown\`, missing obligation or changed result is a failure.
+The model is in mathematical unbounded integers, not an assertion about
+machine word overflow, currencies, real-world broker settlement or PG
+isolation.
+
+**Refinement boundary:** the current implementation,
+\`accounting/postgres_ledger.py\`, uses PostgreSQL SERIALIZABLE operations
+and mutations of the original pending row's \`status\`, plus separately
+recorded resolution transfers. The reference project TigerBeetle uses
+immutable original transfer records instead; these are **not identical
+storage representations**. Proof of the abstract model does not prove
+that the PostgreSQL source faithfully implements all its transitions.
+
+The real-implementation evidence therefore remains
+\`tests/test_postgres_ledger.py\` (locking, idempotence and restart),
+\`tests/test_postgres_accounting_traces.py\` (36 ordered two-action traces
+against independently specified expected balances and outcomes), and
+the nonlive effect-matrix test. Tests that mutate Accounting data are
+allowed **only against a separate disposable PostgreSQL database**
+named \`ordivon_capital_test_*\`; a skipped provider test is **NOT** a
+completed real-consumer certification.
+
+**Human:** choose the economic obligation, account namespace and
+source-of-truth receipt; read the safety invariant before interpreting
+the PG result. Research portfolio output is not a broker receipt.
+**Agent:** first run the Z3 task to verify the model; then run the real PG
+trace and restart consumers with a disposable DSN; attach separate
+MODEL_PROVED vs IMPLEMENTATION_NATIVE_TESTED standings. Do not claim
+the formal model proves a production database implementation or live
+trade settlement.
+
+Official references: https://docs.tigerbeetle.com/coding/two-phase-transfers/
+and https://www.postgresql.org/docs/current/transaction-iso.html .

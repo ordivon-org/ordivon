@@ -267,16 +267,12 @@ Clock timing qualification now passes: Windows w32time is synchronized to qualif
 Composition policy: prefer authoritative standards, mature implementations, and provider-native truth over local mechanisms. ISO/FIX/ISO 20022 and workload-applicable external identity/reporting standards define semantics where needed; LEAN/Nautilus/venue APIs/TigerBeetle/OPA/MLflow/Pandera/Parquet/DuckDB/OpenLineage/OTel/Prometheus own their respective mechanics. Ordivon Capital retains only narrow composition, policy-input/enforcement, evidence, data-quality, and reconciliation seams that no natural owner can establish alone. Custom mechanisms require a demonstrated substitution failure. Machine-readable ownership is tracked in `config/external_owner_census.json`; see `docs/COMPOSITION_FIRST_2026-09-14.md`.
 
 **CAP-DB-TYPE-01 — PostgreSQL-first type/representation contract.**
-The database-neutral Accounting Substrate owns exactly one identity for
-LedgerApplyStatus, AccountState and TransferState, consumed by the
-PostgreSQL-first ledger and disposable historical differential oracles. The PostgreSQL
-runtime must import successfully when importing sqlite_ledger is forbidden.
-The existing native negative test
-tests/test_accounting_substrate_type_authority.py proves both this isolation
-and identical enum/data type identities across consumers. These types are
-an existing Thought LEGO (domain law) used by a Capability LEGO (native
-PostgreSQL accounting). The old SQLite data path is no longer an Accounting write fallback.
-Its standalone historical test oracle remains explicitly non-production.
+The database-neutral Accounting Substrate defines the only LedgerApplyStatus,
+AccountState and TransferState identities, consumed by the native PostgreSQL
+Accounting ledger. The old SQLite code and test-only oracle have been retired;
+no SQLite reader, writer or migration path remains in Capital Accounting.
+tests/test_accounting_substrate_type_authority.py checks the single owner
+of these types and the absence of the retired import path.
 
 **Typed accounting-operation LEGO** (capital.accounting.typed-operation): existing
 AccountingInstruction and resolution_instruction own the enum boundary.
@@ -288,41 +284,15 @@ This is a local accounting contract, not a live financial-write authority.
 
 TigerBeetle Capital Substrate R1 passes the base mechanical integration and R3.1 composes Reservation -> PENDING, RETAIN -> no mutation, RELEASE -> VOID_PENDING_TRANSFER, and CONSUME -> POST_PENDING_TRANSFER. R3.2 now passes durable restart/reconciliation on one intact data file: a pending reservation survived the first process restart, a consumed reservation survived the second, exact replay returned `EXISTS` without reopening pending state, and exact terminal semantic history reconciled `MATCH`. If provider terminal history is missing or stale, the result is retain/recovery (`PROVIDER_INCOMPLETE_RETAIN` / `CONTRADICTION_RETAIN`) with provider repair forbidden; terminal Capital accounting history is never resurrected from provider state. The bounded harness deletes its data file afterward, so no long-running canonical ledger or external financial write is admitted.
 
-**CAP-PG-NATIVE-01 — PostgreSQL-only Accounting authority:**
-The Accounting API admits an explicit PostgreSQL DSN and retains no
-SQLite-to-PostgreSQL historical-row importer or runtime backfill.
-Native PostgreSQL transaction, replay, schema and readback invariants are
-verified using a disposable PostgreSQL database. Historical SQLite tests
-are separate regression oracles; they do not supply live Accounting state.
-
-**CAP-DB-MW-01 (TYPE + NATURAL_KEY + SERIALIZATION):** before the
-PostgreSQL-first accounting cutover, two independent SQLite callers must not
-treat an absent-ID read as exclusive admission. The narrow interim ledger
-uses SQL INSERT ON CONFLICT DO NOTHING RETURNING for Account admission,
-and places Transfer replay/readback inside BEGIN IMMEDIATE together with
-the only permitted balance effects. Native two-connection interleaving
-tests force same-ID replay and conflicting amounts and assert typed
-CREATED/EXISTS/ID_CONFLICT with a single balance mutation; the original
-implementation failed with a raw sqlite3.IntegrityError for both Account
-and Transfer creation. This protects existing non-live consumers, not
-a justification for retaining SQLite after PostgreSQL achieves parity.
-The PostgreSQL cutover still requires exact u128 account identity,
-atomic concurrent no-overdraft / pending POST or VOID, restart/replay
-equivalence and an installed PG consumer cutover. Historical SQLite
-row migration is intentionally waived, and dual-writer rollback is not offered. No external funds or trading authority is implied.
-
-**SQLite accounting smoke verification LEGO**: the existing disposable
-SQLite scripts run-sqlite-accounting-durable-restart-smoke-r1 and
-run-nonlive-capital-effect-matrix own one responsibility: prove local
-state transitions, durable reopen, reconciliation and exact replay before
-issuing a PASS receipt. Inputs are synthetic accounting instructions and
-a disposable SQLite file; outputs are the existing JSON receipts.
-Consumers are scripts/run-r0-r5-closure and
-scripts/run-capital-trading-fullpath-closure respectively.
-Necessary writes and checks execute identically with ordinary Python
-and python -O. The native tests/test_accounting_smoke_optimizer_contract.py
-verifies actual entrypoint equivalence and distinct pending/consume
-observables. No live funds or provider write authority is used.
+**CAP-PG-NATIVE-01 - PostgreSQL-only Accounting authority:**
+An explicit PostgreSQL DSN is mandatory. Source ownership is
+accounting/postgres_ledger.py plus the pure accounting/substrate.py
+operation and result contracts. Native PostgreSQL SERIALIZABLE transactions,
+schema admission, restart/replay and 36 two-action cash/reservation traces are
+validated against the current Accounting contract using disposable PG only.
+No SQLite fallback, legacy migration, old R0-R5 closure or extra ledger remains.
+The consumer is scripts/run-nonlive-capital-effect-matrix; its effects do not
+authorize external funds or brokerage actions.
 
 Crypto FIX Projection R4 now passes: the four already-qualified Nautilus mechanics-only Spot orders project through sessionless QuickFIX/n FIX 4.4 `NewOrderSingle` semantics with ClientOrderId→ClOrdID identity continuity, venue `ExDestination`, Market order type and IOC TIF. No credential, FIX session, private account read or external financial write is admitted.
 
@@ -387,8 +357,8 @@ The existing Capital policy-checker LEGO uses these three Owner scripts:
 - scripts/check-nonlive-credential-provisioning
 - scripts/check-private-reality-readonly-preflight
 
-Their actual consumers are scripts/run-capital-trading-fullpath-closure
-and scripts/run-r0-r5-closure. Their contracts are unchanged: no
+The current consumer is scripts/run-capital-trading-fullpath-closure.
+Its contracts are unchanged: no
 live/external writes, unauthorized demo/testnet order submission or
 private-account access, and no group/world-readable credential files.
 An invalid policy or file permission must produce a nonzero exit under
@@ -425,27 +395,17 @@ prevents local credentials, /root candidate environments, or /opt provider binar
 from becoming hidden prerequisites of repository CI.
 
 
-**PostgreSQL-first accounting capability (native consumer transition)**.
-The bounded accounting API can now use PostgresAccountingLedger with an
-explicit PostgreSQL DSN; no SQLite fallback is permitted if a PG DSN was
-selected. scripts/run-nonlive-capital-effect-matrix now requires
-ORDIVON_CAPITAL_PG_DSN without any SQLite fallback or offline opt-in.
-Historical disposable SQLite regression evidence remains in a separate
-legacy-only smoke script, never inside the PG consumer. The PG implementation
-uses a transaction-scoped schema-admission lock, PostgreSQL SERIALIZABLE
-transactions with whole-transaction retry, unique account/transfer identities,
-atomic no-overdraft and pending POST/VOID effects, and native restart/replay
-readback. Physical PostgreSQL consumer tests are in tests/test_postgres_ledger.py;
-they require ORDIVON_CAPITAL_PG_TEST_DSN pointing at a disposable
-database, with no production-credential defaults. Existing SQLite is an
-disposable historical regression evidence only, never an importer or fallback.
-
-The one-time SQLite-to-PostgreSQL importer and importer-only tests are
-retired because historical SQLite rows have no required consumer.
-New PostgreSQL epochs start empty. The remaining SQLite implementation
-is a disposable historical differential oracle, not a live PG Accounting
-consumer, fallback, migration mechanism, or external financial authority.
-
+**PostgreSQL Accounting (single persistent implementation).**
+PostgresAccountingLedger requires an explicit PostgreSQL DSN; its native
+SERIALIZABLE transactions include whole-transaction retry, unique u128
+account/transfer identity, no-overdraft, reservation POST/VOID and exact
+committed readback. The run-nonlive-capital-effect-matrix binds the PG
+consumer. Physical qualification uses ORDIVON_CAPITAL_PG_TEST_DSN pointing
+at a disposable DB; tests are tests/test_postgres_ledger.py,
+tests/test_postgres_accounting_traces.py (36 independent two-action contract
+checks) and the provider-gated nonlive effect-matrix test.
+The SQLite importer, engine, differential oracle, smoke and unconsumed
+historical R0-R5 closure are retired; no old-row migration is required.
 
 **PG catalog admission guard (CEGAR, physical PostgreSQL 18.6)**.
 PostgresAccountingLedger now refuses a same-name counterfeit accounting
