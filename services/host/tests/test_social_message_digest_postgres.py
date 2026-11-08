@@ -104,16 +104,16 @@ def test_postgresql_search_cjk_substring_reaches_original_message() -> None:
     assert [row["messageRef"] for row in found["messages"]] == [inserted.message_ref]
     assert social.search_messages("完全无关词", topic_ref=original.topic_ref)["messages"] == []
 
-def test_postgresql_cjk_trigram_pattern_is_literal_with_reserved_chars() -> None:
-    # Actual PostgreSQL consumer proves the LIKE escaping preserves strpos.
+def test_postgresql_unicode_gram_exact_search_preserves_reserved_chars() -> None:
+    # Actual PostgreSQL consumer checks candidate containment and exact matching.
     assert DSN
     social, original = _new_message()
     phrases = ("终端消费", "终端%消费", "终端_消费", "终端#消费",
                "终端\\消费", "中文测试")
     for i, phrase in enumerate(phrases):
         copied = original.model_copy(update={
-            "message_ref": f"{original.message_ref}:trgm:{i}",
-            "client_request_id": f"post:{original.message_ref}:trgm:{i}",
+            "message_ref": f"{original.message_ref}:unicode:{i}",
+            "client_request_id": f"post:{original.message_ref}:unicode:{i}",
             "body": f"证据边界:{phrase}:有真实消费者",
         })
         assert social.post_message(copied)["admission"] == "committed"
@@ -136,6 +136,22 @@ def test_postgresql_cjk_trigram_pattern_is_literal_with_reserved_chars() -> None
             assert actual == (True,True)
             found = social.search_messages(phrase, topic_ref=original.topic_ref)
             assert [row["messageRef"] for row in found["messages"]] == [
-                f"{original.message_ref}:trgm:{i}"
+                f"{original.message_ref}:unicode:{i}"
             ]
     assert social.search_messages("中文测试_%#不匹配", topic_ref=original.topic_ref)["messages"] == []
+
+
+def test_postgresql_unicode_gram_candidate_false_positive_requires_exact_check() -> None:
+    """3-gram containment is necessary but not sufficient for exact substring."""
+    assert DSN
+    body = "证据终端消X端消费非连续"
+    phrase = "终端消费"
+    with psycopg.connect(DSN) as conn:
+        candidate, exact, refined = conn.execute(
+            "SELECT host_unicode_ngrams3(%s::text) @> host_unicode_ngrams3(%s::text), "
+            "strpos(%s::text,%s::text)>0, "
+            "(host_unicode_ngrams3(%s::text) @> host_unicode_ngrams3(%s::text) "
+            "AND strpos(%s::text,%s::text)>0)",
+            (body, phrase, body, phrase, body, phrase, body, phrase),
+        ).fetchone()
+    assert (candidate, exact, refined) == (True, False, False)

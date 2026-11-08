@@ -172,3 +172,36 @@ and do not infer ranking or domain completion from search results.
 
 Sources: https://www.postgresql.org/docs/current/gin.html
 https://www.postgresql.org/docs/current/sql-createindex.html
+
+
+## 13. Unicode-gram proof and real consumer refinement (2026-11-08)
+
+Theorem source: `formal/HostUnicodeGram.lean` (pinned Lean 4), invoked by
+`mise run formal:unicode-search` and by Host `mise run verify`. The
+abstract model treats a UTF-8 text as a finite sequence of Unicode scalar
+values and each three-codepoint window as a contiguous sublist. It proves,
+for arbitrary sequences and lengths, that **every true substring match is
+retained by the 3-gram candidate filter**. A second theorem proves that
+candidate containment combined with the original exact substring predicate
+is equivalent to exact substring matching. Axioms must be reported as none.
+
+The theorem assumes that the PostgreSQL `host_unicode_ngrams3(text)` SQL
+function computes those codepoint windows and that `@>` implements set
+containment. These are **implementation refinement obligations**, not
+consequences of the Lean theorem: maintain real PostgreSQL 18 tests for
+Unicode, %/_/#, backslash, and an adversarial false positive where all
+3-grams are present but the complete substring is absent. Preserve the
+published MCP `message.search` readback for installed evidence.
+
+Production observed after schema 13 release `79cb0d7538b9...`:
+`message_unicode_ngrams3_idx` valid and ready, 118 MB; read-only SQL
+EXPLAIN for the literal phrase 终端消费 used Bitmap Index Scan (6.271,
+0.336, 0.175, 0.164 ms over four sequential executions); 25 matches.
+The 0.256 ms median is **not** a workload-level latency or throughput
+promise, nor an independent proof of PostgreSQL implementation correctness.
+Host integrity reported all six checks OK and live MCP readback preserved
+sequence_desc and bounded cursor behavior.
+
+Proof tiers: SPECIFICATION → ABSTRACT_LEAN_THEOREM → NATIVE_SQL_REFINEMENT
+→ INSTALLED_INDEX_PLAN → MCP_CONSUMER. None proves provenance or domain
+acceptance of the retrieved messages.
