@@ -325,6 +325,26 @@ impl PgAdmissionStore {
 
     /// One atomic admission. No dispatch/terminal/repair effect is authorized.
     pub fn admit(&mut self, i: &PgAdmissionInput) -> Result<PgAdmissionOutcome, PgAdmissionError> {
+        // PostgreSQL SERIALIZABLE can abort at a row lock while the scheduler
+        // updates its qualified epoch or an adjacent state transition. Retry
+        // only an explicitly failed, pre-COMMIT transaction: its effects
+        // have rolled back. Never replay an UNKNOWN COMMIT acknowledgement.
+        for attempt in 0..5 {
+            match self.admit_once(i) {
+                Err(PgAdmissionError::Database(ref error))
+                    if error.code()
+                        == Some(&postgres::error::SqlState::T_R_SERIALIZATION_FAILURE)
+                        && attempt < 4 =>
+                {
+                    std::thread::yield_now();
+                }
+                result => return result,
+            }
+        }
+        unreachable!("bounded serializable admission attempts must return")
+    }
+
+    fn admit_once(&mut self, i: &PgAdmissionInput) -> Result<PgAdmissionOutcome, PgAdmissionError> {
         i.validate()?;
         let mut tx = self
             .client

@@ -147,6 +147,9 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
     let mut command = Command::new("systemd-run");
     command
         .arg(format!("--unit={unit_name}"))
+        // Matches NodeResources measurement of system.slice and its ancestors.
+        // Make the target explicit instead of relying on systemd-run defaults.
+        .arg("--slice=system.slice")
         .arg("--no-block")
         .args([
             "--property=Type=exec",
@@ -960,6 +963,7 @@ mod tests {
         })
         .unwrap();
         assert!(command.get_args().any(|arg| arg == "--no-block"));
+        assert!(command.get_args().any(|arg| arg == "--slice=system.slice"));
     }
 
     #[test]
