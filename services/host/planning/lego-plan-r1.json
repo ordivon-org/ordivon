@@ -4,7 +4,7 @@
   "truthRole": "planning-projection-not-project-truth",
   "project": {
     "id": "ordivon-host-v2",
-    "purpose": "Host Social Work Fabric schema 11: durable Work snapshots, actor references, Space/Topic/Message collaboration and bounded re-entry navigation.",
+    "purpose": "Host Social Work Fabric schema 12: durable Work snapshots, actor references, Space/Topic/Message collaboration and bounded re-entry navigation.",
     "sourceEvidence": [
       "README.md",
       "src/ordivon_host_v2/service.py",
@@ -229,7 +229,7 @@
       "id": "O04",
       "label": "PostgresJournal",
       "kind": "persistence",
-      "responsibility": "Provide PostgreSQL transactions, schema qualification and RFC8785 JSON identity for Host schema 11.",
+      "responsibility": "Provide PostgreSQL transactions, schema qualification and RFC8785 JSON identity for Host schema 12.",
       "authority": "Host",
       "state": "IMPLEMENTED",
       "sharedRefs": [
@@ -255,7 +255,7 @@
       "outputs": [
         "Committed rows and receipts; schema/integrity status"
       ],
-      "behavioralContract": "Alembic owns migration; service startup requires schema 11; Host stores cannot substitute for Runtime ledger or foreign truth.",
+      "behavioralContract": "Alembic owns migration; service startup requires schema 12; Host stores cannot substitute for Runtime ledger or foreign truth.",
       "children": [],
       "consumers": [
         "HostService schema gate",
@@ -676,7 +676,7 @@
     "sourceRevision": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
     "updatedAt": "2026-10-27",
     "standing": "SOURCE_QUALIFIED_RECURSIVE_DECOMPOSITION",
-    "notes": "Preserve O01-O04 identifiers while correcting retired Task/Board semantics to Social Work Fabric schema 11. O09-O12 have independently observable contracts and existing native consumers; no production state change.",
+    "notes": "Preserve O01-O04 identifiers while correcting retired Task/Board semantics to Social Work Fabric schema 12. O09-O12 have independently observable contracts and existing native consumers; no production state change.",
     "retiredIdentities": {
       "O05": "ScopeBoundCursor; remains retired, never reused"
     }

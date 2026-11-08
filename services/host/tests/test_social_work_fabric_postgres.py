@@ -22,6 +22,7 @@ from ordivon_host_v2.collaboration_inputs import (
 )
 from ordivon_host_v2.coordination_inputs import CoordinationIntentInput
 from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.service import REQUIRED_SCHEMA_VERSION
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import (
     ActorKind,
@@ -1135,7 +1136,7 @@ def test_r2_schema_indexes_and_cursor_table_exist() -> None:
         ).fetchone()[0]
         assert (
             conn.execute("SELECT schema_version FROM host_v2_schema WHERE singleton").fetchone()[0]
-            == 11
+            == REQUIRED_SCHEMA_VERSION
         )
 
 def test_work_read_rejects_postgres_modified_snapshot_payload() -> None:
