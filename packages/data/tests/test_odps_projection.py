@@ -305,3 +305,111 @@ class OwnerProductProjectionTests(unittest.TestCase):
             catalog_path.write_text(json.dumps(projected), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "conflicting legacy and SPDX"):
                 inspect_catalog(catalog_path, verify_local=True, allowed_roots=(ROOT,))
+
+    def test_scoped_port_gate_accepts_verified_manifest_without_parquet(self) -> None:
+        """Consumer of one port must not claim the whole product is verified."""
+        import subprocess
+
+        episode = json.loads(self.sources[1].read_text(encoding="utf-8"))
+        manifest_port = next(
+            p["id"]
+            for p in episode["outputPorts"]
+            if p["name"] == "episode-corpus-manifest-json"
+        )
+        parquet_port = next(
+            p["id"]
+            for p in episode["outputPorts"]
+            if p["name"] == "episode-index-parquet"
+        )
+        projected = project_catalog(
+            [self.sources[1]],
+            bindings=(
+                LocalEvidenceBinding(
+                    episode["id"],
+                    "episode-corpus-manifest-json",
+                    "corpusManifestRelativePath",
+                    "corpusManifestSha256",
+                    ROOT,
+                ),
+            ),
+        )
+        with TemporaryDirectory() as temp:
+            catalog = Path(temp) / "qualified.jsonld"
+            catalog.write_text(json.dumps(projected), encoding="utf-8")
+            script = ROOT / "packages/data/scripts/inspect_federation.py"
+            base = [
+                sys.executable,
+                str(script),
+                "--catalog",
+                str(catalog),
+                "--verify-local",
+            ]
+
+            def invoke(*args: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [*base, *args],
+                    check=False,
+                    text=True,
+                    capture_output=True,
+                    timeout=20,
+                )
+
+            target = (episode["id"], episode["version"], "urn:uuid:" + manifest_port)
+            accepted = invoke("--require-port", *target)
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
+            inspection = json.loads(accepted.stdout)["inspection"]
+            self.assertEqual(inspection["integrityGate"], "NOT_ESTABLISHED")
+            self.assertEqual(inspection["selectedPortIntegrityGate"], "PASS")
+            self.assertEqual(inspection["verifiedCount"], 1)
+            self.assertEqual(inspection["unknownCount"], 1)
+            self.assertEqual(inspection["selectedPorts"][0]["verification"], "VERIFIED")
+
+            all_port_gate = invoke("--require-verified")
+            self.assertEqual(all_port_gate.returncode, 3)
+
+            unknown = invoke(
+                "--require-port",
+                episode["id"],
+                episode["version"],
+                "urn:uuid:" + parquet_port,
+            )
+            self.assertEqual(unknown.returncode, 3)
+            self.assertEqual(
+                json.loads(unknown.stdout)["inspection"]["selectedPortIntegrityGate"],
+                "NOT_ESTABLISHED",
+            )
+            wrong_version = invoke(
+                "--require-port",
+                episode["id"],
+                "wrong-version",
+                "urn:uuid:" + manifest_port,
+            )
+            self.assertEqual(wrong_version.returncode, 3)
+            missing = invoke(
+                "--require-port",
+                episode["id"],
+                episode["version"],
+                "urn:uuid:00000000-0000-0000-0000-000000000000",
+            )
+            self.assertEqual(missing.returncode, 3)
+
+            duplicate = invoke("--require-port", *target, "--require-port", *target)
+            self.assertEqual(duplicate.returncode, 2)
+            self.assertIn("duplicate --require-port", duplicate.stderr)
+            conflicting = invoke("--require-port", *target, "--require-verified")
+            self.assertEqual(conflicting.returncode, 2)
+            unverified = subprocess.run(
+                [
+                    sys.executable,
+                    str(script),
+                    "--catalog",
+                    str(catalog),
+                    "--require-port",
+                    *target,
+                ],
+                check=False,
+                text=True,
+                capture_output=True,
+                timeout=20,
+            )
+            self.assertEqual(unverified.returncode, 2)

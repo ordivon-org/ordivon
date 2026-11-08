@@ -53,7 +53,12 @@ historical record remains in the frozen federation and cannot be promoted to
 a current live product by copying September's catalog.
 
 The CLI provides product discovery only. It deliberately does not invent file
-locations, access grants or physical integrity. A readable product record
+locations, access grants or physical integrity. A consumer needing only one
+bound port may use `inspect_federation.py --verify-local --require-port
+PRODUCT_ID PRODUCT_VERSION DISTRIBUTION_URN` with the exact version/port
+declared by the owner. This distinguishes a verified input from the whole
+multi-port product: `selectedPortIntegrityGate=PASS` does not change a
+global `integrityGate=NOT_ESTABLISHED`. A readable product record
 and an output port do not establish available bytes; real product release
 still requires the producing owner's ODCS/ODPS contract and read-back.
 

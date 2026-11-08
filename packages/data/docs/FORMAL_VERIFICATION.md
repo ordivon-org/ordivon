@@ -65,6 +65,12 @@ central registry has been implemented for it.
   UNKNOWN or no distributions cannot satisfy the latter. This is artifact
   integrity only; the source owner must separately establish product rights,
   domain quality, freshness and final consumer compatibility.
+- **Consumer-scoped admission:** the CLI may require exactly one or more
+  stable `(product_id, product_version, distribution_urn)` identities to
+  be VERIFIED, preserving the global NOT_ESTABLISHED result when other
+  ports lack evidence. Missing/ambiguous version bindings fail; neither
+  this scope rule nor the Lean abstract model proves full product
+  publishability. Keep an actual multi-port consumer test.
 - **Physical I/O:** path resolution, symlink races, file replacement,
   filesystem permissions, atomic publish, provider API changes and network
   I/O have no present complete Python-to-Lean refinement proof. Keep their
