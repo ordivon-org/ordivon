@@ -34,10 +34,16 @@ def tool_definitions() -> list[dict[str, Any]]:
         },
         {
             "name": "studio_production_context",
-            "description": "Read one current Studio Production as a bounded owner-native context projection: intent, audiences, source bindings, Claims, Outputs, and mechanical source-binding relation. This does not render, edit, publish, or infer semantic currentness.",
+            "description": "Read one selected Studio Production as a bounded owner-native context projection with source/Claim/Output standing and optional exact output-file byte comparison. outputFiles maps Output IDs to explicitly selected local paths. This never renders, edits, publishes, or infers semantic currentness.",
             "inputSchema": {
                 "type": "object",
-                "properties": {"productionId": {"type": "string", "minLength": 1}},
+                "properties": {
+                    "productionId": {"type": "string", "minLength": 1},
+                    "outputFiles": {
+                        "type": "object",
+                        "additionalProperties": {"type": "string", "minLength": 1},
+                    },
+                },
                 "required": ["productionId"],
                 "additionalProperties": False,
             },

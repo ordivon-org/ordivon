@@ -33,6 +33,12 @@ SOURCE_FILES = (
     "tools/formal/RecursiveLegoVariationFrame.lean",
     "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
     "capabilities/media/formal/CreativeLibraryAcceptance.lean",
+    "capabilities/media/formal/ProductionOutputByteIdentity.lean",
+    "capabilities/media/src/ordivon_studio/production_context.py",
+    "capabilities/media/tests/test_production_context.py",
+    "capabilities/media/src/ordivon_studio/agent_surface.py",
+    "capabilities/media/src/ordivon_studio/agent_surface_contracts.py",
+    "capabilities/media/tests/test_agent_surface.py",
     "capabilities/media/src/ordivon_studio/creative_index_library.py",
     "capabilities/media/tests/test_creative_index.py",
     "capabilities/media/formal/LoudnessProfileSafety.smt2",
@@ -434,7 +440,8 @@ def main() -> None:
     variation = ROOT / "RecursiveLegoVariationFrame.lean"
     media_proof = REPO / "capabilities/media/formal/MediaNativeProcessingAdmission.lean"
     media_library_proof = REPO / "capabilities/media/formal/CreativeLibraryAcceptance.lean"
-    for proof_file in (source, variation, media_proof, media_library_proof):
+    media_output_proof = REPO / "capabilities/media/formal/ProductionOutputByteIdentity.lean"
+    for proof_file in (source, variation, media_proof, media_library_proof, media_output_proof):
         if re.search(r"\b(sorry|admit|axiom)\b", proof_file.read_text()):
             raise AssertionError("Unproved Lean shortcut in source")
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
@@ -451,6 +458,8 @@ def main() -> None:
                           [executable("lean"), str(media_proof)]))
         probes.append(run("Lean kernel Media Creative Library Catalog acceptance",
                           [executable("lean"), str(media_library_proof)]))
+        probes.append(run("Lean kernel Media Output byte identity",
+                          [executable("lean"), str(media_output_proof)]))
         # Check all three FP queries, including the historical NaN
         # counterexample. Z3 process success by itself is not a proof.
         media_fp = REPO / "capabilities/media/formal/LoudnessProfileSafety.smt2"

@@ -44,6 +44,52 @@ Use the existing R2.1 definition `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unf
 
 Use existing `.agents/skills/design-structure-matrix` for observed coupling and `.agents/skills/compositional-contracts` for actual substitution seams. Prefer deleting unconsumed code over renaming public wire identifiers. A module split is useful only if it gives a replaceable contract without breaking actual consumers.
 
+## Output byte identity: exact consumer readback
+
+Use the existing `production-context` operation, not a second asset registry.
+The projection exposes `outputByteIdentity.observations` next to owner-declared
+Output metadata. For a declared `sourceCarrier`, it reads the source path
+within the selected Production and compares SHA-256. For a transformed output
+(video, audio, rendered image, etc.), select the *actual final file* explicitly:
+
+```bash
+cd capabilities/media
+uv run --frozen ordivon-studio production-context \
+  productions/runtime-introduction \
+  --output-file runtime-film-en-landscape=/absolute/path/to/selected-film.mp4
+```
+
+`MATCHES_DECLARED_DIGEST` means the observed file bytes matched the
+Production's declared Output digest at inspection. `DIFFERS_FROM_DECLARED_DIGEST`
+is a falsifying byte observation. `UNKNOWN_*` means missing file/binding or
+unavailable evidence; it is not a failed Production or evidence of currentness.
+`INVALID_*` describes a malformed or unsafe carrier binding.
+
+**Human:** compare the selected Output ID, source binding/Claim, inspected file
+and digest. Confirm any technical QC independently; assess quality, rights and
+audience fit; then make a separate decision about publication with the owning
+destination. Never infer publication authorization from `approved`.
+
+**Agent:** first select the Production by caller intent. Read
+`studio_production_context` with optional typed `outputFiles` (Output ID
+to selected absolute file path), or use the CLI with `--output-file`.
+Both check declared source carriers by default and compare explicitly selected
+transformed outputs when requested. Require exact `MATCHES_DECLARED_DIGEST` on the selected output before
+asserting local byte identity; preserve `UNKNOWN` and `DIFFERS` and name
+the actual bound path and SourceCut in the decision. Do not infer physical
+availability from Creative Index, or trust a historical Runtime receipt as
+proof of a file's current bytes. A digest match is **not** technical quality,
+legal permission, semantic acceptance, editorial approval, persistent
+immutability, or external publication evidence. This comparison is a
+non-atomic filesystem observation, not a continuous watch.
+
+**Formal boundary:** `formal/ProductionOutputByteIdentity.lean` proves only
+the abstract Option-digest equality model and non-promotion of Output status.
+`tests/test_production_context.py` covers the Python integration and real
+selected Production source carrier. Neither proves SHA-256, atomic file
+readback, provider authority or end-to-end publication. Preserve native
+consumer tests. The formal proof is registered in the existing Formal CI gate.
+
 ## Selected processing example
 
 ```bash

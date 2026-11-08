@@ -291,6 +291,31 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertEqual(learning["currentProductionId"], "p1")
         self.assertIn("Retain exact evidence", learning["retainedLearning"][0]["learning"] )
 
+    def test_production_context_agent_explicit_output_bytes_use_advertised_schema(self) -> None:
+        real_root = Path(__file__).resolve().parents[1]
+        production = real_root / "productions/browser-perception-note"
+        source_file = production / "story.mdx"
+        result = execute_surface_action(
+            "studio_production_context",
+            {
+                "productionId": "browser-perception-note",
+                "outputFiles": {"browser-perception-article-en": str(source_file)},
+            },
+            root=real_root,
+        )
+        observed = result["outputByteIdentity"]["observations"][0]
+        self.assertEqual(observed["relation"], "MATCHES_DECLARED_DIGEST")
+        self.assertEqual(observed["sourceSelection"], "explicit-consumer-file")
+        self.assertEqual(result["outputByteIdentity"]["publicationAuthorization"], "not-evaluated")
+        for invalid_files in ({"browser-perception-article-en": 2}, {"browser-perception-article-en": ""}):
+            with self.subTest(invalid=invalid_files):
+                with self.assertRaisesRegex(ValueError, "invalid arguments"):
+                    execute_surface_action(
+                        "studio_production_context",
+                        {"productionId": "browser-perception-note", "outputFiles": invalid_files},
+                        root=real_root,
+                    )
+
     def test_creative_index_query_defaults_to_media_hosted_creative_library(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

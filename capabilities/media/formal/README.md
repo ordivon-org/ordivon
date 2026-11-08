@@ -156,3 +156,26 @@ is evidence for an older SourceCut, not proof your current Library is ready.
 Agent: report model proof, bounded Python refinement, native byte readback,
 and external browsing/rights acceptance separately. Missing either digest
 remains UNKNOWN rather than FALSE or PASS; do not silently rewrite receipts.
+
+## Production Output byte identity (Lean model and real consumer)
+
+`ProductionOutputByteIdentity.lean` proves a small, explicit decision rule:
+if declared/observed opaque digest identities are absent, equality is UNKNOWN;
+if both are known, equality/mismatch is decisive for *byte identity only*.
+The Output lifecycle state is preserved independent of this observation.
+No `sorry`, `axiom` or `admit` is permitted; the existing
+`tools/formal/verify.py` and CI source-scoped gate register this proof,
+the Python producer, and its integration test as exact source inputs.
+
+The actual Python producer `production_context.py` reuses `assets.hash_file`;
+`tests/test_production_context.py` checks a genuine approved source-carrier
+consumer and mutated, unavailable, unauthorized-path and explicitly chosen
+transformed-file cases. This is a bounded **implementation witness**, not a
+kernel proof of Python, SHA-256 correctness, filesystem transactionality or
+liveness. File bytes can change after inspection. The source-owned Output
+status, domain Claims and publication remain separate authorities.
+
+**Human:** select a real Production/Output, verify observed digest and
+publication rights separately. **Agent:** observe real selected bytes, preserve
+UNKNOWN when not bound, and do not currentize historical receipts.
+See `../docs/human-guide.md` and `../AGENTS.md`.

@@ -44,6 +44,27 @@ mise exec -- python3 scripts/materialize-python.py
 
 The context is a read-only projection, not a render or publication action. Use `scripts/owner-environment doctor` when an installed tool or dependency is missing. This Python-only path avoids materializing the JavaScript renderer for a read-only context query. Use the full `scripts/owner-environment bootstrap` only when a task actually needs Node/renderer dependencies. Do not bootstrap solely to list production IDs or processing profiles.
 
+## Verify the bytes of a selected Output
+
+Choose the actual Production and one Output. The read-only Production Context
+now includes `outputByteIdentity`. If the Output declares a `sourceCarrier`,
+its exact current file bytes are compared with the Output's declared SHA-256.
+For rendered/encoded Outputs, supply the actual local final file:
+
+```bash
+cd capabilities/media
+uv run --frozen ordivon-studio production-context \
+  productions/runtime-introduction \
+  --output-file runtime-film-en-landscape=/absolute/path/to/selected.mp4
+```
+
+`MATCHES_DECLARED_DIGEST` verifies only the observed bytes at inspection.
+`DIFFERS_FROM_DECLARED_DIGEST` means the selected file does not match the
+declared Output; `UNKNOWN_*` means no usable byte observation was made.
+The original Output status (e.g., `approved`) and parent Production status
+remain independently source-owned. A matching digest never grants rights,
+human approval or authorization to publish; those need separate real evidence.
+
 ## Inspect technical processing options
 
 ```bash
