@@ -24,6 +24,12 @@ Quint: type-checking only; the rust evaluator ran a bounded simulation.
 Alloy 6: finite SAT analyzer. No effect/installed-domain claim is implied.
 Kani 0.68.0 and TLA+/TLC 1.7.4 already have native owners and are reused.
 
+Data Owner now has an opt-in Lean 4.35 abstract digest/product-admission
+model plus CrossHair PEP 316 symbolic checking of the Python classifier.
+Use `mise run data:formal:verify`, which reuses this tool group's Lean
+version; Data retains its I/O and consumer acceptance tests. No full
+Python-to-Lean implementation refinement is asserted.
+
 The Quint Apalache backend v0.62.1 currently fails download in this
 environment: do not label Quint simulation as MODEL_VERIFIED.
 Rocq/Isabelle/other heavy proof ecosystems are separate options pending

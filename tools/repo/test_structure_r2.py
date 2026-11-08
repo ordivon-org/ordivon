@@ -183,8 +183,8 @@ def test_exhaustive_coverage_overlapping_roots_fail_closed() -> None:
 
 
 def test_phase1_content_scan_exact_source_complete_and_non_authoritative():
-    import subprocess
     import importlib.util
+    import subprocess
     module_path = ROOT / "tools" / "repo" / "source_content_facets.py"
     spec = importlib.util.spec_from_file_location("phase1_source_content", module_path)
     assert spec is not None and spec.loader is not None
@@ -204,7 +204,10 @@ def test_phase1_content_scan_exact_source_complete_and_non_authoritative():
     zones = result["summary"]["allZones"]
     assert zones and all(count > 0 for count in zones.values())
     assert sum(zones.values()) == result["summary"]["tracked"]
-    assert len([name for name in zones if name.startswith("zone/")]) == 18
+    historical_zones = [name for name in zones if name.startswith("zone/")
+                        and not name.startswith("zone/registered-source-owner-")]
+    assert len(historical_zones) == 18
+    assert "zone/registered-source-owner-data" in zones
     assert len(result["summary"]["dense60"]) == 60
     assert len(result["summary"]["specific26"]) == 26
     assert all(x["mayPhysicallyRename"] is False and x["consumerStanding"]=="UNKNOWN"
@@ -230,3 +233,29 @@ def test_retired_meta_next_source_root_cannot_reappear(
     (tmp_path / retired_root).mkdir()
     with pytest.raises(module.StructureR2Error, match="retired Meta/Next source root"):
         module.assert_retired_source_roots_absent(tmp_path)
+
+
+def test_new_owner_source_region_uses_existing_manifest_and_rejects_unknown_paths():
+    """Exact-cut mechanical Owner roots can extend frozen naming evidence only lexically."""
+    import importlib.util
+    module_path = ROOT / "tools" / "repo" / "source_content_facets.py"
+    spec = importlib.util.spec_from_file_location("source_content_owner_zone", module_path)
+    assert spec is not None and spec.loader is not None
+    scanner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scanner)
+
+    zones = [{"sourcePrefix": "services/runtime/", "sourceRef": "zone/physical-execution"}]
+    owners = {"truth_role": "repository-mechanics-only-not-domain-authority",
+              "owners": [{"name": "runtime", "root": "services/runtime/"},
+                         {"name": "data", "root": "packages/data/"}]}
+    paths = {"services/runtime/README.md", "packages/data/AGENTS.md"}
+    scanner.add_current_owner_source_zones(zones, owners, paths)
+    assert scanner.candidate_zone("services/runtime/README.md", zones) == "zone/physical-execution"
+    assert scanner.candidate_zone("packages/data/AGENTS.md", zones) == "zone/registered-source-owner-data"
+    assert len(zones) == 2
+    scanner.add_current_owner_source_zones(zones, owners, paths)
+    assert len(zones) == 2  # derived zones are idempotent
+    with pytest.raises(ValueError, match="Unclassified physical source path"):
+        scanner.candidate_zone("packages/unregistered/AGENTS.md", zones)
+    with pytest.raises(ValueError, match="mechanical owner manifest"):
+        scanner.add_current_owner_source_zones([], {"owners": owners["owners"]}, paths)

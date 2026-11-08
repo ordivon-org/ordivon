@@ -1,0 +1,16 @@
+[tasks.verify]
+run = """
+set -euo pipefail
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+uv run --no-project --with pytest==9.1.1 python -m pytest -q ../../studies/data-lifecycle/tests
+python3 scripts/inspect_federation.py --verify-local >/dev/null
+"""
+
+[tasks."verify:formal"]
+run = """
+set -euo pipefail
+# Use the pinned shared Ordivon formal toolchain; no second Lean installation.
+(cd ../../tools/formal && mise exec -- lean ../../packages/data/formal/DataProduct.lean)
+# Symbolic Python implementation check; bounded search is not a kernel proof.
+uvx --from crosshair-tool==0.0.112 crosshair check src/ordivon_data/verification.py   --analysis_kind PEP316 --per_condition_timeout 12 --per_path_timeout 3
+"""
