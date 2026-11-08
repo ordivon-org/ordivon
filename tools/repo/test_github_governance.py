@@ -252,6 +252,24 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                         mechanics.index("Repository mechanics"))
         self.assertIn("Verify affected owners", owner)
 
+    def test_all_root_mise_installs_use_scoped_github_job_token(self) -> None:
+        """Root tool installs must be authenticated after mise-action exits."""
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        self.assertEqual(workflow["permissions"], {"contents": "read"})
+        token_ref = "$" + "{{ github.token }}"
+        for job_name in ("root-preflight", "repo-mechanics", "owner-verification"):
+            with self.subTest(job=job_name):
+                job = workflow["jobs"][job_name]
+                self.assertNotIn("env", job)
+                steps = {step["name"]: step for step in job["steps"]}
+                install = steps["Install root verification tools"]
+                self.assertEqual(install["env"], {"GITHUB_TOKEN": token_ref})
+                # Do not hand a long-lived token to arbitrary Owner tasks.
+                if job_name == "owner-verification":
+                    self.assertNotIn("GITHUB_TOKEN", steps["Verify affected owners"].get("env", {}))
+
     def test_formal_cold_install_reuses_scoped_github_job_token(self) -> None:
         """Native GitHub release backend must not use anonymous 60/hour API quota."""
         import yaml

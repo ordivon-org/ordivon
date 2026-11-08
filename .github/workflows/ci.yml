@@ -48,6 +48,11 @@ jobs:
 
       - name: Install root verification tools
         shell: bash
+        # mise-action scopes github_token to its own step. Standalone mise
+        # installs must reuse the existing read-only job token for GitHub
+        # Release metadata, otherwise retries can hit anonymous API limits.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mise install
@@ -590,6 +595,11 @@ jobs:
 
       - name: Install root verification tools
         shell: bash
+        # mise-action scopes github_token to its own step. Standalone mise
+        # installs must reuse the existing read-only job token for GitHub
+        # Release metadata, otherwise retries can hit anonymous API limits.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mise install
@@ -667,6 +677,11 @@ jobs:
 
       - name: Install root verification tools
         shell: bash
+        # mise-action scopes github_token to its own step. Standalone mise
+        # installs must reuse the existing read-only job token for GitHub
+        # Release metadata, otherwise retries can hit anonymous API limits.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mise install
