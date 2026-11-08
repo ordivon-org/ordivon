@@ -49,3 +49,22 @@ Security decision is bound to Host object/actor/effect, leave
 \`HOST_OBJECT_AUTHORIZATION=UNKNOWN\`. Do not advertise a fictitious OAuth
 issuer for the operator-local service token; for real federated OAuth use
 the upstream SDK's \`AuthSettings\` and IdP-backed verifier.
+
+## Host workload-credential FD continuity
+
+**Human:** the Host HTTP bearer credential is acquired from the service-private
+operator/systemd credential directory. Token verification re-reads the exact
+opened file descriptor per request with POSIX no-follow and nonblocking flags;
+regular-file mode, size and same-inode metadata continuity must hold before
+the native MCP/Starlette bearer middleware authenticates the Gateway workload.
+An unexpected FIFO or in-place mutation fails closed. This is M2M transport
+authentication only, never Human/Agent identity or object-level Actor/Grant
+authorization. The trusted credential directory is configured by the OS.
+
+**Agent:** exercise test_http_identity.py with the actual TokenVerifier and
+native Host HTTP app, then run host:verify. Rejection of substituted FIFO,
+mutable credential bytes and wrong service bearer must not be downgraded by
+an outer Gateway ALLOW. Distinguish Linux verified source behavior, unrun
+Windows source behavior (Host HTTP remains POSIX only), installed service
+credentials and authoritative Actor resource policy. Do not leak credential
+values into evidence.

@@ -42,7 +42,10 @@ class HostServiceTokenVerifier:
         self._read_expected()  # Reject broken deployment before binding port.
 
     def _read_expected(self) -> str:
-        flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+        # O_NONBLOCK avoids stalling on a substituted FIFO before fstat.
+        flags = (
+            os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0)
+        )
         fd = os.open(self._path, flags)
         try:
             info = os.fstat(fd)
@@ -60,9 +63,32 @@ class HostServiceTokenVerifier:
             # credential reader: group read is allowed only in that directory.
             if mode & (0o037 if is_systemd_credential else 0o077):
                 raise ValueError("Host bearer credential file mode is too permissive")
-            data = os.read(fd, MAX_SECRET_BYTES + 1)
+            chunks: list[bytes] = []
+            remaining = MAX_SECRET_BYTES + 1
+            while remaining > 0:
+                chunk = os.read(fd, remaining)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            data = b"".join(chunks)
             if len(data) > MAX_SECRET_BYTES:
                 raise ValueError("Host bearer credential file is oversized")
+            after = os.fstat(fd)
+            if (
+                info.st_dev,
+                info.st_ino,
+                info.st_size,
+                info.st_mtime_ns,
+                info.st_ctime_ns,
+            ) != (
+                after.st_dev,
+                after.st_ino,
+                after.st_size,
+                after.st_mtime_ns,
+                after.st_ctime_ns,
+            ):
+                raise ValueError("Host bearer credential changed during read")
         finally:
             os.close(fd)
         try:

@@ -84,6 +84,40 @@ def test_host_credential_source_rejects_unsafe_paths_and_file_modes(tmp_path):
         HostServiceTokenVerifier(str(file), resource)
 
 
+def test_host_verifier_rejects_fifo_before_blocking(tmp_path: Path) -> None:
+    import os
+
+    fifo = tmp_path / "substituted-fifo"
+    os.mkfifo(fifo, mode=0o600)
+    with pytest.raises(ValueError, match="regular file"):
+        HostServiceTokenVerifier(str(fifo), "http://127.0.0.1:8898/mcp")
+
+
+def test_host_verifier_rejects_in_place_credential_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import os
+
+    file, resource = provision(tmp_path)
+    verifier = HostServiceTokenVerifier(str(file), resource)
+    original_read = os.read
+    switched = False
+
+    def rewrite_between_read_and_fstat(fd: int, length: int) -> bytes:
+        nonlocal switched
+        data = original_read(fd, length)
+        if not switched:
+            # Same inode; a path-only or symlink-only guard is insufficient.
+            file.write_text("t" * 48, encoding="utf-8")
+            switched = True
+        return data
+
+    monkeypatch.setattr(os, "read", rewrite_between_read_and_fstat)
+    # Bad/mutable credential bytes cannot authenticate the Gateway service.
+    assert asyncio.run(verifier.verify_token("s" * 48)) is None
+    assert switched
+
+
 def test_missing_host_credential_fails_startup_without_anonymous_fallback(tmp_path):
     with pytest.raises(FileNotFoundError):
         protect_host_http_app(
