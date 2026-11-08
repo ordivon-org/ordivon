@@ -105,6 +105,8 @@ class ArtifactConsumerServiceTests(unittest.TestCase):
             self.assertEqual(result["status"], "PASS", result)
             self.assertTrue(result["profileVerificationComplete"], result)
             self.assertEqual(result["requiredEvidenceAssessment"]["status"], "COMPLETE")
+            self.assertEqual(result["toolIdentityAssessment"]["status"], "OBSERVED_POSTRUN_CONSISTENT")
+            self.assertFalse(result["toolIdentityAssessment"]["dependenciesComplete"])
             with wave.open(str(subject), "rb") as consumer:
                 self.assertEqual(consumer.getnchannels(), 2)
                 self.assertEqual(consumer.getsampwidth(), 2)

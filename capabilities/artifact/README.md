@@ -110,6 +110,23 @@ later consumer opened; consumers must hash their actual inputs. A process
 holding the same principal may still modify private files; no process-isolation
 claim is made. See `tests/test_artifact_input_snapshot.py`.
 
+**Byte fact pairing:** `artifact_core/contracts.py` derives `sha256` and `size`
+from the same opened byte stream for `file_fact` and `FileCommitment`,
+rather than combining digest with a later pathname `stat` call. Legacy
+request admission reuses this existing commitment; the result remains
+`ADMISSION_DIGEST_ONLY` until the corresponding dependency closure is
+staged and verified. See the deliberate path-replacement regression in
+`tests/test_artifact_core_registry.py`.
+
+**Native executable post-run observation:** The service independently rereads
+the native verifier's already-declared executable paths and compares actual
+SHA-256 to the reported `tools` facts. An explicit contradiction invalidates
+service PASS; missing tool inventories remain `NOT_EVALUATED`. This reuses
+`FileCommitment`, not a new dependency registry. `toolIdentityAssessment`
+cannot establish which executable bytes the earlier subprocess loaded,
+whether imports/dynamic libraries changed, or full dependency completeness.
+See `tests/test_artifact_tool_identity.py`.
+
 **Native result identity:** `artifact_verification/native_identity.py` checks
 reported Profile ID, subject SHA-256/size and object-contract SHA-256 against
 the admitted input commitments. Contradictions reject service `PASS`, while
