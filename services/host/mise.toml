@@ -11,6 +11,7 @@ uv run ruff check .
 mise run formal:reply-source
 mise run formal:work-graph
 mise run formal:dag-theorem
+mise run formal:unicode-search
 uv run python -m pytest
 """
 
@@ -71,4 +72,13 @@ run = """
 set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 (cd "$repo_root/tools/formal" && /usr/bin/mise install github:leanprover/lean4 && /usr/bin/mise exec -- lean ../../services/host/formal/HostWorkDAG.lean)
+"""
+
+
+[tasks."formal:unicode-search"]
+description = "Axiom-free Lean 4 necessary-filter and exact-refinement theorem for Host CJK Unicode n-grams"
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+(cd "$repo_root/tools/formal" && /usr/bin/mise install github:leanprover/lean4 && /usr/bin/mise exec -- lean ../../services/host/formal/HostUnicodeGram.lean)
 """
