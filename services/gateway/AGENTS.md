@@ -122,3 +122,23 @@ Host must independently verify that same credential with its native MCP
 HTTP bearer middleware. This protects the transport; the caller-supplied
 `actorRef` is not a verified Human or Agent identity, and no Host
 object-level allow should be inferred from connection success.
+
+## Upstream credential FD continuity (Security source cut)
+
+**Human:** Gateway-to-Owner bearer and Cloudflare Access credential files are
+read through one bounded OS file descriptor per request. On POSIX, the final
+component must not be a symlink; the opened descriptor's type, permission and
+size are checked before reading, and in-place metadata changes are rejected.
+A path replacement after opening cannot silently redirect secret bytes.
+The trusted credential *directory* is still a deployment responsibility.
+When updating Gateway service credentials, rotate files atomically under the
+existing operator-managed directory and verify that Host independently accepts
+the same identity. A valid M2M bearer is NOT an authenticated Human/Agent Actor.
+
+**Agent:** run the existing gateway:verify task and the upstream identity
+negative tests (post-open replacement, pre-open symlink substitution, FIFO,
+mode, overlength and in-place mutation). Do not claim a Windows handle ACL
+proof from Linux checks: Windows currently validates native ACLs plus
+before/open/after file identity, but race-free credential object authorization
+still requires the dedicated native Windows lane. No credentials or paths are
+copied into security evidence.

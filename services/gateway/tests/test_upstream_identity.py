@@ -354,3 +354,103 @@ def test_structured_owner_error_precedes_text_fallback() -> None:
     )
 
     assert _extract_owner_tool_error(result, owner_id="host", tool_name="work.get") == structured
+
+
+@pytest.mark.skipif(os.name != "posix", reason="native POSIX O_NOFOLLOW contract")
+def test_posix_owner_credential_preserves_open_inode_during_path_replacement(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An adversary changing pathname after open cannot redirect opened FD."""
+    checked = tmp_path / "trusted"
+    alternate = tmp_path / "untrusted"
+    _secret(checked, "trusted-service-token")
+    _secret(alternate, "attacker-token")
+    original_fstat = os.fstat
+    changed = False
+
+    def replace_after_open(fd: int) -> os.stat_result:
+        nonlocal changed
+        if not changed:
+            checked.unlink()
+            checked.symlink_to(alternate)
+            changed = True
+        return original_fstat(fd)
+
+    monkeypatch.setattr(os, "fstat", replace_after_open)
+    # The original code reread checked by pathname and accepted alternate.
+    # A same-FD reader always returns the bytes actually opened.
+    assert _read_private_secret_file(str(checked), "owner bearer token") == "trusted-service-token"
+    assert changed
+
+
+@pytest.mark.skipif(os.name != "posix", reason="native POSIX O_NOFOLLOW contract")
+def test_posix_owner_credential_rejects_symlink_substitution_before_open(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checked = tmp_path / "trusted"
+    alternate = tmp_path / "untrusted"
+    _secret(checked, "trusted-service-token")
+    _secret(alternate, "attacker-token")
+    original_open = os.open
+    changed = False
+
+    def replace_before_open(path, flags, *args, **kwargs):
+        nonlocal changed
+        if os.fspath(path) == str(checked) and not changed:
+            checked.unlink()
+            checked.symlink_to(alternate)
+            changed = True
+        return original_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", replace_before_open)
+    with pytest.raises(OwnerCallError, match="could not be opened securely"):
+        _read_private_secret_file(str(checked), "owner bearer token")
+    assert changed
+
+
+@pytest.mark.skipif(os.name != "posix", reason="native POSIX same-descriptor stability contract")
+def test_posix_owner_credential_fails_closed_on_mutation_during_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checked = tmp_path / "mutable-secret"
+    _secret(checked, "verified-original-secret")
+    original_read = os.read
+    changed = False
+
+    def mutate_between_read_and_final_fstat(fd: int, length: int) -> bytes:
+        nonlocal changed
+        data = original_read(fd, length)
+        if not changed:
+            # This remains the SAME inode, unlike symlink/path replacement.
+            checked.write_text("changed-secret-during-read", encoding="utf-8")
+            changed = True
+        return data
+
+    monkeypatch.setattr(os, "read", mutate_between_read_and_final_fstat)
+    with pytest.raises(OwnerCallError, match="changed during read"):
+        _read_private_secret_file(str(checked), "owner bearer token")
+    assert changed
+
+
+@pytest.mark.skipif(os.name != "posix", reason="native POSIX O_NOFOLLOW contract")
+def test_posix_owner_credential_rejects_fifo_without_blocking(tmp_path: Path) -> None:
+    fifo = tmp_path / "unexpected-fifo"
+    os.mkfifo(fifo, mode=0o600)
+    with pytest.raises(OwnerCallError, match="regular file"):
+        _read_private_secret_file(str(fifo), "owner bearer token")
+
+
+@pytest.mark.skipif(os.name != "posix", reason="native POSIX credential-mode contract")
+def test_owner_credential_rejects_world_readable_replacement(tmp_path: Path) -> None:
+    vulnerable = tmp_path / "world-readable"
+    vulnerable.write_text("unexpected-secret\n")
+    vulnerable.chmod(0o644)
+    with pytest.raises(OwnerCallError, match="group/world accessible"):
+        _read_private_secret_file(str(vulnerable), "owner bearer token")
+
+
+def test_owner_credential_rejects_oversized_secret(tmp_path: Path) -> None:
+    oversized = tmp_path / "oversized"
+    _secret(oversized, "x" * 16_385)
+    with pytest.raises(OwnerCallError, match="size bound"):
+        _read_private_secret_file(str(oversized), "owner bearer token")

@@ -122,37 +122,108 @@ def _validate_windows_private_secret_file(path: Path, label: str) -> None:
 
 
 def _read_private_secret_file(path_text: str, label: str) -> str:
+    """Read exact bounded credential bytes from the inode whose access is checked.
+
+    POSIX: O_NOFOLLOW and same-FD fstat/read prevent final-symlink substitution
+    and check-then-reopen races. Credential *directory* authority and secret
+    immutability still belong to the deployment/OS; this is not a sandbox.
+    Windows: correlate the verified path's file ID with the opened handle and
+    recheck it afterwards; native ACL acceptance remains platform-scoped.
+    """
     path = Path(path_text)
     if not path.is_absolute():
         raise OwnerCallError(f"{label} file must be absolute")
-    metadata = path.lstat()
-    if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
-        raise OwnerCallError(f"{label} path must be a regular file")
-    if os.name == "nt":
+
+    windows = os.name == "nt"
+    checked_path: os.stat_result | None = None
+    if windows:
+        checked_path = path.lstat()
         reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
-        if reparse_flag and getattr(metadata, "st_file_attributes", 0) & reparse_flag:
-            raise OwnerCallError(f"{label} Windows credential must not be a reparse point")
+        if not stat.S_ISREG(checked_path.st_mode) or (
+            reparse_flag and getattr(checked_path, "st_file_attributes", 0) & reparse_flag
+        ):
+            raise OwnerCallError(f"{label} Windows credential must be a non-reparse regular file")
         _validate_windows_private_secret_file(path, label)
+        flags = os.O_RDONLY | getattr(os, "O_BINARY", 0)
     else:
-        mode = stat.S_IMODE(metadata.st_mode)
-        credential_directory = os.environ.get("CREDENTIALS_DIRECTORY", "").strip()
-        is_systemd_credential = bool(
-            credential_directory
-            and Path(credential_directory).is_absolute()
-            and path.parent == Path(credential_directory)
-            and not Path(credential_directory).is_symlink()
+        if not hasattr(os, "O_NOFOLLOW"):
+            raise OwnerCallError(f"{label} requires native O_NOFOLLOW file access")
+        # O_NONBLOCK prevents an unexpected FIFO from stalling before fstat.
+        flags = (
+            os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NONBLOCK", 0)
         )
-        if is_systemd_credential:
-            if mode & 0o037:
-                raise OwnerCallError(
-                    f"{label} systemd credential must not be world accessible "
-                    "or group writable/executable"
-                )
-        elif mode & 0o077:
-            raise OwnerCallError(f"{label} file must not be group/world accessible")
-    if metadata.st_size > 16_384:
-        raise OwnerCallError(f"{label} file exceeds size bound")
-    value = path.read_text(encoding="utf-8").strip()
+
+    try:
+        fd = os.open(path, flags)
+    except OSError as exc:
+        raise OwnerCallError(f"{label} credential could not be opened securely") from exc
+
+    try:
+        opened = os.fstat(fd)
+        if not stat.S_ISREG(opened.st_mode):
+            raise OwnerCallError(f"{label} path must be a regular file")
+        if windows:
+            if checked_path is None or (checked_path.st_dev, checked_path.st_ino) != (
+                opened.st_dev,
+                opened.st_ino,
+            ):
+                raise OwnerCallError(f"{label} Windows credential path changed before open")
+        else:
+            mode = stat.S_IMODE(opened.st_mode)
+            credential_directory = os.environ.get("CREDENTIALS_DIRECTORY", "").strip()
+            is_systemd_credential = bool(
+                credential_directory
+                and Path(credential_directory).is_absolute()
+                and path.parent == Path(credential_directory)
+                and not Path(credential_directory).is_symlink()
+            )
+            if is_systemd_credential:
+                if mode & 0o037:
+                    raise OwnerCallError(
+                        f"{label} systemd credential must not be world accessible "
+                        "or group writable/executable"
+                    )
+            elif mode & 0o077:
+                raise OwnerCallError(f"{label} file must not be group/world accessible")
+
+        max_bytes = 16_384
+        if opened.st_size > max_bytes:
+            raise OwnerCallError(f"{label} file exceeds size bound")
+        chunks: list[bytes] = []
+        remaining = max_bytes + 1
+        while remaining > 0:
+            chunk = os.read(fd, remaining)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        raw = b"".join(chunks)
+        after = os.fstat(fd)
+        if len(raw) > max_bytes:
+            raise OwnerCallError(f"{label} file exceeds size bound")
+        if (
+            opened.st_dev,
+            opened.st_ino,
+            opened.st_size,
+            opened.st_mtime_ns,
+            opened.st_ctime_ns,
+        ) != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+            raise OwnerCallError(f"{label} credential changed during read")
+        if windows:
+            # A replaced pathname must not confer credentials from a different
+            # previously verified resource. This is not a Windows ACL-on-handle proof.
+            current_path = path.lstat()
+            if checked_path is None or (checked_path.st_dev, checked_path.st_ino) != (
+                current_path.st_dev,
+                current_path.st_ino,
+            ):
+                raise OwnerCallError(f"{label} Windows credential path changed")
+    finally:
+        os.close(fd)
+    try:
+        value = raw.decode("utf-8").strip()
+    except UnicodeDecodeError as exc:
+        raise OwnerCallError(f"{label} file must contain UTF-8") from exc
     if not value or any(character.isspace() for character in value):
         raise OwnerCallError(f"{label} file must contain one non-whitespace value")
     return value
