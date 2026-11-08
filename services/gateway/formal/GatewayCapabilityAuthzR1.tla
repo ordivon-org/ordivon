@@ -7,14 +7,16 @@ EXTENDS TLC
 \* principal, issuer, capability and resource (not Tool-supplied claims).
 \* V2 authority/effect booleans denote non-None admitted evidence.
 \* V3 authzen denotes the conjunction of standard, decision=TRUE and
-\* exact request-ID echo. V3 also requires authority/effect BOTH absent.
+\* exact request-ID echo. A separate obligation flag denotes an outstanding
+\* mandatory PDP action; this PEP never executes such obligations.
+\* V3 also requires authority/effect BOTH absent.
 \* Upstream PDP and real provider effects are outside the model.
 
 VARIABLES phase, target, ingress, version, binding, qualified,
-          outcome, authority, effect, authzen
+          outcome, authority, effect, authzen, obligations
 
 vars == <<phase, target, ingress, version, binding, qualified,
-          outcome, authority, effect, authzen>>
+          outcome, authority, effect, authzen, obligations>>
 
 Init ==
   /\ phase = "start"
@@ -27,6 +29,7 @@ Init ==
   /\ authority = FALSE
   /\ effect = FALSE
   /\ authzen = FALSE
+  /\ obligations = FALSE
 
 ResolveTarget ==
   /\ phase = "start"
@@ -34,7 +37,7 @@ ResolveTarget ==
        /\ target' = t
        /\ phase' = IF t THEN "target" ELSE "rejected"
   /\ UNCHANGED <<ingress, version, binding, qualified, outcome,
-                 authority, effect, authzen>>
+                 authority, effect, authzen, obligations>>
 
 ReadVerifiedIngress ==
   /\ phase = "target"
@@ -42,7 +45,7 @@ ReadVerifiedIngress ==
        /\ ingress' = i
        /\ phase' = IF i THEN "identity" ELSE "rejected"
   /\ UNCHANGED <<target, version, binding, qualified, outcome,
-                 authority, effect, authzen>>
+                 authority, effect, authzen, obligations>>
 
 ReadSecurityDecision ==
   /\ phase = "identity"
@@ -53,6 +56,7 @@ ReadSecurityDecision ==
      \E a \in BOOLEAN:
      \E e \in BOOLEAN:
      \E z \in BOOLEAN:
+     \E u \in BOOLEAN:
        /\ version' = v
        /\ outcome' = o
        /\ binding' = b
@@ -60,6 +64,7 @@ ReadSecurityDecision ==
        /\ authority' = a
        /\ effect' = e
        /\ authzen' = z
+       /\ obligations' = u
        /\ phase' = "decision"
   /\ UNCHANGED <<target, ingress>>
 
@@ -74,6 +79,7 @@ AllowDecision ==
          /\ effect
       \/ /\ version = "v3"
          /\ authzen
+         /\ ~obligations
          /\ ~authority
          /\ ~effect)
 
@@ -82,14 +88,14 @@ Forward ==
   /\ AllowDecision
   /\ phase' = "forwarded"
   /\ UNCHANGED <<target, ingress, version, binding, qualified,
-                 outcome, authority, effect, authzen>>
+                 outcome, authority, effect, authzen, obligations>>
 
 RejectDecision ==
   /\ phase = "decision"
   /\ ~AllowDecision
   /\ phase' = "rejected"
   /\ UNCHANGED <<target, ingress, version, binding, qualified,
-                 outcome, authority, effect, authzen>>
+                 outcome, authority, effect, authzen, obligations>>
 
 Next ==
   \/ ResolveTarget
@@ -111,6 +117,7 @@ TypeOK ==
   /\ authority \in BOOLEAN
   /\ effect \in BOOLEAN
   /\ authzen \in BOOLEAN
+  /\ obligations \in BOOLEAN
 
 ForwardImpliesBinding ==
   phase = "forwarded" =>
@@ -126,10 +133,13 @@ V2NeedsDelegatedEvidence ==
 
 V3NeedsInteractiveEvidence ==
   (phase = "forwarded" /\ version = "v3") =>
-    (authzen /\ ~authority /\ ~effect)
+    (authzen /\ ~authority /\ ~effect /\ ~obligations)
 
 NoOtherVersionForwards ==
   phase = "forwarded" => version \in {"v2", "v3"}
+
+NoUnfulfilledV3Obligations ==
+  (phase = "forwarded" /\ version = "v3") => ~obligations
 
 \* Falsification-only action, excluded from Spec. This models an accidental
 \* bypass of the exact Principal/resource decision binding check.
@@ -139,9 +149,29 @@ UnsafeForwardWithUnboundDecision ==
   /\ ~binding
   /\ phase' = "forwarded"
   /\ UNCHANGED <<target, ingress, version, binding, qualified,
-                 outcome, authority, effect, authzen>>
+                 outcome, authority, effect, authzen, obligations>>
+
+\* Counterexample-only action for accidentally dropping a mandatory PDP
+\* obligation while preserving all other AuthZEN evidence.
+UnsafeForwardWithUnfulfilledObligation ==
+  /\ phase = "decision"
+  /\ target
+  /\ ingress
+  /\ version = "v3"
+  /\ binding
+  /\ qualified
+  /\ outcome = "allow"
+  /\ authzen
+  /\ obligations
+  /\ ~authority
+  /\ ~effect
+  /\ phase' = "forwarded"
+  /\ UNCHANGED <<target, ingress, version, binding, qualified,
+                 outcome, authority, effect, authzen, obligations>>
 
 UnsafeNext == Next \/ UnsafeForwardWithUnboundDecision
+UnsafeObligationNext == Next \/ UnsafeForwardWithUnfulfilledObligation
+UnsafeObligationSpec == Init /\ [][UnsafeObligationNext]_vars
 UnsafeSpec == Init /\ [][UnsafeNext]_vars
 
 \* Expected counterexample under the safe Spec, proving forward is reachable.

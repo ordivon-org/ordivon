@@ -135,6 +135,40 @@ are UNKNOWN until deployment observation. Native consumer:
 `formal/GatewayCapabilityAuthzR1.tla`. Model safety, source-code
 behavior and installed release remain separate evidence grades.
 
+## AuthZEN response obligations and PDP qualification (2026-11-08)
+
+Gateway reuses the OpenID AuthZEN 1.0 evaluation API, not a Gateway-specific
+policy language. An AuthZEN `decision: true` is **not an unconditional permit**
+when the PDP returns mandatory `context.obligations`. The existing
+`AuthZenPrincipalAuthorizer` supports no obligation executors; it now
+rejects nonempty or malformed obligations and malformed decision context
+before emitting an ALLOW. An empty obligation list and ordinary opaque
+context do not change permit/deny semantics. A DENY with obligations remains
+non-forwarding, but Gateway does **not** claim it has executed those obligations.
+Reference: OpenID Authorization API 1.0 and AuthZEN Obligations Profile Draft 1.
+
+The established `formal/GatewayCapabilityAuthzR1.tla` includes outstanding
+v3 obligations as a finite state coordinate, with
+`NoUnfulfilledV3Obligations` and an explicit unsafe counterexample.
+`mise run gateway:formal:verify` and `mise run gateway:verify` provide
+separate model/source evidence; neither proves the PDP or installed effects.
+
+**Actual isolated provider probe, 2026-11-08:** GHCR
+`ghcr.io/cerbos/cerbos:0.57.0` started as a disposable loopback canary
+with telemetry disabled. Its AuthZEN discovery was HTTP 200 and an
+unconfigured resource decision returned `false`, but the response **did
+not echo X-Request-ID**. The default canary also accepted the evaluation
+request without a bearer credential. This exact default setup is
+**NOT QUALIFIED** for Gateway's authenticated AuthZEN interface; it was
+removed after observation, not promoted or installed. Cerbos could become
+eligible only with independently verified request-ID binding, API caller
+authentication, actual resource policies, negative/grant/revocation cases
+and real owner readback. Keycloak's AuthZEN support is currently
+documented upstream as experimental and not production-ready. Do not
+weaken Gateway's request binding to fit a provider or add a custom PDP
+merely to make a canary return `true`. Prefer the OpenID official
+AuthZEN conformance suite plus native Ordivon consumer acceptance.
+
 ## Host northbound boundary
 
 The default external Plugin connects only to Gateway. Gateway exposes normal Host continuity and collaboration actions through stable northbound names while Host remains the semantic owner.
