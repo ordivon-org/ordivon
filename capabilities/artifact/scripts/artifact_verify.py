@@ -25,7 +25,9 @@ if str(ROOT) not in sys.path:
 
 from artifact_core.bindings import CapabilityBindingRegistry
 from artifact_core.contracts import sha256_file
+from artifact_core.json_validation import load_json
 from artifact_core.profiles import ProfileRegistry
+from artifact_verification.claim_coverage import assess_required_evidence
 
 ART = ROOT / "artifact-delivery"
 REQUEST_SCHEMA = ART / "verification/request-v1.schema.json"
@@ -37,10 +39,6 @@ BINDING_REGISTRY = CapabilityBindingRegistry(ART)
 def canonical_sha256(value: Any) -> str:
     raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(raw).hexdigest()
-
-
-def load_json(path: Path) -> Any:
-    return json.loads(path.read_text())
 
 
 def request_fail(request_id: str | None, failures: list[str], *, request_digest: str | None = None) -> dict[str, Any]:
@@ -152,12 +150,21 @@ def verify_request(request_path: Path) -> dict[str, Any]:
         delegated = verifier(subject_path, evidence_dir)
 
     delegated_status = delegated.get("status")
+    assessment = assess_required_evidence(profile, delegated)
+    claim_failure = binding.require_claim_results and not assessment["complete"]
+    verified = delegated_status == "PASS" and not claim_failure
+    service_failures = list(delegated.get("failures") or [])
+    if claim_failure:
+        service_failures.append(
+            "profile requiredEvidence is not fully verified by explicit native claimResults"
+        )
+        service_failures.extend(assessment["issues"])
     result = {
         "schemaVersion": 1,
         "kind": "artifact-verification-result",
         "requestId": request_id,
         "requestDigest": request_digest,
-        "status": "PASS" if delegated_status == "PASS" else "FAIL",
+        "status": "PASS" if verified else "FAIL",
         "profile": {"id": profile_id, "path": str(profile_path), "sha256": profile_ref["sha256"], "standing": "SHADOW_PROFILE_LIVE_VERIFIER"},
         "subject": {"path": str(subject_path), "sha256": subject_sha, "size": subject_path.stat().st_size},
         "objectContract": contract_fact,
@@ -165,8 +172,17 @@ def verify_request(request_path: Path) -> dict[str, Any]:
         "verifier": {"path": verifier_relative, "sha256": verifier_sha, "function": verifier_name, "capabilityId": binding.capability_id},
         "consumer": request.get("consumer"),
         "verification": delegated,
-        "failures": list(delegated.get("failures") or []),
-        "boundary": "PASS means the exact requested bytes passed the selected Artifact profile through its existing live-proven family verifier. It does not promote a shadow profile to production, prove caller-domain suitability, define transport/workflow semantics, or upgrade the verifier's declared nonClaims."
+        "requiredEvidenceAssessment": assessment,
+        "profileVerificationComplete": bool(assessment["complete"] and verified),
+        "failures": service_failures,
+        "boundary": (
+            "For requireClaimResults bindings, service PASS requires every required "
+            "Profile claim to be independently present, PASS, and linked to a "
+            "matching native-status evidence node. Other bindings retain legacy "
+            "native-verifier PASS without claiming complete Profile evidence. "
+            "No service result establishes consuming-application acceptance, "
+            "publication, deployment, or Profile-v2 production promotion."
+        ),
     }
     (evidence_dir / "service-result.json").write_text(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
     return result

@@ -21,6 +21,7 @@ class CapabilityBinding:
     capability_id: str
     entrypoint: Entrypoint
     object_contract_required: bool
+    require_claim_results: bool
     standing: str
     standing_path: Path
     standing_sha256: str
@@ -72,6 +73,7 @@ class CapabilityBindingRegistry:
             capability_id=str(item["capabilityId"]),
             entrypoint=Entrypoint(module=str(entrypoint["module"]), callable=str(entrypoint["callable"])),
             object_contract_required=bool(item.get("objectContractRequired", False)),
+            require_claim_results=item.get("requireClaimResults") is True,
             standing=standing,
             standing_path=standing_path,
             standing_sha256=sha256_file(standing_path),
