@@ -257,7 +257,15 @@ class McpOwnerCaller:
                         arguments,
                         meta=meta or None,
                     )
-                finally:
+                except asyncio.CancelledError:
+                    # The deadline interrupted tools/call; a finally block must
+                    # NOT mislabel this as session_close. Capture the point at
+                    # which cancellation entered SDK cleanup.
+                    tool_elapsed_ms = int((time.perf_counter() - started) * 1000)
+                    phase = "tool_call_cancelled"
+                    raise
+                else:
+                    # Only a completed call reaches session teardown normally.
                     tool_elapsed_ms = int((time.perf_counter() - started) * 1000)
                     phase = "session_close"
         except asyncio.CancelledError:

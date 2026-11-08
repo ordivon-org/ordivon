@@ -224,7 +224,12 @@ Gateway pools HTTP connections by natural Owner using the upstream MCP SDK's
 The Gateway server lifespan closes owned HTTP pools. Credentials are resolved
 and checked for every HTTP request instead of being frozen at pool creation.
 No Gateway Job store, Owner effect retry or MCP protocol reimplementation is
-introduced. Run Gateway source tests plus native loopback and installed-Owner
+introduced. On deadline cancellation, distinguish `tool_call_cancelled`
+from `session_close` in the read-only phase diagnostic: entering a Python
+`finally` is not evidence that the SDK finished tools/call or started a
+normal close. An interrupted call can still spend time unwinding the SDK
+transport, so a Gateway timeout does not prove Owner failure.
+Run Gateway source tests plus native loopback and installed-Owner
 readback to distinguish transport correctness from deployed availability.
 
 ## Contextual readiness projection (not a tool registry)

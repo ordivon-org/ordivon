@@ -253,6 +253,73 @@ def test_real_sdk_legacy_cleanup_is_awaited_without_task_leaks(
     if cancel_explicitly:
         assert any(
             "gateway_owner_rpc_cancelled" in record.message
-            and "phase=session_close" in record.message
+            and "phase=tool_call_cancelled" in record.message
+            and "phase_before_cleanup_ms=" in record.message
             for record in caplog.records
         )
+
+
+def test_completed_owner_tool_call_cancelled_during_sdk_close_reports_session_close(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A finished tools/call and cancellation during cleanup are distinguishable."""
+    from types import SimpleNamespace
+
+    from ordivon_gateway import upstream
+
+    async def scenario() -> None:
+        close_started = asyncio.Event()
+        release = asyncio.Event()
+
+        class FakeHttpPool:
+            async def aclose(self) -> None:
+                pass
+
+        class FakeClient:
+            def __init__(self, transport, *, mode, raise_exceptions):
+                assert mode == "auto"
+                assert raise_exceptions is False
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                close_started.set()
+                await release.wait()
+                return False
+
+            async def call_tool(self, name, arguments, *, meta=None):
+                return SimpleNamespace(
+                    is_error=False,
+                    structured_content={"status": "ok"},
+                    content=[],
+                )
+
+        monkeypatch.setattr(
+            upstream,
+            "create_mcp_http_client",
+            lambda **kwargs: FakeHttpPool(),
+        )
+        monkeypatch.setattr(
+            upstream,
+            "streamable_http_client",
+            lambda url, http_client=None: object(),
+        )
+        monkeypatch.setattr(upstream, "Client", FakeClient)
+        caller = upstream.McpOwnerCaller({"host": "http://owner.test/mcp"})
+        task = asyncio.create_task(caller.call_tool("host", "host.status", {}))
+        await asyncio.wait_for(close_started.wait(), timeout=1)
+        task.cancel()
+        release.set()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        await caller.aclose()
+
+    asyncio.run(scenario())
+    assert any(
+        "gateway_owner_rpc_cancelled" in record.message
+        and "phase=session_close" in record.message
+        and "phase_before_cleanup_ms=" in record.message
+        for record in caplog.records
+    )
