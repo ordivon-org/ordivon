@@ -90,6 +90,12 @@ an installed production SourceCut witness, or DOMAIN_ACCEPTED. Preserve these
 distinct proof obligations; do not delete the real CAS/race/replay tests merely
 because the revision increment has a source-level proof.
 
+## Host Owner operation guide
+
+See [Host Owner Guide](docs/HOST_OWNER_GUIDE.md) for directory retention decisions, reusable LEGO boundaries, and separate Human/Agent workflows. This guide is not a second authority for the MCP tool list or database schema.
+
+Work Graph relation commands and cycle detection now live in src/ordivon_host_v2/work_relation_commands.py, composed by the existing WorkStore. This internal split does not introduce a second database or a public MCP tool.
+
 ## Current product surface
 
 Host v2 runs Social Work Fabric schema 11. The release-owned

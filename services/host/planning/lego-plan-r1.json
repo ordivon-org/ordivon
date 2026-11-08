@@ -15,15 +15,15 @@
         "src/ordivon_host_v2/social_space_commands.py",
         "src/ordivon_host_v2/social_topic_commands.py",
         "src/ordivon_host_v2/social_message_commands.py",
-        "src/ordivon_host_v2/social_intent_commands.py",
-      "src/ordivon_host_v2/social_queries.py",
+        "src/ordivon_host_v2/coordination_intent_commands.py",
+      "src/ordivon_host_v2/social_read_queries.py",
       "src/ordivon_host_v2/social_space_queries.py",
       "src/ordivon_host_v2/social_message_queries.py",
       "src/ordivon_host_v2/social_topic_queries.py",
       "src/ordivon_host_v2/social_errors.py",
       "src/ordivon_host_v2/attention_store.py",
       "src/ordivon_host_v2/attention_projections.py",
-      "src/ordivon_host_v2/social_work_mcp.py",
+      "src/ordivon_host_v2/mcp_tool_registration.py",
       "tests/test_social_work_fabric_postgres.py",
       "tests/test_social_message_digest_postgres.py",
       "tests/test_social_work_fabric_retirement.py"
@@ -75,7 +75,7 @@
       ],
       "consumerEvidence": [
         "src/ordivon_host_v2/mcp_work_tools.py",
-        "src/ordivon_host_v2/social_work_mcp.py",
+        "src/ordivon_host_v2/mcp_tool_registration.py",
         "tests/test_social_work_fabric_work_graph.py::test_host_work_cas_revision_is_exact_positive_integer_before_db",
         "tests/test_social_work_fabric_postgres.py::test_work_snapshot_cas_race_has_one_winner",
         "services/gateway/src/ordivon_gateway/mcp_server.py"
@@ -107,8 +107,8 @@
         "src/ordivon_host_v2/social_space_commands.py",
         "src/ordivon_host_v2/social_topic_commands.py",
         "src/ordivon_host_v2/social_message_commands.py",
-        "src/ordivon_host_v2/social_intent_commands.py",
-        "src/ordivon_host_v2/social_queries.py",
+        "src/ordivon_host_v2/coordination_intent_commands.py",
+        "src/ordivon_host_v2/social_read_queries.py",
         "src/ordivon_host_v2/social_space_queries.py",
         "src/ordivon_host_v2/social_message_queries.py",
         "src/ordivon_host_v2/social_topic_queries.py",
@@ -145,7 +145,7 @@
       ],
       "consumerEvidence": [
         "src/ordivon_host_v2/mcp_social_tools.py",
-        "src/ordivon_host_v2/social_work_mcp.py",
+        "src/ordivon_host_v2/mcp_tool_registration.py",
         "tests/test_social_work_fabric_postgres.py::test_space_can_link_multiple_works_without_becoming_work_container",
         "tests/test_social_work_fabric_postgres.py::test_topic_message_reply_and_mention_are_structured",
         "services/gateway/src/ordivon_gateway/mcp_server.py"
@@ -206,7 +206,7 @@
       ],
       "consumerEvidence": [
         "src/ordivon_host_v2/mcp_attention_tools.py",
-        "src/ordivon_host_v2/social_work_mcp.py",
+        "src/ordivon_host_v2/mcp_tool_registration.py",
         "tests/test_social_work_fabric_attention.py::test_attention_cursor_is_monotonic_and_horizon_bounded",
         "tests/test_social_work_fabric_postgres.py::test_attention_first_ack_concurrency_cannot_regress_cursor",
         "tests/test_social_work_fabric_postgres.py::test_r2_attention_nonfinal_page_never_jumps_over_relevant_event",
@@ -324,7 +324,7 @@
       ],
       "parent": "O01",
       "consumers": [
-        "social_work_mcp work.snapshot.commit/work.get",
+        "mcp_tool_registration work.snapshot.commit/work.get",
         "HostV2.status integrity/history"
       ],
       "semanticProfile": "R2.1 state/observation contract; source-qualified, implementation tests are bounded evidence",
@@ -380,7 +380,7 @@
       "evidence": [
         "src/ordivon_host_v2/social_store.py",
         "src/ordivon_host_v2/social_message_commands.py",
-        "src/ordivon_host_v2/social_queries.py",
+        "src/ordivon_host_v2/social_read_queries.py",
         "src/ordivon_host_v2/social_message_queries.py",
         "src/ordivon_host_v2/social_topic_queries.py",
         "src/ordivon_host_v2/social_contracts.py",
@@ -390,7 +390,7 @@
       "parent": "O02",
       "consumers": [
         "SocialStore.get_message/search_messages/resume_topic/post_message",
-        "social_work_mcp message.get/message.search/topic.resume"
+        "mcp_tool_registration message.get/message.search/topic.resume"
       ],
       "semanticProfile": "R2.1 state/observation contract; source-qualified, implementation tests are bounded evidence",
       "formalObligations": [
@@ -447,7 +447,7 @@
         "src/ordivon_host_v2/social_store.py",
         "src/ordivon_host_v2/social_message_commands.py",
         "src/ordivon_host_v2/social_topic_commands.py",
-        "src/ordivon_host_v2/social_queries.py",
+        "src/ordivon_host_v2/social_read_queries.py",
         "src/ordivon_host_v2/social_message_queries.py",
         "src/ordivon_host_v2/social_topic_queries.py",
         "src/ordivon_host_v2/collection_pagination.py",
@@ -457,7 +457,7 @@
       ],
       "parent": "O02",
       "consumers": [
-        "social_work_mcp topic.cursor.get/topic.cursor.ack/topic.resume",
+        "mcp_tool_registration topic.cursor.get/topic.cursor.ack/topic.resume",
         "AttentionStore.reentry navigation coordinates"
       ],
       "semanticProfile": "R2.1 state/observation contract; source-qualified, implementation tests are bounded evidence",
@@ -525,7 +525,7 @@
       ],
       "parent": "O03",
       "consumers": [
-        "social_work_mcp attention.delta/attention.get/attention.ack",
+        "mcp_tool_registration attention.delta/attention.get/attention.ack",
         "agent reentry consumers"
       ],
       "semanticProfile": "R2.1 state/observation contract; source-qualified, implementation tests are bounded evidence",

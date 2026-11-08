@@ -9,6 +9,8 @@ uv lock --check
 uv sync --locked
 uv run ruff check .
 mise run formal:reply-source
+mise run formal:work-graph
+mise run formal:dag-theorem
 uv run python -m pytest
 """
 
@@ -53,4 +55,20 @@ if [ "$confirmed" -ne 5 ]; then
   printf 'Host causal reply and bounded Work revision not confirmed: %s/5 obligations\\n' "$confirmed" >&2
   exit 1
 fi
+"""
+
+[tasks."formal:work-graph"]
+description = "Bounded Z3 proof for DAG admission/rejection, with falsifying negative control"
+run = """
+set -euo pipefail
+uv lock --check
+uv run --locked --group formal python formal/work_graph_dag.py
+"""
+
+[tasks."formal:dag-theorem"]
+description = "General axiom-free Lean DAG insertion theorem with upstream pinned Lean 4 toolchain"
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+(cd "$repo_root/tools/formal" && /usr/bin/mise install github:leanprover/lean4 && /usr/bin/mise exec -- lean ../../services/host/formal/HostWorkDAG.lean)
 """

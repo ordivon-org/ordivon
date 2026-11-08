@@ -3,11 +3,11 @@
 import ast
 from pathlib import Path
 
-from ordivon_host_v2.social_queries import SocialReadQueries
+from ordivon_host_v2.social_read_queries import SocialReadQueries
 from ordivon_host_v2.social_store import SocialStore
 
 
-def test_social_queries_are_inherited_not_reimplemented_in_the_write_owner() -> None:
+def test_social_read_queries_are_inherited_not_reimplemented_in_the_write_owner() -> None:
     queries = {
         "list_message_relations",
         "get_space",
@@ -56,7 +56,7 @@ def test_social_query_facet_cannot_own_insert_or_mutation_commands() -> None:
     read_sources = [
         (source_dir / module).read_text()
         for module in (
-            "social_queries.py",
+            "social_read_queries.py",
             "social_space_queries.py",
             "social_message_queries.py",
             "social_topic_queries.py",
