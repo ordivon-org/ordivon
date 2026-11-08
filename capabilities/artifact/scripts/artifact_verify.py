@@ -145,6 +145,16 @@ def verify_request(request_path: Path) -> dict[str, Any]:
             )
         except (OSError, ValueError) as error:
             return request_fail(request_id, [str(error)], request_digest=request_digest)
+        # A request commitment alone is not Profile authority: the Registry
+        # may have indexed different bytes before this invocation staged them.
+        # Compare the bytes we will actually evaluate with the immutable
+        # canonical authority digest captured at Registry indexing.
+        if profile_input.sha256 != profile_record.canonical_sha256:
+            return request_fail(
+                request_id,
+                ["profile bytes differ from indexed canonical Profile authority"],
+                request_digest=request_digest,
+            )
         profile = load_json(profile_input.path)
         if profile.get("profileVersion") != 2 or profile.get("id") != profile_id:
             return request_fail(request_id, ["profile identity/version differs from request"], request_digest=request_digest)

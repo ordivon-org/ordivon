@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import unittest
 import zlib
+from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
@@ -173,6 +174,79 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(result["status"], "FAIL")
             self.assertIn("canonical Profile vanished", result["failures"][0])
             self.assertFalse((root / "evidence").exists())
+
+    def test_staged_profile_must_match_registry_indexed_source_bytes(self):
+        # Models replacement between ProfileRegistry.resolve and the exact
+        # staging read. A request can know the replacement digest, but cannot
+        # promote it as a previously indexed canonical Profile.
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, _request = self.request(root, subject)
+            indexed = M.PROFILE_REGISTRY.resolve("still-image-png-srgb-r1")
+            stale_index = replace(indexed, canonical_sha256="0" * 64)
+            with (
+                mock.patch.object(M.PROFILE_REGISTRY, "resolve", return_value=stale_index),
+                mock.patch.object(M, "load_function") as verifier,
+            ):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertIn(
+                "profile bytes differ from indexed canonical Profile authority",
+                result["failures"],
+            )
+            verifier.assert_not_called()
+            self.assertFalse((root / "evidence").exists())
+
+    def test_profile_replacement_between_registry_and_snapshot_is_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            authority = root / "artifact-delivery"
+            canonical = authority / "shadow-v2/examples"
+            canonical.mkdir(parents=True)
+            (authority / "examples").mkdir()
+            profile_source, _profile_ref = self.profile()
+            profile_path = canonical / profile_source.name
+            profile_path.write_bytes(profile_source.read_bytes())
+            indexed = M.ProfileRegistry(authority)
+
+            changed = json.loads(profile_path.read_text())
+            required_claim = changed["requiredEvidence"]["datastreamValidity"]
+            required_claim["claim"] += " (unapproved post-index policy)"
+            changed_bytes = json.dumps(changed, sort_keys=True).encode()
+
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            request["profile"] = {
+                "id": changed["id"],
+                "path": str(profile_path),
+                "sha256": hashlib.sha256(changed_bytes).hexdigest(),
+            }
+            request_path.write_text(json.dumps(request))
+            original_stage = M.stage_verified_input
+
+            def replace_after_registry_read(source, expected_digest, scratch, *, role):
+                if role == "profile":
+                    profile_path.write_bytes(changed_bytes)
+                return original_stage(source, expected_digest, scratch, role=role)
+
+            with (
+                mock.patch.object(M, "PROFILE_REGISTRY", indexed),
+                mock.patch.object(M, "PROFILE_ROOT", canonical),
+                mock.patch.object(M, "stage_verified_input", side_effect=replace_after_registry_read),
+                mock.patch.object(M, "load_function") as verifier,
+            ):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertIn(
+                "profile bytes differ from indexed canonical Profile authority",
+                result["failures"],
+            )
+            verifier.assert_not_called()
+            self.assertFalse((root / "evidence").exists())
+            self.assertEqual(profile_path.read_bytes(), changed_bytes)
 
     def test_subject_digest_drift_fails_before_family_verifier(self):
         with tempfile.TemporaryDirectory() as d:

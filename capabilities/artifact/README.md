@@ -110,6 +110,15 @@ later consumer opened; consumers must hash their actual inputs. A process
 holding the same principal may still modify private files; no process-isolation
 claim is made. See `tests/test_artifact_input_snapshot.py`.
 
+**Profile authority-to-consumption boundary:** The verification service
+compares the exact staged Profile byte digest with the Registry's canonical
+indexed-source digest, independently of the request's own commitment. Even a
+well-formed request for a same-ID replacement Profile cannot promote bytes
+that differ from the indexed authority. This guards the interval between
+`ProfileRegistry.resolve()` and native admission. It does not assert
+filesystem pathname continuity after staging. The adversarial stale-index
+regression is in `tests/test_artifact_verify.py`.
+
 **Provider entrypoint identity:** The verification service loads each native
 Python verifier from one captured source byte sequence, computes the digest
 from those same bytes, and records `EXECUTED_ENTRYPOINT_SOURCE_BYTES`.
