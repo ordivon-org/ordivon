@@ -4,7 +4,7 @@ pnpm = "12.16.1"
 godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:orbit-smt && mise run verify:room-smt && mise run test:native && mise run test:native-receipt-selftest && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:bevy && mise run test:autonomous-study"
+run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:orbit-smt && mise run verify:room-smt && mise run test:native && mise run test:native-receipt-selftest && mise run test:beacon && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:bevy && mise run test:autonomous-study"
 
 
 [tasks."test:native"]
@@ -145,4 +145,45 @@ printf 'GAME_FACTORY_SOURCE_SHA='
 git rev-parse HEAD
 sha256sum examples/orbit-collector/target/debug/orbit-collector
 echo GAME_FACTORY_BEVY_NATIVE_BUILD_READY_NOT_PACKAGED
+"""
+
+[tasks."test:beacon"]
+description = "Fail-closed native Godot game with keyboard movement, four deliveries and upstream collision loss"
+run = """
+set -euo pipefail
+godot --headless --path examples/beacon-relay --editor --import > /tmp/ordivon-game-beacon-import.log 2>&1
+output="$(godot --headless --path examples/beacon-relay --script res://acceptance.gd 2>&1)"
+printf '%s\\n' "$output"
+grep -q '^GAME_BEACON_RELAY_PASS assertions=' <<< "$output"
+if grep -Eq 'SCRIPT ERROR|Parser Error|GAME_BEACON_RELAY_FAIL' <<< "$output"; then
+  echo "GAME_BEACON_NATIVE_REJECTED_SCRIPT_ERROR" >&2
+  exit 1
+fi
+"""
+
+[tasks."factory:package:beacon"]
+description = "Game Factory second product: test Beacon Relay, export Linux/Windows, smoke and retain upstream licenses"
+run = """
+set -euo pipefail
+mise run test:beacon
+target="${GAME_EXPORT_DIR:-$PWD/dist/beacon-relay}"
+mkdir -p "$target/linux-x86_64" "$target/windows-x86_64"
+godot --headless --path examples/beacon-relay --export-release "Linux x86_64" "$target/linux-x86_64/beacon-relay.x86_64"
+godot --headless --path examples/beacon-relay --export-release "Windows x86_64" "$target/windows-x86_64/beacon-relay.exe"
+test -s "$target/linux-x86_64/beacon-relay.x86_64"
+test -s "$target/windows-x86_64/beacon-relay.exe"
+chmod +x "$target/linux-x86_64/beacon-relay.x86_64"
+cp examples/beacon-relay/LICENSE "$target/linux-x86_64/UPSTREAM_MIT_LICENSE.txt"
+cp examples/beacon-relay/fonts/LICENSE.txt "$target/linux-x86_64/FONT_OFL_LICENSE.txt"
+cp examples/beacon-relay/CREDITS.txt "$target/linux-x86_64/CREDITS.txt"
+cp "$target/linux-x86_64/"*.txt "$target/windows-x86_64/"
+"$target/linux-x86_64/beacon-relay.x86_64" --headless --quit-after 4
+tar -czf "$target/beacon-relay-linux-x86_64.tar.gz" -C "$target/linux-x86_64" beacon-relay.x86_64 UPSTREAM_MIT_LICENSE.txt FONT_OFL_LICENSE.txt CREDITS.txt
+(cd "$target/windows-x86_64" && python3 -m zipfile -c ../beacon-relay-windows-x86_64.zip beacon-relay.exe UPSTREAM_MIT_LICENSE.txt FONT_OFL_LICENSE.txt CREDITS.txt)
+test -s "$target/beacon-relay-linux-x86_64.tar.gz"
+test -s "$target/beacon-relay-windows-x86_64.zip"
+printf 'GAME_FACTORY_SOURCE_SHA='
+git rev-parse HEAD
+sha256sum "$target/beacon-relay-linux-x86_64.tar.gz" "$target/beacon-relay-windows-x86_64.zip"
+echo GAME_FACTORY_BEACON_PACKAGES_READY
 """

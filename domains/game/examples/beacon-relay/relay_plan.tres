@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RelayPlan" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://relay_plan.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+pickup_sites = PackedVector2Array(105, 205, 375, 230, 92, 580, 380, 570)
+depot = Vector2(240, 448)
+initial_enemy_interval = 0.95

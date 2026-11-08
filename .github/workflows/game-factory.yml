@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "domains/game/examples/room-encounter/**"
+      - "domains/game/examples/beacon-relay/**"
       - "domains/game/examples/native-composition/**"
       - "domains/game/examples/kenney-visual-composition/**"
       - "domains/game/mise.toml"
@@ -19,9 +20,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  room-preview:
-    name: Godot consumer-to-package pipeline
+  native-preview:
+    name: Godot ${{ matrix.game }} factory product
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - game: room
+            task: factory:package:room
+            product: room-encounter
+          - game: beacon
+            task: factory:package:beacon
+            product: beacon-relay
     timeout-minutes: 75
     steps:
       - name: Checkout exact revision
@@ -63,14 +74,14 @@ jobs:
         working-directory: domains/game
         run: |
           set -euo pipefail
-          mise run factory:package:room
+          mise run ${{ matrix.task }}
 
       - name: Publish source-bound technical previews
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ordivon-game-room-preview-${{ github.sha }}
+          name: ordivon-game-${{ matrix.game }}-preview-${{ github.sha }}
           if-no-files-found: error
           retention-days: 14
           path: |
-            domains/game/dist/room-encounter/room-encounter-linux-x86_64.tar.gz
-            domains/game/dist/room-encounter/room-encounter-windows-x86_64.zip
+            domains/game/dist/${{ matrix.product }}/*linux*x86_64.tar.gz
+            domains/game/dist/${{ matrix.product }}/*windows*x86_64.zip

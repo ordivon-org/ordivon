@@ -31,11 +31,12 @@ From domains/game:
 
     mise run factory:validate:godot
     mise run factory:package:room
+    mise run factory:package:beacon
     mise run factory:validate:bevy
     mise run factory:build:bevy
     mise run verify
 
-Room Encounter (Godot) is an existing technical preview for validating the conveyor; it is not the chosen game product. Orbit Collector (Bevy) is an independent native Rust/ECS build line, not an installer release. Both are replaceable product consumers.
+Beacon Relay is production batch 02: an independent Godot game composed from a pinned MIT-licensed official demo and game-specific pickup, delivery, escalation and replay. Native input tests and Linux/Windows exports run through factory:package:beacon. Room Encounter (Godot) remains the earlier technical preview, not a mandatory game product. Orbit Collector (Bevy) is an independent native Rust/ECS build line, not an installer release. Both are replaceable product consumers.
 
 Available source-read interfaces (inputs only): pnpm knowledge:external, pnpm knowledge:mechanisms, pnpm knowledge:relationships, pnpm knowledge:counterexamples, and pnpm knowledge:counterexample-themes.
 
