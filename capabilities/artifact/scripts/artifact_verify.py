@@ -30,6 +30,7 @@ from artifact_core.input_snapshot import stage_verified_input
 from artifact_core.json_validation import load_json
 from artifact_core.profiles import ProfileRegistry
 from artifact_verification.claim_coverage import assess_required_evidence
+from artifact_verification.native_identity import assess_native_identity
 
 ART = ROOT / "artifact-delivery"
 REQUEST_SCHEMA = ART / "verification/request-v1.schema.json"
@@ -180,18 +181,49 @@ def verify_request(request_path: Path) -> dict[str, Any]:
         evidence_dir.mkdir(parents=True, exist_ok=True)
         verifier_relative = binding.entrypoint.module
         verifier_name = binding.entrypoint.callable
-        verifier, verifier_sha = load_function(verifier_relative, verifier_name)
-        if binding.object_contract_required:
-            assert contract_path is not None
-            delegated = verifier(delegated_subject, delegated_contract, evidence_dir)
-        else:
-            delegated = verifier(delegated_subject, evidence_dir)
+        try:
+            verifier, verifier_sha = load_function(verifier_relative, verifier_name)
+            if binding.object_contract_required:
+                assert contract_path is not None
+                delegated = verifier(delegated_subject, delegated_contract, evidence_dir)
+            else:
+                delegated = verifier(delegated_subject, evidence_dir)
+        except Exception as error:
+            return request_fail(
+                request_id,
+                [f"native verifier execution failed: {type(error).__name__}: {error}"],
+                request_digest=request_digest,
+            )
+        if not isinstance(delegated, dict):
+            return request_fail(
+                request_id,
+                ["native verifier did not return an evidence object"],
+                request_digest=request_digest,
+            )
 
         delegated_status = delegated.get("status")
         assessment = assess_required_evidence(profile, delegated)
         claim_failure = binding.require_claim_results and not assessment["complete"]
-        verified = delegated_status == "PASS" and not claim_failure
+        native_identity = assess_native_identity(
+            delegated,
+            profile_id=profile_id,
+            subject_sha256=subject_sha,
+            subject_size=subject_size,
+            contract_sha256=contract_fact["sha256"] if contract_fact else None,
+            require_complete=binding.require_claim_results,
+        )
+        verified = (
+            delegated_status == "PASS"
+            and not claim_failure
+            and not native_identity["rejected"]
+        )
         service_failures = list(delegated.get("failures") or [])
+        if native_identity["rejected"]:
+            service_failures.extend(native_identity["mismatches"])
+            service_failures.extend(
+                f"native evidence identity not evaluated: {field}"
+                for field in native_identity["notEvaluated"]
+            )
         if claim_failure:
             service_failures.append(
                 "profile requiredEvidence is not fully verified by explicit native claimResults"
@@ -220,7 +252,10 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 "sourcePathContinuity": "NOT_CLAIMED",
             },
             "requiredEvidenceAssessment": assessment,
-            "profileVerificationComplete": bool(assessment["complete"] and verified),
+            "nativeIdentityAssessment": native_identity,
+            "profileVerificationComplete": bool(
+                assessment["complete"] and native_identity["complete"] and verified
+            ),
             "failures": service_failures,
             "boundary": (
                 "For requireClaimResults bindings, service PASS requires every required "
@@ -230,8 +265,11 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 "For claim-complete single-file bindings, native tools verify a "
                 "private snapshot whose bytes matched the request commitment; "
                 "the original source path can change after admission. Legacy "
-                "formats retain admission-time identity only. No service result "
-                "establishes consuming-application acceptance, publication, "
+                "formats retain admission-time identity only. Native reports "
+                "with contradictory Profile/subject/contract identity are "
+                "never promoted; missing fields are NOT_EVALUATED on legacy "
+                "bindings. No service result establishes consuming-application "
+                "acceptance, publication, "
                 "deployment, or Profile-v2 production promotion."
             ),
         }

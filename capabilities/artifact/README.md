@@ -99,6 +99,15 @@ later consumer opened; consumers must hash their actual inputs. A process
 holding the same principal may still modify private files; no process-isolation
 claim is made. See `tests/test_artifact_input_snapshot.py`.
 
+**Native result identity:** `artifact_verification/native_identity.py` checks
+reported Profile ID, subject SHA-256/size and object-contract SHA-256 against
+the admitted input commitments. Contradictions reject service `PASS`, while
+missing fields on legacy profiles remain `NOT_EVALUATED`. Complete Profile
+evidence additionally needs native identity agreement. The three qualified
+FLAC/WAVE/PNG profiles require every native identity field. An exception or
+malformed provider result becomes a bounded failure. The associated model
+checks 216 abstract cases; real provider and consumer tests remain necessary.
+
 ## Formal-first verification and genuine test retirement
 
 The normative **safety property** is “a missing/unknown/failed or self-witnessing required claim cannot become complete Profile evidence.” The pure evaluator and its bounded executable refinement checker are `artifact_verification/claim_coverage.py` and `artifact_verification/formal/verify_claim_coverage.py`. The mathematical statement, source/proof bridge, limitations, Human/Agent guidance, and test-retirement argument are in `docs/ARTIFACT_CLAIM_COVERAGE_FORMAL_R1.md`.

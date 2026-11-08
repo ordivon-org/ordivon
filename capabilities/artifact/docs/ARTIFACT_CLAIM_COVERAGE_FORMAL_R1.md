@@ -54,6 +54,34 @@ replacement, symlink/FIFO inputs, and service delegation after a pathname
 mutation. Unlike the finite abstract claim proof, this is an effectful
 property supported by real execution rather than a universal theorem.
 
+## Native result identity: a second, independent proof obligation
+
+Passing an exact-byte admission check does not imply that a native verification
+result belongs to the admitted object. The service additionally checks the native
+report's Profile ID, subject SHA-256, byte length and object-contract SHA-256.
+
+Let `Mismatch(E,N)` mean a reported identity field disagrees with admitted
+input E; `Unknown(E,N)` means an expected native field is missing.
+
+- Strict/claim-complete binding: `NativeIdentityAccept := not Mismatch and not Unknown`.
+- Legacy binding: `NativeIdentityAccept := not Mismatch`; missing facts
+  stay `NOT_EVALUATED`, not complete evidence.
+- Service `PASS` requires the native verifier's `PASS` and both the applicable
+  claim/identity admission predicates. `profileVerificationComplete` additionally
+  requires complete native identity agreement, including on legacy bindings.
+- A different Profile, subject digest, byte count or contract digest cannot
+  be promoted even when all other native claims are `PASS`.
+- Native provider exceptions and non-object reports produce a bounded service
+  failure rather than an exception escaping as implicit success.
+
+The pure evaluator is `artifact_verification/native_identity.py`, with
+`artifact_verification/formal/verify_native_identity.py` checking 216 finite
+Cartesian states for strict/legacy, with/without contract, exact/unknown/mismatch
+field categories. This is **not** an unrestricted theorem about all JSON,
+provider honesty, filesystem effects, codec implementation or domain consumers.
+`tests/test_artifact_native_identity.py` checks real service composition and
+explicit counterexamples; the earlier `claimResults` finite model is independent.
+
 ## Execution and evidence
 
 `mise run verify` and the existing GitHub queue task invoke the model/refinement checker **before** running the necessary native tests. Its output reports the exact source/profile SHA-256 commitments, bounded state counts, accepted states and counterexample count.
