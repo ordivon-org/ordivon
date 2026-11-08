@@ -12,7 +12,7 @@ Recursive LEGO R2.1 contracts and shared formal toolchain already exist at
 | Specification | `formal/DataProduct.lean` | Optional digest observations and `(id, version)` registry identities | SHA-256 collision resistance and factual truth |
 | Model and proof | Lean 4.35 kernel | Missing digest => UNKNOWN; VERIFIED requires two matching observations; FALSIFIED requires distinct observations; a unique product registry stays unique on admission | Python installed-code correctness |
 | Implementation candidate | `src/ordivon_data/verification.py` | Pure `digest_verdict` with PEP 316 contracts; CrossHair 0.0.112 / Z3 searches symbolic executions | CrossHair bounded search is not a theorem |
-| File/consumer refinement | `src/ordivon_data/catalog.py` and `tests/test_catalog.py` | Real file SHA-256 read-back, deliberate digest mismatch, unavailable/out-of-scope UNKNOWN; product ID-version reject | Atomicity against concurrent file changes; universal URI/JSON-LD semantics |
+| File/consumer refinement | `src/ordivon_data/catalog.py` and `tests/test_catalog.py` | Scoped directory-descriptor traversal and same-open-FD SHA-256; symlink and parent-rename race witnesses; mutation/unavailable/out-of-scope UNKNOWN | Atomic immutable snapshots against in-place concurrent writes, later consumer read, universal URI/JSON-LD semantics |
 | Native consumer | `studies/data-lifecycle/tests` + domain-specific consumers | Selected frozen Data Lifecycle, Capital/Finance, Episode and Artifact contracts | Live finance API freshness, scientific causal validity, external distribution rights |
 
 Formal command: `mise run data:formal:verify`.
@@ -71,10 +71,17 @@ central registry has been implemented for it.
   ports lack evidence. Missing/ambiguous version bindings fail; neither
   this scope rule nor the Lean abstract model proves full product
   publishability. Keep an actual multi-port consumer test.
-- **Physical I/O:** path resolution, symlink races, file replacement,
-  filesystem permissions, atomic publish, provider API changes and network
-  I/O have no present complete Python-to-Lean refinement proof. Keep their
-  native tests and real read-back evidence.
+- **Physical I/O:** on platforms supporting Python `os.open(dir_fd=...)`,
+  the catalog verifier traverses each component with `O_NOFOLLOW`, anchors
+  the final regular-file open to a directory FD, and hashes that same FD.
+  A deterministic parent-directory replacement test demonstrates the former
+  check/open redirect is closed. Unsupported platforms and symlink components
+  remain UNKNOWN; in-place mutation is detected by before/after FD metadata
+  where possible and also remains UNKNOWN. This is **not** an immutable
+  snapshot, a complete kernel namespace guarantee, or a Python-to-Lean proof:
+  malicious same-inode writers, filesystem mounts, later consumer reads,
+  atomic publishing, permissions, and network I/O need separate Owner evidence.
+  Keep negative tests and independent real consumer read-back.
 - **Scientific/finance:** sampled statistics, temporal known-as-of availability,
   source rights, data cleaning and actual economic outcomes require native
   consumer evidence. SMT cannot turn questionable market data into a fact.

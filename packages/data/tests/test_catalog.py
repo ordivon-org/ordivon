@@ -5,6 +5,8 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import patch
+import os
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
@@ -81,6 +83,136 @@ class CatalogProjectionTests(TestCase):
                 inspect_distribution(offscope, (root.parent / "nope",), True)["reason"],
                 "outside_explicit_scope",
             )
+
+    def test_scoped_reader_rejects_symlink_directory_and_dotdot(self):
+        with TemporaryDirectory() as tmp:
+            outer = Path(tmp)
+            root = outer / "owner"
+            root.mkdir()
+            elsewhere = outer / "elsewhere"
+            elsewhere.mkdir()
+            target = elsewhere / "file.json"
+            target.write_bytes(b"untrusted")
+            (root / "link").symlink_to(elsewhere, target_is_directory=True)
+            expected = hashlib.sha256(b"untrusted").hexdigest()
+            for uri, reason in (
+                ((root / "link" / "file.json").as_uri(), "unsupported_scoped_path"),
+                ((root / "link").as_uri(), "unsupported_scoped_path"),
+                (root.as_uri(), "unsupported_scoped_path"),
+                (root.as_uri() + "/../elsewhere/file.json", "unsupported_scoped_path"),
+            ):
+                result = inspect_distribution(
+                    {
+                        "dcat:accessURL": {"@id": uri},
+                        "dct:identifier": "sha256:" + expected,
+                    },
+                    (root,),
+                    True,
+                )
+                self.assertEqual(result["verification"], "UNKNOWN", uri)
+                self.assertEqual(result["reason"], reason, uri)
+
+    def test_parent_directory_replacement_cannot_redirect_open(self):
+        """The opened directory descriptor must win over a substituted symlink."""
+        with TemporaryDirectory() as tmp:
+            outer = Path(tmp)
+            root = outer / "owner"
+            root.mkdir()
+            safe = root / "safe"
+            safe.mkdir()
+            original = b"owner bytes"
+            (safe / "payload.json").write_bytes(original)
+            attacker = outer / "attacker"
+            attacker.mkdir()
+            (attacker / "payload.json").write_bytes(b"replaced bytes")
+            expected = hashlib.sha256(original).hexdigest()
+            real_open = os.open
+            switched = [False]
+
+            def swap_before_final_open(file, flags, mode=0o777, *, dir_fd=None):
+                if file == "payload.json" and dir_fd is not None and not switched[0]:
+                    safe.rename(root / "retired-safe")
+                    safe.symlink_to(attacker, target_is_directory=True)
+                    switched[0] = True
+                return real_open(file, flags, mode, dir_fd=dir_fd)
+
+            with patch("ordivon_data.catalog.os.open", side_effect=swap_before_final_open):
+                observed = inspect_distribution(
+                    {
+                        "dcat:accessURL": {"@id": (safe / "payload.json").as_uri()},
+                        "dct:identifier": "sha256:" + expected,
+                    },
+                    (root,),
+                    True,
+                )
+            self.assertTrue(switched[0])
+            self.assertEqual(observed["verification"], "VERIFIED")
+            self.assertEqual(observed["observedDigest"], "sha256:" + expected)
+            # A fresh pathname lookup goes to the substituted attacker data;
+            # the verified descriptor was pinned to the original owner inode.
+            self.assertEqual((safe / "payload.json").read_bytes(), b"replaced bytes")
+
+    def test_unbound_digest_does_not_hash_large_file(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = root / "payload.json"
+            payload.write_bytes(b"valid owner payload")
+            with patch(
+                "ordivon_data.catalog.hashlib.file_digest",
+                side_effect=AssertionError("unbound distribution must not hash bytes"),
+            ):
+                observed = inspect_distribution(
+                    {"dcat:accessURL": {"@id": payload.as_uri()}},
+                    (root,),
+                    True,
+                )
+            self.assertEqual(observed["verification"], "UNKNOWN")
+            self.assertEqual(observed["reason"], "sha256_not_bound")
+
+    def test_no_descriptor_support_fails_closed(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = root / "payload.json"
+            payload.write_bytes(b"valid")
+            with patch("ordivon_data.catalog._SCOPED_OPEN_SUPPORTED", False):
+                observed = inspect_distribution(
+                    {
+                        "dcat:accessURL": {"@id": payload.as_uri()},
+                        "dct:identifier": "sha256:" + hashlib.sha256(b"valid").hexdigest(),
+                    },
+                    (root,),
+                    True,
+                )
+            self.assertEqual(observed["verification"], "UNKNOWN")
+            self.assertEqual(observed["reason"], "scoped_descriptor_unavailable")
+
+    def test_in_place_mutation_is_not_admitted_as_verified(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "data.json"
+            path.write_bytes(b"original")
+            declared = hashlib.sha256(b"original").hexdigest()
+            real_digest = hashlib.file_digest
+
+            def mutate_while_hashing(stream, algorithm):
+                path.write_bytes(b"modified payload")
+                stream.seek(0)
+                return real_digest(stream, algorithm)
+
+            with patch(
+                "ordivon_data.catalog.hashlib.file_digest",
+                side_effect=mutate_while_hashing,
+            ):
+                observed = inspect_distribution(
+                    {
+                        "dcat:accessURL": {"@id": path.as_uri()},
+                        "dct:identifier": "sha256:" + declared,
+                    },
+                    (root,),
+                    True,
+                )
+            self.assertEqual(observed["verification"], "UNKNOWN")
+            self.assertEqual(observed["reason"], "file_changed_during_read")
 
     def test_non_catalog_projection_is_rejected(self):
         with TemporaryDirectory() as tmp:

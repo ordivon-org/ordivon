@@ -54,6 +54,16 @@ allowed roots can become VERIFIED. A digest mismatch becomes FALSIFIED.
 Missing data, malformed file URI authority, missing accessURL, and files
 outside the explicit scope remain UNKNOWN rather than FALSE.
 
+Local verification opens every path component relative to an already-opened
+directory descriptor with no symlink following, and computes SHA-256 from the
+same regular-file descriptor. An out-of-scope or symlinked path never becomes
+VERIFIED. On systems lacking the needed POSIX descriptor operations, the
+result is UNKNOWN (`scoped_descriptor_unavailable`), not an unsafe fallback.
+An in-place file change noticed during hashing yields UNKNOWN. These checks
+bind one observation, **not** later consumer access or a durable atomic snapshot;
+producers should publish immutable content, and consumers must recheck their
+own read. No alternative storage, registry or reader has been introduced.
+
 Historical federated catalog uses `file://studies/...`, whose authority
 component is `studies`. The CLI deliberately treats that as an unsupported
 file URI rather than silently rewriting the frozen evidence. The source owner

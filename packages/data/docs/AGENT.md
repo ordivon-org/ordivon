@@ -39,9 +39,14 @@ Discovery metadata is only a candidate until its producing owner confirms it.
    DISTRIBUTION_URN`. A selected-port PASS must not be promoted to a
    global product PASS. The unmaterialized Episode Parquet stays UNKNOWN. Do not interpret these as a right to publish.
    directory path or catalog version as proof of deployed data.
-2. Verify the exact physical bytes under explicit scope. Unknown remains
-   typed UNKNOWN rather than FALSE or PASS. A file digest match does not
-   prove statistics, correctness, licenses, or scientific causal claims.
+2. Verify the exact physical bytes under explicit scope. On supported
+   POSIX hosts the inspector uses no-symlink, descriptor-relative traversal
+   and hashes the same opened regular file; other platforms, symlink paths,
+   and observed in-place mutations stay UNKNOWN. This protects the local
+   check/open boundary but does not freeze mutable bytes or grant later
+   consumer reads a lease. Unknown remains typed UNKNOWN rather than FALSE
+   or PASS. A file digest match does not prove statistics, correctness,
+   licenses, or scientific causal claims.
 3. Use the original domain-native contract to verify semantics and release
    version. Run negative/differential checks only for material failure modes.
 4. If introducing an independently contractable LEGO, specify complete
