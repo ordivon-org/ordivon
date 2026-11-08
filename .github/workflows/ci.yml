@@ -779,6 +779,7 @@ jobs:
           import json
           import os
           import sys
+          import tomllib
           from pathlib import Path
 
           sys.path.insert(0, "tools/repo")
@@ -797,8 +798,28 @@ jobs:
               root = by_task[task]
               # Some Owners use a root-managed task rather than an adjacent
               # native mise.toml. Those do not gain an invented manifest.
-              if (Path(root) / "mise.toml").is_file() and root not in roots:
+              manifest = Path(root) / "mise.toml"
+              if not manifest.is_file():
+                  continue
+              if root not in roots:
                   roots.append(root)
+              # Read existing native task commands, not an invented Owner
+              # graph: a selected task may invoke a second scoped Mise
+              # manifest. Capital invokes mise exec in tools/formal; that
+              # auto-installer caps release metadata timeouts to 3 seconds.
+              # An explicit native mise install here uses normal HTTP retry,
+              # exact pinned versions and this scoped read-only GH token.
+              native_tasks = tomllib.loads(manifest.read_text(encoding="utf-8")).get("tasks", {})
+              if any(
+                  isinstance(row, dict)
+                  and isinstance(row.get("run"), str)
+                  and "tools/formal" in row["run"]
+                  for row in native_tasks.values()
+              ):
+                  if not (Path("tools/formal") / "mise.toml").is_file():
+                      raise SystemExit("selected nested tools/formal source missing")
+                  if "tools/formal" not in roots:
+                      roots.append("tools/formal")
           Path(sys.argv[1]).write_text(
               "".join(root + "\n" for root in roots), encoding="utf-8"
           )

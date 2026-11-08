@@ -364,6 +364,31 @@ exit 0
             )
             record.write_text("")
             env["ALWAYS_FAIL"] = "0"
+            env["OWNER_TASKS_JSON"] = json.dumps(["capital:verify"])
+            nested = subprocess.run(
+                ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=18,
+            )
+            self.assertEqual(nested.returncode, 0, nested.stderr)
+            # Native Capital task source invokes ../../tools/formal: missing
+            # Github-backed Lean/Z3/Quint/Alloy tools must be preinstalled by
+            # the exact selected consumer, not installed by mise exec with a
+            # 3-second release-metadata timeout during proof execution.
+            self.assertEqual(
+                record.read_text().splitlines()[-2:],
+                ["2,45,token,domains/capital", "2,45,token,tools/formal"],
+            )
+            record.write_text("")
+            env["OWNER_TASKS_JSON"] = json.dumps(["network:ci"])
+            only_network = subprocess.run(
+                ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=18,
+            )
+            self.assertEqual(only_network.returncode, 0, only_network.stderr)
+            self.assertEqual(
+                record.read_text().splitlines(), ["2,45,token,platform/network"],
+            )
+            record.write_text("")
             env["OWNER_TASKS_JSON"] = "[]"
             empty = subprocess.run(
                 ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
@@ -371,6 +396,81 @@ exit 0
             )
             self.assertEqual(empty.returncode, 0, empty.stderr)
             self.assertEqual(record.read_text(), "")
+
+    def test_sql_verifier_official_fallback_preserves_hash_and_fail_closed(self) -> None:
+        """Execute the real native downloader with failed primary official endpoints."""
+        import hashlib
+        import os
+
+        source = (ROOT / "tools/repo/install_sql_verifiers.sh").read_text()
+        function = "download() {" + source.split("download() {", 1)[1].split(
+            "\ndownload \\", 1
+        )[0]
+        self.assertIn("sha256sum", function)
+        self.assertIn("--max-time 55", function)
+        cases = (
+            ("apt.postgresql.org", "download.postgresql.org"),
+            ("github.com/osquery", "pkg.osquery.io"),
+        )
+        for primary, alternate in cases:
+            self.assertIn("https://" + alternate + "/", source)
+            with self.subTest(primary=primary), tempfile.TemporaryDirectory() as tmp:
+                folder = Path(tmp)
+                curl = folder / "curl"
+                record = folder / "calls"
+                destination = folder / "package.deb"
+                payload = "pinned-test-binary"
+                curl.write_text(
+                    '#!/usr/bin/env bash\n'
+                    'endpoint=""\ndst=""\n'
+                    'for arg in "$@"; do\n'
+                    '  dst="$arg"\n'
+                    '  case "$arg" in https://*) endpoint="$arg";; esac\n'
+                    'done\n'
+                    'printf "%s\\n" "$endpoint" >> "$RECORD"\n'
+                    'if [[ "$FAIL_BOTH" == 1 || "$endpoint" == *"$PRIMARY"* ]]; then exit 28; fi\n'
+                    'if [[ "$endpoint" != *"$ALTERNATE"* ]]; then exit 91; fi\n'
+                    'printf "%s" "$PAYLOAD" > "$dst"\n',
+                    encoding="utf-8",
+                )
+                curl.chmod(0o755)
+                script = (
+                    "set -euo pipefail\n" + function + "\n"
+                    'download "$PRIMARY_URL" "$DEST" "$EXPECTED" "$ALTERNATE_URL"\n'
+                )
+                env = os.environ.copy()
+                env.pop("ORDIVON_SQL_DIST_DIR", None)
+                env.update({
+                    "PATH": str(folder) + os.pathsep + env.get("PATH", ""),
+                    "RECORD": str(record),
+                    "DEST": str(destination),
+                    "PAYLOAD": payload,
+                    "EXPECTED": hashlib.sha256(payload.encode()).hexdigest(),
+                    "PRIMARY": primary,
+                    "ALTERNATE": alternate,
+                    "PRIMARY_URL": "https://" + primary + "/pinned.deb",
+                    "ALTERNATE_URL": "https://" + alternate + "/pinned.deb",
+                    "FAIL_BOTH": "0",
+                })
+                def invoke():
+                    return subprocess.run(
+                        ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                        capture_output=True, text=True, timeout=15,
+                    )
+                accepted = invoke()
+                self.assertEqual(accepted.returncode, 0, accepted.stderr)
+                self.assertEqual(destination.read_text(), payload)
+                self.assertEqual(len(record.read_text().splitlines()), 2)
+                record.write_text("")
+                env["EXPECTED"] = "0" * 64
+                bad_digest = invoke()
+                self.assertEqual(bad_digest.returncode, 7, bad_digest.stderr)
+                self.assertIn("SHA-256 mismatch", bad_digest.stderr)
+                record.write_text("")
+                env["FAIL_BOTH"] = "1"
+                unavailable = invoke()
+                self.assertNotEqual(unavailable.returncode, 0)
+                self.assertEqual(len(record.read_text().splitlines()), 2)
 
     def test_formal_cold_install_reuses_scoped_github_job_token(self) -> None:
         """Native GitHub release backend must not use anonymous 60/hour API quota."""
