@@ -20,26 +20,16 @@ concurrency:
   cancel-in-progress: ${{ github.event_name != 'merge_group' }}
 
 jobs:
-  root-verification:
-    name: root-verification
+  root-preflight:
+    name: repo-preflight
+    outputs:
+      shards: ${{ steps.affected.outputs.shards }}
+      formal: ${{ steps.affected.outputs.formal }}
+      has_owner_tasks: ${{ steps.affected.outputs.has_owner_tasks }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     # GitHub-native isolated PostgreSQL consumer; no local test harness or
     # access to an installed/production Accounting authority.
-    services:
-      paper_postgres:
-        image: postgres:18.6
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_DB: ordivon_paper
-          POSTGRES_PASSWORD: ${{ github.run_id }}
-        ports:
-          - 5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d ordivon_paper"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 12
     steps:
       - name: Checkout exact revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -116,7 +106,7 @@ jobs:
                [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
               return 1
             fi
-            for rel in .github/workflows/ci.yml tools/repo/convergence_plan.py tools/repo/affected_owners.py tools/repo/owners.toml tools/repo/dependency_contracts.toml mise.toml; do
+            for rel in .github/workflows/ci.yml tools/repo/ci_owner_shards.py tools/repo/convergence_plan.py tools/repo/affected_owners.py tools/repo/owners.toml tools/repo/dependency_contracts.toml mise.toml; do
               [[ -f "$rel" && ! -L "$rel" ]] || return 1
               entry="$(git --no-replace-objects ls-tree HEAD -- "$rel")" || return 1
               [[ "$entry" =~ ^100(644|755)\ blob\ [[:xdigit:]]{40,64}[[:space:]] ]] || return 1
@@ -191,6 +181,18 @@ jobs:
           except ValueError as exc:
               raise SystemExit(str(exc)) from exc
           PY
+          # The native convergence plan already admitted the exact selected
+          # task list. This is only a lossless, bounded partition across
+          # isolated GitHub runners; it cannot change verification scope.
+          python3 tools/repo/ci_owner_shards.py "$tasks_file" > "$RUNNER_TEMP/ordivon-owner-shards.json"
+          printf 'shards=%s\n' "$(cat "$RUNNER_TEMP/ordivon-owner-shards.json")" >> "$GITHUB_OUTPUT"
+          has_owner_tasks=false
+          for task in "${tasks[@]-}"; do
+            if [[ "$task" != "formal:verify" && -n "$task" ]]; then
+              has_owner_tasks=true
+            fi
+          done
+          printf 'has_owner_tasks=%s\n' "$has_owner_tasks" >> "$GITHUB_OUTPUT"
           printf 'owners=%s\n' "$(IFS=,; echo "${owners[*]-}")" >> "$GITHUB_OUTPUT"
           runtime=false
           for selected in "${owners[@]-}"; do
@@ -242,144 +244,6 @@ jobs:
               echo '~~~'
             } >> "$GITHUB_STEP_SUMMARY"
           fi
-
-      - name: Verify affected owners
-        shell: bash
-        run: |
-          set -euo pipefail
-          while IFS= read -r task || [[ -n "$task" ]]; do
-            [[ -z "$task" ]] && continue
-            if [[ "$task" == "formal:verify" ]]; then
-              # Keep the native verification obligation in queue selection and
-              # its fail-closed admission; the dedicated isolated KANI_HOME
-              # Formal step is the ONE actual executor of that selected task.
-              # Do not run the same proof first with an unprepared environment.
-              if [[ "${{ steps.affected.outputs.formal }}" != "true" ]]; then
-                echo "ERROR: selected Formal task lacks its isolated execution gate" >&2
-                exit 42
-              fi
-              continue
-            fi
-            echo "::group::mise run $task"
-            # Each selected task is an actual mutable-root-mise consumer.
-            # Pin the *actual executable task source* to this checkout's Git tree,
-            # not only the already-selected task names. This is a pre-run witness,
-            # not a claim of immutable task bytes during child execution.
-            if [[ -n "${GITHUB_SHA:-}" ]] &&
-               [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
-              echo "ERROR: root task checkout differs from provider GITHUB_SHA" >&2
-              exit 43
-            fi
-            if [[ ! -f mise.toml || -L mise.toml ]] ||
-               ! git --no-replace-objects ls-tree HEAD -- mise.toml | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]mise\.toml$' ||
-               ! git --no-replace-objects show HEAD:mise.toml | cmp -s - mise.toml; then
-              echo "ERROR: root task source differs from exact Git HEAD" >&2
-              exit 43
-            fi
-          # A native Owner task can recursively invoke a second Mise task.
-          # On this source cut, 19 Git-tracked Mise manifests are possible
-          # consumers, including cross-Owner and extra experimental paths.
-          # Qualify the finite Git-tree superset, not a hand-maintained
-          # Owner-root-only list that silently misses nested task scripts.
-          # This protects stable source drift; it does not prove the full
-          # executed shell/import readset or exclude transient mutations.
-          python3 - <<'PY'
-          import json
-          import os
-          import re
-          import subprocess
-          import sys
-          from pathlib import Path
-
-          def git_bytes(*args):
-              return subprocess.check_output(
-                  ["git", "--no-replace-objects", *args], stderr=subprocess.PIPE
-              )
-
-          try:
-              repo = Path.cwd().resolve()
-              tree = git_bytes("ls-tree", "-r", "-z", "--full-tree", "HEAD")
-              entries = {}
-              for entry in tree.split(b"\0"):
-                  if not entry:
-                      continue
-                  metadata, name = entry.split(b"\t", 1)
-                  entries[os.fsdecode(name)] = metadata
-
-              def qualified(relative):
-                  # No mutable index or local override may supply an executed config.
-                  record = entries.get(relative)
-                  fields = record.split() if record is not None else []
-                  if (
-                      len(fields) != 3
-                      or fields[0] not in (b"100644", b"100755")
-                      or fields[1] != b"blob"
-                      or re.fullmatch(rb"[0-9a-f]{40}|[0-9a-f]{64}", fields[2]) is None
-                  ):
-                      raise ValueError("untracked or nonregular native Mise config: " + relative)
-                  path = repo / relative
-                  if not path.is_file() or path.is_symlink():
-                      raise ValueError("nonregular actual native Mise config: " + relative)
-                  if path.read_bytes() != git_bytes("show", "HEAD:" + relative):
-                      raise ValueError("native Mise config differs from Git HEAD: " + relative)
-
-              # The Git tree supplies known task-directory roots. Mise itself supplies
-              # the currently effective config readset; e.g. an UNTRACKED higher
-              # precedence mise.local.toml must not silently override a tracked task.
-              roots = sorted(
-                  name for name in entries
-                  if name == "mise.toml" or name.endswith("/mise.toml")
-              )
-              if not roots:
-                  raise ValueError("no native Mise task manifests in Git HEAD")
-              for name in roots:
-                  qualified(name)
-              for name in roots:
-                  directory = (repo / name).parent
-                  native = subprocess.run(
-                      ["mise", "--cd", str(directory), "config", "ls", "--json"],
-                      capture_output=True, text=True, check=False, timeout=15,
-                  )
-                  if native.returncode != 0:
-                      raise ValueError("native Mise config resolver failed for " + name)
-                  loaded = json.loads(native.stdout)
-                  if not isinstance(loaded, list):
-                      raise ValueError("invalid native Mise config result")
-                  for item in loaded:
-                      if not isinstance(item, dict) or not isinstance(item.get("path"), str):
-                          raise ValueError("invalid native Mise config entry")
-                      path = Path(item["path"])
-                      if not path.is_absolute():
-                          raise ValueError("native Mise reported nonabsolute config")
-                      try:
-                          relative = path.relative_to(repo)
-                      except ValueError:
-                          # External global toolchain config remains an explicit
-                          # environment assumption, NOT Git SourceCut proof.
-                          continue
-                      if path.is_symlink() or not path.resolve().is_relative_to(repo):
-                          raise ValueError("unqualified native Mise config link")
-                      qualified(relative.as_posix())
-          except (OSError, ValueError, subprocess.SubprocessError) as exc:
-              print("ERROR: nested Mise task source differs from exact Git HEAD: "
-                    + str(exc), file=sys.stderr)
-              raise SystemExit(43) from exc
-          PY
-            # The selected task must not consume the following queue entries.
-            if [[ "$task" == "capital:verify" ]]; then
-              # A positive Paper DSN causes all database consumers to run;
-              # failed connection is a failing test, never a hidden skip.
-              # Container and credentials exist only in this GitHub job.
-              # Separate Accounting schemas share this one ephemeral test DB.
-              # Real Paper and general Ledger consumers were both verified.
-              ORDIVON_CAPITAL_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
-              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
-              mise run "$task" </dev/null
-            else
-              mise run "$task" </dev/null
-            fi
-            echo "::endgroup::"
-          done < "$RUNNER_TEMP/ordivon-affected-tasks.txt"
 
       - name: Verify changed core Formal source
         if: steps.affected.outputs.formal == 'true'
@@ -717,3 +581,261 @@ jobs:
       - name: Current committed-source secret scan
         shell: bash
         run: tools/repo/check_tracked_secrets.sh
+
+  owner-verification:
+    name: owner-shard-${{ matrix.shard }}
+    needs: root-preflight
+    if: needs.root-preflight.outputs.has_owner_tasks == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.root-preflight.outputs.shards) }}
+    services:
+      paper_postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: ordivon_paper
+          POSTGRES_PASSWORD: ${{ github.run_id }}
+        ports:
+          - 5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ordivon_paper"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install monorepo toolchain
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          version: 2026.9.12
+          install: false
+          cache: true
+
+      - name: Install root verification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          mise install
+
+      - name: Install verified GNU Bash 5.3.20
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
+          echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned SQL validation CLIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
+          echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
+
+      - name: Verify affected owners
+        shell: bash
+        env:
+          OWNER_TASKS_JSON: ${{ toJSON(matrix.tasks) }}
+        run: |
+          set -euo pipefail
+          # GitHub's matrix data is a JSON array from the verified preflight.
+          # No word splitting, eval, shell sourcing, or loss of owner identity.
+          python3 - "$RUNNER_TEMP/ordivon-affected-tasks.txt" <<'PYTASKS'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, "tools/repo")
+          import affected_owners
+
+          tasks = json.loads(os.environ["OWNER_TASKS_JSON"])
+          if not isinstance(tasks, list) or not all(isinstance(t, str) for t in tasks):
+              raise SystemExit("invalid Owner shard task identities")
+          if len(tasks) != len(set(tasks)):
+              raise SystemExit("duplicate Owner shard task")
+          allowed = {owner.queue_task for owner in affected_owners.OWNERS}
+          if not all(isinstance(task, str) and task in allowed for task in tasks):
+              raise SystemExit("unregistered or non-Owner task in shard")
+          Path(sys.argv[1]).write_text(
+              "".join(task + "\n" for task in tasks), encoding="utf-8"
+          )
+          PYTASKS
+          while IFS= read -r task || [[ -n "$task" ]]; do
+            [[ -z "$task" ]] && continue
+            if [[ "$task" == "formal:verify" ]]; then
+              # Keep the native verification obligation in queue selection and
+              # its fail-closed admission; the dedicated isolated KANI_HOME
+              # Formal step is the ONE actual executor of that selected task.
+              # Do not run the same proof first with an unprepared environment.
+              if [[ "${{ needs.root-preflight.outputs.formal }}" != "true" ]]; then
+                echo "ERROR: selected Formal task lacks its isolated execution gate" >&2
+                exit 42
+              fi
+              continue
+            fi
+            echo "::group::mise run $task"
+            # Each selected task is an actual mutable-root-mise consumer.
+            # Pin the *actual executable task source* to this checkout's Git tree,
+            # not only the already-selected task names. This is a pre-run witness,
+            # not a claim of immutable task bytes during child execution.
+            if [[ -n "${GITHUB_SHA:-}" ]] &&
+               [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
+              echo "ERROR: root task checkout differs from provider GITHUB_SHA" >&2
+              exit 43
+            fi
+            if [[ ! -f mise.toml || -L mise.toml ]] ||
+               ! git --no-replace-objects ls-tree HEAD -- mise.toml | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]mise\.toml$' ||
+               ! git --no-replace-objects show HEAD:mise.toml | cmp -s - mise.toml; then
+              echo "ERROR: root task source differs from exact Git HEAD" >&2
+              exit 43
+            fi
+          # A native Owner task can recursively invoke a second Mise task.
+          # On this source cut, 19 Git-tracked Mise manifests are possible
+          # consumers, including cross-Owner and extra experimental paths.
+          # Qualify the finite Git-tree superset, not a hand-maintained
+          # Owner-root-only list that silently misses nested task scripts.
+          # This protects stable source drift; it does not prove the full
+          # executed shell/import readset or exclude transient mutations.
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          def git_bytes(*args):
+              return subprocess.check_output(
+                  ["git", "--no-replace-objects", *args], stderr=subprocess.PIPE
+              )
+
+          try:
+              repo = Path.cwd().resolve()
+              tree = git_bytes("ls-tree", "-r", "-z", "--full-tree", "HEAD")
+              entries = {}
+              for entry in tree.split(b"\0"):
+                  if not entry:
+                      continue
+                  metadata, name = entry.split(b"\t", 1)
+                  entries[os.fsdecode(name)] = metadata
+
+              def qualified(relative):
+                  # No mutable index or local override may supply an executed config.
+                  record = entries.get(relative)
+                  fields = record.split() if record is not None else []
+                  if (
+                      len(fields) != 3
+                      or fields[0] not in (b"100644", b"100755")
+                      or fields[1] != b"blob"
+                      or re.fullmatch(rb"[0-9a-f]{40}|[0-9a-f]{64}", fields[2]) is None
+                  ):
+                      raise ValueError("untracked or nonregular native Mise config: " + relative)
+                  path = repo / relative
+                  if not path.is_file() or path.is_symlink():
+                      raise ValueError("nonregular actual native Mise config: " + relative)
+                  if path.read_bytes() != git_bytes("show", "HEAD:" + relative):
+                      raise ValueError("native Mise config differs from Git HEAD: " + relative)
+
+              # The Git tree supplies known task-directory roots. Mise itself supplies
+              # the currently effective config readset; e.g. an UNTRACKED higher
+              # precedence mise.local.toml must not silently override a tracked task.
+              roots = sorted(
+                  name for name in entries
+                  if name == "mise.toml" or name.endswith("/mise.toml")
+              )
+              if not roots:
+                  raise ValueError("no native Mise task manifests in Git HEAD")
+              for name in roots:
+                  qualified(name)
+              for name in roots:
+                  directory = (repo / name).parent
+                  native = subprocess.run(
+                      ["mise", "--cd", str(directory), "config", "ls", "--json"],
+                      capture_output=True, text=True, check=False, timeout=15,
+                  )
+                  if native.returncode != 0:
+                      raise ValueError("native Mise config resolver failed for " + name)
+                  loaded = json.loads(native.stdout)
+                  if not isinstance(loaded, list):
+                      raise ValueError("invalid native Mise config result")
+                  for item in loaded:
+                      if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+                          raise ValueError("invalid native Mise config entry")
+                      path = Path(item["path"])
+                      if not path.is_absolute():
+                          raise ValueError("native Mise reported nonabsolute config")
+                      try:
+                          relative = path.relative_to(repo)
+                      except ValueError:
+                          # External global toolchain config remains an explicit
+                          # environment assumption, NOT Git SourceCut proof.
+                          continue
+                      if path.is_symlink() or not path.resolve().is_relative_to(repo):
+                          raise ValueError("unqualified native Mise config link")
+                      qualified(relative.as_posix())
+          except (OSError, ValueError, subprocess.SubprocessError) as exc:
+              print("ERROR: nested Mise task source differs from exact Git HEAD: "
+                    + str(exc), file=sys.stderr)
+              raise SystemExit(43) from exc
+          PY
+            # The selected task must not consume the following queue entries.
+            if [[ "$task" == "capital:verify" ]]; then
+              # A positive Paper DSN causes all database consumers to run;
+              # failed connection is a failing test, never a hidden skip.
+              # Container and credentials exist only in this GitHub job.
+              # Separate Accounting schemas share this one ephemeral test DB.
+              # Real Paper and general Ledger consumers were both verified.
+              ORDIVON_CAPITAL_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              mise run "$task" </dev/null
+            else
+              mise run "$task" </dev/null
+            fi
+            echo "::endgroup::"
+          done < "$RUNNER_TEMP/ordivon-affected-tasks.txt"
+
+
+  # Preserve the repository's existing required check identity. A passing
+  # preflight alone or a subset of green Owner matrix lanes cannot publish.
+  root-verification:
+    name: root-verification
+    if: always()
+    needs: [root-preflight, owner-verification]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enforce native preflight and every selected Owner shard
+        shell: bash
+        env:
+          PREFLIGHT_RESULT: ${{ needs.root-preflight.result }}
+          OWNER_RESULT: ${{ needs.owner-verification.result }}
+          HAS_OWNER_TASKS: ${{ needs.root-preflight.outputs.has_owner_tasks }}
+        run: |
+          set -euo pipefail
+          if [[ "$PREFLIGHT_RESULT" != "success" ]]; then
+            echo "ERROR: source-qualified repository preflight failed or was skipped" >&2
+            exit 1
+          fi
+          if [[ "$HAS_OWNER_TASKS" == "true" ]]; then
+            if [[ "$OWNER_RESULT" != "success" ]]; then
+              echo "ERROR: at least one required Owner shard failed, skipped, or was cancelled" >&2
+              exit 1
+            fi
+          elif [[ "$HAS_OWNER_TASKS" == "false" ]]; then
+            if [[ "$OWNER_RESULT" != "skipped" ]]; then
+              echo "ERROR: empty Owner selection spawned an unexpected result" >&2
+              exit 1
+            fi
+          else
+            echo "ERROR: preflight omitted the Owner selection witness" >&2
+            exit 1
+          fi

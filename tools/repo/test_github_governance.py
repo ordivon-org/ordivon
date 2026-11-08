@@ -13,6 +13,17 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "tools/repo/check_github_governance.py"
 DEPENDABOT = ROOT / ".github/dependabot.yml"
 
+
+def required_ci_steps(workflow: dict) -> list[dict]:
+    """Current source-qualified preflight plus actual isolated Owner executor.
+
+    The protected root-verification check is the fail-closed aggregate job;
+    task execution lives in the dependent jobs, not in that check itself.
+    """
+    jobs = workflow["jobs"]
+    return [*jobs["root-preflight"]["steps"], *jobs["owner-verification"]["steps"]]
+
+
 VERIFY = """
 import importlib.util
 import sys
@@ -217,7 +228,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         import yaml
 
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
-        steps = workflow["jobs"]["root-verification"]["steps"]
+        steps = required_ci_steps(workflow)
         by_name = {step["name"]: step for step in steps}
         setup = by_name["Install monorepo toolchain"]
         self.assertIs(setup["with"]["install"], False)
@@ -236,10 +247,10 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         self.assertEqual(workflow["permissions"], {"contents": "read"})
         steps = {step["name"]: step for step in
-                 workflow["jobs"]["root-verification"]["steps"]}
+                 required_ci_steps(workflow)}
         # Only the selected Formal owner gets this token, not every arbitrary
         # unselected Owner task or the entire job.
-        self.assertNotIn("env", workflow["jobs"]["root-verification"])
+        self.assertNotIn("env", workflow["jobs"]["root-preflight"])
         formal = steps["Verify changed core Formal source"]
         self.assertEqual(formal["env"]["GITHUB_TOKEN"], "$" + "{{ github.token }}")
         self.assertIn("mise install", formal["run"])
@@ -252,13 +263,13 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         import yaml
 
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
-        steps = {step["name"]: step for step in workflow["jobs"]["root-verification"]["steps"]}
+        steps = {step["name"]: step for step in required_ci_steps(workflow)}
         selected = steps["Verify affected owners"]["run"]
         formal_step = steps["Verify changed core Formal source"]
         self.assertEqual(formal_step["if"], "steps.affected.outputs.formal == 'true'")
         self.assertIn("KANI_HOME", formal_step["env"])
         self.assertIn("mise run formal:verify", formal_step["run"])
-        interpolation = "$" + "{{ steps.affected.outputs.formal }}"
+        interpolation = "$" + "{{ needs.root-preflight.outputs.formal }}"
         self.assertIn(interpolation, selected)
 
         with tempfile.TemporaryDirectory() as temp:
@@ -320,6 +331,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 log.write_text("", encoding="utf-8")
                 run_env = dict(env)
                 run_env["MOCK_FAIL_RUNTIME"] = "1" if failed_owner else "0"
+                run_env["OWNER_TASKS_JSON"] = json.dumps(items)
                 return subprocess.run(
                     ["/usr/bin/bash", "-c", selected.replace(interpolation, formal)],
                     cwd=ROOT, env=run_env, capture_output=True, text=True,
@@ -327,7 +339,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 )
 
             ok = actual_queue(
-                ["runtime:verify", "formal:verify", "host:queue"], formal="true",
+                ["runtime:verify", "host:queue"], formal="true",
             )
             self.assertEqual(ok.returncode, 0, ok.stderr)
             self.assertEqual(
@@ -530,7 +542,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             self.assertNotEqual(mismatch.returncode, 0)
             self.assertNotIn("run formal:verify", log.read_text())
             failure = actual_queue(
-                ["runtime:verify", "formal:verify", "host:queue"],
+                ["runtime:verify", "host:queue"],
                 formal="true", failed_owner=True,
             )
             self.assertEqual(failure.returncode, 37)
@@ -547,7 +559,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         root = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         steps = {
             step["name"]: step
-            for step in root["jobs"]["root-verification"]["steps"]
+            for step in required_ci_steps(root)
         }
         queue_script = steps["Verify affected owners"]["run"].replace(
             "$" + "{{ steps.affected.outputs.formal }}", "true"
@@ -584,6 +596,15 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 '[tasks.verify]\nrun = "echo harmless nested task"\n',
                 encoding="utf-8",
             )
+            # The matrix Owner runner qualifies task identities against
+            # the same native Owner manifest consumed by preflight.
+            import shutil
+            fixture_registry = repo / "tools/repo"
+            fixture_registry.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / "tools/repo/affected_owners.py",
+                         fixture_registry / "affected_owners.py")
+            shutil.copy2(ROOT / "tools/repo/owners.toml",
+                         fixture_registry / "owners.toml")
             # The real verifier consumes 13 exact source inputs; the disposable
             # Git fixture must contain the same declared source universe.
             for rel in _FORMAL_SOURCE_FILES:
@@ -648,6 +669,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             record = work / "mise-record.txt"
             env = os.environ.copy()
             env["RUNNER_TEMP"] = str(work)
+            env["OWNER_TASKS_JSON"] = json.dumps(["runtime:verify"])
             env["MISE_RECORD"] = str(record)
             env["FORMAL_MOCK_RECEIPT"] = str(report)
             env["FORMAL_FAKE_BINARY_DIR"] = str(work / "fake-formal-tool-binaries")
@@ -819,7 +841,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
 
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         script = next(
-            step["run"] for step in workflow["jobs"]["root-verification"]["steps"]
+            step["run"] for step in required_ci_steps(workflow)
             if step["name"] == "Select affected owners"
         )
         selected_readset = (
@@ -922,7 +944,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                       capital_mise["tasks"]["verify:provider"]["run"])
 
         root_ci = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
-        steps = root_ci["jobs"]["root-verification"]["steps"]
+        steps = required_ci_steps(root_ci)
         selected = next(x["run"] for x in steps if x.get("name") == "Select affected owners")
         verified = next(x["run"] for x in steps if x.get("name") == "Verify affected owners")
         self.assertIn("tools/repo/convergence_plan.py", selected)
@@ -968,7 +990,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         ):
             self.assertIn(necessary, actual)
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
-        steps = workflow["jobs"]["root-verification"]["steps"]
+        steps = required_ci_steps(workflow)
         selection = next(step["run"] for step in steps if
                          step.get("name") == "Select affected owners")
         verification = next(step["run"] for step in steps if
@@ -1023,7 +1045,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertIn("episode-store",
                       top["tasks"]["experimental-episodes:verify"]["run"])
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
-        steps = workflow["jobs"]["root-verification"]["steps"]
+        steps = required_ci_steps(workflow)
         scripts = {step.get("name"): step.get("run", "") for step in steps}
         self.assertIn("tools/repo/convergence_plan.py", scripts["Select affected owners"])
         self.assertIn("queueVerifyTasks", scripts["Select affected owners"])
@@ -1079,7 +1101,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         ):
             self.assertIn(requirement, checks)
         root_ci = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
-        steps = root_ci["jobs"]["root-verification"]["steps"]
+        steps = required_ci_steps(root_ci)
         select = next(x["run"] for x in steps if x.get("name") == "Select affected owners")
         run = next(x["run"] for x in steps if x.get("name") == "Verify affected owners")
         self.assertIn("tools/repo/convergence_plan.py", select)
@@ -1118,7 +1140,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertIn("git ls-files -z -- '*.sh' | xargs -0 shellcheck", checks)
         self.assertIn("python -m pytest", checks)
         root_ci = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
-        steps = root_ci["jobs"]["root-verification"]["steps"]
+        steps = required_ci_steps(root_ci)
         selected = next(x["run"] for x in steps if x.get("name") == "Select affected owners")
         verified = next(x["run"] for x in steps if x.get("name") == "Verify affected owners")
         self.assertIn("tools/repo/convergence_plan.py", selected)
@@ -1161,7 +1183,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             self.assertNotIn(retired, native)
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         self.assertIn("merge_group", workflow.get("on", workflow.get(True, {})))
-        steps = workflow["jobs"]["root-verification"]["steps"]
+        steps = required_ci_steps(workflow)
         select = next(x["run"] for x in steps if
                       x.get("name") == "Select affected owners")
         verify = next(x["run"] for x in steps if
@@ -1189,7 +1211,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         release = yaml.safe_load(
             (ROOT / ".github/workflows/runtime-release.yml").read_text()
         )
-        for workflow, job in ((root, "root-verification"),
+        for workflow, job in ((root, "root-preflight"),
                               (release, "runtime-release")):
             steps = workflow["jobs"][job]["steps"]
             matches = [step for step in steps
@@ -1562,6 +1584,159 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             self.assertIn(target, decisions)
             self.assertTrue((ROOT / "docs/architecture" / target).is_file())
         self.assertIn("not a new architectural authority", decisions)
+
+
+
+class ParallelRootVerificationTests(unittest.TestCase):
+    """Actual GitHub aggregate must fail if any mandatory native lane fails."""
+
+    @staticmethod
+    def workflow() -> dict:
+        import yaml
+
+        return yaml.safe_load(
+            (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        )
+
+    def test_native_matrix_preserves_existing_required_check_identity(self) -> None:
+        jobs = self.workflow()["jobs"]
+        self.assertEqual(
+            set(jobs), {"root-preflight", "owner-verification", "root-verification"}
+        )
+        preflight = jobs["root-preflight"]
+        owners = jobs["owner-verification"]
+        required = jobs["root-verification"]
+        self.assertEqual(required["name"], "root-verification")
+        self.assertEqual(required["needs"],
+                         ["root-preflight", "owner-verification"])
+        self.assertEqual(required["if"], "always()")
+        self.assertEqual(owners["strategy"]["fail-fast"], False)
+        self.assertEqual(owners["strategy"]["max-parallel"], 4)
+        self.assertEqual(
+            owners["strategy"]["matrix"],
+            "$" + "{{ fromJSON(needs.root-preflight.outputs.shards) }}",
+        )
+        self.assertEqual(
+            owners["if"], "needs.root-preflight.outputs.has_owner_tasks == 'true'"
+        )
+        self.assertEqual(
+            preflight["outputs"]["shards"],
+            "$" + "{{ steps.affected.outputs.shards }}",
+        )
+        self.assertIn("ci_owner_shards.py",
+                      next(step["run"] for step in preflight["steps"]
+                           if step["name"] == "Select affected owners"))
+        runner = next(step for step in owners["steps"]
+                      if step["name"] == "Verify affected owners")
+        self.assertEqual(
+            runner["env"]["OWNER_TASKS_JSON"],
+            "$" + "{{ toJSON(matrix.tasks) }}",
+        )
+        self.assertIn('mise run "$task"', runner["run"])
+        self.assertIn("git --no-replace-objects show HEAD:mise.toml", runner["run"])
+        self.assertIn("paper_postgres", owners["services"])
+        self.assertNotIn("services", preflight)
+
+    def test_required_check_is_a_real_fail_closed_aggregate(self) -> None:
+        import os
+
+        job = self.workflow()["jobs"]["root-verification"]
+        command = job["steps"][0]["run"]
+        combinations = (
+            ("success", "success", "true", 0),
+            ("success", "failure", "true", 1),
+            ("success", "cancelled", "true", 1),
+            ("success", "skipped", "true", 1),
+            ("success", "skipped", "false", 0),
+            ("success", "success", "false", 1),
+            ("failure", "skipped", "false", 1),
+            ("cancelled", "skipped", "false", 1),
+            ("success", "skipped", "", 1),
+        )
+        for preflight, owners, has_owners, expect in combinations:
+            with self.subTest(preflight=preflight, owners=owners,
+                              has_owners=has_owners):
+                result = subprocess.run(
+                    ["/usr/bin/bash", "-c", command],
+                    cwd=ROOT,
+                    env={**os.environ, "PREFLIGHT_RESULT": preflight,
+                         "OWNER_RESULT": owners, "HAS_OWNER_TASKS": has_owners},
+                    capture_output=True, text=True, check=False, timeout=10,
+                )
+                self.assertEqual(result.returncode == 0, expect == 0,
+                                 result.stdout + result.stderr)
+
+
+
+class ParallelRootVerificationTests(unittest.TestCase):
+    """Protect the real GitHub required check and native task partition."""
+
+    def test_matrix_tasks_and_required_check_identity(self) -> None:
+        import yaml
+
+        jobs = yaml.safe_load(
+            (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        )["jobs"]
+        self.assertEqual(set(jobs),
+                         {"root-preflight", "owner-verification", "root-verification"})
+        preflight, owners, required = (
+            jobs["root-preflight"], jobs["owner-verification"],
+            jobs["root-verification"],
+        )
+        self.assertEqual(required["name"], "root-verification")
+        self.assertEqual(required["needs"], ["root-preflight", "owner-verification"])
+        self.assertEqual(required["if"], "always()")
+        self.assertEqual(owners["strategy"]["fail-fast"], False)
+        self.assertEqual(owners["strategy"]["max-parallel"], 4)
+        self.assertEqual(
+            owners["strategy"]["matrix"],
+            "$" + "{{ fromJSON(needs.root-preflight.outputs.shards) }}",
+        )
+        self.assertEqual(
+            owners["if"], "needs.root-preflight.outputs.has_owner_tasks == 'true'"
+        )
+        selected = next(step["run"] for step in preflight["steps"]
+                        if step["name"] == "Select affected owners")
+        self.assertIn("tools/repo/ci_owner_shards.py", selected)
+        runner = next(step for step in owners["steps"]
+                      if step["name"] == "Verify affected owners")
+        self.assertEqual(runner["env"]["OWNER_TASKS_JSON"],
+                         "$" + "{{ toJSON(matrix.tasks) }}")
+        self.assertIn('mise run "$task"', runner["run"])
+        self.assertIn("git --no-replace-objects show HEAD:mise.toml",
+                      runner["run"])
+        self.assertIn("paper_postgres", owners["services"])
+        self.assertNotIn("services", preflight)
+
+    def test_required_check_fails_on_any_failed_or_skipped_required_lane(self) -> None:
+        import os
+        import yaml
+
+        jobs = yaml.safe_load(
+            (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        )["jobs"]
+        script = jobs["root-verification"]["steps"][0]["run"]
+        for before, owner, selected, should_pass in (
+            ("success", "success", "true", True),
+            ("success", "failure", "true", False),
+            ("success", "cancelled", "true", False),
+            ("success", "skipped", "true", False),
+            ("success", "skipped", "false", True),
+            ("success", "success", "false", False),
+            ("failure", "skipped", "false", False),
+            ("cancelled", "skipped", "false", False),
+            ("success", "skipped", "", False),
+        ):
+            with self.subTest(before=before, owner=owner, selected=selected):
+                completed = subprocess.run(
+                    ["/usr/bin/bash", "-c", script],
+                    cwd=ROOT, text=True, capture_output=True, timeout=10,
+                    check=False,
+                    env={**os.environ, "PREFLIGHT_RESULT": before,
+                         "OWNER_RESULT": owner, "HAS_OWNER_TASKS": selected},
+                )
+                self.assertEqual(completed.returncode == 0, should_pass,
+                                 completed.stderr)
 
 
 if __name__ == "__main__":

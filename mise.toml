@@ -79,6 +79,7 @@ python3 -m unittest tools/repo/test_sql_dialects.py
 mise run chaoxing:verify
 uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 python3 tools/repo/test_affected_owners.py
+python3 tools/repo/test_ci_owner_shards.py
 python3 tools/repo/test_convergence_plan.py
 python3 tools/repo/test_owner_boundaries.py
 python3 tools/repo/check_owner_boundaries.py
