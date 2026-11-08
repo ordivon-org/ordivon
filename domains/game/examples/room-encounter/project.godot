@@ -7,6 +7,7 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [rendering]
 renderer/rendering_method="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.045, 0.073, 0.105, 1)
 
 [autoload]
 DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"

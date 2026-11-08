@@ -1,8 +1,8 @@
 """Native Agent action/observation boundary acceptance for Room Encounter.
 
 No simulation reimplementation: every transition executes the installed Godot
-scene and its real EncounterRules. The output is privileged symbolic state,
-not pixels or Human-play evidence.
+scene and its real EncounterRules. Player observations are native HUD/dialogue only; privileged state is
+explicit debug opt-in, never pixel or Human-play evidence.
 """
 import json
 import subprocess
@@ -19,6 +19,12 @@ def episode(actions, observation="debug"):
         *(["--observation", observation] if observation is not None else [])
     ]
     run = subprocess.run(command, text=True, capture_output=True, timeout=60)
+    # A Godot process may exit 0 and emit valid output despite GDScript errors;
+    # fail closed on actual engine script exceptions.
+    assert "SCRIPT ERROR:" not in (run.stderr + run.stdout), (
+        f"Godot script error despite process rc={run.returncode}: {run.stderr}")
+    assert "Parse Error:" not in (run.stderr + run.stdout), (
+        f"Godot parse error: {run.stderr}")
     lines = [line[len(PREFIX):] for line in run.stdout.splitlines()
              if line.startswith(PREFIX)]
     assert len(lines) == 1, f"missing or duplicate episode receipt: {run.stdout}\n{run.stderr}"
@@ -67,7 +73,7 @@ def main():
     for step in visible["steps"]:
         observed.extend([step["before"], step["after"]])
     for value in observed:
-        assert set(value).issubset({"status", "encounter", "actions", "dialogue"})
+        assert set(value).issubset({"title", "status", "encounter", "actions", "hint", "dialogue"})
         assert isinstance(value["status"], str) and isinstance(value["encounter"], str)
     status_repeat, visible_repeat, _ = episode("attack,advance,guard", "player")
     assert status_repeat == 0 and visible_repeat == visible
@@ -76,6 +82,45 @@ def main():
     assert "player_health" not in default_obs["initial"]
     status_invalid, invalid_obs, _ = episode("attack", "anything")
     assert status_invalid == 2 and invalid_obs["error"].startswith("expected:")
+    # Human Trial button and Agent symbolic trial both invoke the same
+    # native resource-backed Game action, never independent combat logic.
+    status, tactic, _ = episode("trial,attack,guard", "debug")
+    assert status == 0 and tactic["steps"][0]["accepted"]
+    assert tactic["steps"][0]["control_path"] == "native.trial_resource"
+    assert tactic["steps"][0]["after"]["foes"] == 2
+    assert tactic["steps"][0]["after"]["enemy_health"] == 5
+    assert tactic["steps"][1]["after"]["enemy_health"] == 2
+    assert tactic["steps"][2]["after"]["turn"] == 2
+    status, visible_tactic, _ = episode("trial,attack", "player")
+    assert status == 0 and "NEXT FOE HIT" in visible_tactic["final"]["encounter"]
+    assert visible_tactic["final"]["hint"].startswith("TIP:")
+    assert all(set(step) == {"action", "before", "after"} for step in visible_tactic["steps"])
+    assert visible_tactic["initial"]["actions"]["trial"]
+    assert visible_tactic["steps"][0]["after"]["status"].startswith("ROOM 1/3")
+    status, exhausted, _ = episode("trial,attack,attack,attack", "player")
+    assert status == 0
+    assert exhausted["final"]["actions"]["attack"] is False, (
+        "native UI must disable Attack when stamina is exhausted")
+    assert exhausted["final"]["actions"]["guard"] is True
+    assert exhausted["final"]["actions"]["classic"] is True
+    status, charged_hint, _ = episode("trial,attack,attack", "player")
+    assert status == 0 and "CHARGED STRIKE" in charged_hint["final"]["hint"]
+    assert charged_hint["final"]["actions"]["guard"]
+    status, classic_return, _ = episode("trial,classic", "debug")
+    assert status == 0 and classic_return["steps"][1]["accepted"]
+    assert classic_return["steps"][1]["control_path"] == "native.classic_resource"
+    assert classic_return["final"]["foes"] == 1
+    assert classic_return["final"]["enemy_health"] == 3
+    status, player_return, _ = episode("trial,classic", "player")
+    assert status == 0 and player_return["final"]["title"].startswith("ORIGINAL GRAYBOX")
+    assert player_return["steps"][0]["after"]["title"].startswith("TACTICAL TRIAL")
+    assert all(set(step) == {"action", "before", "after"} for step in player_return["steps"])
+    status, classic_exhausted, _ = episode(
+        "trial,classic,guard,guard,guard,attack,attack,attack", "player")
+    assert status == 0
+    # Classic no special threat info and all admitted actions project true
+    # disabled buttons from the actual rule resource, not debug snapshots.
+    assert "NEXT FOE HIT" not in classic_exhausted["initial"]["encounter"]
     status, bad, _ = episode("warp")
     assert status == 0 and not bad["steps"][0]["recognized"]
     assert not bad["steps"][0]["accepted"]
@@ -96,7 +141,7 @@ def main():
     assert all(step["accepted"] for step in finished["steps"])
     assert all(step["control_path"] == "dialogue.unlock_choice"
                for step in finished["steps"] if step["action"] == "advance")
-    print("GAME_AGENT_EPISODE_PASS native_episodes=11 player_ui_default=yes debug_opt_in=yes deterministic=yes terminal_win=yes narrative_gate=yes")
+    print("GAME_AGENT_EPISODE_PASS native_episodes=17 player_ui_default=yes debug_opt_in=yes deterministic=yes terminal_win=yes narrative_gate=yes")
 
 
 if __name__ == "__main__":

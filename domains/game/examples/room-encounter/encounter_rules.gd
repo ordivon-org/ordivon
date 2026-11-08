@@ -48,6 +48,7 @@ func reset_run(replacement: Resource = null) -> bool:
 func attack() -> bool:
     if phase != "fighting" or stamina < active.attack_cost:
         return false
+    var pending_damage: int = _incoming_damage()
     stamina -= active.attack_cost
     _record_turn()
     enemy_health -= active.attack_damage
@@ -59,7 +60,7 @@ func attack() -> bool:
         else:
             enemy_health = active.enemy_health
     if phase == "fighting":
-        _retaliate(0)
+        _retaliate(0, pending_damage)
     state_changed.emit(snapshot())
     action_accepted.emit("attack")
     return true
@@ -69,10 +70,12 @@ func guard() -> bool:
         return false
     # Do not add before clamping: signed 64-bit addition could wrap even
     # when the final logical stamina should equal capacity.
+    var pending_damage: int = _incoming_damage()
+    var protection: int = _guard_protection(pending_damage)
     var missing_capacity: int = active.stamina_capacity - stamina
     stamina += mini(missing_capacity, active.guard_restore)
     _record_turn()
-    _retaliate(active.guard_block)
+    _retaliate(protection, pending_damage)
     state_changed.emit(snapshot())
     action_accepted.emit("guard")
     return true
@@ -96,13 +99,44 @@ func _record_turn() -> void:
     if turn < MAX_TURN:
         turn += 1
 
-func _retaliate(block: int) -> void:
-    player_health = maxi(0, player_health - maxi(0, active.enemy_damage - block))
+# Forecast from the current authoritative state, before the action.
+# The third combat turn telegraphs a stronger strike; no duplicate intent
+# ledger, no randomized hidden information, and no additional save state.
+func _incoming_damage() -> int:
+    var damage: int = active.enemy_damage
+    if active.tactical_trial and damage > 0 and turn % 3 == 2 and damage < MAX_TURN:
+        damage += 1
+    return damage
+
+# Telegraph-informed perfect parry: timed Guard on the strong third turn
+# blocks the announced strike completely. It buys safety but spends a turn
+# instead of reducing enemy HP; ordinary Guard remains the tuned block value.
+func _guard_protection(incoming: int) -> int:
+    return incoming if active.tactical_trial and turn % 3 == 2 else active.guard_block
+
+func _retaliate(block: int, incoming: int) -> void:
+    player_health = maxi(0, player_health - maxi(0, incoming - block))
     if player_health == 0:
         phase = "lost"
 
-func snapshot() -> Dictionary:
+func _forecast() -> Dictionary:
+    if phase != "fighting" or not active.tactical_trial:
+        return {}
+    var threat: int = _incoming_damage()
+    # Killing the last foe finishes combat before retaliation.
+    var last_kill: bool = foes == 1 and enemy_health <= active.attack_damage
     return {
+        "threat_damage": threat,
+        "charged": turn % 3 == 2,
+        "attack_damage": active.attack_damage,
+        "attack_health_loss": 0 if last_kill else mini(player_health, threat),
+        "guard_health_loss": mini(player_health, maxi(0, threat - _guard_protection(threat))),
+        "guard_stamina_gain": mini(active.stamina_capacity - stamina, active.guard_restore),
+        "attack_cost": active.attack_cost
+    }
+
+func snapshot() -> Dictionary:
+    var observed: Dictionary = {
         "room": room,
         "total_rooms": active.enemies_per_room.size() if active != null else 0,
         "foes": foes,
@@ -113,10 +147,17 @@ func snapshot() -> Dictionary:
         "turn": turn,
         "phase": phase
     }
+    # Classic retains its original snapshot schema and combat semantics.
+    if active != null and active.tactical_trial:
+        observed["forecast"] = _forecast()
+    return observed
 
 # Rule-owned checkpoint contract; ConfigFile alone owns storage bytes.
 func checkpoint() -> Dictionary:
-    return {"tuning": {
+    # Do not persist recomputable UI forecast.
+    var persisted: Dictionary = snapshot()
+    persisted.erase("forecast")
+    var identity: Dictionary = {
         "enemies_per_room": active.enemies_per_room,
         "player_health": active.player_health,
         "enemy_health": active.enemy_health,
@@ -126,7 +167,12 @@ func checkpoint() -> Dictionary:
         "attack_cost": active.attack_cost,
         "guard_restore": active.guard_restore,
         "guard_block": active.guard_block
-    }, "state": snapshot()}
+    }
+    # Backward-compatible Classic checkpoint bytes stay unchanged.
+    # Trial opt-in is an explicit part of the saved tuning identity.
+    if active.tactical_trial:
+        identity["tactical_trial"] = true
+    return {"tuning": identity, "state": persisted}
 
 func restore_checkpoint(saved: Variant) -> bool:
     if active == null or not saved is Dictionary:

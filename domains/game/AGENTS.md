@@ -359,3 +359,20 @@ G09 narrative and G10 ConfigFile now run in one Godot 4.7.2 product scene with r
 **Agent:** When a real native consumer needs non-visual action/observation evaluation, prefer an engine-native test adapter over a new game-control service. Room Encounter now exposes `examples/room-encounter/agent_episode.gd`, accepting at most 64 actions via `-- --actions` and returning a single schema-v2 prefixed JSON trace with player-visible HUD/dialogue as the default observation; privileged rule-state inspection requires explicit --observation debug. The runner loads the same PackedScene and EncounterRules used by humans, never duplicates combat rules, never writes saves, and rejects uninitialized project imports. Execute `mise run test:encounter` before `mise run test:agent-episode`; use `examples/room-encounter/README.md` for CLI details.
 
 **Claim boundary:** Default observations are only native player-visible UI projections; explicitly requested debug traces are privileged. Neither is a visual agent, an ongoing real-time control loop, a human playtest, or certified R2.1 refinement proof. Capture and report the engine version actually executed; the declared mise pin and host-installed Godot may differ. For graphical Agent control, first name a real screenshot-input consumer and reuse the Workstation/Runtime capabilities that own it.
+
+Room Tactical Trial (2026-11-08): the native Resource/forecast/parry
+is part of existing Room Encounter and G10/G11 contracts, not a new
+LEGO or custom runtime. See examples/room-encounter/README.md for
+separate Human and Agent instructions and the missing Human evidence.
+Verify with verify:room-smt, test:encounter, test:agent-episode.
+
+Classic preservation verification (2026-11-08): tactical_trial is a per-Resource opt-in. The unchanged Classic rules/snapshot/HUD/checkpoint identity are exercised in native Godot; 243 Classic and 243 Trial five-action sequences test the separate consumers. Do not promote an abstract 17-property Z3 model to universal GDScript proof.
+
+Native GUI reliability (2026-11-08): native_scene_acceptance.py owns
+fail-closed positive receipt and script-error stderr inspection; Godot
+exit=0 alone is insufficient. test:native-receipt-selftest includes
+falsifying negative controls. Native Theme, built-in Containers and
+semantic dialogue keyboard focus are the Human UI source; G11 player
+observation must project all visible state-dependent tips and actual
+Button enabled state. visual_capture.gd creates real OpenGL PNG
+evidence in isolated Xvfb, which never counts as Human comprehension.

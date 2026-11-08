@@ -3,18 +3,34 @@
 [node name="Hud" type="VBoxContainer"]
 offset_right = 630.0
 offset_bottom = 220.0
-theme_override_constants/separation = 20
+theme_override_constants/separation = 16
 script = ExtResource("1_view")
 [node name="Title" type="Label" parent="."]
 layout_mode = 2
+theme_override_font_sizes/font_size = 25
+theme_override_colors/font_color = Color(0.98, 0.79, 0.42, 1)
 text = "ORIGINAL GRAYBOX | ROOM ENCOUNTER"
 [node name="Status" type="Label" parent="."]
 layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.72, 0.88, 0.98, 1)
+autowrap_mode = 3
 text = "..."
 [node name="Encounter" type="Label" parent="."]
 layout_mode = 2
+theme_override_font_sizes/font_size = 19
+theme_override_colors/font_color = Color(0.91, 0.95, 1, 1)
+autowrap_mode = 3
 text = "..."
-[node name="Actions" type="HBoxContainer" parent="."]
+[node name="Hint" type="Label" parent="."]
+visible = false
+layout_mode = 2
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 17
+theme_override_colors/font_color = Color(1, 0.8, 0.5, 1)
+text = "Watch the enemy intent before committing."
+
+[node name="Actions" type="HFlowContainer" parent="."]
 layout_mode = 2
 [node name="Attack" type="Button" parent="Actions"]
 layout_mode = 2
@@ -35,6 +51,16 @@ text = "Save [S]"
 [node name="Load" type="Button" parent="Actions"]
 layout_mode = 2
 text = "Load [L]"
+[node name="Trial" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Tactical Trial [T]"
+
+[node name="Classic" type="Button" parent="Actions"]
+layout_mode = 2
+text = "Classic [C]"
+
 [node name="Storage" type="Label" parent="."]
 layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.65, 0.75, 0.83, 1)
 text = "No saved run loaded."

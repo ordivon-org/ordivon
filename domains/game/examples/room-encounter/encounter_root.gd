@@ -6,15 +6,43 @@ extends Control
 @onready var save_slot: Node = $SaveSlot
 @onready var gate_dialogue: VBoxContainer = $GateDialogue
 var view: VBoxContainer
+const TACTICAL_TRIAL: Resource = preload("res://configs/tactical_trial.tres")
+var tactical_mode: bool = false
+
+func start_tactical_trial() -> bool:
+    if not rules.reset_run(TACTICAL_TRIAL):
+        return false
+    tactical_mode = true
+    view.get_node("Title").text = "TACTICAL TRIAL | READ THE NEXT STRIKE BEFORE COMMITTING"
+    return true
+
+func start_classic_run() -> bool:
+    if not rules.reset_run():
+        return false
+    tactical_mode = false
+    view.get_node("Title").text = "ORIGINAL GRAYBOX | ROOM ENCOUNTER"
+    return true
+
+func restart_run() -> void:
+    if tactical_mode:
+        rules.reset_run(TACTICAL_TRIAL)
+    else:
+        rules.reset_run()
 
 func _ready() -> void:
     view = view_scene.instantiate()
     view.name = "View"
     add_child(view)
+    # Keep the existing direct-child paths for all native and Agent consumers,
+    # but let Godot's VBoxContainer stack HUD and Dialogue responsively.
+    move_child(view, 0)
+    view.get_node("Actions/Attack").grab_focus.call_deferred()
     view.get_node("Actions/Attack").pressed.connect(func(): rules.attack())
     view.get_node("Actions/Guard").pressed.connect(func(): rules.guard())
     view.get_node("Actions/Next").pressed.connect(request_door)
-    view.get_node("Actions/Restart").pressed.connect(func(): rules.reset_run())
+    view.get_node("Actions/Restart").pressed.connect(restart_run)
+    view.get_node("Actions/Trial").pressed.connect(start_tactical_trial)
+    view.get_node("Actions/Classic").pressed.connect(start_classic_run)
     view.get_node("Actions/Save").pressed.connect(save_run)
     view.get_node("Actions/Load").pressed.connect(load_run)
     rules.state_changed.connect(view.render_state)
@@ -33,7 +61,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
         KEY_N, KEY_ENTER:
             request_door()
         KEY_R:
-            rules.reset_run()
+            restart_run()
+        KEY_T:
+            start_tactical_trial()
+        KEY_C:
+            start_classic_run()
         KEY_S:
             save_run()
         KEY_L:

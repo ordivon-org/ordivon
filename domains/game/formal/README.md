@@ -65,3 +65,19 @@ execution, UI, storage durability or Human enjoyment is claimed.
 
 Reuse Composition's task-local verification obligations; do not create
 another Game verifier service or proof registry.
+
+## Tactical Trial native forecast source cut
+
+Existing verify_room_arithmetic.py now uses the same full-width signed
+i64 model for pre-action third-turn telegraph, saturation at signed MAX,
+normal Guard and perfect charged parry, and bounded HP-loss forecasts.
+Seventeen obligations pass under the stated model assumptions, with
+negative controls for the legacy overflow and for a model that ignores
+the charged third turn. Native test:encounter independently exercises
+actual GDScript scene transitions and matches accepted pre-action
+forecasts to HP outcomes across 243 Trial and 243 Classic bounded traces. Source SHA-256
+identifies code only; universal GDScript refinement, actual graphical
+visibility and Human experience remain UNKNOWN. Reuse the existing
+Composition gate and G10/G11 source/consumer references.
+
+Classic is a real mode=false refinement: the model checks unchanged base strike and Guard behavior; native Godot acceptance explicitly verifies its third turn and old checkpoint shape.
