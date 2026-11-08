@@ -5,6 +5,51 @@ use crate::resource_scheduling::{
 };
 use std::collections::BTreeMap;
 
+/// Immutable PG candidate snapshot. Dominant shares are rescored after every
+/// successful allocation; execution plans need not be queried or decoded again.
+struct PendingCandidate {
+    priority: i16,
+    order: usize,
+    job: String,
+    principal: String,
+    spec: ResourceScheduling,
+}
+
+fn dominant_share(
+    owner: &str,
+    usage: &BTreeMap<String, (u64, u64, u64)>,
+    node: &NodeResources,
+) -> f64 {
+    let (cpu, memory, pids) = usage.get(owner).copied().unwrap_or_default();
+    (cpu as f64 / node.cpu_millis.max(1) as f64)
+        .max(memory as f64 / node.memory_total_bytes.max(1) as f64)
+        .max(pids as f64 / node.pid_capacity.max(1) as f64)
+}
+
+/// Highest priority, then lowest live dominant share, then FIFO order.
+fn next_candidate(
+    candidates: &[PendingCandidate],
+    usage: &BTreeMap<String, (u64, u64, u64)>,
+    node: &NodeResources,
+) -> Option<usize> {
+    candidates
+        .iter()
+        .enumerate()
+        .min_by(|(_, a), (_, b)| {
+            b.priority
+                .cmp(&a.priority)
+                .then_with(|| {
+                    dominant_share(&a.spec.owner, usage, node).total_cmp(&dominant_share(
+                        &b.spec.owner,
+                        usage,
+                        node,
+                    ))
+                })
+                .then_with(|| a.order.cmp(&b.order))
+        })
+        .map(|(index, _)| index)
+}
+
 impl PgRuntime {
     pub(super) fn scheduling_contract(
         &self,
@@ -138,56 +183,40 @@ impl PgRuntime {
             v.2 = v.2.saturating_add(u64::from(r.pids));
         }
         let candidates=db.client.query("SELECT j.job_id,j.principal,j.execution_plan_json FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id WHERE j.resolution IS NULL AND j.desired_state='run' AND a.state='accepted' ORDER BY j.created_at_ms,j.job_id",&[]).map_err(io)?;
-        let mut ranked = Vec::new();
+        // Execution plans are immutable once accepted. Decode each candidate once.
+        let mut ranked = Vec::with_capacity(candidates.len());
         for (order, row) in candidates.iter().enumerate() {
             let plan: RuntimeExecutionPlan = decode(&row.get::<_, String>(2))?;
-            let s = self.scheduling_contract(&plan)?;
-            let v = usage.get(&s.owner).copied().unwrap_or_default();
-            let dominant = (v.0 as f64 / node.cpu_millis.max(1) as f64)
-                .max(v.1 as f64 / node.memory_total_bytes.max(1) as f64)
-                .max(v.2 as f64 / node.pid_capacity.max(1) as f64);
-            ranked.push((
-                s.priority,
-                dominant,
+            let spec = self.scheduling_contract(&plan)?;
+            ranked.push(PendingCandidate {
+                priority: spec.priority,
                 order,
-                row.get::<_, String>(0),
-                row.get::<_, String>(1),
-            ));
+                job: row.get(0),
+                principal: row.get(1),
+                spec,
+            });
         }
         let mut dispatched = 0_u32;
-        while dispatched < 32 {
-            if ranked.is_empty() {
+        while dispatched < 32 && !ranked.is_empty() {
+            let Some(index) = next_candidate(&ranked, &usage, &node) else {
                 break;
-            }
-            // Refresh dominant shares after every successful allocation so a
-            // single owner cannot fill a whole batch ahead of queued peers.
-            let mut scored = Vec::new();
-            for (index, (priority, _, order, job, _)) in ranked.iter().enumerate() {
-                let row = db
-                    .client
-                    .query_one(
-                        "SELECT execution_plan_json FROM jobs WHERE job_id=$1",
-                        &[job],
-                    )
-                    .map_err(io)?;
-                let plan: RuntimeExecutionPlan = decode(&row.get::<_, String>(0))?;
-                let spec = self.scheduling_contract(&plan)?;
-                let u = usage.get(&spec.owner).copied().unwrap_or_default();
-                let share = (u.0 as f64 / node.cpu_millis.max(1) as f64)
-                    .max(u.1 as f64 / node.memory_total_bytes.max(1) as f64)
-                    .max(u.2 as f64 / node.pid_capacity.max(1) as f64);
-                scored.push((*priority, share, *order, index, spec));
-            }
-            scored.sort_by(|a, b| {
-                b.0.cmp(&a.0)
-                    .then_with(|| a.1.total_cmp(&b.1))
-                    .then(a.2.cmp(&b.2))
-            });
-            let (_, _, _, index, spec) = scored.remove(0);
-            let (_, _, _, job, principal) = ranked.remove(index);
+            };
+            let PendingCandidate {
+                job,
+                principal,
+                spec,
+                ..
+            } = ranked.remove(index);
             self.authorize(&mut db, &job, &principal)?;
             if self.reconcile_inner(&mut db, &job, true).is_ok() {
-                let active:bool=db.client.query_one("SELECT EXISTS(SELECT 1 FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active')",&[&job]).map_err(io)?.get(0);
+                let active: bool = db
+                    .client
+                    .query_one(
+                        "SELECT EXISTS(SELECT 1 FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active')",
+                        &[&job],
+                    )
+                    .map_err(io)?
+                    .get(0);
                 if active {
                     let u = usage.entry(spec.owner).or_default();
                     u.0 = u.0.saturating_add(u64::from(spec.resources.cpu_millis));
@@ -253,5 +282,62 @@ impl PgRuntime {
             }
             thread::sleep(Duration::from_secs(1));
         }
+    }
+}
+
+#[cfg(test)]
+mod scheduler_candidate_tests {
+    use super::*;
+
+    fn node() -> NodeResources {
+        NodeResources {
+            cpu_millis: 1_000,
+            memory_total_bytes: 1_000,
+            memory_available_bytes: 1_000,
+            pid_capacity: 1_000,
+            pids_available: 1_000,
+            cpu_pressure: 0.0,
+            memory_pressure: 0.0,
+            io_pressure: 0.0,
+        }
+    }
+
+    fn candidate(owner: &str, priority: i16, order: usize) -> PendingCandidate {
+        let spec = ResourceScheduling {
+            owner: owner.into(),
+            priority,
+            ..Default::default()
+        };
+        PendingCandidate {
+            priority,
+            order,
+            job: format!("job-{order}"),
+            principal: owner.into(),
+            spec,
+        }
+    }
+
+    #[test]
+    fn scheduler_preserves_priority_before_share_and_fifo() {
+        let candidates = [
+            candidate("a", 0, 0),
+            candidate("b", 1, 1),
+            candidate("c", 1, 2),
+        ];
+        let mut usage = BTreeMap::new();
+        usage.insert("b".into(), (900, 0, 0));
+        assert_eq!(next_candidate(&candidates, &usage, &node()), Some(2));
+        usage.insert("c".into(), (900, 0, 0));
+        assert_eq!(next_candidate(&candidates, &usage, &node()), Some(1));
+    }
+
+    #[test]
+    fn scheduler_recomputes_owner_shares_after_allocation() {
+        let candidates = [candidate("a", 0, 0), candidate("b", 0, 1)];
+        let mut usage = BTreeMap::new();
+        assert_eq!(next_candidate(&candidates, &usage, &node()), Some(0));
+        usage.insert("a".into(), (100, 0, 0));
+        assert_eq!(next_candidate(&candidates, &usage, &node()), Some(1));
+        assert_eq!(next_candidate(&[], &usage, &node()), None);
     }
 }
