@@ -6,23 +6,35 @@ from pathlib import Path
 from typing import Any
 
 
-def sha256_file(path: Path) -> str:
+def _sha256_and_size(path: Path) -> tuple[str, int]:
+    """Observe SHA-256 and byte length from one opened stream.
+
+    Unlike a later path.stat(), this size describes the bytes hashed.
+    It is not a claim that the pathname remains stable after reading.
+    """
     digest = hashlib.sha256()
+    size = 0
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
-    return digest.hexdigest()
+            size += len(chunk)
+    return digest.hexdigest(), size
+
+
+def sha256_file(path: Path) -> str:
+    return _sha256_and_size(path)[0]
 
 
 def file_fact(path: Path, name: str | None = None) -> dict[str, Any]:
     resolved = path.resolve()
     if not resolved.is_file():
         raise RuntimeError(f"required file is absent: {resolved}")
+    digest, size = _sha256_and_size(resolved)
     return {
         "name": name or resolved.name,
         "path": str(resolved),
-        "size": resolved.stat().st_size,
-        "digest": {"sha256": sha256_file(resolved)},
+        "size": size,
+        "digest": {"sha256": digest},
     }
 
 
@@ -38,19 +50,21 @@ class FileCommitment:
         resolved = path.resolve()
         if not resolved.is_file():
             raise RuntimeError(f"required file is absent: {resolved}")
+        digest, size = _sha256_and_size(resolved)
         return cls(
             path=resolved,
-            sha256=sha256_file(resolved),
-            size=resolved.stat().st_size,
+            sha256=digest,
+            size=size,
             name=resolved.name,
         )
 
     def verify(self) -> FileCommitment:
         if not self.path.is_file():
             raise RuntimeError(f"required file is absent: {self.path}")
-        if self.path.stat().st_size != self.size:
+        current_sha, current_size = _sha256_and_size(self.path)
+        if current_size != self.size:
             raise RuntimeError(f"file size drift: {self.path}")
-        if sha256_file(self.path) != self.sha256:
+        if current_sha != self.sha256:
             raise RuntimeError(f"SHA-256 drift: {self.path}")
         return self
 

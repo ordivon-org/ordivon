@@ -110,6 +110,14 @@ later consumer opened; consumers must hash their actual inputs. A process
 holding the same principal may still modify private files; no process-isolation
 claim is made. See `tests/test_artifact_input_snapshot.py`.
 
+**Byte fact pairing:** `artifact_core/contracts.py` derives `sha256` and `size`
+from the same opened byte stream for `file_fact` and `FileCommitment`,
+rather than combining digest with a later pathname `stat` call. Legacy
+request admission reuses this existing commitment; the result remains
+`ADMISSION_DIGEST_ONLY` until the corresponding dependency closure is
+staged and verified. See the deliberate path-replacement regression in
+`tests/test_artifact_core_registry.py`.
+
 **Profile authority-to-consumption boundary:** The verification service
 compares the exact staged Profile byte digest with the Registry's canonical
 indexed-source digest, independently of the request's own commitment. Even a
