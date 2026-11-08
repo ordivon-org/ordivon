@@ -271,11 +271,13 @@ class McpOwnerCaller:
                         meta=meta or None,
                     )
                 except asyncio.CancelledError:
-                    # The deadline interrupted tools/call; a finally block must
-                    # NOT mislabel this as session_close. Capture the point at
-                    # which cancellation entered SDK cleanup.
+                    # An SDK Client.call_tool can issue tools/list AFTER an
+                    # already-completed wire tools/call to validate its output
+                    # schema. Cancellation here does NOT prove tools/call failed
+                    # or was cancelled; distinguish the SDK call boundary from
+                    # a completed Client.call_tool followed by session_close.
                     tool_elapsed_ms = int((time.perf_counter() - started) * 1000)
-                    phase = "tool_call_cancelled"
+                    phase = "sdk_client_call_cancelled"
                     raise
                 else:
                     # Only a completed call reaches session teardown normally.

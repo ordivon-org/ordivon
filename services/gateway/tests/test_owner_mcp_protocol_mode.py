@@ -129,3 +129,99 @@ def test_pinned_incompatible_server_fails_without_automatic_retry(
 
     asyncio.run(verify())
     assert attempts == ["connect"]
+
+
+def test_sdk_list_after_completed_owner_call_preserves_observation_uncertainty(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Real MCP HTTP: an SDK validation timeout is not a wire tools/call failure."""
+    import socket
+
+    import uvicorn
+    from mcp.server import MCPServer
+
+    from ordivon_gateway.service import GatewayService
+
+    private_token = _private(tmp_path / "fake-owner-token", "fixture-only-token")
+    wire_methods: list[str] = []
+    completed_tool_responses: list[int] = []
+    server = MCPServer("fixture-windows", version="fixture")
+
+    @server.tool(name="runtime.describe")
+    async def runtime_describe(schemaVersion: int = 1) -> dict:
+        return {
+            "schemaVersion": schemaVersion,
+            "node": {"nodeId": "fixture-windows"},
+            "targets": [{"target": "windows_native", "configured": True, "available": True}],
+        }
+
+    app = server.streamable_http_app(
+        streamable_http_path="/mcp",
+        stateless_http=True,
+        json_response=True,
+        host="127.0.0.1",
+    )
+
+    async def instrument(scope, receive, send):
+        if scope.get("type") != "http" or scope.get("method") != "POST":
+            await app(scope, receive, send)
+            return
+        method = dict(scope.get("headers", [])).get(b"mcp-method", b"").decode()
+        wire_methods.append(method)
+        if method == "tools/list":
+            # The SDK issues this validation request after tools/call returned.
+            await asyncio.sleep(0.4)
+
+        async def send_with_evidence(message):
+            if method == "tools/call" and message["type"] == "http.response.start":
+                completed_tool_responses.append(message["status"])
+            await send(message)
+
+        await app(scope, receive, send_with_evidence)
+
+    async def scenario():
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        uv = uvicorn.Server(
+            uvicorn.Config(instrument, host="127.0.0.1", port=port, log_level="critical")
+        )
+        serving = asyncio.create_task(uv.serve())
+        try:
+            for _ in range(150):
+                if uv.started:
+                    break
+                await asyncio.sleep(0.02)
+            assert uv.started
+            caller = McpOwnerCaller(
+                {
+                    "runtime.windows": OwnerEndpoint(
+                        f"http://127.0.0.1:{port}/mcp",
+                        bearer_token_file=private_token,
+                        mcp_mode="2026-07-28",
+                    )
+                }
+            )
+            try:
+                return await GatewayService(
+                    caller, projection_timeout_seconds=0.08
+                ).capability_describe("execution.windows")
+            finally:
+                await caller.aclose()
+        finally:
+            uv.should_exit = True
+            await asyncio.wait_for(serving, timeout=12)
+
+    caplog.set_level("WARNING", logger="ordivon_gateway.upstream")
+    projection = asyncio.run(scenario())
+    item = projection.capabilities[0]
+    assert completed_tool_responses == [200]
+    assert wire_methods == ["tools/call", "tools/list"]
+    assert item.readiness_state == "unknown"
+    assert item.observation_error is not None
+    assert any(
+        "gateway_owner_rpc_cancelled" in rec.message
+        and "phase=sdk_client_call_cancelled" in rec.message
+        for rec in caplog.records
+    )

@@ -253,7 +253,7 @@ def test_real_sdk_legacy_cleanup_is_awaited_without_task_leaks(
     if cancel_explicitly:
         assert any(
             "gateway_owner_rpc_cancelled" in record.message
-            and "phase=tool_call_cancelled" in record.message
+            and "phase=sdk_client_call_cancelled" in record.message
             and "phase_before_cleanup_ms=" in record.message
             for record in caplog.records
         )

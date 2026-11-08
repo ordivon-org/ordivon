@@ -224,11 +224,18 @@ Gateway pools HTTP connections by natural Owner using the upstream MCP SDK's
 The Gateway server lifespan closes owned HTTP pools. Credentials are resolved
 and checked for every HTTP request instead of being frozen at pool creation.
 No Gateway Job store, Owner effect retry or MCP protocol reimplementation is
-introduced. On deadline cancellation, distinguish `tool_call_cancelled`
+introduced. On deadline cancellation, distinguish `sdk_client_call_cancelled`
 from `session_close` in the read-only phase diagnostic: entering a Python
 `finally` is not evidence that the SDK finished tools/call or started a
 normal close. An interrupted call can still spend time unwinding the SDK
 transport, so a Gateway timeout does not prove Owner failure.
+An SDK Client.call_tool may issue a **second** tools/list HTTP request
+after receiving the tools/call response for output-schema validation:
+the SDK-call phase does not identify which underlying wire request timed out.
+An isolated real-HTTP counterexample exercises a completed Owner tool followed
+by a delayed schema listing (MCP Python SDK issue #3513). Keep the SDK's
+validation and modern HEADER_MISMATCH recovery; use upstream OpenTelemetry
+httpx2 instrumentation to attribute wire subrequests before changing pooling.
 Run Gateway source tests plus native loopback and installed-Owner
 readback to distinguish transport correctness from deployed availability.
 
