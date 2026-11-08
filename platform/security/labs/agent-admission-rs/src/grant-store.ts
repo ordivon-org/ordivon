@@ -385,6 +385,27 @@ export class GrantStore {
         );
       }
 
+      // Natural-owner commit PEP: evaluate the persisted Grant and exact
+      // materialized comment target inside the same BEGIN IMMEDIATE transaction.
+      // Prior OPA ALLOW alone must never authorize a different write or audience.
+      const persistedGrant = toSnapshot(current);
+      if (
+        persistedGrant.principalId !== grant.principalId ||
+        persistedGrant.agentId !== grant.agentId ||
+        !persistedGrant.allowedActions.includes(effect.action) ||
+        !prefixMatches(effect.resource, persistedGrant.resourcePrefixes) ||
+        effect.audience !== persistedGrant.audience ||
+        effect.action !== "comment.create" ||
+        effect.effectType !== "website.comment.create" ||
+        effect.resource !== "/comments/" + articleId
+      ) {
+        throw new AdmissionLabError(
+          "effect_not_authorized",
+          "The Effect does not bind the current Grant and actual comment target.",
+          403,
+        );
+      }
+
       const update = this.db
         .prepare(`
           UPDATE grants
@@ -409,8 +430,8 @@ export class GrantStore {
         commentId: randomUUID(),
         articleId,
         content,
-        principalId: grant.principalId,
-        agentId: grant.agentId,
+        principalId: persistedGrant.principalId,
+        agentId: persistedGrant.agentId,
         effectId: effect.effectId,
       };
 
