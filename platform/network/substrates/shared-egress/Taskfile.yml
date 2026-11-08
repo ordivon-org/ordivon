@@ -84,6 +84,19 @@ tasks:
       - systemctl is-active --quiet network-v2-browserless.target
       - systemctl is-active --quiet network-v2-shared-egress.target
       - systemctl is-active --quiet network-v2-browserless-netns.service
+      - |
+        set -euo pipefail
+        # Loaded systemd state is independent of matching installed bytes.
+        for unit in network-v2-browserless-netns.service network-v2-browserless-forward.service; do
+          test "$(systemctl show "$unit" --property=NeedDaemonReload --value)" = no
+        done
+        netns_wants=$(systemctl show network-v2-browserless-netns.service --property=Wants --value)
+        netns_after=$(systemctl show network-v2-browserless-netns.service --property=After --value)
+        case "$netns_wants $netns_after" in *network-online.target*) echo 'unexpected network-online dependency' >&2; exit 1;; esac
+        systemctl show network-v2-browserless-forward.service --property=ExecStart --value | grep -F '/usr/local/libexec/network-v2/shared-egress-forward ensure' >/dev/null
+        test -z "$(systemctl show network-v2-browserless-forward.service --property=ExecStartPre --value)"
+        test -z "$(systemctl show network-v2-browserless-forward.service --property=ExecStop --value)"
+        echo 'SHARED_EGRESS_LOADED_UNITS=PASS'
       - task: substrate:shared-egress:netns:verify
       - task: substrate:shared-egress:kernel:verify
       - systemctl is-active --quiet network-v2-browserless-forward.service

@@ -122,6 +122,18 @@ def test_native_kernel_task_calls_source_forward_verifier_read_only():
     assert "forward.py ensure" not in kernel_task
 
 
+def test_native_verify_checks_loaded_systemd_not_only_installed_bytes():
+    task = (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()
+    verify = task.split("  substrate:shared-egress:verify:", 1)[1]
+    assert "--property=NeedDaemonReload --value" in verify
+    assert "--property=Wants --value" in verify
+    assert "--property=After --value" in verify
+    assert "--property=ExecStart --value" in verify
+    assert "--property=ExecStop --value" in verify
+    assert "/usr/local/libexec/network-v2/shared-egress-forward ensure" in verify
+    assert "SHARED_EGRESS_LOADED_UNITS=PASS" in verify
+
+
 def test_owner_materializes_helper_before_unit_and_verifies_installed_bytes():
     text = (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()
     helper = "install -m 0755 substrates/shared-egress/forward.py /usr/local/libexec/network-v2/shared-egress-forward"
