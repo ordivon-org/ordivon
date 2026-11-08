@@ -47,6 +47,9 @@ class OwnerProductProjectionTests(unittest.TestCase):
             row["root"] for row in owner_rows if source_relative.startswith(row["root"])
         ]
         self.assertEqual(len(matches), 1)
+        # Explicit exact consumer/source boundary, derived from the registered
+        # Owner root; relocation must update both source and dependency seam.
+        self.assertEqual(matches[0], "domains/capital/")
         self.finance_root = ROOT / matches[0]
 
     def test_real_owner_products_project_to_dcat_without_fake_access(self) -> None:

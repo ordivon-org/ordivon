@@ -111,21 +111,64 @@ def load_dependency_graph(
                 raise ValueError("unapproved source-only research projection seam")
             continue
         if seam.get("kind") == "TEST_ONLY_SOURCE_CONTRACT":
-            # A Composition test reads live Runtime SourceCut bytes to construct
-            # an immutable *temporary* fixture. The fixture's later immutability
-            # does not erase the native test's current Runtime input dependency.
-            # Keep its directed test obligation, not an undirected business edge.
-            precise = (
-                "composition", "runtime",
-                "packages/composition/tests/test_verification_obligation_r1.py",
-                "services/runtime/formal/RuntimeDispatchR1.trace-r1.json",
-                "services/runtime/formal/RuntimeDispatchR1.trace-r1.json",
+            # One native test can consume a different Owner's actual source
+            # contract without establishing a bidirectional business edge.
+            # Derive the finite consumer/provider roots from the existing
+            # mechanical Owner manifest, not one hard-coded test filename.
+            consumer_root = next(
+                owner.root for owner in owners if owner.name == left
             )
-            declared = (
-                left, right, seam.get("source_glob"),
-                seam.get("allowed_fragment"), seam.get("contract_ref"),
+            provider_root = next(
+                owner.root for owner in owners if owner.name == right
             )
-            if declared != precise:
+            source = seam.get("source_glob")
+            fragment = seam.get("allowed_fragment")
+            contract = seam.get("contract_ref")
+            repo = Path(__file__).resolve().parents[2]
+
+            def exact_regular_file(path: object, repo: Path = repo) -> bool:
+                if not isinstance(path, str) or not path:
+                    return False
+                if (
+                    path.startswith("/")
+                    or ".." in path.split("/")
+                    or "\\" in path
+                    or any(char in path for char in "*?[]")
+                ):
+                    return False
+                resolved = repo / path
+                return resolved.is_file() and not resolved.is_symlink()
+
+            def scoped_provider_fragment(
+                path: object, provider_root: str = provider_root, repo: Path = repo
+            ) -> bool:
+                if not isinstance(path, str) or not path:
+                    return False
+                if (
+                    path.startswith("/")
+                    or ".." in path.split("/")
+                    or "\\" in path
+                    or any(char in path for char in "*?[]")
+                    or not (
+                        path == provider_root.rstrip("/")
+                        or path.startswith(provider_root)
+                    )
+                ):
+                    return False
+                target = repo / path
+                return target.exists() and not target.is_symlink()
+
+            if not (
+                exact_regular_file(source)
+                and source.startswith(consumer_root)
+                and "tests" in source[len(consumer_root):].split("/")
+                and scoped_provider_fragment(fragment)
+                and exact_regular_file(contract)
+                and (
+                    contract.startswith((consumer_root, provider_root))
+                )
+                and fragment in (repo / source).read_text(encoding="utf-8")
+            ):
                 raise ValueError("unapproved test-only source contract")
             if test_only_consumers is not None:
                 test_only_consumers.append((left, right))
