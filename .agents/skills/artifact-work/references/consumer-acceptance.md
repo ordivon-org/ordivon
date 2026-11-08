@@ -24,6 +24,14 @@ Artifact verification and consumer acceptance are **different statements**. This
   `ADMISSION_DIGEST_ONLY`; do not infer stronger identity. Temporary native paths
   such as `verification.artifact.path` do **not** survive a service invocation.
   Independently hash the actual bytes opened by the target consumer.
+- **Agent:** inspect `nativeIdentityAssessment` separately from
+  `requiredEvidenceAssessment`. Both must be complete before claiming complete
+  Profile evidence. A mismatching native Profile, subject digest, byte count
+  or contract digest is a contradiction; missing legacy fields are
+  `NOT_EVALUATED`, never implicit `PASS`.
+- **Human:** request a native report identifying exactly the submitted object
+  and contract. Native readback proves only the bytes it actually opened;
+  reconcile that identity with Artifact before accepting cross-Owner reuse.
 - Evidence must preserve three independent boundaries:
   1. **Byte identity** — the exact subject and contract that were validated
   2. **Profile claims** — every required native claim that is actually supported and complete

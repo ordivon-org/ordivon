@@ -109,6 +109,15 @@ class SnapshotIdentityTests(unittest.TestCase):
                     facts = {name: {"status": "PASS"} for name in profile_data["requiredEvidence"]}
                     return {
                         "status": "PASS",
+                        "profileId": "audio-wave-pcm16-r1",
+                        "artifact": {
+                            "path": str(staged_subject),
+                            "sha256": digest(staged_subject.read_bytes()),
+                            "size": staged_subject.stat().st_size,
+                        },
+                        "contract": {
+                            "sha256": digest(staged_contract.read_bytes()),
+                        },
                         "nativeFacts": facts,
                         "claimResults": {
                             name: {"status": "PASS", "nativePointers": [f"/nativeFacts/{name}"]}
