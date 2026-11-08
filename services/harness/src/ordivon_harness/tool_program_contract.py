@@ -6,10 +6,10 @@ round-trip the action without importing the executor or opening a Tool surface.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, cast
 
-from anc_canonical import JsonValue, canonical_bytes, canonical_digest, validate_json_value
+from anc_canonical import JsonValue, canonical_bytes, canonical_digest, loads_strict, validate_json_value
 
 
 _OBSERVATION_REF_KEY = "$harnessObservationRef"
@@ -199,11 +199,22 @@ class HarnessToolProgramAction:
 
     action_call_id: str
     program: HarnessToolProgram
+    # Admission-time canonical bytes, not a second durable journal.
+    _admitted_bytes: bytes = field(init=False, repr=False, compare=False)
+    _admitted_digest: str = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         _text(self.action_call_id, "ToolProgram action Call identity", max_bytes=300)
         if not isinstance(self.program, HarnessToolProgram):
             raise TypeError("ToolProgram action requires HarnessToolProgram")
+        wire = self.to_dict()
+        object.__setattr__(self, "_admitted_bytes", canonical_bytes(wire))
+        object.__setattr__(self, "_admitted_digest", canonical_digest(wire))
+
+    def require_admitted_snapshot(self) -> None:
+        # Nested JSON mappings are mutable despite frozen dataclasses.
+        # Serialization is also an authority boundary, not just dispatch.
+        self.to_dict()
 
     @property
     def physical_tool_calls(self) -> int:
@@ -211,7 +222,8 @@ class HarnessToolProgramAction:
 
     @property
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        self.require_admitted_snapshot()
+        return self._admitted_digest
 
     def to_dict(self) -> dict[str, JsonValue]:
         value: dict[str, JsonValue] = {
@@ -222,6 +234,11 @@ class HarnessToolProgramAction:
             "physicalToolCalls": self.physical_tool_calls,
         }
         validate_json_value(value)
+        if hasattr(self, "_admitted_bytes"):
+            if canonical_bytes(value) != self._admitted_bytes:
+                raise ValueError("ToolProgram action changed after admission")
+            # Public serialization must not alias admitted nested JSON.
+            return cast(dict[str, JsonValue], loads_strict(self._admitted_bytes))
         return value
 
     @classmethod

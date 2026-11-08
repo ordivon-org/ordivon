@@ -10,12 +10,11 @@ from ..protocol import (
     HarnessToolStepReceipt,
 )
 from ..run_state import HarnessRunState
-from ..sqlite_store import SQLiteHarnessStore
-from ..store import HarnessRunEventRecord
+from ..store import HarnessRunEventRecord, HarnessStore
 from .continuity_records import HarnessDispatchFenceV2
 from .run_store_port import HarnessRunStoreBinding
 
-# Contract checks and read-only Tool Event validation; callers retain SQLite leases and event writes.
+# Read-only contract and Tool Event validation; Store transactions belong to the caller.
 
 
 _TOOL_EVENT_KINDS = frozenset(
@@ -102,7 +101,7 @@ def required_event_digest(data: dict[str, JsonValue], field: str) -> str:
 def validate_tool_event(
     event: HarnessRunEventRecord,
     *,
-    store: SQLiteHarnessStore,
+    store: HarnessStore,
     harness_run_id: str,
     binding: HarnessRunStoreBinding,
     allow_tool_content: bool,
