@@ -369,3 +369,31 @@ The existing search contract deliberately retains entries with an observation
 error (UNKNOWN) even under includeUnavailable=false; consumers MUST inspect
 each returned descriptor's available and observation_error fields rather than
 assuming that search filtering proves a ready provider.
+
+## Linux release: qualify the actual systemd service identity
+
+The stable Gateway unit uses systemd DynamicUser and ProtectHome. The
+release Python must be executable by that identity, including every parent
+directory of its resolved interpreter path. An SDK/venv check run as root
+cannot establish this. Do not use an interpreter beneath /root or /home for
+the production service: systemd ProtectHome can make it inaccessible even
+when its final binary has execute bits.
+
+Use the existing qualified Python located inside the Gateway service
+deployment prefix; the isolated Python 3.15.1 download path is not always
+resolvable through the local uv release catalog. For real Linux promotion,
+set ORDIVON_GATEWAY_RELEASE_SERVICE_USER=ordivon-gateway alongside the
+existing ORDIVON_GATEWAY_RELEASE_PYTHON and
+ORDIVON_GATEWAY_RELEASE_UV release settings. The native installer checks
+both the installed Python package import and the exact
+opentelemetry-instrument entrypoint via runuser under that service account
+BEFORE moving the current pointer. If this preflight fails, the installed
+service remains at the previous source cut. Keep a known-good release
+directory for operational rollback; after a successful promotion, restart
+the standard systemd unit and validate health, protected ingress and Owner
+readback. On a disposable CI prefix without an installed service identity,
+omit the release service user setting.
+
+This is a service-account execution acceptance test, not a proof of all
+systemd namespace isolation or production effect correctness. See the
+upstream systemd.exec User, DynamicUser and ProtectHome contracts.
