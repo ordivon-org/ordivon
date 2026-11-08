@@ -12,6 +12,13 @@ The generic namespace, forwarding, target and carrier SourceCut now belong to `s
 
 The provider witness checks service selection, no namespace default route, real HTTPS proxy CONNECT and allowed origin status for OpenAI, OCI Registry and Anthropic. OKX additionally requires CONNECT 200, origin HTTP 200 and valid time JSON. Process liveness alone is not sufficient.
 
+While Gluetun is selected, the native Browserless materialization first
+requires the legacy target and WireGuard/DNS/carrier Units to be inactive.
+It then refreshes **only their inert systemd Unit files** and performs
+`daemon-reload`; it never starts or enables the legacy provider, changes its
+WireGuard profile, or restarts the selected Gluetun Provider. This keeps
+cold-rollback ownership readback in sync without creating two VPN identities.
+
 ## Inactive legacy migration path
 
 If the Gluetun marker is absent, the older Browserless WireGuard materialization and serial `production-cutover.sh` path are available for deliberate recovery. This cutover rejects before any effects while Gluetun is selected, and explicitly starts the legacy provider target; starting the compatibility target alone never starts a second VPN. On failure, rollback stops only the Browserless legacy provider target and its dedicated services; it does not disable or stop `network-v2-shared-egress.target` (the alias of `network-v2-browserless.target`) because other consumers share that substrate. `provider-switch.sh` refuses to operate while Gluetun owns the identity. Old `th-bkk` qualification is not an automatic best-server decision.

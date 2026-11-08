@@ -154,8 +154,20 @@ def test_cold_legacy_materialization_installs_complete_owner_stack_without_start
         line = (f"install -m 0644 consumers/browserless/systemd/network-v2-browserless-{unit}.service "
                 f"/etc/systemd/system/network-v2-browserless-{unit}.service")
         assert line in legacy
-        assert line not in selected
+        assert line in selected
+        # Before editing inactive cold-provider Units, fail if any may be live.
+        inactive = f"! systemctl is-active --quiet network-v2-browserless-{unit}.service"
+        assert inactive in selected
+        assert selected.index(inactive) < selected.index(line)
+    assert "! systemctl is-active --quiet network-v2-browserless-legacy-provider.target" in selected
     assert "systemctl restart" not in materialize
+    verify_selected = tasks.split("  consumer:browserless:provider-carrier:verify:", 1)[1].split(
+        "  consumer:browserless:validate:", 1
+    )[0]
+    assert 'cmp -s "consumers/browserless/systemd/$unit" "/etc/systemd/system/$unit"' in verify_selected
+    assert '--property=PartOf --value' in verify_selected
+    assert 'network-v2-browserless-legacy-provider.target' in verify_selected
+    assert '--property=NeedDaemonReload --value' in verify_selected
     verify = tasks.split("  consumer:browserless:provider-carrier:verify:", 1)[1]
     for unit in ("wireguard", "dns"):
         assert (f"cmp -s consumers/browserless/systemd/network-v2-browserless-{unit}.service "
@@ -272,8 +284,11 @@ def test_selected_gluetun_materialization_only_installs_compat_targets_and_readi
     assert "systemctl daemon-reload" in selected
     assert "install -m 0644 substrates/shared-egress/systemd/network-v2-browserless.target" in (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()
     assert "install -m 0644 consumers/browserless/systemd/network-v2-browserless-legacy-provider.target" in selected
-    assert "network-v2-browserless-provider-carrier.service" not in selected
-    assert "network-v2-browserless-wireguard.service" not in selected
+    for unit in ("wireguard", "dns", "provider-carrier"):
+        name = f"network-v2-browserless-{unit}.service"
+        assert f"! systemctl is-active --quiet {name}" in selected
+        assert f"install -m 0644 consumers/browserless/systemd/{name}" in selected
+        assert f"systemctl start {name}" not in selected
     assert "systemctl restart" not in selected
     assert "provider-switch.sh" not in selected
 

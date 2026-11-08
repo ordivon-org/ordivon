@@ -16,11 +16,18 @@ tasks:
       - task: substrate:shared-egress:materialize
       - |
         if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
-          # The selected Gluetun Provider owns the physical session and adapter.
-          # Never reinstall/enable the inactive legacy WireGuard units.
+          # Gluetun retains the sole physical session; update ONLY verified
+          # inactive legacy Unit bytes so rollback does not inherit stale PartOf.
           systemctl is-active --quiet network-v2-gluetun-owned.service
           systemctl is-active --quiet network-v2-gluetun-owned-adapter.service
+          ! systemctl is-active --quiet network-v2-browserless-legacy-provider.target
+          ! systemctl is-active --quiet network-v2-browserless-wireguard.service
+          ! systemctl is-active --quiet network-v2-browserless-dns.service
+          ! systemctl is-active --quiet network-v2-browserless-provider-carrier.service
           install -d -m 0755 /usr/local/libexec/network-v2
+          install -m 0644 consumers/browserless/systemd/network-v2-browserless-wireguard.service /etc/systemd/system/network-v2-browserless-wireguard.service
+          install -m 0644 consumers/browserless/systemd/network-v2-browserless-dns.service /etc/systemd/system/network-v2-browserless-dns.service
+          install -m 0644 consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
           install -m 0644 consumers/browserless/systemd/network-v2-browserless-legacy-provider.target /etc/systemd/system/network-v2-browserless-legacy-provider.target
           # Only a daemon-reload: no selected Provider or Consumer restart.
           systemctl daemon-reload
@@ -72,6 +79,12 @@ tasks:
         if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
           ! systemctl is-active --quiet network-v2-browserless-legacy-provider.target
           ! systemctl is-enabled --quiet network-v2-browserless-legacy-provider.target
+          for unit in network-v2-browserless-wireguard.service network-v2-browserless-dns.service network-v2-browserless-provider-carrier.service; do
+            ! systemctl is-active --quiet "$unit"
+            cmp -s "consumers/browserless/systemd/$unit" "/etc/systemd/system/$unit"
+            test "$(systemctl show "$unit" --property=PartOf --value)" = network-v2-browserless-legacy-provider.target
+            test "$(systemctl show "$unit" --property=NeedDaemonReload --value)" = no
+          done
         fi
       - |
         if test -e /etc/network-v2/gluetun/m4-owned-mode.selected; then
