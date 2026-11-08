@@ -46,6 +46,47 @@ source rights and retention release before any concrete auto-GC. This model
 is a reusable *thought LEGO*, not a deployed publisher. No storage engine or
 central registry has been implemented for it.
 
+## Multi-version reader and delayed-reclamation safety (two generations)
+
+The existing single-snapshot `formal/DataPublication.lean` cannot express
+a consumer pinned to V1 while V2 is published. A separate bounded
+`formal/DataMultiVersion.lean` now models an already committed old version,
+a candidate new version, atomic active-version pointer switch, V1/V2 reader
+counts and old-version retention release. The Lean kernel checks:
+
+- Every reachable active V2 was validated AND committed before its switch.
+- Every reachable reclaimed V1 has no old-version readers, has cleared
+  retention, and is no longer the active head.
+- Switching the head never changes the count of already pinned V1 readers.
+- An uncommitted direct switch and early reclamation with an old reader are
+  explicit unsafe-state counterexamples; neither is silently counted as a
+  legal transition.
+- Concrete **reachable** transition traces exhibit a V1 reader surviving
+  a V2 pointer swap, then V1 becoming reclaimable only after that reader
+  releases its reference and retention clearance is asserted. This avoids a
+  vacuous proof in which publication or reclamation is never reachable.
+
+This mirrors **control-state** ideas from PostgreSQL MVCC, Iceberg's
+committed metadata-pointer swap and Linux RCU's delayed-reclamation
+principle. It does **not** implement any of those algorithms, guarantee
+distributed atomic file publication, prove liveness, grant retention
+clearance, or authenticate a reader's file bytes. The verified model has
+two generations, unbounded natural-number reader counters and idealized
+atomic transitions. This is not a proven arbitrary-version production
+registry, a PG implementation proof, or a physical lease/GC mechanism.
+
+Source-to-model witness (different layer): Finance Accounting's real
+PostgreSQL Paper tests under
+`domains/capital/tests/test_paper_head_readback.py` verify a transaction
+that writes receipts/ledger state before commit remains invisible, old
+repeatable-read snapshots persist after another writer commits, same-key
+concurrent writes conflict, an actual killed backend rolls back its
+uncommitted effects, and the old committed receipt survives. Real PostgreSQL
+18.6 disposable cluster and restart qualification are distinct from the
+Lean theorem: PG MVCC snapshot is **not** an Artifact/file lease and cannot
+justify deleting Parquet still referenced outside its DB. Retain physical
+tests and require domain/Persistence/consumer GC evidence before auto-delete.
+
 ## Formal boundary / proof obligations
 
 - **Identity and version:** for the same `(product_id, version)`, admission
