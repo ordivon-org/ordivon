@@ -4,14 +4,20 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from tools.repo.check_sql_dialects import (
     OSQUERY_DEFAULT_TIMEOUT_SECONDS,
     OSQUERY_TIMEOUT_SECONDS,
+    PG_RUNTIME_EPOCH_SHAPE,
+    PG_RUNTIME_SCHEDULER_SHAPE,
+    POSTGRESQL_RUNTIME_EPOCH,
+    POSTGRESQL_RUNTIME_SCHEDULER,
     ROOT,
     SQLITE_LEGACY_SOURCE_CALLS,
     classify,
     host_postgres_only_sources,
+    postgres_runtime_ddl_qualified,
     sqlite_debt_issues,
     sqlite_direct_calls,
     tracked_owner_sqlite_calls,
@@ -274,7 +280,43 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         self.assertEqual(classify("platform/workstation/inventory/queries/uptime.sql"), "osquery")
         self.assertEqual(classify("studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql"), "postgresql")
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"), "postgresql")
+        self.assertEqual(classify("services/runtime/sql/pg_resource_scheduler_v1.sql"), "postgresql")
         self.assertEqual(classify("catalogs/capabilities/ele/schema.sql"), "postgresql")
+
+    def test_postgresql_owner_ddl_structure_has_named_negative_controls(self):
+        # A self-contained AST-shaped fixture tests the acceptance decision
+        # without creating a dependency on pglast in general Python unit tests.
+        # The native repo gate separately uses pinned pglast against real SQL.
+        def fixture(shape):
+            parsed = []
+            for index, (node_type, relation, index_name) in enumerate(shape):
+                node = type(node_type, (), {})()
+                if relation is not None:
+                    node.relation = SimpleNamespace(relname=relation)
+                if index_name is not None:
+                    node.idxname = index_name
+                if node_type == "TransactionStmt":
+                    node.kind = 0 if index == 0 else 2
+                parsed.append(SimpleNamespace(stmt=node))
+            return parsed
+
+        for path, shape in (
+            (POSTGRESQL_RUNTIME_EPOCH, PG_RUNTIME_EPOCH_SHAPE),
+            (POSTGRESQL_RUNTIME_SCHEDULER, PG_RUNTIME_SCHEDULER_SHAPE),
+        ):
+            expected = fixture(shape)
+            self.assertTrue(postgres_runtime_ddl_qualified(path, expected))
+            self.assertFalse(postgres_runtime_ddl_qualified(path, []))
+            wrong_name = list(shape)
+            table = next(i for i, item in enumerate(shape) if item[0] == "CreateStmt")
+            wrong_name[table] = ("CreateStmt", "unexpected_table", None)
+            self.assertFalse(postgres_runtime_ddl_qualified(path, fixture(wrong_name)))
+            extra_drop = list(shape)
+            extra_drop.insert(-1, ("DropStmt", "job_allocations", None))
+            self.assertFalse(postgres_runtime_ddl_qualified(path, fixture(extra_drop)))
+            wrong_commit = fixture(shape)
+            wrong_commit[-1].stmt.kind = 0
+            self.assertFalse(postgres_runtime_ddl_qualified(path, wrong_commit))
 
     def test_full_host_package_queries_are_bounded_and_not_downgraded(self):
         self.assertEqual(OSQUERY_TIMEOUT_SECONDS["python_packages.sql"], 120)
