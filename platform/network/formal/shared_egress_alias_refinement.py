@@ -99,6 +99,18 @@ def prove(repo: Path) -> dict:
             require(unit not in base, f"duplicate unit: {unit}")
             base[unit] = unit_edges(old_text)
             projected[unit] = {OLD if dep == NEW else dep for dep in unit_edges(new_text)}
+    provider_target = "network-v2-gluetun-owned.target"
+    provider_rel = f"{PREFIX}/providers/gluetun/systemd/{provider_target}"
+    provider_before, provider_after = before(repo, provider_rel), now(repo, provider_rel)
+    require(NEW in provider_after and OLD not in provider_after,
+            f"provider target not migrated: {provider_rel}")
+    require(provider_after.replace(NEW, OLD) == provider_before,
+            f"provider target has extra semantic delta: {provider_rel}")
+    require(provider_target not in base, "provider target duplicate")
+    base[provider_target] = unit_edges(provider_before)
+    projected[provider_target] = {
+        OLD if dep == NEW else dep for dep in unit_edges(provider_after)
+    }
     for owner, config in (("chat-ingress", "egress.json"), ("claude", "authority.json")):
         rel = f"{PREFIX}/consumers/{owner}/config/{config}"
         old, new = json.loads(before(repo, rel)), json.loads(now(repo, rel))
@@ -119,16 +131,22 @@ def prove(repo: Path) -> dict:
     mutant[victim].add("ordivon-formal-rogue.target")
     require(reachable({**b, victim: mutant[victim]}, victim) != reachable(a, victim),
             "negative edge mutant escaped graph-refinement proof")
+    provider_mutant = {name: set(deps) for name, deps in projected.items()}
+    provider_mutant[provider_target].add("ordivon-formal-unapproved-provider.target")
+    require(reachable({**b, provider_target: provider_mutant[provider_target]},
+                      provider_target) != reachable(a, provider_target),
+            "provider dependency mutation escaped proof")
     return {
         "kind": "ordivon.network.formal-shared-egress-alias-refinement",
         "standing": "SOURCE_REFINEMENT_PROVED",
         "method": "finite graph canonicalization and exhaustive transitive closure",
         "baseRevision": BASE,
         "consumerModules": len(UNITS),
+        "providerTargets": 1,
         "unitFiles": len(base),
         "graphNodes": len(nodes),
         "aliasMapping": {NEW: OLD},
-        "negativeControl": "extra dependency changes reachability",
+        "negativeControl": "consumer and provider extra dependencies change reachability",
         "unproved": ["installed and loaded systemd drop-ins", "process PID continuity",
                      "physical VPN/UDP/DNS/IPv6", "real iPad and other app traffic"],
     }
