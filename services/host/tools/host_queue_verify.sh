@@ -25,9 +25,14 @@ if [[ -z "${ORDIVON_HOST_V2_TEST_DSN:-}" ]]; then
   # Dynamic identity and loopback-only port: never drop a shared service database.
   identity="ordivon-host-ci-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}-${RANDOM}"
   password="$(openssl rand -hex 24)"
+  # Build a disposable PostgreSQL 18 image from the pinned upstream pg_bigm
+  # release. Do not add search authority outside PostgreSQL.
+  image="ordivon-host-postgres18-bigm:1.2-20250903"
+  docker build --quiet --tag "$image" --file packaging/Postgres18Bigrams.Dockerfile packaging
   container="$(docker run --detach --rm --name "$identity" \
     --env POSTGRES_USER=ordivon_ci --env POSTGRES_DB=ordivon_ci \
-    --env "POSTGRES_PASSWORD=$password" -p 127.0.0.1::5432 postgres:18)"
+    --env "POSTGRES_PASSWORD=$password" -p 127.0.0.1::5432 "$image" \
+    -c shared_preload_libraries=pg_bigm)"
   ready=false
   for _ in {1..60}; do
     if docker exec "$container" pg_isready -U ordivon_ci -d ordivon_ci >/dev/null 2>&1; then
@@ -74,6 +79,11 @@ if [[ ! "$pg_version" =~ ^[0-9]+$ ]] || (( pg_version / 10000 != 18 )); then
   echo "HOST_QUEUE_POSTGRES_MAJOR_INVALID: expected 18" >&2
   exit 4
 fi
+
+# Provision the trusted upstream extension in this disposable database as the
+# temporary database owner. Production provisioning uses its PostgreSQL owner.
+PGCONNECT_TIMEOUT=5 psql -X -v ON_ERROR_STOP=1 "$ORDIVON_HOST_V2_TEST_DSN" \
+  -c "CREATE EXTENSION IF NOT EXISTS pg_bigm" >/dev/null
 
 # Alembic owns schema creation; never select unrelated production DSN.
 export ORDIVON_HOST_V2_DSN="$ORDIVON_HOST_V2_TEST_DSN"

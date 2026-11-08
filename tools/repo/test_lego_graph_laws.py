@@ -2540,7 +2540,7 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     assert {"HostService schema gate", "WorkStore PostgreSQL transaction consumer",
             "SocialStore PostgreSQL transaction consumer",
             "AttentionStore PostgreSQL transaction consumer"} <= set(nodes["O04"]["consumers"])
-    assert "REQUIRED_SCHEMA_VERSION = 12" in host_text
+    assert "REQUIRED_SCHEMA_VERSION = 13" in host_text
     assert "schema_version" in host_text
 
 

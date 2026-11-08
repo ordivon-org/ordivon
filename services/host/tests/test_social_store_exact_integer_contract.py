@@ -158,14 +158,14 @@ def test_host_search_preserves_cjk_literal_substring_and_english_fts(monkeypatch
 
     monkeypatch.setattr(social_store.psycopg, "connect", lambda *_args, **_kw: FakeConnection())
     store = SocialStore("postgresql://not-used/host")
-    for query, mode in (("终端消费", "trigram"), ("中", "strpos"),
-                        ("终端_%#消费", "trigram"), ("LEGO", "fts"), ("中文 LEGO", "fts")):
+    for query, mode in (("终端消费", "bigram"), ("终端", "bigram"), ("中", "strpos"),
+                        ("终端_%#消费", "bigram"), ("LEGO", "fts"), ("中文 LEGO", "fts")):
         observed.clear()
         result = store.search_messages(query)
         assert result["messages"] == []
         assert len(observed) == 1
         sql, args = observed[0]
-        if mode == "trigram":
+        if mode == "bigram":
             from ordivon_host_v2.social_message_queries import _cjk_literal_like_pattern
             assert "body LIKE %s ESCAPE '#'" in sql
             assert args[0] == _cjk_literal_like_pattern(query)

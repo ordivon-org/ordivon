@@ -12,7 +12,7 @@ This file is a **scoped navigation pointer**, not a new policy registry, databas
 ## Locate the actual owner
 
 - **Work semantic state:** `src/ordivon_host_v2/work_store.py` (CAS), `work_queries.py` (reads), `work_relation_commands.py` (internal DAG relation mutation).
-- **Message search:** PostgreSQL pg_trgm GIN for 3+ CJK literal substring; short CJK uses strpos; others native FTS. This is not relevance ranking. See migrations/versions/0012_message_literal_trigram.py and the Owner Guide.
+- **Message search:** PostgreSQL pg_bigm GIN for 2+ CJK literal substring; single CJK uses strpos; other queries use FTS. Source is upstream PostgreSQL extension 1.2, with schema 0013 and no second search authority; see the Owner Guide.
 - **Collaboration:** `social_store.py` composes `social_space_*`, `social_topic_*`, `social_message_*` and `coordination_intent_commands.py`.
 - **Attention:** `attention_store.py` (subscriptions/acks), `attention_projections.py` and `attention_sql.py` (rebuildable navigation).
 - **MCP:** `mcp_server.py`, `mcp_tool_registration.py`, `mcp_*_tools.py`; do not invent additional northbound tools.

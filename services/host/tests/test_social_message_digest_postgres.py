@@ -104,7 +104,7 @@ def test_postgresql_search_cjk_substring_reaches_original_message() -> None:
     assert [row["messageRef"] for row in found["messages"]] == [inserted.message_ref]
     assert social.search_messages("完全无关词", topic_ref=original.topic_ref)["messages"] == []
 
-def test_postgresql_cjk_trigram_pattern_is_literal_with_reserved_chars() -> None:
+def test_postgresql_cjk_bigram_pattern_is_literal_with_reserved_chars() -> None:
     # Actual PostgreSQL consumer proves the LIKE escaping preserves strpos.
     assert DSN
     from ordivon_host_v2.social_message_queries import _cjk_literal_like_pattern
@@ -121,7 +121,7 @@ def test_postgresql_cjk_trigram_pattern_is_literal_with_reserved_chars() -> None
     with psycopg.connect(DSN) as conn:
         index = conn.execute(
             "SELECT i.indisvalid FROM pg_index i "
-            "WHERE i.indexrelid=to_regclass('message_body_trgm_idx')"
+            "WHERE i.indexrelid=to_regclass('message_body_bigm_idx')"
         ).fetchone()
         assert index == (True,)
         for i, phrase in enumerate(phrases):

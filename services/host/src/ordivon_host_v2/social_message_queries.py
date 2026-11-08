@@ -206,20 +206,20 @@ class SocialMessageReadQueries:
         cjk_literal = any("\u3400" <= char <= "\u9fff" for char in query) and not any(
             char.isspace() for char in query.strip()
         )
-        trigram_candidate = cjk_literal and sum(
+        bigram_candidate = cjk_literal and sum(
             "\u3400" <= char <= "\u9fff" for char in query
-        ) >= 3
+        ) >= 2
         search_predicate = (
             "body LIKE %s ESCAPE '#'"
-            if trigram_candidate
+            if bigram_candidate
             else "strpos(body,%s)>0"
             if cjk_literal
             else "to_tsvector('simple',body) @@ websearch_to_tsquery('simple',%s)"
         )
-        bound_query = _cjk_literal_like_pattern(query) if trigram_candidate else query
+        bound_query = _cjk_literal_like_pattern(query) if bigram_candidate else query
         search_boundary = (
-            "PostgreSQL CJK literal trigram locator"
-            if trigram_candidate
+            "PostgreSQL CJK literal bigram locator"
+            if bigram_candidate
             else "PostgreSQL CJK literal substring locator"
             if cjk_literal
             else "PostgreSQL full-text locator"

@@ -123,19 +123,46 @@ The theorem reuses the existing pinned Lean 4 toolchain from `tools/formal/mise.
 Proof classification: `ABSTRACT_THEOREM_PROVED`; `BOUNDED_MODEL_VERIFIED`; `IMPLEMENTATION_REFINEMENT_PARTIAL` (SQL semantics plus real native PG oracle); `INSTALLED_CURRENT` must be checked against exact release SHA after publication.
 
 
-## 11. PostgreSQL-native literal search, no second search authority
+## 11. PostgreSQL-native CJK literal search (Schema 13)
 
-The original Host CJK substring lookup used strpos(body, query) without an
-index-supported predicate. Schema 0012 installs the trusted PostgreSQL
-pg_trgm extension and a concurrent GIN index on messages.body. For unspaced
-CJK queries with three or more CJK codepoints, the implementation generates
-a bound LIKE pattern with ESCAPE '#', escaping '#', '%' and '_'. Shorter
-CJK queries retain strpos. Non-CJK and spaced queries retain simple FTS.
-Order stays descending message sequence, not relevance ranking.
+Schema 12 installed the PostgreSQL pg_trgm extension and a GIN index.
+A production query-plan falsification found that CJK phrases such as
+"终端消费" produce no usable trigrams in the cluster: the 54 MB index
+did not accelerate that query. Schema 13 explicitly retires that index.
 
-Human: run the isolated PostgreSQL 18 consumer verification and inspect
-EXPLAIN for actual indexed semantics, not assumed speedups. Agent: call the
-published message.search with a literal phrase and bounded cursor. A '%',
-'_' or '#' in a phrase is content, not a search operator.
+**Current consumer semantics:** For contiguous phrases with at least two
+CJK code points, the Host builds a bound LIKE pattern with ESCAPE '#',
+escaping every literal '#', '%' and '_' character. The database uses
+the upstream pg_bigm 1.2 GIN operator class on messages.body. One-CJK
+phrases retain the exact strpos search, and non-CJK or spaced phrases
+retain the existing PostgreSQL full-text path. Ordering stays
+sequence_desc; no relevance rank, tokenizer state, new ledger or data
+copy is introduced.
 
-Upstream: https://www.postgresql.org/docs/current/pgtrgm.html
+**Provisioning and recovery:** Install official pg_bigm v1.2-20250903
+(commit 735dceba0ecdd8ac1aaaaa207226a7102b6bbd71) for exactly the
+running PostgreSQL major version. A PostgreSQL administrator creates
+the extension in the Host database and configures session-local preload
+for Host's database/role; there is no reason to restart the shared
+cluster or change other Owners' PostgreSQL settings. The Alembic 0013
+migration requires extension version 1.2, builds message_body_bigm_idx
+CONCURRENTLY and retires message_body_trgm_idx CONCURRENTLY. Its own
+interrupted, invalid index is explicitly recoverable by rerun. It
+does not drop the pg_trgm extension or alter durable messages. Never
+claim a schema downgrade can restore dropped indexes without a proof.
+
+**Human:** Verify the official Host package and PG18 extension versions,
+then run mise run test:postgres:disposable and the standard
+packaging/install_release.sh. Read back exact installed Git SHA,
+host.status(detail=integrity), pg_index validity, EXPLAIN ANALYZE,
+and real message.search. Separate the source proof, schema migration,
+online index selection and latency observation.
+
+**Agent:** Navigate through services/host/AGENTS.md to the published
+message.search MCP tool, send literal phrases without interpreting '%'
+or '_' as wildcards, and respect bounded cursors. The Host message body
+is collaboration evidence, never domain acceptance or effect authority.
+Follow the owner-native readback chain before committing Work state.
+
+References: https://github.com/pgbigm/pg_bigm
+https://pgbigm.github.io/pg_bigm/pg_bigm_en.html
