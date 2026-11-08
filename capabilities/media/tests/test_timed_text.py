@@ -70,6 +70,68 @@ class TimedTextTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     validate_timed_text_delivery(document, media_duration_seconds="3.000")
 
+    def test_submillisecond_cue_is_not_silently_exported_as_zero_duration(self) -> None:
+        # Former real counterexample: valid 0.1 ms source becomes 0 --> 0 ms
+        # in both delivery formats, which is not a valid WebVTT cue interval.
+        document = {
+            "language": "en",
+            "timeBase": {"ticksPerSecond": 10_000},
+            "cues": [
+                {
+                    "id": "short",
+                    "startTick": 1,
+                    "endTick": 2,
+                    "text": "A",
+                    "status": "locked",
+                    "kind": "caption",
+                }
+            ],
+        }
+        result = validate_timed_text_delivery(document, media_duration_seconds="1")
+        self.assertFalse(result["ok"])
+        self.assertTrue(any("collapses at millisecond" in err for err in result["errors"]))
+        for encoder in (export_srt, export_webvtt):
+            with self.subTest(format=encoder.__name__):
+                with self.assertRaisesRegex(ValueError, "short interval collapses"):
+                    encoder(document)
+
+    def test_millisecond_rounding_matches_independent_integer_oracle(self) -> None:
+        # Bounded implementation-refinement witness for exactly the modeled
+        # quotient/remainder and ties-even decision, not a universal Python proof.
+        from ordivon_studio.timed_text import _milliseconds
+
+        rates = (1, 24, 25, 30, 1000, 2000, 1001, 10_000, 48_000)
+        ticks = tuple(range(0, 90)) + (1_000_001, 10**16 + 3)
+        for rate in rates:
+            for tick in ticks:
+                quotient, remainder = divmod(tick * 1000, rate)
+                if 2 * remainder < rate:
+                    expected = quotient
+                elif 2 * remainder > rate:
+                    expected = quotient + 1
+                else:
+                    expected = quotient + (quotient % 2)
+                self.assertEqual(_milliseconds(tick, rate), expected, (tick, rate))
+
+    def test_exact_rational_millisecond_conversion_preserves_representable_cues(self) -> None:
+        document = {
+            "language": "en",
+            "timeBase": {"ticksPerSecond": 10_000},
+            "cues": [
+                {
+                    "id": "representable",
+                    "startTick": 10,
+                    "endTick": 20,
+                    "text": "Exactly one millisecond",
+                    "status": "locked",
+                    "kind": "dialogue",
+                },
+            ],
+        }
+        self.assertTrue(validate_timed_text_delivery(document, media_duration_seconds="1")["ok"])
+        self.assertIn("00:00:00.001 --> 00:00:00.002", export_webvtt(document))
+        self.assertIn("00:00:00,001 --> 00:00:00,002", export_srt(document))
+
     def test_delivery_validation_binds_locked_cues_to_media_duration(self) -> None:
         result = validate_timed_text_delivery(DOCUMENT, media_duration_seconds="3.000")
         self.assertTrue(result["ok"])
