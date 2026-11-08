@@ -47,13 +47,24 @@ of its actual requests is a separate consumer acceptance obligation.
 ## Windows process-level observation (DEV-01)
 
 Use the mature upstream psutil library for a read-only snapshot of already
-running Windows desktop and Codex processes in the interactive user context:
+running Windows desktop and Codex processes:
 
     uv run --no-project --with 'psutil>=7,<8' python consumers/codex/windows_process_egress.py
 
+The **default proxy port is now 19781**, matching the Windows Desktop
+system-proxy/shared-egress path. Port 19982 is the *distinct Linux scoped*
+Codex transport and can be explicitly selected with `--proxy-port 19982`.
+The older 19982 default silently missed the two real Session 1 Codex TCP
+connections observed on Windows at 127.0.0.1:19781.
+
 This source-owned one-shot LEGO reports only names/PIDs, HTTP(S) proxy
 environment binding classification, whether a process predates the .codex/.env
-file and aggregated local-proxy versus nonlocal TLS socket counts. It never
+file and aggregated local-proxy versus nonlocal TLS socket counts.
+A local-proxy TCP socket is now reported **even when proxy environment is
+UNSET or UNREADABLE**: Windows Desktop commonly uses a system-proxy
+setting rather than HTTP_PROXY/HTTPS_PROXY. When both proxy and external
+TCP/443 sockets exist, the observation reports both without inventing
+which application request used either one. It never
 prints proxy values, credentials, remote addresses or command lines. Unreadable
 processes are UNKNOWN, not empty. Its standing is always
 END_TO_END_EGRESS_UNKNOWN: a scoped environment and even an observed proxy TCP

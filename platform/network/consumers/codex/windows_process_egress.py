@@ -13,10 +13,15 @@ import json
 from pathlib import Path
 from urllib.parse import urlsplit
 
-TARGETS = {"codex.exe", "chatgpt.exe", "codex-code-mode-host.exe"}
+# Desktop and known child components are observed independently; no inference
+# that one process socket proves the networking of its whole process tree.
+TARGETS = {
+    "codex.exe", "chatgpt.exe", "codex-code-mode-host.exe",
+    "codex-computer-use-swift.exe",
+}
 
 
-def proxy_env_state(env: dict[str, str], port: int = 19982) -> str:
+def proxy_env_state(env: dict[str, str], port: int = 19781) -> str:
     http = [env[k] for k in ("HTTP_PROXY", "http_proxy") if k in env]
     https = [env[k] for k in ("HTTPS_PROXY", "https_proxy") if k in env]
     if not http and not https:
@@ -34,8 +39,13 @@ def proxy_env_state(env: dict[str, str], port: int = 19982) -> str:
 
 
 def socket_observation(env_state: str, proxy_count: int, tls_count: int) -> str:
-    if env_state == "SCOPED" and proxy_count > 0:
-        return "SCOPED_PROXY_SOCKET_OBSERVED"
+    # Socket observations are independent of proxy environment variables:
+    # Windows Desktop normally reads system proxy instead of HTTP_PROXY.
+    # A proxy socket is positive evidence, never a universal no-bypass proof.
+    if proxy_count > 0 and tls_count > 0:
+        return "PROXY_AND_OTHER_TLS_SOCKETS_OBSERVED"
+    if proxy_count > 0:
+        return "LOCAL_PROXY_SOCKET_OBSERVED"
     if tls_count > 0:
         return "NONLOCAL_TLS_SOCKET_OBSERVED"
     return "NOT_OBSERVED"
@@ -86,13 +96,21 @@ def observe(psutil: object, profile: Path, port: int) -> dict:
         "standing": "END_TO_END_EGRESS_UNKNOWN",
         "observedAtUtc": dt.datetime.now(dt.timezone.utc).isoformat(),
         "expectedProxy": f"127.0.0.1:{port}",
+        "proxyPortRole": (
+            "windows-desktop-shared-carrier" if port == 19781
+            else "explicitly-selected-proxy"
+        ),
+        "processSocketScope": "point-in-time TCP, not complete application egress",
+        "windowsSystemProxyPolicy": "NOT_EVALUATED",
         "profileExists": modified is not None,
         "observedProcessCount": len(observed),
         "processes": sorted(observed, key=lambda row: (row["process"], row["pid"])),
         "unproved": [
-            "actual Codex API request ownership",
-            "independent Gluetun Carrier forwarding",
-            "Windows VPN/DNS/IPv6 routing",
+            "real Codex API request ownership and full request tracing",
+            "independent same-request Gluetun Carrier forwarding",
+            "all process descendants and unobserved short-lived sockets",
+            "interactive-user system proxy configuration",
+            "Windows UDP/QUIC, DNS/DoH, IPv6 and direct bypass",
         ],
     }
 
@@ -100,7 +118,7 @@ def observe(psutil: object, profile: Path, port: int) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", type=Path, default=Path.home() / ".codex" / ".env")
-    parser.add_argument("--proxy-port", type=int, default=19982)
+    parser.add_argument("--proxy-port", type=int, default=19781)
     args = parser.parse_args()
     import psutil
     print(json.dumps(observe(psutil, args.profile, args.proxy_port), sort_keys=True))
