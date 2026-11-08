@@ -3,21 +3,18 @@ from __future__ import annotations
 from typing import Any
 
 import psycopg
-from psycopg.rows import dict_row
 
 from .attention_projections import AttentionReadProjections
 from .attention_projections import TargetKind as TargetKind
 from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ActorRefNotFound, ConflictError, WorkNotFound
+from .postgres_connections import HostPostgresConnections
 from .social_errors import SpaceNotFound, TopicNotFound
 
 
-class AttentionStore(AttentionReadProjections):
+class AttentionStore(AttentionReadProjections, HostPostgresConnections):
     """Actor-scoped navigation compiled directly from owner rows, not a second event bus."""
-
-    def __init__(self, dsn: str) -> None:
-        self.dsn = dsn
 
     def follow(
         self,
@@ -30,7 +27,7 @@ class AttentionStore(AttentionReadProjections):
         # Desired-state command: natural-key membership is the replay contract. A later
         # unfollow must not make a same-payload follow replay an obsolete historical receipt.
         _ = client_request_id
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             self._require_actor(conn, actor_ref)
             self._require_target(conn, target_kind, target_ref)
             row = conn.execute(
@@ -71,7 +68,7 @@ class AttentionStore(AttentionReadProjections):
     ) -> dict[str, Any]:
         # Desired-state command; deleting an absent natural key is already replay-safe.
         _ = client_request_id
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             self._require_actor(conn, actor_ref)
             deleted = conn.execute(
                 "DELETE FROM subscriptions WHERE actor_ref=%s AND target_kind=%s AND target_ref=%s "
@@ -94,7 +91,7 @@ class AttentionStore(AttentionReadProjections):
             raise ValueError("cursor must be non-negative")
         request = {"operation": "attention.ack", "actorRef": actor_ref, "cursor": cursor}
         request_digest = canonical_digest(request)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(conn, client_request_id, "attention.ack", request_digest)
             if replay is not None:
                 return replay

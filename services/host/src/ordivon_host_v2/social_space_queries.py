@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import Any
 
 import psycopg
-from psycopg.rows import dict_row
 
 from .canonical_json import canonical_bytes
 from .collection_pagination import (
@@ -44,7 +43,7 @@ class SocialSpaceReadQueries:
         ):
             raise ValueError("embedded participant/topic limits must be in [1,200]")
         validate_max_bytes(max_bytes, minimum=MIN_SPACE_MAX_BYTES)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             return self._get_space_in_tx(
                 conn,
@@ -65,7 +64,7 @@ class SocialSpaceReadQueries:
         if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_space(conn, space_ref)
             rows = conn.execute(
@@ -112,7 +111,7 @@ class SocialSpaceReadQueries:
         if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_space(conn, space_ref)
             rows = conn.execute(
@@ -171,7 +170,7 @@ class SocialSpaceReadQueries:
         if (before_created_at is None) != (before_space_ref is None):
             raise ValueError("before_created_at and before_space_ref must be supplied together")
         validate_max_bytes(max_bytes)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             if actor_ref is not None:
                 self._require_actor(conn, actor_ref)
