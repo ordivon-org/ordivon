@@ -330,6 +330,12 @@ jobs:
           # even when the Formal mise install has succeeded. Preserve the
           # native proof gate and install its prerequisite instead of skipping.
           rustup toolchain install 1.99.1 --profile minimal
+          # Kani 0.68.0's pinned proxy auto-installs its release bundle and
+          # rustup toolchain on first invocation. Do this BEFORE the 90-second
+          # mathematical proof timeouts; never count network/bootstrap as
+          # a proof, suppress initialization failures or accept a stale receipt.
+          # The same KANI_HOME in this step is used by the later verifier.
+          mise -C tools/formal exec -- kani --version
           receipt="$RUNNER_TEMP/ordivon-core-formal-report.json"
           mise run formal:verify > "$receipt"
           qualify_formal_prefix || {
