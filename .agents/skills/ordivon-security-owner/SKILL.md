@@ -16,10 +16,11 @@ license: MIT
 - Artifact provenance: prefer current build-owner native GitHub actions/attest and gh attestation verify for a signed SLSA/in-toto statement, or Cosign/Sigstore for the actual producer trust profile. Do not mint build-system facts in Security; its verify_build_provenance.py only binds unsigned statement content and returns authenticated=false. The old local Python 3.12 wheel builder has been retired. When issuing Security reference/VSA material, use emit_attestations.py: it rehashes exact local inputs, binds the provider receipt and reevaluates the claimed decision with current native OPA. Even a matching unsigned VSA is not cryptographically authenticated.
 - Threats: reuse OWASP Threat Model Library, STRIDE, CWE/CAPEC; bind the model to exact architecture files.
 - Browser evidence: compare versioned detector witnesses; changed challenge outcome alone is not a root cause.
+- Consequence: a caller's `world-truth` string plus matching SHA-256 proves **content equality**, not an independent trusted observer. The current policy returns `CONTENT_MATCHED_UNVERIFIED` and never exports `verifiedConsequence` without a real trusted observation source. Never accept caller-provided `verified`, `signed`, or `issuer` fields as cryptographic verification.
 
 ## Native owner verification
 
-From `platform/security/`, run `mise run verify` for the full owner task or `MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- opa test -v --fail-on-empty policies` for the focused policy suite. A successful isolated test does **not** mean all deployed Gateways consume that policy.
+From `platform/security/`, run `mise run verify` for the full owner task or `MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- opa test -v --fail-on-empty policies` for the focused policy suite. For the existing Lean 4.35 proof of the **abstract consequence source-authenticity invariant**, run `mise run verify-formal`; it reuses `tools/formal` and is distinct from owner implementation checks. A successful isolated test or model theorem does **not** mean all deployed Gateways consume that policy or that real-world effects were verified.
 
 ## Refactor and delete
 

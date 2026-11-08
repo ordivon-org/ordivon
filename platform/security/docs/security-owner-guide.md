@@ -129,6 +129,16 @@ Human: compare the observed public egress address, dated ASN and privacy labels 
 
 Agent: request a Network-owned exact IP observation, keep provider provenance, age, confidence and fields actually present, and never infer a successful VPN tunnel from a single third-party classification.
 
+## Consequence authority / independent readback (2026-11-08)
+
+A native OPA input with a caller-generated `observation.plane="world-truth"` and matching `stateDigest` previously returned `VERIFIED_CONSEQUENCE` and `observationAuthoritative=true`. This was a genuine **model-to-source counterexample**: the JSON plane was self-asserted; no independent observer, issuer proof or effect-to-observation authentication was supplied. A digest equality comparison proves content agreement only, not truth of the observed world.
+
+The current `policies/consequence_verification.rego` therefore returns `CONTENT_MATCHED_UNVERIFIED` for matching content, `observationAuthoritative=false`, and `verifiedConsequence=null`, irrespective of caller-supplied `signed`/`verified` flags. It checks complete SHA-256 syntax rather than a prefix. The older local AF3 differential is qualified as **historical local-backend evidence**; the present differential runner expects a non-promoting outcome. No independently authenticated production observation issuer was identified in the tracked consumer search.
+
+The **existing** Lean 4.35 provider and `formal/ConsequenceEvidence.lean` prove the pure semantic obligations: a content match does not imply an authenticated independent observation, and the stronger conclusion requires both authentication and observer independence. Run `mise run verify-formal` from this Owner for model proof, and `mise run verify` for native OPA + Python + shell checks. These checks are distinct and neither proves deployed source authenticity or complete implementation refinement. Reference: the Cedar verification-guided approach (Lean specification + differential implementation tests), https://github.com/cedar-policy/cedar-spec ; https://docs.kernel.org/security/landlock.html .
+
+Before a future verified-consequence outcome is valid, the natural producing Owner must supply a source-authenticated observation with its own trusted identity, exact subject/effect and freshness binding, and real consumer readback. Reuse provider-native signed/verified receipts and the Artifact/Runtime identities rather than adding a Security-owned signing system or accepting a boolean from the same untrusted caller.
+
 ## Current observed integration gaps
 
 - The retired Gateway v1 source-only evaluator was not compatible with the current Gateway's resource-bound response. Gateway's AuthZEN-v3 adapter exists in source; deployment, coverage and complete Principal/Agent-Grants path require separate runtime evidence.
