@@ -49,3 +49,13 @@ MCPServer lifespan closes the process-owned HTTP pools. Do not enable blind
 retries for effectful Tool calls. For native evidence, exercise the real
 Gateway->Owner SDK transport including cancellation, credential rotation,
 long-lived sessions, and service stop.
+
+## R05 Owner observation timeout diagnosis (cancellation phase)
+The Gateway upstream adapter emits one warning when the MCP SDK task is
+cancelled, with natural Owner ID, tool name, phase and monotonic elapsed
+milliseconds. session_close includes possible SDK cleanup latency;
+phase_before_cleanup_ms estimates time before cleanup, while total_ms covers
+the entire call. Neither is proof of Runtime availability.
+Do not log payloads, auth headers, credentials, or Owner response bodies.
+Never interpret a projection timeout as a physical Owner outage. Compare
+native Owner RPC, Gateway projection, Windows SCM source cut and Owner logs.

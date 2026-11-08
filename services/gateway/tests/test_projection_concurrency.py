@@ -161,7 +161,7 @@ def test_invalid_observation_budget_is_rejected(timeout: float) -> None:
 
 @pytest.mark.parametrize("cancel_explicitly", [False, True])
 def test_real_sdk_legacy_cleanup_is_awaited_without_task_leaks(
-    monkeypatch: pytest.MonkeyPatch, cancel_explicitly: bool
+    monkeypatch: pytest.MonkeyPatch, cancel_explicitly: bool, caplog: pytest.LogCaptureFixture
 ) -> None:
     import json
 
@@ -248,3 +248,9 @@ def test_real_sdk_legacy_cleanup_is_awaited_without_task_leaks(
         assert asyncio.all_tasks() == {asyncio.current_task()}
 
     asyncio.run(scenario())
+    if cancel_explicitly:
+        assert any(
+            "gateway_owner_rpc_cancelled" in record.message
+            and "phase=session_close" in record.message
+            for record in caplog.records
+        )

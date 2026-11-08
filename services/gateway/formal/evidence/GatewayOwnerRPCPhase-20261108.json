@@ -1,0 +1,52 @@
+{
+  "kind": "ordivon.gateway.rpc-phase-diagnostic-evidence",
+  "schemaVersion": 1,
+  "date": "2026-11-08",
+  "sourceBase": "ef2c271a04d4",
+  "hypothesis": "Gateway Windows Owner observation latency might arise in MCP SDK session_open, tool_call, or session_close/cleanup under native service load",
+  "observedFacts": {
+    "nativeWindowsRuntimeGatewayCallerMs": [
+      767.0,
+      433.7,
+      403.7
+    ],
+    "gatewayExternalWindowsCapabilityWallMs": 7164,
+    "gatewayProjectionError": "TimeoutError",
+    "gatewayHostCapabilityWallMs": 2798,
+    "gatewayHostCapabilityAvailable": true,
+    "windowsRuntimeDirectAvailable": true,
+    "gatewayLogTailLines": 1500,
+    "gatewayLogRuntimeEndpointMentions": 170,
+    "gatewayLogTimeoutMentions": 51
+  },
+  "implementation": {
+    "operator": "McpOwnerCaller.call_tool",
+    "scope": "read-only cancellation phase logging",
+    "event": "gateway_owner_rpc_cancelled",
+    "allowlistedFields": [
+      "owner",
+      "tool",
+      "phase",
+      "total_ms",
+      "phase_before_cleanup_ms"
+    ],
+    "excludedFields": [
+      "authorization",
+      "bearer",
+      "access",
+      "payload",
+      "arguments",
+      "response_body",
+      "external_user_identity"
+    ],
+    "phases": [
+      "transport_open",
+      "session_open",
+      "tool_call",
+      "session_close"
+    ],
+    "effects": "logs only; no Gateway or Runtime state mutation, retries, caching, or API tool schema changes"
+  },
+  "verificationStage": "source candidate; native Windows service phase log remains unobserved until precise release installed",
+  "inferenceLimits": "The gateway connector's external wall time includes its own transport; direct Windows RPC probes and Gateway requests are independent samples, not a synchronized paired latency experiment."
+}
