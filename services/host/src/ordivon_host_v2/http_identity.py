@@ -31,6 +31,10 @@ class HostServiceTokenVerifier:
     """
 
     def __init__(self, path: str, resource_url: str) -> None:
+        if os.name != "posix" or not hasattr(os, "O_NOFOLLOW"):
+            raise RuntimeError(
+                "Host HTTP credential verification requires native POSIX no-follow file access"
+            )
         if not isinstance(path, str) or not Path(path).is_absolute():
             raise ValueError("Host bearer credential file must be absolute")
         self._path = path

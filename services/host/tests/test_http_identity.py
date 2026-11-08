@@ -152,3 +152,20 @@ def test_http_cli_refuses_missing_credential_before_network_bind(
     monkeypatch.delenv("ORDIVON_HOST_V2_BEARER_TOKEN_FILE", raising=False)
     with pytest.raises(RuntimeError, match="ORDIVON_HOST_V2_BEARER_TOKEN_FILE"):
         main()
+
+def test_systemd_credential_group_read_is_supported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    directory = tmp_path / "credentials"
+    directory.mkdir(mode=0o750)
+    credential = directory / "host-mcp-bearer"
+    credential.write_text("n" * 48, encoding="utf-8")
+    credential.chmod(0o440)
+    monkeypatch.setenv("CREDENTIALS_DIRECTORY", str(directory))
+    verifier = HostServiceTokenVerifier(
+        str(credential), "http://127.0.0.1:8898/mcp"
+    )
+    assert asyncio.run(verifier.verify_token("n" * 48)) is not None
+    monkeypatch.delenv("CREDENTIALS_DIRECTORY")
+    with pytest.raises(ValueError, match="permissive"):
+        HostServiceTokenVerifier(str(credential), "http://127.0.0.1:8898/mcp")
