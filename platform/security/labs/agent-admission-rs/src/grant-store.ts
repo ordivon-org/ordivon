@@ -78,8 +78,28 @@ function toSnapshot(row: GrantRow): GrantSnapshot {
   };
 }
 
+// Mirror agent_admission.rego's canonical path-segment contract exactly.
+// Do not URL-decode/normalize here: callers must supply a canonical Owner
+// resource identity. A future non-path identity needs a versioned contract.
+function canonicalScopePath(value: string): boolean {
+  return (
+    value.startsWith("/") &&
+    !value.includes("//") &&
+    !/[\\%?#\u0000-\u001f\u007f]/u.test(value) &&
+    !/(^|\/)\.{1,2}(\/|$)/u.test(value)
+  );
+}
+
 function prefixMatches(resource: string, prefixes: readonly string[]): boolean {
-  return prefixes.some((prefix) => resource.startsWith(prefix));
+  return (
+    canonicalScopePath(resource) &&
+    prefixes.some(
+      (prefix) =>
+        canonicalScopePath(prefix) &&
+        (resource === prefix ||
+          resource.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`)),
+    )
+  );
 }
 
 export class GrantStore {
@@ -192,6 +212,13 @@ export class GrantStore {
       throw new AdmissionLabError(
         "invalid_grant",
         "Grant must contain actions and resources.",
+        422,
+      );
+    }
+    if (resourcePrefixes.some((prefix) => !canonicalScopePath(prefix))) {
+      throw new AdmissionLabError(
+        "invalid_grant",
+        "Grant resource scope must be an absolute canonical resource path.",
         422,
       );
     }

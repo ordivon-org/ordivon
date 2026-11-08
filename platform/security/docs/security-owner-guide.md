@@ -151,3 +151,9 @@ Before a future verified-consequence outcome is valid, the natural producing Own
 ## Naming and retirement policy
 
 Prefer: `authorization`, `authentication`, `attestations`, `provenance`, `threat-model`, `security-observation`, `resource`, `principal`, `policy-decision`. Avoid `range-*` for generic effect decisions, unqualified `security-check` and a second custom `findings` model. Keep public versioned paths/names stable until their consumers are migrated; internal source semantics and provider-native formats take priority over cosmetic renames.
+
+## Agent Grant resource scope: Human / Agent
+
+**Human:** v1 delegated Grant resourcePrefixes are absolute canonical resource paths. Rego and the Lab now use slash-delimited segment containment, not a raw startsWith function. /comments grants /comments and /comments/a, not /comments-evil; /comments/ is subtree-only. Dot segments, percent-encoded aliases, backslashes, double slashes, queries or fragments fail closed. The natural Owner must construct and validate the target identity; neither a matching prefix nor a caller-supplied URL proves that an OS path or external URL was safely resolved. Do not interpret this path-v1 scope as a generic URI grammar.
+
+**Agent:** after editing agent_admission.rego, Lab grant-store.ts, or agent-admission-input-v0.schema.json, run mise run security:verify and mise exec -- pnpm run ci in platform/security/labs/agent-admission-rs. The owner verification includes scripts/check_agent_scope_refinement.py, a bounded OPA versus real GrantStore check against an independent canonical path specification. Keep POLICY_TESTED, CONSUMER_REFINED and DEPLOYED distinct; these checks do not prove production Owner normalization or revocation-consistent Effect commit.

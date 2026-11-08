@@ -44,7 +44,7 @@
         "agentId": {"type": "string", "minLength": 1},
         "audience": {"type": "string", "minLength": 1},
         "allowedActions": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
-        "resourcePrefixes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "resourcePrefixes": {"description": "Canonical absolute path scopes. The exact path or slash-segment descendants are allowed; encoded, dot-segment, doubled-slash, query, fragment and backslash aliases fail closed.", "type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
         "expiresAtEpochSeconds": {"type": "integer", "minimum": 0},
         "maxRiskClass": {"enum": ["R0", "R1", "R2", "R3", "R4", "R5"]},
         "stepUpAtOrAbove": {"enum": ["R0", "R1", "R2", "R3", "R4", "R5"]},
@@ -59,7 +59,7 @@
         "effectId": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "effectDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "action": {"type": "string", "minLength": 1},
-        "resource": {"type": "string", "minLength": 1},
+        "resource": {"description": "Owner-qualified canonical absolute resource path. Must obey the same path-segment grammar as resourcePrefixes; never pass raw client URLs or filesystem paths.", "type": "string", "minLength": 1},
         "audience": {"type": "string", "minLength": 1},
         "riskClass": {"enum": ["R0", "R1", "R2", "R3", "R4", "R5"]},
         "effectType": {"type": "string", "minLength": 1}

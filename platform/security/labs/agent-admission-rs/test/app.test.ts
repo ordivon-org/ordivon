@@ -235,3 +235,60 @@ test("a committed effect cannot be replayed by a different authenticated Agent",
   assert.equal(body.error, "effect_actor_mismatch");
   store.close();
 });
+
+
+test("resource grant scopes are canonical path segments, never raw startswith", () => {
+  const store = new GrantStore(":memory:");
+  const grant = (id: string, prefixes: readonly string[]) =>
+    store.createGrant({
+      grantId: id,
+      principalId: "principal:user-123",
+      agentId: "oauth-client:agent-research-17",
+      audience,
+      allowedActions: ["comment.create"],
+      resourcePrefixes: prefixes,
+      expiresAtEpochSeconds: 2_000_000_000,
+      maxRiskClass: "R3",
+      stepUpAtOrAbove: "R4",
+      remainingEffects: 4,
+    });
+  grant("grant:path", ["/comments"]);
+  const matches = (resource: string) =>
+    store.resolveUniqueGrant(
+      "oauth-client:agent-research-17",
+      audience,
+      "comment.create",
+      resource,
+      1_800_000_000,
+    );
+
+  assert.equal(matches("/comments/article-42").grantId, "grant:path");
+  assert.equal(matches("/comments").grantId, "grant:path");
+  for (const resource of [
+    "/comments-evil",
+    "/comments/../account/recovery",
+    "/comments/%2e%2e/account",
+    "/comments/./article-42",
+    "/comments//article-42",
+    "/comments/article-42?admin=true",
+    "/comments/article-42#fragment",
+    "/comments\\..\\secret",
+    "/comments/\nadmin",
+  ]) {
+    assert.throws(
+      () => matches(resource),
+      (error: unknown) => error instanceof Error && "code" in error && error.code === "grant_not_found",
+      resource,
+    );
+  }
+  for (const invalid of [
+    "/comments/../", "/comments%", "/comments//", "comments/", "/comments/./",
+  ]) {
+    assert.throws(
+      () => grant("invalid:" + invalid, [invalid]),
+      (error: unknown) => error instanceof Error && "code" in error && error.code === "invalid_grant",
+      invalid,
+    );
+  }
+  store.close();
+});

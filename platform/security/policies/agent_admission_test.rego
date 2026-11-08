@@ -169,3 +169,55 @@ test_legacy_id_only_high_risk_approval_is_not_content_bound if {
   x := object.union_n([base_input, {"effect": effect}, {"approval": approval}])
   decision.outcome == "STEP_UP" with input as x
 }
+
+# Resource scope is an exact canonical path segment relation, not startswith.
+# These are the actual false ALLOW inputs observed before the source fix.
+test_resource_scope_rejects_adjacent_name if {
+  not scope_contains("/comments", "/comments-evil")
+  scope_contains("/comments", "/comments")
+  scope_contains("/comments", "/comments/article-42")
+}
+
+test_resource_scope_rejects_encoded_or_dot_traversal if {
+  not scope_contains("/comments/", "/comments/../account/recovery")
+  not scope_contains("/comments/", "/comments/%2e%2e/account")
+  not scope_contains("/comments/", "/comments/./article-42")
+  not scope_contains("/comments/", "/comments//article-42")
+  not scope_contains("/comments/", "/comments/..")
+}
+
+test_resource_scope_rejects_noncanonical_delimiters if {
+  not scope_contains("/comments/", "/comments\\..\\secret")
+  not scope_contains("/comments/", "/comments/article-42?admin=true")
+  not scope_contains("/comments/", "/comments/article-42#fragment")
+  not scope_contains("/comments/", "/comments/\nadmin")
+}
+
+test_resource_scope_rejects_malformed_grants if {
+  not scope_contains("/comments/../", "/comments/article-42")
+  not scope_contains("/comments%", "/comments/article-42")
+  not scope_contains("comments/", "/comments/article-42")
+  not scope_contains("/comments//", "/comments/article-42")
+}
+
+test_resource_scope_denies_real_admission_neighbor if {
+  scope_grant := object.union(base_input.grant, {"resourcePrefixes": ["/comments"]})
+  scope_effect := object.union(base_input.effect, {"resource": "/comments-evil"})
+  candidate := object.union_n([base_input, {"grant": scope_grant}, {"effect": scope_effect}])
+  decision.outcome == "DENY" with input as candidate
+  decision.reason == "resource-not-granted" with input as candidate
+}
+
+test_resource_scope_denies_real_admission_traversal if {
+  scope_effect := object.union(base_input.effect, {"resource": "/comments/../account/recovery"})
+  candidate := object.union(base_input, {"effect": scope_effect})
+  decision.outcome == "DENY" with input as candidate
+  decision.reason == "resource-not-granted" with input as candidate
+}
+
+test_resource_scope_preserves_existing_canonical_grants if {
+  decision.outcome == "ALLOW" with input as base_input
+  scope_contains("/comments/", "/comments/article-42")
+  scope_contains("/", "/comments/article-42")
+  not scope_contains("/comments/", "/comments")
+}

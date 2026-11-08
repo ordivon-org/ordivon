@@ -18,6 +18,7 @@ uv run --frozen --python 3.15.1 python scripts/validate_threat_model_binding.py 
 # Exactly one installed, owner-pinned OPA version. Never resolve via
 # ambient /usr/bin/opa, duplicate provider snapshots or a Docker daemon.
 MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- opa test -v --fail-on-empty policies
+uv run --frozen --python 3.15.1 python scripts/check_agent_scope_refinement.py
 git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
 """
 
