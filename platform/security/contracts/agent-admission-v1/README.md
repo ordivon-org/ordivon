@@ -10,7 +10,13 @@ environment. Missing or failing OPA returns a nonzero exit; callers must fail cl
 Input is the existing Agent Admission v0 normalized JSON shape. The caller must
 not treat this contract as an authentication protocol: public clients may not
 self-assert `authenticated=true`, Principal identity, Agent identity, Grant
-scope, or WebAuthn approval.
+scope, or WebAuthn approval. Its `approval.effectDigest` field is optional for
+legacy low-risk inputs, but **required by the actual Agent policy whenever a
+high-risk verified WebAuthn approval is used**. Both `effectId` and
+`effectDigest` must match the current effect. A missing/changed digest returns
+`STEP_UP`, never high-risk ALLOW. A trusted natural Owner must authenticate the
+approval and bind it to the same effect before constructing this JSON; OPA does
+not validate a WebAuthn signature.
 
 The evaluator composes:
 

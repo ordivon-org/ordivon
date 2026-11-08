@@ -38,7 +38,11 @@ R4 effect
 
 WebAuthn approval is deliberately **effect-bound**, not a broad authenticated
 session. Approving effect A does not authorize effect B, and the approval for A
-cannot be reused after it is consumed.
+cannot be reused after it is consumed. The lab's PrincipalStore only projects
+`verified=true` together with the exact pending `effectId` **and**
+`effectDigest`; the OPA policy requires both for high-risk Step-up. This is a
+content-binding refinement of the existing verification, not a new WebAuthn
+implementation.
 
 Grant issuance and Grant revocation are also WebAuthn challenges. Revocation
 prevents future effects but does not erase or invalidate an already committed
@@ -182,8 +186,8 @@ removal gate.
 
 Requires:
 
-- Node 26.9.0
-- pnpm 12.5.1
+- Node 26.12.1 (pinned by the Security owner toolchain)
+- pnpm 12.16.1 (pinned by the Security owner toolchain)
 - OPA
 - Podman
 - Playwright Chromium for the WebAuthn E2E

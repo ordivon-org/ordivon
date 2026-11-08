@@ -68,3 +68,36 @@ class AgentAdmissionSchemaBoundaryTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0, result.stdout)
                 error = json.loads(result.stderr)
                 self.assertEqual(error["kind"], "ordivon.security.agent-admission-error")
+
+    def test_high_risk_approval_requires_content_digest_at_public_contract(self) -> None:
+        original = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        original["effect"]["riskClass"] = "R4"
+        original["approval"] = {
+            "verified": True,
+            "principalId": original["principal"]["principalId"],
+            "effectId": original["effect"]["effectId"],
+            "method": "webauthn",
+        }
+        variants = (
+            ("legacy_id_only", None, "STEP_UP"),
+            ("changed_content", "sha256:" + "b" * 64, "STEP_UP"),
+            ("exact_content", original["effect"]["effectDigest"], "ALLOW"),
+        )
+        for label, digest, outcome in variants:
+            with self.subTest(label=label):
+                payload = json.loads(json.dumps(original))
+                if digest is not None:
+                    payload["approval"]["effectDigest"] = digest
+                result = evaluate(payload)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                decision = json.loads(result.stdout)
+                self.assertEqual(decision["agent"]["outcome"], outcome)
+                self.assertEqual(decision["effect"] is None, outcome != "ALLOW")
+
+        for invalid in ("not-a-digest", "sha256:short"):
+            with self.subTest(invalid=invalid):
+                payload = json.loads(json.dumps(original))
+                payload["approval"]["effectDigest"] = invalid
+                result = evaluate(payload)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(json.loads(result.stderr)["kind"], "ordivon.security.agent-admission-error")

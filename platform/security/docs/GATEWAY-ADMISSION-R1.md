@@ -1,7 +1,9 @@
 # Gateway Admission R1 — Security Owner Boundary
 
 Date: 2026-09-22
-Status: **CURRENT BOUNDARY / CAPABILITY AUTHZ OPEN**
+Status: **HISTORICAL 2026-09-22 SNAPSHOT / REVALIDATE AGAINST CURRENT GATEWAY**
+
+As of the 2026-11-07 source audit, Gateway has a separate resource-bound v2/v3 PEP contract and an OpenID AuthZEN v3 adapter. This document does not establish whether either is installed in production or covers every exposed capability. The Security-local v1 Gateway evaluator was retired as incompatible and unconsumed.
 
 ## Purpose
 

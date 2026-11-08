@@ -37,6 +37,7 @@ input_for(req) := {
 
 test_admitted if {
   decision.reason == "admitted" with input as input_for(request({}))
+  decision.kind == "ordivon.security.effect-admission" with input as input_for(request({}))
   decision.admitted with input as input_for(request({}))
 }
 
