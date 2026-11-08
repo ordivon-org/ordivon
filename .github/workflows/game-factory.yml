@@ -1,0 +1,76 @@
+name: Game Factory native previews
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "domains/game/examples/room-encounter/**"
+      - "domains/game/examples/native-composition/**"
+      - "domains/game/examples/kenney-visual-composition/**"
+      - "domains/game/mise.toml"
+      - ".github/workflows/game-factory.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: game-factory-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  room-preview:
+    name: Godot consumer-to-package pipeline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install existing Mise task runner
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          version: 2026.9.12
+          install: false
+          cache: true
+
+      - name: Install native Game toolchain
+        working-directory: domains/game
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mise install
+          godot --version
+
+      - name: Install matching upstream Godot export templates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          stage="$(mktemp -d)"
+          gh release download 4.7.2-stable --repo godotengine/godot             --pattern 'Godot_v4.7.2-stable_export_templates.tpz' --dir "$stage"
+          target="$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          mkdir -p "$target"
+          unzip -q -j "$stage/Godot_v4.7.2-stable_export_templates.tpz" 'templates/*' -d "$target"
+          test -s "$target/linux_release.x86_64"
+          test -s "$target/windows_release_x86_64.exe"
+
+      - name: Validate and export actual Linux and Windows previews
+        working-directory: domains/game
+        run: |
+          set -euo pipefail
+          mise run factory:package:room
+
+      - name: Publish source-bound technical previews
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ordivon-game-room-preview-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            domains/game/dist/room-encounter/room-encounter-linux-x86_64.tar.gz
+            domains/game/dist/room-encounter/room-encounter-windows-x86_64.zip

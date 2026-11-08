@@ -13,7 +13,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/audio-flac-pcm16-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "audio-ogg-vorbis-r1",
@@ -38,7 +39,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/audio-wave-pcm16-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "dataset-parquet-flat-r1",
@@ -50,7 +52,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/dataset-parquet-flat-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "design-2d-aseprite-horizontal-sheet-r1",
@@ -207,7 +210,8 @@
       },
       "objectContractRequired": false,
       "standingRef": "artifact-delivery/shadow-bindings/still-image-png-srgb-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "still-image-svg-static-r1",

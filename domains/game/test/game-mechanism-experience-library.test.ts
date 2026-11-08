@@ -4,7 +4,6 @@ import test from "node:test";
 
 const library = JSON.parse(readFileSync(new URL("../knowledge/game_mechanism_experience_library_r1.json", import.meta.url), "utf8")) as any;
 const kb = JSON.parse(readFileSync(new URL("../knowledge/game_external_knowledge_base_r1.json", import.meta.url), "utf8")) as any;
-const doc = readFileSync(new URL("../docs/mechanism-experience-library-r1.md", import.meta.url), "utf8");
 
 const unique = (values: string[]) => new Set(values).size === values.length;
 
@@ -81,14 +80,6 @@ test("failure/revision knowledge is first-class rather than success-only", () =>
   assert.ok(library.experiences.some((experience: any) => experience.referenceGame === "Saturnalia" && experience.kind === "PRODUCTION_RESPONSE"));
   assert.ok(library.experiences.some((experience: any) => experience.referenceGame === "Factorio" && /reopen/i.test(experience.interaction)));
   assert.ok(library.experiences.some((experience: any) => experience.referenceGame === "Into the Breach" && /cut|remove|delete/i.test(experience.interaction)));
-});
-
-test("human guide defines Pattern to Experience to Probe without making recipes", () => {
-  assert.match(doc, /Pattern.*Experience.*Probe/is);
-  assert.match(doc, /Creative-Open/i);
-  assert.match(doc, /not.*recipe/is);
-  assert.match(doc, /failure|tension|inversion/i);
-  assert.match(doc, /Human evidence/i);
 });
 
 

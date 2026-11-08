@@ -9,8 +9,9 @@ from mcp.server.transport_security import TransportSecuritySettings
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
-from .contracts import HostStatusResponse
+from .contracts import HostPoolStatsResponse, HostStatusResponse
 from .mcp_tool_registration import register_social_work_tools
+from .native_pool_observability import pool_stats_response
 from .service import HostV2
 
 
@@ -25,6 +26,11 @@ def build_server(dsn: str | None = None, *, pool: ConnectionPool | None = None) 
     ) -> HostStatusResponse:
         """Report PostgreSQL-native Social Work Fabric authority and bounded integrity."""
         return service.status(detail=detail)
+
+    @mcp.tool(name="host.pool.stats")
+    def host_pool_stats() -> HostPoolStatsResponse:
+        """Inspect native Psycopg pool gauges and process-scoped cumulative counters."""
+        return pool_stats_response(pool)
 
     register_social_work_tools(mcp, effective_dsn, pool=pool)
     return mcp

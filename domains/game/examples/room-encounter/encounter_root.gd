@@ -46,6 +46,8 @@ func _ready() -> void:
     view.get_node("Actions/Save").pressed.connect(save_run)
     view.get_node("Actions/Load").pressed.connect(load_run)
     rules.state_changed.connect(view.render_state)
+    # Strictly post-resolution UI feedback; Rule still owns the outcome.
+    rules.action_accepted.connect(view.render_combat_result)
     feedback.bind_rules(rules)
     gate_dialogue.bind_rules(rules)
     rules.reset_run()
@@ -78,7 +80,10 @@ func save_run() -> void:
     view.get_node("Storage").text = "Run saved." if save_slot.save_rules(rules) else "Save failed."
 
 func load_run() -> void:
-    view.get_node("Storage").text = "Run resumed." if save_slot.load_rules(rules) else "No compatible save."
+    var loaded: bool = save_slot.load_rules(rules)
+    if loaded:
+        view.reset_action_feedback()
+    view.get_node("Storage").text = "Run resumed." if loaded else "No compatible save."
 
 func request_door() -> void:
     if gate_dialogue.visible:

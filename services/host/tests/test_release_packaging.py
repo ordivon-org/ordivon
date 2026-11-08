@@ -116,7 +116,22 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     uv_call_log = tmp_path / "uv_calls.log"
     env["ORDIVON_TEST_UV_CALL_LOG"] = str(uv_call_log)
 
-    result = _run(str(INSTALL), str(repo), commit, str(prefix), env=env)
+    # Wrong Host source tree fails before files or toolchain side effects.
+    expected_tree = _git(repo, "rev-parse", f"{commit}:services/host")
+    wrong_tree = "0" * len(expected_tree)
+    # Explicitly providing an empty expected ID must not silently opt out.
+    empty = _run(str(INSTALL), str(repo), commit, str(prefix), "", env=env)
+    assert empty.returncode == 2, empty.stderr
+    assert "nonempty lowercase Git object ID" in empty.stderr
+    assert not (prefix / "releases").exists()
+    reject = _run(str(INSTALL), str(repo), commit, str(prefix), wrong_tree, env=env)
+    assert reject.returncode == 2, reject.stderr
+    assert "differs from expected reviewed tree" in reject.stderr
+    assert not (prefix / "releases").exists()
+    assert not uv_call_log.exists()
+    assert not mise_log.exists()
+
+    result = _run(str(INSTALL), str(repo), commit, str(prefix), expected_tree, env=env)
     assert result.returncode == 0, result.stderr
 
     release = prefix / "releases" / commit
@@ -179,6 +194,21 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     blocked_mode = _run(str(INSTALL), str(repo), next_commit, str(prefix), env=env)
     assert blocked_mode.returncode == 2, blocked_mode.stderr
     assert "release source drift" in blocked_mode.stderr
+    assert (prefix / "current").resolve() == release
+    assert uv_call_log.read_text(encoding="utf-8") == uv_before
+
+    # Valid different Git commit with a different Host tree is also rejected
+    # before any uv/mise or current-release pointer mutation.
+    (package / "__init__.py").write_text("VALUE = 'wrong adjacent PR'\n", encoding="utf-8")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "different host tree after reviewed release")
+    wrong_commit = _git(repo, "rev-parse", "HEAD")
+    blocked_tree = _run(
+        str(INSTALL), str(repo), wrong_commit, str(prefix), expected_tree, env=env
+    )
+    assert blocked_tree.returncode == 2, blocked_tree.stderr
+    assert "differs from expected reviewed tree" in blocked_tree.stderr
+    assert not (prefix / "releases" / wrong_commit).exists()
     assert (prefix / "current").resolve() == release
     assert uv_call_log.read_text(encoding="utf-8") == uv_before
 

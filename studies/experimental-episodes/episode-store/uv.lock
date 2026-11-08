@@ -165,6 +165,14 @@ dev = [
     { name = "pytest", specifier = "==9.1.1" },
     { name = "ruff", specifier = "==0.17.2" },
 ]
+reasoning = [
+    { name = "pyshacl" },
+    { name = "rdflib" },
+    { name = "scipy", specifier = ">=1.18.1,<2" },
+    { name = "unified-planning" },
+    { name = "up-pyperplan" },
+    { name = "z3-solver", specifier = ">=5.3.2.0,<6" },
+]
 
 [[package]]
 name = "ordivon-experimental-episode-store"

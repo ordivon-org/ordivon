@@ -9,6 +9,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tools.formal.verify import SOURCE_FILES as _FORMAL_SOURCE_FILES
+
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "tools/repo/check_github_governance.py"
 DEPENDABOT = ROOT / ".github/dependabot.yml"
@@ -53,27 +55,16 @@ raise SystemExit(module.main())
 
 # Exact finite Formal receipt acceptance fixture for the existing GitHub consumer.
 # This models the expected checker output, not a real mathematical proof.
-_FORMAL_SOURCE_FILES = (
-    "mise.toml", "tools/formal/mise.toml", "tools/formal/verify.py",
-    "tools/formal/RecursiveLegoRefinement.lean",
-    "tools/formal/RecursiveLegoVariationFrame.lean",
-    "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
-    "capabilities/media/formal/CreativeLibraryAcceptance.lean",
-    "capabilities/media/formal/LoudnessProfileSafety.smt2",
-    "capabilities/media/src/ordivon_studio/agent_processing.py",
-    "capabilities/media/src/ordivon_studio/creative_index_library.py",
-    "capabilities/media/tests/test_creative_index.py",
-    "capabilities/media/src/ordivon_studio/qc.py",
-    "tools/formal/Proof.rs", "tools/formal/Proof.dfy",
-    "tools/formal/ProofKani.rs", "tools/formal/Proof.qnt",
-    "tools/formal/Proof.als",
-    "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
-)
+# The fixture uses the Formal producer's single qualified source universe.
+# Independent expected probes still falsify a missing or forged theorem.
+
 _FORMAL_PROBE_ORACLES = (
     ("Lean kernel R2.1 relational composition", 0),
     ("Lean kernel qualified variation frame and countermodels", 0),
     ("Lean kernel Media processing admission model", 0),
     ("Lean kernel Media Creative Library Catalog acceptance", 0),
+    ("Lean kernel Media Output byte identity", 0),
+    ("Lean kernel Media dependency impact model", 0),
     ("Z3 IEEE-754 Media loudness profile model", 0),
     ("Lean rejects false theorem", 1),
     ("Z3: sat", 0), ("Z3: unsat", 0),
@@ -252,6 +243,33 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                         mechanics.index("Repository mechanics"))
         self.assertIn("Verify affected owners", owner)
 
+    def test_root_mise_installs_get_scoped_native_github_token(self) -> None:
+        """Keep bootstrap authenticated without exporting token to Owner code."""
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        token = "$" + "{{ github.token }}"
+        self.assertEqual(workflow["permissions"], {"contents": "read"})
+        for job_name in ("root-preflight", "repo-mechanics", "owner-verification"):
+            job = workflow["jobs"][job_name]
+            self.assertNotIn("env", job)
+            matches = [
+                step for step in job["steps"]
+                if step.get("name") == "Install root verification tools"
+            ]
+            self.assertEqual(len(matches), 1, job_name)
+            self.assertEqual(matches[0].get("env"), {"MISE_GITHUB_TOKEN": token})
+            self.assertEqual(matches[0]["run"].strip(), "set -euo pipefail\nmise install")
+        for job_name, source_step in (
+            ("repo-mechanics", "Repository mechanics"),
+            ("owner-verification", "Verify affected owners"),
+        ):
+            step = next(
+                entry for entry in workflow["jobs"][job_name]["steps"]
+                if entry.get("name") == source_step
+            )
+            self.assertNotIn("MISE_GITHUB_TOKEN", step.get("env", {}))
+
     def test_formal_cold_install_reuses_scoped_github_job_token(self) -> None:
         """Native GitHub release backend must not use anonymous 60/hour API quota."""
         import yaml
@@ -260,8 +278,8 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(workflow["permissions"], {"contents": "read"})
         steps = {step["name"]: step for step in
                  required_ci_steps(workflow)}
-        # Only the selected Formal owner gets this token, not every arbitrary
-        # unselected Owner task or the entire job.
+        # Unlike the three scoped bootstrap installers, the Formal task's
+        # additional token is only exposed inside its selected proof step.
         self.assertNotIn("env", workflow["jobs"]["root-preflight"])
         formal = steps["Verify changed core Formal source"]
         self.assertEqual(formal["env"]["GITHUB_TOKEN"], "$" + "{{ github.token }}")
@@ -299,6 +317,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 '    printf "%s\\n" "$FORMAL_FAKE_BINARY_DIR/$2"; exit 0; fi\n'
                 '  exit 44; fi\n'
                 'printf "%s\\n" "$*" >> "$MISE_RECORD"\n'
+                'if [[ "$1" == -C && "$2" == tools/formal && "$3" == exec '
+                '&& "$4" == -- && "$5" == kani && "$6" == --version '
+                '&& "${MOCK_FAIL_KANI_BOOTSTRAP:-0}" == 1 ]]; then exit 53; fi\n'
                 'if [[ "$1" == run && "$2" == runtime:verify && '
                 '"$' + '{MOCK_FAIL_RUNTIME:-0}" == 1 ]]; then exit 37; fi\n'
                 'if [[ "$1" == run && "$2" == formal:verify && '
@@ -366,7 +387,21 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             self.assertEqual(
                 log.read_text().splitlines(),
                 ["run runtime:verify", "run host:queue",
-                 "install", "run formal:verify"],
+                 "install", "-C tools/formal exec -- kani --version", "run formal:verify"],
+            )
+
+            # An unsuccessful Kani cold bootstrap cannot execute a real
+            # proof or produce any apparently valid Formal receipt.
+            log.write_text("", encoding="utf-8")
+            failed_kani_prepare = subprocess.run(
+                ["/usr/bin/bash", "-c", formal_step["run"]],
+                cwd=ROOT, env={**env, "MOCK_FAIL_KANI_BOOTSTRAP": "1"},
+                capture_output=True, text=True, timeout=14, check=False,
+            )
+            self.assertEqual(failed_kani_prepare.returncode, 53, failed_kani_prepare.stderr)
+            self.assertEqual(
+                log.read_text().splitlines(),
+                ["install", "-C tools/formal exec -- kani --version"],
             )
 
             # A plausible subset, duplicate probe, or fabricated membership
@@ -547,7 +582,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             self.assertEqual(failed_proof.returncode, 41)
             self.assertEqual(
                 log.read_text().splitlines(),
-                ["install", "run formal:verify"],
+                ["install", "-C tools/formal exec -- kani --version", "run formal:verify"],
             )
 
             mismatch = actual_queue(["formal:verify"], formal="false")
@@ -617,7 +652,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                          fixture_registry / "affected_owners.py")
             shutil.copy2(ROOT / "tools/repo/owners.toml",
                          fixture_registry / "owners.toml")
-            # The real verifier consumes 13 exact source inputs; the disposable
+            # The real verifier consumes a declared source readset; the disposable
             # Git fixture must contain the same declared source universe.
             for rel in _FORMAL_SOURCE_FILES:
                 file = repo / rel
@@ -650,7 +685,10 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                 '  if [[ -f "$FORMAL_FAKE_BINARY_DIR/$2" ]]; then\n'
                 '    printf "%s\\n" "$FORMAL_FAKE_BINARY_DIR/$2"; exit 0; fi\n'
                 '  exit 44; fi\n'
-                'printf "%s\\n" "$*" >> "$MISE_RECORD"\n',
+                'printf "%s\\n" "$*" >> "$MISE_RECORD"\n'
+                'if [[ "$1" == -C && "$2" == tools/formal && "$3" == exec '
+                '&& "$4" == -- && "$5" == kani && "$6" == --version '
+                '&& "${MOCK_FAIL_KANI_BOOTSTRAP:-0}" == 1 ]]; then exit 53; fi\n',
                 encoding="utf-8",
             )
             mock.chmod(0o755)
@@ -701,7 +739,7 @@ class GovernanceAcceptanceTests(unittest.TestCase):
 
             for script, calls in (
                 (queue_script, ["run runtime:verify"]),
-                (formal_script, ["install", "run formal:verify"]),
+                (formal_script, ["install", "-C tools/formal exec -- kani --version", "run formal:verify"]),
             ):
                 accepted = invoke(script)
                 self.assertEqual(accepted.returncode, 0, accepted.stderr)

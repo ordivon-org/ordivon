@@ -1,6 +1,19 @@
 //! PostgreSQL Attempt readback, native reconciliation, and Job result projection.
 use super::*;
 
+/// Negative evidence may be committed only after a *final* filesystem check.
+/// Runner publishes result.json after completing its command; systemctl/cgroup
+/// probes between an earlier file check and LOST commit can otherwise miss a
+/// result that was durably written during the probes.
+fn runner_result_still_absent(path: &Path) -> RuntimeResult<bool> {
+    match fs::symlink_metadata(path.join("result.json")) {
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(true),
+        Ok(metadata) if metadata.file_type().is_file() => Ok(false),
+        Ok(_) => Err(error("Runner result path is not a regular file")),
+        Err(err) => Err(io(err)),
+    }
+}
+
 impl PgRuntime {
     /// Service-owned recovery path. Does not admit commands or consume Job capacity.
     /// Each cancellation retains its original principal and exact durable Job identity.
@@ -507,6 +520,16 @@ impl PgRuntime {
             if unsafe { libc::flock(receipt_lock.as_raw_fd(), libc::LOCK_EX) } != 0 {
                 return Err(io(std::io::Error::last_os_error()));
             }
+            // A result that arrived while systemctl/cgroup was being queried
+            // must take the existing digest/identity-verified result path on
+            // the *next* reconciliation. Do not commit an irreversible LOST
+            // terminal when that stronger Runner receipt is now available.
+            // At this point the bound native cgroup is already quiescent, so
+            // the Runner cannot subsequently publish this file from the
+            // same owned process tree.
+            if !runner_result_still_absent(path)? {
+                return Ok(());
+            }
             let receipt_bytes = if receipt_path.exists() {
                 // A PG COMMIT acknowledgement can be lost after immutable
                 // native evidence was written. Native Unit LoadState may
@@ -660,5 +683,49 @@ impl PgRuntime {
             }
         }
         serde_json::from_value(value).map_err(io)
+    }
+}
+
+#[cfg(test)]
+mod late_runner_result_tests {
+    use super::*;
+
+    #[test]
+    fn post_quiescence_recheck_prevents_false_os_only_lost() {
+        // A first probe sees no result; the actual Runner writes it while
+        // an independent systemctl/cgroup probe is in flight. The final
+        // negative-evidence gate MUST reject LOST in that second state.
+        let root =
+            std::env::temp_dir().join(format!("ordivon-pg-late-result-{}", uuid::Uuid::now_v7()));
+        fs::create_dir(&root).unwrap();
+        assert!(runner_result_still_absent(&root).unwrap());
+        fs::write(root.join("result.json"), b"native runner terminal bytes").unwrap();
+        assert!(!runner_result_still_absent(&root).unwrap());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn post_quiescence_missing_result_still_allows_native_lost() {
+        let root =
+            std::env::temp_dir().join(format!("ordivon-pg-absent-result-{}", uuid::Uuid::now_v7()));
+        fs::create_dir(&root).unwrap();
+        assert!(runner_result_still_absent(&root).unwrap());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_family = "unix")]
+    #[test]
+    fn suspicious_runner_result_path_fails_closed() {
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-pg-result-topology-{}",
+            uuid::Uuid::now_v7()
+        ));
+        fs::create_dir(&root).unwrap();
+        fs::create_dir(root.join("result.json")).unwrap();
+        assert!(runner_result_still_absent(&root).is_err());
+        fs::remove_dir(root.join("result.json")).unwrap();
+        std::os::unix::fs::symlink("/dev/null", root.join("result.json")).unwrap();
+        assert!(runner_result_still_absent(&root).is_err());
+        fs::remove_dir_all(root).unwrap();
     }
 }

@@ -29,10 +29,28 @@ SOURCE_FILES = (
     "mise.toml",
     "tools/formal/mise.toml",
     "tools/formal/verify.py",
+    "tools/repo/affected_owners.py",
+    "tools/repo/test_affected_owners.py",
+    "tools/repo/test_formal_source_contract.py",
     "tools/formal/RecursiveLegoRefinement.lean",
     "tools/formal/RecursiveLegoVariationFrame.lean",
     "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
     "capabilities/media/formal/CreativeLibraryAcceptance.lean",
+    "capabilities/media/formal/ProductionOutputByteIdentity.lean",
+    "capabilities/media/formal/ProductionDependencyImpact.lean",
+    "capabilities/media/schemas/operation-lineage.schema.json",
+    "capabilities/media/src/ordivon_studio/operation_impact.py",
+    "capabilities/media/tests/test_operation_impact.py",
+    "capabilities/media/productions/convergence-sonic-ident/operation-lineage.json",
+    "capabilities/media/productions/convergence-sonic-ident/production.json",
+    "capabilities/media/src/ordivon_studio/production_context.py",
+    "capabilities/media/tests/test_production_context.py",
+    "capabilities/media/src/ordivon_studio/production_validation.py",
+    "capabilities/media/schemas/production.schema.json",
+    "capabilities/media/tests/test_models.py",
+    "capabilities/media/src/ordivon_studio/agent_surface.py",
+    "capabilities/media/src/ordivon_studio/agent_surface_contracts.py",
+    "capabilities/media/tests/test_agent_surface.py",
     "capabilities/media/src/ordivon_studio/creative_index_library.py",
     "capabilities/media/tests/test_creative_index.py",
     "capabilities/media/formal/LoudnessProfileSafety.smt2",
@@ -434,7 +452,10 @@ def main() -> None:
     variation = ROOT / "RecursiveLegoVariationFrame.lean"
     media_proof = REPO / "capabilities/media/formal/MediaNativeProcessingAdmission.lean"
     media_library_proof = REPO / "capabilities/media/formal/CreativeLibraryAcceptance.lean"
-    for proof_file in (source, variation, media_proof, media_library_proof):
+    media_output_proof = REPO / "capabilities/media/formal/ProductionOutputByteIdentity.lean"
+    media_dependency_proof = REPO / "capabilities/media/formal/ProductionDependencyImpact.lean"
+    for proof_file in (source, variation, media_proof, media_library_proof,
+                       media_output_proof, media_dependency_proof):
         if re.search(r"\b(sorry|admit|axiom)\b", proof_file.read_text()):
             raise AssertionError("Unproved Lean shortcut in source")
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
@@ -451,6 +472,10 @@ def main() -> None:
                           [executable("lean"), str(media_proof)]))
         probes.append(run("Lean kernel Media Creative Library Catalog acceptance",
                           [executable("lean"), str(media_library_proof)]))
+        probes.append(run("Lean kernel Media Output byte identity",
+                          [executable("lean"), str(media_output_proof)]))
+        probes.append(run("Lean kernel Media dependency impact model",
+                          [executable("lean"), str(media_dependency_proof)]))
         # Check all three FP queries, including the historical NaN
         # counterexample. Z3 process success by itself is not a proof.
         media_fp = REPO / "capabilities/media/formal/LoudnessProfileSafety.smt2"

@@ -5,6 +5,7 @@ import json
 
 import pytest
 from mcp import Client
+from psycopg_pool import PoolClosed, PoolTimeout, TooManyRequests
 
 from ordivon_host_v2.errors import ConflictError, WorkNotFound
 from ordivon_host_v2.mcp_server import build_server
@@ -239,5 +240,58 @@ def test_unexpected_internal_failure_remains_generic_crash(monkeypatch) -> None:
             text = _error_text(result)
             assert text == "Error executing tool work.get"
             assert "sensitive internal detail" not in text
+
+    asyncio.run(scenario())
+
+@pytest.mark.parametrize(
+    ("exception_type", "code"),
+    [(PoolTimeout, "DEADLINE_EXCEEDED"), (TooManyRequests, "RESOURCE_EXHAUSTED")],
+)
+def test_pool_checkout_rejection_is_retryable_without_leaking_infrastructure(
+    monkeypatch, exception_type, code
+) -> None:
+    secret = "postgresql://internal_user:do-not-disclose@private.internal/host"
+
+    def not_admitted(self, work_ref, revision=None):
+        _ = self, work_ref, revision
+        raise exception_type("private upstream: " + secret)
+
+    monkeypatch.setattr(WorkStore, "get_work", not_admitted)
+
+    async def scenario() -> None:
+        async with Client(
+            build_server("postgresql://unused.invalid/unused"), raise_exceptions=False
+        ) as client:
+            result = await client.call_tool("work.get", {"workRef": "work:checkout"})
+            assert result.is_error is True
+            payload = _domain_payload(result)
+            assert payload == {
+                "code": code,
+                "kind": "ordivon.host-domain-error",
+                "retryable": True,
+                "schemaVersion": 1,
+                "suggestedAction": "retry-with-bounded-backoff",
+            }
+            assert secret not in _error_text(result)
+
+    asyncio.run(scenario())
+
+
+def test_closed_pool_is_not_misclassified_as_retryable_capacity_rejection(
+    monkeypatch,
+) -> None:
+    def closed(self, work_ref, revision=None):
+        _ = self, work_ref, revision
+        raise PoolClosed("internal pool shutdown")
+
+    monkeypatch.setattr(WorkStore, "get_work", closed)
+
+    async def scenario() -> None:
+        async with Client(
+            build_server("postgresql://unused.invalid/unused"), raise_exceptions=False
+        ) as client:
+            result = await client.call_tool("work.get", {"workRef": "work:closed"})
+            assert result.is_error is True
+            assert _error_text(result) == "Error executing tool work.get"
 
     asyncio.run(scenario())

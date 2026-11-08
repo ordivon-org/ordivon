@@ -110,6 +110,23 @@ later consumer opened; consumers must hash their actual inputs. A process
 holding the same principal may still modify private files; no process-isolation
 claim is made. See `tests/test_artifact_input_snapshot.py`.
 
+**Byte fact pairing:** `artifact_core/contracts.py` derives `sha256` and `size`
+from the same opened byte stream for `file_fact` and `FileCommitment`,
+rather than combining digest with a later pathname `stat` call. Legacy
+request admission reuses this existing commitment; the result remains
+`ADMISSION_DIGEST_ONLY` until the corresponding dependency closure is
+staged and verified. See the deliberate path-replacement regression in
+`tests/test_artifact_core_registry.py`.
+
+**Native executable post-run observation:** The service independently rereads
+the native verifier's already-declared executable paths and compares actual
+SHA-256 to the reported `tools` facts. An explicit contradiction invalidates
+service PASS; missing tool inventories remain `NOT_EVALUATED`. This reuses
+`FileCommitment`, not a new dependency registry. `toolIdentityAssessment`
+cannot establish which executable bytes the earlier subprocess loaded,
+whether imports/dynamic libraries changed, or full dependency completeness.
+See `tests/test_artifact_tool_identity.py`.
+
 **Native result identity:** `artifact_verification/native_identity.py` checks
 reported Profile ID, subject SHA-256/size and object-contract SHA-256 against
 the admitted input commitments. Contradictions reject service `PASS`, while
@@ -144,3 +161,14 @@ Qualify an upstream project against exact user-facing acceptance and negative ca
 - The A1–A14 historical decomposition-wave documents had no text-path consumers in the audited tracked source and are removed from this isolated source candidate; their bytes remain retrievable from the base Git revision. A15 remains because the R2 plan references it. This source-retirement evidence does not establish the absence of external/dynamic consumers.
 - Caches (`.venv`, `__pycache__`, `.pytest_cache`) should be cleaned only with native local project tools after verifying ownership. Never recursively delete system files, active Runtime Workspaces, source materials or another Owner's state.
 - Stop decomposition when further files only add glue. Existing semantic seams and consumer-accepted native tools take priority over a prettier directory tree.
+
+**Independent input snapshot qualification:** binding `snapshotInputs=true`
+now expressly controls exact private byte staging, separately from
+`requireClaimResults`. FLAC/WAVE/PNG retain both qualifications; the
+single-file Parquet verifier now freezes its Parquet and separate JSON contract
+inputs even though its legacy claim coverage remains incomplete. Parquet
+`status=PASS` still does **not** imply `profileVerificationComplete=true`.
+Formats with sidecars or other relative file dependencies remain
+`ADMISSION_DIGEST_ONLY` until the complete input graph can be committed and
+tested without disrupting family-native references. The snapshot lifetime is
+one verification invocation, not consumer readback or installed-tool identity.

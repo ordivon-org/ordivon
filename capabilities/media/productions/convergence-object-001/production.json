@@ -44,7 +44,8 @@
       "kind": "image",
       "status": "approved",
       "profile": "png-1400-square-eevee",
-      "blobDigest": "sha256:9c987354341caa0f72608f284eece5900cee7cabfb29cea08e94e990b846503e"
+      "blobDigest": "sha256:9c987354341caa0f72608f284eece5900cee7cabfb29cea08e94e990b846503e",
+      "outputCarrier": "render/convergence-object-001.png"
     }
   ]
 }

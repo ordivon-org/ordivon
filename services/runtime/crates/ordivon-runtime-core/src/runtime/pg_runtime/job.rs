@@ -338,10 +338,26 @@ impl PgRuntime {
         let deadline = Instant::now() + Duration::from_millis(request.wait_ms);
         let mut initial_signature = None;
         let mut db = self.store()?;
+        let mut verified_committed_job = false;
         loop {
-            self.authorize(&mut db, &request.job_id, principal)?;
-            self.reconcile(&mut db, &request.job_id)?;
-            let value = self.project(&mut db, request)?;
+            // An authorization success proves this durable Job identity.
+            // Every later PG projection/observation failure must preserve it
+            // for reconcile-first semantics, including after a LISTEN wait.
+            self.authorize(&mut db, &request.job_id, principal)
+                .map_err(|e| {
+                    if verified_committed_job {
+                        e.with_operation_id(&request.job_id)
+                    } else {
+                        e
+                    }
+                })?;
+            verified_committed_job = true;
+            preserve_committed_job_identity(
+                &request.job_id,
+                self.reconcile(&mut db, &request.job_id),
+            )?;
+            let value =
+                preserve_committed_job_identity(&request.job_id, self.project(&mut db, request))?;
             // Gateway observes change_or_terminal. Only compare durable
             // observable state, not time-dependent display projections.
             let signature = (
@@ -373,7 +389,8 @@ impl PgRuntime {
                 use postgres::fallible_iterator::FallibleIterator;
                 db.client
                     .batch_execute("LISTEN ordivon_runtime_schedule")
-                    .map_err(io)?;
+                    .map_err(io)
+                    .map_err(|e| e.with_operation_id(&request.job_id))?;
                 let wait = deadline
                     .saturating_duration_since(Instant::now())
                     .min(Duration::from_secs(1));
@@ -382,7 +399,8 @@ impl PgRuntime {
                     .notifications()
                     .timeout_iter(wait)
                     .next()
-                    .map_err(io)?;
+                    .map_err(io)
+                    .map_err(|e| e.with_operation_id(&request.job_id))?;
             } else if let Some(attempt_id) = value.attempt_id.as_deref() {
                 let bundle = self
                     .config

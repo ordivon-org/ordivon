@@ -92,3 +92,57 @@ run = "kani examples/orbit-collector/src/rules.rs"
 [tasks."verify:room-smt"]
 description = "Prove signed i64 Godot Room arithmetic model with upstream Z3; native source acceptance is separate"
 run = "uv run --no-project --with z3-solver==4.15.4.0 python3 formal/verify_room_arithmetic.py"
+
+# Thin compositions of existing native tasks, not a second execution engine.
+[tasks."factory:validate:godot"]
+description = "Factory gate: source readers, real Godot scenes, dialogue, Agent and math model"
+run = """
+set -euo pipefail
+pnpm install --frozen-lockfile
+pnpm check
+mise run test:native
+mise run test:native-receipt-selftest
+mise run test:encounter
+mise run test:agent-episode
+mise run test:visual-native
+mise run test:dialogue-native
+mise run verify:room-smt
+echo GAME_FACTORY_GODOT_VALIDATED
+"""
+
+[tasks."factory:package:room"]
+description = "Factory preview: actual Godot acceptance, Linux/Windows export and source/package digests"
+run = """
+set -euo pipefail
+mise run factory:validate:godot
+mise run export:room-linux
+mise run export:room-windows
+test -s dist/room-encounter/room-encounter-linux-x86_64.tar.gz
+test -s dist/room-encounter/room-encounter-windows-x86_64.zip
+printf 'GAME_FACTORY_SOURCE_SHA='
+git rev-parse HEAD
+sha256sum dist/room-encounter/room-encounter-linux-x86_64.tar.gz dist/room-encounter/room-encounter-windows-x86_64.zip
+echo GAME_FACTORY_ROOM_PACKAGES_READY_NATIVE_PREVIEW_NOT_STORE_RELEASE
+"""
+
+[tasks."factory:validate:bevy"]
+description = "Factory gate: locked Rust ECS consumer and upstream Z3 model"
+run = """
+set -euo pipefail
+mise run verify:orbit-smt
+mise run test:bevy
+echo GAME_FACTORY_BEVY_VALIDATED
+"""
+
+[tasks."factory:build:bevy"]
+description = "Factory build: native Bevy executable, no installer claim"
+run = """
+set -euo pipefail
+mise run factory:validate:bevy
+mise run build:bevy
+test -s examples/orbit-collector/target/debug/orbit-collector
+printf 'GAME_FACTORY_SOURCE_SHA='
+git rev-parse HEAD
+sha256sum examples/orbit-collector/target/debug/orbit-collector
+echo GAME_FACTORY_BEVY_NATIVE_BUILD_READY_NOT_PACKAGED
+"""

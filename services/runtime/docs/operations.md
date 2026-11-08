@@ -569,6 +569,22 @@ The dashboard reports elapsed, output-idle, and progress-idle time as mechanical
 
 The JSON schema reports separate `health` and `maintenance` states. The deployment projection names the current `releaseEvent` and `releaseDisposition`; a successful explicit rollback supersedes the forward deployment for installed-artifact truth. Exit code `1` is reserved for operational health failures such as service, deployment, Registry, recovery, exact release-artifact inconsistency, or a rollback whose restored artifact set is known but whose coherent source Commit cannot be proven. Maintenance findings such as a stale dirty Workspace produce top-level `status=attention` but retain exit code `0`; automation must inspect `maintenanceAction` when maintenance policy should gate a workflow. Compatibility observations remain advisory deletion evidence: an unreadable or truncated trace, unknown rollback protocol, or incomplete observation window blocks deletion but does not create a health incident. Exit code `2` remains reserved for an invalid invocation or unreadable mandatory input.
 
+### PostgreSQL serialization-abort admission (2026-11-08)
+
+PostgreSQL SQLSTATE 40001 means a Serializable transaction was aborted and
+the complete admission read/decision/write sequence must be replayed from a
+new snapshot. Runtime retries only a proven, pre-COMMIT 40001 from its
+PostgreSQL admission transaction, with bounded 4/8/16/32/64/64/64ms pauses
+and at most eight attempts. If contention persists, the last 40001 remains
+visible rather than falsely claiming the Job was delivered.
+
+This must not be generalized to a failed transport response, an uncertain
+COMMIT acknowledgement, post-admission observation, or an effect-opaque
+workspace.exec that may have run a Git command. Those require exact
+clientRequestId/Job/Artifact/consumer readback before redispatch, not another
+automatic execution. On job.observe, successful principal-scoped authorization establishes durable Job identity; errors after that observation retain operationId and require reconcile-first recovery. PostgreSQL's documented transaction-retry rule applies
+to database transactions, not arbitrary process side effects.
+
 ## Real-system release acceptance
 
 Portable CI proves source, schema, Registry, protocol, operational-script, documentation, dependency, and secret-scanning contracts. It cannot prove the production systemd/cgroup path.
