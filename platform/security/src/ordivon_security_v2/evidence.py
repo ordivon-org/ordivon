@@ -29,6 +29,33 @@ class EvidenceRef:
         return asdict(self)
 
 
+def verified_evidence_path(record: dict[str, object]) -> Path:
+    """Read current bytes and require they match the immutable gate reference.
+
+    This does not authenticate the provider or establish file path authority.
+    The caller must use a trusted local evidence directory and source.
+    """
+    if not isinstance(record, dict) or set(record) != {
+        "provider", "format", "path", "sha256", "byte_length"
+    }:
+        raise ValueError("invalid evidence reference fields")
+    provider, format_name, path_value = (
+        record["provider"], record["format"], record["path"]
+    )
+    length = record["byte_length"]
+    if not all(isinstance(value, str) and value for value in (
+        provider, format_name, path_value, record["sha256"]
+    )):
+        raise ValueError("evidence reference strings must be nonempty")
+    if type(length) is not int or length <= 0:
+        raise ValueError("evidence reference length must be positive integer")
+    path = Path(path_value)
+    observed = EvidenceRef.from_path(provider=provider, format=format_name, path=path)
+    if observed.sha256 != record["sha256"] or observed.byte_length != length:
+        raise ValueError(f"evidence bytes changed after gate binding: {provider}")
+    return path
+
+
 def build_gate_input(
     *,
     subject_ref: str,

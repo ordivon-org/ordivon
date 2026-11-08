@@ -182,8 +182,8 @@ removal gate.
 
 Requires:
 
-- Node 26.9.0
-- pnpm 12.5.1
+- Node 26.12.1 (pinned by the Security owner toolchain)
+- pnpm 12.16.1 (pinned by the Security owner toolchain)
 - OPA
 - Podman
 - Playwright Chromium for the WebAuthn E2E
