@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import unittest
 from pathlib import Path
@@ -13,6 +14,7 @@ import sys
 sys.path.insert(0, str(ROOT / "packages/data/src"))
 
 from ordivon_data.catalog import inspect_catalog
+from ordivon_data.local_evidence import LocalEvidenceBinding
 from ordivon_data.odps_projection import project_catalog
 
 
@@ -92,3 +94,190 @@ class OwnerProductProjectionTests(unittest.TestCase):
                 ValueError, "duplicate output port name and version"
             ):
                 project_catalog([file])
+
+    def test_two_owner_files_are_real_verified_one_parquet_unknown(self) -> None:
+        bindings = (
+            LocalEvidenceBinding(
+                "d14d7457-c9aa-59e0-8bf5-7783cea39c1c",
+                "public-shadow-json",
+                "sourceRelativePath",
+                "sourceSha256",
+                ROOT / "domains/capital",
+            ),
+            LocalEvidenceBinding(
+                "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b",
+                "episode-corpus-manifest-json",
+                "corpusManifestRelativePath",
+                "corpusManifestSha256",
+                ROOT,
+            ),
+        )
+        projected = project_catalog(self.sources, bindings=bindings)
+        self.assertEqual(
+            projected,
+            project_catalog(
+                list(reversed(self.sources)), bindings=tuple(reversed(bindings))
+            ),
+        )
+        with TemporaryDirectory() as tmp:
+            file = Path(tmp) / "qualified.jsonld"
+            file.write_text(json.dumps(projected), encoding="utf-8")
+            observed = inspect_catalog(file, verify_local=True, allowed_roots=(ROOT,))
+            verified = [
+                dist
+                for product in observed["products"]
+                for dist in product["distributions"]
+                if dist["verification"] == "VERIFIED"
+            ]
+            unknown = [
+                dist
+                for product in observed["products"]
+                for dist in product["distributions"]
+                if dist["verification"] == "UNKNOWN"
+            ]
+            self.assertEqual(len(verified), 2)
+            self.assertEqual(len(unknown), 1)
+            self.assertEqual(unknown[0]["title"], "episode-index-parquet")
+            self.assertTrue(all(d["reason"] == "digest_match" for d in verified))
+            self.assertTrue(all(d["uri"].startswith("file:///") for d in verified))
+
+    def test_explicit_binding_must_match_owner_metadata_and_bytes(self) -> None:
+        owner = self.sources[0]
+        props = json.loads(owner.read_text(encoding="utf-8"))
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = root / "owner-evidence.json"
+            data.write_bytes(b"original")
+            declared = hashlib.sha256(data.read_bytes()).hexdigest()
+            custom = props["customProperties"]
+            for prop in custom:
+                if prop.get("property") == "sourceRelativePath":
+                    prop["value"] = data.name
+                if prop.get("property") == "sourceSha256":
+                    prop["value"] = declared
+            candidate = root / "odps.json"
+            candidate.write_text(json.dumps(props), encoding="utf-8")
+            binding = LocalEvidenceBinding(
+                props["id"],
+                "public-shadow-json",
+                "sourceRelativePath",
+                "sourceSha256",
+                root,
+            )
+            project_catalog([candidate], bindings=(binding,))
+            data.write_bytes(b"corrupted")
+            with self.assertRaisesRegex(ValueError, "digest differs"):
+                project_catalog([candidate], bindings=(binding,))
+            data.write_bytes(b"original")
+            with self.assertRaisesRegex(ValueError, "named output port"):
+                project_catalog(
+                    [candidate],
+                    bindings=(
+                        LocalEvidenceBinding(
+                            props["id"],
+                            "nonexistent-port",
+                            "sourceRelativePath",
+                            "sourceSha256",
+                            root,
+                        ),
+                    ),
+                )
+            with self.assertRaisesRegex(ValueError, "duplicate local evidence"):
+                project_catalog([candidate], bindings=(binding, binding))
+            with self.assertRaisesRegex(ValueError, "missing or ambiguous"):
+                project_catalog(
+                    [candidate],
+                    bindings=(
+                        LocalEvidenceBinding(
+                            props["id"],
+                            "public-shadow-json",
+                            "unknown-property",
+                            "sourceSha256",
+                            root,
+                        ),
+                    ),
+                )
+            for prop in custom:
+                if prop.get("property") == "sourceRelativePath":
+                    prop["value"] = "../out-of-root.json"
+            candidate.write_text(json.dumps(props), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "must not escape"):
+                project_catalog([candidate], bindings=(binding,))
+
+    def test_cli_verified_binding_is_read_only_and_missing_is_unknown(self) -> None:
+        import subprocess
+
+        script = ROOT / "packages/data/scripts/project_owned_products.py"
+        cmd = [
+            sys.executable,
+            str(script),
+            "--bind-local",
+            "d14d7457-c9aa-59e0-8bf5-7783cea39c1c",
+            "public-shadow-json",
+            "sourceRelativePath",
+            "sourceSha256",
+            str(ROOT / "domains/capital"),
+            "--bind-local",
+            "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b",
+            "episode-corpus-manifest-json",
+            "corpusManifestRelativePath",
+            "corpusManifestSha256",
+            str(ROOT),
+        ]
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, check=False, timeout=20
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        projection = json.loads(result.stdout)
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "from-cli.jsonld"
+            path.write_text(json.dumps(projection), encoding="utf-8")
+            observed = inspect_catalog(path, verify_local=True, allowed_roots=(ROOT,))
+            statuses = [
+                dist["verification"]
+                for product in observed["products"]
+                for dist in product["distributions"]
+            ]
+            self.assertEqual(sorted(statuses), ["UNKNOWN", "VERIFIED", "VERIFIED"])
+
+    def test_dcat3_spdx_keeps_non_uuid_port_identity(self) -> None:
+        """DCAT dct:identifier is identity; checksum is its own SPDX property."""
+        product = json.loads(self.sources[0].read_text(encoding="utf-8"))
+        product["outputPorts"][0]["id"] = "provider-defined-port-id"
+        binding = LocalEvidenceBinding(
+            product["id"],
+            "public-shadow-json",
+            "sourceRelativePath",
+            "sourceSha256",
+            ROOT / "domains/capital",
+        )
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "modified-odps.json"
+            path.write_text(json.dumps(product), encoding="utf-8")
+            projected = project_catalog([path], bindings=(binding,))
+            dist = projected["dcat:dataset"][0]["dcat:distribution"][0]
+            self.assertEqual(dist["dct:identifier"], "provider-defined-port-id")
+            self.assertNotIn("@id", dist)
+            self.assertEqual(dist["spdx:checksum"]["@type"], "spdx:Checksum")
+            self.assertEqual(
+                dist["spdx:checksum"]["spdx:algorithm"]["@id"],
+                "http://spdx.org/rdf/terms#checksumAlgorithm_sha256",
+            )
+            self.assertEqual(
+                dist["spdx:checksum"]["spdx:checksumValue"]["@type"],
+                "xsd:hexBinary",
+            )
+            catalog_path = Path(tmp) / "catalog.jsonld"
+            catalog_path.write_text(json.dumps(projected), encoding="utf-8")
+            observed = inspect_catalog(
+                catalog_path, verify_local=True, allowed_roots=(ROOT,)
+            )
+            self.assertEqual(
+                observed["products"][0]["distributions"][0]["verification"],
+                "VERIFIED",
+            )
+            # A contradictory legacy digest is not silently overridden.
+            dist["dct:identifier"] = "sha256:" + ("0" * 64)
+            catalog_path.write_text(json.dumps(projected), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "conflicting legacy and SPDX"):
+                inspect_catalog(catalog_path, verify_local=True, allowed_roots=(ROOT,))

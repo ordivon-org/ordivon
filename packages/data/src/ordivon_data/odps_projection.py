@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+from .local_evidence import LocalEvidenceBinding, qualified_local_distribution
+
 _FORMATS = {
     "file/json": "application/json",
     "file/parquet": "application/vnd.apache.parquet",
@@ -33,7 +35,9 @@ def _text(value: Any, *, field: str) -> str:
     return value
 
 
-def project_odps(source: Path) -> tuple[dict[str, Any], str]:
+def project_odps(
+    source: Path, *, bindings: tuple[LocalEvidenceBinding, ...] = ()
+) -> tuple[dict[str, Any], str]:
     """Project ONE owner-declared DataProduct, never its physical availability."""
     raw = source.read_bytes()
     product = json.loads(raw)
@@ -124,15 +128,30 @@ def project_odps(source: Path) -> tuple[dict[str, Any], str]:
         entry["@id"] = dataset_uri
     if rights:
         entry["odrl:hasPolicy"] = {"@id": rights[0]}
+    claimed_ports: set[str] = set()
+    for binding in bindings:
+        if binding.product_id != product_id:
+            continue
+        if binding.port_name in claimed_ports:
+            raise ValueError("duplicate local evidence binding for output port")
+        claimed_ports.add(binding.port_name)
+        qualified_local_distribution(product, entry, binding)
     return entry, "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
-def project_catalog(sources: list[Path]) -> dict[str, Any]:
+def project_catalog(
+    sources: list[Path], *, bindings: tuple[LocalEvidenceBinding, ...] = ()
+) -> dict[str, Any]:
     """Build an immutable-source-fingerprinted DCAT discovery view, not a registry."""
     if not sources:
         raise ValueError("no producer-owned ODPS inputs")
-    entries = [project_odps(source) for source in sources]
+    entries = [project_odps(source, bindings=bindings) for source in sources]
     datasets = [entry for entry, _ in entries]
+    for binding in bindings:
+        if not any(entry["dct:identifier"] == binding.product_id for entry in datasets):
+            raise ValueError(
+                "local evidence binding refers to unprojected owner product"
+            )
     keys = [(entry["dct:identifier"], entry["dcat:version"]) for entry in datasets]
     if len(set(keys)) != len(keys):
         raise ValueError("duplicate owner product identifier and version")
@@ -149,6 +168,8 @@ def project_catalog(sources: list[Path]) -> dict[str, Any]:
             "dcat": "http://www.w3.org/ns/dcat#",
             "dct": "http://purl.org/dc/terms/",
             "odrl": "http://www.w3.org/ns/odrl/2/",
+            "spdx": "http://spdx.org/rdf/terms#",
+            "xsd": "http://www.w3.org/2001/XMLSchema#",
         },
         "@id": "urn:sha256:" + catalog_digest,
         "@type": "dcat:Catalog",

@@ -97,6 +97,23 @@ RDFLib 7.6 parser read-back validates the actual JSON-LD graph. These are
 implementation/format witnesses, **not** abstract proof or installed data
 availability. The owner-native data and rights policies remain external.
 
+## Conditional I/O refinement from real producer metadata
+
+`local_evidence.py` provides the missing I/O evidence for selected exact
+product-output boundaries, using only producer-declared ODPS source path
+and SHA-256 fields plus an operator-specified owner root. A current
+regular-file read is hashed and mismatches reject the projection. This
+binds two present JSON files in the tested checkout; the Episode Parquet
+index remains unavailable/UNKNOWN. Native positive and negative tests
+cover real file digest, corrupted bytes, incorrect port, missing property,
+duplicate binding, and `..` traversal.
+
+This is **not** a formal proof that symbolic file paths never change,
+that SHA-256 is collision-free, or that port/source association was proved
+from ODPS alone (the explicit operator binding is an additional assumption).
+Source identity, physical availability, rights and downstream acceptance
+must remain distinct from the Lean abstract digest verdict.
+
 ## Cross-owner adoption without a new platform
 
 - Runtime/Host/Harness: use their existing state-transition models, Rust

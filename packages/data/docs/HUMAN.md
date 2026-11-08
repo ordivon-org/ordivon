@@ -57,6 +57,21 @@ locations, access grants or physical integrity. A readable product record
 and an output port do not establish available bytes; real product release
 still requires the producing owner's ODCS/ODPS contract and read-back.
 
+## Explicit producer evidence, not inferred paths
+
+If the source owner has an existing relative path and SHA-256 in its ODPS
+`customProperties`, pass an explicit `--bind-local PRODUCT_ID PORT_NAME
+PATH_PROPERTY SHA_PROPERTY OWNER_ROOT` to the projection CLI. This names
+the qualified mapping; there is no automatic search for coincidentally
+matching hashes or guessed file locations. The current Finance JSON and
+Experimental Episode manifest can be verified from their Git-tracked source
+bytes. The Episode Parquet index has only a reproducibility digest and no
+currently accessible file in this repo; it remains UNKNOWN.
+
+A verified SHA-256 observation establishes only one current byte match.
+It cannot establish provider rights, future pathname stability, a complete
+product publication, or approval to delete source records.
+
 ## Version and status warnings
 
 - ODPS 1.1 historical consumers must not be silently switched to ODPS 4.2.

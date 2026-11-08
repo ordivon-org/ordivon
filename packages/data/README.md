@@ -86,6 +86,38 @@ file digest without an explicit owner binding, so the verifier returns
 into the content-derived catalog identity. No central catalog daemon, new
 database or persisted product state is added.
 
+## Optional qualified owner-file binding
+
+The default projection does NOT infer physical availability. For an actual local
+file, use explicit producer ODPS `customProperties` as the authority for the
+relative source path and SHA-256. The operator selects the exact product, port,
+property names and owner root; the adapter hashes the opened regular file and
+rejects any mismatch or escape from the explicit root. Only then does it emit
+a local file URI and bound digest. That local URI is **not portable** to other
+workspaces or an implicit redistribution permission.
+
+```sh
+repo="$(git rev-parse --show-toplevel)"
+python3 packages/data/scripts/project_owned_products.py \
+  --bind-local d14d7457-c9aa-59e0-8bf5-7783cea39c1c \
+    public-shadow-json sourceRelativePath sourceSha256 "$repo/domains/capital" \
+  --bind-local 4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b \
+    episode-corpus-manifest-json corpusManifestRelativePath corpusManifestSha256 "$repo" \
+  > /tmp/ordivon-qualified-products.jsonld
+
+python3 packages/data/scripts/inspect_federation.py \
+  --catalog /tmp/ordivon-qualified-products.jsonld --verify-local
+```
+
+For this source cut, the producer-owned Finance JSON and Episode manifest are
+both Git-tracked with matching SHA-256 declarations and can be VERIFIED.
+The rebuildable Episode Parquet file is **not** present in Git, so remains
+UNKNOWN. The strict `--require-verified` gate appropriately refuses to
+declare the *whole* catalog publishable with that unbound port. The optional
+binding is a current observation: consumers must read back the file against
+its declared digest before using it, since mutable pathnames can change.
+Never persist this ephemeral local URI as the canonical cross-host identity.
+
 ## Verification and user instructions
 
 - Native: `mise run data:verify` (Owner's CLI and exact existing study contracts).

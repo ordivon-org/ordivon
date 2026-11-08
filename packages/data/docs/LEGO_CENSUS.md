@@ -46,6 +46,17 @@ independent of product versions. Its correctness remains bounded by
 upstream metadata, native parsing and downstream consumer read-back; the
 DataProduct Lean digest proof does **not** prove RDF conversion.
 
+## Qualified current-byte evidence
+
+The optional `local_evidence.py` is a small **file-evidence adapter**, not
+a new owner/registry or generic provenance service. It accepts explicit
+operator-selected ODPS source-path and SHA-256 properties, binds one exact
+named output port and a canonical owner root, checks actual regular-file
+bytes, and emits only a short-lived local URI. The existing Artifact
+family remains natural owner of durable, format-level Dataset verification.
+The adapter does not certify the environment against later path replacement;
+recheck bytes at consumer read-back.
+
 ## Thought LEGO source laws
 
 - **Representation:** W3C DCAT/PROV, ODCS/ODPS, SDMX and Arrow/Parquet are

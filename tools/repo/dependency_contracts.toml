@@ -215,3 +215,14 @@ source_glob = "catalogs/capabilities/ele/studies.py"
 allowed_fragment = "capabilities/media/research/"
 kind = "RESEARCH_SOURCE_PROJECTION"
 contract_ref = "catalogs/capabilities/ele/README.md"
+
+# Data's bounded native producer-byte regression consumes Capital's declared
+# ODPS path/owner root. This is an exact TEST seam only: no Capital truth or
+# write authority is transferred to Data.
+[[seams]]
+from_owner = "data"
+to_owner = "capital"
+source_glob = "packages/data/tests/test_odps_projection.py"
+allowed_fragment = "domains/capital"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+contract_ref = "packages/data/docs/FORMAL_VERIFICATION.md"

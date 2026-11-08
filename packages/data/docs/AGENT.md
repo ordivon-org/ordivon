@@ -53,6 +53,13 @@ Discovery metadata is only a candidate until its producing owner confirms it.
    deletion, guessed rename or wiping shared worktrees. Prefer owner-native
    Git/workspace management and temporary cache pruning.
 
+Local producer byte binding: use explicit `--bind-local` only after reading
+the producer's declared ODPS properties, qualified owner root and *exact*
+output-port name. The tool checks the actual regular file SHA-256. Never
+fabricate port/file matching, claim a portable URL, or promote a missing
+Episode Parquet materialization to VERIFIED. Native consumers must recheck
+byte identity at their read boundary.
+
 Formal contract: [FORMAL_VERIFICATION.md](FORMAL_VERIFICATION.md).
 Run `mise run data:formal:verify` for Lean / CrossHair evidence; the result
 is NOT a proof that path reads, source licenses, network I/O, or domain
