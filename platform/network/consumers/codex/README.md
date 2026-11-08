@@ -64,11 +64,19 @@ A local-proxy TCP socket is now reported **even when proxy environment is
 UNSET or UNREADABLE**: Windows Desktop commonly uses a system-proxy
 setting rather than HTTP_PROXY/HTTPS_PROXY. When both proxy and external
 TCP/443 sockets exist, the observation reports both without inventing
-which application request used either one. It never
-prints proxy values, credentials, remote addresses or command lines. Unreadable
-processes are UNKNOWN, not empty. Its standing is always
-END_TO_END_EGRESS_UNKNOWN: a scoped environment and even an observed proxy TCP
-socket alone cannot certify Codex API traffic or Gluetun upstream forwarding.
+which application request used either one. It also checks all established
+non-proxy TCP sockets: a publicly routable destination on *any TCP port* is
+labelled `DIRECT_PUBLIC_TCP_SOCKET_OBSERVED`, while absence is strictly
+`NOT_OBSERVED_IN_SNAPSHOT` (never `NO_BYPASS`). This is a useful
+**counterexample witness**, not proof of what business request owns a socket.
+It counts UDP *bound endpoints* separately and labels them
+`BOUND_ENDPOINTS_NOT_DATAGRAM_FLOW`; those endpoints do not reveal remote
+UDP/QUIC destinations, whether datagrams were sent, or DNS resolution.
+Unparseable remote socket addresses and unreadable socket APIs remain UNKNOWN.
+No raw remote IPs, proxy values, credentials or command lines are output.
+The overall standing stays `END_TO_END_EGRESS_UNKNOWN` until a
+time-correlated native WFP event, real Codex request and independent Gluetun
+Carrier observation close the same flow.
 Pair the result with the existing NS2 upstream spy and a fresh actual client
 request before any process-level route claim.
 
@@ -89,3 +97,24 @@ itself and has no remaining supported consumer.
 
 Do not recreate a manual CLI wrapper, second physical WireGuard identity,
 or Network-owned Windows system-proxy manager.
+
+## Windows WFP evidence boundary
+
+Microsoft's native `Get-NetTCPConnection -OwningProcess` permits a bounded
+current-process TCP snapshot; `Get-NetUDPEndpoint` only enumerates bound UDP
+endpoints, not datagram destinations. Native WFP Security audit events
+5156 (allowed connection) and 5157 (blocked connection) can provide
+application/PID, protocol and destination details **only if the audit policy
+was already enabled and the required log-read privilege exists**. Do not
+interpret an empty Security log as zero bypass. Packet Monitor (`pktmon`)
+is native and useful for a scoped packet/path experiment, but its packet
+filter does **not** by itself attribute packets to a Codex process.
+
+Read-only owner workflow: check `auditpol /get`, the current process PIDs,
+`Get-NetTCPConnection`, `Get-NetUDPEndpoint`, and when present the bounded
+5156/5157 events. Never silently enable connection-success auditing
+on the active desktop: it can generate very high volume. Do not add global
+outbound firewall rules without a separate disposable Windows experiment,
+a real consumer need and post-change independent application acceptance.
+
+Current cross-owner backlog: [Windows Codex WFP and carrier proof #1824](https://github.com/ordivon-org/ordivon/issues/1824).
