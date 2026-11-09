@@ -160,3 +160,55 @@ No declaration of full implementation merely because this plan or A1 is present.
 - `mise run verify`: **392 passed / 51 skipped**, exit 0. Native CrossHair source obligations, Z3 DAG 40 obligations with negative control, and Lean DAG/Unicode theorems ran; skipped DB cases not counted as PG evidence (independent disposable PG18 PASS above).
 - Production Host `history` remains unhealthy `invalidWorks=3`; this source PR is not a repair of missing data or a production release.
 - Space review question at `message:host-r21-formal-spec-peer-consumer-review-20261109-2319` (sequence 25739); peer responses and installed acceptance tracked independently.
+
+
+## 2026-11-10 actual Host consumer-closure execution addendum (reviewed before edits)
+
+**Current SourceCut:** `8346863be965da34371944679d063fd9fd0358ac`. Former header `3b43977...` is historical authoring source; PR #1976 has **MERGED**, so Tasks A1/B1 and earlier C1 *first source regression* are already delivered and must NOT be rerun as new development tickets. Runtime/Host installed effect remains a separate acceptance. Global canonical Spec is the already-existing `docs/architecture/AGENT_CONTRACT_EXECUTION_SPEC_R1.md` adopted by #1992; do not create another global one or edit #1993 competing worktree.
+
+### Cross-audit order completed before this source slice
+
+- [x] Read current exact Git main/Host current source and actual production Host history Doctor.
+- [x] Read official methods via existing local approved Matt TDD/domain-modeling/code-review; ECC ai-regression-testing/verification-loop; Superpowers writing-plans/verification-before-completion. Apply methods at real public seams, not multiple orchestration services.
+- [x] Read Ordivon `recursive-lego-calculus`, `compositional-contracts`, `systems-engineering`, `stpa`, `fmea-fta`, `skill-supply-chain-audit`, `minimum-sufficient-representation`, `method-router`.
+- [x] Post existing Space peer request seq25818 and receive independent reply seq25823.
+- [x] Read production PG using `REPEATABLE READ READ ONLY`, collect three-Work revision/consumer reference matrix; post seq25843.
+- [x] Receive independent response seq25845: C conditional accept, A revise, B reject; post response seq25855. Peer advice not considered installed acceptance.
+- [x] Confirm actual structural references and negative inference: `63 message body mentions` are traces, not necessarily 63 live consumers; terminal age does not prove unreferenced Work.
+- [ ] Finalize all affected code native tests and Git publication; installed PG historical corruption remains unmodified.
+
+### Slice C2 — current-source public-consumer preservation (no production SQL writes)
+
+**Files:** modify existing `services/host/tests/test_host_history_doctor_postgres.py`; update these existing Host Spec/Plan files. **Do not create another global Spec, custom GC engine or schema migration.**
+
+**Consumption interfaces**: `WorkStore.get_work(workRef, revision?)`, `SocialStore.list_spaces(subject_ref=)`, `SocialStore.list_space_subjects`, `SocialStore.list_message_relations`, `SocialStore.get_message`, `HostV2.status(detail=integrity|history)`.
+
+**Concrete trace**: create isolated actor → Work rev1 → Work rev2 completed → Space Subject link → Topic/Message → `references` MessageRelation → delete only rev1 in disposable PostgreSQL → assert exact current snapshot and digest → old rev returns ConflictError → Social navigation still finds Work identity → Doctor history remains error. Cleanup disposable test fixtures via native SQL, no production impact.
+
+- [x] Run focused lint and isolated PG18 full owner test. If existing source produces PASS, classify as **new preservation regression coverage**, not a RED/GREEN implementation fix. Test behavior must come from real public API, no private SQL facades.
+- [x] Run Owner native `mise run verify` and separately disposable PG18, report skip counts without treating skips as PG PASS.
+- [ ] Two-axis peer review: **Standards** (Owner AGENTS/no duplicate abstraction/real API) and **Spec** (identity/current/history/Goal separation, no Doctor spoof, no destructive production effect).
+- [ ] Commit exact scoped diff and submit GitHub PR; current branch/source/CI vs installed effects independently observed.
+- [ ] Post PR+exact native evidence to existing Space. Do not wait for peer signoff before executable source check; do not claim production historical restoration.
+
+### Slice D2 — disposition and real-Goal continuation (next independent owner ticket, not quietly part of this source test)
+
+**Why:** work label `abandoned` is Host semantic disposition; its old P0 production Goal was carried forward to a new Work. Refuse a cleanup agent's `idle>=4h ⇒ abandoned` inference.
+
+- [ ] Locate the *exact* historical cleanup caller/Agent script, not infer that Host's `work.snapshot.commit` API itself made the bad decision.
+- [ ] Bind the caller to native Goal/Runtime/Host owner facts; replace age-only terminal changes with active-view pruning if independently justified.
+- [ ] Add an actual negative control preserving a four-hour idle but live Goal; do not add a `Goal` DB/foreign-truth lookup into Host.
+- [ ] Use existing PostgreSQL declarative set operations only when true candidate relations are closed and current. Preserve existing `RESTRICT` migration chain and non-FK Social reference consumers.
+- [ ] Independently check released native service/consumer, not just source PASS.
+
+### Closure/stop decision
+
+For the present three real terminal Works, the decision **KEEP identity / preserve current / historical unreadable / Doctor FAIL** is evidence-based and *not a reason to HOLD all unrelated work*. Do not create a large permanent retention policy for these three rows without a domain consumer demonstrating value. Production history can become PASS only by authentic recovery or explicitly versioned, consumer-qualified policy change; this slice does neither.
+
+### 2026-11-10 C2 native evidence (no installed/domain promotion)
+
+- SourceCut 8346863be965da34371944679d063fd9fd0358ac; isolated Workspace ws-gpt6-host-formal-crossaudit-20261110-r1.
+- `mise run test:postgres:disposable`: **444 passed in 54.98s**, exit 0; isolated PostgreSQL18 with Alembic schema 0013 and Ruff. The added test was green against unchanged service code: *contract-preservation coverage*, not claimed bug fix.
+- `mise run verify`: **392 passed, 52 skipped in 17.41s**, exit 0; CrossHair source obligations, Z3 bounded DAG plus negative SAT, Lean DAG and Unicode general theorems. PostgreSQL DB tests skipped in this command but qualified by the separate disposable PG test.
+- `git diff --check`: zero whitespace issues before commit; peer code-spec dual-axis request posted to existing Space seq25866, independent reply pending as of this artifact revision. Prior peer decision seq25845 adopted.
+- Production Host remains `work.snapshot_history_contiguous invalidWorks=3`; no production PG write, historical revision backfill, schema change, Goal change or installed Host claim.

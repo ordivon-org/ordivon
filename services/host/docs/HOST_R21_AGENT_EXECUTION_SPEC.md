@@ -249,3 +249,69 @@ Select the smallest sound representation **per actual responsibility**:
 - Agent implementation: Matt TDD at existing public seam → ECC counterexample regression → Superpowers completion evidence. No requirement that all three skills execute as nested workflows.
 
 Before adding a new theorem, field, tool, migration, or Skill, state an actual owner/consumer counterexample that the present implementation does not handle. Otherwise prefer DELETE/REUSE rather than adding another formal obligation.
+
+
+## 10. 2026-11-10 independent theoretical and consumer cross-audit (SourceCut 8346863)
+
+This section *refines the existing Host Owner spec*, not the canonical cross-Owner `docs/architecture/AGENT_CONTRACT_EXECUTION_SPEC_R1.md`, nor a new global policy or control plane. The former source header `3b43977...` remains historical authoring provenance; the current code/evidence SourceCut for this review is `8346863be965da34371944679d063fd9fd0358ac`. Last verified GitHub: #1976 MERGED, #1992 MERGED, #1993 OPEN with overlapping global-doc work. Do not reopen already merged slices.
+
+### 10.1 Theory selection with exact applicability boundaries
+
+**Systems engineering / NASA V&V.** The system of interest is *continuity for real consuming agents*, not a database-table count. Technical verification (SQL FK/CAS/Doctor, Work.get, Space/Message navigation) and final validation (owner-native preservation of useful Goal/outcome) are separate. The actual stakeholder measure is re-entry into live obligations without false terminal completion; raw reduction in Work rows is an incidental process measure. Adopt NASA Verification/Validation trace matrices only as small requirement→native-test mappings, not as a universal document bureaucracy. Sources: https://www.nasa.gov/reference/2-0-fundamentals-of-systems-engineering/ and https://www.nasa.gov/reference/system-engineering-handbook-appendix/.
+
+**Compositional contracts and refinement.** Let `W` be Host Work identity; `Hist(w)` the *retained partial map* `Revision ↦ (payload,digest)`; `Nav` be persisted Space Subject and Message Relation references; `Goal` be foreign-domain standing. The distinct predicates are `WorkIdentityReachable(w)`, `CurrentSnapshotReadable(w)`, and `HistoricalRevisionAvailable(w,r)`. No two are definitionally equivalent. Under same input/observation universe, a replacement assume–guarantee contract may not strengthen required assumptions or weaken guarantees; spell the set inclusion directions `A_old ⊆ A_new`, `G_new ⊆ G_old` only under the same behavior-universe/contract semantics. `Obs(Traces(Impl)) ⊆ Obs(Traces(Spec))` needs a *concrete* model→Python/SQL→installed consumer simulation; an abstract Lean theorem is not a bridge. Source: Abadi and Lamport, LICS 1988, https://www.microsoft.com/en-us/research/publication/the-existence-of-refinement-mappings/.
+
+**Logic / history.** Under the present full-history contract,
+`CompleteHistory(w) := dom(Hist(w)) = {1,...,currentRevision(w)}`.
+The production states `Hist(Linux)={17,18}`, `Hist(Windows)={46,47}`, `Hist(HostE2E)={3}` refute this predicate; all current revision digests remain valid. Therefore `HistoryDoctorHealthy=false` is correct, not a checker bug. A retained suffix does **not** prove there was a lawful historical retention policy. Without a verifiable old revision source, rewriting `Hist(w,1)` is prohibited. Typed `UNKNOWN` applies to why historical snapshots disappeared and whether an authorized retention basis existed. For `work.get(w,r)`, missing revision returns current typed conflict; do not silently fabricate another representation.
+
+**Database science.** Production readset used one PG `REPEATABLE READ READ ONLY` transaction; the default `READ COMMITTED` could produce different observations across multiple SELECTs. PG `ON DELETE RESTRICT` preserves explicit FKs, but opaque `Nav` references and body mentions lack comprehensive Work FK. Therefore a successful SQL DELETE (if otherwise possible) never proves all consumer effects preserved. Sources: https://www.postgresql.org/docs/18/transaction-iso.html and https://www.postgresql.org/docs/18/ddl-constraints.html.
+
+**STPA and organizational control.** Hazard H1: clearing a Work identity destroys collaboration re-entry to a still-relevant Goal. H2: synthetic old history makes false epistemic authority. H3: leaving a warning falsely treated as a global effect veto prevents unrelated valid work. Unsafe controls are *provided prematurely* (abandon/delete based on 4h idle), *omitted when needed* (consumer navigation), *wrong order* (delete before reference migration), and *applied too long* (indefinite busywork/hold). Use STPA's system control diagram to choose native boundary and test, not add a risk approval board. Source: https://www.mit.stamp-institute.com/handbooks.
+
+**Management / constraint focus.** The improvement target is the *rate of verified consumer-valid outcomes*, not the total number of files, proofs, deleted rows or green labels. The bottleneck here was missing live consumer relation readsets. Once discovered, a 3-row deletion is not worth a 63-body historical rewrite. Avoid Goodhart-style proxy optimization, repeated plans and extra actor roles. A precise stop decision that preserves known live consumers can be a valid engineering outcome; it is not proof that production history is healed.
+
+### 10.2 Actual source and database evidence
+
+Owner-only Host production PostgreSQL inspection was performed through an explicit `BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY`; no UPDATE/DELETE, no printed DSN/credentials, no Host Work terminal mutation. Result:
+
+| Work ref short name | Host state/current rev | retained revisions | Space Subject | MessageRelation targeting Work | Message body WorkRef mentions |
+| --- | --- | --- | ---: | ---: | ---: |
+| Linux PG cutover old | abandoned / 18 | 17, 18 | 2 | 2 | 27 |
+| Windows PG cutover old | abandoned / 47 | 46, 47 | 2 | 5 | 34 |
+| Host SourceCut E2E | completed / 3 | 3 | 1 | 0 | 2 |
+
+Total 5 structural Space Subject references, 7 structural Message relations, and 63 raw text matches. The 63 body matches prove *persisted reference traces*, not 63 independent active consumers. No `work_relations`, `coordination_intents` or Work `subscriptions` were found for these three refs in that read snapshot. Exact full readset and consumer liveness beyond these sources remain UNKNOWN. Production `host.status(detail=history)` continues to report `invalidWorks=3`; it is not an installed fix. A follow-on read-only investigation of whether earlier command receipts contain recoverable snapshots was blocked by platform safety, not worked around. Authentic historical recovery basis stays UNKNOWN.
+
+### 10.3 Independent cross-audit, source-bound
+
+Existing Space `space:ordivon-task-portfolio-and-proof-gates-r1:20261101`, topic `topic:ordivon-task:agent-text-contract-cross-audit:20261109`:
+- request seq 25818: six-dimensional theoretical/method/authority/conservatism/representation/negative-oracle review;
+- first independent Agent findings seq 25823: R2.1 coordinates present, H03 closure UNKNOWN; reject Doctor-greenwashing and excess approvals;
+- independent production reference witness seq 25843;
+- second independent Agent verdict seq 25845: **A=REVISE** (do not start with retainedFromRevision persistent schema), **B=REJECT** (don't rewrite 63 historical mentions to delete 3 identity rows), **C=CONDITIONAL ACCEPT** (keep navigated Work identities/current payloads, old rev typed unavailable, Doctor truthful); production cleanup needs separate real consumer closure proof;
+- implementation response seq 25855.
+These are independent *reviews and counterexample proposals*, not code proofs or service permissions.
+
+### 10.4 Ten mandatory questions, scoped to this concrete decision (audit verdict)
+
+| Question | Verdict | Falsifier or repair |
+| --- | --- | --- |
+| Theory strictly matches semantics? | CONDITIONAL | Full-history and partial-history are not the same predicate; don't infer recovery/retention authorization from current suffix |
+| R2.1 eleven typed coordinates? | DECLARED H01/H02/H03 | H03 `c`, `epsilon` and consumer closure still scoped UNKNOWN; no unearned ADMITTED or MODEL_PROVED |
+| A/G assumptions and ψ→φ refinement? | UNPROVED for installed outcome | Need native source/public seam + PG consumer; no formal model PASS alone |
+| Matt Skill method use? | YES scoped | Public Work.get, Social navigation and Doctor; one vertical slice not private-method mocking |
+| ECC Skill method use? | YES scoped | Change impact and independent regression evidence; do not copy its hooks as authority |
+| Superpowers method use? | YES scoped | Exact native command, verification-before-completion; not mandatory multiple trackers |
+| Is this overly conservative? | NO for 3 referenced IDs, YES if blocking unrelated work | Don't delete low-volume but consumed identities; also don't block independent progress due to Doctor failure |
+| Is this mere surface work? | Doctor-only would be | Test actual navigation while history absent; next material goal is history policy/real effects |
+| Is representation adequate? | REVISED | Separate Identity/CurrentSnapshot/RevisionAvailability/Navigation/Goal; no global minimum-representation claim |
+| Duplication and real consumer? | REVISED | Existing global Spec #1992; only Host Owner spec and public PG test, no duplicate registry/calculus |
+
+### 10.5 Chosen decision and next admissible action
+
+**Decision C: retain these three historically linked Work identities, preserve existing current snapshots and references, explicitly keep full-history Doctor red.** Do not assert “retention repair accomplished” and do not implement a new retained floor schema. This avoids unnecessary destructive rewrite while preserving current navigation. Only a truly *unreferenced* terminal Work with closed/current consumer observation may enter set-based PG cleanup; else remain UNKNOWN for retirement, not global development HOLD.
+
+Native implementation boundary is `services/host/tests/test_host_history_doctor_postgres.py`: a disposable PG18 test creates a completed Work with Space Subject and structured Message reference, removes only its old revision in *disposable testing*, checks Work.get current PASS / previous revision typed CONFLICT / Social navigation PASS / integrity & history Doctor ERROR. This is preservation coverage, not a previously failing production bug fix; do not claim RED→GREEN where the source already behaves correctly.
+
+Sources remain: current Host full-history source, current Git SHA, current work.get/space.subject.list/message.relation.list and actual production readback. Model proof, source acceptance, merge, installed currentness and external Goal acceptance are distinct statuses.
