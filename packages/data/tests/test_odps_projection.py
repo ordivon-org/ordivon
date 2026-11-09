@@ -232,6 +232,73 @@ class OwnerProductProjectionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "must not escape"):
                 project_catalog([candidate], bindings=(binding,))
 
+    def test_port_version_qualified_binding_resists_unrelated_same_name(self) -> None:
+        product = json.loads(self.sources[1].read_text(encoding="utf-8"))
+        manifest = next(
+            p
+            for p in product["outputPorts"]
+            if p["name"] == "episode-corpus-manifest-json"
+        )
+        self.assertEqual(manifest["version"], "1.0.0")
+        v2 = dict(manifest)
+        v2.pop("id", None)
+        v2["version"] = "2.0.0"
+        product["outputPorts"].append(v2)
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "multi-version-odps.json"
+            path.write_text(json.dumps(product), encoding="utf-8")
+            selected = LocalEvidenceBinding(
+                product["id"],
+                "episode-corpus-manifest-json",
+                "corpusManifestRelativePath",
+                "corpusManifestSha256",
+                ROOT,
+                port_version="1.0.0",
+            )
+            catalog = project_catalog([path], bindings=(selected,))
+            distributions = catalog["dcat:dataset"][0]["dcat:distribution"]
+            required = next(
+                p
+                for p in distributions
+                if p.get("dcat:version") == "1.0.0"
+                and p["dct:title"] == "episode-corpus-manifest-json"
+            )
+            unrelated = next(
+                p
+                for p in distributions
+                if p.get("dcat:version") == "2.0.0"
+                and p["dct:title"] == "episode-corpus-manifest-json"
+            )
+            self.assertIn("spdx:checksum", required)
+            self.assertNotIn("spdx:checksum", unrelated)
+            with self.assertRaisesRegex(ValueError, "ambiguous|named output port"):
+                project_catalog(
+                    [path],
+                    bindings=(
+                        LocalEvidenceBinding(
+                            product["id"],
+                            "episode-corpus-manifest-json",
+                            "corpusManifestRelativePath",
+                            "corpusManifestSha256",
+                            ROOT,
+                        ),
+                    ),
+                )
+            with self.assertRaisesRegex(ValueError, "version|named output port"):
+                project_catalog(
+                    [path],
+                    bindings=(
+                        LocalEvidenceBinding(
+                            product["id"],
+                            "episode-corpus-manifest-json",
+                            "corpusManifestRelativePath",
+                            "corpusManifestSha256",
+                            ROOT,
+                            port_version="3.0.0",
+                        ),
+                    ),
+                )
+
     def test_cli_verified_binding_is_read_only_and_missing_is_unknown(self) -> None:
         import subprocess
 

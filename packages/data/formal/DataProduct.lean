@@ -116,6 +116,47 @@ theorem selected_unknown_cannot_pass
 example : selectedAdmissible [.verified] = true := by decide
 example : selectedAdmissible [.verified, .falsified] = false := by decide
 
+-- Bitol ODPS 1.1 output port identity is (name, optional version);
+-- optional port UUID is not the required logical key. The whole data
+-- product ID/version is fixed by the calling product projection.
+abbrev PortKey := String × Option String
+
+-- Unlike the earlier selectedAdmissible model, exactPortVerdict models
+-- the *selection* step. Missing or ambiguous exact keys do not yield a
+-- verified verdict. This is abstract selection, not Python/source proof.
+def exactPortVerdict (requested : PortKey)
+    (rows : List (PortKey × Verdict)) : Option Verdict :=
+  match rows.filter (fun row => row.1 == requested) with
+  | [(_, verdict)] => some verdict
+  | _ => none
+
+theorem exactPortVerdict_unrelated_frame (requested other : PortKey)
+    (rows : List (PortKey × Verdict)) (verdict : Verdict)
+    (h : other ≠ requested) :
+    exactPortVerdict requested (rows ++ [(other, verdict)]) =
+      exactPortVerdict requested rows := by
+  simp [exactPortVerdict, List.filter_append, h]
+
+-- The qualified Research v1 port remains selected when a same-name
+-- v2 port exists. A sole wrong version or duplicate matching key
+-- cannot satisfy exact selection.
+example :
+    exactPortVerdict ("manifest", some "1.0.0")
+      [(("manifest", some "1.0.0"), .verified),
+       (("manifest", some "2.0.0"), .falsified)] = some .verified := by
+  decide
+
+example :
+    exactPortVerdict ("manifest", some "1.0.0")
+      [(("manifest", some "2.0.0"), .verified)] = none := by
+  decide
+
+example :
+    exactPortVerdict ("manifest", some "1.0.0")
+      [(("manifest", some "1.0.0"), .verified),
+       (("manifest", some "1.0.0"), .verified)] = none := by
+  decide
+
 -- The key is the *whole* product identity and version pair; older versions
 -- remain distinct. The model is a list with decidable exact equality, not a
 -- replacement registry or data storage implementation.
@@ -149,4 +190,5 @@ theorem admitting_new_version_preserves_unique_identity
 #print axioms selected_admission_requires_verified
 #print axioms selected_falsified_cannot_pass
 #print axioms selected_unknown_cannot_pass
+#print axioms exactPortVerdict_unrelated_frame
 end OrdivonData

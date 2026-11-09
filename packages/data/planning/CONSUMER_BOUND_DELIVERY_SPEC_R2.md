@@ -1,6 +1,6 @@
 # Data R2.1 Consumer Evidence — Formal-First Execution and Cross-Audit Spec
 
-Status: **PRE-IMPLEMENTATION / CROSS-OWNER AUDIT**. Date 2026-11-09.
+Status: **A3 source implementation verified locally; cross-owner review and PR integration pending**. Initiated 2026-11-09; source requalified 2026-11-10. Original pre-implementation review and its dated SourceCuts remain historical. Do not equate this status with merged/installed provider truth.
 Branch under revision: `feat/data-consumer-scoped-evidence-20261109-r1`, PR [#1970](https://github.com/ordivon-org/ordivon/pull/1970), head `78b70db5093c52f7df7053531993a8b2af325b50`.
 Fresh protected `main` SourceCut at review outset: `a7d70e83945b7418f41b9636f0803d1544e84355`; recheck immediately before implementation or publication.
 Natural Owner: `packages/data`; final factual consumers: actual Research `deliver_research.py` and existing Capital shadow consumer. Data cannot own their scientific/financial conclusions.
@@ -154,3 +154,62 @@ Rollback via normal Git PR/revert if a consumer breaks. Keep the original R1 sou
 - Existing local method source: `.agents/skills/{recursive-lego-calculus,compositional-contracts,skill-supply-chain-audit,external-capability-evaluation,method-router}/SKILL.md`.
 
 Review closure criteria: one independently falsifiable property at the real consumer seam; no extra control plane; positive and negative tests; clean SourceCut; transparent PR status. This SPEC itself does **not** count as implementation success.
+
+
+## 11. A3 execution evidence and independent audit (2026-11-10)
+
+Independent **pre-implementation decision matrix** (SourceCut
+`da3999c9`; reviewed in Space message 25826; keep the concrete
+counterexamples, not only the verdict labels):
+
+| Candidate | Verdict | Falsifier/obligation and action |
+|---|---|---|
+| A0 Current source/spec | REVISE -> SOURCE QUALIFIED | R1 CLI was not the actual Research caller; re-read current Git/PR and bind the Data/Research seam instead of creating a duplicate spec |
+| A1 Theory/Skills | ACCEPT WITH ASSUMPTIONS | Bitol v1.1 optional id/version; selected name+version and well-formed catalog are necessary premises. Matt's tracer-bullet, ECC's incumbent search/owner-native verification, Superpowers TDD used as methods; no foreign package installed |
+| A2 Cross-owner review | ACCEPT AS SOCIAL EVIDENCE | Existing independent peer #25796 and second concrete review #25826. Replies are challenge/evidence, never formal proof or authorization |
+| A3 Actual consumer refinement | REVISE -> IMPLEMENT VERTICAL SLICE | RED existing Research v1->v2 falsely ACCEPTED/HOLD; RED same-name v2 addition falsely blocked v1; enforce version at binding **and** Research candidate filtering, prove abstract unrelated-frame and execute positive/negative tests |
+| A4 Publish/integrate | CONDITIONAL | Passing Lean + local tests does not imply main merge, installed code or external business outcome. Recheck PR/CI, report each standing separately |
+| A5 Universal expansion | DELETE/HOLD | No demonstrated Finance/Artifact consumer needs a new data registry; keep source-owner adapter and actual Research result |
+
+**Organizational cybernetics application:** Research is the autonomous
+scientific decision unit, while Data supplies a scoped integrity observation.
+If Data raises unrelated ports' failures to a Research-wide veto, it creates
+coordination interference rather than useful control. Stafford Beer's VSM is
+used only to diagnose misplaced authority and variety, not to create five
+new Owner services. Real consumer outcome feedback, not procedural volume,
+is the control variable. The two runtime falsifiers are deliberately opposite
+(error admission vs unjustified blockage) so a policy that rejects all data
+cannot pass.
+
+- Space review: independent collaborator
+  `actor:agent:chatgpt-gpt6-formal-task-acceptance-20261109`,
+  sequence 25796, REVISE/CONDITIONAL GO; second independent review
+  `actor:agent:chatgpt-gpt6-data-r21-secondary-audit-20261110`,
+  sequence 25826, with executed Research counterexamples and A0–A5 verdicts.
+  Social messages are not proof kernels.
+- Current exact SourceCuts at independent review:
+  `main@8346863be965da34371944679d063fd9fd0358ac`;
+  PR #1970 `da3999c9f0aab48c2fd1fd343948be4768dec1f1`.
+  Requery these before publishing and preserve original PR history.
+- RED at source da3999: Research original ACCEPTED/HOLD;
+  selected port v1→v2 still ACCEPTED/HOLD (incorrect);
+  adding unrelated same-name v2 raised `binding requires exactly one named
+  output port` (incorrect). Added exact Research and Data tests, observed
+  failing tests before production changes.
+- GREEN candidate: optional `LocalEvidenceBinding.port_version` appended
+  without changing old positional callers; Data selects exactly the given
+  port name + version when supplied, with legacy unversioned caller requiring
+  a unique name. Real Research requires v1.0.0 in both binding and projected
+  distribution selection and exposes consumed `portVersion`.
+  Source evidence is still only current local bytes.
+- Model: `exactPortVerdict` abstracts keyed name+optional-version
+  selection and a Lean frame theorem for unrelated different-key ports,
+  plus finite missing/duplicate examples. Lean model does not prove Python
+  refines it; native producer/consumer RED/GREEN is the separate witness.
+- Current unsolved scope: simultaneous bindings of two versions in one
+  projection remain disallowed by `project_odps` name-level claimed binding
+  guard; the real Research consumer requests only v1 and does not need both
+  bindings. Do not generalize until a qualifying consumer arises.
+- No weak-model trial, new registry/service, foreign Skill install, destructive
+  migration or arbitrary permission framework. Verify PR/CI and native
+  standing before marking A4 complete.

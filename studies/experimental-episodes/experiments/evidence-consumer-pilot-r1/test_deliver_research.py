@@ -55,6 +55,32 @@ class ResearchOutcomeDelegationTest(unittest.TestCase):
         self.assertFalse((self.root / "episode-index.parquet").exists())
         self.assertEqual(delivery.deliver(self.root)["status"], "ACCEPTED")
 
+    def test_manifest_port_contract_version_drift_is_not_accepted(self) -> None:
+        product_path = self.root / delivery.PRODUCT
+        product = json.loads(product_path.read_text())
+        manifest_port = next(
+            x for x in product["outputPorts"] if x["name"] == delivery.MANIFEST_PORT
+        )
+        self.assertEqual(manifest_port["version"], "1.0.0")
+        manifest_port["version"] = "2.0.0"
+        product_path.write_text(json.dumps(product))
+        with self.assertRaisesRegex(ValueError, "version"):
+            delivery.deliver(self.root)
+
+    def test_same_named_unrelated_v2_does_not_block_required_v1(self) -> None:
+        product_path = self.root / delivery.PRODUCT
+        product = json.loads(product_path.read_text())
+        manifest_port = next(
+            x for x in product["outputPorts"] if x["name"] == delivery.MANIFEST_PORT
+        )
+        self.assertEqual(manifest_port["version"], "1.0.0")
+        unrelated_v2 = dict(manifest_port)
+        unrelated_v2["version"] = "2.0.0"
+        unrelated_v2.pop("id", None)  # ODPS 1.1 ID is optional
+        product["outputPorts"].append(unrelated_v2)
+        product_path.write_text(json.dumps(product))
+        self.assertEqual(delivery.deliver(self.root)["status"], "ACCEPTED")
+
     def test_source_bytes_tampered_rejected(self) -> None:
         self.manifest.write_bytes(self.manifest.read_bytes() + b"\n")
         with self.assertRaisesRegex(ValueError, "digest"):
@@ -75,6 +101,7 @@ class ResearchOutcomeDelegationTest(unittest.TestCase):
             path_property="corpusManifestRelativePath",
             digest_property="corpusManifestSha256",
             owner_root=self.root,
+            port_version=delivery.MANIFEST_PORT_VERSION,
         )
         projected, _ = delivery.project_odps(
             self.root / delivery.PRODUCT, bindings=(binding,)
@@ -83,6 +110,7 @@ class ResearchOutcomeDelegationTest(unittest.TestCase):
             p
             for p in projected["dcat:distribution"]
             if p["dct:title"] == delivery.MANIFEST_PORT
+            and p.get("dcat:version") == delivery.MANIFEST_PORT_VERSION
         )
         self.assertEqual(
             delivery.inspect_distribution(selected, (self.root,), verify_local=True)[
