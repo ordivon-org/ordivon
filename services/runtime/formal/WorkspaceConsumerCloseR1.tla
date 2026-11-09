@@ -80,6 +80,25 @@ Next ==
 
 Spec == Init /\ [][Next]_vars
 
+\* Conditional liveness: under weak fairness for Close, a Workspace that
+\* stays eligible forever cannot be retained forever solely by stuttering.
+\* This does NOT witness actual physical consumers or scheduler fairness.
+EligibleForClose ==
+    /\ phase = "open"
+    /\ ~liveJob
+    /\ ~gitDependent
+    /\ (released \/ age = "expired")
+
+FairCloseSpec == Spec /\ WF_vars(Close)
+
+StableEligibleEventuallyClosed ==
+    (<>[]EligibleForClose) => <> (phase = "closed")
+
+\* Deliberately unsatisfied in the current abstraction: expiry alone
+\* is not proof that an otherwise active consumer has finished.
+ExpiredActiveConsumerCannotBeClosed ==
+    ~ (phase = "closed" /\ consumer = "active" /\ age = "expired")
+
 TypeOK ==
     /\ phase \in {"open", "closed"}
     /\ age \in {"fresh", "expired"}

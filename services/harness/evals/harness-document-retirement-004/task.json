@@ -1,0 +1,63 @@
+{
+  "acceptanceContract": {
+    "assertions": [
+      "both superseded documents are absent in the candidate workspace",
+      "all retained current files remain byte-identical",
+      "no unrelated source file was added or modified",
+      "agent claims and reports never construct acceptance"
+    ],
+    "verifierId": "HARNESS-DOC-RETIREMENT-004-independent-verifier"
+  },
+  "allowedCapabilities": [
+    "read_workspace",
+    "mutate_workspace",
+    "diff_workspace",
+    "run_in_workspace"
+  ],
+  "budgetProfile": {
+    "maxInputTokens": 1000000,
+    "maxModelCalls": 8,
+    "maxObservationBytes": 1048576,
+    "maxOutputTokens": 100000,
+    "maxRuntimeJobs": 8,
+    "maxToolCalls": 20,
+    "maxWallTimeMs": 600000
+  },
+  "expertTimeEstimateMinutes": null,
+  "family": "repository_retirement",
+  "initialState": {
+    "environmentDigest": "sha256:3f0b6c8f4f00a9388aa58bc161be7fcbcfc3fc8c38568c61b2a3afee72922e93",
+    "fixturePath": "evals/harness-document-retirement-004/fixture",
+    "sourceRepositoryId": "ordivon"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "ordivon-canonical-json-v1",
+    "payloadDigest": "sha256:a3cc599d1e07802982cd43b4f609c75fd90af0f4121029ca2fd58b9a6e3fa204"
+  },
+  "kind": "ordivon.evaluation-task",
+  "knownLimitations": [
+    "A deterministic miniature fixture, not proof that arbitrary repository consumers are absent.",
+    "No live provider or cross-model execution was performed by this test.",
+    "Verifier is external to the candidate workspace; production admission is not covered."
+  ],
+  "labels": [
+    "harness-v0",
+    "repository-retirement",
+    "deterministic",
+    "track-r"
+  ],
+  "objective": "Retire two unconsumed migration-stage documents while preserving the current operator contract and machine-consumed fixture. A report or completion claim is not a substitute for deleting the obsolete files.",
+  "oracle": {
+    "digest": "sha256:14385eec26a562e7e196dbe26de0b8650158046a4ade780bd402bd25d635714d",
+    "kind": "independent-consumer-verifier",
+    "path": "evals/harness-document-retirement-004/verifier.py"
+  },
+  "reproducibility": {
+    "cleanRebuildTrials": 3,
+    "requiredAgreement": 3
+  },
+  "schemaVersion": 1,
+  "taskId": "HARNESS-DOC-RETIREMENT-004",
+  "taskVersion": 1
+}
