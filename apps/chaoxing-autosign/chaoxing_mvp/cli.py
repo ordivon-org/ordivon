@@ -10,7 +10,7 @@ from .models import Activity, ActivityIdentity, ActivityKind, CourseIdentity
 from .ports import Ports
 
 
-def build_demo() -> AutoSignEngine:
+def build_demo(ledger_path: Path) -> AutoSignEngine:
     account = "demo-account"
     course = CourseIdentity(
         account_id=account,
@@ -39,10 +39,7 @@ def build_demo() -> AutoSignEngine:
         kind=ActivityKind.QR_REQUIRED,
         verification_requirements=("user-supplied-qr",),
     )
-    db_path = Path(tempfile.gettempdir()) / "chaoxing-autosign-mvp-demo.sqlite3"
-    if db_path.exists():
-        db_path.unlink()
-    ledger = ActivityLedger(db_path)
+    ledger = ActivityLedger(ledger_path)
     ports = Ports(
         session=FakeSession(account),
         discovery=FakeDiscovery([course], {course.key: [normal, qr]}),
@@ -53,9 +50,11 @@ def build_demo() -> AutoSignEngine:
 
 
 def main() -> None:
-    engine = build_demo()
-    stats = engine.scan_once()
-    print(stats)
+    # The synthetic ledger belongs to this invocation, not a global /tmp filename.
+    with tempfile.TemporaryDirectory(prefix="chaoxing-autosign-demo-") as tmp:
+        engine = build_demo(Path(tmp) / "activity-ledger.sqlite3")
+        stats = engine.scan_once()
+        print(stats)
 
 
 if __name__ == "__main__":
