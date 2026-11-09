@@ -14,7 +14,7 @@ audience:
   - operator
   - builder
   - agent
-updated: 2026-08-24
+updated: 2026-11-09
 summary: Privacy authority for model and Tool content, durable metadata, recovery, retention, export and deletion boundaries.
 evidence_status: verified
 readiness: READY
@@ -123,13 +123,13 @@ Do not place secrets in Context unless disclosure to the configured Provider is 
 
 ## Retention
 
-Harness retains its private SQLite Journal and immutable CAS for the exact objects authorized by the Contract plus metadata/digests required for audit, recovery and idempotency. Runtime separately controls Artifact and Workspace retention. Provider-side retention follows the Provider's service or local-process policy; caller/domain state follows its owning system.
+For PostgreSQL-backed Runs, Harness retains the Journal and immutable content-addressed objects inside the selected Harness schema, bounded by the Contract plus necessary metadata/digests for audit, recovery and idempotency. Legacy direct Python SQLite state exists separately pending its consumer-qualified retirement. Runtime separately controls Artifact and Workspace retention. Provider-side retention follows the Provider's service or local-process policy; caller/domain state follows its owning system.
 
 Do not delete individual Harness CAS objects or Journal events manually. Selective erasure requires a versioned Harness archival/redaction contract that preserves causal and digest relationships.
 
 ## Export and migration
 
-Use Harness `store-backup` / `store-verify-backup` / `store-restore` for independent Run state. A complete operational migration may also require:
+Use PostgreSQL-native, database-owner-controlled backup and recovery (e.g. `pg_dump`/`pg_restore`) for PostgreSQL-backed Run state. The obsolete SQLite CLI backup and restore commands are not exposed. A complete operational migration may also require:
 
 - caller-authorized content that was intentionally not retained by metadata-only Harness state;
 - Runtime Artifacts and Workspace state;

@@ -33,8 +33,8 @@ description = "Native R7 study evaluator/selftest from Game owner"
 run = "uv run --with check-jsonschema==0.38.0 python research/autonomous-interest-r7/protocol_selftest.py"
 
 [tasks."test:agent-episode"]
-description = "Exercise a real Godot room scene through bounded Agent action/observation JSON after editor import"
-run = "python3 examples/room-encounter/agent_episode_acceptance.py"
+description = "Import then exercise the native Godot room scene and bounded Agent action/observation JSON, including clean checkouts"
+run = "godot --headless --path examples/room-encounter --editor --import && python3 examples/room-encounter/agent_episode_acceptance.py"
 
 
 [tasks."test:bevy"]

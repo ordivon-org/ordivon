@@ -132,13 +132,11 @@ CLI_COMMANDS = (
     "doctor",
     "status",
     "inspect",
+    "explain",
     "run",
     "resume",
     "store-init",
     "store-doctor",
-    "store-backup",
-    "store-verify-backup",
-    "store-restore",
     "store-inspect",
     "store-events",
 )
@@ -286,6 +284,10 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
             "cutover-status",
             "cutover-activate",
             "--harness-state-root",
+            "--state-root",
+            "store-backup",
+            "store-verify-backup",
+            "store-restore",
         ):
             if removed in help_text:
                 fail(f"CLI still advertises removed surface: {removed}")

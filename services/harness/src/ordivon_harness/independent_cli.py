@@ -23,8 +23,6 @@ from .store import HarnessRunStatus
 
 def dispatch(args, *, clock_ms) -> dict[str, object]:
     command = args.command
-    if args.state_root is not None:
-        raise ValueError("--state-root is retired; Harness uses PostgreSQL only")
     dsn, schema = configured_postgres()
 
     def store_factory() -> PostgresHarnessStore:

@@ -15,7 +15,7 @@ from unittest.mock import patch
 import psycopg
 from psycopg import sql
 
-from ordivon_harness.cli import main
+from ordivon_harness.cli import build_parser, main
 from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
 from tests.test_p0_sqlite_store import run_contract
@@ -71,13 +71,15 @@ class PgOnlyHarnessCli(unittest.TestCase):
         self.assertEqual((code, error), (0, ""))
         self.assertEqual(result["store"]["runs"], 1)
 
-    def test_sqlite_backup_state_root_and_missing_pg_fail_closed(self) -> None:
-        code, _, error = self.invoke("store-backup", "/tmp/harness-retired-backup")
-        self.assertEqual(code, 1)
-        self.assertIn("legacy SQLite backup and restore are retired", error)
-        code, _, error = self.invoke("--state-root", "/tmp/old-harness", "store-init")
-        self.assertEqual(code, 1)
-        self.assertIn("--state-root is retired", error)
+    def test_removed_sqlite_cli_surface_and_missing_pg_fail_closed(self) -> None:
+        parser = build_parser()
+        for argv in (
+            ["store-backup", "/tmp/harness-retired-backup"],
+            ["--state-root", "/tmp/old-harness", "store-init"],
+        ):
+            with contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    parser.parse_args(argv)
         with patch.dict(os.environ, {"HARNESS_PG_DSN": ""}):
             code, _, error = self.invoke("store-init")
         self.assertEqual(code, 1)
