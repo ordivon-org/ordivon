@@ -118,14 +118,20 @@ def main() -> int:
             else "NOT_ESTABLISHED"
         )
     print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
+    if args.require_port:
+        # The consumer requested an exact subset. Preserve all global
+        # observations in the report, but never widen a selected port's
+        # admission authority to an unrelated distribution.
+        selected_states = [
+            selected["verification"]
+            for selected in result["inspection"]["selectedPorts"]
+        ]
+        if "FALSIFIED" in selected_states:
+            return 2
+        return 0 if result["inspection"]["selectedPortIntegrityGate"] == "PASS" else 3
     if "FALSIFIED" in observed:
         return 2
     if args.require_verified and result["inspection"]["integrityGate"] != "PASS":
-        return 3
-    if (
-        args.require_port
-        and result["inspection"]["selectedPortIntegrityGate"] != "PASS"
-    ):
         return 3
     return 0
 

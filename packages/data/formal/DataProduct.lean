@@ -63,6 +63,59 @@ theorem falsified_requires_two_different_observed_digests
       · simp [digestVerdict, hEqual] at h
       · exact ⟨d, o, rfl, rfl, hEqual⟩
 
+-- Selected output integrity is a consumer-scoped decision, not a summary
+-- of unrelated ports. The caller has already resolved and uniquely identified
+-- the requested product/version/port set. This model proves only its verdict
+-- aggregation, not exact lookup or physical file reads.
+def selectedAdmissible (selected : List Verdict) : Bool :=
+  !selected.isEmpty && selected.all (fun verdict => verdict == .verified)
+
+theorem no_empty_selected_admission :
+    selectedAdmissible [] = false := by
+  rfl
+
+theorem selected_admission_requires_nonempty
+    (selected : List Verdict) (h : selectedAdmissible selected = true) :
+    selected ≠ [] := by
+  intro empty
+  subst selected
+  simp [selectedAdmissible] at h
+
+theorem selected_admission_requires_verified
+    (selected : List Verdict) (h : selectedAdmissible selected = true)
+    (verdict : Verdict) (member : verdict ∈ selected) :
+    verdict = .verified := by
+  have hall : selected.all (fun v => v == .verified) = true := by
+    cases hAll : selected.all (fun v => v == .verified) with
+    | false => simp [selectedAdmissible, hAll] at h
+    | true => rfl
+  have hv : (verdict == .verified) = true :=
+    List.all_eq_true.mp hall verdict member
+  exact beq_iff_eq.mp hv
+
+theorem selected_falsified_cannot_pass
+    (selected : List Verdict) (h : Verdict.falsified ∈ selected) :
+    selectedAdmissible selected = false := by
+  cases gate : selectedAdmissible selected with
+  | false => rfl
+  | true =>
+    have impossible := selected_admission_requires_verified selected gate .falsified h
+    cases impossible
+
+theorem selected_unknown_cannot_pass
+    (selected : List Verdict) (h : Verdict.unknown ∈ selected) :
+    selectedAdmissible selected = false := by
+  cases gate : selectedAdmissible selected with
+  | false => rfl
+  | true =>
+    have impossible := selected_admission_requires_verified selected gate .unknown h
+    cases impossible
+
+-- Explicit counterexample to accidental catalog-wide admission:
+-- the selected port is verified, the unrelated port is falsified.
+example : selectedAdmissible [.verified] = true := by decide
+example : selectedAdmissible [.verified, .falsified] = false := by decide
+
 -- The key is the *whole* product identity and version pair; older versions
 -- remain distinct. The model is a list with decidable exact equality, not a
 -- replacement registry or data storage implementation.
@@ -92,4 +145,8 @@ theorem admitting_new_version_preserves_unique_identity
 #print axioms verified_requires_equal_observed_digests
 #print axioms falsified_requires_two_different_observed_digests
 #print axioms admitting_new_version_preserves_unique_identity
+#print axioms selected_admission_requires_nonempty
+#print axioms selected_admission_requires_verified
+#print axioms selected_falsified_cannot_pass
+#print axioms selected_unknown_cannot_pass
 end OrdivonData

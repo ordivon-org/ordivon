@@ -152,8 +152,10 @@ python3 packages/data/scripts/inspect_federation.py \
 version and distribution passed the current scoped digest check; it is
 **not** full product publication or proof about other output ports, rights,
 freshness or scientific quality. Unknown/wrong-version port selections
-exit 3; evidence mismatch exits 2. Unrelated observed falsification also
-blocks the CLI rather than silently admitting a partially corrupted catalog.
+exit 3; a mismatch on the *selected* port exits 2. An unrelated
+FALSIFIED port remains visible in the full inspection report but does not
+veto a consumer's exact selected-port gate. Whole-catalog admission and
+ungated inspection still exit 2 when any distribution is FALSIFIED.
 
 The optional binding is a current observation: consumers must read back the file against
 its declared digest before using it, since mutable pathnames can change.

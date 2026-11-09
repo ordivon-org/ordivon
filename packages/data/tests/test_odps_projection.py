@@ -5,10 +5,11 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
-import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[3]
 import sys
@@ -366,6 +367,89 @@ class OwnerProductProjectionTests(unittest.TestCase):
             self.assertEqual(inspection["verifiedCount"], 1)
             self.assertEqual(inspection["unknownCount"], 1)
             self.assertEqual(inspection["selectedPorts"][0]["verification"], "VERIFIED")
+
+            # A separately corrupted, unselected port is reported but must
+            # not veto this exactly selected verified consumer input.
+            contaminated = json.loads(catalog.read_text(encoding="utf-8"))
+            ports = contaminated["dcat:dataset"][0]["dcat:distribution"]
+            chosen = next(
+                p for p in ports if p["dct:title"] == "episode-corpus-manifest-json"
+            )
+            unrelated = next(
+                p for p in ports if p["dct:title"] == "episode-index-parquet"
+            )
+            unrelated["dcat:accessURL"] = chosen["dcat:accessURL"]
+            unrelated["spdx:checksum"] = {
+                "@type": "spdx:Checksum",
+                "spdx:algorithm": {
+                    "@id": "http://spdx.org/rdf/terms#checksumAlgorithm_sha256"
+                },
+                "spdx:checksumValue": {
+                    "@type": "xsd:hexBinary",
+                    "@value": "0" * 64,
+                },
+            }
+            contaminated_path = Path(temp) / "unrelated-falsified.jsonld"
+            contaminated_path.write_text(json.dumps(contaminated), encoding="utf-8")
+
+            def invoke_contaminated(*args: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [
+                        sys.executable,
+                        str(script),
+                        "--catalog",
+                        str(contaminated_path),
+                        "--verify-local",
+                        *args,
+                    ],
+                    check=False,
+                    text=True,
+                    capture_output=True,
+                    timeout=20,
+                )
+
+            local_only = invoke_contaminated("--require-port", *target)
+            self.assertEqual(local_only.returncode, 0, local_only.stderr)
+            scoped = json.loads(local_only.stdout)["inspection"]
+            self.assertEqual(scoped["falsifiedCount"], 1)
+            self.assertEqual(scoped["selectedPortIntegrityGate"], "PASS")
+            self.assertEqual(scoped["integrityGate"], "NOT_ESTABLISHED")
+            self.assertEqual(invoke_contaminated("--require-verified").returncode, 2)
+            self.assertEqual(invoke_contaminated().returncode, 2)
+
+            # The same corruption on the selected port itself must still veto
+            # selected admission, even if the other port is intact.
+            selected_bad = json.loads(catalog.read_text(encoding="utf-8"))
+            selected_port = next(
+                p
+                for p in selected_bad["dcat:dataset"][0]["dcat:distribution"]
+                if p["dct:title"] == "episode-corpus-manifest-json"
+            )
+            selected_port["spdx:checksum"]["spdx:checksumValue"]["@value"] = "0" * 64
+            selected_bad_path = Path(temp) / "selected-falsified.jsonld"
+            selected_bad_path.write_text(json.dumps(selected_bad), encoding="utf-8")
+            selected_bad_result = subprocess.run(
+                [
+                    sys.executable,
+                    str(script),
+                    "--catalog",
+                    str(selected_bad_path),
+                    "--verify-local",
+                    "--require-port",
+                    *target,
+                ],
+                check=False,
+                text=True,
+                capture_output=True,
+                timeout=20,
+            )
+            self.assertEqual(selected_bad_result.returncode, 2)
+            self.assertEqual(
+                json.loads(selected_bad_result.stdout)["inspection"]["selectedPorts"][
+                    0
+                ]["verification"],
+                "FALSIFIED",
+            )
 
             all_port_gate = invoke("--require-verified")
             self.assertEqual(all_port_gate.returncode, 3)

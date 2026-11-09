@@ -66,6 +66,30 @@ class ResearchOutcomeDelegationTest(unittest.TestCase):
             delivery.deliver(self.root)
 
     def test_analysis_drift_rejected_against_research_receipt(self) -> None:
+        # Data verifies the selected producer port, but cannot confer
+        # Research's independent business acceptance.
+        product = json.loads((self.root / delivery.PRODUCT).read_text())
+        binding = delivery.LocalEvidenceBinding(
+            product_id=product["id"],
+            port_name=delivery.MANIFEST_PORT,
+            path_property="corpusManifestRelativePath",
+            digest_property="corpusManifestSha256",
+            owner_root=self.root,
+        )
+        projected, _ = delivery.project_odps(
+            self.root / delivery.PRODUCT, bindings=(binding,)
+        )
+        selected = next(
+            p
+            for p in projected["dcat:distribution"]
+            if p["dct:title"] == delivery.MANIFEST_PORT
+        )
+        self.assertEqual(
+            delivery.inspect_distribution(selected, (self.root,), verify_local=True)[
+                "verification"
+            ],
+            "VERIFIED",
+        )
         f = self.root / delivery.ANALYSIS
         d = json.loads(f.read_text())
         d["generalization"]["developmentEpisodes"] = 999
