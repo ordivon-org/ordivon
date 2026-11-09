@@ -41,3 +41,11 @@ The first deployment suite run in a separate earlier Workspace failed due missin
 
 ## Cross-agent handoff
 Host Space requests seq 25965, 25966 include SOURCE and exact finding requests. They prove only message admission, not that another Agent reviewed/approved code. The eventual PR/merge/production status must be read back separately and recorded in its source-linked GitHub record. No new audit process is created.
+
+## GitHub and collaboration status readback for this source publication
+
+- Implemented/refactor source commit: 3468c5f28f5efd28fbc3043140e2d41bec840615.
+- Actual-source-graph audit follow-up: 7913be69b6c61bdd5f504259f04725ff129ffb1f.
+- GitHub PR #2028: https://github.com/ordivon-org/ordivon/pull/2028, OPEN / MERGEABLE with gated auto-merge enabled; external CodeQL jobs were QUEUED at last read-back. No claim of merge or install.
+- Superseded additive Draft PR #1998: CLOSED with GitHub confirmation; historical branch/data remains accessible.
+- Host Space final handoff #25988 (whole-system audit) and #25989 (Runtime) committed; independent peer reply was still absent in these two topics after #25989.

@@ -41,9 +41,9 @@ Natural owner: services/runtime.
 
 ## F4 — source commit and native handoff
 
-- [ ] Commit with source SHA and small refactor message. No Git reset, stash or force close of any other Workspace.
-- [ ] Publish scoped PR using existing GitHub credentials after verifying current main and Git checks; do not auto-merge pending external CI failures.
-- [ ] Host Space handoff: STATUS, SOURCE_SHA, DONE, OPEN/UNKNOWN, exact file:line, reviewer objections and NEXT. Peer message commit != peer approval.
+- [x] Commit with source SHA and small refactor message. No Git reset, stash or force close of any other Workspace.
+- [x] Publish scoped PR using existing GitHub credentials after verifying current main and Git checks; do not auto-merge pending external CI failures.
+- [x] Host Space handoff: STATUS, SOURCE_SHA, DONE, OPEN/UNKNOWN, exact file:line, reviewer objections and NEXT. Peer message commit != peer approval.
 
 ## F5 — further existing-code simplification, separately qualifiable and not falsely called complete
 
