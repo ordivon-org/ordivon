@@ -58,3 +58,19 @@ DEVELOPMENT/JUDGE generalization claim follows. Retain HOLD until a real
 agent task with actionable episode-level content, independent holdout, frozen
 intervention, comparable compute budgets and an independent output oracle is
 run.
+
+
+## Outcome-first Research decision handoff (actual)
+
+Run from the repository root:
+
+    python3 studies/experimental-episodes/experiments/evidence-consumer-pilot-r1/deliver_research.py --output /tmp/episode-research-decision.json
+
+The Research Owner delegates its required manifest to Data's existing
+producer-origin binding and physical byte verifier, reopens exact bytes
+and checks the independent analysis receipt. The output is a business
+HOLD decision with a source-bound machine receipt, or DATA_NOT_DELIVERED
+when evidence is missing or forged. No manual product ID or SHA choice is
+needed. The implementation and source corruption tests are recorded in
+test_deliver_research.py; delivery-20261109.json is one observed result.
+This does not prove task-level Agent memory learning or full Data autonomy.

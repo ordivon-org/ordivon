@@ -1,5 +1,24 @@
 # Data — Human guide
 
+## Normal human interaction: state the outcome, not the data-engineering procedure
+
+Ask the Outcome Owner to complete the business task. For example:
+"Determine whether the recorded Episode evidence justifies Agent promotion."
+Research, not the human, asks Data for the requisite information. Human
+users should not be required to choose ODPS ports, checksums, paths, SQL
+engines, verification tools or routine recovery options.
+
+**Already executable example:** Research's deliver_research.py in
+studies/experimental-episodes/experiments/evidence-consumer-pilot-r1
+automatically discovers and verifies the exact producer-declared Episode
+manifest, checks the independent analytical receipt and delivers the bounded
+business decision HOLD with verifiable source facts. This is one qualified
+consumer, not a deployed universal Data service. Missing or contradictory
+required source means DATA_NOT_DELIVERED, never an invented research success.
+
+### Exceptional engineering and specialist diagnostics
+
+
 ## What this owner does
 
 Data provides a read-only lens into real data products and joins mature

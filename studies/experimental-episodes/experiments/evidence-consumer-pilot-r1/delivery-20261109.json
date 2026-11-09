@@ -1,0 +1,43 @@
+{
+  "consumer": "Research / autonomous improvement qualification",
+  "decision": {
+    "reason": "Verified historical input exists, but these records do not identify task-level generalization or intervention benefit.",
+    "standing": "HOLD"
+  },
+  "deliveredInformation": {
+    "consumerReadback": "PASS_EXACT_SOURCE_DIGESTS_AND_RESEARCH_RECEIPT",
+    "manifestSha256": "sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
+    "physicalByteVerification": "VERIFIED",
+    "port": "episode-corpus-manifest-json",
+    "productId": "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b",
+    "productSourceDigest": "sha256:6691c6168c7d0fa1d031ab2d1bbce69a15dd755878d4c2dac8cf9f01d13ef04a",
+    "productVersion": "1.0.0",
+    "scope": "SELECTED_OUTPUT_PORT_ONLY_NOT_WHOLE_PRODUCT",
+    "systemAnalysisSha256": "sha256:e5e2c6bd8801c266dc6e94f80ca30fbaf62ef9240b7dce816f73634259d1d57d"
+  },
+  "feedback": {
+    "nextBusinessExperiment": "Use actual producer-owned action/feedback episodes with separate held-out task outcome verification; do not interpret this corpus as raw searchable memories.",
+    "standing": "NO_DATA_CORRECTION_REQUIRED"
+  },
+  "kind": "ordivon.research.outcome-first-episode-delegation-r1",
+  "nonClaims": [
+    "No invented Parquet materialization or whole-catalog verification",
+    "No financial execution or portfolio recommendation",
+    "No Agent task-learning causal uplift identified",
+    "No raw Episode replay availability claim",
+    "No authorization to delete retained source evidence"
+  ],
+  "observedBusinessFacts": {
+    "developmentEpisodes": 0,
+    "generalizationStanding": "NOT_IDENTIFIED",
+    "historicalEpisodeCount": 10007,
+    "interventionStanding": "NOT_IDENTIFIED",
+    "judgeEpisodes": 0,
+    "profiles": {
+      "harness-rsi-acceptance-v1": 7,
+      "runtime-r5c-v1": 10000
+    }
+  },
+  "requestedOutcome": "Determine if this historical corpus justifies promoting an autonomous learning Agent",
+  "status": "ACCEPTED"
+}
