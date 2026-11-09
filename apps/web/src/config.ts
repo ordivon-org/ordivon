@@ -15,8 +15,8 @@ export interface WebConfig {
 function integerEnv(name: string, fallback: number): number {
   const raw = process.env[name];
   if (raw === undefined) return fallback;
-  const value = Number.parseInt(raw, 10);
-  if (!Number.isSafeInteger(value) || value <= 0) {
+  const value = Number(raw);
+  if (!/^[0-9]+$/.test(raw) || !Number.isSafeInteger(value) || value <= 0) {
     throw new Error(name + " must be a positive integer");
   }
   return value;
