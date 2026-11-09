@@ -219,9 +219,13 @@ impl PgRuntime {
         tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
             .map_err(io)?;
         self.require_qualified_writer_tx(&mut tx)?;
-        let result = universal::create_git_workspace(&self.config.executor, request)
+        let mut result = universal::create_git_workspace(&self.config.executor, request)
             .map_err(super::super::error::map_universal_error)?;
         workspace_effect_commit(tx.commit(), "workspace.open")?;
+        result.retention_notice = Some(
+            "PG Runtime Workspace is temporary: systemd runs native cleanup hourly.              After at least 4 hours of inactivity since the latest Runtime Job,              a Workspace may be automatically closed if the last Job succeeded,              its Git commit is included in origin/main, no active Job or process              uses it, and Git has no tracked or untracked changes.              Save deliverables in Git/Artifact storage; do not treat this Workspace              as durable. If more work is needed, create/reopen a fresh Workspace."
+                .to_string(),
+        );
         Ok(result)
     }
 }
