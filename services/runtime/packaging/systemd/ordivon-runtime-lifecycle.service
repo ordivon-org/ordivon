@@ -1,7 +1,7 @@
 [Unit]
-Description=Ordivon Runtime lifecycle maintenance
-After=ordivon-runtime.service
-Requires=ordivon-runtime.service
+Description=Ordivon PG Runtime native Workspace lifecycle retention
+After=ordivon-runtime.service postgresql.service
+Requires=ordivon-runtime.service postgresql.service
 
 [Service]
 Type=oneshot
@@ -9,6 +9,11 @@ User=root
 Group=root
 UMask=0077
 SuccessExitStatus=2
-ExecStart=/usr/local/libexec/ordivon/ordivon-runtime-reclaim apply --database /var/lib/ordivon/registry/registry.sqlite3 --runtime-store-root /var/lib/ordivon/runtime --env-file /etc/ordivon/ordivon-runtime.env --receipt-root /var/lib/ordivon/runtime/reclaim-receipts --lock-file /run/ordivon-runtime-reclaim.lock --minimum-age-hours 24 --classification closable --confirm-policy RECLAIM_ELIGIBLE_WORKSPACES
-ExecStart=/usr/local/libexec/ordivon/ordivon-runtime-lifecycle sweep --database /var/lib/ordivon/registry/registry.sqlite3 --runtime-store-root /var/lib/ordivon/runtime --policy-file /etc/ordivon/workspace-retention.json --env-file /etc/ordivon/ordivon-runtime.env --receipt-root /var/lib/ordivon/runtime/lifecycle-receipts --lock-file /run/ordivon-runtime-lifecycle.lock --confirm-policy APPLY_WORKSPACE_RETENTION_POLICY
-ExecStart=/usr/local/libexec/ordivon/ordivon-runtime-cache prune --database /var/lib/ordivon/registry/registry.sqlite3 --registry-root /var/lib/ordivon/registry --runtime-store-root /var/lib/ordivon/runtime --receipt-root /var/lib/ordivon/runtime/cache-receipts --lock-file /run/ordivon-runtime-cache.lock --env-file /etc/ordivon/ordivon-runtime.env --confirm-policy PRUNE_EXECUTION_CACHES
+ExecStart=/usr/bin/python3 /usr/local/libexec/ordivon/ordivon-runtime-pg-reclaim --apply --env-file /etc/ordivon/ordivon-runtime-pg-only.env --source-repo /root/projects/ordivon --workspace-root /var/lib/ordivon/pg-candidate/workspaces --receipt-root /var/lib/ordivon/pg-candidate/lifecycle-receipts --lock-file /run/ordivon-runtime-pg-reclaim.lock --min-age-hours 24 --limit 25
+TimeoutStartSec=15min
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
