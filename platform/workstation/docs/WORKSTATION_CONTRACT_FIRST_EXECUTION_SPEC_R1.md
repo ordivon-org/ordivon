@@ -376,3 +376,29 @@ Only attribute findings to other Agents if there is an actual returned
 message with the exact source/consumer evidence. Source modification, Work
 semantics, Runtime execution and deployed acceptance remain with their
 native authorities.
+
+
+## 15. T9 independent Windows native identity/readback receipts (2026-11-09)
+
+All three observations were **read-only** native Windows Runtime operations,
+executed on the actual Windows node, not a Linux imitation of Windows PATH:
+
+| Runtime Job / principal scope | Current observations | What this establishes |
+| --- | --- | --- |
+| `job-01a1c0f8-7202-7c61-a34a-dc9476f3715c`; `limited` service | `git` on PATH; `gh/mise/uv/pnpm` not on that service PATH | This principal's PATH lookup only; NOT global application absence |
+| `job-01a1c0f8-cf8c-7271-b298-a9dc91d5e0f4`; `active_user` | `git/gh/mise/uv/pnpm` all on interactive-user PATH | Separate consumer identity has separate tool projection; NOT task authorization |
+| `job-01a1c0f9-5c36-7793-9eef-16dece68322d`; `active_user` | Native `%UserProfile%/.wslconfig` exists, SHA-256 `f94d463c69a40064d0734667a327912986adaaaf659dec7b9ab3a3a14c95ce98`; selected settings: memory 10GB, processors 16, swap 0, sparseVhd false | Actual user-scoped Windows **file bytes** current at read time; installed/active WSL generation remains **UNKNOWN** |
+
+These are **observations of two different Windows execution principals**.
+Do not collapse their PATH sets, even though both execute on the same
+machine. The active-user readback independently confirms the earlier Linux
+mounted-file digest but does **not** prove that any already-running WSL VM
+has activated those settings. No `wsl --shutdown`, service restart,
+DSC apply, package install, global config write, or policy change was used.
+
+**T9 status:** scoped identity-specific probe and native user-config
+observation **completed**; native active-generation comparison and automated
+Windows-global configuration convergence **not performed**, because they
+require separate real consumer obligations and an explicit restart boundary.
+Potential adjacent code stays with the installed `probe_executables.ps1`
+and existing Windows/Runtime owners, not a second inspector.
