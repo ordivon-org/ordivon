@@ -1,196 +1,112 @@
-# Ordivon 六主线执行计划 R2（Current）
+# Ordivon 存量逐文件审计与现代化减法重构 — 执行 SPEC R3
 
-> 更新基线：2026-11-07。范围聚焦：（A）Owner 高内聚低耦合拆解；（B）目录、命名、表征标准化；（C）Host、Runtime 及各 Owner 的最终消费者穿透清理；（D）成熟能力型与思想型 LEGO 的证据驱动发现和替换；（E）分别面向 Human/Agent 的使用指导；（F）将可证明的关键性质由成熟形式化工具验证，并仅保留不可替代的真实消费者验证。本文是可在任务完结后删除的协调工件，不是新的 Owner、Board、Meta/Next、数据库或治理机制。状态以最新 Git、PostgreSQL、Runtime、systemd、GitHub PR 和实际消费者为准。
+状态：2026-11-10 存量专项执行计划；沿用既有 Owner 改革方案，不新建治理权威。
+审计锚点：Git origin/main 720146e6041e766d4c02d06ec5cef7776e7f36cf；每次编辑前复核最新主线及并行 PR。
+协调：Host Space space:ordivon-whole-system-optimization-r1:20261002；
+Topic topic:ordivon-whole-system:stock-file-by-file-modernization-20261110。
+继承自本文件 R2 的历史工作分解；已执行的历史事务留在 Git、PR、Host/Runtime 原生记录，不在本文件重抄运行报告。
 
-## 一、目标函数、认识论与执行纪律
+## 1. 本轮冻结范围与成功标准
 
-原则：Representation-first、Formal-first、天然 Owner、消费者闭包、单一状态权威。目的不是多创建模块，而是降低语义变化面、消除双写与重复实现、减少无法被最终消费者证明有用的残留。
+这是存量改革，不是功能路线图。本轮不添加业务功能、测试文件/测试场景、消费者线路、通用框架、Agent/Skill 路由、Proof Registry、Schema 或新的跨 Owner 执行层。可以运行既有验证；仅因存量删改而修复原有引用、配置和自然 Owner 接口。不得为了使待删除骨架显得有价值而发明消费者或新测试。
 
-- 语义边界：共享同一不变量与持久化权威的数据/行为聚合；依赖稳定契约的能力可以拆分。使用 Parnas 信息隐藏、DDD Bounded Context、Ports & Adapters、状态机精化和 Hoare/Assume–Guarantee，不按文件行数或名字机械拆分。
-- LEGO 描述：输入 I、输出 O、状态 S、前置条件 pre、后置条件 post、不变量 inv、效果 eff、成本 c、误差 epsilon、来源 prov、展开 unfold。思想型与能力型 LEGO 均可，但必须有真实使用场景。
-- 图关系：调用、导入、配置、依赖、运行消费者、状态转移、策略执行、等价/精化、证据有效性、SourceCut、安装实例、发布。状态分 SOURCE、CONFIGURED、INSTALLED、EXECUTED、CONSUMER、FORMAL、CURRENTNESS。
-- UNKNOWN 不是 FALSE。历史消息、Git 提交、外键、回执只构成调查证据，不自动证明继续保留。与之相对，不曾观察到消费者也不自动证明不存在；必须穿透已知权威边界。
-- 选择次序：DELETE-CUSTOM → REUSE → COMPOSE → EXTEND → CREATE。避免新增定制框架、通用门禁、备份格式、发布通道、任务看板。
-- 执行闭环：GOAL → REPRESENT → CONTRACT → TRACE CONSUMERS → ANALYZE → FALSIFY → SELECT → IMPLEMENT → VERIFY → PUBLISH → RECHECK → RETIRE。每轮 3–5 个独立 WIP，按依赖图推进，不要求所有工作只能串行。
-- 交付验收：自然 Owner 的公开契约保持或显式替换；实际消费者通过；源码、安装实例及数据库状态一致；自然 Owner 验证和受影响仓库 CI 通过；GitHub Merge Queue 发布；旧实现/残留删除；临时 Workspace/Worktree 清退。
-- 执行权限：使用已授权管理员身份及操作系统原生机制；安全、形式化和 CI 检验只保留对真实故障模式有价值的必要部分。不因原生规则而重造通道或伪装成功。
+目标是去掉未被真实需求支持的工作、减少实现与维护复杂度、恢复正确的抽象/Owner 边界，保留现有真正需要的能力及来源。实际结果必须是可检查的 Git 文件删除、合并、迁移、简化或缺陷修复，不把审计数量、模型形式或新增文档当作生产收益。
 
-## 二、源代码层次与自然 Owner（当前 20 个）
+比较候选的次序：NO-OP（已有成熟能力满足）／DELETE → REUSE 现有自然 Owner 或成熟项目 → MERGE/COMPOSE → 最小 REPAIR。不要把重写当作默认项。UNKNOWN 不是 FALSE，但与当前具体操作无关的 UNKNOWN 不阻止其他合格任务。
 
-本表提供待调查的语义切分候选，不代表未经代码与消费者验证就要新建每个子目录。
+完成判断：
+- 删除后真实代码、CLI、发布配置、策略与数据消费者不再需要原对象；独有历史事实留在 Git 或其原生保存 Owner。
+- 合并后只剩一份有权威的状态/协议实现，没有新别名、重复适配层或双写。
+- 现有 SourceCut、Owner 配置和已运行服务的事实分别成立，原生验证不因本轮改动退化。
+- 通过 GitHub 原生 PR/受保护主线；Merge 与安装不是同一状态。专项协调文件在工作完成后可以退役。
 
-| ID | Owner 与根目录 | 候选高内聚单元 | 核心验证 |
-|---|---|---|---|
-| O01 | Runtime — services/runtime | Job admission/identity；Attempt 执行/重试；Workspace 源码与隔离；Artifact 引用；恢复、租约与 PG 持久化；Linux/Windows Provider | Job/Attempt 状态机精化、单写入者、故障恢复、实际客户端、SQLite 活动写路径清退 |
-| O02 | Host — services/host | Actor；Work Graph；Space/Topic/Message；Attention/Subscription；Social 读写；PG Receipt；Alembic | 事务/幂等、真实 MCP/网关消费者、分页、关系完整性、重放 |
-| O03 | Harness — services/harness | Agent 生命周期；模型适配；计划/Tool 调度；Observation/Trace；Recovery；Browser Harness | 工具轨迹/失败重放、取消恢复、执行接口；不复制 Runtime Job 或 Network 路由 |
-| O04 | Gateway — services/gateway | 能力发现与路由；授权委托；传输映射；错误/流式协议 | 实际北向 API/Host/Runtime 路由和拒绝语义 |
-| O05 | Network — platform/network | DNS；VPN；代理；路由；连接状态；出口策略；故障恢复；OS 适配 | NS2 实际 DNS/出口/策略/故障注入，配置与物理出口一致 |
-| O06 | Security — platform/security | Principal/Capability；策略决策；凭据权威；执行适配；审计 | 无隐式权限升级；决策与效果分离；原生系统凭据管理 |
-| O07 | Skills — extensions/chatgpt-skills-mcp | Discover/Bind/Resolve/Read/Verify；Skill currentness；供应方适配 | 精确绑定、版本/来源、真实 Skill 使用者；无第二注册表 |
-| O08 | Workstation — platform/workstation | OS/WSL 环境；清单；部署；systemd；版本安装；回滚；维护 | 已安装实例与 SourceCut；系统级真实恢复与幂等 |
-| O09 | Artifact — capabilities/artifact | 内容类型/转换；来源；生命周期；存储/验证 | 产物摘要、转换损耗声明、发布/媒体消费者 |
-| O10 | Distribution — capabilities/distribution | 打包、分发目的地、传输、发布回执 | 原生目的地确认；不接管 Artifact 内容权威 |
-| O11 | Media — capabilities/media | Provider、摄取、素材、编码/渲染、导出、缓存 | 真实媒体输出、资产/来源与可复现性 |
-| O12 | Preservation — capabilities/preservation | 保留策略、完整性、归档、恢复、介质适配 | 恢复演练及实际保留义务，删除多余归档层 |
-| O13 | Game — domains/game | ECS、规则、AI Agent 操作、关卡/UI、素材、存档、回放 | Bevy/Godot 原生消费者与可运行游戏；冻结 R7 消费 |
-| O14 | Capital — domains/capital | 数据采集标准化、因子、组合、回测、仿真、风险、交易适配 | look-ahead 约束、可重放研究，仿真与实盘权威隔离 |
-| O15 | Web — apps/web | 页面/路由、客户端状态、API 适配、构建部署 | 浏览器端 E2E 与真实 API，不复制业务模型 |
-| O16 | Control Plugin — extensions/ordivon-control-plane | Plugin Manifest、Tool 桥接、可用性投影 | 原生控制接口消费者；薄适配，删除无用外壳 |
-| O17 | Composition — packages/composition | 类型化 Port/绑定、代数/约束、验证器、等价/精化 | 成熟 SMT/SHACL/约束组合；不建第二 Owner 注册表 |
-| O18 | Authority Catalog — catalogs/authorities | 权威来源、观察、证据、currentness | 验证路径和可观测来源、原生 Catalog 验证 |
-| O19 | Capability Catalog — catalogs/capabilities | Provider 能力、发现、组合绑定、路由元数据 | 真实 Provider 解析与调用边界；不冒充执行权威 |
-| O20 | Chaoxing — apps/chaoxing-autosign | 课程/会话发现；签到操作；交互适配；状态回放 | Windows Chrome 真消费者、真实动作与干跑语义 |
+## 2. 现状：逐文件物理基线，不冒充语义审计
 
-正式源码区域另外包括 profiles/、studies/、tools/repo/、docs/architecture/；它们不自动成为新的业务 Owner。Meta/Next 已经通过 PR #1539 退役，不再恢复新的总控目录。语言优先 Rust、TypeScript、Python；TS 使用 pnpm、锁文件，依赖升级以当前自然 Owner 为权威。
+在基线提交上通过 Git ls-files 的完整清单，逐路径实际读取 4,998 个跟踪文件，共 123,167,707 字节（约 123.17 MB）；零符号链接。包含 Python 1,457、JSON 1,315、Markdown 849、Rust 131、TypeScript 89；全部上述 Python 文件通过当前本地 Python AST 解析，JSON 无解析错误。这不保证其他解释器/类型检查/运行时正确。
 
-## 三、前三项工程主线 Work Package
+按根目录归集：services 1,405、capabilities 1,054、domains 784、platform 663、catalogs 532，其他 560。发现 23 组 byte-exact 重复、65 个成员，理论多余字节约 1,616,076；不同 Owner 的 Python 版本锁、LICENSE、素材与历史证据副本可能故意独立，不能据重复 Hash 自动删除。
 
-每项都需写明：真实输入和最终消费者；需要保持的不变量；前置依赖；变更最小 SourceCut；验证证据；删除条件和实际发布状态。
+行数/大小仅为排查导航：Harness run_continuity.py 3,186 行、loop.py 2,366 行、Runtime test_deploy_reclaim.py 5,155 行、Repo check_architecture_docs.py 2,524 行；Media 中有约 41.5 MB MKV 与 16.5 MB MP4。长度不是切分理由，大文件也不等于垃圾。各项还需读取实际调用图/职责/消费者才能给语义判定。
 
-### P0：当前真实状态权威与发布闭环
+每个文件的机械身份来自 Git（repo identity / commit / path / blob）；不新增永久 File Registry。对重要源采用 Owner 源、运行时、数据库及服务读回；历史文档和来源的引用不是正在运行的消费者。
 
-| WP | 所属 | 操作顺序 | 完成条件 / 下一节点 |
-|---|---|---|---|
-| H1（已完成） | Host | PR #1553 中 Schema 11 及 PostgreSQL 队列断言已经修复，经 GitHub Merge Queue 合并 | 合并提交 cb640db5613d；root-verification 和全部 CodeQL 通过 |
-| H2（已完成） | Host + Workstation | 已停止旧写入，安装不可变 Host release cb640db5613d，执行生产 Alembic 0011，启动 systemd | 安装 SHA、Schema 11、doctor=healthy、Host 与 Gateway 双消费者均通过；旧 news 表已无；无双写 |
-| H3（进行中） | Host | 复核最近清理后的 Work/Snapshot/Receipt/Message relation，追踪开放 Work 当前快照、Topic/Space/Subscription、消息游标和 Actor 引用 | 不再存在悬空结构化边；无开放 Work 消费被删除对象；执行 bounded SQL 与 doctor |
-| R1（进行中） | Runtime | 获取 Linux/Windows Workspace、Job、Attempt、Artifact、Worktree/分支当前真值，合并当前 Host 开放 Work、GitHub PR、进程及已部署 SourceCut | 每个候选有 LIVE / REPLACED / HISTORICAL_ONLY / ORPHAN / UNKNOWN 明确证据 |
-| R2（进行中） | Runtime | 对无消费者 clean Workspace 用原生 close；Dirty 差量按有效性迁入自然 Owner 或删除；清理悬空 Job/Attempt/Artifact；合并 Git 分支与 worktree 管理 | 不能只看干净、年龄或独立 SHA；当前真实 PR 和运行中的 Job 不受损 |
-| D1（进行中） | Host | 终结 Work、幂等回执、失效 Topic/Space、subscription、Message Graph 的消费闭包清查与真实事务删除 | 同一事务删主体+确切关联；消息正文独立判断；PostgreSQL 原生 VACUUM ANALYZE |
-| D2（进行中） | Repo/Workstation | 已合并 worktree、临时 Workspace、缓存、过期 release、无消费文件和重复资料清理 | Git/Runtime/systemd/OS 原生工具，无手写删除框架 |
+## 3. 采用的成熟理论及严格使用条件
 
-当前观测仅作基线：Host 生产于 2026-11-06 完成 Schema 11 切换，切换后为 384 Work、44 Space、233 Topic，doctor 健康；Runtime 仍有大量 Dirty Workspace，不能沿用旧数量直接删除。历史已删除的数据不得因重新盘点而再次执行过期批处理。
-
-**2026-11-06 已实现的执行证据：**
-- H1：GitHub PR #1553 合并至 main，原生 Root Verification / CodeQL 通过。
-- H2：Host 安装 release cb640db5613d667479f5bd050883fb71e23a99ee；Alembic 0011、Journal Schema 11，Host 与 Gateway 的 integrity 均 healthy。
-- R1/R2：通过 Runtime 原生 MCP 的完整当前摘要比较和显式消费者释放，清除 11 个无活跃消费者的旧 Workspace；当前提交仍由 Git 或自然 Owner 保存的对象不因关闭物理 Workspace 丢失业务能力。Browser 未合并 PR 与当前开放 Work 消费者仍需保留。
-- D2：已验证后移除旧 Host release 2c36b98aefa7 和 a1a0a6998906 两个无运行消费者的安装目录；约 133.5 MB 为表观文件大小，非保证的实际释放空间。首次切换时安装了 cb640db5613d；随后 PR #1559 的更新版本 b979fb0a0649 已被其他 Agent 安装并验证为 Schema 11、healthy=true。后续 current 以实时 systemd/符号链接和 doctor 为准，cb640db5613d 当前为可回退的 Schema 11 版本。
-- 计划自身已通过 GitHub PR #1558 合并至 main；当前事实更新不另建治理系统。
-- H3/D1：2026-10-03～10-16 的 28 条已无消息关系实体、无开放 Work 当前快照或近期消息消费的历史 message.relation.add 回执，已在一笔 PostgreSQL 事务中删除；未删消息正文和有效关系，Host Schema 11 doctor 仍 healthy。
-- R2：旧 Dirty Workspace ws-gpt6-pg1210-ci-symlink-regression-fix-20261101-r1 的两份文件（Rust 测试与 Cargo Kani cfg）经当前 main 等价测试上下文和 TOML 语义核验、开放 Work 核验后，通过 Runtime 原生精确摘要 compare-and-close 并显式 consumerReleased=true 移除。此前已关闭 15 个 Workspace，本轮再关闭 1 个；并发其他 Agent 清理不计入。对当时 93 个 Dirty Workspace 小规模差量扫描未发现逐文件 Git Blob 全部等价的其他可批量删除候选。
-- M4 Gateway：PR #1572（尚待 GitHub Merge Queue）提取 Research/Skills 解析至自然 Gateway Owner 的 research_resolution.py；Gateway 全量 Owner 测试和公开 API/解析摘要等价测试通过。本地整套 repo:ci 后续阶段达到 Runtime 时限，不能当作全项 PASS，仍以 GitHub 必需检查为发布依据。
-- M7 Skills：PR #1576（尚待 GitHub Merge Queue）提取 JWT/Bearer/ASGI 身份验证至 Skills Owner 的 http_auth.py，保留旧入口同一实现对象；157 项测试、51 子测试、Wheel 打包及 413 拒绝下游调用负向测试通过。合并后仍需核对实际安装 SourceCut，不以 PR 代替部署。
-- C5/P2 消费者审计：ordivon-control-plane 两个 Plugin Manifest 有原生打包工具、Harness 和仓库验证消费者，不能仅按文件少就删除。
-
-
-### P1：核心服务与平台拆解
-
-| WP | 候选切分 | 真实测试与完成条件 |
-|---|---|---|
-| M1 | Runtime Job/Attempt/Workspace/Artifact/Recovery 状态机、事务存储、Provider Adapter 分层 | 源码图消除双写，真实 Job 恢复和 Workspace 生命周期消费者 |
-| M2 | Host Work/Social/Attention/Receipt/Alembic 表达与数据访问边界 | 已拆的 Social Read 不回退；PG 事务、查询和真实分页保持 |
-| M3 | Harness Lifecycle/Model/Tool/Trace/Recovery 分层 | Tool 调用与失败重放；不创造第二 Job |
-| M4 | Gateway routing/adaptation 与 Host、Runtime 原生契约切分 | 北向公开接口 E2E，无隐藏权限/数据权威 |
-| M5 | Network Policy/Resolver/Tunnel/Proxy/Route/Recovery 组合 | NS2 当前真实出口，故障注入后恢复；成熟 Provider 优先 |
-| M6 | Security Policy/Principal/Credential/Enforcement 分层 | 权限有可测试的职责边界，不复刻 OS/Seccomp/systemd |
-| M7 | Skills 探索/绑定/验证、Workstation Inventory/Release/Recovery 分层 | 当前 Skill consumer 及 Windows/Linux 原生系统验证 |
-
-### P2：能力/领域整理与共性归并
-
-| WP | 主要拆解目标 | 判定 |
-|---|---|---|
-| C1 | Artifact/Distribution/Preservation 区分内容、目的地和长期恢复 | 删除自制重复的打包/存储机制 |
-| C2 | Media 素材/Provider/渲染/导出/缓存 | 实际 Media Consumer、内容摘要/许可证 |
-| C3 | Game ECS/行为/Agent Tool/素材/UI/存档/回放 | 可运行原型与 Agent 原生交互 |
-| C4 | Capital Data/Research/Backtest/Portfolio/Risk/Execution | 单数据权威；不把研究接入直接当实盘权限 |
-| C5 | Web 与 Control Plugin 薄适配 | 若原生接口已覆盖使用者，直接删除外层包装 |
-| C6 | Composition 组合契约、抽象、约束、证明系统 | 复用成熟 SMT/SHACL/Lean/状态机，不造新算法框架 |
-| C7 | Authority/Capability 两 Catalog 的发现、观测、绑定、验证 | 避免多套 Catalog/Provider 注册 |
-| C8 | Chaoxing 业务流程与 Harness、Browser Adapter | 不重复造通用浏览器操作层 |
-
-### P1/P2：目录、命名、表征标准化
-
-| WP | 实施细节 | 验收 |
-|---|---|---|
-| N1 | 建立 20 Owner 的入口、文件、公开 API、跨 Owner 调用、配置、测试、CLI、数据库、安装实例索引 | 每个实际源路径归自然 Owner 或明确的非 Owner source region |
-| N2 | Rust crate/module、Python package/module、TS package/模块命名、大小写和文件路径规范化 | 必须有真实消费者价值；改名同步 imports、构建、文档、配置 |
-| N3 | 收敛 src/tests/scripts/packaging/migrations/research/studies/fixtures 的自然摆放 | 消费者行为保持且源变更不扩大；真实迁移用 git mv |
-| N4 | 清理 Next/Meta、旧版活跃别名、重复封装和失效 CODEOWNERS/mise/Skill/README | 不存在旧代码入口；Git 历史用于追溯，不存平行活跃源 |
-| N5 | 更新 SourceCut/消费者依赖图、发布锁定和安装映射 | 每个 SOURCE/INSTALLED/EXECUTED 证据不混淆 |
-| N6 | 取消无实际消费的历史文档、验收重复物、日志、缓存与临时工作区 | 当前文档唯一入口；删除完成后本计划本身也退役 |
-
-### P0/P2：各类最终消费者清理闭包
-
-| WP | 数据对象 | 删除所需的事实 |
-|---|---|---|
-| X1 | Host Work/Snapshot/Receipt/WorkRelation | 终结状态、无当前开放 Work 引用，无近期活跃消息、订阅/业务消费者；事务清理 |
-| X2 | Host Space/Topic/Message/Actor/Subscriptions/Cursors | 穿透 Social + Attention Graph，不能仅凭空 Topic 或有旧回执判断 |
-| X3 | Host 表/索引/旧 Schema/新闻遗留 | Alembic 作为结构 Authority；PG 事务和 doctor；无兼容中的旧二进制 |
-| X4 | Runtime Job/Attempt/Workspace/Artifact | 活动 Job、恢复租约、Git SHA、PR、Host Work 最终消费者 |
-| X5 | Git Worktree/分支/无意义历史实验 | 原生 Git 机制；未提交差量与 SourceCut；允许删无价值独立提交但不能误删有效唯一工作 |
-| X6 | Network/Security/Workstation 临时安装/凭据/路径/旧配置 | 当前系统进程、服务、安装版本、真正策略消费者 |
-| X7 | Media/Game/Capital/Artifact 生成文件、失败研究、重复实验 | 许可、独特不可恢复字节、实际当前产品/论文消费者 |
-| X8 | Preservation/Distribution 重复归档、旧发布和快照 | 证明现有内核满足恢复与交付；只保留必要原生恢复点 |
-| X9 | Skill/Catalog/Plugin 旧别名、桥接层、注册信息 | 当前绑定/调用者已经改为自然 Owner；删除外层 |
-| X10 | C/D 盘、WSL VHDX、日志与缓存、历史大目录 | 物理容量、仍存活消费者、真实恢复资源；原生系统/WSL 操作 |
-
-处置类别只有 DELETE、MIGRATE_THEN_DELETE、REUSE、KEEP_ACTIVE、UNKNOWN_EVIDENCE。历史性记录不是永久 KEEP_ACTIVE；若源在 Git、Consumer 已终结、并无合法持有义务，优先实际删除。UNKNOWN 先定点补证据，而不是扩大永久防护。
-
-### 六主线 F：形式化性质逐步取代冗余样例验证
-
-- **规格与真实实现分离。** Owner 先标明不可违反的安全性质、允许的状态转移、活性前提和调用者边界；模型证明必须注明有限状态/参数、假设、SourceCut 以及实现精化尚未覆盖的部分。模型 PASS 不自动提升为已安装实例 PASS。
-- **成熟工具各归其位。** Runtime/Harness/Composition 继续复用现有 digest-verified TLA+/TLC；Runtime Rust 代码按实际可用范围使用 Kani/Verus；跨模块契约优先组合现有 Lean/Z3/Pacti；Host Python 纯决策优先复用已锁定的 CrossHair，而不是新建验证解释器。
-- **Host 当前具体范例。** social_message_commands._reply_target_precedes_source 证明回复边遵循严格递减顺序；work_store._next_work_revision 证明 Work CAS 修订号单调且不超过 PostgreSQL BIGINT 上界。两者均是实际业务代码，而非另写的等价影子实现；正式入口仍负责输入类型、PG 事务及消费者验收。
-- **移除标准。** 当形式化性质覆盖、源代码连接、工具证据和负向反例均独立核实后，删除仅重复同一性质的样例断言；不得以抽象证明删除 PostgreSQL 行锁/事务、MCP 协议、实际部署、网络/系统效果以及跨 Owner 最终消费者验证。
-- **发布顺序。** 按自然 Owner 的 mise run verify 与根仓库 mise run repo:ci 验证、经 GitHub Merge Queue 合并，然后确认安装 SourceCut；不为验证再造 Owner、审计数据库或独立发布管线。
-
-### F0–F7 Owner 验证与测试退役工作包
-
-| WP | 自然 Owner 与关键性质 | 成熟工具 / 可独立验收的证明义务 |
+| 理论／成熟项目 | 解决的具体问题 | 不能据此断言 |
 | --- | --- | --- |
-| F0 | 规格与可信验证基底 | 复用 `tools/formal` Lean/Z3/cvc5/Quint/Alloy/Kani/Verus/Dafny 和 Runtime TLC 的既有锁定工具；明确时间、整数、有限状态、环境、公平性与抽象边界。工具输出含完整可反驳结果；错误、超时、跳过均非 PASS。 |
-| F1 | Runtime Job/Attempt/Workspace、恢复及 PG 切换 | 复用 `services/runtime/formal/RuntimeDispatchR1.tla` 等源，证明单次 Attempt 调度、歧义保留、取消/终止证据、持有关系及活跃工作区闭包；Rust Registry CAS、原生 Job/Artifact、实际持久化继续提供实现与消费者证据。 |
-| F2 | Host Work/Social/Attention/Receipt | 对 Work 修订 CAS、PG 事务原子性、引用与分页/游标完整性建立规格和反例；利用 PostgreSQL 约束、事务及 Host Doctor 的真实状态读回，模型结果不得冒充生产事务线性化证明。 |
-| F3 | Harness Agent/Tool/恢复 | 使用状态机、Hoare/Assume–Guarantee 和现有 Harness Formal 模型，证明调用与结果身份绑定、取消及失败后不无证据重放；模型→异步 Python 实现的模拟关系需单独验证。 |
-| F4 | Gateway 路由、授权与传输 | 用 Owner-local TLA+/TLC 有限状态检查受保护 `artifact.read` 的 Principal/Resource/PDP 精确绑定、v2 委托证据和 v3 非委托 AuthZEN 证据；沿 `capability_authz.py` 和 `test_capability_authz_middleware.py` 取得实现/真实消费者证明，不将通过的有限模型直接标记为实现精化。 |
-| F5 | Network/Security/Skills/Workstation 与领域 Owner | Network 连接和拒绝/恢复 LTS、Security PDP/PEP 契约、Skills 精确来源及 Workstation SourceCut→installed currentness；Game/Capital/Media/Artifact/Preservation 的领域不变量用 Z3/Lean/Alloy/Quint 或 native proof 选型。外部设备、网络和真实部署仍需必要原生消费者验证。 |
-| F6 | Recursive LEGO R2.1 组合与替换 | 对 `(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` 建立分层契约；组合需验证假设可满足、内部效果不冲突、前后条件与环境约束，替换需证明对现有消费者的观察精化。使用已有 Lean/Composition/Pacti 及真实 Consumer Trace，不建第二种证明关系语言。 |
-| F7 | 已有单元/集成/回归测试价值审计 | 按不变量→真实验证证据→实际消费者映射，对每项现有测试标记 `DELETE`、`CONSOLIDATE`、`KEEP_CONSUMER` 或 `UNKNOWN_REFINEMENT`。只有规格非空、模型覆盖、有效实现精化与可替代的具体测试断言都成立时，才删除重复样例；硬件、网络、部署和外部效果仍保留必要原生验收。 |
+| Parnas 信息隐藏、DDD Bounded Context、Ports & Adapters | 按易变决策与状态权威分模块；识别需要一起变化的责任 | 同目录/高行数 = 模块缺陷 |
+| MIT Design Structure Matrix / SCC、Bazel 反向依赖思想 | 从真实 import/call/config/effect/readset 找到耦合及迁移影响面 | 文字提及 = 活消费者；静态图完整 |
+| Hoare、Assume–Guarantee、现有 Lean/Composition | 在同一端口、相同可观测域与合法前提下判断兼容替换及不变量 | 模型/SMT PASS = 已安装或真实效果 |
+| Fowler Refactoring / Strangler、Git worktree | 先定位真实独立边界，再逐步替换/删掉多余实现，保持可恢复差异 | 另起新框架并永久双轨运行 |
+| PostgreSQL 事务/约束、系统原生 systemd/Windows Job、Git | 回归自然权威：存储、进程、源码各自解决本职问题 | 一个存储/治理层统一承诺所有域 |
+| Lean/TOC、价值流、Team Topologies、Deming PDSA | 优先解除交付瓶颈，限制跨 Owner 冲突，审计后采用反馈结果 | 以新增行数、门禁、文档量作为成果 |
+| Matt Skills：to-spec、to-tickets、implement-spec、code-review | SPEC 固化决策；以有真实阻塞边的可合并纵向小票执行；源规范和代码标准独立复核 | 将外部 Issue/Agent 系统直接搬进 Ordivon |
+| ECC：research-first、progressive loading、verification-loop | 先检索已有实现与当前来源，只加载相关方法，按现有命令验证 | 复制外部 Hooks、记忆/安全控制平面 |
+| obra/Superpowers：worktrees、systematic debugging、verification-before-completion | 使用 Runtime 隔离工作树、具体差分验证、结果实际读回 | 每次修改都必须产出新测试或强制多 Agent 审批 |
 
-**必要的反证制度：** 有限模型需检查非空可达性和可发现假违例的负控；SAT/UNSAT 要绑定精确公式、求解器/SourceCut；Lean/Kani/Verus 的结论必须声明所接受的公理、类型/边界、循环展开和外部调用假设。尽量先删无消费者的特化测试与冗余防护，但不能把“没有失败”视为“已证明”。无可用模型/实现精化时，将测试保留或收敛为最少的真实消费者合同检查，避免不可观察的纯模型胜利。
+方法入口已存在于 .agents/skills/{recursive-lego-calculus,project-kernel-decomposition,design-structure-matrix,systems-engineering,compositional-contracts,organizational-cybernetics,skill-supply-chain-audit,task-space-reentry}/SKILL.md。方法型 LEGO 是指导决策的可选工具，不把每份文件/Skill 自动登记为正式 LEGO。正式声明独立能力/思想 LEGO 时才使用完整 typed ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)；错误和成本 UNKNOWN 有具体范围。
 
-**增量验证：** 证明义务通过受影响 Owner 的公开接口、确切代码与模型、求解器版本、前提和最终消费者建立显式来源边。只有依赖未变且完整验证读集可证明一致时才能重用证明；否则 UNKNOWN 并局部重算。与已有 `tools/repo`、Owner `mise`、GitHub 受保护发布和服务原生安装读回相连，不制造新的 Proof Registry。
+外部一手参考：Parnas 1972 DOI 10.1145/361598.361623；Martin Fowler Strangler Fig 2024 https://martinfowler.com/bliki/StranglerFigApplication.html；Matt https://github.com/mattpocock/skills；ECC https://github.com/affaan-m/ECC；Superpowers https://github.com/obra/superpowers。外部 Skill 只采用适用方法，不安装未经独立供应链审核的执行包。
 
-## 四、分波次实施、验收与关闭
+## 4. 真正逐文件审计：从文件到职责、再到价值
 
-- **Wave 0（P0）**：H1 → H2；并行 R1、H3、D1，完成后 R2、D2。先协调源码与安装状态，不在运行 Schema 10 代码时擅自升级其数据库。
-- **Wave 1（P1）**：M1–M4 的语义模块边界与 N1；同步整理 Network/Security/Skills/Workstation 的自然消费者。避免一次 PR 改动多个不相关 Owner。
-- **Wave 2（P1/P2）**：C1–C8，结合 N2–N5 完成真实消费者验证与旧路径清理。
-- **Wave 3（持续）**：X1–X10 周期性消费者穿透；每项本身具有完成态并清理临时支撑，减少而非扩张治理层。
-- **Wave F（与各 Wave 并行）**：优先 F0、F1、F4 的已有模型/实现读集，并行推进 F2、F3、F5、F6；只在 F7 已取得具体实现精化和消费者替代证据时退役相应样例测试。
+对 Git 跟踪的每一条路径按现有 tools/repo/owners.toml 动态归属自然 Owner；共享的 tools/docs/studies 则由其真实定义/调用者负责。每个文件以工作表中的一行或一次有来源的审计记录处理；不把表格变成新的长期权威。
 
-协作使用已有 Host Task Space 承接任务、最大交流 Space 用于沟通；Agent Loop 内自规划：MCDT in the loop, Human on the loop。声明 SourceCut 避免与其他 Agent 同时修改同一路径，但不因内部审批拖延工作。每次发布仍通过 GitHub PR、原生必需检查与 Merge Queue，并对安装侧单独验收。
+对每一个代码/配置/文档/数据/测试/素材文件执行以下判断，允许按相同消费/来源集合批处理，而不是人工逐原子重复：
+1. 取得精确 Git blob、用途、语言、来源，辨别生产源、测试、数据、生成物、历史证据与当前配置。
+2. 打开内容，而不只用文件名猜功能；查导入/调用、命令、声明式依赖、打包、CI、启动、迁移、数据库及服务使用者。对可能的动态消费标成 scoped UNKNOWN。
+3. 向外穿透到具体使用场景和维护中的 Owner；区分“被另一份无用材料引用”与真实 User/Service/Domain Value。
+4. 反向审查是否由成熟的现存 Owner、操作系统、数据库、工具链或外部项目直接提供相同能力。若不必存在，优先删。
+5. 对保留职责检查模块边界、环形依赖、重复状态、错误处理、幂等/恢复和变化共因。拒绝纯“超过 N 行就拆文件”的规则。
+6. 给出 DELETE / MERGE / REUSE_NATIVE / REPAIR / KEEP / UNKNOWN_NARROW 之一，引用实际 SourceCut 与具体原因；严禁由静态零引用直接推出业务零消费者。
+7. 在隔离工作区实施最小原生更改；如果只是写一份报告而原问题仍在，该工作不算完成。
 
-本文件自身退出条件：各 Work Package 已在自然 Owner 源码和安装证据中闭环，无未知当前消费者；移除此文件而不建一个新的长期维护看板。
+历史 Git 版本和旧模型不必在当前活跃目录重复保存。真实消费者或独有证明尚在的内容由对应 Owner 保留；可再生的测试输出、重复源、已退役纯计划与过期 README 应尽量退出工作树。已合并旧 PR/无意义分支、Runtime Workspace 通过各自然 Owner 的原生操作清理，不为清理建立第二套数据库或工具。
 
+## 5. Wave / Dependency DAG（只做存量）
 
-## 五、成熟 LEGO 的证据驱动发现、采用与退役
+| 阶段 | 输入及可并行 Owner | 本轮执行动作，不新增能力 | 完成证据 |
+| --- | --- | --- | --- |
+| S0 当前性与冲突 | Git main、52 个当时 OPEN PR、owners.toml、Host/Runtime Space | 冻结主线、列出实际文件清单与并行 PR 重叠；继续使用原生 Work/PR | 精确 SourceCut、候选文件与当前变更占用 |
+| S1 Repo/Docs/Skills | tools/repo、docs、.agents、extensions | 归并重复入口、删除过时 Spec/已替换状态、简化低价值扫描/包装；不得与 #1940/#1950/#1999 等当前 PR 重叠 | 新增机制零；原生 repo/Skills 检查无退化 |
+| S2 Runtime/Host/Harness/Gateway | services 的各自然 Owner | 盘点 PG/SQLite 并行代码、重复状态机、旧桥/脚本、巨型模块真实依赖；优先直接删已退役实现和过度包装 | 保持现有真实事务、恢复和运行入口；原生现有测试通过 |
+| S3 Network/Security/Workstation | platform 各 Owner | 检查实际系统服务/配置是否复刻成熟底座；清除过期 Unit、重复代理、无消费者安装和历史别名 | 原生 provider/source/installed 读回；不增加新门禁或测试 |
+| S4 Artifact/Media/Distribution/Preservation | capabilities 各 Owner | 按内容身份/交付/保存的权威边界裁剪生成物、重复元数据/验证器和过期包；不能按媒体文件大小盲删 | 实际作品、归档、目的地保持可用；删除真实冗余 |
+| S5 Capital/Game/Apps/Data/Composition/Catalog | domains、apps、packages、catalogs | 删除无当前业务用途的原型、重复适配、研究边车，合并源决策，修补现有代码缺陷；保留独有历史证据 | 现有代码与平台入口不退化，角色边界更少更清楚 |
+| S6 交付与收尾 | 每个实际修改 Owner、GitHub、Runtime | 仅调用现有验证及 GitHub Merge Queue；确认源变更、PR、原生安装事实后关闭相应 Workspace/Work | Git diff 删除/净缩减、既有检查、精确提交与状态收口 |
 
-本主线是既有自然 Owner 的工作方法，而不是新的注册表、治理 Owner 或通用执行平台。区分能力型 LEGO（有界读/转换/求解/效果）与思想型 LEGO（表示、拆解、选择、组合、验证方法）。Skill、Tool、文件、Provider 卡片并非天然独立的已准入 LEGO；只有明确声明/准入时才按 R2.1 完整十一坐标建模。
+S1–S5 不是必须串行的项目阶段；按真实依赖图与 PR 修改冲突决定可执行前沿。约束理论用来找“哪项存量负担真正阻塞修改或运营”，不以全仓一次性完工为前置条件。每一项变更能独立回滚；同一 Owner 的不相关改动不强行合并一个超大 PR。
 
-1. 从 Human/domain 目标和实际消费者反推必要责任，先 DELETE 不必要自制实现；再复用自然 Owner；仍不足时比较成熟外界 Provider、组合/薄适配，最后才考虑自造。非消费证据不能伪装为“无消费者”。
-2. 外界只补实质未知：官方 SourceCut/文档、许可证、维护状态、效果与权限、替换契约、成本、可验证反例。优先使用 `catalogs/capabilities/packages/INDEX.md` 与已有 `catalogs/capabilities/providers/`，不建立平行 Provider 索引。
-3. 根据问题选择最小思想型 LEGO：Bounded Context / `project-kernel-decomposition` 定责任，`design-structure-matrix` 查耦合，`compositional-contracts` 证明组合前提，`recursive-lego-calculus` 查最终消费者闭包。方法结论与真实源代码、安装、运行、领域验收互相独立。
-4. 每次替换以同一消费者验收谓词比较旧与新，保持天然 Owner 单一真值。正常 GitHub Merge Queue 发布，原生 Release 安装及消费者读回后删除旧实现和可再生残留。
+## 6. 每个候选必须接受的双轴、九问审计
 
-| 成熟外部基础 | Ordivon 已有入口 | 边界与采用结论 |
-| --- | --- | --- |
-| DDD / Team Topologies / DSM | `tools/repo/owners.toml`、Owner Boundary、现有方法 Skills | 按语义权威与独立变化原因拆分，不按文件大小拆分 |
-| Agent Skills 开放规格 | `.agents/skills/`、`extensions/chatgpt-skills-mcp/` | Skill 包按需读取；文件存在不等于在线 Skills 服务已注册或可解析 |
-| Git 原生 worktree / Worktrunk | Runtime Workspace、`catalogs/capabilities/providers/worktrunk.md` | Worktrunk 目前只具备只读 Git 对照证据，可研究 Workstation UX，不代替 Runtime Workspace/Recovery |
-| PostgreSQL / GitHub Merge Queue | Host 原生 PG、Alembic、GitHub PR | 重用状态与发布权威，不自造中间 Ledger 或第二发布队列 |
-| OpenSSF Scorecard / SLSA / OpenTelemetry | Provider 评价、Artifact/Distribution、原生日志与追踪 | 分别用于风险线索、构建来源、统一事件命名；均不是形式化正确性证明 |
+审计轴 A：SPEC——这个东西是否还应该存在？能否删除或用成熟原生机制取代？现有职责/不变量/来源是否满足？
+审计轴 B：Engineering Standards——代码是否违反现有 Owner 的模块边界、维护规范、事务/恢复/错误及发布标准？
 
-官方参考：https://martinfowler.com/bliki/BoundedContext.html 、https://teamtopologies.com/key-concepts-content/team-interaction-modeling-with-team-topologies 、https://agentskills.io/specification 、https://openssf.org/projects/scorecard/ 、https://slsa.dev/spec/v1.2/provenance 、https://opentelemetry.io/docs/specs/semconv/ 。
+九个可证伪问题：
+1. 最终真实用户/业务价值与具体瓶颈是什么？没有此文件会损失什么？
+2. 有什么数学/系统工程结论真正适用？前提是否成立，哪条不能移植？
+3. LEGO 的十一坐标只用于真的独立责任了吗，是否把源码文件错当能力？
+4. Matt/ECC/Superpowers 的相关 Skill 是按原义使用还是走形式？
+5. 是否过于保守，把静态引用或不相干 UNKNOWN 当成永久保留/审批理由？
+6. 是否只是调整名称、文档或自造检查器，没有改善存量代码/复杂度？
+7. 问题表征是否抓住可变决策、Owner 权威、调用图和消费者，而非优化代理指标？
+8. 外界成熟或本地已经具备什么？能否 DELETE/REUSE/MERGE，减少而非增长抽象数？
+9. 真实修改 Diff、未破坏的现有入口、现有原生验证及已知反例是什么？
 
-## 六、分别面向 Human 与 Agent 的原生入口
+每个同行可返回 KEEP / REVISE / DELETE / UNKNOWN_NARROW 和 SourceCut/路径/反例。社会消息不是代码审查批准；不存在新审批层。实际危险效果只受原有自然 Owner 的授权与服务规则限制。
 
-**Human：** 直接提出目标、最终可观察收益和愿意承担的影响，不必手动写十一坐标。先在 `catalogs/capabilities/packages/INDEX.md` 选择 Package，再寻找 Owner 原生能力；比较不做、自带能力、外界成熟能力三个方案；验收要看真实读回、变化与代价。例如“关闭旧的 Host Topic，但保留历史消息可读”，应复用 Host `topic.state.set` 的 CAS，而不是另写删除服务。详细步骤见 `.agents/skills/recursive-lego-calculus/references/owner-provider-human-agent.md`。
+## 7. 首批需验证的具体库存候选
 
-**Agent：** 从 `AGENTS.md`、Owner Manifest、`origin/main` SourceCut、实际已安装实例和真实消费者开始；用 `method-router` 选最少的专业方法；对独立声明的 LEGO 填全 R2.1 契约；采用现成 Port/工具并做有针对性的消费者验证；经受保护主线发布、安装读回后退役旧 Carrier。Skill 文件仅被 Git 跟踪，不代表当前 Skill Server 的绑定；必须用当前 `resolve/read` 证实可见性。具体工作路径见同一 reference 的 Agent 部分。
+- apps/chaoxing-autosign 11 个文件：当前 README 自称 MVP skeleton；CLI 只运行 Fake Provider 与临时 SQLite，仓库外未找到 AutoSignEngine 或 MonitorRunner 的生产调用；目前仅原生仓库治理/测试索引、历史结构及导航引用。必须定点查是否有实际独立安装/服务消费者，若无则整体退役而非先修补无人使用的模拟引擎；当前 GitHub #1999 修改 tools/repo/test_affected_owners.py，且若干旧 PR 涉及 SQL dialect 检查，须避让并行文件编辑。独立 Windows Chaoxing read-only 工程不等于这套 Python MVP 的消费者。
+- services/harness 核心长源：先区分状态与职责的真正变化共因，检查原生 PG 迁移 PR 和已删除旧桥，禁止因行数而拆文件。
+- tools/repo 现有多个 >2,000 行验证/覆盖脚本：检查各自真实保护的不变量、重复验证任务与成熟标准工具替代，不用新增 Repo lint/Proof 体系。
+- capabilities/media 中作品与证据占大部分仓库二进制字节；完整媒体源/最终作品可能都被真实发布或恢复消费者消费。优先删除中间可再生物，而不是按体积排序强删。
+- 文档与既有 Agent Spec：既有 #1940/#1950/#1993 做存量去重，不发并行同义清理 PR；本文件自身改写而不是新增第五个行动计划。
 
-**形式化使用差异：** Human 检查要证明的行为、可复现反例与真实服务读回；Agent 另外绑定 SourceCut、精确模型范围、前提、求解器版本、实现精化及未覆盖效果。
+## 8. 发布、冲突与退出
 
-**同一能力、两种视图：** Human 看收益、效果、可恢复性；Agent 看精确身份、前置条件、不变量、效果、证据和作用范围。两者不分别创建 Owner、状态表、规则引擎或工作流。
+在每个自然 Owner 的当前目录下工作；以 Git 和 Runtime Workspace 作为隔离，先审冲突，再编辑，运行现有最小相关检查与已有完整原生检查，浏览差分，交给 GitHub PR 和 Merge Queue。**不新增测试**不等于可以把失败的现有检查写成 PASS；对于存在但环境不可运行的入口，报告有界事实，避免捏造成功。
+
+SOURCE/CANDIDATE、MERGED、INSTALLED、LOADED、EXECUTED 与实际消费者接受保持不同证据边界。改动未合并只是 PR，未发布的删除没有生产完成效果。清理本次生成的临时工作区、过期分支和重复协调载体，历史由 Git 和自然 Owner 原生记录留存。
+
+全局没有固定“必须所有 Owner 同时通过”的阻塞门；每个可执行模块完成最小改动和既有验证即交付。专项结束时，只有真实能力保留下来，冗余实现实际消失，本计划本身可以删除。
