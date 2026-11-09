@@ -183,7 +183,7 @@ P5：以真实安装 readback 证明新版本加载，再执行端到端消费�
 - ECC: https://github.com/affaan-m/everything-claude-code
 - Superpowers: https://github.com/obra/superpowers
 
-## 10. 反向验证与退出条件
+## 11. 反向验证与退出条件
 
 验证链：选择真实消费者 → 定义外部可见性质 → 正常路径测试 → 故意注入违反性质的 mutation → 命名反例 → 最小源实现 → 真实 PG/systemd/Windows 回读 → 删除旧实现/重复文档。
 
