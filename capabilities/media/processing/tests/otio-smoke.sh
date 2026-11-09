@@ -9,7 +9,7 @@ trap 'rm -rf "$work"' EXIT
 
 probe="$root/processing/bin/probe-otio.sh"
 
-/usr/bin/mise -C "$root" exec -- uv run --no-project --with 'opentimelineio==0.18.1' python - "$work/good.otio" "$work/bad-range.otio" <<'PY'
+/usr/bin/mise -C "$root" exec -- uv run --no-project --python 3.13 --with 'opentimelineio==0.18.1' python - "$work/good.otio" "$work/bad-range.otio" <<'PY'
 import sys
 import opentimelineio as otio
 
