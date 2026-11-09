@@ -81,6 +81,34 @@ class HarnessOutcomeConsumerTest(unittest.TestCase):
         self.assertFalse(result["completionArtifactPresentAndParsable"])
         self.assertFalse(result["taskSucceeded"])
 
+    def test_frozen_real_agent_task_outcome_receipt(self) -> None:
+        import hashlib
+
+        file = HERE / "task-outcomes-20261109.json"
+        record = json.loads(file.read_bytes())
+        contract = record["contract"]
+        expected_digest = (
+            "da218c55be09a755e6f60c1050017378c785d374c7479f27a49fc2c5473163ad"
+        )
+        observed_digest = hashlib.sha256(
+            json.dumps(contract, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        self.assertEqual(observed_digest, expected_digest)
+        self.assertEqual(contract["task"]["nativeHarnessTaskQualification"], "PASS")
+        self.assertEqual(len(record["runs"]), 4)
+        self.assertEqual(
+            [r["arm"] for r in record["runs"]],
+            ["control", "evidence", "evidence", "control"],
+        )
+        for row in record["runs"]:
+            self.assertEqual(row["status"], "MODEL_EXECUTED")
+            self.assertEqual(row["modelVersionHint"], "gpt-6.1-sol")
+            self.assertTrue(row["result"]["visiblePassed"])
+            self.assertFalse(row["result"]["hiddenPassed"])
+            self.assertFalse(row["result"]["taskSucceeded"])
+            self.assertTrue(row["result"]["completionArtifactPresentAndParsable"])
+            self.assertTrue(row["result"]["protectedSourceUnchanged"])
+
     def test_model_visible_prompt_contains_no_oracle_code(self) -> None:
         contract, evidence = pilot.build_contract()
         control = pilot.prompt("control", evidence)
