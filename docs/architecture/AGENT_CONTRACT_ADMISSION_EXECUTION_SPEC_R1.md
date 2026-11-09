@@ -108,3 +108,128 @@ CONSUMED: domain/application consumer's independently observed acceptance.
 UNKNOWN: remains explicit and cannot be treated as FAILURE or SUCCESS.
 
 Spec success is not the number of files added. It is fewer agent-dependent judgment steps at core admission boundaries, preserved forward progress on reversible work, and correct independent evidence at each real Owner consumer.
+
+## 9. Mathematical foundations and why these representations are chosen (2026-11-09 addendum)
+
+This section is the bounded formal argument for T1–T6, not an additional authority or mandatory read on routine changes. The source-of-truth remains the concrete Git/Owner/domain implementation and actual consumer evidence.
+
+### 9.1 Typed transition relation, Hoare logic and refinement
+
+For an independently contractable, stateful R2.1 LEGO `ell` with I/O and state S, a useful semantic interpretation is a relation:
+
+`R_ell ⊆ (I × S) × (O × S × Trace(Eff))`
+
+The eleven R2.1 coordinates are not replaced by this relation: `pre`, `post`, `inv`, `eff`, cost `c`, equivalence/approximation `epsilon`, provenance `prov`, and bounded unfolding `unfold` constrain how it may be used. Unobserved cost, error, authority, or actual implementation standing must remain typed UNKNOWN.
+
+A Hoare-style proof obligation `{P} impl {Q}` establishes only its stated pre/post property under the implementation's actual operational assumptions. For an implementation to refine a specification at a named observation boundary:
+
+`Obs_C(Traces(Impl | A)) ⊆ Obs_C(Traces(Spec | A))`
+
+where `A` names environment assumptions, and `Obs_C` is the concrete consumer's observation function. A finite TLA+/TLC model and a passing test are distinct evidence types; neither, without an explicit code-to-model bridge, discharges this implementation refinement.
+
+For a candidate package or adapter, the public contract is the seam. A source-local implementation detail is not automatically a public contract or a distinct LEGO. Prefer externally supplied contract/proof systems (language type checkers, Lean/TLC, Hypothesis, native test suites) to a custom Ordivon calculus.
+
+Grounding: Dijkstra/Morgan refinement calculus, Bertrand Meyer's Design by Contract, Abadi–Lamport compositional specifications, Pnueli–Siegel–Shtrichman translation validation.
+
+### 9.2 Assume–guarantee composition, not local model greenwashing
+
+A producer has assumptions `A_p` and guarantees `G_p`; a consumer requires `A_c` and offers `G_c`. The usual schematic composition prerequisite is `G_p ⇒ A_c` plus compatible type, authority, side effects, state and consumer observations. This is NOT a universal proof rule for circular/temporal systems. In an open reactive system, naive classical implication `A ⇒ G` can admit unrealistic traces when an environment violates assumptions later; use the appropriate temporal assume–guarantee semantics when necessary.
+
+In Ordivon:
+- Git provides exact source identity, not deployment identity.
+- Runtime provides physical execution/recovery facts, not the user's goal.
+- Host provides Work/Space/Topic continuity, not domain or Git proof.
+- Gateway routing, Tool discovery and Skill reading grant no business authority.
+- Source/model checks that do not read installed bytes cannot certify installed effects.
+- Each consumer supplies the final semantic oracle appropriate to its own domain.
+
+A public seam is admitted only after producer guarantees cover the consuming assumptions **under the assumptions actually checked**. Unchecked environment assumptions are UNKNOWN, never converted to FALSE or PASS.
+
+### 9.3 Exact Git SourceCut DAG proof obligation (T1 implementation)
+
+Let `b = resolve_commit(base_ref)` and `h = resolve_commit(head_ref)` under Git's real object DAG, with replacement overlays and grafts suppressed. Let `m = unique_merge_base(b,h)`. The qualified changed-path observation is:
+
+`Delta(b,h) = ChangedPaths(Tree(m), Tree(h))`.
+
+`b` is not necessarily `m`: if the branches diverged, claiming the diff starts at `b` is a false witness. Emit `sourceCut = {base:b, head:h, diffBase:m}` for exact Git-difference qualification and reject absent/ambiguous merge-bases; emit `null` for caller-declared paths and ALL_OWNERS selection.
+
+This is a *source-selection* witness only. It does not certify code quality, dependency completeness, GitHub policy, provenance of a human task, or application-level behavior. Invalidation: if `b`, `h`, `m`, Owner routing, or a consumed verifier readset changes, recompute the affected qualification.
+
+### 9.4 Proof graph, incremental recomputation and epistemic standing
+
+For a qualified claim `q`, let `D(q)` be the precise source, model, contract, verifier and environment readset needed by its real consumer. A previous proof may be reused only when those relevant inputs remain valid, or when a checked independence/refinement argument establishes that the changed inputs cannot alter the claim.
+
+`Reuse(q, t_2) ⇒ Current(D(q), t_2) ∨ VerifiedNoninterference(Delta, D(q))`
+
+This is a necessary admission obligation, not a complete algorithm. It resembles build dependency and cache-key semantics in Bazel but must not equate hash equality of a file with semantic equivalence or copy a build cache into an evidence authority.
+
+Evidence status is typed and scoped: OBSERVED, DECLARED, DERIVED, MODEL_CHECKED / VERIFIED (named property and verifier), FALSIFIED, UNKNOWN, and NOT_RUN. In particular `UNKNOWN ≠ FALSE`; not knowing whether a domain consumer exists does not prove deletion safe, and a static path scan does not prove absence of dynamically loaded consumers.
+
+### 9.5 Counterexamples, sound abstractions and independent validation
+
+Use mature CEGAR principles for formal models: deliberately abstract only the property-relevant state; when a counterexample appears, classify whether it is concrete or spurious and refine the minimal abstraction. No generic model-wide state explosion or independent Ordivon model-checker.
+
+Use translation validation for Agent candidates: validate each meaningful candidate at an existing *independent* source/Owner/consumer seam rather than attempting to prove every Agent correct. Test/verifier edits and implementation edits in the same candidate may share errors; compare the affected verifier against a pinned baseline and independent consumer before claiming contract continuity.
+
+Negative tests are required *where an actual invariant changes*. They are ordinary engineering regression/falsification tests, NOT weak-model trials.
+
+### 9.6 Design objective: allow safe action, block false admission
+
+The hard feasible set `F = {x | I_1(x) ∧ ... ∧ I_n(x)}` contains only mechanically enforceable, cost-justified invariants. Within F, compare candidate consumer value, total lifetime cost, recovery and reversibility. DELETE→REUSE→COMPOSE→CREATE is a default search order, NOT a mathematical theorem that deletion or reuse is always optimal. Liveness of low-risk reversible work must not be traded away to maximize the count of safety gates.
+
+For a new requirement: identify goal → actual consumer → Owner source/effect truth → public contract → mature supplier → focused verification → result readback. If no consumer needs a new layer, omit it.
+
+## 10. Execution dependency graph and concrete natural owners
+
+| Slice | Natural owner / current interface | Dependency | Acceptance / falsifier |
+| --- | --- | --- | --- |
+| T0 | repo docs and current SourceCut, same spec | none | Spec bound to verified upstream commits, real current Owner |
+| T1 | `tools/repo/affected_owners.py` + existing unittest | T0 | Exact b/h/m Git witness; diverged branches cannot misstate the diff basis; caller-declared source is not Git proof |
+| T2 | existing `.agents/skills/method-router/`, Owner README, Host explicit Work view | T1 | Goal→actual Owner/consumer can be navigated without a second Skill or Task registry; inspect merged #1980 before editing |
+| T3 | GitHub existing required check and repo-native governance tests | T1 | Verifier weakening cannot self-certify; protected rules observed from GitHub, not guessed from YAML; retain fast reversible workflow |
+| T4 | `tools/formal/` plus targeted Owner formal and native tests | T2 and T3 | Explicit assumptions and model↔implementation bridge; a TLC/Lean model PASS alone is never an installed/domain claim |
+| T5 | existing method-router, recursive-lego-calculus, Owner-local documentation | T4 | One usable thin method entry; no new global mandatory process, no duplicated upstream full skill install |
+| T6 | existing GitHub PR/Merge Queue, Owner installation/readback, domain consumer | per-slice | Separate SOURCE, MERGED, INSTALLED, EXECUTED, CONSUMED statuses |
+
+For execution, take the smallest currently unblocked *nonduplicative* slice. Inspect merged/open GitHub PRs and the existing Host Space before creating a new branch. Prefer extending a related existing PR when its proof/consumer frontier is the same. Changes to a root verifier are high consequence and need independent baseline/source qualification; changing a doc is not automatically a domain release.
+
+### 10.1 Exact test-and-deliver procedure for each runnable slice
+
+1. Capture `git ls-remote origin refs/heads/main` and one detached/branch Runtime Workspace; inspect current PRs and contract.
+2. Fix the public seam, its input/output types, exact property, and one likely counterexample. Follow Matt's spec/vertical-slice method and ECC's search-first/change-impact; do not interview the user again for already-known constraints.
+3. Add the smallest native regression proving that the current implementation fails the new intended property (RED) when modifying behavior. Prefer the actual public CLI or owner consumer over private mocks.
+4. Implement the smallest native change (GREEN). Avoid new cross-cutting registry and avoid changing unrelated Owner implementations.
+5. Run native verification, Git diff/format, a negative case and an independent consumer where material. Adhere to Superpowers' evidence-before-completion, but do not turn source-only cleanup into a mandatory full-stack test suite.
+6. Review the exact `merge-base...head` diff on two axes: spec/consumer fulfillment and repo/Owner standards.
+7. Commit in the isolated workspace. Rebase on freshly observed current main, rerun affected native checks, publish an ordinary PR, and use the existing protected merge queue.
+8. Post exact SHA/PR/commands and remaining UNKNOWN into the existing Space topic; do not mistake a Host Message for collaborator acceptance or a Git push for production deployment.
+
+### 10.2 Acceptance ledger without a new database
+
+A task is not done until the *claimed* level has evidence:
+- SOURCE: exact Git object and native source tests.
+- MERGED: remote PR/merge evidence.
+- INSTALLED: producer-owned active deployment and read-back.
+- EXECUTED: execution/effect receipt and recovery disposition.
+- CONSUMED: domain/customer-visible acceptance.
+
+If only the first two have been verified, report SOURCE/MERGED and mark the others UNKNOWN/NOT_APPLICABLE as appropriate. Keep this in existing PR, Git and native Owner outputs; do not persist it in a new global authority table.
+
+## 11. Primary research / upstream references
+
+These are methodological sources, not automatic current implementation or deployment authorities:
+- Abadi & Lamport, *Conjoining Specifications* (1995): https://www.microsoft.com/en-us/research/publication/conjoining-specifications/
+- Abadi & Lamport, *Composing Specifications* (1993): https://www.microsoft.com/en-us/research/publication/composing-specifications/
+- Chilton, Jonsson & Kwiatkowska, compositional assume–guarantee I/O contracts: https://doi.org/10.1016/j.scico.2013.12.010
+- Morgan, *Programming from Specifications*: https://www.cs.ox.ac.uk/publications/books/PfS/
+- Eiffel, Design by Contract: https://www.eiffel.com/values/design-by-contract/
+- Pnueli, Siegel & Shtrichman, translation validation: https://cs.nyu.edu/home/people/in_memoriam/pnueli/transval-icalp98.html
+- Clarke et al., counterexample-guided abstraction refinement: https://web.stanford.edu/class/cs357/cegar.pdf
+- Necula & Schneck, proof-carrying code: https://people.eecs.berkeley.edu/~necula/ISSS02/
+- Iris concurrent separation logic: https://iris-project.org/
+- Bazel action graph/readset: https://bazel.googlesource.com/bazel/+/015f586fcb2e127ed13691b573de42cd9dba8508/site/docs/glossary.md
+- Matt Pocock pinned Skills: https://github.com/mattpocock/skills/tree/4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
+- ECC pinned Skills: https://github.com/affaan-m/ECC/tree/d2ef2680594f9a17526a6e1a2e18b3d242c5d17b
+- Superpowers pinned Skills: https://github.com/obra/superpowers/tree/22f0b463e7a5e579904dd6211a520321035526f7
+
+Research is adopted selectively when a real Ordivon Owner can state the transferred invariant and the native evidence to check it. Do not convert the references into mandatory global onboarding, a hidden super-Owner, or a second R2.1 calculus.

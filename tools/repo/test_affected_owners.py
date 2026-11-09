@@ -487,7 +487,7 @@ verify_task = "y:verify"
             finally:
                 os.chdir(previous)
             self.assertEqual(value["selectionBasis"], "GIT_COMMIT_RANGE")
-            self.assertEqual(value["sourceCut"], {"base": base, "head": head})
+            self.assertEqual(value["sourceCut"], {"base": base, "head": head, "diffBase": base})
             self.assertIn("services/runtime/src/example.py", value["changedPaths"])
             self.assertIn("runtime", [owner["name"] for owner in value["owners"]])
 
@@ -504,6 +504,50 @@ verify_task = "y:verify"
                 with self.assertRaises(subprocess.CalledProcessError):
                     MODULE.main()
         self.assertEqual(output.getvalue(), "")
+
+    def test_divergent_history_qualifies_actual_merge_base_not_requested_base(self) -> None:
+        import contextlib
+        import io
+        import os
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-diverged-sourcecut-") as folder:
+            root = Path(folder)
+            def git(*args: str) -> str:
+                return subprocess.check_output(["git", "-C", folder, *args], text=True).strip()
+            git("init", "-q", "-b", "main")
+            git("config", "user.name", "Sourcecut test")
+            git("config", "user.email", "sourcecut@example.invalid")
+            (root / "README.md").write_text("base\n")
+            git("add", ".")
+            git("commit", "-qm", "common")
+            common = git("rev-parse", "HEAD")
+            (root / "README.md").write_text("baseline changed\n")
+            git("commit", "-qam", "base divergence")
+            base = git("rev-parse", "HEAD")
+            git("switch", "-q", "-c", "feature", common)
+            path = root / "services/runtime/src/consumer.py"
+            path.parent.mkdir(parents=True)
+            path.write_text("ENABLED = True\n")
+            git("add", ".")
+            git("commit", "-qm", "candidate")
+            head = git("rev-parse", "HEAD")
+            previous = Path.cwd()
+            try:
+                os.chdir(folder)
+                with patch.object(sys, "argv", [
+                    "affected_owners.py", "--base", base, "--head", head,
+                ]):
+                    buf = io.StringIO()
+                    with contextlib.redirect_stdout(buf):
+                        self.assertEqual(MODULE.main(), 0)
+                value = json.loads(buf.getvalue())
+            finally:
+                os.chdir(previous)
+            self.assertEqual(value["sourceCut"], {
+                "base": base, "head": head, "diffBase": common,
+            })
+            self.assertEqual(value["changedPaths"], ["services/runtime/src/consumer.py"])
 
     def test_non_git_selections_do_not_fabricate_sourcecut(self) -> None:
         import contextlib

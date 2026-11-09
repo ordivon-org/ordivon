@@ -271,6 +271,23 @@ def _resolve_source_commit(ref: str) -> str:
     ).strip()
 
 
+def _source_diff_base(base: str, head: str) -> str:
+    """Resolve the unique merge-base used for the qualified Git delta.
+
+    A requested base can diverge from the candidate head. The changed-path
+    readset starts at the merge-base, not at the requested base commit.
+    Multiple best merge-bases are ambiguous and cannot certify one readset.
+    """
+    merge_bases = subprocess.check_output(
+        ["git", "--no-replace-objects", "merge-base", "--all", base, head],
+        env=_source_git_env(),
+        text=True,
+    ).splitlines()
+    if len(merge_bases) != 1:
+        raise ValueError("exact SourceCut requires one unambiguous merge-base")
+    return merge_bases[0]
+
+
 def changed_paths(base: str, head: str) -> tuple[str, ...]:
     # Preserve both sides of a cross-owner move, rather than allowing Git's
     # similarity detection to hide the source owner from verification.
@@ -329,8 +346,9 @@ def main() -> int:
             selection_basis = "GIT_COMMIT_RANGE"
             base = _resolve_source_commit(args.base)
             head = _resolve_source_commit(args.head)
-            paths = changed_paths(base, head)
-            source_cut = {"base": base, "head": head}
+            diff_base = _source_diff_base(base, head)
+            paths = changed_paths(diff_base, head)
+            source_cut = {"base": base, "head": head, "diffBase": diff_base}
         require_registered_execution_paths(paths)
         selected = owners_for_paths(paths)
 
