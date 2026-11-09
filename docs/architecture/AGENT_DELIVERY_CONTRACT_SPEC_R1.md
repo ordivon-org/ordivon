@@ -223,3 +223,278 @@ Record an observed before/after for changed implementation behavior. A green pre
 A wave stops when its named consumer/property is checked and there is no unresolved, decision-changing defect within scope. Continue the next unblocked wave unless it depends on unavailable inputs or would harm current consumers. When blocked, record a concrete dependency and an executable recovery option in the existing Work/PR, not a new framework.
 
 This spec deliberately separates plan, branch implementation, merged source, installed system and observed domain result. Do not label later waves complete because W0/W1 are complete.
+
+## 10. Mathematical and computer-science foundations
+
+This section extends the execution spec with scoped mathematical obligations.
+It translates mature theory into already-existing natural Owner contracts.
+It is NOT a machine-checked theorem or an external-effect grant.
+
+### F0. Hoare logic and weakest preconditions: preserve the requested goal
+
+Hoare (CACM 1969) and Dijkstra (EWD418) show how implementation claims can
+be expressed as preconditions and postconditions. For operation C:
+
+    {P} C {Q}
+
+Q is the specified consumer outcome, not a convenience metric authored by C.
+An implementation agent can choose C but may not weaken Q or silently replace
+it with Q'. For a modeled bounded action, backwards reasoning wp(C,Q) exposes
+necessary starting conditions. For external effects with uncertain termination,
+a source proof does not establish total correctness, actual physical effects,
+or consumer acceptance.
+
+Native carrier: Composition objectiveRef and verifier-owned gate results,
+selected natural Owner tests. No universal weakest-precondition interpreter.
+
+### F1. Assume-guarantee composition and independent LEGO substitution
+
+Pacti and established component-contract theories model components with
+Assumptions A and Guarantees G on typed input/output interfaces. If LEGO L1
+supplies L2, compatibility requires much more than matching data structures:
+
+    A_environment AND G1 AND Wiring  =>  A2
+
+A replacement must not strengthen consumer assumptions, weaken the required
+guarantees, change critical effect semantics or silently erase provenance.
+For an independently DECLARED or ADMITTED LEGO, use every typed R2.1 slot:
+
+    ell = (I, O, S, pre, post, inv, eff, c, epsilon, prov, unfold)
+
+One optional relational semantics profile is:
+
+    R_ell subseteq (I x S) x (O x S x Trace(eff))
+
+This is an interpretation under explicit assumptions, not another Ordivon
+calculus or a reason to mint one LEGO per file. UNKNOWN slots carry type,
+scope and missing obligation. Skill/method routing has no effect authority.
+
+Native carrier: recursive-lego-calculus, compositional-contracts,
+Composition verification_obligation_r1, natural Owner interfaces.
+
+### F2. Refinement and observation boundaries
+
+Under explicit environment assumptions E and a consumer-relevant observation
+projection Obs, the desired implementation refinement condition is:
+
+    Obs(Behaviors_impl | E) subseteq Obs(Behaviors_spec | E)
+
+Obs must preserve all distinctions needed by the consumer: effect, identity,
+ordering, failure and durability. Similar function names, a passing finite
+model, and a green unit suite are not proof of model-to-code correspondence.
+
+Proof/evidence ladder with independently named owners and negative controls:
+
+    Exact goal / SourceCut / real consumer
+      -> specification + typed assumptions
+      -> valid abstraction/model + checked property
+      -> source implementation refinement witness
+      -> installed tool / Runtime process and byte readback
+      -> domain consumer acceptance
+
+Do not promote a conclusion across a missing arrow.
+Native carrier: Composition Lean/TLA+/Z3, Python/Rust/TS Owner tests, Git
+and Runtime readbacks and domain-native Outcome evidence.
+
+### F3. Safety, conditional liveness and grounded blockers
+
+A desired global safety property is:
+
+    [] (Accepted => GoalBound AND EvidenceCurrent AND ConsumerAccepted)
+
+It is NOT claimed as an existing whole-system theorem. The narrower
+Composition fact already tested is that different objective manifest
+digests invalidate stale verifier-owned gate results.
+
+A meaningful progress obligation needs environmental and scheduling
+assumptions:
+
+    Spec AND FairEnvironment AND FairOwnerActions
+      => [] (Pending AND PersistentlyEnabled
+             => <> (MaterialProgress OR GroundedBlock))
+
+MaterialProgress requires a consumer-relevant change or evidence gain;
+GroundedBlock names an actual missing source, provider, permission, resource
+or externally disabled action and its recovery option. Progress is not a
+universal timeout or invented scalar. Legal no-op, deletion and explicit
+consumer-authorized termination remain valid. Never turn uncertain external
+effects into blind retries to satisfy a progress counter.
+
+Source: Lamport TLA+ safety/liveness and weak/strong fairness.
+Native carrier: actual Host Work, Harness Run, Runtime Job/Attempt, selected
+domain Owner. No global watchdog, mandatory new scheduler or fake liveness.
+
+### F4. Abstract interpretation and CEGAR: add complexity only for real gaps
+
+Cousot & Cousot's abstract interpretation produces a sound, sometimes
+imprecise abstraction of concrete behavior. Clarke et al.'s CEGAR refines
+only after checking whether an abstract counterexample is physically
+possible. A REAL counterexample demands source/contract repair; a proved
+spurious counterexample can justify abstract refinement. Neither demands
+a new registry or dozens of imagined future safeguards.
+
+Use the existing formal owner toolchain on a selected property, with
+a falsifying control. Preserve UNKNOWN for unproved concrete-to-abstract
+simulation and never claim global minimality.
+
+### F5. Build/asset graphs and source-indexed reproducibility
+
+Bazel action readsets and keys separate source inputs, tool commands,
+environment, declared outputs and content hashes. OpenTimelineIO keeps
+edit decisions distinct from the actual image/audio essence and storage.
+
+For a replaceable Media transformation, the identity of a transformed
+output does not alone prove that a particular tool was run on exact input
+bytes or that cached outputs can be safely reused. The relevant source,
+recipe, profile, tool version, environment and readset must be bound, or
+their missing parts remain UNKNOWN. Output byte match does not prove
+factual claim, rights, human comprehension or external publishing.
+
+Native carrier: Media production_context.py, operation_impact.py,
+ProductionOutputByteIdentity.lean, native FFprobe/FFmpeg/OTIO and Artifact
+plus Runtime readback. Do not duplicate CAS, editor or build-graph engines.
+
+### F6. Optimization with consumer metrics instead of overprotection
+
+Google SRE SLO/error-budget methods measure reliability at an actual
+consumer boundary. They do not justify blanket gates on all harmless
+changes. A blocker must identify a violated invariant, missing assumption
+or material consumer cost. Likewise a demanded progress score can be
+gamed by generating unnecessary tasks.
+
+For a fixed consumer and budget H compare a vector such as:
+
+    Pi(I) = (consumer_result, regression_rate, resource_cost,
+             elapsed_cost, intervention_cost, recovery_rate)
+
+Unknown dimensions are not zero; no universal weighting is implied.
+Reuse Composition's META_IMPROVEMENT_MEASUREMENT_R1 research semantics,
+not a new evaluator service.
+
+### Primary theoretical sources and their limited adoption
+
+- Hoare, CACM 1969: https://doi.org/10.1145/363235.363259
+- Dijkstra, EWD418: https://www.cs.utexas.edu/~EWD/transcriptions/EWD04xx/EWD418.html
+- Pacti contract semantics: https://www.pacti.org/docs/getting_started/
+- Cousot & Cousot, POPL77: https://www.di.ens.fr/~cousot/COUSOTpapers/POPL77.shtml
+- Clarke et al., CEGAR 2000: https://web.stanford.edu/class/cs357/cegar.pdf
+- Lamport, TLA+ fairness: https://lamport.org/tla/safety-liveness.pdf
+- Bazel action and cache identities: https://bazel.googlesource.com/bazel/+/refs/heads/staging/src/main/java/com/google/devtools/build/lib/remote/README.md
+- ASWF OpenTimelineIO: https://opentimelineio.readthedocs.io/en/latest/
+- Google SRE SLO alerting: https://sre.google/workbook/alerting-on-slos/
+
+## 11. Current external and cross-Agent overlap (as observed 2026-11-09)
+
+Do not duplicate prior or parallel work. These are observation references,
+NOT declarations of authority or an assumption that upstream branches merged:
+
+- PR #1977 head b3f1c4440d5194bba0bdd69a6926c0cabd01b863: the
+  existing W0/W1 contract/method route in this PR, OPEN at inspection.
+- PR #1978 already covers distinct repo-level Agent Formal Delivery source
+  self-authorization checks; PR #1971 covers actual Git SourceCut qualified
+  Repo owner selection. These are separate natural Owner seams.
+- Media PR #1922 at dbe58a23fd2ad481af6bdccd077f76169a8cd774
+  already supplies FIVE real Runtime introduction Outputs, deliverable
+  files, reproducible ZIP, native delivery tests and SourceCut-bound claims.
+  Do not implement another renderer, wrapper, ZIP formatter or Media registry.
+  This PR was OPEN with auto-merge requested; latest inspected main
+  a7d70e83945b7418f41b9636f0803d1544e84355 did not contain it.
+- Media already has formal ProductionOutputByteIdentity.lean and the real
+  production_context.py / test_production_context.py consumer bridge.
+  Do not create a second digest-equality proof.
+
+Independent native PR #1922 consumer readback:
+
+- Runtime job job-01a1c0ec-6e59-7190-b02a-39ae51950d35, Workspace
+  ws-gpt6-media-pr1922-independent-review-20261109-r1, exact head dbe58a23.
+- Three test_runtime_intro_delivery.py native tests: 3/3 PASS.
+- Five physically read Output files: declared SHA-256 equality 5/5.
+- ZIP testzip returned None, local FFprobe saw English 78.000000 s
+  H.264 1920x1080 and AAC streams.
+- Production status is review, individual Output status approved: these
+  declarations are distinct. Byte integrity and reported approval do not
+  establish current Runtime capability, viewer comprehension, destination
+  publication, creative acceptance or rights status.
+
+Host Space peer collaboration (no response or agreement implied):
+- space:ordivon-capability-task-forum-r1:20261101;
+- topic 03-refinement, sequence 25742 (formal proof challenge), 25756
+  (PR #1922 reuse and missing-acceptance request);
+- topic 08-agent, sequence 25743 (Skill process and Owner interface handoff).
+Social messages are neither Work authority nor execution/proof receipts.
+
+## 12. Remaining executable W2-W7 tasks and exact acceptance
+
+### W2A. Existing deliverable materialization / byte identity — OBSERVED
+
+W2A is proven only within PR #1922 selected SourceCut/Output set:
+actual carrier bytes, ZIP consistency and selected FFprobe structure.
+No consumer-user satisfaction, publication or installation claim.
+
+### W2B. Historically bound Claim versus actual Media expression — NEXT
+
+Owned by Media Production, the historical Runtime facts Owner and actual
+chosen review consumer. Blocked only on selecting the *actual* PR #1922
+Output and Claim; do not require a new engine or weak-model test.
+1. Preserve the exact historical Runtime sourceBinding revision in
+   Production; a newer Git HEAD does not automatically falsify a film.
+2. Compare the published words/narration/visual claims to original
+   selected Runtime evidence, not the current Media PR body.
+3. Inspect one real EN and ZH output with native media evidence and
+   keep human-response UNKNOWN until the actual audience/reviewer
+   provides scoped evidence.
+4. If the existing Production context and review receipt can express
+   that decision, reuse it; otherwise add precisely ONE Owner-native
+   missing consumer seam and its direct positive/negative test.
+5. Return evidence to existing Media PR #1922 or a narrow follow-up,
+   not a parallel production package.
+
+Completion: bound Production/Claim/Output identities; factual review with
+source references; technical consumer readback; distinct status for
+audience/rights/publication. Never turn a local video hash into success.
+
+### W3. Host/Harness caller continuation — ONLY on a real failing consumer
+
+Identify real Work/Run that loses goal identity or promotes mechanical
+Composition closure into domain acceptance. Otherwise stop without
+inventing another state machine. For real failures, write the owner-native
+reproducer/test, then fix the smallest existing Host/Harness path.
+
+### W4. Model-to-code refinement — ONLY on a real proof obligation
+
+Use existing Lean/TLA+/Z3 providers and their positive/non-vacuity
+negative controls. The model's consumer property, actual source
+refinement witness and installed readback require separate evidence.
+Do not create parallel proof calculus, checker or generic broker.
+
+### W5. Matt/ECC/Superpowers native review and qualification
+
+Use Matt's vertical dependency DAG and spec/standards review, ECC
+iterative retrieval/verification-loop, and Superpowers' observed
+test-before-completion/TDD where production code actually changes.
+Use selected Owner-native commands and GitHub integration. Do not
+apply unrelated blanket verification to every simple edit.
+
+### W6. Subtractive retirement
+
+After W2B/W3/W4 identifies a redundant responsibility, trace actual
+consumers and recovery obligations, then DELETE, REUSE, COMPOSE
+using native Git/Runtime/Owner tools. Preserve uniquely required
+source claims and original bytes through Git or Artifact.
+
+### W7. Integration and real delivery
+
+Report PR/source commit, merged main, installed service/tool,
+executed physical operation, consumed artifact and review
+acceptance as independently proven dimensions. An OPEN PR,
+auto-merge request or Space message is not final acceptance.
+
+## 13. Acceptance for the current mathematics extension
+
+- Reuses the existing spec and SourceCut branch; no new global framework.
+- Maps every mathematical law to an existing native Owner/tool and a
+  falsifiable implementation obligation, with explicit model gaps.
+- W2A readback is precise and repeatable at exact PR #1922 head;
+  W2B is explicitly UNFINISHED.
+- Existing Composition tests and repository documentation checks pass.
+- Integration/installed/domain truth remain independent from this PR.
