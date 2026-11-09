@@ -196,3 +196,89 @@ Exact implementation readset for the first and following vertical slices:
 | T5 | same specific Owner documents / Skills changed by T2–T4 | Delete redundant implementation and instructions only after live consumer equivalent readback; native Owner verification. |
 
 The `docs/start/tasks.md` link is a navigation projection, not new task authority. This document is **one bounded planning carrier** with explicit consumers, not a standing requirement to create six GitHub tickets before any action. Its future deletion is permitted when superseded by working Owner contracts/tests.
+
+## 11. Theory-to-owner proof obligations and execution dependencies (2026-11-09)
+
+This section sharpens *the existing T0–T5 plan*, not another planning service or a fifth architecture Spec. The full mathematical method selection belongs to the current scoped [formal-thinking reference](../../.agents/skills/recursive-lego-calculus/references/formal-thinking-legos-human-agent.md). A method profile is a candidate thinking LEGO until its actual natural-Owner consumer and complete R2.1 eleven-coordinate contract are admitted. No per-file LEGO declaration.
+
+### Theory selection and legitimate transfer to execution
+
+| Proven theory/practice | Exact use and limit | Existing Ordivon consumer and native test |
+| --- | --- | --- |
+| Hoare logic and weakest preconditions (Hoare 1969) | A triple {P} C {Q} establishes *partial correctness* of C under P, not termination or truth of P in production. For a destructive action, calculate which previous state makes Q valid rather than treating deletion count as success. | Runtime workspace.close preconditions, Host PG Work CAS, Owner negative tests. |
+| Assume–guarantee contracts / Pacti (Nuzzo et al. 2014, Incer et al. 2025) | For an existing consumer contract (A,G) and a replacement (A',G'), require A ⇒ A' and A ∧ G' ⇒ G on the old consumer scope; this is a **necessary simplified behavioral criterion**, alongside actual compatible wiring, effect, identity and state obligations. Not every interface-to-contract translation preserves sequential composition. | Existing compositional-contracts Skill, narrow Gateway→Runtime/Harness provider seams. Use Pacti only for a supported assumption/guarantee class that changes a real choice. |
+| Transition systems, temporal logic, fairness (Lamport, AWS TLA+ practice) | Check invariant Init ∧ Next ⇒ □Inv within actual model and explicitly qualified finite scope; liveness is conditional on enabledness, capacity, fair execution and no irreversible unknown effect. | Runtime Job/Attempt/Workspace lifecycle, Tool reentry/replay; existing native TLA+/TLC and state tests, not a new scheduler. |
+| Refinement mappings (Abadi & Lamport 1988/1991) | Establish a mapping α from concrete Owner transitions to the relevant abstract obligation; stuttering, environmental steps, concurrency and proof readsets must be modeled. Trace(model) alone is not Trace(production). | One existing Rust/Python Owner state machine plus negative source/refinement and live effect readback. |
+| Abstract interpretation, CEGAR (Cousot 1977; Clarke et al.) | Build the smallest adequate *sound for the claimed property* abstraction. Abstract counterexamples may be spurious; check concrete feasibility and refine only relevant false alarms. Preserve UNKNOWN where the abstraction drops necessary environment. | Existing recursive-lego-calculus, owner tests and counterexample replay; do not claim universally minimum representation. |
+| Separation logic / incremental summaries (Meta Infer) | Recheck affected dependent assertions/readsets rather than whole-system proofs on every edit; the frame principle applies only when disjointness/footprints are justified. | tools/repo/affected_owners.py, source dependency contracts, scoped formal invalidation. |
+| Linearizability (Herlihy & Wing 1990) | For actual concurrent shared objects, establish a valid sequential history respecting real-time order, not mere test pass. This is an optional target only where a current CAS/replay race matters. | Host Work transaction, Runtime admission/request identity, native PG concurrency tests. |
+| Proof-producing/integrity evidence (in-toto / SLSA provenance) | Bind exact subject bytes, source commit, toolchain and producer to verifiable receipts. Such provenance proves stated build steps, not a domain outcome. | Git SHA, GitHub protected checks, Artifact native digest/consumer, installed systemd binary/source identity. |
+| Verification-guided development (AWS Cedar) | Formal model proof + differential property-based tests against actual code + remaining unmodeled-path tests; never promote simulated oracle agreement to physical deployment. | Existing Lean/TLC/Kani/CrossHair/Hypothesis/pytest only at the natural Owner seam, with negative controls and exact versions. |
+
+### Mathematical contract and observation algebra
+
+Let a real consumer c own a predicate phi_c at source/version/environment cut sigma, with authorized effect e and current witness w. Its acceptance is conditional:
+
+    Accept(c,g,sigma)  iff  Verify_c(phi_c(g), w, sigma) = PASS
+
+The executor cannot create a valid acceptance statement merely by returning a proposal. Keep evidence standing local to *each claim* rather than adding a global enum: NOT_OBSERVED, SUPPORTED, REFUTED, CONFLICT, UNKNOWN_CURRENTNESS. A conflicting or stale witness is not FALSE or PASS. A valid independent action may proceed while an unrelated claim is UNKNOWN.
+
+For an admitted effect with source action a:
+
+    EffectCommitted(a) => OwnerAdmitted(a, sourceCut, principal, grant, nativePreconditions)
+    CompletionClaim(g) => ConsumerWitness(g, currentCut, requiredEffects)
+
+The first obligation is local *authorization/effect admission*; it does not assert actual external exactly-once side effects. The second is local *semantic evidence acceptance*, not a Job outcome. If an action's external effect is UNKNOWN after timeout, reconcile its exact identity instead of retrying blindly. No claim that all natural-language goals are mechanically decidable.
+
+For conditional progress under fair scheduler F and bounded resources B:
+
+    Ready(a) and NativeAllowed(a) and F and B
+       leadsto NativeEffectObserved(a) or VerifiedBlocker(a)
+
+Only a current Owner reason may establish VerifiedBlocker. Planning text, a hypothetical permission concern, and an unavailable unrelated verifier cannot globally block other admitted work. Never call the condition an unconditional temporal theorem without actual fairness/environment assumptions.
+
+**Non-vacuity / no fake safety:** exhibit a reachable Ready-and-NativeAllowed state followed by a genuine permitted Owner effect, as well as a separately rejected illegal effect. If a model simply makes Ready unreachable or refuses every operation, a trivially true safety or progress implication is **not** qualified acceptance. Check reachability with the natural Owner tool and bind that path to one real consumer.
+
+### Exact execution dependency graph (source-cut-qualified)
+
+These are vertical increments of T0–T5, *not* a parallel ticket tracker. The root Spec only records the cross-Owner target; each actual test/code/PR belongs to its natural Owner.
+
+| ID | Blocking edges | Concrete action and reuse | Independent stop/readback |
+| --- | --- | --- | --- |
+| E0 / T0 | none | Adopt this theory/reference mapping in existing method-router and existing R2.1 reference; leave upstream Skills as pinned research guidance. | Exact source, link/Skill checks, no second registry or copied upstream source. |
+| E1 / T3 Runtime | E0 for method only | Continue existing GitHub #1921 bounded PG workspace.list; compare failing repo-mechanics assertion and Composition 504 against current main, merge owner branch, rerun existing checks. **Do not write a new list backend.** | Healthy page through real Runtime; poison nonselected workspace does not globally fail; protected PR check/merge and installed readback separated. |
+| E2 / T1 | independent | Audit actual Authority/Host historical-revision consumer; only if still faulty, RED/GREEN at PG public seam; keep legitimate compaction distinguishable from silent missing revisions. | Real database negative and positive results, no fabricated history. |
+| E3 / T2 | independent after E0 | Find one current caller that incorrectly promotes Harness candidate to domain completion. Fix **only if** there is a failing native consumer case. | candidate success and absent consumer witness cannot accept; correct current witness can. |
+| E4 / T4 | dependent on a concrete E1/E2/E3 Owner | Prove/check the one relevant transition/Hoare/A–G property; keep exact code refinement, permitted effects and physical receipt bound to the same source. | Abstract PASS, code PASS, installed PASS and domain acceptance reported separately. |
+| E5 / T5 | after affected replacement is accepted | Delete superseded helper/spec/plans with no remaining unique consumer; preserve independent falsification evidence and current native Worker/Job receipts. | Git tree and live final consumer readback; simpler current path and no stale authoritative copies. |
+
+Execution protocol per ready vertical slice: Matt to-spec/consumer and to-tickets blocking edges → ECC search-first and contract-first only for a genuine provider boundary → Superpowers smallest RED/GREEN commit using the Owner's tests → ECC change-impact actual readset and native regression → Superpowers verification-before-completion with real PR/installed/consumer readback. The method cannot turn a legal direct native operation into a mandatory approval queue. Do not run weak-model trials, model ranking, blanket testing rituals, or all formal tools merely because they are available.
+
+### Failure classification and proof invalidation
+
+A verification failure must retain its actual class and exact readset:
+- **SPEC_COUNTEREXAMPLE:** a reachable violating abstract state; check feasibility against the code.
+- **CODE_REGRESSION:** native test reproduces the concrete defect.
+- **EXTERNAL_DEPENDENCY_UNAVAILABLE:** a pinned official tool/artifact is unavailable; proof status NOT_RUN, not FAIL against the owner algorithm and not PASS.
+- **SOURCE_DRIFT:** assumptions, Git SHA, dependency or verifier version changed; previously valid evidence must be requalified.
+- **INSTALLATION_MISMATCH:** source merged but installed binary/config differs.
+- **CONSUMER_UNACCEPTED:** real output misses the agreed predicate despite passing local checks.
+
+2026-11-09 observed example: GitHub #1921 has one stale GitHub-governance expectation in repo-mechanics and an HTTP 504 fetching the Composition formal tool in owner-shard-2. Both require native CI reruns / main reconciliation, not a speculative Rust rewrite. Earlier #1925 and #1980 were verified as MERGED; recheck before future claims. No assertion in this dated note establishes their actual installed state.
+
+### Primary research and mature tool links
+
+- C. A. R. Hoare, *An Axiomatic Basis for Computer Programming* (1969): https://doi.org/10.1145/363235.363259
+- Nuzzo et al., *From Relational Interfaces to Assume–Guarantee Contracts* (2014): https://www2.eecs.berkeley.edu/Pubs/TechRpts/2014/EECS-2014-21.html
+- Pacti, algebra and compatible contract fragment: https://www.pacti.org/docs/getting_started/
+- Abadi & Lamport, *The Existence of Refinement Mappings*: https://www.microsoft.com/en-us/research/publication/the-existence-of-refinement-mappings/
+- Cousot & Cousot, *Abstract Interpretation* (1977): https://www.di.ens.fr/~cousot/COUSOTpapers/POPL77.shtml
+- Clarke et al., *Counterexample-guided Abstraction Refinement*: https://web.stanford.edu/class/cs357/cegar.pdf
+- Herlihy & Wing, *Linearizability* (1990): https://www.cs.cmu.edu/~wing/publications/HerlihyWing90.pdf
+- AWS, *How AWS Uses Formal Methods*: https://www.amazon.science/publications/how-amazon-web-services-uses-formal-methods
+- AWS, *Cedar verification-guided approach*: https://www.amazon.science/publications/how-we-built-cedar-a-verification-guided-approach
+- Meta Infer, incremental pre/post summaries: https://engineering.fb.com/2017/09/06/android/finding-inter-procedural-bugs-at-scale-with-infer-static-analyzer/
+- Hypothesis rule-based state machines: https://hypothesis.readthedocs.io/en/latest/stateful.html
+- Kani Rust bounded verifier: https://model-checking.github.io/kani/
+- Verus Rust verifier: https://verus-lang.github.io/verus/guide/
+- in-toto attestation and SLSA provenance: https://in-toto.io/docs/specs/ ; https://slsa.dev/spec/v1.0/provenance
