@@ -54,6 +54,41 @@ v2 evidence requirements. Build/Verify bindings also reject stale source
 registries and ambiguous provider standing data. Reference:
 `docs/ARTIFACT_PROFILE_AUTHORITY_REFINEMENT_R1.md`.
 
+## Outcome-first delivery: a live, bounded customer operation
+
+Artifact now supports one **direct, outcome-first** operation without asking the
+caller to choose a Profile, a Pandoc invocation, HTML validators, or a browser:
+convert a supplied Markdown source into one **self-contained offline HTML file**.
+The execution is local and uses the already-installed Pandoc, Nu Html Checker,
+Playwright Chromium + Firefox and axe. This is deliberately **not** a new
+workflow framework, file registry or full Web deployment promise.
+
+From this Owner directory, with a real Markdown input and an authorized
+destination on the same execution host:
+
+```bash
+uv run python scripts/artifact_deliver_html.py \
+  --source /absolute/path/to/brief.md \
+  --destination /absolute/path/to/delivered-page.html \
+  --language en
+```
+
+The command refuses to publish if Pandoc, the HTML conformance checker,
+Chromium, Firefox or automated accessibility checks fail. It publishes
+already-verified bytes without overwriting an unrelated file, then opens the
+**actual delivered path** in the target browsers and binds the readback SHA-256
+to the output. An adjacent `*.delivery.json` records the exact scope and
+non-claims. Use `--replace` explicitly when replacing an existing different
+artifact is intended. Agents can request `artifact_deliver_html_propose`
+from the existing Artifact Agent Surface and let Runtime execute its plan.
+No second execution system or mandatory trust/OCI stage is introduced.
+
+**Boundary:** this establishes local offline HTML technical acceptance, not
+remote web-origin publication, Human content quality, WebKit acceptance or
+source-side auxiliary-resource provenance. A production website must be tested
+through its *deployed* URL separately. Other format families keep their
+native specialized delivery paths until independently qualified.
+
 ## Human guide: produce or verify one real outcome
 
 1. Name the real consumer, primary native format, optional companion outputs, actual source and material identities, target app and acceptance predicates. An editable PPTX + PDF requires target-render evidence when its Profile requires it.

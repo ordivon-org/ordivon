@@ -30,6 +30,7 @@ ART = ROOT / "artifact-delivery"
 TAXONOMY = ART / "taxonomy-v1.json"
 VERIFY = ROOT / "scripts/artifact_verify.py"
 DOCTOR = ROOT / "scripts/artifact_delivery_toolchain_doctor.py"
+HTML_DELIVER = ROOT / "scripts/artifact_deliver_html.py"
 ARTIFACT_PYTHON = Path(os.environ.get("ARTIFACT_PYTHON", "/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python"))
 BINDING_REGISTRY = CapabilityBindingRegistry(ART)
 PROFILE_REGISTRY = ProfileRegistry(ART)
@@ -238,6 +239,36 @@ def doctor_proposal(output: str | None = None) -> dict[str, Any]:
     return {"schemaVersion": 1, "kind": "ordivon.artifact-operation-proposal", "operation": "toolchain-doctor", **base}
 
 
+def html_delivery_proposal(
+    source: str, destination: str, language: str = "en", title: str | None = None
+) -> dict[str, Any]:
+    """Compile a consumer-accepted local HTML delivery order; Runtime executes it."""
+    args = ["--source", source, "--destination", destination, "--language", language]
+    if title is not None:
+        args.extend(["--title", title])
+    proposal = _plan(
+        HTML_DELIVER, args,
+        postcondition=(
+            "require status DELIVERED, Nu Html Checker/Chromium/Firefox/axe PASS, "
+            "and exact delivered-path readback; source Markdown is not consumer acceptance"
+        ),
+    )
+    blockers = list(proposal["blockers"])
+    if not Path(source).is_file():
+        blockers.append("SOURCE_ABSENT")
+    if not str(destination).lower().endswith(".html"):
+        blockers.append("DESTINATION_NOT_HTML")
+    return {
+        "schemaVersion": 1, "kind": "ordivon.artifact-outcome-proposal",
+        "outcome": "offline-html-delivery", "ready": not blockers,
+        "blockers": blockers, "plan": proposal["plan"] if not blockers else None,
+        "boundary": (
+            "Only local/offline HTML delivery with actual browser readback is covered; "
+            "no deployed HTTP origin, Human aesthetic review or WebKit claim."
+        ),
+    }
+
+
 def cad_boundary_status() -> dict[str, Any]:
     taxonomy = _load_json(TAXONOMY)
     family = next(x for x in taxonomy["families"] if x.get("id") == "design-3d")
@@ -273,6 +304,7 @@ def tool_definitions() -> list[dict[str, Any]]:
         {"name": "artifact_profile_coverage", "description": "Project current Artifact profiles into a conservative eight-gate contract matrix without claiming occurrence-level PASS.", "inputSchema": {"type": "object", "properties": {"profileId": {"type": "string"}, "familyId": {"type": "string"}}, "additionalProperties": False}},
         {"name": "artifact_verify_propose", "description": "Compile one exact Artifact verification request into the supported Runtime-ready verifier plan without executing it.", "inputSchema": {"type": "object", "properties": {"request": {"type": "string", "minLength": 1}}, "required": ["request"], "additionalProperties": False}},
         {"name": "artifact_build_propose", "description": "Compile one exact Artifact build request into the canonical ArtifactOperation contract without executing it.", "inputSchema": {"type": "object", "properties": {"request": {"type": "string", "minLength": 1}}, "required": ["request"], "additionalProperties": False}},
+        {"name": "artifact_deliver_html_propose", "description": "Plan an outcome-first Markdown-to-offline-HTML order with automatic native production, conformance, browser/axe consumer verification and exact delivered-path readback. Runtime owns execution.", "inputSchema": {"type": "object", "properties": {"source": {"type": "string", "minLength": 1}, "destination": {"type": "string", "minLength": 1}, "language": {"type": "string"}, "title": {"type": "string"}}, "required": ["source", "destination"], "additionalProperties": False}},
         {"name": "artifact_toolchain_doctor_propose", "description": "Compile the cross-format Artifact toolchain doctor into a Runtime-ready read/verification plan.", "inputSchema": {"type": "object", "properties": {"output": {"type": "string"}}, "additionalProperties": False}},
         {"name": "artifact_cad_admission_status", "description": "Read the explicit boundary between current GLB design-3D support and ungraduated CAD/BIM/manufacturing support.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
     ]
@@ -306,6 +338,12 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any]) -> dict[str,
         return verify_proposal(str(arguments["request"]))
     if name == "artifact_build_propose":
         return build_proposal(str(arguments["request"]))
+    if name == "artifact_deliver_html_propose":
+        return html_delivery_proposal(
+            str(arguments["source"]), str(arguments["destination"]),
+            str(arguments.get("language", "en")),
+            str(arguments["title"]) if "title" in arguments else None,
+        )
     if name == "artifact_toolchain_doctor_propose":
         value = arguments.get("output")
         return doctor_proposal(str(value) if value is not None else None)
