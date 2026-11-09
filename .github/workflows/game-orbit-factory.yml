@@ -33,6 +33,8 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
       RUSTUP_TOOLCHAIN: "1.99.1"
+      UV_PYTHON_DOWNLOADS: "never"
+      UV_PYTHON: /usr/bin/python3
     steps:
       - name: Checkout exact Game source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -50,14 +52,16 @@ jobs:
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends             pkg-config libx11-dev libxkbcommon-dev libudev-dev             xvfb xauth mesa-vulkan-drivers libvulkan1
           rustup toolchain install 1.99.1 --profile minimal
-      - name: Install existing Game tools
+      - name: Install only native Orbit model dependency provider
         working-directory: domains/game
         env:
           MISE_GITHUB_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mise install
+          # Do not download unrelated Godot, Node, Python 3.15 and monorepo tools.
+          # Use the runner's installed Python for the scoped upstream Z3 model.
+          mise install uv@0.13.5
       - name: Execute real Bevy game test, native build and package
         working-directory: domains/game
         run: |
