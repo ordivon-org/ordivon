@@ -29,6 +29,12 @@ Neither grants authority or proves that an Owner is installed and ready.
    only for independently contractable responsibilities, not every file
    or Tool. For executable work, follow the
    [agent first-run](agent-first-run.md).
+For consequential cross-Owner Agent delivery, the
+[Agent-native Formal Delivery Spec R1](../architecture/AGENT_FORMAL_DELIVERY_SPEC_R1.md)
+defines the scoped source/consumer/authority/acceptance obligations. It is a
+task-local method guide, not a new workflow engine, approval gate or registry.
+Routine single-Owner tasks use their native verification directly.
+
 3. Retire a source carrier or Workspace only after checking real
    callers, active Jobs, unreleased commits, installed readbacks and
    replay/retention obligations. Use native Owner/Git lifecycle operations;

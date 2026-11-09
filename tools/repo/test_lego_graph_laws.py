@@ -2655,3 +2655,60 @@ def test_host_r3_semantic_alignment_fails_closed(mutation: str, tmp_path: Path) 
         module.validate_host_r3_semantic_alignment(
             tmp_path, json.loads(r3_path.read_text())
         )
+
+
+@pytest.mark.parametrize("surface", ["node", "slice"])
+@pytest.mark.parametrize(
+    "field",
+    [
+        "deletionAuthorized",
+        "effectAuthorized",
+        "promotionAuthorized",
+        "deploymentAuthorized",
+        "domainAccepted",
+        "proofReuseAdmissible",
+    ],
+)
+def test_source_only_plans_cannot_promote_authority_flags(surface: str, field: str) -> None:
+    """Planning R2.1 projections cannot self-authorize external effects or outcomes."""
+    plan = json.loads(
+        (ROOT / "tools/repo/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    entries = plan["nodes"] if surface == "node" else plan["slices"]
+    assert entries, "The known current repository plan must exercise this real surface"
+    injected = copy.deepcopy(plan)
+    target = injected["nodes"][0] if surface == "node" else injected["slices"][0]
+    target[field] = True
+    with pytest.raises(module.ArchitectureDocsError, match="source-only LEGO.*authority"):
+        module.validate_owner_lego_graph(injected)
+
+
+@pytest.mark.parametrize("surface", ["node", "slice"])
+@pytest.mark.parametrize(
+    "field",
+    ["deletionAuthorized", "effectAuthorized", "promotionAuthorized",
+     "deploymentAuthorized", "domainAccepted", "proofReuseAdmissible"],
+)
+def test_source_only_plans_admit_explicit_negative_authority(surface: str, field: str) -> None:
+    """A false claim remains valid; absence is not silently rewritten as FAIL."""
+    plan = json.loads(
+        (ROOT / "tools/repo/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    allowed = copy.deepcopy(plan)
+    target = allowed["nodes"][0] if surface == "node" else allowed["slices"][0]
+    target[field] = False
+    module.validate_owner_lego_graph(allowed)
+
+@pytest.mark.parametrize("unqualified", [1, "true", None, {"standing": "PASS"}])
+@pytest.mark.parametrize("surface", ["node", "slice"])
+def test_source_only_authority_claims_reject_truthy_type_smuggling(
+    surface: str, unqualified: object,
+) -> None:
+    """Only exact false is an explicit nonclaim; unknown is not authorization."""
+    plan = json.loads(
+        (ROOT / "tools/repo/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    target = plan["nodes"][0] if surface == "node" else plan["slices"][0]
+    target["effectAuthorized"] = unqualified
+    with pytest.raises(module.ArchitectureDocsError, match="source-only LEGO.*authority"):
+        module.validate_owner_lego_graph(plan)
