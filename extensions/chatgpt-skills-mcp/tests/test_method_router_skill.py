@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,6 +51,41 @@ def test_agent_engineering_reference_is_readable_through_project_skill_api() -> 
     assert not catalog.search("method router")  # project scope is required
     assert (repo / "docs/architecture/AGENT_CONTRACT_EXECUTION_SPEC_R1.md").is_file()
 
+
+
+def _referenced_agent_specs(entrypoint: Path, content: str) -> set[Path]:
+    """Resolve actual Agent delivery Spec paths relative to the current caller."""
+    relative_paths = re.findall(
+        r"(?:\.\./)*(?:[A-Za-z0-9._-]+/)*AGENT_(?:CONTRACT|OUTCOME)[A-Z0-9_]*\.md",
+        content,
+    )
+    return {(entrypoint.parent / relative).resolve() for relative in relative_paths}
+
+
+def test_current_delivery_spec_single_consumer() -> None:
+    """Current project Skill and document consumers cannot choose different Specs."""
+    repo = ROOT.parents[1]
+    canonical = (repo / "docs/architecture/AGENT_CONTRACT_EXECUTION_SPEC_R1.md").resolve()
+    assert canonical.is_file()
+    entrypoints = [
+        ROUTER / "SKILL.md",
+        ROUTER / "references/agent-engineering-delivery.md",
+        repo / "docs/start/tasks.md",
+        repo / "docs/architecture/DECISIONS.md",
+    ]
+    for path in entrypoints:
+        content = path.read_text(encoding="utf-8")
+        assert _referenced_agent_specs(path, content) == {canonical}, path
+
+    # The historical research carrier exists, but is not a current execution Spec.
+    # Even a valid, existent file is an invalid replacement for the current route.
+    reference = ROUTER / "references/agent-engineering-delivery.md"
+    alternative = "AGENT_OUTCOME_REALIZATION_R21_SPEC_20261109.md"
+    assert (repo / "docs/architecture" / alternative).is_file()
+    wrong_content = reference.read_text(encoding="utf-8").replace(canonical.name, alternative)
+    assert _referenced_agent_specs(reference, wrong_content) == {
+        (repo / "docs/architecture" / alternative).resolve()
+    }
 
 def test_method_router_targets_existing_canonical_methods() -> None:
     text = (ROUTER / "references" / "method-map.md").read_text(encoding="utf-8")
