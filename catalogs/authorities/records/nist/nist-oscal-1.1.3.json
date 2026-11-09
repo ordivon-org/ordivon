@@ -38,8 +38,8 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "docs/architecture/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R1.md",
-      "catalogs/capabilities/providers/strictdoc.md",
+      "docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R1.md",
+      "capabilities/providers/strictdoc.md",
       "NIST official source checked 2026-09-14"
     ]
   },

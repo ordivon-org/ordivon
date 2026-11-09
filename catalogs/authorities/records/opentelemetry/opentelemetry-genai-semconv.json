@@ -42,8 +42,8 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "catalogs/capabilities/packages/operations.md",
-      "catalogs/capabilities/providers/openinference.md",
+      "capabilities/packages/operations.md",
+      "capabilities/providers/openinference.md",
       "OpenTelemetry official semantic-conventions sources checked 2026-09-14"
     ]
   },
