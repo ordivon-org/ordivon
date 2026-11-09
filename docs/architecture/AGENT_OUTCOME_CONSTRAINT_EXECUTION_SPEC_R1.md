@@ -110,7 +110,7 @@ T00 baseline/source+consumer truth
  └─> T04 consumer lease/use continuity (issue #782; depends T01 and T02)
 T02 + T03 ─> T05 PG-native rebuildable cache retirement
 T00 ─> T06 Harness completion-proposal ↔ Host/domain acceptance consumer contract
-T01..T06 (as applicable) ─> T07 counterexample/trajectory evaluations
+T01..T06 (as applicable) ─> T07 owner-native contract counterexamples and physical readback
 T07 ─> T08 roll out small qualifying contracts to other Owners; delete duplicated guidance
 ```
 
@@ -171,12 +171,12 @@ Action: expose Run completion proposal plus exact evidence to domain caller; onl
 Tests: Tool succeeded but domain failed; Report says complete without effect; Tool effect committed but delivery uncertain; duplicate replay; explicit UNKNOWN.
 Exit: reentry and real caller readback; no synthetic completion from Job status.
 
-### T07 — Model-bias holdout acceptance
+### T07 — Owner-native contract falsification and effect acceptance
 
-Owner: natural affected Owner's existing test suite and Harness Agent trajectory test consumer.
-Action: select only CE01–CE12 affecting delivered code; run independent biased candidate traces and adversarial state transitions, with positive/negative controls and exact source/candidate version.
-Metrics (do not collapse): safety violations, eligible resource nonconvergence, true domain success, redundant new platform code, cost/time-to-solution. Use actual consumer state, not test author narrative.
-Exit: a conservative/no-op Agent cannot be promoted as successful, an aggressive-delete Agent cannot bypass native guards. A proposed evaluator is not proof of general model alignment.
+Owner: natural affected Owner's existing native verifier and physical consumer; Harness trace readback only where needed for source/effect identity.
+Action: select only CE01–CE12 affecting delivered code; apply mature unit/property/state-machine tests, native effect admission rejection, recovery/readback and exact source revisions, with positive, negative and legitimate-equivalent controls. Reuse existing formal checks for the relevant invariant. Do **not** run weak-model or multi-model experiments.
+Acceptance facts (do not collapse): rejected invalid effects, eligible resource convergence, exact domain consumer standing, any remaining redundant mechanism, and scoped execution cost where actually relevant. Use native Owner state and provider receipts, not an Agent or evaluator narrative.
+Exit: report-only activity cannot satisfy the real consumer predicate; invalid destructive effects are denied at the existing Owner boundary; confirmed eligible cleanup is still executable. A native test PASS remains scoped and does not imply general model alignment.
 
 ### T08 — Qualified propagation and subtraction
 
