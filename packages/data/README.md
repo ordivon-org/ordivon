@@ -164,7 +164,6 @@ Never persist this ephemeral local URI as the canonical cross-host identity.
 - Native: `mise run data:verify` (Owner's CLI and exact existing study contracts).
 - [Human workflow](docs/HUMAN.md)
 - [Agent workflow](docs/AGENT.md)
-- [Directory audit and decisions](docs/AUDIT_2026-11-07.md)
 - [Capability and thought LEGO inventory](docs/LEGO_CENSUS.md)
 - [Property-first formal verification / test disposition](docs/FORMAL_VERIFICATION.md)
 - Opt-in kernel/symbolic check: `mise run data:formal:verify` (Lean DataProduct/DataPublication + CrossHair/Z3). The publication state model proves abstract safety; it does **not** implement atomic PostgreSQL commits or automatic data deletion.

@@ -25,9 +25,6 @@
 studies/experimental-episodes/experiments/evidence-consumer-pilot-r1,
 with positive/negative acceptance tests included in data:verify.
 
-## Specialist implementation instructions
-
-
 ## SourceCut before execution
 
 Select one final consumer. Capture the exact source revision, data-product
@@ -64,9 +61,10 @@ Discovery metadata is only a candidate until its producing owner confirms it.
    exit 3 means UNKNOWN/not established, while exit 2 means a conflicting
    digest or invalid catalog. For a consumer bound to one stable output-port
    identity, use `--verify-local --require-port PRODUCT_ID PRODUCT_VERSION
-   DISTRIBUTION_URN`. A selected-port PASS must not be promoted to a
-   global product PASS. The unmaterialized Episode Parquet stays UNKNOWN. Do not interpret these as a right to publish.
-   directory path or catalog version as proof of deployed data.
+   DISTRIBUTION_URN`. A selected-port PASS does not establish a global
+   product PASS or permission to publish. The unmaterialized Episode Parquet
+   remains UNKNOWN. A directory path or catalog version does not prove
+   that data is deployed.
 2. Verify the exact physical bytes under explicit scope. Unknown remains
    typed UNKNOWN rather than FALSE or PASS. A file digest match does not
    prove statistics, correctness, licenses, or scientific causal claims.
