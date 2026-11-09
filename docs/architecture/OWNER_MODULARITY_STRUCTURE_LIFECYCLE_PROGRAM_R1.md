@@ -44,7 +44,7 @@
 - C06 Media 大体积真实媒体资产有可能是用户交付或可复现素材，不以字节大为垃圾判断。
 - C07 已有多个清理 PR（#1950、#1940、#1937、#1930 等），应先使用已提交的本地证明与自然 Owner，而不是按 Agent 数量复制代码。
 
-## 4. 20 个自然 Owner（复用原 manifest，不新建）
+## 4. 21 个自然 Owner（复用现有 owners.toml，不新建）
 
 本表提供待调查的语义切分候选，不代表未经代码与消费者验证就要新建每个子目录。
 
@@ -70,6 +70,7 @@
 | O18 | Authority Catalog — catalogs/authorities | 权威来源、观察、证据、currentness | 验证路径和可观测来源、原生 Catalog 验证 |
 | O19 | Capability Catalog — catalogs/capabilities | Provider 能力、发现、组合绑定、路由元数据 | 真实 Provider 解析与调用边界；不冒充执行权威 |
 | O20 | Chaoxing — apps/chaoxing-autosign | 课程/会话发现；签到操作；交互适配；状态回放 | Windows Chrome 真消费者、真实动作与干跑语义 |
+| O21 | Data — packages/data | 跨 Owner 数据产品发现与数据源契约、ODPS/DCAT 产品投影和验证证据 | `data:verify` 与源级互操作契约，不能接管自然 Producer 的数据真值 |
 
 正式源码区域另外包括 profiles/、studies/、tools/repo/、docs/architecture/；它们不自动成为新的业务 Owner。Meta/Next 已经通过 PR #1539 退役，不再恢复新的总控目录。语言优先 Rust、TypeScript、Python；TS 使用 pnpm、锁文件，依赖升级以当前自然 Owner 为权威。
 
