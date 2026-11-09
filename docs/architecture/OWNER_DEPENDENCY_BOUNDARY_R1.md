@@ -2,7 +2,7 @@
 
 Source implementation: `tools/repo/check_owner_boundaries.py`, policy: `tools/repo/dependency_contracts.toml`.
 
-Updated: 2026-11-06. Status: **IMPLEMENTED** — bounded source-literal dependency check.
+Updated: 2026-11-10. Status: **IMPLEMENTED** — bounded source-literal and public Python AST dependency check.
 
 ## Contract
 
@@ -12,7 +12,7 @@ named public contract or narrow observed source seam. The existing guard scans
 active tracked code/config and rejects undeclared literal references and stale
 or overlapping policy exceptions.
 
-## Observed seams (2026-11-06; main 21ae23a)
+## Observed seams (2026-11-10; main ef17d6879d12faa61fff3bb762b0d500d73c9113)
 
 | Consumer | Producer | Boundary |
 | --- | --- | --- |
@@ -24,11 +24,11 @@ or overlapping policy exceptions.
 | Harness / Composition | Runtime | Pinned public formal toolchain, not Job/Attempt authority |
 | Composition | Runtime | Source-bound formal trace test contract |
 | Artifact | Authority Catalog | Test-only publication venue locator |
+| Capability Catalog ELE | Artifact / Preservation / Capital / Network / Harness / Media | Source-qualified research projections only; no effect or truth transfer |
+| Data | Capital | Test-only ODPS source contract |
+| Composition | Capital | Test-only Finance public source contracts |
 
-Observed check: **2,136 active tracked files; 19 seam declarations;
-21 literal references; zero undeclared literal edges**.
-These are source-text observations, not proof that a referenced consumer
-is exercised in the deployed system.
+Observed check at this SourceCut: **2,320 active tracked files; 10 source packages; 31 declared seam entries; 38 bounded source references; zero undeclared literal/public-import edges in the checked scope**. These numbers come from the existing `python3 tools/repo/check_owner_boundaries.py`; they are not a manually maintained dependency registry. Declared seam edges are not proof of installed or dynamic consumer reachability.
 
 ## Retired ownership
 
