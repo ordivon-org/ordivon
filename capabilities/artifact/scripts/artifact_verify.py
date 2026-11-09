@@ -268,11 +268,41 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 "profile requiredEvidence is not fully verified by explicit native claimResults"
             )
             service_failures.extend(assessment["issues"])
-        standing_issues = list(assessment["issues"]) + list(service_failures)
+        # A native claim with a matching FAIL witness is evidence of scoped
+        # falsification, not an integrity defect. Separately retain every
+        # missing/malformed/unwitnessed claim as an UNKNOWN-causing issue.
+        supported_required_failures = {
+            name for name, status in assessment["claimStatuses"].items()
+            if status == "FAIL"
+        }
+        failure_diagnostics = {
+            f"required claim not verified PASS: {name}=FAIL"
+            for name in supported_required_failures
+        }
+        standing_issues = [
+            issue for issue in assessment["issues"]
+            if issue not in failure_diagnostics
+        ]
+        if not failures_shape_valid:
+            standing_issues.append("native failures report is malformed")
         if not native_identity["complete"]:
             standing_issues.append("native identity evidence not complete")
-        if delegated_status != "PASS":
-            standing_issues.append("native overall status is not PASS")
+        if native_identity["rejected"]:
+            standing_issues.extend(native_identity["mismatches"])
+        if tool_identity["rejected"]:
+            standing_issues.extend(tool_identity["issues"])
+        if delegated_status == "PASS" and (
+            raw_failures or supported_required_failures
+        ):
+            standing_issues.append(
+                "native aggregate PASS contradicts failure evidence"
+            )
+        elif delegated_status == "FAIL" and not supported_required_failures:
+            standing_issues.append(
+                "native aggregate FAIL lacks a witnessed required claim failure"
+            )
+        elif delegated_status not in {"PASS", "FAIL"}:
+            standing_issues.append("native overall status is not evaluated")
         standing_coverage = assess_required_statuses(
             assessment["expectedClaims"],
             assessment["claimStatuses"],

@@ -1,10 +1,10 @@
 # Artifact Standing Convergence — R2.1 Implementation Spec
 
-**Authority:** Artifact Owner, with independent Domain consumers. **SourceCut:** \`3b43977e682d8c7668f6371ffd998c7821e4312a\` (remote main at 2026-11-09 21:38 +08). **Status:** implementation contract / first vertical slice in progress. **Method suppliers:** Matt Pocock Skills (to-spec, to-tickets, implement, tdd, code-review), obra/superpowers (writing-plans, TDD, isolated worktree, verify-before-completion), affaan-m/ECC (selective feedback/hook discipline, NOT wholesale harness installation). Upstream commits: Matt \`4ae2317ddb22b046e26455e4f9c9b3aaaf62212d\`, Superpowers \`22f0b463e7a5e579904dd6211a520321035526f7\`, ECC \`d2ef2680594f9a17526a6e1a2e18b3d242c5d17b\`. Upstream method source is not Ordivon execution authority.
+**Authority:** Artifact Owner, with independent Domain consumers. **SourceCut:** `3b43977e682d8c7668f6371ffd998c7821e4312a` (remote main at 2026-11-09 21:38 +08). **Status:** implementation contract / first vertical slice in progress. **Method suppliers:** Matt Pocock Skills (to-spec, to-tickets, implement, tdd, code-review), obra/superpowers (writing-plans, TDD, isolated worktree, verify-before-completion), affaan-m/ECC (selective feedback/hook discipline, NOT wholesale harness installation). Upstream commits: Matt `4ae2317ddb22b046e26455e4f9c9b3aaaf62212d`, Superpowers `22f0b463e7a5e579904dd6211a520321035526f7`, ECC `d2ef2680594f9a17526a6e1a2e18b3d242c5d17b`. Upstream method source is not Ordivon execution authority.
 
 ## Problem statement
 
-Artifact has two verification backbones: \`artifact_verification/stage.py\` for v1 Build/Delivery and \`scripts/artifact_verify.py\` for v2 profile-bound native verification. The two paths do not consume one canonical decision semantics. A native aggregate PASS may be true while profile-required evidence is incomplete; older release snapshots and LOCAL_LIVE_PROVEN are not current runtime authority. Historical \`planning/prototypes/standing_decision_r1.py\` is not production. The aim is NOT to manufacture a third workflow, registry, owner, policy, or verifier.
+Artifact has two verification backbones: `artifact_verification/stage.py` for v1 Build/Delivery and `scripts/artifact_verify.py` for v2 profile-bound native verification. The two paths do not consume one canonical decision semantics. A native aggregate PASS may be true while profile-required evidence is incomplete; older release snapshots and LOCAL_LIVE_PROVEN are not current runtime authority. Historical `planning/prototypes/standing_decision_r1.py` is not production. The aim is NOT to manufacture a third workflow, registry, owner, policy, or verifier.
 
 ## Solution / user outcome
 
@@ -29,7 +29,7 @@ One small, pure, provenance-aware Standing qualification semantics shared by exi
 
 A Standing **claim** is a bounded assertion, not an overall success bit. A **Profile** supplies required claims. An **Observation** supplies an identified native result, including explicit PASS/FAIL/NOT_EVALUATED and independent evidence pointers where required. A **Decision** derives no stronger assertion than what evidence supports. A **Consumer Acceptance** is external to the Artifact kernel. A historical or shadow capability binding is not present-node availability evidence.
 
-Formal archetype: \`ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)\`.
+Formal archetype: `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`.
 
 - I: immutable Subject/Profile commitments; already-admitted native observations; required claim keys; optional explicitly bound consumer requirement.
 - O: typed ClaimCoverage and scoped Standing vector; no domain success assertion.
@@ -43,12 +43,12 @@ Formal archetype: \`ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)\`.
 - prov: exact SourceCut + profile/subject/native observation identity + checked validator and consumer evidence where available.
 - unfold: L0 decision and non-claims; L1 required keys and statuses; L2 raw observations/provenance and counterexamples; L3 native adapter internals, only when needed.
 
-Safety law, under well-formed inputs: \`complete => all_required_supported_by_nonself_matching_native_evidence AND no_identity_contradiction\`. Also \`DOMAIN_ACCEPTED\` cannot be derived by this evaluator. No theorem about actual native tool honesty, toolchain closure, transport effects, or target applications is claimed.
+Safety law, under well-formed inputs: `complete => all_required_supported_by_nonself_matching_native_evidence AND no_identity_contradiction`. Also `DOMAIN_ACCEPTED` cannot be derived by this evaluator. No theorem about actual native tool honesty, toolchain closure, transport effects, or target applications is claimed.
 
 ### Compatibility and negative controls
 
-- v1 stage \`status=PASS\` may mean all *executed* gates passed while \`profileVerificationComplete=false\`; preserve this distinction until consumer migration, never promote missing gates.
-- v2 native \`status=PASS\` may be legacy compatible while \`profileVerificationComplete=false\`; preserve existing consumers and add scoped Standing, never reinterpret as full acceptance.
+- v1 stage `status=PASS` may mean all *executed* gates passed while `profileVerificationComplete=false`; preserve this distinction until consumer migration, never promote missing gates.
+- v2 native `status=PASS` may be legacy compatible while `profileVerificationComplete=false`; preserve existing consumers and add scoped Standing, never reinterpret as full acceptance.
 - FLAC/WAVE/PNG claim-complete routes require explicit claimResults/native status pointers; do not weaken.
 - v1 and v2 profile definitions are NOT globally equivalent. Prove each common axis or mark UNKNOWN.
 - No full snapshot guarantee for sidecar formats until dependency closure is bound.
@@ -57,7 +57,7 @@ Safety law, under well-formed inputs: \`complete => all_required_supported_by_no
 
 ## Implementation decisions
 
-1. Reuse \`artifact_verification/claim_coverage.py\`, \`native_identity.py\` and current v1 receipt format. Prefer a pure shared coverage/decision helper only if two real consumers justify it; no registry/service.
+1. Reuse `artifact_verification/claim_coverage.py`, `native_identity.py` and current v1 receipt format. Prefer a pure shared coverage/decision helper only if two real consumers justify it; no registry/service.
 2. Keep raw observations and existing compatibility statuses; expose a new explicit Standing projection only where required.
 3. The first unit of change cuts vertically through the v1 stage and existing v2 verification service, with one shared deterministic requirement-coverage operation and caller-visible negative tests.
 4. Next migrate old standing prototype tests to the production contract; retire the prototype if no producer/consumer still needs it.
@@ -68,13 +68,13 @@ Safety law, under well-formed inputs: \`complete => all_required_supported_by_no
 
 ## Testing decisions
 
-Use existing public entrypoints \`execute_verify_stage\` (through DirectPython provider) and \`scripts/artifact_verify.verify_request\` plus the pure Standing API. TDD red-green-refactor on counterexamples; independent expected values from Profile declarations and raw native receipts; avoid mock-only tests and self-certified snapshots. Use owner-native \`mise run verify\` and focused \`pytest\`. Run current finite model checks; property checks must cite the production function actually checked. At least one real native and one independent consumer readback before a final production promotion. Never call a unit-test PASS a deployed-consumer PASS.
+Use existing public entrypoints `execute_verify_stage` (through DirectPython provider) and `scripts/artifact_verify.verify_request` plus the pure Standing API. TDD red-green-refactor on counterexamples; independent expected values from Profile declarations and raw native receipts; avoid mock-only tests and self-certified snapshots. Use owner-native `mise run verify` and focused `pytest`. Run current finite model checks; property checks must cite the production function actually checked. At least one real native and one independent consumer readback before a final production promotion. Never call a unit-test PASS a deployed-consumer PASS.
 
 ## Tickets and blocking edges (Matt tracer bullets / Superpowers small steps)
 
 | Ticket | Blocked by | Consumer-visible delivery | Exact seam / tests |
 |---|---|---|---|
-| T1 Shared coverage semantics | none | Both v1 and v2 publish the same bounded coverage vector; legacy statuses preserved | \`artifact_verification/claim_coverage.py\`, \`stage.py\`, \`artifact_verify.py\`, new cross-entrypoint test |
+| T1 Shared coverage semantics | none | Both v1 and v2 publish the same bounded coverage vector; legacy statuses preserved | `artifact_verification/claim_coverage.py`, `stage.py`, `artifact_verify.py`, new cross-entrypoint test |
 | T2 Prove no false completeness | T1 | Missing/failed/contradictory/self-witnessing claims cannot become complete via either route | source-bound model checker, negative owner tests |
 | T3 Migrate prototype & contract | T1,T2 | The pressure prototype no longer decides a second kind of Standing | prototype consumers/tests migrate or are retired |
 | T4 Exact dependency closure | T2 | Qualified sidecar-dependent input identity is explicit, else UNKNOWN | Runtime input commitment, native format & consumer tests |
@@ -92,13 +92,145 @@ Use existing public entrypoints \`execute_verify_stage\` (through DirectPython p
 - Stop architecture expansion whenever an extra class/schema/check has no independently testable consumer responsibility; do the smallest reversible change instead.
 - Every ticket must end in an actual changed capability or justified subtraction, native verification and concrete remaining blockers. A plan/document is not completion of any implementation ticket.
 
+## Mathematical adoption and source-to-consumer obligations (2026-11-09)
+
+This section is a scoped decision record, not a second mathematics/Skill
+registry. Reuse the existing Ordivon R2.1 formal-thinking reference at
+.agents/skills/recursive-lego-calculus/references/formal-thinking-legos-human-agent.md
+and its formal-model.md. Each method is activated only for a real unsatisfied
+consumer/property pair.
+
+### A. Abstract interpretation: separate evidence from its projection
+
+Use Cousot & Cousot (POPL 1977) to distinguish native concrete verification
+state s from abstract evidence alpha(s). Our current abstract values represent
+missing, not evaluated, explicit PASS, explicit FAIL and invalid evidence.
+UNKNOWN is less informative than a supported PASS or a supported FAIL. PASS
+and FAIL are incomparable: neither is an alternative spelling of UNKNOWN.
+The production v2 adapter now distinguishes an explicitly witnessed required
+FAIL from a failed/inconsistent observation: native FAIL plus a matching
+required-claim pointer may yield scoped FAIL; native aggregate PASS contradicted
+by a required FAIL yields UNKNOWN. This avoids both false-positive qualification
+and over-conservative suppression of actually supported falsification.
+Raw contradictions stay in evidenceIssues; the currently exposed Standing
+status is UNKNOWN, not a new universal four-valued result type.
+
+For nonempty required claim set R, native observations E and independently
+validated witness predicate W:
+
+  Complete(R,E) implies
+    (R != empty) and
+    (for all r in R: E(r)=PASS and W(r)) and
+    not Contradictory(E).
+
+The production pure assessor checks explicit status/coverage only, conditional
+on callers having validated W; it does not itself perform native attestation.
+The v2 caller retains strict nativePointers and exact profile/subject/
+contract checks; v1 retains its actual gate receipts. A model of the pure
+assessor alone is not a model of the tools' real-world behavior.
+
+### B. Assume–guarantee composition and representation-preserving refinement
+
+An actual producer P may satisfy consumer C only if the producer guarantee
+implies C's precondition under a qualified environment and effect/identity
+boundary:
+
+  G_P(output,effects) and Current(provenance) => A_C(output).
+
+This is a scoped assume–guarantee interpretation of the existing
+R2.1 pre/post/inv/eff/prov coordinates; a claim of domain acceptance must
+still originate from the actual consumer, not from the Artifact kernel.
+
+Let N1 and N2 map v1/v2 raw observations to their legitimately shared
+claims and let F be the common status projection. The conditional obligation
+is:
+
+  ValidEvidence(x,y) and CommonClaimsEquivalent(N1(x),N2(y))
+    => F(N1(x)) = F(N2(y)) on common claims.
+
+Equivalent identifiers or schema fields do not establish arbitrary v1/v2
+behavioral equivalence. Retain typed UNKNOWN for unbridged requirements and
+for native dependency closure not yet established.
+
+### C. Counterexample-guided abstraction refinement (CEGAR)
+
+Use the existing finite checker and native entrypoint negative controls,
+then check whether a reported model counterexample is physically realizable.
+If the counterexample is spurious, refine only the responsible abstraction
+rather than adding a global framework. The earlier 289008 states and the
+new 50-case shared-Standing state enumeration are exhaustive only in their
+declared finite abstract state spaces; they do not prove arbitrary JSON
+inputs, native verifier honesty, filesystem races or target application
+acceptance. This is formal-method refinement, not a weak-model trial.
+
+### D. Safety, liveness, effect bounds and incremental invalidation
+
+Safety: no missing/invalid/unsupported required claim becomes complete.
+Liveness, when a task is actually schedulable and its dependencies remain
+available under stated fairness conditions: the verification either reaches
+a scoped conclusion or emits an actionable blocked state. Do not assert that
+all external tasks always terminate successfully.
+
+Proof and test evidence remain valid only for their source/environment/tool/
+consumer readsets; if a material dependency changes, evidence must be
+requalified. Reuse existing Git, Runtime and Owner-native change/receipt
+mechanisms. Do not install another proof cache, scheduler or status authority.
+
+### E. Verification-guided engineering and actual consumers
+
+Follow the Cedar VGD separation of an executable model, exact production
+function and independent differential/property tests. Use existing GitHub
+checks and Owner tests for SOURCE review, and native Game/Publication/Data
+readback for real domain acceptance. Do not turn source CI into an
+installed-currentness or consumer-domain assertion. Google CAV 2026
+network model checking further demonstrates why reproducing actual bugs in
+finite models is more informative than inventing endless proof templates.
+
+The implementation process uses Matt to-spec, to-tickets and implement-spec
+as a dependency DAG; Superpowers isolated-worktree, TDD and verify-before-
+completion; and ECC's selective plan/test/review discipline. These are
+existing methodology suppliers, not three new mandatory control planes.
+No weak-model evaluation, duplicated hook system, or blanket ECC install.
+
+### F. Proof obligations and effect owners
+
+| Obligation | Existing carrier | Required external evidence |
+| --- | --- | --- |
+| Non-vacuous required claims | Profile registry and shared assessor | schema/index and negative tests |
+| No native aggregate-PASS laundering | v1 Stage and v2 Verify | output-contract tests |
+| Native evidence pointer and identity | v2 native/identity assessors | source-bound finite model + native checks |
+| Conflicting failure is not proved false | shared status checker | negative contradicting-native test |
+| Old prototype no longer decides Standing | Artifact Git source | remove old prototype, migrate its tests |
+| Complete dependency closure | native Artifact/Runtime owners | T4 exact input readset, not established here |
+| Independent domain acceptance | Game/Publication/Data owners | T5 real readback, not established here |
+| Duplicate old production policy removed | Artifact owner | T6 true source subtraction |
+| Accepted merge and live deployment | Git/Workstation/domain owners | T8 independent source and installed receipts |
+
+### Primary literature and industry implementations
+
+- Cousot & Cousot, Abstract Interpretation, POPL 1977:
+  https://www.di.ens.fr/~cousot/COUSOTpapers/POPL77.shtml
+- de Alfaro & Henzinger, Interface Automata, FSE 2001:
+  https://doi.org/10.1145/503271.503226
+- Clarke et al., Counterexample-Guided Abstraction Refinement:
+  https://web.stanford.edu/class/cs357/cegar.pdf
+- Leslie Lamport, Safety, Liveness and Fairness:
+  https://lamport.azurewebsites.net/tla/safety-liveness.pdf
+- Amazon, How We Built Cedar: A Verification-Guided Approach, 2024:
+  https://www.amazon.science/publications/how-we-built-cedar-a-verification-guided-approach
+- Google, Model Checking for Flexible Networking Protocols, CAV 2026:
+  https://research.google/pubs/model-checking-for-flexible-networking-protocols/
+- Exact method suppliers: https://github.com/mattpocock/skills ,
+  https://github.com/obra/superpowers ,
+  https://github.com/affaan-m/ECC .
+
 ## Out of scope
 
 Building another Runtime/Host/Harness, universal file taxonomy, custom CAS, second LEGO registry, generic OCI Registry, universal trust policy, weak-model experiments, mandatory heavyweight audits for routine work, or all-family profile-v2 production promotion.
 
 ## References
 
-- Existing Ordivon \`AGENTS.md\`, \`.agents/skills/recursive-lego-calculus/SKILL.md\`, \`capabilities/artifact/README.md\`.
-- Matt Pocock \`skills/engineering/to-spec\`, \`to-tickets\`, \`implement\`, \`tdd\`, \`code-review\`.
-- obra/superpowers \`writing-plans\`, \`test-driven-development\`, \`verification-before-completion\`, \`using-git-worktrees\`.
-- affaan-m/ECC \`hooks\`, \`rules\`, \`skills\`: selective reuse of quality gate semantics, without wholesale installation.
+- Existing Ordivon `AGENTS.md`, `.agents/skills/recursive-lego-calculus/SKILL.md`, `capabilities/artifact/README.md`.
+- Matt Pocock `skills/engineering/to-spec`, `to-tickets`, `implement`, `tdd`, `code-review`.
+- obra/superpowers `writing-plans`, `test-driven-development`, `verification-before-completion`, `using-git-worktrees`.
+- affaan-m/ECC `hooks`, `rules`, `skills`: selective reuse of quality gate semantics, without wholesale installation.
