@@ -636,7 +636,9 @@ jobs:
           # Existing Runtime Owner controls its exact Rust 1.99.1 toolchain.
           # Preserve the existing policy and manifest; no pass-through skip.
           # cargo-deny common flags precede the "check" subcommand.
-          mise -C services/runtime exec -- cargo deny \
+          # Scope mise to the exact Rust tool required here. An unrelated
+          # Nextest GitHub Releases 504 must not block a cargo-deny check.
+          mise -C services/runtime exec rust@1.99.1 -- cargo deny \
             --manifest-path Cargo.toml \
             --config deny.toml check
 
