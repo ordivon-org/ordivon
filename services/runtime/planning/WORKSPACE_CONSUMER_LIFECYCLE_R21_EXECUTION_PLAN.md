@@ -98,6 +98,25 @@ Steps:
 - [x] 2.3 Add explicit open P0 obligation to the spec model-readset: either a checked bounded lease whose expiry removes live consumer claim, or independently witnessed consumer release. Do not invent synthetic consumer truth.
 - [ ] 2.4 After Task 3/4 implementation, replace this expected counterexample with a normal positive invariant; require previous counterexample to be absent and use a separate mutation to prove detectability.
 
+## Task 2B — R2 candidate formal profile + negative controls (same TLA model)
+
+**Files:**
+- Modify: services/runtime/formal/WorkspaceConsumerCloseR1.tla
+- Create: services/runtime/formal/WorkspaceConsumerCloseR1.r2-candidate.cfg
+- Modify: services/runtime/scripts/tla-formal
+- Modify: services/runtime/formal/README.md
+
+**Interfaces:**
+- Consumes: existing Init/Next/Close/age/consumer/liveJob/gitDependent and TLC.
+- Produces: R2CandidateClose, FairR2CandidateSpec, R2CandidateClosedConsumerFinished, StableR2CandidateEligibleEventuallyClosed.
+- Explicit non-guarantee: no authenticated consumer witness, no Rust/PG code refinement.
+
+- [x] 2B.1 RED: missing R2 candidate symbols in TLC CFG produced exit 151 and an exact missing-invariant error.
+- [x] 2B.2 GREEN: stronger candidate Close requires abstract consumer="finished"; TLC bounded safety and WF-scoped liveness PASS (81 generated, 27 distinct).
+- [x] 2B.3 Native falsifiers and non-vacuity: legal fresh-release Close must be reachable; remove consumer-finished guard -> TLC named invariant violation; remove fairness -> TLC temporal stuttering counterexample. Existing R1 age-only counterexample remains.
+- [ ] 2B.4 On exact Git committed state, run mise run formal:verify, scripts/check_docs.py, git diff --check, native PR/CI and record source SHA; source refinement remains UNKNOWN.
+- [ ] 2B.5 Task 3/4 real Runtime consumer evidence and outcomes must discharge candidate-to-source obligations before replacing the old R1 operational semantics.
+
 ## Task 3 — Honest consumer/disposition evidence in Runtime
 
 **Files:**
@@ -117,6 +136,18 @@ Steps:
 - [ ] 3.3 GREEN: implement the smallest type/logic and durable PG compare-and-swap that makes these tests pass. A caller-provided boolean alone cannot be called verified, so leave any unproven external consumer as UNKNOWN.
 - [ ] 3.4 Run cargo fmt --check, focused transactional-runtime tests and actual PG-native tests from services/runtime/mise.toml. Capture exact commands/receipts; do not claim installed behavior from tests.
 - [ ] 3.5 Formal model: reflect only actual source-refined semantics; if model property currently exceeds source support, mark CODE_REFINEMENT=UNKNOWN, not proven.
+
+### Live owner convergence note
+
+As of 2026-11-09 PR #1983 (fix/runtime-pg-workspace-contract-20261109)
+already implements the PG-native source-owned reclaim candidate and covers
+13 native behavior tests. Do not duplicate its module or claim merged/deployed
+until GitHub and installed release receipts prove it. Prioritize reviewing
+the missing consumer/disposition witnesses and tests that can falsify its
+actual native behavior, then route changes to the existing natural Owner.
+Its repo-preflight failure is tied to an unauthenticated `mise` GitHub
+PowerShell release lookup at CI time; do not misdiagnose this as a PG semantic
+counterexample.
 
 ## Task 4 — Fix normal-task progress and provider-owned GC
 

@@ -371,6 +371,20 @@ this Owner safety obligation, not duplicate finite proof registries.
 
 No second solver, custom formal DSL, new scheduler or global registry is added.
 
+**R2 candidate profile (2026-11-09).** The same
+`WorkspaceConsumerCloseR1.tla` now also provides
+`WorkspaceConsumerCloseR1.r2-candidate.cfg`.
+Its `R2CandidateClose` requires the abstract consumer to be finished,
+while the historical R1 `Close` remains untouched and still has a named
+age-only active-consumer counterexample. The R2 candidate independently
+checks safety, conditional weak-fairness liveness, and mutation controls for
+both missing consumer guard and missing fairness. The candidate is NOT
+a source-authenticated assertion: `consumer="finished"` is abstract and
+must be bound to actual Runtime/PG/OS/Host/Artifact evidence before claiming
+CODE_REFINED or INSTALLED_CURRENT. See the owner-local
+`../planning/WORKSPACE_CONSUMER_LIFECYCLE_R21_SPEC.md` and
+`../planning/WORKSPACE_CONSUMER_LIFECYCLE_R21_EXECUTION_PLAN.md`.
+
 
 **2026-11-09 formal-first extension.** The separate
 WorkspaceConsumerCloseR1.liveness.cfg checks
