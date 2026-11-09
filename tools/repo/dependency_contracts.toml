@@ -226,3 +226,13 @@ source_glob = "packages/data/tests/test_odps_projection.py"
 allowed_fragment = "domains/capital/"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "packages/data/docs/FORMAL_VERIFICATION.md"
+
+# The first concrete Finance outcome contract consumes an actual Capital CLI
+# source in a Composition test only; no generic finance gate authority transfer.
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_contractual_execution_consumer.py"
+allowed_fragment = "domains/capital/scripts/strategic_contribution_brief.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"

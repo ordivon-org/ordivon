@@ -1,5 +1,7 @@
 # Ordivon Capital — Finance investment and research owner
 
+**Cross-Owner Finance outcome work:** when a task must deliver a Finance economic result or retire a historical implementation chain, use [Finance Contractual Execution R1](../../packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md) for the task-local consumer, evidence and verification obligations. This SPEC is not a financial authority or second execution platform.
+
 
 **Directory/Owner audit:** [Finance directory and LEGO boundary audit](docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md) records consumer-backed retirement decisions and separate Human/Agent operating paths. It is source evidence, not a current market or broker authority.
 
