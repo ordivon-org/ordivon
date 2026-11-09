@@ -12,6 +12,7 @@ from pathlib import Path, PurePosixPath
 from typing import Iterable
 
 MANIFEST_PATH = Path(__file__).with_name("owners.toml")
+SOURCE_REPO_ROOT = MANIFEST_PATH.resolve().parents[2]
 
 
 @dataclass(frozen=True)
@@ -264,7 +265,7 @@ def _source_git_env() -> dict[str, str]:
 def _resolve_source_commit(ref: str) -> str:
     """Pin a moving Git ref to the immutable commit used for the source witness."""
     return subprocess.check_output(
-        ["git", "--no-replace-objects", "rev-parse", "--verify",
+        ["git", "-C", str(SOURCE_REPO_ROOT), "--no-replace-objects", "rev-parse", "--verify",
          "--end-of-options", f"{ref}^{{commit}}"],
         env=_source_git_env(),
         text=True,
@@ -279,7 +280,7 @@ def _source_diff_base(base: str, head: str) -> str:
     Multiple best merge-bases are ambiguous and cannot certify one readset.
     """
     merge_bases = subprocess.check_output(
-        ["git", "--no-replace-objects", "merge-base", "--all", base, head],
+        ["git", "-C", str(SOURCE_REPO_ROOT), "--no-replace-objects", "merge-base", "--all", base, head],
         env=_source_git_env(),
         text=True,
     ).splitlines()
@@ -296,7 +297,7 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
             # SourceCut membership must be the actual immutable Git DAG, not
             # a locally installed refs/replace overlay. A replacement commit
             # could otherwise omit a changed Formal verifier source.
-            "git", "--no-replace-objects", "diff", "--name-only", "--no-renames", "-z",
+            "git", "-C", str(SOURCE_REPO_ROOT), "--no-replace-objects", "diff", "--name-only", "--no-renames", "-z",
             "--diff-filter=ACDMRTUXB", f"{base}...{head}",
         ],
         # Object replacement and the separate legacy graft file can each
