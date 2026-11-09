@@ -124,3 +124,39 @@ No declaration of full implementation merely because this plan or A1 is present.
 - B1 GREEN: same disposable PG18 suite: **442 passed in 54.89 s**. The grouped history predicate now appears under both integrity and history, without changing DB schema or repairing/forging revisions.
 - Owner source verify: `mise run verify` returned **392 passed, 50 skipped** with Ruff/CrossHair, bounded Z3 DAG negative control and pinned Lean DAG/Unicode theorems. Skips are not PostgreSQL proof; separately run disposable PG18 was PASS.
 - Outstanding C1..G1: historical consumer/retention decision, non-terminal cleanup integration, doc subtraction, PR/installed readback; no production Work mutation or full-history reconstruction.
+
+## 2026-11-09 C1 grounded consumer and collaboration increment
+
+**SourceCut at continuation**: GitHub main `a7d70e83945b7418f41b9636f0803d1544e84355` (25 commits ahead of original Plan basis) has independently applied the same `HostV2.status` integrity/history completeness fix. The initial Host PR #1976 was rebase-conflicting; **resolution**: keep smaller upstream `service.py` implementation, replay own exact PostgreSQL negative test and focused-entrypoint correction, and rebase our PR onto current main. Never preserve a redundant parallel implementation merely for authorship.
+
+**Revision read consumers actually discovered**:
+- Host public `work.get(workRef, revision?)` in `mcp_work_tools.py` / `work_queries.py`, with stored digest verification and typed conflict on missing revision.
+- Gateway forwards `revision` as an optional passthrough; it does not implement historical semantics.
+- Host Owner Guide / README use latest re-entry; tests `test_work_snapshot_read_refinement.py`, `test_work_query_boundary.py`, `test_mcp_domain_errors.py` exercise optional historical API.
+- No active Host internal service directly consumes historical snapshots for scheduling/Goal standing. **This negative result is limited to the checked source and cannot establish that no external user/Agent calls revisioned reads.**
+
+**Current live production Work revision=1 readback**:
+- PASS: Windows Runtime PG continuation; Linux Runtime PG continuation.
+- CONFLICT: abandoned Windows PG-first Runtime cutover, abandoned Linux PG cutover, completed Host SourceCut E2E acceptance.
+- Current Doctor: `detail=history` unhealthy, `work.snapshot_history_contiguous invalidWorks=3`, current-pointer and retained-digest checks OK.
+- No production rows were altered. Do not fabricate lost history or silently waive its contract.
+
+**Cross-agent Space**: posted a material peer review request in existing Space `space:ordivon-task-portfolio-and-proof-gates-r1:20261101`, Topic `topic:ordivon-task:02-r21-formal-refinement:20261101`, Message sequence **25739** (2026-11-09 23:20 CST). Asked for exact source/consumer review, 4h cleanup caller and duplicate PR exposure; the message is collaboration, not authorization or a peer response. Separately scoped PRs #1977 (method-router/agent delivery), #1978 (repo architecture contract), #1971 (SourceCut admission) own other boundaries. This Host PR must not duplicate their implementation.
+
+**Next bounded implementation task (C1; do not skip to production deletion):**
+1. Add missing-revision negative behavior to existing disposable PostgreSQL test: after deliberate deletion of revision 1, `WorkStore.get_work(w, 1)` must raise typed `ConflictError`, current `get_work(w)` remains valid, and both Doctor modes explicitly fail. This is an actual public consumer read seam; do not alter another owner's API.
+2. Run one isolated disposable PG18 acceptance and `mise run verify`; store exact PASS/SKIP evidence, then update and publish PR #1976 using the real upstream fix.
+3. Keep full history until an explicit *provider-independent* historical-retention decision is made from actual consumers; any change to retained floors must be a separate versioned migration/contract refinement.
+4. Find actual hygiene caller by Host Message writer, Git/Runtime traces or executing agent's evidence. A Host-only `work.snapshot.commit` cannot guarantee a third-party Agent will never choose abandoned based on age; the fix belongs at the real caller/contract seam, not a generic Host foreign-Goal lookup.
+5. Confirm peer observations in the Space before assuming cooperation or claiming consensus. Revalidate latest main/PR before merge.
+
+**Acceptance for C1 source slice:** external Goal unchanged, historical missing never projects to fabricated success, Host current read and history Doctor agree at the intended scopes, PG tests PASS, no source duplicate; current installed PG integrity remains explicitly failing until a later real retention repair. No weak-model experiments.
+
+## 2026-11-09 C1 actual source verification receipts
+
+- Rebase onto current main source `a7d70e83945b7418f41b9636f0803d1544e84355` retained upstream `service.py` implementation and removed our duplicate during Git conflict resolution.
+- Consumer-rooted refinement extended `test_host_history_doctor_postgres.py` to assert `ConflictError(no revision 1)` after deliberately removing revision 1 **only in a disposable PostgreSQL 18 test database**, while current `work.get` remains valid.
+- `mise run test:postgres:disposable`: **443 passed in 52.19s**, exit 0. Native PG18, migrations 0001..0013, Ruff, and full Host integration verified.
+- `mise run verify`: **392 passed / 51 skipped**, exit 0. Native CrossHair source obligations, Z3 DAG 40 obligations with negative control, and Lean DAG/Unicode theorems ran; skipped DB cases not counted as PG evidence (independent disposable PG18 PASS above).
+- Production Host `history` remains unhealthy `invalidWorks=3`; this source PR is not a repair of missing data or a production release.
+- Space review question at `message:host-r21-formal-spec-peer-consumer-review-20261109-2319` (sequence 25739); peer responses and installed acceptance tracked independently.

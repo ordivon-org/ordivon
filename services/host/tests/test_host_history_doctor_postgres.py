@@ -8,6 +8,7 @@ from uuid import uuid4
 import psycopg
 import pytest
 
+from ordivon_host_v2.errors import ConflictError
 from ordivon_host_v2.service import HostV2
 from ordivon_host_v2.work_inputs import (
     ActorKind,
@@ -59,6 +60,9 @@ def test_history_hole_is_visible_to_both_history_and_integrity_doctor() -> None:
                 (work_ref,),
             )
         assert store.get_work(work_ref)["revision"] == 2
+        # Historical reads must never manufacture a removed revision.
+        with pytest.raises(ConflictError, match="no revision 1"):
+            store.get_work(work_ref, 1)
 
         for detail in ("integrity", "history"):
             doctor = HostV2(DSN).status(detail=detail)["doctor"]

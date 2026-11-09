@@ -131,3 +131,121 @@ Dependency graph: `A -> B -> C -> D -> E -> F`. Independent doc consumer cleanup
 - Ordivon Recursive LEGO Calculus R2.1: `.agents/skills/recursive-lego-calculus/SKILL.md`.
 
 The upstream Skill is a **method**: installed Skill provenance, actual source, and Owner native effect remain separate.
+
+## 9. Mathematical foundations and proof boundary (2026-11-09 refinement)
+
+This section **refines H01–H03**, not a new LEGO calculus or Agent controller. The existing R2.1 `ell` eleven-coordinate tuple is the semantic carrier; each theorem or test has an exact owner, hypothesis and witness. The notation describes *obligations to discharge*, not already proved implementation facts.
+
+### 9.1 Safety and conditional liveness (Lamport)
+
+Let `S` be Host state, `F` foreign Goal/Runtime state, `T` an observed transition and `Retain` a Host-local cleanup action. Desired safety:
+
+```text
+S1 (direct frame):   Retain(S,F) = (S',F')  =>  F' = F
+S2 (no inference):   Work.state = abandoned  -/-> Goal.standing = cancelled
+S3 (read truth):     work.get(w,r)=success   =>  snapshot(w,r) exists and digest matches
+S4 (no fabrication): missing(w,r)  =>  no success projection of revision r
+```
+
+S1 can be proven locally only when implementation effect/readset boundaries are actually closed; a process-level `Host` claim does not establish absence of downstream consumers that might react to an abandoned Work. The **cross-owner** S2 is a consumer contract and requires actual Goal/Runtime readback. Source and tests do not prove installed/current behavior.
+
+Liveness is not `every unfinished Goal eventually succeeds`. Under an explicitly named scheduler/environment fairness assumption `A_fair`, require that each *admitted, executable* Host task either makes an observable owner-grounded transition or returns an actionable, evidence-bound block. No fair scheduler has been proved for this Host; claiming unconditional `<>Success` is invalid. Existing Runtime/Harness, not Host, owns execution progress. Lamport's safety/liveness distinction therefore prevents both false success and inert overconservatism without forcing a universal policy engine.
+
+### 9.2 Abstract-to-implementation refinement (Abadi–Lamport)
+
+Define abstract `H = (WorkRef, Revision, SnapshotAvailable, HostState, ForeignRefs)`; concrete `P` is the actual PostgreSQL tables. A candidate abstraction `alpha: P -> H` maps current Work and committed revisions to the abstract state. Each observed mutating PG transaction must simulate exactly one admitted abstract Host action or an allowed stutter transition; missing revisions must not be mapped to invented snapshots.
+
+```text
+P0 in ConcreteValid
+PG_Transaction(P0, P1) and Refined(P0)
+   => (AbstractStep(alpha(P0), alpha(P1)) or alpha(P0) = alpha(P1))
+```
+
+Necessary but not sufficient: model invariants, SQL transaction behavior, consumer interface readback, installed code currentness and assumption currentness. Historical `work.get(r)` needs a separate observation refinement to actual stored rows. A model-checking PASS alone cannot prove the implementation.
+
+### 9.3 Assume–guarantee and effect/frame conditions
+
+For composed `Host H`, `Runtime R`, `Gateway G` and `Domain D`:
+
+```text
+A_H: caller supplies a valid Work revision and known principal
+G_H: returned Work identity + digest are Host-local, not domain completion
+A_G: Host interface really bound to installed Owner and current tool contract
+G_G: routes/transport do not translate Host completion into domain success
+A_R: native Job identity and attempt readback available
+G_R: process execution disposition, not semantic success
+A_D: domain-specific outcome oracle available
+G_D: actual accepted outcome or typed UNKNOWN/FAIL
+```
+
+Composition is justified only with compatible assumptions/guarantees and actual effect/authority boundaries (interface shape alone is insufficient). In particular, Gateway transport success does not strengthen `G_H` into `G_D`. The relevant mature theory is de Alfaro–Henzinger interface automata and contract-based composition.
+
+### 9.4 Consumer closure is a *conditional* theorem, not age-based deletion
+
+Let `R(w)` be *all* reachable consumer edges for a Work and `L` the set of live/required consumers. An empty observed query cannot establish `R(w) ∩ L = ∅`. The existing `tools/formal/RecursiveLegoRefinement.lean` theorem may be reused only if all of the following are evidenced for the affected scope:
+
+```text
+closed(ObservedEdges, ReachableEdges)
+AND CurrentEdges ⊆ SnapshotEdges
+AND CurrentLiveConsumers ⊆ SnapshotLiveConsumers
+AND no observed reachable live consumer
+=> no actual reachable live consumer within this closed scope
+```
+
+A Work older than four hours supplies none of these hypotheses. When any closure/currentness premise is unknown, the appropriate output is `UNKNOWN(scope, missing-proof)`, not `DELETE` or `ABANDON`. This is a mathematical refusal of a bad inference, **not** a demand to manually inspect every garbage row: for truly Host-only records, native FK constraints and a single bounded SQL transaction may efficiently establish/execute a set-based retirement after ownership is known.
+
+### 9.5 History semantics: explicit policy, not Doctor greenwashing
+
+Current source `HostV2.status` defines full-contiguous history (`1..currentRevision`) for each persisted Work. The observed production five Work IDs yield three `revision=1` conflicts: the two abandoned legacy Runtime cutover Works and completed Host SourceCut acceptance Work. The two continuation Works retain revision 1. Thus `work.current_snapshot=ok` and `work.snapshot_history_contiguous=error invalidWorks=3` are compatible facts, not a contradiction in PG implementation.
+
+Two consistent long-term options:
+- **A: Full history.** Keep the current exact contract; restore *only authentic* missing snapshots if there is a valid authority, otherwise retire whole obsolete Work after real consumer closure. Do not backfill fabricated historical values.
+- **B: Explicit bounded retained history.** Version the Work read/Doctor contract so each persisted Work exposes a provenance-backed `retainedFromRevision`; exact retained suffix is contiguous, historical absence below that floor is typed *unavailable* (not success, not corrupted), and all existing revisioned-read consumers remain correct. This requires actual native PG schema migration, read contract changes and consumer qualification; it cannot be implemented by changing the Doctor predicate alone.
+
+Current decision: **retain exact full-history diagnostics until the consumer and migration basis is established**. Both options have different preservation and backward-compatibility assumptions. Neither should be selected merely to produce a green status.
+
+### 9.6 Why these sources rather than a new framework?
+
+- Lamport, *Proving the Correctness of Multiprocess Programs* (1977) — https://www.microsoft.com/en-us/research/publication/proving-correctness-multiprocess-programs/
+- Lamport, *The Temporal Logic of Actions* (1994) — https://lamport.azurewebsites.net/tla/papers.html
+- Abadi & Lamport, *The Existence of Refinement Mappings* (1988) — https://www.microsoft.com/en-us/research/publication/the-existence-of-refinement-mappings/
+- de Alfaro & Henzinger, *Interface Automata* (2001) — https://doi.org/10.1145/503209.503226
+- AWS, *How Amazon Web Services Uses Formal Methods* (2015) — https://www.amazon.science/publications/how-amazon-web-services-uses-formal-methods
+- Existing Ordivon `.agents/skills/recursive-lego-calculus/SKILL.md` and `tools/formal/RecursiveLegoRefinement.lean`.
+- Engineering workflow: Matt Pocock to-spec/domain-modeling/TDD; ECC Blueprint/AI Regression Testing; obra Superpowers writing-plans/verification-before-completion. Existing tests and clean PR deltas are the execution substrate.
+
+No weak-model experiment, benchmark matrix, model-tier ranking or new universal orchestrator is part of this project.
+
+### 9.7 Abstract interpretation, information order and CEGAR
+
+Cousot–Cousot abstract interpretation explains how a tractable abstraction may soundly overapproximate concrete behaviors, but its uncertainty cannot be interpreted as evidence of falsehood. For any proposition `p` about a consumer, define an **epistemic** information order:
+
+```text
+                   VERIFIED_TRUE       FALSIFIED
+                         ^                 ^
+                         |                 |
+                         +------UNKNOWN----+
+```
+
+This is a partial order of *evidence precision*, **not** a numerical risk score or a new database state machine. If an observation is insufficient, `UNKNOWN` remains a first-class result. Fresh counterevidence may invalidate a previous proof by changing its source/assumptions; do not turn stale `VERIFIED_TRUE` into timeless truth.
+
+A CEGAR-inspired *engineering* loop is only:
+`model property → look for concrete counterexample → reject spurious counterexamples using exact assumptions → refine the narrowest owner contract → re-run implementation readback`.
+It does not require building a generic abstract interpreter. In this Host case, the concrete counterexample is `current_snapshot=ok` while `historical_revision_1=CONFLICT`; the smallest justified refinement is scope-correct Doctor and typed missing-history behavior, rather than a second Host history authority.
+
+- Cousot & Cousot, *Abstract Interpretation* (POPL 1977) — https://www.di.ens.fr/~cousot/COUSOTpapers/POPL77.shtml
+- Clarke et al., *Counterexample-Guided Abstraction Refinement* (CAV 2000) — https://web.stanford.edu/class/cs357/cegar.pdf
+- Herlihy & Wing, *Linearizability: A Correctness Condition for Concurrent Objects* (TOPLAS 1990) — https://www.cs.cmu.edu/~wing/publications/HerlihyWing90.pdf
+
+### 9.8 Bounded complexity and mathematical engineering selection
+
+Select the smallest sound representation **per actual responsibility**:
+- Work CAS/receipt: typed Hoare contract + PostgreSQL transaction/concurrency tests (linearisability required where concurrent API is claimed).
+- History availability: simple relational predicate, exact digest readback and negative tests; no event sourcing rewrite by default.
+- Cross-owner composition: assume–guarantee contract and explicit authority/effect frames; no invented global Goal table.
+- Data retirement: conditional graph-reachability closure and native PG/FK set operations; no atom-by-atom manual garbage bureaucracy.
+- Execution liveness: only actual Runtime/Harness fairness/availability facts; no Host scheduler added.
+- Pure transitive/DAG properties: existing Lean theorem/Z3 counterexamples, with scoped source refinement and installed behavior separately.
+- Agent implementation: Matt TDD at existing public seam → ECC counterexample regression → Superpowers completion evidence. No requirement that all three skills execute as nested workflows.
+
+Before adding a new theorem, field, tool, migration, or Skill, state an actual owner/consumer counterexample that the present implementation does not handle. Otherwise prefer DELETE/REUSE rather than adding another formal obligation.
