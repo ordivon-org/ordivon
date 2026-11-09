@@ -194,6 +194,10 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(result["status"], "FAIL", result)
             self.assertFalse(result["profileVerificationComplete"])
             self.assertIn("native decoder contradiction", result["failures"])
+            self.assertFalse(result["standingCoverage"]["complete"])
+            self.assertEqual(
+                result["standingCoverage"]["verificationStatus"], "UNKNOWN"
+            )
             self.assertEqual(
                 result["verifier"]["sourceIdentityScope"],
                 "EXACT_PYTHON_MODULE_BYTES_EXECUTED",

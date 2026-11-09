@@ -126,3 +126,48 @@ def assess_required_evidence(
         "claimStatuses": statuses,
         "issues": issues,
     }
+
+
+def assess_required_statuses(
+    required: set[str] | list[str],
+    observed: dict[str, str],
+    *,
+    issues: tuple[str, ...] | list[str] = (),
+) -> dict[str, Any]:
+    """Pure required-evidence coverage for both verification entrypoints.
+
+    This is not native tool attestation, trust, deployment, or consumer acceptance.
+    The caller must independently validate the origin and identity of observations.
+    An empty requirement set cannot prove a complete Profile by vacuity.
+    """
+    expected = sorted(set(required))
+    missing = sorted(set(expected) - observed.keys())
+    failed = [name for name in expected if observed.get(name) == "FAIL"]
+    not_evaluated = [
+        name for name in expected
+        if name in observed and observed[name] not in {"PASS", "FAIL"}
+    ]
+    issues_list = list(issues)
+    if not expected:
+        issues_list.append("no mandatory requirements declared")
+    # A reported failure without a valid independent witness is NOT proof of
+    # falsification. Conflicting or malformed evidence remains UNKNOWN.
+    if issues_list:
+        status = "UNKNOWN"
+    elif failed:
+        status = "FAIL"
+    elif missing or not_evaluated:
+        status = "UNKNOWN"
+    else:
+        status = "PASS"
+    return {
+        "required": expected,
+        "passed": [name for name in expected if observed.get(name) == "PASS"],
+        "failed": failed,
+        "missing": missing,
+        "notEvaluated": not_evaluated,
+        "evidenceIssues": issues_list,
+        "verificationStatus": status,
+        "complete": status == "PASS",
+        "consumerAcceptance": "EXTERNAL_NOT_EVALUATED",
+    }

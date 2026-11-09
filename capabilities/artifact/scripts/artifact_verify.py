@@ -29,7 +29,10 @@ from artifact_core.contracts import FileCommitment
 from artifact_core.input_snapshot import stage_verified_input
 from artifact_core.json_validation import load_json
 from artifact_core.profiles import ProfileRegistry
-from artifact_verification.claim_coverage import assess_required_evidence
+from artifact_verification.claim_coverage import (
+    assess_required_evidence,
+    assess_required_statuses,
+)
 from artifact_verification.native_identity import assess_native_identity
 from artifact_verification.tool_identity import assess_native_tool_paths
 
@@ -265,6 +268,16 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 "profile requiredEvidence is not fully verified by explicit native claimResults"
             )
             service_failures.extend(assessment["issues"])
+        standing_issues = list(assessment["issues"]) + list(service_failures)
+        if not native_identity["complete"]:
+            standing_issues.append("native identity evidence not complete")
+        if delegated_status != "PASS":
+            standing_issues.append("native overall status is not PASS")
+        standing_coverage = assess_required_statuses(
+            assessment["expectedClaims"],
+            assessment["claimStatuses"],
+            issues=standing_issues,
+        )
         result = {
             "schemaVersion": 1,
             "kind": "artifact-verification-result",
@@ -293,10 +306,11 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 "sourcePathContinuity": "NOT_CLAIMED",
             },
             "requiredEvidenceAssessment": assessment,
+            "standingCoverage": standing_coverage,
             "nativeIdentityAssessment": native_identity,
             "toolIdentityAssessment": tool_identity,
             "profileVerificationComplete": bool(
-                assessment["complete"] and native_identity["complete"] and verified
+                standing_coverage["complete"] and verified
             ),
             "failures": service_failures,
             "boundary": (
