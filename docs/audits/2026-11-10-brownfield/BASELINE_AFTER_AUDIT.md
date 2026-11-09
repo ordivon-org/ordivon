@@ -1,6 +1,6 @@
 # BASELINE_AFTER_AUDIT — Ordivon Brownfield source closeout (selected verified slices)
 
-**Before SourceCut**: `ef17d6879d12faa61fff3bb762b0d500d73c9113` (2026-11-10). **Reversible code change commit**: `ccaae968c90d138fd7f02799b87123d7bb3f6b28`. The audit documentation commit and resulting PR remain the final branch evidence; GitHub merge/installed currentness must be read independently. This is a **source architecture audit and completed subtractive batch**, not 5,002 separate proofs of semantic correctness.
+**Before SourceCut**: `ef17d6879d12faa61fff3bb762b0d500d73c9113` (2026-11-10). **Reversible code change commit**: `697fa8f59421551db9fbb045f1ccb73b93eb090f`. The audit documentation commit and resulting PR remain the final branch evidence; GitHub merge/installed currentness must be read independently. This is a **source architecture audit and completed subtractive batch**, not 5,002 separate proofs of semantic correctness.
 
 ## Phase closure by actual evidence
 
@@ -10,7 +10,7 @@
 | 1 Full file/owner inventory | DONE static | `FILE_CENSUS.tsv` has **5,002** baseline Git files with exact path, byte size, SHA-256, initial Owner and scope; `INVENTORY.md` contains actual top-level counts; 64 binary records carry no invented line count |
 | 2 Architecture conformity | DONE prioritized source review | `AUDIT_REPORT.md`: 21-Owner matrix, PASS/PARTIAL/FAIL/UNKNOWN with grounded paths, 9 findings, actual blocker examples. No claim of exhaustive semantic or installed inspection |
 | 3 Small-batch plan | DONE | `REFACTOR_PLAN.md`: consumer-rooted dependencies, rollback and STOP conditions; no new features/tests/consumers |
-| 4 Code/text subtractive repair | DONE B01–B04b; B05 HOLD | Git `ccaae968c90d`: 25 tracked files retired, stale PG/SQLite current-truth corrected, nonexistent ELE research pointer deleted |
+| 4 Code/text subtractive repair | DONE B01–B04b; B05 HOLD | Git `697fa8f59421`: 25 tracked files retired, stale PG/SQLite current-truth corrected, nonexistent ELE research pointer deleted |
 | 5 Closure | DONE for selected repaired slice | Capital and Catalog existing native suites, repo:ci, boundary/model/docs checks, real Finance read-only CLI and Git diff; original fixed SourceCut preserved |
 
 ## Precise before / after
@@ -62,7 +62,7 @@ Space messages for root-wide falsification were committed to `space:ordivon-capa
 
 ### Conservative-deletion falsifier
 
-If a named active caller is later proven to depend on `tools/legacy_replay`, retrieve its exact source from `ef17d...` with `git show` or revert commit `ccaae968`, assess the existing interface and required Owner tests, then choose the smallest supported restoration. Git history is a recovery mechanism, not evidence of a current deployed engine.
+If a named active caller is later proven to depend on `tools/legacy_replay`, retrieve its exact source from `ef17d...` with `git show` or revert commit `697fa8f5`, assess the existing interface and required Owner tests, then choose the smallest supported restoration. Git history is a recovery mechanism, not evidence of a current deployed engine.
 
 ### Release standing
 
