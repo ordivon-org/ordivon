@@ -569,6 +569,89 @@ The dashboard reports elapsed, output-idle, and progress-idle time as mechanical
 
 The JSON schema reports separate `health` and `maintenance` states. The deployment projection names the current `releaseEvent` and `releaseDisposition`; a successful explicit rollback supersedes the forward deployment for installed-artifact truth. Exit code `1` is reserved for operational health failures such as service, deployment, Registry, recovery, exact release-artifact inconsistency, or a rollback whose restored artifact set is known but whose coherent source Commit cannot be proven. Maintenance findings such as a stale dirty Workspace produce top-level `status=attention` but retain exit code `0`; automation must inspect `maintenanceAction` when maintenance policy should gate a workflow. Compatibility observations remain advisory deletion evidence: an unreadable or truncated trace, unknown rollback protocol, or incomplete observation window blocks deletion but does not create a health incident. Exit code `2` remains reserved for an invalid invocation or unreadable mandatory input.
 
+## PostgreSQL-native operator release evidence (source, not production rollout)
+
+The PG ReleaseEffect reader, the atomic pre-dispatch admission and the
+independent host operator are separate consumers of one durable effect
+identity. This prevents a PG transaction, a process launch or a GitHub
+source merge from being mistaken for an installed Runtime version.
+
+The operator's Python database driver is deliberately an ordinary mature
+psycopg 3.x dependency, not a hand-written libpq wrapper. Install it into a
+dedicated operator virtual environment from the checked-in, SHA-256-verified
+lock file. A reproducible host installation (run from services/runtime) is:
+
+    uv venv /opt/ordivon/runtime-pg-operator/.venv --python python3
+    uv pip sync --python /opt/ordivon/runtime-pg-operator/.venv/bin/python \
+        requirements-runtime-pg-operator.lock.txt --require-hashes
+
+Run the operator entrypoint through that environment's Python interpreter,
+with its separately provisioned PostgreSQL DSN and exact service allowlist.
+Do not assume the interactive shell's site packages are present for systemd.
+The pinned operator driver is independent of requirements-tooling.lock.txt,
+which is only for development checks.
+
+The independently qualified operator module is
+scripts/ordivon_runtime_pg_operator.py (entrypoint
+scripts/ordivon-runtime-pg-operator). It does not implement another
+Registry, process manager, runner or installer. It imports and reuses
+the existing Runtime deployer's candidate manifest, source ref
+authorization, file preimage and atomic copy, systemd controls, MCP
+readiness probe, rollback and immutable receipt primitives.
+
+Before any production invocation, an independently installed operator
+must be given its own PostgreSQL connection through
+ORDIVON_PG_RELEASE_OPERATOR_DSN and a nonempty, exact, operator-owned
+ORDIVON_PG_RELEASE_ALLOWED_SERVICES_JSON. Neither value comes from MCP
+Tool arguments. Its PG role must be able to update the protected
+_stage_control.promotion_allowed column; the ordinary Runtime
+application role must NOT. Rows source, release and epoch must be
+independently qualified for the same physical PG WAL timeline and
+source SHA. The referenced ReleaseEffect must already be atomically
+admitted by the separately qualified PostgreSQL contract. The existing
+PG MCP server still does NOT advertise release.apply.
+
+An inspection or apply operation binds: authenticated principal,
+clientRequestId, effectId, complete request/Job/Effect digests,
+40-character Git commit, exact manifest SHA-256, expected Tool count,
+service, receipt root and candidate/installed artifact sets. The
+operator first commits one release-specific dispatch event in
+PostgreSQL, then uses a second transaction and OS flock to fence
+ordinary admission while draining, stopping systemd, revalidating
+candidate/world inputs, replacing exact bytes and restarting. It
+requires real PG MCP Catalog readback. An attempted partial rename is
+already a physical effect. On a qualified unchanged PG epoch, rollback
+restores the original bytes; uncertainty suppresses unsafe rollback.
+
+An unknown dispatch COMMIT or missing result receipt is NEVER
+auto-redispatched. A verified immutable operator result is committed as
+the distinct RELEASE_EFFECT_RECEIPTED event rather than pretending
+the normal Runner observed a PROCESS_EXITED event. PG terminalization
+requires exact installed artifact digests and live MCP tool catalog;
+release.get is a separate authenticated read/receipt verification.
+An already-terminal exact replay does not repeat systemd or reinstall,
+including if new-release qualification was later revoked.
+
+Execute the disposable real-system acceptance explicitly from
+services/runtime after building ordivon-runtime-runner and
+ordivon-runtime-pg with their documented Cargo features:
+
+    ORDIVON_RUN_NATIVE_PG_SYSTEMD_RELEASE=1 python3 -m unittest discover -s scripts/tests -p test_pg_operator_release.py -v
+
+That test creates its own PostgreSQL cluster, its own unique temporary
+systemd unit, and a real MCP endpoint. It replaces only its temporary
+binary and reads release.get from the restarted service, then removes
+the unit and database. Failure tests also cover a forged result,
+Operator privilege and WAL-epoch revocation, unknown dispatch reply,
+partial file replace, systemd start failure and exact replay.
+
+**Production release gate remains closed:** no installed Linux PG node
+has been observed advertising structuredReleaseConfigured=true or a
+qualified release.apply. Tests of disposable service installation do not
+imply that a production Operator/Artifact/service has been installed.
+The PG transport must still connect MCP release.apply and the
+independent Operator invocation/restart acceptance before that claim.
+
 ### PostgreSQL serialization-abort admission (2026-11-08)
 
 PostgreSQL SQLSTATE 40001 means a Serializable transaction was aborted and

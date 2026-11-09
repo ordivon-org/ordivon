@@ -48,6 +48,20 @@ At the beginning of an operation, call `runtime.describe` on the **specific node
 - Prefer focused, evidence-bearing verification of changed contracts. Rust unit/property tests and TLA+ exploration are different evidence classes; passing one does not prove the other.
 - Run cleanup only against explicitly owned roots and use Runtime Workspace lifecycle APIs rather than raw directory deletion. Protect dirty workspaces, running/held Jobs, linked worktrees, deployment assets, and system paths.
 
+## Native PG operator vs Agent authority
+
+The PG ReleaseEffect is admitted under the source/epoch writer and a
+separate operator-owned release qualification. The independent host
+operator performs the physical systemd replacement; generic Workspace
+execution cannot impersonate this release, even when operating with
+administrator privileges. A committed dispatch event with no receipt
+means reconcile the original effect, NOT reissue it. When a service
+restarts, independently query release.get for the same authenticated
+principal and clientRequestId and confirm the installed binary/catalog.
+Until the connected node actually exposes qualified release.apply,
+structuredReleaseConfigured remains false. Do not claim production
+installation based only on successful disposable PG/systemd tests.
+
 ## PG release readback is not deployment
 
 On the PG-native node, release.get provides a read-only identity-scoped
