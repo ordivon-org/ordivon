@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, Protocol, Sequence
+from typing import Protocol, Sequence
 
 from .models import ActionResult, Activity, ActivityIdentity, CourseIdentity
 
