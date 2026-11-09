@@ -255,3 +255,23 @@ allowed_fragment = "domains/capital/examples/strategic_contribution_r1.json"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 selection_scope = "PATH"
 contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+# Finance's freeze/assess research protocol is consumed in one bounded
+# Composition test, without a reverse business dependency or broker authority.
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_research_frozen_consumer.py"
+allowed_fragment = "domains/capital/scripts/finance_lego.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_research_frozen_consumer.py"
+allowed_fragment = "domains/capital/src/ordivon_capital/research/experiment_protocol.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"

@@ -123,3 +123,274 @@ A6. Source change, owner verifier, GitHub merge acceptance and installed truth a
 A7. No duplicate global Agent workflow, orphan registry or copied skills are introduced.
 
 Decision rule: a ticket stays OPEN until its exact native consumer acceptance is observed. A model-generated completion statement never overrides those outcomes.
+
+## 12. First-principles theory: existing mathematical and CS foundations
+
+This section maps *adopted theories* to already existing Ordivon method LEGOs.
+It is not a new universal proof system. The observed task is Finance and the
+same principles may be reused elsewhere only with actual consumers.
+
+### T12.1 Hoare logic and weakest preconditions — task effects have contracts
+
+Hoare's partial-correctness triple `{P} K {Q}` states: if `P` holds and
+program `K` terminates, then `Q` holds. It does **not** by itself establish
+termination, external market authenticity, or user value. Dijkstra's
+`wp(K,Q)` instead asks what is required *before* selecting an action
+to establish `Q` and terminate. Adopt this to bind task-local code/edit/
+financial effects to a named consumer postcondition.
+
+Application: a Finance clean-up agent cannot satisfy a deletion task with a
+document because the postcondition is `unconsumed_implementation_absent`
+and `live_consumer_unchanged`; a research-only step cannot satisfy an external
+order postcondition. Each necessary effect is verified at its real owner.
+
+### T12.2 Contract algebra and refinement — local PASS is not whole-system PASS
+
+For a component contract `C_i=(A_i,G_i)`, `A_i` defines environmental
+assumptions and `G_i` its promises under `A_i`. Real composition requires
+the actual environment and peer guarantees to discharge those assumptions
+in the correct behavioral universe, not merely compatible JSON shapes.
+For an accepted implementation `M`, discharge `M |= (A => G)`.
+A replacement requires a declared observational/refinement relation and
+corresponding proof or independent consumer evidence.
+
+R2.1 is the already adopted application profile. Map its eleven typed
+coordinates to the exact problem-specific semantics: `I/O` are the typed
+interface; `S,pre,post,inv` the state and behavioral obligation; `eff`
+the effect boundary; `c,epsilon` scoped cost and approximation;
+`prov` the evidence/source identity; `unfold` the permitted
+realization/decomposition. The profile is **not** eleven new schemas.
+A declared tuple is not a checked mathematical proof.
+
+Application: Portfolio's conservation proof does not establish Broker fill,
+Accounting reconciliation, or investment utility; compose only at the
+Finance-native owner boundaries with an explicit support scope.
+
+### T12.3 Representation and verification refinement — protect the original goal
+
+Let the domain's actual specification be `phi(x)`, while a checker encodes
+`psi(x)`. A local `PASS` only establishes `psi` under the checker's
+qualification; a Finance domain claim requires an argued bridge
+`B: psi(x) => phi(x)` for the precise support scope. If the bridge is
+missing, `DOMAIN_ACCEPTED` is not established even if `psi` passes.
+
+For a representation `rho`, accepted abstract solutions must have a
+nonempty concrete realization. Choose and record the valid refinement mode:
+universal-safe or concrete-witness preserving. A vacuously true implication
+over an empty realization set is not a successful implementation.
+
+Application: exact byte digests authenticate *identity of bytes* only; a
+caller-supplied historical source is not authenticated market data. A local
+Composition test proves a bounded gate, not the Finance economic target.
+
+### T12.4 Temporal logic and fairness — avoid the do-nothing solution
+
+Alpern/Schneider and Lamport distinguish safety ('nothing bad happens')
+from liveness ('something good eventually happens'). A no-op can satisfy
+all state-preservation properties while failing the task. Adopt **both**:
+
+- Safety: `[](DomainAccepted => ConsumerEvidenceCurrent /\ DomainPredicates)`.
+- Safety: `[](SourceMechanicalClosure => ~AutomaticDomainAcceptance)`.
+- Safety: `[](ResearchOnly => ~BrokerEffectAuthority)`.
+- Progress: under sustained Runnable eligibility, fair execution opportunity,
+  permitted resources and an achievable domain predicate, the selected
+  execution path must eventually yield a concrete consumer effect **or a
+  genuinely supported blocker**. This is a specification obligation, not a
+  theorem about the currently deployed scheduler.
+
+A stable, qualifying `NO_CHANGE` is a possible positive result when a
+genuine independent consumer proves that no effect is needed. Unknown order
+effects instead require authoritative readback, not blind replay.
+
+Application: use the current Runtime/Host/Harness/Composition evidence and
+native TLC model checks if their actual state machines need a refinement.
+Do not create a second lifecycle database to 'prove' eventual completion.
+
+### T12.5 Three-valued evidence and monotone truth — UNKNOWN has no false verdict
+
+Model the epistemic standing as an information partial order:
+
+`UNKNOWN <= SATISFIED`, `UNKNOWN <= UNSATISFIED`,
+and `SATISFIED` and `UNSATISFIED` are incomparable (not a numeric score).
+
+This is **only** an information-order model for a fixed question and
+SourceCut, not an implication that new evidence can never retract a previous
+claim. When the subject, source, provider, scope or assumptions change,
+invalidate/requalify rather than silently reuse prior standing.
+
+Application: when a prospective holdout is not yet available, mark the
+economic validity gate UNKNOWN, while proving the independent fact that
+the research CLI has not authorized a broker effect. Neither outcome should
+block a separable read-only work slice.
+
+### T12.6 Separation of ownership / noninterference — contracts require independent authority
+
+Parnas information hiding places volatile implementation decisions behind
+small stable interfaces. Separation logic inspires explicit ownership
+boundaries; information-flow analysis differentiates `Data`, `Authority`
+and `Effect`. A producer's own metadata is not an independent witness.
+
+Application: Finance Research cannot elevate `independentReproduction=true`
+from an untrusted JSON payload into verification or trading permission.
+Harness Completion Proposal and Composition Gate closure remain
+mechanical claims. Real financial effects require the existing authorized
+Trading and external provider admission/readback, with Accounting facts
+reconciled separately.
+
+### T12.7 Feedback control, systems engineering, STPA and DSM — keep whole-system value
+
+- **Systems Engineering**: name the real output, system/environment boundary,
+  stakeholder needs, non-owned external financial authorities and interfaces.
+- **Feedback Control**: distinguish observed state, decision, effect,
+  measurement delay, disturbances, controller ownership and feedback.
+  A conceptual state map is not proof of stability.
+- **STPA**: analyze unsafe provided, omitted, mistimed or prolonged control
+  actions, including refusal-to-act when an authorized safe step exists;
+  target concrete boundary/verification changes rather than paper gates.
+- **DSM**: derive typed dependency edges from actual source and consumers,
+  detect needless cycles and false owner-wide coupling. Never equate
+  clustering with architecture authority.
+- **CEGAR**: check a coarse *sound* model; concretize a candidate
+  counterexample; refine only if it is proved spurious; use the native
+  checker, not a proprietary CEGAR runtime.
+- **GQM**: start from economic capability/customer result, then formulate
+  verification questions and measurements. Avoid 'number of tests',
+  'number of policies' and 'no-effect rate' as optimization targets.
+
+### T12.8 Decision-method selection (existing thinking LEGOs)
+
+| Real problem | Activate existing method | Derived decision artifact | Native consumer |
+| --- | --- | --- | --- |
+| Finance goal/authority unclear | `systems-engineering` | boundary, roles, non-owned facts | Capital README and source owners |
+| Whether a custom financial tool deserves to exist | `recursive-lego-calculus`, `project-kernel-decomposition` | delete/reuse/compose choice | current Capital CLI or test |
+| Finance–Data–Research changes affect too many owners | `design-structure-matrix` | typed consumer impact, candidate narrower seam | `tools/repo/convergence_plan.py` |
+| Paper result diverges over time | `feedback-control` | state/observation/effect trace | Capital Accounting / Paper readback |
+| Agent pretends to have market/broker authority | `information-flow-analysis`, `stpa` | authority/effect boundary, negative test | Security/Trading, no general gate |
+| Performance/alpha claim rests only on historical association | `causal-intervention` where causal question exists | explicit assumptions and identified comparison or UNKNOWN | Finance Research |
+| Historical tool retirements need negative-consumer proof | `recursive-lego-calculus` retirement reference | source-current closed-consumer or UNKNOWN | existing Git/Owner test |
+| Data/provider changes break experimental reproducibility | `fmea-fta`, native CEGAR when warranted | concrete failure/counterexample | existing Research validators |
+
+Selection is **conditional**; the table is not an instruction to invoke
+every method on every task. Each method remains advisory and cannot
+substitute for a native owner-owned verdict.
+
+## 13. Real Finance system argument and ownership
+
+`Mandate -> Markets(PIT) -> Research(evidence/unknown) -> Portfolio(conditional decision)
+-> Risk(feasibility) -> Governance(effect admission) -> Trading(provider intent/effect/readback)
+-> Accounting(cash/positions/settlement) -> independent economic outcome comparison`.
+
+This is a *dependency and evidence argument*, not a proposed service mesh.
+Specify independent objectives across strategic and tactical levels:
+
+1. **Strategic consumer**: capital needs and liabilities over time; verified
+   economic output from the actual Finance goal, not investor-sounding prose.
+2. **Tactical contracts**: each cross-owner interface admits typed data,
+   known assumptions, scope and the exact effect owner.
+3. **Implementation effects**: existing CLI, PostgreSQL, Runtime and
+   provider mechanisms; scripts are implementers, not goal authorities.
+4. **Evidence boundary**: SourceCut, algorithm input, result readback,
+   checker target and verifier-owned witness; projection/test/model are separate.
+5. **Evolution**: evidence-driven replacement of weak local mechanisms with
+   mature packages, retaining consumer contracts and removing obsolete glue.
+
+The Capital live-broker surface is out of scope. A simulated portfolio
+improvement is not real-world investment alpha. The 2026-11-08 SPY/SHY
+research sample still has prospective holdout `UNKNOWN`; no available
+forward window is invented by this spec.
+
+## 14. Implementable refinements and task acceptance matrix
+
+| Slice | Required observable result | Negative / non-vacuity evidence | Exact owner check |
+| --- | --- | --- | --- |
+| T01 consumer | existing Finance contribution CLI produces exact, read-only economic projection | forged `externalWriteAllowed`, cash error, mismatched holdings, no result | Composition test + Capital native suite |
+| T02 research | existing freeze and assess CLI produces frozen plan and scoped UNKNOWN/REVIEW_REQUIRED evidence | absent holdout must keep economic gate open, self-declared independent replication must not certify investment edge, extra authority rejected | Finance Research CLI + Composition gate consumer |
+| T03 binding | exact manifest/obligation/source/binding and real verifier-owner result | stale/mismatched owner/scope/digest fails; no fake Owner truth | Composition R1 native tests, scoped domain verifier |
+| T04 progress | actual Work/caller sees verifiable output or qualified blocker | pure inaction/report under executable change cannot be 'done'; uncertain external effect never retried blindly | existing Host/Harness/Runtime native state |
+| T05 retirement | old unconsumed tool and linked historical scaffolding physically removed | current native CLI and CI unaffected, proof assumptions not fabricated | Capital, affected Owner closure and Git |
+| T06 Paper | frozen research -> policy/risk -> PG Paper ledger -> readback and economic comparison | duplicate effects, unbalanced money, missing market/booking provenance | Capital Paper EOD and Accounting |
+| T07 integration | latest Git/CI merge queue accepted | check changes in trust source; regression, stale source, fake installed truth | root CI / CodeQL / merge queue |
+
+A checker changing alongside its implementation cannot self-declare that its
+acceptance semantics were preserved. Existing repository owner-boundary and
+SourceCut/CI closure are part of the independent challenge, not optional text.
+
+## 15. Test seam engineering and first implementation decisions
+
+**Matt deep-module rule**: reuse the *highest existing test seam*, not
+five new helper classes. For T01/T02 it is the real Finance CLI plus a
+task-local Composition gate; for T06 it is the existing Paper close and
+PostgreSQL readback; for T05 it is the native source/dependency closure.
+
+**Superpowers plan rule**: each vertical ticket has exact source paths,
+expected output and a fresh RED/negative witness followed by GREEN; a
+test run made before the current SourceCut cannot be reused as current proof.
+
+**ECC engineering rule**: quality is enforced by the installed native
+`mise`/pytest/Ruff/formal checker and GitHub CI, not by copied
+Claude-specific hooks or a blanket coverage percentage.
+
+T02 exact implementation site:
+`packages/composition/tests/test_finance_research_frozen_consumer.py`;
+real CLI at `domains/capital/scripts/finance_lego.py`; Finance source
+`domains/capital/src/ordivon_capital/research/experiment_protocol.py`.
+Record those exact test-only consumer paths using the existing
+`TEST_ONLY_SOURCE_CONTRACT` `selection_scope=PATH` mechanism (no owner-wide
+coupling). A frozen plan with a missing holdout must yield a SATISFIED
+*read-only protocol integrity* gate but an UNKNOWN *economic prospective
+validity* gate, so whole-circuit mechanical closure remains OPEN. Both
+claims remain separate from Domain Acceptance.
+
+T03 implements a real source-current verifier/result bridge only when
+the Finance owner exposes one; do not present test fixture signatures
+as trusted identity attestation. T04–T07 follow the dependency frontier,
+not a huge speculative 'agent reform' horizontal rewrite.
+
+## 16. Decision & proof review checklist
+
+Before marking a ticket complete, compare its actual result to four
+independent statements (provide paths and native commands, not opinion):
+
+1. **Problem:** is the demanded Finance outcome still the original
+   problem predicate `phi`, not just a convenient checker `psi`?
+2. **Mechanism:** was the minimal needed custom responsibility retained
+   after mature-provider search and delete/reuse/compose consideration?
+3. **Evidence:** did the real SourceCut, verifier, consumer and
+   external authority (where applicable) actually support the exact claim?
+4. **Progress:** is there actual business/code effect or verified
+   no-change/blocker, and did unrelated eligible work avoid being frozen?
+
+Any missing fact is scoped UNKNOWN, not a fabricated theorem, PASS or
+global refusal. The checkpoint is a **domain result**, not a word count.
+Do not require human approval of every ordinary Finance analysis decision.
+
+## 17. Citable technical foundations (official papers / primary sources)
+
+- Hoare, *An Axiomatic Basis for Computer Programming* (1969):
+  https://doi.org/10.1145/363235.363259
+- Dijkstra, *Guarded Commands, Nondeterminacy and a Calculus for the Derivation
+  of Programs*: https://www.cs.utexas.edu/~EWD/transcriptions/EWD04xx/EWD418.html
+- Benveniste et al., *Contracts for System Design* (2018):
+  https://doi.org/10.1561/1000000053
+- Pacti's existing contract algebra and I/O/G/A semantics:
+  https://www.pacti.org/docs/getting_started/
+- Lamport, *Safety, Liveness, and Fairness*:
+  https://lamport.org/tla/safety-liveness.pdf
+- Alpern and Schneider, *Defining Liveness* (1985):
+  https://doi.org/10.1016/0020-0190(85)90056-0
+- Parnas, *On the Criteria to Be Used in Decomposing Systems into Modules*:
+  https://doi.org/10.1145/361598.361623
+- O'Hearn, Yang and Reynolds, *Separation and Information Hiding*:
+  https://doi.org/10.1145/1498926.1498929
+- Clarke et al., *Counterexample-Guided Abstraction Refinement*:
+  https://doi.org/10.1007/10722167_15
+- Basili, *Goal Question Metric*: https://hdl.handle.net/1903/7538
+- Leveson / MIT STPA Handbook:
+  https://psas.scripts.mit.edu/home/get_file.php?name=STPA_handbook.pdf
+- Matt Pocock Skills (source): https://github.com/mattpocock/skills
+- Everything Claude Code (source): https://github.com/affaan-m/everything-claude-code
+- Superpowers (source): https://github.com/obra/superpowers
+
+These sources justify *methods*, not factual installed-system behavior.
+The exact local source cut, executables and native owner tests establish
+that separately.

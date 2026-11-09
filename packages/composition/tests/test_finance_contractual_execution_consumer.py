@@ -24,8 +24,8 @@ from ordivon_composition import (
 from ordivon_composition.cognitive_circuit_r1 import compile_manifest
 
 REPO = Path(__file__).resolve().parents[3]
-CAPITAL = REPO / "domains/capital"
 CLI = REPO / "domains/capital/scripts/strategic_contribution_brief.py"
+CAPITAL = CLI.parent.parent
 SOURCE = REPO / "domains/capital/src/ordivon_capital/portfolio/strategic_contribution.py"
 EXAMPLE = REPO / "domains/capital/examples/strategic_contribution_r1.json"
 SUPPORT = "source-observed Finance contribution cash/holdings conservation and no external effect"

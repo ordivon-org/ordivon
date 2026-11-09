@@ -1810,6 +1810,8 @@ class DataProducerToConsumerImpactTests(unittest.TestCase):
             "domains/capital/scripts/strategic_contribution_brief.py",
             "domains/capital/src/ordivon_capital/portfolio/strategic_contribution.py",
             "domains/capital/examples/strategic_contribution_r1.json",
+            "domains/capital/scripts/finance_lego.py",
+            "domains/capital/src/ordivon_capital/research/experiment_protocol.py",
         ):
             plan = MODULE.build_plan(changed_files=[source])
             self.assertIn("composition", plan["taskLocalTestConsumers"])
