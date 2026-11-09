@@ -10,8 +10,7 @@
       "services/runtime/docs/runtime.md",
       "services/runtime/docs/status.md",
       "services/runtime/docs/effect-kernel.md",
-      "services/runtime/docs/operations.md",
-      "services/runtime/planning/EXECUTION_FABRIC_R1_ROADMAP.md"
+      "services/runtime/docs/operations.md"
     ]
   },
   "nodes": [

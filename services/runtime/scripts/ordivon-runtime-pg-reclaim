@@ -187,8 +187,10 @@ def run(args: argparse.Namespace) -> dict:
             if not isinstance(digest,str) or not digest.startswith("sha256:"):
                 skip("missing_source_digest");continue
             # Recheck Git and never force. Runtime checks held Jobs/dependents.
-            if (_git(repo,"merge-base","--is-ancestor",head,"origin/main").returncode
-                or _git(path,"status","--porcelain=v1","--untracked-files=normal").stdout.strip()):
+            if _git(repo,"merge-base","--is-ancestor",head,"origin/main").returncode:
+                skip("git_changed_at_close");continue
+            current_git_status = _git(path,"status","--porcelain=v1","--untracked-files=normal")
+            if current_git_status.returncode or current_git_status.stdout.strip():
                 skip("git_changed_at_close");continue
             closed = client.call_tool(
                 "workspace.close",
