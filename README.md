@@ -52,7 +52,6 @@ Choose the **current natural owner** by the fact or effect it controls; the repo
 | Product Web interface | [web](apps/web/README.md) | UI projection only |
 | Control-plane plugin packaging | [control-plugin](extensions/ordivon-control-plane/) | Thin Tool carrier |
 | ChatGPT Skill MCP compatibility | [skills](extensions/chatgpt-skills-mcp/README.md) | Not Skill source authority |
-| Attendance session and browser action | [chaoxing-autosign](apps/chaoxing-autosign/README.md) | Application outcome |
 
 The table is a human navigation view, not a new registry. The source of truth for ownership paths and verification tasks is [owners.toml](tools/repo/owners.toml). The canonical advisory [method router](.agents/skills/method-router/SKILL.md) and [Recursive LEGO R2.1](.agents/skills/recursive-lego-calculus/SKILL.md) are separate from executable owner tools.
 
