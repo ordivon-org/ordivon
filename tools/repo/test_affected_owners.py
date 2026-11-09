@@ -455,6 +455,74 @@ verify_task = "y:verify"
             with self.assertRaisesRegex(ValueError, "must not overlap"):
                 MODULE.load_owners(path)
 
+    def test_git_range_json_binds_exact_immutable_sourcecut(self) -> None:
+        import contextlib
+        import io
+        import os
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-admission-sourcecut-") as folder:
+            root = Path(folder)
+            subprocess.run(["git", "init", "-q", "-b", "main", folder], check=True)
+            subprocess.run(["git", "-C", folder, "config", "user.name", "Sourcecut test"], check=True)
+            subprocess.run(["git", "-C", folder, "config", "user.email", "sourcecut@example.invalid"], check=True)
+            target = root / "services/runtime/src/example.py"
+            target.parent.mkdir(parents=True)
+            target.write_text("VALUE = 0\n")
+            subprocess.run(["git", "-C", folder, "add", "."], check=True)
+            subprocess.run(["git", "-C", folder, "commit", "-qm", "before"], check=True)
+            base = subprocess.check_output(["git", "-C", folder, "rev-parse", "HEAD"], text=True).strip()
+            target.write_text("VALUE = 1\n")
+            subprocess.run(["git", "-C", folder, "commit", "-qam", "after"], check=True)
+            head = subprocess.check_output(["git", "-C", folder, "rev-parse", "HEAD"], text=True).strip()
+            previous = Path.cwd()
+            try:
+                os.chdir(folder)
+                with patch.dict(os.environ, {"GIT_DIR": str(root / "wrong-repo.git")}):
+                    with patch.object(sys, "argv", ["affected_owners.py", "--base", "HEAD~1", "--head", "HEAD"]):
+                        buf = io.StringIO()
+                        with contextlib.redirect_stdout(buf):
+                            self.assertEqual(MODULE.main(), 0)
+                value = json.loads(buf.getvalue())
+            finally:
+                os.chdir(previous)
+            self.assertEqual(value["selectionBasis"], "GIT_COMMIT_RANGE")
+            self.assertEqual(value["sourceCut"], {"base": base, "head": head})
+            self.assertIn("services/runtime/src/example.py", value["changedPaths"])
+            self.assertIn("runtime", [owner["name"] for owner in value["owners"]])
+
+    def test_invalid_git_ref_cannot_emit_a_sourcecut_witness(self) -> None:
+        import contextlib
+        import io
+        from unittest.mock import patch
+
+        output = io.StringIO()
+        with patch.object(sys, "argv", [
+            "affected_owners.py", "--base", "invalid-sourcecut-ref-20261109", "--head", "HEAD",
+        ]):
+            with contextlib.redirect_stdout(output):
+                with self.assertRaises(subprocess.CalledProcessError):
+                    MODULE.main()
+        self.assertEqual(output.getvalue(), "")
+
+    def test_non_git_selections_do_not_fabricate_sourcecut(self) -> None:
+        import contextlib
+        import io
+        from unittest.mock import patch
+
+        for args, basis in (
+            (["--changed-file", "services/runtime/src/example.py"], "CALLER_DECLARED_PATHS"),
+            (["--all"], "ALL_OWNERS"),
+        ):
+            with self.subTest(basis=basis):
+                with patch.object(sys, "argv", ["affected_owners.py", *args]):
+                    output = io.StringIO()
+                    with contextlib.redirect_stdout(output):
+                        self.assertEqual(MODULE.main(), 0)
+                value = json.loads(output.getvalue())
+                self.assertEqual(value["selectionBasis"], basis)
+                self.assertIsNone(value["sourceCut"])
+
 
 if __name__ == "__main__":
     unittest.main()

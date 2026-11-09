@@ -252,6 +252,25 @@ def requires_core_formal_verification(paths: Iterable[str]) -> bool:
         for path in paths
     )
 
+def _source_git_env() -> dict[str, str]:
+    """Use this repository's Git DAG, not a caller's foreign Git namespace."""
+    return {
+        **{key: value for key, value in os.environ.items()
+           if not key.startswith("GIT_")},
+        "GIT_GRAFT_FILE": os.devnull,
+    }
+
+
+def _resolve_source_commit(ref: str) -> str:
+    """Pin a moving Git ref to the immutable commit used for the source witness."""
+    return subprocess.check_output(
+        ["git", "--no-replace-objects", "rev-parse", "--verify",
+         "--end-of-options", f"{ref}^{{commit}}"],
+        env=_source_git_env(),
+        text=True,
+    ).strip()
+
+
 def changed_paths(base: str, head: str) -> tuple[str, ...]:
     # Preserve both sides of a cross-owner move, rather than allowing Git's
     # similarity detection to hide the source owner from verification.
@@ -270,11 +289,7 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
         # inherited Git namespace/object-store overrides (e.g. agent tools
         # invoking this selector from another Git worktree). A different
         # repository must not determine required consumer verification.
-        env={
-            **{key: value for key, value in os.environ.items()
-               if not key.startswith("GIT_")},
-            "GIT_GRAFT_FILE": os.devnull,
-        },
+        env=_source_git_env(),
         check=True,
         stdout=subprocess.PIPE,
     )
@@ -299,16 +314,23 @@ def _parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = _parser().parse_args()
+    source_cut: dict[str, str] | None = None
     if args.all:
+        selection_basis = "ALL_OWNERS"
         selected = OWNERS
         paths: tuple[str, ...] = ()
     else:
         if args.changed_file:
+            selection_basis = "CALLER_DECLARED_PATHS"
             paths = tuple(args.changed_file)
         else:
             if not args.base or not args.head:
                 raise SystemExit("--base and --head are required unless --all or --changed-file is used")
-            paths = changed_paths(args.base, args.head)
+            selection_basis = "GIT_COMMIT_RANGE"
+            base = _resolve_source_commit(args.base)
+            head = _resolve_source_commit(args.head)
+            paths = changed_paths(base, head)
+            source_cut = {"base": base, "head": head}
         require_registered_execution_paths(paths)
         selected = owners_for_paths(paths)
 
@@ -325,6 +347,8 @@ def main() -> int:
         print(
             json.dumps(
                 {
+                    "selectionBasis": selection_basis,
+                    "sourceCut": source_cut,
                     "changedPaths": list(paths),
                     "owners": [
                         {
