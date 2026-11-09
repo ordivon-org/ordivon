@@ -148,7 +148,7 @@ impl PgRuntime {
         // corrupt candidates would falsely imply that the Workspace is absent.
         let inventory = universal::list_open_workspace_record_inventory(&self.config.executor)
             .map_err(super::super::error::map_universal_error)?;
-        let issues = inventory
+        let mut issues = inventory
             .issues
             .into_iter()
             .map(|issue| {
@@ -162,48 +162,72 @@ impl PgRuntime {
                 })
             })
             .collect::<Vec<_>>();
-        let mut all = Vec::new();
-        for record in inventory.records {
-            // Projection failures must not masquerade as a complete inventory.
-            let mut value = self.get_workspace(&RuntimeWorkspaceGetRequest {
-                schema_version: 1,
-                workspace_id: record.workspace_id,
-            })?;
-            if !request.include_source_state_digest {
-                value
-                    .as_object_mut()
-                    .expect("workspace projection")
-                    .remove("sourceStateDigest");
-            }
-            all.push(value);
+        if let Some(cursor) = &request.cursor {
+            universal::validate_id(&cursor.workspace_id, "cursor.workspaceId")
+                .map_err(super::super::error::map_universal_error)?;
         }
-        all.sort_by(|a, b| {
-            let x = a["createdAtMs"].as_u64().unwrap_or(0);
-            let y = b["createdAtMs"].as_u64().unwrap_or(0);
-            y.cmp(&x).then_with(|| {
-                a["workspaceId"]
-                    .as_str()
-                    .unwrap_or("")
-                    .cmp(b["workspaceId"].as_str().unwrap_or(""))
-            })
+        // Page physical records *before* invoking Git/PG projections. The former
+        // implementation inspected every open Workspace, even for limit=1;
+        // one damaged old Worktree or expensive source hash could fail or stall
+        // the entire list, preventing an Agent from seeing the healthy page.
+        let mut records = inventory.records;
+        records.sort_by(|a, b| {
+            b.created_unix_ms
+                .cmp(&a.created_unix_ms)
+                .then_with(|| a.workspace_id.cmp(&b.workspace_id))
         });
         if let Some(cursor) = &request.cursor {
-            all.retain(|v| {
-                let at = v["createdAtMs"].as_u64().unwrap_or(0);
-                let id = v["workspaceId"].as_str().unwrap_or("");
-                at < cursor.created_at_ms
-                    || (at == cursor.created_at_ms && id > cursor.workspace_id.as_str())
+            records.retain(|record| {
+                record.created_unix_ms < u128::from(cursor.created_at_ms)
+                    || (record.created_unix_ms == u128::from(cursor.created_at_ms)
+                        && record.workspace_id.as_str() > cursor.workspace_id.as_str())
             });
         }
-        let more = all.len() > request.limit as usize;
-        all.truncate(request.limit as usize);
+        let more = records.len() > request.limit as usize;
+        records.truncate(request.limit as usize);
+        // Advance over the physical page, not just projected successes, so a
+        // corrupt Git checkout cannot trap callers on an identical cursor.
         let next_cursor = if more {
-            all.last()
-                .map(|v| json!({"createdAtMs":v["createdAtMs"],"workspaceId":v["workspaceId"]}))
+            records.last().map(|record| {
+                json!({
+                    "createdAtMs": record.created_unix_ms,
+                    "workspaceId": record.workspace_id
+                })
+            })
         } else {
             None
         };
-        Ok(json!({"workspaces":all,"nextCursor":next_cursor,"issues":issues}))
+        let mut workspaces = Vec::with_capacity(records.len());
+        for record in records {
+            let workspace_id = record.workspace_id;
+            match self.get_workspace(&RuntimeWorkspaceGetRequest {
+                schema_version: 1,
+                workspace_id: workspace_id.clone(),
+            }) {
+                Ok(mut value) => {
+                    if !request.include_source_state_digest {
+                        value
+                            .as_object_mut()
+                            .expect("workspace projection")
+                            .remove("sourceStateDigest");
+                    }
+                    workspaces.push(value);
+                }
+                Err(error) if error.is_reconciliation_fatal() => return Err(error),
+                Err(error) => issues.push(json!({
+                    "workspaceId": workspace_id,
+                    "stage": "projection",
+                    "code": error.code.as_str(),
+                    "message": error.message,
+                    "retryable": error.retryable
+                })),
+            }
+        }
+        Ok(json!({
+            "workspaces": workspaces,
+            "nextCursor": next_cursor,
+            "issues": issues
+        }))
     }
     pub fn open_workspace(
         &self,
