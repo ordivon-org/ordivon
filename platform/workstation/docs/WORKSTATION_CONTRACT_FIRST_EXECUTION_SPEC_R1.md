@@ -106,3 +106,273 @@ A Git revert restores the former playbook source but **would also restore the un
 - Native Ansible: `ansible-playbook --syntax-check` and `--list-tasks` passed. `ansible-playbook --check --diff` reported 9 tasks OK, 0 changed, 0 failed.
 - External observation: the live Windows-user `.wslconfig` SHA-256 was `f94d463c69a40064d0734667a327912986adaaaf659dec7b9ab3a3a14c95ce98` both before and after Ansible check mode; no Windows host configuration was written or WSL restarted.
 - Complete Workstation owner verification: `mise run verify` exited zero, including owner CI and installed-user consequence tests. This is a source/host check of the candidate, **not** mainline merge or deployed release evidence.
+
+
+## 11. R2 theory-to-engineering decision map — mature mathematics, not a new calculus
+
+**Current-source continuation:** first source cut `3b43977...` is historical
+provenance for PR #1967; that PR **MERGED** on 2026-11-09 14:27:37 UTC,
+merge commit `120bf398b6392f5e3dde91ab00b024282d3884cb`, with required GitHub
+checks completed. The next bounded refinement starts from protected main
+`a7d70e83945b7418f41b9636f0803d1544e84355`. Neither Git merge proves
+installed generation nor current active Windows WSL instance.
+
+### 11.1 Hoare logic, weakest preconditions and the frame boundary
+
+For actual host convergence command `C`, write a *partial-correctness* obligation:
+
+```text
+{LinuxTarget ∧ SelectedPrincipal ∧ ValidInput}
+  C = ansible-playbook host-substrate.yml
+{LinuxDesiredConverged ∧ WindowsUserGlobalStatePreserved}
+```
+
+The latter conjunct is a **frame property**, not a desired-state value.
+The frame should follow from non-overlapping owned write sets, not from
+hardcoding this week's `memory=10GB` or `swap=0` into a Linux playbook:
+
+`WriteSet(C) ∩ WindowsGlobalWSLConfig = ∅`.
+
+Classical Hoare logic is about a specified command under specified operational
+semantics and assumptions; it does not establish that an arbitrary plugin,
+credential helper, source include or target environment cannot have an indirect
+effect. This matters because an opaque Ansible `shell`, imported tasks, or
+templated Windows destination would invalidate our current finite static frame.
+They must therefore be **unqualified/UNKNOWN** until examined, not silently
+allowed, not universally declared malicious. The production Windows-global
+write owner is outside this Linux playbook.
+
+**Adopted reference:** C. A. R. Hoare, *An Axiomatic Basis for Computer
+Programming*, CACM 1969,
+https://doi.org/10.1145/363235.363259.
+
+### 11.2 Assume–guarantee algebra and behavioral substitutability
+
+Model a retained responsibility as a contract `C=(I,O,A,G)`, with explicit
+assumptions `A` and guarantees `G`. The Linux host Owner guarantees only
+its owned target effects and records that Windows-global configuration is
+outside its write frame. The Windows native user-context configuration
+authority, when a real such consumer is selected, must have a separate
+assumption about execution identity and guarantee about its own configuration.
+
+Composition is sound only under compatible types, assumptions, guarantees,
+principal/effect boundaries **and actual observation**; a syntactic matching
+interface is insufficient. For provider replacement relative to existing
+consumer obligations, a useful sufficient directional test is:
+
+```text
+ExistingAssumptions => CandidateAssumptions
+CandidateGuarantees => ExistingGuarantees
+CandidateEffects subseteq PermittedEffects
+```
+
+Those implications are subject to common variables, contract saturation,
+environment assumptions and the observed semantic profile. Use the canonical
+R2.1 contract algebra and existing composition skill; do not invent a second
+`C` object registry or claim universal refinement from these shorthand
+implications.
+
+**Adopted reference:** Pacti documentation (composition, refinement, quotient,
+merging), https://www.pacti.org/docs/getting_started/; NASA FRET
+assume–guarantee realizability,
+https://ntrs.nasa.gov/citations/20210024604; Liskov and Wing, *A Behavioral
+Notion of Subtyping* (1994), https://www.cs.cmu.edu/~wing/publications/LiskovWing94.pdf.
+
+### 11.3 Refinement and observation semantics
+
+Define an abstract contract relation `R_spec`, actual execution relation
+`R_impl`, and owner-specific observation `Obs_c`. For a candidate
+implementing a safety contract, the target is:
+
+`Obs_c(Traces(R_impl)) subseteq Obs_c(Traces(R_spec))`
+
+under stated assumptions, relevant stuttering/hidden-action semantics, and
+source/environment currentness. Model checking the abstract relation does
+**not** prove this trace inclusion for arbitrary Ansible modules or Windows
+services. Current Workstation tests check a finite source-level class of
+supported actions and an Ansible check-mode consequence on one host.
+They do not establish live WSL restart, non-existent alternate writers, or
+Windows native user-context authority.
+
+### 11.4 Abstract interpretation, CEGAR and independent falsification
+
+Use a supported-language source projection `alpha(Source)` of Ansible tasks
+into abstract effects `E#`. A *soundness* claim would require
+`Effects(Execute(Source)) subseteq gamma(E#)`; that premise is **not
+established** by YAML parsing alone. Instead the next implementation slice
+makes the supported subset explicit:
+
+- Parse YAML with mature `PyYAML.safe_load` (no private YAML parser).
+- Admit only the **known native module effects** in this Linux host playbook:
+  file, copy, systemd_service, ini_file, debug.
+- For path-bearing effects, require static Linux `/etc/systemd/` destinations or
+  the exact per-distribution `/etc/wsl.conf`.
+- Bind the existing loop variables to the finite declared Linux settings and
+  `systemd-homed` service names.
+- Reject unknown module, dynamic path, import/include, Windows target, or
+  missing original Linux consumer from **this check's proof claim**. A new
+  legitimate action is not forbidden in principle: its natural Owner may
+  extend the contract with an explicit qualifying test.
+- Use known bad edits as independent **negative controls**, not an LLM
+  benchmark. Preserve a good source case to reject vacuous `always fail` checks.
+
+Thus `PASS` means only that this exact source satisfies the closed,
+conservatively selected *static task-frame predicate*. It is not global OS
+noninterference. A failing negative control shows the check no longer detects
+its own scoped bad case; use normal RED→GREEN diagnosis before release.
+
+**Adopted references:** Cousot's abstract interpretation/abstraction
+refinement research, https://www.di.ens.fr/~cousot/researchthemes.shtml; existing
+Ordivon `.agents/skills/recursive-lego-calculus/SKILL.md` and
+`tools/formal/RecursiveLegoRefinement.lean`.
+
+### 11.5 Temporal logic: configuration versus active generation
+
+For state `s=(Source, Desired, Materialized, Active, Accepted, Observed)`,
+use separate claims:
+
+```text
+SAFETY:
+  Always(ActiveAccepted =>
+         CurrentNativeActiveObservationMatchesConsumerContract)
+
+PROGRESS (conditional):
+  Always(AdmittedQualifiedReconciliationAndFairResources =>
+         Eventually(NewObservationOrExplicitBoundedBlocker))
+```
+
+The progress claim is conditional on availability and fairness, not an
+unconditional promise of success. A new config file is not proof that WSL
+has restarted; Microsoft explicitly separates global `.wslconfig`,
+per-distribution `/etc/wsl.conf`, and VM restart/activation.
+Use existing TLA+/TLC/Quint methods *only* for a real transition/recovery
+defect requiring them; the current straightforward static write-frame change
+does not justify a new model-checker service or artificial state system.
+
+**Adopted references:** Leslie Lamport, *Specifying Systems*,
+https://lamport.azurewebsites.net/tla/book.html; Microsoft WSL Settings,
+https://learn.microsoft.com/en-us/windows/wsl/wsl-config.
+
+### 11.6 Information hiding, DSM and consumer-rooted subtraction
+
+By Parnas's information-hiding criterion, Workstation owns **how a local host
+and node materialize generic settings**, not Windows user policy merely because
+WSL makes its file reachable under `/mnt/c`. Domain owners retain
+semantic results, Runtime retains physical execution truth, Host retains Work
+collaboration state. A repository folder or an Agent is not a LEGO.
+
+Use the already installed design-structure-matrix Skill on *observed*
+dependencies if deciding a larger ownership split. An interface is worth
+keeping when changing its implementation does not force consumer changes.
+For obsolete writers or documents, invert the analysis: inspect live consumers,
+possible indirect reads and source currentness, then delete the redundant
+path. The existing axiom-free R2.1 retirement theorem remains conditional on
+closed/current consumer evidence; absence in a path grep is not that evidence.
+
+**Adopted reference:** D. L. Parnas, *On the Criteria To Be Used in Decomposing
+Systems into Modules* (1972),
+https://doi.org/10.1145/361598.361623.
+
+### 11.7 Evidence economics: formal proof is property-scoped
+
+Proof effort must be proportional to a **specific falsifiable property and
+failure cost**. For this Workstation scope, the cheapest sound useful
+sequence is:
+
+`SourceSpec → Native YAML Structural Check → Negative Controls →
+Ansible Syntax/List/Check → Current Windows/WSL Readback → Real Consumer`.
+
+The source gate cannot substitute for the later readbacks; each has its own
+version, toolchain, observer, assumptions and validity time. A final report
+must explicitly distinguish `SOURCE_VALIDATED`, `PR_MERGED`,
+`INSTALLED_CURRENT`, `ACTIVE_GENERATION_ACCEPTED`,
+`DOMAIN_ACCEPTED`, and scoped `UNKNOWN`. These are evidence distinctions,
+**not** a proposal for another universal state enum/database.
+
+## 12. Upstream engineering methods — exact adopter and exclusion rules
+
+- **Matt to-spec:** use already settled goals and name one public test seam;
+  do not restart interviews. **Matt to-tickets:** ready-frontier dependencies,
+  each ticket demonstrates independent consumer behavior. Wide mechanical
+  migrations use expand–migrate–contract rather than layer-only tasks.
+  **Implement-spec:** borrow sparse context pointers and integration-branch
+  discipline; never copy a second subagent scheduler or GitHub issue authority.
+  Source: https://github.com/mattpocock/skills
+- **ECC:** event-driven feedback belongs in existing Owner tests, `mise`,
+  GitHub Actions and actual Runtime/Harness boundaries; do not deploy the
+  complete Claude hook/agent/memory system. Source:
+  https://github.com/affaan-m/ECC.
+- **Superpowers:** isolated source, TDD with an observed failing negative,
+  systematic root-cause diagnosis, source/currentness verification before
+  completion, reviewer who did not define the entire acceptance rule.
+  Use current Runtime Workspace rather than another worktree manager.
+  Source: https://github.com/obra/superpowers.
+- **Ordivon canonical method:** `method-router` and `recursive-lego-calculus`
+  already select relevant trusted methods; Host Space coordinates independent
+  review, not execution, permission or semantic truth.
+
+### Direct collision checks
+
+Before changing a shared method, search current main for existing
+`AGENT_CONTRACT_EXECUTION_SPEC_R1.md`, `AGENT_OUTCOME_*_SPEC*.md` and
+ongoing Agent implementation branches. Those own system-wide guidance.
+This document only specifies the **Workstation native consumer** and
+does not create another whole-system Spec, second `AGENTS.md` or mandatory
+methodological step for routine local edits.
+
+## 13. Next vertical tracer bullet: WSL-W1 finite effect-frame strengthening
+
+**T8 (depends on merged T4, real regression in T2):**
+
+- **Agent-visible intent:** the Linux host playbook remains usable while its
+  finite supported effect projection cannot silently contain a Windows-global
+  write or an unexamined arbitrary command.
+- **Existing Owner:** `platform/workstation`, existing
+  `tests/test_host_substrate_authority.py`, `pyproject.toml`, `uv.lock`.
+- **Native dependency:** add pinned PyYAML only as a normal Workstation test
+  dependency; no custom YAML parser/checker daemon.
+- **Deliverable:** replace the earlier literal-string acceptance with parsed,
+  closed-source effect-frame predicates in the *existing test file*.
+- **Negative oracles:** Windows-global INI path, dynamic file destination,
+  `shell` action, imported tasks, and removal of the Linux `/etc/wsl.conf`
+  consumer must all be rejected. The actual present playbook must pass.
+- **Execution:** `uv run --locked python -m pytest -q
+  tests/test_host_substrate_authority.py`; `ruff check`;
+  `ansible-playbook --syntax-check`; `mise run verify`; GitHub CI and
+  protected Merge Queue. Non-mutating Ansible `--check` may supplement
+  source-only claims but is not automatically a deployment proof.
+- **Proof limit:** absent arbitrary imported code, opaque shell or nonstandard
+  modules in this exact source, the *finite source projection* has no
+  Windows-user global file write. Real module/effect semantics, installation,
+  unrelated writers, active Windows instance and domain consumers remain
+  separate evidence.
+
+**T9 (conditional real Windows consumer):** Observe the intended active user
+and service identities separately using existing `probe_executables.ps1` and
+native WSL settings/readback; compare source materialized and active state.
+Never treat `not_on_path` under a service identity as globally not installed.
+If no automatic global Windows configuration consumer is identified, stop
+rather than inventing a config authority.
+
+**T10 (conditional retirement):** For every remaining older provider/doc
+candidate, use native Git/Host/current consumer evidence; retire the exact
+redundant chain once current consumers are migrated. Avoid separate migration
+framework, historical snapshot false authority, or machine-by-machine ceremony.
+
+## 14. Cross-Agent coordination and independent challenge
+
+Use the **existing** Host collaboration locations:
+- `space:ordivon-capability-task-forum-r1:20261101`,
+  `topic:ordivon-capability-task-forum-r1:03-refinement:20261101`,
+  message sequence `25744`: ask for Windows-native consumer, independent
+  R2.1 falsification and conflicts with current Owner source;
+- `space:ordivon-whole-system-optimization-r1:20261002`,
+  `topic:ordivon-whole-system-optimization:matt-v131-method-family-r1:20261005`,
+  message sequence `25745`: selective upstream-method adoption and
+  duplication detection.
+
+Messages are **requests for review**, not peer approval or proof of a reply.
+Only attribute findings to other Agents if there is an actual returned
+message with the exact source/consumer evidence. Source modification, Work
+semantics, Runtime execution and deployed acceptance remain with their
+native authorities.
