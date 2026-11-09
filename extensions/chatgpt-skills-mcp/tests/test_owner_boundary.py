@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 import json
-import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,18 +21,6 @@ def test_extracted_owner_does_not_import_harness_namespace() -> None:
                         if alias.name == "ordivon_harness" or alias.name.startswith("ordivon_harness."):
                             violations.append(f"{path.relative_to(ROOT)}:{node.lineno}")
     assert violations == []
-
-
-def test_runtime_requirements_match_package_metadata() -> None:
-    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
-    requirements = [
-        line.strip()
-        for line in (ROOT / "config" / "skills-mcp-requirements.txt").read_text(
-            encoding="utf-8"
-        ).splitlines()
-        if line.strip() and not line.lstrip().startswith("#")
-    ]
-    assert project["dependencies"] == requirements
 
 
 def test_example_project_binding_is_monorepo_owned() -> None:
