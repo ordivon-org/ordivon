@@ -129,6 +129,9 @@ impl Fixture {
         }
     }
     fn endpoint(&mut self) -> String {
+        self.endpoint_for_principal("pg-consumer")
+    }
+    fn endpoint_for_principal(&mut self, principal: &str) -> String {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let bind = listener.local_addr().unwrap();
         drop(listener);
@@ -162,7 +165,7 @@ impl Fixture {
                 .env("ORDIVON_PG_EXECUTABLE_ROOTS_JSON", r#"["/usr/bin","/bin"]"#)
                 .env("ORDIVON_PG_BIND", bind.to_string())
                 .env("ORDIVON_PG_TOKEN", "p".repeat(32))
-                .env("ORDIVON_PG_PRINCIPAL", "pg-consumer")
+                .env("ORDIVON_PG_PRINCIPAL", principal)
                 .stdout(Stdio::null())
                 .stderr(output)
                 .spawn()
@@ -236,7 +239,566 @@ fn rpc(url: &str, method: &str, params: Value) -> Value {
     })
 }
 fn call(url: &str, name: &str, args: Value) -> Value {
-    rpc(url, "tools/call", json!({"name":name,"arguments":args}))
+    let response = rpc(url, "tools/call", json!({"name":name,"arguments":args}));
+    // This integration client consumes the committed identity, not a
+    // transport success boolean. Only read/reconcile the SAME Job after
+    // a qualified post-COMMIT 40001; no duplicate workspace.exec submission.
+    if name == "workspace.exec" || name == "workspace.execPlan" {
+        observe_committed_40001(url, response)
+    } else {
+        response
+    }
+}
+
+/// An admitted Job's MCP response can encounter a *later* database
+/// serialization abort while reconciling its native result. The consumer
+/// must use the committed operationId to re-observe the SAME Job, never
+/// resubmit the executable as a new request.
+fn committed_40001_job_id(result: &Value) -> Option<&str> {
+    let error = result.get("structuredContent")?.get("error")?;
+    if result.get("isError")?.as_bool() != Some(true)
+        || error.get("commitState")?.as_str() != Some("committed")
+        || error.get("retryClass")?.as_str() != Some("reconcile_first")
+        || error.get("code")?.as_str() != Some("REGISTRY_UNAVAILABLE")
+        || !error.get("message")?.as_str()?.contains("E40001")
+    {
+        return None;
+    }
+    error
+        .get("operationId")?
+        .as_str()
+        .filter(|id| id.starts_with("job-") && id.len() > "job-".len())
+}
+
+fn observe_committed_40001(url: &str, original: Value) -> Value {
+    let Some(job_id) = committed_40001_job_id(&original) else {
+        return original;
+    };
+    let deadline = Instant::now() + Duration::from_secs(25);
+    loop {
+        // This is a different *read/observe* MCP operation. Do not invoke
+        // workspace.exec again after its admission has already committed.
+        let observed = call(
+            url,
+            "job.observe",
+            json!({"jobId": job_id, "waitMs": 4000,
+                "stdoutTailBytes":8192,"stderrTailBytes":8192}),
+        );
+        if observed["isError"] == true {
+            assert_eq!(
+                committed_40001_job_id(&observed),
+                Some(job_id),
+                "new or unqualified observation error: {observed}"
+            );
+        } else {
+            assert_eq!(
+                observed["structuredContent"]["jobId"], job_id,
+                "readback must bind the original committed Job"
+            );
+            if observed["structuredContent"]["executionTerminal"] == true {
+                return observed;
+            }
+        }
+        assert!(
+            Instant::now() < deadline,
+            "committed 40001 Job did not converge: {observed}"
+        );
+        thread::sleep(Duration::from_millis(20));
+    }
+}
+
+#[test]
+fn committed_observation_retry_never_reclassifies_uncommitted_effect() {
+    let value = json!({"isError":true,"structuredContent":{"error":{
+        "commitState":"committed","retryClass":"reconcile_first",
+        "code":"REGISTRY_UNAVAILABLE","operationId":"job-known",
+        "message":"PostgreSQL: SqlState(E40001)"
+    }}});
+    assert_eq!(committed_40001_job_id(&value), Some("job-known"));
+    for replacement in [
+        json!({"commitState":"not_committed"}),
+        json!({"retryClass":"safe_same_request"}),
+        json!({"code":"INVALID_ARGUMENT"}),
+        json!({"message":"other database failure"}),
+        json!({"operationId":null}),
+    ] {
+        let mut mutant = value.clone();
+        for (key, value) in replacement.as_object().unwrap() {
+            mutant["structuredContent"]["error"][key] = value.clone();
+        }
+        assert_eq!(committed_40001_job_id(&mutant), None, "{mutant}");
+    }
+}
+
+/// A real PG+MCP contract test: an ordinary executed Job is NOT a Release
+/// effect; the operator fixture explicitly commits the release side truth.
+/// No installer is invoked. This exercises readback integrity, not deployment.
+#[test]
+#[ignore = "launches a disposable PostgreSQL cluster and native MCP"]
+fn pg_release_get_never_claims_deployed_without_verified_operator_receipt() {
+    use ordivon_runtime_core::{
+        runtime_release_effect_id, runtime_release_request_identity_digest, RuntimeReleaseRequest,
+    };
+    use sha2::{Digest, Sha256};
+    #[derive(serde::Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Binding<'a> {
+        contract: &'static str,
+        effect_id: &'a str,
+        request_digest: &'a str,
+        workspace_id: &'a str,
+        commit: &'a str,
+        candidate_manifest_digest: &'a str,
+        expected_tool_count: u32,
+        receipt_path: &'a str,
+    }
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let commit = String::from_utf8(
+        Command::new("git")
+            .arg("-C")
+            .arg(&repo)
+            .args(["rev-parse", "HEAD"])
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap()
+    .trim()
+    .to_string();
+    let endpoint = fixture.endpoint();
+    let tools = rpc(&endpoint, "tools/list", json!({}));
+    let names = tools["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert!(names.contains(&"release.get"));
+    assert!(
+        !names.contains(&"release.apply"),
+        "no unqualified release writer"
+    );
+    let describe = call(&endpoint, "runtime.describe", json!({}));
+    assert_eq!(
+        describe["structuredContent"]["structuredReleaseConfigured"],
+        false
+    );
+    let missing = call(
+        &endpoint,
+        "release.get",
+        json!({"clientRequestId":"release-no-such-id"}),
+    );
+    assert_eq!(
+        missing["structuredContent"]["error"]["code"],
+        "JOB_NOT_FOUND"
+    );
+
+    let open = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-release-readback","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(open["isError"], true, "{open}");
+    let client_id = "pg-release-readback-test-001";
+    let exec = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":client_id,"execution":{
+            "workspaceId":"ws-release-readback","executable":"/usr/bin/true",
+            "cwdRelative":".","timeoutMs":5000},"waitMs":5000}),
+    );
+    assert_ne!(exec["isError"], true, "{exec}");
+    let job = exec["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let release = RuntimeReleaseRequest {
+        schema_version: 1,
+        client_request_id: client_id.into(),
+        principal: "pg-consumer".into(),
+        workspace_id: "ws-release-readback".into(),
+        commit,
+        candidate_manifest_digest: format!("sha256:{}", "a".repeat(64)),
+        expected_tool_count: 20,
+    };
+    let digest = runtime_release_request_identity_digest(&release).unwrap();
+    let effect = runtime_release_effect_id(&release);
+    let receipt = fixture.root.join("test-release-receipt");
+    let receipt_str = receipt.to_string_lossy().to_string();
+    let binding = Binding {
+        contract: "runtime_release_v1",
+        effect_id: &effect,
+        request_digest: &digest,
+        workspace_id: &release.workspace_id,
+        commit: &release.commit,
+        candidate_manifest_digest: &release.candidate_manifest_digest,
+        expected_tool_count: release.expected_tool_count,
+        receipt_path: &receipt_str,
+    };
+    let binding_bytes = serde_json::to_vec(&binding).unwrap();
+    let binding_digest = format!("sha256:{}", hex::encode(Sha256::digest(&binding_bytes)));
+    let original: String = fixture
+        .db
+        .query_one(
+            "SELECT workspace_snapshot_json FROM jobs WHERE job_id=$1",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    let mut snapshot: Value = serde_json::from_str(&original).unwrap();
+    snapshot["runtimeReleaseEffectDigest"] = json!(binding_digest);
+    fixture
+        .db
+        .execute(
+            "UPDATE jobs SET request_digest=$1,workspace_snapshot_json=$2 WHERE job_id=$3",
+            &[&digest, &snapshot.to_string(), &job],
+        )
+        .unwrap();
+    fixture.db.execute(
+        "INSERT INTO job_runtime_release_effects(job_id,effect_id,contract,request_digest,\
+         workspace_id,commit_revision,candidate_manifest_digest,expected_tool_count,receipt_path,binding_digest)\
+         VALUES($1,$2,'runtime_release_v1',$3,$4,$5,$6,$7,$8,$9)",
+        &[&job,&effect,&digest,&release.workspace_id,&release.commit,
+          &release.candidate_manifest_digest,&(20_i32),&receipt_str,&binding_digest],
+    ).unwrap();
+
+    let readback = call(
+        &endpoint,
+        "release.get",
+        json!({"clientRequestId":client_id}),
+    );
+    // This fixture has deliberately grafted ReleaseEffect data onto a
+    // *normal Runner-exited Job*, without any operator dispatch or
+    // RELEASE_EFFECT_RECEIPTED event. Never mistake its PROCESS_EXITED
+    // event for a qualified installer terminal proof.
+    assert_eq!(readback["isError"], true, "{readback}");
+    assert_eq!(
+        readback["structuredContent"]["error"]["code"], "RECONCILIATION_REQUIRED",
+        "synthetic Runner terminal is not a ReleaseEffect receipt: {readback}"
+    );
+
+    fs::create_dir(&receipt).unwrap();
+    fs::write(
+        receipt.join("effect-request.json"),
+        b"{\"contract\":\"fake\"}",
+    )
+    .unwrap();
+    let forged = call(
+        &endpoint,
+        "release.get",
+        json!({"clientRequestId":client_id}),
+    );
+    assert_eq!(forged["isError"], true, "{forged}");
+    assert_eq!(
+        forged["structuredContent"]["error"]["code"], "RECONCILIATION_REQUIRED",
+        "false Runner terminal must fail before even opening the forged receipt"
+    );
+
+    fixture
+        .db
+        .execute(
+            "UPDATE job_runtime_release_effects SET binding_digest=$1 WHERE job_id=$2",
+            &[&format!("sha256:{}", "0".repeat(64)), &job],
+        )
+        .unwrap();
+    let corrupted = call(
+        &endpoint,
+        "release.get",
+        json!({"clientRequestId":client_id}),
+    );
+    assert_eq!(
+        corrupted["structuredContent"]["error"]["code"],
+        "REGISTRY_CORRUPT"
+    );
+    fixture
+        .db
+        .execute(
+            "UPDATE job_runtime_release_effects SET binding_digest=$1 WHERE job_id=$2",
+            &[&binding_digest, &job],
+        )
+        .unwrap();
+
+    if let Some(mut old) = fixture.endpoint.take() {
+        old.kill().unwrap();
+        old.wait().unwrap();
+    }
+    let other = fixture.endpoint_for_principal("different-principal");
+    let denied = call(&other, "release.get", json!({"clientRequestId":client_id}));
+    assert_eq!(
+        denied["structuredContent"]["error"]["code"], "JOB_NOT_FOUND",
+        "release identity must not be visible across principals: {denied}"
+    );
+}
+
+/// The PG installer is not yet published. This proves its low-level
+/// transactional ReleaseEffect + Job identity has an independent operator
+/// qualification and cannot be dispatched or cancelled as an ordinary Job.
+#[test]
+#[ignore = "launches a disposable PostgreSQL cluster with native HTTP MCP"]
+fn pg_release_effect_atomic_admission_and_generic_dispatch_fence() {
+    use ordivon_runtime_core::pg_admission::{
+        PgAdmissionError, PgAdmissionInput, PgAdmissionOutcome, PgAdmissionStore,
+    };
+    use ordivon_runtime_core::{
+        runtime_release_effect_id, runtime_release_request_identity_digest, RuntimeReleaseRequest,
+    };
+    use sha2::{Digest, Sha256};
+    #[derive(serde::Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Binding<'a> {
+        contract: &'static str,
+        effect_id: &'a str,
+        request_digest: &'a str,
+        workspace_id: &'a str,
+        commit: &'a str,
+        candidate_manifest_digest: &'a str,
+        expected_tool_count: u32,
+        receipt_path: &'a str,
+    }
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let commit = String::from_utf8(
+        Command::new("git")
+            .arg("-C")
+            .arg(&repo)
+            .args(["rev-parse", "HEAD"])
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap()
+    .trim()
+    .to_string();
+    let endpoint = fixture.endpoint();
+    let open = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-pg-release-native","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(open["isError"], true, "{open}");
+    let control = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-release-fixture-plan-001","execution":{
+            "workspaceId":"ws-pg-release-native","executable":"/usr/bin/true",
+            "cwdRelative":".","timeoutMs":5000},"waitMs":5000}),
+    );
+    assert_ne!(control["isError"], true, "{control}");
+    let row = fixture.db.query_one(
+        "SELECT j.execution_plan_json,j.execution_plan_digest,j.workspace_snapshot_json FROM jobs j WHERE j.client_request_id='pg-release-fixture-plan-001'",
+        &[],
+    ).unwrap();
+    let plan: String = row.get(0);
+    let plan_digest: String = row.get(1);
+    let snapshot_raw: String = row.get(2);
+
+    let request = RuntimeReleaseRequest {
+        schema_version: 1,
+        client_request_id: "pg-release-atomic-fixture-001".into(),
+        principal: "pg-consumer".into(),
+        workspace_id: "ws-pg-release-native".into(),
+        commit,
+        candidate_manifest_digest: format!("sha256:{}", "b".repeat(64)),
+        expected_tool_count: 20,
+    };
+    let request_digest = runtime_release_request_identity_digest(&request).unwrap();
+    let effect_id = runtime_release_effect_id(&request);
+    let receipt = fixture.root.join("release-receipt-atomic-fixture");
+    let receipt_s = receipt.to_string_lossy().into_owned();
+    let binding = Binding {
+        contract: "runtime_release_v1",
+        effect_id: &effect_id,
+        request_digest: &request_digest,
+        workspace_id: &request.workspace_id,
+        commit: &request.commit,
+        candidate_manifest_digest: &request.candidate_manifest_digest,
+        expected_tool_count: request.expected_tool_count,
+        receipt_path: &receipt_s,
+    };
+    let binding_json = serde_json::to_vec(&binding).unwrap();
+    let digest = format!("sha256:{}", hex::encode(Sha256::digest(binding_json)));
+    let mut snapshot: Value = serde_json::from_str(&snapshot_raw).unwrap();
+    snapshot["runtimeReleaseEffectDigest"] = json!(digest);
+    let job = format!("job-{}", Uuid::now_v7());
+    let attempt = format!("attempt-{}", Uuid::now_v7());
+    let input = PgAdmissionInput {
+        job_id: job.clone(),
+        attempt_id: attempt.clone(),
+        reservation_id: format!("reservation-{attempt}"),
+        principal: request.principal.clone(),
+        client_request_id: request.client_request_id.clone(),
+        request_digest,
+        operation_digest: format!("sha256:{}", "c".repeat(64)),
+        workspace_id: request.workspace_id.clone(),
+        workspace_snapshot_json: snapshot.to_string(),
+        execution_plan_json: plan,
+        execution_plan_digest: plan_digest,
+        launch_token_digest: format!("sha256:{}", "d".repeat(64)),
+        bundle_path: fixture
+            .root
+            .join("store/pg-attempts")
+            .join(&attempt)
+            .to_string_lossy()
+            .into_owned(),
+        unit_name: format!("ordivon-pg-{attempt}.service"),
+        global_limit: 0,
+        created_at_ms: 123456789,
+        expected_source_sha256: "a".repeat(64),
+    };
+    let dsn = format!(
+        "host={} user=runtime_app dbname=postgres",
+        fixture.root.display()
+    );
+    let mut app = PgAdmissionStore::connect(&dsn, "fresh").unwrap();
+
+    assert!(
+        matches!(
+            app.admit_release_effect(&input, &request, &receipt),
+            Err(PgAdmissionError::Unqualified)
+        ),
+        "a qualified general Job writer cannot self-qualify a ReleaseEffect"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM jobs WHERE client_request_id=$1",
+                &[&request.client_request_id],
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        0
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM job_runtime_release_effects", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        0
+    );
+
+    // Operator is *independent* of runtime_app; test-only synthetic evidence.
+    fixture
+        .db
+        .execute(
+            "INSERT INTO _stage_control VALUES('release','QUALIFIED_RELEASE',$1,true)",
+            &[&"a".repeat(64)],
+        )
+        .unwrap();
+    assert_eq!(
+        app.admit_release_effect(&input, &request, &receipt)
+            .unwrap(),
+        PgAdmissionOutcome::Created(job.clone())
+    );
+    assert_eq!(
+        app.admit_release_effect(&input, &request, &receipt)
+            .unwrap(),
+        PgAdmissionOutcome::Existing(job.clone()),
+        "exact replay must not create another effect"
+    );
+    // Revoking future release authority cannot hide the already committed
+    // immutable effect. Replay resolves BEFORE mutable operator eligibility.
+    fixture
+        .db
+        .execute(
+            "UPDATE _stage_control SET promotion_allowed=false WHERE id='release'",
+            &[],
+        )
+        .unwrap();
+    assert_eq!(
+        app.admit_release_effect(&input, &request, &receipt)
+            .unwrap(),
+        PgAdmissionOutcome::Existing(job.clone()),
+        "exact replay after release revocation must retain original identity"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM job_runtime_release_effects WHERE job_id=$1",
+                &[&job],
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs WHERE job_id=$1", &[&job])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM job_events WHERE job_id=$1", &[&job])
+            .unwrap()
+            .get::<_, i64>(0),
+        3
+    );
+
+    // Background scheduling and explicit observe cannot use generic Runner.
+    thread::sleep(Duration::from_millis(1_100));
+    let observed = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0}),
+    );
+    assert_ne!(observed["isError"], true, "{observed}");
+    assert_eq!(observed["structuredContent"]["attemptState"], "accepted");
+    assert_eq!(observed["structuredContent"]["executionTerminal"], false);
+    assert_eq!(fixture.db.query_one(
+        "SELECT count(*) FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active'",
+        &[&job],
+    ).unwrap().get::<_,i64>(0),0);
+    assert_eq!(
+        fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+                &[&job],
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        0
+    );
+    let cancel = call(&endpoint, "job.cancel", json!({"jobId":job}));
+    assert_eq!(
+        cancel["structuredContent"]["error"]["code"],
+        "DEPLOYMENT_IN_PROGRESS"
+    );
+    let get = call(
+        &endpoint,
+        "release.get",
+        json!({"clientRequestId":request.client_request_id}),
+    );
+    assert_ne!(get["isError"], true, "{get}");
+    assert_eq!(get["structuredContent"]["effectDisposition"], "admitted");
+    assert_eq!(get["structuredContent"]["receiptAvailable"], false);
+    assert_eq!(get["structuredContent"]["effectTerminal"], false);
+
+    let ordinary = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-release-fenced-ordinary-001","execution":{
+            "workspaceId":"ws-pg-release-native","executable":"/usr/bin/true",
+            "cwdRelative":".","timeoutMs":5000},"waitMs":0}),
+    );
+    assert_eq!(
+        ordinary["isError"], true,
+        "new ordinary admission must be fenced: {ordinary}"
+    );
+    assert_eq!(fixture.db.query_one(
+        "SELECT count(*) FROM jobs WHERE client_request_id='pg-release-fenced-ordinary-001'", &[]
+    ).unwrap().get::<_,i64>(0),0);
+    // This fixture must NOT install any release. A durable pending ReleaseEffect
+    // is deliberately separated from qualified external installer authority.
 }
 
 #[test]
@@ -252,7 +814,7 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect::<Vec<_>>();
-    assert_eq!(names.len(), 19);
+    assert_eq!(names.len(), 20);
     // Operator startup receipt must describe the *same* catalog advertised
     // by the mature MCP SDK; it cannot silently retain an obsolete count.
     let startup = fs::read_to_string(fixture.root.join("endpoint.log")).unwrap();
@@ -461,6 +1023,60 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
             })),
         "PG Workspace inventory falsely hid an invalid physical candidate: {inventory_with_issue}"
     );
+    // Real PG MCP regression: list(limit=1) must not inspect every older
+    // Workspace or fail the entire page because one Git checkout is corrupt.
+    // Its physical cursor must still advance past an unprojectable record.
+    let broken_open = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-00-corrupt-list","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(broken_open["isError"], true, "{broken_open}");
+    let broken_git = fixture
+        .root
+        .join("store/workspaces/ws-00-corrupt-list/.git");
+    let original_git = fs::read(&broken_git).expect("Git worktree metadata file");
+    fs::write(&broken_git, "gitdir: /nonexistent/broken-workspace-list\n").unwrap();
+    let broken_page = call(&endpoint, "workspace.list", json!({"limit":1}));
+    assert_ne!(broken_page["isError"], true, "{broken_page}");
+    assert_eq!(
+        broken_page["structuredContent"]["workspaces"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0,
+        "invalid page must not silently claim a healthy Workspace: {broken_page}"
+    );
+    assert!(
+        broken_page["structuredContent"]["issues"]
+            .as_array()
+            .is_some_and(|issues| issues.iter().any(|issue| {
+                issue["workspaceId"] == "ws-00-corrupt-list" && issue["stage"] == "projection"
+            })),
+        "PG list must explicitly report a local projection failure: {broken_page}"
+    );
+    let page_cursor = broken_page["structuredContent"]["nextCursor"].clone();
+    assert!(
+        page_cursor.is_object(),
+        "broken page must advance: {broken_page}"
+    );
+    let healthy_page = call(
+        &endpoint,
+        "workspace.list",
+        json!({"limit":1, "cursor":page_cursor}),
+    );
+    assert_ne!(healthy_page["isError"], true, "{healthy_page}");
+    assert_eq!(
+        healthy_page["structuredContent"]["workspaces"][0]["workspaceId"], "ws-pg-consumer",
+        "next page must remain visible after a corrupt earlier Workspace"
+    );
+    fs::write(&broken_git, original_git).unwrap();
+    let broken_close = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":"ws-00-corrupt-list","consumerReleased":true}),
+    );
+    assert_ne!(broken_close["isError"], true, "{broken_close}");
     let text = call(
         &endpoint,
         "workspace.read",
@@ -1093,7 +1709,47 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         ]},
         "waitMs":12000,"stdoutTailBytes":8192
     });
-    let planned = call(&endpoint, "workspace.execPlan", plan_request.clone());
+    let planned_first = call(&endpoint, "workspace.execPlan", plan_request.clone());
+    // The physical Job can already be committed when a later PostgreSQL
+    // reconciliation/observation snapshot reports 40001. In that case do
+    // NOT resubmit the effect: retain the exact committed operation identity
+    // and reconcile by Job ID, as the public MCP retry contract requires.
+    let planned = if planned_first["isError"] == true {
+        assert_eq!(
+            planned_first["structuredContent"]["error"]["commitState"], "committed",
+            "{planned_first}"
+        );
+        assert_eq!(
+            planned_first["structuredContent"]["error"]["retryClass"], "reconcile_first",
+            "{planned_first}"
+        );
+        let committed = planned_first["structuredContent"]["error"]["operationId"]
+            .as_str()
+            .expect("known committed operationId")
+            .to_string();
+        let mut observed = serde_json::Value::Null;
+        for _ in 0..5 {
+            observed = call(
+                &endpoint,
+                "job.observe",
+                json!({"jobId":committed,"waitMs":12000,"stdoutTailBytes":8192}),
+            );
+            if observed["isError"] != true {
+                break;
+            }
+            assert_eq!(
+                observed["structuredContent"]["error"]["commitState"], "committed",
+                "{observed}"
+            );
+            assert_eq!(
+                observed["structuredContent"]["error"]["operationId"], committed,
+                "{observed}"
+            );
+        }
+        observed
+    } else {
+        planned_first
+    };
     assert_ne!(planned["isError"], true, "{planned}");
     assert_eq!(
         planned["structuredContent"]["executionDisposition"], "succeeded",
@@ -1207,6 +1863,26 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     );
     let cancelled = call(&endpoint, "job.cancel", json!({"jobId":job}));
     assert_ne!(cancelled["isError"], true, "{cancelled}");
+    // Recovery must converge even after the client stops observing.
+    let recovery_deadline = Instant::now() + Duration::from_secs(12);
+    loop {
+        let resolution: Option<String> = fixture
+            .db
+            .query_one(
+                "SELECT resolution FROM jobs WHERE job_id=$1",
+                &[&job.as_str().unwrap()],
+            )
+            .unwrap()
+            .get(0);
+        if resolution.is_some() {
+            break;
+        }
+        assert!(
+            Instant::now() < recovery_deadline,
+            "background cancellation recovery did not converge"
+        );
+        thread::sleep(Duration::from_millis(100));
+    }
     let mut observed = call(&endpoint, "job.observe", json!({"jobId":job,"waitMs":3000}));
     for _ in 0..10 {
         if observed["structuredContent"]["executionTerminal"] == true {
@@ -1264,6 +1940,122 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     assert_eq!(
         count, 1,
         "cancellation must not cause a second physical launch"
+    );
+    // A genuinely admitted Attempt that never crossed dispatch can cancel
+    // without any invented native-process evidence. Use the public admission
+    // store and an existing valid plan, never hand-edit live lifecycle rows.
+    let record = fixture.db.query_one(
+        "SELECT workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest FROM jobs WHERE job_id=$1",
+        &[&job.as_str().unwrap()],
+    ).unwrap();
+    let pending_job = format!("job-{}", Uuid::now_v7());
+    let pending_attempt = format!("attempt-{}", Uuid::now_v7());
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let input = ordivon_runtime_core::pg_admission::PgAdmissionInput {
+        job_id: pending_job.clone(),
+        attempt_id: pending_attempt.clone(),
+        reservation_id: format!("reservation-{}", Uuid::now_v7()),
+        principal: "pg-consumer".into(),
+        client_request_id: "cancel-before-dispatch-native".into(),
+        request_digest: format!("sha256:{}", "b".repeat(64)),
+        operation_digest: format!("sha256:{}", "c".repeat(64)),
+        workspace_id: record.get(0),
+        workspace_snapshot_json: record.get(1),
+        execution_plan_json: record.get(2),
+        execution_plan_digest: record.get(3),
+        launch_token_digest: format!("sha256:{}", "d".repeat(64)),
+        bundle_path: fixture
+            .root
+            .join("store/pg-attempts")
+            .join(&pending_attempt)
+            .to_string_lossy()
+            .into_owned(),
+        unit_name: format!("ordivon-pg-{pending_attempt}.service"),
+        global_limit: 4,
+        created_at_ms: now,
+        expected_source_sha256: "a".repeat(64),
+    };
+    let dsn = format!(
+        "host={} user=runtime_app dbname=postgres",
+        fixture.root.display()
+    );
+    ordivon_runtime_core::pg_admission::PgAdmissionStore::connect(&dsn, "fresh")
+        .unwrap()
+        .admit(&input)
+        .unwrap();
+    let cancelled = call(&endpoint, "job.cancel", json!({"jobId":pending_job}));
+    assert_ne!(cancelled["isError"], true, "{cancelled}");
+    assert_eq!(
+        cancelled["structuredContent"]["executionDisposition"],
+        "cancelled"
+    );
+    assert_eq!(cancelled["structuredContent"]["resultAvailable"], false);
+    let dispatched: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&pending_job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        dispatched, 0,
+        "cancelled pre-dispatch Attempt was physically launched"
+    );
+    // Restart only the MCP control process while its independent native Unit
+    // runs. Recovery must consume the existing result, never launch again.
+    let running = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+        "clientRequestId":"native-control-restart", "execution":{
+            "workspaceId":input.workspace_id,"executable":"/usr/bin/sleep",
+            "args":["2"],"cwdRelative":".","timeoutMs":15000},"waitMs":0}),
+    );
+    assert_ne!(running["isError"], true, "{running}");
+    let running_job = running["structuredContent"]["jobId"].as_str().unwrap();
+    let old_control = fixture.endpoint.as_mut().unwrap();
+    old_control.kill().unwrap();
+    old_control.wait().unwrap();
+    let restarted_endpoint = fixture.endpoint();
+    let deadline = Instant::now() + Duration::from_secs(12);
+    loop {
+        let resolution: Option<String> = fixture
+            .db
+            .query_one(
+                "SELECT resolution FROM jobs WHERE job_id=$1",
+                &[&running_job],
+            )
+            .unwrap()
+            .get(0);
+        if resolution.as_deref() == Some("succeeded") {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "native result did not converge after control-plane restart"
+        );
+        thread::sleep(Duration::from_millis(100));
+    }
+    let after_restart = call(&restarted_endpoint, "job.get", json!({"jobId":running_job}));
+    assert_eq!(
+        after_restart["structuredContent"]["job"]["mechanicallyConverged"],
+        true
+    );
+    let dispatches: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&running_job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        dispatches, 1,
+        "control-plane restart duplicated physical execution"
     );
 }
 
@@ -1589,4 +2381,360 @@ fn pg_host_dependencies_real_runner_and_committed_idempotency() {
         .unwrap()
         .get(0);
     assert_eq!(dispatched, 1, "an exact replay must never launch again");
+}
+
+#[test]
+#[ignore = "real PostgreSQL/systemd resource queue and mount contract"]
+fn resource_queue_shared_workspace_restart_and_native_write_leases() {
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let mut endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-resource-queue","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let node = call(&endpoint, "runtime.describe", json!({}));
+    assert!(node["structuredContent"]["globalExecutionLimit"].is_null());
+    let cpu = node["structuredContent"]["scheduling"]["node"]["cpuMillis"]
+        .as_u64()
+        .unwrap();
+    let schedule = |cpu: u64, access: Value| json!({"resources":{"cpuMillis":cpu,"memoryBytes":16777216,"pids":8},"workspaceAccess":access});
+    let submit = |endpoint: &str, id: &str, args: Vec<&str>, cpu: u64, access: Value| {
+        call(
+            endpoint,
+            "workspace.exec",
+            json!({"clientRequestId":id,"execution":{"workspaceId":"ws-resource-queue","executable":"/usr/bin/sh","args":args,"cwdRelative":".","timeoutMs":120000,"budget":{"scheduling":schedule(cpu,access)}},"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0}),
+        )
+    };
+    let wait = |db: &mut Client, jobs: &[String]| {
+        let deadline = Instant::now() + Duration::from_secs(20);
+        loop {
+            let count: i64 = db
+                .query_one(
+                    "SELECT count(*) FROM jobs WHERE job_id=ANY($1) AND resolution IS NULL",
+                    &[&jobs],
+                )
+                .unwrap()
+                .get(0);
+            if count == 0 {
+                break;
+            }
+            assert!(Instant::now() < deadline, "queued jobs failed to converge");
+            thread::sleep(Duration::from_millis(100));
+        }
+    };
+    // A full CPU request blocks a CPU-consuming peer but not CPU-free waiting work.
+    let release_blocker = fixture.root.join("release-blocker");
+    let blocker_script = format!(
+        "while [ ! -f '{}' ]; do sleep 0.1; done",
+        release_blocker.display()
+    );
+    let blocker = submit(
+        &endpoint,
+        "resource-blocker",
+        vec!["-c", blocker_script.as_str()],
+        cpu,
+        json!({"readOnly":true}),
+    );
+    assert_ne!(blocker["isError"], true, "{blocker}");
+    let blocked = submit(
+        &endpoint,
+        "resource-pending",
+        vec!["-c", "true"],
+        100,
+        json!({"readOnly":true}),
+    );
+    assert_ne!(blocked["isError"], true, "{blocked}");
+    assert_eq!(
+        blocked["structuredContent"]["scheduling"]["state"], "pending",
+        "{blocked}"
+    );
+    let replay = submit(
+        &endpoint,
+        "resource-pending",
+        vec!["-c", "true"],
+        100,
+        json!({"readOnly":true}),
+    );
+    assert_eq!(
+        replay["structuredContent"]["jobId"],
+        blocked["structuredContent"]["jobId"]
+    );
+    let queued_cancel = submit(
+        &endpoint,
+        "resource-pending-cancel",
+        vec!["-c", "true"],
+        100,
+        json!({"readOnly":true}),
+    );
+    let cancelled = call(
+        &endpoint,
+        "job.cancel",
+        json!({"jobId":queued_cancel["structuredContent"]["jobId"]}),
+    );
+    assert_eq!(
+        cancelled["structuredContent"]["executionDisposition"], "cancelled",
+        "{cancelled}"
+    );
+    let control = fixture.endpoint.as_mut().unwrap();
+    assert!(Command::new("kill")
+        .args(["-INT", &control.id().to_string()])
+        .status()
+        .unwrap()
+        .success());
+    let shutdown_deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        if let Some(status) = control.try_wait().unwrap() {
+            assert!(status.success(), "unclean scheduler shutdown");
+            break;
+        }
+        assert!(
+            Instant::now() < shutdown_deadline,
+            "scheduler prevented graceful control shutdown"
+        );
+        thread::sleep(Duration::from_millis(50));
+    }
+    endpoint = fixture.endpoint();
+    fs::write(&release_blocker, b"release").unwrap();
+    wait(
+        &mut fixture.db,
+        &[
+            blocker["structuredContent"]["jobId"]
+                .as_str()
+                .unwrap()
+                .into(),
+            blocked["structuredContent"]["jobId"]
+                .as_str()
+                .unwrap()
+                .into(),
+        ],
+    );
+    let release = fixture.root.join("release-readers");
+    let shared_wait = format!("while [ ! -f '{}' ]; do sleep 0.1; done", release.display());
+    let mut shared = Vec::new();
+    for n in 0..6 {
+        let result = submit(
+            &endpoint,
+            &format!("shared-reader-{n}"),
+            vec!["-c", shared_wait.as_str()],
+            0,
+            json!({"readOnly":true}),
+        );
+        assert_ne!(result["isError"], true, "{result}");
+        shared.push(
+            result["structuredContent"]["jobId"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+        );
+    }
+    let allocated:i64=fixture.db.query_one("SELECT count(*) FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=ANY($1) AND x.state='active'",&[&shared]).unwrap().get(0);
+    assert!(
+        allocated >= 5,
+        "fixed global or per-Workspace count still limits shared work: {allocated}"
+    );
+    fs::write(&release, b"release").unwrap();
+    wait(&mut fixture.db, &shared);
+    let changed = call(
+        &endpoint,
+        "workspace.mutate",
+        json!({"workspaceId":"ws-resource-queue","mutations":[{"mode":"WRITE","relativePath":"left/.keep","content":"left"},{"mode":"WRITE","relativePath":"right/.keep","content":"right"}]}),
+    );
+    assert_ne!(changed["isError"], true, "{changed}");
+    let release_writes = fixture.root.join("release-writes");
+    let left_script = format!(
+        "set -e; echo left > left/out; while [ ! -f '{}' ]; do sleep 0.1; done",
+        release_writes.display()
+    );
+    let right_script = format!(
+        "set -e; echo right > right/out; while [ ! -f '{}' ]; do sleep 0.1; done",
+        release_writes.display()
+    );
+    let left = submit(
+        &endpoint,
+        "scope-left",
+        vec!["-c", left_script.as_str()],
+        0,
+        json!({"readPaths":["left"],"writePaths":["left"]}),
+    );
+    let right = submit(
+        &endpoint,
+        "scope-right",
+        vec!["-c", right_script.as_str()],
+        0,
+        json!({"readPaths":["right"],"writePaths":["right"]}),
+    );
+    assert_ne!(left["isError"], true, "{left}");
+    assert_ne!(right["isError"], true, "{right}");
+    assert_eq!(
+        left["structuredContent"]["scheduling"]["state"], "allocated",
+        "{left}"
+    );
+    assert_eq!(
+        right["structuredContent"]["scheduling"]["state"], "allocated",
+        "{right}"
+    );
+    let conflict = submit(
+        &endpoint,
+        "scope-conflict",
+        vec!["-c", "echo serial > left/later"],
+        0,
+        json!({"readPaths":["left"],"writePaths":["left"]}),
+    );
+    assert_eq!(
+        conflict["structuredContent"]["scheduling"]["state"], "pending",
+        "{conflict}"
+    );
+    let independent_mutation = call(
+        &endpoint,
+        "workspace.mutate",
+        json!({"workspaceId":"ws-resource-queue","mutations":[{"mode":"WRITE","relativePath":"other/independent","content":"independent"}]}),
+    );
+    assert_ne!(
+        independent_mutation["isError"], true,
+        "unrelated mutation was blocked by a Workspace count: {independent_mutation}"
+    );
+    let conflicting_mutation = call(
+        &endpoint,
+        "workspace.mutate",
+        json!({"workspaceId":"ws-resource-queue","mutations":[{"mode":"WRITE","relativePath":"left/blocked","content":"must wait"}]}),
+    );
+    assert_eq!(
+        conflicting_mutation["structuredContent"]["error"]["code"],
+        "CONCURRENCY_LIMIT"
+    );
+    fs::write(&release_writes, b"release").unwrap();
+    let ids = [left, right, conflict]
+        .iter()
+        .map(|v| {
+            v["structuredContent"]["jobId"]
+                .as_str()
+                .unwrap()
+                .to_string()
+        })
+        .collect::<Vec<_>>();
+    wait(&mut fixture.db, &ids);
+    for job in &ids {
+        let state: String = fixture
+            .db
+            .query_one("SELECT resolution FROM jobs WHERE job_id=$1", &[job])
+            .unwrap()
+            .get(0);
+        if state != "succeeded" {
+            let bundle: String = fixture
+                .db
+                .query_one("SELECT bundle_path FROM attempts WHERE job_id=$1", &[job])
+                .unwrap()
+                .get(0);
+            for name in ["result.json", "stderr.log", "stderr.bin", "stderr"] {
+                if let Ok(content) = fs::read_to_string(PathBuf::from(&bundle).join(name)) {
+                    eprintln!(
+                        "SCOPE_DIAGNOSTIC {job} {name}: {}",
+                        &content[..content.len().min(8000)]
+                    );
+                }
+            }
+            eprintln!(
+                "SCOPE_BUNDLE_FILES {:?}",
+                fs::read_dir(&bundle)
+                    .unwrap()
+                    .map(|v| v.unwrap().file_name())
+                    .collect::<Vec<_>>()
+            );
+        }
+        assert_eq!(state, "succeeded", "scoped native write failed for {job}");
+    }
+    let denied = submit(
+        &endpoint,
+        "scope-denied",
+        vec!["-c", "touch outside-scope"],
+        0,
+        json!({"readOnly":true}),
+    );
+    let denied_id = denied["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    wait(&mut fixture.db, std::slice::from_ref(&denied_id));
+    let state: String = fixture
+        .db
+        .query_one("SELECT resolution FROM jobs WHERE job_id=$1", &[&denied_id])
+        .unwrap()
+        .get(0);
+    assert_eq!(state, "failed", "native read-only boundary was bypassed");
+    let listed = call(&endpoint, "job.list", json!({"limit":100}));
+    assert_ne!(listed["isError"], true, "{listed}");
+}
+
+#[test]
+#[ignore = "real PostgreSQL/systemd dominant-share and idle borrowing"]
+fn resource_queue_owner_fairness_and_idle_borrowing() {
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-owner-fairness","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let describe = call(&endpoint, "runtime.describe", json!({}));
+    let cpu = describe["structuredContent"]["scheduling"]["node"]["cpuMillis"]
+        .as_u64()
+        .unwrap();
+    let release_blocker = fixture.root.join("release-borrower");
+    let release_owners = fixture.root.join("release-owners");
+    let submit = |id: &str, owner: &str, cpu: u64, marker: &PathBuf| {
+        let script = format!("while [ ! -f '{}' ]; do sleep 0.1; done", marker.display());
+        let result = call(
+            &endpoint,
+            "workspace.exec",
+            json!({"clientRequestId":id,"execution":{"workspaceId":"ws-owner-fairness","executable":"/usr/bin/sh","args":["-c",script],"cwdRelative":".","timeoutMs":120000,"budget":{"scheduling":{"owner":owner,"resources":{"cpuMillis":cpu,"memoryBytes":16777216,"pids":8},"workspaceAccess":{"readOnly":true}}}},"waitMs":0}),
+        );
+        assert_ne!(result["isError"], true, "{result}");
+        result["structuredContent"]["jobId"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let borrower = submit("idle-borrower", "idle-owner", cpu, &release_blocker);
+    let borrowed:bool=fixture.db.query_one("SELECT EXISTS(SELECT 1 FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active')",&[&borrower]).unwrap().get(0);
+    assert!(borrowed, "idle capacity was artificially capped per owner");
+    let a1 = submit("owner-a-first", "owner-a", cpu / 2, &release_owners);
+    let a2 = submit("owner-a-second", "owner-a", cpu / 2, &release_owners);
+    let b1 = submit("owner-b-first", "owner-b", cpu / 2, &release_owners);
+    fs::write(&release_blocker, b"release").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let owners=fixture.db.query("SELECT x.owner FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=ANY($1) AND x.state='active' ORDER BY x.owner",&[&vec![a1.clone(),a2.clone(),b1.clone()]]).unwrap().iter().map(|r|r.get::<_,String>(0)).collect::<Vec<_>>();
+        if owners == vec!["owner-a".to_string(), "owner-b".to_string()] {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "dominant-share scheduling did not share released capacity: {owners:?}"
+        );
+        thread::sleep(Duration::from_millis(100));
+    }
+    let second_a_allocated:bool=fixture.db.query_one("SELECT EXISTS(SELECT 1 FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active')",&[&a2]).unwrap().get(0);
+    assert!(
+        !second_a_allocated,
+        "FIFO owner monopolized shared capacity"
+    );
+    fs::write(&release_owners, b"release").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let pending: i64 = fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs WHERE resolution IS NULL", &[])
+            .unwrap()
+            .get(0);
+        if pending == 0 {
+            break;
+        }
+        assert!(Instant::now() < deadline, "fair-share jobs did not finish");
+        thread::sleep(Duration::from_millis(100));
+    }
 }

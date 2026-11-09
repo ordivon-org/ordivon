@@ -1,0 +1,241 @@
+#!/usr/bin/env python3
+"""PG Runtime workspace lifecycle adapter: systemd schedules, Runtime closes.
+
+Use the already deployed Runtime workspace.get/workspace.close contract. Never
+delete physical Workspace files directly or infer domain acceptance from Job exit.
+"""
+from __future__ import annotations
+
+import argparse
+import fcntl
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import time
+
+from mcp_probe import connect_compatible, load_environment_file
+
+def _git(repo: Path, *args: str, timeout: float = 10) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        capture_output=True, text=True, timeout=timeout, check=False,
+    )
+
+def _worktrees(repo: Path, root: Path) -> list[tuple[Path, str]]:
+    output = _git(repo, "worktree", "list", "--porcelain", timeout=30)
+    if output.returncode:
+        raise RuntimeError("Git worktree inventory failed")
+    worktrees = []
+    for part in output.stdout.strip().split("\n\n"):
+        entries = part.splitlines()
+        location = next((line[9:] for line in entries if line.startswith("worktree ")), "")
+        head = next((line[5:] for line in entries if line.startswith("HEAD ")), "")
+        if not location or not head or "locked" in entries:
+            continue
+        path = Path(location)
+        if path.parent == root and path.is_dir() and not path.is_symlink():
+            worktrees.append((path, head))
+    return worktrees
+
+def _jobs(environment: dict[str, str]) -> dict[str, tuple[int, str | None, int]]:
+    """Read a small PG projection; native close rechecks physical authority."""
+    import psycopg
+    from psycopg import sql
+    schema = environment["ORDIVON_PG_SCHEMA"]
+    query = sql.SQL("""
+        WITH activity AS (
+            SELECT j.workspace_id, j.job_id, j.created_at_ms, j.resolution,
+                   GREATEST(
+                       j.created_at_ms,
+                       COALESCE(events.last_event_ms, 0),
+                       COALESCE(attempts.last_finished_ms, 0)
+                   ) AS last_activity_ms
+              FROM {schema}.jobs j
+              LEFT JOIN (
+                   SELECT job_id, MAX(observed_at_ms) AS last_event_ms
+                     FROM {schema}.job_events GROUP BY job_id
+              ) events ON events.job_id = j.job_id
+              LEFT JOIN (
+                   SELECT job_id, MAX(finished_at_ms) AS last_finished_ms
+                     FROM {schema}.attempts GROUP BY job_id
+              ) attempts ON attempts.job_id = j.job_id
+        )
+        SELECT workspace_id, MAX(last_activity_ms) AS last_ms,
+               (ARRAY_AGG(resolution ORDER BY created_at_ms DESC, job_id DESC))[1]
+                   AS last_resolution,
+               COUNT(*) FILTER (WHERE resolution IS NULL) AS nonterminal
+          FROM activity GROUP BY workspace_id
+    """).format(schema=sql.Identifier(schema))
+    with psycopg.connect(environment["ORDIVON_PG_DSN"], connect_timeout=8) as connection:
+        with connection.transaction():
+            connection.execute("SET LOCAL statement_timeout = '15000ms'")
+            rows = connection.execute(query).fetchall()
+    return {row[0]: (row[1], row[2], row[3]) for row in rows}
+
+def eligible(
+    *,
+    now_ms: int,
+    created_ms: int,
+    latest_job_ms: int | None,
+    latest_resolution: str | None,
+    unresolved: int,
+    min_age_ms: int,
+) -> bool:
+    """Reclaim only old, quiet, successfully executed Workspaces."""
+    return (
+        type(created_ms) is int and created_ms >= 0
+        and type(latest_job_ms) is int and latest_job_ms >= created_ms
+        and latest_resolution == "succeeded"
+        and unresolved == 0
+        and max(created_ms, latest_job_ms) <= now_ms - min_age_ms
+    )
+
+def _active_process_cwds(root: Path) -> list[str]:
+    result = []
+    for process in Path("/proc").glob("[0-9]*/cwd"):
+        try:
+            cwd = os.readlink(process)
+            if cwd.startswith(str(root) + "/"):
+                result.append(cwd)
+        except (OSError, PermissionError):
+            continue
+    return result
+
+def _store_receipt(root: Path, data: dict) -> str:
+    root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.chmod(root, 0o700)
+    target = root / ("pg-reclaim-" + str(data["observedAtMs"]) + ".json")
+    fd, temp = tempfile.mkstemp(prefix=".reclaim-", dir=root)
+    try:
+        with os.fdopen(fd, "w", encoding="utf8") as stream:
+            json.dump(data, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.chmod(temp, 0o600)
+        os.replace(temp, target)
+    finally:
+        if os.path.exists(temp):
+            os.unlink(temp)
+    return str(target)
+
+def run(args: argparse.Namespace) -> dict:
+    env = load_environment_file(args.env_file)
+    repo, root = args.source_repo.resolve(), args.workspace_root.resolve()
+    if root != Path("/var/lib/ordivon/pg-candidate/workspaces"):
+        raise ValueError("PG Runtime must own the exact Workspace root")
+    if not (repo / ".git").exists() and not (repo / ".git").is_file():
+        raise ValueError("sourceRepo is not a Git authority")
+    if args.min_age_hours < 1 or args.min_age_hours > 168:
+        raise ValueError("retention hours must be between 1 and 168")
+    recent = _jobs(env)
+    now = int(time.time() * 1000)
+    cutoff = int(args.min_age_hours * 3600 * 1000)
+    cwd = _active_process_cwds(root)
+    results = {"checked": 0, "eligible": 0, "closed": [], "skipped": {}, "errors": []}
+    def skip(why: str) -> None:
+        results["skipped"][why] = results["skipped"].get(why, 0) + 1
+    candidates = []
+    for path, head in _worktrees(repo, root):
+        results["checked"] += 1
+        if any(item == str(path) or item.startswith(str(path)+"/") for item in cwd):
+            skip("process_cwd_active");continue
+        # Linux ctime is used only as a conservative first-stage cheap filter.
+        # The Runtime-created and Job timestamps determine actual retention age.
+        if path.stat().st_ctime * 1000 > now - cutoff:
+            skip("directory_recently_changed");continue
+        info = recent.get(path.name)
+        if info is None:
+            skip("no_terminal_job_evidence");continue
+        last_ms,resolution,nonterminal = info
+        if nonterminal or resolution != "succeeded" or last_ms > now - cutoff:
+            skip("job_not_old_and_terminal_success");continue
+        if _git(repo, "merge-base", "--is-ancestor", head, "origin/main").returncode:
+            skip("head_not_in_main");continue
+        status = _git(path, "status", "--porcelain=v1", "--untracked-files=normal")
+        if status.returncode or status.stdout.strip():
+            skip("dirty_or_git_error");continue
+        candidates.append((path, head, info))
+    if not args.apply:
+        results["eligible"] = len(candidates)
+        results["candidates"] = [p.name for p,_,_ in candidates[:args.limit]]
+        return results
+    os.environ["no_proxy"] = "127.0.0.1,localhost"
+    client = connect_compatible(
+        "http://" + env["ORDIVON_PG_BIND"] + "/mcp",
+        env["ORDIVON_PG_TOKEN"],
+        client_name="ordivon-runtime-pg-reclaim",
+        timeout=20.0,
+    )
+    for path, head, info in candidates[:args.limit]:
+        try:
+            workspace = client.call_tool("workspace.get", {"workspaceId":path.name,"schemaVersion":1})
+            if (workspace.get("workspaceId") != path.name or workspace.get("dirty") is not False
+                or workspace.get("activeJobIds") != []
+                or workspace.get("sourceRepo") != str(repo)
+                or workspace.get("currentHeadRevision") != head
+                or not eligible(
+                    now_ms=now,created_ms=workspace.get("createdAtMs"),
+                    latest_job_ms=info[0], latest_resolution=info[1],
+                    unresolved=info[2], min_age_ms=cutoff,
+                )):
+                skip("runtime_authority_not_eligible");continue
+            digest=workspace.get("sourceStateDigest")
+            if not isinstance(digest,str) or not digest.startswith("sha256:"):
+                skip("missing_source_digest");continue
+            # Recheck Git and never force. Runtime checks held Jobs/dependents.
+            if (_git(repo,"merge-base","--is-ancestor",head,"origin/main").returncode
+                or _git(path,"status","--porcelain=v1","--untracked-files=normal").stdout.strip()):
+                skip("git_changed_at_close");continue
+            closed = client.call_tool(
+                "workspace.close",
+                {"schemaVersion":1,"workspaceId":path.name,"force":False,
+                 "consumerReleased":True,
+                 "expectedSourceStateDigest":digest},
+            )
+            if closed.get("closureDisposition") not in ("removed","already_closed"):
+                raise RuntimeError("Runtime did not confirm closed disposition")
+            results["closed"].append(path.name)
+        except Exception as error:
+            results["errors"].append({"workspaceId":path.name,"errorType":type(error).__name__})
+    results["eligible"] = len(candidates)
+    return results
+
+def main() -> int:
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--env-file",required=True,type=Path)
+    parser.add_argument("--source-repo",required=True,type=Path)
+    parser.add_argument("--workspace-root",required=True,type=Path)
+    parser.add_argument("--receipt-root",required=True,type=Path)
+    parser.add_argument("--lock-file",required=True,type=Path)
+    parser.add_argument("--min-age-hours",type=float,default=24)
+    parser.add_argument("--limit",type=int,default=25)
+    parser.add_argument("--apply",action="store_true")
+    args=parser.parse_args()
+    if not 1<=args.limit<=100:
+        parser.error("limit must be 1..100")
+    args.lock_file.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+    with args.lock_file.open("a+") as lock:
+        try:
+            fcntl.flock(lock.fileno(),fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError:
+            print(json.dumps({"status":"already_running"}))
+            return 0
+        try:
+            report=run(args)
+            report.update({"schemaVersion":1,"kind":"ordivon.pg-native-workspace-reclaim",
+                           "observedAtMs":int(time.time()*1000),"applied":args.apply})
+            if args.apply:
+                report["receipt"]=_store_receipt(args.receipt_root,report)
+            print(json.dumps(report,sort_keys=True))
+            return 0 if not report["errors"] else 2
+        except Exception as error:
+            print(json.dumps({"status":"failed","errorType":type(error).__name__,
+                              "detail":str(error)[:300]}),file=sys.stderr)
+            return 1
+
+if __name__ == "__main__":
+    raise SystemExit(main())

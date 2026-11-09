@@ -1805,6 +1805,24 @@ class DataProducerToConsumerImpactTests(unittest.TestCase):
         self.assertEqual(downstream["verificationOwners"], ["data"])
         self.assertNotIn("capital", downstream["taskLocalTestConsumers"])
 
+    def test_finance_composition_consumer_is_selected_only_for_its_actual_inputs(self) -> None:
+        for source in (
+            "domains/capital/scripts/strategic_contribution_brief.py",
+            "domains/capital/src/ordivon_capital/portfolio/strategic_contribution.py",
+            "domains/capital/examples/strategic_contribution_r1.json",
+            "domains/capital/scripts/finance_lego.py",
+            "domains/capital/src/ordivon_capital/research/experiment_protocol.py",
+        ):
+            plan = MODULE.build_plan(changed_files=[source])
+            self.assertIn("composition", plan["taskLocalTestConsumers"])
+            self.assertIn("composition:verify", plan["queueVerifyTasks"])
+
+        unrelated = MODULE.build_plan(
+            changed_files=["domains/capital/data-products/crypto-public-shadow-r2/odps.json"]
+        )
+        self.assertEqual(unrelated["taskLocalTestConsumers"], ["data"])
+        self.assertNotIn("composition", unrelated["verificationOwners"])
+
     def test_test_only_consumer_source_must_be_actual_exact_registered_file(self) -> None:
         policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
         source = 'source_glob = "packages/data/tests/test_odps_projection.py"'

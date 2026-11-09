@@ -1,20 +1,63 @@
 extends SceneTree
 
 # Bounded, engine-native symbolic episode port for this one game fixture.
-# Input: -- --actions attack,guard,advance ; output: one prefixed JSON record.
+# Input: -- --actions attack,guard,advance,trial,classic [--observation player|debug].
+# Default player mode projects native rendered HUD/dialogue, never full rules state.
 # This is not a generic Game service, screen reader, or human-playtest proxy.
 const MAX_ACTIONS: int = 64
 const PREFIX: String = "GAME_AGENT_EPISODE_JSON="
+
+# Observe the actual native presentation. No hidden rule snapshot in this port.
+func _player_observation(game: Control) -> Dictionary:
+    var view: VBoxContainer = game.get_node("View")
+    var dialogue: VBoxContainer = game.get_node("GateDialogue")
+    var actions: Dictionary = {}
+    for action in ["Attack", "Guard", "Next", "Trial", "Classic"]:
+        var control: Button = view.get_node("Actions/" + action)
+        actions[{"Attack": "attack", "Guard": "guard", "Next": "advance", "Trial": "trial", "Classic": "classic"}[action]] = (
+            control.visible and not control.disabled
+        )
+    var observation: Dictionary = {
+        "title": view.get_node("Title").text,
+        "status": view.get_node("Status").text,
+        "encounter": view.get_node("Encounter").text,
+        "actions": actions
+    }
+    if view.get_node("Hint").visible:
+        observation["hint"] = view.get_node("Hint").text
+    if view.get_node("Outcome").visible:
+        observation["outcome"] = view.get_node("Outcome").text
+    if dialogue.visible:
+        var responses: Array[Dictionary] = []
+        for node in dialogue.get_node("Choices").get_children():
+            if node is Button and node.visible and not node.is_queued_for_deletion():
+                responses.append({"text": node.text, "enabled": not node.disabled})
+        observation["dialogue"] = {
+            "text": dialogue.get_node("Line").text,
+            "status": dialogue.get_node("Status").text,
+            "responses": responses
+        }
+    return observation
+
+func _observation(game: Control, rules: Node, mode: String) -> Dictionary:
+    if mode == "debug":
+        return rules.snapshot().duplicate(true)
+    return _player_observation(game)
 
 func _initialize() -> void:
     call_deferred("run_episode")
 
 func run_episode() -> void:
     var args: PackedStringArray = OS.get_cmdline_user_args()
-    if args.size() != 2 or args[0] != "--actions":
+    var observation_mode: String = "player"
+    if args.size() == 4 and args[2] == "--observation":
+        observation_mode = args[3]
+    if (args.size() != 2 and args.size() != 4) or args[0] != "--actions" or (
+        args.size() == 4 and args[2] != "--observation"
+    ) or observation_mode not in ["player", "debug"]:
         print(PREFIX + JSON.stringify({
-            "schema_version": 1,
-            "error": "expected: -- --actions attack,guard,advance"
+            "schema_version": 2,
+            "error": "expected: -- --actions attack,guard,advance [--observation player|debug]"
         }))
         quit(2)
         return
@@ -25,7 +68,7 @@ func run_episode() -> void:
             actions.append(item.strip_edges())
     if actions.size() > MAX_ACTIONS:
         print(PREFIX + JSON.stringify({
-            "schema_version": 1,
+            "schema_version": 2,
             "error": "action limit exceeded",
             "max_actions": MAX_ACTIONS
         }))
@@ -34,27 +77,27 @@ func run_episode() -> void:
 
     var packed: PackedScene = load("res://main.tscn")
     if packed == null:
-        print(PREFIX + JSON.stringify({"schema_version": 1, "error": "scene unavailable"}))
+        print(PREFIX + JSON.stringify({"schema_version": 2, "error": "scene unavailable"}))
         quit(3)
         return
     var game: Control = packed.instantiate()
     root.add_child(game)
-    await process_frame
-    await process_frame
+    if not game.is_node_ready():
+        await game.ready
     var rules: Node = game.get_node("Rules")
-    var initial: Dictionary = rules.snapshot().duplicate(true)
-    if initial["phase"] == "uninitialized":
+    var initial: Dictionary = _observation(game, rules, observation_mode)
+    if rules.snapshot()["phase"] == "uninitialized":
         print(PREFIX + JSON.stringify({
-            "schema_version": 1,
+            "schema_version": 2,
             "error": "native game not initialized; run Godot editor import first"
         }))
-        game.free()
+        game.queue_free()
         quit(3)
         return
     var steps: Array[Dictionary] = []
 
     for action in actions:
-        var before: Dictionary = rules.snapshot().duplicate(true)
+        var before: Dictionary = _observation(game, rules, observation_mode)
         var accepted: bool = false
         var control_path: String = "unrecognized"
         match action:
@@ -64,9 +107,15 @@ func run_episode() -> void:
             "guard":
                 accepted = rules.guard()
                 control_path = "native.rules"
+            "trial":
+                accepted = game.start_tactical_trial()
+                control_path = "native.trial_resource"
+            "classic":
+                accepted = game.start_classic_run()
+                control_path = "native.classic_resource"
             "advance":
                 control_path = "dialogue.unavailable"
-                if before["phase"] == "cleared":
+                if rules.snapshot()["phase"] == "cleared":
                     # Shared semantic response ID, not a button index or visual tree.
                     var dialogue: VBoxContainer = game.get_node("GateDialogue")
                     if dialogue.visible:
@@ -88,29 +137,39 @@ func run_episode() -> void:
                             native_gate.passage_advanced.disconnect(on_committed)
             _:
                 pass
-        var after: Dictionary = rules.snapshot().duplicate(true)
-        steps.append({
+        # Ensure asynchronous dialogue renders visible buttons before a player observation.
+        var dialogue_after: VBoxContainer = game.get_node("GateDialogue")
+        if (observation_mode == "player" and rules.snapshot()["phase"] == "cleared"
+                and dialogue_after.visible and dialogue_after.available_responses.is_empty()):
+            await dialogue_after.response_settled
+        var after: Dictionary = _observation(game, rules, observation_mode)
+        # A player-mode step contains only the chosen input and real visible
+        # before/after observations. Private admission/dispatch diagnostics
+        # belong solely to the opt-in debug channel.
+        var observed_step: Dictionary = {
             "action": action,
-            "control_path": control_path,
-            "recognized": action in ["attack", "guard", "advance"],
-            "accepted": accepted,
             "before": before,
             "after": after
-        })
+        }
+        if observation_mode == "debug":
+            observed_step["control_path"] = control_path
+            observed_step["recognized"] = action in ["attack", "guard", "advance", "trial", "classic"]
+            observed_step["accepted"] = accepted
+        steps.append(observed_step)
 
     var last: Dictionary = rules.snapshot().duplicate(true)
     print(PREFIX + JSON.stringify({
-        "schema_version": 1,
+        "schema_version": 2,
         "game": "room-encounter",
-        "observation_mode": "authoritative_state_not_pixels",
-        "actions": ["attack", "guard", "advance"],
+        "observation_mode": "player_visible_ui" if observation_mode == "player" else "authoritative_debug_state_not_pixels",
+        "actions": ["attack", "guard", "advance", "trial", "classic"],
         "initial": initial,
         "steps": steps,
-        "final": last,
+        "final": _observation(game, rules, observation_mode),
         "terminal": last["phase"] in ["won", "lost"]
     }))
     var audio: AudioStreamPlayer = game.get_node("EncounterAudio")
     audio.stop()
     audio.stream = null
-    game.free()
+    game.queue_free()
     quit(0)

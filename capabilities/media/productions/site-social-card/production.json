@@ -3,7 +3,7 @@
   "id": "site-social-card",
   "title": "Ordivon Root Social Card",
   "status": "review",
-  "intent": "Replace the existing root OpenGraph/Twitter image with a legible 1200\u00d7630 static preview that communicates Ordivon\u2019s durable-work position at thumbnail scale without turning the social card into a second architecture diagram.",
+  "intent": "Replace the existing root OpenGraph/Twitter image with a legible 1200×630 static preview that communicates Ordivon’s durable-work position at thumbnail scale without turning the social card into a second architecture diagram.",
   "audiences": [
     "link-preview-reader",
     "technical-reader",
@@ -34,7 +34,8 @@
       "kind": "image",
       "status": "approved",
       "profile": "open-graph-1200x630",
-      "blobDigest": "sha256:9a67bb6fc7f27c754556e090d52ebd41b1bd91e35ff062e5bd1215a1e0176807"
+      "blobDigest": "sha256:9a67bb6fc7f27c754556e090d52ebd41b1bd91e35ff062e5bd1215a1e0176807",
+      "outputCarrier": "output/opengraph-image.png"
     }
   ]
 }

@@ -1,8 +1,8 @@
 """Native Agent action/observation boundary acceptance for Room Encounter.
 
 No simulation reimplementation: every transition executes the installed Godot
-scene and its real EncounterRules. The output is privileged symbolic state,
-not pixels or Human-play evidence.
+scene and its real EncounterRules. Player observations are native HUD/dialogue only; privileged state is
+explicit debug opt-in, never pixel or Human-play evidence.
 """
 import json
 import subprocess
@@ -10,25 +10,77 @@ from pathlib import Path
 
 GAME = Path(__file__).resolve().parent
 PREFIX = "GAME_AGENT_EPISODE_JSON="
+_NATIVE_ACTIONS = frozenset({"attack", "guard", "advance", "trial", "classic"})
+_PLAYER_OBSERVATION_KEYS = frozenset({
+    "title", "status", "encounter", "actions", "hint", "outcome", "dialogue",
+})
 
 
-def episode(actions):
+def assert_native_trace_contract(receipt: dict, actions: str, mode: str) -> None:
+    """Check REAL native-Godot receipt coherence; this does not model game rules."""
+    expected_actions = [part.strip() for part in actions.split(",")] if actions else []
+    assert receipt["schema_version"] == 2
+    assert receipt["game"] == "room-encounter"
+    assert receipt["observation_mode"] == (
+        "authoritative_debug_state_not_pixels" if mode == "debug" else "player_visible_ui"
+    )
+    steps = receipt["steps"]
+    assert len(steps) == len(expected_actions) <= 64
+    previous = receipt["initial"]
+    observations = [previous]
+    for action, step in zip(expected_actions, steps, strict=True):
+        assert step["action"] == action
+        assert step["before"] == previous, "broken native observation chain"
+        if mode == "debug":
+            assert isinstance(step["accepted"], bool)
+            assert step["recognized"] is (action in _NATIVE_ACTIONS)
+            assert isinstance(step["control_path"], str) and step["control_path"]
+            if not step["accepted"]:
+                assert step["after"] == step["before"], "rejected native action mutated rule state"
+        else:
+            assert set(step) == {"action", "before", "after"}, "debug field leaked to player step"
+        previous = step["after"]
+        observations.append(previous)
+    assert receipt["final"] == previous, "native final observation inconsistent with last step"
+    assert isinstance(receipt["terminal"], bool)
+    if mode == "debug":
+        assert receipt["terminal"] is (previous["phase"] in {"won", "lost"})
+    else:
+        for observation in observations:
+            assert set(observation).issubset(_PLAYER_OBSERVATION_KEYS), (
+                "privileged native rule field leaked to player observation"
+            )
+            assert isinstance(observation["status"], str)
+            assert isinstance(observation["encounter"], str)
+
+
+def episode(actions, observation="debug"):
     command = [
         "godot", "--headless", "--path", str(GAME),
-        "--script", "res://agent_episode.gd", "--", "--actions", actions
+        "--script", "res://agent_episode.gd", "--", "--actions", actions,
+        *(["--observation", observation] if observation is not None else [])
     ]
     run = subprocess.run(command, text=True, capture_output=True, timeout=60)
+    # A Godot process may exit 0 and emit valid output despite GDScript errors;
+    # fail closed on actual engine script exceptions.
+    assert "SCRIPT ERROR:" not in (run.stderr + run.stdout), (
+        f"Godot script error despite process rc={run.returncode}: {run.stderr}")
+    assert "Parse Error:" not in (run.stderr + run.stdout), (
+        f"Godot parse error: {run.stderr}")
     lines = [line[len(PREFIX):] for line in run.stdout.splitlines()
              if line.startswith(PREFIX)]
     assert len(lines) == 1, f"missing or duplicate episode receipt: {run.stdout}\n{run.stderr}"
-    return run.returncode, json.loads(lines[0]), run.stderr
+    receipt = json.loads(lines[0])
+    if run.returncode == 0:
+        assert_native_trace_contract(receipt, actions, observation or "player")
+    return run.returncode, receipt, run.stderr
 
 
 def main():
     status, first, stderr = episode("attack,attack,advance,guard")
     assert status == 0, (status, stderr)
-    assert first["schema_version"] == 1
-    assert first["observation_mode"] == "authoritative_state_not_pixels"
+    assert first["schema_version"] == 2
+    assert first["observation_mode"] == "authoritative_debug_state_not_pixels"
     assert first["initial"]["room"] == 1
     assert first["initial"]["phase"] == "fighting"
     assert len(first["steps"]) == 4
@@ -42,9 +94,102 @@ def main():
     assert first["steps"][3]["accepted"]
     assert first["final"]["phase"] == "fighting"
     assert not first["terminal"]
+    # Negative controls mutate a RECEIPT FROM THE REAL GODOT SCENE, not a second simulator.
+    for violation in ("broken_before", "false_rejection"):
+        corrupt = json.loads(json.dumps(first))
+        if violation == "broken_before":
+            corrupt["steps"][1]["before"] = {"tampered": True}
+        else:
+            corrupt["steps"][0]["accepted"] = False
+        try:
+            assert_native_trace_contract(corrupt, "attack,attack,advance,guard", "debug")
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError(f"native trace oracle accepted {violation}")
     status_repeat, repeat, _ = episode("attack,attack,advance,guard")
     assert status_repeat == 0 and repeat == first, "same real native run must replay deterministically"
 
+    # Player-visible observations are projected from the rendered native UI.
+    status, visible, _ = episode("attack,advance,guard", "player")
+    assert status == 0 and visible["schema_version"] == 2
+    assert visible["observation_mode"] == "player_visible_ui"
+    assert visible["initial"]["status"].startswith("ROOM 1/3")
+    assert "ENCOUNTER:" in visible["initial"]["encounter"]
+    assert visible["initial"]["actions"]["attack"]
+    assert "player_health" not in visible["initial"] and "phase" not in visible["initial"]
+    assert visible["steps"][0]["after"]["dialogue"]["responses"]
+    assert visible["steps"][0]["after"]["actions"]["advance"]
+    assert all(set(step) == {"action", "before", "after"} for step in visible["steps"])
+    assert visible["steps"][1]["before"] != visible["steps"][1]["after"]
+    assert visible["steps"][1]["after"]["status"].startswith("ROOM 2/3")
+    assert "dialogue" not in visible["steps"][1]["after"]
+    assert visible["steps"][2]["before"] != visible["steps"][2]["after"]
+    # Every observation, including those after terminal/failed transitions,
+    # has a small UI-only key set rather than an accidentally leaked state.
+    observed = [visible["initial"], visible["final"]]
+    for step in visible["steps"]:
+        observed.extend([step["before"], step["after"]])
+    for value in observed:
+        assert set(value).issubset({"title", "status", "encounter", "actions", "hint", "outcome", "dialogue"})
+        assert isinstance(value["status"], str) and isinstance(value["encounter"], str)
+    status_repeat, visible_repeat, _ = episode("attack,advance,guard", "player")
+    assert status_repeat == 0 and visible_repeat == visible
+    status_default, default_obs, _ = episode("attack", None)
+    assert status_default == 0 and default_obs["observation_mode"] == "player_visible_ui"
+    assert "player_health" not in default_obs["initial"]
+    status_invalid, invalid_obs, _ = episode("attack", "anything")
+    assert status_invalid == 2 and invalid_obs["error"].startswith("expected:")
+    # Human Trial button and Agent symbolic trial both invoke the same
+    # native resource-backed Game action, never independent combat logic.
+    status, tactic, _ = episode("trial,attack,guard", "debug")
+    assert status == 0 and tactic["steps"][0]["accepted"]
+    assert tactic["steps"][0]["control_path"] == "native.trial_resource"
+    assert tactic["steps"][0]["after"]["foes"] == 2
+    assert tactic["steps"][0]["after"]["enemy_health"] == 5
+    assert tactic["steps"][1]["after"]["enemy_health"] == 2
+    assert tactic["steps"][2]["after"]["turn"] == 2
+    status, visible_tactic, _ = episode("trial,attack", "player")
+    assert status == 0 and "NEXT FOE HIT" in visible_tactic["final"]["encounter"]
+    assert visible_tactic["final"]["hint"].startswith("TIP:")
+    assert all(set(step) == {"action", "before", "after"} for step in visible_tactic["steps"])
+    assert visible_tactic["initial"]["actions"]["trial"]
+    assert visible_tactic["steps"][0]["after"]["status"].startswith("ROOM 1/3")
+    # This panel is projected only from the native post-resolution Signal.
+    # No privileged debug status appears in the default player channel.
+    status, last_action, _ = episode("trial,attack,attack,guard", "player")
+    assert status == 0
+    assert "LAST MOVE: Attack dealt 3 enemy HP; you lost 3 HP" in (
+        last_action["steps"][1]["after"]["outcome"])
+    assert "PERFECT PARRY" in last_action["final"]["outcome"]
+    assert "blocked the announced 4 damage" in last_action["final"]["outcome"]
+    assert "you lost 0 HP" in last_action["final"]["outcome"]
+    status, classic_outcome, _ = episode("trial,classic,attack", "player")
+    assert status == 0 and "outcome" not in classic_outcome["final"]
+    status, exhausted, _ = episode("trial,attack,attack,attack", "player")
+    assert status == 0
+    assert exhausted["final"]["actions"]["attack"] is False, (
+        "native UI must disable Attack when stamina is exhausted")
+    assert exhausted["final"]["actions"]["guard"] is True
+    assert exhausted["final"]["actions"]["classic"] is True
+    status, charged_hint, _ = episode("trial,attack,attack", "player")
+    assert status == 0 and "CHARGED STRIKE" in charged_hint["final"]["hint"]
+    assert charged_hint["final"]["actions"]["guard"]
+    status, classic_return, _ = episode("trial,classic", "debug")
+    assert status == 0 and classic_return["steps"][1]["accepted"]
+    assert classic_return["steps"][1]["control_path"] == "native.classic_resource"
+    assert classic_return["final"]["foes"] == 1
+    assert classic_return["final"]["enemy_health"] == 3
+    status, player_return, _ = episode("trial,classic", "player")
+    assert status == 0 and player_return["final"]["title"].startswith("ORIGINAL GRAYBOX")
+    assert player_return["steps"][0]["after"]["title"].startswith("TACTICAL TRIAL")
+    assert all(set(step) == {"action", "before", "after"} for step in player_return["steps"])
+    status, classic_exhausted, _ = episode(
+        "trial,classic,guard,guard,guard,attack,attack,attack", "player")
+    assert status == 0
+    # Classic no special threat info and all admitted actions project true
+    # disabled buttons from the actual rule resource, not debug snapshots.
+    assert "NEXT FOE HIT" not in classic_exhausted["initial"]["encounter"]
     status, bad, _ = episode("warp")
     assert status == 0 and not bad["steps"][0]["recognized"]
     assert not bad["steps"][0]["accepted"]
@@ -65,7 +210,7 @@ def main():
     assert all(step["accepted"] for step in finished["steps"])
     assert all(step["control_path"] == "dialogue.unlock_choice"
                for step in finished["steps"] if step["action"] == "advance")
-    print("GAME_AGENT_EPISODE_PASS native_episodes=7 deterministic=yes terminal_win=yes narrative_gate=yes")
+    print("GAME_AGENT_EPISODE_PASS native_episodes=19 player_ui_default=yes debug_opt_in=yes deterministic=yes terminal_win=yes narrative_gate=yes")
 
 
 if __name__ == "__main__":

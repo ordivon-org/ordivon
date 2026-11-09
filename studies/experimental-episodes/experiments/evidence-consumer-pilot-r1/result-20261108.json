@@ -1,0 +1,701 @@
+{
+  "caseGoldSourceBound": {
+    "causalStanding": "NOT_IDENTIFIED",
+    "developmentEpisodes": "0",
+    "harnessCostCoverage": "2",
+    "harnessSucceededRefs": "35",
+    "judgeEpisodes": "0",
+    "projectedEpisodes": "10007",
+    "promotionDecision": "HOLD",
+    "retentionSchedule": "UNASSIGNED",
+    "runtimeFailed": "955",
+    "runtimeSucceeded": "8927"
+  },
+  "contract": {
+    "assignment": [
+      "control",
+      "evidence",
+      "evidence",
+      "control"
+    ],
+    "caseCount": 10,
+    "caseIds": [
+      "projectedEpisodes",
+      "runtimeSucceeded",
+      "runtimeFailed",
+      "harnessSucceededRefs",
+      "harnessCostCoverage",
+      "developmentEpisodes",
+      "judgeEpisodes",
+      "causalStanding",
+      "retentionSchedule",
+      "promotionDecision"
+    ],
+    "conditions": [
+      "control_no_source",
+      "evidence_exact_source_bound_fields"
+    ],
+    "contractSha256": "sha256:2d909f129233671179626ec83aa1aa9343e9c06237dd98a6a19aeff2545071ec",
+    "kind": "ordivon.episode-research-consumer-evidence-ab-r1",
+    "nonClaims": [
+      "not raw replay Episode retrieval",
+      "not randomized representative production workload",
+      "not a valid statistical causal or generalization claim",
+      "not a test of autonomous agent skill improvement"
+    ],
+    "promotionPolicy": "HOLD without independent improvement on actual held-out task success",
+    "scope": "HISTORICAL_CORPUS_FACTUAL_DECISION_SUPPORT_NOT_EPISODE_MEMORY_LEARNING",
+    "scorer": "literal exact-match, explicit UNKNOWN abstention, per-field source-id check",
+    "sourceDigests": {
+      "analysis": "sha256:e5e2c6bd8801c266dc6e94f80ca30fbaf62ef9240b7dce816f73634259d1d57d",
+      "manifest": "sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
+      "product": "sha256:6691c6168c7d0fa1d031ab2d1bbce69a15dd755878d4c2dac8cf9f01d13ef04a"
+    }
+  },
+  "runs": [
+    {
+      "arm": "control",
+      "elapsedSeconds": 15.69,
+      "modelVersionHint": "gpt-6.1-sol",
+      "nativeStderrSha256": "sha256:cee349dd1c64e003bcd56ef9de0ee6c74d96c258780364e19ba4ae0f749e7e37",
+      "rawAnswer": {
+        "answers": [
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "projectedEpisodes"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "runtimeSucceeded"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "runtimeFailed"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "harnessSucceededRefs"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "harnessCostCoverage"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "developmentEpisodes"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "judgeEpisodes"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "causalStanding"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "retentionSchedule"
+          },
+          {
+            "answer": "HOLD",
+            "evidenceRef": "",
+            "id": "promotionDecision"
+          }
+        ]
+      },
+      "run": 1,
+      "score": {
+        "cases": [
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "10007",
+            "id": "projectedEpisodes",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "8927",
+            "id": "runtimeSucceeded",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "955",
+            "id": "runtimeFailed",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "35",
+            "id": "harnessSucceededRefs",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "2",
+            "id": "harnessCostCoverage",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "0",
+            "id": "developmentEpisodes",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "0",
+            "id": "judgeEpisodes",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "NOT_IDENTIFIED",
+            "id": "causalStanding",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "UNASSIGNED",
+            "id": "retentionSchedule",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "HOLD",
+            "correct": true,
+            "evidenceBackedCorrect": false,
+            "expected": "HOLD",
+            "id": "promotionDecision",
+            "unknown": false,
+            "unsupported": false
+          }
+        ],
+        "correct": 1,
+        "count": 10,
+        "evidenceBackedCorrect": 0,
+        "unknown": 9,
+        "unsupported": 0
+      },
+      "status": "MODEL_ANSWERED"
+    },
+    {
+      "arm": "evidence",
+      "elapsedSeconds": 13.836,
+      "modelVersionHint": "gpt-6.1-sol",
+      "nativeStderrSha256": "sha256:b5872fb169c721daf85be725f6760ddf658bb0ea0fb4e3523618424da5b7e3ae",
+      "rawAnswer": {
+        "answers": [
+          {
+            "answer": "10007",
+            "evidenceRef": "manifest",
+            "id": "projectedEpisodes"
+          },
+          {
+            "answer": "8927",
+            "evidenceRef": "analysis",
+            "id": "runtimeSucceeded"
+          },
+          {
+            "answer": "955",
+            "evidenceRef": "analysis",
+            "id": "runtimeFailed"
+          },
+          {
+            "answer": "35",
+            "evidenceRef": "manifest",
+            "id": "harnessSucceededRefs"
+          },
+          {
+            "answer": "2",
+            "evidenceRef": "analysis",
+            "id": "harnessCostCoverage"
+          },
+          {
+            "answer": "0",
+            "evidenceRef": "analysis",
+            "id": "developmentEpisodes"
+          },
+          {
+            "answer": "0",
+            "evidenceRef": "analysis",
+            "id": "judgeEpisodes"
+          },
+          {
+            "answer": "NOT_IDENTIFIED",
+            "evidenceRef": "analysis",
+            "id": "causalStanding"
+          },
+          {
+            "answer": "UNASSIGNED",
+            "evidenceRef": "product",
+            "id": "retentionSchedule"
+          },
+          {
+            "answer": "HOLD",
+            "evidenceRef": "analysis",
+            "id": "promotionDecision"
+          }
+        ]
+      },
+      "run": 2,
+      "score": {
+        "cases": [
+          {
+            "answer": "10007",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "10007",
+            "id": "projectedEpisodes",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "8927",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "8927",
+            "id": "runtimeSucceeded",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "955",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "955",
+            "id": "runtimeFailed",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "35",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "35",
+            "id": "harnessSucceededRefs",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "2",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "2",
+            "id": "harnessCostCoverage",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "0",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "0",
+            "id": "developmentEpisodes",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "0",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "0",
+            "id": "judgeEpisodes",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "NOT_IDENTIFIED",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "NOT_IDENTIFIED",
+            "id": "causalStanding",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "UNASSIGNED",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "UNASSIGNED",
+            "id": "retentionSchedule",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "HOLD",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "HOLD",
+            "id": "promotionDecision",
+            "unknown": false,
+            "unsupported": false
+          }
+        ],
+        "correct": 10,
+        "count": 10,
+        "evidenceBackedCorrect": 10,
+        "unknown": 0,
+        "unsupported": 0
+      },
+      "status": "MODEL_ANSWERED"
+    },
+    {
+      "arm": "evidence",
+      "elapsedSeconds": 13.007,
+      "modelVersionHint": "gpt-6.1-sol",
+      "nativeStderrSha256": "sha256:7b7215e4472d873b4b185cc889881a76c6ffd7919953b7dfb2048c0948bb847b",
+      "rawAnswer": {
+        "answers": [
+          {
+            "answer": "10007",
+            "evidenceRef": "manifest",
+            "id": "projectedEpisodes"
+          },
+          {
+            "answer": "8927",
+            "evidenceRef": "analysis",
+            "id": "runtimeSucceeded"
+          },
+          {
+            "answer": "955",
+            "evidenceRef": "analysis",
+            "id": "runtimeFailed"
+          },
+          {
+            "answer": "35",
+            "evidenceRef": "manifest",
+            "id": "harnessSucceededRefs"
+          },
+          {
+            "answer": "2",
+            "evidenceRef": "analysis",
+            "id": "harnessCostCoverage"
+          },
+          {
+            "answer": "0",
+            "evidenceRef": "analysis",
+            "id": "developmentEpisodes"
+          },
+          {
+            "answer": "0",
+            "evidenceRef": "analysis",
+            "id": "judgeEpisodes"
+          },
+          {
+            "answer": "NOT_IDENTIFIED",
+            "evidenceRef": "analysis",
+            "id": "causalStanding"
+          },
+          {
+            "answer": "UNASSIGNED",
+            "evidenceRef": "product",
+            "id": "retentionSchedule"
+          },
+          {
+            "answer": "HOLD",
+            "evidenceRef": "analysis",
+            "id": "promotionDecision"
+          }
+        ]
+      },
+      "run": 3,
+      "score": {
+        "cases": [
+          {
+            "answer": "10007",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "10007",
+            "id": "projectedEpisodes",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "8927",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "8927",
+            "id": "runtimeSucceeded",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "955",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "955",
+            "id": "runtimeFailed",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "35",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "35",
+            "id": "harnessSucceededRefs",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "2",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "2",
+            "id": "harnessCostCoverage",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "0",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "0",
+            "id": "developmentEpisodes",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "0",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "0",
+            "id": "judgeEpisodes",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "NOT_IDENTIFIED",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "NOT_IDENTIFIED",
+            "id": "causalStanding",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "UNASSIGNED",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "UNASSIGNED",
+            "id": "retentionSchedule",
+            "unknown": false,
+            "unsupported": false
+          },
+          {
+            "answer": "HOLD",
+            "correct": true,
+            "evidenceBackedCorrect": true,
+            "expected": "HOLD",
+            "id": "promotionDecision",
+            "unknown": false,
+            "unsupported": false
+          }
+        ],
+        "correct": 10,
+        "count": 10,
+        "evidenceBackedCorrect": 10,
+        "unknown": 0,
+        "unsupported": 0
+      },
+      "status": "MODEL_ANSWERED"
+    },
+    {
+      "arm": "control",
+      "elapsedSeconds": 12.339,
+      "modelVersionHint": "gpt-6.1-sol",
+      "nativeStderrSha256": "sha256:46446a301bd14967da3cfb3cdf45f3aeccfad8104e993ed684c4edeb023478e6",
+      "rawAnswer": {
+        "answers": [
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "projectedEpisodes"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "runtimeSucceeded"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "runtimeFailed"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "harnessSucceededRefs"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "harnessCostCoverage"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "developmentEpisodes"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "judgeEpisodes"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "causalStanding"
+          },
+          {
+            "answer": "UNKNOWN",
+            "evidenceRef": "",
+            "id": "retentionSchedule"
+          },
+          {
+            "answer": "HOLD",
+            "evidenceRef": "",
+            "id": "promotionDecision"
+          }
+        ]
+      },
+      "run": 4,
+      "score": {
+        "cases": [
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "10007",
+            "id": "projectedEpisodes",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "8927",
+            "id": "runtimeSucceeded",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "955",
+            "id": "runtimeFailed",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "35",
+            "id": "harnessSucceededRefs",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "2",
+            "id": "harnessCostCoverage",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "0",
+            "id": "developmentEpisodes",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "0",
+            "id": "judgeEpisodes",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "NOT_IDENTIFIED",
+            "id": "causalStanding",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "UNKNOWN",
+            "correct": false,
+            "evidenceBackedCorrect": false,
+            "expected": "UNASSIGNED",
+            "id": "retentionSchedule",
+            "unknown": true,
+            "unsupported": false
+          },
+          {
+            "answer": "HOLD",
+            "correct": true,
+            "evidenceBackedCorrect": false,
+            "expected": "HOLD",
+            "id": "promotionDecision",
+            "unknown": false,
+            "unsupported": false
+          }
+        ],
+        "correct": 1,
+        "count": 10,
+        "evidenceBackedCorrect": 0,
+        "unknown": 9,
+        "unsupported": 0
+      },
+      "status": "MODEL_ANSWERED"
+    }
+  ]
+}

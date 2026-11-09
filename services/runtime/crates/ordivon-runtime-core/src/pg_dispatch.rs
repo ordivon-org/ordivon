@@ -108,6 +108,15 @@ fn eligible_attempt(
     {
         return Err(PgAdmissionError::Blocked);
     }
+    let allocated: bool = tx
+        .query_one(
+            "SELECT EXISTS(SELECT 1 FROM job_allocations WHERE attempt_id=$1 AND state='active')",
+            &[&attempt_id],
+        )?
+        .get(0);
+    if !allocated {
+        return Err(PgAdmissionError::Blocked);
+    }
     // An unresolved Runtime release effect is an additional dispatch fence.
     let pending: bool = tx
         .query_one(

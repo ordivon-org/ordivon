@@ -1,0 +1,61 @@
+name: Game player feedback
+description: Report an actual play session on an Ordivon Game Factory build
+title: "[game feedback] "
+body:
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game played
+      options:
+        - Beacon Relay
+        - Room Encounter
+        - Orbit Collector
+    validations:
+      required: true
+  - type: input
+    id: build
+    attributes:
+      label: Exact build or release
+      description: Release tag, Git commit, or download URL, if known.
+      placeholder: game-factory-edition-001-20261109-a2598a2c
+    validations:
+      required: true
+  - type: dropdown
+    id: observation_kind
+    attributes:
+      label: Evidence type
+      options:
+        - I played this game myself
+        - I observed another person's play session
+        - Agent or automated test (not a Human session)
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Platform, OS and input device
+      placeholder: Windows 11, keyboard, desktop
+    validations:
+      required: true
+  - type: input
+    id: duration
+    attributes:
+      label: Approximate session duration
+      placeholder: 4 minutes, or not measured
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened during play?
+      description: Describe actions, progress, win/loss, unexpected behavior, or source of frustration.
+    validations:
+      required: true
+  - type: textarea
+    id: improvement
+    attributes:
+      label: What would make the next game build more useful or enjoyable?
+      description: Optional concrete observation; do not provide invented ratings.
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshot, clip or steps to reproduce (optional)
+      description: Drag files here or link to an existing issue. Avoid private information.

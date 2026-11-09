@@ -29,12 +29,26 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Network - acquire verified Python via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
+
+      - name: Network - acquire verified mise via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py
+
       - name: Install monorepo toolchain
         uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           version: 2026.9.12
+          sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
           install: true
-          cache: true
+          # A publishing job never restores caches from a PR/default branch.
+          cache: false
 
       - name: Bind Runtime tag to repository and owner revisions
         id: release
@@ -64,13 +78,27 @@ jobs:
       - name: Verify Runtime owner
         run: mise run runtime:verify
 
+      # Tagged releases never restore PR-writable caches; use a freshly
+      # fetched official Release Asset API archive, independently SHA256-verified.
+      - name: Install verified cargo-deny
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 tools/repo/install_verified_cargo_deny.py \
+            --cache-dir "$RUNNER_TEMP/ordivon-cargo-deny/archive" \
+            --bin-dir "$RUNNER_TEMP/ordivon-cargo-deny/bin"
+          echo "$RUNNER_TEMP/ordivon-cargo-deny/bin" >> "$GITHUB_PATH"
+
       - name: Runtime dependency and license policy
-        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
-        with:
-          rust-version: "1.99.1"
-          manifest-path: services/runtime/Cargo.toml
-          command: check
-          arguments: --config services/runtime/deny.toml
+        shell: bash
+        run: |
+          set -euo pipefail
+          # cargo-deny common flags precede the "check" subcommand.
+          mise -C services/runtime exec -- cargo deny \
+            --manifest-path Cargo.toml \
+            --config deny.toml check
 
       - name: Build exact canonical Runtime release artifact set
         shell: bash
@@ -124,8 +152,8 @@ jobs:
           root = Path(os.environ["RUNNER_TEMP"]) / "ordivon-runtime-tagged-release"
           manifest = json.loads((root / "candidate-manifest.json").read_text(encoding="utf-8"))
           artifacts = manifest.get("artifacts")
-          if not isinstance(artifacts, list) or len(artifacts) != 12:
-              raise SystemExit("canonical Runtime release manifest must contain exactly 12 artifacts")
+          if not isinstance(artifacts, list) or len(artifacts) != 13:
+              raise SystemExit("canonical Runtime release manifest must contain exactly 13 artifacts")
           if manifest.get("sourceOwnerPrefix") != "services/runtime":
               raise SystemExit("tagged Runtime release must bind the monorepo Runtime owner prefix")
 
@@ -194,7 +222,7 @@ jobs:
           set -euo pipefail
           root="$RUNNER_TEMP/ordivon-runtime-tagged-release"
           mapfile -d '' -t subjects < <(find "$root/attest-subjects" -maxdepth 1 -type f -print0)
-          test "${#subjects[@]}" -eq 12
+          test "${#subjects[@]}" -eq 13
           for artifact in "${subjects[@]}"; do
             for predicate in "https://slsa.dev/provenance/v1" "https://spdx.dev/Document/v2.3"; do
               gh attestation verify "$artifact" \

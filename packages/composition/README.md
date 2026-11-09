@@ -1,7 +1,7 @@
 # Ordivon Composition
 
 This package is the bounded source owner for Ordivon's generic task-local composition
-mechanics. It was extracted from historical \`meta/next\` without moving method selection,
+mechanics. It was extracted from historical `meta/next` without moving method selection,
 capability discovery, seam-specific verification, workflow state, or domain truth.
 
 ## Public responsibilities
@@ -26,8 +26,8 @@ globally better or authorized for promotion.
 
 ## Consumer boundary
 
-Structure R2 S1B migrated the remaining \`meta/next\` consumers to the public
-\`ordivon_composition\` API. The historical Next Python compatibility facades were removed
+Structure R2 S1B migrated the remaining `meta/next` consumers to the public
+`ordivon_composition` API. The historical Next Python compatibility facades were removed
 after repository-wide consumer inventory found no external path callers.
 
 Successor Contract R1 adds a generic representation for an exact predecessor/candidate
@@ -36,7 +36,7 @@ promotion, release, or Git authority into this package.
 
 ## Verification
 
-Run \`mise run verify\` from this directory.
+Run `mise run verify` from this directory.
 
 ## Bounded OPA policy example
 

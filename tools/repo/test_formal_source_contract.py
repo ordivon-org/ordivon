@@ -353,6 +353,30 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         self.assertLess(step.index(admission), step.index("mise run formal:verify"))
         self.assertIn("KANI_HOME:", step)
 
+    def test_formal_kani_proxy_prepared_before_time_bounded_proofs(self) -> None:
+        """Kani 0.68.0 cold-start setup cannot consume a proof's 90s budget."""
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        step = workflow.split(
+            "      - name: Verify changed core Formal source\n", 1
+        )[1].split("      - name: Runtime supply-chain policy\n", 1)[0]
+        pinned_prewarm = "mise -C tools/formal exec -- kani --version"
+        self.assertEqual(step.count(pinned_prewarm), 1)
+        self.assertLess(step.index("mise install"), step.index(pinned_prewarm))
+        runtime = tomllib.loads(
+            (ROOT / "services/runtime/mise.toml").read_text(encoding="utf-8")
+        )
+        pinned_rust = runtime["tools"]["rust"]["version"]
+        self.assertLess(
+            step.index(f"rustup toolchain install {pinned_rust} --profile minimal"),
+            step.index(pinned_prewarm),
+        )
+        self.assertLess(step.index(pinned_prewarm), step.index("mise run formal:verify"))
+        self.assertIn("KANI_HOME:", step)
+        # The pinned Kani mathematical proof and negative falsifier MUST remain.
+        formal_source = (ROOT / "tools/formal/verify.py").read_text(encoding="utf-8")
+        self.assertIn('must_contain="VERIFICATION:- SUCCESSFUL", timeout=90', formal_source)
+        self.assertIn('str(bad_kani)', formal_source)
+
     def test_timeout_source_anchor_reader_rejects_changed_explicit_syntax(self) -> None:
         """Anchor observation rejects changed syntax without proving code semantics."""
         qualified = formal.qualified_timeout_adapter_fragment()

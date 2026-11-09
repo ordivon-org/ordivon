@@ -38,6 +38,12 @@ ORDIVON_NETWORK_POLICY_SOURCE=installed PYTHONDONTWRITEBYTECODE=1 uv run --no-pr
 [tasks.behavior-live]
 run = 'python acceptance/egress/live-carrier-witness.py'
 
+# Opt-in *real business payload* acceptance, not a substitute for complete Finance
+# route denial tests. Uses actual public APIs and installed scoped Finance lanes.
+[tasks.business-finance]
+description = "Read OKX/Binance BTC quotes and FRED DGS10 via installed Finance lanes with independent Carrier observation"
+run = "PYTHONDONTWRITEBYTECODE=1 python3 acceptance/egress/finance-public-data.py"
+
 # Z3 proof over source-declared TCP HTTP CONNECT authorities and actual
 # first-match sing-box source routing. Complements native consumer verification.
 [tasks.formal]

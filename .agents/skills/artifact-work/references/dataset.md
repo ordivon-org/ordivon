@@ -21,4 +21,4 @@ The embedded Parquet schema and the object-specific Dataset Contract are separat
 
 ## Source evidence
 
-`/root/projects/ordivon/capabilities/artifact/docs/ARTIFACT_FAMILY_DATASET_R1.md`
+[Historical family evidence](../../../../capabilities/artifact/docs/ARTIFACT_FAMILY_DATASET_R1.md)

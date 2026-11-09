@@ -57,7 +57,7 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 
 ## 4. Human 操作指南
 
-1. 在线查看：host.status(detail=summary) 观察 Host 自身统计；host.status(detail=integrity) 检查已覆盖的 PG 一致性。不要把 Host 健康等同于 Runtime、Git 或业务验收。
+1. 在线查看：host.status(detail=summary) 观察 Host 自身统计；host.status(detail=integrity) 检查已覆盖的 PG 一致性。不要把 Host 健康等同于 Runtime、Git 或业务验收。 当前 integrity 模式包括现存 Work 的连续修订序列检查；history 模式额外逐条复核快照 payload 摘要。历史序列异常属于明确的数据完整性失败，不会自动证明原始业务目标失败或成功。
 2. 接手工作：work.get 读取版本化 WorkSnapshot；topic.resume 恢复讨论；work.list、space.list、message.search 使用数量与字节预算分页。
 3. 研发变更：进入 services/host 执行 mise run verify；存在独立 Docker 环境时运行 mise run test:postgres:disposable；运行 mise run formal:reply-source 检查源码级纯函数契约。PG 集成 SKIP 不可算成 PASS。
 4. 发布：校验准确 Git SourceCut、不可变安装目录、mcp-surface.json 与真实注册工具一致，再进行已安装服务和 PG 验证。
@@ -205,3 +205,50 @@ sequence_desc and bounded cursor behavior.
 Proof tiers: SPECIFICATION → ABSTRACT_LEAN_THEOREM → NATIVE_SQL_REFINEMENT
 → INSTALLED_INDEX_PLAN → MCP_CONSUMER. None proves provenance or domain
 acceptance of the retrieved messages.
+
+
+## 14. Attention re-entry single-snapshot MVCC contract (2026-11-08)
+
+attention.get, attention.delta, and attention.reentry each establish one native
+PostgreSQL REPEATABLE READ, READ ONLY transaction per public call.
+For re-entry this single snapshot covers the actor's attention cursor (when
+omitted), the change horizon, the delta event projection, any adaptive maxBytes
+page reduction, and the related Topic consumption cursors. It does not hold
+a database transaction across multiple MCP calls; separate pages may
+legitimately observe later commits.
+
+Counterexample addressed: after delta captures a prior change horizon, another
+Agent commits topic.cursor.ack. Under the former multi-connection implementation
+reentry could return a Topic resume cursor from that newer commit while
+returning older delta events. The new read keeps the prior cursor; a fresh
+re-entry request sees the newer acknowledgement. No event bus, copy of messages,
+custom MVCC algorithm, schema migration or extra cross-request lock is needed.
+
+Proof tier: native PG18 tests schedule concurrent ack after _delta_in_tx
+under both pooled and direct Psycopg connections. Separate checkout-count tests
+require exactly one DB checkout per public read. These are concrete SQL/behavior
+oracles, not a general proof of future latency or all possible schedules.
+
+Human: run mise run test:postgres:disposable; distinguish Attention change
+horizons from Topic Message sequences. Agent: attention.reentry is navigation,
+not scheduling or domain acceptance. Never infer latest global state from a
+historical page; call the published tool again to obtain a fresh snapshot.
+
+## Host release SourceCut content-anchor refinement
+
+The native packaging entrypoint accepts an optional fourth argument:
+install_release.sh <repo> <main_commit> <prefix> <reviewed_host_tree_oid>.
+
+Human: obtain expected Host Git tree ID from the independently reviewed PR
+head via git rev-parse <head>:services/host; cross-check the actual merge
+event against fetched main ancestry and commit subject. Pass the reviewed
+tree ID as argument four. A wrong adjacent Merge Queue SHA with a different
+Host tree fails before directory creation, dependency resolution or symlink
+mutation. The three-argument native installation path stays compatible.
+
+Agent: never compute the expected tree from the *same untrusted release
+commit*: that would prove an identity against itself. Git native tree objects
+obviate a second hash or independent custom release registry. This is a
+content identity witness, not a signed SLSA provenance attestation or proof
+of builder identity. Continue Git chronology, Merge Queue checks, immutable
+archive verification and live MCP consumer readback. UNKNOWN remains UNKNOWN.

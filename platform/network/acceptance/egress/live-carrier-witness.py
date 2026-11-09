@@ -26,6 +26,7 @@ CASES = ("codex", "discord", "model-provider", "supply-chain", "x-reality", "cla
 # CONNECT targets can contain bracketed IPv6 literals, not only DNS/IPv4.
 # Missing this case makes a leaking IPv6 CONNECT invisible to the Carrier spy.
 CONNECT_AUTHORITY = re.compile(r"CONNECT\s+(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9.-]+):(\d+)\s+HTTP/1")
+MAX_OBSERVED_CONNECTS = 10000
 
 
 def command(*args: str, timeout: float = 8) -> str:
@@ -109,19 +110,37 @@ class Observer:
             stderr=subprocess.DEVNULL, text=True, errors="replace", bufsize=1,
         )
         self.seen: list[tuple[str, int]] = []
+        self.capture_overflow = False
+        self.reader_failure: str | None = None
         self.thread = threading.Thread(target=self._reader, daemon=True)
         self.thread.start()
 
     def _reader(self) -> None:
         assert self.process.stdout is not None
-        for line in self.process.stdout:
-            for m in CONNECT_AUTHORITY.finditer(line):
-                if len(self.seen) >= 10000:
-                    return
-                # No raw packet payloads, auth headers or packet files are stored.
-                self.seen.append((m.group(1).lower(), int(m.group(2))))
+        try:
+            for line in self.process.stdout:
+                for m in CONNECT_AUTHORITY.finditer(line):
+                    if len(self.seen) >= MAX_OBSERVED_CONNECTS:
+                        # The probe cannot establish zero forwarded effects
+                        # once the capture budget is exceeded.
+                        self.capture_overflow = True
+                        return
+                    # No raw packet payloads, headers or files are retained.
+                    self.seen.append((m.group(1).lower(), int(m.group(2))))
+        except (OSError, UnicodeError) as exc:
+            self.reader_failure = type(exc).__name__
+
+    def assert_live(self) -> None:
+        # An unavailable/partial observer is UNKNOWN, never a PASS for DENY.
+        if self.capture_overflow:
+            raise AssertionError("Carrier observer capture overflow")
+        if self.reader_failure is not None:
+            raise AssertionError("Carrier observer capture read failed")
+        if self.process.poll() is not None or not self.thread.is_alive():
+            raise AssertionError("Carrier observer stopped during sample")
 
     def count(self, target: str) -> int:
+        self.assert_live()
         host, port = target.rsplit(":", 1)
         return self.seen.count((host.lower(), int(port)))
 
@@ -145,8 +164,8 @@ def run(names: list[str]) -> dict:
         for kind in kinds:
             observers[kind] = Observer(kind)
         time.sleep(1.1)
-        if any(o.process.poll() is not None for o in observers.values()):
-            raise AssertionError("packet observer not running; no negative proof")
+        for observer in observers.values():
+            observer.assert_live()
         for c in data:
             observer = observers[c["sensor"]]
             forbidden = f"ns2-{c['consumer']}-{os.getpid()}.example.com"
@@ -184,6 +203,8 @@ def run(names: list[str]) -> dict:
                     "pass": accepted if scenario == "allowed" else rejected,
                 })
         time.sleep(0.7)
+        for observer in observers.values():
+            observer.assert_live()
     finally:
         for o in observers.values():
             o.close()

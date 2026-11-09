@@ -1,5 +1,21 @@
 # Data — Human guide
 
+## Normal human interaction: state the outcome, not the data-engineering procedure
+
+Ask the Outcome Owner to complete the business task. For example:
+"Determine whether the recorded Episode evidence justifies Agent promotion."
+Research, not the human, asks Data for the requisite information. Human
+users should not be required to choose ODPS ports, checksums, paths, SQL
+engines, verification tools or routine recovery options.
+
+**Already executable example:** Research's deliver_research.py in
+studies/experimental-episodes/experiments/evidence-consumer-pilot-r1
+automatically discovers and verifies the exact producer-declared Episode
+manifest, checks the independent analytical receipt and delivers the bounded
+business decision HOLD with verifiable source facts. This is one qualified
+consumer, not a deployed universal Data service. Missing or contradictory
+required source means DATA_NOT_DELIVERED, never an invented research success.
+
 ## What this owner does
 
 Data provides a read-only lens into real data products and joins mature
@@ -34,6 +50,16 @@ central database or take data custody from Research/Finance/Artifact.
 7. Measure usefulness (not merely row count), update only invalidated
    partitions/models/decisions, and retire data only if consumers and actual
    retention/recovery requirements permit it.
+
+### 版本切换与旧数据回收的正确性边界
+
+多版本数据产品要分别回答“新读者看到哪个已提交版本”与“旧读者仍在使用
+哪个版本”。Data 已有两代抽象的 `formal/DataMultiVersion.lean`，可证明
+验证、提交和活动版本的控制关系，以及 V1 未释放读者时不能回收。
+运行 `mise run verify:formal` 可检查模型；Finance 的
+`tests/test_paper_head_readback.py` 用一次性 PostgreSQL 实例验证
+实际事务读回和失败恢复。两者**不能代替** Artifact 文件租约、外部保留义务、
+真实 Parquet 读取或数据库部署验收。没有这些证据，不执行自动回收。
 
 ## Formal-first review
 

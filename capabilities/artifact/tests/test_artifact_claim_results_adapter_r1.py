@@ -15,6 +15,7 @@ import jsonschema
 import pytest
 
 from artifact_operations.providers import DirectPythonOperationProvider
+from artifact_verification.claim_coverage import assess_required_evidence
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTO = ROOT / "planning/prototypes"
@@ -132,6 +133,42 @@ class ArtifactClaimResultsAdapterR1Tests(unittest.TestCase):
             self.assertEqual(
                 candidate["claimResults"]["target"]["status"], "NOT_EVALUATED"
             )
+
+    def test_optional_profile_claim_does_not_block_mandatory_evidence(self):
+        profile = {"requiredEvidence": {
+            "mandatory": {"required": True}, "optional": {"required": False}
+        }}
+        native = {
+            "status": "PASS",
+            "observed": {"mandatory": {"status": "PASS"}},
+            "claimResults": {"mandatory": {
+                "status": "PASS", "nativePointers": ["/observed/mandatory"]
+            }},
+        }
+        assessed = assess_required_evidence(profile, native)
+        self.assertTrue(assessed["complete"], assessed)
+        self.assertEqual(assessed["expectedClaims"], ["mandatory"])
+        native["claimResults"]["optional"] = {"status": "FAIL"}
+        self.assertTrue(assess_required_evidence(profile, native)["complete"])
+        native["claimResults"]["undeclared"] = {"status": "PASS"}
+        self.assertFalse(assess_required_evidence(profile, native)["complete"])
+
+    def test_malformed_or_all_optional_evidence_cannot_promote_a_profile(self):
+        native = {"status": "PASS", "claimResults": {
+            "mandatory": {"status": "PASS", "nativePointers": ["/observed/mandatory"]}
+        }, "observed": {"mandatory": {"status": "PASS"}}}
+        for declaration in ({"required": "yes"}, {"required": None}, {}, "true"):
+            with self.subTest(declaration=declaration):
+                assessed = assess_required_evidence(
+                    {"requiredEvidence": {"mandatory": declaration}}, native
+                )
+                self.assertFalse(assessed["complete"])
+                self.assertEqual(assessed["status"], "INVALID_DECLARATION")
+        assessed = assess_required_evidence(
+            {"requiredEvidence": {"optional": {"required": False}}}, native
+        )
+        self.assertFalse(assessed["complete"])
+        self.assertEqual(assessed["status"], "NOT_DECLARED")
 
     def test_wave_native_result_exposes_complete_claim_results(self):
         with tempfile.TemporaryDirectory() as d:

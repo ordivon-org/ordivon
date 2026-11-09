@@ -81,12 +81,114 @@ retries for effectful Tool calls. For native evidence, exercise the real
 Gateway->Owner SDK transport including cancellation, credential rotation,
 long-lived sessions, and service stop.
 
+## R04a SDK-native protocol mode (opt-in)
+
+The SDK `Client(mode="auto")` remains the default for all Owners.
+`ORDIVON_GATEWAY_WINDOWS_RUNTIME_MCP_MODE=2026-07-28` is a verified
+Windows-only opt-in to skip `server/discover`; no bespoke negotiation,
+handshake cache or Runtime authority. Test exact Window Runtime version
+with the true Gateway service identity before enabling. Fail closed
+on an unsupported fixed version; do not retry effectful tools to hide
+protocol mismatches. The SDK also supports `legacy` for a confirmed
+handshake-era Owner. The SDK may re-list and resend once only after
+the protocol-defined HEADER_MISMATCH rejection; verify the Owner rejects
+before executing an effect. Gateway itself must not retry an uncertain
+effectful Tool call. Keep credentials refreshed per HTTP request.
+
 ## R05 Owner observation timeout diagnosis (cancellation phase)
 The Gateway upstream adapter emits one warning when the MCP SDK task is
 cancelled, with natural Owner ID, tool name, phase and monotonic elapsed
 milliseconds. session_close includes possible SDK cleanup latency;
 phase_before_cleanup_ms estimates time before cleanup, while total_ms covers
-the entire call. Neither is proof of Runtime availability.
+the entire call. Cancellation inside SDK `Client.call_tool` is
+`sdk_client_call_cancelled`, which does NOT establish that wire
+`tools/call` was interrupted: the SDK can finish the Owner tool, then
+send `tools/list` to validate its result's schema. The before-cleanup
+coordinate is measured at SDK-call cancellation; only a completed SDK call
+reaches `session_close`. Preserve upstream output validation and
+protocol-defined HEADER_MISMATCH recovery. SDK cleanup may still delay
+propagation of the cancelled observation. Neither phase proves Runtime
+availability or identifies the remote cause.
 Do not log payloads, auth headers, credentials, or Owner response bodies.
 Never interpret a projection timeout as a physical Owner outage. Compare
 native Owner RPC, Gateway projection, Windows SCM source cut and Owner logs.
+
+## HTTP MCP ingress security coverage (source cut)
+
+**Human:** HTTP mode uses `GatewayHTTPIngressGuard` before the narrow Runtime
+Artifact AuthZEN PEP. Only `system.describe`, `capability.describe`, and
+`capability.search` are anonymous *metadata* tools. All other registered
+(and newly introduced/unknown) Tools require the verified Principal and issuer
+placed in request-local state by the configured ingress verifier; a forged
+Tool argument or `_meta` is not an identity. The guard prevents unauthenticated
+Owner calls; it is not resource authorization. Without a trusted HTTP credential
+provider, protected calls intentionally fail closed.
+
+**Agent:** Compare `enforcement-surface.json` with the *actual* MCP SDK
+`tools/list` and `mcp-surface.json`; changes to a Tool require explicit
+classification and tests. Run `uv run --offline --project services/gateway
+pytest services/gateway/tests/test_http_ingress_coverage.py` from the repo
+root. The source consumer verifies the finite HTTP ingress property, not every
+downstream Owner PEP. All `downstreamAuthorization` entries are explicitly
+`UNKNOWN` pending real Owner enforcement-path evidence. An AuthZEN ALLOW for
+one Runtime Artifact does not authorize Host mutations or Runtime execution.
+Before promoting a release, check the deployed HTTP entrypoint, real trusted
+request state, and Owner-side authorization independently.
+
+## R06 SDK typed Windows status read (bounded performance and correctness)
+
+**Human:** The official MCP SDK v2 short-lived Client call currently follows
+MCP tools/call with tools/list for output-schema discovery. On an explicitly
+verified 2026-07-28 Windows Owner only, Gateway sends the exact read-only
+runtime.describe schemaVersion=1 via the SDK public typed ClientSession.send_request,
+removing the extra wire RTT. This does NOT claim complete SDK output-schema
+validation: the adapter checks version/node/targets and B03 checks readiness
+booleans. Malformed observations remain UNKNOWN. Lower RTT is not proof the
+Owner can admit and execute physical work.
+
+**Agent:** Run test_windows_runtime_typed_status_read.py on real TCP including
+malformed envelope/status, cancellation and high-level fallback cases.
+Effectful Owner calls and non-exact status requests MUST retain the SDK
+high-level path (MRTR, schema checks, header mismatch handling). Preserve
+credential-file identity per request; do not cache tokens, persist MCP sessions,
+retry effects or interpret timeout as an Owner outage. Record exact package,
+protocol mode, SourceCut, wire methods and installed consumer before opt-in.
+
+
+## R07 Gateway native Linux release interpreter preflight
+
+**Human:** For production releases, prefer an already qualified Python
+3.15.1 interpreter in the Gateway /opt deployment prefix. systemd
+DynamicUser= and ProtectHome= mean a Python executable beneath /root is
+not usable by the real service even if root can import the release.
+Pass ORDIVON_GATEWAY_RELEASE_SERVICE_USER=ordivon-gateway to the existing
+installer so it checks the installed interpreter and OpenTelemetry
+entrypoint using native runuser before moving the release pointer.
+Inspect actual systemd health and the installed source SHA after restart.
+Do not loosen the service's home-directory protection to work around a
+root-private interpreter.
+
+**Agent:** Distinguish SDK source contract, real release service UID
+execution, and running-service HTTP/Owner readback as separate evidence.
+The service-user preflight is explicitly opted in for production; never
+claim successful service admission from an unprivileged staging install.
+On 203/EXEC investigate the interpreter shebang and complete parent path,
+retain the last healthy release, and correct the interpreter location.
+
+## R08 Linux PG Runtime real business Job and Artifact delivery
+
+**Human:** A real production Gateway-to-Linux Runtime Job executed and emitted
+an Artifact but Gateway could not report success: the installed Runtime
+advertised an older MCP output schema omitting the PostgreSQL scheduling facet.
+The natural Runtime source already has the typed schema repair, but its
+installed binary has not converged and the Runtime structured release authority
+was not configured. Do not bypass the source of truth or manually replay Jobs.
+
+**Agent:** For the installed-schema exception, only the six explicit Linux
+Runtime business tools use the official typed MCP SDK request path. The
+Gateway still verifies exact Job and Artifact identity and never retries an
+uncertain effect under another request ID. Windows effects, Host, and Skills
+retain normal SDK output-schema validation. Test a real principal-owned
+Gateway execution.submit -> execution.resolve -> execution.get -> artifact.read
+flow and validate the Artifact digest; remove the adapter after the Runtime
+binary publishes corrected schemas with such a passing consumer flow.

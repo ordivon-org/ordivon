@@ -1,23 +1,17 @@
 schema_version: 1
 id: ordivon-game
-name: Ordivon Game LEGO
+name: Ordivon Game Factory
 repository: https://github.com/ordivon-org/ordivon
-kind: research-engineering
+kind: product-engineering
 default_profiles: [research, engineering]
 documentation_roots: [README.md, AGENTS.md, docs]
 managed_paths:
   - README.md
   - AGENTS.md
   - docs/authority.md
-  - docs/architecture-and-composition.md
+  - docs/factory-pipeline.md
   - formal/README.md
   - formal/verify_orbit_rules.py
-  - docs/external-knowledge-base-r1.md
-  - docs/mechanism-experience-library-r1.md
-  - docs/mechanism-relationship-graph-r1.md
-  - docs/design-counterexample-memory-r1.md
-  - docs/counterexample-synthesis-r1.md
-  - docs/player-evidence-programme.md
   - knowledge/game_external_knowledge_base_r1.json
   - knowledge/game_external_skill_watchlist_r1.json
   - knowledge/game_teardown_queue_r1.json
@@ -36,13 +30,15 @@ managed_paths:
   - scripts/design-counterexample-query.ts
   - scripts/counterexample-synthesis-query.ts
   - planning/lego-plan-r1.json
-  - planning/prototype-composition-candidates-r1.json
-  - src/prototype-composition.ts
-  - scripts/prototype-composition-query.ts
-  - test/game-prototype-composition-pure.test.ts
-  - test/game-prototype-composition.test.ts
   - examples/native-composition/README.md
   - examples/native-composition/assert.gd
+  - examples/beacon-relay/README.md
+  - examples/beacon-relay/main.gd
+  - examples/beacon-relay/main.tscn
+  - examples/beacon-relay/relay_plan.tres
+  - examples/beacon-relay/relay_sites.gd
+  - examples/beacon-relay/acceptance.gd
+  - examples/beacon-relay/CREDITS.txt
   - examples/room-encounter/README.md
   - examples/room-encounter/export_presets.cfg
   - examples/room-encounter/assert.gd

@@ -1,0 +1,172 @@
+# Harness R2.1 Agent-Task Refinement — Execution Spec R1
+
+Status: **implementation-bound proposal**. This is a task specification, not a new authority, admitted runtime LEGO, universal evaluator, or proof of deployed behavior.
+As-of: 2026-11-09 (Asia/Shanghai). SourceCut: `ordivon-org/ordivon@3b43977e682d8c7668f6371ffd998c7821e4312a`; implementation must recheck `origin/main` before integrating.
+Natural Owner: `services/harness/`; cross-owner effects remain with their original Owner.
+Target consumer: a caller-bound Agent Run that must progress from a real engineering objective to verified owner-consumer evidence **without** allowing the model to certify its own completion.
+
+## 1. Goal, not a framework
+
+Enable strong and weak Agents to propose alternatives while existing native contracts, tool authority, independent tests, fault injection, and actual consumers determine admission and acceptance. In particular, a local success or model conclusion cannot silently replace the original objective or claim a physical effect. Make falsifiable defects mechanically non-acceptable; unknown domain quality remains empirical rather than a false theorem.
+
+Concrete launch task: finish **Harness PG-only production API and operational-guide currentness**, then challenge that path with lower-capability Agents and known-negative examples. Broader Owner adoption happens only after that real slice proves worth reusing.
+
+### Non-goals
+
+- No second global goal/LEGO registry, approval service, evaluator Agent, execution orchestrator, task tracker, memory/retriever, or universal rubric.
+- No Owner truth transfer: Host Work remains social task collaboration; Runtime owns Job/Attempt and actual effects; Gateway owns routing; Harness owns a bounded Agent Run; domain Owner accepts its outcome.
+- No treating a Skill instruction, JSON Schema, green model check, CI pass, PR merge, or local Runtime success as domain completion.
+- No mandatory mathematical proofs for ordinary edits, arbitrary 80% blanket coverage gate, or front-loaded strategy-review ceremony on each change.
+- No destructive legacy data cleanup without checking the actual current consumer. Test-only and mutually self-referential consumers do not automatically justify indefinite retention.
+
+## 2. Mature method adaptation
+
+| Candidate method | What to adopt | Existing Ordivon carrier | Explicit rejection |
+| --- | --- | --- | --- |
+| Matt Pocock `to-spec` / `to-tickets` | Conversation -> test-seamed spec -> blocked, vertical ticket DAG | This file, existing GitHub issues/PR and Host Work where useful | New issue tracker, compulsory interview of an already resolved goal |
+| ECC `tdd-workflow` / `verification-loop` | Test-first negative controls, build/lint/test/diff/currentness evidence | Harness `mise.toml`, tests, existing owner CI | Copy 300+ Skills, hooks and universal 80% rule |
+| Superpowers `writing-plans` / `executing-plans` | Explicit exact paths/expected results; RED -> GREEN -> REFACTOR; isolated worktree; verifiable task handoff | Runtime Workspace, exact Git SourceCut, owner test scripts | New continuous agent supervisor or mandatory multi-agent review |
+| TLA+/TLC / CrossHair | Property-scoped model and actual source refinement, counterexample probes | `services/harness/formal/`, `mise run formal:verify`, `mise run formal:source-refinement` | Proof-by-document or universal correctness claim |
+| Assume-guarantee / CEGAR | Discharge each component assumption; retain real counterexamples | `.agents/skills/compositional-contracts` and `recursive-lego-calculus` | Each file becomes a LEGO; abstract correctness substitutes for actual effect |
+
+External method references (uninstalled, not executable authority): https://github.com/mattpocock/skills ; https://github.com/affaan-m/ECC ; https://github.com/obra/superpowers . Qualify a pinned upstream executable before any future install, per `external-capability-evaluation` and `skill-supply-chain-audit`.
+
+## 3. Semantic boundaries and outcome
+
+```text
+Caller/Domain: goal and acceptance; Host optionally carries Work
+  -> HarnessRunContract: one exact bounded Run, Tools, budget, privacy, Provider
+  -> Harness: construct WorkingView, generate candidate, admit cognition/Tool intent,
+      persist Journal/claims, reconcile/record concrete receipts
+  -> Gateway/Runtime/Provider: routing, real execution, external observations
+  -> independent Owner-native tests/formal/consumer-readback
+  -> domain accepts, rejects, or returns scoped UNKNOWN / next counterexample
+```
+
+Four non-negotiable distinctions:
+1. Canonical History != Agent Cognition.
+2. Tool Intent != Physical Effect.
+3. Physical Effect != Semantic Success.
+4. UNKNOWN != FALSE, SUCCESS, or permission to retry.
+
+Progress matters too: a trace of more model turns is not progress. When there is a bounded consumer-improving experiment, execute it; otherwise report an exact unknown with a falsifying next observation. Neither endlessly restating uncertainty nor blindly applying changes counts as completion.
+
+### Typed Recursive LEGO R2.1 contract: existing Harness Run persistence responsibility
+
+**Not an additional LEGO registry entry.** This is the target effective contract of the existing `HarnessAgentRun` -> `HarnessStore` production composition and must be checked against real implementation.
+
+- `I`: `(HarnessRunContract, ExactSourceCut, PostgresDSN, Schema, ProviderAdapter, OptionalRuntimeBinding)`.
+- `O`: `(CommittedRunRevision, Provider/ToolReceipts, WorkingView, CompletionProposal | RecoveryRequired[UNKNOWN])`.
+- `S`: `(run_id, revision, journal_events, leases, cas_objects, claims, working_set, budgets)`; PostgreSQL is the target durable writer; Domain/Runtime facts remain external.
+- `pre`: Exact Contract digest, qualified PG schema and caller binding, valid state revision/lease and current effect grant.
+- `post`: Atomic Run event admission with revision fence; exact returned receipts/recovery state; **never** a domain-completion guarantee.
+- `inv`: target properties PG1–PG6 below; all have explicit assumptions and negative controls.
+- `eff`: Harness PG transaction for own Run state; Provider/Runtime tool effects only via already-admitted external ports.
+- `c`: `UNKNOWN(cost, production-performance-measurement)`; no invented zero-cost bound.
+- `epsilon`: `UNKNOWN(implementation-refinement, full Python/SQL/deployed source correspondence)` until native proofs plus real consumer tests are present.
+- `prov`: exact source commit above, `src/ordivon_harness/{agent_run,postgres_store,sqlite_store,cli}.py`, `formal/ProviderClaimR1.tla`, `tests/test_postgres_harness_store.py`, actual Job/consumer receipts.
+- `unfold`: bounded spec -> TLA+/TLC model -> source/type/refinement checks -> real PG recovery/fault tests -> installed and caller-consumed Run; each level has independent evidence standing.
+
+### Properties and falsifying cases
+
+| ID | Required property | Counterexample to reject | Verification level |
+| --- | --- | --- | --- |
+| PG1 | Supported first-party CLI exposes only executable PG commands | CLI help advertises a command that always rejects, or docs invoke a rejected flag | parser + documentation consumer test (T1) |
+| PG2 | Supported production Python Run composition cannot silently write SQLite | `HarnessAgentRun.create/open` opens SQLite on an admitted production path | import/call-graph + real PG tests (T2) |
+| PG3 | New Run transaction is atomic and exact-replay/revision fenced | competing writers both commit same claim, or partial event batch | real two-connection PG + fault injection (T3) |
+| PG4 | Response loss cannot trigger blind duplicate physical Tool execution | UNKNOWN dispatch becomes fresh execution without reconciliation | existing TLA+/TLC + bridge and Runtime tests (T4) |
+| PG5 | Run candidate completion is not domain acceptance | successful Runtime Job or final model text becomes task accepted | independent domain/consumer evaluator (T5) |
+| PG6 | Same checks reject weak-Agent failure paths and still allow good changes | reject-all gate achieves perfect interception but zero useful output | adversarial holdout trajectories and outcome comparison (T6) |
+
+PG1–PG6 are desired obligations, not currently all proven. Independent proof of `PgRunSourceAuthority` must not be inferred from docs, even if the complete eleven-coordinate declaration exists.
+
+## 4. Implementation tickets: tracer-bullet DAG
+
+Each ticket has exactly one consumer-visible outcome, a RED witness, GREEN acceptance, and an explicit predecessor. Native tests and mechanisms are reused; never add a duplicate framework.
+
+### T0 — Bind source, owner and negative baseline [unblocked]
+- Inputs: exact current `origin/main`, existing Harness README/ARCHITECTURE, Owner AGENTS, `mise.toml`, production API and direct consumers.
+- Steps: refresh Git; inspect active cross-owner callers and SQLite/PG surfaces; capture CLI/docs contradictions, skipped real PG tests, already-merged documentation retirements.
+- Evidence: exact commit, current diffs, `rg` results, affected tests. Do not re-delete already-merged paths.
+- Exit: unambiguous PG1..PG6 obligations with owner and test seam.
+
+### T1 — First vertical slice: executable CLI and current-guide contract [depends T0]
+- Files: `src/ordivon_harness/cli.py`, `src/ordivon_harness/independent_cli.py`, `scripts/check_docs.py`; `tests/test_cli_currentness.py`; `README.md`, `docs/{QUICKSTART,OPERATIONS,STATUS,DATA_AND_PRIVACY}.md`; existing directly affected tests.
+- RED: test parses public CLI help and current operator examples; deprecated CLI flags or dead backup commands and present-tense misleading SQLite claims fail. Test itself must fail on the old source.
+- GREEN: remove dead command parser entries and docs examples, keep actionable native PG backup reference; update one existing document checker (do not create a second validator); prove the real Python parsing and docs check, not a grep-only pass.
+- Verification: `uv run --locked pytest -q tests/test_cli_currentness.py`, `python scripts/check_docs.py`, `uv run --locked ruff check src tests scripts`, affected CLI tests, `git diff --check`.
+- Stop/accept: no unsupported CLI command publicly offered; exact current docs supported without claiming Python library PG-only completion.
+
+### T2 — One supported Python PG path [depends T1]
+- Files: `src/ordivon_harness/{agent_run,api,sqlite_store,object_store,postgres_store}.py`; direct production consumers and wheel/test exports as needed.
+- RED: negative test invokes each public production create/open path with an unusable PG DSN, verifying **no** SQLite file creation and an explicit failure; positive test proves actual PG Run/resume across two connections.
+- GREEN: move production API to PG-only, remove old SQLite writer references from supported entrypoints; migrate real directly importing scripts. Retire obsolete writer/CAS only after consumer-equivalent source and installed readback.
+- Tests: `mise run pg:verify` with isolated `HARNESS_PG_TEST_DSN`, relevant existing Agent Run tests, wheel export verification. No fake/mock PASS replacing real PG tests.
+- Stop/accept: public production write path genuinely PG-only; unqualified real PG is UNKNOWN, never PASS.
+
+### T3 — One Run state/PG refinement seam [depends T2]
+- Files: current `formal/` ProviderClaim and existing Store integration tests; add no second formal engine.
+- Properties: contiguous atomic event admission, lease/revision safety, exact replay identity, persistence/recovery continuity; state every environmental assumption.
+- RED: make one deliberate violating implementation/negative test or bounded model probe fail.
+- GREEN: TLA+/TLC model and failure probe as applicable; Python/SQL source correspondence and real PG multi-connection negative tests.
+- Stop/accept: report `MODEL_VERIFIED`, `SOURCE_REFINED`, `PG_CONSUMER_VERIFIED`, `INSTALLED` individually.
+
+### T4 — Effect/UNKNOWN contract refinement [depends T2; independent of T3]
+- Files: existing `ordivon/{run_continuity,provider_lifecycle,runtime_bridge}.py`, ToolProgram and recovery tests, `formal/ProviderClaimR1.tla`.
+- RED: response loss, ambiguous Tool effect, conflicting receipts, cancellation race and replay perturbations.
+- GREEN: no blind redispatch; truth from real external Owner; semantic candidate cannot upgrade execution disposition.
+- Stop/accept: run a direct Runtime-bound negative and positive consumer path, with exact effect identity.
+
+### T5 — Goal-to-result independent acceptance [depends T3,T4]
+- Do **not** add completion authority inside Harness. Bind one real caller/domain task with accepted goal, expected consumer and existing owner verifier.
+- RED: forged model `completed`, success-shaped Job receipt, unverifiable claimed artifact; none can satisfy domain criterion.
+- GREEN: exact artifact/source/consumer readback reaches original objective under current SourceCut; if actual acceptance is not implementable, mark UNKNOWN rather than invent a judge.
+- Stop/accept: one end-to-end real task from intent to owner-readback.
+
+### T6 — Weak-model and over-conservatism ablations [depends T1,T2,T4; may run parallel with T5]
+- Reuse `evals/` fresh-Agent corpus and explicit holdouts, not the implementation tests themselves as a leaked training oracle.
+- Baseline A: instruction-only; B: typed contract + native tests; C: B + counterexamples and independent review. Same tasks, comparable budgets.
+- Measures: real consumer success, bad-proposal interception, false rejection, progress/cost, recovery correctness, avoidable custom code and regressions.
+- Negative cases: just-CLI PG change; stale docs; preserve dead SQLite; try-catch hides failure; infinite analysis/no action; false completion.
+- Stop/accept: measurable benefit under a predeclared metric/guardrail, otherwise simplify or revert the extra method.
+
+### T7 — Integrate, retire, and generalize only proven method [depends T5,T6]
+- Native owner CI/merge queue; exact SourceCut and installed readback. Confirm old modules/docs/tests and optional historical branches are retired without losing final consumers.
+- Produce a short reusable local method pointer in existing `.agents/skills/recursive-lego-calculus` or established method router **only if** the T6 consumer gain is demonstrated.
+- Do not propagate a new global gate or copy Matt/ECC/Superpowers wholesale.
+- Stop/accept: merged SHA, installed/consumed state separately observed and original objective discharged.
+
+## 5. Workflow / failure policy
+
+1. Every task starts with current SourceCut, a real consumer, an existing owner-native test seam, and the exact negative example; avoid discovery loops if already established.
+2. Tests first: observe RED for the intended defect, implement minimally, run GREEN; retain the specific false-positive/falsifying check when it prevents recurrence.
+3. One candidate may be rejected without deleting beneficial cognition. If an Agent cannot progress, report an exact blocked assumption and route to a suitable tool/Agent; *doing nothing* is not a PASS.
+4. Before accepting a replacement: check assumptions are discharged and guarantees not weakened. Physical effect evidence is not semantic evidence. No increase of authority from a method Skill.
+5. For retired components: trace through real production consumers and independent receipts, not dated file existence, reference graph alone or self-referential tests.
+6. Any conclusion must name which stage it reached: `SOURCE`, `TESTED`, `FORMAL`, `MERGED`, `INSTALLED`, `CONSUMED`, `DOMAIN_ACCEPTED`; UNKNOWN at one stage cannot be silently upgraded.
+
+## 6. Immediate execution ledger / acceptance
+
+- [x] T0: exact source-bound baseline and native method/tool inventory.
+- [x] T1: test-first CLI/current-guide correction and native test evidence (source+wheel/queue verified, unmerged).
+- [ ] T2–T7: successive independent, consumer-rooted tickets.
+- No GitHub issue creation or shared-branch push is implied by this local spec. Existing GitHub/Host systems own that action when deliberately invoked.
+- This plan is source-bound and disposable after adoption; keep current tests/contracts, not a permanent duplicate planning hierarchy.
+
+
+## 7. Execution evidence for T0/T1 — 2026-11-09
+
+**SourceCut:** `3b43977e682d8c7668f6371ffd998c7821e4312a`; local isolated Runtime Workspace `ws-gpt6-harness-lego-spec-20261109-r1`. Not a statement about current installed production source.
+
+- **RED #1:** `tests/test_cli_currentness.py` rejected old CLI parser surface, unsupported `capabilities` Quickstart command, and the false SQLite-writer status statement. Original run: 3 failed, 33 subtests passed.
+- **GREEN #1:** current CLI has no old `--state-root` flag or SQLite backup/restore verbs; current README, Quickstart, Status, Operations and Data/Privacy revised; supported `create_postgres/open_postgres` Python snippet is explicit while legacy `create/open` is truthfully marked unretired.
+- **RED #2:** synthetic documentation regression (`ordivon-harness capabilities`) failed when `validate_live_cli_examples` was missing. Reused existing `check_docs.py` instead of adding a checker service.
+- **RED #3 (real native consumer):** `mise run queue` failed in isolated wheel verification because `scripts/check_wheel.py` still demanded retired `store-backup` and related verbs.
+- **GREEN #2:** updated native wheel gate and added direct parser↔wheel set contract test. Targeted test set: `16 passed, 30 subtests passed`; `scripts/check_docs.py` and Ruff passed.
+- **Complete non-node test evidence:** `1397 passed, 86 skipped, 2 deselected, 290 subtests passed`. Skipped cases require real PostgreSQL and are NOT production qualification.
+- **Native verifier:** `mise run queue` exit 0 after repair, including lock, Ruff, source refinement, TLA+/TLC model/counterexample checks, unit tests, hashed dependency audit, docs/evidence checks and isolated wheel+MCP-extra installation. Wheel smoke reported `cliCommandsVerified=10`, `hostFreeHarnessVerified=true`, `mcpAdapterExtraVerified=true`.
+- **Independent bounded formal check:** `mise run formal:source-refinement` confirmed two existing CrossHair postconditions; `mise run formal:verify` passed existing Provider/Conversation Binding model/probes. These are retained formal obligations, **not** proofs of PG2–PG6 or installed source.
+- **Result standing:** T1 `SOURCE+NATIVE_TESTS+WHEEL_CONSUMER_VERIFIED`; T2 and real PG integration `UNKNOWN`; no shared PR merge, installed production deployment, or domain acceptance claimed.
+- **Ruling:** the wheel checker was a forgotten consumer of retired CLI grammar. Extend the same source-native contract seam rather than restoring obsolete commands to satisfy its old check.
+
+Next executable ticket: **T2** — enumerate every remaining direct SQLite production API and script caller; set up isolated PG test authority and RED/positive two-connection tests before changing the public Python Run path. Remove old implementation only after final real consumers are reached.

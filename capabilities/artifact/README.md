@@ -43,6 +43,52 @@ Build providers, verifier plugins, trust overlays, OCI package assembly and dura
 
 Reference: `docs/ARTIFACT_VERIFICATION_SERVICE_R1.md` and `planning/lego-plan-r2.json`, checked against their current source files.
 
+**Profile authority and refinement:** `artifact_core/profiles.py` now
+binds parsed JSON and SHA-256 to the same indexed source bytes, reuses
+Draft 2020-12 Schema validation, and rejects malformed, ambiguous or
+drifted Profile authority. The mixed v1 examples directory still permits
+non-Profile request/source fixtures. Eight production v1 Profiles have a
+checked v2 common-semantic interpretation (ID, family, construction,
+outputs, primary renderer), **not** a proof that all v1 gates equal all
+v2 evidence requirements. Build/Verify bindings also reject stale source
+registries and ambiguous provider standing data. Reference:
+`docs/ARTIFACT_PROFILE_AUTHORITY_REFINEMENT_R1.md`.
+
+## Outcome-first delivery: a live, bounded customer operation
+
+Artifact now supports one **direct, outcome-first** operation without asking the
+caller to choose a Profile, a Pandoc invocation, HTML validators, or a browser:
+convert a supplied Markdown source into one **self-contained offline HTML file**.
+The execution is local and uses the already-installed Pandoc, Nu Html Checker,
+Playwright Chromium + Firefox and axe. This is deliberately **not** a new
+workflow framework, file registry or full Web deployment promise.
+
+From this Owner directory, with a real Markdown input and an authorized
+destination on the same execution host:
+
+```bash
+uv run python scripts/artifact_deliver_html.py \
+  --source /absolute/path/to/brief.md \
+  --destination /absolute/path/to/delivered-page.html \
+  --language en
+```
+
+The command refuses to publish if Pandoc, the HTML conformance checker,
+Chromium, Firefox or automated accessibility checks fail. It publishes
+already-verified bytes without overwriting an unrelated file, then opens the
+**actual delivered path** in the target browsers and binds the readback SHA-256
+to the output. An adjacent `*.delivery.json` records the exact scope and
+non-claims. Use `--replace` explicitly when replacing an existing different
+artifact is intended. Agents can request `artifact_deliver_html_propose`
+from the existing Artifact Agent Surface and let Runtime execute its plan.
+No second execution system or mandatory trust/OCI stage is introduced.
+
+**Boundary:** this establishes local offline HTML technical acceptance, not
+remote web-origin publication, Human content quality, WebKit acceptance or
+source-side auxiliary-resource provenance. A production website must be tested
+through its *deployed* URL separately. Other format families keep their
+native specialized delivery paths until independently qualified.
+
 ## Human guide: produce or verify one real outcome
 
 1. Name the real consumer, primary native format, optional companion outputs, actual source and material identities, target app and acceptance predicates. An editable PPTX + PDF requires target-render evidence when its Profile requires it.
@@ -85,6 +131,20 @@ The actual executable examples and negative controls are `tests/test_artifact_co
 
 Do not introduce a new `consumer registry` or a mandatory OCI/attestation stage merely because an artifact has multiple readers. Consumers own domain acceptance and deployment proof.
 
+**Provider observation boundary (2026-11-08):** the verification service
+now hashes exactly the Python entrypoint source bytes it compiles for an
+invocation, rather than hashing a potentially replaced pathname after import.
+The receipt labels this as `EXACT_PYTHON_MODULE_BYTES_EXECUTED`; it does
+**not** attest transitively imported Python modules, subprocess binaries,
+native decoder versions, the operating system or a consumer's actual readback.
+`LOCAL_LIVE_PROVEN` in historical binding records remains a qualification
+snapshot, **not** present-node provider discovery. A native aggregate PASS
+with explicit failures is a service FAIL. A Profile snapshot must also match
+the indexed canonical authority digest, closing the index-to-snapshot drift
+window. For Human use, inspect the service's exact limits and consumer-specific
+readback; for Agents, keep unobserved dependencies UNKNOWN and request current
+Runtime/Workstation provider observations when stronger guarantees are needed.
+
 **Exact-byte identity across native verification:** `artifact_core/input_snapshot.py`
 reuses standard library `os.open`/`fstat`, streaming SHA-256 and private temporary
 files instead of another CAS. The service freezes the canonical Profile bytes.
@@ -98,6 +158,23 @@ A verified snapshot says nothing about source pathname continuity or what a
 later consumer opened; consumers must hash their actual inputs. A process
 holding the same principal may still modify private files; no process-isolation
 claim is made. See `tests/test_artifact_input_snapshot.py`.
+
+**Byte fact pairing:** `artifact_core/contracts.py` derives `sha256` and `size`
+from the same opened byte stream for `file_fact` and `FileCommitment`,
+rather than combining digest with a later pathname `stat` call. Legacy
+request admission reuses this existing commitment; the result remains
+`ADMISSION_DIGEST_ONLY` until the corresponding dependency closure is
+staged and verified. See the deliberate path-replacement regression in
+`tests/test_artifact_core_registry.py`.
+
+**Native executable post-run observation:** The service independently rereads
+the native verifier's already-declared executable paths and compares actual
+SHA-256 to the reported `tools` facts. An explicit contradiction invalidates
+service PASS; missing tool inventories remain `NOT_EVALUATED`. This reuses
+`FileCommitment`, not a new dependency registry. `toolIdentityAssessment`
+cannot establish which executable bytes the earlier subprocess loaded,
+whether imports/dynamic libraries changed, or full dependency completeness.
+See `tests/test_artifact_tool_identity.py`.
 
 **Native result identity:** `artifact_verification/native_identity.py` checks
 reported Profile ID, subject SHA-256/size and object-contract SHA-256 against
@@ -133,3 +210,14 @@ Qualify an upstream project against exact user-facing acceptance and negative ca
 - The A1–A14 historical decomposition-wave documents had no text-path consumers in the audited tracked source and are removed from this isolated source candidate; their bytes remain retrievable from the base Git revision. A15 remains because the R2 plan references it. This source-retirement evidence does not establish the absence of external/dynamic consumers.
 - Caches (`.venv`, `__pycache__`, `.pytest_cache`) should be cleaned only with native local project tools after verifying ownership. Never recursively delete system files, active Runtime Workspaces, source materials or another Owner's state.
 - Stop decomposition when further files only add glue. Existing semantic seams and consumer-accepted native tools take priority over a prettier directory tree.
+
+**Independent input snapshot qualification:** binding `snapshotInputs=true`
+now expressly controls exact private byte staging, separately from
+`requireClaimResults`. FLAC/WAVE/PNG retain both qualifications; the
+single-file Parquet verifier now freezes its Parquet and separate JSON contract
+inputs even though its legacy claim coverage remains incomplete. Parquet
+`status=PASS` still does **not** imply `profileVerificationComplete=true`.
+Formats with sidecars or other relative file dependencies remain
+`ADMISSION_DIGEST_ONLY` until the complete input graph can be committed and
+tested without disrupting family-native references. The snapshot lifetime is
+one verification invocation, not consumer readback or installed-tool identity.

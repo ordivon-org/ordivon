@@ -60,6 +60,61 @@ graph refinement against the merged #1783 baseline, then verify
 native loaded unit dependency state and real Consumer requests.
 
 
+## Owner-local stop propagation (systemd.unit native semantics)
+
+The live, legacy-named namespace/forward units now declare
+`PartOf=network-v2-shared-egress.target`; the inactive rollback
+WireGuard/DNS/carrier units declare
+`PartOf=network-v2-browserless-legacy-provider.target`.
+Stopping the latter must not stop or disable the shared target,
+forwarding, namespace, or unrelated Consumer. This is the same
+alias-backed physical shared Target, not a new Unit or VPN identity.
+The source-bound stop-closure regression in
+`tests/test_shared_provider_carrier.py` rejects an accidental
+shared-forwarding dependency on the Browserless legacy target.
+Production installation requires native source/install/loaded-unit readback;
+the static closure is not a substitute for a real cold recovery test.
+
+## Non-disruptive legacy Docker FORWARD convergence
+
+The legacy Docker FORWARD policy remains in force; this project owns only
+the two exact IPv4 veth/CIDR exceptions. The source-installed
+`shared-egress-forward ensure` uses native iptables-legacy `-S`,
+`-C`, and `-I` with xtables lock waiting. Existing rules are reused
+without delete/reinsert, missing exact rules are inserted and verified,
+and unexpected or duplicated Owner marker rules fail closed. A systemd
+stop/restart does not automatically delete live shared forwarding rules.
+The native Task materializes the helper before its Unit and verifies
+installed-byte equality. Deliberate final removal requires quiescing
+all consumers and an explicit operator-owned retirement action.
+
+**Live reload boundary (observed on 2026-11-09):** the Gluetun Quadlet
+`Requires=network-v2-browserless-forward.service`. Restarting the forwarding
+unit itself therefore propagated through systemd to a Gluetun provider restart,
+and the Tailnet Exit reconnected. Non-deleting iptables rules do **not**
+prevent this application outage. For routine forward-rule reconciliation, use
+`task substrate:shared-egress:reload` after source/install byte parity;
+it invokes native `systemctl reload` and the synchronous `ExecReload=... ensure`
+without stopping the required unit. Do not use `systemctl restart` as a live
+idempotence test while its production Provider remains dependent on it.
+
+This reduces the restart interruption path but does not prove cross-process
+atomicity between discovery and rule insertion. Docker/other concurrent
+iptables writers remain an external stability assumption, with the exact
+kernel count and real Carrier HTTP checks required after installation.
+Do not replace this with nftables-only ACCEPT until the Docker FORWARD
+backend/consumer effects justify the change.
+
+## Cold-boot independence from external network availability
+
+The shared namespace/veth Unit creates a **local kernel topology** and does
+not need DNS, a WAN default route, a VPN handshake, or `network-online.target`.
+The systemd native network-online synchronization point is intentionally
+absent from this Unit: external network outages must not block creation of
+the local substrate. This is a startup-order refinement only, not a change
+to Provider readiness or a claim that applications have Internet access.
+The existing Carrier and Consumer verifiers remain the liveness authority.
+
 ## Non-destructive namespace lifecycle (native systemd + iproute2)
 
 `network-v2-browserless-netns.service` remains the same installed identity,

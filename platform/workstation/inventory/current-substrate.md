@@ -63,7 +63,7 @@ The following mature packages were installed from the configured Arch repositori
 - coredump suppression policy: Ansible-owned file desired state;
 - `systemd-homed.service` and `systemd-homed-activate.service`: Ansible-owned disabled + stopped lifecycle on this node;
 - `/etc/wsl.conf`: Ansible `ini_file`, owned keys only;
-- Windows `.wslconfig`: Ansible `ini_file`, owned keys only; the separately present custom `kernel=` entry is deliberately preserved;
+- Windows `.wslconfig`: the September 2026 Ansible ownership observation above is historical. As of 2026-11-09 the Linux `host-substrate.yml` no longer writes this Windows-user global file; user-scoped Windows configuration has separate native ownership;
 - WSL shutdown/restart is not part of routine convergence and must be admitted separately when activation is required.
 
 ## Operations v2 machine inventory slice

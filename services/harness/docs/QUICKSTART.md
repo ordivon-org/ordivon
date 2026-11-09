@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-09-22
+updated: 2026-11-09
 summary: Minimal path from a clean checkout to deterministic verification, operator inspection and live read-only acceptance.
 evidence_status: verified
 readiness: READY
@@ -48,8 +48,7 @@ The base wheel keeps a small Host-free runtime dependency graph: pinned `httpx==
 ## Initialize independent state
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness store-init
-ordivon-harness capabilities
+ordivon-harness store-init
 ```
 
 ## Run
@@ -75,7 +74,7 @@ budget = RunBudget(
     max_total_tokens=16_384,
 )
 # Supply caller/objective/context/provider/system identities, the exact Tool catalog/grant
-# digests reported by the selected `ordivon-harness capabilities` execution profile, and `budget.to_contract_dict()` to
+# digests admitted by the selected source-owned execution profile and caller Contract, and `budget.to_contract_dict()` to
 # HarnessRunContract. Persist `contract.to_dict()` as RUN_CONTRACT.json.
 ```
 
@@ -87,12 +86,12 @@ rejection. Older schema-v1 Contracts that omit `maxConclusionCorrections` remain
 readable with the historical default of 3.
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness \
+ordivon-harness \
   run RUN_CONTRACT.json --message 'Start the bounded Run'
 
-ordivon-harness --state-root /var/lib/ordivon/harness status HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness explain HARNESS_RUN_ID
+ordivon-harness status HARNESS_RUN_ID
+ordivon-harness inspect HARNESS_RUN_ID
+ordivon-harness explain HARNESS_RUN_ID
 ```
 
 `capabilities` reports only the execution profiles the CLI actually supports, including their exact source-owned Tool catalog/grant digests. Durable `inspect` exposes the exact retained Run/Contract/Provider/Snapshot/Recovery facts directly. CLI `explain` adds proof boundaries to that same view, while `HarnessAgentRun.explain()` reports validated in-process composition. No aggregate workbench or installed-capability registry sits between those owners and the caller.
@@ -141,7 +140,7 @@ bridge = PluginMcpObservationBridge(
 #   tool_catalog_digest = bridge.catalog_digest
 #   tool_grant_digest   = bridge.grant_digest
 run = HarnessAgentRun.create(
-    dsn, schema,
+    state_root,
     contract,
     adapter_factory,
     tool_bridge=bridge,
@@ -181,7 +180,7 @@ factory = PluginGatewayExecutionBridgeFactory(
 #   tool_catalog_digest = factory.catalog_digest
 #   tool_grant_digest   = factory.grant_digest
 run = HarnessAgentRun.create(
-    dsn, schema,
+    state_root,
     contract,
     adapter_factory,
     tool_bridge_factory=factory,
@@ -212,16 +211,14 @@ This is an incremental compatibility path over the current Gateway execution pro
 
 ### PostgreSQL-only independent CLI (fresh Run epoch)
 
-The supported CLI and Python Agent Run entrypoints reuse the existing
-PostgreSQL HarnessStore port. A fresh Run epoch does not read old SQLite
-historical Run records.
-Provide both the SQL connection and the exact owner schema through the
-operator-controlled environment, then use the same standard CLI verbs:
+The supported CLI now reuses the existing PostgreSQL HarnessStore port.
+A new PG Run epoch does not implicitly import SQLite historical Run records.
+Provide the SQL connection and optional selected Harness schema through the
+operator-controlled environment, then use the standard CLI verbs:
 
 ```sh
-export ORDIVON_HARNESS_PG_ONLY=1
-export ORDIVON_HARNESS_PG_DSN='postgresql://<operator-provisioned-private-role>'
-export ORDIVON_HARNESS_PG_SCHEMA=ordivon_harness_runs
+export HARNESS_PG_DSN='postgresql://<operator-provisioned-private-role>'
+export HARNESS_PG_SCHEMA=ordivon_harness_runs
 ordivon-harness store-init
 ordivon-harness doctor
 ordivon-harness run /path/to/contract.json --message 'start'
@@ -229,26 +226,24 @@ ordivon-harness status HARNESS_RUN_ID
 ordivon-harness resume HARNESS_RUN_ID --message 'continue'
 ```
 
-The schema is an existing PostgreSQL authority managed by the caller; `store-init`
-creates only the supplied Harness schema/tables using its existing database
-role and does not read, migrate, or delete SQLite data. With PG-only enabled
-but a missing DSN or schema the CLI fails *before* opening any SQLite Store.
-A partially configured PG DSN without the explicit selector also fails
-rather than guessing a backend. `store-backup`, `store-verify-backup` and
-`store-restore` reject PG-only mode: use native PostgreSQL tools such as
-`pg_dump`/restore under the DBA's database ownership. No Provider effect,
+The PostgreSQL DSN is operator-provisioned; `store-init` initializes only
+the selected Harness schema/tables within that existing database. Without a DSN
+the CLI fails without opening SQLite. The retired SQLite backup/restore CLI
+subcommands are no longer exposed; use PostgreSQL-native backup and recovery
+under the database owner's authority. No Provider effect,
 Runtime physical execution, Host Work authority, or external domain completion
-is inferred from a successful PG Store operation. The Python Agent Run public entrypoints now use PostgreSQL; Browserless
-materialization and installed Agent Automation versions must still qualify
-their own production consumer route.
+is inferred from a successful PG Store operation. The public Python Agent Run entrypoints now require PostgreSQL; Browserless materialization and installed Agent Automation versions still need their own production consumer qualification.
 
-For normal Python execution, use HarnessAgentRun.create(dsn, schema, ...) / open(dsn, schema, ...); these supported APIs use an existing PostgreSQL schema and never select SQLite. The caller still owns the exact Contract and Provider choice; Harness passes the persisted Contract to the caller-supplied Adapter factory before execution. On reopen/resume, Harness mechanically reconstructs Continuity and the exact Snapshot-bound Provider source.
+For PostgreSQL-backed Python execution, use `HarnessAgentRun.create(dsn, schema, ...)` and `HarnessAgentRun.open(dsn, schema, ...)` rather than composing Store, Continuity and Provider bridge manually. This is an intentional public API migration; old state-root arguments are no longer accepted. The caller still owns the exact Contract and Provider choice; Harness passes the persisted Contract to the caller-supplied Adapter factory before execution. On reopen/resume, Harness mechanically reconstructs Continuity and the exact Snapshot-bound Provider source.
 
 ```python
 from ordivon_harness.api import HarnessAgentRun, DeepSeekTurnAdapter
 
+import os
+
 run = HarnessAgentRun.create(
-    dsn, schema,
+    os.environ["HARNESS_PG_DSN"],
+    os.environ.get("HARNESS_PG_SCHEMA", "harness"),
     contract,
     lambda exact_contract: DeepSeekTurnAdapter(
         settings, completion_contract=exact_contract.completion_contract
@@ -257,7 +252,8 @@ run = HarnessAgentRun.create(
 execution = run.run(({"role": "user", "content": "Start the bounded Run"},))
 
 run = HarnessAgentRun.open(
-    dsn, schema,
+    os.environ["HARNESS_PG_DSN"],
+    os.environ.get("HARNESS_PG_SCHEMA", "harness"),
     contract.harness_run_id,
     lambda exact_contract: DeepSeekTurnAdapter(
         settings, completion_contract=exact_contract.completion_contract
@@ -322,7 +318,7 @@ The exact completion Contract is part of `HarnessRunContract.digest`. `Standalon
 ## Pause and resume
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness \
+ordivon-harness \
   resume HARNESS_RUN_ID --message 'Additional caller input'
 ```
 
@@ -331,8 +327,8 @@ ordivon-harness --state-root /var/lib/ordivon/harness \
 Inspect the exact durable Run first, then resume only through the normal execution path when its concrete Provider/Runtime boundary admits that action:
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness resume HARNESS_RUN_ID --message 'Additional caller input'
+ordivon-harness inspect HARNESS_RUN_ID
+ordivon-harness resume HARNESS_RUN_ID --message 'Additional caller input'
 ```
 
 Harness does not maintain a generic `recover` command or write a second Recovery Assessment. Provider/Tool response loss is reconciled by the existing durable call/intent identities and the concrete owner that can observe the physical effect. An ambiguous physical outcome is never converted into safe redispatch merely by an operator projection.

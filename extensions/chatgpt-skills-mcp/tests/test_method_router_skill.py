@@ -15,6 +15,42 @@ def test_method_router_is_standard_project_skill() -> None:
     assert (ROUTER / "references" / "method-map.md").is_file()
 
 
+def test_agent_engineering_reference_is_readable_through_project_skill_api() -> None:
+    """Verify a real scoped Skill consumer, not just Markdown substring presence."""
+    from ordivon_skills.catalog import SkillCatalog
+    from ordivon_skills.model import SkillContext, SkillSource, TrustState
+
+    repo = ROOT.parents[1]
+    catalog = SkillCatalog.scan(
+        [SkillSource("project-ordivon-next", SKILLS, "project", 900, TrustState.TRUSTED)]
+    )
+    context = SkillContext(workspace_path=repo)
+    found = {row.skill_id for row in catalog.search("agent engineering", context=context, invocation_mode="explicit")}
+    assert "project-ordivon-next/method-router" in found
+    resolved = catalog.resolve("method-router", context=context)
+    assert resolved.resolved.skill_id == "project-ordivon-next/method-router"
+    instruction = catalog.read_text(
+        resolved.resolved.skill_id,
+        context=context,
+        expected_snapshot_revision=resolved.snapshot_revision,
+        projection="raw",
+    ).content
+    assert "references/agent-engineering-delivery.md" in instruction
+    reference = catalog.read_text(
+        resolved.resolved.skill_id,
+        relative_path="references/agent-engineering-delivery.md",
+        context=context,
+        expected_snapshot_revision=resolved.snapshot_revision,
+        projection="raw",
+    ).content
+    assert "Matt `to-spec`" in reference
+    assert "Superpowers `using-git-worktrees`" in reference
+    assert "ECC pre/post-tool hooks" in reference
+    assert "not a required" in instruction.lower()
+    assert not catalog.search("method router")  # project scope is required
+    assert (repo / "docs/architecture/AGENT_CONTRACT_EXECUTION_SPEC_R1.md").is_file()
+
+
 def test_method_router_targets_existing_canonical_methods() -> None:
     text = (ROUTER / "references" / "method-map.md").read_text(encoding="utf-8")
     required = {

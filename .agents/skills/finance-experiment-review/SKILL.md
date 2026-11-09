@@ -46,6 +46,55 @@ Agent platform, brokerage adapter or source/package identity.
   `scripts/run-strategic-contribution-brief`; protect reserves and model
   contribution-only target allocation without placing orders.
 
+## Agent-era research roles: task composition, not permanent Agent per Owner (2026-11-08)
+
+**Human / Principal:** defines the economic objective, research budget, cash/passive
+benchmark and any separately authorized financial effects. Research permission
+does not attest market data or grant trading authority.
+
+**Agent / Harness:** use task-scoped role instructions through existing
+Harness/Runtime/Skill surfaces. One Agent may perform several non-conflicting
+roles in separate tasks. Do not create a Finance Agent manager, Finance OAuth
+service, second experiment registry or Finance-wide role hierarchy.
+
+| Task role | Existing owner LEGO | Result | Independent boundary |
+| --- | --- | --- | --- |
+| Research Director | Harness task/Job and Research experiment protocol | research plan and bounded work | no self-issued identity/delegation grant |
+| Discovery / Data | Markets source admission, Research PIT | hypothesis and source-qualified history | cannot self-attest market publication |
+| Quant Researcher | run-finance-lego freeze-experiment, existing candidate/forecast, Portfolio passive benchmark | frozen plan, model and post-cost counterfactual | cannot rewrite frozen holdout |
+| Independent Reviewer | run-finance-lego assess-holdout / review-candidate, tests | REJECTED / UNKNOWN / REVIEW_REQUIRED with reasons | independent inputs and evaluation, not reviewer label |
+| Portfolio / Risk Challenger | existing counterfactual and Risk measurement | no-action or bounded candidate | evidence not a capital grant |
+| Execution / Accounting | existing Trading state machine and Accounting PG | provider-qualified effects and accounting facts only | research CLI cannot write to providers |
+
+**Security is the authority owner, not this Skill.** The existing public
+Security contract, platform/security/contracts/agent-admission-v1/evaluate.py,
+composes OPA Agent Admission and Effect Admission for *already verified*
+Principal/Agent/Grant inputs. An Agent prompt or Finance role MUST NOT
+self-assert authenticated/verified identity, allowedActions or Grant scope.
+Trusted ingress verifies those facts first. ALLOW means only scoped permission,
+not effect execution, provider authenticity or consumed durable budget.
+The Security v0 remainingEffects field is a stateless snapshot, not atomic
+quota enforcement; Gateway/Runtime and the natural owner enforce actual effects.
+
+Example **research-only** actions (illustrative vocabulary, NOT an installed
+production Grant): finance.research.freeze, finance.research.assess, canonical
+resource prefix /finance/research/, Security risk R2. A Trading order,
+mismatched Agent ID, expired/depleted Grant, unrelated resource, or an R4
+action without effect-bound step-up must not be admitted. Finance JSON stdin
+is never a proof-of-identity gateway.
+
+**Executable consumer test from domains/capital:**
+
+- Native pure role/research CLI: uv run --locked --group test python -m pytest -q tests/test_finance_agent_role_composition.py -m "not provider_qualification"
+- With genuine native OPA installed, Security contract qualification: uv run --locked --group test python -m pytest -q tests/test_finance_agent_role_composition.py -m provider_qualification
+
+These tests invoke the real Finance CLI and public Security Owner contract
+using synthetic *already verified* projections. They do not verify production
+OAuth/WebAuthn, live Gateway enforcement, actual Agent spawn, durable grant
+budget, independent market timestamp or provider financial effects.
+REVIEW_REQUIRED still requires independent review even when the caller
+claims independentReproduction=true; it never grants capital or orders.
+
 ## Method
 
 1. Select the simplest cash-flow-matched passive benchmark before claiming a
@@ -169,7 +218,7 @@ observed consumer supplies qualifying evidence.
 
 ## Monthly 1r historical-leverage Research: fee-aware rebalance contract
 
-Use `research/unit_r_dca.py` and `docs/UNIT_R_DCA_LONG_HISTORY_R1.md`,
+Use `research/unit_r_dca.py` and `domains/capital/docs/UNIT_R_DCA_LONG_HISTORY_R1.md`,
 not a new brokerage, pricing engine, or research scheduler. The pure
 `solve_turnover_adjusted_exposure` is the sole Research local rebalance
 solver and evaluates `gross=target*(equity-fee*abs(gross-prior_gross))`.

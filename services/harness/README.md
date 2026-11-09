@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-09-21
+updated: 2026-11-09
 summary: Public entry to the durable cognitive execution substrate for bounded Agent Runs, with explicit cognition, Provider and Tool continuity, recovery, evidence, and caller/domain boundaries.
 evidence_status: verified
 readiness: READY
@@ -224,7 +224,7 @@ Provider-specific wire state may exceed reconstructed semantic messages, but the
 
 ## Status
 
-Harness is **pre-1.0 but operational** as an independent, caller-neutral durable cognitive execution substrate. The only current writer is the Harness SQLite Journal/CAS. The former Host-backed Assignment/Runner/cutover product line was removed and has no supported compatibility path.
+Harness is **pre-1.0 but operational** as an independent, caller-neutral durable cognitive execution substrate. The first-party CLI uses the PostgreSQL Harness Journal/CAS only; the supported Python Agent Run create/open API requires the selected PostgreSQL schema; old state-root entrypoints are retired. The former Host-backed Assignment/Runner/cutover product line was removed and has no supported compatibility path.
 
 Current maturity and known limits live in [`docs/STATUS.md`](docs/STATUS.md). Exact evidence interpretation lives in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
 
@@ -233,7 +233,7 @@ Current maturity and known limits live in [`docs/STATUS.md`](docs/STATUS.md). Ex
 The current product includes:
 
 - immutable `HarnessRunContract` attempt authority with caller/objective/context, Provider/Adapter, Tool catalog/grant, budgets, privacy and completion contract;
-- independent SQLite Journal/CAS with leases, revision fencing, backup/restore and Doctor;
+- PostgreSQL-backed CLI Journal/CAS with leases, revision fencing and Doctor; the remaining direct Python SQLite writer is a legacy API, not an alternative CLI backend;
 - durable Provider Call claim/dispatch/completion/failure state and response-loss recovery;
 - durable Tool intent, dispatch fence, receipt/observation and Runtime reconciliation boundaries;
 - Agent-owned WorkingSet/WorkingView selection separated from canonical history;
@@ -246,7 +246,7 @@ The current product includes:
 - exact request-bound action truth stays on `AgentTurnRequest`; `HarnessAgentRun.explain()` reports validated in-process Contract/process composition directly, without an aggregate capability/workbench registry;
 - exact request-bound Tool working-set subtraction remains in the existing turn projection; application/domain code owns current standing and branches directly on owner-native facts rather than compiling a second InteractionContext ontology;
 - historical currentness-pressure experiments remain evidence that current standing can matter to Agent action choice, but the experimental generic InteractionContext/Affordance compiler is retired from current product code;
-- `HarnessAgentRun` as the supported Python handle for normal state-root → Run composition and resume, with `HarnessAgentRun.explain()` for process-local composition inspection without Provider/Runtime liveness claims;
+- `HarnessAgentRun` as the supported Python handle for an exact Run; PG-native composition uses create(dsn, schema, ...) and open(dsn, schema, ...) without a legacy state-root overload, with `HarnessAgentRun.explain()` for process-local composition inspection without Provider/Runtime liveness claims;
 - observation-only source retrieval remains available through the existing Runtime-backed `search_workspace` / `workspace.read` mechanics plus exact Execution Binding and digest fences; caller/domain code owns source selection, authority-publication schemas and semantic projection rather than a Harness-specific observation ontology;
 - durable `inspect` is the single exact Journal/CAS read view; CLI `explain` returns that same view plus explicit proof boundaries instead of maintaining a second workbench read model;
 - one exact caller-authored `HarnessRunContract` as the execution-authority waist; higher-level allocation/orchestration and experimental loop-morphology selection do not get parallel Harness control planes;
@@ -316,21 +316,21 @@ the positive consumer is `mise run verify`. This selects the useful
 historical behavior **without cherry-picking the old script** or creating
 another toolchain registry.
 
-Initialize an independent state root:
+Initialize the caller-provisioned PostgreSQL Harness schema (with HARNESS_PG_DSN set):
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness store-init
+ordivon-harness store-init
 ```
 
 A caller then supplies an exact Run Contract:
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness \
+ordivon-harness \
   run RUN_CONTRACT.json --message 'Start the bounded Run'
 
-ordivon-harness --state-root /var/lib/ordivon/harness status HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness explain HARNESS_RUN_ID
+ordivon-harness status HARNESS_RUN_ID
+ordivon-harness inspect HARNESS_RUN_ID
+ordivon-harness explain HARNESS_RUN_ID
 ```
 
 `explain` is a durable read model: it can prove Contract/Journal/CAS facts but deliberately does not invent whether an application-owned Adapter or Runtime client is currently live. Executable CLI commands are defined by the parser/`--help`; exact Run action authority remains on the Contract and request-bound Agent turn rather than a separate package capability projection.
@@ -385,16 +385,16 @@ Exact supported exports and upgrade expectations are owned by [`docs/COMPATIBILI
 Operators normally need three questions:
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness status HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness doctor
+ordivon-harness status HARNESS_RUN_ID
+ordivon-harness inspect HARNESS_RUN_ID
+ordivon-harness doctor
 ```
 
 `inspect` remains the exact durable evidence read surface; machine/process observability belongs to the external observability substrate rather than a second Harness-owned telemetry projection.
 
 Recovery is evidence-driven and occurs through the normal Run reopen/resume path plus the concrete Provider/Runtime owner reconciliation required by the effect boundary. Harness no longer writes a second generic Recovery Assessment merely to restate those facts. A dispatched operation with uncertain physical outcome is not automatically safe to repeat. `doctor` is the authority-wide history replay; normal Run reopen validates the relevant Run before new execution.
 
-See [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for backup/restore, cancellation, concurrent worker fencing, Provider/Tool UNKNOWN, and escalation.
+See [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for PostgreSQL-native backup/recovery ownership, cancellation, concurrent worker fencing, Provider/Tool UNKNOWN, and escalation.
 
 ## Documentation map
 

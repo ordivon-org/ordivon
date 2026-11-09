@@ -8,6 +8,7 @@ import tempfile
 import unittest
 import zlib
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 MONOREPO_ROOT = ROOT.parents[1]
@@ -87,6 +88,48 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         # Importing through the service is enough; delegate itself reports tool absence.
         self.assertTrue(callable(mod))
 
+    def test_native_pass_cannot_promote_stale_executable_digest(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, _ = self.request(root, subject)
+            binary = root / "decoder"
+            binary.write_bytes(b"previous-binary")
+            reported_sha = sha(binary)
+            profile = json.loads(self.profile()[0].read_text())
+            facts = {
+                name: {"status": "PASS"} for name, declaration
+                in profile["requiredEvidence"].items() if declaration["required"]
+            }
+
+            def contradictory_native(*_args):
+                binary.write_bytes(b"replacement-binary")
+                return {
+                    "status": "PASS",
+                    "profileId": "still-image-png-srgb-r1",
+                    "artifact": {"sha256": sha(subject), "size": subject.stat().st_size},
+                    "nativeFacts": facts,
+                    "claimResults": {
+                        name: {"status": "PASS", "nativePointers": [f"/nativeFacts/{name}"]}
+                        for name in facts
+                    },
+                    "tools": {"decoder": {"path": str(binary), "sha256": reported_sha}},
+                    "failures": [],
+                }
+
+            with mock.patch.object(
+                M, "load_function", return_value=(contradictory_native, "f" * 64)
+            ):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertTrue(result["toolIdentityAssessment"]["rejected"])
+            self.assertIn(
+                "native tool digest drift after verification: decoder",
+                result["failures"],
+            )
+
     def test_exact_still_image_request_delegates_and_digest_binds_result(self):
         self.require_png_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -101,6 +144,123 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(result["capabilityBinding"]["standing"], "LOCAL_LIVE_PROVEN")
             self.assertEqual(result["requestDigest"], M.canonical_sha256(request))
             self.assertTrue((root / "evidence/service-result.json").is_file())
+
+    def test_loader_attributes_execution_to_the_same_source_bytes(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            module_path = root / "native.py"
+            original = b"def verify(*_args):\\n    return {'marker': 'old'}\\n".replace(b"\\n", b"\n")
+            replacement = b"def verify(*_args):\\n    return {'marker': 'new'}\\n".replace(b"\\n", b"\n")
+            module_path.write_bytes(original)
+            real_read = Path.read_bytes
+
+            def swap_after_read(path):
+                data = real_read(path)
+                if path == module_path:
+                    module_path.write_bytes(replacement)
+                return data
+
+            with mock.patch.object(M, "ROOT", root), mock.patch.object(
+                Path, "read_bytes", autospec=True, side_effect=swap_after_read
+            ):
+                verifier, observed_digest = M.load_function("native.py", "verify")
+            self.assertEqual(verifier()["marker"], "old")
+            self.assertEqual(observed_digest, hashlib.sha256(original).hexdigest())
+            self.assertNotEqual(observed_digest, hashlib.sha256(replacement).hexdigest())
+
+    def test_native_pass_with_explicit_failures_is_not_promoted(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            profile = json.loads(Path(request["profile"]["path"]).read_text())
+            facts = {name: {"status": "PASS"} for name in profile["requiredEvidence"]}
+            native = {
+                "status": "PASS",
+                "failures": ["native decoder contradiction"],
+                "profileId": request["profile"]["id"],
+                "artifact": {"sha256": sha(subject), "size": subject.stat().st_size},
+                "nativeFacts": facts,
+                "claimResults": {
+                    name: {"status": "PASS", "nativePointers": [f"/nativeFacts/{name}"]}
+                    for name in profile["requiredEvidence"]
+                },
+            }
+            with mock.patch.object(M, "load_function", return_value=(
+                lambda *_args: native, "f" * 64
+            )):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertIn("native decoder contradiction", result["failures"])
+            self.assertEqual(
+                result["verifier"]["sourceIdentityScope"],
+                "EXACT_PYTHON_MODULE_BYTES_EXECUTED",
+            )
+            self.assertEqual(
+                result["verifier"]["nativeToolchainIdentity"],
+                "NOT_ATTESTED_BY_SERVICE",
+            )
+
+    def test_profile_snapshot_must_match_indexed_authority(self):
+        from dataclasses import replace
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            real = M.PROFILE_REGISTRY.resolve(request["profile"]["id"])
+            contradictory = replace(real, canonical_sha256="0" * 64)
+            with mock.patch.object(
+                M.PROFILE_REGISTRY, "resolve", return_value=contradictory
+            ), mock.patch.object(M, "load_function") as delegate:
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertIn(
+                "profile snapshot differs from indexed canonical Profile authority",
+                result["failures"],
+            )
+            self.assertFalse((root / "evidence").exists())
+            delegate.assert_not_called()
+
+    def test_corrupt_or_missing_registry_authority_is_a_bounded_failure(self):
+        from unittest import mock
+
+        for error in (
+            ValueError("duplicate JSON key: status"),
+            FileNotFoundError("provider standing was removed"),
+            RuntimeError("capability registry changed after indexing"),
+        ):
+            with self.subTest(error=str(error)), tempfile.TemporaryDirectory() as d:
+                root = Path(d)
+                subject = root / "subject.png"
+                minimal_png(subject)
+                request_path, _ = self.request(root, subject)
+                with mock.patch.object(M.BINDING_REGISTRY, "resolve", side_effect=error):
+                    result = M.verify_request(request_path)
+                self.assertEqual(result["status"], "FAIL")
+                self.assertIn(str(error), result["failures"][0])
+                self.assertFalse((root / "evidence").exists())
+
+    def test_missing_indexed_profile_is_a_bounded_failure(self):
+        from unittest import mock
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, _ = self.request(root, subject)
+            with mock.patch.object(
+                M.PROFILE_REGISTRY,
+                "resolve",
+                side_effect=FileNotFoundError("canonical Profile vanished"),
+            ):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL")
+            self.assertIn("canonical Profile vanished", result["failures"][0])
+            self.assertFalse((root / "evidence").exists())
 
     def test_subject_digest_drift_fails_before_family_verifier(self):
         with tempfile.TemporaryDirectory() as d:

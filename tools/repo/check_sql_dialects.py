@@ -23,6 +23,7 @@ SQLITE_STORAGE = "services/runtime/crates/ordivon-runtime-core/src/runtime/"
 OSQUERY_PREFIX = "platform/workstation/inventory/queries/"
 POSTGRESQL_FILE = "studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql"
 POSTGRESQL_RUNTIME_EPOCH = "services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
+POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER = "services/runtime/sql/pg_resource_scheduler_v1.sql"
 POSTGRESQL_ELE_STUDY_SCHEMA = "catalogs/capabilities/ele/schema.sql"
 
 # Exact full-host inventories can traverse thousands of installed Python/npm
@@ -262,7 +263,7 @@ def classify(path: str) -> str | None:
         return "sqlite"
     if path.startswith(SQLITE_STORAGE) and path.endswith("_storage.sql"):
         return "sqlite"
-    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_ELE_STUDY_SCHEMA}:
+    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, POSTGRESQL_ELE_STUDY_SCHEMA}:
         return "postgresql"
     return None
 
@@ -356,9 +357,10 @@ def host_postgres_only_sources(root: Path) -> list[str]:
                     for item in forbidden
                 ) or any("sqlalchemy.dialects.sqlite" in name for name in imports):
                     issues.append(f"Host PostgreSQL authority forbids embedded SQL import: {rel}")
-                if isinstance(node, ast.Constant) and isinstance(node.value, str):
-                    if "sqlite:" in node.value.lower():
-                        issues.append(f"Host PostgreSQL authority forbids SQLite DSN: {rel}")
+                if (isinstance(node, ast.Constant)
+                        and isinstance(node.value, str)
+                        and "sqlite:" in node.value.lower()):
+                    issues.append(f"Host PostgreSQL authority forbids SQLite DSN: {rel}")
                 if isinstance(node, ast.Call) and node.args:
                     target = node.func
                     dynamic = (
@@ -376,6 +378,75 @@ def host_postgres_only_sources(root: Path) -> list[str]:
     if not has_postgres_client:
         issues.append("Host PostgreSQL authority has no active psycopg.connect consumer")
     return sorted(set(issues))
+
+
+def pg_runtime_ddl_structure_issues(name: str, parsed: object) -> list[str]:
+    """Check the full PG Runtime schema AST, including named side effects.
+
+    The normal SQL gate parses source bytes with pinned pglast 8.6; this pure
+    helper also permits deterministic mutation tests without a second parser.
+    """
+    issues: list[str] = []
+    if name == POSTGRESQL_RUNTIME_EPOCH:
+        # Parse the exact complete fresh-epoch DDL, including the
+        # resource scheduler allocation table + index. Do not silently
+        # admit additional DROP/GRANT or unmanaged tables.
+        observed = tuple(type(statement.stmt).__name__ for statement in parsed)
+        expected = (
+            "TransactionStmt", "DoStmt",
+            "CreateStmt", "CreateStmt", "CreateStmt", "CreateStmt",
+            "CreateStmt", "IndexStmt", "CreateStmt", "CreateStmt",
+            "IndexStmt", "CreateStmt", "CreateStmt", "TransactionStmt",
+        )
+        named = [
+            (type(statement.stmt).__name__,
+             statement.stmt.relation.relname,
+             getattr(statement.stmt, "idxname", None))
+            for statement in parsed
+            if type(statement.stmt).__name__ in ("CreateStmt", "IndexStmt")
+        ]
+        expected_named = [
+            ("CreateStmt", name, None)
+            for name in ("jobs", "attempts", "idempotency_keys",
+                         "concurrency_reservations", "job_allocations")
+        ] + [
+            ("IndexStmt", "job_allocations", "idx_job_allocations_active"),
+            ("CreateStmt", "job_events", None),
+            ("CreateStmt", "job_runtime_release_effects", None),
+            ("IndexStmt", "job_runtime_release_effects",
+             "idx_runtime_release_effect_request"),
+            ("CreateStmt", "artifacts", None),
+            ("CreateStmt", "_stage_control", None),
+        ]
+        if (
+            observed != expected
+            or named != expected_named
+            or parsed[0].stmt.kind != 0
+            or parsed[-1].stmt.kind != 2
+        ):
+            issues.append(
+                f"PostgreSQL fresh-epoch DDL statement structure changed: {name}"
+            )
+    elif name == POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER:
+        # Resource allocation schema is a schema-owner migration,
+        # never a GRANT/DROP or unscoped public-table side effect.
+        # Keep a full-file AST gate instead of blanket extension approval.
+        observed = tuple(type(statement.stmt).__name__ for statement in parsed)
+        if (
+            observed != (
+                "TransactionStmt", "DoStmt", "CreateStmt",
+                "IndexStmt", "TransactionStmt",
+            )
+            or parsed[0].stmt.kind != 0
+            or parsed[-1].stmt.kind != 2
+            or parsed[2].stmt.relation.relname != "job_allocations"
+            or parsed[3].stmt.idxname != "idx_job_allocations_active"
+            or parsed[3].stmt.relation.relname != "job_allocations"
+        ):
+            issues.append(
+                f"PostgreSQL resource scheduler DDL structure changed: {name}"
+            )
+    return issues
 
 
 def check(root: Path) -> tuple[list[str], list[str]]:
@@ -436,7 +507,7 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         passed = 0
         for name in grouped["osquery"]:
             query = (root / name).read_text(encoding="utf-8")
-            if not re.match(r"^\s*SELECT\b", query, re.I):
+            if not re.match(r"^\s*SELECT\b", query, re.IGNORECASE):
                 issues.append(f"osqueryi query is not bounded read-only SELECT: {name}")
                 continue
             seconds = OSQUERY_TIMEOUT_SECONDS.get(Path(name).name, OSQUERY_DEFAULT_TIMEOUT_SECONDS)
@@ -456,8 +527,8 @@ def check(root: Path) -> tuple[list[str], list[str]]:
             try:
                 rows = json.loads(result.stdout)
                 if not isinstance(rows, list):
-                    raise ValueError("not a JSON result list")
-            except (json.JSONDecodeError, ValueError):
+                    raise TypeError("not a JSON result list")
+            except (json.JSONDecodeError, TypeError):
                 issues.append(f"osqueryi non-JSON result: {name}")
                 continue
             passed += 1
@@ -480,24 +551,8 @@ def check(root: Path) -> tuple[list[str], list[str]]:
             issues.append("PostgreSQL AST parser version is not pinned to exact 8.6")
         for name in grouped["postgresql"]:
             parsed = parse_sql((root / name).read_text(encoding="utf-8"))
-            if name == POSTGRESQL_RUNTIME_EPOCH:
-                # Actual fresh-epoch provider uses BEGIN, a typed operator DO
-                # fence, eight CREATE TABLEs, one index and COMMIT. Parse the
-                # *whole* source; a trailing DROP or extra grant must not pass
-                # on the strength of the existing single-SELECT PG fixture.
-                observed = tuple(type(statement.stmt).__name__ for statement in parsed)
-                expected = (
-                    "TransactionStmt", "DoStmt",
-                    "CreateStmt", "CreateStmt", "CreateStmt", "CreateStmt",
-                    "CreateStmt", "CreateStmt", "IndexStmt", "CreateStmt",
-                    "CreateStmt", "TransactionStmt",
-                )
-                if observed != expected or (
-                    parsed[0].stmt.kind != 0 or parsed[-1].stmt.kind != 2
-                ):
-                    issues.append(
-                        f"PostgreSQL fresh-epoch DDL statement structure changed: {name}"
-                    )
+            if name in (POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER):
+                issues.extend(pg_runtime_ddl_structure_issues(name, parsed))
             elif name == POSTGRESQL_ELE_STUDY_SCHEMA:
                 # This PG-only Catalog read model is a schema, four
                 # source/section/head/reference tables, two native indexes,

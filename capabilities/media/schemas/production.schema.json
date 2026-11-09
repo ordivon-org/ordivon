@@ -276,11 +276,18 @@
             "type": "string",
             "minLength": 1,
             "description": "Optional exact-byte provenance: must name a declared sources path whose current bytes equal blobDigest. Not valid for transformed outputs unless the produced bytes truly equal the named source."
+          },
+          "outputCarrier": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional Production-relative local materialization of an exact transformed Output. File may become unavailable; readback is point-in-time only, never Artifact authority or publication approval."
           }
         },
         "dependentRequired": {
-          "sourceCarrier": ["blobDigest"]
-        }
+          "sourceCarrier": ["blobDigest"],
+          "outputCarrier": ["blobDigest"]
+        },
+        "not": {"required": ["sourceCarrier", "outputCarrier"]}
       }
     }
   }

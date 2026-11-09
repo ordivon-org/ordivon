@@ -1,7 +1,75 @@
 //! PostgreSQL Attempt readback, native reconciliation, and Job result projection.
 use super::*;
 
+/// Negative evidence may be committed only after a *final* filesystem check.
+/// Runner publishes result.json after completing its command; systemctl/cgroup
+/// probes between an earlier file check and LOST commit can otherwise miss a
+/// result that was durably written during the probes.
+fn runner_result_still_absent(path: &Path) -> RuntimeResult<bool> {
+    match fs::symlink_metadata(path.join("result.json")) {
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(true),
+        Ok(metadata) if metadata.file_type().is_file() => Ok(false),
+        Ok(_) => Err(error("Runner result path is not a regular file")),
+        Err(err) => Err(io(err)),
+    }
+}
+
 impl PgRuntime {
+    /// Service-owned recovery path. Does not admit commands or consume Job capacity.
+    /// Each cancellation retains its original principal and exact durable Job identity.
+    pub fn reconcile_cancelled_jobs(&self, limit: u32) -> RuntimeResult<serde_json::Value> {
+        self.reconcile_committed_jobs(limit, true)
+    }
+    /// Reconcile already issued native work, never dispatch an unissued Job.
+    pub fn reconcile_issued_jobs(&self, limit: u32) -> RuntimeResult<serde_json::Value> {
+        self.reconcile_committed_jobs(limit, false)
+    }
+    fn reconcile_committed_jobs(
+        &self,
+        limit: u32,
+        cancelled_only: bool,
+    ) -> RuntimeResult<serde_json::Value> {
+        if limit == 0 || limit > 100 {
+            return Err(RuntimeError::invalid("limit must be 1..100", "limit"));
+        }
+        let mut db = self.store()?;
+        let pending = db.client.query(
+            "SELECT j.job_id,j.principal,j.desired_state FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id WHERE j.resolution IS NULL AND (j.desired_state='cancelled' OR (NOT $2 AND a.state IN ('starting','running','stopping','recovering'))) ORDER BY j.created_at_ms,j.job_id LIMIT $1",
+            &[&i64::from(limit),&cancelled_only],
+        ).map_err(io)?;
+        drop(db);
+        let mut terminal = 0_u32;
+        let mut errors = 0_u32;
+        for row in &pending {
+            let request = JobCancelRequest {
+                schema_version: 1,
+                job_id: row.get(0),
+            };
+            let outcome = if row.get::<_, String>(2) == "cancelled" {
+                self.cancel(&row.get::<_, String>(1), &request)
+            } else {
+                self.observe(
+                    &row.get::<_, String>(1),
+                    &JobObserveRequest {
+                        schema_version: 1,
+                        job_id: request.job_id,
+                        wait_ms: 0,
+                        wait_until: JobObserveWaitUntil::Terminal,
+                        stdout_tail_bytes: 0,
+                        stderr_tail_bytes: 0,
+                        stdout_offset: None,
+                        stderr_offset: None,
+                    },
+                )
+            };
+            match outcome {
+                Ok(value) if value.execution_terminal => terminal += 1,
+                Ok(_) => (),
+                Err(_) => errors += 1,
+            }
+        }
+        Ok(json!({"inspected":pending.len(),"terminal":terminal,"errors":errors}))
+    }
     pub(super) fn attempt(
         &self,
         db: &mut PgAdmissionStore,
@@ -21,6 +89,44 @@ impl PgRuntime {
         Ok((a, decode(&r.get::<_, String>(9))?, r.get(10)))
     }
     pub(super) fn reconcile(&self, db: &mut PgAdmissionStore, job: &str) -> RuntimeResult<()> {
+        self.reconcile_inner(db, job, false)
+    }
+    pub(super) fn reconcile_inner(
+        &self,
+        db: &mut PgAdmissionStore,
+        job: &str,
+        allow_dispatch: bool,
+    ) -> RuntimeResult<()> {
+        // ReleaseEffect identity is not a normal process Task. Until the
+        // operator-qualified PG release installer owns its separate dispatch
+        // and receipt, NEVER send this Job to the generic native Runner.
+        let is_release: bool = db
+            .client
+            .query_one(
+                "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects WHERE job_id=$1)",
+                &[&job],
+            )
+            .map_err(io)?
+            .get(0);
+        if is_release {
+            // Accepted means no physical release dispatch occurred. Any other
+            // Attempt state without a release-specific operator receipt is
+            // inconsistent; never reconcile it through the generic Runner.
+            let row = db.client.query_opt(
+                "SELECT state FROM attempts WHERE job_id=$1 ORDER BY attempt_number DESC LIMIT 1",
+                &[&job],
+            ).map_err(io)?;
+            return match row.map(|value| value.get::<_, String>(0)).as_deref() {
+                Some("accepted") => Ok(()),
+                _ => Err(RuntimeError::new(
+                    RuntimeErrorCode::ReconciliationRequired,
+                    "ReleaseEffect requires operator receipt reconciliation",
+                    Some("runtimeReleaseEffect"),
+                    false,
+                )
+                .with_operation_id(job)),
+            };
+        }
         let (mut a, plan, operation) = self.attempt(db, job)?;
         let provider: serde_json::Value = decode(
             &db.client
@@ -34,6 +140,9 @@ impl PgRuntime {
         if a.state == AttemptState::Accepted
             && a.termination_intent == AttemptTerminationIntent::Natural
         {
+            if !allow_dispatch {
+                return Ok(());
+            }
             let runner = self
                 .config
                 .executor
@@ -55,7 +164,17 @@ impl PgRuntime {
             if universal::sha256_bytes(token.as_bytes()) != a.launch_token_digest {
                 return Err(error("launch token mismatch"));
             }
+            if !self.claim_resources(db, &a, &plan)? {
+                return Ok(());
+            }
             let req = RunnerRequest {
+                workspace_read_paths: plan.budget.scheduling.as_ref().and_then(|s| {
+                    if s.workspace_access.read_paths.is_empty() {
+                        None
+                    } else {
+                        Some(s.workspace_access.read_paths.clone())
+                    }
+                }),
                 schema_version: 1,
                 job_id: Some(job.into()),
                 attempt_id: Some(a.attempt_id.clone()),
@@ -145,7 +264,7 @@ impl PgRuntime {
                     .ok_or_else(|| error("runner missing"))?,
                 bundle_path: Path::new(&a.bundle_path),
                 workspace_path: Path::new(&plan.workspace_path),
-                workspace_git_common_dir: None,
+                workspace_git_common_dir: plan.workspace_git_common_dir.as_deref().map(Path::new),
                 input_set_path: None,
                 credential_source_root: None,
                 credential_names: &[],
@@ -172,6 +291,58 @@ impl PgRuntime {
             a = self.attempt(db, job)?.0;
         }
         let path = Path::new(&a.bundle_path);
+        if a.state == AttemptState::Accepted
+            && a.termination_intent == AttemptTerminationIntent::StopRequested
+        {
+            // STOP_REQUESTED fences eligible_attempt in the same PG authority.
+            // Accepted means dispatch intent has not crossed its atomic boundary;
+            // a concurrent dispatcher must fail its expected-row-version CAS.
+            let cancelled_at: i64 = db.client.query_one(
+                "SELECT min(observed_at_ms) FROM job_events WHERE attempt_id=$1 AND event_type='STOP_REQUESTED'",
+                &[&a.attempt_id],
+            ).map_err(io)?.get::<_,Option<i64>>(0)
+                .ok_or_else(|| error("cancelled admission omitted stop event"))?;
+            let bytes = serde_json::to_vec(&json!({"schemaVersion":1,
+                "jobId":job,"attemptId":a.attempt_id,"dispatchIssued":false,
+                "terminalState":"cancelled","finishedAtMs":cancelled_at}))
+            .map_err(io)?;
+            fs::create_dir_all(path).map_err(io)?;
+            let evidence_path = path.join("admission-cancel-evidence.json");
+            // All bytes are deterministic from committed PG identity and its
+            // first stop event, including across concurrent exact replays.
+            if evidence_path.exists() {
+                if fs::read(&evidence_path).map_err(io)? != bytes {
+                    return Err(error("admission cancel evidence mismatch"));
+                }
+            } else {
+                universal::write_bytes_atomic(&evidence_path, &bytes).map_err(io)?;
+            }
+            let digest = universal::sha256_bytes(&bytes);
+            db.commit_terminal_with_artifacts(
+                &PgTerminalNoArtifacts {
+                    attempt_id: a.attempt_id.clone(),
+                    expected_row_version: a.row_version as i64,
+                    terminal_state: "cancelled".into(),
+                    result_digest: digest.clone(),
+                    reason_code: "CANCELLED_BEFORE_DISPATCH".into(),
+                    exit_code: None,
+                    finished_at_ms: cancelled_at,
+                    expected_source_sha256: self.config.source_sha256.clone(),
+                },
+                &[PgArtifactRegistration {
+                    artifact_id: format!("artifact-{}-admission-cancel", a.attempt_id),
+                    kind: "admission_cancel_evidence".into(),
+                    relative_path: "admission-cancel-evidence.json".into(),
+                    digest,
+                    media_type: "application/json".into(),
+                    byte_length: bytes.len() as i64,
+                    truncated: false,
+                    created_at_ms: cancelled_at,
+                }],
+            )
+            .map_err(pg)?;
+            return Ok(());
+        }
         if !a.state.is_terminal() && path.join("result.json").exists() {
             // Reuse native identity, stdout/stderr digest and result validators.
             let start: RunnerStartEvidence =
@@ -240,9 +411,7 @@ impl PgRuntime {
                 .collect::<Vec<_>>();
             db.commit_terminal_with_artifacts(&input, &artifacts)
                 .map_err(pg)?;
-        } else if !a.state.is_terminal()
-            && a.termination_intent == AttemptTerminationIntent::StopRequested
-        {
+        } else if !a.state.is_terminal() {
             // The kernel may have terminated the systemd-owned process tree
             // before Runner could write result.json. A missing result file is
             // not evidence that the process is still alive. Observe the exact
@@ -261,7 +430,8 @@ impl PgRuntime {
                 if start_path.exists() {
                     let bytes = fs::read(&start_path).map_err(io)?;
                     let start: RunnerStartEvidence = serde_json::from_slice(&bytes).map_err(io)?;
-                    if start.job_id != job
+                    if start.control_group != format!("/system.slice/{}", a.unit_name)
+                        || start.job_id != job
                         || start.attempt_id != a.attempt_id
                         || start.launch_token_digest != a.launch_token_digest
                         || start.unit_name != a.unit_name
@@ -290,6 +460,20 @@ impl PgRuntime {
                 return Ok(());
             };
             let population = super::platform::cgroup_population(cgroup)?;
+            let removed = population == super::platform::CgroupPopulation::Removed;
+            if !matches!(
+                properties.get("ActiveState").map(String::as_str),
+                Some("inactive" | "failed")
+            ) || !matches!(
+                properties.get("LoadState").map(String::as_str),
+                Some("loaded" | "not-found")
+            ) || runner_start
+                .as_ref()
+                .and_then(|start| start.runner_executable_digest.as_deref())
+                != provider["executionProvider"]["executableDigest"].as_str()
+            {
+                return Ok(());
+            }
             if super::native_stop::decide_native_stop(
                 super::platform::unit_is_active(&properties),
                 super::platform::unit_has_pending_job(&properties),
@@ -319,10 +503,33 @@ impl PgRuntime {
                 "runnerStartDigest": runner_start_digest,
                 "nativeCgroupState": population.as_str(),
                 "kernelCgroupPopulated": population.observed_population(),
+                "kernelCgroupRemoved": removed,
+                "finishedAtMs": now()?,
                 "terminalState": terminal_state
             });
             let proposed_bytes = serde_json::to_vec(&native_receipt).map_err(io)?;
             let receipt_path = path.join("native-stop-evidence.json");
+            let receipt_lock = fs::OpenOptions::new()
+                .create(true)
+                .truncate(false)
+                .write(true)
+                .open(path.join("native-stop-evidence.lock"))
+                .map_err(io)?;
+            use std::os::fd::AsRawFd;
+            // SAFETY: the open File owns a valid descriptor; the lock is released on drop.
+            if unsafe { libc::flock(receipt_lock.as_raw_fd(), libc::LOCK_EX) } != 0 {
+                return Err(io(std::io::Error::last_os_error()));
+            }
+            // A result that arrived while systemctl/cgroup was being queried
+            // must take the existing digest/identity-verified result path on
+            // the *next* reconciliation. Do not commit an irreversible LOST
+            // terminal when that stronger Runner receipt is now available.
+            // At this point the bound native cgroup is already quiescent, so
+            // the Runner cannot subsequently publish this file from the
+            // same owned process tree.
+            if !runner_result_still_absent(path)? {
+                return Ok(());
+            }
             let receipt_bytes = if receipt_path.exists() {
                 // A PG COMMIT acknowledgement can be lost after immutable
                 // native evidence was written. Native Unit LoadState may
@@ -353,7 +560,10 @@ impl PgRuntime {
                 proposed_bytes
             };
             let receipt_digest = universal::sha256_bytes(&receipt_bytes);
-            let finished_at_ms = now()?;
+            let retained: serde_json::Value = serde_json::from_slice(&receipt_bytes).map_err(io)?;
+            let finished_at_ms = retained["finishedAtMs"]
+                .as_i64()
+                .ok_or_else(|| error("native stop receipt omitted finish time"))?;
             let terminal = PgTerminalNoArtifacts {
                 attempt_id: a.attempt_id.clone(),
                 expected_row_version: a.row_version as i64,
@@ -392,7 +602,15 @@ impl PgRuntime {
             .map_err(pg)?
         {
             PgJobReadback::Observed(s) => s,
-            _ => return Err(error("inconclusive PG lifecycle")),
+            PgJobReadback::Inconclusive => {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::ReconciliationRequired,
+                    "committed PG Job lacks coherent exact lifecycle evidence",
+                    Some("jobId"),
+                    false,
+                )
+                .with_operation_id(&request.job_id))
+            }
         };
         let (a, p, operation) = self.attempt(db, &request.job_id)?;
         let terminal = snapshot.resolution.is_some();
@@ -409,10 +627,10 @@ impl PgRuntime {
         // Preserve the existing projection for historical terminal variants.
         // An OS-only LOST reconciliation is the new explicit exception:
         // it has a committed native-stop Artifact, not a Runner result.json.
-        let native_stop_only = rows
-            .iter()
-            .any(|row| row.get::<_, String>(1) == "native_stop_evidence");
-        let result_available = terminal && !native_stop_only;
+        let result_available = terminal
+            && rows
+                .iter()
+                .any(|row| row.get::<_, String>(1) == "execution_result");
         let mut value = json!({"jobId":request.job_id,"operationDigest":operation,"status":snapshot.resolution.clone().unwrap_or(snapshot.attempt_state.clone()),"desiredState":snapshot.desired_state,"attemptId":a.attempt_id,"attemptState":snapshot.attempt_state,"terminationIntent":snapshot.termination_intent,"exitCode":exit,"executionTerminal":terminal,"executionDisposition":snapshot.resolution,"deliveryDisposition":if terminal {"committed"} else {"in_progress"},"effectiveLimits":{"timeoutMs":p.timeout_ms,"stdoutLimitBytes":p.stdout_limit_bytes,"stderrLimitBytes":p.stderr_limit_bytes},"recoveryRequired":!terminal && a.state==AttemptState::Starting,"semanticCompletionEvaluated":false,"resultAvailable":result_available,"artifactsAvailable":!artifacts.is_empty(),"artifacts":artifacts});
         for (kind, limit, offset) in [
             ("stdout", request.stdout_tail_bytes, request.stdout_offset),
@@ -473,5 +691,49 @@ impl PgRuntime {
             }
         }
         serde_json::from_value(value).map_err(io)
+    }
+}
+
+#[cfg(test)]
+mod late_runner_result_tests {
+    use super::*;
+
+    #[test]
+    fn post_quiescence_recheck_prevents_false_os_only_lost() {
+        // A first probe sees no result; the actual Runner writes it while
+        // an independent systemctl/cgroup probe is in flight. The final
+        // negative-evidence gate MUST reject LOST in that second state.
+        let root =
+            std::env::temp_dir().join(format!("ordivon-pg-late-result-{}", uuid::Uuid::now_v7()));
+        fs::create_dir(&root).unwrap();
+        assert!(runner_result_still_absent(&root).unwrap());
+        fs::write(root.join("result.json"), b"native runner terminal bytes").unwrap();
+        assert!(!runner_result_still_absent(&root).unwrap());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn post_quiescence_missing_result_still_allows_native_lost() {
+        let root =
+            std::env::temp_dir().join(format!("ordivon-pg-absent-result-{}", uuid::Uuid::now_v7()));
+        fs::create_dir(&root).unwrap();
+        assert!(runner_result_still_absent(&root).unwrap());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_family = "unix")]
+    #[test]
+    fn suspicious_runner_result_path_fails_closed() {
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-pg-result-topology-{}",
+            uuid::Uuid::now_v7()
+        ));
+        fs::create_dir(&root).unwrap();
+        fs::create_dir(root.join("result.json")).unwrap();
+        assert!(runner_result_still_absent(&root).is_err());
+        fs::remove_dir(root.join("result.json")).unwrap();
+        std::os::unix::fs::symlink("/dev/null", root.join("result.json")).unwrap();
+        assert!(runner_result_still_absent(&root).is_err());
+        fs::remove_dir_all(root).unwrap();
     }
 }

@@ -16,6 +16,38 @@ This Skill is a **procedure and capability router**, not another portfolio engin
 
 Directory/LEGO consumer audit: domains/capital/docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md. Resolve the seven current natural Owners before changing code or deleting historical files. Human and Agent routes are distinct. Use the active Skill source digest, not merely a GitHub Skill file, for deployed discoverability.
 
+## First actual source-bound economic research case (2026-11-08)
+
+For an end-to-end **business** example, use the pinned real-data study at
+domains/capital/evidence/finance-research/spy-shy-forward-20261108/README.md.
+It retrieves upstream GitHub ETF history by exact source commit and Git Blob
+identity, checks raw SHA-256, calls the *existing* Markets/Portfolio Paper
+replay, and independently reproduces the economics. It records a 60/40
+SPY/SHY versus 100% SPY result including terminal wealth and max drawdown.
+The mixed policy had lower historical wealth *and* lower historical
+drawdown, so investor utility is required to rank the two outcomes.
+
+For experimental research qualification, compose the already installed
+Finance Research freeze-experiment and assess-holdout operations: the
+case includes the actual frozen forward study for sessions 2026-11-09
+through 2027-03-31. Its current standing is UNKNOWN /
+NO_HOLDOUT_EVIDENCE, not profitable alpha. Research snapshot origin
+and numerical replay do not authenticate original price providers or
+historic PIT observations. Do not invent a new backtest, second research
+orchestration system or order adapter just for this study.
+
+Human: read the comparison and declare whether a lower drawdown is worth
+the observed lower wealth under the actual investment objective.
+Agent: use the exact reproduction recipe in the evidence README and
+test the historical source consumer when it is available:
+
+- Set ORDIVON_FINANCE_RESEARCH_SOURCE_CSV to the downloaded, digest-matched
+  private CSV. Run the provider-qualified real-source test
+  tests/test_finance_real_etf_research_case.py.
+- If the original bytes are unavailable, only the frozen research-contract
+  tests are admissible; no market-source qualification claim.
+- Never submit a real trade on the basis of retrospective research output.
+
 ## Select the actual goal before invoking any tool
 
 | Intention | Natural Owner | Native entrypoint | Actual standing |
@@ -127,6 +159,39 @@ The output carries only `SECONDARY_VENDOR_NOT_ATTESTED` and is research
 only, not valid as a Markets/Paper settlement mark. Preserve source byte
 digests and the raw downloaded bytes through the existing Artifact Owner;
 do not build a new market database or source registry.
+
+## Markets admitted ETF EOD -> Research: no retroactive publication
+
+After the existing Markets etf_eod_snapshot.admit_etf_eod_snapshot
+has bound raw source bytes, SHA256, reported source/rights/actions and
+exchange close times, use the thin Research adapter
+pit_joint_forecast.etf_eod_capture_to_pit_vintages. Do not create another
+data service, registry or financial scheduler.
+
+Every projected Research vintage uses the snapshot captured_at as its
+effective published_at even when a historic mark claims an earlier
+availableAt. A modern download cannot become a historical investor's
+pre-download data. The result is SECONDARY_VENDOR_NOT_ATTESTED with
+RAW_UNADJUSTED_ACTION_FREE_DECLARED price basis (operator-declared
+action-free window). This is not the same as provider adjusted prices
+or total-return cashflows; cross-basis ratios are rejected. A caller
+cannot self-promote source verification through a string enum. The Research
+JSON ingress also rejects boolean or numeric-string historical prices,
+rather than converting them silently to floats.
+
+Human: confirm when the source bytes were first actually observed and
+the calendar, rights and corporate action declarations; separate these
+from independently attested provider facts. The date printed in an
+old market row is not itself a historical-time witness.
+
+Agent: check forecast_evidence price_bases, source_standings, source_digests
+and as_of_utc before sending a read-only scenario tree to Portfolio.
+No investment forecast is certified by this adapter. No live or Demo
+trading and no PG Accounting authority is granted.
+
+Tests: test_pit_etf_eod_composition.py; full canonical verification:
+mise run //domains/capital:verify. Keep the existing Finance experiment
+review Skill for frozen holdout falsification.
 
 ## Direct PIT research-to-Portfolio consumer
 
@@ -366,7 +431,7 @@ Use `ordivon_capital.portfolio.information_tree` for the **pure, solver-free** r
 
 Only after validation should an Agent call the **existing** `ordivon_capital.portfolio.multistage_policy.solve_multistage`; no duplicate optimizer, ledger or execution authority is created. The existing Research/PIT `multistage_policy.InformationNode` and `MultistageProblem` remain the **same Python types** as the canonical information-tree module, not shadow DTOs. Prefer the canonical `information_tree` import in new direct validators. To validate behavior, use `tests/test_multistage_policy.py`, `tests/test_pit_joint_forecast.py`, and `tests/test_capital_domain_taxonomy.py`.
 
-Human workflow and economic assumptions: `domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md` and `docs/MULTISTAGE_FINANCE_R1.md`. Always record source revision, original upstream market/broker evidence and resulting validation standing, separately from optimizer residuals and economic claims.
+Human workflow and economic assumptions: `domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md` and `domains/capital/docs/MULTISTAGE_FINANCE_R1.md`. Always record source revision, original upstream market/broker evidence and resulting validation standing, separately from optimizer residuals and economic claims.
 
 ## PostgreSQL-only Accounting retirement (no legacy oracle)
 

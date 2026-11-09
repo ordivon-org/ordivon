@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import tempfile
+import sqlite3
 import threading
 import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from unittest.mock import patch
+
+import psycopg
 
 from anc_canonical import canonical_digest
 
@@ -13,6 +17,7 @@ from tests.pg_test_support import PostgresAgentRunCase
 
 from ordivon_harness.api import (
     AgentTurnResult,
+    HarnessAgentRun,
     HarnessAgentRunCompositionError,
     HarnessBoundReference,
     HarnessCognitionProfile,
@@ -185,6 +190,42 @@ def execution_binding(value: HarnessRunContract) -> HarnessExecutionBinding:
             ),
         ),
     )
+
+
+class PublicRunPgOnlyNegativeTests(unittest.TestCase):
+    """Reject invalid public PG admission without opening a SQLite writer."""
+
+    def test_unreachable_pg_dsn_never_falls_back_to_sqlite(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dsn = (
+                f"host={root / 'missing-postgres-socket'} port=55454 "
+                "user=postgres dbname=missing connect_timeout=1"
+            )
+            with patch.object(
+                sqlite3,
+                "connect",
+                side_effect=AssertionError("public Run cannot probe a SQLite writer"),
+            ):
+                with self.assertRaises(psycopg.OperationalError):
+                    HarnessAgentRun.create(
+                        dsn,
+                        "harness",
+                        contract("unreachable-pg"),
+                        lambda _: ScriptedTurnAdapter((needs_input(),)),
+                    )
+            self.assertFalse(list(root.rglob("*.sqlite3")))
+
+    def test_removed_state_root_signature_cannot_be_used_as_public_api(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaises(TypeError):
+                HarnessAgentRun.create(
+                    root,
+                    contract("retired-state-root"),
+                    lambda _: ScriptedTurnAdapter((needs_input(),)),
+                )
+            self.assertFalse(list(root.rglob("*.sqlite3")))
 
 
 class R3SupportedAgentRunTests(PostgresAgentRunCase, unittest.TestCase):

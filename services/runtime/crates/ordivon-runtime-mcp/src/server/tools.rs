@@ -356,7 +356,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "workspace.open",
-        description = "Resolve a local revision and create one detached Git Workspace. Omit workspaceId for a server-generated immutable ws-* handle; provide an explicit unique workspaceId when deterministic response-loss reconciliation matters. Repeating workspace.open is not an idempotent replay: after an uncertain response, use workspace.get on the explicit ID. This tool does not fetch remote refs.",
+        description = "Resolve a local revision and create one detached Git Workspace. On PostgreSQL Linux Runtime, the successful open response includes a 4-hour inactivity lifecycle warning: publish deliverables before the hourly cleanup can close a clean, completed, merged Workspace. Omit workspaceId for a server-generated immutable ws-* handle; provide an explicit unique workspaceId when deterministic response-loss reconciliation matters. Repeating workspace.open is not an idempotent replay: after an uncertain response, use workspace.get on the explicit ID. This tool does not fetch remote refs.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<CompactWorkspaceOpenResult>>(),
         annotations(
             title = "Open isolated workspace",
@@ -380,7 +380,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "workspace.close",
-        description = "Close one Workspace. By default, reject tracked or untracked changes; force=true may remove dirty files. expectedSourceStateDigest compare-and-closes only the exact committed source state and remains replayable through the closed tombstone. closureDisposition distinguishes removed, already_closed, already_absent, and recovered_missing; removed only says whether this call performed physical removal. Active or held Jobs and open Workspaces whose Git authority lives under paths this close would remove block closure without reconciliation or dispatch. A bounded 24-hour consumer continuation guard also rejects early close unless consumerReleased=true explicitly declares task completion; this declaration is caller-provided, not independently authenticated.",
+        description = "Close one Workspace. By default, reject tracked or untracked changes; force=true may remove dirty files. expectedSourceStateDigest compare-and-closes only the exact committed source state and remains replayable through the closed tombstone. closureDisposition distinguishes removed, already_closed, already_absent, and recovered_missing; removed only says whether this call performed physical removal. Active or held Jobs and open Workspaces whose Git authority lives under paths this close would remove block closure without reconciliation or dispatch. A bounded 4-hour consumer continuation guard also rejects early close unless consumerReleased=true explicitly declares task completion; this declaration is caller-provided, not independently authenticated.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<WorkspaceCloseResult>>(),
         annotations(
             title = "Close workspace",
