@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import re
+import subprocess
 from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
@@ -1852,6 +1853,44 @@ def validate_formal_issue_census(
             if relocation.get("mode") == "move" and relocation.get("standing") == "DEPLOYED":
                 known_owners.update(path.removesuffix("/") for path in relocation["sourcePaths"])
     known_owners.add("tools/repo")  # Repository mechanics, not a domain owner.
+    # This is a time-scoped census, not a requirement to preserve every past
+    # Owner forever. Requalify retired names from the manifest in its exact
+    # original Git SourceCut; never rewrite a historical witness or create an
+    # owner-alias registry. Only a commit in this repository's HEAD ancestry
+    # may supply historical names.
+    if any(
+        isinstance(issue, dict) and issue.get("naturalOwner") not in known_owners
+        for issue in issues
+    ):
+        source_cut = source.get("protectedGithubMain")
+        if isinstance(source_cut, str) and re.fullmatch(r"[0-9a-f]{40}", source_cut):
+            try:
+                ancestor = subprocess.run(
+                    [
+                        "git", "--no-replace-objects", "-C", str(root),
+                        "merge-base", "--is-ancestor", source_cut, "HEAD",
+                    ],
+                    capture_output=True, check=False, timeout=8,
+                )
+                if ancestor.returncode == 0:
+                    original = subprocess.run(
+                        [
+                            "git", "--no-replace-objects", "-C", str(root),
+                            "show", f"{source_cut}:tools/repo/owners.toml",
+                        ],
+                        capture_output=True, check=False, timeout=8,
+                    )
+                    if original.returncode == 0:
+                        previous = tomllib.loads(original.stdout.decode("utf-8"))
+                        known_owners.update(
+                            owner["root"].removesuffix("/")
+                            for owner in previous["owners"]
+                        )
+            except (
+                OSError, subprocess.TimeoutExpired, UnicodeDecodeError,
+                ValueError, KeyError, TypeError,
+            ):
+                pass  # Unknown/invalid historical provenance gains no Owner.
     issue_ids: set[str] = set()
     for issue in issues:
         if not isinstance(issue, dict):

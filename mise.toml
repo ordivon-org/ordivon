@@ -77,7 +77,6 @@ python3 -m unittest tools/repo/test_formal_source_contract.py
 python3 -m unittest tools/repo/test_workspace_ready.py
 uv run --with pyyaml==6.0.3 python -m unittest tools/repo/test_dependency_update_ownership.py
 python3 -m unittest tools/repo/test_sql_dialects.py
-mise run chaoxing:verify
 uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 python3 tools/repo/test_affected_owners.py
 python3 tools/repo/test_ci_owner_shards.py
@@ -385,12 +384,6 @@ for check in 'GatewayCapabilityAuthzR1.reachability.cfg:ForwardUnreachable'     
   printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
   printf '%s\n' "$output" | grep -Eq '^State [1-9][0-9]*:'
 done
-"""
-
-[tasks."chaoxing:verify"]
-run = """
-set -euo pipefail
-python3 -m unittest discover -s apps/chaoxing-autosign/tests -p "test_*.py"
 """
 
 [tasks."web:verify"]

@@ -91,7 +91,6 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         for name in (
             "platform/workstation/scripts/host_historical_projection.py",
             "services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py",
-            "apps/chaoxing-autosign/chaoxing_mvp/ledger.py",
         ):
             with self.subTest(path=name):
                 self.assertIn(name, current)
