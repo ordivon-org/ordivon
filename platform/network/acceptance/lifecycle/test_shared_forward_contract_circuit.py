@@ -9,10 +9,16 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import itertools
 import json
 from pathlib import Path
 
 import pytest
+from formal.agent_outcome_refinement import (
+    ContractNotRefined,
+    accepted_manifest,
+    assert_consumer_refinement,
+)
 from ordivon_composition.cognitive_circuit_r1 import (
     CircuitContractError,
     compile_manifest,
@@ -148,3 +154,55 @@ def test_duplicate_gate_and_cyclic_owner_dependencies_are_rejected(manifest):
     cyclic["stages"][0]["dependsOn"].append(cyclic["stages"][-1]["id"])
     with pytest.raises(CircuitContractError):
         compile_manifest(cyclic)
+
+
+def test_network_consumer_requirements_are_immutable_git_source_bound(manifest):
+    original = accepted_manifest()
+    assert set(assert_consumer_refinement(original, manifest)) == (
+        FROZEN_REQUIRED_NETWORK_GATES
+    )
+    for mutation in ("remove", "optional", "owner", "scope", "guarantee"):
+        altered = copy.deepcopy(manifest)
+        gate = altered["gateRequirements"][0]
+        if mutation == "remove":
+            altered["gateRequirements"].pop(0)
+        elif mutation == "optional":
+            gate["required"] = False
+        elif mutation == "owner":
+            gate["verifierOwnerId"] = "harness"
+        elif mutation == "scope":
+            gate["supportScope"] = "all consumer claims"
+        elif mutation == "guarantee":
+            gate["guarantee"] = "the process is running"
+        with pytest.raises(ContractNotRefined):
+            assert_consumer_refinement(original, altered)
+
+
+def test_network_actual_composition_code_matches_finite_three_valued_algebra(
+    manifest,
+):
+    required = sorted(
+        (row for row in manifest["gateRequirements"] if row["required"]),
+        key=lambda row: row["id"],
+    )
+    # Four observations per Gate: SATISFIED, UNSATISFIED, UNKNOWN, MISSING.
+    # This exhaustively checks the actual two-Gate consumer path against its
+    # abstract closure law. This is not an LLM model comparison.
+    assert len(required) == 2
+    for standing in itertools.product(
+        ("SATISFIED", "UNSATISFIED", "UNKNOWN", "MISSING"),
+        repeat=len(required),
+    ):
+        results = [
+            _owner_result(manifest, gate, state)
+            for gate, state in zip(required, standing, strict=True)
+            if state != "MISSING"
+        ]
+        projected = evaluate_gate_results(manifest, results)
+        assert projected["mechanicalClosure"] is (standing == ("SATISFIED",) * 2)
+        assert projected["domainAcceptanceEstablished"] is False
+        assert projected["unknownGateIds"] == [
+            gate["id"]
+            for gate, state in zip(required, standing, strict=True)
+            if state == "UNKNOWN"
+        ]

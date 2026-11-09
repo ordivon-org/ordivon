@@ -4,7 +4,7 @@
   "circuitId": "circuit:network-shared-forward-reload-r1",
   "objectiveRef": {
     "id": "objective:network-shared-forward-no-provider-restart-r1",
-    "digest": "sha256:9c3ddff9bf28bc8fbe619d17beff2877f517a88c04890888211d6a2a1b020465"
+    "digest": "sha256:5731dbcb47f32c5f2eb223b20c3c53e3e6c421da24b2afa0e3d7f8f7ba6af048"
   },
   "methodBindings": [],
   "capabilityBindings": [
