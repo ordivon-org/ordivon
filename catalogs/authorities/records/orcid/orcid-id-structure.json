@@ -40,8 +40,8 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "capabilities/packages/research.md",
-      "docs/RESEARCH_CAPABILITY_PACKAGE_R1.md",
+      "catalogs/capabilities/packages/research.md",
+      "catalogs/capabilities/RESEARCH_CAPABILITY_PACKAGE_R1.md",
       "ORCID official identifier guidance checked 2026-09-14"
     ]
   },

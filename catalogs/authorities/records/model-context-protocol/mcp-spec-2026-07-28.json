@@ -42,7 +42,7 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "capabilities/providers/mcp.md",
+      "catalogs/capabilities/providers/mcp.md",
       "MCP official specification/release announcement checked 2026-09-14"
     ]
   },

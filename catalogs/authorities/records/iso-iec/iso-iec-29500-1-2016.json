@@ -40,7 +40,7 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "capabilities/packages/artifact.md",
+      "catalogs/capabilities/packages/artifact.md",
       "ISO official source checked 2026-09-14"
     ]
   },

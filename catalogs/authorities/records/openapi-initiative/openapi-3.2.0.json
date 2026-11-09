@@ -40,7 +40,7 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R1.md",
+      "docs/architecture/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R1.md",
       "OpenAPI official specification checked 2026-09-14"
     ]
   },
