@@ -226,3 +226,40 @@ Third PR (Tasks 4–5): single production GC flow and real consumer handoff.
 Fourth PR (Tasks 6–7): physical qualification, versioned deployment and legacy retirement.
 
 No extra metadata registry, test language or role graph is required. For each PR, compare exact current main with the planned source cut before writing. If another Agent already implemented it, keep only unmerged behavior-changing work. End state is tested native capability, not count of documents or new files.
+
+
+## Pre-implementation independent cross-audit gate — 2026-11-10
+
+The authoritative theory/consumer/review matrix lives in the existing SPEC section 11. Do not create another checklist DSL or cross-owner task database.
+
+**Source currentness:** main SHA 8346863be965da34371944679d063fd9fd0358ac at audit; PR #1981 has already MERGED, #1960 and #1921 already MERGED, #1983 OPEN, and an independent Agent outcome contract PR #1993 is OPEN. Each later implementation task must rebind its own SourceCut and subtract already completed branches.
+
+**Peer collaboration performed:** Host Space messages 25819 (Runtime), 25820 (mathematics/computer science/management/R2.1), and 25821 (independent falsification) were committed by actor:agent:gpt6-runtime-lifecycle-crossaudit-20261110. Sending a message proves only collaboration request; **an actual peer answer, readset and counterexample are required** to mark peer-review PASS. Until then PEER_REVIEW=UNKNOWN, not PASS.
+
+**Gate A — theory, skill, representation, scope (before source behavior mutation):**
+
+- [x] Read native method-router/representation-first and R2.1 formal-model; scoped theory choices: assume–guarantee + source refinement, TLA+/fairness, owner-rooted reachability/leases, TOC/Jidoka/Goodhart.
+- [x] Read Matt domain-modeling/TDD/code-review, ECC contract-first/brownfield and Superpowers writing-plans/TDD/verification; use them as advisory thought LEGOs, not Tool authority.
+- [x] Recheck exact GitHub source and merged prior PRs; no need to redo #1960 / #1981 / #1921.
+- [x] Re-run owner-native formal check on current source: mise run formal:verify exit 0, includes R2 candidate and named negative controls; scripts/check_docs.py exit 0. This is model scope only.
+- [x] Publish independent review requests to existing Host Space without assuming a response.
+- [ ] Obtain or quote actual independent peer findings for all material objections: correctness of representation, strict theory side conditions, Matt/ECC/Superpowers fit, over-conservative policy, superficial deliverables, proof-to-code bridge, full-system effect, unnecessary duplicate platform.
+- [ ] Resolve any FAILED material objection and post corrected exact source cut back to existing Space. Unknown peer replies may not be represented as approval.
+- [ ] Authorize Task 3 implementation **only after** the prior two review steps; neither 4h age nor dirty state authorizes destructive action in this preparation phase.
+
+**Gate B — first production behavior slice, natural Runtime Owner:**
+
+- [ ] Test RED through existing WorkspaceCloseRequest/PG workspace.close public seam: an unverified finished-consumer assertion must not create a false source/semantic acceptance claim; concurrently held Job or Runtime continuation blocks physical removal.
+- [ ] Implement one minimum owner-scoped consumer/disposition witness with explicit expiry/issuer and exact source-state digest using existing PG/admission fence, not a new global lease store. Permit ordinary disposable sessions to exit with confirmed source outcome.
+- [ ] Verify source tests GREEN, negative mutation catches unauthorized close, and Git/PG CAS prevents concurrent renewal/close TOCTOU. Keep outside-owner ambient file readers UNKNOWN.
+- [ ] Map actual R2 candidate model states to exact Rust/PG state transitions; no source-refinement claim from TLC alone.
+
+**Gate C — lifecycle and consumer integration:**
+
+- [ ] Consume prior owner PR #1983 as provider evidence or reject with a specific failing native test; do not duplicate its signed-artifact functionality.
+- [ ] Fix last-job-success-only and no-Job disposal eligibility through real native source and tests, without allowing unique unresolved data deletion.
+- [ ] Integrate actual caller-owned Host/Artifact/Git result handoff. Do not create a Host Work per Workspace and do not give Host physical Close authority.
+- [ ] Revalidate existing installed Linux and Windows binaries independently; use current owner release path and physical receipts. Delete superseded SQLite-only/cache/lifecycle adapters only after actual last consumer migration.
+- [ ] Perform Matt two-axis review (standards vs spec) and independent falsifier review; verify actual effect, not just test/PR count.
+
+**Stop rule:** a zero-diff/unchanged existing provider result means REUSE, not a new PR. A complete Spec with no executable consumer effect is not the reform's terminal success; however a missing peer reply is transparently UNKNOWN and must not be falsified by self-scoring. No weak-model experiments.

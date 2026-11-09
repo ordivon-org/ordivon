@@ -1,6 +1,6 @@
 # Workspace Consumer Lifecycle R2.1 — Formal-first Specification
 
-> 状态：APPROVED_FOR_IMPLEMENTATION（设计/验收目标）；不是 CODE_REFINED / INSTALLED_CURRENT / CONSUMED。
+> 状态：SPECIFIED / MODEL_CHECKED（有限 TLA+），外部独立交叉审计待复核；不是 CODE_REFINED / INSTALLED_CURRENT / CONSUMED。
 > 基线：Git source cut 3b43977e682d8c7668f6371ffd998c7821e4312a，2026-11-09；如主线先行更新，执行前重新取证并只移植未覆盖增量。
 > 自然 Owner：Runtime（物理 Workspace / Job / Attempt / close），Git（源码），Host（Work 目标连续性），Artifact（成果身份），systemd/Windows（进程与目录）。
 > 伴随执行计划：WORKSPACE_CONSUMER_LIFECYCLE_R21_EXECUTION_PLAN.md。
@@ -188,3 +188,67 @@ P5：以真实安装 readback 证明新版本加载，再执行端到端消费�
 验证链：选择真实消费者 → 定义外部可见性质 → 正常路径测试 → 故意注入违反性质的 mutation → 命名反例 → 最小源实现 → 真实 PG/systemd/Windows 回读 → 删除旧实现/重复文档。
 
 改革成功意味着下次无需人为要求清理大批死 Workspace，且独有价值不因旧 GC 被误丢；不以 Workspace 数量归零或“测试数量增加”为成功。若现实证据不足，保留 UNKNOWN，但必须有 owner、可执行下一步及自然到期/补证机制。
+
+
+## 11. Cross-disciplinary formal and management audit — 2026-11-10
+
+This is a scoped pre-implementation qualification of the existing R2.1 LEGO, not another registry, control plane, mathematics, universal Skill, or proof authority. The canonical cross-owner outcome contract is docs/architecture/AGENT_OUTCOME_CONSTRAINT_EXECUTION_SPEC_R1.md. Exact baseline at review: GitHub main 8346863be965da34371944679d063fd9fd0358ac; recheck before implementing.
+
+### Mathematics — typed scope and proof bridge
+
+Let C_R(w,t) be the *admitted* consumers that actually participate in Runtime-owned Job/Attempt, Workspace/Git dependency and explicit continuation/lease mechanisms for Workspace w at time t. This is NOT all hypothetical external readers of trusted-local files. Any ambient external use not admitted in this boundary remains UNKNOWN_EXTERNAL_CONSUMER. Observing a small C_R is not a closed-world theorem.
+
+The normative outcome predicate phi is independent of model predicate psi. A finite TLC PASS supports psi, but a domain claim requires a separate implementation refinement/simulation plus verifier-to-outcome bridge B: psi => phi. No source/refinement bridge currently proves an externally truthful consumerReleased claim. The R2 candidate variable consumer="finished" is an assumption until an admitted, authenticated event and real Runtime closure consume it.
+
+Safety in the qualified owner scope: G(close(w) -> identityCurrent(w) AND quiescentRuntime(w) AND noAdmittedLiveConsumers(w) AND resultDispositionResolved(w)). Published requires an actual Git/Artifact provenance/consumer receipt. Discarded requires owner-bound, digest-bound intent. Clean source, merged HEAD, no CWD process, or successful Job are not semantic acceptance.
+
+Liveness requires stable eligibility, fair native scheduling, available physical service, and no newly admitted valid lease; then eligible implies eventual close or revalidated ineligibility. A finite TLA+ weak fairness assumption is not evidence that systemd, PostgreSQL, Windows or clock behavior is fair. An indefinitely UNKNOWN case needs a concrete source, evidence gap and bounded revalidation, not a permanent HOLD disguised as safety.
+
+Concurrent Close must be fenced against new Job/consumer admission by an existing PG transaction or Runtime-owned lock, and effect-time sourceStateDigest and liveness state must be revalidated. An observation made minutes earlier is a TOCTOU candidate, not permission to delete. Never add a second lock manager for this.
+
+### Computer science — adopt, do not recreate
+
+Hoare / assume-guarantee: one provider guarantee is useful only if downstream assumptions hold. Refinement must not silently strengthen assumptions or weaken guarantees. Rust types and MCP public contracts should make invalid effect transitions unrepresentable or reject them at admission, rather than validating a report after the fact.
+
+Kubernetes Controller, ownerReferences, finalizers and TTL-after-finished inspire owner-local desired-vs-actual reconciliation, including cleanup after both success and failure. Do not install Kubernetes. Nix GC Roots demonstrate reachability from *known roots*, not a magical proof that unknown dynamic consumers are absent. Git worktree is only a materialized working copy; untracked unique bytes are not automatically committed. PostgreSQL CAS, systemd process identity and Windows Job Object remain the natural physical authorities.
+
+Official primary sources: https://lamport.azurewebsites.net/tla/safety-liveness.pdf ; https://www.amazon.science/publications/how-amazon-web-services-uses-formal-methods ; https://kubernetes.io/docs/concepts/architecture/garbage-collection/ ; https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/ ; https://nix.dev/manual/nix/2.34/package-management/garbage-collector-roots ; https://git-scm.com/docs/git-worktree ; https://martinfowler.com/articles/patterns-of-distributed-systems/lease.html .
+
+### Management and control engineering — what is the constraint?
+
+Goldratt's Theory of Constraints directs effort to the real throughput bottleneck: consumer completion and explicit release/retention of value, not workspace file count. Toyota Jidoka builds quality into the effect seam by stopping invalid deletions, while Just-In-Time retires disposable workspaces without another human approval stage. Feedback control requires observable release and physically actionable control, not another dashboard. Goodhart's Law warns that worktree count, PR count, tests, and model states are proxies rather than final consumer value. Little's Law can help diagnose steady-state backlog, but must not be asserted for bursty transient workload without stationarity.
+
+Mature references: https://www.goldrattresearchlabs.com/introduction-to-toc ; https://global.toyota/en/company/vision-and-philosophy/production-system/ ; https://mathworld.wolfram.com/LittlesLaw.html ; https://openai.com/index/measuring-goodharts-law/ ; https://ntrs.nasa.gov/api/citations/20180006312/downloads/20180006312.pdf .
+
+### Required cross-audit matrix (for Spec, plan, source diff, and installed/effect report)
+
+| Question (each must be asked; N/A with reason is allowed) | Required falsifier / actual authority | Current standing |
+| --- | --- | --- |
+| Correct problem representation? | Contradict age-only or dirty-only removal, and indefinite UNKNOWN hold | Historical R1 negative trace exists; real bridge UNKNOWN |
+| Strict theory assumptions and scope? | Typed R2.1, assume-guarantee, actual code refinement, fair scheduler assumptions | MODEL_CHECKED; CODE_REFINED UNKNOWN |
+| Matt domain-modeling/TDD/code-review? | Fixed base/HEAD, public seam RED->GREEN, separate standards vs spec verdict | Method read; next code stage pending |
+| ECC contract-first and brownfield reuse? | One current MCP/provider contract, consumers verified, no duplicate record store | Exact live API gap pending |
+| Superpowers plans/verification? | Commands, exact source cut and independent negative control, not self-report | Existing formal phase passed |
+| Is this over-conservative? | No-Job and failed-but-DISCARDED workspaces eventually close, without approvals | UNKNOWN; installed heuristic uses last-success |
+| Is this just surface work? | Real Runtime/consumer effect and physical receipt, not docs/tests count alone | No production repair claimed yet |
+| Did we find system bottleneck? | Actual consumer-release transition rather than directory cleanup statistics | Working hypothesis; requires Owner validation |
+| Unsafe optimism? | Active Job, unique untracked output, stale lease, reentrant execution, lost response | Native negative controls pending |
+| Evidence/currentness? | Git exact SHA vs Linux/Windows installed binary/PG/OS receipts | SOURCE observed; INSTALLED_CURRENT UNKNOWN |
+| Delete, reuse, or optimize? | Consumer-verified retirement of old scripts and SQLite-only adapters | Not authorized before migration |
+| Independent peer audit? | Native Host Space reply naming reviewer, source cut, rebuttal and falsifier | Requests seq 25819/25820/25821 committed; PEER_REPLY UNKNOWN |
+
+A peer opinion does not authorize physical effects; actual Owner-native acceptance remains decisive. Conversely, absent peer response cannot be silently promoted to a PASS. The review must remain bounded and must not block unrelated valid Runtime operations. No weak-model test or new governance platform is an acceptance condition.
+
+### Implementation precedence and deletion rule
+
+A. REUSE already merged #1960 (4h), #1981 (R1 formal), R2 candidate formal profile, Git, PG and owner verification. Check source/installed before repeating anything.
+
+B. RECONCILE #1983 signed PG release and the already merged #1921 paginated workspace.list; compare exact source readsets, do not race another owner branch. Keep pending structured-release work distinct.
+
+C. CHANGE the Runtime consumer/continuation and result-disposition contract only at a real public/native seam. Prefer committed owner claims with expiry, exact source digest and effect-time CAS to unauthenticated consumerReleased boolean; never claim universal external-observer completeness.
+
+D. CHANGE production GC eligibility after real owner evidence: finished or failed Job and no-Job disposable Workspaces must be allowed to exit when outcomes are expressly handled; neither last success nor dirty=false is universal necessity.
+
+E. DELETE only superseded SQLite-only cleanup/cache logic after current PG and Windows consumers migrate and installed readback proves replacement. Do not preserve duplicate logic because it is old, modified, or appears in tests.
+
+F. VERIFY all three levels separately: TLC abstract property + Rust/PG source refinement + Linux/Windows installed physical action and actual consumer acceptance. The final user-visible outcome, not number of PRs/words/states, determines success.
