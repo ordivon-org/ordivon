@@ -18,28 +18,28 @@ Do not classify by keywords alone. Infer the task's actual interaction needs, th
 5. If current page state must determine the next action, use Browser Use.
 6. Use Computer Use only when required interaction crosses outside browser semantics.
 
-Run the current local census before relying on a local provider:
+Run from the current monorepo root so the route script resolves on the actual checkout, then inspect this node's provider census before relying on a local provider:
 
 ```bash
-python /root/projects/ordivon/catalogs/capabilities/routing/web_interaction_route.py --census
+python catalogs/capabilities/routing/web_interaction_route.py --census
 ```
 
 For a route decision, translate the task into explicit facts rather than passing natural language to a classifier. Examples:
 
 ```bash
 # Public read-only page
-python /root/projects/ordivon/catalogs/capabilities/routing/web_interaction_route.py
+python catalogs/capabilities/routing/web_interaction_route.py
 
 # Unknown/stateful browser UI
-python /root/projects/ordivon/catalogs/capabilities/routing/web_interaction_route.py \
+python catalogs/capabilities/routing/web_interaction_route.py \
   --requires-interaction --adaptive-browser-reasoning
 
 # Known deterministic browser flow; current-node Playwright availability is discovered from Workstation v2
-python /root/projects/ordivon/catalogs/capabilities/routing/web_interaction_route.py \
+python catalogs/capabilities/routing/web_interaction_route.py \
   --requires-interaction --deterministic-browser-flow
 
 # Desktop interaction only when the current carrier actually provides Computer Use
-python /root/projects/ordivon/catalogs/capabilities/routing/web_interaction_route.py \
+python catalogs/capabilities/routing/web_interaction_route.py \
   --requires-interaction --requires-desktop-gui --caller-available computer_use
 ```
 

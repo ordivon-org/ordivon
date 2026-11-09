@@ -407,7 +407,7 @@ The apply command is a policy executor, not a timer. Scheduling is intentionally
 
 ### Policy-driven lifecycle
 
-The low-level reclaim command remains the clean/stale release executor. `ordivon-runtime-lifecycle` adds the installed disposable-carrier retention policy without creating another Workspace database or querying Registry tables directly. It derives inactivity from Workspace creation plus the Runtime-projected latest durable Job/Attempt activity, while the absolute lifetime remains anchored to Workspace creation. The packaged `ephemeral` and `review` classes use a 24-hour inactivity lease for clean carriers and a separate 48-hour dirty review threshold. The 48-hour maximum lifetime is informational for dirty carriers, not permission for an unconfirmed forced close, because both dirty and max-lifetime force-close defaults are disabled. Active or held Jobs and explicitly `pinned` Workspaces remain protected regardless of age. Clean-but-unintegrated carriers may close only through the existing preservation and receipted `workspace.close` / reclaim boundary; dirty carriers require a separately authorized owner disposition before any force-close; `unknown` and `orphan_directory` identities stay on repair/quarantine paths because their target identity is not proven. Exact/prefix rules, not naming conventions, select non-default classes.
+The low-level reclaim command remains the clean/stale release executor. `ordivon-runtime-lifecycle` adds the installed disposable-carrier retention policy without creating another Workspace database or querying Registry tables directly. It derives inactivity from Workspace creation plus the Runtime-projected latest durable Job/Attempt activity, while the absolute lifetime remains anchored to Workspace creation. The packaged `ephemeral` and `review` classes use a 4-hour inactivity lease for clean carriers and a separate 48-hour dirty review threshold. The 48-hour maximum lifetime is informational for dirty carriers, not permission for an unconfirmed forced close, because both dirty and max-lifetime force-close defaults are disabled. Active or held Jobs and explicitly `pinned` Workspaces remain protected regardless of age. Clean-but-unintegrated carriers may close only through the existing preservation and receipted `workspace.close` / reclaim boundary; dirty carriers require a separately authorized owner disposition before any force-close; `unknown` and `orphan_directory` identities stay on repair/quarantine paths because their target identity is not proven. Exact/prefix rules, not naming conventions, select non-default classes.
 
 ```bash
 scripts/ordivon-runtime-lifecycle inspect \
@@ -426,7 +426,7 @@ scripts/ordivon-runtime-lifecycle sweep \
   --confirm-policy APPLY_WORKSPACE_RETENTION_POLICY --pretty
 ```
 
-The packaged timer runs the Runtime lifecycle service hourly with a small randomized delay. Each run first applies the mature low-level reclaim path to clean `closable` Workspaces at 24 hours, then runs policy-driven lifecycle handling for the remaining classes, then runs cache maintenance. Clean and clean-but-unintegrated carriers become policy-eligible after 24 hours of inactivity; packaged dirty carriers are *not* automatically eligible at 48 hours, and hard lifetime cannot override their owner-disposition requirement. Active or held Jobs and explicitly pinned Workspaces remain protected. Clean-but-unintegrated closures use the Runtime `workspace.close` boundary after source preservation. A dirty close requires an explicit disposition outside the automatic packaged lifecycle; neither case permits direct filesystem deletion. `unknown` and `orphan_directory` identities are not blindly deleted because Runtime cannot prove the target identity; they continue through repair/quarantine. Lifecycle exit 1 is a service failure rather than an accepted systemd success; exit 2 remains the accepted partial-maintenance status.
+The packaged timer runs the Runtime lifecycle service hourly with a small randomized delay. Each run first applies the mature low-level reclaim path to clean `closable` Workspaces at 4 hours, then runs policy-driven lifecycle handling for the remaining classes, then runs cache maintenance. Clean and clean-but-unintegrated carriers become policy-eligible after 4 hours of inactivity; packaged dirty carriers are *not* automatically eligible at 48 hours, and hard lifetime cannot override their owner-disposition requirement. Active or held Jobs and explicitly pinned Workspaces remain protected. Clean-but-unintegrated closures use the Runtime `workspace.close` boundary after source preservation. A dirty close requires an explicit disposition outside the automatic packaged lifecycle; neither case permits direct filesystem deletion. `unknown` and `orphan_directory` identities are not blindly deleted because Runtime cannot prove the target identity; they continue through repair/quarantine. Lifecycle exit 1 is a service failure rather than an accepted systemd success; exit 2 remains the accepted partial-maintenance status.
 
 The low-level reclaim apply path also re-reads `workspace.get` immediately before deletion. The fresh `currentHeadRevision` must equal the revision classified during planning, the Workspace must still be clean, and the fresh `sourceStateDigest` is passed unchanged to `workspace.close(expectedSourceStateDigest=...)`. This makes the low-level clean/stale removal a compare-and-swap transition rather than a time-of-check/time-of-use guess. The subordinate reclaim receipt is linked from the lifecycle receipt. The same oneshot then runs cache pruning as a separate receipt domain; Workspace retention does not become cache authority. Packaged cache pruning reads `ORDIVON_CACHE_HIGH_WATERMARK_BYTES` and `ORDIVON_CACHE_LOW_WATERMARK_BYTES` from the same Runtime operator environment used by health/status. An explicit `ordivon-runtime-cache prune` invocation may override those values with CLI watermarks; without either an environment file or explicit values, the standalone command retains its 64 GiB / 48 GiB defaults.
 
@@ -568,6 +568,89 @@ scripts/ordivon-runtime-status --diagnose --json \
 The dashboard reports elapsed, output-idle, and progress-idle time as mechanical freshness only. It does not label a silent Job `stuck`, infer semantic completion, or turn display state into Runtime truth. Job tokens use the distinguishing suffix of the durable Job ID because UUIDv7 prefixes are deliberately time-correlated and therefore poor terminal identifiers.
 
 The JSON schema reports separate `health` and `maintenance` states. The deployment projection names the current `releaseEvent` and `releaseDisposition`; a successful explicit rollback supersedes the forward deployment for installed-artifact truth. Exit code `1` is reserved for operational health failures such as service, deployment, Registry, recovery, exact release-artifact inconsistency, or a rollback whose restored artifact set is known but whose coherent source Commit cannot be proven. Maintenance findings such as a stale dirty Workspace produce top-level `status=attention` but retain exit code `0`; automation must inspect `maintenanceAction` when maintenance policy should gate a workflow. Compatibility observations remain advisory deletion evidence: an unreadable or truncated trace, unknown rollback protocol, or incomplete observation window blocks deletion but does not create a health incident. Exit code `2` remains reserved for an invalid invocation or unreadable mandatory input.
+
+## PostgreSQL-native operator release evidence (source, not production rollout)
+
+The PG ReleaseEffect reader, the atomic pre-dispatch admission and the
+independent host operator are separate consumers of one durable effect
+identity. This prevents a PG transaction, a process launch or a GitHub
+source merge from being mistaken for an installed Runtime version.
+
+The operator's Python database driver is deliberately an ordinary mature
+psycopg 3.x dependency, not a hand-written libpq wrapper. Install it into a
+dedicated operator virtual environment from the checked-in, SHA-256-verified
+lock file. A reproducible host installation (run from services/runtime) is:
+
+    uv venv /opt/ordivon/runtime-pg-operator/.venv --python python3
+    uv pip sync --python /opt/ordivon/runtime-pg-operator/.venv/bin/python \
+        requirements-runtime-pg-operator.lock.txt --require-hashes
+
+Run the operator entrypoint through that environment's Python interpreter,
+with its separately provisioned PostgreSQL DSN and exact service allowlist.
+Do not assume the interactive shell's site packages are present for systemd.
+The pinned operator driver is independent of requirements-tooling.lock.txt,
+which is only for development checks.
+
+The independently qualified operator module is
+scripts/ordivon_runtime_pg_operator.py (entrypoint
+scripts/ordivon-runtime-pg-operator). It does not implement another
+Registry, process manager, runner or installer. It imports and reuses
+the existing Runtime deployer's candidate manifest, source ref
+authorization, file preimage and atomic copy, systemd controls, MCP
+readiness probe, rollback and immutable receipt primitives.
+
+Before any production invocation, an independently installed operator
+must be given its own PostgreSQL connection through
+ORDIVON_PG_RELEASE_OPERATOR_DSN and a nonempty, exact, operator-owned
+ORDIVON_PG_RELEASE_ALLOWED_SERVICES_JSON. Neither value comes from MCP
+Tool arguments. Its PG role must be able to update the protected
+_stage_control.promotion_allowed column; the ordinary Runtime
+application role must NOT. Rows source, release and epoch must be
+independently qualified for the same physical PG WAL timeline and
+source SHA. The referenced ReleaseEffect must already be atomically
+admitted by the separately qualified PostgreSQL contract. The existing
+PG MCP server still does NOT advertise release.apply.
+
+An inspection or apply operation binds: authenticated principal,
+clientRequestId, effectId, complete request/Job/Effect digests,
+40-character Git commit, exact manifest SHA-256, expected Tool count,
+service, receipt root and candidate/installed artifact sets. The
+operator first commits one release-specific dispatch event in
+PostgreSQL, then uses a second transaction and OS flock to fence
+ordinary admission while draining, stopping systemd, revalidating
+candidate/world inputs, replacing exact bytes and restarting. It
+requires real PG MCP Catalog readback. An attempted partial rename is
+already a physical effect. On a qualified unchanged PG epoch, rollback
+restores the original bytes; uncertainty suppresses unsafe rollback.
+
+An unknown dispatch COMMIT or missing result receipt is NEVER
+auto-redispatched. A verified immutable operator result is committed as
+the distinct RELEASE_EFFECT_RECEIPTED event rather than pretending
+the normal Runner observed a PROCESS_EXITED event. PG terminalization
+requires exact installed artifact digests and live MCP tool catalog;
+release.get is a separate authenticated read/receipt verification.
+An already-terminal exact replay does not repeat systemd or reinstall,
+including if new-release qualification was later revoked.
+
+Execute the disposable real-system acceptance explicitly from
+services/runtime after building ordivon-runtime-runner and
+ordivon-runtime-pg with their documented Cargo features:
+
+    ORDIVON_RUN_NATIVE_PG_SYSTEMD_RELEASE=1 python3 -m unittest discover -s scripts/tests -p test_pg_operator_release.py -v
+
+That test creates its own PostgreSQL cluster, its own unique temporary
+systemd unit, and a real MCP endpoint. It replaces only its temporary
+binary and reads release.get from the restarted service, then removes
+the unit and database. Failure tests also cover a forged result,
+Operator privilege and WAL-epoch revocation, unknown dispatch reply,
+partial file replace, systemd start failure and exact replay.
+
+**Production release gate remains closed:** no installed Linux PG node
+has been observed advertising structuredReleaseConfigured=true or a
+qualified release.apply. Tests of disposable service installation do not
+imply that a production Operator/Artifact/service has been installed.
+The PG transport must still connect MCP release.apply and the
+independent Operator invocation/restart acceptance before that claim.
 
 ### PostgreSQL serialization-abort admission (2026-11-08)
 

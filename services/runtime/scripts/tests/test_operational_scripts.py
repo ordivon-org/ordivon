@@ -327,9 +327,17 @@ class OperationalScriptTests(unittest.TestCase):
         owner = (REPO / "scripts/owner-environment").read_text(encoding="utf-8")
         self.assertIn("environment_is_materialized()", owner)
         self.assertIn("ensure_materialized_environment()", owner)
-        self.assertIn('uv_bin" pip sync --offline --python "$python_bin" "$tooling_lock"', owner)
+        self.assertIn(
+            'uv_bin" pip sync --require-hashes --offline --python "$python_bin" "$tooling_lock" "$operator_lock"',
+            owner,
+        )
         self.assertIn('cargo_bin" fetch --locked --offline', owner)
-        self.assertIn('uv_bin" pip sync --python "$python_bin" "$tooling_lock"', owner)
+        self.assertIn(
+            'uv_bin" pip sync --require-hashes --python "$python_bin" "$tooling_lock" "$operator_lock"',
+            owner,
+        )
+        self.assertIn('operator_lock="$repo/requirements-runtime-pg-operator.lock.txt"', owner)
+        self.assertIn('actual_psycopg = md.version("psycopg")', owner)
         self.assertIn('cargo_bin" fetch --locked)', owner)
         run_extended = owner.split("run_extended() {", 1)[1].split("\n}", 1)[0]
         self.assertIn("ensure_materialized_environment", run_extended)

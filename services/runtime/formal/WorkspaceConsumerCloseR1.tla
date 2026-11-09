@@ -1,7 +1,7 @@
 -------------------- MODULE WorkspaceConsumerCloseR1 --------------------
 EXTENDS TLC
 
-\* Bounded abstraction for the first 24h of a Workspace's lifecycle.
+\* Bounded abstraction for the first 4h of a Workspace's lifecycle.
 \* The Release transition ASSUMES a trustworthy consumer; no native Runtime
 \* authority currently proves that assumption for consumerReleased=true.
 
@@ -79,6 +79,25 @@ Next ==
     \/ Close
 
 Spec == Init /\ [][Next]_vars
+
+\* Conditional liveness: under weak fairness for Close, a Workspace that
+\* stays eligible forever cannot be retained forever solely by stuttering.
+\* This does NOT witness actual physical consumers or scheduler fairness.
+EligibleForClose ==
+    /\ phase = "open"
+    /\ ~liveJob
+    /\ ~gitDependent
+    /\ (released \/ age = "expired")
+
+FairCloseSpec == Spec /\ WF_vars(Close)
+
+StableEligibleEventuallyClosed ==
+    (<>[]EligibleForClose) => <> (phase = "closed")
+
+\* Deliberately unsatisfied in the current abstraction: expiry alone
+\* is not proof that an otherwise active consumer has finished.
+ExpiredActiveConsumerCannotBeClosed ==
+    ~ (phase = "closed" /\ consumer = "active" /\ age = "expired")
 
 TypeOK ==
     /\ phase \in {"open", "closed"}
