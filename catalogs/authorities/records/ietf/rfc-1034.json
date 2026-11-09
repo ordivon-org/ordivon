@@ -37,7 +37,7 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "catalogs/capabilities/packages/network.md",
+      "capabilities/packages/network.md",
       "RFC Editor checked 2026-09-14"
     ]
   },

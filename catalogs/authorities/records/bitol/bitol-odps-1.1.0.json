@@ -42,7 +42,7 @@
   "provenance": {
     "registeredDate": "2026-09-20",
     "registrationBasis": [
-      "docs/architecture/DATA_LIFECYCLE_CENSUS_R1.md",
+      "docs/DATA_LIFECYCLE_CENSUS_R1.md",
       "Bitol 2026-09-08 joint ODCS/ODPS release checked 2026-09-20"
     ]
   },

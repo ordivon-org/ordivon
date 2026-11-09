@@ -41,7 +41,7 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "docs/architecture/CAPABILITY_PACKAGES_R1.md",
+      "docs/CAPABILITY_PACKAGES_R1.md",
       "in-toto official specifications page checked 2026-09-14"
     ]
   },

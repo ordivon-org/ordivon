@@ -40,7 +40,7 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "catalogs/capabilities/packages/game.md",
+      "capabilities/packages/game.md",
       "ISO official source checked 2026-09-14"
     ]
   },

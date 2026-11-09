@@ -38,7 +38,7 @@
     "registeredDate": "2026-09-19",
     "registrationBasis": [
       "commercial-practice-externalization-r2",
-      "docs/migration/retirement/business-operations-erpnext-r1.md"
+      "migrations/records/business-operations-erpnext-r1.md"
     ]
   },
   "relations": {
