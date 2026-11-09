@@ -32,6 +32,17 @@ This guide is a **consumer index**, not a second tool catalog or a new execution
 
 A LEGO is described by `(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`: inputs/outputs, owned state, pre/postconditions, invariant, possible effects, cost/capacity, uncertainty, provenance, and decomposition. Each entry must distinguish **specification**, **model/validator**, and **installed implementation**. The implementation and physical model are not proven equivalent merely because they share a name.
 
+## Workspace lifecycle formal-first follow-through
+
+The proposed [consumer-rooted Workspace lifecycle specification](../../planning/WORKSPACE_CONSUMER_LIFECYCLE_R21_SPEC.md)
+and its [executable owner plan](../../planning/WORKSPACE_CONSUMER_LIFECYCLE_R21_EXECUTION_PLAN.md)
+combine safety, conditional liveness, result disposition and evidence-currentness
+without creating a second Runtime, LEGO registry or human approval system.
+The existing bounded TLA+ R1 model now has a FAIRNESS-scoped liveness check and
+an explicit age-only active-consumer counterexample. Neither is proof that
+the installed Runtime authenticates all external consumers. Source refinement
+and physical consumer acceptance remain separate implementation work.
+
 ## Capability LEGOs — current native consumers
 
 | Capability | Source / actual owner | Preconditions and observable postcondition | Mature substrate / evidence |

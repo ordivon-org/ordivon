@@ -84,44 +84,14 @@ def eligible(
     unresolved: int,
     min_age_ms: int,
 ) -> bool:
-    """A terminal physical execution need not have succeeded to release its Workspace.
-
-    The absence of Job rows means no execution has been admitted for this
-    Workspace; age starts at Runtime's authoritative createdAtMs. This is
-    physical retention only, never an assertion about domain outcomes.
-    """
-    if (
-        type(created_ms) is not int
-        or created_ms < 0
-        or type(unresolved) is not int
-        or unresolved != 0
-    ):
-        return False
-    if latest_job_ms is None:
-        if latest_resolution is not None:
-            return False
-        last_activity_ms = created_ms
-    else:
-        if (
-            type(latest_job_ms) is not int
-            or latest_job_ms < created_ms
-            or latest_resolution not in {"succeeded", "failed", "cancelled", "lost"}
-        ):
-            return False
-        last_activity_ms = latest_job_ms
-    return last_activity_ms <= now_ms - min_age_ms
-
-
-def _durable_git_ref(repo: Path, head: str) -> bool:
-    """Require a durable head/remote/tag ref containing HEAD, not this worktree."""
-    if len(head) not in (40, 64) or any(c not in "0123456789abcdef" for c in head):
-        return False
-    result = _git(
-        repo, "for-each-ref", "--contains", head,
-        "--format=%(refname)", "refs/heads", "refs/remotes", "refs/tags",
+    """Reclaim only old, quiet, successfully executed Workspaces."""
+    return (
+        type(created_ms) is int and created_ms >= 0
+        and type(latest_job_ms) is int and latest_job_ms >= created_ms
+        and latest_resolution == "succeeded"
+        and unresolved == 0
+        and max(created_ms, latest_job_ms) <= now_ms - min_age_ms
     )
-    return result.returncode == 0 and bool(result.stdout.strip())
-
 
 def _active_process_cwds(root: Path) -> list[str]:
     result = []
@@ -168,9 +138,31 @@ def run(args: argparse.Namespace) -> dict:
     results = {"checked": 0, "eligible": 0, "closed": [], "skipped": {}, "errors": []}
     def skip(why: str) -> None:
         results["skipped"][why] = results["skipped"].get(why, 0) + 1
-
-    # Both inspection and apply use Runtime's Workspace source/time authority.
-    # Filesystem ctime is not a renewal, and no Job is a legitimate state.
+    candidates = []
+    for path, head in _worktrees(repo, root):
+        results["checked"] += 1
+        if any(item == str(path) or item.startswith(str(path)+"/") for item in cwd):
+            skip("process_cwd_active");continue
+        # Linux ctime is used only as a conservative first-stage cheap filter.
+        # The Runtime-created and Job timestamps determine actual retention age.
+        if path.stat().st_ctime * 1000 > now - cutoff:
+            skip("directory_recently_changed");continue
+        info = recent.get(path.name)
+        if info is None:
+            skip("no_terminal_job_evidence");continue
+        last_ms,resolution,nonterminal = info
+        if nonterminal or resolution != "succeeded" or last_ms > now - cutoff:
+            skip("job_not_old_and_terminal_success");continue
+        if _git(repo, "merge-base", "--is-ancestor", head, "origin/main").returncode:
+            skip("head_not_in_main");continue
+        status = _git(path, "status", "--porcelain=v1", "--untracked-files=normal")
+        if status.returncode or status.stdout.strip():
+            skip("dirty_or_git_error");continue
+        candidates.append((path, head, info))
+    if not args.apply:
+        results["eligible"] = len(candidates)
+        results["candidates"] = [p.name for p,_,_ in candidates[:args.limit]]
+        return results
     os.environ["no_proxy"] = "127.0.0.1,localhost"
     client = connect_compatible(
         "http://" + env["ORDIVON_PG_BIND"] + "/mcp",
@@ -178,114 +170,38 @@ def run(args: argparse.Namespace) -> dict:
         client_name="ordivon-runtime-pg-reclaim",
         timeout=20.0,
     )
-    candidates = []
-    for path, head in _worktrees(repo, root):
-        results["checked"] += 1
-        if any(item == str(path) or item.startswith(str(path) + "/") for item in cwd):
-            skip("process_cwd_active")
-            continue
-        if not _durable_git_ref(repo, head):
-            skip("head_not_durably_referenced")
-            continue
-        status = _git(path, "status", "--porcelain=v1", "--untracked-files=normal")
-        if status.returncode or status.stdout.strip():
-            skip("dirty_or_git_error")
-            continue
+    for path, head, info in candidates[:args.limit]:
         try:
-            workspace = client.call_tool(
-                "workspace.get", {"workspaceId": path.name, "schemaVersion": 1},
-            )
-        except Exception as error:
-            results["errors"].append({
-                "workspaceId": path.name, "errorType": type(error).__name__,
-            })
-            continue
-        if (
-            workspace.get("workspaceId") != path.name
-            or workspace.get("dirty") is not False
-            or workspace.get("activeJobIds") != []
-            or workspace.get("sourceRepo") != str(repo)
-            or workspace.get("currentHeadRevision") != head
-        ):
-            skip("runtime_authority_not_eligible")
-            continue
-        info = recent.get(path.name)
-        last_ms, resolution, nonterminal = info if info is not None else (None, None, 0)
-        if not eligible(
-            now_ms=now,
-            created_ms=workspace.get("createdAtMs"),
-            latest_job_ms=last_ms,
-            latest_resolution=resolution,
-            unresolved=nonterminal,
-            min_age_ms=cutoff,
-        ):
-            skip("not_expired_or_job_unresolved")
-            continue
-        digest = workspace.get("sourceStateDigest")
-        if not isinstance(digest, str) or not digest.startswith("sha256:"):
-            skip("missing_source_digest")
-            continue
-        candidates.append((path, head, digest, info))
-
-    results["eligible"] = len(candidates)
-    if not args.apply:
-        results["candidates"] = [p.name for p, _, _, _ in candidates[:args.limit]]
-        return results
-
-    # A freshly terminal Job can appear between the first PG projection and
-    # apply. The second projection must agree before any close call.
-    fresh_jobs = _jobs(env)
-    for path, head, digest, info in candidates[:args.limit]:
-        if fresh_jobs.get(path.name) != info:
-            skip("job_activity_changed_since_inspection")
-            continue
-        try:
-            # Runtime is final ownership authority: re-read and use exact
-            # source-state digest CAS. It also blocks held/active Jobs.
-            workspace = client.call_tool(
-                "workspace.get", {"workspaceId": path.name, "schemaVersion": 1},
-            )
-            if (
-                workspace.get("workspaceId") != path.name
-                or workspace.get("dirty") is not False
+            workspace = client.call_tool("workspace.get", {"workspaceId":path.name,"schemaVersion":1})
+            if (workspace.get("workspaceId") != path.name or workspace.get("dirty") is not False
                 or workspace.get("activeJobIds") != []
                 or workspace.get("sourceRepo") != str(repo)
                 or workspace.get("currentHeadRevision") != head
-                or workspace.get("sourceStateDigest") != digest
                 or not eligible(
-                    now_ms=now,
-                    created_ms=workspace.get("createdAtMs"),
-                    latest_job_ms=info[0] if info else None,
-                    latest_resolution=info[1] if info else None,
-                    unresolved=info[2] if info else 0,
-                    min_age_ms=cutoff,
-                )
-            ):
-                skip("runtime_authority_not_eligible")
-                continue
-            git_status = _git(path, "status", "--porcelain=v1", "--untracked-files=normal")
-            if (
-                not _durable_git_ref(repo, head)
-                or git_status.returncode
-                or git_status.stdout.strip()
-            ):
-                skip("git_changed_at_close")
-                continue
+                    now_ms=now,created_ms=workspace.get("createdAtMs"),
+                    latest_job_ms=info[0], latest_resolution=info[1],
+                    unresolved=info[2], min_age_ms=cutoff,
+                )):
+                skip("runtime_authority_not_eligible");continue
+            digest=workspace.get("sourceStateDigest")
+            if not isinstance(digest,str) or not digest.startswith("sha256:"):
+                skip("missing_source_digest");continue
+            # Recheck Git and never force. Runtime checks held Jobs/dependents.
+            if (_git(repo,"merge-base","--is-ancestor",head,"origin/main").returncode
+                or _git(path,"status","--porcelain=v1","--untracked-files=normal").stdout.strip()):
+                skip("git_changed_at_close");continue
             closed = client.call_tool(
                 "workspace.close",
-                {
-                    "schemaVersion": 1, "workspaceId": path.name,
-                    "force": False, "consumerReleased": True,
-                    "expectedSourceStateDigest": digest,
-                },
+                {"schemaVersion":1,"workspaceId":path.name,"force":False,
+                 "consumerReleased":True,
+                 "expectedSourceStateDigest":digest},
             )
-            if closed.get("closureDisposition") not in ("removed", "already_closed"):
+            if closed.get("closureDisposition") not in ("removed","already_closed"):
                 raise RuntimeError("Runtime did not confirm closed disposition")
             results["closed"].append(path.name)
         except Exception as error:
-            results["errors"].append({
-                "workspaceId": path.name, "errorType": type(error).__name__,
-            })
+            results["errors"].append({"workspaceId":path.name,"errorType":type(error).__name__})
+    results["eligible"] = len(candidates)
     return results
 
 def main() -> int:

@@ -245,7 +245,6 @@ class LifecycleTests(unittest.TestCase):
         self.assertIn("materialize_runtime_inspect", function)
         self.assertIn("test_cache*.py", function)
         self.assertIn("test_lifecycle*.py", function)
-        self.assertIn("test_pg_native_reclaim.py", function)
 
     def test_reclaim_producer_argv_positions_match_timeout_contract(self) -> None:
         from unittest.mock import patch
@@ -1470,22 +1469,32 @@ class LifecycleTests(unittest.TestCase):
                 self.assertFalse(called)
         globals_["reclaim_apply_selected"] = original_reclaim
 
-    def test_packaged_lifecycle_unit_only_invokes_supported_lifecycle_commands(self) -> None:
+    def test_packaged_lifecycle_uses_native_pg_workspace_reclaimer(self) -> None:
         unit = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.service").read_text(
             encoding="utf-8"
         )
-        self.assertIn("Description=Ordivon PG Runtime native Workspace lifecycle retention", unit)
-        self.assertIn("After=ordivon-runtime.service postgresql.service", unit)
-        self.assertIn("/ordivon-runtime-pg-reclaim --apply", unit)
-        self.assertIn("--env-file /etc/ordivon/ordivon-runtime-pg-only.env", unit)
-        self.assertIn("--workspace-root /var/lib/ordivon/pg-candidate/workspaces", unit)
-        self.assertIn("--min-age-hours 4", unit)
+        starts = [line for line in unit.splitlines() if line.startswith("ExecStart=")]
+        self.assertEqual(len(starts), 1)
+        self.assertIn("/ordivon-runtime-pg-reclaim --apply ", starts[0])
+        self.assertIn("--min-age-hours 4 --limit 25", starts[0])
+        self.assertIn("--workspace-root /var/lib/ordivon/pg-candidate/workspaces", starts[0])
         self.assertNotIn("registry.sqlite3", unit)
-        self.assertNotIn("ordivon-runtime-lifecycle sweep", unit)
+        self.assertNotIn("/ordivon-runtime-lifecycle sweep ", unit)
         timer = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.timer").read_text(
             encoding="utf-8"
         )
         self.assertIn("OnCalendar=hourly", timer)
+        self.assertIn("Persistent=true", timer)
+        help_result = subprocess.run(
+            [sys.executable, "scripts/ordivon-runtime-pg-reclaim", "--help"],
+            cwd=REPO,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        self.assertIn("--apply", help_result.stdout)
+        self.assertIn("--min-age-hours", help_result.stdout)
+        self.assertIn("--workspace-root", help_result.stdout)
 
     def test_inspect_applies_retention_class_and_last_activity(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

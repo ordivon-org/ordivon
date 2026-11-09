@@ -145,7 +145,7 @@ class HostV2(HostPostgresConnections):
                     f"incomplete={receipt_bad}",
                 )
 
-                if detail == "history":
+                if detail in {"integrity", "history"}:
                     history_bad = int(
                         conn.execute(
                             "SELECT count(*) AS value FROM ("
@@ -161,6 +161,7 @@ class HostV2(HostPostgresConnections):
                         history_bad == 0,
                         f"invalidWorks={history_bad}",
                     )
+                if detail == "history":
                     digest_bad = 0
                     for row in conn.execute(
                         "SELECT snapshot_digest,payload FROM work_snapshots ORDER BY work_ref,revision"

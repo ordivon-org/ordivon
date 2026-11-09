@@ -185,7 +185,6 @@ run_lifecycle_tests() {
   echo "lifecycle inner-loop: non-qualifying; run full Runtime verification before submission, integration, or publication"
   "$python_bin" -m unittest discover -s scripts/tests -p 'test_cache*.py' -q
   "$python_bin" -m unittest discover -s scripts/tests -p 'test_lifecycle*.py' -q
-  "$python_bin" -m unittest discover -s scripts/tests -p 'test_pg_native_reclaim.py' -q
 }
 case "$mode" in
   bootstrap) bootstrap ;;

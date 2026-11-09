@@ -4,8 +4,11 @@ import asyncio
 import os
 from uuid import uuid4
 
+import psycopg
 import pytest
 from mcp import Client
+from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 
 from ordivon_host_v2 import HostV2
 from ordivon_host_v2.mcp_server import build_server
@@ -192,5 +195,106 @@ def test_official_mcp_exposes_social_work_surface_and_runs_vertical_slice() -> N
             assert status["authority"]["journalSchema"] == 13
             assert status["doctor"]["healthy"] is True
             assert "board" not in status
+
+    asyncio.run(scenario())
+
+
+def test_integrity_reports_noncontiguous_work_revision_history() -> None:
+    """An integrity consumer must detect a missing historical revision, not just HEAD.
+
+    Deliberately damage only a disposable PostgreSQL test Work, then restore the
+    exact row even when the RED assertion fails. No production DB is used.
+    """
+    assert DSN is not None
+    token = uuid4().hex
+    actor_ref = f"actor:agent:mcp-integrity:{token}"
+    work_ref = f"work:mcp-integrity:{token}"
+
+    async def call(client: Client, tool: str, args: dict[str, object]) -> dict[str, object]:
+        result = await client.call_tool(tool, args)
+        assert not result.is_error, (tool, result)
+        assert result.structured_content is not None
+        return result.structured_content
+
+    async def scenario() -> None:
+        async with Client(build_server(DSN), raise_exceptions=True) as client:
+            await call(
+                client,
+                "actor.declare",
+                {"actorRef": actor_ref, "actorKind": "agent"},
+            )
+            await call(
+                client,
+                "work.create",
+                {
+                    "workRef": work_ref,
+                    "workKind": "integrity-regression",
+                    "actorRef": actor_ref,
+                    "initialSnapshot": snapshot("r1"),
+                },
+            )
+            for revision in (1, 2):
+                await call(
+                    client,
+                    "work.snapshot.commit",
+                    {
+                        "workRef": work_ref,
+                        "expectedRevision": revision,
+                        "snapshot": snapshot(f"r{revision + 1}"),
+                        "actorRef": actor_ref,
+                    },
+                )
+
+            before = await call(client, "host.status", {"detail": "integrity"})
+            assert before["doctor"]["healthy"] is True
+
+            # Separate committed transaction: a real Host connection must see
+            # the missing row, rather than an uncommitted test-only illusion.
+            with psycopg.connect(DSN, row_factory=dict_row) as conn:
+                prior = conn.execute(
+                    "SELECT work_ref,revision,snapshot_digest,payload,"
+                    "writer_actor_ref,created_at,change_sequence "
+                    "FROM work_snapshots WHERE work_ref=%s AND revision=2",
+                    (work_ref,),
+                ).fetchone()
+                assert prior is not None
+                conn.execute(
+                    "DELETE FROM work_snapshots WHERE work_ref=%s AND revision=2",
+                    (work_ref,),
+                )
+
+            try:
+                integrity = await call(client, "host.status", {"detail": "integrity"})
+                checks = {item["name"]: item for item in integrity["doctor"]["checks"]}
+                assert integrity["doctor"]["healthy"] is False
+                assert checks["work.snapshot_history_contiguous"]["status"] == "error"
+                assert checks["work.snapshot_history_contiguous"]["detail"] == "invalidWorks=1"
+                assert checks["work.current_snapshot"]["status"] == "ok"
+                assert "work.snapshot_history_digest" not in checks
+                history = await call(client, "host.status", {"detail": "history"})
+                history_checks = {item["name"]: item for item in history["doctor"]["checks"]}
+                assert history["doctor"]["healthy"] is False
+                assert history_checks["work.snapshot_history_contiguous"]["status"] == "error"
+                assert history_checks["work.snapshot_history_digest"]["status"] == "ok"
+                summary = await call(client, "host.status", {"detail": "summary"})
+                assert summary["doctor"] is None
+            finally:
+                with psycopg.connect(DSN) as conn:
+                    conn.execute(
+                        "INSERT INTO work_snapshots("
+                        "work_ref,revision,snapshot_digest,payload,writer_actor_ref,"
+                        "created_at,change_sequence) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+                        (
+                            prior["work_ref"],
+                            prior["revision"],
+                            prior["snapshot_digest"],
+                            Jsonb(prior["payload"]),
+                            prior["writer_actor_ref"],
+                            prior["created_at"],
+                            prior["change_sequence"],
+                        ),
+                    )
+            after = await call(client, "host.status", {"detail": "integrity"})
+            assert after["doctor"]["healthy"] is True
 
     asyncio.run(scenario())

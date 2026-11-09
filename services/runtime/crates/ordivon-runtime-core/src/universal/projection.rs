@@ -13,6 +13,7 @@ pub(crate) fn create_git_workspace(
     Ok(CompactWorkspaceOpenResult {
         workspace_id: record.workspace_id,
         source_revision: record.source_revision,
+        retention_notice: None,
     })
 }
 

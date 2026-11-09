@@ -80,22 +80,24 @@ Next ==
 
 Spec == Init /\ [][Next]_vars
 
-\* Abstract close is enabled only with no currently held physical Job or
-\* unpreserved Git source. The consumerReleased signal remains an assumption.
-Eligible == /\ phase = "open"
-            /\ ~liveJob
-            /\ ~gitDependent
-            /\ (age = "expired" \/ released)
+\* Conditional liveness: under weak fairness for Close, a Workspace that
+\* stays eligible forever cannot be retained forever solely by stuttering.
+\* This does NOT witness actual physical consumers or scheduler fairness.
+EligibleForClose ==
+    /\ phase = "open"
+    /\ ~liveJob
+    /\ ~gitDependent
+    /\ (released \/ age = "expired")
 
-\* Weak fairness applies ONLY to the native Close transition. It does not
-\* assert that the external environment releases consumers or remains online.
-FairSpec == Spec /\ WF_vars(Close)
+FairCloseSpec == Spec /\ WF_vars(Close)
 
-\* If an eligible Workspace sees no *future* competing Job or Git dependent,
-\* the Close transition remains enabled until closure. Under WF(Close),
-\* stuttering forever is not a legal behavior. Without WF this is false.
-StableNoCompetition == [] (~liveJob /\ ~gitDependent)
-ConditionalProgress == []((Eligible /\ StableNoCompetition) => <> (phase = "closed"))
+StableEligibleEventuallyClosed ==
+    (<>[]EligibleForClose) => <> (phase = "closed")
+
+\* Deliberately unsatisfied in the current abstraction: expiry alone
+\* is not proof that an otherwise active consumer has finished.
+ExpiredActiveConsumerCannotBeClosed ==
+    ~ (phase = "closed" /\ consumer = "active" /\ age = "expired")
 
 TypeOK ==
     /\ phase \in {"open", "closed"}

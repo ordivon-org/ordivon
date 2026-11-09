@@ -755,8 +755,12 @@ check_workspace_consumer_close() {
     "$ROOT/formal/WorkspaceConsumerCloseR1.tla"
   (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
     -config WorkspaceConsumerCloseR1.cfg WorkspaceConsumerCloseR1.tla)
+}
+
+check_workspace_consumer_close_liveness() {
+  verify_jar
   (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
-    -config WorkspaceConsumerCloseR1.progress.cfg WorkspaceConsumerCloseR1.tla)
+    -config WorkspaceConsumerCloseR1.liveness.cfg WorkspaceConsumerCloseR1.tla)
 }
 
 workspace_close_expect_named_counterexample() {
@@ -778,17 +782,38 @@ workspace_close_expect_named_counterexample() {
   echo "Workspace consumer close $label negative control PASS: $property"
 }
 
+workspace_close_expect_temporal_counterexample() {
+  local folder="$1" config="$2" label="$3"
+  local output="$folder/result.log" result
+  set +e
+  (cd "$folder"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config "$config" WorkspaceConsumerCloseR1.tla) > "$output" 2>&1
+  result=$?
+  set -e
+  if [[ "$result" -ne 13 ]] ||
+      ! grep -Fxq 'Error: Temporal properties were violated.' "$output" ||
+      ! grep -Fxq 'Error: The following behavior constitutes a counter-example:' "$output" ||
+      ! grep -Eq '^State [1-9][0-9]*:' "$output" ||
+      ! grep -Eq '^State [1-9][0-9]*: Stuttering$' "$output"; then
+    echo "Workspace consumer close $label temporal negative control FAILED" >&2
+    tail -50 "$output" >&2
+    exit 1
+  fi
+  echo "Workspace consumer close $label temporal negative control PASS"
+}
+
 check_workspace_consumer_close_counterexamples() {
   verify_jar
   (
     tmp_dir=$(mktemp -d -t ordivon-workspace-close-XXXXXX)
     trap 'rm -rf -- "$tmp_dir"' EXIT
-    for kind in reachability unguarded spoofed; do
+    for kind in reachability unguarded spoofed ageonly fairness; do
       mkdir "$tmp_dir/$kind"
       cp "$ROOT/formal/WorkspaceConsumerCloseR1.tla" "$tmp_dir/$kind/"
       cp "$ROOT/formal/WorkspaceConsumerCloseR1.cfg" "$tmp_dir/$kind/"
     done
     cp "$ROOT/formal/WorkspaceConsumerCloseR1.reachability.cfg" "$tmp_dir/reachability/"
+    cp "$ROOT/formal/WorkspaceConsumerCloseR1.liveness.cfg" "$tmp_dir/fairness/"
     workspace_close_expect_named_counterexample "$tmp_dir/reachability" \
       WorkspaceConsumerCloseR1.reachability.cfg ClosedUnreachable reachable
 
@@ -800,9 +825,15 @@ root = Path(sys.argv[1])
 model = "WorkspaceConsumerCloseR1.tla"
 source = (root / "unguarded" / model).read_text(encoding="utf-8")
 guard = '    /\\ (released \\/ age = "expired")\n'
-assert source.count(guard) == 1, "close guard drift"
+close_start = source.index("Close ==\n")
+close_end = source.index("\nNext ==\n", close_start)
+close_transition = source[close_start:close_end]
+assert close_transition.count(guard) == 1, "close guard drift"
 (root / "unguarded" / model).write_text(
-    source.replace(guard, "", 1), encoding="utf-8"
+    source[:close_start]
+    + close_transition.replace(guard, "", 1)
+    + source[close_end:],
+    encoding="utf-8",
 )
 
 source = (root / "spoofed" / model).read_text(encoding="utf-8")
@@ -817,36 +848,34 @@ content = cfg.read_text(encoding="utf-8")
 qualification = "INVARIANT ReleasedAssumesConsumerFinished\n"
 assert content.count(qualification) == 1
 cfg.write_text(content.replace(qualification, "", 1), encoding="utf-8")
+
+# Model-space known gap: age expiry alone can still close an active consumer.
+cfg = root / "ageonly" / "WorkspaceConsumerCloseR1.cfg"
+cfg_source = cfg.read_text(encoding="utf-8")
+ending = "CHECK_DEADLOCK FALSE\n"
+assert cfg_source.count(ending) == 1
+cfg.write_text(
+    cfg_source.replace(ending, "INVARIANT ExpiredActiveConsumerCannotBeClosed\n" + ending, 1),
+    encoding="utf-8",
+)
+
+# Liveness is conditional on fairness. Deleting that assumption must
+# yield a real infinite-stuttering trace instead of a vacuous PASS.
+model_path = root / "fairness" / model
+source = model_path.read_text(encoding="utf-8")
+fair = "FairCloseSpec == Spec /\\ WF_vars(Close)"
+assert source.count(fair) == 1, "close fairness contract drift"
+model_path.write_text(source.replace(fair, "FairCloseSpec == Spec", 1), encoding="utf-8")
 PY_WORKSPACE_CLOSE
     workspace_close_expect_named_counterexample "$tmp_dir/unguarded" \
       WorkspaceConsumerCloseR1.cfg FreshActiveConsumerCannotBeClosed unguarded
     # Scope counterexample: a claimed release is not authenticated consumer truth.
     workspace_close_expect_named_counterexample "$tmp_dir/spoofed" \
       WorkspaceConsumerCloseR1.cfg FreshActiveConsumerCannotBeClosed spoofed
-
-    # Deliberately remove weak fairness from the otherwise identical model.
-    # TLC must exhibit the concrete infinite stuttering counterexample:
-    # continuously enabled Close can starve forever without WF_vars(Close).
-    mkdir "$tmp_dir/unfair"
-    cp "$ROOT/formal/WorkspaceConsumerCloseR1.tla" "$tmp_dir/unfair/"
-    cp "$ROOT/formal/WorkspaceConsumerCloseR1.unfair-progress.cfg" "$tmp_dir/unfair/"
-    local unfair_status
-    set +e
-    (cd "$tmp_dir/unfair"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
-      -config WorkspaceConsumerCloseR1.unfair-progress.cfg WorkspaceConsumerCloseR1.tla) \
-      > "$tmp_dir/unfair/result.log" 2>&1
-    unfair_status=$?
-    set -e
-    if [[ "$unfair_status" -ne 13 ]] ||
-       ! grep -Fxq 'Error: Temporal properties were violated.' "$tmp_dir/unfair/result.log" ||
-       ! grep -Fxq 'Error: The following behavior constitutes a counter-example:' "$tmp_dir/unfair/result.log" ||
-       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/unfair/result.log" ||
-       ! grep -Eq '^State [1-9][0-9]*: Stuttering$' "$tmp_dir/unfair/result.log"; then
-      echo "Workspace consumer close missing-fairness liveness control FAILED" >&2
-      tail -40 "$tmp_dir/unfair/result.log" >&2
-      exit 1
-    fi
-    echo "TLC Workspace consumer close weak-fairness liveness falsifier PASS"
+    workspace_close_expect_named_counterexample "$tmp_dir/ageonly" \
+      WorkspaceConsumerCloseR1.cfg ExpiredActiveConsumerCannotBeClosed age-only-active-consumer
+    workspace_close_expect_temporal_counterexample "$tmp_dir/fairness" \
+      WorkspaceConsumerCloseR1.liveness.cfg fairness-removed
   )
 }
 
@@ -897,7 +926,7 @@ case "${1:-check}" in
   check-dispatch) check_runtime_dispatch ;;
   check-resource) check_runtime_resource_queue ;;
   falsify-resource) falsify_runtime_resource_queue ;;
-  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_runtime_resource_queue ;;
+  check) check_runtime_dispatch; check_runtime_pg_cutover; check_windows_first_pg_order; check_workspace_consumer_close; check_workspace_consumer_close_liveness; check_runtime_resource_queue ;;
   falsify-dispatch) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample ;;
   falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_pg_cutover_counterexample; check_windows_first_pg_falsifiers; check_workspace_consumer_close_counterexamples; falsify_runtime_resource_queue ;;
   *)

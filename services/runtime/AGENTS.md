@@ -1,3 +1,16 @@
+## Ephemeral Runtime Workspaces (Linux PG)
+
+On workspace.open, read the returned retentionNotice: the existing
+ordivon-runtime-lifecycle.timer runs every hour and may close an inactive
+Workspace after **4 hours since its latest Runtime Job activity** when that
+Job has succeeded, the source HEAD has been integrated into origin/main,
+the tree has no tracked/untracked changes, and Runtime has no active/held Job.
+The 4 hours are a **minimum quiet period**, not a guaranteed Workspace lease.
+Git commits, published artifacts, and durable Work records are the deliverables;
+Workspace directories are disposable execution environments. Explicitly use
+workspace.close after completed work and handoff, or create a fresh Workspace
+when continuing. No force-close of dirty or unintegrated source.
+
 # Ordivon Runtime Agent Entry
 
 ## Start from reality
