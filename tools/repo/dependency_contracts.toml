@@ -226,3 +226,15 @@ source_glob = "packages/data/tests/test_odps_projection.py"
 allowed_fragment = "domains/capital/"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "packages/data/docs/FORMAL_VERIFICATION.md"
+
+
+# Network's native contract test consumes Composition's public task-local API
+# through its pinned project environment. This grants no Network/Composition
+# execution or domain-acceptance authority.
+[[seams]]
+from_owner = "network"
+to_owner = "composition"
+source_glob = "platform/network/mise.toml"
+allowed_fragment = "../../packages/composition"
+kind = "PUBLIC_TASK_LOCAL_CONTRACT_CONSUMER"
+contract_ref = "packages/composition/README.md"

@@ -1,5 +1,7 @@
 # Ordivon Network E2E
 
+**Agent outcome consumer pilot:** [Network LEGO/Gate SPEC](docs/AGENT_OUTCOME_NETWORK_PILOT_SPEC_R1.md) · [implementation and observed native verification](docs/AGENT_OUTCOME_NETWORK_PILOT_IMPLEMENTATION_R1.md). This is a scoped Network consumer of the existing Composition API, not new task/acceptance authority.
+
 **Entry points:** [Human guide](docs/HUMAN_GUIDE.md) · [Agent contract](docs/AGENT_GUIDE.md) · [Native Task interface](Taskfile.yml). These are two audience views of the same Network Owner, not new registries.
 
 Network E2E composes mature networking mechanisms and proves that the resulting path satisfies a workload requirement. It is not a custom network stack or a universal network controller.

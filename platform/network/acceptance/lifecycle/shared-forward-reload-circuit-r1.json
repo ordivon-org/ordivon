@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.cognitive-circuit-manifest",
+  "circuitId": "circuit:network-shared-forward-reload-r1",
+  "objectiveRef": {
+    "id": "objective:network-shared-forward-no-provider-restart-r1",
+    "digest": "sha256:9c3ddff9bf28bc8fbe619d17beff2877f517a88c04890888211d6a2a1b020465"
+  },
+  "methodBindings": [],
+  "capabilityBindings": [
+    {
+      "id": "capability:network-forward-source",
+      "capability": "network.shared-forward-source",
+      "ownerId": "network",
+      "sourceKind": "direct-owner",
+      "bindingDigest": null,
+      "truthBoundary": "Network owns the forwarding source and kernel/consumer acceptance, not Workstation installation or Runtime Job truth."
+    },
+    {
+      "id": "capability:workstation-systemd",
+      "capability": "workstation.systemd-materialization",
+      "ownerId": "workstation",
+      "sourceKind": "direct-owner",
+      "bindingDigest": null,
+      "truthBoundary": "Workstation owns installed and loaded Unit effects, not Network consumer success."
+    },
+    {
+      "id": "capability:network-native-reload",
+      "capability": "network.shared-forward-reload",
+      "ownerId": "network",
+      "sourceKind": "direct-owner",
+      "bindingDigest": null,
+      "truthBoundary": "Network owner-native task reconciles forwarding and reads provider/kernel state; Runtime execution is not domain completion."
+    }
+  ],
+  "stages": [
+    {
+      "id": "stage:forward-source",
+      "ownerId": "network",
+      "responsibility": "Bind accepted shared-egress forward Unit/helper bytes to an exact source and native non-restart reload contract.",
+      "dependsOn": [],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:network-forward-source"
+      ],
+      "inputs": [
+        "accepted-sourcecut"
+      ],
+      "outputs": [
+        "accepted-forward-unit"
+      ]
+    },
+    {
+      "id": "stage:installed-loaded-unit",
+      "ownerId": "workstation",
+      "responsibility": "Materialize Network-forward source bytes and load the systemd Unit exposing ExecReload without restarting physical Gluetun.",
+      "dependsOn": [
+        "stage:forward-source"
+      ],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:workstation-systemd"
+      ],
+      "inputs": [
+        "accepted-forward-unit"
+      ],
+      "outputs": [
+        "loaded-reloadable-service"
+      ]
+    },
+    {
+      "id": "stage:network-forward-effect",
+      "ownerId": "network",
+      "responsibility": "Run the owner-native reload and observe exact forwarding rule, namespace, provider process and carrier continuity.",
+      "dependsOn": [
+        "stage:installed-loaded-unit"
+      ],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:network-native-reload"
+      ],
+      "inputs": [
+        "loaded-reloadable-service"
+      ],
+      "outputs": [
+        "scoped-kernel-provider-witness"
+      ]
+    },
+    {
+      "id": "stage:consumer-observation",
+      "ownerId": "network",
+      "responsibility": "Independently read an affected consumer path without equating service active or composition gate success to domain acceptance.",
+      "dependsOn": [
+        "stage:network-forward-effect"
+      ],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:network-native-reload"
+      ],
+      "inputs": [
+        "scoped-kernel-provider-witness"
+      ],
+      "outputs": [
+        "consumer-domain-observation"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:source-to-install",
+      "from": {
+        "stageId": "stage:forward-source",
+        "port": "accepted-forward-unit"
+      },
+      "to": {
+        "stageId": "stage:installed-loaded-unit",
+        "port": "accepted-forward-unit"
+      },
+      "contractRef": "contract:forward-source-installed"
+    },
+    {
+      "id": "edge:install-to-reload",
+      "from": {
+        "stageId": "stage:installed-loaded-unit",
+        "port": "loaded-reloadable-service"
+      },
+      "to": {
+        "stageId": "stage:network-forward-effect",
+        "port": "loaded-reloadable-service"
+      },
+      "contractRef": "contract:installed-to-reload"
+    },
+    {
+      "id": "edge:reload-to-consumer",
+      "from": {
+        "stageId": "stage:network-forward-effect",
+        "port": "scoped-kernel-provider-witness"
+      },
+      "to": {
+        "stageId": "stage:consumer-observation",
+        "port": "scoped-kernel-provider-witness"
+      },
+      "contractRef": "contract:effect-to-consumer"
+    }
+  ],
+  "gateRequirements": [
+    {
+      "id": "gate:forward-source-installed",
+      "producerStageId": "stage:forward-source",
+      "consumerStageId": "stage:installed-loaded-unit",
+      "assumption": "The accepted forward source is an exact current source cut, not an Agent prose assertion.",
+      "guarantee": "Installed and loaded native Unit are bound to accepted Network source and declare a native reload path.",
+      "verifierOwnerId": "workstation",
+      "supportScope": "Network shared-egress Forward source-to-installed-and-loaded systemd boundary only",
+      "required": true
+    },
+    {
+      "id": "gate:loaded-unit-native-effect",
+      "producerStageId": "stage:installed-loaded-unit",
+      "consumerStageId": "stage:network-forward-effect",
+      "assumption": "The loaded native Unit exposes ExecReload and its physical dependencies are sampled before reconciliation.",
+      "guarantee": "Network can use native reload and inspect kernel/provider continuity without assuming job success implies consumer outcome.",
+      "verifierOwnerId": "network",
+      "supportScope": "Network shared-egress loaded Unit-to-native kernel/provider reload boundary only",
+      "required": true
+    }
+  ],
+  "unresolvedAssumptions": [],
+  "nonClaims": [
+    "This circuit is a task-local architecture contract, not a provider control plane.",
+    "Verifiers and Gate results must come from natural owners and actual observations.",
+    "Mechanical composition closure never establishes Network consumer acceptance or grants execution authority."
+  ]
+}
