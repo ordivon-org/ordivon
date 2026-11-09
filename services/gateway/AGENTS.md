@@ -174,3 +174,21 @@ The service-user preflight is explicitly opted in for production; never
 claim successful service admission from an unprivileged staging install.
 On 203/EXEC investigate the interpreter shebang and complete parent path,
 retain the last healthy release, and correct the interpreter location.
+
+## R08 Linux PG Runtime real business Job and Artifact delivery
+
+**Human:** A real production Gateway-to-Linux Runtime Job executed and emitted
+an Artifact but Gateway could not report success: the installed Runtime
+advertised an older MCP output schema omitting the PostgreSQL scheduling facet.
+The natural Runtime source already has the typed schema repair, but its
+installed binary has not converged and the Runtime structured release authority
+was not configured. Do not bypass the source of truth or manually replay Jobs.
+
+**Agent:** For the installed-schema exception, only the six explicit Linux
+Runtime business tools use the official typed MCP SDK request path. The
+Gateway still verifies exact Job and Artifact identity and never retries an
+uncertain effect under another request ID. Windows effects, Host, and Skills
+retain normal SDK output-schema validation. Test a real principal-owned
+Gateway execution.submit -> execution.resolve -> execution.get -> artifact.read
+flow and validate the Artifact digest; remove the adapter after the Runtime
+binary publishes corrected schemas with such a passing consumer flow.

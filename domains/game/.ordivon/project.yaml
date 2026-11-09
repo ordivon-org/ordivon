@@ -32,6 +32,13 @@ managed_paths:
   - planning/lego-plan-r1.json
   - examples/native-composition/README.md
   - examples/native-composition/assert.gd
+  - examples/beacon-relay/README.md
+  - examples/beacon-relay/main.gd
+  - examples/beacon-relay/main.tscn
+  - examples/beacon-relay/relay_plan.tres
+  - examples/beacon-relay/relay_sites.gd
+  - examples/beacon-relay/acceptance.gd
+  - examples/beacon-relay/CREDITS.txt
   - examples/room-encounter/README.md
   - examples/room-encounter/export_presets.cfg
   - examples/room-encounter/assert.gd

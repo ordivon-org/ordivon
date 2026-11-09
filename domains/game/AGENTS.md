@@ -16,7 +16,7 @@ Every Game work unit should bind a real product/consumer brief, the selected nat
 6. Deliver through protected GitHub PR/merge queue and the Game factory build artifact workflow. Do not claim an uploaded preview is a store release.
 7. Learn from consumers: a rejected build or observed playable outcome guides replacement, deletion or the next brief. Do not iterate endlessly on local LEGO quality once contract is met.
 
-Native stations are mise run factory:validate:godot, factory:package:room, factory:validate:bevy, factory:build:bevy and the established full owner mise run verify. Project examples remain disposable consumers; they do not determine product selection.
+Native stations are mise run factory:validate:godot, factory:package:room, factory:validate:bevy, factory:build:bevy, factory:package:beacon, test:beacon and the established full owner mise run verify. Project examples remain disposable consumers; they do not determine product selection.
 
 Existing planning/lego-plan-r1.json stays the formal G01–G11 responsibilities/consumer evidence inventory. Knowledge datasets and their current TypeScript reader interfaces stay only because they have active consumers. No new ontology/registry replaces retired archives.
 

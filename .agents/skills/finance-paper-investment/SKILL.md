@@ -16,6 +16,38 @@ This Skill is a **procedure and capability router**, not another portfolio engin
 
 Directory/LEGO consumer audit: domains/capital/docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md. Resolve the seven current natural Owners before changing code or deleting historical files. Human and Agent routes are distinct. Use the active Skill source digest, not merely a GitHub Skill file, for deployed discoverability.
 
+## First actual source-bound economic research case (2026-11-08)
+
+For an end-to-end **business** example, use the pinned real-data study at
+domains/capital/evidence/finance-research/spy-shy-forward-20261108/README.md.
+It retrieves upstream GitHub ETF history by exact source commit and Git Blob
+identity, checks raw SHA-256, calls the *existing* Markets/Portfolio Paper
+replay, and independently reproduces the economics. It records a 60/40
+SPY/SHY versus 100% SPY result including terminal wealth and max drawdown.
+The mixed policy had lower historical wealth *and* lower historical
+drawdown, so investor utility is required to rank the two outcomes.
+
+For experimental research qualification, compose the already installed
+Finance Research freeze-experiment and assess-holdout operations: the
+case includes the actual frozen forward study for sessions 2026-11-09
+through 2027-03-31. Its current standing is UNKNOWN /
+NO_HOLDOUT_EVIDENCE, not profitable alpha. Research snapshot origin
+and numerical replay do not authenticate original price providers or
+historic PIT observations. Do not invent a new backtest, second research
+orchestration system or order adapter just for this study.
+
+Human: read the comparison and declare whether a lower drawdown is worth
+the observed lower wealth under the actual investment objective.
+Agent: use the exact reproduction recipe in the evidence README and
+test the historical source consumer when it is available:
+
+- Set ORDIVON_FINANCE_RESEARCH_SOURCE_CSV to the downloaded, digest-matched
+  private CSV. Run the provider-qualified real-source test
+  tests/test_finance_real_etf_research_case.py.
+- If the original bytes are unavailable, only the frozen research-contract
+  tests are admissible; no market-source qualification claim.
+- Never submit a real trade on the basis of retrospective research output.
+
 ## Select the actual goal before invoking any tool
 
 | Intention | Natural Owner | Native entrypoint | Actual standing |

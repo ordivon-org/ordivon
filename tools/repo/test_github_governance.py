@@ -228,7 +228,14 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         setup = by_name["Install monorepo toolchain"]
         self.assertIs(setup["with"]["install"], False)
         root_install = by_name["Install root verification tools"]["run"]
-        self.assertEqual(root_install.strip(), "set -euo pipefail\nmise install")
+        # Assert semantic constraints rather than freezing an exact Bash
+        # rendering; native mise may retry a transient upstream download.
+        self.assertIn("set -euo pipefail", root_install)
+        self.assertEqual(root_install.count("mise install"), 1)
+        self.assertIn("MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install", root_install)
+        self.assertIn("for attempt in 1 2 3; do", root_install)
+        self.assertIn('if [ "$attempt" -eq 3 ]; then', root_install)
+        self.assertIn("exit 1", root_install)
         self.assertNotIn("--monorepo", root_install)
         jobs = workflow["jobs"]
         self.assertNotIn("needs", jobs["root-preflight"])
@@ -243,6 +250,218 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                         mechanics.index("Repository mechanics"))
         self.assertIn("Verify affected owners", owner)
 
+    def test_root_mise_retry_runs_only_native_install_and_preserves_failures(self) -> None:
+        """A finite upstream outage retries missing tools and never masks exhaustion."""
+        import os
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        script = next(
+            step["run"] for step in workflow["jobs"]["repo-mechanics"]["steps"]
+            if step["name"] == "Install root verification tools"
+        )
+        for fail_until, expected_rc, expected_calls in ((1, 0, 2), (9, 1, 3)):
+            with self.subTest(fail_until=fail_until), tempfile.TemporaryDirectory() as tmp:
+                folder = Path(tmp)
+                tool = folder / "mise"
+                record = folder / "calls"
+                tool.write_text(r"""#!/usr/bin/env bash
+if [[ "$#" != 1 || "$1" != install ]]; then exit 91; fi
+printf "%s,%s,%s\n" "$MISE_JOBS" "$MISE_HTTP_TIMEOUT" "$*" >> "$RECORD"
+n=$(wc -l < "$RECORD")
+if ((n <= FAIL_UNTIL)); then exit 7; fi
+exit 0
+""")
+                tool.chmod(0o755)
+                env = os.environ.copy()
+                env.update({
+                    "PATH": str(folder) + os.pathsep + env.get("PATH", ""),
+                    "RECORD": str(record),
+                    "FAIL_UNTIL": str(fail_until),
+                })
+                observed = subprocess.run(
+                    ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                    capture_output=True, text=True, timeout=20,
+                )
+                self.assertEqual(observed.returncode, expected_rc, observed.stderr)
+                self.assertEqual(
+                    record.read_text().splitlines(),
+                    ["2,30,install"] * expected_calls,
+                )
+
+    def test_selected_owner_preinstall_is_native_scoped_and_bounded(self) -> None:
+        """Actual CI preflight installs only selected native Owner toolchains."""
+        import os
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = {row["name"]: row for row in workflow["jobs"]["owner-verification"]["steps"]}
+        script = steps["Preinstall selected Owner tools with native mise"]["run"]
+        self.assertEqual(
+            steps["Preinstall selected Owner tools with native mise"]["env"]["GITHUB_TOKEN"],
+            "$" + "{{ github.token }}",
+        )
+        self.assertNotIn("GITHUB_TOKEN", steps["Verify affected owners"].get("env", {}))
+        self.assertIn('mise --cd "$root" install', script)
+        self.assertIn('for attempt in 1 2 3; do', script)
+        self.assertNotIn("--monorepo", script)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fake = root / "mise"
+            record = root / "calls"
+            fake.write_text(
+                '#!/usr/bin/env bash\n'
+                'if [[ "$1" != --cd || "$3" != install ]]; then exit 91; fi\n'
+                'printf "%s,%s,%s,%s\\n" "$MISE_JOBS" "$MISE_HTTP_TIMEOUT" '
+                '"${GITHUB_TOKEN:+token}" "$2" >> "$RECORD"\n'
+                'if [[ "${ALWAYS_FAIL:-0}" == 1 ]]; then exit 41; fi\n'
+                'if [[ "$2" == services/runtime && $(grep -c "services/runtime" "$RECORD") == 1 ]]; then exit 42; fi\n',
+                encoding="utf-8",
+            )
+            fake.chmod(0o755)
+            env = os.environ.copy()
+            env.update({
+                "PATH": str(root) + os.pathsep + env.get("PATH", ""),
+                "RUNNER_TEMP": str(root),
+                "RECORD": str(record),
+                "GITHUB_TOKEN": "bounded-test-read-only-token",
+                "OWNER_TASKS_JSON": json.dumps(["runtime:verify", "game:verify"]),
+            })
+            success = subprocess.run(
+                ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=18,
+            )
+            self.assertEqual(success.returncode, 0, success.stderr)
+            self.assertEqual(
+                record.read_text().splitlines(),
+                [
+                    "2,45,token,services/runtime",
+                    "2,45,token,services/runtime",
+                    "2,45,token,domains/game",
+                ],
+            )
+            record.write_text("")
+            env["ALWAYS_FAIL"] = "1"
+            env["OWNER_TASKS_JSON"] = json.dumps(["runtime:verify"])
+            failure = subprocess.run(
+                ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=18,
+            )
+            self.assertNotEqual(failure.returncode, 0)
+            self.assertEqual(
+                record.read_text().splitlines(),
+                ["2,45,token,services/runtime"] * 3,
+            )
+            record.write_text("")
+            env["ALWAYS_FAIL"] = "0"
+            env["OWNER_TASKS_JSON"] = json.dumps(["capital:verify"])
+            nested = subprocess.run(
+                ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=18,
+            )
+            self.assertEqual(nested.returncode, 0, nested.stderr)
+            # Native Capital task source invokes ../../tools/formal: missing
+            # Github-backed Lean/Z3/Quint/Alloy tools must be preinstalled by
+            # the exact selected consumer, not installed by mise exec with a
+            # 3-second release-metadata timeout during proof execution.
+            self.assertEqual(
+                record.read_text().splitlines()[-2:],
+                ["2,45,token,domains/capital", "2,45,token,tools/formal"],
+            )
+            record.write_text("")
+            env["OWNER_TASKS_JSON"] = json.dumps(["network:ci"])
+            only_network = subprocess.run(
+                ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=18,
+            )
+            self.assertEqual(only_network.returncode, 0, only_network.stderr)
+            self.assertEqual(
+                record.read_text().splitlines(), ["2,45,token,platform/network"],
+            )
+            record.write_text("")
+            env["OWNER_TASKS_JSON"] = "[]"
+            empty = subprocess.run(
+                ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                capture_output=True, text=True, timeout=18,
+            )
+            self.assertEqual(empty.returncode, 0, empty.stderr)
+            self.assertEqual(record.read_text(), "")
+
+    def test_sql_verifier_official_fallback_preserves_hash_and_fail_closed(self) -> None:
+        """Execute the real native downloader with failed primary official endpoints."""
+        import hashlib
+        import os
+
+        source = (ROOT / "tools/repo/install_sql_verifiers.sh").read_text()
+        function = "download() {" + source.split("download() {", 1)[1].split(
+            "\ndownload \\", 1
+        )[0]
+        self.assertIn("sha256sum", function)
+        self.assertIn("--max-time 55", function)
+        cases = (
+            ("apt.postgresql.org", "download.postgresql.org"),
+            ("github.com/osquery", "pkg.osquery.io"),
+        )
+        for primary, alternate in cases:
+            self.assertIn("https://" + alternate + "/", source)
+            with self.subTest(primary=primary), tempfile.TemporaryDirectory() as tmp:
+                folder = Path(tmp)
+                curl = folder / "curl"
+                record = folder / "calls"
+                destination = folder / "package.deb"
+                payload = "pinned-test-binary"
+                curl.write_text(
+                    '#!/usr/bin/env bash\n'
+                    'endpoint=""\ndst=""\n'
+                    'for arg in "$@"; do\n'
+                    '  dst="$arg"\n'
+                    '  case "$arg" in https://*) endpoint="$arg";; esac\n'
+                    'done\n'
+                    'printf "%s\\n" "$endpoint" >> "$RECORD"\n'
+                    'if [[ "$FAIL_BOTH" == 1 || "$endpoint" == *"$PRIMARY"* ]]; then exit 28; fi\n'
+                    'if [[ "$endpoint" != *"$ALTERNATE"* ]]; then exit 91; fi\n'
+                    'printf "%s" "$PAYLOAD" > "$dst"\n',
+                    encoding="utf-8",
+                )
+                curl.chmod(0o755)
+                script = (
+                    "set -euo pipefail\n" + function + "\n"
+                    'download "$PRIMARY_URL" "$DEST" "$EXPECTED" "$ALTERNATE_URL"\n'
+                )
+                env = os.environ.copy()
+                env.pop("ORDIVON_SQL_DIST_DIR", None)
+                env.update({
+                    "PATH": str(folder) + os.pathsep + env.get("PATH", ""),
+                    "RECORD": str(record),
+                    "DEST": str(destination),
+                    "PAYLOAD": payload,
+                    "EXPECTED": hashlib.sha256(payload.encode()).hexdigest(),
+                    "PRIMARY": primary,
+                    "ALTERNATE": alternate,
+                    "PRIMARY_URL": "https://" + primary + "/pinned.deb",
+                    "ALTERNATE_URL": "https://" + alternate + "/pinned.deb",
+                    "FAIL_BOTH": "0",
+                })
+                def invoke():
+                    return subprocess.run(
+                        ["/usr/bin/bash", "-c", script], cwd=ROOT, env=env,
+                        capture_output=True, text=True, timeout=15,
+                    )
+                accepted = invoke()
+                self.assertEqual(accepted.returncode, 0, accepted.stderr)
+                self.assertEqual(destination.read_text(), payload)
+                self.assertEqual(len(record.read_text().splitlines()), 2)
+                record.write_text("")
+                env["EXPECTED"] = "0" * 64
+                bad_digest = invoke()
+                self.assertEqual(bad_digest.returncode, 7, bad_digest.stderr)
+                self.assertIn("SHA-256 mismatch", bad_digest.stderr)
+                record.write_text("")
+                env["FAIL_BOTH"] = "1"
+                unavailable = invoke()
+                self.assertNotEqual(unavailable.returncode, 0)
+                self.assertEqual(len(record.read_text().splitlines()), 2)
     def test_root_mise_installs_get_scoped_native_github_token(self) -> None:
         """Keep bootstrap authenticated without exporting token to Owner code."""
         import yaml
@@ -259,7 +478,10 @@ class GovernanceAcceptanceTests(unittest.TestCase):
             ]
             self.assertEqual(len(matches), 1, job_name)
             self.assertEqual(matches[0].get("env"), {"MISE_GITHUB_TOKEN": token})
-            self.assertEqual(matches[0]["run"].strip(), "set -euo pipefail\nmise install")
+            self.assertIn("set -euo pipefail", matches[0]["run"])
+            self.assertIn("for attempt in 1 2 3; do", matches[0]["run"])
+            self.assertEqual(matches[0]["run"].count("mise install"), 1)
+            self.assertIn("MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install", matches[0]["run"])
         for job_name, source_step in (
             ("repo-mechanics", "Repository mechanics"),
             ("owner-verification", "Verify affected owners"),
@@ -1249,14 +1471,24 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         self.assertEqual(route.returncode, 0, route.stderr)
         self.assertEqual(route.stdout.strip(), "distribution:verify")
 
-    def test_release_policy_uses_exact_runtime_rust_toolchain(self) -> None:
-        """Release dependency policy must use the checked consumer Rust compiler."""
+    def test_release_policy_uses_pinned_native_cargo_deny_and_exact_rust(self) -> None:
+        """A cached archive is untrusted; source identity and exact digest are required."""
+
+        import runpy
         import tomllib
         import yaml
 
         toolchain = tomllib.loads(
             (ROOT / "services/runtime/rust-toolchain.toml").read_text()
         )["toolchain"]["channel"]
+        runtime_mise = tomllib.loads(
+            (ROOT / "services/runtime/mise.toml").read_text()
+        )
+        self.assertEqual(runtime_mise["tools"]["rust"]["version"], toolchain)
+        asset = runpy.run_path(str(ROOT / "tools/repo/install_verified_cargo_deny.py"))
+        self.assertEqual(asset["VERSION"], "0.20.2")
+        self.assertEqual(asset["ASSET_ID"], 471598214)
+        self.assertEqual(len(asset["ASSET_SHA256"]), 64)
         root = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         release = yaml.safe_load(
             (ROOT / ".github/workflows/runtime-release.yml").read_text()
@@ -1264,10 +1496,84 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         for workflow, job in ((root, "root-preflight"),
                               (release, "runtime-release")):
             steps = workflow["jobs"][job]["steps"]
-            matches = [step for step in steps
-                       if step.get("uses", "").startswith("EmbarkStudios/cargo-deny-action@")]
-            self.assertEqual(len(matches), 1)
-            self.assertEqual(matches[0]["with"]["rust-version"], toolchain)
+            installers = [
+                step for step in steps
+                if step.get("name") == "Install verified cargo-deny"
+            ]
+            self.assertEqual(len(installers), 1)
+            installer = installers[0]
+            self.assertIn("set -euo pipefail", installer["run"])
+            self.assertIn(
+                "python3 tools/repo/install_verified_cargo_deny.py", installer["run"]
+            )
+            self.assertEqual(installer["env"]["GH_TOKEN"], "$" + "{{ github.token }}")
+            self.assertIn("--bin-dir", installer["run"])
+            self.assertIn("GITHUB_PATH", installer["run"])
+            self.assertNotIn("continue-on-error", installer)
+            self.assertFalse(
+                any(
+                    "EmbarkStudios/cargo-deny-action@" in str(step.get("uses", ""))
+                    for step in steps
+                )
+            )
+            if job == "root-preflight":
+                self.assertEqual(
+                    installer["if"], "steps.affected.outputs.runtime == 'true'"
+                )
+            policies = [
+                step for step in steps
+                if step["name"] in (
+                    "Runtime supply-chain policy",
+                    "Runtime dependency and license policy",
+                )
+            ]
+            self.assertEqual(len(policies), 1)
+            policy = policies[0]
+            self.assertLess(steps.index(installer), steps.index(policy))
+            self.assertIn("set -euo pipefail", policy["run"])
+            self.assertIn("mise -C services/runtime exec -- cargo deny", policy["run"])
+            self.assertIn("--config deny.toml check", policy["run"])
+            self.assertIn("--manifest-path Cargo.toml", policy["run"])
+            self.assertIn("--config deny.toml", policy["run"])
+            self.assertNotIn("|| true", policy["run"])
+            self.assertNotIn("continue-on-error", policy)
+
+        # Native GitHub Actions cache is limited to PR gate, and only the
+        # pinned archive is cached. The helper verifies its digest before use.
+        preflight = root["jobs"]["root-preflight"]["steps"]
+        caches = [s for s in preflight if s["name"] == "Cache pinned cargo-deny archive"]
+        self.assertEqual(len(caches), 1)
+        cache = caches[0]
+        self.assertEqual(
+            cache["uses"],
+            "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+        )
+        self.assertEqual(cache["if"], "steps.affected.outputs.runtime == 'true'")
+        self.assertEqual(
+            cache["with"]["path"],
+            "~/.cache/ordivon/ci-cargo-deny/0.20.2/cargo-deny.tar.gz",
+        )
+        self.assertIn(asset["ASSET_SHA256"], cache["with"]["key"])
+        self.assertLess(
+            preflight.index(cache),
+            next(i for i, step in enumerate(preflight)
+                 if step["name"] == "Install verified cargo-deny"),
+        )
+        self.assertNotIn(
+            "Cache pinned cargo-deny archive",
+            [s.get("name") for s in release["jobs"]["runtime-release"]["steps"]],
+        )
+        self.assertIn(
+            '"$RUNNER_TEMP/ordivon-cargo-deny/archive"',
+            [s["run"] for s in release["jobs"]["runtime-release"]["steps"]
+             if s.get("name") == "Install verified cargo-deny"][0],
+        )
+        release_mise = [
+            step for step in release["jobs"]["runtime-release"]["steps"]
+            if step["name"] == "Install monorepo toolchain"
+        ]
+        self.assertEqual(len(release_mise), 1)
+        self.assertIs(release_mise[0]["with"]["cache"], False)
 
     def test_runtime_release_attestations_verify_every_subject_and_fail_closed(self) -> None:
         """Exercise official verifier CLI orchestration, not cryptographic trust."""

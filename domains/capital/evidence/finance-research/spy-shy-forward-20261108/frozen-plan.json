@@ -1,0 +1,42 @@
+{
+  "attestation": "CALLER_DECLARED_NOT_INDEPENDENTLY_VERIFIED",
+  "authority": "NONE",
+  "kind": "ordivon.capital.research.frozen-plan",
+  "plan": {
+    "baselineId": "100pct-SPY-with-declared-expenses",
+    "codeRevision": "3de798c8aa97ddd78cd0e07bb088e77504e5fa60",
+    "configDigest": "sha256:ed6f41d79227a71e0e4beb0f398af57578e235b9b2b7434c1c655a014bfbc248",
+    "effectBoundary": "RESEARCH_ONLY",
+    "environmentDigest": "sha256:2abc5610449212b43fa5a1ba5db8d5ecc9bb58576cdb6d13d681d9660ca42144",
+    "frozenAt": "2026-11-08T15:10:58Z",
+    "historicalSources": [
+      {
+        "availableAt": "2026-08-20T21:41:22Z",
+        "observedThrough": "2026-08-10T20:00:00Z",
+        "snapshotDigest": "sha256:361efb287116fc8200582c15fcd315bcce2e218fa1e50b416bacc5acebff37b9",
+        "sourceId": "github:manisahni/marketdata@65a079329e379e104495f459e12e76a8f995585a:daily_adjclose.csv"
+      }
+    ],
+    "hypothesisId": "spy-shy-60-40-vs-spy-forward-r1",
+    "kind": "ordivon.capital.research.plan",
+    "metricDefinition": "Daily-close constant-mix NAV for 60pct SPY 40pct SHY vs 100pct SPY, start-of-period expenses 0.002 and 0.001 annual / 252 periods, identical 100000 USD initial capital, no contributions, terminal wealth difference and maximum drawdown; no claim of true fills, market provenance, tax, transaction costs, dividends or risk-adjusted superiority",
+    "partitions": {
+      "holdout": {
+        "end": "2027-03-31",
+        "start": "2026-11-09"
+      },
+      "train": {
+        "end": "2025-12-31",
+        "start": "2025-01-02"
+      },
+      "validation": {
+        "end": "2026-08-10",
+        "start": "2026-01-02"
+      }
+    },
+    "schemaVersion": 1,
+    "trialsPlanned": 1
+  },
+  "planDigest": "sha256:3798e0f219081439f0679dd57f1e4c77aa0842bb11e7561517d28c94023b9501",
+  "schemaVersion": 1
+}
