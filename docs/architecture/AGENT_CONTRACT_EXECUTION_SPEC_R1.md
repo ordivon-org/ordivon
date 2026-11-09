@@ -196,3 +196,110 @@ Exact implementation readset for the first and following vertical slices:
 | T5 | same specific Owner documents / Skills changed by T2–T4 | Delete redundant implementation and instructions only after live consumer equivalent readback; native Owner verification. |
 
 The `docs/start/tasks.md` link is a navigation projection, not new task authority. This document is **one bounded planning carrier** with explicit consumers, not a standing requirement to create six GitHub tickets before any action. Its future deletion is permitted when superseded by working Owner contracts/tests.
+
+---
+
+## 11. Mathematical and computer-science foundation: adopted thought-LEGO profiles
+
+**Evidence update, 2026-11-09.** This section extends the existing R2.1 contract; it does not supersede the eleven-coordinate definition or proclaim a theorem about installed code. The sources below are primary papers, official reference implementations, and existing Ordivon-native theorem/consumer paths. These are selectively activated **method lenses**, not eleven new runtime modules.
+
+| Decision / thought LEGO | Mathematical foundation and precise question | Existing Ordivon carrier / executable obligation | Explicit non-claim |
+| --- | --- | --- | --- |
+| T11.1 **Hoare contract / weakest precondition** | A Hoare triple `{P} a {Q}` means that, if action `a` terminates from a `P` state, `Q` holds; distinguish partial correctness from termination. Choose a predecessor obligation `wp(a,Q)` when it changes execution admissibility. | Owner-native input validation, state-machine tests, Kani/Verus/Dafny as applicable. | A precondition or source comment is not proof that all actual effects honor `Q`. |
+| T11.2 **Assume–Guarantee contract algebra** | `C=(I,O,A,G)`. Discharge `G_producer => A_consumer` under typed adapters, complete scopes and effect/temporal compatibility. Use Pacti's already-researched composition/refinement/quotient rather than a custom algebra. | `.agents/skills/compositional-contracts/SKILL.md`, `tools/formal/RecursiveLegoRefinement.lean` and the natural owner's concrete consumer test. | Identical JSON schemas, local PASS or a composed paper contract do not prove real consumer compatibility. |
+| T11.3 **Behavioral subtyping** | A replacement must not narrow inputs accepted by the original consumer or weaken their required outputs/history invariants; an implementation must remain substitutable in the consumer's observation context. | Existing Lean `Refines`, `refinement_preserves_implementation`, `narrowed_assumptions_cannot_substitute` and source-bound Owner adapters. | Do not require byte-for-byte equality of an internal implementation. |
+| T11.4 **Abstract interpretation / evidence information order** | Abstractions summarize sets of possible concrete states; a sound over-approximation may produce UNKNOWN rather than false confidence. `UNKNOWN` is an evidence limitation, *not* a domain FALSE. | `recursive-lego-calculus` and Owner claim/evidence projection; native verification for refuted/proven and unresolved hypotheses. | A status hierarchy is not a universal, timeless scalar lattice; source/environment drift can invalidate old evidence. |
+| T11.5 **CEGAR** | If an abstract counterexample exists, concretize it; if realizable, fix source/contract, otherwise refine the abstraction. Stop when the actual consumer decision is resolved. | `.agents/skills/recursive-lego-calculus/references/formal-model.md`, actual Owner negative fixtures, model checker. | A finite abstract witness is not automatically a real-world exploit. |
+| T11.6 **TLA safety/liveness** | `Spec = Init ∧ □[Next]_vars ∧ Fairness`. Prove `□Inv`; assert progress only with explicit environmental fairness, resources and nonblocking qualified action assumptions. | Existing TLA+/TLC/Quint and Host/Runtime native state transitions. | Generic `◇Done` is not provable for unconstrained external services or human requests. |
+| T11.7 **Separation Logic / frame law** | A locally valid state transformation preserves the nonoverlapping frame `R` only under its locality and heap/ownership assumptions. Use consumer readset/footprint to avoid global reproof. | Existing natural Owner/SourceCut partitioning, immutable-input witness, consumer-directed regression tests. | `git grep` or a file-level ownership table is not a proof of exclusive physical or dynamic ownership. |
+| T11.8 **Effect/replay algebra** | Distinguish intent, admitted operation, physical effect, receipt, reconciliation and semantic success. A timeout cannot prove nonexecution; exactly-once effects require an owner/provider-specific mechanism. | Runtime Job/Attempt, Harness Run/Tool and domain receipts; native idempotency keys, PostgreSQL transactions and effect readback. | Neither Job `succeeded` nor a retry policy is a universal exactly-once guarantee. |
+| T11.9 **Systems engineering V&V** | Track versioned requirement, observation method, instrument, product and anomaly; verification asks whether specification holds, validation asks whether the realized product meets the consumer need. | Existing Owner `mise` verification, GitHub Merge Queue, installed/current readback and domain acceptance. | `SOURCE` / `MERGED` / `MODEL_CHECKED` are not synonymous with `INSTALLED` / `DOMAIN_ACCEPTED`. |
+| T11.10 **Proof-carrying evidence / independent witness** | A decision must have a witness that binds the **specific proposition**, exact subject, source revision, checker/readset and validity interval. A generic PASS supporting a different proposition is not a witness. | Artifact `claim_coverage.py`, Authority provenance gate, Scope-specific formal proof and direct consumer tests. | An arbitrary pointer to an object with `status=PASS` does not prove the required individual claim. |
+
+### 11.1. Original mature sources and mapping
+
+- **Contracts:** [Pacti official getting started](https://www.pacti.org/docs/getting_started/) and [Pacti source](https://github.com/pacti-org/pacti) (2025 published compositional A/G implementation). Use only for a mathematical contract whose assumptions and guarantees can be represented in its supported theory; check operator side conditions before declaring refinement.
+- **Behavioral substitution:** [Liskov & Wing, *A Behavioral Notion of Subtyping* (1994)](https://www.cs.cmu.edu/~wing/publications/LiskovWing94.pdf). Replacement must satisfy real consumer invariants/history, not merely export identical method names.
+- **State and progress:** [Lamport, *The Temporal Logic of Actions* (1994)](https://lamport.azurewebsites.net/tla/papers.html) and [Specifying and Verifying Systems with TLA+](https://lamport.org/pubs/spec-and-verifying.pdf). Use Init/Next/temporal fairness rather than naive finite-run liveness claims.
+- **Abstraction:** [Cousot & Cousot, POPL 1977 abstract interpretation](https://www.di.ens.fr/~cousot/COUSOTpapers/POPL77.shtml) and [Clarke et al., CEGAR](https://web.stanford.edu/class/cs357/cegar.pdf). Define concrete-to-abstract observation before relying on a model verdict.
+- **Local reasoning:** [Reynolds, *An Overview of Separation Logic*](https://www.cs.cmu.edu/afs/cs/user/jcr/ftp/seplogoverview.pdf). Do not assert a frame law when operations share mutable state or external effects.
+- **Native model-based tests:** [Hypothesis rule-based state machines](https://hypothesis.readthedocs.io/en/latest/stateful.html). Use if the Owner already has a meaningful stateful API to falsify, not as a mandatory test for every file.
+- **Realization and V&V:** [NASA Systems Engineering Handbook](https://www.nasa.gov/wp-content/uploads/2018/09/nasa_systems_engineering_handbook_0.pdf); [AWS durable execution idempotency/retry guide](https://docs.aws.amazon.com/durable-execution/patterns/best-practices/idempotency/) for distinguishing replay/at-least-once from external effect truth.
+- **Engineering procedures:** upstream [Matt `to-tickets`](https://github.com/mattpocock/skills/blob/main/docs/engineering/to-tickets.md), [ECC Hooks](https://github.com/affaan-m/ECC/blob/main/hooks/README.md), [Superpowers writing-plans](https://github.com/obra/superpowers/blob/main/skills/writing-plans/SKILL.md). Version-qualified source pins remain section 2. These are NOT formal proof systems and do not confer execution authority.
+
+**Method selection:** use `method-router` to choose the smallest method that can change a decision. For example, a missing producer/consumer assumption calls for T11.2, not all ten methods. A cancellation/retry defect calls for T11.6 plus T11.8. An incomplete evidence claim calls for T11.4 plus T11.10. Only formalize an independently contractable replacement as the complete R2.1 `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`; other lenses are borrowed mature methods, not automatically admitted new LEGOs.
+
+## 12. Precise refinement calculus and proof duties (no new calculus)
+
+Let a stateful capability operate with state `s` and visible event trace `τ`:
+
+`R_impl ⊆ (I × S) × (O × S × Trace(Eff))`.
+
+Let `Obs_c` be the observation function of the *named consumer* `c`, projecting internal state/transitions away but retaining every visible error, effect, timeout, cancellation and ordering condition relevant to `c`. Let `E` be the explicitly qualified environment, and `α` map concrete implementation states to the model's states. The candidate implementation is a contextual refinement only if the associated assumptions and simulation/trace obligations establish:
+
+`Obs_c(Traces(R_impl | E)) ⊆ Obs_c(Traces(R_spec | E))`.
+
+This is a **proof obligation**, not a theorem proved by writing this equation. The subset is sometimes too strong without allowing stuttering, internal-event hiding, weak simulation and fairness; the natural Owner must choose an observer and justify the transport. For replacement of an existing service, do not strengthen the old accepted inputs or weaken its externally required guarantees. For an abstract model, prove or test the `α` bridge; a matching field name is not such a bridge.
+
+The existing Lean implementation in `tools/formal/RecursiveLegoRefinement.lean` already defines `IOContract`, `Implements`, `Refines`, and proves `refinement_preserves_implementation` and `narrowed_assumptions_cannot_substitute`. **REUSE these definitions** for same-type bounded claims rather than declaring another axiomatized Ordivon logic. That Lean model is deliberately restricted to equal input/output types; port adapters and real external effects remain independent obligations.
+
+### Real proof-discharge table (required only for the property being claimed)
+
+| Claim | Necessary independent witness | Practical native tool | Prohibited inference |
+| --- | --- | --- | --- |
+| A/G compatibility | Producer G entails consumer A, including typed port/effect/timeout assumptions | Pacti or existing Lean contracts | Identical schema ⇒ compatible behavior |
+| Safety `□Inv` | Valid model, nonvacuous base state, all modeled transitions, and counterexample check | TLC, Lean, Z3/Kani/Verus where applicable | Finite model PASS ⇒ universal production safety |
+| Progress under fairness | Explicit environment/fairness/budget, reachable transition and actual recovery path | TLA+/TLC and owner state-machine tests | Available action ⇒ eventual external service success |
+| Code refinement | Directly exercises current Rust/TS/Python implementation through its public seam, with model/source readset | Native owner tests/property tests/real effect reconciliation | Formal theorem name/AST resemblance ⇒ implementation theorem |
+| Release currentness | Exact Git revision, installed executable/manifest digest and time-bound readback | Existing Runtime/Workstation/CI/owner operations | PR merge ⇒ current service installed |
+| Domain value | Named consumer tests actual externally observable result | Domain acceptance/readback | `candidate_completed` or `status=PASS` ⇒ user goal achieved |
+
+When no checker or exact model-to-code bridge is available, keep the stronger standing `UNKNOWN`; still execute ordinary demonstrably useful changes under the Owner's actual native acceptance process. Do **not** convert an unproved universal claim into an automatic block on unrelated work.
+
+## 13. One independently reproduced cross-Agent counterexample (2026-11-09)
+
+**Real consumer:** Artifact's profile-required evidence qualification (current peer PR #1974). The typed responsibility is an Artifact Owner evaluator, *not* an independent global LEGO or Harness completion oracle.
+
+**SourceCut:** peer PR head `be4f579990a135e0973bb60a7108ea4dba4b71f4`, `capabilities/artifact/artifact_verification/claim_coverage.py:assess_required_evidence`. This source is **not** merged/main proof. **Runtime reproduction:** `job-01a1c0ed-0fb7-744d-ab7f-ecc0d92a9ff6`, actual Python import from exact Git blob, exit 0. **Space collaboration:** `space:ordivon-capability-task-forum-r1:20261101`, topic `03-refinement`, message sequence 25763. The Agent owning Artifact PR has been asked to validate and implement, rather than writing into their branch.
+
+**Failing public-seam example:** the Profile requires two independent claims, `decoderMatrix` and `deliveryReadback`. `native_result` contains both `claimResults` statuses PASS, but both entries use `nativePointers=['/verification']` to point to a *single unrelated aggregate* `{'status':'PASS'}`. The tested evaluator returns `{'status':'COMPLETE','complete':True,'issues':[]}` despite the absence of claim-specific native evidence. Changing the aggregate status to FAIL yields `complete=False`. The matcher checks same status, not semantic identity between **this required claim** and **the native observation used to discharge it**.
+
+**Formal obligation:** let `Required(p,k)` denote that Profile `p` requires claim key `k`. Every complete decision needs a witness `w_k` with both source identity and claim relation:
+
+`Complete(p,o) ⇒ ∀k. Required(p,k) ⇒ ∃w. NativeFor(w,o,k) ∧ VerifiedPass(w,o,k) ∧ Current(w,o)`.
+
+Simply `w.status=PASS` is insufficient. This negative example does not establish that the installed production result was corrupted; source input trust and actual caller qualification remain separate. **Fix in the existing Artifact Owner:** reject generic aggregate pointer reuse when it does not identify the required claim; retain exact legitimate claim-specific evidence PASS. Add one failing case plus one positive case at the current public seam; run Artifact's native verification. No third evaluator, new workflow, or fabricated domain PASS.
+
+This example concretely connects T11.2 (unfulfilled assumptions), T11.4 (UNKNOWN evidence), T11.10 (claim-bound witnesses) and the Superpowers/Matt *public seam RED→GREEN* methodology. It demonstrates why the theory is useful without running any weak-model evaluation.
+
+## 14. Executable dependency frontier and cross-Agent responsibilities
+
+The existing T0–T5 are a **task DAG**, not sequential theater. Treat dependencies as formal preconditions `BlockedBy(task)`; any independent consumer with satisfied predecessors may proceed. Do not create a separate planner or one ticket for each theory lens.
+
+| Frontier | Current verified evidence / overlap | Next executable contract obligation | Integrates via |
+| --- | --- | --- | --- |
+| T0 — intake | PR #1973 merged on 2026-11-09 (source/Skill method adoption) | Preserve one `method-router` and optional scoped reference; reconcile duplicate current PR #1977 rather than merge a second router blindly | Skills Owner native search/resolve/read |
+| T1 — source truth | PR #1962 merged; historic Authority counterexample #1942 blocked | Keep real historic-vs-current navigation distinction; any legitimate correction path must have its own provenance witness | Authority native verify, existing CI gate |
+| T2 — model/candidate | Harness already uses `candidate_completed`; other Agent owns current Harness #1979, formal Run work #1835 | First produce a real caller that incorrectly promotes candidate or Job to DomainAccepted; otherwise DELETE a proposed duplicate completion enum | Harness and actual caller public APIs |
+| T3 — state/effects | Runtime #1983 and Host #1976 open as of this SourceCut; existing PG Job/Work continuity | Independently review one actual recovery/replay consumer; distinguish `lost`, canceled, side effect committed and receipt certainty | Runtime/Host native PG + readback |
+| T4 — real domain | Artifact #1974 open, Media/Game/Capital own their separate contracts; Artifact counterexample above is independently reproduced | Artifact Agent fixes claim-specific evidence binding; this contributor supplies falsifying inputs and reviews result only | Artifact owner test and consumer acceptance |
+| T5 — subtract | Specs, old plans, duplicate validators and experimental code exist across Owners | Retire only proven superseded responsibilities and zero-live-consumer ephemeral work with current evidence; keep historical proofs/negative examples | Git, natural Owner retirement, formal/native readback |
+
+### Concrete execution steps per frontier (Matt → ECC → Superpowers adaptation)
+
+1. **Spec the actual negative:** from the existing Work/issue/SourceCut, state one consumer-visible failure, pre/post, errors, assumption and evidence target; if the consumer is already satisfied, retire the proposed custom change.
+2. **Select a deep seam:** identify the highest stable public Owner interface. Do not split work by technical layers; a ticket includes everything required to witness one behavior end-to-end.
+3. **Negative before change:** run the observed bad input against the old source (RED). Ensure the oracle is independently derived from consumer semantics, not the candidate code's own status bits.
+4. **REUSE first:** select mature upstream contract/model checker or existing Owner-native primitive; avoid a new schema/runtime/agent. Use full eleven-coordinate profile only when an independently admitted responsibility truly needs it.
+5. **Green and narrow:** implement at the natural Owner, cover the original counterexample and one positive valid operation; use existing unit/PG/stateful tests and optional formal checker when it materially strengthens this claim.
+6. **Independent review:** review spec compliance *and* code/standards against exact base; compare actual effect/readback, run native `mise` and retain negative result as a regression.
+7. **Integrate and consume:** send exact PR/commit/Job or readback to the corresponding Space Topic, deduplicate overlapping PRs, use GitHub Merge Queue; separate MERGED from installed, executed and DomainAccepted.
+8. **Subtract:** remove the superseded workaround, duplicate instructions, old experiment files or self-referential tests only once the real replacement consumer is current. Preserve unique historical/falsification records.
+
+### Stop conditions
+
+- **Positive:** an Owner's actual consumer can demonstrate the originally missing behavior with current, independently observed evidence; old bad input is rejected and valid input still succeeds.
+- **Legitimate no-change:** the incumbent already fulfills the consumer contract; record SOURCE+test and avoid creating a second implementation.
+- **Scoped blocker:** named missing source, authority, installed owner, dynamic edge or external observation; UNKNOWN remains explicitly bounded, not converted to an indefinite generic request for more planning.
+
+The leadership goal is not a count of mathematics terms, Specs, proof artifacts, agents or PRs. It is a system in which independent errors are detectable by the correct native owner while qualified work continues to deliver value.
