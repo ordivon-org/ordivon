@@ -163,6 +163,23 @@ def validate_consumed_seams(
     return {seam: tuple(uses) for seam, uses in observations.items()}
 
 
+def _mentions_owner_path(line: str, root: str) -> bool:
+    """Match a path component, not a similar-looking sibling name.
+
+    services/gateway-authzen is outside services/gateway.
+    services/gateway/src is a genuine gateway owner reference.
+    """
+    start = 0
+    while (index := line.find(root, start)) >= 0:
+        end = index + len(root)
+        left_ok = index == 0 or not (line[index - 1].isalnum() or line[index - 1] in "_.-")
+        right_ok = end == len(line) or not (line[end].isalnum() or line[end] in "_.-")
+        if left_ok and right_ok:
+            return True
+        start = index + 1
+    return False
+
+
 def findings_for_text(
     source_path: str,
     text: str,
@@ -177,7 +194,7 @@ def findings_for_text(
             if target.name == source.name:
                 continue
             target_literal = target.root.rstrip("/")
-            if target_literal in line:
+            if _mentions_owner_path(line, target_literal):
                 findings.append(
                     Finding(
                         source_path=source_path,
