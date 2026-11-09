@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 import { WebProblem } from "./errors.ts";
+import { stableDigest } from "./identity-digests.ts";
 import type {
   AdmissionChainDecision,
   AgentAdmissionInput,
@@ -74,10 +74,7 @@ export class SecurityContractAdmissionEvaluator implements AgentAdmissionEvaluat
 }
 
 export function stableEffectDigest(value: unknown): string {
-  return (
-    "sha256:" +
-    createHash("sha256").update(JSON.stringify(value)).digest("hex")
-  );
+  return stableDigest(value);
 }
 
 export function admissionInput(
