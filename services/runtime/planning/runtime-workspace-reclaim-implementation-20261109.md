@@ -39,7 +39,7 @@
 **Proof:** exact source and installed path observations; check docs and diff.
 - [x] Read original upstream Skill files and root/Runtime Agent contracts.
 - [x] Verify current Git SourceCut, installed PG reclaim, Windows split.
-- [ ] Commit spec/plan to isolated branch.
+- [x] Commit spec/plan to isolated branch.
 
 ### T1 — Source-owned PG reclaim CLI (vertical slice)
 **Blocked by:** T0.
@@ -128,3 +128,5 @@ python3 scripts/ordivon-runtime-pg-reclaim \
 \`\`\`
 
 Production Unit source, candidate manifest, installed script digest and operating node must be compared explicitly before T5 can be marked complete.
+
+- Committed slices: spec `3aaf3672`, source/behavior `b281ec07`, release/lifecycle `ce763f9d`. Tests: 13 PG cases + 59 lifecycle + 26 cache + 75 deployment.
