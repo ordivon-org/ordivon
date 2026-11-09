@@ -12,7 +12,7 @@ LoadCredential=tls-key:/etc/ordivon/security/gateway-authzen/server.key
 Environment=ORDIVON_SECURITY_AUTHZEN_TOKEN_FILE=%d/pdp-token
 Environment=ORDIVON_SECURITY_AUTHZEN_POLICY_FILE=/opt/ordivon/security/gateway-authzen/current/policies/gateway_artifact.rego
 Environment=ORDIVON_SECURITY_AUTHZEN_POLICY_DATA_FILE=/etc/ordivon/security/gateway-authzen/trusted-issuer.json
-Environment=ORDIVON_SECURITY_AUTHZEN_OPA=/opt/ordivon/security/gateway-authzen/bin/opa
+Environment=ORDIVON_SECURITY_AUTHZEN_OPA=/opt/ordivon/external/opa/1.20.2/bin/opa
 ExecStart=/opt/ordivon/security/gateway-authzen/current/.venv/bin/uvicorn ordivon_security_gateway_authzen.server:app --host 127.0.0.1 --port 18787 --ssl-keyfile %d/tls-key --ssl-certfile /etc/ordivon/security/gateway-authzen/server.pem
 Restart=always
 RestartSec=3
