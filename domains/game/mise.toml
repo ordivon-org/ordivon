@@ -217,8 +217,13 @@ if command -v xvfb-run >/dev/null 2>&1 && command -v timeout >/dev/null 2>&1; th
     tail -60 "$destination/linux-x86_64/launch.log"
     exit 1
   fi
-  if grep -Eiq 'thread .+ panicked|ERROR .+|FATAL|Failed to create (a |the )?surface' "$destination/linux-x86_64/launch.log"; then
+  if grep -Eq 'thread .+ panicked|[[:space:]]ERROR[[:space:]]|FATAL|Failed to create (a |the )?surface' "$destination/linux-x86_64/launch.log"; then
     echo "ORBIT_WINDOWED_SMOKE_FAILED_LOG"
+    tail -60 "$destination/linux-x86_64/launch.log"
+    exit 1
+  fi
+  if ! grep -q 'Creating new window ' "$destination/linux-x86_64/launch.log" || ! grep -q 'AdapterInfo' "$destination/linux-x86_64/launch.log"; then
+    echo ORBIT_WINDOWED_SMOKE_MISSING_NATIVE_RENDERER_OR_WINDOW
     tail -60 "$destination/linux-x86_64/launch.log"
     exit 1
   fi
