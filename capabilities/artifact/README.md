@@ -25,7 +25,6 @@
 | `artifact-delivery/` | Schemas, profiles, bindings, locks, examples and acceptance fixtures |
 | `scripts/` | Family-specific verifier CLIs, Agent entrypoints, Temporal and tool adapters |
 | `planning/` | R2 LEGO candidate decomposition, proofs/pressure experiments |
-| `registry/` | Dated Artifact closure evidence, **not** Runtime PostgreSQL registry |
 | `config/`, `systemd/` | Configuration and service manifests; **not** active-state evidence |
 | `tests/` | Owner-native tests; `docs/` | Source-bound studies and historical acceptance |
 
@@ -205,9 +204,10 @@ Qualify an upstream project against exact user-facing acceptance and negative ca
 ## Cleanup, naming and retirement
 
 - The name of a Profile, Python import path, schema, Temporal route, service, lock or provider is a consumer contract, not decoration. Prefer standard semantics; rename only with explicit compatibility/refinement evidence and consumer readback.
-- The audited `scripts/artifact_r2_mailbox.py` + `config/artifact-r2-mailbox-r1.json` belong conceptually to transport, not Artifact standing. Their test and historical references exist; installed/dynamic consumers remain unclosed. Audit before removal or transfer.
+- The 2026-11-10 source-stock audit retired the historical four-file custom Cloudflare R2 mailbox (script, operator config, transfer schema, self-test). No installed worker or current Artifact operation/Domain caller was found. The R2 planning source had classified it DO_NOT_PROMOTE; Git history preserves all bytes. Future transport belongs to its natural Network/Provider owner when demanded. The existing rclone installation covers generic S3 copy/list but is NOT proven equivalent for Cloudflare temporary credentials, SigV4 presigning or TTL.
 - `docs/ARTIFACT_REDECOMPOSITION_R1.md` still references a historical `artifact_delivery.py` CLI **absent** from this source cut; do not infer it is current code.
 - The A1–A14 historical decomposition-wave documents had no text-path consumers in the audited tracked source and are removed from this isolated source candidate; their bytes remain retrievable from the base Git revision. A15 remains because the R2 plan references it. This source-retirement evidence does not establish the absence of external/dynamic consumers.
+- The full source-stock review and 425-file pre-cleanup metadata inventory are in docs/ARTIFACT_STOCK_MODERNIZATION_SPEC_R21.md and docs/ARTIFACT_STOCK_BASELINE_LEDGER_20261110.tsv. These are dated review records, not a second current capability registry. Eleven old unlinked family/pressure report files and the prototype-only EvidenceObservation adapter/self-test also exited the active tree; production verifiers and currently consumed formats remain unchanged.
 - Caches (`.venv`, `__pycache__`, `.pytest_cache`) should be cleaned only with native local project tools after verifying ownership. Never recursively delete system files, active Runtime Workspaces, source materials or another Owner's state.
 - Stop decomposition when further files only add glue. Existing semantic seams and consumer-accepted native tools take priority over a prettier directory tree.
 

@@ -21,8 +21,7 @@
       "artifact_verification/stage.py",
       "artifact_trust/vsa.py",
       "scripts/artifact_verify.py",
-      "scripts/artifact_oci_package.py",
-      "scripts/artifact_r2_mailbox.py"
+      "scripts/artifact_oci_package.py"
     ]
   },
   "observedTopology": {
@@ -237,9 +236,7 @@
       "label": "TransportCapability",
       "kind": "externalize",
       "responsibility": "Move bytes or issue bounded transport capabilities.",
-      "currentEvidence": [
-        "scripts/artifact_r2_mailbox.py"
-      ],
+      "currentEvidence": [],
       "state": "DO_NOT_PROMOTE"
     },
     {
