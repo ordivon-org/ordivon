@@ -117,6 +117,72 @@ P5：以真实安装 readback 证明新版本加载，再执行端到端消费�
 - 不采用 ECC 通过修改学习日志 mtime 来阻止结束的 hook，也不以模板填充、日志数量、形式化测试数量代替真实产出。
 - 任务若遇来源更新先对比精确 Git SHA，已有成熟实现则删除自己重复工作；失败必须成为具体反例/阻塞原因，而非无限会议或防御性审批。
 
+## 10. 数学、计算机科学与成熟工业范式：本次增量精化（2026-11-09）
+
+**不引入新 LEGO 演算。** 下述理论为已有 R2.1 十一坐标指定外部语义源；不能因使用某种数学术语就推导真实产品已经实现。
+
+| 已有理论/实践 | 映射到 LEGO | 可检验义务 | 明确不能推导 |
+| --- | --- | --- | --- |
+| Floyd–Hoare partial correctness | pre, post, inv | `{P} close(w) {Q}`：若事务完成，则关闭回执、物理对象与读回一致 | 不证明 close 最终执行；必须另证活性 |
+| Abadi–Lamport assume/guarantee 并发组件组合 | I,O,pre,post,eff | Runtime 保证无活动 Job 时关闭；Git/Host/Artifact 分别提供可信源/消费/处置假设与回执；交叉检查每个保证是否满足对方假设 | 不能将多个自我声明串联成真实消费者证明 |
+| Lamport TLA+ safety、weak fairness、stuttering refinement | inv, prov, unfold | `[] (Closed => NoKnownLiveConsumer)` 与 `(<>[] Eligible) => <> Closed`（仅在 WF(Close) 假设下）；源码、部署分别需要精化见证 | TLC 有限状态 PASS 不代表 Rust/PG/OS 实现正确 |
+| Nix GC Roots 与引用闭包 | S,pre,inv | 有效 Root 的可达闭包持续保存；失效时检查动态 Root/观察闭包 | `没有静态引用` 不等于不存在真实动态消费者 |
+| Kleene strong three-valued logic（仅证据查询的启发） | epsilon,prov | UNKNOWN、TRUE、FALSE 不混淆；假证与证据缺失分别可观察 | UNKNOWN 不是逻辑 FALSE，也不是永久保持资源的理由 |
+| Kleppmann 租约 + fencing token | S,pre,eff | 若续租允许过期/替代，新的拥有者必须拒绝旧 epoch 的滞后写入；在受管 PG CAS 边界实现 | 单有 TTL、进程消失或调用方 boolean 不构成已认证的排他所有权 |
+| Kubernetes TTL-after-finished、Owner 机制 | S,post,c | TTL 从可证实的完成状态开始，删除前在权威状态重新读取 | 不应复制 Kubernetes API 及控制器；ownerReference 并非通用保活 Root |
+| BuildKit 分级缓存 GC | c,post,unfold | 结果/持久源码与可重建缓存分开；无需对所有缓存保持同一龄期规则 | 不能把不可重现的未发布源码当成可删缓存 |
+| Temporal durable event history | S,prov,eff | 已提交的执行意图/物理结果与重放边界分开；不凭响应丢失重新执行外部副作用 | 现有 Runtime/Host 不因此需要再安装 Temporal |
+| Matt domain-modeling + TDD、ECC contract-first、Superpowers writing-plans / verification-before-completion | I,O,pre,post,prov | 从消费者出发规定一条公共 seam，RED→GREEN→变异反例→原生执行→Git/服务读回；两轴源码/Spec 评审 | Skill 只是方法，不授予执行权，也不是验收证据 |
+
+### 10.1 逻辑义务与观察边界
+
+以时间索引 `t` 表示一个观察切口；`Roots(t)` 是已确证的当前消费者根，`Edges(t)` 是其依赖关系，`ObsClosed(t)` 表示已经证明观察范围覆盖动态消费入口。
+
+- **保活：** `Live(w,t) := w in Reachable(Roots(t), Edges(t))`。只有 `ObsClosed(t)` 与来源/租约当前性成立，才能由 `not Live` 导出已穷尽的无消费者结论。
+- **回收许可：** `Reclaimable(w,t) := Quiescent(w,t) and DispositionResolved(w,t) and NoActiveConsumer(w,t) and CurrentIdentity(w,t)`。`Age >= 4h` 仅触发 reevaluation，不能被替代为 `NoActiveConsumer`。
+- **安全性：** `[] (Close(w) => Reclaimable(w,t))` 是目标 Runtime/PG 消费边界的义务（不是现有代码已证明的事实）。
+- **有条件活性：** `(<>[] Reclaimable(w)) => <> Closed(w)` 需要动作长期使能、弱公平和持续服务可用；`WF_vars(Close)` 仅为模型假设。
+- **状态与知识不同：** `ConsumerFinished` 是世界中的事件，`ObservedConsumerFinished` 是证据，`caller.consumerReleased=true` 是声明。后者不能自行实现前两者。
+- **并发真实性：** 观察 epoch、expectedSourceStateDigest、PG Job 保持状态应参与实际原子关闭/重读；如申请使用续租，必须为过期后的迟到写入设置 fencing/CAS 条件。
+- **成果语义：** `PUBLISHED(ref,sourcecut)` 表示由持久权威接受；`DISCARDED(owner,sourcecut)` 表示明确不保留；`UNKNOWN(reason)` 不得通过默认 false 转换来消失。
+
+**实用判断：** 对独立机器可验证的边界，采用源类型、数据库 CAS、模型检查和物理回执；对外部语义消费者没有可穷尽读集的情形，保留可执行的补证/退役任务，不发明全知 GC 或一套跨 Owner 审批中心。
+
+### 10.2 一份模型中的两个精化层级
+
+当前 `WorkspaceConsumerCloseR1.tla` **保留历史 R1 Close**：它允许 `age=expired` 后在 `consumer=active` 的抽象状态下关闭，因此旧 AGE-only 负向控制仍应失败。
+
+相同 TLA 文件内新增 **R2 Candidate profile**（`WorkspaceConsumerCloseR1.r2-candidate.cfg`）：`R2CandidateClose == Close /\ consumer="finished"`，不新增第二份语义模型或新的事实权威。它独立检查：
+- `R2CandidateClosedConsumerFinished` 不变量；
+- `StableR2CandidateEligibleEventuallyClosed` 及 `WF_vars(R2CandidateClose)` 公平假设；
+- 合法的消费者完成并显式释放后，必须存在年龄尚为 fresh 的关闭轨迹（非空证明）；
+- 移除消费者完成 guard 必须由 TLC 产生命名安全反例；
+- 移除公平性必须由 TLC 产生命名时序停滞反例。
+
+此模型候选的 `consumer="finished"` 仍是抽象世界事实，**不属于 Runtime 已认证的 consumer witness**。它必须由 Runtime Core/PG 原生事务、Host/Artifact/Git 下游消费、安装版本和真实工作区回收逐层精化。在无此精化前，状态为 MODEL_CHECKED 而非 CODE_REFINED。
+
+### 10.3 现行生产与并发工作边界（本轮重新核实）
+
+- #1981 已合并，提供 R1 有条件公平活性与年龄误删负向证据。
+- #1983 正在建设版本化 PG 原生回收器及自然消费者条件：支持没有成功 Job 但有明确持久 Git 根的清理候选、删除前 PG Job 重读、release manifest/systemd 接入；**不要再写第二套同责任脚本**。
+- #1983 在此次观察时 CI repo-preflight/repo-mechanics 未通过，其中 preflight 的 GitHub Actions `mise` 下载 PowerShell 触发未认证 API 403 限流。这是当前 CI 环境障碍，而不是数学模型误证或 PG 回收算法反例；应由现有 GitHub/Workstation/Release 入口对齐认证安装。该 PR 仍处于 OPEN，未达到 MERGED 或 INSTALLED。
+- 未来合并/部署与此研究所在分支均以实际 Git SHA 和 installed digest 为权威，不能复用此处历史观察作为不变真理。
+
+### 10.4 一手参考（每一条只为对应语义背书）
+
+- Hoare 1969, *An Axiomatic Basis for Computer Programming*: https://doi.org/10.1145/363235.363259
+- Abadi & Lamport 1995, *Conjoining Specifications*: https://www.microsoft.com/en-us/research/publication/conjoining-specifications/
+- Lamport, *Specifying Systems*，第 8、10、14 章: https://lamport.azurewebsites.net/tla/book.html
+- Stanford Encyclopedia, *Many-Valued Logic*: https://plato.stanford.edu/entries/logic-manyvalued/
+- Nix, GC roots: https://nix.dev/manual/nix/2.34/package-management/garbage-collector-roots
+- Docker BuildKit GC: https://docs.docker.com/build/cache/garbage-collection/
+- Kubernetes TTL-after-finished: https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/
+- Kleppmann, *How to do distributed locking*: https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html
+- Temporal, event history: https://docs.temporal.io/encyclopedia/event-history
+- Matt engineering Skills: https://github.com/mattpocock/skills
+- ECC: https://github.com/affaan-m/everything-claude-code
+- Superpowers: https://github.com/obra/superpowers
+
 ## 10. 反向验证与退出条件
 
 验证链：选择真实消费者 → 定义外部可见性质 → 正常路径测试 → 故意注入违反性质的 mutation → 命名反例 → 最小源实现 → 真实 PG/systemd/Windows 回读 → 删除旧实现/重复文档。
