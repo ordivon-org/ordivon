@@ -1469,39 +1469,32 @@ class LifecycleTests(unittest.TestCase):
                 self.assertFalse(called)
         globals_["reclaim_apply_selected"] = original_reclaim
 
-    def test_packaged_lifecycle_unit_only_invokes_supported_lifecycle_commands(self) -> None:
+    def test_packaged_lifecycle_uses_native_pg_workspace_reclaimer(self) -> None:
         unit = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.service").read_text(
             encoding="utf-8"
         )
-        marker = "/ordivon-runtime-lifecycle "
-        commands = [
-            line.split(marker, 1)[1].split()[0]
-            for line in unit.splitlines()
-            if marker in line
-        ]
-        self.assertTrue(commands)
-        lifecycle_line = next(
-            line for line in unit.splitlines() if "/ordivon-runtime-lifecycle sweep " in line
-        )
-        self.assertNotIn("--measure-bytes", lifecycle_line)
-        self.assertIn("SuccessExitStatus=2", unit)
-        self.assertNotIn("SuccessExitStatus=1 2", unit)
-        self.assertIn("--minimum-age-hours 24 --classification closable", unit)
+        starts = [line for line in unit.splitlines() if line.startswith("ExecStart=")]
+        self.assertEqual(len(starts), 1)
+        self.assertIn("/ordivon-runtime-pg-reclaim --apply ", starts[0])
+        self.assertIn("--min-age-hours 4 --limit 25", starts[0])
+        self.assertIn("--workspace-root /var/lib/ordivon/pg-candidate/workspaces", starts[0])
+        self.assertNotIn("registry.sqlite3", unit)
+        self.assertNotIn("/ordivon-runtime-lifecycle sweep ", unit)
         timer = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.timer").read_text(
             encoding="utf-8"
         )
         self.assertIn("OnCalendar=hourly", timer)
         self.assertIn("Persistent=true", timer)
         help_result = subprocess.run(
-            [sys.executable, "scripts/ordivon-runtime-lifecycle", "--help"],
+            [sys.executable, "scripts/ordivon-runtime-pg-reclaim", "--help"],
             cwd=REPO,
             check=True,
             text=True,
             capture_output=True,
         )
-        for command in commands:
-            self.assertIn(command, help_result.stdout)
-        self.assertNotIn("inputs-sweep", commands)
+        self.assertIn("--apply", help_result.stdout)
+        self.assertIn("--min-age-hours", help_result.stdout)
+        self.assertIn("--workspace-root", help_result.stdout)
 
     def test_inspect_applies_retention_class_and_last_activity(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
