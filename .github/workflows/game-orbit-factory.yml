@@ -2,6 +2,12 @@ name: Game Factory Bevy native Linux preview
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "domains/game/examples/orbit-collector/**"
+      - "domains/game/formal/verify_orbit_rules.py"
+      - "domains/game/mise.toml"
+      - ".github/workflows/game-orbit-factory.yml"
   push:
     branches: [main]
     paths:
