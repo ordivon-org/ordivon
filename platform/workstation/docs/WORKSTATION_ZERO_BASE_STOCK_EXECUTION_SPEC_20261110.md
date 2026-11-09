@@ -400,3 +400,23 @@ The execution workspace is isolated and based on the SHA above. PR #1997 is Draf
 - `scripts/temporal_pgbackrest_restore_smoke.sh`: REVIEW-SMOKE; platform/workstation/tests/test_temporal_pgbackrest_restore_smoke.py; platform/workstation/tests/test_temporal_restore_scratch_safety.py; platform/workstation/tests/test_temporal_restore_stop_failure.py
 - `scripts/test-integration-contracts.py`: REVIEW-SMOKE; no bounded named source reference
 - `tests/test_host_historical_projection.py`: RETIRE; no bounded named source reference
+
+## 9. Actual bounded stock subtraction and verification (2026-11-10, same isolated Workspace)
+
+**Z4 performed, source only:** removed five historically self-contained files: `scripts/host_historical_projection.py` (463 lines), `tests/test_host_historical_projection.py` (37), `docs/HOST_HISTORICAL_PROJECTION_R3.md` (227) and two dated `evidence/host-v1-*.json` (163 and 265). Original historical source remains readable at the pinned Git baseline. The retained 45,838,336-byte host-v1 SQLite snapshot at `/var/lib/ordivon/retired/host-v1/host-v1-48104ae46bc92c66.sqlite3` was observed and **not modified**. No Host v2 PG data, deployed service, Windows setting or Cloudflare resource was changed.
+
+The two only present-tense cross-Owner text consumers were the static source-debt count in `tools/repo/check_sql_dialects.py` and the related existing `tools/repo/test_sql_dialects.py` expectation. The obsolete expected entry and test tuple were removed (existing test renamed to its actual domain+Harness scope); **no new tests were added**. Post-edit `git grep` found no named remaining source reference to the retired exact files outside this source-bound baseline ledger. This is evidence for a bounded source-only retirement, not a universal proof of no untracked external manual usage.
+
+**Native verification in Runtime Job `job-01a1c177-74d0-7107-9b24-788f1db7dc2a`, exit 0:**
+- `cd platform/workstation && mise run verify` — PASS, including Cloudflare provider CI/worker dry run and native Workstation consequence checks.
+- `mise run repo:sql:verify` — PASS; existing 30 SQL dialect tests; six native osquery query files ran successfully; SQLite/Pg parser/current dialect checks passed.
+- `mise run repo:retirement:verify` — PASS across archived source-reference policies.
+- `python3 tools/repo/check_architecture_docs.py` — PASS.
+- `git diff --check` and `git diff --cached --check` — PASS.
+- Baseline retired projector test had 2/2 and root SQL tests 30/30 PASS *before* retirement; source-only retirement deletes the unnecessary source-self test rather than adding replacement tests.
+
+**Non-overclaimed collateral finding:** Root SQL verifier still reports 32 remaining source files and 63 direct SQLite API calls, with repository-wide durable storage migration standing `NOT_CUT_OVER`. Host's current PostgreSQL authority is not proof that these unrelated source calls were removed. This broader concern belongs with its respective natural Owners, **not** a new Workstation feature or migration in this scope.
+
+**Current source-diff scope:** seven paths including five removals and two minimal Repo code/test expectation adjustments; 1 insertion / 1,159 deletions (net 1,158). Appendix A intentionally remains the **before** SourceCut 265-file census, including retired files, to make the subtraction auditable, not a claim that all 265 paths remain at HEAD. Existing Draft PR #1997 remains separate.
+
+**Independent cross-audit standing:** Host Space request at seq 25890 and precise Spec/falsifier packet at seq 25918; no direct peer acceptance claimed without an actual reply. GitHub CI, merge, installed generation and domain consumer status remain separately qualified when publication occurs.
