@@ -241,3 +241,143 @@ As-of this spec baseline:
 - Windows PG-only Runtime not installed: earlier cross-target Rust compilation failed in runtime/platform/linux.rs. Other work may advance concurrently; reverify current main before source or service changes.
 - Linux PG-native was independently demonstrated in Gateway→Runtime→PG SQL and a redundant candidate instance retired; this prior success is not a Windows claim.
 - This SPEC is only an implementation plan until exact branch commit/CI/consumer evidence is reported.
+
+
+## 12. Mathematical and computer-science foundations — source-bound addendum
+
+Date: 2026-11-09, after merge of #1975/#1980/#1981.
+Current examined source cut: a7d70e83945b7418f41b9636f0803d1544e84355.
+This section refines the SAME T00–T08 execution plan; it is not a new SPEC, Skill, standard, verifier, or delivery Owner. The existing Root and Owner contracts take precedence on actual effects.
+
+### 12.1 Precise system-of-interest and proof boundary
+
+A user goal is not a program postcondition until a named consumer has defined an observable property. For a scoped goal g, define the obligation as
+
+O_g = (g, C, phi, A, N, S, E)
+
+where C is the accepting consumer, phi the observable acceptance predicate, A the environmental assumptions, N the natural Owner of relevant facts/effects, S the precise source+installed cut, and E evidence collected under those assumptions. This is a mathematical view over existing Owner records; do not persist it in a second task table.
+
+The important distinctions are:
+
+- Plan(g) is a candidate derivation, not evidence of phi.
+- RunTerminal(r) is a bounded Harness fact, not a domain proposition.
+- JobTerminal(j) is a Runtime physical fact; neither it nor ExitCode=0 proves phi.
+- Merged(commit), Installed(commit) and Loaded(commit) refer to different authorities and may differ.
+- Accepted_C(g, phi, S, E) requires C to consume evidence E matching S and its assumptions. If C is not defined or its observation unavailable, the resulting scoped standing is UNKNOWN, not failure and not success.
+
+This prevents Goodhart-like replacement of the user goal by a convenient proxy such as WorkCount, clean Git tree, or CI green. It cannot guarantee that the original user goal was correctly elicited: specification adequacy is an independent domain question.
+
+### 12.2 Hoare logic, weakest preconditions and native effect semantics
+
+For each actual Owner operation a, use the native precondition, postcondition and effect footprint:
+
+{Pre_N(a, S, A)} a {Post_N(a, S', E)}.
+
+For irreversible or non-idempotent effects, derive the weakest precondition wp(a, Post) relative to the concrete provider. Examples: a post-retry guarantee requires the original request identity and outcome reconciliation; a release claim requires the installed SHA and a consumer readback. Writing a stronger postcondition in prose does not strengthen the executable guarantee.
+
+A proposed action from a model is an untrusted candidate. A native Owner tool is the effect admission and receipt authority. In particular:
+
+ToolReceipt_N(a) does not entail Accepted_C(g).
+
+An agent is allowed to select a different implementation or mature upstream provider if it discharges the same consumer contract. Do not impose global weakest-precondition proofs on trivial actions; use existing Rust/SQL/Python validation where actually required.
+
+Foundations: Hoare (1969), https://doi.org/10.1145/363235.363259 ; Dijkstra (1975), https://doi.org/10.1145/360933.360975 .
+
+### 12.3 Safety, liveness and the limits of runtime monitoring
+
+Separate an unacceptable finite bad prefix from eventual progress.
+
+Safety:
+□(Accepted_C(g) => QualifiedReceipt_C(g, phi, S, E)).
+□(RuntimePhysicalSuccess(j) does_not_promote_to DomainAccepted(g)).
+□(Retired(x) => NotLiveConsumer(x) AND NotActiveEffect(x) AND PreservedUniqueValue(x)).
+
+Conditional liveness:
+□((Unfulfilled(g) AND Executable_N(a) AND OwnerAvailable(N) AND FairOpportunity)
+  => ◇(ObservedExecution(a) OR ObservedCurrentBlocker(a))).
+
+The liveness statement is conditional: an Agent that never runs, an unavailable provider, an unfair scheduler, or a goal whose acceptance is undecidable does not satisfy its premises. No static Skill or safety monitor by itself proves this eventuality. Schneider's enforceability analysis is an important warning: monitoring can reject recognized violations, but cannot force arbitrary open-world outcomes to happen.
+
+At the natural Owner's state transition, prefer complete mediation of domain-acceptance *claims* and policy decisions, not universal interception of arbitrary shell calls. Broad privileged shells and unmodeled side effects are explicit gaps in any stronger claim. The correct response is to place the trust boundary at the already authoritative consumer, not add another global supervisor.
+
+Foundations: Lamport (1977), https://www.microsoft.com/en-us/research/publication/proving-correctness-multiprocess-programs/ ; Schneider (1999), https://ecommons.cornell.edu/entities/publication/73f44364-f45e-40b5-b581-301a42619b0d ; Saltzer–Schroeder (1975), https://web.mit.edu/Saltzer/www/publications/protection/index.html .
+
+### 12.4 Refinement: the bridge from mathematical model to installed behavior
+
+An abstract R2.1 LEGO specification M and a concrete Owner implementation P need a state correspondence alpha. For each observable concrete transition s →_P s', require a matching abstract transition (possibly with stuttering steps):
+
+alpha(s) →*_M alpha(s'),
+
+under the stated environment and transport assumptions. Observable identity, effect, retry, timing, and consumer-visible results must be preserved. Model checking M alone does not establish this relation; unit tests, source review and native consumer observation are different evidence levels.
+
+An Owner may use existing Lean, TLA+, Z3, CrossHair, Rust/Kani or native PostgreSQL tests as appropriate; none should be required globally. Existing Host DAG Z3 evidence does not prove the Host integrity SQL, and Linux Runtime cgroup evidence does not prove Windows Job Object recovery.
+
+Foundation: Abadi–Lamport (1991), https://doi.org/10.1016/0304-3975(91)90224-P .
+
+### 12.5 Assume–guarantee composition and the minimal authority cut
+
+Let each natural Owner N_i expose a guarantee G_i under assumption A_i. Cross-Owner composition is valid only when the actual producer guarantee discharges the consumer assumption:
+
+G_producer |= A_consumer.
+
+The whole-system domain claim needs the final C-owned predicate. If every individual component's local check passes but a cross-Owner assumption is UNKNOWN, the composition standing stays UNKNOWN. Cyclic assumptions cannot prove themselves.
+
+Define an authority-flow graph with edges for candidate decision, tool execution, evidence receipt, release, and consumer acceptance. Every path by which model-authored text could become an authoritative Accepted_C claim must cross a consumer-owned verification edge. This is a graph-cut / complete-mediation design principle, not a new universal graph registry; inspect existing actual Tool and caller call sites. An uncontrolled direct write to the acceptance store would be a counterexample to a claimed closed cut.
+
+For a replacement provider P' to refine P, the consumer's assumptions must not become stronger and its required guarantees must not become weaker. The data representation can change without preserving redundant source structure when consumer obligations still hold.
+
+### 12.6 Abstraction refinement, counterexample discipline and typed uncertainty
+
+CEGAR: start with the smallest consumer-relevant abstraction; when model checking finds a counterexample, test whether it maps to a feasible concrete trace. If real, repair specification or implementation; if spurious, refine the abstraction. Never patch away a counterexample simply to make a formal test pass.
+
+Evidence standing is indexed by (proposition, source cut, environment, consumer):
+- VERIFIED only within the exact qualified observation/proof scope;
+- FALSIFIED only for the checked proposition and counterexample scope;
+- UNKNOWN when the necessary observation/refinement is absent or stale.
+
+UNKNOWN is not FALSE and not PASS. It does not block unrelated independent actions. An evidence receipt at source S does not automatically transport to S' after dependency/policy/installed-generation drift.
+
+Foundation: Clarke–Grumberg–Jha–Lu–Veith (2000), https://web.stanford.edu/class/cs357/cegar.pdf .
+
+### 12.7 Control/observability and event-sourced recovery
+
+The relevant feedback variable is the *difference between consumer-required and currently observed capability*, not the count of Work records. Existing natural Owners observe their native state and apply bounded effect actions. Re-entry uses the original immutable operation identity; if its external effect is UNKNOWN, resolve/reconcile before any new dispatch.
+
+Temporal's event history and deterministic replay explain why replayed control decisions must not re-execute external Activities. Adopt the proven event/receipt semantics through existing Harness PG and Runtime APIs; do not install another workflow engine or claim all existing effects are idempotent.
+
+Kubernetes's pattern of small independent controllers illustrates local reconciliation by natural Owner; it does not justify a universal Ordivon Agent controller. Its TTL-after-finished semantics likewise distinguishes terminal execution from subsequent reclaimability.
+
+Primary references:
+- https://docs.temporal.io/workflows
+- https://kubernetes.io/docs/concepts/architecture/controller/
+- https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/
+
+### 12.8 Existing method-to-owner mapping; no new mandatory mechanism
+
+| Real need | Existing thinking LEGO / mature procedure | Actual artifact and consumer seam |
+| --- | --- | --- |
+| Find right goal and assumption | systems-engineering + Matt to-spec | natural Owner plus final C's acceptance property |
+| Choose the smallest useful implementation | method-router + project-kernel-decomposition | reuse/delete/compose decision, not a new registry |
+| Split cross-Owner changes | compositional-contracts + Matt to-tickets | GitHub Issue/PR blockers and native Owner tests |
+| Prove legal transitions | recursive-lego-calculus + Hoare/refinement | existing TLA+/Lean/SMT/Rust/SQL where supported |
+| Repair a real defect | Superpowers systematic-debugging/TDD | real failing consumer input → code → recheck |
+| Publish or declare complete | Superpowers verification-before-completion + ECC scoped verification-loop | SourceCut, PR/CI, installed binary, final readback |
+| Handle persisted effects/reentry | feedback-control + Temporal event/replay pattern | existing Harness PG, Runtime Job and exact receipts |
+| Retire physical garbage | consumer-rooted-retirement + Kubernetes/Git lifecycle | native workspace.close/worktree and current consumer query |
+
+Upstream sampled cuts (fixed in section 2) are method provenance; do not vendor their hooks, agent identity, CLI bootstrap or task registries. No weak-model testing or universal Agent scoring is in this programme. Verification uses the existing Owner's real contract, source refinement, test and production consumer.
+
+### 12.9 Next executable frontier and observed acceptance (not a new ticket DAG)
+
+The earlier T00–T08 dependency graph remains controlling. As observed on 2026-11-09 after the main merge:
+
+- T00: merged source SPEC #1975; this appendix adds source-bound theoretical obligations without a new authority.
+- T01: source and PostgreSQL consumer already qualified via 441 Host tests in an isolated PG18 fixture. This turn additionally installed merged source a7d70e83945b7418f41b9636f0803d1544e84355 as immutable /opt/ordivon/host-v2 release and restarted the existing service. Live Host MCP detail=integrity now reports the previously hidden history gap: healthy=false, invalidWorks=3. The separate history detail also reports invalidWorks=3 and snapshot digest checks OK. This closes the false-healthy product behavior, NOT the historical-data gap.
+- T02: read-only production PG census found three incomplete terminal Works: legacy Windows PG Work revision 47 retained 46–47 only; legacy Linux PG Work revision 18 retained 17–18 only; Host source-cut Work revision 3 retained only revision 3. The first two are abandoned and the third completed, so none is itself an active executing Work. They still have actual Host social references (2,2,1 Space subjects; 5,2,0 Message relations respectively), and each has retained command receipts. Do not equate those references with an active business consumer, but do not silently break their integrity either. Decide between genuine historical recovery from reliable evidence and complete natural-Owner terminal retirement with coherent reference disposal; absent an authenticated compaction proof, never invent intermediate snapshot payloads or silently redefine a broken chain as healthy.
+- T03→T04: Windows PG-native Source/PG writer/Supervisor remains the independent actual consumer frontier; no inference from the successful Linux PG path or Windows SQLite Job.
+- T05: use one real domain caller and its existing Harness completion-proposal path to establish a consumer-owned acceptance transition; do not make Harness the domain judge.
+- T06: compare exact PR merge, release and installed/consumed SourceCuts with existing GitHub Merge Queue and Owner-native CI.
+- T07: already merged relevant native Runtime retention/formal progress work; re-read current PG installed and source consumer before proposing additional lifecycle code.
+- T08: only after the dependent actual consumer receipts, remove duplicated custom adapters, stale snapshots and outdated methods.
+
+Exit criteria for this addendum itself: it changes a named Owner decision, contract or consumer acceptance strategy; its formulas are specifications with explicit assumptions, not claims of a new machine-checked theorem. Each additional persistent mechanism must replace an existing one or serve an observed failing consumer.
