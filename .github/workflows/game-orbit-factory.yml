@@ -50,7 +50,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends             pkg-config libx11-dev libxkbcommon-dev libudev-dev             xvfb xauth mesa-vulkan-drivers libvulkan1
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends             pkg-config libx11-dev libxkbcommon-dev libxkbcommon-x11-0 libudev-dev             xvfb xauth mesa-vulkan-drivers libvulkan1
           rustup toolchain install 1.99.1 --profile minimal
       - name: Install only native Orbit model dependency provider
         working-directory: domains/game
