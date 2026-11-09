@@ -1,4 +1,15 @@
-# Ordivon Finance 目录与 Owner 审计 R1
+# Ordivon Finance 目录与 Owner 审计 R1（2026-11-07 历史快照；当前变更见下）
+
+## 2026-11-10 存量减法重审（Git 主线 ef17d6879d12faa61fff3bb762b0d500d73c9113）
+
+此前 R1 的目录/行数与历史工具 KEEP 结论只代表 2026-11-07 SourceCut，不再是当前文件基线。全仓 5,002 文件结构清单及跨 Owner 评估在 `docs/audits/2026-11-10-brownfield/`；Finance 原始本轮基线为 399 文件。自然 Owner 七类仍不变。
+
+本次证据：当前 `src/ordivon_capital/`、根 `mise.toml` 和实际 CLI 不直接导入 `tools/legacy_replay/` 或 `tools/tigerbeetle_0_17_9/`；`tests/test_legacy_replay_surface_isolation.py` 主要要求这些已隔离历史文件仍存在，`config/legacy_replay_surface_registry.json` 为同一历史路径登记。于是当前工作树同时退役这 21 份旧工具、1 份依赖 LEAN 回放的 Nautilus M6 旧入口、1 份存在性测试与 1 份历史注册表，旧代码通过 Git revision 可复现；不存在当前实盘交易或 PostgreSQL 状态的迁移。仍保留 `wave_b/fixtures/wave_a_target_portfolio.json` 的唯一已冻结回归身份和 `tests/test_wave_b_contract.py` 的现有静态合同验证。
+
+当前会计实现为 `src/ordivon_capital/accounting/postgres_ledger.py`、`postgres_paper_close.py`；旧 SQLite 历史比较不得作为当前源码所有者事实。Nautilus rc4 / QuickFIX / JSONSchema 等其他独立差分候选暂未因本次删除决定被连带改变；源级直接引用和业务实际消费仍需分别审计。已消除不被当前入口引用的旧 `OKX_DEMO_EXTERNAL_EXECUTION_R1.md`，其历史版本保存在 Git。
+
+**R1 以下表格与 KEEP 条目仅为原始历史观察**，不表示本轮继续保留已删除的旧工具。原生验证结果与合并状态见同批 Git PR 及全仓 `BASELINE_AFTER_AUDIT.md`，没有写成实盘/真实 Provider 认证。
+
 
 审计基线：GitHub main `32f07fb387df8b20e1cb510a54fe4934064e0c08`（2026-11-07）。范围：`domains/capital/` 和 Finance Skills。这是静态源码及消费者审计，不是运行中生产服务、真实市场价格、券商清算或账户资产的认证。
 

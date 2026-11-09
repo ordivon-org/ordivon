@@ -4,7 +4,7 @@
 
 This document records ownership, not a new Ordivon methodology. `config/capital_domain_taxonomy.json` separately freezes the current source-owner domain taxonomy. `config/external_owner_census.json` is the machine-readable authority. The rule is: standards define semantics, providers own authoritative external reality, and mature implementations are candidates for replaceable mechanics. A candidate becomes an owner only after contract-equivalent qualification against the smallest credible local baseline. Ordivon Capital retains bounded local mechanisms and composition/evidence/authority/reconciliation seams when they win that comparison.
 
-## Current hierarchy
+## Source-current hierarchy (2026-11-10)
 
 ```text
 Ordivon
@@ -15,7 +15,7 @@ Ordivon
     ├── risk/         exposure and risk measurement
     ├── research/     model/evidence validation and monitoring
     ├── governance/   authorization and policy gates
-    └── accounting/   durable ledger mechanics and SQLite WAL/FULL substrate
+    └── accounting/   durable ledger mechanics and PostgreSQL accounting source
 ```
 
 Treasury, Compute, Enterprise, Human, Distribution, and other conceptual domains are intentionally **not** local packages. They remain external-owner entries until a real use case exists.
@@ -31,7 +31,7 @@ Treasury, Compute, Enterprise, Human, Distribution, and other conceptual domains
 | financial messaging | ISO 20022 where applicable | reference |
 | FMI/finality principles | CPMI-IOSCO PFMI | reference only; Ordivon is not an FMI |
 | legal-entity identity | GLEIF / LEI | provider adapter |
-| accounting mechanics | SQLite 3.53.1 via Python 3.14.7 stdlib | current bounded single-host implementation; TigerBeetle 0.17.9 is a distributed challenger |
+| accounting mechanics | PostgreSQL 18.6 via psycopg 3 | current native-qualified Accounting implementation; TigerBeetle 0.17.9 is a historical distributed challenger, not a current source backend |
 | policy decisions | bounded local deterministic Python | current implementation; OPA 1.20.2 is a historical/future distributed-policy challenger |
 | numerical/statistical mechanics | NumPy / SciPy / scikit-learn | bound implementation |
 | bounded US-equity execution feasibility | local fee-aware sizer | current exact-contract owner after zero-mismatch LEAN differential |
@@ -44,7 +44,7 @@ Treasury, Compute, Enterprise, Human, Distribution, and other conceptual domains
 ## Current requalification standing
 
 - OPA 1.20.2 lost the current bounded policy contract after 354 differential cases produced zero mismatches against a much smaller direct Python implementation and the deployed integration provided no independent authority boundary. Rego is preserved as historical challenger evidence.
-- TigerBeetle 0.17.9 lost the current single-host accounting contract after a SQLite WAL/FULL baseline passed the same reserve/post/void/idempotency/restart mechanics and a 400-step randomized differential produced zero status or balance mismatches. TigerBeetle remains the challenger for a future distributed/replicated contract.
+- In the historical 2026-09 qualification, TigerBeetle 0.17.9 lost that then-current single-host accounting contract against a SQLite WAL/FULL baseline that passed the same reserve/post/void/idempotency/restart mechanics and a 400-step randomized differential produced zero status or balance mismatches. TigerBeetle remains the challenger for a future distributed/replicated contract.
 - QuantConnect LEAN master `985ef30` builds on .NET SDK 10.0.401 and passes historical M1/M2/M3/M4/M6 functional qualification. A fee-aware local sizer then matched 57/57 current exact-contract symbol comparisons. LEAN is not core-admitted because its latest build also reports known critical/high NuGet advisories; it remains isolated historical/general-engine evidence.
 - OpenLineage, OpenTelemetry and Grafana are candidates rather than owners because no active current contract binds them. Prometheus 3.14.0 is also only a Capital observability candidate. The active Network v2 Prometheus has zero Capital series, while the old shared Prometheus and node exporter are inactive; the stale Market-Capital renderer/rules/textfile/drop-in were retired on 2026-09-21.
 - Caller-supplied counterfactual projection remains bounded read-only local glue: it performs no ranking, allocation, autonomous sizing, or execution authority.
@@ -67,6 +67,6 @@ The surviving monitoring_persistence adapter now performs bounded local row vali
 
 ## R2 retained compatibility identities
 
-Historical-looking names remain only where they carry real evidence/provenance identity. The old Market-Capital Prometheus family is retired because it had no active consumer; the exact frozen wave_a_target_portfolio.json fixture remains a compatibility identity. TigerBeetle-specific stable-ID seeds are retained only inside historical qualification artifacts; current SQLite accounting uses provider-neutral ordivon-capital:accounting:* identities.
+Historical-looking names remain only where they carry real evidence/provenance identity. The old Market-Capital Prometheus family is retired because it had no active consumer; the exact frozen wave_a_target_portfolio.json fixture remains a compatibility identity. TigerBeetle-specific stable-ID seeds survive in Git history and archived historical evidence, not as a current executable replay tool; current PostgreSQL Accounting uses provider-neutral ordivon-capital:accounting:* identities.
 
 The old absolute repository path remains only inside frozen Research provenance records as a historical source coordinate. The physical repo is absent after R8 retirement; reproducibility is preserved by an exact-path restore procedure backed by the verified all-refs bundle, complete Git archive, and preserved non-venv payload.
