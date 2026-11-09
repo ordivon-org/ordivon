@@ -47,8 +47,9 @@ retired. Use Temporal or provider-native release tools at a real consumer when
 needed. The old composition declaration and local LEGO plan were removed because
 they had no actual execution consumer; no replacement registry or plan is needed.
 
-Dated R1-R10 documents and receipts describe their original source cuts.
-They do not declare a current runtime topology. Git retains retired code history.
+Retired R1-R10 narrative documents are absent from the active tree; Git history
+retains their old source-cut decisions. The R7 consumed fixture and owner-native
+verification remain the current entrypoints.
 
 ## Source verification
 
