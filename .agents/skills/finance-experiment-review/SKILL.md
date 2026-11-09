@@ -218,7 +218,7 @@ observed consumer supplies qualifying evidence.
 
 ## Monthly 1r historical-leverage Research: fee-aware rebalance contract
 
-Use `research/unit_r_dca.py` and `docs/UNIT_R_DCA_LONG_HISTORY_R1.md`,
+Use `research/unit_r_dca.py` and `domains/capital/docs/UNIT_R_DCA_LONG_HISTORY_R1.md`,
 not a new brokerage, pricing engine, or research scheduler. The pure
 `solve_turnover_adjusted_exposure` is the sole Research local rebalance
 solver and evaluates `gross=target*(equity-fee*abs(gross-prior_gross))`.
