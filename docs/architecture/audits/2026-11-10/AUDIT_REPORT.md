@@ -61,6 +61,26 @@ SourceCut ef17d6879d12faa61fff3bb762b0d500d73c9113. This source and command-line
 | ChatGPT Skills MCP | UNKNOWN implementation | `extensions/chatgpt-skills-mcp/` |
 | Control plugin | UNKNOWN implementation | `extensions/ordivon-control-plane/` |
 
+## Additional source graph checks — avoid false dependency alarms
+
+A read-only Python AST pass over tracked Python source under Owner-local src directories found these scoped file-import graphs (no new checker was added to the repository):
+
+| Owner | Python source files | Resolved intra-owner import edges | SCC cycles |
+| --- | ---: | ---: | ---: |
+| Harness | 62 | 263 | 0 |
+| Host | 36 | 111 | 0 |
+| Gateway | 26 | 69 | 0 |
+| Media | 70 | 118 | 0 |
+| Capital | 65 | 58 | 1 size-two SCC |
+| Security | 14 | 5 | 0 |
+| Composition | 10 | 16 | 0 |
+
+The Capital SCC is `domains/capital/src/ordivon_capital/trading/okx_official_cli.py:17-21` -> `okx_demo_execution.py` and back at `okx_demo_execution.py:399`. The back edge is imported **inside the CLI selection branch at execution time**, not at module import, so this is a static SCC rather than proven Python initialization circular failure. DELETE/REWRITE would be unjustified; retain a PARTIAL dependency-locality finding and only change it if an actual owner-native failure or simplification benefit is demonstrated.
+
+A separate bounded TS source scan found 66 TS-family src files and 153 relative-import occurrences. Six crossed the enclosing *nested project* source root; five were within the broader Media Owner and therefore NOT cross-owner violations. The remaining Web -> Security reference at `apps/web/src/security-agent-verifier.ts:4` points to `platform/security/contracts/agent-request-verifier-v1/src/index.ts`, a public Owner contract. These are not evidence of a forbidden consumer. Root `tools/repo/check_owner_boundaries.py` still owns the repository's actual declared-source check; these observations do not add new enforcement rules.
+
+This illustrates why the relevant unit is an Owner and contract rather than a folder prefix or raw dependency count. A static cycle/relative path match may be a useful review lead, not proof of an architectural defect.
+
 ## Independent method audit
 
 Matt Standards axis: owner-local contracts, 31 witnessed seams, present deep-module hot spots; no proof of whole-language or deployed authority. Matt Spec axis: planned edits must be deletion/clarification/defect repair, not new consumers/features/tests. ECC brownfield: RETIRED planning may leave current tree after direct links are repaired; in-use scripts and frozen research have different legitimate consumers. Superpowers verification: only actual current command results permit PASS.
