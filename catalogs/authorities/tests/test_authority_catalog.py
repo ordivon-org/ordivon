@@ -237,6 +237,45 @@ class AuthorityCatalogTests(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "observation source differs"):
                 catalog.validate_catalog_semantics(catalog.records())
 
+    def test_registration_history_is_not_a_live_link(self):
+        from catalogs.authorities.scripts.check_historical_registration import (
+            changed_history,
+        )
+
+        old = {
+            "authority": {
+                "path": "catalogs/authorities/records/a.json",
+                "registeredDate": "2026-09-14",
+                "registrationBasis": ["docs/SKILLS.md"],
+            }
+        }
+        # A valid contemporary navigation fix must not mutate registration.
+        self.assertEqual(changed_history(old, dict(old)), [])
+        relocated = {
+            "authority": {
+                **old["authority"],
+                "registrationBasis": ["docs/architecture/SKILLS.md"],
+            }
+        }
+        self.assertEqual(
+            changed_history(old, relocated),
+            ["authority: historic provenance.registrationBasis changed"],
+        )
+        changed_date = {
+            "authority": {**old["authority"], "registeredDate": "2026-11-09"}
+        }
+        self.assertEqual(
+            changed_history(old, changed_date),
+            ["authority: historic provenance.registeredDate changed"],
+        )
+        # Registration is permitted for genuinely new identities.
+        self.assertEqual(
+            changed_history(old, {**old, "new": relocated["authority"]}), []
+        )
+        # Renaming a source file must not silently change historical identity.
+        renamed = {"authority": {**old["authority"], "path": "new/path.json"}}
+        self.assertEqual(changed_history(old, renamed), [])
+
     def test_refresh_is_a_plan_not_mutation(self):
         _, record = catalog.get_record("iso-31000-2018")
         before = json.dumps(record, sort_keys=True)
