@@ -150,3 +150,15 @@ def test_health_reports_narrow_security_owner(client: TestClient):
     r = client.get("/health")
     assert r.status_code == 200
     assert r.json()["policyEngine"] == "opa"
+
+
+def test_systemd_uses_native_credentials_for_private_config_and_tls_cert() -> None:
+    unit = (
+        Path(__file__).resolve().parents[1]
+        / "systemd"
+        / "ordivon-security-gateway-authzen.service"
+    ).read_text()
+    assert "LoadCredential=trusted-issuer:/etc/ordivon/security/gateway-authzen/trusted-issuer.json" in unit
+    assert "LoadCredential=tls-cert:/etc/ordivon/security/gateway-authzen/server.pem" in unit
+    assert "ORDIVON_SECURITY_AUTHZEN_POLICY_DATA_FILE=%d/trusted-issuer" in unit
+    assert "--ssl-certfile %d/tls-cert" in unit
