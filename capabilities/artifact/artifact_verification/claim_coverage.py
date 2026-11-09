@@ -28,6 +28,41 @@ def _at_pointer(value: dict[str, Any], pointer: str) -> object:
     return result
 
 
+
+def _native_witness_covers_claim(
+    pointer: str, observation: dict[str, Any], claim: str,
+    *, profile_id: object, native_kind: object,
+) -> bool:
+    """Require a claim-specific evidence identity, not only a matching status.
+
+    Exact path segments and a native observation's explicit supportsClaims
+    declaration are the bounded structural witnesses. Whether the verifier
+    honestly established the claimed fact is outside this pure projection.
+    """
+    last_segment = pointer.rsplit("/", 1)[-1].replace("~1", "/").replace("~0", "~")
+    if last_segment == claim:
+        return True
+    # Frozen PNG native source uses /metadata for metadataObservation. This
+    # explicit profile/kind-qualified legacy seam preserves prior consumer
+    # receipts without pretending an arbitrary aggregate PASS covers a claim.
+    if (
+        (profile_id, native_kind, claim, pointer)
+        == (
+            "still-image-png-srgb-r1",
+            "artifact-still-image-verification",
+            "metadataObservation",
+            "/metadata",
+        )
+    ):
+        return True
+    coverage = observation.get("supportsClaims")
+    return (
+        isinstance(coverage, list)
+        and all(isinstance(item, str) and item for item in coverage)
+        and claim in coverage
+    )
+
+
 def assess_required_evidence(
     profile: dict[str, Any],
     native_result: dict[str, Any],
@@ -115,10 +150,17 @@ def assess_required_evidence(
                 except (ValueError, KeyError):
                     continue
                 if isinstance(observed, dict) and observed.get("status") == status:
-                    matched = True
-                    break
+                    if _native_witness_covers_claim(
+                        pointer, observed, name,
+                        profile_id=profile.get("id"),
+                        native_kind=native_result.get("kind"),
+                    ):
+                        matched = True
+                        break
             if not matched:
-                issues.append(f"native evidence status/pointer mismatch: {name}")
+                issues.append(
+                    f"native evidence status/pointer mismatch or not claim-specific: {name}"
+                )
     return {
         "status": "COMPLETE" if not issues else "INCOMPLETE",
         "complete": not issues,

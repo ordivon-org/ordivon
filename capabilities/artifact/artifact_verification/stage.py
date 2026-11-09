@@ -360,16 +360,25 @@ def execute_verify_stage(
     }
     generated = set(receipts)
     pending = sorted(required_gates - generated)
+    # Executed required FAIL receipts are valid falsification observations,
+    # not evidence-integrity issues. Preserve diagnostics for the legacy stage
+    # status, but do not collapse their scoped Standing into UNKNOWN.
+    evidence_issues = list(failures)
+    failed_nonrequired = sorted(set(executed_failures) - required_gates)
+    if failed_nonrequired:
+        evidence_issues.append(
+            "non-required executed gate(s) failed: " + ", ".join(failed_nonrequired)
+        )
+    coverage = assess_required_statuses(
+        required_gates,
+        {name: item.get("status", "NOT_EVALUATED") for name, item in receipts.items()},
+        issues=evidence_issues,
+    )
     if executed_failures:
         failures.append(
             "executed verifier gate(s) failed: "
             + ", ".join(sorted(executed_failures))
         )
-    coverage = assess_required_statuses(
-        required_gates,
-        {name: item.get("status", "NOT_EVALUATED") for name, item in receipts.items()},
-        issues=failures,
-    )
     return {
         "schemaVersion": 1,
         "kind": "artifact-delivery-verify-stage",

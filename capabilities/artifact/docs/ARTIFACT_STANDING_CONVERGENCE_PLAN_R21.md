@@ -82,3 +82,13 @@ Record each ticket's RED output, GREEN output, source commit and actual consumer
 - Actual result: 569 passed, 3 skipped, 42 integration deselected, 115 subtests, Ruff and finite abstraction checks PASS.
 - Full toolchain Office integration remained outside the owner non-integration gate; earlier independent unmodified-source control reproduced that test failure.
 - Exact HEAD and GitHub CI must still be checked after this T3 commit; SOURCE success does not establish MERGED, INSTALLED, CONSUMED or DOMAIN_ACCEPTED.
+
+## Peer-audited corrective slice — 2026-11-10 (not T4 or a new global work item)
+
+- **Pre-execution:** read Recursive LEGO R2.1, compositional-contracts, systems-engineering, method-router and skill-supply-chain-audit; reviewed the source at PR #1974 HEAD 9e0797af and peer Host messages seq25763/25779/25789/25795/25800. Posted follow-up counterexample request in Topic 03-refinement (seq25807). No weak-model tests, registry, Governor, new native tool implementation, or separate Task owner.
+- **Representation:** exact required claim -> native witness, not raw aggregate PASS. Preserve distinct evidence corruption UNKNOWN and real supported required FAIL. The two public failures are at v1 stage and v2 service.
+- **Observed RED:** stage required structural FAIL receipt produced standing UNKNOWN; two unrelated required claims using /verification PASS produced profileComplete True; v2 service likewise returned PASS. Additional RED: changing the PNG native verifier source breaks an exact SHA consumer acceptance receipt; native source modification was reverted.
+- **Observed GREEN:** shared evaluator now refuses generic aggregate claims, accepts a claim-specific named witness and an explicitly declared multi-claim witness, keeps the exact pinned PNG /metadata alias with its original producer bytes, and preserves valid v1 scoped FAIL; focused tests and complete owner verification passed.
+- **Full native verification:** mise run verify (offline locked) => 573 passed, 3 skipped, 42 deselected, 115 subtests; Ruff and finite checks exit 0. Existing claim model 289008 states, shared status 50, claim-to-witness 16; zero model counterexamples within their declared bounded abstractions.
+- **Independent review demand:** request exact PR/commit source-based Standards+Spec second opinion. The current author cannot self-certify an independent audit; owner-level CI/merge and consumer acceptance remain separate facts.
+- **Next true frontier:** T4 sidecar dependency closure and T5 independent application readback, only after caller inventory and consumer-specified contract. T3 already completed on PR #1974; don't redo it. T6–T8 remain unimplemented.

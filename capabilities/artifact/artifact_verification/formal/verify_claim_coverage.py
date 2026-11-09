@@ -199,10 +199,57 @@ def check_shared_standing() -> dict:
     if assess_required_statuses(set(), {})["complete"]:
         raise AssertionError("empty requirements yielded vacuous completeness")
     assert checked == 50
+
+    # Source-bound two-claim abstraction: a native result may reuse one
+    # specifically declared multi-claim witness, but neither generic status
+    # nor another claim's matching PASS certifies this claim.
+    binding_profile = {
+        "requiredEvidence": {"alpha": {"required": True}, "beta": {"required": True}}
+    }
+    binding_modes = ("named", "generic", "multi", "other")
+    binding_checked = 0
+    for alpha_mode, beta_mode in itertools.product(binding_modes, repeat=2):
+        observation = {
+            "alpha": {"status": "PASS"},
+            "beta": {"status": "PASS"},
+            "aggregate": {"status": "PASS"},
+            "multi": {"status": "PASS", "supportsClaims": ["alpha", "beta"]},
+        }
+        claim_results = {}
+        for name, mode in (("alpha", alpha_mode), ("beta", beta_mode)):
+            if mode == "named":
+                pointer = f"/observations/{name}"
+            elif mode == "generic":
+                pointer = "/observations/aggregate"
+            elif mode == "multi":
+                pointer = "/observations/multi"
+            else:
+                pointer = f"/observations/{'beta' if name == 'alpha' else 'alpha'}"
+            claim_results[name] = {
+                "status": "PASS",
+                "nativePointers": [pointer],
+            }
+        candidate = {
+            "status": "PASS",
+            "observations": observation,
+            "claimResults": claim_results,
+        }
+        actual = assess_required_evidence(binding_profile, candidate)
+        oracle = all(
+            mode in {"named", "multi"} for mode in (alpha_mode, beta_mode)
+        )
+        if actual["complete"] != oracle:
+            raise AssertionError(
+                f"claim-specific witness refinement violated: "
+                f"{alpha_mode}/{beta_mode} actual={actual} expected={oracle}"
+            )
+        binding_checked += 1
+    assert binding_checked == 16
     return {
         "method": "finite Cartesian abstraction + production-source refinement",
         "abstractStates": list(states),
         "abstractCasesChecked": checked,
+        "claimBindingCasesChecked": binding_checked,
         "counterexamples": 0,
         "nonClaims": [
             "not proof of native result honesty or pointer identity",

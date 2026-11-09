@@ -224,6 +224,41 @@ No weak-model evaluation, duplicated hook system, or blanket ECC install.
   https://github.com/obra/superpowers ,
   https://github.com/affaan-m/ECC .
 
+## Independent cross-audit and exact next obligation (2026-11-10)
+
+Current candidate: PR #1974 HEAD 9e0797afcb28de920abb7aeac1f11e1d4065f4e8; T1–T3 already implemented and GitHub checks passed, but PR not merged at audit time. Reuse existing Spec and source functions; do not open competing Agent governance plans. Host Space: space:ordivon-capability-task-forum-r1:20261101 topic 03-refinement, peer findings seq25763 (generic witness counterexample), seq25779 (legitimate shared structured witness), seq25789 (T3 native handoff), seq25795 (formal audit), seq25800 (v1 supported-FAIL counterexample). Our pre-execution cross-audit request seq25807 asks peers for competing counterexamples; discussion is not source authority.
+
+### Six independent review axes and pre-implementation decisions
+
+1. **Theory:** R2.1 eleven-coordinate archetype, not an extra service. A required claim must be supported by a semantically applicable native observation under source/identity assumptions. Generic aggregate PASS without claim semantics violates the intended assume–guarantee contract. Verdict: FAIL at v2 pointer seam.
+2. **Skill method:** Matt public seam TDD/dual-axis review; Superpowers RED/GREEN/fresh verification; ECC selected review only, not global hooks. Existing seams: v1 execute_verify_stage, v2 verify_request and assess_required_evidence. Verdict: selected, no new workflow.
+3. **Overconservatism:** v1 executed_failures are appended to a general integrity issues list; the common evaluator reports UNKNOWN even for a witnessed required gate FAIL. Verdict: FAIL; recover scoped falsification.
+4. **Surface-only:** new status names, comments, a standalone plan, or a duplicate evaluator cannot fix either counterexample. Verdict: REJECT; require production behavior changed at existing seam.
+5. **Representation:** required Claim -> semantically covered Native Witness, not just ClaimStatus == NativeStatus. Distinguish supported falsification from evidence-integrity errors. Do NOT demand global pointer uniqueness: explicit structured shared witnesses may cover multiple named claims. Verdict: minimal decision-relevant representation.
+6. **Existing consumer and mature alternative:** FLAC/WAVE/PNG native verifiers, profile registry and evidence receipts remain natural providers. PNG legitimate metadata alias /metadata must remain supported via an explicit claim coverage annotation; generic /verification must not impersonate arbitrary claims. Verdict: REUSE, no new registry.
+
+### Immediate public acceptance and proof duties
+
+- v1 required structural FAIL with a stage receipt and no evidence-integrity defect => standingCoverage.verificationStatus=FAIL; profileVerificationComplete=false; legacy status=FAIL.
+- v1 legacy PASS but missing required gate => standing UNKNOWN, legacy PASS preserved.
+- v2 two different required claims both pointing to generic /verification.status=PASS => requiredEvidenceAssessment.complete=false; no Profile complete.
+- v2 a status-matching native witness named by claim or explicitly declaring coverage of several claim IDs may support those claims. One witness need not be unique to one claim; this is only structured native evidence, not independent assurance of native tool honesty.
+- Required FAIL with mismatched pointer => UNKNOWN; witnessed FAIL with native aggregate FAIL => scoped FAIL; aggregate PASS with required FAIL => UNKNOWN.
+- Native PNG metadata observation using /metadata must remain valid via explicit claim tag. FLAC/WAVE and other PNG native pointers retain their source-defined meaning.
+- Extend the existing finite model checker with claim-specific states only after the production seam is implemented. A finite model of syntax is not a proof of deployed tool or target application.
+
+Scope restriction: These are small repairs to existing T1–T3 code; T4–T8 remain consumer-led. No weak-model evaluation, new Registry/Host Work schema, universal policy engine or duplicate Spec.
+
+### Cross-disciplinary selection: the minimum necessary set
+
+- **Mathematics — Cousot abstract interpretation:** report a bounded abstract status as a sound projection under explicit native-evidence assumptions, not as an exhaustive truth about format or application. Missing/contradictory evidence is UNKNOWN; a witnessed required FAIL is a real scoped falsifier. Source: https://www.di.ens.fr/~cousot/COUSOTpapers/POPL77.shtml .
+- **Computer science — Parnas information hiding and contract refinement:** keep claim-specific witness semantics within the existing Artifact Owner and native verifier seam; do not add a second cross-owner Governor, evidence registry or observer. A replacement must preserve consumer-observable guarantees under the same environment. Source: https://doi.org/10.1145/361598.361623 .
+- **Systems engineering — NASA V&V/traceability:** attach required claims to source-native observations, exact test witnesses and separate Game/Publication/Data acceptance. Unit/native test PASS verifies bounded technical requirements, not fitness for domain use. Source: https://www.nasa.gov/reference/system-engineering-handbook-appendix/ .
+- **Management science — Goldratt Theory of Constraints:** spend the next implementation slice on the real bottleneck (incorrect qualification at the Artifact seam), rather than optimizing the count of checks, drafting a new plan or making every Owner await blanket approvals. Limit simultaneous work to proven dependency frontiers; do not impose an arbitrary global WIP threshold. Source: https://www.tocinstitute.org/theory-of-constraints.html .
+- **Process engineering — Matt/Superpowers/ECC:** public-seam RED/GREEN, separate Standards/Spec review, fresh native full verification, targeted audit evidence and subtractive code cleanup. Skills guide procedure, never change project authority.
+
+**Strict separation:** This is a management and software-engineering choice; the finite proof checks represent bounded abstract source properties only. No claim of a proof that all real native tools are truthful, no new public service, and no secret "success" status owned by an Agent.
+
 ## Out of scope
 
 Building another Runtime/Host/Harness, universal file taxonomy, custom CAS, second LEGO registry, generic OCI Registry, universal trust policy, weak-model experiments, mandatory heavyweight audits for routine work, or all-family profile-v2 production promotion.

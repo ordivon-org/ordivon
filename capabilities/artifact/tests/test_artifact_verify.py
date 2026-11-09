@@ -168,6 +168,37 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(observed_digest, hashlib.sha256(original).hexdigest())
             self.assertNotEqual(observed_digest, hashlib.sha256(replacement).hexdigest())
 
+    def test_generic_aggregate_pointer_cannot_qualify_unrelated_profile_claims(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            profile = json.loads(Path(request["profile"]["path"]).read_text())
+            generic = {
+                "status": "PASS",
+                "failures": [],
+                "profileId": request["profile"]["id"],
+                "artifact": {"sha256": sha(subject), "size": subject.stat().st_size},
+                "verification": {"status": "PASS"},
+                "claimResults": {
+                    name: {
+                        "status": "PASS",
+                        "nativePointers": ["/verification"],
+                    }
+                    for name, row in profile["requiredEvidence"].items()
+                    if row["required"]
+                },
+            }
+            with mock.patch.object(M, "load_function", return_value=(
+                lambda *_args: generic, "f" * 64
+            )):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertFalse(result["requiredEvidenceAssessment"]["complete"])
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertEqual(result["standingCoverage"]["verificationStatus"], "UNKNOWN")
+
     def test_native_pass_with_explicit_failures_is_not_promoted(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
