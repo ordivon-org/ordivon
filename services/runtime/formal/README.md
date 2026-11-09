@@ -381,10 +381,7 @@ checks safety, conditional weak-fairness liveness, and mutation controls for
 both missing consumer guard and missing fairness. The candidate is NOT
 a source-authenticated assertion: `consumer="finished"` is abstract and
 must be bound to actual Runtime/PG/OS/Host/Artifact evidence before claiming
-CODE_REFINED or INSTALLED_CURRENT. See the owner-local
-`../planning/WORKSPACE_CONSUMER_LIFECYCLE_R21_SPEC.md` and
-`../planning/WORKSPACE_CONSUMER_LIFECYCLE_R21_EXECUTION_PLAN.md`.
-
+CODE_REFINED or INSTALLED_CURRENT. The model is intentionally abstract and remains unchanged. The active code-only modernization audit is tracked at ../../../docs/architecture/audits/2026-11-10/AUDIT_SCOPE.md; old consumer-expansion plans have been retired from the working tree and remain in Git history.
 
 **2026-11-09 formal-first extension.** The separate
 WorkspaceConsumerCloseR1.liveness.cfg checks
