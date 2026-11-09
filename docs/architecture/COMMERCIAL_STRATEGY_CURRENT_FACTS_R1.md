@@ -137,7 +137,7 @@ The following remain intentionally open rather than being papered over by archit
 1. **ICP** — no initial customer segment is frozen.
 2. **Beachhead workflow** — no workflow is frozen.
 3. **First paid offer** — no exact offer/price is frozen.
-4. **Distribution channel** — `COMMERCIAL_CHANNEL_EXPERIMENT_R1` now defines the first bounded falsification across founder-led outbound, evidence-driven content and technical-community distribution, but no contact/publication effect, qualified pipeline or winning channel is yet evidenced.
+4. **Distribution channel** — no current tracked experiment definition or winning-channel evidence is present. Founder-led outbound, evidence-driven content and technical-community distribution are candidate channels; actual contact, publication, qualified pipeline and customer outcomes remain to be tested.
 5. **Learning-rights architecture in contracts** — principles are now explicit, but no real customer agreement has tested them.
 6. **Outcome/evaluation dataset** — no external-customer outcome corpus exists.
 7. **Service-to-product promotion evidence** — no real paid repetition exists.
@@ -148,15 +148,7 @@ The following remain intentionally open rather than being papered over by archit
 
 As of 2026-09-20, university students are admitted only as a **high-priority discovery population**, not a validated ICP.
 
-Current task-local census and experiment plans:
-
-- `STUDENT_MARKET_PRIMITIVE_CENSUS_R1.md` — initial global/high-agency decomposition;
-- `STUDENT_BEACHHEAD_DISCOVERY_EXPERIMENTS_R1.md`;
-- `CHINA_UNIVERSITY_STUDENT_WORKFLOW_CENSUS_R2.md` — mainland-China-specific campus/information/deadline/transition workflows;
-- `planning/china-student-market-discovery-r2.md`;
-- `CHINA_STUDENT_SEED_PORTFOLIO_R3.md` — seed-level decomposition of opportunity/eligibility/deadline/evidence/action loops;
-- `CHINA_STUDENT_SEED_EXPERIMENTS_R3.md` — concierge experiments before product build;
-- `CHINA_STUDENT_SEED_DEEP_STRUCTURES_R3.md` — shared primitives/economic classes, graduation-risk/evidence-reuse/change-detection seeds, source-access difficulty and negative-space analysis.
+The earlier named student-market study and experiment files are not present in this source cut. Their conclusions below remain unvalidated hypotheses, not an active or readable experiment package.
 
 R2 broadens the discovery surface beyond high-agency students. Current hypotheses now have two market layers:
 
@@ -179,7 +171,7 @@ The next commercial work should therefore be market-facing rather than infrastru
 candidate workflow portfolio
  -> customer/problem discovery
  -> narrow first offer
- -> run COMMERCIAL_CHANNEL_EXPERIMENT_R1
+ -> define and run a bounded channel comparison from current customer evidence
  -> founder-led outreach / evidence content / technical-community distribution as separately authorized
  -> paid pilot
  -> delivery + acceptance + economics
