@@ -79,8 +79,8 @@ Steps:
   Run the same TLC command. Expect 0 invariant/property violations. This establishes conditional model liveness only.
 
 - [x] 1.3 Mutation negative control: copy the model into temporary directory; replace exactly one occurrence of FairCloseSpec == Spec /\ WF_vars(Close) with FairCloseSpec == Spec; run TLC with the liveness CFG and verify a named temporal-property violation and an actual counterexample trace. Do not treat arbitrary nonzero return as falsification.
-- [ ] 1.4 Add this check to existing scripts/tla-formal check and falsify branches; reuse its existing verify_jar and workspace_close_expect_named_counterexample architecture. Update formal README with assumptions, liveness scope and counterexample. Run scripts/tla-formal check and scripts/tla-formal falsify, then mise run formal:verify.
-- [ ] 1.5 Commit only when actual commands returned PASS. If toolchain unavailable, store the exact blocker and do not claim model checked.
+- [x] 1.4 Add this check to existing scripts/tla-formal check and falsify branches; reuse its existing verify_jar and workspace_close_expect_named_counterexample architecture. Update formal README with assumptions, liveness scope and counterexample. Run scripts/tla-formal check and scripts/tla-formal falsify, then mise run formal:verify.
+- [x] 1.5 Commit only when actual commands returned PASS. If toolchain unavailable, store the exact blocker and do not claim model checked.
 
 ## Task 2 — Age-only false-completion counterexample
 
@@ -176,6 +176,16 @@ Steps:
 - [ ] 7.3 On installed Linux/Windows compare contract version, real effect and receipt; if unknown keep deployment standing UNKNOWN.
 - [ ] 7.4 Remove old overlapping source/operation instructions and outdated examples, preserve exactly one owner-native reference.
 - [ ] 7.5 Verify last consumer accepted published result; close own clean workspace, keep valid Git/Artifact refs; report only consequential open obligations.
+
+## First-slice evidence ledger (2026-11-09)
+
+- TLC RED: liveness CFG missing FairCloseSpec failed with exit 151, naming the absent source contract.
+- TLC GREEN: FairCloseSpec with WF_vars(Close), 82 states generated / 28 distinct, no violations in bounded model.
+- Independent temporal negative control: fairness removed -> TLC exit 13 and permanent stuttering trace.
+- Independent safety-gap counterexample: ExpiredActiveConsumerCannotBeClosed -> TLC exit 12, active consumer + expired age + closed.
+- Owner formal check/falsify: PASS after scoped mutation repair; mise run formal:verify: exit 0 on committed source before source rebase.
+- Runtime docs: scripts/check_docs.py exit 0. All installed/core-refinement, lease authenticity and real physical acceptance obligations remain unresolved.
+- No AI-model comparison was run or proposed. The above is deterministic finite-state contract verification.
 
 ## Scope and progress record
 
