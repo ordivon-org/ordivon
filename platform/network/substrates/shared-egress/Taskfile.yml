@@ -101,3 +101,30 @@ tasks:
       - task: substrate:shared-egress:kernel:verify
       - systemctl is-active --quiet network-v2-browserless-forward.service
       - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+
+
+  substrate:shared-egress:forward:idempotence:
+    desc: Verify forwarding rule reuse on the live kernel without restarting Provider, Namespace, Target or consumers
+    cmds:
+      - task: substrate:shared-egress:verify
+      - |
+        set -euo pipefail
+        test -e /etc/network-v2/gluetun/m4-owned-mode.selected
+        source /etc/network-v2/browserless/provider.env
+        test -n "$HOST_IF" && test -n "$HOST_ADDR" && test -n "$NS_ADDR" && test -n "$NS_CIDR"
+        generation() {
+          local unit pid
+          for unit in network-v2-gluetun-owned.service network-v2-gluetun-owned-adapter.service network-v2-mobile-tailnet-exit.service network-v2-finance-egress.service network-v2-codex-proxy.service; do
+            systemctl is-active --quiet "$unit"
+            pid=$(systemctl show --property=MainPID --value "$unit")
+            test "$pid" -gt 1
+            echo "$unit:$pid"
+          done
+        }
+        before=$(generation)
+        result=$(HOST_IF="$HOST_IF" HOST_ADDR="$HOST_ADDR" NS_ADDR="$NS_ADDR" NS_CIDR="$NS_CIDR" /usr/bin/python3 /usr/local/libexec/network-v2/shared-egress-forward ensure)
+        test "$result" = "SHARED_EGRESS_FORWARD_REUSED=PASS"
+        after=$(generation)
+        test "$before" = "$after"
+        echo "SHARED_EGRESS_FORWARD_IDEMPOTENCE_NO_RESTART=PASS"
+      - task: substrate:shared-egress:verify

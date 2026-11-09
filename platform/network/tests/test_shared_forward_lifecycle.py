@@ -185,3 +185,22 @@ def test_owner_materializes_helper_before_unit_and_verifies_installed_bytes():
     assert text.index(helper) < text.index(unit)
     byte_check = "cmp -s substrates/shared-egress/forward.py /usr/local/libexec/network-v2/shared-egress-forward"
     assert text.count(byte_check) == 2
+
+
+
+def test_native_live_idempotence_acceptance_reuses_without_restart():
+    tasks = (ROOT / "substrates/shared-egress/Taskfile.yml").read_text()
+    section = tasks.split("  substrate:shared-egress:forward:idempotence:\n", 1)[1]
+    assert section.count("task: substrate:shared-egress:verify") == 2
+    assert "/usr/local/libexec/network-v2/shared-egress-forward ensure" in section
+    assert 'SHARED_EGRESS_FORWARD_REUSED=PASS' in section
+    assert 'SHARED_EGRESS_FORWARD_IDEMPOTENCE_NO_RESTART=PASS' in section
+    assert 'before=$(generation)' in section
+    assert 'after=$(generation)' in section
+    assert 'test "$before" = "$after"' in section
+    assert "network-v2-gluetun-owned.service" in section
+    assert "network-v2-mobile-tailnet-exit.service" in section
+    assert "network-v2-codex-proxy.service" in section
+    for forbidden in ("systemctl restart", "systemctl stop", "systemctl try-restart",
+                      "podman restart", "iptables-legacy -D", "ip netns del"):
+        assert forbidden not in section
