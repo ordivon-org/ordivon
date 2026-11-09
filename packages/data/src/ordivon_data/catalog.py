@@ -6,12 +6,12 @@ Missing, remote, malformed and unbound data remain UNKNOWN rather than FAIL.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
+from .local_files import scoped_sha256
 from .verification import digest_verdict
 
 
@@ -50,14 +50,6 @@ def _declared_sha256(distribution: dict[str, Any]) -> Any:
     return declared
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def inspect_distribution(
     distribution: dict[str, Any], allowed_roots: tuple[Path, ...], verify_local: bool
 ) -> dict[str, Any]:
@@ -92,26 +84,19 @@ def inspect_distribution(
     if not parts.path.startswith("/"):
         result["reason"] = "nonabsolute_file_uri"
         return result
-    path = Path(unquote(parts.path)).resolve()
-    if not any(path.is_relative_to(root.resolve()) for root in allowed_roots):
-        result["reason"] = "outside_explicit_scope"
-        return result
-    if not path.is_file():
-        result["reason"] = "local_file_unavailable"
-        return result
+    path = Path(unquote(parts.path))
     declared = result["declaredDigest"]
-    if (
-        not isinstance(declared, str)
-        or len(declared) != 71
-        or not declared.startswith("sha256:")
-    ):
-        result["reason"] = "sha256_not_bound"
+    digest_bound = (
+        isinstance(declared, str)
+        and len(declared) == 71
+        and declared.startswith("sha256:")
+        and all(c in "0123456789abcdef" for c in declared[7:])
+    )
+    observed, reason = scoped_sha256(path, allowed_roots, hash_bytes=digest_bound)
+    if observed is None:
+        result["reason"] = reason
         return result
     hexdigest = declared[7:]
-    if any(c not in "0123456789abcdef" for c in hexdigest):
-        result["reason"] = "sha256_not_bound"
-        return result
-    observed = _sha256(path)
     result["observedDigest"] = "sha256:" + observed
     result["verification"] = digest_verdict(hexdigest, observed)
     result["reason"] = "digest_match" if observed == hexdigest else "digest_mismatch"
