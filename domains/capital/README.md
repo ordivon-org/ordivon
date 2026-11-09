@@ -420,7 +420,9 @@ checks that via pg_attribute.attnotnull and compares other constraints
 independently. The strict PG deparser comparison deliberately fails closed
 after a server upgrade until the actual installed version is requalified.
 These checks do not amount to a proof of arbitrary SQL equivalence or a
-production deployment certificate.\r\n\r\n## Agent tool selection and local execution
+production deployment certificate.
+
+## Agent tool selection and local execution
 
 Select the financial consumer first: `markets/` for market observations,
 `research/` for hypotheses/experiments, `portfolio/` for decisions,
