@@ -16,9 +16,6 @@ business decision HOLD with verifiable source facts. This is one qualified
 consumer, not a deployed universal Data service. Missing or contradictory
 required source means DATA_NOT_DELIVERED, never an invented research success.
 
-### Exceptional engineering and specialist diagnostics
-
-
 ## What this owner does
 
 Data provides a read-only lens into real data products and joins mature
