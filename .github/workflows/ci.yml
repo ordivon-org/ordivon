@@ -37,20 +37,50 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Network - acquire verified Python via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
+
+      - name: Network - acquire verified mise via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py
+
       - name: Install monorepo toolchain
         uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           version: 2026.9.12
+          sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
           # Avoid eager --monorepo tool installation: Owner queue tasks already
           # install their own toolchain only when the consumer selects them.
           install: false
           cache: true
 
       - name: Install root verification tools
+        # mise-action's GitHub token is scoped to its action. This separate
+        # native install otherwise uses anonymous GitHub Releases API calls.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          mise install
+          # Network acquisition resilience: native mise remains the owner of
+          # tool installation/checksums. Re-run only missing pinned tools.
+          # Bounded retries avoid treating transient GitHub Release 502/504
+          # as a toolchain or repository failure.
+          for attempt in 1 2 3; do
+            if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
 
       - name: Install verified GNU Bash 5.3.20
         shell: bash
@@ -330,6 +360,12 @@ jobs:
           # even when the Formal mise install has succeeded. Preserve the
           # native proof gate and install its prerequisite instead of skipping.
           rustup toolchain install 1.99.1 --profile minimal
+          # Kani 0.68.0's pinned proxy auto-installs its release bundle and
+          # rustup toolchain on first invocation. Do this BEFORE the 90-second
+          # mathematical proof timeouts; never count network/bootstrap as
+          # a proof, suppress initialization failures or accept a stale receipt.
+          # The same KANI_HOME in this step is used by the later verifier.
+          mise -C tools/formal exec -- kani --version
           receipt="$RUNNER_TEMP/ordivon-core-formal-report.json"
           mise run formal:verify > "$receipt"
           qualify_formal_prefix || {
@@ -352,6 +388,8 @@ jobs:
               "Lean kernel qualified variation frame and countermodels": 0,
               "Lean kernel Media processing admission model": 0,
               "Lean kernel Media Creative Library Catalog acceptance": 0,
+              "Lean kernel Media Output byte identity": 0,
+              "Lean kernel Media dependency impact model": 0,
               "Z3 IEEE-754 Media loudness profile model": 0,
               "Lean rejects false theorem": 1,
               "Z3: sat": 0,
@@ -372,10 +410,28 @@ jobs:
               "mise.toml",
               "tools/formal/mise.toml",
               "tools/formal/verify.py",
+              "tools/repo/affected_owners.py",
+              "tools/repo/test_affected_owners.py",
+              "tools/repo/test_formal_source_contract.py",
               "tools/formal/RecursiveLegoRefinement.lean",
               "tools/formal/RecursiveLegoVariationFrame.lean",
               "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
               "capabilities/media/formal/CreativeLibraryAcceptance.lean",
+              "capabilities/media/formal/ProductionOutputByteIdentity.lean",
+              "capabilities/media/formal/ProductionDependencyImpact.lean",
+              "capabilities/media/schemas/operation-lineage.schema.json",
+              "capabilities/media/src/ordivon_studio/operation_impact.py",
+              "capabilities/media/tests/test_operation_impact.py",
+              "capabilities/media/productions/convergence-sonic-ident/operation-lineage.json",
+              "capabilities/media/productions/convergence-sonic-ident/production.json",
+              "capabilities/media/src/ordivon_studio/production_context.py",
+              "capabilities/media/tests/test_production_context.py",
+              "capabilities/media/src/ordivon_studio/production_validation.py",
+              "capabilities/media/schemas/production.schema.json",
+              "capabilities/media/tests/test_models.py",
+              "capabilities/media/src/ordivon_studio/agent_surface.py",
+              "capabilities/media/src/ordivon_studio/agent_surface_contracts.py",
+              "capabilities/media/tests/test_agent_surface.py",
               "capabilities/media/formal/LoudnessProfileSafety.smt2",
               "capabilities/media/src/ordivon_studio/agent_processing.py",
               "capabilities/media/src/ordivon_studio/creative_index_library.py",
@@ -548,14 +604,41 @@ jobs:
           PY
 
 
+      # Cache untrusted archive bytes, never install authority. The helper
+      # rehashes every hit before extraction; non-Runtime jobs skip download.
+      - name: Cache pinned cargo-deny archive
+        if: steps.affected.outputs.runtime == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ordivon/ci-cargo-deny/0.20.2/cargo-deny.tar.gz
+          key: ci-cargo-deny-0.20.2-${{ runner.os }}-${{ runner.arch }}-sha256-9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f
+
+      # Upstream Docker cargo-deny-action uses unchecked curl | tar; direct
+      # Releases 504s appeared as invalid gzip. Official REST Asset API
+      # transfers exact pinned bytes with fail-closed metadata and SHA-256.
+      - name: Install verified cargo-deny
+        if: steps.affected.outputs.runtime == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 tools/repo/install_verified_cargo_deny.py \
+            --cache-dir "$HOME/.cache/ordivon/ci-cargo-deny/0.20.2" \
+            --bin-dir "$RUNNER_TEMP/ordivon-cargo-deny/bin"
+          echo "$RUNNER_TEMP/ordivon-cargo-deny/bin" >> "$GITHUB_PATH"
+
       - name: Runtime supply-chain policy
         if: steps.affected.outputs.runtime == 'true'
-        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
-        with:
-          rust-version: "1.99.1"
-          manifest-path: services/runtime/Cargo.toml
-          command: check
-          arguments: --config services/runtime/deny.toml
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Existing Runtime Owner controls its exact Rust 1.99.1 toolchain.
+          # Preserve the existing policy and manifest; no pass-through skip.
+          # cargo-deny common flags precede the "check" subcommand.
+          mise -C services/runtime exec -- cargo deny \
+            --manifest-path Cargo.toml \
+            --config deny.toml check
 
       - name: Repository-wide secret scan
         run: mise run repo:secrets:verify
@@ -579,20 +662,50 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Network - acquire verified Python via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
+
+      - name: Network - acquire verified mise via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py
+
       - name: Install monorepo toolchain
         uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           version: 2026.9.12
+          sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
           # Avoid eager --monorepo tool installation: Owner queue tasks already
           # install their own toolchain only when the consumer selects them.
           install: false
           cache: true
 
       - name: Install root verification tools
+        # mise-action's GitHub token is scoped to its action. This separate
+        # native install otherwise uses anonymous GitHub Releases API calls.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          mise install
+          # Network acquisition resilience: native mise remains the owner of
+          # tool installation/checksums. Re-run only missing pinned tools.
+          # Bounded retries avoid treating transient GitHub Release 502/504
+          # as a toolchain or repository failure.
+          for attempt in 1 2 3; do
+            if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
 
       - name: Install verified GNU Bash 5.3.20
         shell: bash
@@ -658,18 +771,48 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Network - acquire verified Python via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
+
+      - name: Network - acquire verified mise via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py
+
       - name: Install monorepo toolchain
         uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           version: 2026.9.12
+          sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
           install: false
           cache: true
 
       - name: Install root verification tools
+        # mise-action's GitHub token is scoped to its action. This separate
+        # native install otherwise uses anonymous GitHub Releases API calls.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          mise install
+          # Network acquisition resilience: native mise remains the owner of
+          # tool installation/checksums. Re-run only missing pinned tools.
+          # Bounded retries avoid treating transient GitHub Release 502/504
+          # as a toolchain or repository failure.
+          for attempt in 1 2 3; do
+            if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
 
       - name: Install verified GNU Bash 5.3.20
         shell: bash
@@ -684,6 +827,84 @@ jobs:
           set -euo pipefail
           tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
           echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
+
+      - name: Preinstall selected Owner tools with native mise
+        shell: bash
+        env:
+          # This read-only job token is scoped to package acquisition only;
+          # the later verification task does not inherit it.
+          GITHUB_TOKEN: ${{ github.token }}
+          OWNER_TASKS_JSON: ${{ toJSON(matrix.tasks) }}
+        run: |
+          set -euo pipefail
+          # Owner selection was admitted by the source-qualified preflight.
+          # Only resolve native tool manifests for the exact selected tasks.
+          selected_roots="$RUNNER_TEMP/ordivon-selected-owner-toolroots.txt"
+          python3 - "$selected_roots" <<'PYOWNERS'
+          import json
+          import os
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          sys.path.insert(0, "tools/repo")
+          from affected_owners import OWNERS
+
+          tasks = json.loads(os.environ["OWNER_TASKS_JSON"])
+          if not isinstance(tasks, list) or not all(isinstance(t, str) for t in tasks):
+              raise SystemExit("invalid selected Owner task list")
+          if len(tasks) != len(set(tasks)):
+              raise SystemExit("duplicate selected Owner task")
+          by_task = {owner.queue_task: owner.root.rstrip("/") for owner in OWNERS}
+          if any(task not in by_task for task in tasks):
+              raise SystemExit("unregistered selected Owner task")
+          roots = []
+          for task in tasks:
+              root = by_task[task]
+              # Some Owners use a root-managed task rather than an adjacent
+              # native mise.toml. Those do not gain an invented manifest.
+              manifest = Path(root) / "mise.toml"
+              if not manifest.is_file():
+                  continue
+              if root not in roots:
+                  roots.append(root)
+              # Read existing native task commands, not an invented Owner
+              # graph: a selected task may invoke a second scoped Mise
+              # manifest. Capital invokes mise exec in tools/formal; that
+              # auto-installer caps release metadata timeouts to 3 seconds.
+              # An explicit native mise install here uses normal HTTP retry,
+              # exact pinned versions and this scoped read-only GH token.
+              native_tasks = tomllib.loads(manifest.read_text(encoding="utf-8")).get("tasks", {})
+              if any(
+                  isinstance(row, dict)
+                  and isinstance(row.get("run"), str)
+                  and "tools/formal" in row["run"]
+                  for row in native_tasks.values()
+              ):
+                  if not (Path("tools/formal") / "mise.toml").is_file():
+                      raise SystemExit("selected nested tools/formal source missing")
+                  if "tools/formal" not in roots:
+                      roots.append("tools/formal")
+          Path(sys.argv[1]).write_text(
+              "".join(root + "\n" for root in roots), encoding="utf-8"
+          )
+          PYOWNERS
+          while IFS= read -r root || [[ -n "$root" ]]; do
+            [[ -z "$root" ]] && continue
+            # mise install is idempotent: a retry visits only missing pinned
+            # tools. Limit concurrent GitHub downloads and retries without
+            # changing pins, skipping checks, or installing other Owners.
+            for attempt in 1 2 3; do
+              if MISE_JOBS=2 MISE_HTTP_TIMEOUT=45 mise --cd "$root" install; then
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "SELECTED_OWNER_TOOLCHAIN_UNAVAILABLE: $root after 3 native attempts" >&2
+                exit 1
+              fi
+              sleep "$attempt"
+            done
+          done < "$selected_roots"
 
       - name: Verify affected owners
         shell: bash

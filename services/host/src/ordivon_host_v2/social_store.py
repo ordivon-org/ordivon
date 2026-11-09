@@ -6,6 +6,7 @@ import psycopg
 
 from .coordination_intent_commands import CoordinationIntentCommands
 from .errors import ActorRefNotFound, WorkNotFound
+from .postgres_connections import HostPostgresConnections
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
@@ -26,11 +27,9 @@ class SocialStore(
     SocialMessageCommands,
     CoordinationIntentCommands,
     SocialReadQueries,
+    HostPostgresConnections,
 ):
     """Durable Social Graph records without IAM, scheduling, ranking, or effect authority."""
-
-    def __init__(self, dsn: str) -> None:
-        self.dsn = dsn
 
     @staticmethod
     def _require_actor(conn: psycopg.Connection[dict[str, Any]], actor_ref: str) -> None:

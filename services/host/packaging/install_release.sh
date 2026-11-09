@@ -1,14 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
-  echo "usage: install_release.sh <repo> <commit> <prefix>" >&2
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+  echo "usage: install_release.sh <repo> <commit> <prefix> [expected_host_tree_oid]" >&2
   exit 2
 fi
 
 REPO=$1
 COMMIT=$2
 PREFIX=$3
+EXPECTED_HOST_TREE=${4:-}
 UV=${ORDIVON_HOST_V2_RELEASE_UV:-}
 PYTHON_INSTALL_DIR=${ORDIVON_HOST_V2_PYTHON_INSTALL_DIR:-$PREFIX/python}
 SOURCE_SUBTREE="services/host"
@@ -27,6 +28,20 @@ fi
 if ! git -C "$REPO" cat-file -e "$COMMIT:$SOURCE_SUBTREE/pyproject.toml" 2>/dev/null; then
   echo "release source must contain services/host/pyproject.toml" >&2
   exit 2
+fi
+
+# An exact commit alone can name a different adjacent Merge Queue PR.
+# If an independently reviewed Host tree identity is available, verify
+# native Git tree OID before creating directories or invoking tools.
+if [[ "$#" -eq 4 ]]; then
+  case "$EXPECTED_HOST_TREE" in
+    ''|*[!0-9a-f]*) echo "expected host tree must be a nonempty lowercase Git object ID" >&2; exit 2 ;;
+  esac
+  ACTUAL_HOST_TREE=$(git -C "$REPO" rev-parse --verify "$COMMIT:$SOURCE_SUBTREE")
+  if [[ "$ACTUAL_HOST_TREE" != "$EXPECTED_HOST_TREE" ]]; then
+    echo "release Host source tree differs from expected reviewed tree" >&2
+    exit 2
+  fi
 fi
 
 mkdir -p "$PREFIX/releases"

@@ -120,3 +120,58 @@ Production releases are immutable Git-SHA directories with a release-local `.ven
 Host v2 intentionally does not restore v1's SQLite Journal/WAL/file-lock machinery, filesystem CAS for normal JSON payloads, separate SQLite Board FTS sidecar, Runtime/Harness/provider proxying, historical cognition execution stack, or a separate ContinuityLens subsystem.
 
 See `docs/SOCIAL_WORK_FABRIC_R2_SPEC.md` for the active Social Work Fabric contracts and `docs/SOCIAL_WORK_FABRIC_R2_IMPLEMENTATION.md` for source-bound implementation receipts. `docs/SOCIAL_WORK_FABRIC_R1.md` is historical evidence, not current schema or API authority.
+
+
+### PostgreSQL connection lifecycle
+
+The MCP process owns one native Psycopg ConnectionPool, created in main()
+and closed on stdio/HTTP server exit. Work, Social, Attention and Host status
+all borrow from that same bounded pool; each operation retains its existing
+Psycopg transaction and isolation level. build_server(dsn) and direct Store
+constructors still use single-use native Psycopg connections for callers that
+own no process pool (e.g. schema preflight and isolated tests).
+
+ORDIVON_HOST_V2_PG_POOL_MAX_SIZE defaults to 8 (accepted 1..64).
+The queue is limited to 64 waiters and checkout timeout is 5 seconds.
+This is backpressure, not a claim about domain completion or automatic retry.
+Use mise run test:postgres:disposable to run actual PostgreSQL 18 / Alembic
+and native-pool rollback, bound and full MCP consumer tests. Ordinary pytest
+runs without the disposable DSN skip PostgreSQL tests and do not constitute
+an installed-Host qualification.
+
+When a native pool checkout times out or its waiting queue rejects an
+unadmitted request, MCP returns a bounded typed Host error:
+DEADLINE_EXCEEDED for PoolTimeout, or RESOURCE_EXHAUSTED for
+TooManyRequests, with retryable=true and retry-with-bounded-backoff.
+These Psycopg errors occur before a connection checkout; the adapter
+does not retry effects or expose DSN/internal exception messages. Other
+operational failures such as a closed pool retain the normal generic
+internal error boundary.
+
+## Native PostgreSQL pool diagnostics (MCP Host surface epoch 6)
+
+The read-only host.pool.stats MCP tool uses Psycopg's official
+ConnectionPool.get_stats() in the serving Host process. It does not
+open a new database connection, run SQL, mutate counters, or introduce a
+metrics database/collector. Direct (unpooled) test servers report
+connectionMode=direct and stats=null, rather than pretending that
+a PostgreSQL pool exists. A real Host server reports the fixed set of
+15 upstream integer fields, filling omitted upstream zero-valued keys
+with 0 and never returning credentials, DSN or private exception details.
+
+Human: inspect host.pool.stats to read pool_size/pool_available,
+requests_waiting, requests_queued, requests_errors, requests_wait_ms,
+and connections_errors while diagnosing connection pressure. Stats are
+per-process snapshots: after systemd restart, counters start fresh.
+requests_wait_ms and usage_ms are cumulative milliseconds, not
+p95/p99 latency histograms. For those quantiles, use a time-series
+telemetry consumer with correct histogram instruments rather than
+mislabelled derived averages.
+
+Agent: treat this tool as process-local operational diagnostics, not Host
+Work/Social/Attention domain truth and not PostgreSQL-cluster-wide state.
+Do not call pop_stats() from a monitoring reader: it resets counters,
+so repeated consumers would interfere with each other. Never derive
+domain acceptance, scheduling priority, or a safe command retry from
+a pool gauge alone; typed pre-checkout rejections have their own
+MCP error contract.

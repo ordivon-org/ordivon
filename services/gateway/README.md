@@ -224,8 +224,74 @@ Gateway pools HTTP connections by natural Owner using the upstream MCP SDK's
 The Gateway server lifespan closes owned HTTP pools. Credentials are resolved
 and checked for every HTTP request instead of being frozen at pool creation.
 No Gateway Job store, Owner effect retry or MCP protocol reimplementation is
-introduced. Run Gateway source tests plus native loopback and installed-Owner
+introduced. On deadline cancellation, distinguish `sdk_client_call_cancelled`
+from `session_close` in the read-only phase diagnostic: entering a Python
+`finally` is not evidence that the SDK finished tools/call or started a
+normal close. An interrupted call can still spend time unwinding the SDK
+transport, so a Gateway timeout does not prove Owner failure.
+An SDK Client.call_tool may issue a **second** tools/list HTTP request
+after receiving the tools/call response for output-schema validation:
+the SDK-call phase does not identify which underlying wire request timed out.
+An isolated real-HTTP counterexample exercises a completed Owner tool followed
+by a delayed schema listing (MCP Python SDK issue #3513). Keep the SDK's
+validation and modern HEADER_MISMATCH recovery; use upstream OpenTelemetry
+httpx2 instrumentation to attribute wire subrequests before changing pooling.
+Run Gateway source tests plus native loopback and installed-Owner
 readback to distinguish transport correctness from deployed availability.
+
+### Verified Owner protocol pin (opt-in; MCP SDK native)
+
+With upstream MCP Python SDK v2, `Client(mode="auto")` probes
+`server/discover` and falls back to a legacy initialize handshake. For
+**a specifically verified** Windows Runtime that supports the 2026-07-28
+stateless MCP protocol, set `ORDIVON_GATEWAY_WINDOWS_RUNTIME_MCP_MODE=2026-07-28`
+on the Gateway service. The SDK then sends the tool request directly,
+without the per-call discovery round trip. The default remains `auto`
+for every Owner, including Windows, and `legacy` remains available if
+a confirmed Owner depends on handshake-era features. Invalid values
+fail closed during Owner endpoint construction.
+
+This is only an SDK connection-mode selection. It changes neither
+access credentials, per-request Authorization headers, Endpoint identity,
+Owner execution/admission authority, cancellation, nor HTTP connection
+pooling. Version pinning must be tested with real Owner `runtime.describe`
+under the Gateway service identity, including an unsupported-version
+negative control. A future incompatible Owner upgrade must remove or
+change the pin before deployment; the fixed modern mode does not silently
+fall back to an older protocol. The upstream Client may perform the
+spec-defined one-time re-list and resend after a `HEADER_MISMATCH` rejection,
+which a conforming server rejects before dispatch; Gateway adds no
+application-level retries. Validate that the actual Owner enforces the
+header/body boundary, especially for effectful Tools, and preserves
+idempotent request IDs. Avoid enabling the pin solely from the SDK
+package version. Gateway cancellation warnings remain bounded by the
+existing observation deadline. See the Gateway Owner R04/R05 guidance.
+
+## MCP SDK typed Windows Runtime status read (0.10.7 candidate)
+
+The verified Windows-only `2026-07-28` protocol opt-in has one narrow
+read-only optimization: an exact `runtime.describe({"schemaVersion":1})`
+uses the official SDK `ClientSession.send_request` with its typed MCP
+`CallToolRequest`/`CallToolResult`. The SDK `Client.call_tool` driver
+otherwise makes a `tools/list` request after each call to discover the
+output schema in a fresh session. The typed path avoids that extra network
+read but preserves SDK-managed transport, request headers and result typing.
+The adapter checks the status response's literal schemaVersion=1, node identity
+and targets-list envelope without claiming full output-schema equivalence.
+The existing strict B03 projection validates the Runtime's configured and
+available booleans; malformed values remain UNKNOWN.
+
+This exception is **not** a general faster tools/call facility. It does
+not implement automatic MRTR, output schema refresh, or HEADER_MISMATCH retry,
+so its gate is one non-interactive, schema-versioned Owner observation
+under an explicitly pinned modern Windows connection only. All other
+Owner calls—including Runtime Job effects—continue through the high-level
+SDK Client with its full validation and recovery behavior. No new cache,
+persistent session, credential identity or effect retry is introduced.
+On cancellation, `typed_readonly_call_cancelled` attributes only the SDK
+request boundary, not the Runtime's physical availability. Measure
+installed-service identity and live Owner observation independently before
+enabling protocol opt-in on production.
 
 ## Contextual readiness projection (not a tool registry)
 
@@ -243,6 +309,33 @@ perform a given operation. The Runtime's Job/Attempt and domain consumer own
 those respective proofs. For an uncertainty, use direct Owner observation
 under the actual intended execution identity; do not permanently blacklist
 the capability based on a Gateway timeout.
+
+## Search observation isolation and immutable route identity (0.10.3)
+
+`capability.search` first matches capability names, descriptions and tags against the
+in-process route table. Only matching routes may cause read-only Owner observations.
+A Research-only query or unknown capability has zero Owner RPCs; querying
+`execution.linux` does not preflight the Windows Runtime. This is an optimization
+of *discovery*, not a bypass of the existing Owner authorization/admission checks.
+The `includeUnavailable` filter is applied **after** matched Owner observations,
+so unknown readiness is still returned under the existing compatibility rule.
+
+`route_digest` is the canonical SHA-256 of the **entire immutable in-process**
+route table, including identity, mappings and public descriptive metadata but
+excluding credentials, endpoint addresses, and all live observations. It remains
+stable when an Owner changes readiness. It is not a signed source/installed-release
+attestation and says nothing about whether an operation is authorized or executable.
+`system.describe`, `capability.describe`, and `capability.search` expose this
+independent route identity. The pre-existing `projection_digest` remains a
+**dynamic observation-content digest**. On a search, it now covers all metadata
+matched candidates (before `includeUnavailable` and `limit` filtering), not
+the entire catalog; it may change when an Owner status or timeout message changes.
+Call `capability.describe` for an explicit live readiness observation, and use
+`system.describe` for the fastest route-inventory read.
+
+This follows MCP's deterministic discovery / cache hint semantics rather than
+adding a Gateway cache, database, queue, or authority. The route map stays
+process-scoped and must pass the standard SDK surface/SourceCut release gates.
 
 ## Agent tool exposure and transient owner observations
 
@@ -276,3 +369,60 @@ The existing search contract deliberately retains entries with an observation
 error (UNKNOWN) even under includeUnavailable=false; consumers MUST inspect
 each returned descriptor's available and observation_error fields rather than
 assuming that search filtering proves a ready provider.
+
+## Linux release: qualify the actual systemd service identity
+
+The stable Gateway unit uses systemd DynamicUser and ProtectHome. The
+release Python must be executable by that identity, including every parent
+directory of its resolved interpreter path. An SDK/venv check run as root
+cannot establish this. Do not use an interpreter beneath /root or /home for
+the production service: systemd ProtectHome can make it inaccessible even
+when its final binary has execute bits.
+
+Use the existing qualified Python located inside the Gateway service
+deployment prefix; the isolated Python 3.15.1 download path is not always
+resolvable through the local uv release catalog. For real Linux promotion,
+set ORDIVON_GATEWAY_RELEASE_SERVICE_USER=ordivon-gateway alongside the
+existing ORDIVON_GATEWAY_RELEASE_PYTHON and
+ORDIVON_GATEWAY_RELEASE_UV release settings. The native installer checks
+both the installed Python package import and the exact
+opentelemetry-instrument entrypoint via runuser under that service account
+BEFORE moving the current pointer. If this preflight fails, the installed
+service remains at the previous source cut. Keep a known-good release
+directory for operational rollback; after a successful promotion, restart
+the standard systemd unit and validate health, protected ingress and Owner
+readback. On a disposable CI prefix without an installed service identity,
+omit the release service user setting.
+
+This is a service-account execution acceptance test, not a proof of all
+systemd namespace isolation or production effect correctness. See the
+upstream systemd.exec User, DynamicUser and ProtectHome contracts.
+
+## Linux PG Runtime business delivery (temporary installed-schema adapter)
+
+The actual production Linux Runtime has returned a successfully executed Job
+and retained stdout Artifacts, but its installed MCP tool outputSchema still
+omits the scheduling field present in the physical PostgreSQL Job projections.
+The high-level MCP Python SDK correctly rejects this schema mismatch AFTER
+the Owner has committed and completed a Job, so Gateway submission receipts,
+request recovery, and Artifact reads are unusable through that route.
+
+The Runtime source already contains exact PostgreSQL scheduling output schema
+declarations. Until that source is published to the active Runtime service,
+Gateway uses the upstream MCP SDK public ClientSession.send_request with typed
+CallToolRequest and CallToolResult only for the six Linux Runtime operations
+actually consumed here: workspace.exec, job.list, job.observe, job.get,
+job.cancel, and artifact.read. The SDK still owns HTTP transport, credential
+refresh, session negotiation, structured errors and result decoding. Gateway
+keeps its strict Job/Workspace/Artifact identity checks. There is NO retry of
+uncertain effects, no second Job registry and no homemade wire client.
+
+This is deliberately not a permanent replacement for complete SDK
+output-schema validation. Do not copy the exception to Host, Skills, or
+Windows effect calls. Retire the limited Linux bridge when the installed
+Runtime advertises conformant schemas AND a real Gateway submit -> resolve ->
+observe -> artifact.read business workflow succeeds with high-level SDK calls.
+
+Proof of business delivery requires the original owner Job identity, terminal
+evidence, source-qualified output bytes, and an independently verified Artifact
+digest. Gateway route readiness and HTTP /health alone do not prove it.

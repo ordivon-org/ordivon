@@ -76,8 +76,6 @@ pub(crate) use types::{
 };
 #[cfg(feature = "transactional-runtime")]
 pub(crate) use workspace::resolve_workspace_cwd;
-#[cfg(unix)]
-pub(crate) use workspace::workspace_source_state_digest_at;
 pub(crate) use workspace::{
     list_open_workspace_record_inventory, preflight_workspace_write_path, remove_workspace_file,
     resolve_existing_workspace_path, workspace_cleanup_dependents, workspace_git_common_dir_at,
@@ -85,6 +83,8 @@ pub(crate) use workspace::{
 };
 #[cfg(feature = "operator-tools")]
 pub(crate) use workspace::{workspace_change_projection_at, workspace_head_revision_at};
+#[cfg(unix)]
+pub(crate) use workspace::{workspace_source_readset_digest_at, workspace_source_state_digest_at};
 
 #[cfg(test)]
 mod tests;

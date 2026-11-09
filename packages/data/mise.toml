@@ -12,6 +12,7 @@ set -euo pipefail
 # Use the pinned shared Ordivon formal toolchain; no second Lean installation.
 (cd ../../tools/formal && mise exec -- lean ../../packages/data/formal/DataProduct.lean)
 (cd ../../tools/formal && mise exec -- lean ../../packages/data/formal/DataPublication.lean)
+(cd ../../tools/formal && mise exec -- lean ../../packages/data/formal/DataMultiVersion.lean)
 # Symbolic Python implementation check; bounded search is not a kernel proof.
 uvx --from crosshair-tool==0.0.112 crosshair check src/ordivon_data/verification.py   --analysis_kind PEP316 --per_condition_timeout 12 --per_path_timeout 3
 """

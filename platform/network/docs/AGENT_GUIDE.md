@@ -16,7 +16,7 @@ For each consequential change, independently record:
 - CONSUMED: the actual application request, app process binding, and its real return.
 - UNKNOWN: all unsampled paths. A historical PASS expires when its relevant source/installation/process/evironment/consumer edge changes.
 
-SOURCE_PASS is not APPLICATION_PASS. CONNECT 200 alone is not TLS success. A sample of zero upstream CONNECT is not universal noninterference across IPv6, DNS/DoH or other clients.
+SOURCE_PASS is not APPLICATION_PASS. CONNECT 200 alone is not TLS success. A sample of zero upstream CONNECT is not universal noninterference across IPv6, DNS/DoH or other clients. During NS2 negative-flow sampling, tcpdump/reader loss or capture overflow invalidates the witness; do not convert an unobserved packet into a policy PASS.
 
 ## 2. Capability → owner → native interface
 
@@ -48,6 +48,42 @@ The generic Network Core MUST NOT own Finance/Claude/X destination policy. Obser
 6. Publish through existing GitHub PR/required CI/merge queue. Re-fetch merged main; requalify deployed source and consumer effects. If main is new but live differs, say SOURCE_MERGED_LIVE_OLD rather than PASS.
 7. Before deleting a file, volume, unit or Workspace, check consumers for read/write/start/recovery dependency. Remove via the **native owner API**; never direct-delete an actively protected Runtime backing store.
 8. Report source commit, installed generation, loaded processes, real positive and negative consumer witness, deleted resources and remaining UNKNOWN. Host Work owns changing task state; do not create a second status file.
+
+### Network detailed report and release acceptance
+
+Use the root `AGENTS.md` evidence-backed reporting contract when a detailed
+Network report or handoff is requested. Keep the report bound to **one exact
+source revision and a dated live observation**. For release-sized work,
+report these separately, with an exact command/receipt or `UNKNOWN`:
+
+| Stage | Natural authority and readback | Claim not implied |
+| --- | --- | --- |
+| SOURCE | Network Git revision, changed files and native `mise run ci` or scoped tests | Git merged or deployed |
+| MERGED | GitHub PR state, required checks, merge-group result and actual main commit | Installed source has changed |
+| INSTALLED | Go Task materialize and byte parity of systemd/Quadlet/config/helper | systemd loaded those bytes |
+| LOADED | `systemctl show` effective dependencies, ExecStart/ExecStop, PID/generation and daemon-reload state | Correct kernel/network effect |
+| EXECUTED | Live `ip`, `iptables-legacy`, provider-ready probes, negative destination/port oracle | Application request succeeded |
+| CONSUMED | Owner-native `task consumer:<name>:verify` and actual target process/request return | Other unsampled clients/protocols passed |
+| UNKNOWN / FALSIFIED | Named edge, reproducible negative result or missing observation; Owner and next acceptance action | Silent success or universal failure |
+
+Record the before/after PID and namespace inode when an installed change
+could disturb the shared VPN. A `task` exit code is scoped to the checks that
+task actually executes. In particular, `consumer:mobile-tailnet-exit:verify`
+proves the *server-side* exit path, not each iPad/iPhone client's DNS or
+public-IP selection; Windows Chrome's Linux proxy check does not substitute
+for a native browser process witness. A `SOURCE_PASS` before merge and
+a successful test on the *old installed generation* are separate facts.
+
+If GitHub toolchain downloads are unavailable, report the failing upstream
+asset/HTTP code and exact CI run, with Network source tests separately.
+Only successful required `merge_group` checks permit the corresponding
+protected-main claim. Do not bypass signatures, required checks or other
+Owner release decisions, and do not add a Network-owned report state store.
+
+For an actual outage, include timestamped impact, the observed trigger,
+contributing causes and links to tracked corrective actions. Outside incidents,
+keep the main report organized by user decision, changed responsibilities,
+verified consumer effect, blockers and precise next steps.
 
 ### Formal scoped-route proof (source, not live effects)
 

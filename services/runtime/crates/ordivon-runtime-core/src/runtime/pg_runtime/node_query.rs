@@ -24,7 +24,8 @@ impl PgRuntime {
             "credentialAuthorities":[],
             "inputIngressAuthorities":[],
             "credentialMaterializationBindings":[],
-            "globalExecutionLimit":4,
+            "globalExecutionLimit":null,
+            "scheduling":{"mode":"resource_aware_persistent_queue","node":crate::resource_scheduling::NodeResources::observe().ok(),"workspaceConcurrency":"access_leases","ownerFairness":"dominant_resource_share","requestsAreHardLimits":false,"defaultRequest":crate::resource_scheduling::ResourceRequest::default(),"memoryReserveFraction":0.05,"pressureTargets":{"cpuSomeAvg10":70,"memoryFullAvg10":5,"ioFullAvg10":40}},
             "structuredReleaseConfigured":false,
             "targets":[{
                 "target":"local_linux","configured":true,"available":true,
@@ -71,7 +72,7 @@ impl PgRuntime {
         let cursor_id = request.cursor.as_ref().map(|c| c.job_id.clone());
         let limit = i64::from(request.limit) + 1;
         let rows=tx.query(
-            "SELECT j.job_id,j.operation_digest,j.client_request_id,j.workspace_id,j.created_at_ms,              j.desired_state,j.resolution,a.attempt_id,a.state,a.termination_intent,a.exit_code,              a.started_at_ms,a.finished_at_ms,j.execution_plan_json,              (SELECT count(*) FROM artifacts r WHERE r.job_id=j.job_id)              FROM jobs j LEFT JOIN attempts a ON a.attempt_id=COALESCE(j.current_attempt_id,              (SELECT last.attempt_id FROM attempts last WHERE last.job_id=j.job_id              ORDER BY last.attempt_number DESC LIMIT 1)) AND a.job_id=j.job_id              WHERE j.principal=$1              AND ($2::text IS NULL OR j.client_request_id=$2::text)              AND ($3::text IS NULL OR j.workspace_id=$3::text)              AND ($4::bigint IS NULL OR (j.created_at_ms,j.job_id)<($4::bigint,$5::text))              ORDER BY j.created_at_ms DESC,j.job_id DESC LIMIT $6",
+            "SELECT j.job_id,j.operation_digest,j.client_request_id,j.workspace_id,j.created_at_ms,              j.desired_state,j.resolution,a.attempt_id,a.state,a.termination_intent,a.exit_code,              a.started_at_ms,a.finished_at_ms,j.execution_plan_json,              (SELECT count(*) FROM artifacts r WHERE r.job_id=j.job_id), EXISTS(SELECT 1 FROM artifacts z WHERE z.job_id=j.job_id AND z.kind='execution_result'), EXISTS(SELECT 1 FROM job_allocations x WHERE x.attempt_id=a.attempt_id AND x.state='active')              FROM jobs j LEFT JOIN attempts a ON a.attempt_id=COALESCE(j.current_attempt_id,              (SELECT last.attempt_id FROM attempts last WHERE last.job_id=j.job_id              ORDER BY last.attempt_number DESC LIMIT 1)) AND a.job_id=j.job_id              WHERE j.principal=$1              AND ($2::text IS NULL OR j.client_request_id=$2::text)              AND ($3::text IS NULL OR j.workspace_id=$3::text)              AND ($4::bigint IS NULL OR (j.created_at_ms,j.job_id)<($4::bigint,$5::text))              ORDER BY j.created_at_ms DESC,j.job_id DESC LIMIT $6",
             &[&principal,&request.client_request_id,&request.workspace_id,&cursor_at,&cursor_id,&limit]
         ).map_err(io)?;
         tx.commit().map_err(io)?;
@@ -112,14 +113,15 @@ impl PgRuntime {
                 "executionTerminal":resolution.is_some(),
                 "executionDisposition":resolution,
                 "deliveryDisposition":if finished.is_some(){"committed"}else{"in_progress"},
-                "recoveryRequired":finished.is_none() && r.get::<_,Option<String>>(8).as_deref()==Some("starting"),
+                "recoveryRequired":finished.is_none() && r.get::<_,Option<String>>(8).as_deref().is_some_and(|state| matches!(state,"starting"|"stopping"|"recovering")),
                 "semanticCompletionEvaluated":false,
                 "sourceRevision":plan.source_revision,
                 "executableName":Path::new(&plan.executable).file_name()
                     .map(|p|p.to_string_lossy().into_owned()).unwrap_or_default(),
                 "cwdRelative":cwd_relative,
                 "durationMs":end.saturating_sub(started.unwrap_or(at)),
-                "resultAvailable":finished.is_some(),
+                "resultAvailable":finished.is_some() && r.get::<_,bool>(15),
+                "scheduling":{"state":if r.get::<_,bool>(16){"allocated"}else if finished.is_none(){"pending"}else{"released"},"request":self.scheduling_contract(&plan)?},
                 "artifactsAvailable":count>0,"artifactCount":count,
             }));
         }

@@ -1,0 +1,54 @@
+{
+  "capitalAuthority": "NONE",
+  "caseId": "spy-shy-60-40-vs-spy-2025-2026",
+  "comparison": {
+    "benchmark": "SPY",
+    "benchmarkAnnualExpenseFraction": "0.001",
+    "benchmarkMaxDrawdown": "0.1876618210730008685786760890",
+    "benchmarkTerminalWealth": "134273.5834304000232102493712",
+    "cashTerminalWealth": "100000",
+    "currency": "USD",
+    "economicInterpretation": "Under the declared adjusted-close daily rebalance and expense convention, fixed 60/40 finished with lower terminal wealth and lower max drawdown than 100pct SPY; investor utility and tradeability unknown.",
+    "firstSession": "2025-01-02",
+    "implementationNumericallyReproducedByIndependentDecimalCalculation": true,
+    "independentToleranceUsd": "0.000001",
+    "initialCapital": "100000",
+    "lastSession": "2026-08-10",
+    "periodsPerYear": 252,
+    "portfolioWeightsBps": {
+      "SHY": 4000,
+      "SPY": 6000
+    },
+    "returnPeriods": 400,
+    "strategyAnnualExpenseFraction": "0.002",
+    "strategyMaxDrawdown": "0.1115196727127897188879065740",
+    "strategyTerminalWealth": "122561.6269004058490855040931",
+    "terminalWealthDifference": "-11711.9565299941741247452781"
+  },
+  "decision": "NO_VERIFIED_ACTIVE_EDGE_NO_ORDER",
+  "kind": "ordivon.capital.finance.research.retrospective-economic-case",
+  "missingEvidence": [
+    "genuine source price provenance",
+    "point-in-time historical publication",
+    "total-return/corporate-action qualification",
+    "historical fill costs and tax",
+    "investor utility",
+    "untouched prospective test"
+  ],
+  "prospectiveFrozenPlanDigest": "sha256:3798e0f219081439f0679dd57f1e4c77aa0842bb11e7561517d28c94023b9501",
+  "researchStanding": "RETROSPECTIVE_ONLY_NO_VERIFIED_ALPHA",
+  "schemaVersion": 1,
+  "sourceCaseRequestSha256": "sha256:ed6f41d79227a71e0e4beb0f398af57578e235b9b2b7434c1c655a014bfbc248",
+  "sourceIdentity": {
+    "commit": "65a079329e379e104495f459e12e76a8f995585a",
+    "gitBlobSha": "29175a3fd8700cab31762bd72ced772ea5d1c807",
+    "githubCommitAndPathObserved": true,
+    "historicalAsOfAttested": false,
+    "originalMarketProviderAttested": false,
+    "path": "daily_adjclose.csv",
+    "repository": "manisahni/marketdata",
+    "sha256": "361efb287116fc8200582c15fcd315bcce2e218fa1e50b416bacc5acebff37b9",
+    "sizeBytes": 1511995
+  },
+  "sourceReplayId": "sha256:9a27ddb6554704476dd1594dff1570b870eccd509eecc639044630dcc1501eae"
+}

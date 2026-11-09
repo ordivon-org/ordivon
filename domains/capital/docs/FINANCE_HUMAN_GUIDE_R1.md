@@ -33,6 +33,16 @@
 这些模块分别归属 Markets、Portfolio、Research、Risk、Governance、Accounting、Trading 七个已有源码 Owner。**Human 先选择目的，Agent 再选择经过验证的最小 LEGO；不能反过来因为存在某个模块就自动授予它资金权限。**
 
 
+### 历史行情的两个不同时间（Human 指南）
+
+Markets ETF EOD 原始快照中的 availableAt 可能只是数据源声称的发布时间；
+capturedAt 则是本次快照声明的采集时刻。在没有独立认证的历史归档时，
+Research 一律按本次采集时刻判定整份快照可用，绝不把今天下载的旧行情
+回填到过去投资者的决策。新增 etf_eod_capture_to_pit_vintages 复用原有
+Markets 准入，保留 SECONDARY_VENDOR_NOT_ATTESTED 来源状态及价格基准，
+并通过已有 Portfolio 条件优化消费者使用，不自动证明分红、拆股、实际
+发布时间或未来投资收益。详细合同见 PIT_JOINT_FORECAST_R1.md。
+
 ### 源码 LEGO 索引：CA01—CA10 的实际消费者是什么？
 
 下表指的是当前 `planning/lego-plan-r1.json` 内**已有的源级合同**（全部标记为 IMPLEMENTED），而不是声称所有外部工具、形式化证明或真实市场接入都完成。每项是否能用于某个结果，仍由该源的实际证据决定。
@@ -300,6 +310,45 @@ Finance Portfolio 的月度信息树现在由独立的 `portfolio/information_tr
 Finance 的持久化账本由 Accounting 的 PostgresAccountingLedger 负责。对于每月入金、预留、消费、释放和 Paper 结算，先核实真实资金合同、命名空间和 PostgreSQL 连接；研究模型输出不等于账本回执。测试应当使用专用、可销毁的 PostgreSQL 数据库，环境变量为 ORDIVON_CAPITAL_PG_TEST_DSN，绝不把测试运行到生产金融数据库。
 
 旧 SQLite 引擎、R0-R5 脚本和差分测试已退役。36 条两操作情景直接对真实 PostgreSQL 和独立账务预期进行比较，无需迁移旧 SQLite 数据。Human 可从 scripts/run-nonlive-capital-effect-matrix 了解模拟资金效果；这仍需要显式 PG DSN，且不构成外部交易授权。Agent 的操作顺序见现有 finance-paper-investment Skill。
+
+## 真实 ETF 历史研究与未来验证：第一个经济闭环（2026-11-08）
+
+**Human：** 已有 Finance 示例 60% SPY / 40% SHY 对比 100% SPY，
+用 GitHub 提供的 1,511,995 字节来源数据进行了 SHA-256 + Git Blob
+双哈希校验与独立 Decimal 经济重算。2025-01-02 至 2026-08-10
+期间，100,000 USD 模拟本金在给定费用下分别成为
+122,561.63 与 134,273.58 USD；前者最大回撤 11.15%，后者 18.77%。
+这是一项明确的收益—回撤取舍，不是后者对所有投资者绝对更优。
+
+**Agent：** 从现有
+evidence/finance-research/spy-shy-forward-20261108/README.md
+读取可重放研究流程，调用既有 Markets/Portfolio Paper Replay、
+独立算术核对与 Finance Research freeze-experiment，不要新增引擎。
+已在 2026-11-08 冻结 2026-11-09 至 2027-03-31 的未来实验。
+其当前证据为 UNKNOWN / NO_HOLDOUT_EVIDENCE，不能自称已取得未来收益、
+真实价格来源认证、独立 Alpha 或实盘授权。原始行情供应商、公司行动、
+交易成本和真正的历史 PIT 可用性仍需额外认证。
+
+## Agent 研究角色与权限：Human / Agent 指引（2026-11-08）
+
+**Human：** 决定真实经济研究问题、期限、现金/被动基准和研究资源预算。
+可以将普通研究和非实盘实验委托给 Agent，无需逐次审批每次代码运行；
+研究结束或另一 Agent 同意都不代表获得真实资金授权。
+真实账户效果始终由经独立资格验证的 Trading/Governance 消费者控制。
+
+**Agent：** 按任务组合 Research Director、Discovery、Quant Researcher
+和 Independent Reviewer 等角色，不创建七个常驻 Owner Agent。
+使用现有 finance-experiment-review Skill 的冻结实验、Holdout
+评价与候选经济重放，避免新建研究引擎。Reviewer 独立性来自
+分离的输入、评价合同及可追溯结果，不来自 role 文字标签。
+不得自己创建 Security 委派 Grant，也不得把研究自报结果提升
+为真实行情来源、已证实的 Alpha 或真实金融交易权限。
+
+**验证：** tests/test_finance_agent_role_composition.py 用真实 Research
+CLI 和 Security Owner OPA 合同测试了研究角色委派、越权动作、
+资源越界、Grant 过期、预算耗尽和高风险升级。测试身份和授权
+输入均为合成的已认证投影，未证明生产入口的身份认证、预算扣减
+或实际金融效果。
 
 ## Prospective Validation：日期对齐与真实数据证据
 

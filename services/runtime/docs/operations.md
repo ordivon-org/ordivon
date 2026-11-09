@@ -569,6 +569,22 @@ The dashboard reports elapsed, output-idle, and progress-idle time as mechanical
 
 The JSON schema reports separate `health` and `maintenance` states. The deployment projection names the current `releaseEvent` and `releaseDisposition`; a successful explicit rollback supersedes the forward deployment for installed-artifact truth. Exit code `1` is reserved for operational health failures such as service, deployment, Registry, recovery, exact release-artifact inconsistency, or a rollback whose restored artifact set is known but whose coherent source Commit cannot be proven. Maintenance findings such as a stale dirty Workspace produce top-level `status=attention` but retain exit code `0`; automation must inspect `maintenanceAction` when maintenance policy should gate a workflow. Compatibility observations remain advisory deletion evidence: an unreadable or truncated trace, unknown rollback protocol, or incomplete observation window blocks deletion but does not create a health incident. Exit code `2` remains reserved for an invalid invocation or unreadable mandatory input.
 
+### PostgreSQL serialization-abort admission (2026-11-08)
+
+PostgreSQL SQLSTATE 40001 means a Serializable transaction was aborted and
+the complete admission read/decision/write sequence must be replayed from a
+new snapshot. Runtime retries only a proven, pre-COMMIT 40001 from its
+PostgreSQL admission transaction, with bounded 4/8/16/32/64/64/64ms pauses
+and at most eight attempts. If contention persists, the last 40001 remains
+visible rather than falsely claiming the Job was delivered.
+
+This must not be generalized to a failed transport response, an uncertain
+COMMIT acknowledgement, post-admission observation, or an effect-opaque
+workspace.exec that may have run a Git command. Those require exact
+clientRequestId/Job/Artifact/consumer readback before redispatch, not another
+automatic execution. On job.observe, successful principal-scoped authorization establishes durable Job identity; errors after that observation retain operationId and require reconcile-first recovery. PostgreSQL's documented transaction-retry rule applies
+to database transactions, not arbitrary process side effects.
+
 ## Real-system release acceptance
 
 Portable CI proves source, schema, Registry, protocol, operational-script, documentation, dependency, and secret-scanning contracts. It cannot prove the production systemd/cgroup path.
@@ -624,3 +640,41 @@ ORDIVON_RUNNER_PATH="$CARGO_TARGET_DIR/debug/ordivon-runtime-runner" \
 ```
 
 A failed namespace setup is terminal `RUNNER_START_FAILED`; contained execution does not retry as trusted-local. `ProtectControlGroups=yes` is intentional: it keeps the host cgroup path readable but immutable so Runner-start identity, cancellation, restart recovery, and recursive residual checks refer to the same supervisor object. The stronger `strict` cgroup namespace is not used because it rewrites the Runner-visible path to `/` and destroys that identity invariant.
+
+
+## PostgreSQL runtime remote authentication
+
+The `ordivon-runtime-pg` loopback listener accepts its existing `ORDIVON_PG_TOKEN`
+for trusted-local calls. Remote access is opt-in: configure
+`ORDIVON_REMOTE_BEARER_TOKEN_FILE` with an absolute, private regular file containing
+an independently rotatable remote token of at least 32 characters. It must differ
+from the local token. Tokens and JWTs are transport credentials; PG retains the
+configured static `ORDIVON_PG_PRINCIPAL` for admitted calls.
+
+To retain Cloudflare Access Managed OAuth ingress, set `ORDIVON_TRUST_CF_ACCESS=true`,
+`ORDIVON_CF_ACCESS_ISSUER` and `ORDIVON_CF_ACCESS_AUDIENCE`. The PG endpoint reuses
+the existing RS256 Access verifier, including issuer, audience, expiry and JWKS
+validation. `ORDIVON_CF_ACCESS_JWKS_URL` is optional. JWKS are loaded lazily, so a
+provider outage denies Access requests without breaking either Bearer path.
+Missing or invalid credentials return HTTP 401 before MCP session admission.
+The MCP transport keeps its default loopback Host allowlist. Public Tunnel ingress
+must additionally declare exact public hostnames in `ORDIVON_PG_ALLOWED_HOSTS_JSON`
+(a JSON string array). An authenticated request using any other Host is rejected
+with HTTP 403; authentication success does not bypass Host validation.
+Restore the operator-owned JWKS direct-egress environment when replacing service
+EnvironmentFile lists; do not silently drop its NO_PROXY configuration.
+
+Cloudflare control-plane API credentials are separate. An account-owned API token
+uses `/accounts/{account_id}/tokens/verify`; a user API token uses
+`/user/tokens/verify`. Neither is a Runtime Bearer or Access service token. Keep
+control-plane tokens outside the Runtime service environment. Browser Integrity
+Check exceptions for machine MCP clients should match only the named Runtime
+hostnames and `/mcp` paths, preserving Access and origin authentication.
+
+Before deployment, verify local Bearer, independent remote Bearer, genuine signed
+Access assertion, rejection of missing/forged authentication, and MCP discovery.
+Use the owner-native `cargo test -p ordivon-runtime-mcp --features postgres-runtime
+--bin ordivon-runtime-pg` for transport and signature checks, and explicitly run
+`--test pg_vertical -- --ignored --test-threads=1` after building the native Runner
+for disposable PostgreSQL lifecycle verification. A transport repair does not
+import historical state or authorize a schema epoch transition.

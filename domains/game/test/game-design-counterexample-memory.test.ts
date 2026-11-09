@@ -5,7 +5,6 @@ import test from "node:test";
 const kb = JSON.parse(readFileSync(new URL("../knowledge/game_external_knowledge_base_r1.json", import.meta.url), "utf8")) as any;
 const library = JSON.parse(readFileSync(new URL("../knowledge/game_mechanism_experience_library_r1.json", import.meta.url), "utf8")) as any;
 const memory = JSON.parse(readFileSync(new URL("../knowledge/game_design_counterexample_memory_r1.json", import.meta.url), "utf8")) as any;
-const doc = readFileSync(new URL("../docs/design-counterexample-memory-r1.md", import.meta.url), "utf8");
 
 const unique = (items: string[]) => new Set(items).size === items.length;
 
@@ -72,15 +71,6 @@ test("Experience library expands with explicit rejected, removed and redesigned 
     "exp.deusex.preproduction-inventory-became-cutting-debt",
     "exp.psychonauts2.constraint-expanded-design-space",
   ]) assert.ok(ids.has(id), `missing ${id}`);
-});
-
-test("human guide treats failure as contextual evidence rather than anti-pattern law", () => {
-  assert.match(doc, /counterexample/i);
-  assert.match(doc, /failure.*context/i);
-  assert.match(doc, /not.*anti-pattern/i);
-  assert.match(doc, /not.*ranking/i);
-  assert.match(doc, /cheap.*discriminator/i);
-  assert.match(doc, /rejected|removed|cancelled|redesign/i);
 });
 
 

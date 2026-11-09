@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import psycopg
-from psycopg.rows import dict_row
-
 from .canonical_json import canonical_digest
 from .collaboration_inputs import (
     ParticipationStanding,
@@ -23,7 +20,7 @@ class SocialSpaceCommands:
     def create_space(self, value: SpaceInput, *, client_request_id: str) -> dict[str, Any]:
         request = {"operation": "space.create", **value.model_dump(mode="json")}
         request_digest = canonical_digest(request)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(conn, client_request_id, "space.create", request_digest)
             if replay is not None:
                 return replay
@@ -83,7 +80,7 @@ class SocialSpaceCommands:
         # Desired-state command: the (space, actor) natural key plus standing owns
         # idempotency. Historical request receipts must not block joined→left→joined.
         _ = client_request_id
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             self._require_space(conn, space_ref)
             self._require_actor(conn, actor_ref)
             row = conn.execute(

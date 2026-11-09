@@ -163,3 +163,15 @@ def test_local_service_identity_enabler_generates_private_credential_without_pri
     assert "systemctl restart ordivon-gateway.service" in text
     assert "http://127.0.0.1:8899/health" in text
     assert 'cat "$CREDENTIAL"' not in text
+
+
+def test_release_service_user_preflight_occurs_before_atomic_promote() -> None:
+    """Running a version as root is not proof that systemd can execute it."""
+    script = INSTALLER.read_text(encoding="utf-8")
+    assert "ORDIVON_GATEWAY_RELEASE_SERVICE_USER" in script
+    assert 'runuser -u "$SERVICE_USER" -- "$RELEASE/.venv/bin/python"' in script
+    assert 'runuser -u "$SERVICE_USER" -- "$RELEASE/.venv/bin/opentelemetry-instrument"' in script
+    assert script.index("service_user_preflight=pass") < script.index('ln -sfn "releases/$COMMIT"')
+    assert script.index("service_user_preflight=pass") > script.index(
+        '"$RELEASE/.venv/bin/python" "$RELEASE/packaging/windows/verify_release.py"'
+    )

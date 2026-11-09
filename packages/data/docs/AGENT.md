@@ -64,6 +64,15 @@ port/file matching, claim a portable URL, or promote a missing
 Episode Parquet materialization to VERIFIED. Native consumers must recheck
 byte identity at their read boundary.
 
+For a two-generation reader/version switch, additionally use Lean
+`formal/DataMultiVersion.lean`. Its proof covers abstract validated V2
+publication, existing V1 reader preservation and reclaim-after-no-reader
+plus retention release. Real PostgreSQL Paper 18.6 source witnesses are
+in `domains/capital/tests/test_paper_head_readback.py` and need a
+*disposable* test DSN to run (missing DSN means SKIP, never success).
+Do not identify a PostgreSQL MVCC reader with a durable Artifact lease,
+or apply model reclamation to real bytes without domain/retention authority.
+
 For publication/retirement changes, reuse the Lean `formal/DataPublication.lean`
 safety model. It proves *abstract* publish-after-validate/commit and
 reclaim-after-zero-readers/retention-release, but an installed SQL/Artifact

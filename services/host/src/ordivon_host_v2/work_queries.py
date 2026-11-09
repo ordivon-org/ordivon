@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import Any
 
 import psycopg
-from psycopg.rows import dict_row
 
 from .canonical_json import canonical_digest
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
@@ -29,7 +28,7 @@ class WorkReadQueries:
             type(revision) is not int or not 1 <= revision <= POSTGRES_BIGINT_MAX
         ):
             raise ValueError("revision must be a positive PostgreSQL BIGINT")
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             return self._get_work_in_tx(conn, work_ref, revision)
 
@@ -51,7 +50,7 @@ class WorkReadQueries:
         if (before_updated_at is None) != (before_work_ref is None):
             raise ValueError("before_updated_at and before_work_ref must be supplied together")
         validate_max_bytes(max_bytes)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             rows = conn.execute(
                 "SELECT work_ref,kind,state,current_revision,current_snapshot_digest,updated_at "

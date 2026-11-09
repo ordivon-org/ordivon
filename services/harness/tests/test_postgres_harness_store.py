@@ -23,7 +23,7 @@ import psycopg
 from psycopg import sql
 
 from ordivon_harness.postgres_store import PostgresHarnessStore
-from ordivon_harness.sqlite_store import (
+from ordivon_harness.store_errors import (
     HarnessEventConflict, HarnessLeaseHeld, HarnessRevisionConflict,
 )
 from ordivon_harness.protocol import (
