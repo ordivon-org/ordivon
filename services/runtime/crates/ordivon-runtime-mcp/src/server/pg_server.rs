@@ -1,15 +1,56 @@
 /// Independently launched fresh-PG MCP adapter. The SQLite Engine is never constructed.
+/// Operator-owned release configuration; never supplied in MCP request JSON.
+#[derive(Clone, Debug)]
+pub struct PgReleaseOperatorConfig {
+    pub source_repo: PathBuf,
+    pub operator_executable: PathBuf,
+    pub receipt_root: PathBuf,
+    /// The independent systemd timer is a durable consumer of accepted effects.
+    pub dispatcher_timer: String,
+}
+
 #[derive(Clone)]
 pub struct PgRuntimeServer {
     runtime: ordivon_runtime_core::PgRuntime,
     execution: ExecutionContext,
+    release: Option<PgReleaseOperatorConfig>,
 }
 
 impl PgRuntimeServer {
     pub fn new(runtime: ordivon_runtime_core::PgRuntime, execution: ExecutionContext) -> Self {
-        Self { runtime, execution }
+        Self { runtime, execution, release: None }
+    }
+    pub fn with_release(
+        runtime: ordivon_runtime_core::PgRuntime,
+        execution: ExecutionContext,
+        release: Option<PgReleaseOperatorConfig>,
+    ) -> Self {
+        Self { runtime, execution, release }
+    }
+    fn release_ready(&self) -> bool {
+        let Some(config)=&self.release else { return false; };
+        if !config.source_repo.is_dir()
+            || !config.operator_executable.is_file()
+            || !config.receipt_root.is_absolute()
+            || !config.dispatcher_timer.starts_with("ordivon-")
+            || !config.dispatcher_timer.ends_with(".timer")
+            || !config.dispatcher_timer.bytes().all(|b|b.is_ascii_alphanumeric()||matches!(b,b'-'|b'.'))
+            || !self.runtime.release_qualified().unwrap_or(false)
+        { return false; }
+        std::process::Command::new("/usr/bin/systemctl")
+            .args(["is-active","--quiet",&config.dispatcher_timer])
+            .status().is_ok_and(|status| status.success())
+    }
+    fn catalog_for(&self) -> Vec<Tool> {
+        Self::catalog_enabled(self.release_ready())
+    }
+    pub fn configured_tool_count(&self) -> usize {
+        self.catalog_for().len()
     }
     pub fn catalog() -> Vec<Tool> {
+        Self::catalog_enabled(false)
+    }
+    fn catalog_enabled(release_ready: bool) -> Vec<Tool> {
         RuntimeServer::tool_router().list_all().into_iter().filter_map(|mut t| {
             let description = match t.name.as_ref() {
                 "runtime.describe" => "Describe only the executable PostgreSQL Runtime capabilities and native Linux runner provider.",
@@ -27,7 +68,8 @@ impl PgRuntimeServer {
                 "workspace.open" => "Create a fresh Git Workspace using the native Workspace contract. No SQLite history is imported.",
                 "workspace.execPlan" => "Run an ordered plan with the mature native Runner; PG commits the exact immutable step plan before physical launch. No input or credential bindings.",
                 "workspace.exec" => "Fresh PostgreSQL execution vertical: one trusted_local local_linux command. Host Dependencies are admitted as exact file commitments and rechecked before native launch; foreignReferences and Windows context are rejected. PostgreSQL commits admission and dispatch intent before the existing systemd runner launches. A starting Attempt is dispatch intent, not proof of a running process. Ambiguous launches are never automatically reissued. Use job.observe to reconcile native runner evidence.",
-                "release.get" => "Read an authenticated principal-owned, durably bound PostgreSQL ReleaseEffect and validate its immutable operator receipt. Never dispatches, retries, or claims a release merely because the Runtime Job terminated. release.apply is unavailable until PG-native qualified installation is implemented.",
+                "release.apply" if release_ready => "Admit an exact qualified PG Runtime ReleaseEffect atomically. An independent running native systemd dispatcher consumes it and verifies actual installed Runtime bytes and MCP readback; connection loss requires release.get reconciliation, not another deployment.",
+                "release.get" => "Read an authenticated principal-owned, durably bound PostgreSQL ReleaseEffect and validate its immutable operator receipt. Never dispatches, retries, or claims a release merely because the Runtime Job terminated.",
                 "job.get" => "Read a PostgreSQL Job projection without dispatch or reconciliation. migrationVersion=0 identifies the fresh PG schema rather than SQLite migrations.",
                 "job.observe" => "Observe and reconcile a principal-owned PostgreSQL Job using native runner evidence; may dispatch an accepted Job once. Supports terminal and change_or_terminal waiting with bounded output offsets. Does not claim domain semantic completion.",
                 "job.cancel" => "Persist PostgreSQL cancellation intent before requesting the native systemd cgroup stop. A stop submission never proves terminal execution. Pending work cancels before dispatch; issued work requires native terminal evidence.",
@@ -44,7 +86,8 @@ impl PgRuntimeServer {
     }
     /// Shared by the MCP handler and protocol consumer tests; performs real Core calls.
     pub async fn call(&self, name: String, arguments: serde_json::Value) -> Result<CallToolResult, McpError> {
-        if !Self::catalog().iter().any(|t|t.name.as_ref()==name) {
+        let release_ready=self.release_ready();
+        if !Self::catalog_enabled(release_ready).iter().any(|t|t.name.as_ref()==name) {
             return Err(McpError::invalid_params("Tool is not implemented by the PG vertical", None));
         }
         // Native MCP media surfaces intentionally return ContentBlock resources,
@@ -94,6 +137,7 @@ impl PgRuntimeServer {
         }
         let runtime=self.runtime.clone();
         let execution=self.execution.clone();
+        let release=self.release.clone();
         let annotation_runtime=runtime.clone();
         let result=tokio::task::spawn_blocking(move || -> Result<serde_json::Value, ToolError> {
             fn parse<T: serde::de::DeserializeOwned>(v: serde_json::Value) -> Result<T,ToolError> {
@@ -110,7 +154,92 @@ impl PgRuntimeServer {
                     if request.schema_version != RUNTIME_SCHEMA_VERSION {
                         return Err(ToolError::invalid("schemaVersion must be 1", "schemaVersion"));
                     }
-                    value(runtime.describe())
+                    let mut description=runtime.describe().map_err(ToolError::from)?;
+                    description["structuredReleaseConfigured"]=json!(release_ready);
+                    Ok(description)
+                },
+                "release.apply" => {
+                    let request:RuntimeReleaseApplyToolRequest=parse(arguments)?;
+                    let configured=release.as_ref().ok_or_else(||
+                        ToolError::invalid("independent PG Release operator is unavailable","release")
+                    )?;
+                    let req=RuntimeReleaseRequest {
+                        schema_version:request.schema_version,
+                        client_request_id:request.client_request_id,
+                        principal:execution.principal.clone(),
+                        workspace_id:request.workspace_id,
+                        commit:request.commit,
+                        candidate_manifest_digest:request.candidate_manifest_digest,
+                        expected_tool_count:request.expected_tool_count,
+                    };
+                    // Historical exact replay MUST precede changed candidate,
+                    // current authorization, worktree or timer state.
+                    if let Some(replay)=runtime.find_runtime_release_for_apply(&req)
+                        .map_err(ToolError::from)?
+                    {
+                        return serde_json::to_value(replay)
+                            .map_err(|e|ToolError::internal(e.to_string()));
+                    }
+                    if !release_ready {
+                        return Err(ToolError::invalid(
+                            "qualified independent PG Release dispatcher is not running",
+                            "release",
+                        ));
+                    }
+                    let workspace=runtime.get_workspace(&RuntimeWorkspaceGetRequest {
+                        schema_version:1,workspace_id:req.workspace_id.clone(),
+                    }).map_err(ToolError::from)?;
+                    let configured_source=runtime_release_source_identity(&configured.source_repo)
+                        .map_err(|e|ToolError::invalid(e,"release.sourceRepo"))?;
+                    let actual_source=std::fs::canonicalize(
+                        workspace["sourceRepo"].as_str().ok_or_else(||
+                            ToolError::invalid("Workspace sourceRepo missing","workspaceId")
+                        )?
+                    ).map_err(|e|ToolError::invalid(e.to_string(),"workspaceId"))?;
+                    if actual_source!=configured_source.git_root
+                        || workspace["dirty"]!=false
+                    {
+                        return Err(ToolError::invalid(
+                            "Release Workspace must be clean and match the operator Git root",
+                            "workspaceId",
+                        ));
+                    }
+                    let head=workspace["currentHeadRevision"].as_str().ok_or_else(||
+                        ToolError::invalid("Release Workspace Git HEAD missing","workspaceId")
+                    )?;
+                    let owner=runtime_release_owner_commit(&configured_source.owner_root,head)
+                        .map_err(|e|ToolError::invalid(e,"commit"))?;
+                    if owner!=req.commit {
+                        return Err(ToolError::invalid(
+                            "Release commit differs from the actual Workspace owner revision",
+                            "commit",
+                        ));
+                    }
+                    let candidate=configured.source_repo.join("target")
+                        .join("ordivon-release-candidates")
+                        .join(&req.commit).join("release")
+                        .join("ordivon-deployment-manifest.json");
+                    let manifest=std::fs::symlink_metadata(&candidate)
+                        .map_err(|e|ToolError::invalid(e.to_string(),"candidateManifestDigest"))?;
+                    if !manifest.is_file() || manifest.file_type().is_symlink()
+                        || manifest.len()>4*1024*1024
+                    {
+                        return Err(ToolError::invalid(
+                            "exact regular candidate manifest missing","candidateManifestDigest",
+                        ));
+                    }
+                    let bytes=std::fs::read(&candidate)
+                        .map_err(|e|ToolError::invalid(e.to_string(),"candidateManifestDigest"))?;
+                    let digest=format!("sha256:{}",hex::encode(Sha256::digest(&bytes)));
+                    if digest!=req.candidate_manifest_digest {
+                        return Err(ToolError::invalid(
+                            "candidate Manifest digest differs from committed proposal",
+                            "candidateManifestDigest",
+                        ));
+                    }
+                    value(runtime.admit_runtime_release_effect(
+                        &req,&configured.operator_executable,&configured.receipt_root,
+                    ))
                 },
                 "release.get" => {
                     let request: RuntimeReleaseGetToolRequest = parse(arguments)?;
@@ -200,15 +329,15 @@ impl ServerHandler for PgRuntimeServer {
         Cow::Borrowed(&[ProtocolVersion::V_2026_07_28,ProtocolVersion::V_2025_11_25,ProtocolVersion::V_2025_06_18])
     }
     async fn list_tools(&self, _: Option<PaginatedRequestParams>, _: RequestContext<RoleServer>) -> Result<ListToolsResult,McpError> {
-        Ok(ListToolsResult::with_all_items(Self::catalog()).with_ttl_ms(0).with_cache_scope(CacheScope::Private))
+        Ok(ListToolsResult::with_all_items(self.catalog_for()).with_ttl_ms(0).with_cache_scope(CacheScope::Private))
     }
-    fn get_tool(&self,name:&str) -> Option<Tool> {Self::catalog().into_iter().find(|t|t.name.as_ref()==name)}
+    fn get_tool(&self,name:&str) -> Option<Tool> {self.catalog_for().into_iter().find(|t|t.name.as_ref()==name)}
     async fn call_tool(&self, request:CallToolRequestParams, _:RequestContext<RoleServer>) -> Result<CallToolResponse,McpError> {
         self.call(request.name.to_string(),serde_json::Value::Object(request.arguments.unwrap_or_default())).await.map(CallToolResponse::Complete)
     }
     async fn discover(&self,_:RequestContext<RoleServer>) -> Result<DiscoverResult,McpError> {
         let mut result=DiscoverResult::from_server_info(self.supported_protocol_versions().into_owned(),self.get_info());
-        let mut catalog=Self::catalog(); catalog.sort_by(|a,b|a.name.cmp(&b.name));
+        let mut catalog=self.catalog_for(); catalog.sort_by(|a,b|a.name.cmp(&b.name));
         let digest=format!("sha256:{}",hex::encode(Sha256::digest(serde_json::to_vec(&catalog).expect("serializable Tool catalog"))));
         result.meta.get_or_insert_default().0.insert("com.ordivon/runtime/toolCatalogDigest".into(),json!(digest));
         Ok(result)

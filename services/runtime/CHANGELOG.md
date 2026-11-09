@@ -12,6 +12,8 @@ All user-visible changes to Ordivon Runtime are recorded here. The repository fo
 
 ## Unreleased
 
+- Added source-only PG-native structured release admission and a systemd-timer ReleaseEffect dispatcher. The MCP catalog advertises release.apply only with qualified PostgreSQL release authority and a live operator timer; generic Runner remains fenced. This does not imply production operator installation or a native Windows PG backend.
+
 - Added an independently privileged PostgreSQL-native Runtime release operator path on top of the mature Runtime deployer's immutable candidate, atomic file copy, systemd, MCP Catalog and rollback primitives. The PostgreSQL release-effect identity, release/epoch qualification, one operator dispatch event, durable receipt and PG terminal evidence now have a physical installation/refinement test; generic Runtime Jobs never dispatch ReleaseEffect work, and a forged result.json cannot commit a successful release. This does not expose or install PG release.apply on live Runtime nodes.
 
 - PostgreSQL Runtime now has a release-specific, operator-qualified **internal** atomic Job+ReleaseEffect admission primitive with exact request replay before mutable release authority checks, receipt-binding digests and a fail-closed generic Runner dispatch/cancel fence. Only the separate release reader is exposed in PG MCP; the PG-specific installer and public release.apply remain unavailable. Disposable PG/systemd tests prove no-effect on absent operator qualification, consistent exactly-once admission, revocation-safe replay and no generic systemd launch.
