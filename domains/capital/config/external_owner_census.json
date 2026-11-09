@@ -1028,7 +1028,7 @@
       "surface": "market-capital:tigerbeetle:* and market-capital:nonlive-effect:* stable ID seeds",
       "standing": "HISTORICAL_EVIDENCE_IDENTITY_ONLY",
       "owner": "historical TigerBeetle qualification evidence",
-      "reason": "old TigerBeetle-specific ID seeds remain frozen only inside historical qualification artifacts; current SQLite accounting uses provider-neutral ordivon-capital:accounting:* identities"
+      "reason": "old TigerBeetle-specific ID seeds remain frozen only inside historical qualification artifacts; current PostgreSQL Accounting uses provider-neutral ordivon-capital:accounting:* identities"
     },
     {
       "id": "wave-a-frozen-target-fixture",
