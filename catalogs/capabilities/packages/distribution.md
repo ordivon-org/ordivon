@@ -3,7 +3,7 @@
 Last census: 2026-09-13
 Standing: **READY_FOR_REAL_WORK**
 
-Current source owner: /root/projects/ordivon/capabilities/distribution
+Current source owner: `capabilities/distribution/`
 
 ## Outcome scope
 
@@ -22,18 +22,29 @@ Distribution is consequential-effect handling, not merely file copying. Provider
 
 There is no benefit in inventing a universal Ordivon transport protocol over mature provider APIs.
 
-## Observed local capability
+## Current owner and historical observations
 
-Existing Distribution v2 (`/root/projects/ordivon-distribution-v2@03ccc562160b`) already provides useful bounded capability/evidence:
+The package-level `READY_FOR_REAL_WORK` label is a broad *capability census*
+classification defined in `packages/README.md`: provider-native delivery
+can be started for a real task. It is **not** an assertion that Ordivon has a
+currently installed general-purpose distribution/approval service.
 
-- authenticated GitHub observation/read-back proven;
-- durable workflow -> integration-edge paths proven for non-effectful/read-only cases;
-- exact approval ingress exists;
-- exact intent/account/payload binding rules exist;
-- ambiguous-result retry rules are retained;
-- real provider writes remain authority-gated.
+The current `capabilities/distribution/` Owner retains optional external
+provider observations, effect-safety guidance and one Workstation-consumed
+negative R7 publication-intent fixture. Its previous internal approval /
+EffectAuthority producer, bound-input admission and reconciliation code
+were retired from current source; the R7 fixture does not restore them.
 
-Runtime, n8n, Skopeo/OCI tooling and provider-native clients/APIs can be composed as required.
+**Historical only** — the separate Distribution v2 snapshot
+`/root/projects/ordivon-distribution-v2@03ccc562160b` observed authenticated
+GitHub readback, bounded read-only Temporal → integration paths, and an exact
+approval ingress. This evidence is useful as research provenance, but does not
+establish present availability, production write authority or delivered effects.
+
+For a current delivery, combine Runtime execution where needed, n8n workflow
+or provider-native clients/APIs, the provider's own IAM/OAuth, and exact
+provider acceptance/readback. Do not rebuild the retired generic admission
+system merely to satisfy this package card.
 
 ## Concrete current gaps
 
