@@ -1575,6 +1575,37 @@ exit 0
         self.assertEqual(len(release_mise), 1)
         self.assertIs(release_mise[0]["with"]["cache"], False)
 
+    def test_runtime_release_subject_count_matches_native_deployer(self) -> None:
+        """Tagged release must attest the native deployer's entire canonical set."""
+        import ast
+        import yaml
+
+        source = ast.parse(
+            (ROOT / "services/runtime/scripts/ordivon-runtime-deploy").read_text()
+        )
+        constants = {}
+        for node in source.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id in (
+                        "DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"
+                    ):
+                        constants[target.id] = ast.literal_eval(node.value)
+        expected = sum(len(value) for value in constants.values())
+        self.assertEqual(len(constants), 2)
+
+        release = yaml.safe_load(
+            (ROOT / ".github/workflows/runtime-release.yml").read_text()
+        )
+        steps = {
+            step["name"]: step for step in release["jobs"]["runtime-release"]["steps"]
+        }
+        stage = steps["Materialize exact attestation subjects and checksums"]["run"]
+        verify = steps["Verify signed canonical Runtime release attestations"]["run"]
+        self.assertIn(f"len(artifacts) != {expected}", stage)
+        self.assertIn(f"exactly {expected} artifacts", stage)
+        self.assertIn('test "' + chr(36) + '{#subjects[@]}" -eq ' + str(expected), verify)
+
     def test_runtime_release_attestations_verify_every_subject_and_fail_closed(self) -> None:
         """Exercise official verifier CLI orchestration, not cryptographic trust."""
         import os
@@ -1597,7 +1628,7 @@ exit 0
             root = Path(directory)
             stage = root / "ordivon-runtime-tagged-release" / "attest-subjects"
             stage.mkdir(parents=True)
-            for i in range(12):
+            for i in range(13):
                 (stage / f"component-{i:02d}").write_bytes(bytes([i]))
             bindir = root / "bin"
             bindir.mkdir()
@@ -1629,7 +1660,7 @@ exit 0
                 json.loads(line) for line in Path(env["GH_VERIFY_LOG"])
                 .read_text(encoding="utf-8").splitlines()
             ]
-            self.assertEqual(len(calls), 24)
+            self.assertEqual(len(calls), 26)
             targets = {str(path) for path in stage.iterdir()}
             for predicate in ("https://slsa.dev/provenance/v1", "https://spdx.dev/Document/v2.3"):
                 matches = [x for x in calls if x[x.index("--predicate-type")+1] == predicate]
