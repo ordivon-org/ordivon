@@ -6158,3 +6158,14 @@ ordivon/
 ## Evidence limits
 
 The full nested tree is mechanically complete. Runtime-installed files, dynamically loaded modules, deployment references, external service/consumer contracts and content equivalence were not inferred from physical path presence. See `AUDIT_REPORT.md` for bounded deep review by module and `REFACTOR_PLAN.md` for selected maintenance actions.
+
+
+## Per-file immutable-source ledger — cross-Agent reuse, not a second registry
+
+A separate, machine-readable `FILE_LEDGER.tsv.gz` from independent peer PR #2032/source `139b1ad36de3a60a5987f6a40512909fa8011906` has been **reused verbatim** under this canonical audit location rather than independently reinvented. SHA-256 compressed bytes:
+
+`1274eac9f9c8571854b77b950f025863e1f91a94fa32074358b20be932873d9e`.
+
+It has **5,003 TSV rows** (one header plus one row for each of the **5,002 pinned original source files**); columns include `path`, `git_blob_sha`, `bytes`, `mode`, `owner_or_region`, `extension` and `semantic_review`. All `semantic_review` entries say `NOT_YET_DETERMINED_BY_MACHINE`, correctly refusing to promote file enumeration to human/Agent semantic acceptance.
+
+Independent inspection compared every ledger path, Git blob OID, file mode and byte count against the original pinned source content in this exact Git checkout: **0 mismatches**; the current audit branch also contains additional documents not in the source ledger and they are intentionally excluded. This ledger is a dated source witness, not a writable Owner registry, an installed manifest or a certificate that dynamic consumers are absent.

@@ -75,3 +75,5 @@ There are **no certified full-file semantic closures for all 5,002 files**; the 
 - Handoff required fields: **state**, exact Git/host SourceCut, **completed code/check**, **open risks**, proof **paths/commands**, **next natural Owner**, **unknown outcome planes**. Space communication is not an extra gate to ordinary low-risk changes.
 
 **Conclusion:** the recorded SOURCE baseline has improved specificity and one real code maintenance candidate passed existing scoped checks. The broad modernization program is not yet complete at deployed/domain or per-file semantic level; future claims must retain these distinctions.
+
+**Cross-Agent file evidence:** reuses exact 5,002-path peer blob ledger `FILE_LEDGER.tsv.gz` (compressed SHA-256 `1274eac9f9c8571854b77b950f025863e1f91a94fa32074358b20be932873d9e`). All rows explicitly retain semantic-review UNKNOWN; this is not a second state authority.

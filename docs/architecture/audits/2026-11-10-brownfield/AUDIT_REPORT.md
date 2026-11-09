@@ -84,3 +84,5 @@ The full source AST pass parsed **1,460/1,460** current Python files, observed *
 ## F. Status
 
 Phase 2 complete for documented **major module/source-slice** assessment; entire full-file semantic audit **INCOMPLETE**. The 5,002-file mechanical inventory is complete; unknown external consumers and uninspected deep files stay UNKNOWN. This prevents false completion.
+
+**Cross-Agent file evidence:** reuses exact 5,002-path peer blob ledger `FILE_LEDGER.tsv.gz` (compressed SHA-256 `1274eac9f9c8571854b77b950f025863e1f91a94fa32074358b20be932873d9e`). All rows explicitly retain semantic-review UNKNOWN; this is not a second state authority.
