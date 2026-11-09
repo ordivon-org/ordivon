@@ -40,8 +40,8 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "capabilities/providers/opentelemetry.md",
-      "capabilities/packages/operations.md",
+      "catalogs/capabilities/providers/opentelemetry.md",
+      "catalogs/capabilities/packages/operations.md",
       "OpenTelemetry official source checked 2026-09-14"
     ]
   },

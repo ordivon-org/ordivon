@@ -44,7 +44,7 @@
   "provenance": {
     "registeredDate": "2026-09-20",
     "registrationBasis": [
-      "docs/DATA_LIFECYCLE_CENSUS_R1.md",
+      "docs/architecture/DATA_LIFECYCLE_CENSUS_R1.md",
       "W3C Recommendation checked 2026-09-20"
     ]
   },
