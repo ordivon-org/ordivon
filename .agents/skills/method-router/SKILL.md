@@ -31,7 +31,7 @@ Do not activate every method merely because it exists. Do not turn the method ca
 ## Engineering delivery methods (select only when they change the task)
 
 For a substantial task whose goal and consumer are already known, reuse the
-existing [goal-to-consumer R1 scope](../../../docs/architecture/AGENT_OUTCOME_CONTRACT_REFORM_SPEC_R1.md)
+existing [goal-to-consumer R1 scope](../../../docs/architecture/AGENT_CONTRACT_EXECUTION_SPEC_R1.md)
 and **choose the smallest applicable upstream method**:
 
 - Ambiguous domain vocabulary or a real trade-off -> Matt Pocock
