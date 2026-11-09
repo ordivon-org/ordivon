@@ -196,7 +196,8 @@ For a single Game test invocation, the Hoare-style obligation is:
 ~~~text
   { clean checkout AND pinned native Godot available }
       NativeImportThenEpisodeAcceptance
-  { import succeeded AND native-episode-receipt validated }
+  { exit=0 => import succeeded AND native-episode-receipt validated
+    import failure => exit!=0 AND no native episode PASS }
 ~~~
 
 A bounded test proves this obligation only for executed conditions; no total program proof follows automatically. Within a *successful* schema-v2 episode receipt containing actions a[0..n-1], observations s[0..n]:
