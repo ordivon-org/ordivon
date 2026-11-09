@@ -127,7 +127,7 @@ Do not infer rightward acceptance from leftward activity alone. Explicitly rejec
 **Out:** Weak-model comparisons, prompts-only training, universal Ordivon validator, retrofitting all G01–G06 into invented R2.1 contract text, new game framework, forced prior approval for ordinary code edits, production-money effects, claims of human play evidence.
 
 1. **Slice A:** reproduce missing import in clean Game checkout; fix native `mise` test entry via official Godot import; re-run native G11 and relevant pipeline tasks.
-2. **Slice B:** tie assertions and test evidence to the existing G11 R2.1 responsibility and native factory entry, updating only Game docs/tests that have real consumers; preserve checks in CI.
+2. **Slice B:** tie assertions and test evidence to the existing G11 R2.1 responsibility and native factory entry, updating only Game docs/tests that have real consumers; verify the independent `native-g11-contract` GitHub PR job in the existing `.github/workflows/game-factory.yml` on a clean checkout. The pre-existing push-to-main preview packaging remains distinct.
 3. **Slice C:** when a concrete cross-owner producer/consumer needs it, project requirements via existing Composition obligation schema; no cross-owner implementation until the particular owner contract is accepted.
 4. **Slice D:** real product deliveries and player evidence remain independent from mechanical Game test acceptance.
 

@@ -53,7 +53,7 @@ A: native G11 red->green repair
 - [ ] B1. Review changed native entry against `recursiveLegoR21.pre/post/inv/eff/prov`. Do not automatically mark all 11 properties mathematically proved.
 - [ ] B2. State the clean-checkout entry in the real Game factory guide only if its consumers benefit; link this spec rather than duplicating it.
 - [ ] B3. Run `pnpm check` and Game-native relevant suite. Preserve existing test counts and result forms.
-- [ ] B4. If this task is merged, inspect required GitHub native Game workflow/check and record exact SHA/check result separately from local verification.
+- [ ] B4. Check `.github/workflows/game-factory.yml` `native-g11-contract` on pull requests: clean checkout, native Godot import and existing 19-episode acceptance; `actionlint .github/workflows/game-factory.yml` must pass. Preserve main-push preview packaging as a separate job. Record GitHub check state and exact SHA separately from local verification.
 
 ### Task C — Integration and actual completion claims
 
