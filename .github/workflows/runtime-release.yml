@@ -142,6 +142,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
+          import ast
           import hashlib
           import json
           import os
@@ -152,8 +153,24 @@ jobs:
           root = Path(os.environ["RUNNER_TEMP"]) / "ordivon-runtime-tagged-release"
           manifest = json.loads((root / "candidate-manifest.json").read_text(encoding="utf-8"))
           artifacts = manifest.get("artifacts")
-          if not isinstance(artifacts, list) or len(artifacts) != 13:
-              raise SystemExit("canonical Runtime release manifest must contain exactly 13 artifacts")
+          native = ast.parse(Path("services/runtime/scripts/ordivon-runtime-deploy").read_text(
+              encoding="utf-8"
+          ))
+          canonical = {}
+          for node in native.body:
+              if isinstance(node, ast.Assign):
+                  for target in node.targets:
+                      if isinstance(target, ast.Name) and target.id in (
+                          "DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"
+                      ):
+                          canonical[target.id] = ast.literal_eval(node.value)
+          if set(canonical) != {"DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"}:
+              raise SystemExit("native Runtime release artifact declarations unavailable")
+          expected_names = set(canonical["DEFAULT_BINARIES"]) | {
+              entry[0] for entry in canonical["DEFAULT_OPERATOR_ARTIFACTS"]
+          }
+          if not isinstance(artifacts, list) or len(artifacts) != len(expected_names):
+              raise SystemExit("canonical Runtime release artifact cardinality differs from native deployer")
           if manifest.get("sourceOwnerPrefix") != "services/runtime":
               raise SystemExit("tagged Runtime release must bind the monorepo Runtime owner prefix")
 
@@ -183,6 +200,9 @@ jobs:
               if stat.S_IMODE(destination.stat().st_mode) != mode:
                   raise SystemExit(f"attestation staging changed canonical mode: {name}")
               checksums.append(f"{digest}  {name}\n")
+
+          if names != expected_names:
+              raise SystemExit("tagged Runtime release manifest names differ from native deployer")
 
           (root / "subjects.sha256").write_text("".join(checksums), encoding="utf-8")
           PY
@@ -222,7 +242,26 @@ jobs:
           set -euo pipefail
           root="$RUNNER_TEMP/ordivon-runtime-tagged-release"
           mapfile -d '' -t subjects < <(find "$root/attest-subjects" -maxdepth 1 -type f -print0)
-          test "${#subjects[@]}" -eq 13
+          python3 - "$root" "${subjects[@]}" <<'PY_SUBJECT_SET'
+          import json
+          import sys
+          from pathlib import Path
+
+          root = Path(sys.argv[1])
+          artifacts = json.loads((root / "candidate-manifest.json").read_text(
+              encoding="utf-8"
+          )).get("artifacts")
+          if not isinstance(artifacts, list):
+              raise SystemExit("missing canonical Runtime release artifact list")
+          expected = [item.get("name") for item in artifacts if isinstance(item, dict)]
+          observed = [Path(item).name for item in sys.argv[2:]]
+          if (len(expected) != len(artifacts)
+                  or len(expected) != len(set(expected))
+                  or len(observed) != len(expected)
+                  or len(observed) != len(set(observed))
+                  or set(observed) != set(expected)):
+              raise SystemExit("attested subjects must exactly match the canonical manifest")
+          PY_SUBJECT_SET
           for artifact in "${subjects[@]}"; do
             for predicate in "https://slsa.dev/provenance/v1" "https://spdx.dev/Document/v2.3"; do
               gh attestation verify "$artifact" \
