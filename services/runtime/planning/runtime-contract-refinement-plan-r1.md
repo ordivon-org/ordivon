@@ -14,29 +14,29 @@ Files: services/runtime/docs/runtime-contract-refinement-spec-r1.md and this pla
 Acceptance: goal, R2.1 tuple, Owner/source/consumer, invariants, fairness assumptions, negative controls and exact proof states are explicit. No new Agent or Registry.
 - [x] Read upstream Matt/ECC/Superpowers methods and native R2.1 thought LEGOs.
 - [x] Recheck #1983 GitHub CI against actual deployed source and repository release workflow.
-- [ ] Commit spec and plan before implementation.
+- [x] Commit spec and plan before implementation.
 
 ### T1 — Restore tagged-release consumer correctness
 Blockers: T0.
 Files: .github/workflows/runtime-release.yml and tools/repo/test_github_governance.py.
 Seam: native deploy manifest -> tagged release staging -> attestation verification.
 Acceptance: independent test fails on current fixed count, then passes after replacing count with exact manifest subject-set comparison; all missing/duplicate/extra artifacts fail. Version/additive changes reuse one canonical set.
-- [ ] Write RED test checking full manifest name-set correspondence, not hardcoded numeric count.
-- [ ] Run actual failing repo governance test.
-- [ ] Modify existing tag release pipeline using current native candidate manifest; no separate manifest generator.
-- [ ] Run source-native governance test and negative missing/extra/duplicate cases GREEN.
-- [ ] Commit.
+- [x] Write RED test checking full manifest name-set correspondence, not hardcoded numeric count.
+- [x] Run actual failing repo governance test.
+- [x] Modify existing tag release pipeline using current native candidate manifest; no separate manifest generator.
+- [x] Run source-native governance test and negative missing/extra/duplicate cases GREEN.
+- [x] Commit.
 
 ### T2 — Prove conditional Workspace progress in the current formal Owner
 Blockers: T0. Independent of T1.
 Files: services/runtime/formal/WorkspaceConsumerCloseR1.tla; optional progress cfg; scripts/tla-formal; formal/README.md.
 Seam: official pinned TLC with existing Close safety model.
 Acceptance: safety unchanged; reachable Close; under no new Jobs/Git dependents and WF(Close), continuously enabled eligible Workspace eventually closes. Without fairness, TLC finds a named counterexample, not a syntax failure.
-- [ ] Extend named TLA+ actions and configuration minimally; do not encode a new scheduler or pretend consumerReleased is independently verified.
-- [ ] RED run without fairness -> TLC liveness counterexample with trace.
-- [ ] GREEN run with WF(Close) -> model checker PASS.
-- [ ] Bind prior unsafe-close and reachability falsifiers; update native formal check.
-- [ ] Commit.
+- [x] Extend named TLA+ actions and configuration minimally; do not encode a new scheduler or pretend consumerReleased is independently verified.
+- [x] RED run without fairness -> TLC liveness counterexample with trace.
+- [x] GREEN run with WF(Close) -> model checker PASS.
+- [x] Bind prior unsafe-close and reachability falsifiers; update native formal check.
+- [x] Commit.
 
 ### T3 — Make concrete/abstract correspondence auditable
 Blockers: T2.
@@ -80,3 +80,12 @@ Acceptance: no repeated instructions, no parallel registries, external mature te
 For each task record: property | formal model+config | assumptions/fairness | falsifier | concrete source+test | release/installed digest | actual consumer standing | remaining UNKNOWN. This is a report format, not a new database.
 
 Stopping conditions: a failing required GitHub check cannot become PASS by narrative, mock-only success cannot become installed truth, and real value-delivering work is not blocked by unrelated UNKNOWN.
+
+## 2026-11-09 factual implementation ledger
+
+- Source-bound Math/LEGO spec committed as e8dc6a1c; existing R2.1 source semantics preserved; no weak-model experiment.
+- GitHub workflow T1: native deployer candidate release artifact set is the canonical name source. Workflow stages and verifies exact subject set. Two real governance tests RED under 13-item hardcoding and GREEN after fix; missing/duplicate/extra/digest-mismatch rejected.
+- T2: existing WorkspaceConsumerCloseR1 with FairSpec = Spec /\ WF_vars(Close), ConditionalProgress and two TLC configs. Pinned sha-qualified tla2tools 1.7.4: TLC unfair temporal counterexample exit 13 with stuttering, fair progress model exit 0 (28 distinct states). Full native scripts/tla-formal check and falsify both exit 0; existing safety falsifiers remain intact.
+- T3 partial: existing formal/README maps abstract terms to PG/operator/MCP fields; this is a source correspondence table, NOT a mechanically proven implementation refinement, and consumerReleased is still caller-declared.
+- Earlier PR #1983 required checks failed; new branch changes await GitHub full CI and merge. Do not call installed semantics proved.
+- Independent full governance unittest invocation timed out; target-specific two native release tests passed. Re-run full GitHub CI after PR update to distinguish source qualification from test timeout.

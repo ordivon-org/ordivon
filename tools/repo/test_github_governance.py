@@ -1584,7 +1584,6 @@ exit 0
         import ast
         import hashlib
         import os
-        import stat
         import yaml
 
         source = ast.parse(
