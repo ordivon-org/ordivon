@@ -34,6 +34,12 @@ Neither grants authority or proves that an Owner is installed and ready.
    replay/retention obligations. Use native Owner/Git lifecycle operations;
    do not treat an absent static import as proof of no consumer.
 
+For multi-Owner tasks where an Agent can confuse a plan, source change,
+Run or Job with a consumer-accepted result, consult the
+[bounded outcome-contract implementation spec](../architecture/AGENT_OUTCOME_CONTRACT_REFORM_SPEC_R1.md)
+and act through existing Owner-native tools. This is a scoped delivery plan,
+not an additional completion authority or a prerequisite for simple tasks.
+
 A directory, package, Skill, external provider, or historical plan is not
 a substitute for the actual authority. If an outcome has no table entry,
 inspect its current source and deployment rather than inventing a new Owner
