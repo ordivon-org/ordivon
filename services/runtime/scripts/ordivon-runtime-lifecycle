@@ -41,7 +41,7 @@ DEFAULT_POLICY = {
     "defaultClass": "ephemeral",
     "classes": {
         "ephemeral": {
-            "retentionHours": 24.0,
+            "retentionHours": 4.0,
             "dirtyRetentionHours": 48.0,
             "maxLifetimeHours": 48.0,
             "forceCloseDirtyAfterRetention": False,
@@ -49,7 +49,7 @@ DEFAULT_POLICY = {
             "forceCloseAfterMaxLifetime": False,
         },
         "review": {
-            "retentionHours": 24.0,
+            "retentionHours": 4.0,
             "dirtyRetentionHours": 48.0,
             "maxLifetimeHours": 48.0,
             "forceCloseDirtyAfterRetention": False,

@@ -1,7 +1,7 @@
 -------------------- MODULE WorkspaceConsumerCloseR1 --------------------
 EXTENDS TLC
 
-\* Bounded abstraction for the first 24h of a Workspace's lifecycle.
+\* Bounded abstraction for the first 4h of a Workspace's lifecycle.
 \* The Release transition ASSUMES a trustworthy consumer; no native Runtime
 \* authority currently proves that assumption for consumerReleased=true.
 
