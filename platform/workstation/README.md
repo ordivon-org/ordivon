@@ -63,7 +63,7 @@ Workstation v2 owns only the generic node-operational substrate for the shared P
 
 ## Local host / WSL substrate
 
-Workstation v2 owns generic host desired-state for systemd manager limits, coredump policy, the disabled `systemd-homed` lifecycle on this non-homed node, and the bounded WSL settings used by this node. WSL INI files are managed key-by-key rather than replaced wholesale: unknown or separately owned entries such as the current custom `kernel=` path remain untouched. Applying bytes does not activate a new WSL generation; distribution shutdown/restart is a separate explicit operation boundary.
+Workstation v2 uses Ansible for Linux systemd manager limits, coredump policy, disabled `systemd-homed` lifecycle and key-scoped Linux `/etc/wsl.conf` settings. The Windows-user global `.wslconfig` is **not** written by this Linux-host playbook: the user-scoped native Windows configuration is a separate authority, not an old WSL-side desired-state copy. Automatic Windows-side convergence would require one explicit user-context configuration owner and native readback. Applying Linux configuration bytes does not activate a new WSL generation; shutdown/restart is a separate explicit operation boundary. See `docs/WORKSTATION_CONTRACT_FIRST_EXECUTION_SPEC_R1.md`.
 
 **Interactive Shell PATH LEGO** (`workstation.shell-path`, ENVIRONMENT /
 DECLARATIVE / EQUIVALENCE): the single `interactiveShellPath` expression in
