@@ -755,6 +755,8 @@ check_workspace_consumer_close() {
     "$ROOT/formal/WorkspaceConsumerCloseR1.tla"
   (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
     -config WorkspaceConsumerCloseR1.cfg WorkspaceConsumerCloseR1.tla)
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceConsumerCloseR1.progress.cfg WorkspaceConsumerCloseR1.tla)
 }
 
 workspace_close_expect_named_counterexample() {
@@ -821,6 +823,30 @@ PY_WORKSPACE_CLOSE
     # Scope counterexample: a claimed release is not authenticated consumer truth.
     workspace_close_expect_named_counterexample "$tmp_dir/spoofed" \
       WorkspaceConsumerCloseR1.cfg FreshActiveConsumerCannotBeClosed spoofed
+
+    # Deliberately remove weak fairness from the otherwise identical model.
+    # TLC must exhibit the concrete infinite stuttering counterexample:
+    # continuously enabled Close can starve forever without WF_vars(Close).
+    mkdir "$tmp_dir/unfair"
+    cp "$ROOT/formal/WorkspaceConsumerCloseR1.tla" "$tmp_dir/unfair/"
+    cp "$ROOT/formal/WorkspaceConsumerCloseR1.unfair-progress.cfg" "$tmp_dir/unfair/"
+    local unfair_status
+    set +e
+    (cd "$tmp_dir/unfair"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config WorkspaceConsumerCloseR1.unfair-progress.cfg WorkspaceConsumerCloseR1.tla) \
+      > "$tmp_dir/unfair/result.log" 2>&1
+    unfair_status=$?
+    set -e
+    if [[ "$unfair_status" -ne 13 ]] ||
+       ! grep -Fxq 'Error: Temporal properties were violated.' "$tmp_dir/unfair/result.log" ||
+       ! grep -Fxq 'Error: The following behavior constitutes a counter-example:' "$tmp_dir/unfair/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*:' "$tmp_dir/unfair/result.log" ||
+       ! grep -Eq '^State [1-9][0-9]*: Stuttering$' "$tmp_dir/unfair/result.log"; then
+      echo "Workspace consumer close missing-fairness liveness control FAILED" >&2
+      tail -40 "$tmp_dir/unfair/result.log" >&2
+      exit 1
+    fi
+    echo "TLC Workspace consumer close weak-fairness liveness falsifier PASS"
   )
 }
 

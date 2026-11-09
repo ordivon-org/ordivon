@@ -80,6 +80,23 @@ Next ==
 
 Spec == Init /\ [][Next]_vars
 
+\* Abstract close is enabled only with no currently held physical Job or
+\* unpreserved Git source. The consumerReleased signal remains an assumption.
+Eligible == /\ phase = "open"
+            /\ ~liveJob
+            /\ ~gitDependent
+            /\ (age = "expired" \/ released)
+
+\* Weak fairness applies ONLY to the native Close transition. It does not
+\* assert that the external environment releases consumers or remains online.
+FairSpec == Spec /\ WF_vars(Close)
+
+\* If an eligible Workspace sees no *future* competing Job or Git dependent,
+\* the Close transition remains enabled until closure. Under WF(Close),
+\* stuttering forever is not a legal behavior. Without WF this is false.
+StableNoCompetition == [] (~liveJob /\ ~gitDependent)
+ConditionalProgress == []((Eligible /\ StableNoCompetition) => <> (phase = "closed"))
+
 TypeOK ==
     /\ phase \in {"open", "closed"}
     /\ age \in {"fresh", "expired"}

@@ -321,6 +321,51 @@ PostgreSQL connection identity, application commit parity, or Rust refinement.
 Cutover remains PROPOSED until real native process/source witnesses bind
 these model variables to physical behavior.
 
+### 2026-11-09 bounded fair Close progress — conditional, not runtime completion
+
+The existing WorkspaceConsumerCloseR1 model has gained
+Eligible and ConditionalProgress, checked separately by
+WorkspaceConsumerCloseR1.progress.cfg under
+FairSpec = Spec /\ WF_vars(Close). There are **two** independent obligations:
+
+- Safety: fresh active consumers, live Jobs and unpreserved Git dependencies
+  cannot be closed by the modeled Close action.
+- Progress: an eligible Workspace without any *future* competing Job or
+  Git dependency eventually closes, provided Close remains weakly fair.
+  No claim is made for perpetually contested Workspaces or unreachable
+  providers. The caller-provided consumerReleased is not an authenticated
+  Host-wide release proof.
+
+The distinct WorkspaceConsumerCloseR1.unfair-progress.cfg uses the **same**
+transition system but no WF(Close). TLC produces a temporal counterexample
+with an eligible open Workspace followed by infinite stuttering (exit 13).
+The native scripts/tla-formal falsify target requires that named temporal
+counterexample, while check requires successful fair-model checking.
+A TLC PASS is scoped to the bounded model; it does **not** prove PG and
+Runtime Close are linearizable, Python/Rust implements the model, or an
+installed service is current. See docs/runtime-contract-refinement-spec-r1.md.
+
+### Candidate implementation-to-model field map (not a proved refinement)
+
+The existing production operator gives *testable correspondence* but no
+mechanically checked whole-program refinement relation:
+
+| Abstract source | Real owner witness | Consumer acceptance | Standing |
+| --- | --- | --- | --- |
+| age fresh/expired | Runtime workspace.get createdAtMs and PG Job/event/attempt last activity, checked against the configured 4h window | scripts/tests/test_pg_native_reclaim.py: old empty, terminal failed/lost and recent cases | SOURCE_TESTED only |
+| liveJob = FALSE | PG unresolved=0, Runtime workspace.get activeJobIds=[] twice; re-read PG projection before close | nonterminal, active and PG-projection-change negative tests | SOURCE_TESTED only |
+| gitDependent = FALSE | a persistent Git branch/tag/remote ref reaches HEAD, worktree clean, same digest; not only origin/main ancestry | durable unmerged ref vs unanchored commit and source digest drift | SOURCE_TESTED only |
+| released | caller passes consumerReleased=true to native workspace.close | declaration only, no authenticated Host-wide consumer proof | UNKNOWN for cross-Owner consumer closure |
+| Close | Runtime native workspace.close with expectedSourceStateDigest, never Python filesystem deletion | close response result and error tests; Rust native close owns final eligibility | native system semantics need physical validation |
+| WF_vars(Close) | systemd hourly lifecycle timer plus available PG/MCP/OS/Git | timer check is evidence of configured scheduler, not proof of permanent fairness | MODEL_ASSUMPTION only |
+
+The model has no producer for new independent Host consumer leases. The
+existing caller-declared release flag does not establish all consumers are
+released; a real authenticated lease protocol needs a separate natural
+Owner contract. The model-level conditional progress cannot be promoted to
+installed behavior until the native consumer and actual source/deployment
+identity have been observed.
+
 ## WorkspaceConsumerCloseR1 — bounded continuation guard (2026-10-26)
 
 The existing Runtime WorkspaceLeaseTable is a per-operation mutex, not a
