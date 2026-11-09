@@ -41,7 +41,7 @@
   "provenance": {
     "registeredDate": "2026-09-20",
     "registrationBasis": [
-      "policies/external-ownership-boundary.json",
+      "docs/architecture/policies/external-ownership-boundary.json",
       "RFC Editor checked 2026-09-20"
     ]
   },

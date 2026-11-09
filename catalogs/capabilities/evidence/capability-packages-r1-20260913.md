@@ -3,7 +3,7 @@
 Date: 2026-09-13
 Initial census subject revision: `3a279b3eb2fca33dd736a3c6581e6551dd89afb4`
 
-This is a dated operational snapshot for `docs/CAPABILITY_PACKAGES_R1.md`. It is **not** a registry, required stack, permanent topology, or a demand to install every selected tool. Later evidence in this same receipt supersedes earlier partial observations.
+This is a dated operational snapshot for `docs/architecture/CAPABILITY_PACKAGES_R1.md`. It is **not** a registry, required stack, permanent topology, or a demand to install every selected tool. Later evidence in this same receipt supersedes earlier partial observations.
 
 ## Census rule
 
@@ -71,7 +71,7 @@ Examples:
 
 ### Research — accepted for the current workload
 
-The Research package now has a real evidence chain beyond the earlier computational-only slice. Detailed evidence is recorded in `docs/RESEARCH_CAPABILITY_PACKAGE_R1.md`.
+The Research package now has a real evidence chain beyond the earlier computational-only slice. Detailed evidence is recorded in `catalogs/capabilities/RESEARCH_CAPABILITY_PACKAGE_R1.md`.
 
 Observed:
 
@@ -114,7 +114,7 @@ Standing: `ACCEPTED_FOR_CURRENT_SOFTWARE_SLICE`; current vulnerability freshness
 
 ### Business Operations — accepted for the current local workload
 
-ERPNext `16.34.2` is now the accepted mature local owner for the current business-operations slice. Detailed evidence and authority boundaries are recorded in `migrations/records/business-operations-erpnext-r1.md`.
+ERPNext `16.34.2` is now the accepted mature local owner for the current business-operations slice. Detailed evidence and authority boundaries are recorded in `docs/migration/retirement/business-operations-erpnext-r1.md`.
 
 Observed:
 
@@ -146,6 +146,6 @@ Default loop from here:
 
 `real task -> select package(s) -> discover mature owner/provider -> check scoped local availability -> activate/install only the missing capability -> execute -> verify with native/domain evidence -> retain only useful mappings/lessons`
 
-Use `docs/CAPABILITY_CENSUS_TEMPLATE.md` for subsequent package censuses. Stop package construction once the current real outcome is served and verified; reopen only the missing capability family when a later task proves a gap.
+For later workload-triggered censuses, follow the package-card contract in `catalogs/capabilities/packages/README.md`. Stop package construction once the current real outcome is served and verified; reopen only the missing capability family when a later task proves a gap.
 
 The success criterion is not package count or tool count. It is increasing verified real-world output while keeping Ordivon-owned implementation and dormant local coupling small.

@@ -41,7 +41,7 @@
   "provenance": {
     "registeredDate": "2026-09-14",
     "registrationBasis": [
-      "docs/ENTERPRISE_OPERATING_MODEL_R1.md",
+      "docs/architecture/ENTERPRISE_OPERATING_MODEL_R1.md",
       "ISO base and Amendment 1 official sources checked 2026-09-14"
     ]
   },
