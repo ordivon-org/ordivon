@@ -80,6 +80,30 @@ def test_agent_builds_actual_delivery_plan_without_a_profile_or_validator_choice
         assert result["outcome"] == "offline-html-delivery"
         assert "profileId" not in result
         assert result["plan"]["executable"] == "native-artifact-python"
+        assert result["plan"]["cwdRelative"] == "capabilities/artifact"
+
+
+@pytest.mark.integration
+def test_real_cli_works_in_native_subprocess_without_injected_pythonpath() -> None:
+    import subprocess
+    import sys
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        src = root / "brief.md"
+        src.write_text("# Real Delivered Page\n\nA real browser reads this HTML.\n")
+        destination = root / "product.html"
+        script = Path(html.__file__).resolve()
+        process = subprocess.run(
+            [sys.executable, str(script), "--source", str(src), "--destination", str(destination)],
+            cwd=root, capture_output=True, text=True, timeout=180, check=False,
+            env={k: v for k, v in __import__("os").environ.items() if k != "PYTHONPATH"},
+        )
+        assert process.returncode == 0, process.stderr + process.stdout
+        result = json.loads(process.stdout)
+        assert result["status"] == "DELIVERED"
+        assert destination.is_file()
+        assert html.digest(destination) == result["artifact"]["sha256"]
 
 
 @pytest.mark.integration

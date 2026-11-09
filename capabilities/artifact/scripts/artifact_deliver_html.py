@@ -12,10 +12,17 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
+
+# Direct Runtime invocation uses this script path; it must not rely on pytest's
+# PYTHONPATH or on a prior Agent import.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from artifact_verifiers.document import toolchain as document_toolchain
 from artifact_verifiers.web.browser import verify_web_local

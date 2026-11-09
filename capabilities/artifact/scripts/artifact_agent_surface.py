@@ -254,6 +254,9 @@ def html_delivery_proposal(
         ),
     )
     blockers = list(proposal["blockers"])
+    if proposal["plan"] is not None:
+        # Runtime workspace root is the Ordivon monorepo, not Artifact's package.
+        proposal["plan"]["cwdRelative"] = "capabilities/artifact"
     if not Path(source).is_file():
         blockers.append("SOURCE_ABSENT")
     if not str(destination).lower().endswith(".html"):
