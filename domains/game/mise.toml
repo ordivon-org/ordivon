@@ -140,10 +140,10 @@ run = """
 set -euo pipefail
 mise run factory:validate:bevy
 mise run build:bevy
-test -s examples/orbit-collector/target/debug/orbit-collector
+test -s examples/orbit-collector/target/debug/ordivon-orbit-collector
 printf 'GAME_FACTORY_SOURCE_SHA='
 git rev-parse HEAD
-sha256sum examples/orbit-collector/target/debug/orbit-collector
+sha256sum examples/orbit-collector/target/debug/ordivon-orbit-collector
 echo GAME_FACTORY_BEVY_NATIVE_BUILD_READY_NOT_PACKAGED
 """
 
@@ -186,4 +186,48 @@ printf 'GAME_FACTORY_SOURCE_SHA='
 git rev-parse HEAD
 sha256sum "$target/beacon-relay-linux-x86_64.tar.gz" "$target/beacon-relay-windows-x86_64.zip"
 echo GAME_FACTORY_BEACON_PACKAGES_READY
+"""
+
+# The native Bevy product is packaged without inventing another game build engine.
+[tasks."factory:package:orbit-linux"]
+description = "Test, build and distribute the actual locked Bevy Orbit Collector Linux product"
+run = """
+set -euo pipefail
+mise run factory:build:bevy
+destination="${GAME_EXPORT_DIR:-$PWD/dist/orbit-collector}"
+mkdir -p "$destination/linux-x86_64"
+install -m 0755 examples/orbit-collector/target/debug/ordivon-orbit-collector "$destination/linux-x86_64/ordivon-orbit-collector"
+cp LICENSE "$destination/linux-x86_64/PROJECT_APACHE_2_LICENSE.txt"
+cat > "$destination/linux-x86_64/HOW_TO_PLAY.txt" <<'ORBIT_README'
+Orbit Collector (Bevy 0.20.1, Rust 1.99.1) - Linux x86-64 native preview
+Extract this archive and run ./ordivon-orbit-collector on an X11 graphical desktop.
+WASD / arrow keys move. Collect five yellow beacons; avoid the red moving
+hazard. Three hits lose. R restarts. This is an unsigned prototype preview.
+The game has no third-party art/audio; Bevy dependency licenses are determined
+by the pinned Cargo.lock and upstream dependency source.
+ORBIT_README
+printf '%s\n' "SOURCE_COMMIT=$(git rev-parse HEAD)" "ENGINE=Bevy 0.20.1" "RUST=$(rustc --version)" > "$destination/linux-x86_64/BUILD_SOURCE.txt"
+if command -v xvfb-run >/dev/null 2>&1 && command -v timeout >/dev/null 2>&1; then
+  set +e
+  timeout 14s xvfb-run -a -s "-screen 0 1280x720x24" "$destination/linux-x86_64/ordivon-orbit-collector" > "$destination/linux-x86_64/launch.log" 2>&1
+  rc=$?
+  set -e
+  if [ "$rc" -ne 124 ]; then
+    echo "ORBIT_WINDOWED_SMOKE_FAILED exit=$rc"
+    tail -60 "$destination/linux-x86_64/launch.log"
+    exit 1
+  fi
+  if grep -Eiq 'thread .+ panicked|ERROR .+|FATAL|Failed to create (a |the )?surface' "$destination/linux-x86_64/launch.log"; then
+    echo "ORBIT_WINDOWED_SMOKE_FAILED_LOG"
+    tail -60 "$destination/linux-x86_64/launch.log"
+    exit 1
+  fi
+  echo ORBIT_WINDOWED_SMOKE_PASS_14S_NATIVE_APPLICATION_ALIVE
+else
+  echo ORBIT_WINDOWED_SMOKE_NOT_RUN_NO_XVFB
+fi
+tar -czf "$destination/orbit-collector-linux-x86_64.tar.gz" -C "$destination/linux-x86_64"   ordivon-orbit-collector PROJECT_APACHE_2_LICENSE.txt HOW_TO_PLAY.txt BUILD_SOURCE.txt
+test -s "$destination/orbit-collector-linux-x86_64.tar.gz"
+sha256sum "$destination/orbit-collector-linux-x86_64.tar.gz"
+echo ORBIT_FACTORY_LINUX_PREVIEW_READY
 """

@@ -1,0 +1,66 @@
+name: Game Factory Bevy native Linux preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "domains/game/examples/orbit-collector/**"
+      - "domains/game/formal/verify_orbit_rules.py"
+      - "domains/game/mise.toml"
+      - ".github/workflows/game-orbit-factory.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: game-orbit-factory-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  orbit-linux:
+    name: Bevy Orbit Collector native test and Linux preview
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      RUSTUP_TOOLCHAIN: "1.99.1"
+    steps:
+      - name: Checkout exact Game source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install existing Mise task runner
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          version: 2026.9.12
+          install: false
+          cache: true
+      - name: Install native build dependencies and software Vulkan
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends             pkg-config libx11-dev libxkbcommon-dev libudev-dev             xvfb xauth mesa-vulkan-drivers libvulkan1
+          rustup toolchain install 1.99.1 --profile minimal
+      - name: Install existing Game tools
+        working-directory: domains/game
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mise install
+      - name: Execute real Bevy game test, native build and package
+        working-directory: domains/game
+        run: |
+          set -euo pipefail
+          mise run factory:package:orbit-linux
+      - name: Publish source-bound native product preview
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ordivon-game-orbit-linux-preview-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: domains/game/dist/orbit-collector/orbit-collector-linux-x86_64.tar.gz
