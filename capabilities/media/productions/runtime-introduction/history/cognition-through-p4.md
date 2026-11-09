@@ -1,12 +1,13 @@
 # Historical cognition snapshot — through P4
 
 > Frozen before the C1 contraction. This file preserves the full P2/P3/P4 working ledger; it is historical evidence, not the active decision frontier.
+> References to "current" or "active" below describe that historical P4 snapshot; see [current production cognition](../cognition.md).
 
 # Runtime Introduction — production cognition
 
 Status: active production decision record
-Protocol: [`../../research/expression/protocol.md`](../../research/expression/protocol.md)
-Profiles: [`motion-video`](../../research/expression/profiles/motion-video.md) + [`writing`](../../research/expression/profiles/writing.md)
+Protocol: [expression protocol](../../../research/expression/protocol.md)
+Profiles: [`motion-video`](../../../research/expression/profiles/motion-video.md) + [`writing`](../../../research/expression/profiles/writing.md)
 
 This file records the **current creative judgment needed to continue the work**. It is **not a second Production manifest**. Physical and factual authority remains in the Production, Claim, Asset, TimedText, Receipt, Timeline, archive, and owning Runtime sources.
 
@@ -20,11 +21,11 @@ This file records the **current creative judgment needed to continue the work**.
 
 ## BIND
 
-**Runtime authority.** Product claims remain bound to Runtime revision `5dd206c74a2b9151fb0a87579ba2200aaf892633`. [`evidence/runtime-demo.receipt.json`](evidence/runtime-demo.receipt.json), digest `sha256:c612500db2312fc956e0b9dc801853aab3ae31f7f182f3cce6a7649c02ccdbe1`, remains the selected execution proof.
+**Runtime authority.** Product claims remain bound to Runtime revision `5dd206c74a2b9151fb0a87579ba2200aaf892633`. [`evidence/runtime-demo.receipt.json`](../evidence/runtime-demo.receipt.json), digest `sha256:c612500db2312fc956e0b9dc801853aab3ae31f7f182f3cce6a7649c02ccdbe1`, remains the selected execution proof.
 
-**Narration authority.** [`timed-text/narration.en.json`](timed-text/narration.en.json) owns the current nine English cue texts and timing. [`evidence/narration-sapi.receipt.json`](evidence/narration-sapi.receipt.json) records the selected workstation-local voice materialization: Windows System.Speech, `Microsoft Zira Desktop`, rate `1`, exact cue-fit measurements, repeated exact-output evidence, technical audio facts, and the explicit human-response boundary.
+**Narration authority.** [`timed-text/narration.en.json`](../timed-text/narration.en.json) owns the current nine English cue texts and timing. [`evidence/narration-sapi.receipt.json`](../evidence/narration-sapi.receipt.json) records the selected workstation-local voice materialization: Windows System.Speech, `Microsoft Zira Desktop`, rate `1`, exact cue-fit measurements, repeated exact-output evidence, technical audio facts, and the explicit human-response boundary.
 
-**Byte authority.** Selected picture, narration, and muxed candidate bytes are stored and verified in the local content-addressed cache under `/mnt/d/OrdivonStudio/cache/objects/sha256/...`. P4 additionally retains independently redownload-verified copies in the private Cloudflare R2 bucket `ordivon-artifacts`; [`evidence/r2-replica.receipt.json`](evidence/r2-replica.receipt.json) records the exact object keys and destructive local-loss restore acceptance. An Asset digest without recoverable bytes at the failure boundary being claimed is not sufficient durability evidence.
+**Byte authority.** Selected picture, narration, and muxed candidate bytes are stored and verified in the local content-addressed cache under `/mnt/d/OrdivonStudio/cache/objects/sha256/...`. P4 additionally retains independently redownload-verified copies in the private Cloudflare R2 bucket `ordivon-artifacts`; [`evidence/r2-replica.receipt.json`](../evidence/r2-replica.receipt.json) records the exact object keys and destructive local-loss restore acceptance. An Asset digest without recoverable bytes at the failure boundary being claimed is not sufficient durability evidence.
 
 ## EXPRESS
 
@@ -72,7 +73,7 @@ Three selected exact artifacts now exist and are archived:
    - two independent muxes produced byte-identical output
    - archive key `objects/sha256/7d/7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430`
 
-[`timeline/assembly.v2.otio`](timeline/assembly.v2.otio) is the active A/V review snapshot. v1 remains the prior picture-only milestone; v0 remains historical placeholder assembly evidence.
+[`timeline/assembly.v2.otio`](../timeline/assembly.v2.otio) is the active A/V review snapshot. v1 remains the prior picture-only milestone; v0 remains historical placeholder assembly evidence.
 
 ## AUDIT
 
