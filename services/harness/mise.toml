@@ -104,11 +104,63 @@ uv run python scripts/check_wheel.py "$wheel"
 [tasks."pg:verify"]
 run = """
 set -euo pipefail
-if [[ -z "${HARNESS_PG_TEST_DSN:-}" ]]; then
-  echo 'HARNESS_PG_TEST_DSN is required for real PostgreSQL qualification' >&2
-  exit 2
+# The test suites DROP/TRUNCATE static schema names: only disposable PG DSNs.
+for required in HARNESS_PG_TEST_DSN ORDIVON_PG_BINDING_TEST_DSN ORDIVON_PG_EFFECT_TEST_DSN ORDIVON_PG_WAKE_TEST_DSN ORDIVON_PG_WAKE_BOOTSTRAP_TEST_DSN; do
+  if [[ -z "${!required:-}" ]]; then
+    echo "$required is required for all Harness PostgreSQL consumers" >&2
+    exit 2
+  fi
+done
+uv run --locked python -m pytest -q \
+  tests/test_postgres_harness_store.py \
+  tests/test_postgres_cli.py \
+  tests/test_postgres_conversation_binding.py \
+  tests/test_postgres_turn_effects.py \
+  tests/test_postgres_wake_turn_map.py
+"""
+
+# Candidate model: explicitly run before including it in the existing release gate.
+# Uses Runtime's pinned, shared TLC toolchain and Harness-local model state.
+# This checks abstract safety only; model-to-Python traces have their own tests.
+[tasks."formal:tool-program"]
+run = """
+set -euo pipefail
+runtime_root="$(realpath ../../services/runtime)"
+cached_jar="$(python3 - "$runtime_root" <<'PY_JAR'
+import json
+from pathlib import Path
+import sys
+root = Path(sys.argv[1])
+lock = json.loads((root / 'formal/toolchain.lock.json').read_text())
+print((root / lock['cacheRelativePath']).resolve())
+PY_JAR
+)"
+if ! printenv ORDIVON_TLA_TOOLS_JAR >/dev/null; then
+  if [[ ! -f "$cached_jar" ]]; then
+    "$runtime_root/scripts/tla-formal" bootstrap
+  fi
+  export ORDIVON_TLA_TOOLS_JAR="$cached_jar"
 fi
-uv run --locked python -m pytest -q tests/test_postgres_harness_store.py tests/test_postgres_cli.py
+(
+  cd formal
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY ToolProgramSafetyR1.tla
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config ToolProgramSafetyR1.cfg ToolProgramSafetyR1.tla
+  probe="$(mktemp)"
+  trap 'rm -f "$probe"' EXIT
+  for spec in "unknown:UnknownStopIsUnreachable" "partial:PartialStoppedEffectIsUnreachable" "complete:CompletedProgramIsUnreachable"; do
+    IFS=: read -r label predicate <<< "$spec"
+    if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "ToolProgramSafetyR1.$label-probe.cfg" ToolProgramSafetyR1.tla >"$probe" 2>&1; then
+      echo "ToolProgram $label reachability probe unexpectedly passed" >&2
+      exit 1
+    fi
+    if ! grep -Fq "Error: Invariant $predicate is violated." "$probe"; then
+      cat "$probe"
+      echo "ToolProgram $label probe did not find the expected state" >&2
+      exit 1
+    fi
+    echo "ToolProgram $label counterexample: PASS"
+  done
+)
 """
 
 [tasks.node-qualification]

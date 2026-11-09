@@ -218,11 +218,11 @@ def validate_public_contracts() -> list[str]:
     missing = sorted(REQUIRED_README_HEADINGS - headings)
     if missing:
         errors.append("README lacks headings: " + ", ".join(missing))
-    if "/security/advisories/new" not in (ROOT / "SECURITY.md").read_text():
+    if "/security/advisories/new" not in (ROOT / "SECURITY.md").read_text(encoding="utf-8"):
         errors.append("SECURITY.md lacks private reporting route")
-    if "## Unreleased" not in (ROOT / "CHANGELOG.md").read_text():
+    if "## Unreleased" not in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"):
         errors.append("CHANGELOG.md lacks Unreleased")
-    if "enforcement: strict" not in PROJECT.read_text():
+    if "enforcement: strict" not in PROJECT.read_text(encoding="utf-8"):
         errors.append("project documentation enforcement is not strict")
 
     required_repository_files = (
@@ -321,9 +321,9 @@ def validate_public_contracts() -> list[str]:
     ):
         if stale in data_privacy:
             errors.append(f"DATA_AND_PRIVACY.md retains removed Host-backed state claim: {stale}")
-    for required in ("independent Harness Journal/CAS", "Harness `store-backup`"):
+    for required in ("independent Harness Journal/CAS", "PostgreSQL", "pg_dump"):
         if required not in data_privacy:
-            errors.append(f"DATA_AND_PRIVACY.md lacks current independent-state marker: {required}")
+            errors.append(f"DATA_AND_PRIVACY.md lacks current PG-only state or recovery marker: {required}")
 
     security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
     for stale in ("Harness owns Assignment, Provider Call", "Host CAS and receipts may contain"):

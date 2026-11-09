@@ -594,7 +594,7 @@ def _local_pinned_original_source_graph(directory: Path) -> bool:
         if shallow != "false":
             raise ValueError("pinned original Git DAG has an unqualified shallow boundary")
         return True
-    except OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError:
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
         # A missing/incomplete local *original* graph is not permission to
         # substitute a monorepo commit. Retain remote pinned-source fallback.
         return False
@@ -638,7 +638,7 @@ def _historical_source_checkout() -> Path:
                 "original Harness source HEAD does not match pinned source cut: "
                 f"observed={observed} expected={_HARNESS_ORIGINAL_SOURCE_CUT}"
             )
-    except OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError:
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
         shutil.rmtree(directory, ignore_errors=True)
         raise
     atexit.register(shutil.rmtree, directory, ignore_errors=True)

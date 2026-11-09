@@ -545,7 +545,7 @@ def sha(raw: bytes) -> str:
 def marker(path: Path) -> dict | None:
     try:
         v = json.loads((path / MARKER).read_text())
-    except OSError, json.JSONDecodeError:
+    except (OSError, json.JSONDecodeError):
         return None
     return v if isinstance(v, dict) else None
 

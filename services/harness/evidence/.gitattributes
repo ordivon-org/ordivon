@@ -1,0 +1,4 @@
+# Pinned Harness evidence is compared with exact Git blob bytes.
+# All 139 tracked evidence JSON blobs at fc0fbfdf have LF line endings.
+# Keep that byte identity across Windows core.autocrlf and Linux checkouts.
+*.json text eol=lf

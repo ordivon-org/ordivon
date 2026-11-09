@@ -14,7 +14,7 @@ audience:
   - operator
   - maintainer
   - agent
-updated: 2026-09-21
+updated: 2026-11-07
 summary: Dependency graph, source-level Host boundary, persistent object compatibility and upgrade rules.
 evidence_status: verified
 readiness: READY
@@ -29,9 +29,9 @@ related:
 
 ## Dependency graph
 
-The current Harness base runtime dependency graph is intentionally small and Host-free: the package depends on pinned `httpx==0.28.1` for cancellable DeepSeek HTTP/TLS transport and `jsonschema` for opt-in local structured-result conformance verification. Standard Agent Plugin MCP consumption is an explicit `mcp` standards-adapter extra pinned to the official `mcp==2.3.0` Python SDK; importing the base Harness API does not require that extra. The exact third-party transitive graph is pinned by `uv.lock`. Verification exports a runtime-only, hash-pinned requirements view directly from the lockfile and passes it to the official `pip-audit` without a second maintained dependency snapshot. There is no Host dependency, optional Host extra, or Host development group.
+The current Harness base runtime dependency graph is intentionally small and Host-free: the package depends on pinned `httpx==0.28.1` for cancellable DeepSeek HTTP/TLS transport, `psycopg` for PostgreSQL Journal/CAS, and `jsonschema` for opt-in local structured-result conformance verification. Standard Agent Plugin MCP consumption is an explicit `mcp` standards-adapter extra pinned to the official `mcp==2.3.0` Python SDK; importing the base Harness API does not require that extra. The exact third-party transitive graph is pinned by `uv.lock`. Verification exports a runtime-only, hash-pinned requirements view directly from the lockfile and passes it to the official `pip-audit` without a second maintained dependency snapshot. There is no Host dependency, optional Host extra, or Host development group.
 
-Python support is `>=3.14.7,<3.15`; the owner environment pins exact Python `3.14.7`. Harness follows the newest stable GA Python feature line by default. Preview releases (alpha/beta/RC/nightly) are evaluation targets only; once a newer feature line reaches GA, the default upgrade path is to move to that stable line after owner-native tests, wheel checks, dependency audit, durable-state reopen/recovery checks, and evidence-currentness review pass. A lower-version pin is temporary compatibility debt and must name the blocking dependency/evidence plus an exit condition. Runtime integration is structural through the caller-supplied `HarnessRuntimeClient`; a Runtime server/version is not a Python package dependency.
+Python support is `==3.15.1`; the owner environment pins exact Python `3.15.1`. Harness follows the newest stable GA Python feature line by default. Preview releases (alpha/beta/RC/nightly) are evaluation targets only; once a newer feature line reaches GA, the default upgrade path is to move to that stable line after owner-native tests, wheel checks, dependency audit, durable-state reopen/recovery checks, and evidence-currentness review pass. A lower-version pin is temporary compatibility debt and must name the blocking dependency/evidence plus an exit condition. Runtime integration is structural through the caller-supplied `HarnessRuntimeClient`; a Runtime server/version is not a Python package dependency.
 
 ## Public API
 
