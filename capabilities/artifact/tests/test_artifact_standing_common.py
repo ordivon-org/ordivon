@@ -88,6 +88,91 @@ def test_v1_legacy_stage_preserves_pass_but_exposes_missing_gate_coverage() -> N
         assert result["standingCoverage"]["complete"] is False
 
 
+
+def test_v1_native_failed_required_gate_is_fail_not_unknown() -> None:
+    # Use the actual v1 public stage + native local VSA receipt writer, not a
+    # mocked status projection. A valid FAILED receipt falsifies a required gate;
+    # it is not itself an evidence-integrity error.
+    with tempfile.TemporaryDirectory() as root:
+        directory = Path(root)
+        profile = directory / "profile.json"
+        profile.write_text("{}")
+        subject = directory / "document.docx"
+        subject.write_bytes(b"fixture")
+        hooks = SimpleNamespace(
+            validate_profile=lambda _: {
+                "status": "PASS",
+                "profile": {
+                    "id": "test-v1-failure",
+                    "artifactClass": "document",
+                    "gates": {"profileSchema": True, "structural": True},
+                },
+            },
+            primary_suffix=lambda _: ".docx",
+            verify_openxml_artifact=lambda _: {
+                "status": "FAIL",
+                "validatorOutput": {"validator": {"packageVersion": "test"}},
+                "failures": ["structure invalid"],
+            },
+        )
+        result = stage.execute_verify_stage(
+            profile, subject, directory / "evidence", hooks=hooks
+        )
+        assert result["status"] == "FAIL"
+        native = result["receipts"]["structural"]
+        assert native["status"] == "FAIL"
+        assert native["vsaValidation"]["status"] == "PASS"
+        assert result["standingCoverage"]["failed"] == ["structural"]
+        assert result["standingCoverage"]["verificationStatus"] == "FAIL"
+        assert result["profileVerificationComplete"] is False
+
+
+
+def test_v1_invalid_failed_gate_receipt_is_unknown_not_falsification() -> None:
+    from artifact_verification.evidence import write_gate_receipt
+
+    with tempfile.TemporaryDirectory() as root:
+        directory = Path(root)
+        profile = directory / "profile.json"
+        profile.write_text("{}")
+        subject = directory / "document.docx"
+        subject.write_bytes(b"fixture")
+        hooks = SimpleNamespace(
+            validate_profile=lambda _: {
+                "status": "PASS",
+                "profile": {
+                    "id": "test-v1-untrusted-failure",
+                    "artifactClass": "document",
+                    "gates": {"profileSchema": True, "structural": True},
+                },
+            },
+            primary_suffix=lambda _: ".docx",
+            verify_openxml_artifact=lambda _: {
+                "status": "FAIL",
+                "validatorOutput": {"validator": {"packageVersion": "test"}},
+                "failures": ["structure invalid"],
+            },
+        )
+
+        def corrupt_validation(*args, **kwargs):
+            receipt = write_gate_receipt(*args, **kwargs)
+            if receipt["gate"] == "structural":
+                receipt["vsaValidation"] = {"status": "FAIL"}
+            return receipt
+
+        with mock.patch.object(stage, "write_gate_receipt", side_effect=corrupt_validation):
+            result = stage.execute_verify_stage(
+                profile, subject, directory / "evidence", hooks=hooks
+            )
+        assert result["status"] == "FAIL"
+        assert result["standingCoverage"]["failed"] == ["structural"]
+        assert result["standingCoverage"]["verificationStatus"] == "UNKNOWN"
+        assert result["standingCoverage"]["evidenceIssues"] == [
+            "failed gate lacks validated receipt: structural"
+        ]
+        assert result["profileVerificationComplete"] is False
+
+
 def test_existing_formal_checker_refines_shared_standing_projection() -> None:
     path = Path(__file__).resolve().parents[1] / (
         "artifact_verification/formal/verify_claim_coverage.py"

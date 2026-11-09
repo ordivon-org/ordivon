@@ -360,15 +360,28 @@ def execute_verify_stage(
     }
     generated = set(receipts)
     pending = sorted(required_gates - generated)
+    # A locally validated failed gate is a falsifying observation, not a
+    # receipt-integrity failure. Preserve legacy stage diagnostics separately
+    # from the evidence issues used to determine required-gate Standing.
+    standing_issues = list(failures)
     if executed_failures:
         failures.append(
             "executed verifier gate(s) failed: "
             + ", ".join(sorted(executed_failures))
         )
+        for gate in executed_failures:
+            receipt = receipts[gate]
+            validation = receipt.get("vsaValidation")
+            if receipt.get("status") == "FAIL" and (
+                receipt.get("verificationResult") != "FAILED"
+                or not isinstance(validation, dict)
+                or validation.get("status") != "PASS"
+            ):
+                standing_issues.append(f"failed gate lacks validated receipt: {gate}")
     coverage = assess_required_statuses(
         required_gates,
         {name: item.get("status", "NOT_EVALUATED") for name, item in receipts.items()},
-        issues=failures,
+        issues=standing_issues,
     )
     return {
         "schemaVersion": 1,
