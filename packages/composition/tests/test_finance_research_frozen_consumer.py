@@ -190,7 +190,12 @@ def _gate_result(
 
 
 def _observed_gates(
-    manifest: dict, plan: dict, frozen: dict | None, assessed: dict | None
+    manifest: dict,
+    plan: dict,
+    frozen: dict | None,
+    assessed: dict | None,
+    *,
+    assessment_request: dict | None = None,
 ) -> list[dict]:
     # Source-byte independent output checking; no new Research evaluator.
     if frozen is None or assessed is None:
@@ -208,8 +213,18 @@ def _observed_gates(
                 ).encode("utf-8")
             ).hexdigest()
         )
+        # The assessment must be tied to the *same actual Finance CLI request*
+        # used by the caller below. A free boolean such as submitted_holdout
+        # cannot witness which input was exercised.
+        request_ok = (
+            type(assessment_request) is dict
+            and set(assessment_request) == {"frozen", "result"}
+            and assessment_request["frozen"] == frozen
+        )
+        submitted = request_ok and assessment_request["result"] is not None
         protocol_ok = (
-            set(frozen) == FROZEN_FIELDS
+            request_ok
+            and set(frozen) == FROZEN_FIELDS
             and frozen["schemaVersion"] == 1
             and frozen["kind"] == "ordivon.capital.research.frozen-plan"
             and frozen["planDigest"] == expected_digest
@@ -221,7 +236,10 @@ def _observed_gates(
             and assessed["kind"] == "ordivon.capital.research.evidence-assessment"
             and assessed["externalWriteAllowed"] is False
             and assessed["capitalAllocationAuthorized"] is False
-            and assessed["standing"] in {"UNKNOWN", "REVIEW_REQUIRED"}
+            # Request-specific expectation, without promoting a self-declared
+            # holdout into independent prospective/economic evidence.
+            and assessed["standing"] == ("REVIEW_REQUIRED" if submitted else "UNKNOWN")
+            and assessed["reasons"] == ([] if submitted else ["NO_HOLDOUT_EVIDENCE"])
         )
         protocol_standing = "SATISFIED" if protocol_ok else "UNSATISFIED"
 
@@ -264,7 +282,8 @@ def _holdout(plan_digest: str) -> dict:
 def test_real_finance_freeze_closes_protocol_but_not_economic_validity() -> None:
     plan = _plan()
     frozen = _cli("freeze-experiment", plan)
-    missing = _cli("assess-holdout", {"frozen": frozen, "result": None})
+    missing_request = {"frozen": frozen, "result": None}
+    missing = _cli("assess-holdout", missing_request)
     assert missing["standing"] == "UNKNOWN"
     assert missing["reasons"] == ["NO_HOLDOUT_EVIDENCE"]
 
@@ -298,7 +317,7 @@ def test_real_finance_freeze_closes_protocol_but_not_economic_validity() -> None
     assert resolution["standing"] == "VERIFIER_BINDINGS_RESOLVED"
     assert resolution["domainAcceptanceEstablished"] is False
 
-    results = _observed_gates(manifest, plan, frozen, missing)
+    results = _observed_gates(manifest, plan, frozen, missing, assessment_request=missing_request)
     assert {r["gateId"]: r["standing"] for r in results} == {
         "gate:research-freeze-readonly": "SATISFIED",
         "gate:prospective-investment-validity": "UNKNOWN",
@@ -311,17 +330,19 @@ def test_real_finance_freeze_closes_protocol_but_not_economic_validity() -> None
 
     # A syntactically full, self-declared 'independent' result is not a
     # provider-authenticated prospective performance/effect witness.
-    claimed = _cli(
-        "assess-holdout",
-        {
-            "frozen": frozen,
-            "result": _holdout(frozen["planDigest"]),
-        },
-    )
+    complete_request = {
+        "frozen": frozen,
+        "result": _holdout(frozen["planDigest"]),
+    }
+    claimed = _cli("assess-holdout", complete_request)
     assert claimed["standing"] == "REVIEW_REQUIRED"
     assert claimed["externalWriteAllowed"] is False
     assert claimed["capitalAllocationAuthorized"] is False
-    still_open = evaluate_gate_results(manifest, _observed_gates(manifest, plan, frozen, claimed))
+    completed_protocol = _observed_gates(
+        manifest, plan, frozen, claimed, assessment_request=complete_request
+    )
+    assert completed_protocol[0]["standing"] == "SATISFIED"
+    still_open = evaluate_gate_results(manifest, completed_protocol)
     assert still_open["standing"] == "COMPOSITION_GATES_OPEN"
     assert still_open["domainAcceptanceEstablished"] is False
 
@@ -329,12 +350,15 @@ def test_real_finance_freeze_closes_protocol_but_not_economic_validity() -> None
 def test_forged_authority_and_tampered_frozen_plan_cannot_become_research_pass() -> None:
     plan = _plan()
     frozen = _cli("freeze-experiment", plan)
-    missing = _cli("assess-holdout", {"frozen": frozen, "result": None})
+    missing_request = {"frozen": frozen, "result": None}
+    missing = _cli("assess-holdout", missing_request)
     manifest = _manifest(plan)
     for extra_effect in ("externalWriteAllowed", "capitalAllocationAuthorized"):
         forged = copy.deepcopy(missing)
         forged[extra_effect] = True
-        results = _observed_gates(manifest, plan, frozen, forged)
+        results = _observed_gates(
+            manifest, plan, frozen, forged, assessment_request=missing_request
+        )
         assert results[0]["standing"] == "UNSATISFIED"
         assert evaluate_gate_results(manifest, results)["standing"] == (
             "COMPOSITION_GATES_UNSATISFIED"
@@ -342,11 +366,40 @@ def test_forged_authority_and_tampered_frozen_plan_cannot_become_research_pass()
 
     tampered = copy.deepcopy(frozen)
     tampered["planDigest"] = "sha256:" + "0" * 64
-    rejected = _cli("assess-holdout", {"frozen": tampered, "result": None})
+    tampered_request = {"frozen": tampered, "result": None}
+    rejected = _cli("assess-holdout", tampered_request)
     assert rejected["standing"] == "REJECTED"
-    results = _observed_gates(manifest, plan, tampered, rejected)
+    results = _observed_gates(
+        manifest, plan, tampered, rejected, assessment_request=tampered_request
+    )
     assert results[0]["standing"] == "UNSATISFIED"
     assert evaluate_gate_results(manifest, results)["standing"] == ("COMPOSITION_GATES_UNSATISFIED")
+
+    # A malicious/inaccurate assessment cannot turn absent holdout evidence
+    # into a completed source protocol merely by naming REVIEW_REQUIRED.
+    wrong_missing = copy.deepcopy(missing)
+    wrong_missing["standing"] = "REVIEW_REQUIRED"
+    wrong_missing["reasons"] = []
+    for forged in (wrong_missing, dict(missing, reasons=[])):
+        results = _observed_gates(
+            manifest, plan, frozen, forged, assessment_request=missing_request
+        )
+        assert results[0]["standing"] == "UNSATISFIED"
+        assert evaluate_gate_results(manifest, results)["standing"] == (
+            "COMPOSITION_GATES_UNSATISFIED"
+        )
+
+    # Contradictory request/result pair must never be accepted. The verifier
+    # cannot invent a complete-holdout request after observing an UNKNOWN.
+    complete_request = {"frozen": frozen, "result": _holdout(frozen["planDigest"])}
+    contradictory = _observed_gates(
+        manifest, plan, frozen, missing, assessment_request=complete_request
+    )
+    assert contradictory[0]["standing"] == "UNSATISFIED"
+    assert evaluate_gate_results(manifest, contradictory)["mechanicalClosure"] is False
+    # No exact request is UNKNOWN rather than a successful protocol witness.
+    no_request = _observed_gates(manifest, plan, frozen, missing)
+    assert no_request[0]["standing"] != "SATISFIED"
 
     no_output = _observed_gates(manifest, plan, None, None)
     assert all(r["standing"] == "UNKNOWN" for r in no_output)
