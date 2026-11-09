@@ -1,4 +1,4 @@
-# Game Factory: LEGO-Constrained Agent Execution — Spec R1
+# Game Factory: LEGO-Constrained Agent Execution — Spec R1.1
 
 Status: **implementation spec**, not a new execution authority. Scope: `domains/game/**`; dependent cross-Owner contracts are proposals until those Owners accept them.
 SourceCut: `3b43977e682d8c7668f6371ffd998c7821e4312a`, Game tree `7157e18d3bee2765205687380953dfabf72688a0` (2026-11-09).
@@ -33,7 +33,7 @@ Authoritative references:
 
 - **Product objective:** game behavior or player-visible artifact sought by the consumer. Only Game/product evidence can revise it.
 - **LEGO:** goal-conditioned independently contractable responsibility, not a file/Skill/Tool/Agent.
-- **R2.1 admitted contract:** typed `(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`; use the effective existing Game G07–G11 contracts. An empty/missing G01–G06 R2.1 coordinate is not magically filled by this spec.
+- **R2.1 contract admission:** a declared/admitted responsibility requires a typed eleven-coordinate contract. Existing G07–G11 carry eleven named coordinates, but textual cost/approximation/provenance fields are NOT machine-checked formal types or implementation proofs. Missing G01–G06 coordinates must not be invented.
 - **Verification obligation:** bounded condition, source scope and evidence owned by the actual verifier. Existing Composition `verification-obligation-set-v1` is *non-authoritative* and does not execute checks.
 - **Mechanical result:** Runtime Job/process/test exit and receipts, not product truth.
 - **Domain acceptance:** current Game consumer-observed effect with the specified scope. Automated Game PASS is not player delight or Windows physical gameplay.
@@ -43,7 +43,7 @@ Responsibility split: Game specifies domain properties and its native test entry
 
 ## 4. Effective R2.1 contract — G11 cold-start refinement
 
-This is an **instance/refinement of existing G11**, not new LEGO G12. Source carrier: `planning/lego-plan-r1.json` G11 `recursiveLegoR21`; actual implementation `examples/room-encounter/agent_episode_acceptance.py` and `mise.toml`.
+This is a **task-local proposed refinement with explicit proof duties against existing G11**, not new LEGO G12. Source carrier: `planning/lego-plan-r1.json` G11 `recursiveLegoR21`; actual implementation `examples/room-encounter/agent_episode_acceptance.py` and `mise.toml`.
 
 | Coordinate | Task-local realization |
 | --- | --- |
@@ -136,3 +136,161 @@ See `agent-execution-implementation-plan.md` for exact file paths, commands and 
 ## 8. Genuine stop condition
 
 Ship the smallest native change that satisfies G11-AC-001 through AC-004 and report the actual merge/CI state of AC-005. Do not extend the project to method orchestration, baseline model comparison, speculative verification infrastructure or repeated skill studies.
+
+## 9. Formal foundations R1.1 — adopted theories and their exact scope
+
+This section refines the engineering meaning of the existing Game G11 responsibility; it creates **no additional LEGO, evaluator or global workflow**. The chosen implementation seam remains the real Godot episode entry, and the acceptance relation remains Game-owned. Explicitly avoid weak-model trials and nonconsumer toy verification.
+
+### F1. Assume–guarantee contracts (Benveniste, Pacti, interface automata)
+
+A behavioral component contract is represented by (A,G) over a typed external alphabet and environment. In a closed observation scope:
+
+~~~text
+  A : accepted environment histories / states
+  G : guaranteed histories / states conditional on A
+
+  component satisfies (A,G)
+    iff all concrete observable behaviors under A satisfy G.
+~~~
+
+Pacti offers mature, algebraic assume–guarantee composition and incompatibility diagnostics; invoke it only for a real symbolic contract with representable variables, not as a compulsory Game dependency. For a producer P feeding consumer Q, do not compose on matching field names alone:
+
+- P's outputs are semantically compatible with Q's inputs and protocol order.
+- Under the composed environment, P's guarantee must establish Q's assumption.
+- Composition preserves effect/authority and current source qualifications.
+- If those premises are UNKNOWN, **composition is unproved**, not FALSE.
+
+For behavioral substitution, the candidate should not strengthen required environmental assumptions or weaken guaranteed observations relative to the old contract under the selected refinement relation. Interface Automata (de Alfaro/Henzinger, FSE 2001) explicitly models temporal input assumptions and output guarantees. The fact that two JSON receipts share a schema does not make their protocols substitutable.
+
+**Game G11 seam:** Godot owns scene import, signals, Rule admissions and final state; Python owns launch and inspection, not rules. The required ordering is import → instantiate real scene → accepted actions/Signals → one receipt → test verdict. If Godot import fails, script success must not be considered.
+
+### F2. State transition systems and source-to-model refinement (Lamport / TLA+)
+
+For one native episode define a *specification vocabulary* (not a parallel simulator):
+
+~~~text
+  T = (States, Start, Actions, Step, Observer)
+  Step subset (States × Actions × States)
+  Observer_player : States -> PlayerUI
+  Observer_debug  : States -> RuleSnapshot
+~~~
+
+An implementation refinement claim needs a stated abstraction map from real implementation transitions to this high-level vocabulary, a justified observer, and the needed stuttering/hidden-event treatment for asynchronous Godot Signals. Simply proving a model invariant does **not** prove the implementation respects the mapping.
+
+Where an implementation can make unobservable editor/event-loop transitions, use an explicitly qualified weak/observable trace relation, not raw byte-for-byte trace inclusion:
+
+~~~text
+  Project_visible(Traces(ConcreteNative))
+      subseteq Traces(AbstractGameContract)
+  subject to an independently checked simulation/abstraction bridge.
+~~~
+
+This is a *candidate proof duty*. No universal inclusion, fairness, Windows real-input or player-satisfaction theorem is claimed here.
+
+A bounded native trajectory can, however, expose a useful **local trace invariant** without reimplementing gameplay: the receipt must be a well-formed sequence of the actual native before/after observations. This is implemented in the existing Game acceptance reader in R1.1; it is a source/trace *test*, not a theorem.
+
+### F3. Hoare triples, typestate and observable trace invariants
+
+For a single Game test invocation, the Hoare-style obligation is:
+
+~~~text
+  { clean checkout AND pinned native Godot available }
+      NativeImportThenEpisodeAcceptance
+  { import succeeded AND native-episode-receipt validated }
+~~~
+
+A bounded test proves this obligation only for executed conditions; no total program proof follows automatically. Within a *successful* schema-v2 episode receipt containing actions a[0..n-1], observations s[0..n]:
+
+~~~text
+  s[0] = receipt.initial
+  step[i].before = s[i]
+  step[i].after  = s[i+1]
+  s[n] = receipt.final
+  step[i].action = supplied_action[i]
+
+  DebugRejected(i) => step[i].before == step[i].after
+  DebugTerminal   <=> final.phase in {won, lost}
+~~~
+
+These are *observable consistency obligations* on the actual Godot receipt, not independently specified gameplay rules. They cannot prove that the game is entertaining, or that a malicious provider could not forge internally consistent receipts. Source-owned CI, real native execution and independent review remain distinct.
+
+For the default player-observation channel, only native view fields (title, status, encounter, actions, hint, outcome, dialogue) may occur, and step keys must remain action/before/after only. Debug-only recognized/accepted/control_path must not flow to the player receipt. This is a **bounded output-shape property**; do not describe it as universal information-flow noninterference or a hyperproperty proof.
+
+### F4. CEGAR and counterexample-directed repair
+
+Clarke et al.'s Counterexample-Guided Abstraction Refinement gives the decision order for real discrepancies:
+
+1. Record a concrete failing consumer trace and source version.
+2. Decide whether the counterexample belongs to the concrete implementation, the environment, or only an abstraction.
+3. Repair native implementation if concretely reproducible; refine the model/observer only when an abstract counterexample is spurious.
+4. Repeat the exact affected native test and negative control.
+5. Stop once the scoped real consumer contract holds.
+
+Never hide a genuine Game failure by making the model more permissive, deleting a test, or reporting UNKNOWN as PASS. Never respond to a GPU launch failure by adding more disconnected RuleModel proofs.
+
+### F5. Evidence grades, temporal currentness and trust boundaries
+
+Evidence forms a nontrivial partial order, not one boolean:
+
+~~~text
+  DECLARED  != MODEL_CHECKED != SOURCE_REFINED
+  SOURCE_TESTED != CI_VERIFIED != MERGED
+  MERGED != INSTALLED != RENDERED != HUMAN_CONSUMED
+~~~
+
+A verifier result is meaningful only with matching claim, input, source revision, toolchain, execution environment and observer. A CI green status is proof of that CI's specified check on that SHA, not automatic human Game acceptance. If source, verifier or input changes, revalidate affected obligations; Git history is provenance, not current deployment proof.
+
+Agent-generated code and agent-generated assertions can both drift. For consequential PRs reuse protected GitHub checks, exact SHA, original contract text and native consumer acceptance. A branch-controlled test is not by itself an adversarially independent oracle; do not claim strong unforgeability from workflow execution alone. Review/security policy remains under repository governance, not Game-owned code.
+
+### F6. Role-specific use of Matt, ECC and Superpowers
+
+**Thought LEGOs / advisory methods** (not effect-granting tools):
+- Matt Pocock to-spec: convert already-aligned intent into domain-language behavior and a small number of high consumer test seams; prefer an existing Host Work/GitHub issue rather than creating another task authority.
+- Matt to-tickets / implement-spec: model implementation as dependency-DAG tracer bullets with an executable frontier. Keep one Game delivery branch and use actual native CI; do not require multiple agents for narrow changes.
+- ECC intent-driven-development / contract-first: each material acceptance criterion describes scenario, trigger, observable result, prohibited side effect and actual verifier; keep one canonical provider/consumer wire authority.
+- Superpowers writing-plans / test-driven-development / verification-before-completion: exact file/path/command, watch a valid RED then GREEN, preserve negative controls, and make no completion statement without fresh result.
+- Recursive LEGO R2.1: express the *retained independent responsibility* with all eleven typed coordinates; UNKNOWN is scoped, not fabricated. Only decompose when a real consumer can replace or validate the resulting component.
+- Native engine/CI: owns real effects, builds, visible UI and independent execution receipts. Thinking methods cannot establish domain success.
+
+**Do not install ECC stop hooks blindly:** its generic transcript regex / last-edited-learning-file criteria may reward the wrong work. Do not fork the Matt issue tracker, copy all Superpowers rules into the repository root, or add another Composition task schema.
+
+### F7. Applicability and complete implementation DAG
+
+| Stage | Existing carrier | Evidence / completion | Failure consequence |
+| --- | --- | --- | --- |
+| P0 source and consumer | Git, Game Agent, G11 effective R2.1 | SHA, playable/episode objective | STOP if no actual consumer |
+| P1 specify the seam | This scoped Game spec + G11 contract | explicit observable obligations | retain UNKNOWN on missing assumptions |
+| P2 native realization | Godot episode + Python reader + mise task | RED → GREEN against actual engine | repair/replace native interface |
+| P3 trace refinement testing | Game acceptance reader, not standalone simulation | chain, rejection, terminal, player/public shape + negative mutations | fail on incoherent native receipt |
+| P4 independent integration | GitHub PR native-g11-contract + root and CodeQL | exact SHA, successful required checks | no merged claim before mergedAt |
+| P5 installed/product/human | Game Factory release, real binary, player evidence | actual qualified readback | do not promote CI to player truth |
+| P6 cross-owner reuse | existing Composition obligations when needed | actual verifier-owned consumer witness | no custom generic runner or catalog |
+
+No times, agent-count target, or completion-percent target is an acceptance property. Internal meta-rules cannot substitute for measured product behavior.
+
+### F8. Primary literature and official implementations
+
+- Pacti, Incer et al., ACM Transactions on Cyber-Physical Systems 2025, DOI 10.1145/3704736: https://doi.org/10.1145/3704736
+- Pacti official assume-guarantee contract API and composition diagnostic: https://www.pacti.org/docs/getting_started/
+- de Alfaro & Henzinger, Interface Automata, FSE 2001, DOI 10.1145/503209.503226: https://doi.org/10.1145/503209.503226
+- Clarke, Grumberg, Jha, Lu & Veith, Counterexample-Guided Abstraction Refinement: https://web.stanford.edu/class/cs357/cegar.pdf
+- Lamport, TLA+ refinement mappings: https://lamport.azurewebsites.net/tla/proving-safety.pdf
+- Lamport et al., Specifying and Verifying Systems With TLA+: https://lamport.azurewebsites.net/pubs/spec-and-verifying.pdf
+- Existing Ordivon method authority: ../../../.agents/skills/recursive-lego-calculus/SKILL.md (relative to this Game docs directory).
+- Source Skills: https://github.com/mattpocock/skills ; https://github.com/affaan-m/ECC ; https://github.com/obra/superpowers
+
+## 10. Space collaboration and exact social/effect separation
+
+Host Space: space:ordivon-capability-task-forum-r1:20261101; topic:ordivon-capability-task-forum-r1:03-refinement:20261101. Message sequence 25746 (2026-11-09) requests peer challenge on G11 trace refinement, stuttering/fairness, CI independent witness, overlap and DELETE/REUSE. Peer replies are advisory evidence until source-bound, independently falsified and adopted by the natural Game owner; neither Space membership nor a message grants Git or production authority. Do not pretend there was a peer response if none has arrived.
+
+## 11. R1.1 addition: actual native trace-contract refinement
+
+**G11-AC-006 (required for new reader change):** For each successfully completed schema-v2 native episode invoked through the existing acceptance reader, check input/action cardinality, observation continuity, final state and (debug only) rejection stability and terminal projection; default player observations remain limited to the existing UI schema. No new gameplay interpreter.
+
+**G11-AC-007 (required):** Build negative controls by mutating the *captured real Godot receipt*, not by inventing a second Game rule machine. The reader must reject a broken observation boundary and falsely rejected state-mutating action. Re-run the actual native episode tests after the mutation-only checks.
+
+Completion for R1.1 includes an actual Git commit and independent PR check on the exact revision; the previously completed R1 import fix remains independently bounded. The result may still be OPEN in a merge queue and must be reported as such.
+
+## R1.1 convergence and overlap decision
+
+Source-read on 2026-11-09: global Agent execution specifications in PR #1965 and PR #1973 are merged. PR #1977 and #1978 still overlap that cross-Owner method/governance surface. This Game-local document is NOT another global Agent execution authority. Its only new program obligation is the G11 real-native trace consumer. Host Space formal-refinement topic message #25746 requests independent challenge; participant messages are advisory and do not replace Git, proofs or actual Game native acceptance.

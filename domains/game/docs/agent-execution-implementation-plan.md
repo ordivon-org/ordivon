@@ -1,4 +1,4 @@
-# Game LEGO-Constrained Execution — Implementation Plan R1
+# Game LEGO-Constrained Execution — Implementation Plan R1.1
 
 > Agent workers: read [spec](agent-execution-contract-spec.md), root `AGENTS.md`, Game `AGENTS.md`, and existing G11 R2.1 before changing code. Use Superpowers' small red/green steps and verification-before-completion where applicable; this plan is not a new authority or runtime.
 
@@ -76,3 +76,40 @@ A: native G11 red->green repair
 ## Completion checks
 
 Required for the implemented Slice A/B: `G11-AC-001..004` observed in the same disposable Game workspace. `G11-AC-005` requires an accurate integration status report. The broader idea that all Ordivon tasks now enforce independently compiled contracts is explicitly NOT claimed.
+
+## R1.1 task extension — source-bound receipt trace refinement
+
+Dependency: A/B/C above form the verified G11 import and CI seam. R1.1 builds only on that same natural Game consumer, without introducing G12, another runnable verifier or a universal output schema.
+
+### Task E — Make the current native output reader test observable trace coherence
+
+**Files:** Modify only Game's existing `examples/room-encounter/agent_episode_acceptance.py`. Preserve the native `agent_episode.gd` and `EncounterRules`. No workflow/runner changes.
+
+**Input:** One actual successful `episode(actions, observation)` return with schema-v2 JSON, 0..64 native actions, player/debug mode. **Output:** positive verdict for coherent actual native receipt; assertion on inconsistent trace, rejected-state mutation, unknown debug fields leaking into player channel.
+
+- [ ] E1. RED: add a focused negative mutation of a real native captured debug receipt, changing a valid observation's next `before` to an inconsistent value. The acceptance reader must reject it rather than passing. Also mutate an accepted state-changing action to `accepted=false`; rejection must be detected.
+- [ ] E2. Define one small pure reader function `assert_native_trace_contract(receipt, actions, mode)` beside `episode`, no additional library/framework. Validate schema version, matching action sequence, before/after chain, final observation, debug rejected-state immutability, debug terminal phase, and public player field/step whitelist. Keep error receipts separate.
+- [ ] E3. Run all previous native 19 episodes through that single function, including debug/player and invalid/empty/terminal cases. Execute negative mutations explicitly and confirm they are rejected, with original receipt unmodified.
+- [ ] E4. Run `mise run test:agent-episode` after deleting only ignored workspace cache. Expected final Game native receipt and no branch-local changes outside affected files.
+- [ ] E5. Run `mise run verify` and `actionlint .github/workflows/game-factory.yml`; bind result to exact commit, then push to the existing Game PR if it remains open. If the PR has merged, create a new source-current Game branch and PR instead of rewriting main.
+
+**Proof scope:** bounded native Game receipt consistency, *not* algorithmic correctness of EncounterRules or universal noninterference. This is test-based code-to-observation refinement evidence with a real Godot producer; no fabricated model/proof stand-in.
+
+### Task F — Source/Space peer review and integration
+
+**Files:** This Spec/plan and exact touched Game source. **Effect authority:** GitHub PR checks/merge queue; Host Space is advisory only.
+
+- [ ] F1. Read Host formal refinement topic and any peer challenge tied to message sequence 25746. Record actual replies as findings; retain UNKNOWN if no reply.
+- [ ] F2. Check overlap against latest Game/Composition source and open PRs; avoid concurrent ownership of the same files.
+- [ ] F3. Ensure external mathematics/CS sources support the scoped statements and the chosen testing seam, with no claim that a local test is a universal proof.
+- [ ] F4. Review actual Git diff/source currentness, commit and push; identify PR check status. Do not call OPEN merged; do not call CI human gameplay.
+- [ ] F5. Stop at Game consumer closure. Cross-owner Composition changes require their own real consumers and natural owner.
+
+## Actual execution ledger (2026-11-09)
+
+- Original R1 is MERGED on GitHub: PR #1969 merged 2026-11-09T15:32:15Z, exact head 02425d546d639e51cc5444604525b16463b3a102; native Godot RED/GREEN and full Game verification passed.
+- E1 RED: native captured receipt mutation checks failed to run before the new reader function existed (NameError); real source/engine behavior supplied the original receipt.
+- E2/E3/E4 GREEN: existing Game reader now checks the actual native receipt state chain, rejected action immutability, terminal phase and player-only output; both tampered native receipts are rejected; 19 native Godot episodes PASS. No separate Game simulator.
+- E5 local native owner verify EXIT0 (Z3/Godot/Bevy/R7), actionlint EXIT0. Independent follow-up GitHub PR status is recorded separately after publication.
+- F1/F2 cross-agent: Host Capability & Verification formal-refinement message #25746 posted; independent peers identified overlapping global #1965/#1973 merged specs and #1977/#1978 open overlap. Do not add another cross-Owner source of authority; only Game G11 code changes.
+- F4/F5 completion depends on the exact follow-up Git commit/PR and its check standing; source/Git/CI success is not installed or human-play acceptance.
