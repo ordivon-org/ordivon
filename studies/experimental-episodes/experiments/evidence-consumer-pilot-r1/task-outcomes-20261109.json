@@ -1,0 +1,115 @@
+{
+  "contract": {
+    "assignment": [
+      "control",
+      "evidence",
+      "evidence",
+      "control"
+    ],
+    "budget": {
+      "codexSandbox": "workspace-write",
+      "perRunTimeoutSeconds": 110,
+      "sameTask": true
+    },
+    "consumer": "HARNESS-REPO-REPAIR-001",
+    "informationSourceSha256": "sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
+    "kind": "ordivon.research.data-to-harness-real-task-ab-r1",
+    "nonClaims": [
+      "Episode aggregates are not actionable individual repair experiences",
+      "Single task repeated four times is not independent held-out generalization",
+      "Provider model usage/costs unavailable from this record",
+      "The task-level outcome oracle remains external and inaccessible to the model"
+    ],
+    "question": "Does a verified historical Episode aggregate improve exact task success on this one qualified coding task?",
+    "studyReceiptSha256": "sha256:e5e2c6bd8801c266dc6e94f80ca30fbaf62ef9240b7dce816f73634259d1d57d",
+    "task": {
+      "hiddenVerifierDigest": "sha256:65599a7f620009d016844e23b8a7b3fadb1b6a66f7c4cc6250409b21373b8007",
+      "nativeHarnessTaskQualification": "PASS",
+      "sourceEnvironmentDigest": "sha256:f138518c20e3fea3e1a6f88478e78ab73da92fda22b882516c1cc48ad6943453",
+      "taskDefinitionDigest": "sha256:a841ff3e6f6d0796d4e5e0fbc1595abad1a43833eace4bcd71f406889693eb4b",
+      "taskId": "HARNESS-REPO-REPAIR-001"
+    }
+  },
+  "runs": [
+    {
+      "agentFinalSha256": "sha256:8cd7819eb2a9396e6aa3c73b96428609e897940f52b8df2dc104a555930e165c",
+      "arm": "control",
+      "elapsedSeconds": 36.896,
+      "modelVersionHint": "gpt-6.1-sol",
+      "result": {
+        "changedPaths": [
+          "allocation.py",
+          "artifacts/completion.json"
+        ],
+        "completionArtifactPresentAndParsable": true,
+        "hiddenPassed": false,
+        "modifiedSourceSha256": "sha256:f7cc8dec7b0d05af71ed1bb2052b7799991d29d53fc9ee865cff22af9844a68c",
+        "protectedSourceUnchanged": true,
+        "taskSucceeded": false,
+        "visiblePassed": true
+      },
+      "run": 1,
+      "status": "MODEL_EXECUTED"
+    },
+    {
+      "agentFinalSha256": "sha256:24495f3f39b86f70ff532ad20bb0e9a2befb60abcd28def851af7b93073ce195",
+      "arm": "evidence",
+      "elapsedSeconds": 28.267,
+      "modelVersionHint": "gpt-6.1-sol",
+      "result": {
+        "changedPaths": [
+          "allocation.py",
+          "artifacts/completion.json"
+        ],
+        "completionArtifactPresentAndParsable": true,
+        "hiddenPassed": false,
+        "modifiedSourceSha256": "sha256:f7cc8dec7b0d05af71ed1bb2052b7799991d29d53fc9ee865cff22af9844a68c",
+        "protectedSourceUnchanged": true,
+        "taskSucceeded": false,
+        "visiblePassed": true
+      },
+      "run": 2,
+      "status": "MODEL_EXECUTED"
+    },
+    {
+      "agentFinalSha256": "sha256:24495f3f39b86f70ff532ad20bb0e9a2befb60abcd28def851af7b93073ce195",
+      "arm": "evidence",
+      "elapsedSeconds": 31.961,
+      "modelVersionHint": "gpt-6.1-sol",
+      "result": {
+        "changedPaths": [
+          "allocation.py",
+          "artifacts/completion.json"
+        ],
+        "completionArtifactPresentAndParsable": true,
+        "hiddenPassed": false,
+        "modifiedSourceSha256": "sha256:655530345acd064fd6488ab131c13ead515c0d83983115c6ffbb46cba794b7e7",
+        "protectedSourceUnchanged": true,
+        "taskSucceeded": false,
+        "visiblePassed": true
+      },
+      "run": 3,
+      "status": "MODEL_EXECUTED"
+    },
+    {
+      "agentFinalSha256": "sha256:c089a525f51ce175b498e60f80454a5c73bf009d0ca3756120f18bbe5def1f77",
+      "arm": "control",
+      "elapsedSeconds": 30.041,
+      "modelVersionHint": "gpt-6.1-sol",
+      "result": {
+        "changedPaths": [
+          "allocation.py",
+          "artifacts/completion.json"
+        ],
+        "completionArtifactPresentAndParsable": true,
+        "hiddenPassed": false,
+        "modifiedSourceSha256": "sha256:55bdccbb9cde2b390d00425ada529799167792c06f31e8bcaf6a570b2b2ec829",
+        "protectedSourceUnchanged": true,
+        "taskSucceeded": false,
+        "visiblePassed": true
+      },
+      "run": 4,
+      "status": "MODEL_EXECUTED"
+    }
+  ]
+}

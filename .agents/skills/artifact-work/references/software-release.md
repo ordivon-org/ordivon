@@ -24,4 +24,4 @@ This profile validates a software release artifact; it does not build the softwa
 
 ## Source evidence
 
-`/root/projects/ordivon/capabilities/artifact/docs/ARTIFACT_FAMILY_SOFTWARE_RELEASE_R1.md`
+[Historical family evidence](../../../../capabilities/artifact/docs/ARTIFACT_FAMILY_SOFTWARE_RELEASE_R1.md)

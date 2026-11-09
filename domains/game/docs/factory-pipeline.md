@@ -22,7 +22,7 @@ Either deliver a runnable product slice bound to source+assets+tests, or stop th
 
 **Delivered factory batch 02 — Beacon Relay:** The independent Godot game uses the pinned official Godot demo for Player movement, RigidBody enemy physics, InputMap, HUD, sound and source art. Native Godot content and display glue compose a four-delivery risk/return loop with increasing hazards, real collision loss, win and replay. test:beacon drives all deliveries through native input and physics. factory:package:beacon exports Linux/Windows previews with upstream MIT/OFL/CC-BY attribution. This is a second full game product, not a mechanic catalog.
 
-**Supported native line B — Bevy executable:** mise run factory:validate:bevy runs the existing locked Cargo/ECS tests and Orbit rules model. mise run factory:build:bevy builds a native executable. No cross-platform Bevy installer is claimed until a real release consumer exists.
+**Supported native line B — Bevy executable and Linux distribution:** mise run factory:validate:bevy checks the pinned Cargo/ECS consumer and Orbit rules model. mise run factory:build:bevy creates the correctly named native binary, ordivon-orbit-collector. mise run factory:package:orbit-linux runs the native game under Xvfb when available, packages a runnable Linux x86-64 archive with source receipt, instructions and licensing, and has an independent path-triggered GitHub job. This does not claim cross-platform installer or Human play evidence.
 
 **Whole owner** mise run verify remains the monorepo-required source gate; the optional GitHub Game factory action publishes technical-preview artifacts. It does not weaken or bypass existing required checks.
 
@@ -41,3 +41,12 @@ Factory performance is the throughput of **complete usable build compositions**,
 - GameCI engine-native build patterns: https://game.ci/docs/cli/build/
 
 Historical pre-November Game product/VOI and mechanism-search papers have been retired from the current tree; their frozen claims remain in Git only. R7 research protocol/source and its consumed schema are retained under the dedicated study consumer, never used as this production scheduler.
+
+
+**Edition 001 consumption:** long-lived GitHub pre-release
+https://github.com/ordivon-org/ordivon/releases/tag/game-factory-edition-001-20261109-a2598a2c
+contains both Godot games for Linux/Windows. The released binaries were read back from
+GitHub and started on Linux and in the Windows 11 service's native headless environment;
+the latter is NOT Windows foreground Human input/audio/GPU evidence.
+Actual players can report version-bound observations through the repository's native
+game-player-feedback issue template. No custom feedback database is introduced.

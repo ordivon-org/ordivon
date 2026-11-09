@@ -205,7 +205,7 @@ class LifecycleTests(unittest.TestCase):
                     definition = source["classes"][name]
                     self.assertIs(definition["forceCloseDirtyAfterRetention"], False)
                     self.assertIs(definition["forceCloseAfterMaxLifetime"], False)
-                    self.assertEqual(definition["retentionHours"], 24)
+                    self.assertEqual(definition["retentionHours"], 4)
                     old = int(time.time() * 1000) - 100 * 3_600_000
                     standing = self.module["_policy_standing_from_registry"](
                         {"classification": "blocked_dirty", "createdUnixMs": old, **definition},
@@ -650,7 +650,7 @@ class LifecycleTests(unittest.TestCase):
         by_id = {item["workspaceId"]: item for item in report["candidates"]}
         self.assertEqual(by_id["ws-alpha"]["lastActivityUnixMs"], 2)
         self.assertEqual(by_id["ws-alpha"]["activityMarker"], "sha256:" + "a" * 64)
-        self.assertEqual(by_id["ws-alpha"]["retentionHours"], 24.0)
+        self.assertEqual(by_id["ws-alpha"]["retentionHours"], 4.0)
         self.assertEqual(by_id["ws-beta"]["retentionHours"], 48.0)
 
     def test_open_record_accepts_identity_derived_from_record_location(self) -> None:
@@ -1539,7 +1539,7 @@ class LifecycleTests(unittest.TestCase):
             report = json.loads(result.stdout)
             item = report["candidates"][0]
             self.assertEqual(item["retentionClass"], "ephemeral")
-            self.assertEqual(item["retentionHours"], 24.0)
+            self.assertEqual(item["retentionHours"], 4.0)
             self.assertEqual(item["lastActivityUnixMs"], 2_000)
             self.assertEqual(item["retentionBasisUnixMs"], 2_000)
             self.assertTrue(item["policyEligible"])
@@ -2535,7 +2535,7 @@ class LifecycleTests(unittest.TestCase):
 
     def test_default_policy_reclaims_clean_but_preserves_dirty_without_owner_disposition(self) -> None:
         ephemeral = self.module["DEFAULT_POLICY"]["classes"]["ephemeral"]
-        self.assertEqual(ephemeral["retentionHours"], 24.0)
+        self.assertEqual(ephemeral["retentionHours"], 4.0)
         self.assertEqual(ephemeral["dirtyRetentionHours"], 48.0)
         self.assertEqual(ephemeral["maxLifetimeHours"], 48.0)
         self.assertFalse(ephemeral["forceCloseDirtyAfterRetention"])
@@ -2549,7 +2549,7 @@ class LifecycleTests(unittest.TestCase):
             )
         )
         ephemeral = policy["classes"]["ephemeral"]
-        self.assertEqual(ephemeral["retentionHours"], 24)
+        self.assertEqual(ephemeral["retentionHours"], 4)
         self.assertEqual(ephemeral["dirtyRetentionHours"], 48)
         self.assertEqual(ephemeral["maxLifetimeHours"], 48)
         self.assertFalse(ephemeral["forceCloseDirtyAfterRetention"])
