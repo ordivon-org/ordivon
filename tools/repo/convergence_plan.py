@@ -47,7 +47,7 @@ def _digest(path: Path) -> str:
 def load_dependency_graph(
     owners: tuple[affected_owners.Owner, ...] = affected_owners.OWNERS,
     path: Path = DEPENDENCY_PATH,
-    *, test_only_consumers: list[tuple[str, str]] | None = None,
+    *, test_only_consumers: list[tuple[str, str, str]] | None = None,
 ) -> dict[str, set[str]]:
     names = {owner.name for owner in owners}
     graph = {name: set() for name in names}
@@ -171,7 +171,7 @@ def load_dependency_graph(
             ):
                 raise ValueError("unapproved test-only source contract")
             if test_only_consumers is not None:
-                test_only_consumers.append((left, right))
+                test_only_consumers.append((left, right, fragment))
             continue
         graph[left].add(right)
         graph[right].add(left)
@@ -334,13 +334,27 @@ def build_plan(
     direct = affected_owners.owners_for_paths(paths, owners=owners)
     direct_names = tuple(owner.name for owner in direct)
     cross_cutting = _is_cross_cutting(paths)
-    test_only_consumers: list[tuple[str, str]] = []
+    test_only_consumers: list[tuple[str, str, str]] = []
     graph = load_dependency_graph(
         owners=owners, path=dependency_path, test_only_consumers=test_only_consumers,
     )
-    supplemental = tuple(sorted({
-        consumer for consumer, provider in test_only_consumers if provider in direct_names
-    }))
+    # A test-only edge is not a whole-owner product dependency. Select the
+    # consumer only when its exact declared producer file (or declared
+    # directory prefix) is changed, never for unrelated provider files.
+    supplemental = tuple(
+        sorted(
+            {
+                consumer
+                for consumer, provider, fragment in test_only_consumers
+                if provider in direct_names
+                and any(
+                    path == fragment
+                    or (fragment.endswith("/") and path.startswith(fragment))
+                    for path in paths
+                )
+            }
+        )
+    )
 
     if cross_cutting:
         verification_names = tuple(sorted(owner.name for owner in owners))

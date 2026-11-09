@@ -236,3 +236,19 @@ source_glob = "packages/composition/tests/test_finance_contractual_execution_con
 allowed_fragment = "domains/capital/scripts/strategic_contribution_brief.py"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_contractual_execution_consumer.py"
+allowed_fragment = "domains/capital/src/ordivon_capital/portfolio/strategic_contribution.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+[[seams]]
+from_owner = "composition"
+to_owner = "capital"
+source_glob = "packages/composition/tests/test_finance_contractual_execution_consumer.py"
+allowed_fragment = "domains/capital/examples/strategic_contribution_r1.json"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
