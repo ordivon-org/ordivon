@@ -109,8 +109,7 @@ In neither case recreate the retired EF6 resolver.
 The claimant audit on 2026-09-19 found no production or documentation consumer for the former
 `planning/lego-plan-r1.json` planning ontology or the active
 `RUNTIME_WINDOWS_EXECUTION_FABRIC_LEGO_R1.md` execution-plan carrier. Their current content was
-already owned by this standards-first correction, `AUTHORITY_STANDARD_MIGRATION_R1.md`, and the
-R6c acceptance evidence. Both active custom carriers were therefore deleted rather than revised
+already owned by this standards-first correction and the R6c acceptance evidence. Both active custom carriers were therefore deleted rather than revised
 into another Ordivon-specific schema. Historical documents explicitly marked `RETIRED` remain only
 as migration evidence and are not architecture authority.
 

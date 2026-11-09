@@ -40,12 +40,10 @@
 ab1ff4d671aeff42081d8d5a3c773a0ef4c7cc8a:evidence/harness-r3-static-composition-admission-4e9d4b9.json:generic-api-key:67
 ace0aee2b28d8f5dfcc8ebf41d1cea7d1ee36a93:domains/game/test/provider-preflight.test.ts:generic-api-key:67
 b2e4d37828e0ea6d6f423a8835202e0ddf786c5a:crates/ordivon-runtime-mcp/src/access_auth.rs:private-key:143
-b915fdcd16814138647efc51eaa234afbf6abbb6:docs/architecture/GATEWAY_C02_PUBLIC_CUTOVER_ACCEPTANCE_20260921.md:generic-api-key:64
 c120fc87badfe52c81277f9c4ba19f93e5cfe0cd:meta/next/migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
 capabilities/artifact/artifact-delivery/shadow-bindings/software-release-oci-image-local-r1.json:generic-api-key:52
 capabilities/artifact/artifact-delivery/toolchain-v1.lock.json:generic-api-key:27
 capabilities/distribution/evidence/r5-carrier-coverage-20260912.json:cloudflare-api-key:32
-docs/architecture/GATEWAY_C02_PUBLIC_CUTOVER_ACCEPTANCE_20260921.md:generic-api-key:64
 domains/game/experiments/veilwild-r1/godot/modules/f12/camouflage_binding.gd:generic-api-key:9
 e017cf39cadbcebc983089b1d208ddb859e3d1ea:services/runtime/crates/ordivon-runtime-mcp/src/access_auth.rs:private-key:143
 e8f2b0f8d47c7def9eef63946413ca6af4a4e6d3:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-E2E-R1.json:generic-api-key:107
@@ -79,7 +77,4 @@ services/runtime/crates/ordivon-runtime-mcp/src/access_auth.rs:private-key:167
 # Stable pseudonymous Cloudflare Access principal identity (principal:cf-access:<sha256-like hex>);
 # this is identity evidence, not the Access assertion, token, secret, or signing material.
 394409b9201876f51435946765fdd7e58ce6dbfa:docs/architecture/e01-e02-trace-identity-acceptance-20260921.json:generic-api-key:66
-394409b9201876f51435946765fdd7e58ce6dbfa:docs/architecture/E01_E02_TRACE_IDENTITY_ACCEPTANCE_20260921.md:generic-api-key:186
 docs/architecture/e01-e02-trace-identity-acceptance-20260921.json:generic-api-key:66
-docs/architecture/E01_E02_TRACE_IDENTITY_ACCEPTANCE_20260921.md:generic-api-key:186
-docs/architecture/E01_E02_TRACE_IDENTITY_ACCEPTANCE_20260921.md:generic-api-key:188
