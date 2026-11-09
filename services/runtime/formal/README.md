@@ -333,7 +333,7 @@ not the current installed Runtime.
 The existing upstream-locked TLA+/TLC owner tool is reused by
 mise run formal:verify. Scoped properties:
 
-- FreshActiveConsumerCannotBeClosed: inside the 24h fresh-state abstraction,
+- FreshActiveConsumerCannotBeClosed: inside the 4h fresh-state abstraction,
   close requires an honest finished-and-released consumer.
 - ClosedHasNoLiveJob and ClosedHasNoGitDependent: existing native close
   exclusions remain independent of any release.
@@ -370,6 +370,27 @@ spoofed-release negative controls. Maintain one present-day model for
 this Owner safety obligation, not duplicate finite proof registries.
 
 No second solver, custom formal DSL, new scheduler or global registry is added.
+
+
+**2026-11-09 formal-first extension.** The separate
+WorkspaceConsumerCloseR1.liveness.cfg checks
+StableEligibleEventuallyClosed under the explicitly assumed weak fairness
+WF_vars(Close). That property says only this: if the *abstract* Close
+preconditions become permanently true and the Close transition receives weak
+fair scheduling, the model cannot stutter forever instead of closing. It
+does not imply native systemd, PG or other consumers are guaranteed to finish.
+
+The existing age-based abstraction still permits a concrete finite
+counterexample in which age="expired", consumer="active", released=FALSE
+and Close transitions phase to "closed". The named falsifier
+ExpiredActiveConsumerCannotBeClosed is intentionally NOT in the normal
+invariant configuration until a real consumer/lease/disposition contract and
+Rust/PG refinement justify making it true. The falsify command checks both
+this age-only trace and a fairness-removal temporal counterexample; parser
+failure or a generic nonzero exit is never accepted as proof. These witnesses
+are design obligations, not evidence that installed Runtime deleted a
+particular live consumer.
+
 
 ## PostgreSQL R06 failed-cutover abort before PG authority (CEGAR)
 
