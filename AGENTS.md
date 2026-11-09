@@ -27,6 +27,8 @@ mandatory workflow. The rules below govern consequential changes.
 15. **Agent decision evidence:** distinguish OBSERVED, DECLARED, DERIVED, VERIFIED, UNKNOWN and FALSIFIED with provenance and currentness. Treat hypotheses and predictions as candidates; consider rival explanations and value of further evidence where material. A model belief, Skill read, evidence graph or Tool discovery never confers effect authority. Finish real work with implementation or justified subtraction, actual execution/observation, affected verification and repair; report explicit remaining UNKNOWN rather than fictitious success.
 16. **Integration discipline:** compare current main, relevant branches/PRs and actual consumers before retaining changes. For cross-Owner or PR-sized work, exchange evidence and counterexamples in the existing Space when useful; a message or Owner opinion is not a proof or a permission gate. Prefer the smallest verified contribution and retire superseded code rather than accumulating parallel implementations.
 
+For a nontrivial engineering-delivery task with an identified consumer, the existing [engineering-delivery method route](.agents/skills/method-router/references/engineering-delivery.md) describes optional upstream-derived spec → vertical tickets → native TDD/review/verification without replacing Owner tools. This is not mandatory for routine edits and creates no additional workflow or effect authority.
+
 ## Evidence-backed detailed reporting and handoffs
 
 When a user requests a detailed progress/completion report, or when handing off a

@@ -28,6 +28,10 @@ Do not activate every method merely because it exists. Do not turn the method ca
 8. If no existing method fits, do not invent a new reusable method immediately. Perform a bounded ad-hoc analysis, record the gap, and promote a new Skill only after repeated evidence that the gap is durable.
 9. Stop routing once the next method set is clear. The router must not absorb the method's actual analysis.
 
+## Engineering implementation route (only on demand)
+
+When a scoped consequential change needs a spec, vertical implementation tickets, native verification and two-axis review, see [engineering-delivery](references/engineering-delivery.md). This selectively adapts Matt Skills, ECC and Superpowers to existing Owner tools; it is not a new workflow engine or a mandatory stage for routine work.
+
 ## Typical routes
 
 - unclear system boundary / system-of-systems / interface inventory -> systems-engineering

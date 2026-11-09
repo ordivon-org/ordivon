@@ -456,3 +456,24 @@ def test_gate_closure_matches_exhaustive_bounded_status_algebra() -> None:
                 assert projection[field] == [
                     f"gate:bounded-{i}" for i, value in enumerate(mandatory) if value == status
                 ]
+
+
+def test_gate_evidence_cannot_survive_objective_anchor_change() -> None:
+    """A candidate cannot reuse a SATISFIED receipt after weakening the goal."""
+    original = valid_manifest()
+    old_result = gate_result(original)
+    revised = copy.deepcopy(original)
+    revised["objectiveRef"]["digest"] = _digest("changed-objective")
+
+    with pytest.raises(CircuitContractError, match="manifest digest"):
+        evaluate_gate_results(revised, [old_result])
+
+
+def test_gate_satisfaction_does_not_automatically_establish_consumer_success() -> None:
+    """Composition proof and domain acceptance are distinct responsibility seams."""
+    manifest = valid_manifest()
+    projection = evaluate_gate_results(manifest, [gate_result(manifest)])
+
+    assert projection["mechanicalClosure"] is True
+    assert projection["domainAcceptanceEstablished"] is False
+    assert projection["standing"] == "COMPOSITION_GATES_SATISFIED"
