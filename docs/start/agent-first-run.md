@@ -44,7 +44,22 @@ passing a Runtime Job workspace ID as if it were a Skills project key.
 Skill activation supplies instructions only; real tools/effects are still
 owned by their natural providers.
 
-## 3. Complete one concrete, bounded task
+## 3. Discover tools under the real execution identity
+
+For local software, use the [Workstation live-inventory guide](../../platform/workstation/inventory/README.md)
+and choose the **actual node and Runtime identity** before probing. The
+read-only `probe_executables.py` reports PATH resolution only; missing from
+PATH never proves the application is not installed. A Windows service context
+and the interactive desktop user can have different tools and PATH entries.
+
+For semantic tool selection, use [Capability Catalog](../../catalogs/capabilities/README.md)
+and the natural Owner's native entrypoint. Skills search/resolve/read supplies
+**advisory procedures**; it does not install a CLI, establish connected MCP
+availability, confer provider authority, or satisfy domain acceptance.
+Use live MCP tool definitions, actual CLI help and `mise tasks ls` for
+arguments, then verify the final consumer's result.
+
+## 4. Complete one concrete, bounded task
 
 Using an already allocated isolated Workspace (or a separate Git worktree
 when the Runtime owner is not available), from the repository root:
@@ -60,7 +75,7 @@ Inspect the JSON output. Require `standing=READ_ONLY_PROJECTION`,
 sample. If this is a code change, follow with the focused consumer test and
 `mise run verify` from `domains/capital` before claiming Owner acceptance.
 
-## 4. Distinguish kinds of evidence
+## 5. Distinguish kinds of evidence
 
 | Observation | What it supports | What it does not prove |
 | --- | --- | --- |
@@ -74,7 +89,7 @@ accepted effect contract and identity; never infer approval from an Agent Skill
 or a read-only analysis. Domain success needs a relevant consumer readback or
 independent acceptance evidence.
 
-## 5. Report and hand off
+## 6. Report and hand off
 
 Record the natural owner, exact source revision, input/evidence identity,
 executed command or Job, actual output, checked tests, and the single most
@@ -93,19 +108,3 @@ generic `SUCCESS` status.
   [Agent/LEGO vocabulary](../architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md).
 - For an actual code contribution, follow
   [CONTRIBUTING](../../CONTRIBUTING.md) and the owner's tests.
-
-This page is a starting tutorial, **not** a second mandatory global workflow
-or a new Agent authority.\r\n\r\n## Tool discovery under the real execution identity
-
-For local software, use the [Workstation live-inventory guide](../../platform/workstation/inventory/README.md)
-and choose the **actual node and Runtime identity** before probing. The
-read-only `probe_executables.py` reports PATH resolution only; missing from
-PATH never proves the application is not installed. A Windows service context
-and the interactive desktop user can have different tools and PATH entries.
-
-For semantic tool selection, use [Capability Catalog](../../catalogs/capabilities/README.md)
-and the natural Owner's native entrypoint. Skills search/resolve/read supplies
-**advisory procedures**; it does not install a CLI, establish connected MCP
-availability, confer provider authority, or satisfy domain acceptance.
-Use live MCP tool definitions, actual CLI help and `mise tasks ls` for
-arguments, then verify the final consumer's result.

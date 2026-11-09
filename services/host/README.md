@@ -113,7 +113,7 @@ Re-entry uses two different cursors: `attention.*` uses the global Social Work c
 
 Host v2 intentionally has no priority, assignee, lease, scheduler, Runtime proxy, generic activity feed, custom event bus, graph database, voting/ranking subsystem, or opaque extension-state subsystem. Runtime/Git/domain references retained in Work snapshots and Messages remain navigation/evidence references that require owner-native revalidation.
 
-External-news publication is not a Host responsibility. Its unconsumed \`news_publications\` table and historical data were retired with Alembic revision 0011, rather than kept as an inactive product surface.
+External-news publication is not a Host responsibility. Its unconsumed `news_publications` table and historical data were retired with Alembic revision 0011, rather than kept as an inactive product surface.
 
 Production releases are immutable Git-SHA directories with a release-local `.venv`; systemd executes only `/opt/ordivon/host-v2/current/.venv/...`. This prevents a shared Python environment from retaining stale code when the package version is unchanged.
 
