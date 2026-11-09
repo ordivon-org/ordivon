@@ -1,6 +1,6 @@
 ---
 name: method-router
-description: "Select the smallest useful set of standards-backed analysis methods for an already scoped Ordivon problem. Use when the problem is complex enough that choosing the reasoning method matters: ambiguous system boundaries, coupling/decomposition, composition/substitutability, causal claims, reliability failures, unsafe interactions, control/feedback, organizational coordination, information flow, exploration/search, or project-kernel decomposition. Route to existing canonical Agent Skills rather than inventing a new lifecycle, private trigger engine, or all-purpose methodology."
+description: "Route substantial Agent engineering, source-bound Spec-to-implementation, and complex system analysis to the smallest useful canonical method: R2.1 LEGO contracts, system boundaries, causal reasoning and native verification. Not a mandatory workflow or execution authority."
 compatibility: Cross-platform. Routes among existing project Agent Skills; it does not execute tools, grant authority, or prove a method's conclusions.
 metadata:
   source-authority: Agent Skills progressive disclosure plus Ordivon standards-backed method Skills
@@ -47,6 +47,14 @@ See references/method-map.md for disambiguation and multi-method combinations.
 For innovation/search questions requiring a comparative theory lens, consult
 references/innovation-lens-routing.md only after the basic method route is insufficient.
 This external-theory map is a source reference, not new authority or a mandatory stage.
+
+## Multi-step Agent engineering (optional)
+
+When the task is a substantial Owner change needing a spec, tracer-bullet execution,
+independent verification or upstream Skill adoption, read
+`references/agent-engineering-delivery.md`. It selectively adapts Matt Pocock
+Skills, ECC and Superpowers to existing Ordivon contracts. It is not a required
+life cycle for ordinary edits, a second task engine or an effect permission.
 
 ## Anti-patterns
 
