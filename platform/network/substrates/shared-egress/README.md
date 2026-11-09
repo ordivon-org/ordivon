@@ -88,6 +88,16 @@ The native Task materializes the helper before its Unit and verifies
 installed-byte equality. Deliberate final removal requires quiescing
 all consumers and an explicit operator-owned retirement action.
 
+**Live reload boundary (observed on 2026-11-09):** the Gluetun Quadlet
+`Requires=network-v2-browserless-forward.service`. Restarting the forwarding
+unit itself therefore propagated through systemd to a Gluetun provider restart,
+and the Tailnet Exit reconnected. Non-deleting iptables rules do **not**
+prevent this application outage. For routine forward-rule reconciliation, use
+`task substrate:shared-egress:reload` after source/install byte parity;
+it invokes native `systemctl reload` and the synchronous `ExecReload=... ensure`
+without stopping the required unit. Do not use `systemctl restart` as a live
+idempotence test while its production Provider remains dependent on it.
+
 This reduces the restart interruption path but does not prove cross-process
 atomicity between discovery and rule insertion. Docker/other concurrent
 iptables writers remain an external stability assumption, with the exact
