@@ -40,8 +40,6 @@ HISTORICAL = {
         "Historical standing: SUPERSEDED FOR CURRENT DEPLOYMENT STATUS",
     ROOT / "docs" / "architecture" / "ORDIVON_COMPOSITION_ARCHITECTURE_EXECUTION_PLAN_R1.md":
         "Historical standing: EXECUTED / SUPERSEDED FOR CURRENT STATE",
-    ROOT / "docs" / "architecture" / "AGENT_PLUGIN_R4_ACCEPTANCE_20260921.md":
-        "Historical standing: SUPERSEDED BY C02/D01 FOR CURRENT ENDPOINT TOPOLOGY",
 }
 
 EXPECTED_CAPABILITIES = {
