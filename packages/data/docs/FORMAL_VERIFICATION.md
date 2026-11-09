@@ -26,6 +26,19 @@ a total, exact digest-equality relation. Real SHA-256 digest values are modeled
 abstractly: digest equality proves only hash equality, not metaphysical byte
 identity, origin authenticity, producer authorization, or permission to publish.
 
+## Committed metadata SourceCut refinement
+
+`scripts/project_owned_products.py --at-commit REVISION` resolves a Git
+commit once, then obtains ODPS metadata through immutable tree entries and
+blob object IDs (not the working tree/index). This reuses Git's existing
+content-addressed storage and commit semantics, with native counterexamples
+for staged-but-uncommitted changes, new commits and symlink entries.
+The exact commit is reported separately from the DCAT content hash.
+This only establishes reproducible **metadata**. The existing Lean publication
+state-machine does not prove Git implementation behavior, PostgreSQL atomic
+data publication, or stable consumer file bytes; these boundaries retain
+native tests and actual consumer read-back.
+
 ## Bounded publication and retirement state model
 
 `formal/DataPublication.lean` now specifies a finite control-state protocol:
