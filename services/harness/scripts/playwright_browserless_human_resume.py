@@ -9,7 +9,6 @@ READY is observed does it cross the original prompt SEND boundary.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -20,6 +19,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, expect, 
 from browserless_human_handoff import load_verified_handoff, mint_handoff, write_private_handoff
 from chatgpt_provider_gate import challenge_gated
 from chatgpt_provider_resource import chatgpt_resource_from_page_url
+from playwright_browserless_chatgpt_submit import digest_bytes, digest_obj, write_pre_effect
 from provider_boundary_diagnosis import (
     PROVIDER_ACTION_HOLD,
     PROVIDER_ACTION_HUMAN_CONTROL_TRANSFER,
@@ -37,16 +37,6 @@ PRE_EFFECT_BLOCKED_EXIT = 42
 HUMAN_REQUIRED_EXIT = 43
 
 
-def digest_bytes(raw: bytes) -> str:
-    return "sha256:" + hashlib.sha256(raw).hexdigest()
-
-
-def digest_obj(value: object) -> str:
-    return digest_bytes(
-        json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
-    )
-
-
 def auth(url: str, token_file: Path) -> str:
     token = token_file.read_text(encoding="utf-8").strip()
     if not token or any(ch.isspace() for ch in token):
@@ -57,25 +47,6 @@ def auth(url: str, token_file: Path) -> str:
     return urlunsplit(
         (parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment)
     )
-
-
-def write_pre_effect(
-    path: Path, *, effect_id: str, prompt_digest: str, blocker: str, page_url: str = ""
-) -> None:
-    value = {
-        "schemaVersion": 1,
-        "kind": "ordivon.browserless-chatgpt-pre-effect-blocker",
-        "effectId": effect_id,
-        "promptDigest": prompt_digest,
-        "blocker": blocker,
-        "pageUrl": page_url,
-        "providerEffectAttempted": False,
-        "assistantOutputRead": False,
-    }
-    value["evidenceDigest"] = digest_obj(value)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, sort_keys=True, indent=2) + "\n", encoding="utf-8")
-    os.chmod(path, 0o600)
 
 
 def visible(page, selector: str) -> bool:
