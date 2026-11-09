@@ -8,7 +8,6 @@ Type=oneshot
 User=root
 Group=root
 UMask=0077
-SuccessExitStatus=2
 ExecStart=/usr/bin/python3 /usr/local/libexec/ordivon/ordivon-runtime-pg-reclaim --apply --env-file /etc/ordivon/ordivon-runtime-pg-only.env --source-repo /root/projects/ordivon --workspace-root /var/lib/ordivon/pg-candidate/workspaces --receipt-root /var/lib/ordivon/pg-candidate/lifecycle-receipts --lock-file /run/ordivon-runtime-pg-reclaim.lock --min-age-hours 24 --limit 25
 TimeoutStartSec=15min
 Nice=10

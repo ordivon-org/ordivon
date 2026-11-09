@@ -46,12 +46,29 @@ def _jobs(environment: dict[str, str]) -> dict[str, tuple[int, str | None, int]]
     from psycopg import sql
     schema = environment["ORDIVON_PG_SCHEMA"]
     query = sql.SQL("""
-        SELECT workspace_id, MAX(created_at_ms) AS last_ms,
+        WITH activity AS (
+            SELECT j.workspace_id, j.job_id, j.created_at_ms, j.resolution,
+                   GREATEST(
+                       j.created_at_ms,
+                       COALESCE(events.last_event_ms, 0),
+                       COALESCE(attempts.last_finished_ms, 0)
+                   ) AS last_activity_ms
+              FROM {schema}.jobs j
+              LEFT JOIN (
+                   SELECT job_id, MAX(observed_at_ms) AS last_event_ms
+                     FROM {schema}.job_events GROUP BY job_id
+              ) events ON events.job_id = j.job_id
+              LEFT JOIN (
+                   SELECT job_id, MAX(finished_at_ms) AS last_finished_ms
+                     FROM {schema}.attempts GROUP BY job_id
+              ) attempts ON attempts.job_id = j.job_id
+        )
+        SELECT workspace_id, MAX(last_activity_ms) AS last_ms,
                (ARRAY_AGG(resolution ORDER BY created_at_ms DESC, job_id DESC))[1]
                    AS last_resolution,
                COUNT(*) FILTER (WHERE resolution IS NULL) AS nonterminal
-          FROM {}.jobs GROUP BY workspace_id
-    """).format(sql.Identifier(schema))
+          FROM activity GROUP BY workspace_id
+    """).format(schema=sql.Identifier(schema))
     with psycopg.connect(environment["ORDIVON_PG_DSN"], connect_timeout=8) as connection:
         with connection.transaction():
             connection.execute("SET LOCAL statement_timeout = '15000ms'")
