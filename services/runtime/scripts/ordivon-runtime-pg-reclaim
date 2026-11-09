@@ -193,6 +193,7 @@ def run(args: argparse.Namespace) -> dict:
             closed = client.call_tool(
                 "workspace.close",
                 {"schemaVersion":1,"workspaceId":path.name,"force":False,
+                 "consumerReleased":True,
                  "expectedSourceStateDigest":digest},
             )
             if closed.get("closureDisposition") not in ("removed","already_closed"):
