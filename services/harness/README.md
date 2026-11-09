@@ -53,7 +53,7 @@ shared database technology is *not* shared domain truth.
 
 The first consumer-qualified PG path is
 `PostgresHarnessStore(dsn, schema="harness", initialize=False)`, and the
-supported `HarnessAgentRun.create_postgres(...)` / `open_postgres(...)` APIs.
+supported `HarnessAgentRun.create(...)` / `open(...)` APIs.
 The operator must provision the named Harness schema and supply the DSN; the
 Run API never silently creates a database, switches to SQLite, or dual-writes.
 A fresh test schema can be initialized explicitly with `initialize=True`.
@@ -224,7 +224,7 @@ Provider-specific wire state may exceed reconstructed semantic messages, but the
 
 ## Status
 
-Harness is **pre-1.0 but operational** as an independent, caller-neutral durable cognitive execution substrate. The first-party CLI uses the PostgreSQL Harness Journal/CAS only; the legacy direct Python SQLite API remains separately reachable until its consumer migration is qualified. The former Host-backed Assignment/Runner/cutover product line was removed and has no supported compatibility path.
+Harness is **pre-1.0 but operational** as an independent, caller-neutral durable cognitive execution substrate. The first-party CLI uses the PostgreSQL Harness Journal/CAS only; the supported Python Agent Run create/open API requires the selected PostgreSQL schema; old state-root entrypoints are retired. The former Host-backed Assignment/Runner/cutover product line was removed and has no supported compatibility path.
 
 Current maturity and known limits live in [`docs/STATUS.md`](docs/STATUS.md). Exact evidence interpretation lives in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
 
@@ -246,7 +246,7 @@ The current product includes:
 - exact request-bound action truth stays on `AgentTurnRequest`; `HarnessAgentRun.explain()` reports validated in-process Contract/process composition directly, without an aggregate capability/workbench registry;
 - exact request-bound Tool working-set subtraction remains in the existing turn projection; application/domain code owns current standing and branches directly on owner-native facts rather than compiling a second InteractionContext ontology;
 - historical currentness-pressure experiments remain evidence that current standing can matter to Agent action choice, but the experimental generic InteractionContext/Affordance compiler is retired from current product code;
-- `HarnessAgentRun` as the supported Python handle for an exact Run; PG-native composition uses create_postgres/open_postgres and the legacy state-root overload remains pending retirement, with `HarnessAgentRun.explain()` for process-local composition inspection without Provider/Runtime liveness claims;
+- `HarnessAgentRun` as the supported Python handle for an exact Run; PG-native composition uses create(dsn, schema, ...) and open(dsn, schema, ...) without a legacy state-root overload, with `HarnessAgentRun.explain()` for process-local composition inspection without Provider/Runtime liveness claims;
 - observation-only source retrieval remains available through the existing Runtime-backed `search_workspace` / `workspace.read` mechanics plus exact Execution Binding and digest fences; caller/domain code owns source selection, authority-publication schemas and semantic projection rather than a Harness-specific observation ontology;
 - durable `inspect` is the single exact Journal/CAS read view; CLI `explain` returns that same view plus explicit proof boundaries instead of maintaining a second workbench read model;
 - one exact caller-authored `HarnessRunContract` as the execution-authority waist; higher-level allocation/orchestration and experimental loop-morphology selection do not get parallel Harness control planes;

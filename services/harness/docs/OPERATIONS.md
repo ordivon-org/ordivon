@@ -32,7 +32,7 @@ The first-party Harness CLI uses a caller-provisioned PostgreSQL database
 and selected Harness schema. Set `HARNESS_PG_DSN` (and optionally
 `HARNESS_PG_SCHEMA`, default `harness`) before invoking CLI operations.
 There is no SQLite CLI fallback, Host-backed writer or cutover selector.
-The legacy direct Python SQLite API is not the current CLI authority.
+The supported public Python Run API requires PostgreSQL and does not accept a state-root SQLite fallback.
 
 ```bash
 ordivon-harness doctor

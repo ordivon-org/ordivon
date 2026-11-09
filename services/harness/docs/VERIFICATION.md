@@ -39,6 +39,16 @@ related:
 
 No implementation-bound evidence should be cited without its Harness/implementation revision and dependency context.
 
+## Real PostgreSQL Run consumer qualification
+
+The supported Agent Run Python API and installed-wheel Host-free
+create/reopen/inspect smoke require a fresh PostgreSQL test authority, not
+SQLite. The GitHub Owner shard supplies HARNESS_PG_TEST_DSN from its disposable
+PostgreSQL service for harness:queue. Tests create isolated unique schemas
+and drop only those schemas. Local verification must provide an equivalent
+test-only DSN; no old SQLite Run data are migrated or replayed. Missing PG
+authority is SKIPPED or NOT_RUN for native tests, never a PASS receipt.
+
 ## Current portable gate
 
 The current release gate includes:

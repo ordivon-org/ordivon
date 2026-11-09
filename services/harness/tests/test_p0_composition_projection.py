@@ -4,8 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_harness.api import HarnessAgentRun
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
+
+from tests.pg_test_support import PostgresAgentRunCase
 
 from tests.test_r3_supported_agent_run import (
     FakeRuntime,
@@ -16,12 +17,15 @@ from tests.test_r3_supported_agent_run import (
 )
 
 
-class ProcessCompositionExplainTests(unittest.TestCase):
+class ProcessCompositionExplainTests(PostgresAgentRunCase, unittest.TestCase):
+    def setUp(self) -> None:
+        self.set_up_pg()
+
     def test_in_process_explain_reports_exact_contract_and_no_liveness_claims(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             clock = FixedClock()
             value = contract("p0-explain")
-            run = HarnessAgentRun.create(
+            run = self.create_pg(
                 Path(directory) / "state",
                 value,
                 lambda _contract: ScriptedTurnAdapter((needs_input("model-call:p0-explain"),)),
@@ -41,7 +45,7 @@ class ProcessCompositionExplainTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             value = contract("p0-runtime-explain", tools=True)
-            run = HarnessAgentRun.create(
+            run = self.create_pg(
                 Path(directory) / "state",
                 value,
                 lambda _contract: ScriptedTurnAdapter((needs_input("model-call:p0-runtime"),)),

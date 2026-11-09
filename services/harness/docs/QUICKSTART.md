@@ -232,18 +232,16 @@ the CLI fails without opening SQLite. The retired SQLite backup/restore CLI
 subcommands are no longer exposed; use PostgreSQL-native backup and recovery
 under the database owner's authority. No Provider effect,
 Runtime physical execution, Host Work authority, or external domain completion
-is inferred from a successful PG Store operation. The remaining legacy direct Python API, Browserless materialization and
-installed Agent Automation versions must each qualify their own production
-consumer route.
+is inferred from a successful PG Store operation. The public Python Agent Run entrypoints now require PostgreSQL; Browserless materialization and installed Agent Automation versions still need their own production consumer qualification.
 
-For PostgreSQL-backed Python execution use `HarnessAgentRun.create_postgres` and `open_postgres` rather than composing Store, Continuity, Provider bridge and `StandaloneHarnessRunner` yourself. The old state-root methods are legacy direct APIs pending consumer-qualified retirement. The caller still owns the exact Contract and Provider choice; Harness passes the persisted Contract to the caller-supplied Adapter factory before execution. On reopen/resume, Harness mechanically reconstructs Continuity and the exact Snapshot-bound Provider source.
+For PostgreSQL-backed Python execution, use `HarnessAgentRun.create(dsn, schema, ...)` and `HarnessAgentRun.open(dsn, schema, ...)` rather than composing Store, Continuity and Provider bridge manually. This is an intentional public API migration; old state-root arguments are no longer accepted. The caller still owns the exact Contract and Provider choice; Harness passes the persisted Contract to the caller-supplied Adapter factory before execution. On reopen/resume, Harness mechanically reconstructs Continuity and the exact Snapshot-bound Provider source.
 
 ```python
 from ordivon_harness.api import HarnessAgentRun, DeepSeekTurnAdapter
 
 import os
 
-run = HarnessAgentRun.create_postgres(
+run = HarnessAgentRun.create(
     os.environ["HARNESS_PG_DSN"],
     os.environ.get("HARNESS_PG_SCHEMA", "harness"),
     contract,
@@ -253,7 +251,7 @@ run = HarnessAgentRun.create_postgres(
 )
 execution = run.run(({"role": "user", "content": "Start the bounded Run"},))
 
-run = HarnessAgentRun.open_postgres(
+run = HarnessAgentRun.open(
     os.environ["HARNESS_PG_DSN"],
     os.environ.get("HARNESS_PG_SCHEMA", "harness"),
     contract.harness_run_id,
