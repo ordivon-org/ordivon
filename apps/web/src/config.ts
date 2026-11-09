@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 export interface WebConfig {
   readonly host: string;
   readonly port: number;
@@ -35,7 +37,7 @@ export function loadConfig(): WebConfig {
     rpName: process.env.ORDIVON_WEB_RP_NAME ?? "Ordivon",
     databasePath:
       process.env.ORDIVON_WEB_DB ??
-      new URL("../.web.sqlite3", import.meta.url).pathname,
+      fileURLToPath(new URL("../.web.sqlite3", import.meta.url)),
     ...(process.env.ORDIVON_WEB_BOOTSTRAP_ENROLLMENT_TOKEN === undefined
       ? {}
       : {
