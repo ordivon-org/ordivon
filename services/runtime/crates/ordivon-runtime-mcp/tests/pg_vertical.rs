@@ -1005,6 +1005,31 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
         inventoried["structuredContent"]["workspaces"][0]["workspaceId"],
         "ws-pg-consumer"
     );
+    assert!(
+        inventoried["structuredContent"]["workspaces"][0]
+            .get("sourceStateDigest")
+            .is_none(),
+        "lightweight list must omit the optional digest: {inventoried}"
+    );
+    let exact = call(
+        &endpoint,
+        "workspace.get",
+        json!({"workspaceId":"ws-pg-consumer"}),
+    );
+    let inventoried_with_digest = call(
+        &endpoint,
+        "workspace.list",
+        json!({"limit":10, "includeSourceStateDigest":true}),
+    );
+    assert_ne!(
+        inventoried_with_digest["isError"], true,
+        "{inventoried_with_digest}"
+    );
+    assert_eq!(
+        inventoried_with_digest["structuredContent"]["workspaces"][0]["sourceStateDigest"],
+        exact["structuredContent"]["sourceStateDigest"],
+        "opt-in list digest must use the same canonical workspace source observation"
+    );
     // PG must preserve the existing native Runtime inventory uncertainty contract:
     // an invalid physical Workspace must not vanish as if it never existed.
     fs::create_dir(fixture.root.join("store/workspaces/invalid current id")).unwrap();
