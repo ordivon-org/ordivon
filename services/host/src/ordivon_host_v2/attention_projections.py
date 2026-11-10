@@ -248,9 +248,7 @@ class AttentionReadProjections:
             type(after_sequence) is not int or after_sequence < 0
         ):
             raise ValueError("after_sequence must be non-negative integer")
-        # Cursor, delta horizon/events, and topic resume cursors all describe
-        # ONE PG repeatable-read snapshot; separate transactions could mix
-        # an older change horizon with newer acknowledgement coordinates.
+        # Cursor, events, and topic resume cursors come from one MVCC snapshot.
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_actor(conn, actor_ref)
@@ -259,16 +257,33 @@ class AttentionReadProjections:
                     "SELECT cursor FROM attention_cursors WHERE actor_ref=%s", (actor_ref,)
                 ).fetchone()
                 after_sequence = 0 if row is None else int(row["cursor"])
-            effective_limit = limit
-            while True:
-                delta = self._delta_in_tx(
-                    conn, actor_ref,
-                    after_sequence=after_sequence,
-                    limit=effective_limit,
-                    max_bytes=max_bytes,
-                )
+
+            # The delta SQL is an expensive multi-source query. Its bounded
+            # event page is already ordered. Trimming a prefix for the re-entry
+            # response budget must not re-run that query or change snapshots.
+            delta = self._delta_in_tx(
+                conn, actor_ref, after_sequence=after_sequence,
+                limit=limit, max_bytes=max_bytes,
+            )
+            events = delta["events"]
+            topic_refs = sorted({
+                str(event["navigationRef"])
+                for event in events
+                if event["navigationKind"] == "topic"
+            })
+            cursors: dict[str, int] = {}
+            if topic_refs:
+                rows = conn.execute(
+                    "SELECT topic_ref,cursor FROM topic_consumption_cursors "
+                    "WHERE actor_ref=%s AND topic_ref=ANY(%s)",
+                    (actor_ref, topic_refs),
+                ).fetchall()
+                cursors = {row["topic_ref"]: int(row["cursor"]) for row in rows}
+
+            def projection(count: int) -> dict[str, Any]:
+                prefix = events[:count]
                 groups: dict[tuple[str, str], dict[str, Any]] = {}
-                for event in delta["events"]:
+                for event in prefix:
                     key = (event["navigationKind"], event["navigationRef"])
                     item = groups.get(key)
                     if item is None:
@@ -289,36 +304,47 @@ class AttentionReadProjections:
                     item["eventCount"] = int(item["eventCount"]) + 1
 
                 items = list(groups.values())
-                topic_refs = [
-                    str(item["navigationRef"]) for item in items if item["navigationKind"] == "topic"
-                ]
-                cursors: dict[str, int] = {}
-                if topic_refs:
-                    rows = conn.execute(
-                        "SELECT topic_ref,cursor FROM topic_consumption_cursors "
-                        "WHERE actor_ref=%s AND topic_ref=ANY(%s)",
-                        (actor_ref, topic_refs),
-                    ).fetchall()
-                    cursors = {row["topic_ref"]: int(row["cursor"]) for row in rows}
                 for item in items:
                     if item["navigationKind"] == "topic":
                         item["resumeAfterSequence"] = cursors.get(str(item["navigationRef"]), 0)
 
-                result = {
+                trimmed = count < len(events)
+                has_more = trimmed or delta["hasMore"]
+                next_sequence = (
+                    int(prefix[-1]["changeSequence"])
+                    if trimmed else delta["nextAfterSequence"]
+                )
+                return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-attention-reentry-r1",
                     "actorRef": actor_ref,
                     "afterSequence": after_sequence,
                     "snapshotHighSequence": delta["snapshotHighSequence"],
                     "items": items,
-                    "rawEventCount": len(delta["events"]),
-                    "hasMore": delta["hasMore"],
-                    "nextAfterSequence": delta["nextAfterSequence"],
+                    "rawEventCount": count,
+                    "hasMore": has_more,
+                    "nextAfterSequence": next_sequence,
                     "rankingApplied": False,
                     "truthBoundary": "rebuildable re-entry navigation only; no score, priority, assignment, scheduling, or foreign truth ownership",
                 }
-                if len(canonical_bytes(result)) <= max_bytes:
-                    return result
-                if effective_limit == 1:
-                    raise ValueError("max_bytes cannot fit one re-entry navigation item")
-                effective_limit = max(1, effective_limit // 2)
+
+            result = projection(len(events))
+            if len(canonical_bytes(result)) <= max_bytes:
+                return result
+
+            # Grouped output can exceed the budget even if raw delta fits.
+            # A prefix cannot shrink when another event is added, so find the
+            # longest fitting event prefix without a second database query.
+            low, high = 1, len(events) - 1
+            best: dict[str, Any] | None = None
+            while low <= high:
+                middle = (low + high) // 2
+                candidate = projection(middle)
+                if len(canonical_bytes(candidate)) <= max_bytes:
+                    best = candidate
+                    low = middle + 1
+                else:
+                    high = middle - 1
+            if best is None:
+                raise ValueError("max_bytes cannot fit one re-entry navigation item")
+            return best
