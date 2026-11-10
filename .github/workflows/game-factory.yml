@@ -6,6 +6,9 @@ on:
     paths:
       - "domains/game/mise.toml"
       - "domains/game/examples/room-encounter/**"
+      - "domains/game/examples/beacon-relay/**"
+      - "domains/game/examples/native-composition/**"
+      - "domains/game/examples/kenney-visual-composition/**"
       - "domains/game/AGENTS.md"
       - "domains/game/docs/agent-execution-contract-spec.md"
       - "domains/game/docs/agent-execution-implementation-plan.md"
@@ -29,7 +32,7 @@ concurrency:
 
 jobs:
   native-g11-contract:
-    name: Godot G11 clean-checkout native acceptance
+    name: Godot clean-checkout native consumer acceptance
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -53,12 +56,15 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: mise install
 
-      - name: Run real G11 acceptance without prior import cache
+      - name: Verify Godot composition, G11, visuals and Beacon consumers
         working-directory: domains/game
         run: |
           set -euo pipefail
           test ! -d examples/room-encounter/.godot
           mise run test:agent-episode
+          mise run test:beacon
+          mise run test:native
+          mise run test:visual-native
 
   native-preview:
     if: github.event_name != 'pull_request'
