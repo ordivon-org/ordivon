@@ -5,6 +5,17 @@ use super::*;
 /// Runner publishes result.json after completing its command; systemctl/cgroup
 /// probes between an earlier file check and LOST commit can otherwise miss a
 /// result that was durably written during the probes.
+/// Match the PG Job-list recovery projection: a nonterminal issued Attempt
+/// requiring a native startup, stop, or recovery witness must never be
+/// advertised as recovery-free. A healthy running Job remains ordinary work.
+fn needs_recovery_observation(state: AttemptState, terminal: bool) -> bool {
+    !terminal
+        && matches!(
+            state,
+            AttemptState::Starting | AttemptState::Stopping | AttemptState::Recovering
+        )
+}
+
 fn runner_result_still_absent(path: &Path) -> RuntimeResult<bool> {
     match fs::symlink_metadata(path.join("result.json")) {
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(true),
@@ -719,7 +730,7 @@ impl PgRuntime {
             && rows
                 .iter()
                 .any(|row| row.get::<_, String>(1) == "execution_result");
-        let mut value = json!({"jobId":request.job_id,"operationDigest":operation,"status":snapshot.resolution.clone().unwrap_or(snapshot.attempt_state.clone()),"desiredState":snapshot.desired_state,"attemptId":a.attempt_id,"attemptState":snapshot.attempt_state,"terminationIntent":snapshot.termination_intent,"exitCode":exit,"executionTerminal":terminal,"executionDisposition":snapshot.resolution,"deliveryDisposition":if terminal {"committed"} else {"in_progress"},"effectiveLimits":{"timeoutMs":p.timeout_ms,"stdoutLimitBytes":p.stdout_limit_bytes,"stderrLimitBytes":p.stderr_limit_bytes},"recoveryRequired":!terminal && a.state==AttemptState::Starting,"semanticCompletionEvaluated":false,"resultAvailable":result_available,"artifactsAvailable":!artifacts.is_empty(),"artifacts":artifacts});
+        let mut value = json!({"jobId":request.job_id,"operationDigest":operation,"status":snapshot.resolution.clone().unwrap_or(snapshot.attempt_state.clone()),"desiredState":snapshot.desired_state,"attemptId":a.attempt_id,"attemptState":snapshot.attempt_state,"terminationIntent":snapshot.termination_intent,"exitCode":exit,"executionTerminal":terminal,"executionDisposition":snapshot.resolution,"deliveryDisposition":if terminal {"committed"} else {"in_progress"},"effectiveLimits":{"timeoutMs":p.timeout_ms,"stdoutLimitBytes":p.stdout_limit_bytes,"stderrLimitBytes":p.stderr_limit_bytes},"recoveryRequired":needs_recovery_observation(a.state, terminal),"semanticCompletionEvaluated":false,"resultAvailable":result_available,"artifactsAvailable":!artifacts.is_empty(),"artifacts":artifacts});
         for (kind, limit, offset) in [
             ("stdout", request.stdout_tail_bytes, request.stdout_offset),
             ("stderr", request.stderr_tail_bytes, request.stderr_offset),
@@ -918,5 +929,34 @@ mod active_log_window_tests {
 
         assert!(active_log_window(&path, 16, None, 5).is_err());
         fs::remove_file(path).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod recovery_projection_contract_tests {
+    use super::*;
+
+    #[test]
+    fn nonterminal_native_transition_requires_reconciliation() {
+        for state in [
+            AttemptState::Starting,
+            AttemptState::Stopping,
+            AttemptState::Recovering,
+        ] {
+            assert!(needs_recovery_observation(state, false));
+            assert!(!needs_recovery_observation(state, true));
+        }
+        for state in [
+            AttemptState::Accepted,
+            AttemptState::Running,
+            AttemptState::Succeeded,
+            AttemptState::Failed,
+            AttemptState::TimedOut,
+            AttemptState::Cancelled,
+            AttemptState::Lost,
+            AttemptState::Orphaned,
+        ] {
+            assert!(!needs_recovery_observation(state, false));
+        }
     }
 }
