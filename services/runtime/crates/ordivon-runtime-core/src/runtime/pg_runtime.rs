@@ -29,10 +29,16 @@ pub struct PgRuntimeConfig {
 /// Per-process progress cursors for bounded background reconciliation scans.
 /// They are hints, never durable execution authority: after a restart the scan
 /// restarts at the beginning, and ordinary Job state stays in PostgreSQL.
+#[derive(Clone, Default)]
+struct ReconciliationCursor {
+    key: Option<(i64, String)>,
+    generation: u64,
+}
+
 #[derive(Default)]
 struct ReconciliationCursors {
-    issued: Option<(i64, String)>,
-    cancelled: Option<(i64, String)>,
+    issued: ReconciliationCursor,
+    cancelled: ReconciliationCursor,
 }
 
 #[derive(Clone)]
