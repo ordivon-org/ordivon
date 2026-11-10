@@ -81,7 +81,15 @@ impl WorkSnapshot {
             ("nextActions", &self.next_actions, 128),
             ("referenceRefs", &self.reference_refs, 256),
         ] {
-            if values.len() > bound || values.iter().any(|s| s.is_empty() || s.trim() != s) {
+            if values.len() > bound
+                || values.iter().any(|s| {
+                    // Python str.strip includes U+001C..U+001F; Rust trim does not.
+                    s.is_empty()
+                        || s.trim_matches(|ch: char| {
+                            ch.is_whitespace() || ('\u{001c}'..='\u{001f}').contains(&ch)
+                        }) != s
+                })
+            {
                 return Err(WorkError::Invalid(format!(
                     "{name} has invalid entries/count"
                 )));
@@ -488,6 +496,31 @@ pub async fn commit_snapshot(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn python_str_strip_control_boundary_is_preserved() {
+        let mut snapshot: WorkSnapshot = serde_json::from_value(json!({
+            "objective": "o",
+            "frontier": "f"
+        }))
+        .unwrap();
+        // Python str.strip removes four Unicode C0 separators that Rust trim
+        // does not. Preserve edge-only rejection, not a blanket control ban.
+        for ch in ['\u{001c}', '\u{001d}', '\u{001e}', '\u{001f}'] {
+            snapshot.established = vec![format!("a{ch}")];
+            assert!(
+                matches!(snapshot.validate(), Err(WorkError::Invalid(_))),
+                "edge U+{:04X} must be rejected",
+                ch as u32
+            );
+            snapshot.established = vec![format!("a{ch}b")];
+            assert!(
+                snapshot.validate().is_ok(),
+                "internal U+{:04X} must remain accepted",
+                ch as u32
+            );
+        }
+    }
+
     #[test]
     fn revision_bounds_fail_closed() {
         let s = WorkSnapshot {
