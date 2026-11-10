@@ -351,6 +351,269 @@ async fn record_receipt(
     Ok(())
 }
 
+/// One Work identity and its immutable initial semantic payload.
+#[derive(Clone, Debug)]
+pub struct CreateWork {
+    pub work_ref: String,
+    pub kind: String,
+    pub actor_ref: String,
+    pub initial_snapshot: WorkSnapshot,
+    pub client_request_id: String,
+}
+
+impl CreateWork {
+    fn validate(&self) -> Result<(), WorkError> {
+        validate_identifier(&self.work_ref, 3, 1024)?;
+        validate_identifier(&self.kind, 1, 128)?;
+        validate_identifier(&self.actor_ref, 3, 512)?;
+        if self.client_request_id.is_empty() {
+            return Err(WorkError::Invalid(
+                "client_request_id cannot be empty".into(),
+            ));
+        }
+        self.initial_snapshot.validate()
+    }
+}
+
+/// Python-compatible create semantics: unique WorkRef is the insertion
+/// linearization point. A concurrent creator must re-read revision one after
+/// ON CONFLICT and return current Work state, not invent a new revision.
+pub async fn create_work(client: &mut Client, command: &CreateWork) -> Result<Value, WorkError> {
+    command.validate()?;
+    let payload = serde_json::to_value(&command.initial_snapshot)
+        .map_err(|e| WorkError::Invalid(e.to_string()))?;
+    let snapshot_digest = canonical_digest(&payload)?;
+    let operation = "work.create";
+    let request = json!({
+        "operation": operation,
+        "workRef": command.work_ref,
+        "kind": command.kind,
+        "actorRef": command.actor_ref,
+        "initialSnapshot": payload
+    });
+    let request_digest = canonical_digest(&request)?;
+    let tx = client.transaction().await?;
+    if let Some(previous) =
+        claim_receipt(&tx, &command.client_request_id, operation, &request_digest).await?
+    {
+        tx.commit().await?;
+        return Ok(previous);
+    }
+    if tx
+        .query_opt(
+            "SELECT 1 FROM actor_refs WHERE actor_ref=$1",
+            &[&command.actor_ref],
+        )
+        .await?
+        .is_none()
+    {
+        return Err(WorkError::ActorNotFound(command.actor_ref.clone()));
+    }
+    let inserted = tx
+        .query_opt(
+            "INSERT INTO works(work_ref,kind,state,current_revision,current_snapshot_digest,created_by_actor_ref) \
+             VALUES ($1,$2,'open',1,$3,$4) ON CONFLICT (work_ref) DO NOTHING RETURNING work_ref",
+            &[
+                &command.work_ref,
+                &command.kind,
+                &snapshot_digest,
+                &command.actor_ref,
+            ],
+        )
+        .await?;
+    let admission = if inserted.is_some() {
+        tx.execute(
+            "INSERT INTO work_snapshots(work_ref,revision,snapshot_digest,payload,writer_actor_ref) \
+             VALUES ($1,1,$2,$3,$4)",
+            &[
+                &command.work_ref,
+                &snapshot_digest,
+                &Json(&payload),
+                &command.actor_ref,
+            ],
+        )
+        .await?;
+        "committed"
+    } else {
+        // Must re-read after conflicting creator commits (READ COMMITTED);
+        // SELECT-before-INSERT is not a correct uniqueness/concurrency check.
+        let current = tx
+            .query_opt(
+                "SELECT kind FROM works WHERE work_ref=$1 FOR UPDATE",
+                &[&command.work_ref],
+            )
+            .await?
+            .ok_or_else(|| WorkError::Integrity("work_ref disappeared after conflict".into()))?;
+        let initial = tx
+            .query_opt(
+                "SELECT snapshot_digest,writer_actor_ref FROM work_snapshots \
+                 WHERE work_ref=$1 AND revision=1",
+                &[&command.work_ref],
+            )
+            .await?;
+        let matching = if let Some(initial) = initial {
+            let prior_digest: String = initial.try_get("snapshot_digest")?;
+            let prior_actor: String = initial.try_get("writer_actor_ref")?;
+            let prior_kind: String = current.try_get("kind")?;
+            prior_kind == command.kind
+                && prior_digest == snapshot_digest
+                && prior_actor == command.actor_ref
+        } else {
+            false
+        };
+        if !matching {
+            return Err(WorkError::Conflict(
+                "work_ref already exists with different initial semantics".into(),
+            ));
+        }
+        "existing"
+    };
+    let mut result = get_work_in_tx(&tx, &command.work_ref, None).await?;
+    result["admission"] = json!(admission);
+    record_receipt(
+        &tx,
+        &command.client_request_id,
+        operation,
+        &request_digest,
+        &result,
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(result)
+}
+
+/// Cursor inputs and UTF-8 response envelope budget mirror Python Work.list.
+#[derive(Clone, Debug)]
+pub struct ListWorks {
+    pub state: Option<WorkState>,
+    pub limit: usize,
+    pub before_updated_at: Option<String>,
+    pub before_work_ref: Option<String>,
+    pub max_bytes: usize,
+}
+
+impl Default for ListWorks {
+    fn default() -> Self {
+        Self {
+            state: None,
+            limit: 50,
+            before_updated_at: None,
+            before_work_ref: None,
+            max_bytes: 262_144,
+        }
+    }
+}
+
+impl ListWorks {
+    fn validate(&self) -> Result<(), WorkError> {
+        if !(1..=200).contains(&self.limit) {
+            return Err(WorkError::Invalid("limit must be in [1,200]".into()));
+        }
+        if self.before_updated_at.is_some() != self.before_work_ref.is_some() {
+            return Err(WorkError::Invalid(
+                "before_updated_at and before_work_ref must be supplied together".into(),
+            ));
+        }
+        if !(16_384..=4_194_304).contains(&self.max_bytes) {
+            return Err(WorkError::Invalid(
+                "max_bytes must be in [16384,4194304]".into(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn work_list_envelope(works: &[Value], has_more: bool) -> Value {
+    let cursor = if has_more {
+        works.last().map(|last| {
+            json!({
+                "beforeUpdatedAt": last["updatedAt"],
+                "beforeWorkRef": last["workRef"]
+            })
+        })
+    } else {
+        None
+    };
+    json!({
+        "schemaVersion": 1,
+        "kind": "ordivon.host-work-list",
+        "works": works,
+        "hasMore": has_more,
+        "nextCursor": cursor,
+        "rankingApplied": false,
+        "truthBoundary": "compact point-in-time Work inventory; not priority, assignment, Runtime activity, or domain currentness"
+    })
+}
+
+/// Stable descending (updated_at, work_ref) pagination within a single
+/// read-only RR transaction, including exact RFC 8785 byte-budget truncation.
+pub async fn list_works(client: &mut Client, input: &ListWorks) -> Result<Value, WorkError> {
+    input.validate()?;
+    let state = input.state.map(WorkState::as_str);
+    let before_at = input.before_updated_at.as_deref();
+    let before_ref = input.before_work_ref.as_deref();
+    let limit_plus_one =
+        i64::try_from(input.limit + 1).map_err(|_| WorkError::Invalid("limit overflow".into()))?;
+    let tx = client
+        .build_transaction()
+        .isolation_level(IsolationLevel::RepeatableRead)
+        .read_only(true)
+        .start()
+        .await?;
+    let rows = tx
+        .query(
+            "SELECT work_ref,kind,state,current_revision,current_snapshot_digest,updated_at, \
+             EXTRACT(TIMEZONE FROM updated_at)::integer AS updated_tz \
+             FROM works WHERE ($1::text IS NULL OR state=$1) \
+             AND ($2::text::timestamptz IS NULL OR (updated_at,work_ref)<($2::text::timestamptz,$3)) \
+             ORDER BY updated_at DESC,work_ref DESC LIMIT $4",
+            &[&state, &before_at, &before_ref, &limit_plus_one],
+        )
+        .await?;
+
+    let sql_more = rows.len() > input.limit;
+    let candidates = rows
+        .iter()
+        .take(input.limit)
+        .map(|row| -> Result<Value, WorkError> {
+            let updated_at: DateTime<Utc> = row.try_get("updated_at")?;
+            let offset: i32 = row.try_get("updated_tz")?;
+            Ok(json!({
+                "workRef": row.try_get::<_, String>("work_ref")?,
+                "workKind": row.try_get::<_, String>("kind")?,
+                "state": row.try_get::<_, String>("state")?,
+                "revision": row.try_get::<_, i64>("current_revision")?,
+                "snapshotDigest": row.try_get::<_, String>("current_snapshot_digest")?,
+                "updatedAt": postgres_timestamp(updated_at, offset)?
+            }))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let mut page: Vec<Value> = Vec::with_capacity(candidates.len());
+    let mut byte_more = false;
+    for row in candidates {
+        page.push(row);
+        // Existing Python bounded_prefix measures canonical bytes assuming
+        // hasMore=true even when this is eventually the final page.
+        let test_envelope = work_list_envelope(&page, true);
+        ensure_safe_json_numbers(&test_envelope)?;
+        let bytes = serde_json_canonicalizer::to_vec(&test_envelope)
+            .map_err(|e| WorkError::Invalid(e.to_string()))?;
+        if bytes.len() > input.max_bytes {
+            page.pop();
+            if page.is_empty() {
+                return Err(WorkError::Invalid(
+                    "max_bytes cannot fit one legal item plus response envelope".into(),
+                ));
+            }
+            byte_more = true;
+            break;
+        }
+    }
+    tx.commit().await?;
+    Ok(work_list_envelope(&page, sql_more || byte_more))
+}
+
 /// Atomic Work CAS and exact replay. External effects and semantic domain success
 /// are deliberately outside this transaction and outside Host authority.
 pub async fn commit_snapshot(
