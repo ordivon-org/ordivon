@@ -78,7 +78,7 @@ class ProductionContextTests(unittest.TestCase):
         self.assertEqual(context["production"]["status"], "review")
         self.assertGreater(context["claims"]["count"], 0)
         rendered = next(item for item in context["outputs"] if item["id"] == "runtime-film-en-landscape")
-        self.assertEqual(rendered["status"], "rendered")
+        self.assertEqual(rendered["status"], "approved")
         self.assertTrue(rendered["blobDigest"].startswith("sha256:"))
         currentness = context["sourceBindingCurrentness"]
         self.assertFalse(currentness["allBindingsRevalidated"])

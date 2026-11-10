@@ -69,33 +69,42 @@
     {
       "id": "runtime-article-en",
       "kind": "article",
-      "status": "planned",
-      "profile": "web-en"
+      "status": "approved",
+      "profile": "web-en",
+      "outputCarrier": "publish/runtime-introduction-en.md",
+      "blobDigest": "sha256:2eb4045c5140d93799c496ef65dc76aa7e36845b1b11413794d16055f1dc8a55"
     },
     {
       "id": "runtime-film-en-landscape",
       "kind": "video",
-      "status": "rendered",
+      "status": "approved",
       "profile": "youtube-upwork-1080p",
-      "blobDigest": "sha256:7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430"
+      "blobDigest": "sha256:c387fd047ec96d9501b41e259ceb86da6ce86dd3ed5f97ff0d929bb961afbbad",
+      "outputCarrier": "render/runtime-introduction-20261109-en.mp4"
     },
     {
       "id": "runtime-short-zh-vertical",
       "kind": "video",
-      "status": "planned",
-      "profile": "douyin-1080x1920"
+      "status": "approved",
+      "profile": "douyin-1080x1920",
+      "outputCarrier": "render/runtime-introduction-20261109-zh-vertical.mp4",
+      "blobDigest": "sha256:7f0eab8305f112e881ecbb3e98515fc89545526816895d3c1c4601f2d7dbb7ee"
     },
     {
       "id": "runtime-architecture-interactive",
       "kind": "interactive",
-      "status": "planned",
-      "profile": "web-react"
+      "status": "approved",
+      "profile": "offline-web-html",
+      "outputCarrier": "interactive/runtime-architecture.html",
+      "blobDigest": "sha256:e4c5fd6df2ea8950d2c7c89e0debfe91439e1cfc922362729ad471363548392a"
     },
     {
       "id": "runtime-upwork-package",
       "kind": "publication-package",
-      "status": "planned",
-      "profile": "upwork-portfolio"
+      "status": "approved",
+      "profile": "downloadable-portfolio-zip",
+      "outputCarrier": "publish/runtime-introduction-portfolio.zip",
+      "blobDigest": "sha256:b13d578e1f4af64ae948177d30c8b05475c640618c7d34e6f645927479f094a4"
     }
   ]
 }

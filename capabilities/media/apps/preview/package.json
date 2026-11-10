@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "pnpm --dir ../.. tokens:build && vite build"
   },
   "dependencies": {
     "@ordivon/identity": "workspace:*",
