@@ -43,9 +43,8 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: 127.0.0.1:29115
-  # Compare one HTTPS origin over the direct IPv4 and shared VPN paths.
-  # Keep the separate direct IPv6 probe above; the shared carrier uses IPv4.
-  - job_name: blackbox-path-reference-direct
+  # A second origin distinguishes a single-target failure from direct IPv4 loss.
+  - job_name: blackbox-http-ipv4-alternate
     scrape_interval: 1m
     scrape_timeout: 12s
     metrics_path: /probe
@@ -54,7 +53,7 @@ scrape_configs:
         - http_2xx_ipv4
     static_configs:
       - targets:
-          - https://www.apple.com/
+          - https://www.apple.com/library/test/success.html
     relabel_configs:
       - source_labels:
           - __address__
@@ -64,6 +63,7 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: 127.0.0.1:29115
+  # Pair with blackbox-http-ipv4 for a same-origin direct/carrier comparison.
   - job_name: blackbox-path-reference-carrier
     scrape_interval: 1m
     scrape_timeout: 12s
@@ -73,7 +73,7 @@ scrape_configs:
         - http_vpn_2xx_ipv4
     static_configs:
       - targets:
-          - https://www.apple.com/
+          - https://example.com/
     relabel_configs:
       - source_labels:
           - __address__
