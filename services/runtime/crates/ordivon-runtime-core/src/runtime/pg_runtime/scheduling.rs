@@ -3,7 +3,7 @@ use super::*;
 use crate::resource_scheduling::{
     NodeResources, ResourceRequest, ResourceScheduling, WorkspaceAccess,
 };
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Immutable PG candidate snapshot. Dominant shares are rescored after every
 /// successful allocation; execution plans need not be queried or decoded again.
@@ -12,7 +12,68 @@ struct PendingCandidate {
     order: usize,
     job: String,
     principal: String,
+    attempt_id: String,
+    workspace_id: String,
     spec: ResourceScheduling,
+}
+
+/// An advisory snapshot for rejecting candidates that definitively cannot
+/// fit the observed resources or conflict with an already committed lease.
+/// This is never allocation authority: claim_resources rechecks PostgreSQL
+/// under its existing transaction lock before admitting any new Attempt.
+#[derive(Default)]
+struct SchedulerPreflight {
+    reserved_cpu: u64,
+    active_attempts: BTreeSet<String>,
+    leases: BTreeMap<String, Vec<WorkspaceAccess>>,
+}
+
+impl SchedulerPreflight {
+    fn allows(&self, candidate: &PendingCandidate, node: &NodeResources) -> bool {
+        // An accepted Attempt may already hold a durable Allocation across a
+        // crash/restart. Let the existing idempotent claim resume that exact
+        // Attempt; its own CPU and Workspace lease must not block recovery.
+        if self.active_attempts.contains(&candidate.attempt_id) {
+            return true;
+        }
+        if !node.pressure_allows(&candidate.spec.resources) {
+            return false;
+        }
+        let memory_reserve = (node.memory_total_bytes / 20).max(64 * 1024 * 1024);
+        if !crate::resource_fit::fits(
+            self.reserved_cpu,
+            u64::from(candidate.spec.resources.cpu_millis),
+            node.cpu_millis,
+            candidate.spec.resources.memory_bytes,
+            node.memory_available_bytes.saturating_sub(memory_reserve),
+            u64::from(candidate.spec.resources.pids),
+            node.pids_available.saturating_sub(64),
+        ) {
+            return false;
+        }
+        !self
+            .leases
+            .get(&candidate.workspace_id)
+            .is_some_and(|active| {
+                active
+                    .iter()
+                    .any(|lease| lease.conflicts(&candidate.spec.workspace_access))
+            })
+    }
+
+    fn record_allocation(&mut self, candidate: &PendingCandidate) -> bool {
+        if !self.active_attempts.insert(candidate.attempt_id.clone()) {
+            return false;
+        }
+        self.reserved_cpu = self
+            .reserved_cpu
+            .saturating_add(u64::from(candidate.spec.resources.cpu_millis));
+        self.leases
+            .entry(candidate.workspace_id.clone())
+            .or_default()
+            .push(candidate.spec.workspace_access.clone());
+        true
+    }
 }
 
 fn dominant_share(
@@ -167,7 +228,7 @@ impl PgRuntime {
     pub fn schedule_pending_jobs(&self) -> RuntimeResult<serde_json::Value> {
         let mut db = self.store()?;
         // Idle queue wakeups should not read host resources or every Allocation.
-        let candidates=db.client.query("SELECT j.job_id,j.principal,j.execution_plan_json FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id WHERE j.resolution IS NULL AND j.desired_state='run' AND a.state='accepted' AND NOT EXISTS(SELECT 1 FROM job_runtime_release_effects r WHERE r.job_id=j.job_id) ORDER BY j.created_at_ms,j.job_id",&[]).map_err(io)?;
+        let candidates=db.client.query("SELECT j.job_id,j.principal,j.execution_plan_json,a.attempt_id FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id WHERE j.resolution IS NULL AND j.desired_state='run' AND a.state='accepted' AND NOT EXISTS(SELECT 1 FROM job_runtime_release_effects r WHERE r.job_id=j.job_id) ORDER BY j.created_at_ms,j.job_id",&[]).map_err(io)?;
         if candidates.is_empty() {
             return Ok(json!({"considered":0,"attempted":0}));
         }
@@ -175,13 +236,26 @@ impl PgRuntime {
         let active = db
             .client
             .query(
-                "SELECT owner,resources_json FROM job_allocations WHERE state='active'",
+                "SELECT x.owner,x.resources_json,x.attempt_id,x.workspace_access_json,j.workspace_id FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id JOIN jobs j ON j.job_id=a.job_id WHERE x.state='active'",
                 &[],
             )
             .map_err(io)?;
         let mut usage: BTreeMap<String, (u64, u64, u64)> = BTreeMap::new();
+        let mut preflight = SchedulerPreflight::default();
         for row in active {
             let r: ResourceRequest = decode(&row.get::<_, String>(1))?;
+            let access: WorkspaceAccess = decode(&row.get::<_, String>(3))?;
+            let attempt_id: String = row.get(2);
+            let workspace_id: String = row.get(4);
+            preflight.active_attempts.insert(attempt_id);
+            preflight.reserved_cpu = preflight
+                .reserved_cpu
+                .saturating_add(u64::from(r.cpu_millis));
+            preflight
+                .leases
+                .entry(workspace_id)
+                .or_default()
+                .push(access);
             let v = usage.entry(row.get(0)).or_default();
             v.0 = v.0.saturating_add(u64::from(r.cpu_millis));
             v.1 = v.1.saturating_add(r.memory_bytes);
@@ -197,6 +271,8 @@ impl PgRuntime {
                 order,
                 job: row.get(0),
                 principal: row.get(1),
+                attempt_id: row.get(3),
+                workspace_id: plan.workspace_id,
                 spec,
             });
         }
@@ -205,12 +281,21 @@ impl PgRuntime {
             let Some(index) = next_candidate(&ranked, &usage, &node) else {
                 break;
             };
+            let candidate = ranked.remove(index);
+            // Fast, side-effect-free rejection for known pressure, capacity
+            // and Workspace conflicts. The PG transaction remains the only
+            // authority that can actually grant a new Allocation.
+            if !preflight.allows(&candidate, &node) {
+                continue;
+            }
             let PendingCandidate {
                 job,
                 principal,
                 spec,
+                attempt_id,
+                workspace_id,
                 ..
-            } = ranked.remove(index);
+            } = candidate;
             self.authorize(&mut db, &job, &principal)?;
             if self.reconcile_inner(&mut db, &job, true).is_ok() {
                 let active: bool = db
@@ -222,10 +307,22 @@ impl PgRuntime {
                     .map_err(io)?
                     .get(0);
                 if active {
-                    let u = usage.entry(spec.owner).or_default();
-                    u.0 = u.0.saturating_add(u64::from(spec.resources.cpu_millis));
-                    u.1 = u.1.saturating_add(spec.resources.memory_bytes);
-                    u.2 = u.2.saturating_add(u64::from(spec.resources.pids));
+                    let confirmed = PendingCandidate {
+                        priority: spec.priority,
+                        order: 0,
+                        job: job.clone(),
+                        principal,
+                        attempt_id,
+                        workspace_id,
+                        spec,
+                    };
+                    if preflight.record_allocation(&confirmed) {
+                        let u = usage.entry(confirmed.spec.owner.clone()).or_default();
+                        u.0 =
+                            u.0.saturating_add(u64::from(confirmed.spec.resources.cpu_millis));
+                        u.1 = u.1.saturating_add(confirmed.spec.resources.memory_bytes);
+                        u.2 = u.2.saturating_add(u64::from(confirmed.spec.resources.pids));
+                    }
                     dispatched += 1;
                 }
             }
@@ -317,8 +414,65 @@ mod scheduler_candidate_tests {
             order,
             job: format!("job-{order}"),
             principal: owner.into(),
+            attempt_id: format!("attempt-{order}"),
+            workspace_id: "workspace-test".into(),
             spec,
         }
+    }
+
+    fn realistic_node() -> NodeResources {
+        NodeResources {
+            cpu_millis: 1_000,
+            memory_total_bytes: 2 * 1024 * 1024 * 1024,
+            memory_available_bytes: 1024 * 1024 * 1024,
+            pid_capacity: 10_000,
+            pids_available: 9_000,
+            cpu_pressure: 0.0,
+            memory_pressure: 0.0,
+            io_pressure: 0.0,
+        }
+    }
+
+    #[test]
+    fn preflight_filters_only_known_infeasible_candidates() {
+        let node = realistic_node();
+        let first = candidate("a", 0, 0);
+        let second = candidate("b", 0, 1);
+        let mut preflight = SchedulerPreflight::default();
+        assert!(preflight.allows(&first, &node));
+        assert!(preflight.record_allocation(&first));
+        assert!(!preflight.record_allocation(&first));
+        // Exclusive Workspace lease conflicts even when CPU is plentiful.
+        assert!(!preflight.allows(&second, &node));
+        // Existing Attempt must resume through the idempotent PG claim.
+        assert!(preflight.allows(&first, &node));
+
+        let mut elsewhere = candidate("b", 0, 2);
+        elsewhere.workspace_id = "independent-workspace".into();
+        assert!(preflight.allows(&elsewhere, &node));
+        preflight.reserved_cpu = 950;
+        assert!(!preflight.allows(&elsewhere, &node));
+
+        preflight.reserved_cpu = 0;
+        let mut pressured = realistic_node();
+        pressured.memory_pressure = 6.0;
+        assert!(!preflight.allows(&elsewhere, &pressured));
+        assert!(preflight.allows(&first, &pressured));
+        let mut no_memory = realistic_node();
+        no_memory.memory_available_bytes = 1024;
+        assert!(!preflight.allows(&elsewhere, &no_memory));
+    }
+
+    #[test]
+    fn preflight_preserves_concurrent_readers() {
+        let node = realistic_node();
+        let mut first = candidate("a", 0, 0);
+        first.spec.workspace_access.read_only = true;
+        let mut second = candidate("b", 0, 1);
+        second.spec.workspace_access.read_only = true;
+        let mut preflight = SchedulerPreflight::default();
+        assert!(preflight.record_allocation(&first));
+        assert!(preflight.allows(&second, &node));
     }
 
     #[test]
