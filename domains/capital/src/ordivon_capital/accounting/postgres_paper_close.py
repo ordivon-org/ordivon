@@ -299,12 +299,14 @@ def _read_committed_paper_receipt(db: Connection, account_key: str, session: dat
     if row is None:
         raise ValueError("no committed paper receipt for requested account session")
     prior = db.execute(
-        "SELECT request_sha256 FROM ordivon_paper.daily_close "
+        "SELECT request_sha256, receipt, session FROM ordivon_paper.daily_close "
         "WHERE account_key = %s AND session < %s ORDER BY session DESC LIMIT 1",
         (account_key, session),
     ).fetchone()
     previous_digest = prior[0] if prior else None
     digest, request, receipt = row
+    if type(request) is not dict or type(receipt) is not dict:
+        raise ValueError("committed paper receipt and stored request disagree")
     recomputed = hashlib.sha256(
         json.dumps(request, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -322,6 +324,29 @@ def _read_committed_paper_receipt(db: Connection, account_key: str, session: dat
         or receipt.get("valuation", {}).get("contribution_minor")
             != request.get("contribution_minor")
     ):
+        raise ValueError("committed paper receipt and stored request disagree")
+
+    # The receipt is not authoritative merely because its input digest still
+    # matches: recompute the *whole* stored valuation from the committed
+    # request and the preceding close.  In particular, protected cash, shares
+    # and NAV must not be independently mutable accounting facts.
+    try:
+        previous = (
+            PaperValuation(**(prior[1]["valuation"] | {"session": prior[2]}))
+            if prior else None
+        )
+        day = decode_session({
+            key: value for key, value in request.items()
+            if key not in {"market_evidence", "execution_evidence"}
+        })
+        expected_valuation = asdict(value_session(previous, day))
+        expected_valuation["session"] = session.isoformat()
+        if not day.sells and not (previous and previous.pending_sales):
+            for key in ("pending_sales", "sale_settlement_dates", "receivable_minor"):
+                expected_valuation.pop(key)
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        raise ValueError("committed paper receipt and stored request disagree") from exc
+    if receipt.get("valuation") != expected_valuation:
         raise ValueError("committed paper receipt and stored request disagree")
     return receipt
 
