@@ -197,10 +197,11 @@ class PostgresHarnessStore:
     def put_object(self, value: JsonValue, *, kind: str) -> StoredHarnessObject:
         return self._object(value, kind)
 
-    def get_object(self, digest: str, *, expected_kind: str | None = None) -> JsonValue:
-        row = self.connection.execute(
-            "SELECT kind,byte_length,content FROM objects WHERE digest=%s", (digest,)
-        ).fetchone()
+    @staticmethod
+    def _decode_object_row(
+        digest: str, row: dict | None, *, expected_kind: str | None = None
+    ) -> JsonValue:
+        """Verify one already-fetched CAS object without another SQL round trip."""
         if row is None:
             raise HarnessObjectMissing(f"Harness PostgreSQL object missing: {digest}")
         if expected_kind is not None and row["kind"] != expected_kind:
@@ -217,6 +218,12 @@ class PostgresHarnessStore:
         ):
             raise HarnessObjectCorrupt("Harness PostgreSQL object hash/size differs")
         return value
+
+    def get_object(self, digest: str, *, expected_kind: str | None = None) -> JsonValue:
+        row = self.connection.execute(
+            "SELECT kind,byte_length,content FROM objects WHERE digest=%s", (digest,)
+        ).fetchone()
+        return self._decode_object_row(digest, row, expected_kind=expected_kind)
 
     def inspect_object(self, digest: str) -> StoredHarnessObject:
         row = self.connection.execute(
@@ -564,13 +571,26 @@ class PostgresHarnessStore:
         if after_sequence < 0:
             raise ValueError("negative event cursor")
         self.load_run(harness_run_id)
+        # Fetch CAS payloads alongside events. A left join preserves the
+        # missing-object error; all content digest and kind checks still run.
         rows = self.connection.execute(
-            "SELECT * FROM run_events WHERE harness_run_id=%s AND sequence>%s ORDER BY sequence",
+            "SELECT e.*, o.kind AS object_kind, o.byte_length AS object_byte_length, "
+            "o.content AS object_content FROM run_events e "
+            "LEFT JOIN objects o ON o.digest=e.payload_digest "
+            "WHERE e.harness_run_id=%s AND e.sequence>%s ORDER BY e.sequence",
             (harness_run_id, after_sequence),
         ).fetchall()
         result = []
         for row in rows:
-            payload = self.get_object(row["payload_digest"], expected_kind=_EVENT_PAYLOAD_KIND)
+            payload = self._decode_object_row(
+                row["payload_digest"],
+                None if row["object_kind"] is None else {
+                    "kind": row["object_kind"],
+                    "byte_length": row["object_byte_length"],
+                    "content": row["object_content"],
+                },
+                expected_kind=_EVENT_PAYLOAD_KIND,
+            )
             if (
                 not isinstance(payload, dict)
                 or set(payload) != {"schemaVersion", "kind", "eventKind", "data"}
