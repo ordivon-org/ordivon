@@ -23,6 +23,7 @@ from ordivon_capital.accounting.postgres_paper_close import (
     read_committed_paper_close,
     read_latest_committed_paper_close,
 )
+from ordivon_capital.accounting.substrate import stable_accounting_id
 
 
 def test_latest_paper_head_readback_preserves_history_and_rejects_tampering():
@@ -200,3 +201,73 @@ def test_readback_recomputes_non_genesis_close_against_previous_valuation():
     ]
     with pytest.raises(ValueError, match="stored request disagree"):
         _read_committed_paper_receipt(db, "linked-readback", current_day.session)
+
+
+def test_pg_rejects_coordinated_predecessor_and_current_receipt_corruption():
+    """The newest valid-looking projection cannot inherit a forged predecessor."""
+    dsn = os.environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable PostgreSQL required")
+    key = "inherited-audit-" + uuid4().hex
+    old_date, new_date = date(2026, 1, 8), date(2026, 1, 9)
+    store = PostgresPaperClose(dsn)
+    old = store.close_session(key, PaperSession(old_date, None, 1_000_000, 200_000, {}, ()))
+    latest = store.close_session(key, PaperSession(new_date, old_date, 0, 0, {}, ()))
+    assert latest["previous_request_sha256"] == old["request_sha256"]
+    assert read_latest_committed_paper_close(dsn, key) == latest
+    with psycopg.connect(dsn) as db:
+        db.execute(
+            "UPDATE ordivon_paper.daily_close SET receipt=jsonb_set("
+            "receipt,'{valuation,protected_minor}','190000'::jsonb) "
+            "WHERE account_key=%s",
+            (key,),
+        )
+    with pytest.raises(ValueError, match="stored request disagree"):
+        read_latest_committed_paper_close(dsn, key)
+    with pytest.raises(ValueError, match="stored request disagree"):
+        read_committed_paper_close(dsn, key, new_date)
+    with pytest.raises(ValueError, match="stored request disagree"):
+        store.close_session(
+            key, PaperSession(date(2026, 1, 12), new_date, 0, 0, {}, ())
+        )
+
+
+def test_pg_readback_checks_committed_cash_ledger_and_replay():
+    dsn = os.environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable PostgreSQL required")
+    key = "cash-audit-" + uuid4().hex
+    day = PaperSession(date(2026, 1, 8), None, 1_000_000, 200_000, {}, ())
+    store = PostgresPaperClose(dsn)
+    original = store.close_session(key, day)
+    assert read_latest_committed_paper_close(dsn, key) == original
+    cash_id = stable_accounting_id("ordivon-capital:paper-close:usd:v1", key, "cash")
+    with psycopg.connect(dsn) as db:
+        db.execute(
+            "UPDATE ordivon_capital.accounts SET credits_posted=credits_posted+1 "
+            "WHERE id=%s", (str(cash_id),)
+        )
+    with pytest.raises(ValueError, match="cash ledger"):
+        read_latest_committed_paper_close(dsn, key)
+    with pytest.raises(ValueError, match="cash ledger"):
+        read_committed_paper_close(dsn, key, day.session)
+    with pytest.raises(ValueError, match="cash ledger"):
+        store.close_session(key, day)
+
+
+def test_pg_replay_rejects_corrupt_existing_receipt():
+    dsn = os.environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable PostgreSQL required")
+    key = "replay-audit-" + uuid4().hex
+    day = PaperSession(date(2026, 1, 8), None, 100_000, 0, {}, ())
+    store = PostgresPaperClose(dsn)
+    store.close_session(key, day)
+    with psycopg.connect(dsn) as db:
+        db.execute(
+            "UPDATE ordivon_paper.daily_close SET receipt=jsonb_set("
+            "receipt, '{valuation,nav_minor}', '99999'::jsonb) "
+            "WHERE account_key=%s", (key,)
+        )
+    with pytest.raises(ValueError, match="stored request disagree"):
+        store.close_session(key, day)
