@@ -10,7 +10,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
-use ordivon_harness_core::{canonical_bytes, digest_bytes, loads_strict, CanonicalDocument};
+use ordivon_harness_core::{
+    canonical_bytes, digest_bytes, loads_strict, CanonicalDocument, CanonicalError,
+};
 use postgres::{Client, IsolationLevel, Row};
 
 const CONTRACT_KIND: &str = "harness-run-contract";
@@ -22,6 +24,9 @@ pub enum ReadError {
     MissingRun(String),
     InvalidSchema,
     Corruption(String),
+    /// An old Python interpreter may admit this value under other depth/digit
+    /// settings. This is NOT evidence of physically corrupt CAS bytes.
+    UnsupportedLegacyRepresentation(String),
 }
 
 impl fmt::Display for ReadError {
@@ -33,6 +38,10 @@ impl fmt::Display for ReadError {
                 write!(f, "Harness schema must be one lower-case SQL identifier")
             }
             Self::Corruption(message) => write!(f, "Harness Journal corruption: {message}"),
+            Self::UnsupportedLegacyRepresentation(digest) => write!(
+                f,
+                "Harness legacy CAS representation needs separate qualification: {digest}"
+            ),
         }
     }
 }
@@ -125,8 +134,12 @@ pub fn decode_cas(
     }
     let text = std::str::from_utf8(raw)
         .map_err(|_| corrupted(format!("CAS invalid UTF-8: {expected_digest}")))?;
-    let value = loads_strict(text)
-        .map_err(|e| corrupted(format!("CAS invalid strict JSON: {expected_digest}: {e}")))?;
+    let value = loads_strict(text).map_err(|e| match e {
+        CanonicalError::ExcessiveNesting | CanonicalError::IntegerDigitLimit => {
+            ReadError::UnsupportedLegacyRepresentation(expected_digest.to_owned())
+        }
+        _ => corrupted(format!("CAS invalid strict JSON: {expected_digest}: {e}")),
+    })?;
     if digest_bytes(raw) != expected_digest || canonical_bytes(&value) != raw {
         return Err(corrupted(format!(
             "CAS digest/canonical bytes differ for {expected_digest}"
@@ -436,5 +449,29 @@ mod tests {
         assert!(decode_cas(&digest, "kind", "kind", src.len() as i64 + 1, src).is_err());
         assert!(decode_cas("sha256:corrupt", "kind", "kind", src.len() as i64, src).is_err());
         assert!(decode_cas(&digest, "kind", "kind", src.len() as i64, br#"{ "a":1}"#).is_err());
+        let deep = format!("{}0{}", "[".repeat(996), "]".repeat(996));
+        let expected = digest_bytes(deep.as_bytes());
+        assert!(matches!(
+            decode_cas(
+                &expected,
+                "kind",
+                "kind",
+                deep.len() as i64,
+                deep.as_bytes()
+            ),
+            Err(ReadError::UnsupportedLegacyRepresentation(_))
+        ));
+        let huge_int = "7".repeat(4301);
+        let expected = digest_bytes(huge_int.as_bytes());
+        assert!(matches!(
+            decode_cas(
+                &expected,
+                "kind",
+                "kind",
+                huge_int.len() as i64,
+                huge_int.as_bytes()
+            ),
+            Err(ReadError::UnsupportedLegacyRepresentation(_))
+        ));
     }
 }
