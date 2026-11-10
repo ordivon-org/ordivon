@@ -14,6 +14,39 @@ fn runner_result_still_absent(path: &Path) -> RuntimeResult<bool> {
     }
 }
 
+/// Read at most one physical page. A cursor beyond the last unresolved row
+/// wraps to the oldest candidate, so one permanently blocked head cannot
+/// prevent future records from receiving an observation.
+fn scan_reconciliation_page(
+    client: &mut postgres::Client,
+    limit: u32,
+    cancelled_only: bool,
+    cursor: Option<&(i64, String)>,
+) -> Result<Vec<postgres::Row>, postgres::Error> {
+    const SQL: &str = r#"
+        SELECT j.job_id, j.principal, j.desired_state, j.created_at_ms
+        FROM jobs j
+        JOIN attempts a ON a.attempt_id = j.current_attempt_id
+        WHERE j.resolution IS NULL
+          AND (j.desired_state = 'cancelled'
+               OR (NOT $2 AND a.state IN ('starting','running','stopping','recovering')))
+          AND ($3::BIGINT IS NULL
+               OR (j.created_at_ms, j.job_id) > ($3::BIGINT, $4::TEXT))
+        ORDER BY j.created_at_ms, j.job_id
+        LIMIT $1
+    "#;
+    let (at, id) = cursor
+        .map(|(at, id)| (Some(*at), Some(id.as_str())))
+        .unwrap_or((None, None));
+    let mut rows = client.query(SQL, &[&i64::from(limit), &cancelled_only, &at, &id])?;
+    if rows.is_empty() && cursor.is_some() {
+        let no_at: Option<i64> = None;
+        let no_id: Option<&str> = None;
+        rows = client.query(SQL, &[&i64::from(limit), &cancelled_only, &no_at, &no_id])?;
+    }
+    Ok(rows)
+}
+
 impl PgRuntime {
     /// Service-owned recovery path. Does not admit commands or consume Job capacity.
     /// Each cancellation retains its original principal and exact durable Job identity.
@@ -33,10 +66,38 @@ impl PgRuntime {
             return Err(RuntimeError::invalid("limit must be 1..100", "limit"));
         }
         let mut db = self.store()?;
-        let pending = db.client.query(
-            "SELECT j.job_id,j.principal,j.desired_state FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id WHERE j.resolution IS NULL AND (j.desired_state='cancelled' OR (NOT $2 AND a.state IN ('starting','running','stopping','recovering'))) ORDER BY j.created_at_ms,j.job_id LIMIT $1",
-            &[&i64::from(limit),&cancelled_only],
-        ).map_err(io)?;
+        // The oldest unresolved jobs can stay blocked on uncertain native
+        // evidence indefinitely. A fixed LIMIT on the oldest rows prevents
+        // later jobs from ever being reconciled. Use a bounded, wraparound
+        // keyset scan, with independent cursors for the cancellation and
+        // general recovery consumers. Never hold a cursor mutex across DB or
+        // native OS calls.
+        let previous = {
+            let cursors = self
+                .reconciliation_cursors
+                .lock()
+                .map_err(|_| error("reconciliation cursor mutex poisoned"))?;
+            if cancelled_only {
+                cursors.cancelled.clone()
+            } else {
+                cursors.issued.clone()
+            }
+        };
+        let pending =
+            scan_reconciliation_page(&mut db.client, limit, cancelled_only, previous.as_ref())
+                .map_err(io)?;
+        if let Some(last) = pending.last() {
+            let next = (last.get::<_, i64>(3), last.get::<_, String>(0));
+            let mut cursors = self
+                .reconciliation_cursors
+                .lock()
+                .map_err(|_| error("reconciliation cursor mutex poisoned"))?;
+            if cancelled_only {
+                cursors.cancelled = Some(next);
+            } else {
+                cursors.issued = Some(next);
+            }
+        }
         drop(db);
         let mut terminal = 0_u32;
         let mut errors = 0_u32;
@@ -735,5 +796,55 @@ mod late_runner_result_tests {
         std::os::unix::fs::symlink("/dev/null", root.join("result.json")).unwrap();
         assert!(runner_result_still_absent(&root).is_err());
         fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod scan_fairness_tests {
+    use super::*;
+
+    /// Real SQL and >100 unresolved Jobs in an explicitly disposable PG.
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+    fn native_postgres_scan_advances_beyond_blocked_oldest_page() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("use a dedicated disposable PostgreSQL cluster");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        db.batch_execute(
+            "CREATE TEMP TABLE jobs (job_id text, principal text, desired_state text, \
+                resolution text, current_attempt_id text, created_at_ms bigint); \
+             CREATE TEMP TABLE attempts (attempt_id text, state text); \
+             INSERT INTO jobs \
+                SELECT 'job-' || lpad(n::text,3,'0'), 'owner', 'run', NULL, \
+                       'attempt-' || n, n::bigint \
+                FROM generate_series(1,101) n; \
+             INSERT INTO attempts \
+                SELECT 'attempt-' || n, 'running' \
+                FROM generate_series(1,101) n;",
+        )
+        .unwrap();
+        let first = scan_reconciliation_page(&mut db, 100, false, None).unwrap();
+        assert_eq!(first.len(), 100);
+        assert_eq!(first.last().unwrap().get::<_, String>(0), "job-100");
+        let cursor = (
+            first.last().unwrap().get::<_, i64>(3),
+            first.last().unwrap().get::<_, String>(0),
+        );
+        let second = scan_reconciliation_page(&mut db, 100, false, Some(&cursor)).unwrap();
+        assert_eq!(second.len(), 1);
+        assert_eq!(second[0].get::<_, String>(0), "job-101");
+        let cursor = (second[0].get::<_, i64>(3), second[0].get::<_, String>(0));
+        let wrapped = scan_reconciliation_page(&mut db, 100, false, Some(&cursor)).unwrap();
+        assert_eq!(wrapped.len(), 100);
+        assert_eq!(wrapped[0].get::<_, String>(0), "job-001");
+        db.execute(
+            "UPDATE jobs SET desired_state='cancelled' WHERE job_id IN ('job-004','job-101')",
+            &[],
+        )
+        .unwrap();
+        let cancelled = scan_reconciliation_page(&mut db, 100, true, None).unwrap();
+        assert_eq!(cancelled.len(), 2);
+        assert_eq!(cancelled[0].get::<_, String>(0), "job-004");
+        assert_eq!(cancelled[1].get::<_, String>(0), "job-101");
     }
 }
