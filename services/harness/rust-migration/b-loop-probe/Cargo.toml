@@ -1,0 +1,11 @@
+[package]
+name = "ordivon-harness-loop-b-probe"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+# No dependencies: this slice owns no PostgreSQL, canonical digest,
+# Provider transport, Runtime execution or plugin registry.
