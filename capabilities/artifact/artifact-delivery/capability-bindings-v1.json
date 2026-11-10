@@ -26,7 +26,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/audio-ogg-vorbis-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "audio-wave-pcm16-r1",
@@ -185,7 +186,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/moving-image-matroska-ffv1-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "software-release-linux-elf-executable-r1",
@@ -223,7 +225,8 @@
       },
       "objectContractRequired": false,
       "standingRef": "artifact-delivery/shadow-bindings/still-image-svg-static-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "web-archive-warc-response-r1",
