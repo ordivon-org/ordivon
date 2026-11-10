@@ -204,7 +204,17 @@ class CapabilityCatalog:
                 error: str | None = None
                 if host_probe is not None:
                     result, error = host_probe.result()
-                    available = result is not None
+                    if result is not None:
+                        # Host is the status contract owner: arbitrary JSON is not
+                        # evidence of a live, qualified Host status response.
+                        available = (
+                            isinstance(result, dict)
+                            and type(result.get("schemaVersion")) is int
+                            and result["schemaVersion"] == 3
+                            and result.get("kind") == "ordivon.host-status"
+                        )
+                        if not available:
+                            error = "invalid Host status projection"
                 values.append(
                     CapabilityDescriptor(
                         capability=route.capability,

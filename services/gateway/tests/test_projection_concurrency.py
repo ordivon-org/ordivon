@@ -44,7 +44,11 @@ def test_independent_owner_observations_start_without_waiting_for_each_other() -
                 if len(started) == 3:
                     ready.set()
                 await asyncio.wait_for(ready.wait(), timeout=0.2)
-                return {"schemaVersion": 3} if owner == "host" else runtime_payload(owner)
+                return (
+                    {"schemaVersion": 3, "kind": "ordivon.host-status"}
+                    if owner == "host"
+                    else runtime_payload(owner)
+                )
 
         projection = await GatewayService(Caller()).capability_describe()
         by_id = {item.capability: item for item in projection.capabilities}
@@ -76,7 +80,11 @@ def test_slow_owner_becomes_unknown_without_hiding_healthy_owner() -> None:
                         await asyncio.Event().wait()
                     finally:
                         cancelled.set()
-                return {"schemaVersion": 3} if owner == "host" else runtime_payload(owner)
+                return (
+                    {"schemaVersion": 3, "kind": "ordivon.host-status"}
+                    if owner == "host"
+                    else runtime_payload(owner)
+                )
 
         service = GatewayService(Caller(), projection_timeout_seconds=0.02)
         projection = await asyncio.wait_for(service.capability_describe(), timeout=0.5)
