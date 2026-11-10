@@ -155,8 +155,8 @@ godot --headless --path examples/beacon-relay --editor --import > /tmp/ordivon-g
 output="$(godot --headless --path examples/beacon-relay --script res://acceptance.gd 2>&1)"
 printf '%s\\n' "$output"
 grep -q '^GAME_BEACON_RELAY_PASS assertions=' <<< "$output"
-if grep -Eq 'SCRIPT ERROR|Parser Error|GAME_BEACON_RELAY_FAIL' <<< "$output"; then
-  echo "GAME_BEACON_NATIVE_REJECTED_SCRIPT_ERROR" >&2
+if grep -Eq 'SCRIPT ERROR|Parser Error|GAME_BEACON_RELAY_FAIL|ObjectDB instances were leaked|resources still in use at exit|(^|[[:space:]])ERROR:' <<< "$output"; then
+  echo "GAME_BEACON_NATIVE_REJECTED_ENGINE_DIAGNOSTIC" >&2
   exit 1
 fi
 """
