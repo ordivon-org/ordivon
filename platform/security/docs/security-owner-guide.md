@@ -174,6 +174,24 @@ Prefer: `authorization`, `authentication`, `attestations`, `provenance`, `threat
 - Evidence, provenance and VSA file digests use bounded streaming reads,
   lowering peak hashing memory without upgrading source/signature authority.
 
+### November 10 S1 scope-and-effect consumer refinement
+
+- For the current Agent Grant v1 profile, resourcePrefixes and effect.resource
+  are **Owner-qualified canonical absolute paths**, not raw URLs or filesystem
+  paths. Segment matching rejects dot segments, doubled separators, backslashes,
+  percent escapes, query/fragment suffixes and ASCII control characters.
+  A future non-path identity requires a versioned contract.
+- Raw Rego admission remains defined as DENY / invalid-input even when an entire
+  identity section is absent. The public Python evaluator independently rejects
+  schema-invalid input before invoking the policy.
+- Web and Lab stores reject noncanonical Grant coordinates and revalidate the
+  persisted Grant, Agent/Principal, audience, action, effect type and concrete
+  materialized resource within their existing effect transactions. Exact
+  committed replays do not consume a second budget or approval.
+- The Security owner native verify runs a finite OPA / real WebStore / real Lab
+  GrantStore scope refinement corpus. This is not a universal theorem or
+  deployed PEP acceptance; the consumers retain native TypeScript checks.
+
 Consumer-owned follow-ups remain: scan immutable Artifact SourceCuts, qualify
 Rust/TypeScript/Python-aware scanner profiles against actual release inputs,
 measure Web/Gateway policy latency under concurrency, and prove deployed PEP
