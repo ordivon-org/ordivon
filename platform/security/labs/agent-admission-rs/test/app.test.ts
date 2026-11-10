@@ -235,3 +235,32 @@ test("a committed effect cannot be replayed by a different authenticated Agent",
   assert.equal(body.error, "effect_actor_mismatch");
   store.close();
 });
+
+test("Grant paths cannot match sibling path names", () => {
+  const store = new GrantStore(":memory:");
+  store.createGrant({
+    grantId: "grant:path-segment",
+    principalId: "principal:user-123",
+    agentId: "oauth-client:agent-research-17",
+    audience,
+    allowedActions: ["comment.create"],
+    resourcePrefixes: ["/comments"],
+    expiresAtEpochSeconds: 2_000_000_000,
+    maxRiskClass: "R3",
+    stepUpAtOrAbove: "R4",
+    remainingEffects: 2,
+  });
+  assert.equal(
+    store.resolveUniqueGrant("oauth-client:agent-research-17", audience, "comment.create", "/comments", 1_800_000_000).grantId,
+    "grant:path-segment",
+  );
+  assert.equal(
+    store.resolveUniqueGrant("oauth-client:agent-research-17", audience, "comment.create", "/comments/article-42", 1_800_000_000).grantId,
+    "grant:path-segment",
+  );
+  assert.throws(
+    () => store.resolveUniqueGrant("oauth-client:agent-research-17", audience, "comment.create", "/comments-private", 1_800_000_000),
+    /No active delegation grant/,
+  );
+  store.close();
+});

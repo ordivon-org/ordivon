@@ -151,3 +151,31 @@ Before a future verified-consequence outcome is valid, the natural producing Own
 ## Naming and retirement policy
 
 Prefer: `authorization`, `authentication`, `attestations`, `provenance`, `threat-model`, `security-observation`, `resource`, `principal`, `policy-decision`. Avoid `range-*` for generic effect decisions, unqualified `security-check` and a second custom `findings` model. Keep public versioned paths/names stable until their consumers are migrated; internal source semantics and provider-native formats take priority over cosmetic renames.
+
+
+## November 10 implementation update: source-bound consumer seams
+
+- Agent Admission's raw Rego entrypoint now validates admission-critical fields
+  before selecting a decision. A missing effect budget or step-up risk threshold
+  must never fall through to admitted; the public Python contract also retains
+  its JSON Schema boundary.
+- Resource prefixes are path-segment scopes at Security, Web Store and the
+  Agent Admission Lab. /canary/notes permits itself and descendants, not
+  /canary/notes-private. This preserves the existing Grant payload format.
+- Web calls the existing Security-owned evaluator asynchronously, with
+  bounded child lifetime and output. This is a responsiveness improvement,
+  not proof of lower end-to-end request latency.
+- Security VSA issuance builds content-addressed reference generations before
+  atomically publishing the final VSA pointer. The VSA remains unsigned;
+  referenced local report paths are not immutable Artifact SourceCuts.
+- Browser LKG reseal publishes complete immutable per-carrier generations
+  before switching a single indexed LKG pointer. The old multi-file
+  try/rollback writer has been retired.
+- Evidence, provenance and VSA file digests use bounded streaming reads,
+  lowering peak hashing memory without upgrading source/signature authority.
+
+Consumer-owned follow-ups remain: scan immutable Artifact SourceCuts, qualify
+Rust/TypeScript/Python-aware scanner profiles against actual release inputs,
+measure Web/Gateway policy latency under concurrency, and prove deployed PEP
+coverage plus model-to-code refinement. Provider selection alone does not
+justify new services, duplicate policy engines or premature lab retirement.
