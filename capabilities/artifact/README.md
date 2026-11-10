@@ -212,12 +212,34 @@ Qualify an upstream project against exact user-facing acceptance and negative ca
 - Stop decomposition when further files only add glue. Existing semantic seams and consumer-accepted native tools take priority over a prettier directory tree.
 
 **Independent input snapshot qualification:** binding `snapshotInputs=true`
-now expressly controls exact private byte staging, separately from
-`requireClaimResults`. FLAC/WAVE/PNG retain both qualifications; the
-single-file Parquet verifier now freezes its Parquet and separate JSON contract
-inputs even though its legacy claim coverage remains incomplete. Parquet
-`status=PASS` still does **not** imply `profileVerificationComplete=true`.
-Formats with sidecars or other relative file dependencies remain
-`ADMISSION_DIGEST_ONLY` until the complete input graph can be committed and
-tested without disrupting family-native references. The snapshot lifetime is
-one verification invocation, not consumer readback or installed-tool identity.
+controls exact private byte staging separately from `requireClaimResults`.
+The seven verified single-file bindings are FLAC, WAVE, PNG, Parquet,
+Ogg/Vorbis, Matroska/FFV1 and bounded static SVG. Each native verifier receives the committed
+subject bytes and, where required, a separately committed JSON contract.
+Only FLAC/WAVE/PNG additionally require complete claim-level evidence;
+Parquet/Ogg/Matroska/SVG retain legacy native PASS without promoting
+`profileVerificationComplete`. `tests/test_artifact_input_snapshot.py`
+includes a native-dispatch replacement regression for Ogg and Matroska.
+
+The other 12 bindings remain `ADMISSION_DIGEST_ONLY` until their actual
+dependency closures and family verifiers are qualified. In particular,
+relative tile-set/model/include references, optional external glTF
+resources, native application state and SQLite auxiliary files cannot safely
+be assumed absent merely because the primary input has a digest. Freeze
+only a format's proven dependency set rather than copying every source
+into a new universal CAS. The snapshot lifetime is one verification
+invocation, **not** source-path continuity or later consumer readback.
+
+### Consumer-rooted execution seams (source observation, 2026-11-10)
+
+| Source entry/consumer | Actual path | Acceptance authority |
+| --- | --- | --- |
+| Agent proposal | `scripts/artifact_agent_surface.py` → `scripts/artifact_verify.py` → binding → native verifier | Artifact service reports only bounded technical evidence; Runtime owns physical execution |
+| Existing-file consumers | `tests/test_artifact_consumer_acceptance.py` creates real WAVE/FLAC/PNG/Parquet and separately reads native output after service verification | Test readers demonstrate technical consumption, not production Game/Media/Finance acceptance |
+| Build/packaging | `artifact_operations/providers/direct_python.py` delegates native build/verification; optional `scripts/artifact_temporal_workflow.py` sequences operations | Package completion is not destination publication |
+| Local HTML delivery | `scripts/artifact_deliver_html.py` builds and validates, then reads back the delivered path with real browsers | Local browser technical acceptance, not remote website or content-quality acceptance |
+| Media capability index | `capabilities/media/src/ordivon_studio/creative_index_artifact.py` reads Artifact Profile, Shadow Binding and consumer-acceptance records | Existing source consumer: migrate before retiring those files |
+
+This is a current **source-path map**, not proof of installed deployment,
+active job routing, or a final business consumer. The source/subject identity
+fix for Ogg/Matroska does not change any of those independent boundaries.
