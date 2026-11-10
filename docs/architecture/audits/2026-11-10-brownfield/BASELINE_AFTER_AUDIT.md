@@ -77,3 +77,13 @@ There are **no certified full-file semantic closures for all 5,002 files**; the 
 **Conclusion:** the recorded SOURCE baseline has improved specificity and one real code maintenance candidate passed existing scoped checks. The broad modernization program is not yet complete at deployed/domain or per-file semantic level; future claims must retain these distinctions.
 
 **Cross-Agent file evidence:** reuses exact 5,002-path peer blob ledger `FILE_LEDGER.tsv.gz` (compressed SHA-256 `1274eac9f9c8571854b77b950f025863e1f91a94fa32074358b20be932873d9e`). All rows explicitly retain semantic-review UNKNOWN; this is not a second state authority.
+
+## 7. Current-source consolidation (2026-11-10, after initial audit)
+
+The original Phase 0–5 evidence above remains pinned to `ef17d6879d12faa61fff3bb762b0d500d73c9113`; do **not** reinterpret its 5,002 rows as an inventory of later source revisions. At `e037af933b66cdfccc7e13e3e6392847e7f84fc8`, Git main had independently merged **four parallel audit packages with the same initial SourceCut**: `docs/audits/2026-11-10/`, `docs/architecture/audits/2026-11-10/`, this directory, and `docs/audits/2026-11-10-brownfield/`. They contradicted the goal of one maintainable current audit carrier even where their findings were individually valid.
+
+**Decision:** keep this one existing six-report package plus `FILE_LEDGER.tsv.gz` as a historical audit snapshot. Remove the three redundant sibling packages (20 tracked files; 2,326,127 source bytes), update their three known current documentation references, and reuse Git history for recovering any discarded dated source sighting. No new checker, owner, schema, test or consumer is installed by the consolidation. Current Finance, Runtime and Repository code/Owner documents remain the respective evidence authorities; this package does not become a universal live registry.
+
+The separate Capital stock source cleanup is now in merged Git main from PR #2040: its unique source outcome is maintained at `domains/capital/docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md` and its ordinary Git commits, not by retaining another 1.2 MB current audit copy. Repo source repair PR #2012 and the old Agent Spec retirement PR #2032 are likewise merged in this source cut. **This paragraph reports SOURCE/MERGED currentness only**; no Runtime/Host install, economic outcome or all-file semantic closure is inferred.
+
+Review the exact consolidation diff and run the existing repo architecture, Owner boundary and affected source reference checks. Any post-merge state/size measurement must be read from Git main again, not inferred from this historical baseline.

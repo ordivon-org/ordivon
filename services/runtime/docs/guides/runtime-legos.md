@@ -36,8 +36,7 @@ A LEGO is described by `(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`: inputs/
 
 The existing WorkspaceConsumerCloseR1 TLA models and native Runtime provider
 remain unchanged. Current stock-only source audit, refactor decisions and
-recorded evidence are in the repository-level
-../../../../docs/architecture/audits/2026-11-10/AUDIT_SCOPE.md documentation.
+recorded evidence are in the repository-root path `docs/architecture/audits/2026-11-10-brownfield/AUDIT_SCOPE.md`.
 Earlier consumer-expansion plans are historical and do not authorize new
 runtime features, tests or interfaces.
 
