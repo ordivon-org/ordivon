@@ -74,7 +74,7 @@ def tool_definitions() -> list[dict[str, Any]]:
         },
         {
             "name": "studio_processing_probe_plan",
-            "description": "Compile an exact read-only Runtime proposal from an existing processing profile and adapter, both SHA-256 pinned by a previous Studio discovery. Does not execute, acquire tools or decide publication.",
+            "description": "Compile a read-only Runtime proposal from a SHA-256-pinned processing profile and adapter. Optionally bind a materialized exact input digest to Runtime hostDependencies; the Runtime witness does not prove provider consumption. Does not execute or decide publication.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -83,6 +83,7 @@ def tool_definitions() -> list[dict[str, Any]]:
                     "expectedAdapterDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
                     "inputPath": {"type": "string", "minLength": 1},
                     "evidenceDirectory": {"type": "string", "minLength": 1},
+                    "expectedInputDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
                 },
                 "required": ["profileId", "expectedProfileDigest", "expectedAdapterDigest", "inputPath", "evidenceDirectory"],
                 "additionalProperties": False,
