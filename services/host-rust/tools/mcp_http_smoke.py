@@ -96,6 +96,28 @@ try:
     assert status == 200 and body["result"]["serverInfo"]["name"], body
     session = headers.get("Mcp-Session-Id")
     assert session, "missing stateful MCP session"
+    # Origin/Host allowlist is a real network boundary; localhost binding alone
+    # cannot protect against a browser resolving an attacker hostname to loopback.
+    bad_origin = urllib.request.Request(
+        url,
+        data=json.dumps({
+            "jsonrpc": "2.0", "id": 99, "method": "tools/list", "params": {}
+        }).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+            "Mcp-Protocol-Version": "2025-06-18",
+            "Mcp-Session-Id": session,
+            "Origin": "https://untrusted.example",
+        },
+        method="POST",
+    )
+    try:
+        urllib.request.urlopen(bad_origin, timeout=7)
+        raise AssertionError("Host accepted untrusted Origin header")
+    except urllib.error.HTTPError as exc:
+        assert exc.code in {400, 403}, f"unexpected Origin rejection: {exc.code}"
+
     notify_status, _, _ = post("notifications/initialized", None, None, session)
     assert notify_status == 202, notify_status
     _, listed, _ = post("tools/list", {}, 2, session)

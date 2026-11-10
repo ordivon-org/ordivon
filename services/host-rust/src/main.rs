@@ -44,7 +44,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Default::default(),
                     StreamableHttpServerConfig::default()
                         .with_json_response(true)
-                        .with_sse_keep_alive(None),
+                        .with_sse_keep_alive(None)
+                        .with_allowed_origins([
+                            "http://127.0.0.1:*",
+                            "http://localhost:*",
+                            "http://[::1]:*",
+                        ]),
                 );
             let listener = tokio::net::TcpListener::bind(bind).await?;
             let app = Router::new().nest_service(&path, service);
