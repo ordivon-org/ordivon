@@ -24,6 +24,12 @@ struct PendingCandidate {
 #[derive(Default)]
 struct SchedulerPreflight {
     reserved_cpu: u64,
+    // Claims made after the single native node observation this scheduling
+    // pass are not yet reflected in MemAvailable / pids.current. Existing
+    // allocations are already included in that OS observation and must not
+    // be charged again here.
+    newly_reserved_memory: u64,
+    newly_reserved_pids: u64,
     active_attempts: BTreeSet<String>,
     leases: BTreeMap<String, Vec<WorkspaceAccess>>,
 }
@@ -45,9 +51,13 @@ impl SchedulerPreflight {
             u64::from(candidate.spec.resources.cpu_millis),
             node.cpu_millis,
             candidate.spec.resources.memory_bytes,
-            node.memory_available_bytes.saturating_sub(memory_reserve),
+            node.memory_available_bytes
+                .saturating_sub(memory_reserve)
+                .saturating_sub(self.newly_reserved_memory),
             u64::from(candidate.spec.resources.pids),
-            node.pids_available.saturating_sub(64),
+            node.pids_available
+                .saturating_sub(64)
+                .saturating_sub(self.newly_reserved_pids),
         ) {
             return false;
         }
@@ -68,6 +78,12 @@ impl SchedulerPreflight {
         self.reserved_cpu = self
             .reserved_cpu
             .saturating_add(u64::from(candidate.spec.resources.cpu_millis));
+        self.newly_reserved_memory = self
+            .newly_reserved_memory
+            .saturating_add(candidate.spec.resources.memory_bytes);
+        self.newly_reserved_pids = self
+            .newly_reserved_pids
+            .saturating_add(u64::from(candidate.spec.resources.pids));
         self.leases
             .entry(candidate.workspace_id.clone())
             .or_default()
@@ -497,5 +513,53 @@ mod scheduler_candidate_tests {
         usage.insert("a".into(), (100, 0, 0));
         assert_eq!(next_candidate(&candidates, &usage, &node()), Some(1));
         assert_eq!(next_candidate(&[], &usage, &node()), None);
+    }
+
+    #[test]
+    fn preflight_accounts_for_new_claims_not_yet_visible_in_native_snapshot() {
+        let node = realistic_node();
+        let mut first = candidate("a", 0, 0);
+        first.spec.resources.memory_bytes = 600 * 1024 * 1024;
+        let mut second = candidate("b", 0, 1);
+        second.workspace_id = "other-workspace".into();
+        second.spec.resources.memory_bytes = 600 * 1024 * 1024;
+
+        let mut preflight = SchedulerPreflight::default();
+        assert!(preflight.allows(&first, &node));
+        assert!(preflight.record_allocation(&first));
+        assert_eq!(preflight.newly_reserved_memory, 600 * 1024 * 1024);
+        // No second PG claim/cgroup scan for a capacity estimate already
+        // contradicted by allocations made since the OS snapshot.
+        assert!(!preflight.allows(&second, &node));
+        // An already admitted Attempt must still resume idempotently.
+        assert!(preflight.allows(&first, &node));
+        assert!(!preflight.record_allocation(&first));
+        assert_eq!(preflight.newly_reserved_memory, 600 * 1024 * 1024);
+
+        let mut fresh = SchedulerPreflight::default();
+        fresh.active_attempts.insert(first.attempt_id.clone());
+        fresh.reserved_cpu = u64::from(first.spec.resources.cpu_millis);
+        // Old active reservations already reflected by native observation
+        // must not be double-charged to the newly reserved budget.
+        assert!(fresh.allows(&second, &node));
+    }
+
+    #[test]
+    fn preflight_accounts_for_unobserved_pid_reservations() {
+        let node = realistic_node();
+        let mut first = candidate("a", 0, 0);
+        first.spec.resources.pids = 6_000;
+        let mut second = candidate("b", 0, 1);
+        second.workspace_id = "other-workspace".into();
+        second.spec.resources.pids = 6_000;
+
+        let mut preflight = SchedulerPreflight::default();
+        assert!(preflight.allows(&first, &node));
+        assert!(preflight.record_allocation(&first));
+        assert_eq!(preflight.newly_reserved_pids, 6_000);
+        assert!(!preflight.allows(&second, &node));
+        assert!(preflight.allows(&first, &node));
+        assert!(!preflight.record_allocation(&first));
+        assert_eq!(preflight.newly_reserved_pids, 6_000);
     }
 }
