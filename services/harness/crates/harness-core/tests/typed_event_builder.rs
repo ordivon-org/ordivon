@@ -59,7 +59,7 @@ fn duplicate_and_malformed_inputs_are_not_constructible() {
 #[test]
 fn builder_cannot_create_a_document_its_reader_would_reject() {
     let mut nested = CanonicalDocument::null();
-    for _ in 0..512 {
+    for _ in 0..995 {
         nested = CanonicalDocument::array(vec![nested]).unwrap();
     }
     assert_eq!(

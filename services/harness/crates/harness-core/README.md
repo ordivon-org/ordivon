@@ -16,16 +16,17 @@ decimal text rather than silently narrowing to i64, u64 or floating point.
 
 The committed fixture was produced with Python 3.15.1 by directly invoking
 anc_canonical.loads_strict, canonical_bytes, and canonical_digest.
-It contains 38 input vectors, including 19 accepted byte/digest fixtures and
-19 rejected inputs. Offline Cargo tests verify the frozen oracle.
+It contains 45 input vectors, including deep nesting near Python 3.15's default
+recursion threshold and the original 19 invalid JSON cases. Offline Cargo tests verify the frozen oracle.
 
 Run: CARGO_TARGET_DIR=/tmp/ordivon-harness-rust-core cargo test --offline
 --manifest-path services/harness/crates/harness-core/Cargo.toml
 
 Known limits / pending independent falsification:
 
-- The parser bounds nesting to 512. Python's runtime recursion limit and
-  configured maximum decimal integer digits may differ between deployments.
+- The parser bounds nesting to 995 for the current Python 3.15.1 oracle's
+  observed default-stack behavior. Python runtime recursion settings, wrapper
+  call depth and deployment limits can change this threshold.
 - The Rust contract currently fixes the observed Python 3.15.1 default
   integer digit limit of 4300; changes to Python settings are not modeled.
 - Cross-language parity is established only for the included inputs. Wider

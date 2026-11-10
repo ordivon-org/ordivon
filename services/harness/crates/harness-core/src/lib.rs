@@ -137,7 +137,7 @@ impl std::error::Error for CanonicalError {}
 /// The reference interpreter's actual setting must be qualified before use
 /// in an environment that changes this configuration.
 const PYTHON_DEFAULT_MAX_INTEGER_DIGITS: usize = 4300;
-const MAX_NESTING: usize = 512;
+const MAX_NESTING: usize = 995;
 
 struct Parser<'a> {
     input: &'a str,
@@ -355,6 +355,80 @@ pub fn canonical_bytes(value: &CanonicalDocument) -> Vec<u8> {
     let mut output = String::new();
     write_canonical(&value.0, &mut output);
     output.into_bytes()
+}
+
+/// Read-only borrowed view into a validated Canonical Document.
+#[derive(Clone, Copy, Debug)]
+pub struct CanonicalRef<'a>(&'a CanonicalValue);
+
+impl CanonicalDocument {
+    /// Inspect an object field without re-parsing or lossy i64/f64 conversion.
+    pub fn field(&self, key: &str) -> Option<CanonicalRef<'_>> {
+        CanonicalRef(&self.0).field(key)
+    }
+    pub fn is_object(&self) -> bool {
+        matches!(self.0, CanonicalValue::Object(_))
+    }
+    pub fn object_len(&self) -> Option<usize> {
+        CanonicalRef(&self.0).object_len()
+    }
+
+    /// Borrow an array element without decoding through lossy serde_json::Value.
+    pub fn index(&self, index: usize) -> Option<CanonicalRef<'_>> {
+        CanonicalRef(&self.0).index(index)
+    }
+
+    /// Keep object iteration read-only; the original sorted keys remain sealed.
+    pub fn object_entries(&self) -> Option<impl Iterator<Item = (&str, CanonicalRef<'_>)>> {
+        match &self.0 {
+            CanonicalValue::Object(entries) => Some(
+                entries
+                    .iter()
+                    .map(|(key, value)| (key.as_str(), CanonicalRef(value))),
+            ),
+            _ => None,
+        }
+    }
+}
+
+impl<'a> CanonicalRef<'a> {
+    pub fn field(self, key: &str) -> Option<Self> {
+        match self.0 {
+            CanonicalValue::Object(values) => values.get(key).map(Self),
+            _ => None,
+        }
+    }
+    pub fn as_str(self) -> Option<&'a str> {
+        match self.0 {
+            CanonicalValue::String(value) => Some(value),
+            _ => None,
+        }
+    }
+    pub fn integer_text(self) -> Option<&'a str> {
+        match self.0 {
+            CanonicalValue::Integer(value) => Some(value),
+            _ => None,
+        }
+    }
+    pub fn object_len(self) -> Option<usize> {
+        match self.0 {
+            CanonicalValue::Object(entries) => Some(entries.len()),
+            _ => None,
+        }
+    }
+    pub fn array_len(self) -> Option<usize> {
+        match self.0 {
+            CanonicalValue::Array(entries) => Some(entries.len()),
+            _ => None,
+        }
+    }
+
+    pub fn index(self, index: usize) -> Option<Self> {
+        match self.0 {
+            CanonicalValue::Array(entries) => entries.get(index).map(Self),
+            _ => None,
+        }
+    }
 }
 
 pub fn canonical_bytes_from_json(input: &str) -> Result<Vec<u8>, CanonicalError> {
