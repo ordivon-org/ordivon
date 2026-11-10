@@ -47,6 +47,33 @@ fn scan_reconciliation_page(
     Ok(rows)
 }
 
+/// Active Runner logs are an evolving preview, not a committed Artifact.
+/// Seek directly to the requested window instead of reading up to the full
+/// output ceiling on every Job observation. Terminal logs use the independent
+/// Artifact digest check in project() and must still verify all committed bytes.
+fn active_log_window(
+    path: &Path,
+    output_ceiling: u64,
+    offset: Option<u64>,
+    limit: u64,
+) -> RuntimeResult<(Vec<u8>, u64, u64, u64)> {
+    use std::io::{Read, Seek, SeekFrom};
+
+    let mut file = fs::File::open(path).map_err(io)?;
+    let available = file.seek(SeekFrom::End(0)).map_err(io)?;
+    if available > output_ceiling {
+        return Err(error("output exceeds retained ceiling"));
+    }
+    let begin = offset
+        .unwrap_or(available.saturating_sub(limit))
+        .min(available);
+    let end = begin.saturating_add(limit).min(available);
+    file.seek(SeekFrom::Start(begin)).map_err(io)?;
+    let mut window = vec![0; usize::try_from(end - begin).map_err(io)?];
+    file.read_exact(&mut window).map_err(io)?;
+    Ok((window, begin, end, available))
+}
+
 impl PgRuntime {
     /// Service-owned recovery path. Does not admit commands or consume Job capacity.
     /// Each cancellation retains its original principal and exact durable Job identity.
@@ -705,27 +732,26 @@ impl PgRuntime {
             }
             let path = Path::new(&a.bundle_path).join(format!("{kind}.log"));
             if path.exists() {
-                let bytes = {
-                    use std::io::Read;
-                    let file = fs::File::open(path).map_err(io)?;
-                    let mut bytes = vec![];
-                    file.take(self.config.executor.max_output_bytes + 1)
-                        .read_to_end(&mut bytes)
-                        .map_err(io)?;
-                    if bytes.len() as u64 > self.config.executor.max_output_bytes {
-                        return Err(error("output exceeds retained ceiling"));
-                    }
-                    bytes
-                };
-                let begin = offset
-                    .unwrap_or((bytes.len() as u64).saturating_sub(limit))
-                    .min(bytes.len() as u64) as usize;
-                let end = (begin as u64 + limit).min(bytes.len() as u64) as usize;
-                if terminal {
-                    // Terminal stdout/stderr are registered evidence, not a
-                    // mutable preview. Reuse the same PostgreSQL digest/size
-                    // commitment enforced by artifact.read, on the very bytes
-                    // returned to the Agent.
+                let (window, begin, end, available) = if terminal {
+                    // The terminal log is immutable evidence. Verify the entire
+                    // exact file against PostgreSQL before returning any bytes.
+                    let bytes = {
+                        use std::io::Read;
+                        let file = fs::File::open(&path).map_err(io)?;
+                        let mut bytes = vec![];
+                        file.take(self.config.executor.max_output_bytes + 1)
+                            .read_to_end(&mut bytes)
+                            .map_err(io)?;
+                        if bytes.len() as u64 > self.config.executor.max_output_bytes {
+                            return Err(error("output exceeds retained ceiling"));
+                        }
+                        bytes
+                    };
+                    let available = bytes.len() as u64;
+                    let begin = offset
+                        .unwrap_or(available.saturating_sub(limit))
+                        .min(available);
+                    let end = begin.saturating_add(limit).min(available);
                     let expected = rows
                         .iter()
                         .find(|row| row.get::<_, String>(1) == kind)
@@ -741,12 +767,20 @@ impl PgRuntime {
                             false,
                         ));
                     }
-                }
-                value[format!("{kind}Tail")] = json!(String::from_utf8_lossy(&bytes[begin..end]));
+                    (
+                        bytes[begin as usize..end as usize].to_vec(),
+                        begin,
+                        end,
+                        available,
+                    )
+                } else {
+                    active_log_window(&path, self.config.executor.max_output_bytes, offset, limit)?
+                };
+                value[format!("{kind}Tail")] = json!(String::from_utf8_lossy(&window));
                 value[format!("{kind}Offset")] = json!(begin);
                 value[format!("{kind}NextOffset")] = json!(end);
-                value[format!("{kind}AvailableBytes")] = json!(bytes.len());
-                value[format!("{kind}Eof")] = json!(end == bytes.len());
+                value[format!("{kind}AvailableBytes")] = json!(available);
+                value[format!("{kind}Eof")] = json!(end == available);
             } else if terminal {
                 return Err(error("terminal output Artifact file missing"));
             }
@@ -846,5 +880,43 @@ mod scan_fairness_tests {
         assert_eq!(cancelled.len(), 2);
         assert_eq!(cancelled[0].get::<_, String>(0), "job-004");
         assert_eq!(cancelled[1].get::<_, String>(0), "job-101");
+    }
+}
+
+#[cfg(test)]
+mod active_log_window_tests {
+    use super::*;
+    use std::io::Write;
+
+    #[test]
+    fn active_log_tail_and_incremental_offsets_preserve_observation_contract() {
+        let path =
+            std::env::temp_dir().join(format!("ordivon-pg-active-log-{}", uuid::Uuid::now_v7()));
+        let mut initial = vec![b'x'; 1024 * 1024];
+        initial.extend_from_slice(b"first");
+        fs::write(&path, &initial).unwrap();
+        let ceiling = (initial.len() + 16) as u64;
+
+        let (tail, begin, end, available) = active_log_window(&path, ceiling, None, 5).unwrap();
+        assert_eq!(tail, b"first");
+        assert_eq!(end, available);
+        assert_eq!(end - begin, 5);
+
+        let mut file = fs::OpenOptions::new().append(true).open(&path).unwrap();
+        file.write_all(b"second").unwrap();
+        drop(file);
+        let (delta, delta_begin, delta_end, later) =
+            active_log_window(&path, ceiling, Some(end), 16).unwrap();
+        assert_eq!(delta, b"second");
+        assert_eq!(delta_begin, end);
+        assert_eq!(delta_end, later);
+
+        let (empty, start, next, total) =
+            active_log_window(&path, ceiling, Some(later + 100), 16).unwrap();
+        assert!(empty.is_empty());
+        assert_eq!((start, next, total), (later, later, later));
+
+        assert!(active_log_window(&path, 16, None, 5).is_err());
+        fs::remove_file(path).unwrap();
     }
 }
