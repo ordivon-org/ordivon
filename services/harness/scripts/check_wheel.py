@@ -7,6 +7,7 @@ import argparse
 from email import policy
 from email.parser import BytesParser
 import json
+import os
 import re
 from pathlib import Path
 import shutil
@@ -233,6 +234,19 @@ def wheel_python_interpreter(
     return interpreter
 
 
+def check_host_free_postgresql(python: Path) -> bool:
+    """Qualify real PG only with an explicit dedicated DSN, never a fake PASS."""
+    if not os.environ.get("HARNESS_PG_TEST_DSN"):
+        print(
+            "wheel: Host-free PostgreSQL create/reopen/inspect NOT_RUN "
+            "(HARNESS_PG_TEST_DSN absent; supply a dedicated test database)",
+            file=sys.stderr,
+        )
+        return False
+    checked([str(python), str(ROOT / "scripts/check_harness_without_host.py")])
+    return True
+
+
 def install_smoke(wheel: Path, version: str) -> dict[str, object]:
     uv = shutil.which("uv")
     if uv is None:
@@ -282,7 +296,7 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
             "assert 'state_root' not in HarnessAgentRun.__dataclass_fields__;"
             "assert 'ordivon_harness.sqlite_store' not in sys.modules"
         )])
-        checked([str(python), str(ROOT / "scripts/check_harness_without_host.py")])
+        check_host_free_postgresql(python)
         help_text = checked([str(cli), "--help"]).stdout
         for command in CLI_COMMANDS:
             if command not in help_text:
