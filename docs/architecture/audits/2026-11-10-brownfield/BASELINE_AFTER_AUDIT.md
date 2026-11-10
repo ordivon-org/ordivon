@@ -77,3 +77,28 @@ There are **no certified full-file semantic closures for all 5,002 files**; the 
 **Conclusion:** the recorded SOURCE baseline has improved specificity and one real code maintenance candidate passed existing scoped checks. The broad modernization program is not yet complete at deployed/domain or per-file semantic level; future claims must retain these distinctions.
 
 **Cross-Agent file evidence:** reuses exact 5,002-path peer blob ledger `FILE_LEDGER.tsv.gz` (compressed SHA-256 `1274eac9f9c8571854b77b950f025863e1f91a94fa32074358b20be932873d9e`). All rows explicitly retain semantic-review UNKNOWN; this is not a second state authority.
+
+## 7. R2 accepted Git readback and zero-base evidence consolidation (2026-11-10)
+
+At refreshed Git main `e037af933b66cdfccc7e13e3e6392847e7f84fc8`, the previously pending PR #2012 was merged by `0e3b9b260971`; Finance maintenance PR #2040 was merged by `690d76dc08e2`. This is a later dated observation; the original historical pre-merge qualification above retains its own timestamp and is not silently rewritten.
+
+The Finance source slice removed 25 unnecessary tracked historical files from its 399-file baseline (Capital tracked source files became 374, without touching live accounting/core src); existing Capital native `mise run verify` returned 865 passed, 26 skipped, 24 deselected and 209 subtests; `repo:ci` and capability-catalog verification both passed. The missing five tests were retired with the test-only path-presence checker, not unexplained failures. The first code change is in merged PR #2040.
+
+This follow-up audit then observed four near-parallel repository-audit directories carrying multiple 5,002-row inventories. The deleted `docs/audits/2026-11-10-brownfield/` snapshot had seven files, 1,248,072 bytes, including a 1,200,476-byte raw TSV. Its sole external in-repo source pointer in `domains/capital/docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md` is updated to this surviving canonical architecture audit. The exact deleted bytes, per-file SHA-256 and historical report remain recoverable at `41c896da3f9b`; `FILE_LEDGER.tsv.gz` and original 5,002-path tree in this canonical audit are retained unchanged.
+
+The first R2 observation held two other parallel audit groups because Runtime source docs still linked `docs/architecture/audits/2026-11-10/` and PR #2031 was then open. Subsequent GitHub readback found PR #2031 and #2039 CLOSED without merge, and the only two live direct Runtime doc pointers were redirected to this surviving audit. Their unique observed Web #2019 and Runtime #2028 repair evidence was folded into section H of `AUDIT_REPORT.md`. The remaining duplicate directories were then source-retired without touching Web/Runtime execution modules, finance data, tests or consumer routes. Old content is retrievable from `e037af933b66` or its original author commits. Root/audit documents are not deployment authority.
+
+
+## 8. Final R2 cross-agent audit snapshot consolidation (source-only)
+
+Four initial near-parallel dated inventories for the *same* original 5,002-file Git tree are reduced to one surviving current architecture audit at `docs/architecture/audits/2026-11-10-brownfield/`. Its full hierarchical `INVENTORY.md` and `FILE_LEDGER.tsv.gz` are retained unchanged: 5,002 Git blob IDs, bytes, modes and UNKNOWN semantic flags. The retired three duplicate snapshot groups collectively contained **20 files and 2,326,127 bytes** (1,248,072 + 529,609 + 548,446), before small canonical evidence appendices. Deleted metadata and per-file SHA-256 files are still available in Git and can be regenerated against the exact historical SourceCut; no shared current registry was installed.
+
+Source-level unique outcomes retained in current canonical report: Finance #2040 (25 historical paths removed, Capital and root native verification), Web #2019 (strict `integerEnv` and SHA256 digest reuse), Runtime #2028 (Git-status error handling and old planning retirement). Runtime's two old documentation references now resolve to this surviving `AUDIT_SCOPE.md`; Finance's old Owner audit links here as well. This is intentional DELETE-MERGE-SOURCE-REUSE with actual consumer inventory, not a claim that all 5,002 dynamic file semantics have been reviewed, or that any modified Runtime daemon was installed.
+
+### R2 source verification actually observed
+
+- `mise run repo:ci`: **PASS** on this changed source tree, including existing owner boundary (2,312 active files; 31 seams, 37 declared references), structure/composition/docs checks, and grouped pytest **533 passed**.
+- `cd domains/capital && mise run verify`: **865 passed, 26 skipped, 24 deselected, 209 subtests passed**; the real frozen fixture remains.
+- `cd apps/web && mise run verify`: **18 tests passed, 0 failed, 0 skipped**, TypeScript `tsc --noEmit` PASS; no Web implementation change.
+- `cd services/runtime && python3 scripts/check_docs.py` and `python3 tools/repo/check_architecture_docs.py`: **PASS** after redirecting both Runtime documentation paths.
+- Separate read-only Codex audits of initial and final source changes returned **NO BLOCKING FINDINGS** on Matt Standards × Spec axes, consumer closure, Git-recoverable provenance, original full ledger, and bounded authority claims. This review is independent source scrutiny, **not** an external deployed consumer acceptance or GitHub CI receipt. The original 5,002-file census still represents mechanical source inventory only.
