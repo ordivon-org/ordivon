@@ -14,7 +14,6 @@ deploy, restart services, visit a provider challenge, or cross SEND.
 from __future__ import annotations
 
 import argparse
-import fcntl
 import hashlib
 import json
 import os
@@ -22,6 +21,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -284,11 +284,45 @@ def _candidate_artifacts(
 
 
 def _fsync_directory(path: Path) -> None:
+    if os.name == "nt":
+        # os.replace is a single-file atomic publication on NTFS; Python
+        # cannot fsync a Windows directory as a regular file descriptor.
+        return
     directory_fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
         os.fsync(directory_fd)
     finally:
         os.close(directory_fd)
+
+
+@contextmanager
+def _index_publication_lock(directory: Path):
+    """Serialize pointer swaps without tying the lock to a replaced index inode."""
+    if os.name == "nt":
+        import msvcrt
+
+        lock_path = directory / ".lkg-publish.lock"
+        with lock_path.open("a+b") as stream:
+            if stream.tell() == 0:
+                stream.write(b"0")
+                stream.flush()
+            stream.seek(0)
+            msvcrt.locking(stream.fileno(), msvcrt.LK_LOCK, 1)
+            try:
+                yield None
+            finally:
+                stream.seek(0)
+                msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+
+        fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            yield fd
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
 
 
 def _publish_lkg_generation(
@@ -328,28 +362,27 @@ def _publish_lkg_generation(
             os.replace(stage, generation_dir)
             _fsync_directory(generation_root)
 
-        # A stable parent-directory lock survives an index file replacement.
-        parent_fd = os.open(index_path.parent, os.O_RDONLY | os.O_DIRECTORY)
-        staged_index: Path | None = None
-        try:
-            fcntl.flock(parent_fd, fcntl.LOCK_EX)
+        # Index identity is checked again under an OS-held publication lock,
+        # so another writer cannot silently replace the intended generation.
+        with _index_publication_lock(index_path.parent) as parent_fd:
             if sha256_file(index_path) != expected_old_index_sha256:
                 raise ResealError("pool LKG index changed during reseal publication")
-            with tempfile.NamedTemporaryFile(
-                mode="wb", prefix=".lkg-index-", dir=index_path.parent, delete=False
-            ) as stream:
-                staged_index = Path(stream.name)
-                stream.write(index_raw)
-                stream.flush()
-                os.fsync(stream.fileno())
-            os.replace(staged_index, index_path)
-            staged_index = None
-            os.fsync(parent_fd)
-        finally:
-            if staged_index is not None:
-                staged_index.unlink(missing_ok=True)
-            fcntl.flock(parent_fd, fcntl.LOCK_UN)
-            os.close(parent_fd)
+            staged_index: Path | None = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="wb", prefix=".lkg-index-", dir=index_path.parent, delete=False
+                ) as stream:
+                    staged_index = Path(stream.name)
+                    stream.write(index_raw)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                os.replace(staged_index, index_path)
+                staged_index = None
+                if parent_fd is not None:
+                    os.fsync(parent_fd)
+            finally:
+                if staged_index is not None:
+                    staged_index.unlink(missing_ok=True)
     finally:
         shutil.rmtree(stage, ignore_errors=True)
 

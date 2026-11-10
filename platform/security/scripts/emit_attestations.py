@@ -31,6 +31,9 @@ def _reference_generation_id(references: dict[str, bytes]) -> str:
 
 
 def _sync_directory(path: Path) -> None:
+    if os.name == "nt":
+        # Keep atomic os.replace semantics; directory fsync is POSIX-only.
+        return
     fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
         os.fsync(fd)
