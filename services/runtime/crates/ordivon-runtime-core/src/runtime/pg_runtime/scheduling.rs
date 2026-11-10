@@ -165,8 +165,13 @@ impl PgRuntime {
     /// Resource-aware admission is independent of the caller's observation loop.
     /// Finite scan batches bound control-plane work, not running Job capacity.
     pub fn schedule_pending_jobs(&self) -> RuntimeResult<serde_json::Value> {
-        let node = NodeResources::observe().map_err(error)?;
         let mut db = self.store()?;
+        // Idle queue wakeups should not read host resources or every Allocation.
+        let candidates=db.client.query("SELECT j.job_id,j.principal,j.execution_plan_json FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id WHERE j.resolution IS NULL AND j.desired_state='run' AND a.state='accepted' AND NOT EXISTS(SELECT 1 FROM job_runtime_release_effects r WHERE r.job_id=j.job_id) ORDER BY j.created_at_ms,j.job_id",&[]).map_err(io)?;
+        if candidates.is_empty() {
+            return Ok(json!({"considered":0,"attempted":0}));
+        }
+        let node = NodeResources::observe().map_err(error)?;
         let active = db
             .client
             .query(
@@ -182,7 +187,6 @@ impl PgRuntime {
             v.1 = v.1.saturating_add(r.memory_bytes);
             v.2 = v.2.saturating_add(u64::from(r.pids));
         }
-        let candidates=db.client.query("SELECT j.job_id,j.principal,j.execution_plan_json FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id WHERE j.resolution IS NULL AND j.desired_state='run' AND a.state='accepted' AND NOT EXISTS(SELECT 1 FROM job_runtime_release_effects r WHERE r.job_id=j.job_id) ORDER BY j.created_at_ms,j.job_id",&[]).map_err(io)?;
         // Execution plans are immutable once accepted. Decode each candidate once.
         let mut ranked = Vec::with_capacity(candidates.len());
         for (order, row) in candidates.iter().enumerate() {
