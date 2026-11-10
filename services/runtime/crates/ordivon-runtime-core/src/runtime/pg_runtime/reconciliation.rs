@@ -58,6 +58,18 @@ fn scan_reconciliation_page(
     Ok(rows)
 }
 
+/// A short page has reached the eligible queue's observed tail. Restart at
+/// the oldest unresolved Job on the next tick; otherwise a trickle of newer
+/// Jobs can keep the cursor moving forever and starve delayed native evidence.
+fn next_reconciliation_cursor(pending: &[postgres::Row], limit: u32) -> Option<(i64, String)> {
+    if pending.len() < limit as usize {
+        return None;
+    }
+    pending
+        .last()
+        .map(|last| (last.get::<_, i64>(3), last.get::<_, String>(0)))
+}
+
 /// Active Runner logs are an evolving preview, not a committed Artifact.
 /// Seek directly to the requested window instead of reading up to the full
 /// output ceiling on every Job observation. Terminal logs use the independent
@@ -124,18 +136,17 @@ impl PgRuntime {
         let pending =
             scan_reconciliation_page(&mut db.client, limit, cancelled_only, previous.as_ref())
                 .map_err(io)?;
-        if let Some(last) = pending.last() {
-            let next = (last.get::<_, i64>(3), last.get::<_, String>(0));
-            let mut cursors = self
-                .reconciliation_cursors
-                .lock()
-                .map_err(|_| error("reconciliation cursor mutex poisoned"))?;
-            if cancelled_only {
-                cursors.cancelled = Some(next);
-            } else {
-                cursors.issued = Some(next);
-            }
+        let next = next_reconciliation_cursor(&pending, limit);
+        let mut cursors = self
+            .reconciliation_cursors
+            .lock()
+            .map_err(|_| error("reconciliation cursor mutex poisoned"))?;
+        if cancelled_only {
+            cursors.cancelled = next;
+        } else {
+            cursors.issued = next;
         }
+        drop(cursors);
         drop(db);
         let mut terminal = 0_u32;
         let mut errors = 0_u32;
@@ -882,6 +893,23 @@ mod scan_fairness_tests {
         let wrapped = scan_reconciliation_page(&mut db, 100, false, Some(&cursor)).unwrap();
         assert_eq!(wrapped.len(), 100);
         assert_eq!(wrapped[0].get::<_, String>(0), "job-001");
+
+        // A single new Job can arrive after every scan. The old last-row
+        // cursor would follow only those new Jobs forever, never revisiting
+        // an older unresolved Job after its native terminal evidence arrives.
+        db.batch_execute(
+            "INSERT INTO jobs VALUES ('job-102','owner','run',NULL,'attempt-102',102);
+             INSERT INTO attempts VALUES ('attempt-102','running');",
+        )
+        .unwrap();
+        let after_partial = next_reconciliation_cursor(&second, 100);
+        let revisited =
+            scan_reconciliation_page(&mut db, 100, false, after_partial.as_ref()).unwrap();
+        assert_eq!(
+            revisited[0].get::<_, String>(0),
+            "job-001",
+            "a partial page must let older unresolved Jobs be revisited"
+        );
         db.execute(
             "UPDATE jobs SET desired_state='cancelled' WHERE job_id IN ('job-004','job-101')",
             &[],
