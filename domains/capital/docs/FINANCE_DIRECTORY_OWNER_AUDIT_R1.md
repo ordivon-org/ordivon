@@ -2,7 +2,7 @@
 
 ## 2026-11-10 存量减法重审（Git 主线 ef17d6879d12faa61fff3bb762b0d500d73c9113）
 
-此前 R1 的目录/行数与历史工具 KEEP 结论只代表 2026-11-07 SourceCut，不再是当前文件基线。全仓 5,002 文件结构清单及跨 Owner 评估在 `docs/audits/2026-11-10-brownfield/`；Finance 原始本轮基线为 399 文件。自然 Owner 七类仍不变。
+此前 R1 的目录/行数与历史工具 KEEP 结论只代表 2026-11-07 SourceCut，不再是当前文件基线。全仓 5,002 文件结构清单及跨 Owner 评估在 `docs/audits/2026-11-10/`；Finance 原始本轮基线为 399 文件；Finance 25 项历史文件退役的实际改动保存在已合并 PR #2040。自然 Owner 七类仍不变。
 
 本次证据：当前 `src/ordivon_capital/`、根 `mise.toml` 和实际 CLI 不直接导入 `tools/legacy_replay/` 或 `tools/tigerbeetle_0_17_9/`；`tests/test_legacy_replay_surface_isolation.py` 主要要求这些已隔离历史文件仍存在，`config/legacy_replay_surface_registry.json` 为同一历史路径登记。于是当前工作树同时退役这 21 份旧工具、1 份依赖 LEAN 回放的 Nautilus M6 旧入口、1 份存在性测试与 1 份历史注册表，旧代码通过 Git revision 可复现；不存在当前实盘交易或 PostgreSQL 状态的迁移。仍保留 `wave_b/fixtures/wave_a_target_portfolio.json` 的唯一已冻结回归身份和 `tests/test_wave_b_contract.py` 的现有静态合同验证。
 
