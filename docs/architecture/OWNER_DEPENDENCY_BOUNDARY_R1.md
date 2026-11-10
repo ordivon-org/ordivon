@@ -28,7 +28,7 @@ or overlapping policy exceptions.
 | Data | Capital | Test-only ODPS source contract |
 | Composition | Capital | Test-only Finance public source contracts |
 
-Observed check at this SourceCut: **2,320 active tracked files; 10 source packages; 31 declared seam entries; 38 bounded source references; zero undeclared literal/public-import edges in the checked scope**. These numbers come from the existing `python3 tools/repo/check_owner_boundaries.py`; they are not a manually maintained dependency registry. Declared seam edges are not proof of installed or dynamic consumer reachability.
+The table is a **dated, source-qualified illustration** from Git SourceCut `ef17d6879d12faa61fff3bb762b0d500d73c9113`, not a permanent count or exception registry. For the **actual currently selected source revision**, run the existing `python3 tools/repo/check_owner_boundaries.py`. Its `active_files`, `packages`, `seams` and `references` output is derived from that revision's tracked source, Owner manifest and dependency contracts; it can change as files are retired or public seams are corrected. A PASS proves only the bounded source-literal/public-Python-AST policy. It is not proof of installed or dynamic consumer reachability.
 
 ## Retired ownership
 
