@@ -8,8 +8,11 @@ digest format. It does not implement the PG Journal, Run leases, Agent Loop,
 Tool dispatch, Provider effects, or any deployed consumer.
 
 Current surface: strict JSON parse; sealed validated document; deterministic
-Python-style JSON UTF-8 bytes; SHA-256 digest. Integer data uses decimal text
-rather than silently narrowing to i64, u64 or floating point.
+Python-style JSON UTF-8 bytes; SHA-256 digest. A narrow typed builder/read API
+constructs null, boolean, UTF-8 string, checked arbitrary decimal integer,
+array and duplicate-key-rejecting object values without duplicating the codec
+inside Agent Loop. It owns no Provider/Tool payload schema. Integer data uses
+decimal text rather than silently narrowing to i64, u64 or floating point.
 
 The committed fixture was produced with Python 3.15.1 by directly invoking
 anc_canonical.loads_strict, canonical_bytes, and canonical_digest.

@@ -26,6 +26,91 @@ enum CanonicalValue {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CanonicalDocument(CanonicalValue);
 
+/// Minimal safe construction and read surface for the Rust Agent Loop.
+/// No Provider/Tool schema, PG writer or independent JSON serializer is owned here.
+/// Invalid decimal integers, duplicate object keys and excessive nesting
+/// cannot enter the sealed value through these constructors.
+impl CanonicalDocument {
+    pub fn null() -> Self {
+        Self(CanonicalValue::Null)
+    }
+
+    pub fn boolean(value: bool) -> Self {
+        Self(CanonicalValue::Bool(value))
+    }
+
+    pub fn string(value: impl Into<String>) -> Self {
+        Self(CanonicalValue::String(value.into()))
+    }
+
+    pub fn integer_from_decimal(value: &str) -> Result<Self, CanonicalError> {
+        let parsed = loads_strict(value)?;
+        if matches!(&parsed.0, CanonicalValue::Integer(_)) {
+            Ok(parsed)
+        } else {
+            Err(CanonicalError::NonIntegerNumber)
+        }
+    }
+
+    pub fn array(items: Vec<Self>) -> Result<Self, CanonicalError> {
+        let value = CanonicalValue::Array(items.into_iter().map(|item| item.0).collect());
+        if nesting_depth(&value) > MAX_NESTING {
+            return Err(CanonicalError::ExcessiveNesting);
+        }
+        Ok(Self(value))
+    }
+
+    pub fn object(entries: Vec<(String, Self)>) -> Result<Self, CanonicalError> {
+        let mut fields = BTreeMap::new();
+        for (key, value) in entries {
+            if fields.insert(key.clone(), value.0).is_some() {
+                return Err(CanonicalError::DuplicateKey(key));
+            }
+        }
+        let value = CanonicalValue::Object(fields);
+        if nesting_depth(&value) > MAX_NESTING {
+            return Err(CanonicalError::ExcessiveNesting);
+        }
+        Ok(Self(value))
+    }
+
+    pub fn get(&self, key: &str) -> Option<Self> {
+        match &self.0 {
+            CanonicalValue::Object(fields) => fields.get(key).cloned().map(Self),
+            _ => None,
+        }
+    }
+
+    pub fn as_integer_decimal(&self) -> Option<&str> {
+        match &self.0 {
+            CanonicalValue::Integer(text) => Some(text),
+            _ => None,
+        }
+    }
+
+    pub fn as_string(&self) -> Option<&str> {
+        match &self.0 {
+            CanonicalValue::String(text) => Some(text),
+            _ => None,
+        }
+    }
+
+    pub fn as_bool(&self) -> Option<bool> {
+        match &self.0 {
+            CanonicalValue::Bool(value) => Some(*value),
+            _ => None,
+        }
+    }
+}
+
+fn nesting_depth(value: &CanonicalValue) -> usize {
+    match value {
+        CanonicalValue::Array(items) => 1 + items.iter().map(nesting_depth).max().unwrap_or(0),
+        CanonicalValue::Object(fields) => 1 + fields.values().map(nesting_depth).max().unwrap_or(0),
+        _ => 0,
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CanonicalError {
     InvalidJson,
