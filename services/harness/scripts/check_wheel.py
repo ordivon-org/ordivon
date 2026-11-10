@@ -296,7 +296,7 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
             "assert 'state_root' not in HarnessAgentRun.__dataclass_fields__;"
             "assert 'ordivon_harness.sqlite_store' not in sys.modules"
         )])
-        check_host_free_postgresql(python)
+        postgres_verified = check_host_free_postgresql(python)
         help_text = checked([str(cli), "--help"]).stdout
         for command in CLI_COMMANDS:
             if command not in help_text:
@@ -352,7 +352,8 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
 
         return {
             "installedVersion": version,
-            "hostFreeHarnessVerified": True,
+            "hostFreeHarnessVerified": postgres_verified,
+            "hostFreePostgresStanding": "VERIFIED" if postgres_verified else "NOT_RUN",
             "baseMcpAbsentVerified": True,
             "mcpAdapterExtraVerified": True,
             "cliCommandsVerified": len(CLI_COMMANDS),
