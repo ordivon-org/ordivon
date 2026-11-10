@@ -236,3 +236,69 @@ test_missing_approval_effect_identity_never_admitted if {
   bad := object.union(object.remove(base_input, {"approval"}), {"approval": object.remove(base_input.approval, {"effectId"})})
   decision.outcome == "DENY" with input as bad
 }
+
+# Falsifiers observed against the source at PR #2063 merge.
+test_scope_rejects_canonicalization_aliases if {
+  every resource in {
+    "/comments/../account/recovery",
+    "/comments/%2e%2e/account",
+    "/comments/./article-42",
+    "/comments//article-42",
+    "/comments/article-42?admin=true",
+    "/comments/article-42#private",
+    "/comments\\..\\secret",
+  } {
+    candidate := object.union_n([base_input,
+      {"grant": object.union(base_input.grant, {"resourcePrefixes": ["/comments"]})},
+      {"effect": object.union(base_input.effect, {"resource": resource})}])
+    decision.outcome == "DENY" with input as candidate
+    decision.reason == "invalid-input" with input as candidate
+  }
+}
+
+test_scope_rejects_noncanonical_grant_prefixes if {
+  every prefix in {"/comments//", "/comments/../", "/comments%", "comments", "/comments/."} {
+    candidate := object.union(base_input, {
+      "grant": object.union(base_input.grant, {"resourcePrefixes": [prefix]})
+    })
+    decision.outcome == "DENY" with input as candidate
+    decision.reason == "invalid-input" with input as candidate
+  }
+}
+
+test_scope_preserves_valid_exact_child_root_and_unicode if {
+  scope_contains("/comments", "/comments")
+  scope_contains("/comments", "/comments/article-42")
+  scope_contains("/comments/", "/comments/article-42")
+  scope_contains("/", "/comments/article-42")
+  scope_contains("/文档/", "/文档/研究")
+  not scope_contains("/comments", "/comments-private")
+}
+
+test_malformed_missing_whole_subject_has_total_deny_decision if {
+  bad := object.remove(base_input, {"principal"})
+  result := decision with input as bad
+  result.outcome == "DENY"
+  result.reason == "invalid-input"
+  result.principalId == null
+  result.agentId == base_input.agent.agentId
+  result.authorityProjection == null
+}
+
+test_malformed_nonobject_subject_has_total_deny_decision if {
+  bad := object.union(base_input, {"principal": "not-an-object"})
+  result := decision with input as bad
+  result.outcome == "DENY"
+  result.reason == "invalid-input"
+  result.principalId == null
+}
+
+test_empty_input_has_total_deny_decision if {
+  result := decision with input as {}
+  result.outcome == "DENY"
+  result.reason == "invalid-input"
+  result.principalId == null
+  result.agentId == null
+  result.grantId == null
+  result.effectId == null
+}
