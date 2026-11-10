@@ -64,3 +64,17 @@ Open PRs #2006, #2010, #2014 share architecture documentation files; the same fi
 ## Audit strategy and remaining coverage
 
 Concrete paths in the table were inspected beyond their directory name. The remaining files have a complete source inventory and higher-level responsibility diagnosis, but line-by-line mathematical/behavioral review remains Owner-by-Owner work. Never mark these as PASS on the strength of file enumeration.
+
+
+## 2026-11-10 canonical SourceCut consolidation (post-review, main e037af933)
+
+Four separately merged source-only audit-report sets were discovered at docs/audits/2026-11-10/, docs/audits/2026-11-10-brownfield/, docs/architecture/audits/2026-11-10/ and docs/architecture/audits/2026-11-10-brownfield/. They repeat six Phase 0–5 report names and overlapping 5,002-file ledgers. The first set is retained here as the sole current report; its exact inventory was re-compared to all 5,002 distinct paths in frozen Git commit ef17d6879d12faa61fff3bb762b0d500d73c9113 with no missing/extra paths.
+
+Unique bounded discoveries in the other reports remain in their actual natural Owner source and original merged PR history rather than being copied into a permanent second report authority:
+
+- **Capital stock subtraction:** [PR #2040](https://github.com/ordivon-org/ordivon/pull/2040) is merged. The historical LEAN/TigerBeetle replay family, self-retaining presence checker and dead catalog reference were reviewed/retired. Current source and remaining limitations live in domains/capital/docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md and domains/capital/; do not infer production trade execution.
+- **Runtime PG reclaim guard:** [PR #2028](https://github.com/ordivon-org/ordivon/pull/2028) is the original bounded Runtime source/doc cleanup, including correcting the native Git subprocess return-code guard in services/runtime/scripts/ordivon-runtime-pg-reclaim and retiring superseded plans. The detailed formal model limitations stay in services/runtime/formal/README.md; a source merge does not prove installed Runtime effects.
+- **Repository index and native test drift:** [PR #2012](https://github.com/ordivon-org/ordivon/pull/2012) is merged; tools/repo/exhaustive_coverage.py and existing verification/test call sites, not an audit narrative, carry its final semantics.
+- **Cross-Owner static graph observations:** [PR #2033](https://github.com/ordivon-org/ordivon/pull/2033) captured current entrypoints and a Capital delayed-import SCC that also imports successfully in the observed bounded check. File size or a syntactic SCC is not itself a behavioral defect.
+
+The original alternate reports remain recoverable by Git history of [#2040](https://github.com/ordivon-org/ordivon/pull/2040), [#2028](https://github.com/ordivon-org/ordivon/pull/2028), and [#2033](https://github.com/ordivon-org/ordivon/pull/2033). Removing duplicated current documentation does not undo their verified source changes, revoke native Owner receipts, or claim production acceptance. Existing Runtime and Capital source-document links are simply repointed to this current report set, not reconnected to any new product consumer.

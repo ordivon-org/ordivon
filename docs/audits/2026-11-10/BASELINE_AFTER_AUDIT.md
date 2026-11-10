@@ -29,3 +29,12 @@
 ## Rollback, retention, and follow-up
 
 Both PR source changes are independently Git-revertible. Revert the specific changed Web files if regression is observed; do not restore duplicate digest logic as a second authority merely for temporary familiarity. Audit snapshots may be retired from current main once their bounded research consumer is satisfied; Git retains evidence. Do not promote this dated baseline to a live operational status page.
+
+
+## Source-convergence follow-up — 2026-11-10
+
+At Git main e037af933b66cdfccc7e13e3e6392847e7f84fc8, original [Web PR #2019](https://github.com/ordivon-org/ordivon/pull/2019), original [root inventory PR #2021](https://github.com/ordivon-org/ordivon/pull/2021), root [PR #2033](https://github.com/ordivon-org/ordivon/pull/2033), Capital [PR #2040](https://github.com/ordivon-org/ordivon/pull/2040), and Runtime [PR #2028](https://github.com/ordivon-org/ordivon/pull/2028) were independently read back as MERGED. Their old reports describing these PRs as OPEN are dated observations, not live truth.
+
+The prior duplicate candidate [Web PR #2036](https://github.com/ordivon-org/ordivon/pull/2036) was CLOSED unmerged because the actual Web code fixes were already present on main and its seven additional reports would duplicate this audit set. The custom Network Circuit/formal pilot [PR #1982](https://github.com/ordivon-org/ordivon/pull/1982) was CLOSED unmerged because it adds tests, CI/formal machinery without a current native Network consumer, outside the stock-only scope. Neither close reverts any installed system effect.
+
+Three additional merged report/ledger directories were consolidated into the original six report names here, deleting redundant current copies while leaving exact historical Git records and naturally owned code fixes intact. Old Runtime and Capital Markdown references were updated to this report set. This is a SOURCE-only documentation maintenance change, with existing repo architecture checks required; no product features, tests, runtime, database, or consumer interfaces were added. The original frozen inventory still contains exactly 5,002 distinct Git paths and is not a semantic review of each file.
