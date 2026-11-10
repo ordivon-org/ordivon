@@ -1,0 +1,12 @@
+[package]
+name = "ordivon-harness-pg"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+license = "Apache-2.0"
+publish = false
+description = "Read-only PostgreSQL v1 Journal qualification for the Rust Ordivon Harness"
+
+[dependencies]
+ordivon-harness-core = { path = "../harness-core" }
+postgres = "0.19.14"
