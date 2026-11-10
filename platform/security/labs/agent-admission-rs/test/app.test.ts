@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 import { createAgentAdmissionApp } from "../src/app.ts";
 import { GrantStore } from "../src/grant-store.ts";
+import type { EffectRequest } from "../src/model.ts";
 import type { AgentVerifier } from "../src/oauth-verifier.ts";
 import { OpaAdmissionEngine } from "../src/opa.ts";
 
@@ -233,5 +234,153 @@ test("a committed effect cannot be replayed by a different authenticated Agent",
   assert.equal(response.status, 403);
   const body = (await response.json()) as { error: string };
   assert.equal(body.error, "effect_actor_mismatch");
+  store.close();
+});
+
+
+test("resource grant scopes are canonical path segments, never raw startswith", () => {
+  const store = new GrantStore(":memory:");
+  const grant = (id: string, prefixes: readonly string[]) =>
+    store.createGrant({
+      grantId: id,
+      principalId: "principal:user-123",
+      agentId: "oauth-client:agent-research-17",
+      audience,
+      allowedActions: ["comment.create"],
+      resourcePrefixes: prefixes,
+      expiresAtEpochSeconds: 2_000_000_000,
+      maxRiskClass: "R3",
+      stepUpAtOrAbove: "R4",
+      remainingEffects: 4,
+    });
+  grant("grant:path", ["/comments"]);
+  const matches = (resource: string) =>
+    store.resolveUniqueGrant(
+      "oauth-client:agent-research-17",
+      audience,
+      "comment.create",
+      resource,
+      1_800_000_000,
+    );
+
+  assert.equal(matches("/comments/article-42").grantId, "grant:path");
+  assert.equal(matches("/comments").grantId, "grant:path");
+  for (const resource of [
+    "/comments-evil",
+    "/comments/../account/recovery",
+    "/comments/%2e%2e/account",
+    "/comments/./article-42",
+    "/comments//article-42",
+    "/comments/article-42?admin=true",
+    "/comments/article-42#fragment",
+    "/comments\\..\\secret",
+    "/comments/\nadmin",
+  ]) {
+    assert.throws(
+      () => matches(resource),
+      (error: unknown) => error instanceof Error && "code" in error && error.code === "grant_not_found",
+      resource,
+    );
+  }
+  for (const invalid of [
+    "/comments/../", "/comments%", "/comments//", "comments/", "/comments/./",
+  ]) {
+    assert.throws(
+      () => grant("invalid:" + invalid, [invalid]),
+      (error: unknown) => error instanceof Error && "code" in error && error.code === "invalid_grant",
+      invalid,
+    );
+  }
+  store.close();
+});
+
+
+test("commitComment rejects authority and materialized target mismatch inside transaction", () => {
+  const store = new GrantStore(":memory:");
+  const grant = store.createGrant({
+    grantId: "grant:commit-boundary",
+    principalId: "principal:user-123",
+    agentId: "oauth-client:agent-research-17",
+    audience,
+    allowedActions: ["comment.create"],
+    resourcePrefixes: ["/comments/article-42"],
+    expiresAtEpochSeconds: 2_000_000_000,
+    maxRiskClass: "R3",
+    stepUpAtOrAbove: "R4",
+    remainingEffects: 1,
+  });
+  const effect: EffectRequest = {
+    effectId: id("commit-boundary"),
+    effectDigest: id("commit-boundary-content"),
+    action: "comment.create",
+    resource: "/comments/article-42",
+    audience,
+    riskClass: "R2",
+    effectType: "website.comment.create",
+  };
+
+  const deny = (effectOverride: typeof effect, target: string, grantOverride = grant) => {
+    assert.throws(
+      () => store.commitComment(grantOverride, effectOverride, target, "content", 1_800_000_000),
+      (error: unknown) =>
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "effect_not_authorized",
+    );
+    assert.equal(store.getGrant(grant.grantId).remainingEffects, 1);
+  };
+
+  // A caller cannot authorize article-42 then materialize article-43.
+  deny(effect, "article-43");
+  // An alternate resource, action, audience, or Principal cannot borrow an old ALLOW.
+  deny({ ...effect, resource: "/comments/article-43" }, "article-43");
+  deny({ ...effect, action: "comment.delete" }, "article-42");
+  deny({ ...effect, audience: "https://other.example.test" }, "article-42");
+  deny({ ...effect, effectType: "website.comment.delete" }, "article-42");
+  deny(effect, "article-42", { ...grant, principalId: "principal:forged" });
+
+  store.revokeGrant(grant.grantId);
+  assert.throws(
+    () => store.commitComment(grant, effect, "article-42", "content", 1_800_000_000),
+    (error: unknown) =>
+      error instanceof Error && "code" in error && error.code === "grant_changed",
+  );
+  assert.equal(store.getGrant(grant.grantId).remainingEffects, 1);
+  store.close();
+});
+
+test("commitComment materializes the exact authorized resource once and consumes one budget", () => {
+  const store = new GrantStore(":memory:");
+  const grant = store.createGrant({
+    grantId: "grant:valid-commit",
+    principalId: "principal:user-123",
+    agentId: "oauth-client:agent-research-17",
+    audience,
+    allowedActions: ["comment.create"],
+    resourcePrefixes: ["/comments/article-42"],
+    expiresAtEpochSeconds: 2_000_000_000,
+    maxRiskClass: "R3",
+    stepUpAtOrAbove: "R4",
+    remainingEffects: 1,
+  });
+  const effect: EffectRequest = {
+    effectId: id("valid-commit"),
+    effectDigest: id("valid-commit-content"),
+    action: "comment.create",
+    resource: "/comments/article-42",
+    audience,
+    riskClass: "R2",
+    effectType: "website.comment.create",
+  };
+  const first = store.commitComment(grant, effect, "article-42", "hello", 1_800_000_000);
+  assert.equal(first.replayed, false);
+  assert.equal(first.receipt.articleId, "article-42");
+  assert.equal(first.receipt.principalId, grant.principalId);
+  assert.equal(first.receipt.agentId, grant.agentId);
+  assert.equal(store.getGrant(grant.grantId).remainingEffects, 0);
+  const replay = store.commitComment(grant, effect, "article-42", "hello", 1_800_000_000);
+  assert.equal(replay.replayed, true);
+  assert.equal(replay.receipt.commentId, first.receipt.commentId);
+  assert.equal(store.getGrant(grant.grantId).remainingEffects, 0);
   store.close();
 });

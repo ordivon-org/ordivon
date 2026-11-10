@@ -15,9 +15,46 @@ action_granted if {
 	input.effect.action in input.grant.allowedActions
 }
 
+# This v1 grant profile scopes *canonical absolute resource paths*.
+# Raw string prefixes can capture neighboring resources and traversal aliases.
+# The invoking Owner must construct/validate this coordinate before policy
+# evaluation; this lexical check does not authenticate the resource or resolve
+# downstream URL/filesystem semantics.
+canonical_scope_path(value) if {
+	is_string(value)
+	startswith(value, "/")
+	not contains(value, "//")
+	not contains(value, "\\")
+	not contains(value, "%")
+	not contains(value, "?")
+	not contains(value, "#")
+	not regex.match("(^|/)\\.{1,2}(/|$)", value)
+	not regex.match("[[:cntrl:]]", value)
+}
+
+scope_contains(prefix, resource) if {
+	canonical_scope_path(prefix)
+	canonical_scope_path(resource)
+	resource == prefix
+}
+
+scope_contains(prefix, resource) if {
+	canonical_scope_path(prefix)
+	canonical_scope_path(resource)
+	endswith(prefix, "/")
+	startswith(resource, prefix)
+}
+
+scope_contains(prefix, resource) if {
+	canonical_scope_path(prefix)
+	canonical_scope_path(resource)
+	not endswith(prefix, "/")
+	startswith(resource, sprintf("%s/", [prefix]))
+}
+
 resource_granted if {
 	some prefix in input.grant.resourcePrefixes
-	startswith(input.effect.resource, prefix)
+	scope_contains(prefix, input.effect.resource)
 }
 
 risk_within_grant if {

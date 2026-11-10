@@ -78,8 +78,28 @@ function toSnapshot(row: GrantRow): GrantSnapshot {
   };
 }
 
+// Mirror agent_admission.rego's canonical path-segment contract exactly.
+// Do not URL-decode/normalize here: callers must supply a canonical Owner
+// resource identity. A future non-path identity needs a versioned contract.
+function canonicalScopePath(value: string): boolean {
+  return (
+    value.startsWith("/") &&
+    !value.includes("//") &&
+    !/[\\%?#\u0000-\u001f\u007f]/u.test(value) &&
+    !/(^|\/)\.{1,2}(\/|$)/u.test(value)
+  );
+}
+
 function prefixMatches(resource: string, prefixes: readonly string[]): boolean {
-  return prefixes.some((prefix) => resource.startsWith(prefix));
+  return (
+    canonicalScopePath(resource) &&
+    prefixes.some(
+      (prefix) =>
+        canonicalScopePath(prefix) &&
+        (resource === prefix ||
+          resource.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`)),
+    )
+  );
 }
 
 export class GrantStore {
@@ -192,6 +212,13 @@ export class GrantStore {
       throw new AdmissionLabError(
         "invalid_grant",
         "Grant must contain actions and resources.",
+        422,
+      );
+    }
+    if (resourcePrefixes.some((prefix) => !canonicalScopePath(prefix))) {
+      throw new AdmissionLabError(
+        "invalid_grant",
+        "Grant resource scope must be an absolute canonical resource path.",
         422,
       );
     }
@@ -358,6 +385,27 @@ export class GrantStore {
         );
       }
 
+      // Natural-owner commit PEP: evaluate the persisted Grant and exact
+      // materialized comment target inside the same BEGIN IMMEDIATE transaction.
+      // Prior OPA ALLOW alone must never authorize a different write or audience.
+      const persistedGrant = toSnapshot(current);
+      if (
+        persistedGrant.principalId !== grant.principalId ||
+        persistedGrant.agentId !== grant.agentId ||
+        !persistedGrant.allowedActions.includes(effect.action) ||
+        !prefixMatches(effect.resource, persistedGrant.resourcePrefixes) ||
+        effect.audience !== persistedGrant.audience ||
+        effect.action !== "comment.create" ||
+        effect.effectType !== "website.comment.create" ||
+        effect.resource !== "/comments/" + articleId
+      ) {
+        throw new AdmissionLabError(
+          "effect_not_authorized",
+          "The Effect does not bind the current Grant and actual comment target.",
+          403,
+        );
+      }
+
       const update = this.db
         .prepare(`
           UPDATE grants
@@ -382,8 +430,8 @@ export class GrantStore {
         commentId: randomUUID(),
         articleId,
         content,
-        principalId: grant.principalId,
-        agentId: grant.agentId,
+        principalId: persistedGrant.principalId,
+        agentId: persistedGrant.agentId,
         effectId: effect.effectId,
       };
 
