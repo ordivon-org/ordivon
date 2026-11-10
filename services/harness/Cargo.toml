@@ -1,5 +1,9 @@
 [workspace]
-members = ["crates/harness-core","crates/harness-pg"]
+members = [
+  "crates/harness-core",
+  "crates/harness-pg",
+  "rust-migration/b-loop-probe",
+]
 resolver = "2"
 
 [workspace.package]
