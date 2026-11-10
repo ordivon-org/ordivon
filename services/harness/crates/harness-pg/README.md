@@ -23,3 +23,7 @@ Known remaining gates: independent C verification, full legacy Run/Privacy/
 Effect compatibility, multi-writer/lease, long-Run resume, B Loop integration,
 release/deployment, TLS/native transport parity (current test uses NoTls).
 This reader is not the full Python Store replacement.
+
+Old objects exceeding this reader's frozen nesting/integer-digit limits
+return UnsupportedLegacyRepresentation, not a false CAS corruption claim.
+Consumers must qualify or version those legacy Runs before Rust takeover.
