@@ -17,6 +17,7 @@ from typing import Any
 from .cognitive_circuit_r1 import (
     CircuitContractError,
     _load_json,
+    _unique_index,
     _validate_schema,
     canonical_digest,
 )
@@ -24,16 +25,6 @@ from .cognitive_circuit_r1 import (
 ROOT = Path(__file__).resolve().parent
 CONTRACT_SCHEMA = ROOT / "schemas" / "successor-contract-v1.schema.json"
 GATE_SCHEMA = ROOT / "schemas" / "successor-gate-result-v1.schema.json"
-
-
-def _unique_by_id(rows: list[dict[str, Any]], label: str) -> dict[str, dict[str, Any]]:
-    result: dict[str, dict[str, Any]] = {}
-    for row in rows:
-        row_id = row["id"]
-        if row_id in result:
-            raise CircuitContractError(f"duplicate {label} id: {row_id}")
-        result[row_id] = row
-    return result
 
 
 def _derived_recursion_class(change_targets: list[str]) -> str:
@@ -51,8 +42,8 @@ def validate_successor_contract(value: dict[str, Any]) -> None:
     if value["predecessorRef"] == value["candidateRef"]:
         raise CircuitContractError("predecessorRef and candidateRef must differ")
 
-    anchors = _unique_by_id(value["evaluationGrounding"]["anchors"], "evaluation anchor")
-    gates = _unique_by_id(value["gateRequirements"], "successor gate requirement")
+    anchors = _unique_index(value["evaluationGrounding"]["anchors"], "evaluation anchor")
+    gates = _unique_index(value["gateRequirements"], "successor gate requirement")
 
     anchor_ids = set(anchors)
     external_anchor_ids = {
