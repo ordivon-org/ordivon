@@ -98,3 +98,10 @@ def test_historical_lifecycle_standing_is_not_reconstructed_from_snapshot() -> N
     # Contract marker: the historic Work payload alone does not encode its state.
     # Real PG readback and its old-revision edge cases are tested independently.
     assert _CORPUS["historicalRevisionState"] == "historical_state_unknown"
+
+
+def test_python_only_edge_whitespace_and_internal_control_are_distinguished() -> None:
+    ids = {case["id"] for case in _CORPUS["invalidSnapshots"]}
+    assert {f"python_only_strip_U+{n:04X}" for n in range(0x1C, 0x20)} <= ids
+    valid = {case["id"]: case for case in _CORPUS["validSnapshots"]}
+    assert valid["embedded_python_only_whitespace"]["input"]["established"] == ["a\x1cb"]

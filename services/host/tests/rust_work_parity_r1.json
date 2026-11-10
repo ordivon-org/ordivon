@@ -81,6 +81,50 @@
           3
         ]
       }
+    },
+    {
+      "errorType": "value_error",
+      "id": "python_only_strip_U+001C",
+      "input": {
+        "established": [
+          "a\u001c"
+        ],
+        "frontier": "f",
+        "objective": "o"
+      }
+    },
+    {
+      "errorType": "value_error",
+      "id": "python_only_strip_U+001D",
+      "input": {
+        "established": [
+          "a\u001d"
+        ],
+        "frontier": "f",
+        "objective": "o"
+      }
+    },
+    {
+      "errorType": "value_error",
+      "id": "python_only_strip_U+001E",
+      "input": {
+        "established": [
+          "a\u001e"
+        ],
+        "frontier": "f",
+        "objective": "o"
+      }
+    },
+    {
+      "errorType": "value_error",
+      "id": "python_only_strip_U+001F",
+      "input": {
+        "established": [
+          "a\u001f"
+        ],
+        "frontier": "f",
+        "objective": "o"
+      }
     }
   ],
   "kind": "ordivon.host-rust-work-parity",
@@ -395,6 +439,37 @@
       "storeRequestDigest": "sha256:1d2b867f15a86c2997869997fb590d17652ee91b0bc856d526afbb788385e941",
       "workKind": "rust-work-parity",
       "workRef": "work:ordivon:golden:unicode_precomposed"
+    },
+    {
+      "actorRef": "actor:agent:work-parity-oracle",
+      "canonicalPayload": {
+        "constraints": [],
+        "established": [
+          "a\u001cb"
+        ],
+        "frontier": "f",
+        "nextActions": [],
+        "objective": "o",
+        "referenceRefs": [],
+        "rejected": [],
+        "unresolved": []
+      },
+      "canonicalUtf8Hex": "7b22636f6e73747261696e7473223a5b5d2c2265737461626c6973686564223a5b22615c753030316362225d2c2266726f6e74696572223a2266222c226e657874416374696f6e73223a5b5d2c226f626a656374697665223a226f222c227265666572656e636552656673223a5b5d2c2272656a6563746564223a5b5d2c22756e7265736f6c766564223a5b5d7d",
+      "expectedRevision": 1,
+      "id": "embedded_python_only_whitespace",
+      "input": {
+        "established": [
+          "a\u001cb"
+        ],
+        "frontier": "f",
+        "objective": "o"
+      },
+      "snapshotDigest": "sha256:d626e2210890bec69ee241be65811af4e5b472b483eaf856ad3b7febd3ffdd94",
+      "state": "open",
+      "storeCreateDigest": "sha256:1996cea81841307b3545ff687edb4a108b9d5e42b161518fec30da0af3870612",
+      "storeRequestDigest": "sha256:a19b9609cb5058050cde68417d6d0d1e3bf2aedc726c83b091e15bcdc808788c",
+      "workKind": "rust-work-parity",
+      "workRef": "work:ordivon:golden:embedded_python_only_whitespace"
     }
   ]
 }
