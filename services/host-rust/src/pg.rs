@@ -1,7 +1,9 @@
 //! PostgreSQL schema gate and a read-only Host summary projection.
 //! This first slice intentionally uses one connection per diagnostic request;
 //! a mature bounded connection pool is a cutover prerequisite, not implied here.
+use crate::work::{self, CommitSnapshot};
 use serde::Serialize;
+use serde_json::Value;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -18,6 +20,8 @@ pub enum HostDbError {
     Schema(i32),
     #[error("Host schema row is missing")]
     MissingSchema,
+    #[error("Work transaction: {0}")]
+    Work(#[from] work::WorkError),
     #[error("Clock before Unix epoch")]
     Clock,
 }
@@ -42,6 +46,20 @@ impl HostPg {
             }
         });
         Ok(client)
+    }
+
+    pub async fn work_get(
+        &self,
+        work_ref: &str,
+        revision: Option<i64>,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(work::get_work(&mut client, work_ref, revision).await?)
+    }
+
+    pub async fn work_snapshot_commit(&self, cmd: &CommitSnapshot) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(work::commit_snapshot(&mut client, cmd).await?)
     }
 
     pub async fn check_schema(&self) -> Result<i32, HostDbError> {

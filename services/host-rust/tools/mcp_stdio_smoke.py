@@ -51,7 +51,7 @@ try:
     assert initialized["serverInfo"]["name"]
     request("notifications/initialized")
     names = [tool["name"] for tool in request("tools/list", {}, 2)["tools"]]
-    assert names == ["host.status"], names
+    assert names == ["host.status", "work.get", "work.snapshot.commit"], names
     ok = request("tools/call", {"name": "host.status", "arguments": {"detail": "summary"}}, 3)
     data = ok.get("structuredContent")
     assert data is not None, ok
@@ -61,11 +61,44 @@ try:
     assert data["doctor"] is None
     denied = request("tools/call", {"name": "host.status", "arguments": {"detail": "history"}}, 4)
     assert denied.get("isError") is True, denied
+    initial = request(
+        "tools/call",
+        {"name": "work.get", "arguments": {"workRef": "work:test:rust-mcp-stdio"}},
+        5,
+    )
+    assert initial["structuredContent"]["revision"] == 1, initial
+    args = {
+        "workRef": "work:test:rust-mcp-stdio",
+        "expectedRevision": 1,
+        "snapshot": {
+            "objective": "Rust Host live MCP CAS 🌍",
+            "frontier": "committed-via-rust-mcp",
+            "established": ["PG18 CAS", "MCP wire parity"],
+            "nextActions": ["verify Python recovery"],
+        },
+        "actorRef": "actor:test:rust-mcp",
+        "continuityDisposition": "complete",
+    }
+    committed = request("tools/call", {"name": "work.snapshot.commit", "arguments": args}, 6)
+    first = committed["structuredContent"]
+    assert first["admission"] == "committed" and first["revision"] == 2, first
+    assert first["state"] == "completed", first
+    replay = request("tools/call", {"name": "work.snapshot.commit", "arguments": args}, 7)
+    duplicate = replay["structuredContent"]
+    assert duplicate["admission"] == "existing" and duplicate["revision"] == 2, duplicate
+    current = request(
+        "tools/call", {"name": "work.get", "arguments": {"workRef": args["workRef"]}}, 8
+    )
+    assert current["structuredContent"]["revision"] == 2, current
+    historical = request(
+        "tools/call", {"name": "work.get", "arguments": {"workRef": args["workRef"], "revision": 1}}, 9
+    )
+    assert historical["structuredContent"]["state"] == "historical_state_unknown", historical
     print(
         "MCP_STDIO_PASS"
         f" version={initialized['protocolVersion']} tools={names}"
         f" schema={data['authority']['journalSchema']}"
-        " history=EXPLICIT_UNSUPPORTED"
+        " work_cas=COMMITTED work_replay=EXISTING history=UNKNOWN"
     )
 finally:
     p.terminate()
