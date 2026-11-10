@@ -15,6 +15,7 @@ from ordivon_studio.research.guardian_article import (
     paired_discrimination,
 )
 from ordivon_studio.rich_perception import (
+    _observe_video_structure,
     audio_structure_features,
     crossmodal_circular_shift_null,
     crossmodal_profile_coupling,
@@ -118,6 +119,52 @@ class RichPerceptionTest(unittest.TestCase):
         self.assertGreater(coupling["videoChangeAudioFluxCorrelation"], 0.9)
         self.assertEqual(null["tests"]["videoChangeVsAudioFlux"]["rankHigh"], 1)
         self.assertGreaterEqual(null["tests"]["videoChangeVsAudioFlux"]["percentile"], 0.75)
+
+
+    def test_video_structure_observes_two_signals_in_one_provider_pass(self) -> None:
+        def native_emulator(args, **kwargs):
+            root = Path(kwargs["cwd"])
+            (root / "change-metadata.txt").write_text(
+                "frame:0 pts:100 pts_time:0.2\\n"
+                "lavfi.signalstats.YAVG=3.5\\n".replace("\\n", "\n"),
+                encoding="utf-8",
+            )
+            (root / "signal-metadata.txt").write_text(
+                "frame:0 pts:100 pts_time:0.2\\n"
+                "lavfi.signalstats.YAVG=74.0\\n"
+                "lavfi.signalstats.SATAVG=12.5\\n".replace("\\n", "\n"),
+                encoding="utf-8",
+            )
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        with patch(
+            "ordivon_studio.rich_perception.subprocess.run",
+            side_effect=native_emulator,
+        ) as called:
+            change, signal = _observe_video_structure(
+                Path("source.mp4"),
+                fps=30,
+                total_frames=300,
+                sample_step_frames=6,
+                ffmpeg="ffmpeg",
+            )
+        called.assert_called_once()
+        self.assertTrue(any("split=2" in part for part in called.call_args.args[0]))
+        self.assertEqual(change[0]["frame"], 6)
+        self.assertEqual(change[0]["meanAbsoluteLumaDifference"], 3.5)
+        self.assertEqual(signal[0]["lavfi.signalstats.YAVG"], 74.0)
+        self.assertEqual(signal[0]["lavfi.signalstats.SATAVG"], 12.5)
+
+    def test_video_structure_rejects_missing_native_metadata(self) -> None:
+        with patch(
+            "ordivon_studio.rich_perception.subprocess.run",
+            return_value=subprocess.CompletedProcess([], 0, "", ""),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "both video structure observations"):
+                _observe_video_structure(
+                    Path("source.mp4"), fps=30, total_frames=300,
+                    sample_step_frames=6, ffmpeg="ffmpeg",
+                )
 
     @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "ffmpeg/ffprobe required")
     def test_real_ffmpeg_audio_and_video_equipment(self) -> None:
