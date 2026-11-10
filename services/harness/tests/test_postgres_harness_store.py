@@ -24,7 +24,7 @@ from psycopg import sql
 
 from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.store_errors import (
-    HarnessEventConflict, HarnessLeaseHeld, HarnessRevisionConflict,
+    HarnessEventConflict, HarnessLeaseHeld, HarnessObjectCorrupt, HarnessRevisionConflict,
 )
 from ordivon_harness.protocol import (
     HarnessRecoveryConsequence, HarnessToolStepIntent, HarnessToolStepReceipt,
@@ -151,6 +151,96 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
             self.assertEqual(reopened.get_object(obj.digest), raw)
             self.assertEqual(reopened.create_run(run), HarnessEventAdmission.EXISTING)
+
+    def test_event_read_avoids_n_plus_one_queries_without_losing_cas_checks(self) -> None:
+        run = contract()
+        self.store.create_run(run)
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:bulk-read", ttl_ms=5000, now_ms=10,
+        )
+        new_event = HarnessEventWrite(
+            event_id="event:pg-bulk-read",
+            event_kind="harness.trace-recorded",
+            data={"trace": "bulk"},
+            recorded_at_ms=run.created_at_ms + 1,
+        )
+        self.store.append_events(
+            harness_run_id=run.harness_run_id,
+            events=(new_event,),
+            expected_revision=lease.run_revision,
+            lease=lease,
+            lease_checked_at_ms=11,
+        )
+
+        class CountingConnection:
+            def __init__(self, connection):
+                self.connection = connection
+                self.statements = []
+
+            def execute(self, query, params=None):
+                self.statements.append(str(query))
+                return self.connection.execute(query, params)
+
+        original = self.store.connection
+        counted = CountingConnection(original)
+        try:
+            self.store.connection = counted
+            records = self.store.list_run_events(run.harness_run_id)
+        finally:
+            self.store.connection = original
+        self.assertEqual(len(counted.statements), 2)
+        self.assertIn("JOIN objects", counted.statements[1])
+        self.assertEqual([record.event_id for record in records][-1], new_event.event_id)
+        self.assertEqual(
+            [record.event_id for record in self.store.list_run_events(
+                run.harness_run_id, after_sequence=records[0].sequence,
+            )],
+            [new_event.event_id],
+        )
+
+        # Corruption must still fail closed despite the query optimization.
+        original.execute(
+            "UPDATE objects SET content=%s WHERE digest=%s",
+            (b"{}", records[-1].payload_digest),
+        )
+        with self.assertRaises(HarnessObjectCorrupt):
+            self.store.list_run_events(run.harness_run_id)
+
+    def test_continuity_heads_cache_rechecks_store_revision_after_external_write(self) -> None:
+        from unittest.mock import patch
+
+        run = contract()
+        self.store.create_run(run)
+        with patch.object(self.store, "list_run_events", wraps=self.store.list_run_events) as reads:
+            continuity = EventSourcedRunContinuity(self.store, run)
+            first = continuity._heads()
+            initial_reads = reads.call_count
+            self.assertIs(first, continuity._heads())
+            self.assertEqual(reads.call_count, initial_reads)
+
+            # The existing continuity object must observe a different Store
+            # connection's committed Run revision, not preserve stale heads.
+            with PostgresHarnessStore(self.dsn, schema=self.schema) as rival:
+                lease = rival.acquire_run_lease(
+                    run.harness_run_id, owner_id="worker:external", ttl_ms=5000, now_ms=10,
+                )
+                rival.append_events(
+                    harness_run_id=run.harness_run_id,
+                    events=(HarnessEventWrite(
+                        event_id="event:cache-revision-change",
+                        event_kind="harness.trace-recorded",
+                        data={"trace": "new revision"},
+                        recorded_at_ms=run.created_at_ms + 1,
+                    ),),
+                    expected_revision=lease.run_revision,
+                    lease=lease,
+                    lease_checked_at_ms=11,
+                )
+            new_heads = continuity._heads()
+            self.assertIsNot(first, new_heads)
+            self.assertEqual(reads.call_count, initial_reads + 1)
+            self.assertIs(new_heads, continuity._heads())
+            self.assertEqual(reads.call_count, initial_reads + 1)
 
     def test_two_connections_lease_revision_cas_and_exact_response_loss_replay(self) -> None:
         run = contract()
