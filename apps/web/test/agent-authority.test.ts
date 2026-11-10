@@ -335,3 +335,21 @@ for (const kind of ["create", "publish"] as const) {
     f.store.close();
   });
 }
+
+test("Grant resource matching preserves path-component boundaries", async () => {
+  const f = await fixture();
+  assert.equal(
+    f.store.resolveAgentGrant(f.agent.agentId, config.origin, "canary.note.create", "/canary/notes", f.now()).grantId,
+    "grant:test",
+  );
+  assert.equal(
+    f.store.resolveAgentGrant(f.agent.agentId, config.origin, "canary.note.create", "/canary/notes/child", f.now()).grantId,
+    "grant:test",
+  );
+  assert.throws(
+    () => f.store.resolveAgentGrant(f.agent.agentId, config.origin, "canary.note.create", "/canary/notes-private", f.now()),
+    /No active Agent Grant/,
+  );
+  await f.app.close();
+  f.store.close();
+});

@@ -79,7 +79,7 @@ function toSnapshot(row: GrantRow): GrantSnapshot {
 }
 
 function prefixMatches(resource: string, prefixes: readonly string[]): boolean {
-  return prefixes.some((prefix) => resource.startsWith(prefix));
+  return prefixes.some((prefix) => resource === prefix || resource.startsWith(prefix.endsWith("/") ? prefix : prefix + "/"));
 }
 
 export class GrantStore {

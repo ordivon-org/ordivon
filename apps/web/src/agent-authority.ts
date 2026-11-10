@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { WebProblem } from "./errors.ts";
@@ -40,20 +40,60 @@ export class SecurityContractAdmissionEvaluator implements AgentAdmissionEvaluat
   }
 
   async evaluate(input: AgentAdmissionInput): Promise<AdmissionChainDecision> {
-    const result = spawnSync("/usr/bin/python3", [this.evaluatorPath], {
-      input: JSON.stringify(input),
-      encoding: "utf8",
-      maxBuffer: 1024 * 1024,
+    // Node's event loop must not block while Python validates the schema and
+    // OPA evaluates the Security-owned policies.
+    const output = await new Promise<string>((resolve, reject) => {
+      const child = spawn("/usr/bin/python3", [this.evaluatorPath], {
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 10_000,
+        killSignal: "SIGKILL",
+      });
+      const limit = 1024 * 1024;
+      let stdout = "";
+      let stdoutBytes = 0;
+      let settled = false;
+      const fail = () => {
+        if (settled) return;
+        settled = true;
+        child.kill("SIGKILL");
+        reject(new WebProblem(
+          503, "security-admission-unavailable", "Security admission unavailable",
+          "The Security-owned Agent Admission contract did not return a decision.",
+        ));
+      };
+      child.stdout.setEncoding("utf8");
+      child.stdout.on("data", (chunk: string) => {
+        stdoutBytes += Buffer.byteLength(chunk);
+        if (stdoutBytes > limit) {
+          fail();
+        } else {
+          stdout += chunk;
+        }
+      });
+      // Do not expose OPA/Python diagnostic output or token-bearing arguments.
+      child.stderr.resume();
+      child.on("error", fail);
+      child.on("close", (code, signal) => {
+        if (settled) return;
+        if (code !== 0 || signal !== null) {
+          fail();
+          return;
+        }
+        settled = true;
+        resolve(stdout);
+      });
+      child.stdin.on("error", fail);
+      child.stdin.end(JSON.stringify(input));
     });
-    if (result.status !== 0) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(output);
+    } catch {
       throw new WebProblem(
-        503,
-        "security-admission-unavailable",
-        "Security admission unavailable",
-        "The Security-owned Agent Admission contract did not return a decision.",
+        503, "security-admission-invalid", "Security admission unavailable",
+        "The Security-owned Agent Admission contract returned invalid JSON.",
       );
     }
-    const parsed: unknown = JSON.parse(result.stdout);
     if (
       parsed === null ||
       typeof parsed !== "object" ||

@@ -10,7 +10,11 @@ SLSA_PROVENANCE_PREDICATE = "https://slsa.dev/provenance/v1"
 
 
 def _sha256(path: Path) -> str:
-    return sha256(path.read_bytes()).hexdigest()
+    digest = sha256()
+    with path.open("rb") as source:
+        while chunk := source.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def verify_build_provenance(

@@ -129,7 +129,7 @@ export class AgentGrantStore {
       .filter(
         (grant) =>
           grant.allowedActions.includes(action) &&
-          grant.resourcePrefixes.some((prefix) => resource.startsWith(prefix)),
+          grant.resourcePrefixes.some((prefix) => resource === prefix || resource.startsWith(prefix.endsWith("/") ? prefix : prefix + "/")),
       );
     if (matches.length === 0) {
       throw new WebProblem(
