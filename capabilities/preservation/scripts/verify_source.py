@@ -7,7 +7,6 @@ import subprocess
 from pathlib import Path, PurePosixPath
 
 import yaml
-
 from fixity_consumer_contract import verify_fixity_consumer_binding
 
 OWNER_ROOT = Path(__file__).resolve().parents[1]
@@ -35,14 +34,16 @@ def _require(valid: bool, message: str) -> None:
 
 def _tracked_owner_files() -> set[str]:
     prefix = OWNER_ROOT.relative_to(REPO_ROOT).as_posix() + "/"
+    # Git's normal quoted/pathline output is not a lossless filename format.
+    # Reuse the repository-native NUL record boundary (including unusual paths).
     output = subprocess.check_output(
-        ["git", "-C", str(REPO_ROOT), "ls-files", prefix],
-        text=True,
+        ["git", "-C", str(REPO_ROOT), "ls-files", "-z", "--", prefix],
     )
     return {
         PurePosixPath(path.removeprefix(prefix)).as_posix()
-        for path in output.splitlines()
-        if path
+        for record in output.split(b"\0")
+        if record
+        for path in (record.decode("utf-8", errors="surrogateescape"),)
     }
 
 
@@ -60,7 +61,10 @@ def _matches(path: str, pattern: str) -> bool:
 
 def main() -> int:
     data = json.loads(BOUNDARY.read_text(encoding="utf-8"))
-    _require(data["schemaVersion"] == 1, "unsupported source boundary schema")
+    _require(
+        type(data["schemaVersion"]) is int and data["schemaVersion"] == 1,
+        "unsupported source boundary schema",
+    )
     _require(
         data["kind"] == "ordivon.preservation-source-boundary",
         "invalid source boundary kind",
