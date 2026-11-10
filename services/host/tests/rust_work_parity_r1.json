@@ -246,6 +246,8 @@
         "frontier": "恢复工作 🧭",
         "objective": "持续 🧪"
       },
+      "mcpClientRequestId": "work-snapshot-commit:3138c6096ce57bdb83bc8b0cb8710f0995a6679c05fc6e7d4febddc825ce9c46",
+      "mcpRequestDigest": "sha256:3138c6096ce57bdb83bc8b0cb8710f0995a6679c05fc6e7d4febddc825ce9c46",
       "snapshotDigest": "sha256:0fa4aecc513a7d373082aaeeef7f7170de1e9cb2b5daf1d2e198088fe2daf92c",
       "state": "open",
       "storeCreateDigest": "sha256:57888dc0de137db4f8bd91720b8ecc1dfaf6fe91ecef6e0e67cba70bd8c6aed1",
@@ -312,6 +314,8 @@
           "time zone offsets"
         ]
       },
+      "mcpClientRequestId": "work-snapshot-commit:7c4e779ba4fb1b865efb50e23a2d62c496d7670b0ee6dd172e20cbbfd92812f5",
+      "mcpRequestDigest": "sha256:7c4e779ba4fb1b865efb50e23a2d62c496d7670b0ee6dd172e20cbbfd92812f5",
       "snapshotDigest": "sha256:cc53557cbbd37c969df1ebfd7b83b358e567009cf9d21c92136b0afe73abba17",
       "state": "completed",
       "storeCreateDigest": "sha256:eee53ef949c102cf8562fdd3378210846a4b73e155aefb12c6fceb8d4f0f3b19",
@@ -348,6 +352,8 @@
           "work:stable"
         ]
       },
+      "mcpClientRequestId": "work-snapshot-commit:b15583a91e48675709bb501fc1a8bc8e08b3407c9d53cfcb91140b52694f5596",
+      "mcpRequestDigest": "sha256:b15583a91e48675709bb501fc1a8bc8e08b3407c9d53cfcb91140b52694f5596",
       "snapshotDigest": "sha256:060c4ceebb3647395fe770e80e8a7322d10b844c786ff2477c61a4ff675c66b0",
       "state": "open",
       "storeCreateDigest": "sha256:f32b10e3ad9660d39d6124fa8a7b197b0916ef6aba0bdee8f4c5953cba0adb5b",
@@ -381,6 +387,8 @@
         "frontier": "line1\nline2\twith tab",
         "objective": "quote \" slash / backslash \\"
       },
+      "mcpClientRequestId": "work-snapshot-commit:da054cd44c5f761088f7858eb7e1d814a964100c7e440a48b87a5a14a67aa43f",
+      "mcpRequestDigest": "sha256:da054cd44c5f761088f7858eb7e1d814a964100c7e440a48b87a5a14a67aa43f",
       "snapshotDigest": "sha256:35b4e8d27b5bdde0d8268e1fc970f19ee5a0f52dc9f50a614d950effc8b63163",
       "state": "abandoned",
       "storeCreateDigest": "sha256:3f0b4983f757933ea623f8306e2c0d54f3249cb209477bf00f6c51ec8942217f",
@@ -407,6 +415,8 @@
         "frontier": "不同 Unicode composition",
         "objective": "Café"
       },
+      "mcpClientRequestId": "work-snapshot-commit:8e859ddd32b397b320310dd0bb86adaa4051f312d1554b57ac3802faade833d1",
+      "mcpRequestDigest": "sha256:8e859ddd32b397b320310dd0bb86adaa4051f312d1554b57ac3802faade833d1",
       "snapshotDigest": "sha256:5ad12104664e91c17adb5b28fab0180c6c4c17f25287cf9f90263d9644538e06",
       "state": "open",
       "storeCreateDigest": "sha256:4f517206f19c402ad8813e30f78762c565241ccd3b3754596996e90669642e2a",
@@ -433,6 +443,8 @@
         "frontier": "不同 Unicode composition",
         "objective": "Café"
       },
+      "mcpClientRequestId": "work-snapshot-commit:dd2379e1ef2702bc27f3e69e670e85351433a4a3b906c9627b9fa84293a94c4d",
+      "mcpRequestDigest": "sha256:dd2379e1ef2702bc27f3e69e670e85351433a4a3b906c9627b9fa84293a94c4d",
       "snapshotDigest": "sha256:374faece3008aac8adee92a5cc7c1e3641850136de388f1c027cf8459d564e70",
       "state": "open",
       "storeCreateDigest": "sha256:9b6a03471b88b810999adb716c27ce9769e6ae401d8aa88ec123d5692235a0b8",
@@ -464,6 +476,8 @@
         "frontier": "f",
         "objective": "o"
       },
+      "mcpClientRequestId": "work-snapshot-commit:74c6ac6959751cb39488622cfc85901c8a154d0ddb713e6df1e95dfd8d7d2607",
+      "mcpRequestDigest": "sha256:74c6ac6959751cb39488622cfc85901c8a154d0ddb713e6df1e95dfd8d7d2607",
       "snapshotDigest": "sha256:d626e2210890bec69ee241be65811af4e5b472b483eaf856ad3b7febd3ffdd94",
       "state": "open",
       "storeCreateDigest": "sha256:1996cea81841307b3545ff687edb4a108b9d5e42b161518fec30da0af3870612",

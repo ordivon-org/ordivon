@@ -15,6 +15,7 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from ordivon_host_v2.canonical_json import canonical_bytes, canonical_digest
+from ordivon_host_v2.mcp_tool_registration import _request_id
 from ordivon_host_v2.mcp_work_tools import AdvancableWorkRevision, PositiveWorkRevision
 from ordivon_host_v2.work_inputs import WorkSnapshotInput
 
@@ -54,6 +55,20 @@ def test_canonical_snapshot_and_store_request_match_frozen_python_oracle(
         "state": case["state"],
     }
     assert canonical_digest(request) == case["storeRequestDigest"]
+
+    mcp_request = {
+        "workRef": case["workRef"],
+        "expectedRevision": case["expectedRevision"],
+        "snapshot": payload,
+        "actorRef": case["actorRef"],
+        "continuityDisposition": {
+            "open": "continue",
+            "completed": "complete",
+            "abandoned": "abandon",
+        }[case["state"]],
+    }
+    assert canonical_digest(mcp_request) == case["mcpRequestDigest"]
+    assert _request_id("work-snapshot-commit", mcp_request) == case["mcpClientRequestId"]
 
     create = {
         "operation": "work.create",
