@@ -40,6 +40,9 @@ class HostV2(HostPostgresConnections):
             raise ValueError("detail must be summary, integrity, or history")
         observed_at_ms = time.time_ns() // 1_000_000
         with self._connect() as conn:
+            # The multi-query doctor must observe one coherent MVCC snapshot.
+            if detail != "summary":
+                conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             schema_row = conn.execute(
                 "SELECT schema_version FROM host_v2_schema WHERE singleton"
             ).fetchone()
@@ -163,15 +166,18 @@ class HostV2(HostPostgresConnections):
                     )
                 if detail == "history":
                     digest_bad = 0
-                    for row in conn.execute(
-                        "SELECT snapshot_digest,payload FROM work_snapshots ORDER BY work_ref,revision"
-                    ).fetchall():
-                        payload = row["payload"]
-                        if (
-                            not isinstance(payload, dict)
-                            or canonical_digest(payload) != row["snapshot_digest"]
-                        ):
-                            digest_bad += 1
+                    # Stream history through Psycopg's native server cursor.
+                    # A full fetchall() would retain every JSONB payload in RAM.
+                    with conn.cursor(name="host_history_digest_scan") as cursor:
+                        cursor.itersize = 128
+                        cursor.execute("SELECT snapshot_digest,payload FROM work_snapshots")
+                        for row in cursor:
+                            payload = row["payload"]
+                            if (
+                                not isinstance(payload, dict)
+                                or canonical_digest(payload) != row["snapshot_digest"]
+                            ):
+                                digest_bad += 1
                     add_check(
                         "work.snapshot_history_digest",
                         digest_bad == 0,
