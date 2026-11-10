@@ -29,3 +29,23 @@
 ## Rollback, retention, and follow-up
 
 Both PR source changes are independently Git-revertible. Revert the specific changed Web files if regression is observed; do not restore duplicate digest logic as a second authority merely for temporary familiarity. Audit snapshots may be retired from current main once their bounded research consumer is satisfied; Git retains evidence. Do not promote this dated baseline to a live operational status page.
+
+## Subsequent source-bound consolidation (2026-11-10, main e037af933)
+
+The 5,002-path inventory above **remains a frozen baseline** at `ef17d687`; it must not be relabeled as a live census after subsequent PR merges. A later local SourceCut `e037af933b66cdfccc7e13e3e6392847e7f84fc8` had four parallel six-phase audit directories, adding competing representations without new source/installed authority.
+
+One current canonical audit is retained here. Three duplicate dated audit carriers were retired from the source tree, but their original distinct review details and 5,002-file snapshots remain exactly recoverable from immutable Git commits:
+
+| Retired duplicate carrier | Exact original Git evidence | Current source consumer action |
+| --- | --- | --- |
+| `docs/audits/2026-11-10-brownfield/` | `41c896da3f9b5434c66658bf2d6494eedb372186` (Finance stock audit) | `domains/capital/docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md` redirected to this frozen census |
+| `docs/architecture/audits/2026-11-10/` | `47d5dfe91984df29688f3de85ac23e1acbf812cc` (Runtime maintenance audit) | two existing Runtime docs redirected to `docs/audits/2026-11-10/AUDIT_SCOPE.md` |
+| `docs/architecture/audits/2026-11-10-brownfield/` | `1860fc8c6a039ab47de18a8a5145d9c1be09b73a` (Repo/Owner stock audit) | no remaining exact in-repository path reference found |
+
+This is **Git source archival**, not deletion of historical Git objects, external effects, PG records, or consumer state. Historical independent interpretations should use their original Git SourceCut; the current tree does not require four copies of the same six-phase plan.
+
+A separate low-risk packaging correction removed a stale `Programming Language :: Python :: 3.14` classifier from `services/harness/pyproject.toml`; actual `requires-python ==3.15.1`, `mise.toml`, and Python 3 major classifier remain unchanged. This is metadata honesty rather than a new platform capability.
+
+Verification of consolidation: existing root architecture/Owner/Composition/structure checks and 45 native root tests passed; Harness `uv lock --check`, Ruff, documentation validation, wheel build and exact wheel `Requires-Python` metadata inspection passed; existing non-node Harness suite reported **1,383 passed, 115 skipped, 2 deselected, 386 subtests passed** (no new tests). An earlier separate isolated PostgreSQL 18 wheel qualification validated the same metadata-only source edit; the current consolidation run did not repeat the official PG-backed `check_wheel.py`, so do **not** claim that test passed for this SourceCut.
+
+This entry is a **SOURCE-qualified proposal** until its own GitHub PR is merged. It proves neither whole-repo per-file dynamic consumer closure nor installed / production behavior. If an external consumer supplies an exact dynamic dependence on a retired path, restore only necessary content from recorded Git history and reconcile it with the natural Owner.
