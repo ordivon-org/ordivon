@@ -1,0 +1,76 @@
+"""Strict disposable-database MCP stdio protocol smoke, not a production client."""
+import json
+import os
+import subprocess
+import sys
+
+if len(sys.argv) != 2 or not os.environ.get("HOST_RUST_TEST_DSN"):
+    raise SystemExit("requires executable and isolated HOST_RUST_TEST_DSN")
+if os.environ["ORDIVON_HOST_V2_DSN"] != os.environ["HOST_RUST_TEST_DSN"]:
+    raise SystemExit("refusing mismatched target DSN")
+
+p = subprocess.Popen(
+    [sys.argv[1]],
+    stdin=subprocess.PIPE,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+    env=os.environ.copy(),
+    text=True,
+    bufsize=1,
+)
+
+
+def request(method, params=None, request_id=None):
+    msg = {"jsonrpc": "2.0", "method": method}
+    if params is not None:
+        msg["params"] = params
+    if request_id is not None:
+        msg["id"] = request_id
+    p.stdin.write(json.dumps(msg) + "\n")
+    p.stdin.flush()
+    if request_id is not None:
+        line = p.stdout.readline()
+        if not line:
+            raise RuntimeError("MCP subprocess ended: " + p.stderr.read()[:700])
+        response = json.loads(line)
+        assert response.get("id") == request_id, response
+        assert "error" not in response, response
+        return response["result"]
+
+
+try:
+    initialized = request(
+        "initialize",
+        {
+            "protocolVersion": "2025-06-18",
+            "capabilities": {},
+            "clientInfo": {"name": "host-rust-smoke", "version": "1.0.0"},
+        },
+        1,
+    )
+    assert initialized["serverInfo"]["name"]
+    request("notifications/initialized")
+    names = [tool["name"] for tool in request("tools/list", {}, 2)["tools"]]
+    assert names == ["host.status"], names
+    ok = request("tools/call", {"name": "host.status", "arguments": {"detail": "summary"}}, 3)
+    data = ok.get("structuredContent")
+    assert data is not None, ok
+    assert data["schemaVersion"] == 3 and data["kind"] == "ordivon.host-status", data
+    assert data["authority"]["journalSchema"] == 13, data
+    assert data["authority"]["journalBackend"] == "postgresql", data
+    assert data["doctor"] is None
+    denied = request("tools/call", {"name": "host.status", "arguments": {"detail": "history"}}, 4)
+    assert denied.get("isError") is True, denied
+    print(
+        "MCP_STDIO_PASS"
+        f" version={initialized['protocolVersion']} tools={names}"
+        f" schema={data['authority']['journalSchema']}"
+        " history=EXPLICIT_UNSUPPORTED"
+    )
+finally:
+    p.terminate()
+    try:
+        p.communicate(timeout=5)
+    except subprocess.TimeoutExpired:
+        p.kill()
+        p.communicate()
