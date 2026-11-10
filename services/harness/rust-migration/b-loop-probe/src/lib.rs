@@ -2,6 +2,8 @@
 //! SourceCut: c2ab551a4c858d8a960a117eba66a0d9d9310a6a.
 //! This is not a PG writer, Agent loop, Provider or Runtime dispatcher.
 
+pub mod evidence;
+
 use std::collections::HashSet;
 use std::fmt;
 
@@ -106,6 +108,11 @@ pub fn observation_gate(counters: ProgressCounters, limits: GateLimits) -> Optio
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProgressError {
+    CounterOverflow,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ProgressDecision {
     pub observation_only: bool,
     pub action_progress: bool,
@@ -124,7 +131,7 @@ pub fn decide_progress(
     new_evidence: bool,
     prior: ProgressCounters,
     limits: GateLimits,
-) -> ProgressDecision {
+) -> Result<ProgressDecision, ProgressError> {
     let allowed: HashSet<&str> = observation_only_names.iter().copied().collect();
     let observed: HashSet<&str> = observed_names.iter().copied().collect();
     let observation_only =
@@ -133,29 +140,50 @@ pub fn decide_progress(
 
     let counters = ProgressCounters {
         observation_only_turns: if observation_only {
-            prior.observation_only_turns.saturating_add(1)
+            prior
+                .observation_only_turns
+                .checked_add(1)
+                .ok_or(ProgressError::CounterOverflow)?
         } else {
             0
         },
         no_progress_turns: if action_progress || new_evidence {
             0
         } else {
-            prior.no_progress_turns.saturating_add(1)
+            prior
+                .no_progress_turns
+                .checked_add(1)
+                .ok_or(ProgressError::CounterOverflow)?
         },
     };
     let gate = observation_gate(counters, limits);
-    ProgressDecision {
+    Ok(ProgressDecision {
         observation_only,
         action_progress,
         new_evidence,
         counters,
         gate,
-    }
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn overflow_is_an_explicit_error_not_silent_saturation() {
+        let decision = decide_progress(
+            &[],
+            &[],
+            false,
+            ProgressCounters {
+                no_progress_turns: u64::MAX,
+                observation_only_turns: 0,
+            },
+            GateLimits::default(),
+        );
+        assert_eq!(decision, Err(ProgressError::CounterOverflow));
+    }
 
     #[test]
     fn all_tools_when_no_selection() {
@@ -210,7 +238,8 @@ mod tests {
                 max_no_progress_turns: 3,
                 max_observation_only_turns: 6,
             },
-        );
+        )
+        .expect("bounded counters");
         assert_eq!(
             p.counters,
             ProgressCounters {
@@ -234,7 +263,8 @@ mod tests {
                 max_no_progress_turns: 3,
                 max_observation_only_turns: 6,
             },
-        );
+        )
+        .expect("bounded counters");
         assert_eq!(
             p.counters,
             ProgressCounters {
@@ -258,7 +288,8 @@ mod tests {
                 max_no_progress_turns: 3,
                 max_observation_only_turns: 6,
             },
-        );
+        )
+        .expect("bounded counters");
         assert_eq!(p.counters, ProgressCounters::default());
         assert!(p.action_progress);
     }
@@ -276,7 +307,8 @@ mod tests {
                 max_no_progress_turns: 3,
                 max_observation_only_turns: 6,
             },
-        );
+        )
+        .expect("bounded counters");
         assert_eq!(p.gate, Some(Gate::NoProgress { turns: 3 }));
         assert!(!p.action_progress);
     }
@@ -294,7 +326,8 @@ mod tests {
                 max_no_progress_turns: 3,
                 max_observation_only_turns: 6,
             },
-        );
+        )
+        .expect("bounded counters");
         assert_eq!(p.gate, Some(Gate::NoProgress { turns: 3 }));
         assert_eq!(p.gate.unwrap().reason(),
             "external observation gate closed after 3 consecutive turns without a mutation, check, materially new bounded observation, or conclusion");
@@ -310,7 +343,8 @@ mod tests {
                 observation_only_turns: 0,
             },
             GateLimits::default(),
-        );
+        )
+        .expect("bounded counters");
         assert_eq!(p.gate, None);
     }
     #[test]
@@ -327,7 +361,8 @@ mod tests {
                 max_no_progress_turns: 3,
                 max_observation_only_turns: 6,
             },
-        );
+        )
+        .expect("bounded counters");
         assert_eq!(p.gate.unwrap().reason(),
             "external observation gate closed after 6 consecutive observation-only turns without a mutation, check, or conclusion");
     }
