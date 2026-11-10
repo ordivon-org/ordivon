@@ -11,7 +11,7 @@ from typing import Any, Protocol
 import httpx2
 from mcp import Client, types
 from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
-from mcp.shared._otel import inject_trace_context
+from opentelemetry.propagate import inject as inject_trace_context
 
 from .upstream_identity import (
     OwnerCallError as OwnerCallError,
