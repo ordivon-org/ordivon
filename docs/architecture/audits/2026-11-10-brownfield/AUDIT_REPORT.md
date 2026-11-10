@@ -86,3 +86,12 @@ The full source AST pass parsed **1,460/1,460** current Python files, observed *
 Phase 2 complete for documented **major module/source-slice** assessment; entire full-file semantic audit **INCOMPLETE**. The 5,002-file mechanical inventory is complete; unknown external consumers and uninspected deep files stay UNKNOWN. This prevents false completion.
 
 **Cross-Agent file evidence:** reuses exact 5,002-path peer blob ledger `FILE_LEDGER.tsv.gz` (compressed SHA-256 `1274eac9f9c8571854b77b950f025863e1f91a94fa32074358b20be932873d9e`). All rows explicitly retain semantic-review UNKNOWN; this is not a second state authority.
+
+
+## G. Post-merge audit source convergence (main SourceCut e037af933b66cdfccc7e13e3e6392847e7f84fc8)
+
+This is a later source reconciliation, not a rewrite of the pinned ef17d687 original assessment. GitHub PR #2021 had merged a second six-file Phase 0–5 package at docs/audits/2026-11-10/ (original source commit 411774ac7f5dd6b482d6b17fc5780db02682d348) before PR #2033 merged this more detailed package and its source ledger. No independent current source-path consumers of the second six-file package were found by exact Git source search. The older suite has been retired from the current tree while remaining recoverable through Git. Its additional 12-point criteria and selected observations remain historical evidence, not a second current authority.
+
+One independently reproduced stock-source issue from that older audit is retained here: apps/web/src/config.ts:15-22 previously used Number.parseInt on environment input and accepted 42garbage as 42 despite a positive-integer contract. The natural Web Owner's complete-decimal parse repair merged in PR #2019 before this SourceCut. Equivalent corrected Web source passed its existing 18 tests, TypeScript typecheck and eight direct loadConfig input scenarios in independent review. These are source verification receipts, not proof of installed production Web. The Web canary's intentional SQLite state is not a generic PostgreSQL violation.
+
+A separate post-audit doc-currentness counterexample was found: domains/capital/docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md:5 pointed to the nonexistent docs/audits/2026-11-10-brownfield/ directory. Its link has been repaired to this canonical inventory/report. The original bounded 134-document link scan remains a historical observation, not a perpetual assertion that later documentation has no broken links.

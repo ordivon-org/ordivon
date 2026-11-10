@@ -77,3 +77,8 @@ There are **no certified full-file semantic closures for all 5,002 files**; the 
 **Conclusion:** the recorded SOURCE baseline has improved specificity and one real code maintenance candidate passed existing scoped checks. The broad modernization program is not yet complete at deployed/domain or per-file semantic level; future claims must retain these distinctions.
 
 **Cross-Agent file evidence:** reuses exact 5,002-path peer blob ledger `FILE_LEDGER.tsv.gz` (compressed SHA-256 `1274eac9f9c8571854b77b950f025863e1f91a94fa32074358b20be932873d9e`). All rows explicitly retain semantic-review UNKNOWN; this is not a second state authority.
+
+
+## 7. After-audit duplicate-source retirement (later SourceCut)
+
+At Git main e037af933b66cdfccc7e13e3e6392847e7f84fc8 both this Phase 0–5 package and PR #2021's shorter six-file docs/audits/2026-11-10/ package existed. The latter was retired from the current tree after exact source/consumer comparison, preserving original commit 411774ac7f5dd6b482d6b17fc5780db02682d348 for Git-native rollback. The more comprehensive 5,002-path tree and exact-source compressed file ledger remain here. The Capital Owner's broken documentation reference was repaired in place. This is source-only cleanup, not a production/Finance/Runtime/Host effect. Verification evidence belongs in the associated Git PR; this historical baseline does not independently assert full repo CI PASS.
