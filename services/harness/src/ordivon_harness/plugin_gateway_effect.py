@@ -506,6 +506,11 @@ class PluginGatewayExecutionBridge(HarnessRuntimeBridge):
         for raw in self.gateway_client.list_tools():
             name = raw.get("name")
             if name in self.gateway_remote_tool_digests:
+                if name in current:
+                    raise ToolBridgeError(
+                        f"Gateway MCP returned duplicate required Tool: {name}",
+                        kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+                    )
                 current[str(name)] = _tool_digest(raw)
         if current != self.gateway_remote_tool_digests:
             raise ToolBridgeError(
@@ -616,6 +621,24 @@ class PluginGatewayExecutionBridge(HarnessRuntimeBridge):
                 kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
             )
 
+        # The Run-level MCP catalog preflight only validates a snapshot.
+        # Reject a changed Gateway execution/recovery ToolSpec here, before
+        # Harness persists any effect intent or dispatches the Runtime call.
+        # Recovery of a previously committed ToolStep bypasses lowering and
+        # uses the original durable intent and owner reconciliation instead.
+        try:
+            self.validate_runtime_catalog()
+        except ToolBridgeError:
+            raise
+        except Exception as exc:
+            # This failed BEFORE writing a ToolStep intent or invoking the
+            # owner. Preserve a typed non-model-correctable protocol failure,
+            # not an unstructured Harness crash or a post-dispatch retry.
+            raise ToolBridgeError(
+                f"Gateway MCP Tool catalog could not be verified: {type(exc).__name__}: {exc}",
+                kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+            ) from exc
+
         request_id = (
             "request:harness-gateway:"
             + canonical_digest(
@@ -674,6 +697,11 @@ class PluginGatewayExecutionBridgeFactory:
         for raw in client.list_tools():
             name = raw.get("name")
             if isinstance(name, str) and name in self._REQUIRED_REMOTE_TOOLS:
+                if name in remote:
+                    raise ToolBridgeError(
+                        f"Gateway MCP returned duplicate required Tool: {name}",
+                        kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+                    )
                 remote[name] = raw
         missing = sorted(set(self._REQUIRED_REMOTE_TOOLS) - set(remote))
         if missing:
