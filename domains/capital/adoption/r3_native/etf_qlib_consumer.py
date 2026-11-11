@@ -12,6 +12,15 @@ import os
 from io import BytesIO
 from pathlib import Path
 
+# Set MLflow authority BEFORE importing Qlib/its MLflow integration. Otherwise
+# even a read-only experiment can create a default ./mlruns under caller CWD.
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "output"
+OUT.mkdir(exist_ok=True)
+os.chdir(ROOT)
+os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"  # isolated reproducibility proof only; production uses existing PG tracking authority
+os.environ["MLFLOW_TRACKING_URI"] = (OUT / "mlruns").resolve().as_uri()
+
 import numpy as np
 import pandas as pd
 import qlib
@@ -25,12 +34,6 @@ from qlib.data.dataset.loader import StaticDataLoader
 from qlib.workflow import R
 from qlib.workflow.record_temp import SignalRecord
 
-ROOT = Path(__file__).resolve().parent
-OUT = ROOT / "output"
-OUT.mkdir(exist_ok=True)
-os.chdir(ROOT)
-os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"  # isolated reproducibility proof only; production uses existing PG tracking authority
-os.environ["MLFLOW_TRACKING_URI"] = (OUT / "mlruns").resolve().as_uri()
 SYMBOLS = ("SPY", "QQQ", "IWM")
 START = "2023-01-01"
 END = "2026-10-31"

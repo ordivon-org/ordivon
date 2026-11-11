@@ -1,7 +1,7 @@
 {
   "accounting_effect": "NONE",
   "audited_capital_source_cut": "c883db3bbe211b8a963a3236599e1dc3cfe362ac",
-  "captured_at": "2026-11-11T15:58:31.599830+00:00",
+  "captured_at": "2026-11-11T16:14:51.521966+00:00",
   "data_input_mode": "hash_verified_local_replay",
   "dataset_is_historically_point_in_time": false,
   "economic_performance_verified": false,
@@ -81,7 +81,7 @@
   ],
   "qlib_dataset_sha256": "e14deedead6efe85f0c460466cffd965d78d23c66b6a1704912e13c8b2113435",
   "qlib_prediction_rows": 816,
-  "qlib_recorder_id": "5c700e197ecb4d5e81634dc6518ceb0d",
+  "qlib_recorder_id": "9d23f6793636468dbf2cc8c07113ed43",
   "qlib_split_rows": {
     "test": 816,
     "train": 1443,

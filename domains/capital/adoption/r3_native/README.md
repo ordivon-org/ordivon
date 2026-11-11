@@ -75,3 +75,6 @@ From here (isolated Windows Python3.11, private capture in environment):
 
 The source test runs actual Qlib LGBModel.fit and native Recorder;
 it is not a replacement engine or test framework.
+MLflow tracking URI is assigned before importing Qlib/MLflow. This avoids
+the unconsumed default root-level ./mlruns scratch side effect; the
+research-only file store remains confined to ignored ./output/mlruns.
