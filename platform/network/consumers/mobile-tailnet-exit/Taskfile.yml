@@ -8,6 +8,19 @@ tasks:
       - python3 -c 'import ast; ast.parse(open("consumers/mobile-tailnet-exit/ready.py").read())'
       - systemd-analyze verify consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service
 
+  consumer:mobile-tailnet-exit:ready:
+    desc: Admit the real Tailscale server after bounded native reconnect; not iOS client exit proof
+    cmds:
+      # Provider namespace replacement forces a native tailscaled rejoin.
+      # An immediate rc=3 is transient, not an install/rollback trigger.
+      # Reuse coreutils timeout and existing readiness; no new daemon.
+      - |
+        /usr/bin/timeout --signal=TERM --kill-after=2s 120s /usr/bin/bash -c '
+          until /usr/local/libexec/network-v2/mobile-tailnet-exit-ready; do
+            /usr/bin/sleep 3
+          done
+        '
+
   consumer:mobile-tailnet-exit:verify:
     desc: Verify installed Mobile Exit SourceCut, Tailscale approval and Gluetun-native health (not iOS client egress)
     deps: [consumer:mobile-tailnet-exit:validate]
@@ -15,4 +28,4 @@ tasks:
       - cmp -s consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run
       - cmp -s consumers/mobile-tailnet-exit/ready.py /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
       - cmp -s consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service /etc/systemd/system/network-v2-mobile-tailnet-exit.service
-      - /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
+      - task: consumer:mobile-tailnet-exit:ready

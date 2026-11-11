@@ -69,6 +69,23 @@ def test_mobile_ready_requires_admin_approval_and_upstream():
         assert word in ready
 
 
+def test_mobile_native_readiness_has_bounded_rejoin_and_no_provider_restart():
+    tasks = (MOBILE / "Taskfile.yml").read_text()
+    assert "consumer:mobile-tailnet-exit:ready:" in tasks
+    assert "/usr/bin/timeout" in tasks
+    assert "/usr/local/libexec/network-v2/mobile-tailnet-exit-ready" in tasks
+    assert "consumer:mobile-tailnet-exit:verify:" in tasks
+    assert "- task: consumer:mobile-tailnet-exit:ready" in tasks
+    assert "systemctl restart network-v2-gluetun-owned" not in tasks
+
+    # No unqualified persistent-Pod netns migration until native pre-WG
+    # fail-closed egress is independently admitted.
+    provider = (ROOT / "providers" / "gluetun" / "quadlet"
+                / "network-v2-gluetun-owned.container").read_text()
+    assert "Pod=" not in provider
+    assert "Network=network-v2-gluetun-owned.network" in provider
+
+
 def test_mobile_systemd_uses_bounded_native_backoff():
     unit = (MOBILE / "systemd" / "network-v2-mobile-tailnet-exit.service").read_text()
     for setting in (
