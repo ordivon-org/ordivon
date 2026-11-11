@@ -647,6 +647,8 @@ name = "ordivon-harness-loop-b-probe"
 version = "0.0.0"
 dependencies = [
  "ordivon-harness-core",
+ "ordivon-harness-pg",
+ "postgres",
 ]
 
 [[package]]

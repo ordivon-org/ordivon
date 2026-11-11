@@ -53,3 +53,12 @@ if [[ "${HARNESS_CONSUMER_FALSIFY_CONTRACT:-}" == 1 ]]; then
   cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
     -p ordivon-harness-pg --test contract_semantic_falsifier -- --ignored --nocapture
 fi
+
+# B consumer extension: reuse this SAME disposable A-owned PG instance.
+# Opt-in only: no second PG bootstrap, Schema owner, writer, or Tool effect.
+if [[ "${HARNESS_B_BOUND_PG_DOMAIN:-}" == 1 ]]; then
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
+    services/harness/rust-migration/b-loop-probe/tests/pg_domain_python_store.py
+  cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
+    -p ordivon-harness-loop-b-probe --test pg_domain_readback -- --ignored --nocapture
+fi

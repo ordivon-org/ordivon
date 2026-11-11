@@ -55,6 +55,23 @@ Production Python sources used as oracles:
   `_GrantedDomainToolBridge` name gate with a no-effect fake executor.
   1,152 source vectors (336 Python-valid, 816 invalid) pass; the four
   distinct standing outcomes all appear.
+- `pg_domain_read.rs`: the first real B-native PG consumer of A's verified
+  `read_run_readonly` API. From one REPEATABLE READ / READ ONLY snapshot,
+  consumes A's versioned semantic `HarnessRunContract` plus Journal/CAS,
+  checks independent Provider/Adapter/Model identities, and binds the exact
+  `toolCatalogDigest` + `toolGrantDigest` to a caller-provided immutable
+  custom `DomainToolCatalog` and approved Tool-name subset. It returns a
+  privately constructed `ObservedDomainRun` with a source-bound **observation**
+  and pure ToolCall preflight; NOT a fresh Lease, Writer Fence, Effect Intent,
+  Tool execution grant, Provider availability result, or capability token.
+  This also does not qualify the separate no-Tool or Runtime Search Run modes.
+- An opt-in extension to A's existing disposable PG18 runner reuses the same
+  private database and Python `PostgresHarnessStore` to create a true
+  Contract-bound Domain Tool Run, then invokes Rust `pg_domain_readback`
+  through the read-only role. Tests fail closed for mismatched Provider,
+  Adapter, Model, tool Catalog/Grant, mutated Catalog, missing Run,
+  rejected/duplicate/unavailable model Tool Calls. No second PG bootstrap
+  script, no raw database writer in B, and no physical Tool effects.
 - Whole-root Cargo fmt/test/clippy -D warnings pass. The A PG Reader's
   separate disposable PostgreSQL 18.6 integration verifies Python-writer
   → Rust SELECT-only readback and five real normal/corruption/legacy cases.
@@ -69,6 +86,10 @@ cargo fmt --all --check
 cargo test --locked --offline --workspace --all-targets
 cargo clippy --locked --offline --workspace --all-targets -- -D warnings
 bash crates/harness-pg/tests/run_isolated_pg18.sh
+# Extended actual PostgreSQL consumer boundary and Contract adversarial cases:
+cd ../..
+HARNESS_B_BOUND_PG_DOMAIN=1 HARNESS_CONSUMER_FALSIFY_CONTRACT=1 \
+  bash services/harness/crates/harness-pg/tests/run_isolated_pg18.sh
 ```
 
 The Python source-oracle tests use `uv run --offline --locked python` from
@@ -78,6 +99,9 @@ this Harness tree. Do not replace them with hand-copied expected behavior.
 
 - This is **not** an installed Rust Agent Run, PG writer, Provider transport,
   Runtime Tool executor, or independently accepted production cutover.
+- PG-bound custom Tool inspection does not check dynamic capability permissions,
+  adapter availability, Provider model response, RunBudget composition, or
+  external Effect admission; those require separate owner-native consumer gates.
 - Actual Context→Model, persistent Model→Tool Intent→Runtime and Receipt/UNKNOWN→
   WorkingView consumers, cancellation, recovery of old Run v3, authorized
   privacy handling and live Writer/Lease/Fence are separate gates.

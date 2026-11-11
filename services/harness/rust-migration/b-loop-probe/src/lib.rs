@@ -3,6 +3,7 @@
 //! This is not a PG writer, Agent loop, Provider or Runtime dispatcher.
 
 pub mod evidence;
+pub mod pg_domain_read;
 pub mod provider_head;
 mod python_text;
 pub mod tool_call;

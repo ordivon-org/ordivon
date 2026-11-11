@@ -10,3 +10,6 @@ path = "src/lib.rs"
 [dependencies]
 # Reuse A's sealed canonical representation; no B-owned codec or Store.
 ordivon-harness-core = { path = "../../crates/harness-core" }
+# Consume the only A-owned read-only PG Reader; no B-owned SQL or Writer.
+ordivon-harness-pg = { path = "../../crates/harness-pg" }
+postgres = "0.19.14"
