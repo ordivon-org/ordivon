@@ -544,7 +544,7 @@ impl PgRuntime {
             PgJobReadback::Observed(s) => s,
             _ => return Err(error("inconclusive PG lifecycle")),
         };
-        let (a, p, operation) = self.attempt(&mut db, job)?;
+        let (a, p, operation) = self.readback_attempt(&mut db, &snapshot)?;
         let j = db
             .client
             .query_one(
@@ -625,7 +625,7 @@ impl PgRuntime {
             },
             attempts: vec![RuntimeInspectionAttempt {
                 attempt_id: a.attempt_id,
-                attempt_number: 1,
+                attempt_number: a.attempt_number,
                 state: a.state,
                 termination_intent: a.termination_intent,
                 created_at_ms: a.created_at_ms,
