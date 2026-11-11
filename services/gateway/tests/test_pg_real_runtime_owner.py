@@ -8,6 +8,8 @@ Invoke with ORDIVON_GATEWAY_PG_E2E_BINARY=/path/to/verified/ordivon-runtime-pg.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import os
 import secrets
 import shutil
@@ -23,7 +25,7 @@ from mcp import Client
 
 from ordivon_gateway.mcp_server import build_server
 from ordivon_gateway.service import GatewayService
-from ordivon_gateway.upstream import McpOwnerCaller, OwnerEndpoint
+from ordivon_gateway.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
 
 
 @pytest.mark.skipif(
@@ -75,6 +77,8 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
             "psql",
             "-X",
             "-w",
+            "-A",
+            "-t",
             "-v",
             "ON_ERROR_STOP=1",
             "-h",
@@ -130,6 +134,22 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
         psql(
             "INSERT INTO fresh._stage_control "
             "VALUES('source','QUALIFIED_WRITER','" + "a" * 64 + "',true)"
+        )
+        # Mirror the existing Rust pg_vertical native PG fixture: a source
+        # seal alone cannot authorize effects after a PITR/timeline fork.
+        # This is an isolated operator-owned test cluster, never a live PG.
+        physical = psql(
+            "SELECT (SELECT system_identifier::text FROM pg_control_system())"
+            " || '|' || (SELECT timeline_id FROM pg_control_checkpoint())"
+        ).strip()
+        system_id, timeline = physical.split("|", 1)
+        writer_epoch = hashlib.sha256(
+            ("ordivon-pg-writer-epoch-v1\0" + "a" * 64 + "\0"
+             + system_id + "\0" + str(int(timeline))).encode("utf-8")
+        ).hexdigest()
+        psql(
+            "INSERT INTO fresh._stage_control "
+            f"VALUES('epoch','QUALIFIED_EPOCH','{writer_epoch}',true)"
         )
         psql(
             "CREATE ROLE runtime_app LOGIN; "
@@ -195,7 +215,15 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
             server = subprocess.Popen([str(binary)], env=env, stdout=log, stderr=log)
         for _ in range(120):
             if server.poll() is not None:
-                pytest.fail("fresh PG MCP process exited before accepting a connection")
+                # An early native process exit is not evidence about Gateway's
+                # reference forwarding. Keep the failure attributable while
+                # preventing the private loopback bearer from entering logs.
+                native_log = (root / "runtime.log").read_text(errors="replace")
+                native_log = native_log.replace(token, "[REDACTED_BEARER]")
+                pytest.fail(
+                    f"fresh PG MCP exited before connection (exit={server.returncode}): "
+                    f"{native_log[-1200:]}"
+                )
             with socket.socket() as s:
                 s.settimeout(0.2)
                 if s.connect_ex(("127.0.0.1", port)) == 0:
@@ -293,6 +321,15 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                 } <= tool_names
                 agent_request = request_id + "-agent"
                 agent_output = "AGENT_VIA_GATEWAY_PG_" + agent_request
+                # A Harness dispatch fence is already authorized by Harness;
+                # Gateway merely forwards caller-declared reference bytes.
+                harness_fence = {
+                    "namespace": "ordivon.harness",
+                    "type": "dispatch_fence",
+                    "id": "fence:" + secrets.token_hex(12),
+                    "generation": "7",
+                    "digest": "sha256:" + secrets.token_hex(32),
+                }
                 submitted = await agent.call_tool(
                     "execution.submit",
                     {
@@ -301,12 +338,48 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         "workspaceId": "ws-gateway-native",
                         "executable": "/usr/bin/printf",
                         "args": [agent_output],
+                        "authorityReferences": [harness_fence],
                     },
                 )
                 assert not submitted.is_error, submitted.structured_content
                 north = submitted.structured_content
                 assert isinstance(north, dict), submitted
                 north_ref = north["operation_ref"]
+                replay = await agent.call_tool(
+                    "execution.submit",
+                    {
+                        "capability": "execution.linux",
+                        "requestId": agent_request,
+                        "workspaceId": "ws-gateway-native",
+                        "executable": "/usr/bin/printf",
+                        "args": [agent_output],
+                        "authorityReferences": [harness_fence],
+                    },
+                )
+                assert not replay.is_error, replay.structured_content
+                assert replay.structured_content["operation_ref"] == north_ref
+                # A different fence generation cannot reuse one committed
+                # Job's idempotent clientRequestId.
+                with pytest.raises(OwnerCallError):
+                    await gateway.execution_submit(
+                        capability="execution.linux",
+                        request_id=agent_request,
+                        workspace_id="ws-gateway-native",
+                        executable="/usr/bin/printf",
+                        args=[agent_output],
+                        authority_references=[{**harness_fence, "generation": "8"}],
+                    )
+                committed_plan = json.loads(
+                    psql(
+                        "SELECT execution_plan_json FROM fresh.jobs "
+                        f"WHERE principal='pg-consumer' AND client_request_id='{agent_request}'"
+                    ).strip()
+                )
+                assert committed_plan["foreignReferences"] == [harness_fence]
+                assert psql(
+                    "SELECT count(*) FROM fresh.jobs "
+                    f"WHERE principal='pg-consumer' AND client_request_id='{agent_request}'"
+                ).strip() == "1"
                 found = await agent.call_tool(
                     "execution.resolve",
                     {"capability": "execution.linux", "requestId": agent_request},
@@ -325,14 +398,26 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                 assert got.structured_content["exit_code"] == 0
                 assert got.structured_content["artifact_projection_complete"]
                 found_bytes = False
+                terminal_fence_seen = False
                 for artifact_id in got.structured_content["artifact_ids"]:
                     chunk = await agent.call_tool(
                         "artifact.read",
                         {"operationRef": north_ref, "artifactId": artifact_id, "maxBytes": 1024},
                     )
                     assert not chunk.is_error
-                    found_bytes |= agent_output in chunk.structured_content["content"]
+                    data = chunk.structured_content["content"]
+                    found_bytes |= agent_output in data
+                    try:
+                        artifact_json = json.loads(data)
+                    except (TypeError, ValueError):
+                        continue
+                    if isinstance(artifact_json, dict) and "foreignReferences" in artifact_json:
+                        assert artifact_json["foreignReferences"] == [harness_fence]
+                        terminal_fence_seen = True
                 assert found_bytes, "northbound MCP must retain actual Runner stdout"
+                assert terminal_fence_seen, (
+                    "native Runner terminal evidence must preserve the Harness fence"
+                )
 
             # Exercise the actual Gateway cancellation route as a distinct Job.
             cancel_receipt = await gateway.execution_submit(
