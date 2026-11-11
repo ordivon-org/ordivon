@@ -1,9 +1,11 @@
-//! Read-only verified observation of the EXISTING PostgreSQL Harness schema v1.
+//! Existing PostgreSQL Harness schema v1: verified immutable Journal readback,
+//! plus a separately scoped Run lease port for eventual native writer admission.
 //!
-//! No CREATE/UPDATE/DELETE, lease acquisition, duplicate writer, or schema migration.
-//! The caller controls a PostgreSQL role with read-only permissions and the DSN.
-//! A single REPEATABLE READ / READ ONLY transaction binds the projection,
-//! immutable CAS bytes, and committed Journal event chain to one PG snapshot.
+//! read_run_readonly remains SELECT-only and requires a read-only PG role:
+//! one REPEATABLE READ snapshot binds the Run, CAS and Journal. The lease module
+//! uses exactly the existing Python Store schema and row locks, without schema
+//! creation or a second Registry. Neither a readback nor a lease confers Tool
+//! execution authority, durable dispatch-fence rights or effect completion.
 
 #![forbid(unsafe_code)]
 
@@ -12,6 +14,8 @@ use std::fmt;
 
 /// Pure read-only semantic validation; no Provider, Tool or writer authority.
 pub mod contract_semantics;
+/// Native PostgreSQL v1 Run lease port; not a dispatch permission.
+pub mod lease;
 
 use ordivon_harness_core::{
     canonical_bytes, digest_bytes, loads_strict, CanonicalDocument, CanonicalError,
