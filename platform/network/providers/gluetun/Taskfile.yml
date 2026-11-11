@@ -46,3 +46,24 @@ tasks:
         test "$code" = 200 && test "$tunnel" = 200 && test -z "$extra"
         jq -ce '(.ip|type=="string") and (.country|type=="string")' "$tmp" >/dev/null
         jq -c '{kind:"ordivon.network-v2.provider-egress-observation",standing:"OBSERVED_NOT_READINESS",source:"ipinfo.io",ip,country,org}' "$tmp"
+
+
+  provider:gluetun:eligible-exits:
+    desc: Enumerate Surfshark WireGuard exits excluding Japan/Korea from the live Gluetun catalog; observation only
+    cmds:
+      - |
+        set -euo pipefail
+        /usr/bin/podman exec network-v2-gluetun-owned-r1 cat /gluetun/servers.json |
+          /usr/bin/jq -er '
+            .surfshark as $provider
+            | ($provider.servers | map(select(.vpn=="wireguard" and .country!="Japan" and .country!="South Korea"))) as $eligible
+            | if ($provider.timestamp|type)!="number" or ($eligible|length)==0
+              then error("no qualified Surfshark WireGuard catalog")
+              else
+                "catalog_timestamp_utc=\($provider.timestamp|todateiso8601)",
+                "catalog_age_days=\(((now-$provider.timestamp)/86400)|floor)",
+                "wireguard_candidate_records=\($eligible|length)",
+                "eligible_countries=\([$eligible[].country]|unique|length)",
+                ($eligible|group_by(.country)[]|"\(.[0].country)\t\(length)")
+              end
+          '
