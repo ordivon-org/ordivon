@@ -10,6 +10,7 @@
 
 /services/runtime/ @zycxfyh
 /services/host/ @zycxfyh
+/services/host-rust/ @zycxfyh
 /services/harness/ @zycxfyh
 /services/gateway/ @zycxfyh
 

@@ -115,6 +115,20 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertEqual(self.tasks("services/host/README.md"), ["host:verify"])
         self.assertEqual(self.queue_tasks("services/host/README.md"), ["host:queue"])
 
+    def test_host_rust_route_has_one_portable_verifier(self) -> None:
+        # Rust is a distinct temporary source root while still sharing the
+        # same Host semantic authority and the live schema13 database.
+        self.assertEqual(
+            self.names("services/host-rust/src/mcp.rs"), ["host-rust"]
+        )
+        self.assertEqual(
+            self.queue_tasks("services/host-rust/src/work.rs"),
+            ["host-rust:verify"],
+        )
+        MODULE.require_registered_execution_paths(
+            ["services/host-rust/src/attention.rs"]
+        )
+
     def test_harness_has_explicit_queue_portable_verification(self) -> None:
         self.assertEqual(self.tasks("services/harness/README.md"), ["harness:verify"])
         self.assertEqual(

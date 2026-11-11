@@ -29,6 +29,7 @@ updates:
     directories:
       - "/domains/game/examples/orbit-collector"
       - "/services/runtime"
+      - "/services/host-rust"
     schedule:
       interval: weekly
     groups:

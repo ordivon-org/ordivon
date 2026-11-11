@@ -33,6 +33,13 @@ root = "services/host/"
 verify_task = "host:verify"
 queue_verify_task = "host:queue"
 
+# Separate Rust migration source root, same semantic Host system.
+# Repository CI dispatches an independent *mechanical* verification task.
+[[owners]]
+name = "host-rust"
+root = "services/host-rust/"
+verify_task = "host-rust:verify"
+
 [[owners]]
 name = "harness"
 root = "services/harness/"
