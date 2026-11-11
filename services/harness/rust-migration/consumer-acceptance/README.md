@@ -19,3 +19,13 @@ Run the independent PG falsifier in an isolated Linux toolchain with `HARNESS_CO
 ## Qualification limits
 
 The result is **source-only Rust readback qualification** for the tested Python Contract domain. A complete historical Run also requires accurate event payload semantics, Provider/Tool effect lifecycle, privacy exposure, independent consumer acceptance and actual Runtime/Host continuity. Independent agent C has not yet supplied acceptance. Native Rust PG Writer/lease/fence, Provider/Tool dispatch, genuine effect reconciliation and production cutover are **not** implemented or authorized here. Keep the one A-owned GitHub PR #2085 **Draft**, do not merge/deploy based on this test alone.
+
+## Second independent consumer matrix (2026-11-11)
+
+The independent extra reviewer (not the original C-seat) extended the standalone scratch-PG falsifier with **24 genuinely Python-rejected Contracts** and **10 genuinely Python-valid v1/v2 Contracts**, each persisted through the genuine Python Store and then read with the SQL SELECT-only Rust role. The reviewer saw 24/24 wrong Rust acceptances at the old baseline; A integrated the *same underlying test scripts*, without rewriting their oracle, on top of the reviewed full semantic gate.
+
+The independent matrix was imported as reviewed test/docs-only commits (original source commits `94bee564`, `8529c233`, `20a07cfb`), with this document retaining the newer A RED→GREEN chronology. In the new isolated A workspace, all **24 negative cases are correctly rejected** by the Rust Reader and all **10 positive current/legacy cases are accepted**, while original scratch PG tests remain **5/5** green. True PG18, Python validity checks, Cargo fmt/test --locked --offline --workspace --all-targets and strict Clippy all passed. Runtime Job: `job-01a1c8b6-b76a-7587-b91e-5c755d2a8e7b`.
+
+Use the same opt-in scratch command shown above. In the updated corpus the opt-in Rust test executable runs `rejects_digested_but_semantically_invalid_legacy_contracts` and `accepts_source_valid_versioned_legacy_and_current_contracts`. Do not interpret the Rust test count as 24+10 individual Rust test functions: the two functions iterate over 34 independently constructed Python Store runs.
+
+This extends source-only compatibility evidence; it does not authorize Provider/Tool execution, PG Writer replacement, model-visible content disclosure, production migration or automatic completion.
