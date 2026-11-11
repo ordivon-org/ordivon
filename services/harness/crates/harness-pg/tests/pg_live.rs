@@ -1,4 +1,4 @@
-use ordivon_harness_pg::read_run_readonly;
+use ordivon_harness_pg::{read_run_readonly, ReadError};
 
 fn fixture() -> Option<(String, String, String, String, String, String)> {
     let dsn = std::env::var("HARNESS_RUST_TEST_PG_DSN").ok()?;
@@ -88,4 +88,21 @@ fn reject_missing_payload_edge() {
         .expect_err("missing CAS payload edge must be rejected");
     assert!(error.to_string().contains("payload reference"), "{error}");
     println!("RUST_PG_CAS_EDGE_MISSING_DETECTED");
+}
+
+#[test]
+fn valid_legacy_python_depth_is_not_corrupt() {
+    let Ok(dsn) = std::env::var("HARNESS_RUST_TEST_PG_DSN") else {
+        eprintln!("SKIP: isolated PG18 fixture env is not configured");
+        return;
+    };
+    let schema = std::env::var("HARNESS_RUST_TEST_SCHEMA").expect("test schema");
+    let run_id = std::env::var("HARNESS_RUST_TEST_DEEP_RUN_ID").expect("deep Run");
+    let mut connection = postgres::Client::connect(&dsn, postgres::NoTls).expect("PG");
+    let error = read_run_readonly(&mut connection, &schema, &run_id)
+        .expect_err("Rust cannot silently certify this Python-legitimate deep Run");
+    assert!(
+        matches!(error, ReadError::UnsupportedLegacyRepresentation(_)),
+        "valid legacy CAS outside the current codec domain must be UNKNOWN, not corruption: {error}"
+    );
 }
