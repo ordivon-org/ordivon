@@ -255,7 +255,7 @@ pub struct VerifiedToolSnapshotMetadata {
     event_id: String,
     digest: String,
     fields: CanonicalDocument,
-    exact_source_shape: bool,
+    source_contract_valid: bool,
 }
 impl VerifiedToolSnapshotMetadata {
     pub fn event_id(&self) -> &str {
@@ -267,8 +267,8 @@ impl VerifiedToolSnapshotMetadata {
     pub fn fields(&self) -> &CanonicalDocument {
         &self.fields
     }
-    pub fn exact_source_shape(&self) -> bool {
-        self.exact_source_shape
+    pub fn source_contract_valid(&self) -> bool {
+        self.source_contract_valid
     }
 }
 
@@ -661,7 +661,11 @@ pub fn read_run_readonly(
                         // CAS integrity does not establish the full official
                         // HarnessRunSnapshot v1 protocol. Verify SOURCE
                         // semantics before discarding private Snapshot fields.
-                        contract_semantics::validate_run_snapshot(&decoded)?;
+                        // Semantic source rejection affects the typed Tool
+                        // consumer, NOT the fact that the generic CAS/Journal
+                        // exists. Preserve two independent truth boundaries.
+                        let source_contract_valid =
+                            contract_semantics::validate_run_snapshot(&decoded).is_ok();
                         // The full Snapshot may include arbitrary JSON budget
                         // metadata. Return only these source identity fields.
                         const FIELDS: &[&str] = &[
@@ -693,37 +697,11 @@ pub fn read_run_readonly(
                         // The Source HarnessRunSnapshot.from_dict rejects
                         // missing/extra keys. Keep that structural witness
                         // without returning private discarded field values.
-                        const SOURCE_FIELDS: &[&str] = &[
-                            "schemaVersion",
-                            "kind",
-                            "snapshotId",
-                            "harnessRunId",
-                            "assignmentId",
-                            "assignmentGeneration",
-                            "assignmentDigest",
-                            "sequence",
-                            "toolCatalogDigest",
-                            "requestedModelId",
-                            "effectiveModelId",
-                            "messagesDigest",
-                            "observationDigests",
-                            "activeToolStepIntentDigests",
-                            "remainingBudget",
-                            "pauseReason",
-                            "createdAtMs",
-                        ];
-                        let actual: BTreeSet<_> = decoded
-                            .object_entries()
-                            .into_iter()
-                            .flatten()
-                            .map(|(key, _)| key)
-                            .collect();
-                        let expected: BTreeSet<_> = SOURCE_FIELDS.iter().copied().collect();
                         tool_snapshot_metadata.push(VerifiedToolSnapshotMetadata {
                             event_id,
                             digest,
                             fields,
-                            exact_source_shape: actual == expected,
+                            source_contract_valid,
                         });
                     } else if tool_events.contains(event_id.as_str())
                         && matches!(

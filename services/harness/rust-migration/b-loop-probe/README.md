@@ -304,3 +304,11 @@ The returned Provider standing does not authorize physical dispatch,
 blind retry or infer external effect success. A sole PG Owner must review
 this new narrow verified-reference API; original C-seat must independently
 challenge privacy, legacy representations and UNKNOWN recovery.
+
+**R17 full Source qualifier:** official v1 Snapshot fields are verified
+before projection inside the sole A PG Reader. The Reader records a bounded
+source_contract_valid standing even for a SHA-correct but source-invalid
+Snapshot; B rejects it as a Tool Head without misclassifying the generic
+Journal as corrupt. A separate real PG18 negative changes the hidden
+remainingBudget from object to array while preserving all CAS/Event digests.
+This is not a physical Dispatch Permit.

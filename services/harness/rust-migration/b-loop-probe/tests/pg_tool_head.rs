@@ -61,6 +61,19 @@ fn python_pg_tool_source_intent_fence_receipt_and_unknown_are_distinct_from_disp
         "bad_snapshot_budget",
     ] {
         let run = cases[label]["runId"].as_str().unwrap();
+        if matches!(label, "bad_snapshot_binding" | "bad_snapshot_budget") {
+            // Source-invalid typed data is not proof that the generic
+            // CAS/Journal is corrupt. A read-only Journal still observes
+            // the complete hash-valid Event, but tags Tool source invalid.
+            let generic = ordivon_harness_pg::read_run_readonly(&mut db, &schema, run).unwrap();
+            let latest = generic.events.last().unwrap();
+            let source = generic
+                .tool_snapshot_metadata
+                .iter()
+                .find(|s| s.event_id() == latest.event_id)
+                .unwrap();
+            assert!(!source.source_contract_valid());
+        }
         assert!(
             matches!(
                 inspect_pg_tool_head(&mut db, &schema, run),

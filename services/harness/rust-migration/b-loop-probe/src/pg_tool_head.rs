@@ -498,7 +498,7 @@ fn qualify(read: &Readback, event: &RunEvent) -> Result<ObservedToolHead, ToolHe
             let meta = snapshots
                 .next()
                 .ok_or(ToolHeadError::Mismatch("Tool Snapshot CAS missing"))?;
-            if snapshots.next().is_some() || !meta.exact_source_shape() {
+            if snapshots.next().is_some() || !meta.source_contract_valid() {
                 return Err(ToolHeadError::Mismatch("Tool Snapshot source field set"));
             }
             let source: SourceSnapshot = parsed(meta.fields(), SNAPSHOT_KEYS)?;

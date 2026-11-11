@@ -115,11 +115,15 @@ not expose to B. The A Reader now reuses its own contract_semantics helpers
 to validate the entire v1 Snapshot, including strict field set, identities,
 digests and unique lists, positive counters, pause reason and the shape of
 remainingBudget, BEFORE it generates the whitelisted Snapshot identity
-projection. The remainingBudget content is NEVER returned to Tool consumers.
+projection. This produces a bounded source_contract_valid witness rather than
+falsely declaring generic CAS/Journal corruption: the typed B Tool consumer
+rejects false, while the A source readback can still observe the hash-valid
+journal. The remainingBudget content is NEVER returned to Tool consumers.
 
 An independent disposable-PG18 RED case changed remainingBudget from
 object to array, regenerated exact CAS/Journal SHA and retained all identity
 and active Intent refs. Previously the Tool Head was accepted; after full
-source protocol validation the sole Reader rejects it. No second SQL,
-Store, decoder or Tool ownership port was added. Source validation is not
-a physical Dispatch Permit.
+source protocol validation the typed Tool consumer rejects it, while the
+single Reader retains the source-validity=false observation of hash-correct
+generic Journal facts. No second SQL, Store, decoder or Tool ownership
+port was added. Source validation is not a physical Dispatch Permit.
