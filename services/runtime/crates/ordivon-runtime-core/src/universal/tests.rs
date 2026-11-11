@@ -107,6 +107,86 @@ fn workspace_open_missing_revision_is_classified_before_creation() {
 }
 
 #[test]
+fn abandoned_git_worktree_without_workspace_identity_is_not_a_normal_duplicate() {
+    let sandbox = Sandbox::new("workspace-open-interrupted-after-git");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    config.ensure_store().unwrap();
+    let workspace_id = "workspace-open-interrupted";
+    let target = config.workspace_path(workspace_id);
+    let record = config.workspace_record_path(workspace_id);
+
+    // This is the real Git side effect performed by
+    // create_git_workspace_record BEFORE write_json_atomic(record).
+    run_git(
+        &source,
+        [
+            "worktree",
+            "add",
+            "--detach",
+            target.to_str().unwrap(),
+            "HEAD",
+        ],
+    );
+    assert!(target.is_dir());
+    assert!(!record.exists());
+
+    let open = create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap_err();
+    assert_eq!(open.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert_eq!(open.field.as_deref(), Some("workspaceId"));
+    assert!(
+        !open.retryable,
+        "do not blindly reissue a physical Git effect"
+    );
+
+    let get = load_workspace_record(&config, workspace_id).unwrap_err();
+    assert_eq!(get.code, UniversalExecErrorCode::MetadataCorrupt);
+
+    let inventory = list_open_workspace_record_inventory(&config).unwrap();
+    let issue = inventory
+        .issues
+        .iter()
+        .find(|issue| issue.workspace_id == workspace_id)
+        .expect("physical worktree without an identity record must be surfaced");
+    assert_eq!(issue.error.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert!(inventory
+        .records
+        .iter()
+        .all(|record| record.workspace_id != workspace_id));
+
+    let close = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: false,
+            consumer_released: false,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(close.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert!(
+        target.exists(),
+        "no automatic adoption or destructive cleanup"
+    );
+    run_git(
+        &source,
+        ["worktree", "remove", "--force", target.to_str().unwrap()],
+    );
+}
+
+#[test]
 fn workspace_open_non_git_source_is_not_misclassified_as_revision() {
     let sandbox = Sandbox::new("workspace-non-git-source");
     let source = sandbox.root.join("source");
