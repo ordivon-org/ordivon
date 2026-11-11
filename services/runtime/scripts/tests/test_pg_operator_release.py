@@ -262,12 +262,44 @@ class NativePgReleaseOperator(unittest.TestCase):
         import shutil
         shutil.rmtree(self.work,ignore_errors=True)
 
+
+    def test_release_consumer_rejects_foreign_effect_and_inconclusive_mcp(self) -> None:
+        # The Operator does not infer terminal Standing from a physical
+        # receipt if the canonical authenticated release.get disagrees.
+        receipt=self.args.receipt_root/f"effect-{self.args.effect_id}"
+        receipt.mkdir()
+        op.DEPLOY["write_json_atomic"](receipt/"result.json",{
+            "schemaVersion":2,"status":"deployed",
+        })
+        terminal={"status":"deployed","pgTerminal":"succeeded"}
+        environment={
+            "ORDIVON_PG_BIND":"127.0.0.1:65500",
+            "ORDIVON_PG_TOKEN":"p"*32,
+        }
+        with patch.dict(op.DEPLOY,{"load_environment_file":lambda path:environment}),\
+             patch.object(op,"McpClient") as client:
+            client.return_value.call_tool.return_value={
+                "effectId":"foreign-or-unverified",
+            }
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.verified_release_consumer(self.args,terminal)
+            client.return_value.call_tool.side_effect=TimeoutError(
+                "injected canonical consumer outage"
+            )
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.verified_release_consumer(self.args,terminal)
+            self.assertEqual(client.return_value.call_tool.call_count,2)
+            self.assertEqual(
+                client.return_value.call_tool.call_args.args[0],"release.get"
+            )
+
     def test_release_exactly_once_and_terminal_receipt(self) -> None:
         def run(args):
             self.calls.append(tuple(args))
         with patch.object(op,"pg_mcp_readiness",return_value={
             "toolCount":20,"toolCatalogDigest":"sha256:"+"f"*64,
-        }),patch.dict(op.DEPLOY, {"run":run}):
+        }),patch.dict(op.DEPLOY, {"run":run}),\
+             patch.object(op,"verified_release_consumer") as consumer:
             result=op.apply_release(self.args)
             self.assertEqual(result["status"],"deployed")
             self.assertEqual(result["pgTerminal"],"succeeded")
@@ -287,6 +319,7 @@ class NativePgReleaseOperator(unittest.TestCase):
                 revoked_replay=op.apply_release(self.args)
                 self.assertTrue(revoked_replay["replayed"])
                 self.assertEqual(len(self.calls),2)
+                self.assertEqual(consumer.call_count,3)
             finally:
                 self.db.execute(
                     "UPDATE _stage_control SET promotion_allowed=true WHERE id='release'"
@@ -537,6 +570,21 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.assertEqual(observed_release["deployedToolCount"],20)
             self.assertEqual(observed_release["semanticCompletionEvaluated"],False)
             self.assertEqual(observed_release["commit"],self.args.commit)
+            # Physical release is immutable, but terminal event standing is
+            # independently qualified by the canonical Rust release.get.
+            # Tamper ONLY with this disposable PG test schema.
+            deleted=self.db.execute(
+                "DELETE FROM job_events WHERE job_id=%s AND event_type='JOB_TERMINAL'",
+                (self.job_id,),
+            ).rowcount
+            self.assertEqual(deleted,1)
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.apply_release(self.args)
+            count=self.db.execute(
+                "SELECT count(*) AS n FROM job_events WHERE job_id=%s "
+                "AND event_type=%s",(self.job_id,op.DISPATCH_EVENT),
+            ).fetchone()["n"]
+            self.assertEqual(count,1,"terminal readback failure cannot dispatch again")
         finally:
             subprocess.run([systemctl,"stop",service],capture_output=True)
             unit.unlink(missing_ok=True)
