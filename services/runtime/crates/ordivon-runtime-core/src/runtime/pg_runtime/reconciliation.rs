@@ -37,6 +37,7 @@ fn latest_reconciliation_key(
         SELECT j.created_at_ms, j.job_id
         FROM jobs j
         JOIN attempts a ON a.attempt_id = j.current_attempt_id
+          AND a.job_id = j.job_id
         WHERE j.resolution IS NULL
           AND (j.desired_state = 'cancelled'
                OR (NOT $1 AND a.state IN ('starting','running','stopping','recovering')))
@@ -62,6 +63,7 @@ fn scan_reconciliation_page(
         SELECT j.job_id, j.principal, j.desired_state, j.created_at_ms
         FROM jobs j
         JOIN attempts a ON a.attempt_id = j.current_attempt_id
+          AND a.job_id = j.job_id
         WHERE j.resolution IS NULL
           AND (j.desired_state = 'cancelled'
                OR (NOT $2 AND a.state IN ('starting','running','stopping','recovering')))
@@ -990,6 +992,48 @@ mod scan_fairness_tests {
         assert!(cursor.upper_fence.is_none());
     }
 
+    /// PostgreSQL allows current_attempt_id to refer to an Attempt belonging
+    /// to another Job; a foreign key on attempts.job_id does not close this
+    /// inverse identity edge. Recovery must not borrow another Job's state.
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+    fn native_postgres_recovery_rejects_cross_job_attempt_binding() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("use a dedicated disposable PostgreSQL cluster");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        db.batch_execute(
+            "CREATE TEMP TABLE jobs (
+                job_id text PRIMARY KEY, principal text, desired_state text,
+                resolution text, current_attempt_id text, created_at_ms bigint
+             );
+             CREATE TEMP TABLE attempts (
+                attempt_id text PRIMARY KEY, job_id text NOT NULL, state text
+             );
+             INSERT INTO jobs VALUES
+               ('job-a','owner','run',NULL,'attempt-a',1),
+               ('job-b','owner','run',NULL,'attempt-a',2);
+             INSERT INTO attempts VALUES ('attempt-a','job-a','running');",
+        )
+        .unwrap();
+        // The adversarial job-b references a real Attempt, but it belongs to
+        // job-a; both the epoch fence and the page selector must reject it.
+        let newest = latest_reconciliation_key(&mut db, false).unwrap().unwrap();
+        assert_eq!(newest.1, "job-a");
+        let page = scan_reconciliation_page(&mut db, 100, false, None, &newest).unwrap();
+        assert_eq!(page.len(), 1);
+        assert_eq!(page[0].get::<_, String>(0), "job-a");
+        db.execute(
+            "UPDATE jobs SET desired_state='cancelled' WHERE job_id='job-b'",
+            &[],
+        )
+        .unwrap();
+        let cancelled = latest_reconciliation_key(&mut db, true).unwrap();
+        assert!(
+            cancelled.is_none(),
+            "cancelled lane also requires attempt ownership"
+        );
+    }
+
     /// Real SQL and >100 unresolved Jobs in an explicitly disposable PG.
     #[test]
     #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
@@ -1000,13 +1044,13 @@ mod scan_fairness_tests {
         db.batch_execute(
             "CREATE TEMP TABLE jobs (job_id text, principal text, desired_state text, \
                 resolution text, current_attempt_id text, created_at_ms bigint); \
-             CREATE TEMP TABLE attempts (attempt_id text, state text); \
+             CREATE TEMP TABLE attempts (attempt_id text, job_id text, state text); \
              INSERT INTO jobs \
                 SELECT 'job-' || lpad(n::text,3,'0'), 'owner', 'run', NULL, \
                        'attempt-' || n, n::bigint \
                 FROM generate_series(1,101) n; \
              INSERT INTO attempts \
-                SELECT 'attempt-' || n, 'running' \
+                SELECT 'attempt-' || n, 'job-' || lpad(n::text,3,'0'), 'running' \
                 FROM generate_series(1,101) n;",
         )
         .unwrap();
@@ -1027,7 +1071,7 @@ mod scan_fairness_tests {
 
         db.batch_execute(
             "INSERT INTO jobs VALUES ('job-102','owner','run',NULL,'attempt-102',102);
-             INSERT INTO attempts VALUES ('attempt-102','running');",
+             INSERT INTO attempts VALUES ('attempt-102','job-102','running');",
         )
         .unwrap();
         let fresh_upper = latest_reconciliation_key(&mut db, false).unwrap().unwrap();
@@ -1058,13 +1102,13 @@ mod scan_fairness_tests {
         db.batch_execute(
             "CREATE TEMP TABLE jobs (job_id text, principal text, desired_state text, \
                 resolution text, current_attempt_id text, created_at_ms bigint); \
-             CREATE TEMP TABLE attempts (attempt_id text, state text); \
+             CREATE TEMP TABLE attempts (attempt_id text, job_id text, state text); \
              INSERT INTO jobs \
                 SELECT 'job-' || lpad(n::text,4,'0'), 'owner', 'run', NULL, \
                        'attempt-' || n, n::bigint \
                 FROM generate_series(1,300) n; \
              INSERT INTO attempts \
-                SELECT 'attempt-' || n, 'running' \
+                SELECT 'attempt-' || n, 'job-' || lpad(n::text,4,'0'), 'running' \
                 FROM generate_series(1,300) n;",
         )
         .unwrap();
@@ -1091,7 +1135,8 @@ mod scan_fairness_tests {
                 "INSERT INTO jobs SELECT 'job-' || lpad(n::text,4,'0'), \
                     'owner','run',NULL,'attempt-' || n,n::bigint \
                    FROM generate_series({start},{end}) n; \
-                 INSERT INTO attempts SELECT 'attempt-' || n,'running' \
+                 INSERT INTO attempts SELECT 'attempt-' || n, \
+                      'job-' || lpad(n::text,4,'0'),'running' \
                    FROM generate_series({start},{end}) n;"
             ))
             .unwrap();
@@ -1102,7 +1147,7 @@ mod scan_fairness_tests {
         // instead of revisiting the unresolved oldest row.
         let old_next: String = db
             .query_one(
-                "SELECT j.job_id FROM jobs j JOIN attempts a                  ON a.attempt_id=j.current_attempt_id                  WHERE j.resolution IS NULL AND a.state='running'                  AND (j.created_at_ms,j.job_id) > (300,'job-0300')                  ORDER BY j.created_at_ms,j.job_id LIMIT 1",
+                "SELECT j.job_id FROM jobs j JOIN attempts a                  ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id                  WHERE j.resolution IS NULL AND a.state='running'                  AND (j.created_at_ms,j.job_id) > (300,'job-0300')                  ORDER BY j.created_at_ms,j.job_id LIMIT 1",
                 &[],
             )
             .unwrap()
