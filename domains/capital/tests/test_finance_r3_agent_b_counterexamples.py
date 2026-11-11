@@ -104,6 +104,14 @@ class OrderInitialized(_NativeEvent):
     pass
 
 
+class OrderCanceled(_NativeEvent):
+    pass
+
+
+class OrderAccepted(_NativeEvent):
+    pass
+
+
 class _NativeOrder:
     def __init__(self, client_id, events):
         self.client_order_id = client_id
@@ -129,6 +137,7 @@ class _NativeNode:
                         if f["client_order_id"] == order["client_order_id"])
             order.setdefault("quantity", str(max(1, count)))
             order.setdefault("filled_qty", str(count))
+            order.setdefault("status", "FILLED" if count == int(order["quantity"]) else "CANCELED")
         self._orders = native_orders if native_orders is not None else [
             _NativeOrder("C-1", [
                 OrderInitialized({"type": "OrderInitialized", "client_order_id": "C-1"}),
@@ -179,7 +188,7 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
         args = {key: value for key, value in e.items() if key not in ("orders", "fills", "order_events")}
         node = _NativeNode(e)
         node._orders[0]._events.pop()
-        with self.assertRaisesRegex(NautilusPaperBridgeError, "event history"):
+        with self.assertRaisesRegex(NautilusPaperBridgeError, "event history|terminal.*event"):
             next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
         node._orders.clear()
         with self.assertRaisesRegex(NautilusPaperBridgeError, "empty native cache"):
@@ -203,14 +212,74 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
         node.scenario["orders"].append({
             "client_order_id": "C-UNFILLED", "account_id": "A-001",
             "instrument_id": "SPY.XNAS", "quantity": "1", "filled_qty": "0",
-            "ts_init": e["orders"][0]["ts_init"],
+            "status": "CANCELED", "ts_init": e["orders"][0]["ts_init"],
         })
         node._orders.append(_NativeOrder("C-UNFILLED", [
-            OrderInitialized({"type": "OrderInitialized", "client_order_id": "C-UNFILLED"})
+            OrderInitialized({"type": "OrderInitialized", "client_order_id": "C-UNFILLED"}),
+            OrderCanceled({"type": "OrderCanceled", "client_order_id": "C-UNFILLED"}),
         ]))
         args = {k: v for k, v in e.items() if k not in ("orders", "fills", "order_events")}
         result = next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
         self.assertEqual(len(result.buys), 1)
+
+
+    def test_native_canceled_order_without_fills_is_verified_zero_economic_effect(self):
+        import pandas as pd
+        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        e = episode()
+        e["fills"] = []
+        e["order_events"] = []
+        event = OrderCanceled({"type": "OrderCanceled", "client_order_id": "C-1"})
+        node = _NativeNode(e, native_orders=[_NativeOrder("C-1", [
+            OrderInitialized({"type": "OrderInitialized", "client_order_id": "C-1"}),
+            event,
+        ])])
+        node.scenario["fills"] = pd.DataFrame()  # actual native empty report: unnamed index, no columns
+        node.scenario["orders"][0].update(quantity="1", filled_qty="0", status="CANCELED")
+        args = {k: v for k, v in e.items() if k not in ("orders", "fills", "order_events")}
+        day = next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
+        self.assertEqual(day.buys, ())
+        self.assertEqual(day.sells, ())
+
+    def test_native_unfinished_order_cannot_be_silently_booked_as_zero_fill(self):
+        import pandas as pd
+        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        e = episode()
+        e["fills"] = []
+        e["order_events"] = []
+        node = _NativeNode(e, native_orders=[_NativeOrder("C-1", [
+            OrderInitialized({"type": "OrderInitialized", "client_order_id": "C-1"}),
+            OrderAccepted({"type": "OrderAccepted", "client_order_id": "C-1"}),
+        ])])
+        node.scenario["fills"] = pd.DataFrame()
+        node.scenario["orders"][0].update(quantity="1", filled_qty="0", status="ACCEPTED")
+        args = {k: v for k, v in e.items() if k not in ("orders", "fills", "order_events")}
+        with self.assertRaisesRegex(NautilusPaperBridgeError, "nonterminal"):
+            next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
+
+    def test_native_canceled_report_requires_cached_cancel_event(self):
+        import pandas as pd
+        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        e = episode()
+        e["fills"] = []
+        e["order_events"] = []
+        node = _NativeNode(e, native_orders=[_NativeOrder("C-1", [
+            OrderInitialized({"type": "OrderInitialized", "client_order_id": "C-1"}),
+        ])])
+        node.scenario["fills"] = pd.DataFrame()
+        node.scenario["orders"][0].update(quantity="1", filled_qty="0", status="CANCELED")
+        args = {k: v for k, v in e.items() if k not in ("orders", "fills", "order_events")}
+        with self.assertRaisesRegex(NautilusPaperBridgeError, "terminal.*event"):
+            next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
+
+    def test_native_partially_filled_open_order_requires_different_consumer(self):
+        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        e = episode()
+        node = _NativeNode(e)
+        node.scenario["orders"][0].update(quantity="3", filled_qty="2", status="PARTIALLY_FILLED")
+        args = {k: v for k, v in e.items() if k not in ("orders", "fills", "order_events")}
+        with self.assertRaisesRegex(NautilusPaperBridgeError, "nonterminal"):
+            next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
 
     def test_native_event_is_proven_to_belong_to_cached_order(self):
         from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session

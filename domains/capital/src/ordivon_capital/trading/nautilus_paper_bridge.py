@@ -105,6 +105,12 @@ def _report_rows(rows: Any, label: str) -> Sequence[Mapping[str, Any]]:
     This converts shape, not provider provenance, event-history completeness or fills.
     """
     if hasattr(rows, "reset_index") and hasattr(rows, "index"):
+        # Nautilus 2.0rc9 represents a *genuine zero-fill* report as an
+        # empty DataFrame with no columns and an unnamed index. Its source
+        # must still be independently witnessed by the same engine's
+        # terminal orders and their complete cached events below.
+        if label == "native fills" and len(rows) == 0 and hasattr(rows, "columns"):
+            return []
         if getattr(rows.index, "name", None) != "client_order_id":
             raise NautilusPaperBridgeError(f"{label}: native client_order_id index required")
         rows = rows.reset_index().to_dict(orient="records")
@@ -315,6 +321,7 @@ def next_open_native_paper_session(
 
     cached_ids: set[str] = set()
     native_events: list[Mapping[str, Any]] = []
+    terminal_event_by_order: dict[str, str] = {}
     for native_order in cached_orders:
         client_id = str(getattr(native_order, "client_order_id", ""))
         if not client_id or client_id in cached_ids:
@@ -326,6 +333,7 @@ def next_open_native_paper_session(
             raise NautilusPaperBridgeError("native order event history unavailable") from exc
         if not events:
             raise NautilusPaperBridgeError("native order has no events")
+        terminal_event_by_order[client_id] = type(events[-1]).__name__
         for event in events:
             try:
                 record = event.to_dict()
@@ -355,8 +363,27 @@ def next_open_native_paper_session(
         filled = _positive_integer(
             order.get("filled_qty"), "native order filled quantity", allow_zero=True,
         )
-        if filled > quantity or filled != totals[_required(order, "client_order_id")]:
+        client_id = _required(order, "client_order_id")
+        if filled > quantity or filled != totals[client_id]:
             raise NautilusPaperBridgeError("native order filled quantity and fill reports disagree")
+        # An unchanged open/partially-filled GTC order is NOT a final
+        # proof of zero remaining effects. A terminal native event is.
+        terminal_events = {
+            "FILLED": "OrderFilled",
+            "CANCELED": "OrderCanceled",
+            "EXPIRED": "OrderExpired",
+            "REJECTED": "OrderRejected",
+            "DENIED": "OrderDenied",
+        }
+        status = _required(order, "status")
+        if status not in terminal_events:
+            raise NautilusPaperBridgeError("nonterminal native order requires a pending-order consumer")
+        if terminal_event_by_order[client_id] != terminal_events[status]:
+            raise NautilusPaperBridgeError("native terminal status lacks matching cached terminal event")
+        if status == "FILLED" and filled != quantity:
+            raise NautilusPaperBridgeError("native filled status disagrees with filled quantity")
+        if status in {"REJECTED", "DENIED"} and filled:
+            raise NautilusPaperBridgeError("native rejected order has filled economic quantity")
     # Every report fill and every cached OrderFilled must agree in the base bridge.
     # It also rejects native correction/void events, off-open executions,
     # fractional shares, unsupported money and mixed account scopes.
