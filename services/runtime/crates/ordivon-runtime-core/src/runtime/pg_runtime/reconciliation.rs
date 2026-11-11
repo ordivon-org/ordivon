@@ -58,6 +58,37 @@ fn scan_reconciliation_page(
     Ok(rows)
 }
 
+/// A short page has reached the eligible queue's observed tail. Restart at
+/// the oldest unresolved Job on the next tick; otherwise a trickle of newer
+/// Jobs can keep the cursor moving forever and starve delayed native evidence.
+fn next_reconciliation_cursor(pending: &[postgres::Row], limit: u32) -> Option<(i64, String)> {
+    if pending.len() < limit as usize {
+        return None;
+    }
+    pending
+        .last()
+        .map(|last| (last.get::<_, i64>(3), last.get::<_, String>(0)))
+}
+
+/// Commit cursor progress only if no other scan advanced this lane while SQL
+/// ran. Key equality alone is insufficient: wraparound can revisit the same
+/// key or None (ABA) while an older scanner is still outstanding.
+fn advance_reconciliation_cursor(
+    slot: &mut ReconciliationCursor,
+    observed_generation: u64,
+    next: Option<(i64, String)>,
+) -> bool {
+    if slot.generation != observed_generation {
+        return false;
+    }
+    let Some(generation) = slot.generation.checked_add(1) else {
+        return false;
+    };
+    slot.key = next;
+    slot.generation = generation;
+    true
+}
+
 /// Active Runner logs are an evolving preview, not a committed Artifact.
 /// Seek directly to the requested window instead of reading up to the full
 /// output ceiling on every Job observation. Terminal logs use the independent
@@ -122,20 +153,20 @@ impl PgRuntime {
             }
         };
         let pending =
-            scan_reconciliation_page(&mut db.client, limit, cancelled_only, previous.as_ref())
+            scan_reconciliation_page(&mut db.client, limit, cancelled_only, previous.key.as_ref())
                 .map_err(io)?;
-        if let Some(last) = pending.last() {
-            let next = (last.get::<_, i64>(3), last.get::<_, String>(0));
-            let mut cursors = self
-                .reconciliation_cursors
-                .lock()
-                .map_err(|_| error("reconciliation cursor mutex poisoned"))?;
-            if cancelled_only {
-                cursors.cancelled = Some(next);
-            } else {
-                cursors.issued = Some(next);
-            }
-        }
+        let next = next_reconciliation_cursor(&pending, limit);
+        let mut cursors = self
+            .reconciliation_cursors
+            .lock()
+            .map_err(|_| error("reconciliation cursor mutex poisoned"))?;
+        let slot = if cancelled_only {
+            &mut cursors.cancelled
+        } else {
+            &mut cursors.issued
+        };
+        let _ = advance_reconciliation_cursor(slot, previous.generation, next);
+        drop(cursors);
         drop(db);
         let mut terminal = 0_u32;
         let mut errors = 0_u32;
@@ -848,6 +879,63 @@ mod late_runner_result_tests {
 mod scan_fairness_tests {
     use super::*;
 
+    #[test]
+    fn stale_scan_cannot_regress_cursor_after_concurrent_advance_and_aba() {
+        let x = (10, "job-010".to_string());
+        let y = (110, "job-110".to_string());
+        let z = (210, "job-210".to_string());
+        let mut cursor = ReconciliationCursor {
+            key: Some(x.clone()),
+            generation: 0,
+        };
+        let stale_a = cursor.clone();
+        assert!(advance_reconciliation_cursor(
+            &mut cursor,
+            0,
+            Some(y.clone())
+        ));
+        assert!(advance_reconciliation_cursor(
+            &mut cursor,
+            1,
+            Some(z.clone())
+        ));
+        assert!(!advance_reconciliation_cursor(
+            &mut cursor,
+            stale_a.generation,
+            Some(y)
+        ));
+        assert_eq!(cursor.key, Some(z.clone()));
+
+        // Valid wrap to x cannot authorize stale work that also saw x.
+        assert!(advance_reconciliation_cursor(
+            &mut cursor,
+            2,
+            Some(x.clone())
+        ));
+        assert!(!advance_reconciliation_cursor(
+            &mut cursor,
+            stale_a.generation,
+            Some(z)
+        ));
+        assert_eq!(cursor.key, Some(x));
+
+        // A short-page reset may also revisit exactly None.
+        assert!(advance_reconciliation_cursor(&mut cursor, 3, None));
+        let old_reset = cursor.clone();
+        assert!(advance_reconciliation_cursor(
+            &mut cursor,
+            4,
+            Some((1, "a".into()))
+        ));
+        assert!(advance_reconciliation_cursor(&mut cursor, 5, None));
+        assert!(!advance_reconciliation_cursor(
+            &mut cursor,
+            old_reset.generation,
+            Some((2, "b".into()))
+        ));
+        assert!(cursor.key.is_none());
+    }
+
     /// Real SQL and >100 unresolved Jobs in an explicitly disposable PG.
     #[test]
     #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
@@ -882,6 +970,23 @@ mod scan_fairness_tests {
         let wrapped = scan_reconciliation_page(&mut db, 100, false, Some(&cursor)).unwrap();
         assert_eq!(wrapped.len(), 100);
         assert_eq!(wrapped[0].get::<_, String>(0), "job-001");
+
+        // A single new Job can arrive after every scan. The old last-row
+        // cursor would follow only those new Jobs forever, never revisiting
+        // an older unresolved Job after its native terminal evidence arrives.
+        db.batch_execute(
+            "INSERT INTO jobs VALUES ('job-102','owner','run',NULL,'attempt-102',102);
+             INSERT INTO attempts VALUES ('attempt-102','running');",
+        )
+        .unwrap();
+        let after_partial = next_reconciliation_cursor(&second, 100);
+        let revisited =
+            scan_reconciliation_page(&mut db, 100, false, after_partial.as_ref()).unwrap();
+        assert_eq!(
+            revisited[0].get::<_, String>(0),
+            "job-001",
+            "a partial page must let older unresolved Jobs be revisited"
+        );
         db.execute(
             "UPDATE jobs SET desired_state='cancelled' WHERE job_id IN ('job-004','job-101')",
             &[],
