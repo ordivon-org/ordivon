@@ -1357,3 +1357,9 @@ mod tests {
 
 mod message_queries;
 pub use message_queries::{get_message, search_messages, SearchMessages};
+
+mod relation_queries;
+pub use relation_queries::{list_message_relations, ListMessageRelations, RelationDirection};
+
+mod topic_queries;
+pub use topic_queries::list_topics;

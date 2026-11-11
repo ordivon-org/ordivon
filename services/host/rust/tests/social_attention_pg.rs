@@ -899,3 +899,459 @@ print(json.dumps({"read":store.get_message(first),"queries":queries},ensure_asci
         "Python original and Rust native message query projections differ"
     );
 }
+
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18 Schema13 and original Python SocialStore"]
+async fn relation_list_python_exact_dual_direction_pagination_and_opaque_self_reference() {
+    let mut db = connect().await;
+    let (actor, space, topic) = seed(&db, "relation-list-r5").await;
+    let first = input("relation-r5-first", &actor, &space, &topic, "first 🔎");
+    let second = input("relation-r5-second", &actor, &space, &topic, "second 🧩");
+    let third = input("relation-r5-third", &actor, &space, &topic, "third 🎯");
+    social::post_message(&mut db, &first).await.unwrap();
+    social::post_message(&mut db, &second).await.unwrap();
+    social::post_message(&mut db, &third).await.unwrap();
+
+    // Same-row direction BOTH must not duplicate the relation when its source
+    // and target message are identical; REFERENCES targets remain opaque.
+    let relations = [
+        (
+            &second.message_ref,
+            MessageRelationKind::ReplyTo,
+            &first.message_ref,
+        ),
+        (&second.message_ref, MessageRelationKind::Mentions, &actor),
+        (
+            &first.message_ref,
+            MessageRelationKind::References,
+            &second.message_ref,
+        ),
+        (
+            &third.message_ref,
+            MessageRelationKind::References,
+            &second.message_ref,
+        ),
+        (
+            &second.message_ref,
+            MessageRelationKind::References,
+            &second.message_ref,
+        ),
+    ];
+    for (i, (source, relation, target)) in relations.iter().enumerate() {
+        let result = social::add_message_relation(
+            &mut db,
+            &AddMessageRelation {
+                source_message_ref: (*source).to_string(),
+                relation: *relation,
+                target_ref: (*target).to_string(),
+                actor_ref: actor.clone(),
+            },
+            &format!("request:host-r5:relation-list-{i}"),
+        )
+        .await
+        .unwrap();
+        assert_eq!(result["admission"], "committed");
+    }
+
+    let mut input = social::ListMessageRelations {
+        message_ref: second.message_ref.clone(),
+        direction: social::RelationDirection::Both,
+        relation: None,
+        after_change_sequence: 0,
+        limit: 2,
+        max_bytes: 262_144,
+    };
+    let first_page = social::list_message_relations(&mut db, &input)
+        .await
+        .unwrap();
+    assert_eq!(first_page["kind"], "ordivon.host-message-relation-list");
+    assert_eq!(first_page["relations"].as_array().unwrap().len(), 2);
+    assert_eq!(first_page["hasMore"], true);
+    let after_first = first_page["nextAfterChangeSequence"].as_i64().unwrap();
+    input.after_change_sequence = after_first;
+    let second_page = social::list_message_relations(&mut db, &input)
+        .await
+        .unwrap();
+    assert_eq!(second_page["relations"].as_array().unwrap().len(), 2);
+    assert_eq!(second_page["hasMore"], true);
+    input.after_change_sequence = second_page["nextAfterChangeSequence"].as_i64().unwrap();
+    let third_page = social::list_message_relations(&mut db, &input)
+        .await
+        .unwrap();
+    assert_eq!(third_page["relations"].as_array().unwrap().len(), 1);
+    assert_eq!(third_page["hasMore"], false);
+    assert!(third_page["nextAfterChangeSequence"].as_i64().unwrap() > input.after_change_sequence);
+
+    input.after_change_sequence = 0;
+    input.limit = 100;
+    let both = social::list_message_relations(&mut db, &input)
+        .await
+        .unwrap();
+    assert_eq!(both["relations"].as_array().unwrap().len(), 5);
+    assert_eq!(both["hasMore"], false);
+    input.direction = social::RelationDirection::Incoming;
+    let incoming = social::list_message_relations(&mut db, &input)
+        .await
+        .unwrap();
+    assert_eq!(incoming["relations"].as_array().unwrap().len(), 3);
+    input.direction = social::RelationDirection::Outgoing;
+    let outgoing = social::list_message_relations(&mut db, &input)
+        .await
+        .unwrap();
+    assert_eq!(outgoing["relations"].as_array().unwrap().len(), 3);
+    input.relation = Some(MessageRelationKind::Mentions);
+    let mentions = social::list_message_relations(&mut db, &input)
+        .await
+        .unwrap();
+    assert_eq!(mentions["relations"].as_array().unwrap().len(), 1);
+    input.direction = social::RelationDirection::Both;
+    input.relation = None;
+    input.after_change_sequence = both["nextAfterChangeSequence"].as_i64().unwrap();
+    let empty = social::list_message_relations(&mut db, &input)
+        .await
+        .unwrap();
+    assert_eq!(empty["relations"], json!([]));
+    assert_eq!(
+        empty["nextAfterChangeSequence"],
+        input.after_change_sequence
+    );
+
+    input.after_change_sequence = -1;
+    assert!(social::list_message_relations(&mut db, &input)
+        .await
+        .is_err());
+    input.after_change_sequence = 0;
+    input.limit = 501;
+    assert!(social::list_message_relations(&mut db, &input)
+        .await
+        .is_err());
+    input.limit = 100;
+    input.max_bytes = 100;
+    assert!(social::list_message_relations(&mut db, &input)
+        .await
+        .is_err());
+    input.max_bytes = 262_144;
+    input.message_ref = "message:r5:absent".into();
+    assert!(matches!(
+        social::list_message_relations(&mut db, &input).await,
+        Err(social::SocialError::NotFound(_))
+    ));
+
+    // Independent original Python code consumes the durable rows written by
+    // Rust. Compare exact JSON (including timestamps and pagination) rather
+    // than copying Python fixture expectations into Rust assertions.
+    let py = r#"
+import json, os
+from ordivon_host_v2.social_store import SocialStore
+from ordivon_host_v2.collaboration_inputs import MessageRelationKind
+assert os.environ['HOST_RUST_TEST_DSN']==os.environ['ORDIVON_HOST_V2_DSN']
+store=SocialStore(os.environ['HOST_RUST_TEST_DSN'])
+ref=os.environ['R5_RELATION_MESSAGE_REF']
+first=store.list_message_relations(ref,limit=2)
+second=store.list_message_relations(ref,after_change_sequence=first['nextAfterChangeSequence'],limit=2)
+third=store.list_message_relations(ref,after_change_sequence=second['nextAfterChangeSequence'],limit=2)
+all_rel=store.list_message_relations(ref)
+incoming=store.list_message_relations(ref,direction='incoming')
+outgoing=store.list_message_relations(ref,direction='outgoing')
+mentions=store.list_message_relations(ref,direction='outgoing',relation=MessageRelationKind.MENTIONS)
+empty=store.list_message_relations(ref,after_change_sequence=all_rel['nextAfterChangeSequence'])
+print(json.dumps(dict(first=first,second=second,third=third,
+    all=all_rel,incoming=incoming,outgoing=outgoing,mentions=mentions,empty=empty),
+    ensure_ascii=False))
+"#;
+    let output = std::process::Command::new("uv")
+        .current_dir(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap(),
+        )
+        .args(["run", "--offline", "python", "-c", py])
+        .env("R5_RELATION_MESSAGE_REF", &second.message_ref)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "Python original SocialStore error: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let python: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    // Same default timezone and immutable PG rows; these must be identical.
+    let rust = json!({
+        "first":first_page, "second":second_page, "third":third_page,
+        "all":both, "incoming":incoming, "outgoing":outgoing,
+        "mentions":mentions, "empty":empty,
+    });
+    assert_eq!(
+        rust, python,
+        "Rust relation.list differs from original Python Host"
+    );
+}
+
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18 Schema13 and original Python SocialStore"]
+async fn topic_inventory_python_exact_order_state_cursor_and_single_snapshot() {
+    let mut db = connect().await;
+    let (actor, space, topic) = seed(&db, "topic-list-r5").await;
+    let alpha = format!("{topic}:alpha");
+    let beta = format!("{topic}:beta");
+    for (i, reference) in [alpha.clone(), beta.clone()].iter().enumerate() {
+        let created = social::create_topic(
+            &mut db,
+            &social::CreateTopic {
+                topic_ref: reference.clone(),
+                space_ref: space.clone(),
+                title: format!("Research 协作 {i} 🧩"),
+                actor_ref: actor.clone(),
+                client_request_id: format!("request:r5:topic-list-{i}"),
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(created["admission"], "committed");
+    }
+    let closed = social::set_topic_state(
+        &mut db,
+        &alpha,
+        &actor,
+        TopicState::Closed,
+        TopicState::Open,
+        0,
+        "request:r5:topic-list-close",
+    )
+    .await
+    .unwrap();
+    assert_eq!(closed["state"], "closed");
+    let first_page = social::list_topics(&mut db, &space, None, 1, 262_144)
+        .await
+        .unwrap();
+    assert_eq!(first_page["topics"].as_array().unwrap().len(), 1);
+    assert_eq!(first_page["hasMore"], true);
+    let c1 = first_page["nextAfterTopicRef"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let second_page = social::list_topics(&mut db, &space, Some(&c1), 1, 262_144)
+        .await
+        .unwrap();
+    assert_eq!(second_page["topics"][0]["topicRef"], alpha);
+    assert_eq!(second_page["topics"][0]["state"], "closed");
+    let c2 = second_page["nextAfterTopicRef"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let final_page = social::list_topics(&mut db, &space, Some(&c2), 1, 262_144)
+        .await
+        .unwrap();
+    assert_eq!(final_page["topics"][0]["topicRef"], beta);
+    assert_eq!(final_page["hasMore"], false);
+    assert!(final_page["nextAfterTopicRef"].is_null());
+    let all = social::list_topics(&mut db, &space, None, 200, 262_144)
+        .await
+        .unwrap();
+    assert_eq!(all["topics"].as_array().unwrap().len(), 3);
+    let empty = social::list_topics(&mut db, &space, Some("topic:zzzzz:r5"), 200, 262_144)
+        .await
+        .unwrap();
+    assert_eq!(empty["topics"], json!([]));
+    assert!(social::list_topics(&mut db, &space, None, 0, 262_144)
+        .await
+        .is_err());
+    assert!(social::list_topics(&mut db, &space, None, 100, 100)
+        .await
+        .is_err());
+    assert!(matches!(
+        social::list_topics(&mut db, "space:absent:r5", None, 100, 262_144).await,
+        Err(social::SocialError::NotFound(_))
+    ));
+
+    // Real Python Host authoritative current-row query against the same PG18.
+    let py = r#"
+import json,os
+from ordivon_host_v2.social_store import SocialStore
+assert os.environ["HOST_RUST_TEST_DSN"] == os.environ["ORDIVON_HOST_V2_DSN"]
+store=SocialStore(os.environ["HOST_RUST_TEST_DSN"])
+space=os.environ["R5_TOPIC_SPACE_REF"]
+p1=store.list_topics(space,limit=1)
+p2=store.list_topics(space,after_topic_ref=p1["nextAfterTopicRef"],limit=1)
+p3=store.list_topics(space,after_topic_ref=p2["nextAfterTopicRef"],limit=1)
+all_items=store.list_topics(space,limit=200)
+empty=store.list_topics(space,after_topic_ref="topic:zzzzz:r5",limit=200)
+print(json.dumps(dict(p1=p1,p2=p2,p3=p3,all=all_items,empty=empty),
+ ensure_ascii=False))
+"#;
+    let output = std::process::Command::new("uv")
+        .current_dir(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap(),
+        )
+        .args(["run", "--offline", "python", "-c", py])
+        .env("R5_TOPIC_SPACE_REF", &space)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "Python original list_topics error: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let python: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let rust = json!({
+        "p1":first_page,"p2":second_page,"p3":final_page,"all":all,"empty":empty,
+    });
+    assert_eq!(
+        rust, python,
+        "native Rust topic.list diverges from Python Host"
+    );
+}
+
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18/schema13 and original Python Host"]
+async fn social_relation_and_topic_inventory_byte_prefix_never_skips_rows() {
+    let mut db = connect().await;
+    let (actor, space, topic) = seed(&db, "social-byte-prefix-r5").await;
+    let source = input(
+        "social-byte-prefix-r5-message",
+        &actor,
+        &space,
+        &topic,
+        "bounded",
+    );
+    social::post_message(&mut db, &source).await.unwrap();
+
+    // Opaque references may be long Unicode identifiers. No fake target row
+    // is created: references never certify foreign existence or authority.
+    for i in 0..12 {
+        let target = format!("opaque:r5:{i:02}:{}", "汉".repeat(710));
+        social::add_message_relation(
+            &mut db,
+            &AddMessageRelation {
+                source_message_ref: source.message_ref.clone(),
+                relation: MessageRelationKind::References,
+                target_ref: target,
+                actor_ref: actor.clone(),
+            },
+            &format!("request:r5:long-relation:{i}"),
+        )
+        .await
+        .unwrap();
+    }
+    let mut cursor = 0_i64;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut rel_pages = 0;
+    let mut relation_first = None;
+    loop {
+        let input = social::ListMessageRelations {
+            message_ref: source.message_ref.clone(),
+            direction: social::RelationDirection::Outgoing,
+            relation: None,
+            after_change_sequence: cursor,
+            limit: 100,
+            max_bytes: 16_384,
+        };
+        let page = social::list_message_relations(&mut db, &input)
+            .await
+            .unwrap();
+        assert!(serde_json_canonicalizer::to_vec(&page).unwrap().len() <= 16_384);
+        if rel_pages == 0 {
+            relation_first = Some(page.clone());
+            assert_eq!(page["hasMore"], true, "fixture must exercise byte trimming");
+        }
+        for item in page["relations"].as_array().unwrap() {
+            let position = item["changeSequence"].as_i64().unwrap();
+            assert!(position > cursor);
+            assert!(
+                seen.insert(position),
+                "a cursor must not repeat any relation"
+            );
+        }
+        cursor = page["nextAfterChangeSequence"].as_i64().unwrap();
+        rel_pages += 1;
+        if !page["hasMore"].as_bool().unwrap() {
+            break;
+        }
+        assert!(rel_pages < 10);
+    }
+    assert_eq!(seen.len(), 12);
+    assert!(rel_pages >= 2);
+
+    for i in 0..15 {
+        let name = format!("{topic}:extra:{i:02}");
+        social::create_topic(
+            &mut db,
+            &social::CreateTopic {
+                topic_ref: name,
+                space_ref: space.clone(),
+                title: format!("索引页面-{i} {}", "界".repeat(480)),
+                actor_ref: actor.clone(),
+                client_request_id: format!("request:r5:long-topic:{i}"),
+            },
+        )
+        .await
+        .unwrap();
+    }
+    let mut topic_cursor: Option<String> = None;
+    let mut refs = std::collections::BTreeSet::new();
+    let mut topic_pages = 0;
+    let mut topic_first = None;
+    loop {
+        let page = social::list_topics(&mut db, &space, topic_cursor.as_deref(), 100, 16_384)
+            .await
+            .unwrap();
+        assert!(serde_json_canonicalizer::to_vec(&page).unwrap().len() <= 16_384);
+        if topic_pages == 0 {
+            topic_first = Some(page.clone());
+            assert_eq!(page["hasMore"], true, "fixture must trim topic prefix");
+        }
+        for item in page["topics"].as_array().unwrap() {
+            let reference = item["topicRef"].as_str().unwrap().to_owned();
+            if let Some(before) = topic_cursor.as_deref() {
+                assert!(reference.as_str() > before);
+            }
+            assert!(refs.insert(reference));
+        }
+        topic_cursor = page["nextAfterTopicRef"].as_str().map(str::to_owned);
+        topic_pages += 1;
+        if !page["hasMore"].as_bool().unwrap() {
+            break;
+        }
+        assert!(topic_pages < 10);
+    }
+    assert_eq!(refs.len(), 16);
+    assert!(topic_pages >= 2);
+
+    let python_script = r#"
+import json,os
+from ordivon_host_v2.social_store import SocialStore
+assert os.environ['HOST_RUST_TEST_DSN']==os.environ['ORDIVON_HOST_V2_DSN']
+s=SocialStore(os.environ['HOST_RUST_TEST_DSN'])
+rel=s.list_message_relations(os.environ['R5_LONG_MESSAGE'],
+    direction='outgoing',limit=100,max_bytes=16384)
+topics=s.list_topics(os.environ['R5_LONG_SPACE'],limit=100,max_bytes=16384)
+print(json.dumps(dict(rel=rel,topics=topics),ensure_ascii=False))
+"#;
+    let output = std::process::Command::new("uv")
+        .current_dir(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap(),
+        )
+        .args(["run", "--offline", "python", "-c", python_script])
+        .env("R5_LONG_MESSAGE", &source.message_ref)
+        .env("R5_LONG_SPACE", &space)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "Python original byte budget: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let expected: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(
+        expected,
+        json!({
+            "rel":relation_first.unwrap(),
+            "topics":topic_first.unwrap(),
+        }),
+        "Rust must trim the same canonical JSON prefix as Python Host"
+    );
+}
