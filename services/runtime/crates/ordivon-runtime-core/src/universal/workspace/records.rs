@@ -6,10 +6,21 @@ pub(crate) fn create_git_workspace_record(
     request.validate_shape()?;
     let target = config.workspace_path(&request.workspace_id);
     let record_path = config.workspace_record_path(&request.workspace_id);
-    if target.exists() || record_path.exists() {
+    if record_path.exists() {
         return Err(UniversalExecError::new(
             UniversalExecErrorCode::WorkspaceExists,
             "workspace already exists",
+            Some("workspaceId"),
+            false,
+        ));
+    }
+    if target.exists() {
+        // A Git worktree can be physically created before its atomic Workspace
+        // identity record is published. Distinguish a killed/partial open
+        // from a normal duplicate; neither adopt nor remove unowned bytes.
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::MetadataCorrupt,
+            "workspace directory exists without an identity record",
             Some("workspaceId"),
             false,
         ));
@@ -83,6 +94,17 @@ fn load_workspace_record_metadata(
 ) -> Result<WorkspaceRecord, UniversalExecError> {
     super::validate_id(workspace_id, "workspaceId")?;
     let path = config.workspace_record_path(workspace_id);
+    // An existing physical Workspace without a committed identity is not
+    // "not found". Surface the same fail-closed condition for get and list
+    // that workspace.close already reports.
+    if !path.exists() && config.workspace_path(workspace_id).exists() {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::MetadataCorrupt,
+            "workspace directory exists without an identity record",
+            Some("workspaceId"),
+            false,
+        ));
+    }
     let bytes = read_workspace_record_bytes(&path)?;
     if let Some(closed) = decode_closed_workspace_record(&bytes)? {
         validate_closed_identity(&closed, workspace_id)?;
