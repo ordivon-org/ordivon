@@ -1363,3 +1363,8 @@ pub use relation_queries::{list_message_relations, ListMessageRelations, Relatio
 
 mod topic_queries;
 pub use topic_queries::list_topics;
+
+mod space_inventory_queries;
+pub use space_inventory_queries::{
+    list_participations, list_space_subjects, list_spaces, ListSpaces,
+};

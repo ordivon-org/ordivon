@@ -1355,3 +1355,403 @@ print(json.dumps(dict(rel=rel,topics=topics),ensure_ascii=False))
         "Rust must trim the same canonical JSON prefix as Python Host"
     );
 }
+
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18, schema13, and original Python SocialStore"]
+async fn three_space_inventory_native_python_json_exact_and_negative_contracts() {
+    let mut db = connect().await;
+    let (actor, space, _) = seed(&db, "inventory-r6-full").await;
+    for subject in [
+        "subject:r6:01",
+        "subject:r6:02",
+        "subject:r6:03",
+        "subject:r6:04",
+    ] {
+        db.execute(
+            "INSERT INTO space_subjects(space_ref,subject_ref) VALUES($1,$2)",
+            &[&space, &subject],
+        )
+        .await
+        .unwrap();
+    }
+    let s1 = social::list_space_subjects(&mut db, &space, None, 2, 262_144)
+        .await
+        .unwrap();
+    let after_s = s1["nextAfterSubjectRef"].as_str().unwrap().to_string();
+    let s2 = social::list_space_subjects(&mut db, &space, Some(&after_s), 2, 262_144)
+        .await
+        .unwrap();
+    assert_eq!(s1["subjectRefs"], json!(["subject:r6:01", "subject:r6:02"]));
+    assert_eq!(s2["subjectRefs"], json!(["subject:r6:03", "subject:r6:04"]));
+    assert_eq!(s1["hasMore"], true);
+    assert_eq!(s2["hasMore"], false);
+    assert!(s2["nextAfterSubjectRef"].is_null());
+    let mut participants = vec![actor.clone()];
+    for i in 1..=2 {
+        let p = format!("actor:r6:inventory:{i:02}");
+        db.execute(
+            "INSERT INTO actor_refs(actor_ref,actor_kind) VALUES($1,'agent')",
+            &[&p],
+        )
+        .await
+        .unwrap();
+        participants.push(p);
+    }
+    for (i, a) in participants.iter().enumerate() {
+        let standing = match i {
+            0 => social::ParticipationStanding::Joined,
+            1 => social::ParticipationStanding::Observer,
+            _ => social::ParticipationStanding::Left,
+        };
+        social::set_participation(&mut db, &space, a, standing, "request:r6:participation")
+            .await
+            .unwrap();
+    }
+    let p1 = social::list_participations(&mut db, &space, None, 2, 262_144)
+        .await
+        .unwrap();
+    let after_p = p1["nextAfterActorRef"].as_str().unwrap().to_string();
+    let p2 = social::list_participations(&mut db, &space, Some(&after_p), 2, 262_144)
+        .await
+        .unwrap();
+    assert_eq!(p1["participants"].as_array().unwrap().len(), 2);
+    assert_eq!(p2["participants"].as_array().unwrap().len(), 1);
+    assert_eq!(p2["hasMore"], false);
+
+    // Two visible spaces and one left-only space share the same Subject:
+    // membership filter excludes LEFT, which is not authorization.
+    let common = "subject:host-rust-b:r6-list-space-common";
+    for (i, standing) in [
+        social::ParticipationStanding::Joined,
+        social::ParticipationStanding::Observer,
+        social::ParticipationStanding::Left,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let id = format!("space:r6:inventory-filter:{i:02}");
+        social::create_space(
+            &mut db,
+            &social::CreateSpace {
+                space_ref: id.clone(),
+                purpose: format!("R6 Inventory 🧩 {i}"),
+                actor_ref: actor.clone(),
+                subject_refs: vec![common.into()],
+                client_request_id: format!("request:r6:create-space:{i}"),
+            },
+        )
+        .await
+        .unwrap();
+        social::set_participation(&mut db, &id, &actor, standing, "r6-membership")
+            .await
+            .unwrap();
+    }
+    let mut input = social::ListSpaces {
+        actor_ref: Some(&actor),
+        subject_ref: Some(common),
+        limit: 1,
+        before_created_at: None,
+        before_space_ref: None,
+        max_bytes: 262_144,
+    };
+    let sp1 = social::list_spaces(&mut db, &input).await.unwrap();
+    assert_eq!(sp1["spaces"].as_array().unwrap().len(), 1);
+    assert_eq!(sp1["hasMore"], true);
+    let timestamp = sp1["nextCursor"]["beforeCreatedAt"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let cursor_space = sp1["nextCursor"]["beforeSpaceRef"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    input.before_created_at = Some(&timestamp);
+    input.before_space_ref = Some(&cursor_space);
+    let sp2 = social::list_spaces(&mut db, &input).await.unwrap();
+    assert_eq!(sp2["spaces"].as_array().unwrap().len(), 1);
+    assert_eq!(sp2["hasMore"], false);
+    assert!(sp2["nextCursor"].is_null());
+    input.before_created_at = Some(&timestamp);
+    input.before_space_ref = None;
+    assert!(social::list_spaces(&mut db, &input).await.is_err());
+    input.before_created_at = None;
+    input.before_space_ref = None;
+    input.limit = 201;
+    assert!(social::list_spaces(&mut db, &input).await.is_err());
+    input.limit = 50;
+    input.max_bytes = 1024;
+    assert!(social::list_spaces(&mut db, &input).await.is_err());
+    assert!(
+        social::list_space_subjects(&mut db, &space, None, 501, 262_144)
+            .await
+            .is_err()
+    );
+    assert!(
+        social::list_participations(&mut db, &space, None, 0, 262_144)
+            .await
+            .is_err()
+    );
+    assert!(matches!(
+        social::list_space_subjects(&mut db, "space:r6:missing", None, 10, 262_144).await,
+        Err(social::SocialError::NotFound(_))
+    ));
+    assert!(matches!(
+        social::list_participations(&mut db, "space:r6:missing", None, 10, 262_144).await,
+        Err(social::SocialError::NotFound(_))
+    ));
+    let missing = social::ListSpaces {
+        actor_ref: Some("actor:r6:missing"),
+        subject_ref: None,
+        limit: 10,
+        before_created_at: None,
+        before_space_ref: None,
+        max_bytes: 262_144,
+    };
+    assert!(matches!(
+        social::list_spaces(&mut db, &missing).await,
+        Err(social::SocialError::NotFound(_))
+    ));
+    let python_script = r#"
+import json,os
+from ordivon_host_v2.social_store import SocialStore
+assert os.environ["HOST_RUST_TEST_DSN"]==os.environ["ORDIVON_HOST_V2_DSN"]
+s=SocialStore(os.environ["HOST_RUST_TEST_DSN"])
+space=os.environ["R6_SPACE"]
+actor=os.environ["R6_ACTOR"]
+common=os.environ["R6_COMMON"]
+a=s.list_space_subjects(space,limit=2)
+b=s.list_space_subjects(space,after_subject_ref=a["nextAfterSubjectRef"],limit=2)
+c=s.list_participations(space,limit=2)
+d=s.list_participations(space,after_actor_ref=c["nextAfterActorRef"],limit=2)
+e=s.list_spaces(actor_ref=actor,subject_ref=common,limit=1)
+f=s.list_spaces(actor_ref=actor,subject_ref=common,limit=1,
+    before_created_at=e["nextCursor"]["beforeCreatedAt"],
+    before_space_ref=e["nextCursor"]["beforeSpaceRef"])
+print(json.dumps({"s1":a,"s2":b,"p1":c,"p2":d,"sp1":e,"sp2":f},ensure_ascii=False))
+"#;
+    let output = std::process::Command::new("uv")
+        .current_dir(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap(),
+        )
+        .args(["run", "--offline", "python", "-c", python_script])
+        .env("R6_SPACE", &space)
+        .env("R6_ACTOR", &actor)
+        .env("R6_COMMON", common)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "Original Python SocialStore: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let python: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let rust = json!({"s1":s1,"s2":s2,"p1":p1,"p2":p2,"sp1":sp1,"sp2":sp2});
+    assert_eq!(
+        rust, python,
+        "Rust 3 inventories must equal original Python JSON"
+    );
+}
+
+#[tokio::test]
+#[ignore = "requires disposable PG18 schema13 and original Python exact byte-prefix oracle"]
+async fn three_inventory_bounded_unicode_pages_exhaust_without_duplicate_or_skip() {
+    let mut db = connect().await;
+    let (actor, space, _) = seed(&db, "inventory-byte-r6").await;
+    for i in 0..10 {
+        let subject = format!("opaque:r6:{i:02}:{}", "汉".repeat(1800));
+        db.execute(
+            "INSERT INTO space_subjects(space_ref,subject_ref) VALUES($1,$2)",
+            &[&space, &subject],
+        )
+        .await
+        .unwrap();
+    }
+    for i in 0..45 {
+        let id = format!("actor:r6:stress:{i:02}:{}", "x".repeat(472));
+        db.execute(
+            "INSERT INTO actor_refs(actor_ref,actor_kind) VALUES($1,'agent')",
+            &[&id],
+        )
+        .await
+        .unwrap();
+        social::set_participation(
+            &mut db,
+            &space,
+            &id,
+            social::ParticipationStanding::Joined,
+            "desired-r6",
+        )
+        .await
+        .unwrap();
+    }
+    let subject_common = "subject:host-rust-b:r6-byte-common";
+    for i in 0..8 {
+        let id = format!("space:host-rust-b:r6-byte:{i:02}");
+        social::create_space(
+            &mut db,
+            &social::CreateSpace {
+                space_ref: id.clone(),
+                purpose: format!("Unicode Inventory r6 {i} {}", "研".repeat(930)),
+                actor_ref: actor.clone(),
+                subject_refs: vec![subject_common.into()],
+                client_request_id: format!("request:r6:create-large:{i}"),
+            },
+        )
+        .await
+        .unwrap();
+        social::set_participation(
+            &mut db,
+            &id,
+            &actor,
+            social::ParticipationStanding::Joined,
+            "desired-r6",
+        )
+        .await
+        .unwrap();
+    }
+    let byte_cap = 16_384usize;
+
+    let mut subject_after: Option<String> = None;
+    let mut subject_seen = std::collections::BTreeSet::new();
+    let mut subject_pages = 0;
+    let mut first_subjects = None;
+    loop {
+        let out =
+            social::list_space_subjects(&mut db, &space, subject_after.as_deref(), 500, byte_cap)
+                .await
+                .unwrap();
+        assert!(serde_json_canonicalizer::to_vec(&out).unwrap().len() <= byte_cap);
+        if first_subjects.is_none() {
+            assert_eq!(out["hasMore"], true, "must exercise real byte trimming");
+            first_subjects = Some(out.clone());
+        }
+        for v in out["subjectRefs"].as_array().unwrap() {
+            let next = v.as_str().unwrap().to_owned();
+            if let Some(ref prev) = subject_after {
+                assert!(&next > prev);
+            }
+            assert!(subject_seen.insert(next));
+        }
+        subject_after = out["nextAfterSubjectRef"].as_str().map(str::to_owned);
+        subject_pages += 1;
+        if !out["hasMore"].as_bool().unwrap() {
+            break;
+        }
+        assert!(subject_pages < 20);
+    }
+    assert_eq!(subject_seen.len(), 10);
+    assert!(subject_pages >= 2);
+
+    let mut part_after: Option<String> = None;
+    let mut part_seen = std::collections::BTreeSet::new();
+    let mut part_pages = 0;
+    let mut first_parts = None;
+    loop {
+        let out =
+            social::list_participations(&mut db, &space, part_after.as_deref(), 500, byte_cap)
+                .await
+                .unwrap();
+        assert!(serde_json_canonicalizer::to_vec(&out).unwrap().len() <= byte_cap);
+        if first_parts.is_none() {
+            assert_eq!(out["hasMore"], true, "participation fixture must trim");
+            first_parts = Some(out.clone());
+        }
+        for v in out["participants"].as_array().unwrap() {
+            let next = v["actorRef"].as_str().unwrap().to_owned();
+            if let Some(ref prev) = part_after {
+                assert!(&next > prev);
+            }
+            assert!(part_seen.insert(next));
+        }
+        part_after = out["nextAfterActorRef"].as_str().map(str::to_owned);
+        part_pages += 1;
+        if !out["hasMore"].as_bool().unwrap() {
+            break;
+        }
+        assert!(part_pages < 20);
+    }
+    assert_eq!(part_seen.len(), 45);
+    assert!(part_pages >= 2);
+
+    let mut space_timestamp: Option<String> = None;
+    let mut space_ref: Option<String> = None;
+    let mut space_seen = std::collections::BTreeSet::new();
+    let mut space_pages = 0;
+    let mut first_spaces = None;
+    loop {
+        let input = social::ListSpaces {
+            actor_ref: Some(&actor),
+            subject_ref: Some(subject_common),
+            limit: 200,
+            before_created_at: space_timestamp.as_deref(),
+            before_space_ref: space_ref.as_deref(),
+            max_bytes: byte_cap,
+        };
+        let out = social::list_spaces(&mut db, &input).await.unwrap();
+        assert!(serde_json_canonicalizer::to_vec(&out).unwrap().len() <= byte_cap);
+        if first_spaces.is_none() {
+            assert_eq!(out["hasMore"], true, "Space list must trim UTF8");
+            first_spaces = Some(out.clone());
+        }
+        for v in out["spaces"].as_array().unwrap() {
+            let next = v["spaceRef"].as_str().unwrap().to_owned();
+            assert!(space_seen.insert(next));
+        }
+        space_timestamp = out["nextCursor"]["beforeCreatedAt"]
+            .as_str()
+            .map(str::to_owned);
+        space_ref = out["nextCursor"]["beforeSpaceRef"]
+            .as_str()
+            .map(str::to_owned);
+        space_pages += 1;
+        if !out["hasMore"].as_bool().unwrap() {
+            break;
+        }
+        assert!(space_pages < 20);
+    }
+    assert_eq!(space_seen.len(), 8);
+    assert!(space_pages >= 2);
+
+    let python_script = r#"
+import json,os
+from ordivon_host_v2.social_store import SocialStore
+assert os.environ["HOST_RUST_TEST_DSN"]==os.environ["ORDIVON_HOST_V2_DSN"]
+s=SocialStore(os.environ["HOST_RUST_TEST_DSN"])
+space=os.environ["R6_LARGE_SPACE"]
+actor=os.environ["R6_LARGE_ACTOR"]
+common=os.environ["R6_LARGE_COMMON"]
+subject=s.list_space_subjects(space,limit=500,max_bytes=16384)
+part=s.list_participations(space,limit=500,max_bytes=16384)
+spaces=s.list_spaces(actor_ref=actor,subject_ref=common,limit=200,max_bytes=16384)
+print(json.dumps({"subject":subject,"part":part,"spaces":spaces},ensure_ascii=False))
+"#;
+    let output = std::process::Command::new("uv")
+        .current_dir(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap(),
+        )
+        .args(["run", "--offline", "python", "-c", python_script])
+        .env("R6_LARGE_SPACE", &space)
+        .env("R6_LARGE_ACTOR", &actor)
+        .env("R6_LARGE_COMMON", subject_common)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "Python exact byte cap oracle: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let python: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(
+        python,
+        json!({
+            "subject":first_subjects.unwrap(),
+            "part":first_parts.unwrap(),
+            "spaces":first_spaces.unwrap(),
+        }),
+        "three inventories must trim identical canonical response prefixes"
+    );
+}
