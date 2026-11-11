@@ -13,7 +13,7 @@ import os
 import sys
 from pathlib import Path
 
-from anc_canonical import digest_bytes
+from anc_canonical import canonical_digest, digest_bytes
 from ordivon_harness.core_contracts import HarnessRunContract
 from ordivon_harness.ordivon.continuity_records import (
     HarnessProviderCallRecordV3,
@@ -64,9 +64,13 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
     )
     base = HarnessRunContract.from_dict(raw_base)
     for scenario in (
-        "claimed", "unknown", "completed_redacted", "cleared", "wrong_digest",
+        "claimed", "unknown", "failed", "completed_redacted", "cleared", "wrong_digest",
         "v3_legacy", "wrong_kind", "tampered_cas",
         "wrong_state", "extra_reference", "wrong_event_status",
+        "bad_failure_safety", "bad_failure_detail", "bad_failure_digest",
+        "bad_failure_call", "bad_failure_request",
+        "bad_failure_code", "bad_failure_schema", "bad_failure_kind",
+        "bad_failure_extra", "bad_failure_overlong", "bad_failure_provider_request",
     ):
         run_id = f"harness-run:test-pg-provider-{scenario}"
         contract = replace(
@@ -91,12 +95,56 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             provider_call_id=provider_call_id,
             request_digest=id_digest(f"{scenario}:request"),
             provider_request_digest=id_digest(f"{scenario}:provider-request"),
-            failure_code="provider_transport_failed",
-            dispatch_safety="dispatch_ambiguous",
+            failure_code=("provider_rejected" if scenario == "failed"
+                          else "provider_transport_failed"),
+            dispatch_safety=("provider_rejected" if scenario == "failed"
+                             else "dispatch_ambiguous"),
             detail="Synthetic test: physical effect was NEVER sent",
         )
+        # Source-valid CAS bytes alone do not prove FailureReceipt semantics.
+        # These negative cases are stored by the real PG Store without ever
+        # being issued as a physical Provider outcome.
+        failure_value = failure.to_dict()
+        if scenario == "bad_failure_safety":
+            failure_value["dispatchSafety"] = "blind_retry"
+        if scenario == "bad_failure_detail":
+            failure_value["detail"] = " "
+        if scenario == "bad_failure_call":
+            failure_value["providerCallId"] = "provider-call:unrelated-valid-id"
+        if scenario == "bad_failure_request":
+            failure_value["requestDigest"] = id_digest("unrelated-request")
+        if scenario == "bad_failure_provider_request":
+            failure_value["providerRequestDigest"] = id_digest("unrelated-provider-request")
+        if scenario == "bad_failure_code":
+            failure_value["failureCode"] = "invented_failure"
+        if scenario == "bad_failure_schema":
+            failure_value["schemaVersion"] = 2
+        if scenario == "bad_failure_kind":
+            failure_value["kind"] = "ordivon.wrong-failure-kind"
+        if scenario == "bad_failure_extra":
+            failure_value["otherField"] = True
+        if scenario == "bad_failure_overlong":
+            failure_value["detail"] = "🧩" * 513  # UTF-8 2052 bytes, >2048
+        if scenario in {
+            "bad_failure_safety", "bad_failure_detail", "bad_failure_code",
+            "bad_failure_schema", "bad_failure_kind", "bad_failure_extra",
+            "bad_failure_overlong",
+        }:
+            try:
+                HarnessProviderCallFailureReceipt.from_dict(failure_value)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(
+                    f"Python source accepted invalid FailureReceipt: {scenario}"
+                )
         failure_ref = store.put_object(
-            failure.to_dict(), kind="harness-provider-call-failure"
+            failure_value, kind="harness-provider-call-failure"
+        )
+        receipt_digest = (
+            id_digest("forged-failure-claim")
+            if scenario == "bad_failure_digest"
+            else canonical_digest(failure_value)
         )
 
         def append(status: HarnessProviderCallStatus, time: int, previous=None,
@@ -122,8 +170,16 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                 result_digest=(id_digest(f"{scenario}:redacted-result")
                                if status is HarnessProviderCallStatus.COMPLETED else None),
                 result_object_digest=None,
-                failure_digest=(failure.digest if status is HarnessProviderCallStatus.UNKNOWN else None),
-                failure_object_digest=(failure_ref.digest if status is HarnessProviderCallStatus.UNKNOWN else None),
+                failure_digest=(
+                    receipt_digest
+                    if status in {HarnessProviderCallStatus.UNKNOWN, HarnessProviderCallStatus.FAILED}
+                    else None
+                ),
+                failure_object_digest=(
+                    failure_ref.digest
+                    if status in {HarnessProviderCallStatus.UNKNOWN, HarnessProviderCallStatus.FAILED}
+                    else None
+                ),
                 previous_record_digest=(previous.digest if previous is not None else None),
                 issued_at_ms=1001,
                 expires_at_ms=50000,
@@ -148,12 +204,13 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                 HarnessProviderCallStatus.CLAIMED: "claimed",
                 HarnessProviderCallStatus.DISPATCHING: "dispatching",
                 HarnessProviderCallStatus.UNKNOWN: "unknown",
+                HarnessProviderCallStatus.FAILED: "failed",
                 HarnessProviderCallStatus.COMPLETED: "completed",
             }[status]
             references = (record_obj, state_ref)
             if request_ref is not None:
                 references += (request_ref,)
-            if status is HarnessProviderCallStatus.UNKNOWN:
+            if status in {HarnessProviderCallStatus.UNKNOWN, HarnessProviderCallStatus.FAILED}:
                 references += (failure_ref,)
             if scenario == "extra_reference":
                 extra_ref = store.put_object(
@@ -175,7 +232,9 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                 ),
                 "resultObjectDigest": None,
                 "failureObjectDigest": (
-                    failure_ref.digest if status is HarnessProviderCallStatus.UNKNOWN else None
+                    failure_ref.digest
+                    if status in {HarnessProviderCallStatus.UNKNOWN, HarnessProviderCallStatus.FAILED}
+                    else None
                 ),
             }
             lease = store.acquire_run_lease(
@@ -202,19 +261,29 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             version3=scenario == "v3_legacy",
         )
         latest = claimed
-        if scenario in {"unknown", "completed_redacted", "cleared"}:
+        if scenario in {
+            "unknown", "failed", "completed_redacted", "cleared",
+            "bad_failure_safety", "bad_failure_detail", "bad_failure_digest",
+            "bad_failure_call", "bad_failure_request",
+            "bad_failure_code", "bad_failure_schema", "bad_failure_kind",
+            "bad_failure_extra", "bad_failure_overlong", "bad_failure_provider_request",
+        }:
             dispatched = append(
                 HarnessProviderCallStatus.DISPATCHING, 1003, previous=claimed
             )
             latest = dispatched
-            if scenario in {"unknown", "cleared"}:
-                latest = append(
-                    HarnessProviderCallStatus.UNKNOWN, 1004, previous=dispatched
-                )
+            if scenario in {
+                "unknown", "cleared", "bad_failure_safety", "bad_failure_detail",
+                "bad_failure_digest", "bad_failure_call", "bad_failure_request",
+                "bad_failure_code", "bad_failure_schema", "bad_failure_kind",
+                "bad_failure_extra", "bad_failure_overlong", "bad_failure_provider_request",
+            }:
+                final_status = HarnessProviderCallStatus.UNKNOWN
+            elif scenario == "failed":
+                final_status = HarnessProviderCallStatus.FAILED
             else:
-                latest = append(
-                    HarnessProviderCallStatus.COMPLETED, 1004, previous=dispatched
-                )
+                final_status = HarnessProviderCallStatus.COMPLETED
+            latest = append(final_status, 1004, previous=dispatched)
         if scenario == "cleared":
             lease = store.acquire_run_lease(
                 run_id, owner_id=f"test:lease:{scenario}:pause", ttl_ms=30_000,

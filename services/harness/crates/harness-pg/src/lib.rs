@@ -100,7 +100,68 @@ pub struct VerifiedProviderReference {
     digest: String,
     value: CanonicalDocument,
 }
-/// A validated CAS reference edge, with kind/digest but NO non-Provider
+/// Explicitly bounded non-sensitive fields of a CAS-verified Provider
+/// FailureReceipt. Raw failure detail and unrelated Run state stay private.
+#[derive(Clone, Copy, Debug)]
+pub enum ProviderFailureTextField {
+    Kind,
+    ProviderCallId,
+    RequestDigest,
+    ProviderRequestDigest,
+    FailureCode,
+    DispatchSafety,
+}
+
+/// One Provider FailureReceipt whose CAS bytes were already validated in
+/// the single A-owned PG read-only snapshot. B evaluates domain semantics
+/// from this narrow projection; A never exports the potentially sensitive
+/// raw failure 'detail' string or an arbitrary CAS object for this purpose.
+#[derive(Debug, Clone)]
+pub struct VerifiedProviderFailureReference {
+    event_id: String,
+    digest: String,
+    value: CanonicalDocument,
+}
+impl VerifiedProviderFailureReference {
+    pub fn event_id(&self) -> &str {
+        &self.event_id
+    }
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+    pub fn field_count(&self) -> Option<usize> {
+        self.value.object_len()
+    }
+    pub fn version_is_one(&self) -> bool {
+        self.value
+            .field("schemaVersion")
+            .and_then(|v| v.integer_text())
+            == Some("1")
+    }
+    pub fn source_text_field(&self, field: ProviderFailureTextField) -> Option<&str> {
+        let name = match field {
+            ProviderFailureTextField::Kind => "kind",
+            ProviderFailureTextField::ProviderCallId => "providerCallId",
+            ProviderFailureTextField::RequestDigest => "requestDigest",
+            ProviderFailureTextField::ProviderRequestDigest => "providerRequestDigest",
+            ProviderFailureTextField::FailureCode => "failureCode",
+            ProviderFailureTextField::DispatchSafety => "dispatchSafety",
+        };
+        self.value.field(name).and_then(|v| v.as_str())
+    }
+    pub fn detail_is_source_valid(&self, max_bytes: usize) -> bool {
+        let Some(detail) = self.value.field("detail").and_then(|v| v.as_str()) else {
+            return false;
+        };
+        !detail.is_empty()
+            && detail.len() <= max_bytes
+            && detail
+                .trim_matches(|c: char| c.is_whitespace() || ('\u{001c}'..='\u{001f}').contains(&c))
+                == detail
+    }
+}
+
+/// A validated CAS reference edge, with kind/digest but NO unrelated private
 /// object content exposed to the Agent consumer. Same PG snapshot.
 #[derive(Debug, Clone)]
 pub struct VerifiedReferenceLink {
@@ -210,6 +271,9 @@ pub struct Readback {
     /// Expose only Provider record references already authenticated against
     /// the same PG snapshot; do not expose other potentially private CAS.
     pub provider_record_references: Vec<VerifiedProviderReference>,
+    /// Only verified Provider FailureReceipt CAS bodies, for B's source
+    /// protocol validation. Not the private Run State/Request/Result bodies.
+    pub provider_failure_references: Vec<VerifiedProviderFailureReference>,
     /// Source-authenticated metadata only, necessary for proving the current
     /// Provider record's state/Result/Failure attachments actually belong to
     /// the same Run Event; prevents forged unattached Provider CAS.
@@ -545,6 +609,7 @@ pub fn read_run_readonly(
         .collect();
     let mut payload_edges = BTreeSet::new();
     let mut provider_record_references = Vec::new();
+    let mut provider_failure_references = Vec::new();
     let mut verified_reference_links = Vec::new();
     let mut tool_metadata_references = Vec::new();
     let mut tool_snapshot_metadata = Vec::new();
@@ -661,6 +726,13 @@ pub fn read_run_readonly(
                             kind,
                             value: decoded,
                         });
+                    } else if kind == "harness-provider-call-failure" {
+                        provider_failure_references.push(VerifiedProviderFailureReference {
+                            event_id,
+                            digest,
+
+                            value: decoded,
+                        });
                     }
                 }
             }
@@ -676,6 +748,7 @@ pub fn read_run_readonly(
         contract,
         events,
         provider_record_references,
+        provider_failure_references,
         verified_reference_links,
         tool_metadata_references,
         tool_snapshot_metadata,

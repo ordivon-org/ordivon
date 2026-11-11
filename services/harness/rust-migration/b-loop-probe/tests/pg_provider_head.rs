@@ -55,6 +55,11 @@ fn source_python_provider_v4_cas_head_recovery_does_not_dispatch_or_blind_retry(
             ProviderStatus::Completed,
             RecoveryPosture::ReadCommittedResult,
         ),
+        (
+            "failed",
+            ProviderStatus::Failed,
+            RecoveryPosture::CheckFailureReceiptAndRetryBudget,
+        ),
     ] {
         let item = provider_records.get(label).unwrap();
         let observed =
@@ -145,6 +150,45 @@ fn source_python_provider_v4_cas_head_recovery_does_not_dispatch_or_blind_retry(
             PgDomainInspectionError::ProviderSelectionMismatch("adapterId")
         ))
     ));
+    for label in [
+        "bad_failure_safety",
+        "bad_failure_detail",
+        "bad_failure_code",
+        "bad_failure_schema",
+        "bad_failure_kind",
+        "bad_failure_extra",
+        "bad_failure_overlong",
+    ] {
+        let item = provider_records
+            .get(label)
+            .expect("real Python CAS fixture");
+        let result = inspect_pg_provider_head(&mut client, &schema, text(&item, "runId"), expected);
+        assert!(
+            matches!(
+                result,
+                Err(PgProviderRecoveryError::InvalidProviderFailureReceipt)
+            ),
+            "source-invalid Provider FailureReceipt accepted/misclassified: {label}: {result:?}"
+        );
+    }
+    for label in [
+        "bad_failure_digest",
+        "bad_failure_call",
+        "bad_failure_request",
+        "bad_failure_provider_request",
+    ] {
+        let item = provider_records
+            .get(label)
+            .expect("real Python CAS fixture");
+        let result = inspect_pg_provider_head(&mut client, &schema, text(&item, "runId"), expected);
+        assert!(
+            matches!(
+                result,
+                Err(PgProviderRecoveryError::FailureReceiptBindingMismatch)
+            ),
+            "CAS-valid but unrelated FailureReceipt accepted/misclassified: {label}: {result:?}"
+        );
+    }
     println!("PG18_PYTHON_PROVIDER_V4_VERIFIED_CAS_RECOVERY_PASS");
 }
 

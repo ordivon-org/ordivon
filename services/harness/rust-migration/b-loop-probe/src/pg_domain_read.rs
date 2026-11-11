@@ -3,7 +3,10 @@
 use crate::tool_call::{preflight_domain_model_call, ModelToolCall, ModelToolCallStanding};
 use crate::tool_surface::{project_domain_tool_surface, DomainToolSurface, ToolSurfaceError};
 use ordivon_harness_core::{canonical_bytes, digest_bytes, CanonicalDocument, CanonicalRef};
-use ordivon_harness_pg::{read_run_readonly, ReadError, Readback};
+use ordivon_harness_pg::{
+    read_run_readonly, ProviderFailureTextField, ReadError, Readback,
+    VerifiedProviderFailureReference,
+};
 use postgres::Client;
 use std::collections::HashSet;
 
@@ -240,6 +243,8 @@ pub enum PgProviderRecoveryError {
     EventRecordMismatch(&'static str),
     UnsupportedV3ProviderRecord,
     InvalidProviderV4,
+    InvalidProviderFailureReceipt,
+    FailureReceiptBindingMismatch,
 }
 impl From<PgDomainInspectionError> for PgProviderRecoveryError {
     fn from(value: PgDomainInspectionError) -> Self {
@@ -311,6 +316,81 @@ fn event_text<'a>(
         .ok_or(PgProviderRecoveryError::EventRecordMismatch(
             "missing Provider event field",
         ))
+}
+
+/// Python source FailureReceipt.from_dict is a semantic validator,
+/// not a CAS hash check. Preserve exact 8 fields, protocol enums,
+/// UTF-8 byte limits and cross-record identities. Never expose
+/// sensitive detail through the public Provider Run standing.
+/// This is read-only evidence, never a Provider retry authorization.
+fn validate_provider_failure_receipt(
+    receipt: &VerifiedProviderFailureReference,
+    record: &crate::provider_head::ProviderRecordHead,
+) -> Result<(), PgProviderRecoveryError> {
+    use PgProviderRecoveryError as Error;
+    use ProviderFailureTextField as Field;
+    // A exposes exactly the six non-sensitive textual source fields,
+    // schema identity, field cardinality and a yes/no detail text check.
+    // The raw failure detail cannot escape through this consumer.
+    if receipt.field_count() != Some(8)
+        || !receipt.version_is_one()
+        || receipt.source_text_field(Field::Kind) != Some("ordivon.harness-provider-call-failure")
+        || !receipt.detail_is_source_valid(2048)
+    {
+        return Err(Error::InvalidProviderFailureReceipt);
+    }
+    let required = |field: Field, max_bytes: usize| -> Result<&str, PgProviderRecoveryError> {
+        let value = receipt
+            .source_text_field(field)
+            .ok_or(Error::InvalidProviderFailureReceipt)?;
+        if !crate::python_text::valid_trimmed(value, max_bytes) {
+            return Err(Error::InvalidProviderFailureReceipt);
+        }
+        Ok(value)
+    };
+    let call_id = required(Field::ProviderCallId, 512)?;
+    if !call_id.starts_with("provider-call:") {
+        return Err(Error::InvalidProviderFailureReceipt);
+    }
+    let request = required(Field::RequestDigest, 512)?;
+    let provider_request = required(Field::ProviderRequestDigest, 512)?;
+    let failure_code = required(Field::FailureCode, 512)?;
+    let dispatch_safety = required(Field::DispatchSafety, 512)?;
+    let is_sha = |text: &str| {
+        text.len() == 71
+            && text.starts_with("sha256:")
+            && text[7..]
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    };
+    if !is_sha(request)
+        || !is_sha(provider_request)
+        || !matches!(
+            failure_code,
+            "provider_failed"
+                | "provider_timeout"
+                | "provider_transport_failed"
+                | "provider_rejected"
+                | "provider_unavailable"
+        )
+        || !matches!(
+            dispatch_safety,
+            "pre_dispatch_safe" | "provider_rejected" | "dispatch_ambiguous"
+        )
+    {
+        return Err(Error::InvalidProviderFailureReceipt);
+    }
+    // The canonical digest is A-authenticated. B verifies source-level
+    // receipt identity AND exact Request/ProviderRequest binding, beyond
+    // CAS kind/edge presence. UNKNOWN remains UNKNOWN, never a retry token.
+    if record.failure_digest.as_deref() != Some(receipt.digest())
+        || call_id != record.provider_call_id
+        || request != record.request_digest
+        || provider_request != record.provider_request_digest
+    {
+        return Err(Error::FailureReceiptBindingMismatch);
+    }
+    Ok(())
 }
 
 /// The Python source EventSourcedRunContinuity._heads() clears Provider heads
@@ -407,6 +487,31 @@ pub fn inspect_pg_provider_head(
     if real_edges != expected_edges {
         return Err(PgProviderRecoveryError::EventRecordMismatch(
             "Provider referenced CAS edge set mismatch",
+        ));
+    }
+    // A verifies the CAS object in the same READ ONLY transaction. Its
+    // *semantic* FailureReceipt is distinct from the SHA/edge existence.
+    let failures: Vec<_> = snapshot
+        .provider_failure_references
+        .iter()
+        .filter(|r| r.event_id() == event.event_id)
+        .collect();
+    if matches!(
+        parsed.status,
+        crate::provider_head::ProviderStatus::Failed
+            | crate::provider_head::ProviderStatus::Unknown
+    ) {
+        let bound_object = record
+            .field("failureObjectDigest")
+            .and_then(|v| v.as_str())
+            .ok_or(PgProviderRecoveryError::InvalidProviderV4)?;
+        if failures.len() != 1 || failures[0].digest() != bound_object {
+            return Err(PgProviderRecoveryError::MissingOrAmbiguousEventReference);
+        }
+        validate_provider_failure_receipt(failures[0], &parsed)?;
+    } else if !failures.is_empty() {
+        return Err(PgProviderRecoveryError::EventRecordMismatch(
+            "unclaimed FailureReceipt edge on non-failure Provider event",
         ));
     }
     Ok(Some(ObservedProviderHead {

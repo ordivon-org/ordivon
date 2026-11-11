@@ -264,3 +264,41 @@ The last failed before the Snapshot active-binding fix (real RED), then
 passed (real GREEN). No Provider HTTP or physical Runtime Tool request.
 
 Original C, A PG Owner and B Tool Owner must review before promoting source.
+
+## Provider FailureReceipt: CAS integrity is not semantic recovery evidence
+
+The Provider V4 PG head must not accept a stored UNKNOWN/FAILED record merely
+because its failure CAS object exists, its SHA256 is correct and its Event
+edge belongs to the Run. Python HarnessProviderCallFailureReceipt.from_dict
+requires exactly eight fields, schemaVersion=1, enumerated failureCode and
+dispatchSafety, a trimmed UTF-8 detail of at most 2048 bytes, and proper
+Provider Call/Agent request/Provider request identity.
+
+The sole A PG Reader now projects only official Provider FailureReceipt
+reference objects through VerifiedProviderFailureReference. It exposes
+CAS identity, non-sensitive typed fields and a yes/no detail-validity fact;
+it DOES NOT expose the potentially sensitive raw failure detail nor any
+State/Request/Result body. This is part of the SAME CAS decode loop and
+READ ONLY snapshot: no new SQL, Store, table, codec or global registry.
+
+B validates the Python-specified FailureReceipt structure and its full
+binding to the Provider Record's failureDigest, providerCallId, requestDigest
+and providerRequestDigest. Explicit InvalidProviderFailureReceipt and
+FailureReceiptBindingMismatch are returned; a valid UNKNOWN is still
+RetainUnknownAndReconcile, and a valid FAILED is still
+CheckFailureReceiptAndRetryBudget (NOT a retry authorization).
+
+The same disposable PG18 test source now creates 23 Provider scenarios:
+valid UNKNOWN/FAILED, redacted COMPLETED, legacy V3 Unsupported and
+11 new FailureReceipt negatives covering invalid schema/kind/field set,
+UTF-8 byte limit, failureCode, dispatchSafety and cross-record identities.
+The original source-only RED showed that old Rust accepted an unrecognized
+dispatchSafety despite SHA-valid CAS; GREEN verifies all negatives are
+rejected while old Contract 24-invalid/10-valid, A Lease/Writer and
+B Domain/noTool/Provider-crosslang consumers continue passing.
+
+No physical Provider or Runtime Tool request is sent by these tests.
+The returned Provider standing does not authorize physical dispatch,
+blind retry or infer external effect success. A sole PG Owner must review
+this new narrow verified-reference API; original C-seat must independently
+challenge privacy, legacy representations and UNKNOWN recovery.
