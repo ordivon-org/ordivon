@@ -11,6 +11,7 @@ from .execution_binding import HarnessExecutionBinding
 from .ordivon.model import AgentToolCall, AgentToolDefinition
 from .ordivon.run_store_port import HarnessRunContinuityStore
 from .ordivon.runtime_bridge import HarnessRuntimeBridge
+from .ordivon.runtime_lowering import DEFAULT_RUNTIME_EXEC_OUTPUT_LIMIT_BYTES
 from .ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
 from .plugin_mcp import HarnessMcpClient
 from .protocol import HarnessRecoveryConsequence
@@ -247,6 +248,14 @@ class GatewayMcpRuntimeAdapter:
             gateway_args["env"] = execution["env"]
         if "timeoutMs" in execution:
             gateway_args["timeoutMs"] = execution["timeoutMs"]
+        for field in ("stdoutLimitBytes", "stderrLimitBytes"):
+            if field in execution:
+                value = execution[field]
+                if type(value) is not int or value <= 0:
+                    raise HarnessRuntimeClientError(
+                        f"Gateway execution lowering has invalid {field}"
+                    )
+                gateway_args[field] = value
 
         receipt = self._call("execution.submit", gateway_args)
         operation_ref = _required_text(
@@ -632,6 +641,8 @@ class PluginGatewayExecutionBridge(HarnessRuntimeBridge):
             "executable": executable,
             "args": list(args),
             "cwdRelative": cwd,
+            "stdoutLimitBytes": DEFAULT_RUNTIME_EXEC_OUTPUT_LIMIT_BYTES,
+            "stderrLimitBytes": DEFAULT_RUNTIME_EXEC_OUTPUT_LIMIT_BYTES,
             "foreignReferences": [dict(item) for item in self.execution_binding.runtime_references],
         }
         if env is not None:

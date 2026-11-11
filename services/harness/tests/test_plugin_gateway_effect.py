@@ -314,6 +314,8 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
         assert submit["workspaceId"] == "ws-plugin-h2"
         assert submit["executable"] == "/usr/bin/rg"
         assert submit["timeoutMs"] == 5_000  # explicitly admitted value is unchanged
+        assert submit["stdoutLimitBytes"] == 262_144
+        assert submit["stderrLimitBytes"] == 262_144
         assert submit["requestId"].startswith("request:harness-gateway:")
 
 
@@ -488,6 +490,31 @@ def test_gateway_recovery_requires_owner_observed_workspace(mutation: str, pg_sc
         assert result.loop_result.stop_code.value == "runtime_unknown"
         names = [name for name, _ in client.calls]
         assert names == ["execution.submit", "execution.resolve"]
+
+
+@pytest.mark.parametrize("field", ("stdoutLimitBytes", "stderrLimitBytes"))
+@pytest.mark.parametrize("invalid", (True, 0, -1, 1.0, "262144"))
+def test_gateway_adapter_refuses_non_integer_native_output_caps_before_owner_call(
+    field: str, invalid: object
+) -> None:
+    """An invalid caller output bound must not be silently defaulted."""
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    execution = {
+        "workspaceId": "ws-plugin-h2",
+        "foreignReferences": [],
+        "executable": "/usr/bin/rg",
+        "args": ["needle"],
+        "cwdRelative": ".",
+        field: invalid,
+    }
+    with pytest.raises(HarnessRuntimeClientError, match="invalid"):
+        adapter.call_tool(
+            "workspace.exec",
+            {"clientRequestId": "request:output-bound", "execution": execution},
+        )
+    assert client.calls == []
 
 
 def test_gateway_native_job_identity_cannot_rebind_to_another_request() -> None:
