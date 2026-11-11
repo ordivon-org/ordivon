@@ -61,6 +61,145 @@ class CapabilityAuthorizationTarget:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class HostAccountabilityAuthorizationTarget:
+    """A claim about an accountable Actor, NOT proof that a Principal owns it.
+
+    Security alone decides whether a verified Principal may make that claim.
+    The resource includes each authorization-relevant untrusted coordinate,
+    so a valid decision for one actor/action/filter cannot authorize another.
+    """
+
+    capability: str
+    resource_type: str
+    resource_id: str
+    attributes: Mapping[str, Any]
+
+    def authzen_resource(self) -> dict[str, Any]:
+        return {
+            "type": self.resource_type,
+            "id": self.resource_id,
+            "properties": dict(self.attributes),
+        }
+
+
+_ACCOUNTABILITY_ACTIONS = frozenset({"offer", "claim", "release", "submit", "review", "cancel"})
+
+
+def _qualified_host_reference(value: object, field: str) -> str:
+    if (
+        not isinstance(value, str)
+        or not 3 <= len(value.encode("utf-8")) <= 512
+        or ":" not in value
+        or not value.strip()
+        or any(unicodedata.category(char) == "Cc" for char in value)
+    ):
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            f"Work accountability requires a qualified {field}.",
+            capability="host.work.engagement",
+        )
+    return value
+
+
+def _resolve_work_engagement_target(
+    tool_name: str,
+    arguments: Mapping[str, Any],
+) -> HostAccountabilityAuthorizationTarget | None:
+    """Project a versioned Host write/read onto the existing AuthZEN PEP.
+
+    Unlike a Work Snapshot or caller Tool metadata, none of these fields is
+    authorization evidence. No installed Security policy means no admission.
+    """
+    if tool_name == "work.engagement.advance":
+        work_ref = _qualified_host_reference(arguments.get("workRef"), "workRef")
+        actor_ref = _qualified_host_reference(arguments.get("actorRef"), "actorRef")
+        revision = arguments.get("expectedRevision")
+        action = arguments.get("action")
+        action_type = action.get("type") if isinstance(action, dict) else None
+        if (
+            type(revision) is not int
+            or not 1 <= revision <= 9_007_199_254_740_991
+            or not isinstance(action_type, str)
+            or action_type not in _ACCOUNTABILITY_ACTIONS
+        ):
+            raise CapabilityAuthorizationTargetError(
+                "CAPABILITY_AUTHZ_TARGET_INVALID",
+                "Work accountability needs a valid expectedRevision and action.type.",
+                capability="host.work.engagement.advance",
+            )
+        if action_type == "offer":
+            _qualified_host_reference(action.get("consumerActorRef"), "consumerActorRef")
+        if action_type == "review" and (
+            not isinstance(action.get("decision"), str)
+            or action.get("decision") not in {"accepted", "returned"}
+        ):
+            raise CapabilityAuthorizationTargetError(
+                "CAPABILITY_AUTHZ_TARGET_INVALID",
+                "Work accountability review.decision must be accepted or returned.",
+                capability="host.work.engagement.advance",
+            )
+        return HostAccountabilityAuthorizationTarget(
+            capability="host.work.engagement.advance",
+            resource_type="ordivon.host.work-engagement",
+            resource_id="host-engagement:v1:" + _base64url_text(work_ref),
+            attributes={
+                "identityContract": "ordivon.host-engagement-request-resource.v1",
+                "workRef": work_ref,
+                "claimedActorRef": actor_ref,
+                "expectedRevision": revision,
+                "actionType": action_type,
+                # These are claims/targets, never attested third-party proofs.
+                "requestedConsumerActorRef": action.get("consumerActorRef")
+                if action_type == "offer"
+                else None,
+                "reviewDecision": action.get("decision") if action_type == "review" else None,
+            },
+        )
+    if tool_name == "work.engagement.list":
+        assignee = arguments.get("assigneeActorRef")
+        consumer = arguments.get("consumerActorRef")
+        if assignee is not None:
+            assignee = _qualified_host_reference(assignee, "assigneeActorRef")
+        if consumer is not None:
+            consumer = _qualified_host_reference(consumer, "consumerActorRef")
+        phase = arguments.get("phase")
+        if phase is not None and (
+            not isinstance(phase, str)
+            or phase
+            not in {
+                "offered",
+                "claimed",
+                "submitted",
+                "returned",
+                "accepted",
+                "cancelled",
+            }
+        ):
+            raise CapabilityAuthorizationTargetError(
+                "CAPABILITY_AUTHZ_TARGET_INVALID",
+                "Work accountability phase is invalid.",
+                capability="host.work.engagement.list",
+            )
+        return HostAccountabilityAuthorizationTarget(
+            capability="host.work.engagement.list",
+            resource_type="ordivon.host.work-engagement-inbox",
+            resource_id=(
+                "host-engagement-inbox:v1:"
+                + _base64url_text(assignee or "*")
+                + "."
+                + _base64url_text(consumer or "*")
+            ),
+            attributes={
+                "identityContract": "ordivon.host-engagement-request-resource.v1",
+                "requestedAssigneeActorRef": assignee,
+                "requestedConsumerActorRef": consumer,
+                "requestedPhase": phase,
+            },
+        )
+    return None
+
+
 class CapabilityAuthorizationTargetError(ValueError):
     def __init__(self, code: str, message: str, *, capability: str | None = None) -> None:
         super().__init__(message)
@@ -69,7 +208,8 @@ class CapabilityAuthorizationTargetError(ValueError):
 
 
 AuthorizationTargetResolver = Callable[
-    [str, Mapping[str, Any]], CapabilityAuthorizationTarget | None
+    [str, Mapping[str, Any]],
+    CapabilityAuthorizationTarget | HostAccountabilityAuthorizationTarget | None,
 ]
 
 _RUNTIME_ARTIFACT_OWNERS = frozenset({"runtime.linux", "runtime.windows"})
@@ -116,7 +256,7 @@ def _validate_artifact_id(value: object) -> str:
 
 def resolve_authorization_target(
     tool_name: str, arguments: Mapping[str, Any]
-) -> CapabilityAuthorizationTarget | None:
+) -> CapabilityAuthorizationTarget | HostAccountabilityAuthorizationTarget | None:
     """Resolve the protected natural-owner object from trusted Gateway semantics.
 
     Tool name alone is insufficient: the operation reference must resolve to a
@@ -124,6 +264,9 @@ def resolve_authorization_target(
     closed before reaching Runtime or the authorization provider.
     """
 
+    engagement = _resolve_work_engagement_target(tool_name, arguments)
+    if engagement is not None:
+        return engagement
     if tool_name != "artifact.read":
         return None
 

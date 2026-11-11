@@ -463,3 +463,351 @@ def test_gateway_authzen_env_requires_paired_private_token_file(
     adapter = _capability_authorizer_from_env()
     assert isinstance(adapter, AuthZenPrincipalAuthorizer)
     assert adapter._bearer_token_provider() == "t" * 48
+
+
+# Work Engagement is a Rust-only staging extension. The Gateway still does
+# NOT publish it. These tests establish the existing Security PEP *resource*
+# prerequisites for eventual release, not policy/Actor ownership proof.
+def _engagement_args(
+    *,
+    actor: str = "actor:agent:claimed",
+    action_type: str = "review",
+) -> dict[str, Any]:
+    return {
+        "workRef": "work:gateway:engagement-resource",
+        "expectedRevision": 4,
+        "actorRef": actor,
+        "clientRequestId": "request:gateway:test-engagement",
+        "action": {"type": action_type, "decision": "accepted", "claimEpoch": 2},
+        # Tool arguments and MCP metadata never authenticate this actor.
+        "ordivon_access_principal": "principal:spoofed",
+        "_meta": {"ordivon_access_issuer": "fake"},
+    }
+
+
+def _engagement_allow(
+    tool: str,
+    resource: dict[str, Any],
+    *,
+    principal: str = "principal:local-service:harness",
+) -> dict[str, Any]:
+    return {
+        "schemaVersion": 3,
+        "kind": "ordivon.security.gateway-capability-authz",
+        "principalId": principal,
+        "issuer": "ordivon-local-service",
+        "requestedCapability": tool,
+        "requestedResource": resource,
+        "qualificationTarget": True,
+        "authorizationProfile": "interactive-principal-authzen",
+        "outcome": "ALLOW",
+        "reason": "test-only",
+        "authorizationEvidence": {
+            "standard": "openid-authzen-authorization-api-1.0",
+            "requestId": "test-r10",
+            "responseRequestId": "test-r10",
+            "decision": True,
+        },
+        "authorityProjection": None,
+        "effectAdmission": None,
+    }
+
+
+def test_work_engagement_pep_resource_binds_claimed_actor_action_and_review() -> None:
+    one = resolve_authorization_target(
+        "work.engagement.advance",
+        _engagement_args(),
+    )
+    other_actor = resolve_authorization_target(
+        "work.engagement.advance",
+        _engagement_args(actor="actor:agent:other"),
+    )
+    other_action = resolve_authorization_target(
+        "work.engagement.advance",
+        _engagement_args(action_type="submit"),
+    )
+    assert one is not None and other_actor is not None and other_action is not None
+    assert one.capability == "host.work.engagement.advance"
+    resource = one.authzen_resource()
+    assert resource["properties"]["claimedActorRef"] == "actor:agent:claimed"
+    assert resource["properties"]["reviewDecision"] == "accepted"
+    assert resource["properties"]["workRef"] == "work:gateway:engagement-resource"
+    assert resource != other_actor.authzen_resource()
+    assert resource != other_action.authzen_resource()
+    assert "ordivon_access_principal" not in str(resource)
+    assert "principal:spoofed" not in str(resource)
+
+
+def test_work_engagement_no_auth_or_no_ingress_fails_before_any_owner_effect() -> None:
+    reached: list[str] = []
+
+    async def owner(_ctx: Any):
+        reached.append("owner-effect")
+        return await _next(_ctx)
+
+    for tool, arguments in (
+        ("work.engagement.advance", _engagement_args()),
+        ("work.engagement.list", {"consumerActorRef": "actor:agent:reviewer"}),
+    ):
+        missing_ingress = asyncio.run(
+            GatewayCapabilityAuthorizationMiddleware(FakeAuthorizer())(
+                _ctx(tool=tool, arguments=arguments), owner
+            )
+        )
+        assert missing_ingress.is_error is True
+        assert missing_ingress.structured_content["error"]["code"] == (
+            "CAPABILITY_AUTHZ_INGRESS_IDENTITY_MISSING"
+        )
+        missing_policy = asyncio.run(
+            GatewayCapabilityAuthorizationMiddleware(None)(
+                _ctx(tool=tool, state=_verified_state(), arguments=arguments), owner
+            )
+        )
+        assert missing_policy.is_error is True
+        assert missing_policy.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_UNAVAILABLE"
+    assert reached == []
+
+
+def test_work_engagement_security_decision_must_match_principal_and_exact_resource() -> None:
+    arguments = _engagement_args()
+    target = resolve_authorization_target("work.engagement.advance", arguments)
+    assert target is not None
+    resource = target.authzen_resource()
+    proper = FakeAuthorizer(_engagement_allow("host.work.engagement.advance", resource))
+    result = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(proper)(
+            _ctx(
+                tool="work.engagement.advance",
+                state=_verified_state(),
+                arguments=arguments,
+            ),
+            _next,
+        )
+    )
+    assert result["structuredContent"]["ok"] is True
+    call = proper.calls[0]
+    assert call["principal_id"] == "principal:local-service:harness"
+    assert call["requested_resource"] == resource
+    assert call["requested_capability"] == "host.work.engagement.advance"
+
+    mismatches = (
+        _engagement_allow("host.work.engagement.advance", resource, principal="principal:other"),
+        _engagement_allow(
+            "host.work.engagement.advance",
+            resolve_authorization_target(
+                "work.engagement.advance", _engagement_args(actor="actor:agent:other")
+            ).authzen_resource(),
+        ),
+        _engagement_allow("host.work.engagement.list", resource),
+    )
+    for wrong in mismatches:
+        reached = []
+
+        async def forbidden_owner(_ctx: Any):
+            reached.append("owner-effect")
+            return await _next(_ctx)
+
+        rejected = asyncio.run(
+            GatewayCapabilityAuthorizationMiddleware(FakeAuthorizer(wrong))(
+                _ctx(
+                    tool="work.engagement.advance",
+                    state=_verified_state(),
+                    arguments=arguments,
+                ),
+                forbidden_owner,
+            )
+        )
+        assert rejected.is_error is True
+        assert rejected.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_BINDING_MISMATCH"
+        assert reached == []
+
+
+def test_work_engagement_unscoped_inbox_requires_real_security_decision() -> None:
+    list_all = resolve_authorization_target("work.engagement.list", {})
+    list_one = resolve_authorization_target(
+        "work.engagement.list", {"consumerActorRef": "actor:agent:reviewer"}
+    )
+    assert list_all is not None and list_one is not None
+    assert list_all.capability == "host.work.engagement.list"
+    assert list_all.authzen_resource() != list_one.authzen_resource()
+    assert list_all.authzen_resource()["properties"]["requestedConsumerActorRef"] is None
+
+    for invalid in (
+        {"consumerActorRef": 1},
+        {"assigneeActorRef": ["actor:fake"]},
+        {"phase": {"forged": True}},
+    ):
+        with pytest.raises(Exception, match="requires|invalid|qualified"):
+            resolve_authorization_target("work.engagement.list", invalid)
+
+    for invalid in (
+        _engagement_args(action_type="forged"),
+        {**_engagement_args(), "expectedRevision": True},
+        {**_engagement_args(), "actorRef": {"forged": True}},
+    ):
+        with pytest.raises(Exception, match="requires|valid|qualified"):
+            resolve_authorization_target("work.engagement.advance", invalid)
+
+
+def test_work_engagement_explicit_security_deny_blocks_spoofed_review() -> None:
+    arguments = _engagement_args(actor="actor:agent:another-reviewer")
+    resource = resolve_authorization_target("work.engagement.advance", arguments).authzen_resource()
+    denial = _engagement_allow("host.work.engagement.advance", resource)
+    denial["outcome"] = "DENY"
+    denial["reason"] = "principal-not-bound-to-claimed-actor"
+    authorizer = FakeAuthorizer(denial)
+    reached = False
+
+    async def owner(_ctx: Any):
+        nonlocal reached
+        reached = True
+        return await _next(_ctx)
+
+    result = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(authorizer)(
+            _ctx(
+                tool="work.engagement.advance",
+                state=_verified_state(),
+                arguments=arguments,
+            ),
+            owner,
+        )
+    )
+    assert result.is_error is True
+    assert result.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_DENIED"
+    assert authorizer.calls[0]["principal_id"] == "principal:local-service:harness"
+    assert authorizer.calls[0]["requested_resource"]["properties"]["claimedActorRef"] == (
+        "actor:agent:another-reviewer"
+    )
+    assert reached is False
+
+
+@pytest.mark.parametrize(
+    "action",
+    [
+        {"type": "offer", "consumerActorRef": {"fake": "actor:reviewer"}},
+        {"type": "review", "decision": "impersonated"},
+        {"type": "review", "decision": ["accepted"]},
+    ],
+)
+def test_work_engagement_invalid_authorization_resource_fails_before_pdp(action) -> None:
+    authorizer = FakeAuthorizer()
+    reached = False
+
+    async def forbidden_owner(_ctx: Any):
+        nonlocal reached
+        reached = True
+        return await _next(_ctx)
+
+    rejected = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(authorizer)(
+            _ctx(
+                tool="work.engagement.advance",
+                state=_verified_state(),
+                arguments={**_engagement_args(), "action": action},
+            ),
+            forbidden_owner,
+        )
+    )
+    assert rejected.is_error is True
+    assert rejected.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_TARGET_INVALID"
+    assert authorizer.calls == []
+    assert reached is False
+
+
+def test_work_engagement_real_ingress_then_security_pep_does_not_promote_actor_claim(
+    tmp_path: Path,
+) -> None:
+    """One actual ASGI verified-ingress → AuthZEN PEP contract (not a real PDP).
+
+    A bearer establishes a *service principal*. It cannot turn actorRef in a
+    Tool argument into an authenticated actor or a Consumer acceptance.
+    """
+    bearer_file = tmp_path / "test-local-gateway-bearer"
+    bearer_file.write_text("b" * 64)
+    bearer_file.chmod(0o600)
+    request = _engagement_args(actor="actor:agent:unrelated-claimed-consumer")
+    target = resolve_authorization_target("work.engagement.advance", request)
+    assert target is not None
+
+    class NoCloudflareNeeded:
+        def verify_identity(self, _token: str):
+            raise AssertionError("local bearer should not invoke Cloudflare verifier")
+
+    async def scenario(token: str, authorizer: FakeAuthorizer):
+        reached: list[str] = []
+        responses: list[dict[str, Any]] = []
+
+        async def downstream(scope, receive, send) -> None:
+            del receive
+            pep = GatewayCapabilityAuthorizationMiddleware(authorizer)
+
+            async def owner(_ctx: Any):
+                reached.append("owner")
+                return await _next(_ctx)
+
+            result = await pep(
+                _ctx(
+                    tool="work.engagement.advance",
+                    state=scope["state"],
+                    arguments=request,
+                ),
+                owner,
+            )
+            responses.append(result)
+            await send({"type": "http.response.start", "status": 204, "headers": []})
+            await send({"type": "http.response.body", "body": b""})
+
+        app = CloudflareAccessMiddleware(
+            downstream,
+            NoCloudflareNeeded(),
+            local_bearer_token_file=str(bearer_file),
+        )
+
+        async def receive():
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        async def send(message: dict[str, Any]):
+            responses.append(message)
+
+        await app(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": "/mcp",
+                "client": ("127.0.0.1", 45521),
+                "headers": [(b"authorization", ("Bearer " + token).encode())],
+                "state": {},
+            },
+            receive,
+            send,
+        )
+        return reached, responses, authorizer.calls
+
+    # No ingress identity: not even a fake ALLOW may bypass HTTP authentication.
+    allowed = FakeAuthorizer(
+        _engagement_allow("host.work.engagement.advance", target.authzen_resource())
+    )
+    reached, _, called = asyncio.run(scenario("wrong-bearer", allowed))
+    assert not reached and not called
+
+    # Authenticated service Principal != claimed reviewer Actor.
+    # Security explicitly denies this binding and the Host cannot be reached.
+    refused = _engagement_allow("host.work.engagement.advance", target.authzen_resource())
+    refused["outcome"] = "DENY"
+    denied = FakeAuthorizer(refused)
+    reached, results, called = asyncio.run(scenario("b" * 64, denied))
+    assert not reached
+    assert called[0]["principal_id"] == "principal:local-service:harness"
+    assert called[0]["requested_resource"]["properties"]["claimedActorRef"] == (
+        "actor:agent:unrelated-claimed-consumer"
+    )
+    assert results[0].structured_content["error"]["code"] == "CAPABILITY_AUTHZ_DENIED"
+
+    # This is only a simulated structural positive, not proof an installed
+    # Security PDP or Actor binding policy exists in production.
+    approved = FakeAuthorizer(
+        _engagement_allow("host.work.engagement.advance", target.authzen_resource())
+    )
+    reached, _, _ = asyncio.run(scenario("b" * 64, approved))
+    assert reached == ["owner"]
