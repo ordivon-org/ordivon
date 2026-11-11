@@ -1,9 +1,33 @@
 # Ordivon Capital Architecture
 
+## Finance capability bindings: observed source vs mature candidates (2026-11-11)
+
+This table is a dated, source-bound navigation aid at Git revision
+`c2ab551a4c858d8a960a117eba66a0d9d9310a6a`; it is not a second
+registry, a claim of production installation, or a required owner topology.
+A logical LEGO is a contract, not a permanent source package or service.
+
+| Logical consumer requirement | Observed Capital implementation | Mature implementation to qualify | Standing at this SourceCut |
+| --- | --- | --- | --- |
+| Historical ETF data and virtual returns | `markets/historical_close_snapshot.py` and `portfolio/paper_investment.py` | Qlib data workflow / Nautilus Parquet catalog | Local replay; external provider/PIT origin unverified |
+| Experiment freezing and candidate review | `research/experiment_protocol.py`, `research/investment_candidate.py` | Qlib Workflow/Recorder + RD-Agent | Local protocol; upstream workflow not bound |
+| Mathematical portfolio optimization | `portfolio/algebraic_policy.py`, `portfolio/multistage_policy.py` call SciPy HiGHS/SLSQP | PyPortfolioOpt / Riskfolio-Lib | SciPy solver reused; specialized packages not bound |
+| Market execution and recovery | `trading/execution_reconciliation.py`, `trading/paper_fill_calendar.py`; `tools/nautilus_rc4/` is isolated qualification | NautilusTrader execution/backtest/reconciliation | No canonical Nautilus execution consumer |
+| Durable capital records | `accounting/postgres_ledger.py`, `accounting/postgres_paper_close.py` via psycopg | PostgreSQL | Source implementation exists; installed and external settlement truth separate |
+
+`pyproject.toml` pins Python 3.15.1 and does not list Qlib, RD-Agent,
+OpenBB, NautilusTrader, PyPortfolioOpt or Riskfolio-Lib as runtime dependencies.
+At this date, NautilusTrader 2.x candidate Python wheels target 3.13-3.14,
+so its binding must first resolve the language/runtime compatibility boundary.
+Do not infer a Finance implementation from project-name similarity, an
+isolated challenger experiment, or passing static documents.
+
 ## Finance Agent roles / Security authorization composition (2026-11-08)
 
-Finance retains seven source owners. Dynamic Agent roles are task
-instructions, not deployment identities or financial authority. A Research
+Finance does not require seven fixed owner roles. The existing Capital
+packages describe brownfield source layout, not the target architecture.
+Dynamic Agent roles are task instructions, not deployment identities or
+financial authority. A Research
 Director may schedule Discovery, Quant Researcher, Independent Reviewer,
 Portfolio/Risk Challenger and Operations tasks through existing Harness
 and Runtime. No Finance Agent registry, policy engine, new role-owned database
@@ -32,7 +56,8 @@ market execution. Human and Agent procedure is in the existing
 
 ## Finance investment program — source boundary (2026-11-06)
 
-The Finance economic program **reuses** Capital's seven real source owners.
+The current Finance economic prototype **reuses** existing Capital routines;
+its seven directories do not define permanent logical LEGO or fixed owner roles.
 The existing `strategic_contribution.py` and `passive_benchmark.py` are the
 current Investment Mode mechanics. No second passive-index simulator is added.
 The current `investment_candidate.py` owns byte-bound economic candidate
@@ -74,11 +99,13 @@ timestamp attestation remains UNKNOWN. The native acceptance uses
 
 Ordivon Capital is a composition/control plane, not a new financial framework. External standards define semantics and providers own authoritative external reality. Mature implementations are candidates for mechanics until they pass current language, semantic, executable and comparative qualification gates. Ordivon keeps local mechanisms when no external candidate is admitted, while minimizing them to the exact bounded contract.
 
-The currently instantiated Python source-owner packages are Markets, Trading, Portfolio, Risk, Research, Governance, and Accounting. The former monolithic ordivon_capital.market package is retired with no compatibility shim.
+The current Python source tree has Markets, Trading, Portfolio, Risk,
+Research, Governance, and Accounting packages. That is an implementation
+fact, not a required deployment or ownership topology. The former monolithic ordivon_capital.market package is retired with no compatibility shim.
 
-Ordivon Capital is the umbrella. The currently instantiated source-owner domains are `markets/`, `trading/`, `portfolio/`, `risk/`, `research/`, `governance/`, and `accounting/`. No empty Treasury/Compute/Human/etc. packages are created merely to mirror a conceptual taxonomy. `config/capital_domain_taxonomy.json` defines the source-owner taxonomy and `config/external_owner_census.json` is the machine-readable implementation-ownership audit.
+Ordivon Capital is the umbrella. The existing source directories are `markets/`, `trading/`, `portfolio/`, `risk/`, `research/`, `governance/`, and `accounting/`. No empty Treasury/Compute/Human/etc. packages are created merely to mirror a conceptual taxonomy. `config/capital_domain_taxonomy.json` defines the source-owner taxonomy and `config/external_owner_census.json` is the machine-readable implementation-ownership audit.
 
-`Markets` owns observable public market/reference facts, microstructure and streaming qualification. `Trading` owns provider/private reality, order intent, execution feasibility, FIX projection and reconciliation. `Portfolio` owns caller-supplied portfolio counterfactuals and deterministic contribution-only strategic allocation; `Risk` owns exposure and risk measurement; `Research` owns model/evidence validation; `Governance` owns authorization/policy gates; `Accounting` owns durable ledger mechanics. `Execution` is therefore a capability inside Trading rather than a synonym for Capital or Markets.
+`Markets` currently implements observable public market/reference facts, microstructure and streaming qualification. `Trading` currently implements provider/private reality, order intent, execution feasibility, FIX projection and reconciliation. `Portfolio` currently implements caller-supplied portfolio counterfactuals and deterministic contribution-only strategic allocation; `Risk` currently implements exposure and risk measurement; `Research` currently implements model/evidence validation; `Governance` currently implements authorization/policy gates; `Accounting` currently implements durable ledger mechanics. `Execution` is therefore a capability inside Trading rather than a synonym for Capital or Markets.
 
 Canonical flow:
 
