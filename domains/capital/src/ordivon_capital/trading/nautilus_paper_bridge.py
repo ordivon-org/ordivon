@@ -61,15 +61,16 @@ def _instant(value: Any, field: str) -> datetime:
     return value.astimezone(UTC)
 
 
-def _positive_integer(value: Any, field: str) -> int:
+def _positive_integer(value: Any, field: str, *, allow_zero: bool = False) -> int:
     if isinstance(value, bool):
         raise NautilusPaperBridgeError(f"{field}: boolean not accepted")
     try:
         number = Decimal(str(value))
     except InvalidOperation as exc:
         raise NautilusPaperBridgeError(f"{field}: invalid decimal") from exc
-    if not number.is_finite() or number <= 0 or number != number.to_integral_value():
-        raise NautilusPaperBridgeError(f"{field}: positive integral share quantity required")
+    if (not number.is_finite() or (number < 0 if allow_zero else number <= 0)
+        or number != number.to_integral_value()):
+        raise NautilusPaperBridgeError(f"{field}: nonnegative integral share quantity required")
     result = int(number)
     if result >= 2**63:
         raise NautilusPaperBridgeError(f"{field}: quantity exceeds bounded paper model")
@@ -341,6 +342,21 @@ def next_open_native_paper_session(
     report_ids = [_required(order, "client_order_id") for order in orders]
     if len(report_ids) != len(set(report_ids)) or set(report_ids) != cached_ids:
         raise NautilusPaperBridgeError("native report and cache order inventories disagree")
+    # A native Order report is a second, independent witness of the aggregate
+    # filled shares. Individual event equivalence alone does not prove that
+    # each order's total is conserved.
+    totals: Counter[str] = Counter()
+    for fill in fills:
+        totals[_required(fill, "client_order_id")] += _positive_integer(
+            fill.get("last_qty"), "native fill quantity"
+        )
+    for order in orders:
+        quantity = _positive_integer(order.get("quantity"), "native order quantity")
+        filled = _positive_integer(
+            order.get("filled_qty"), "native order filled quantity", allow_zero=True,
+        )
+        if filled > quantity or filled != totals[_required(order, "client_order_id")]:
+            raise NautilusPaperBridgeError("native order filled quantity and fill reports disagree")
     # Every report fill and every cached OrderFilled must agree in the base bridge.
     # It also rejects native correction/void events, off-open executions,
     # fractional shares, unsupported money and mixed account scopes.

@@ -122,7 +122,12 @@ class _NativeCache:
 
 class _NativeNode:
     def __init__(self, scenario, native_orders=None):
-        self.scenario = scenario
+        self.scenario = deepcopy(scenario)
+        for order in self.scenario["orders"]:
+            count = sum(int(f["last_qty"]) for f in self.scenario["fills"]
+                        if f["client_order_id"] == order["client_order_id"])
+            order.setdefault("quantity", str(max(1, count)))
+            order.setdefault("filled_qty", str(count))
         self._orders = native_orders if native_orders is not None else [
             _NativeOrder("C-1", [
                 OrderInitialized({"type": "OrderInitialized", "client_order_id": "C-1"}),
@@ -178,6 +183,33 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
         node._orders.clear()
         with self.assertRaisesRegex(NautilusPaperBridgeError, "empty native cache"):
             next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
+
+    def test_native_order_quantity_conserves_all_report_fills(self):
+        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        for field, value in (("filled_qty", "1"), ("filled_qty", "3"), ("quantity", "1")):
+            with self.subTest(field=field, value=value):
+                e = episode()
+                node = _NativeNode(e)
+                node.scenario["orders"][0][field] = value
+                args = {k: v for k, v in e.items() if k not in ("orders", "fills", "order_events")}
+                with self.assertRaisesRegex(NautilusPaperBridgeError, "filled quantity and fill reports"):
+                    next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
+
+    def test_unfilled_native_order_with_zero_report_qty_remains_valid(self):
+        from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
+        e = episode()
+        node = _NativeNode(e)
+        node.scenario["orders"].append({
+            "client_order_id": "C-UNFILLED", "account_id": "A-001",
+            "instrument_id": "SPY.XNAS", "quantity": "1", "filled_qty": "0",
+            "ts_init": e["orders"][0]["ts_init"],
+        })
+        node._orders.append(_NativeOrder("C-UNFILLED", [
+            OrderInitialized({"type": "OrderInitialized", "client_order_id": "C-UNFILLED"})
+        ]))
+        args = {k: v for k, v in e.items() if k not in ("orders", "fills", "order_events")}
+        result = next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
+        self.assertEqual(len(result.buys), 1)
 
     def test_native_event_is_proven_to_belong_to_cached_order(self):
         from ordivon_capital.trading.nautilus_paper_bridge import next_open_native_paper_session
