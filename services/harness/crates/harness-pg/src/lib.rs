@@ -135,6 +135,73 @@ impl VerifiedProviderReference {
     }
 }
 
+/// Verified metadata-only Tool execution semantic objects from the SAME
+/// single read-only PG CAS/Journal transaction. Unlike arbitrary State,
+/// Snapshot and Observation CAS, these three source kinds contain only
+/// versioned Intent/Fence/Receipt identities and digests, not Tool payloads.
+/// The existence of a verified Tool value is NOT execution authorization.
+#[derive(Clone)]
+pub struct VerifiedToolReference {
+    event_id: String,
+    digest: String,
+    kind: String,
+    value: CanonicalDocument,
+}
+// A Debug representation of the PG Readback is frequently logged by
+// reviewers. Never dump the raw Tool Intent/Fence/Receipt (clientRequestId,
+// recovery identifiers, future owner details) into cross-owner log text.
+impl fmt::Debug for VerifiedToolReference {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("VerifiedToolReference")
+            .field("event_id", &self.event_id)
+            .field("digest", &self.digest)
+            .field("kind", &self.kind)
+            .field("value", &"<redacted>")
+            .finish()
+    }
+}
+
+impl VerifiedToolReference {
+    pub fn event_id(&self) -> &str {
+        &self.event_id
+    }
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+    pub fn kind(&self) -> &str {
+        &self.kind
+    }
+    pub fn value(&self) -> &CanonicalDocument {
+        &self.value
+    }
+}
+
+/// Only SOURCE Snapshot authority binding fields extracted from verified
+/// CAS bytes. Private State, Observation, messages and arbitrary budget JSON
+/// are never exposed. This is an observation, not a dispatch permit.
+#[derive(Debug, Clone)]
+pub struct VerifiedToolSnapshotMetadata {
+    event_id: String,
+    digest: String,
+    fields: CanonicalDocument,
+    exact_source_shape: bool,
+}
+impl VerifiedToolSnapshotMetadata {
+    pub fn event_id(&self) -> &str {
+        &self.event_id
+    }
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+    pub fn fields(&self) -> &CanonicalDocument {
+        &self.fields
+    }
+    pub fn exact_source_shape(&self) -> bool {
+        self.exact_source_shape
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Readback {
     pub projection: RunProjection,
@@ -147,6 +214,12 @@ pub struct Readback {
     /// Provider record's state/Result/Failure attachments actually belong to
     /// the same Run Event; prevents forged unattached Provider CAS.
     pub verified_reference_links: Vec<VerifiedReferenceLink>,
+    /// Qualified *only* for the three Tool metadata CAS kinds. Untrusted
+    /// Event data is still interpreted separately by the B semantic consumer.
+    pub tool_metadata_references: Vec<VerifiedToolReference>,
+    /// Whitelisted active-intent SOURCE Snapshot metadata from the same PG
+    /// transaction; excludes all raw messages, State and Observations.
+    pub tool_snapshot_metadata: Vec<VerifiedToolSnapshotMetadata>,
 }
 
 fn corrupted(message: impl Into<String>) -> ReadError {
@@ -457,9 +530,24 @@ pub fn read_run_readonly(
         .iter()
         .map(|e| (e.event_id.as_str(), e.payload_digest.as_str()))
         .collect();
+    let tool_events: BTreeSet<_> = events
+        .iter()
+        .filter(|e| {
+            matches!(
+                e.event_kind.as_str(),
+                "harness.tool-step-prepared"
+                    | "harness.tool-step-recorded"
+                    | "harness.tool-step-unknown"
+                    | "harness.tool-step-reconciled"
+            )
+        })
+        .map(|e| e.event_id.as_str())
+        .collect();
     let mut payload_edges = BTreeSet::new();
     let mut provider_record_references = Vec::new();
     let mut verified_reference_links = Vec::new();
+    let mut tool_metadata_references = Vec::new();
+    let mut tool_snapshot_metadata = Vec::new();
     for row in edges {
         let event_id: String = row.get("event_id");
         let digest: String = row.get("digest");
@@ -493,6 +581,86 @@ pub fn read_run_readonly(
                             digest,
                             value: decoded,
                         });
+                    } else if tool_events.contains(event_id.as_str())
+                        && kind == "harness-run-snapshot"
+                    {
+                        // The full Snapshot may include arbitrary JSON budget
+                        // metadata. Return only these source identity fields.
+                        const FIELDS: &[&str] = &[
+                            "schemaVersion",
+                            "kind",
+                            "snapshotId",
+                            "harnessRunId",
+                            "assignmentId",
+                            "assignmentGeneration",
+                            "assignmentDigest",
+                            "toolCatalogDigest",
+                            "requestedModelId",
+                            "activeToolStepIntentDigests",
+                            "pauseReason",
+                            "createdAtMs",
+                        ];
+                        let fields = CanonicalDocument::object(
+                            FIELDS
+                                .iter()
+                                .map(|key| {
+                                    (
+                                        (*key).to_owned(),
+                                        decoded.get(key).unwrap_or_else(CanonicalDocument::null),
+                                    )
+                                })
+                                .collect(),
+                        )
+                        .map_err(|_| corrupted("invalid Snapshot projection"))?;
+                        // The Source HarnessRunSnapshot.from_dict rejects
+                        // missing/extra keys. Keep that structural witness
+                        // without returning private discarded field values.
+                        const SOURCE_FIELDS: &[&str] = &[
+                            "schemaVersion",
+                            "kind",
+                            "snapshotId",
+                            "harnessRunId",
+                            "assignmentId",
+                            "assignmentGeneration",
+                            "assignmentDigest",
+                            "sequence",
+                            "toolCatalogDigest",
+                            "requestedModelId",
+                            "effectiveModelId",
+                            "messagesDigest",
+                            "observationDigests",
+                            "activeToolStepIntentDigests",
+                            "remainingBudget",
+                            "pauseReason",
+                            "createdAtMs",
+                        ];
+                        let actual: BTreeSet<_> = decoded
+                            .object_entries()
+                            .into_iter()
+                            .flatten()
+                            .map(|(key, _)| key)
+                            .collect();
+                        let expected: BTreeSet<_> = SOURCE_FIELDS.iter().copied().collect();
+                        tool_snapshot_metadata.push(VerifiedToolSnapshotMetadata {
+                            event_id,
+                            digest,
+                            fields,
+                            exact_source_shape: actual == expected,
+                        });
+                    } else if tool_events.contains(event_id.as_str())
+                        && matches!(
+                            kind.as_str(),
+                            "harness-tool-step-intent"
+                                | "harness-dispatch-fence"
+                                | "harness-tool-step-receipt"
+                        )
+                    {
+                        tool_metadata_references.push(VerifiedToolReference {
+                            event_id,
+                            digest,
+                            kind,
+                            value: decoded,
+                        });
                     }
                 }
             }
@@ -509,12 +677,33 @@ pub fn read_run_readonly(
         events,
         provider_record_references,
         verified_reference_links,
+        tool_metadata_references,
+        tool_snapshot_metadata,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn debug_never_exposes_private_tool_intent_fields() {
+        let token = "private-runtime-request-secret-never-log";
+        let entry = VerifiedToolReference {
+            event_id: "event:private-tool-debug".into(),
+            digest: digest_bytes(token.as_bytes()),
+            kind: "harness-tool-step-intent".into(),
+            value: CanonicalDocument::object(vec![(
+                "clientRequestId".into(),
+                CanonicalDocument::string(token),
+            )])
+            .expect("test CAS semantic object"),
+        };
+        let record = format!("{entry:?}");
+        assert!(record.contains("value: \"<redacted>\""));
+        assert!(!record.contains(token));
+        assert!(record.contains("harness-tool-step-intent"));
+    }
 
     #[test]
     fn unqualified_legacy_requires_verified_cas_digest_first() {

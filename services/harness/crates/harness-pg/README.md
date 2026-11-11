@@ -92,3 +92,17 @@ Python Harness Store.
 Old objects exceeding this reader's frozen nesting/integer-digit limits
 return UnsupportedLegacyRepresentation, not a false CAS corruption claim.
 Consumers must qualify or version those legacy Runs before Rust takeover.
+
+### R17 narrow typed Tool metadata extension (source-only)
+
+The existing read_run_readonly verified CAS edge loop also projects
+VerifiedToolReference values only for Tool Events and official Intent, Fence
+and Receipt CAS kinds. VerifiedToolSnapshotMetadata returns a whitelist of
+authority fields plus exact source schema witness; private Run State,
+observations, arbitrary Snapshot fields and working-view content stay hidden.
+Typed Tool CAS Debug redacts the value (regression tested). No extra SQL,
+CAS codec, PostgreSQL table or writer is introduced.
+
+These are verified observations, not Runtime authority. The B consumer checks
+Event/reference bindings and returns only a bounded recovery posture;
+current fenced physical dispatch and real Owner receipts remain distinct.
