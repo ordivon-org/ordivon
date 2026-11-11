@@ -32,6 +32,7 @@ pub struct PgRuntimeConfig {
 #[derive(Clone, Default)]
 struct ReconciliationCursor {
     key: Option<(i64, String)>,
+    upper_fence: Option<(i64, String)>,
     generation: u64,
 }
 
