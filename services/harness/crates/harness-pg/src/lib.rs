@@ -83,11 +83,58 @@ pub struct RunEvent {
     pub recorded_at_ms: i64,
 }
 
+/// A single Provider record CAS object authenticated inside A's READ ONLY
+/// PG transaction and tied to the exact Run Event reference edge.
+/// No lease, Provider dispatch permission, or revalidation of currentness.
+#[derive(Debug, Clone)]
+pub struct VerifiedProviderReference {
+    event_id: String,
+    digest: String,
+    value: CanonicalDocument,
+}
+/// A validated CAS reference edge, with kind/digest but NO non-Provider
+/// object content exposed to the Agent consumer. Same PG snapshot.
+#[derive(Debug, Clone)]
+pub struct VerifiedReferenceLink {
+    event_id: String,
+    digest: String,
+    kind: String,
+}
+impl VerifiedReferenceLink {
+    pub fn event_id(&self) -> &str {
+        &self.event_id
+    }
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+    pub fn kind(&self) -> &str {
+        &self.kind
+    }
+}
+impl VerifiedProviderReference {
+    pub fn event_id(&self) -> &str {
+        &self.event_id
+    }
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+    pub fn value(&self) -> &CanonicalDocument {
+        &self.value
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Readback {
     pub projection: RunProjection,
     pub contract: CanonicalDocument,
     pub events: Vec<RunEvent>,
+    /// Expose only Provider record references already authenticated against
+    /// the same PG snapshot; do not expose other potentially private CAS.
+    pub provider_record_references: Vec<VerifiedProviderReference>,
+    /// Source-authenticated metadata only, necessary for proving the current
+    /// Provider record's state/Result/Failure attachments actually belong to
+    /// the same Run Event; prevents forged unattached Provider CAS.
+    pub verified_reference_links: Vec<VerifiedReferenceLink>,
 }
 
 fn corrupted(message: impl Into<String>) -> ReadError {
@@ -399,6 +446,8 @@ pub fn read_run_readonly(
         .map(|e| (e.event_id.as_str(), e.payload_digest.as_str()))
         .collect();
     let mut payload_edges = BTreeSet::new();
+    let mut provider_record_references = Vec::new();
+    let mut verified_reference_links = Vec::new();
     for row in edges {
         let event_id: String = row.get("event_id");
         let digest: String = row.get("digest");
@@ -418,7 +467,21 @@ pub fn read_run_readonly(
         let content: Option<Vec<u8>> = row.get("object_content");
         match (kind, len, content) {
             (Some(kind), Some(len), Some(bytes)) => {
-                decode_cas(&digest, &kind, &kind, len, &bytes)?;
+                let decoded = decode_cas(&digest, &kind, &kind, len, &bytes)?;
+                if role == "reference" {
+                    verified_reference_links.push(VerifiedReferenceLink {
+                        event_id: event_id.clone(),
+                        digest: digest.clone(),
+                        kind: kind.clone(),
+                    });
+                    if kind == "harness-provider-call-record" {
+                        provider_record_references.push(VerifiedProviderReference {
+                            event_id,
+                            digest,
+                            value: decoded,
+                        });
+                    }
+                }
             }
             _ => return Err(corrupted("CAS reference edge target missing")),
         }
@@ -431,6 +494,8 @@ pub fn read_run_readonly(
         projection,
         contract,
         events,
+        provider_record_references,
+        verified_reference_links,
     })
 }
 
