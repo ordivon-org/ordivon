@@ -6,6 +6,24 @@ use super::*;
 const RECOVERY_CURRENT_ATTEMPT_SQL: &str = "SELECT a.attempt_id,a.state,a.termination_intent,a.launch_token_digest,a.bundle_path,a.unit_name,a.created_at_ms,a.row_version,a.bundle_digest,j.execution_plan_json,j.operation_digest,a.attempt_number FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.job_id=$1";
 const RELEASE_CURRENT_ATTEMPT_STATE_SQL: &str = "SELECT a.state FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.job_id=$1";
 
+/// An absent or foreign current Attempt is an inconsistent committed
+/// lifecycle identity, not PostgreSQL transport unavailability. Never infer
+/// native effects or Runner custody from the highest historical Attempt.
+fn require_recovery_current_attempt(
+    row: Option<postgres::Row>,
+    job: &str,
+) -> RuntimeResult<postgres::Row> {
+    row.ok_or_else(|| {
+        RuntimeError::new(
+            RuntimeErrorCode::ReconciliationRequired,
+            "committed PG Job has no coherent current Attempt identity",
+            Some("currentAttemptId"),
+            false,
+        )
+        .with_operation_id(job)
+    })
+}
+
 /// Negative evidence may be committed only after a *final* filesystem check.
 /// Runner publishes result.json after completing its command; systemctl/cgroup
 /// probes between an earlier file check and LOST commit can otherwise miss a
@@ -271,10 +289,12 @@ impl PgRuntime {
         db: &mut PgAdmissionStore,
         job: &str,
     ) -> RuntimeResult<(AttemptRecord, RuntimeExecutionPlan, String)> {
-        let r = db
-            .client
-            .query_one(RECOVERY_CURRENT_ATTEMPT_SQL, &[&job])
-            .map_err(io)?;
+        let r = require_recovery_current_attempt(
+            db.client
+                .query_opt(RECOVERY_CURRENT_ATTEMPT_SQL, &[&job])
+                .map_err(io)?,
+            job,
+        )?;
         let a:AttemptRecord=serde_json::from_value(json!({"attemptId":r.get::<_,String>(0),"jobId":job,"attemptNumber":r.get::<_, i64>(11),"state":r.get::<_,String>(1),"terminationIntent":r.get::<_,String>(2),"launchTokenDigest":r.get::<_,String>(3),"bundlePath":r.get::<_,String>(4),"unitName":r.get::<_,String>(5),"createdAtMs":r.get::<_,i64>(6),"rowVersion":r.get::<_,i64>(7),"bundleDigest":r.get::<_,Option<String>>(8)})).map_err(io)?;
         let expected = self
             .config
@@ -1041,11 +1061,41 @@ mod scan_fairness_tests {
             &[],
         )
         .unwrap();
+        let absent = db
+            .query_opt(RECOVERY_CURRENT_ATTEMPT_SQL, &[&"job-a"])
+            .unwrap();
         assert!(
-            db.query_opt(RECOVERY_CURRENT_ATTEMPT_SQL, &[&"job-a"])
-                .unwrap()
-                .is_none(),
+            absent.is_none(),
             "missing authoritative current Attempt must not fall back to history"
+        );
+        let unresolved = require_recovery_current_attempt(absent, "job-a").unwrap_err();
+        assert_eq!(unresolved.code, RuntimeErrorCode::ReconciliationRequired);
+        assert_eq!(unresolved.field.as_deref(), Some("currentAttemptId"));
+        db.execute(
+            "UPDATE jobs SET current_attempt_id='attempt-alien' WHERE job_id='job-a'",
+            &[],
+        )
+        .unwrap();
+        db.execute(
+            "INSERT INTO jobs VALUES ('job-other','attempt-alien','{}','operation-other')",
+            &[],
+        )
+        .unwrap();
+        db.execute(
+            "INSERT INTO attempts VALUES ('attempt-alien','job-other',1,'running',
+               'natural','alien','/tmp/alien','unit-alien',30,0,NULL)",
+            &[],
+        )
+        .unwrap();
+        let foreign = db
+            .query_opt(RECOVERY_CURRENT_ATTEMPT_SQL, &[&"job-a"])
+            .unwrap();
+        assert_eq!(
+            require_recovery_current_attempt(foreign, "job-a")
+                .unwrap_err()
+                .code,
+            RuntimeErrorCode::ReconciliationRequired,
+            "foreign current Attempt must be reconciliation-required, not registry unavailable"
         );
     }
 
