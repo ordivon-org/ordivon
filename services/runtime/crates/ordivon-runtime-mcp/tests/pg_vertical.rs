@@ -1570,6 +1570,202 @@ exec /usr/bin/git "$@"
     );
 }
 
+/// End-to-end native PostgreSQL application regression for the lock/snapshot
+/// boundary: a real PgAdmissionStore.admit() transaction is queued AHEAD of
+/// Workspace.close() while a third session holds the shared global advisory
+/// lock. Once admission commits, close must observe the new accepted Job and
+/// preserve the actual Git worktree. Under old SERIALIZABLE Workspace
+/// transactions the snapshot was pinned BEFORE acquiring the lock, so close
+/// could physically remove a Workspace with a newly accepted active consumer.
+#[test]
+#[ignore = "launches an isolated native PostgreSQL cluster and real Git worktree"]
+fn pg_workspace_close_observes_admission_committed_while_waiting_for_global_lock() {
+    use ordivon_runtime_core::{
+        pg_admission::{PgAdmissionInput, PgAdmissionOutcome, PgAdmissionStore},
+        GitWorkspaceCreateRequest, PgRuntime, PgRuntimeConfig, UniversalExecutorConfig,
+        WorkspaceCloseRequest,
+    };
+
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let workspace_id = format!("ws-r2-lock-{}", Uuid::now_v7().simple());
+    let runtime = PgRuntime::new(PgRuntimeConfig {
+        dsn: format!(
+            "host={} user=runtime_app dbname=postgres",
+            fixture.root.display()
+        ),
+        schema: "fresh".into(),
+        source_sha256: "a".repeat(64),
+        executor: UniversalExecutorConfig {
+            store_root: fixture.root.join("store"),
+            workspace_root: None,
+            workspace_uid: None,
+            workspace_gid: None,
+            runner_path: None,
+            allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+            max_runtime_ms: 30_000,
+            max_output_bytes: 1024 * 1024,
+        },
+    })
+    .unwrap();
+    runtime
+        .open_workspace(&GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: workspace_id.clone(),
+            source_repo: repo.to_string_lossy().into_owned(),
+            source_revision: "HEAD".into(),
+        })
+        .unwrap();
+
+    let job_id = format!("job-{}", Uuid::now_v7());
+    let attempt_id = format!("attempt-{}", Uuid::now_v7());
+    let input = PgAdmissionInput {
+        job_id: job_id.clone(),
+        attempt_id: attempt_id.clone(),
+        reservation_id: format!("reservation-{}", Uuid::now_v7()),
+        principal: "pg-consumer".into(),
+        client_request_id: format!("ws-r2-lease-race-{}", Uuid::now_v7()),
+        request_digest: format!("sha256:{}", "b".repeat(64)),
+        operation_digest: format!("sha256:{}", "c".repeat(64)),
+        workspace_id: workspace_id.clone(),
+        workspace_snapshot_json: "{}".into(),
+        execution_plan_json: "{}".into(),
+        execution_plan_digest: format!("sha256:{}", "d".repeat(64)),
+        launch_token_digest: format!("sha256:{}", "e".repeat(64)),
+        bundle_path: fixture
+            .root
+            .join("store/pg-attempts")
+            .join(&attempt_id)
+            .to_string_lossy()
+            .into_owned(),
+        unit_name: format!("ordivon-pg-{attempt_id}.service"),
+        global_limit: 4,
+        created_at_ms: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64,
+        expected_source_sha256: "a".repeat(64),
+    };
+    let app_dsn = format!(
+        "host={} user=runtime_app dbname=postgres",
+        fixture.root.display()
+    );
+    let mut probe = Client::connect(
+        &format!(
+            "host={} user=postgres dbname=postgres",
+            fixture.root.display()
+        ),
+        NoTls,
+    )
+    .unwrap();
+    // Fixture::new() qualifies an isolated schema, but a fresh superuser
+    // connection begins on public; explicitly scope the lease readback.
+    probe.batch_execute("SET search_path TO fresh").unwrap();
+    let mut holder = fixture
+        .db
+        .build_transaction()
+        .isolation_level(postgres::IsolationLevel::Serializable)
+        .start()
+        .unwrap();
+    holder
+        .query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
+        .unwrap();
+    holder
+        .query_one(
+            "SELECT state FROM _stage_control WHERE id='source' FOR UPDATE",
+            &[],
+        )
+        .unwrap();
+
+    // The two separate codepaths genuinely queue on the SAME global PG lock.
+    let (admit_started, admit_rx) = std::sync::mpsc::sync_channel(1);
+    let admission = thread::spawn(move || {
+        let mut db = PgAdmissionStore::connect(&app_dsn, "fresh").unwrap();
+        admit_started.send(()).unwrap();
+        db.admit(&input)
+    });
+    admit_rx.recv_timeout(Duration::from_secs(4)).unwrap();
+
+    let waiters = |probe: &mut Client| -> i64 {
+        probe
+            .query_one(
+                "SELECT count(*) FROM pg_stat_activity \
+             WHERE wait_event_type='Lock' AND wait_event='advisory'",
+                &[],
+            )
+            .unwrap()
+            .get(0)
+    };
+    let wait_until = |probe: &mut Client, count: i64| {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while waiters(probe) < count {
+            assert!(
+                Instant::now() < deadline,
+                "expected real PG advisory lock wait"
+            );
+            thread::sleep(Duration::from_millis(20));
+        }
+    };
+    wait_until(&mut probe, 1);
+
+    let runtime_for_close = runtime.clone();
+    let id_for_close = workspace_id.clone();
+    let (close_started, close_rx) = std::sync::mpsc::sync_channel(1);
+    let closer = thread::spawn(move || {
+        close_started.send(()).unwrap();
+        runtime_for_close.close_workspace(&WorkspaceCloseRequest {
+            schema_version: 1,
+            workspace_id: id_for_close,
+            force: false,
+            consumer_released: true,
+            expected_source_state_digest: None,
+        })
+    });
+    close_rx.recv_timeout(Duration::from_secs(4)).unwrap();
+    wait_until(&mut probe, 2);
+    // Required global order: holder -> genuine admission -> Workspace.close.
+    holder.commit().unwrap();
+    assert!(
+        matches!(
+            admission.join().unwrap().unwrap(),
+            PgAdmissionOutcome::Created(_)
+        ),
+        "first waiter must durably commit real PG Job and active reservation"
+    );
+    let denied = closer.join().unwrap().expect_err(
+        "Workspace.close must not physically remove a Workspace whose Job committed while it waited on the advisory lock"
+    );
+    assert_eq!(
+        denied.code.as_str(), "CONCURRENCY_LIMIT",
+        "close must see the newly committed Job (rather than a stale SERIALIZABLE snapshot): {denied:?}"
+    );
+    let count: i64 = probe
+        .query_one(
+            "SELECT count(*) FROM jobs j JOIN attempts a ON a.job_id=j.job_id \
+         JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id \
+         WHERE j.job_id=$1 AND j.workspace_id=$2 AND j.resolution IS NULL \
+           AND r.state='active'",
+            &[&job_id, &workspace_id],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        count, 1,
+        "native admission must actually own an active PG lease"
+    );
+    let workspace_root = fixture.root.join("store/workspaces").join(&workspace_id);
+    assert!(workspace_root.is_dir(), "real Git worktree must remain");
+    assert!(
+        runtime
+            .get_workspace(&ordivon_runtime_core::RuntimeWorkspaceGetRequest {
+                schema_version: 1,
+                workspace_id,
+            })
+            .is_ok(),
+        "Git Workspace identity and source must survive the rejected close"
+    );
+}
+
 #[test]
 #[ignore = "launches an isolated native PostgreSQL cluster"]
 fn postgres_runtime_startup_requires_exact_qualified_writer() {

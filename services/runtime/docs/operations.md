@@ -569,6 +569,54 @@ The dashboard reports elapsed, output-idle, and progress-idle time as mechanical
 
 The JSON schema reports separate `health` and `maintenance` states. The deployment projection names the current `releaseEvent` and `releaseDisposition`; a successful explicit rollback supersedes the forward deployment for installed-artifact truth. Exit code `1` is reserved for operational health failures such as service, deployment, Registry, recovery, exact release-artifact inconsistency, or a rollback whose restored artifact set is known but whose coherent source Commit cannot be proven. Maintenance findings such as a stale dirty Workspace produce top-level `status=attention` but retain exit code `0`; automation must inspect `maintenanceAction` when maintenance policy should gate a workflow. Compatibility observations remain advisory deletion evidence: an unreadable or truncated trace, unknown rollback protocol, or incomplete observation window blocks deletion but does not create a health incident. Exit code `2` remains reserved for an invalid invocation or unreadable mandatory input.
 
+## Independent PostgreSQL ReleaseEffect handoff (opt-in, source-only)
+
+A running PostgreSQL Runtime's normal Runner MUST NOT execute a self-release.
+The native PG MCP adapter accepts a release only after both the qualified
+PostgreSQL release record and a running, configured
+ordivon-runtime-pg-release-dispatch.timer are observed. Without these
+conditions release.apply is absent from the actual PG MCP Tool catalog,
+and runtime.describe.structuredReleaseConfigured remains false.
+The existing release.get remains read-only throughout.
+
+The release request contains only clientRequestId, Workspace ID, exact Git
+owner commit, candidate manifest SHA-256 and expected MCP Tool count.
+Runtime validates the clean Workspace and its actual source identity, then
+commits the Job + ReleaseEffect in one PostgreSQL transaction. It never runs
+the release as a general-purpose Workspace command. Exact replay resolves
+the original intent BEFORE new candidate validation.
+
+The independent consumer scripts/ordivon-runtime-pg-release-dispatch
+is a privileged one-shot, driven by the standard native systemd timer
+and service in packaging/systemd/. It reads at most one pending release from
+qualified PostgreSQL, uses a root-owned Operator JSON configuration,
+and invokes the already-tested ordivon-runtime-pg-operator for that exact
+committed effect. PostgreSQL dispatch and immutable receipt semantics
+guard replay, unknown commit, restart recovery, rollback and readback.
+No additional Registry, workflow engine or scheduler is introduced.
+
+Production installation is NOT performed by checking in this source.
+Install the exact source operator and dispatcher under
+/usr/local/libexec/ordivon/, install the hash-locked Python venv, and set
+root-owned independent Operator env/config under /etc/ordivon/. The PG
+Operator DSN and allowed service list are never sent by an MCP caller.
+The Runtime app role must not be able to alter the qualification stage.
+
+After the independent release stage is qualified and the systemd timer
+is installed and running, configure the actual PG Runtime service with:
+
+    ORDIVON_PG_RELEASE_SOURCE_REPO=/root/projects/ordivon/services/runtime
+    ORDIVON_PG_RELEASE_OPERATOR_BIN=/usr/local/libexec/ordivon/ordivon-runtime-pg-operator
+    ORDIVON_PG_RELEASE_RECEIPT_ROOT=/var/lib/ordivon/release-receipts
+    ORDIVON_PG_RELEASE_DISPATCH_TIMER=ordivon-runtime-pg-release-dispatch.timer
+
+These are sample values only, NOT proof of an installed service. Before
+activating a live node, perform disposable PG/systemd whole-chain tests:
+exact admission, durable dispatcher wake-up, native service replacement,
+separate HTTP MCP release.get, source/binary Tool digests, restart and
+rollback. The Windows R6 SQLite backend is NOT addressed by this Linux
+systemd release path.
+
 ## PostgreSQL-native operator release evidence (source, not production rollout)
 
 The PG ReleaseEffect reader, the atomic pre-dispatch admission and the

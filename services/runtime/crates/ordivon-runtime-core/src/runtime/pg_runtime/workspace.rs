@@ -1,7 +1,37 @@
 //! PostgreSQL Runtime Workspace lifecycle and mutation.
 use super::*;
 
+// The advisory lock serializes Job admission, terminal/lease updates and
+// Workspace effects. A PostgreSQL SERIALIZABLE snapshot is frozen when the
+// lock-acquisition SELECT starts, i.e. *before* the transaction actually
+// acquires a contended lock. Such a snapshot can miss newly committed leases,
+// even after the holder releases the lock and this transaction later commits.
+// READ COMMITTED takes the Workspace guard queries' snapshots after the lock
+// is acquired, matching the existing PG scheduler's lock+isolation protocol.
+// The global lock is deliberately retained across Git/FS physical effects:
+// moving them outside this fence requires an independently recoverable intent.
+const WORKSPACE_EFFECT_ISOLATION: postgres::IsolationLevel =
+    postgres::IsolationLevel::ReadCommitted;
+
 impl PgRuntime {
+    /// Common qualified, lock-ordered transaction for every Workspace write.
+    /// Do not take a SERIALIZABLE/REPEATABLE READ snapshot while *waiting* on
+    /// the global advisory lock: it can predate a completed Job admission.
+    fn begin_workspace_effect_tx<'a>(
+        &self,
+        db: &'a mut PgAdmissionStore,
+    ) -> RuntimeResult<postgres::Transaction<'a>> {
+        let mut tx = db
+            .client
+            .build_transaction()
+            .isolation_level(WORKSPACE_EFFECT_ISOLATION)
+            .start()
+            .map_err(io)?;
+        tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
+            .map_err(io)?;
+        self.require_qualified_writer_tx(&mut tx)?;
+        Ok(tx)
+    }
     /// Close only when PG proves no active or held consumer, then reuse the
     /// existing workspace source/dirty/continuation and dependency checks.
     pub fn close_workspace(
@@ -9,15 +39,7 @@ impl PgRuntime {
         request: &WorkspaceCloseRequest,
     ) -> RuntimeResult<WorkspaceCloseResult> {
         let mut db = self.store()?;
-        let mut tx = db
-            .client
-            .build_transaction()
-            .isolation_level(postgres::IsolationLevel::Serializable)
-            .start()
-            .map_err(io)?;
-        tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
-            .map_err(io)?;
-        self.require_qualified_writer_tx(&mut tx)?;
+        let mut tx = self.begin_workspace_effect_tx(&mut db)?;
         let active:i64=tx.query_one(
             "SELECT count(*) FROM jobs j WHERE j.workspace_id=$1 AND (j.resolution IS NULL OR              EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations r              ON r.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND r.state IN ('active','held_orphaned')))",
             &[&request.workspace_id]
@@ -53,15 +75,7 @@ impl PgRuntime {
         request: &WorkspaceMutateRequest,
     ) -> RuntimeResult<WorkspaceMutateResult> {
         let mut db = self.store()?;
-        let mut tx = db
-            .client
-            .build_transaction()
-            .isolation_level(postgres::IsolationLevel::Serializable)
-            .start()
-            .map_err(io)?;
-        tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
-            .map_err(io)?;
-        self.require_qualified_writer_tx(&mut tx)?;
+        let mut tx = self.begin_workspace_effect_tx(&mut db)?;
         request
             .validate_shape()
             .map_err(super::super::error::map_universal_error)?;
@@ -286,15 +300,7 @@ impl PgRuntime {
         request: &GitWorkspaceCreateRequest,
     ) -> RuntimeResult<CompactWorkspaceOpenResult> {
         let mut db = self.store()?;
-        let mut tx = db
-            .client
-            .build_transaction()
-            .isolation_level(postgres::IsolationLevel::Serializable)
-            .start()
-            .map_err(io)?;
-        tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
-            .map_err(io)?;
-        self.require_qualified_writer_tx(&mut tx)?;
+        let tx = self.begin_workspace_effect_tx(&mut db)?;
         let mut result = universal::create_git_workspace(&self.config.executor, request)
             .map_err(super::super::error::map_universal_error)?;
         workspace_effect_commit(tx.commit(), "workspace.open")?;
@@ -303,5 +309,117 @@ impl PgRuntime {
                 .to_string(),
         );
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod workspace_lock_snapshot_tests {
+    use super::*;
+    use std::sync::mpsc;
+
+    /// Reproduce the actual PostgreSQL advisory-lock MVCC order, not an
+    /// in-memory model. All writes are confined to an explicitly disposable
+    /// ORDIVON_PG_TEST_DSN. A Job inserted by the preceding lock owner MUST
+    /// be visible to Workspace.close/mutate after acquiring that same lock.
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+    fn native_pg_workspace_lock_wait_observes_newly_committed_job_lease() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("dedicated disposable PostgreSQL cluster required");
+        let mut admin = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        let table = format!("runtime_workspace_lock_{}", uuid::Uuid::now_v7().simple());
+        admin
+            .batch_execute(&format!("CREATE TABLE {table} (job_id TEXT PRIMARY KEY)"))
+            .unwrap();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            for (legacy, expected) in [(true, 0_i64), (false, 1_i64)] {
+                admin
+                    .batch_execute(&format!("TRUNCATE TABLE {table}"))
+                    .unwrap();
+                let mut holder = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+                let mut waiter = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+                let waiter_pid: i32 = waiter
+                    .query_one("SELECT pg_backend_pid()", &[])
+                    .unwrap()
+                    .get(0);
+                let mut holder_tx = holder
+                    .build_transaction()
+                    .isolation_level(postgres::IsolationLevel::Serializable)
+                    .start()
+                    .unwrap();
+                holder_tx
+                    .query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
+                    .unwrap();
+                holder_tx
+                    .execute(
+                        &format!("INSERT INTO {table} VALUES ('admitted-before-release')"),
+                        &[],
+                    )
+                    .unwrap();
+
+                let (started, observed) = mpsc::sync_channel::<()>(1);
+                let selected = table.clone();
+                let thread = std::thread::spawn(move || {
+                    let mut waiting_tx = waiter
+                        .build_transaction()
+                        .isolation_level(if legacy {
+                            postgres::IsolationLevel::Serializable
+                        } else {
+                            WORKSPACE_EFFECT_ISOLATION
+                        })
+                        .start()
+                        .unwrap();
+                    started.send(()).unwrap();
+                    waiting_tx
+                        .query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
+                        .unwrap();
+                    let count: i64 = waiting_tx
+                        .query_one(
+                            &format!(
+                                "SELECT count(*) FROM {selected} WHERE job_id='admitted-before-release'"
+                            ),
+                            &[],
+                        )
+                        .unwrap()
+                        .get(0);
+                    waiting_tx.commit().unwrap();
+                    count
+                });
+                observed
+                    .recv_timeout(std::time::Duration::from_secs(2))
+                    .unwrap();
+                let deadline = std::time::Instant::now() + std::time::Duration::from_secs(4);
+                loop {
+                    let waiting = admin
+                        .query_one(
+                            "SELECT wait_event_type='Lock' AND wait_event='advisory' \
+                         FROM pg_stat_activity WHERE pid=$1",
+                            &[&waiter_pid],
+                        )
+                        .unwrap();
+                    if waiting.get::<_, Option<bool>>(0) == Some(true) {
+                        break;
+                    }
+                    assert!(
+                        std::time::Instant::now() < deadline,
+                        "second PG transaction never waited on the actual advisory lock"
+                    );
+                    std::thread::sleep(std::time::Duration::from_millis(20));
+                }
+                // Only now may the prior Job admission complete. SERIALIZABLE
+                // already pinned its MVCC snapshot before this COMMIT;
+                // READ COMMITTED takes its next snapshot after this COMMIT.
+                holder_tx.commit().unwrap();
+                let seen = thread.join().unwrap();
+                assert_eq!(
+                    seen, expected,
+                    "Workspace SQL must see a newly committed Job after lock acquisition; legacy SERIALIZABLE is a negative control"
+                );
+            }
+        }));
+        admin.batch_execute(&format!("DROP TABLE {table}")).unwrap();
+        if let Err(panic) = result {
+            std::panic::resume_unwind(panic);
+        }
     }
 }
