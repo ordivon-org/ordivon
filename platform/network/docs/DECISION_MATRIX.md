@@ -222,7 +222,7 @@ R12 makes two independent, three-valued observations before effects:
 | Installed SourceCut | Running process birth-order witness | Allowed effect |
 | --- | --- | --- |
 | MATCH | MATCH | Idempotent start; no installation or restart |
-| MATCH | DRIFT | Owner-only target restart; **no redundant installation** |
+| MATCH | DRIFT or inactive process | Owner-only target restart; **no redundant installation** |
 | DRIFT | MATCH or DRIFT | Existing owner materialization, local restart, then re-observe both |
 | UNKNOWN or other axis UNKNOWN | Any | No installation, restart, or guessed rollback |
 
@@ -236,6 +236,9 @@ reject a stale or changing observation. For these five static
 Type=simple sing-box services, a process created
 **before** a subsequent installed file metadata change is proven too old;
 its owner restart was missed or an independent owner rewrote its config.
+An inactive main service with source files still MATCH is also PROCESS DRIFT:
+the activation target itself may already be active while its child is not.
+The natural owner target restart, not an unqualified target start, is needed.
 The file SourceCut remains separate from this process freshness check.
 Malformed systemd replies, changed unit/PID, wrong executable inode,
 non-matching complete invocation, symlinks, invalid clock ordering and

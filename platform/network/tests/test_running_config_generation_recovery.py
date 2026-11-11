@@ -107,7 +107,7 @@ def test_native_systemd_process_epoch_exposes_interrupted_release(
         failed_unit = run(cfg, {**env, "FAKE_BUS_STATE": "failed"})
         assert failed_unit.returncode != 0 and "UNKNOWN" in failed_unit.stderr
         inactive = run(cfg, {**env, "FAKE_BUS_STATE": "inactive", "FAKE_BUS_PID": "0"})
-        assert (inactive.returncode, inactive.stdout.strip()) == (0, "MATCH")
+        assert (inactive.returncode, inactive.stdout.strip()) == (0, "DRIFT")
         # A source symlink never becomes a trustworthy installed generation.
         cfg.unlink()
         cfg.symlink_to(tmp_path / "other")

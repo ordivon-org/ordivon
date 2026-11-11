@@ -245,7 +245,11 @@ def running_unit_stale(
         != (exe_after.st_dev, exe_after.st_ino, exe_after.st_mtime_ns)):
         raise Unknown("runtime executable identity changed during observation")
     if state == "inactive":
-        return False
+        # There is no loaded process generation to trust. In particular, a
+        # target may remain active even when an individual required child
+        # exited; start(target) alone is not a reliable recovery operation.
+        # The existing scoped target restart must re-evaluate its children.
+        return True
     file_change_ns = max(second.st_mtime_ns, second.st_ctime_ns)
     born_ns = born_us * 1000
     now = time.time_ns()
