@@ -693,3 +693,209 @@ async fn concurrent_space_creation_has_one_authoritative_subject_set() {
         .get(0);
     assert_eq!(count, 1);
 }
+
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18 Schema13"]
+async fn message_read_and_unicode_search_exact_and_integrity() {
+    let mut db = connect().await;
+    let (actor, space, topic) = seed(&db, "msg-search-r4").await;
+    let a = input(
+        "msg-search-r4-first",
+        &actor,
+        &space,
+        &topic,
+        "中文检索词 alpha evidence",
+    );
+    let mut b = input(
+        "msg-search-r4-second",
+        &actor,
+        &space,
+        &topic,
+        "中文检索词 beta evidence",
+    );
+    b.message_ref = "message:msg-search-r4-second".into();
+    b.client_request_id = "request:msg-search-r4-second".into();
+    let first = social::post_message(&mut db, &a).await.unwrap();
+    let second = social::post_message(&mut db, &b).await.unwrap();
+    let read = social::get_message(&mut db, &a.message_ref, None)
+        .await
+        .unwrap();
+    assert_eq!(read["kind"], "ordivon.host-message-read");
+    assert_eq!(read["messageDigest"], first["messageDigest"]);
+    assert!(
+        social::get_message(&mut db, &a.message_ref, Some("sha256:wrong"))
+            .await
+            .is_err()
+    );
+    assert!(
+        social::get_message(&mut db, "message:search:r4:missing", None)
+            .await
+            .is_err()
+    );
+    let mut q = social::SearchMessages {
+        query: "中文检索词".into(),
+        space_ref: Some(space.clone()),
+        topic_ref: Some(topic.clone()),
+        before_sequence: None,
+        limit: 1,
+        max_bytes: 131_072,
+    };
+    let p1 = social::search_messages(&mut db, &q).await.unwrap();
+    assert_eq!(p1["hasMore"], true);
+    assert_eq!(p1["messages"][0]["messageRef"], second["messageRef"]);
+    assert!(p1["truthBoundary"]
+        .as_str()
+        .unwrap()
+        .starts_with("PostgreSQL CJK indexed Unicode-gram locator"));
+    q.before_sequence = p1["nextBeforeSequence"].as_i64();
+    let p2 = social::search_messages(&mut db, &q).await.unwrap();
+    assert_eq!(p2["hasMore"], false);
+    assert_eq!(p2["messages"][0]["messageRef"], first["messageRef"]);
+    assert!(p2["nextBeforeSequence"].is_null());
+    q.before_sequence = None;
+    q.limit = 100;
+    q.query = "中文".into();
+    let literal = social::search_messages(&mut db, &q).await.unwrap();
+    assert_eq!(literal["messages"].as_array().unwrap().len(), 2);
+    q.query = "alpha".into();
+    let fts = social::search_messages(&mut db, &q).await.unwrap();
+    assert_eq!(fts["messages"].as_array().unwrap().len(), 1);
+    assert_eq!(fts["messages"][0]["messageRef"], first["messageRef"]);
+    q.before_sequence = Some(0);
+    assert!(social::search_messages(&mut db, &q).await.is_err());
+    q.before_sequence = None;
+    q.max_bytes = 1024;
+    assert!(social::search_messages(&mut db, &q).await.is_err());
+    db.execute(
+        "UPDATE messages SET message_digest=$1 WHERE message_ref=$2",
+        &[&format!("sha256:{}", "0".repeat(64)), &a.message_ref],
+    )
+    .await
+    .unwrap();
+    assert!(matches!(
+        social::get_message(&mut db, &a.message_ref, None).await,
+        Err(social::SocialError::Integrity(_))
+    ));
+    q.query = "中文检索词".into();
+    q.max_bytes = 131_072;
+    assert!(matches!(
+        social::search_messages(&mut db, &q).await,
+        Err(social::SocialError::Integrity(_))
+    ));
+}
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18 Schema13"]
+async fn search_byte_budget_returns_stable_cursor() {
+    let mut db = connect().await;
+    let (actor, space, topic) = seed(&db, "msg-search-long-r4").await;
+    let body = format!("中文检索词 {}", "汉".repeat(30_000));
+    let a = input("msg-search-long-r4-one", &actor, &space, &topic, &body);
+    let mut b = input("msg-search-long-r4-two", &actor, &space, &topic, &body);
+    b.message_ref = "message:msg-search-long-r4-two".into();
+    b.client_request_id = "request:msg-search-long-r4-two".into();
+    let one = social::post_message(&mut db, &a).await.unwrap();
+    let two = social::post_message(&mut db, &b).await.unwrap();
+    let mut q = social::SearchMessages {
+        query: "中文检索词".into(),
+        space_ref: Some(space),
+        topic_ref: Some(topic),
+        before_sequence: None,
+        limit: 2,
+        max_bytes: 131_072,
+    };
+    let p = social::search_messages(&mut db, &q).await.unwrap();
+    assert_eq!(p["hasMore"], true);
+    assert_eq!(p["messages"].as_array().unwrap().len(), 1);
+    assert_eq!(p["messages"][0]["messageRef"], two["messageRef"]);
+    q.before_sequence = p["nextBeforeSequence"].as_i64();
+    let last = social::search_messages(&mut db, &q).await.unwrap();
+    assert_eq!(last["hasMore"], false);
+    assert_eq!(last["messages"][0]["messageRef"], one["messageRef"]);
+}
+
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18 Schema13 and Python original Host"]
+async fn original_python_message_read_and_search_match_native_rust_exactly() {
+    let mut db = connect().await;
+    let (actor, space, topic) = seed(&db, "python-search-r4").await;
+    let first = input(
+        "python-search-r4-first",
+        &actor,
+        &space,
+        &topic,
+        "中文检索词 alpha evidence",
+    );
+    let mut second = input(
+        "python-search-r4-second",
+        &actor,
+        &space,
+        &topic,
+        "中文检索词 beta evidence",
+    );
+    second.message_ref = "message:python-search-r4-second".into();
+    second.client_request_id = "request:python-search-r4-second".into();
+    social::post_message(&mut db, &first).await.unwrap();
+    social::post_message(&mut db, &second).await.unwrap();
+    let read = social::get_message(&mut db, &first.message_ref, None)
+        .await
+        .unwrap();
+    let mut queries = serde_json::Map::new();
+    for (text, limit) in [
+        ("中文检索词", 1i64),
+        ("中文", 100),
+        ("alpha", 100),
+        ("nonexistent_r4", 100),
+    ] {
+        queries.insert(
+            text.to_string(),
+            social::search_messages(
+                &mut db,
+                &social::SearchMessages {
+                    query: text.into(),
+                    space_ref: Some(space.clone()),
+                    topic_ref: Some(topic.clone()),
+                    before_sequence: None,
+                    limit,
+                    max_bytes: 524_288,
+                },
+            )
+            .await
+            .unwrap(),
+        );
+    }
+    let rust = json!({"read":read,"queries":queries});
+    let python = r#"
+import json, os
+from ordivon_host_v2.social_store import SocialStore
+assert os.environ["HOST_RUST_TEST_DSN"]==os.environ["ORDIVON_HOST_V2_DSN"]
+store=SocialStore(os.environ["HOST_RUST_TEST_DSN"])
+first=os.environ["B_R4_MESSAGE_REF"]
+space=os.environ["B_R4_SPACE_REF"]
+topic=os.environ["B_R4_TOPIC_REF"]
+queries={q:store.search_messages(q,space_ref=space,topic_ref=topic,limit=limit,max_bytes=524288)
+ for q,limit in (("中文检索词",1),("中文",100),("alpha",100),("nonexistent_r4",100))}
+print(json.dumps({"read":store.get_message(first),"queries":queries},ensure_ascii=False))
+"#;
+    let output = std::process::Command::new("uv")
+        .current_dir(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap(),
+        )
+        .args(["run", "--offline", "python", "-c", python])
+        .env("B_R4_MESSAGE_REF", &first.message_ref)
+        .env("B_R4_SPACE_REF", &space)
+        .env("B_R4_TOPIC_REF", &topic)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "python original oracle: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let parsed: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(
+        rust, parsed,
+        "Python original and Rust native message query projections differ"
+    );
+}

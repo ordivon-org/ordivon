@@ -28,13 +28,80 @@ pub enum AttentionError {
     #[error("CONFLICT: {0}")]
     Conflict(String),
     #[error("NOT_FOUND: {0}")]
-    NotFound(String),
+    NotFound(MissingResource),
     #[error("INTEGRITY_ERROR: {0}")]
     Integrity(String),
     #[error(transparent)]
     Database(#[from] tokio_postgres::Error),
 }
 
+/// Closed set of Host entities, not a free-form string or parsed error text.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MissingKind {
+    Actor,
+    Work,
+    Space,
+    Topic,
+    Message,
+}
+impl MissingKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Actor => "actor",
+            Self::Work => "work",
+            Self::Space => "space",
+            Self::Topic => "topic",
+            Self::Message => "message",
+        }
+    }
+}
+/// Domain-owned missing-resource identity: the MCP adapter can consume
+/// kind/ref without guessing from legacy Display text.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MissingResource {
+    kind: MissingKind,
+    reference: String,
+    legacy_text: String,
+}
+impl MissingResource {
+    pub fn kind(&self) -> &'static str {
+        self.kind.as_str()
+    }
+    pub fn reference(&self) -> &str {
+        &self.reference
+    }
+}
+impl std::fmt::Display for MissingResource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.legacy_text)
+    }
+}
+impl std::ops::Deref for MissingResource {
+    type Target = str;
+    fn deref(&self) -> &str {
+        &self.legacy_text
+    }
+}
+impl AttentionError {
+    pub fn not_found(kind: MissingKind, reference: &str) -> Self {
+        let label = if kind == MissingKind::Actor {
+            "actor_ref"
+        } else {
+            kind.as_str()
+        };
+        Self::NotFound(MissingResource {
+            kind,
+            reference: reference.to_owned(),
+            legacy_text: format!("{label} {reference}"),
+        })
+    }
+    pub fn not_found_resource(&self) -> Option<(&'static str, &str)> {
+        match self {
+            Self::NotFound(value) => Some((value.kind(), value.reference())),
+            _ => None,
+        }
+    }
+}
 pub type Result<T> = std::result::Result<T, AttentionError>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -43,6 +110,15 @@ pub enum TargetKind {
     Work,
     Space,
     Topic,
+}
+impl From<TargetKind> for MissingKind {
+    fn from(value: TargetKind) -> Self {
+        match value {
+            TargetKind::Work => Self::Work,
+            TargetKind::Space => Self::Space,
+            TargetKind::Topic => Self::Topic,
+        }
+    }
 }
 impl TargetKind {
     pub const fn as_str(self) -> &'static str {
@@ -146,7 +222,7 @@ pub(crate) async fn require_actor(tx: &Transaction<'_>, actor: &str) -> Result<(
         .await?
         .is_none()
     {
-        return Err(AttentionError::NotFound(format!("actor_ref {actor}")));
+        return Err(AttentionError::not_found(MissingKind::Actor, actor));
     }
     Ok(())
 }
@@ -161,10 +237,7 @@ async fn require_target(tx: &Transaction<'_>, kind: TargetKind, target: &str) ->
         .await?
         .is_none()
     {
-        return Err(AttentionError::NotFound(format!(
-            "{} {target}",
-            kind.as_str()
-        )));
+        return Err(AttentionError::not_found(MissingKind::from(kind), target));
     }
     Ok(())
 }
@@ -780,6 +853,25 @@ pub async fn list_subscriptions(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn not_found_resource_is_typed_without_parsing_display_text() {
+        let actor = AttentionError::not_found(MissingKind::Actor, "actor:test:typed");
+        assert_eq!(
+            actor.not_found_resource(),
+            Some(("actor", "actor:test:typed"))
+        );
+        assert_eq!(actor.to_string(), "NOT_FOUND: actor_ref actor:test:typed");
+        let topic = AttentionError::not_found(MissingKind::Topic, "topic:test:typed");
+        assert_eq!(
+            topic.not_found_resource(),
+            Some(("topic", "topic:test:typed"))
+        );
+        assert_eq!(topic.to_string(), "NOT_FOUND: topic topic:test:typed");
+        assert_eq!(
+            AttentionError::Conflict("x".into()).not_found_resource(),
+            None
+        );
+    }
     #[test]
     fn safe_cursor_and_budgets_are_checked_before_pg_effects() {
         assert!(validate_cursor(-1, "cursor").is_err());

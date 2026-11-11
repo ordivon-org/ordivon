@@ -9,7 +9,9 @@ use serde_json::{json, Value};
 use tokio_postgres::{Client, Row};
 
 pub use crate::attention::AttentionError as SocialError;
-use crate::attention::{claim_receipt, digest, exact_time, record_receipt, require_actor};
+use crate::attention::{
+    claim_receipt, digest, exact_time, record_receipt, require_actor, MissingKind,
+};
 type Result<T> = std::result::Result<T, SocialError>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -224,7 +226,7 @@ pub async fn post_message(client: &mut Client, value: &PostMessage) -> Result<Va
         .await?
         .is_none()
     {
-        return Err(SocialError::NotFound(format!("space {}", value.space_ref)));
+        return Err(SocialError::not_found(MissingKind::Space, &value.space_ref));
     }
     // FOR NO KEY UPDATE prevents post/close overtaking while FK KEY SHARE stays legal.
     let topic = tx
@@ -233,7 +235,7 @@ pub async fn post_message(client: &mut Client, value: &PostMessage) -> Result<Va
             &[&value.topic_ref],
         )
         .await?
-        .ok_or_else(|| SocialError::NotFound(format!("topic {}", value.topic_ref)))?;
+        .ok_or_else(|| SocialError::not_found(MissingKind::Topic, &value.topic_ref))?;
     if topic.get::<_, String>("space_ref") != value.space_ref {
         return Err(SocialError::Conflict(
             "topic does not belong to supplied space".into(),
@@ -322,7 +324,7 @@ pub async fn set_topic_state(
             &[&topic_ref],
         )
         .await?
-        .ok_or_else(|| SocialError::NotFound(format!("topic {topic_ref}")))?;
+        .ok_or_else(|| SocialError::not_found(MissingKind::Topic, topic_ref))?;
     let high: i64 = tx
         .query_one(
             "SELECT COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=$1",
@@ -405,7 +407,7 @@ pub async fn ack_topic_cursor(
         .await?
         .is_none()
     {
-        return Err(SocialError::NotFound(format!("topic {topic_ref}")));
+        return Err(SocialError::not_found(MissingKind::Topic, topic_ref));
     }
     let high: i64 = tx
         .query_one(
@@ -539,7 +541,7 @@ pub async fn add_message_relation(
             &[&value.source_message_ref],
         )
         .await?
-        .ok_or_else(|| SocialError::NotFound(format!("message {}", value.source_message_ref)))?;
+        .ok_or_else(|| SocialError::not_found(MissingKind::Message, &value.source_message_ref))?;
     match value.relation {
         MessageRelationKind::ReplyTo
         | MessageRelationKind::Acknowledges
@@ -550,7 +552,7 @@ pub async fn add_message_relation(
                     &[&value.target_ref],
                 )
                 .await?
-                .ok_or_else(|| SocialError::NotFound(format!("message {}", value.target_ref)))?;
+                .ok_or_else(|| SocialError::not_found(MissingKind::Message, &value.target_ref))?;
             let ss: String = source.get("space_ref");
             let st: String = source.get("topic_ref");
             let ts: String = target.get("space_ref");
@@ -650,7 +652,7 @@ pub async fn resume_topic(
             &[&topic_ref],
         )
         .await?
-        .ok_or_else(|| SocialError::NotFound(format!("topic {topic_ref}")))?;
+        .ok_or_else(|| SocialError::not_found(MissingKind::Topic, topic_ref))?;
     let topic_wire = json!({
         "topicRef":topic.get::<_,String>("topic_ref"),
         "spaceRef":topic.get::<_,String>("space_ref"),
@@ -759,7 +761,7 @@ pub async fn get_topic_cursor(
         .await?
         .is_none()
     {
-        return Err(SocialError::NotFound(format!("topic {topic_ref}")));
+        return Err(SocialError::not_found(MissingKind::Topic, topic_ref));
     }
     let current = tx
         .query_opt(
@@ -856,10 +858,10 @@ pub async fn create_topic(client: &mut Client, command: &CreateTopic) -> Result<
         .await?
         .is_none()
     {
-        return Err(SocialError::NotFound(format!(
-            "space {}",
-            command.space_ref
-        )));
+        return Err(SocialError::not_found(
+            MissingKind::Space,
+            &command.space_ref,
+        ));
     }
     require_actor(&tx, &command.actor_ref).await?;
     let inserted = tx
@@ -942,7 +944,7 @@ pub async fn set_participation(
         .await?
         .is_none()
     {
-        return Err(SocialError::NotFound(format!("space {space_ref}")));
+        return Err(SocialError::not_found(MissingKind::Space, space_ref));
     }
     require_actor(&tx, actor_ref).await?;
     let inserted = tx
@@ -1068,7 +1070,7 @@ async fn space_projection_in_tx(
             &[&space_ref],
         )
         .await?
-        .ok_or_else(|| SocialError::NotFound(format!("space {space_ref}")))?;
+        .ok_or_else(|| SocialError::not_found(MissingKind::Space, space_ref))?;
     let subject_count: i64 = tx
         .query_one(
             "SELECT count(*) FROM space_subjects WHERE space_ref=$1",
@@ -1352,3 +1354,6 @@ mod tests {
         .is_ok());
     }
 }
+
+mod message_queries;
+pub use message_queries::{get_message, search_messages, SearchMessages};

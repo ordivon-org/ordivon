@@ -193,18 +193,24 @@ try:
     expected_failure = _domain_error_payload(
         ConflictError("after_sequence cannot exceed current change horizon")
     )
-    rust_error_text = invalid_high["content"][0]["text"]
-    try:
-        rust_error_payload = json.loads(rust_error_text)
-    except json.JSONDecodeError:
-        rust_error_payload = None
-    envelope_parity = rust_error_payload == expected_failure
-    print(
-        "B_ATTENTION_ERROR_ENVELOPE_"
-        + ("MATCH" if envelope_parity else "GAP")
-        + f" python_code={expected_failure['code']}"
-        + f" rust_is_json={rust_error_payload is not None}"
-    )
+    rust_error = invalid_high.get("structuredContent", {}).get("error")
+    assert rust_error == expected_failure, (rust_error, expected_failure)
+    assert invalid_high["content"][0]["text"].startswith(
+        "Error executing tool attention.delta:"
+    ), invalid_high
+    print("B_ATTENTION_ERROR_ENVELOPE_MATCH python_code=CONFLICT structuredContent=EXACT")
+
+    absent_actor = f"actor:test:missing-b-parity:{suffix}"
+    missing = call("attention.delta", {"actorRef": absent_actor, "afterSequence": 0}, error=True)
+    missing_payload = missing.get("structuredContent", {}).get("error", {})
+    assert missing_payload.get("code") == "NOT_FOUND", missing
+    if missing_payload.get("resourceKind") != "actor":
+        print("B_ATTENTION_MISSING_RESOURCE_KIND_GAP"
+              f" source_kind=actor rust_kind={missing_payload.get('resourceKind')}")
+    else:
+        assert missing_payload["resourceRef"] == absent_actor
+        print("B_ATTENTION_TYPED_NOT_FOUND_MCP_MATCH")
+
     call("attention.delta", {"actorRef": actor, "afterSequence": 0, "maxBytes": 100}, error=True)
     call("attention.delta", {"actorRef": actor, "afterSequence": -1}, error=True)
 
