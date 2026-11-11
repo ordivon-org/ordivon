@@ -39,7 +39,8 @@ def test_wireguard_materialization_is_native_and_does_not_expose_private_key():
     assert "VPN_SERVICE_PROVIDER=surfshark" in env
     assert "WIREGUARD_ADDRESSES=10.64.200.9/16" in env
     assert 'SERVER_REGIONS="Asia Pacific"' in env
-    assert "SERVER_COUNTRIES=Singapore,Japan" in env
+    assert "SERVER_COUNTRIES=Singapore" in env
+    assert "SERVER_COUNTRIES=Singapore,Japan" not in env
     assert "UPDATER_PERIOD=480h" in env
     # Existing Gluetun-native LAN route retains on-LAN Tailnet directness.
     assert env.count("FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/24") == 1

@@ -5,6 +5,11 @@ use crate::resource_scheduling::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
+// A current Attempt belongs to exactly one Job. The schema does not enforce
+// uniqueness of jobs.current_attempt_id, so bind both identities at the query
+// boundary instead of trusting a potentially stale/corrupted pointer.
+const PENDING_JOBS_SQL: &str = "SELECT j.job_id,j.principal,j.execution_plan_json,a.attempt_id FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.resolution IS NULL AND j.desired_state='run' AND a.state='accepted' AND NOT EXISTS(SELECT 1 FROM job_runtime_release_effects r WHERE r.job_id=j.job_id) ORDER BY j.created_at_ms,j.job_id";
+
 /// Immutable PG candidate snapshot. Dominant shares are rescored after every
 /// successful allocation; execution plans need not be queried or decoded again.
 struct PendingCandidate {
@@ -24,6 +29,12 @@ struct PendingCandidate {
 #[derive(Default)]
 struct SchedulerPreflight {
     reserved_cpu: u64,
+    // Claims made after the single native node observation this scheduling
+    // pass are not yet reflected in MemAvailable / pids.current. Existing
+    // allocations are already included in that OS observation and must not
+    // be charged again here.
+    newly_reserved_memory: u64,
+    newly_reserved_pids: u64,
     active_attempts: BTreeSet<String>,
     leases: BTreeMap<String, Vec<WorkspaceAccess>>,
 }
@@ -45,9 +56,13 @@ impl SchedulerPreflight {
             u64::from(candidate.spec.resources.cpu_millis),
             node.cpu_millis,
             candidate.spec.resources.memory_bytes,
-            node.memory_available_bytes.saturating_sub(memory_reserve),
+            node.memory_available_bytes
+                .saturating_sub(memory_reserve)
+                .saturating_sub(self.newly_reserved_memory),
             u64::from(candidate.spec.resources.pids),
-            node.pids_available.saturating_sub(64),
+            node.pids_available
+                .saturating_sub(64)
+                .saturating_sub(self.newly_reserved_pids),
         ) {
             return false;
         }
@@ -61,6 +76,17 @@ impl SchedulerPreflight {
             })
     }
 
+    /// One-pass filter of candidates already known to be infeasible in the
+    /// current immutable native/PG snapshot. Subsequent allocations can only
+    /// tighten this preflight; final authority remains the PG claim.
+    fn retain_initially_feasible(
+        &self,
+        candidates: &mut Vec<PendingCandidate>,
+        node: &NodeResources,
+    ) {
+        candidates.retain(|candidate| self.allows(candidate, node));
+    }
+
     fn record_allocation(&mut self, candidate: &PendingCandidate) -> bool {
         if !self.active_attempts.insert(candidate.attempt_id.clone()) {
             return false;
@@ -68,6 +94,12 @@ impl SchedulerPreflight {
         self.reserved_cpu = self
             .reserved_cpu
             .saturating_add(u64::from(candidate.spec.resources.cpu_millis));
+        self.newly_reserved_memory = self
+            .newly_reserved_memory
+            .saturating_add(candidate.spec.resources.memory_bytes);
+        self.newly_reserved_pids = self
+            .newly_reserved_pids
+            .saturating_add(u64::from(candidate.spec.resources.pids));
         self.leases
             .entry(candidate.workspace_id.clone())
             .or_default()
@@ -228,7 +260,7 @@ impl PgRuntime {
     pub fn schedule_pending_jobs(&self) -> RuntimeResult<serde_json::Value> {
         let mut db = self.store()?;
         // Idle queue wakeups should not read host resources or every Allocation.
-        let candidates=db.client.query("SELECT j.job_id,j.principal,j.execution_plan_json,a.attempt_id FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id WHERE j.resolution IS NULL AND j.desired_state='run' AND a.state='accepted' AND NOT EXISTS(SELECT 1 FROM job_runtime_release_effects r WHERE r.job_id=j.job_id) ORDER BY j.created_at_ms,j.job_id",&[]).map_err(io)?;
+        let candidates = db.client.query(PENDING_JOBS_SQL, &[]).map_err(io)?;
         if candidates.is_empty() {
             return Ok(json!({"considered":0,"attempted":0}));
         }
@@ -276,6 +308,10 @@ impl PgRuntime {
                 spec,
             });
         }
+        // Drop candidates that cannot fit this snapshot before repeated
+        // priority/DRF rescoring. A new committed Allocation only tightens
+        // the preflight; the inner loop must still recheck after each grant.
+        preflight.retain_initially_feasible(&mut ranked, &node);
         let mut dispatched = 0_u32;
         while dispatched < 32 && !ranked.is_empty() {
             let Some(index) = next_candidate(&ranked, &usage, &node) else {
@@ -497,5 +533,141 @@ mod scheduler_candidate_tests {
         usage.insert("a".into(), (100, 0, 0));
         assert_eq!(next_candidate(&candidates, &usage, &node()), Some(1));
         assert_eq!(next_candidate(&[], &usage, &node()), None);
+    }
+
+    #[test]
+    fn preflight_accounts_for_new_claims_not_yet_visible_in_native_snapshot() {
+        let node = realistic_node();
+        let mut first = candidate("a", 0, 0);
+        first.spec.resources.memory_bytes = 600 * 1024 * 1024;
+        let mut second = candidate("b", 0, 1);
+        second.workspace_id = "other-workspace".into();
+        second.spec.resources.memory_bytes = 600 * 1024 * 1024;
+
+        let mut preflight = SchedulerPreflight::default();
+        assert!(preflight.allows(&first, &node));
+        assert!(preflight.record_allocation(&first));
+        assert_eq!(preflight.newly_reserved_memory, 600 * 1024 * 1024);
+        // No second PG claim/cgroup scan for a capacity estimate already
+        // contradicted by allocations made since the OS snapshot.
+        assert!(!preflight.allows(&second, &node));
+        // An already admitted Attempt must still resume idempotently.
+        assert!(preflight.allows(&first, &node));
+        assert!(!preflight.record_allocation(&first));
+        assert_eq!(preflight.newly_reserved_memory, 600 * 1024 * 1024);
+
+        let mut fresh = SchedulerPreflight::default();
+        fresh.active_attempts.insert(first.attempt_id.clone());
+        fresh.reserved_cpu = u64::from(first.spec.resources.cpu_millis);
+        // Old active reservations already reflected by native observation
+        // must not be double-charged to the newly reserved budget.
+        assert!(fresh.allows(&second, &node));
+    }
+
+    #[test]
+    fn preflight_accounts_for_unobserved_pid_reservations() {
+        let node = realistic_node();
+        let mut first = candidate("a", 0, 0);
+        first.spec.resources.pids = 6_000;
+        let mut second = candidate("b", 0, 1);
+        second.workspace_id = "other-workspace".into();
+        second.spec.resources.pids = 6_000;
+
+        let mut preflight = SchedulerPreflight::default();
+        assert!(preflight.allows(&first, &node));
+        assert!(preflight.record_allocation(&first));
+        assert_eq!(preflight.newly_reserved_pids, 6_000);
+        assert!(!preflight.allows(&second, &node));
+        assert!(preflight.allows(&first, &node));
+        assert!(!preflight.record_allocation(&first));
+        assert_eq!(preflight.newly_reserved_pids, 6_000);
+    }
+
+    #[test]
+    fn initial_preflight_keeps_late_eligible_and_existing_idempotent_attempts() {
+        let node = realistic_node();
+        let mut preflight = SchedulerPreflight::default();
+        preflight
+            .leases
+            .insert("busy".into(), vec![WorkspaceAccess::default()]);
+        let mut ranked = (0..3_000)
+            .map(|order| {
+                let mut candidate = candidate("blocked", 0, order);
+                candidate.workspace_id = "busy".into();
+                candidate
+            })
+            .collect::<Vec<_>>();
+        // Existing Allocation must be revisited even when a Workspace lease
+        // would otherwise reject a second new claim.
+        preflight
+            .active_attempts
+            .insert(ranked[0].attempt_id.clone());
+        let mut tail = candidate("eligible", 10, 3_000);
+        tail.workspace_id = "independent".into();
+        ranked.push(tail);
+
+        preflight.retain_initially_feasible(&mut ranked, &node);
+        assert_eq!(ranked.len(), 2);
+        assert_eq!(ranked[0].order, 0);
+        assert_eq!(ranked[1].order, 3_000);
+        assert_eq!(next_candidate(&ranked, &BTreeMap::new(), &node), Some(1));
+    }
+
+    #[test]
+    fn initial_preflight_does_not_skip_candidates_later_blocked_by_new_claims() {
+        let node = realistic_node();
+        let mut preflight = SchedulerPreflight::default();
+        let mut first = candidate("a", 1, 0);
+        first.workspace_id = "workspace-1".into();
+        first.spec.resources.memory_bytes = 600 * 1024 * 1024;
+        let mut second = candidate("b", 0, 1);
+        second.workspace_id = "workspace-2".into();
+        second.spec.resources.memory_bytes = 600 * 1024 * 1024;
+        let mut ranked = vec![first, second];
+
+        // Both fit the initial OS snapshot. Removing either would violate
+        // Priority/DRF/FIFO eligibility, even if only one can later commit.
+        preflight.retain_initially_feasible(&mut ranked, &node);
+        assert_eq!(ranked.len(), 2);
+        assert_eq!(next_candidate(&ranked, &BTreeMap::new(), &node), Some(0));
+        assert!(preflight.record_allocation(&ranked.remove(0)));
+        assert!(!preflight.allows(&ranked[0], &node));
+    }
+
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+    fn native_pg_pending_requires_attempt_to_belong_to_its_job() {
+        // This intentionally reproduces a cross-Job current_attempt_id link:
+        // attempts.attempt_id is PK but jobs.current_attempt_id is not UNIQUE.
+        // TEMP tables keep this test isolated from any persistent Registry.
+        let dsn =
+            std::env::var("ORDIVON_PG_TEST_DSN").expect("explicit disposable PG test DSN required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        db.batch_execute(
+            "CREATE TEMP TABLE jobs (
+                job_id text PRIMARY KEY,
+                principal text NOT NULL,
+                execution_plan_json text NOT NULL,
+                current_attempt_id text NOT NULL,
+                resolution text,
+                desired_state text NOT NULL,
+                created_at_ms bigint NOT NULL
+             );
+             CREATE TEMP TABLE attempts (
+                attempt_id text PRIMARY KEY,
+                job_id text NOT NULL,
+                state text NOT NULL
+             );
+             CREATE TEMP TABLE job_runtime_release_effects(job_id text PRIMARY KEY);
+             INSERT INTO jobs VALUES
+                ('job-a','principal-a','{}','attempt-a',NULL,'run',1),
+                ('job-b','principal-b','{}','attempt-a',NULL,'run',2);
+             INSERT INTO attempts VALUES ('attempt-a','job-a','accepted');",
+        )
+        .unwrap();
+        let found = db.query(PENDING_JOBS_SQL, &[]).unwrap();
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].get::<_, String>(0), "job-a");
+        assert_eq!(found[0].get::<_, String>(3), "attempt-a");
     }
 }

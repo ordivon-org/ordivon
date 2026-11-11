@@ -20,7 +20,7 @@ BASE_ENV = Path("/etc/network-v2/gluetun/serialized-candidate.env")
 NATIVE_ENV = Path("/etc/network-v2/gluetun/serialized-native.env")
 SECRET = "network-v2-gluetun-surfshark-wgkey"
 REGION = "Asia Pacific"
-COUNTRIES = "Singapore,Japan"
+COUNTRIES = "Singapore"
 
 PRESERVED = (
     "HTTPPROXY",
@@ -151,7 +151,7 @@ def main() -> None:
         )
     print(
         "native_profile=" + ("APPLIED" if args.apply else "VERIFIED" if args.verify else "VALID")
-        + " provider=surfshark wireguard=eligible region=Asia_Pacific countries=Singapore,Japan key=REDACTED"
+        + f" provider=surfshark wireguard=eligible region=Asia_Pacific countries={COUNTRIES} key=REDACTED"
     )
 
 

@@ -3,7 +3,7 @@
 **Current physical owner:** `providers/gluetun/`. The selected production
 provider is **one** Gluetun Quadlet with native `VPN_SERVICE_PROVIDER=surfshark`,
 WireGuard credentials provided through a Podman Secret, and a country-restricted
-native Gluetun server selector (`Singapore,Japan`). See
+native Gluetun server selector (`Singapore`). See
 `providers/gluetun/README.md` for the SourceCut and real consumer acceptance.
 
 This directory owns only the Surfshark-specific **legacy recovery input**
