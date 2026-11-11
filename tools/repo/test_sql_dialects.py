@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from tools.repo.check_sql_dialects import (
     OSQUERY_DEFAULT_TIMEOUT_SECONDS,
     OSQUERY_TIMEOUT_SECONDS,
+    POSTGRESQL_HOST_ATTENTION_DELTA,
     POSTGRESQL_RUNTIME_EPOCH,
     POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER,
     ROOT,
@@ -280,6 +281,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"), "postgresql")
         self.assertEqual(classify("services/runtime/sql/pg_resource_scheduler_v1.sql"), "postgresql")
         self.assertEqual(classify("catalogs/capabilities/ele/schema.sql"), "postgresql")
+        self.assertEqual(classify(POSTGRESQL_HOST_ATTENTION_DELTA), "postgresql")
 
     @staticmethod
     def _pg_ast_statement(kind: str, relation: str | None = None,
