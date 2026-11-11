@@ -303,3 +303,86 @@ The existing T0–T5 are a **task DAG**, not sequential theater. Treat dependenc
 - **Scoped blocker:** named missing source, authority, installed owner, dynamic edge or external observation; UNKNOWN remains explicitly bounded, not converted to an indefinite generic request for more planning.
 
 The leadership goal is not a count of mathematics terms, Specs, proof artifacts, agents or PRs. It is a system in which independent errors are detectable by the correct native owner while qualified work continues to deliver value.
+
+## 15. Stock-only modernization and file-by-file audit execution (2026-11-10)
+
+**Current user scope overrides growth work in T0–T5/T11–T14:** first inspect and simplify the **existing** source tree. Do not add features, tests, consumers, framework services, formal axioms, schema fields, or new experimental/weak-model evaluation. Running **existing** native Owner checks and existing formal proof tasks is permitted. The earlier feature-delivery DAG remains historical context, not authorization for incremental construction in this pass. In particular, TDD is upstream engineering discipline, not a reason to create tests that the current user has explicitly deferred.
+
+### 15.1 Exact local source and exhaustive mechanical inventory
+
+The immutable audit baseline is Git `ef17d6879d12faa61fff3bb762b0d500d73c9113`; use a fresh SourceCut when beginning a subsequent Owner file batch, never silently mix cuts. A read-only pass enumerated **all 5,002 tracked files**, their actual bytes, SHA-256, extension and physical existence: 123,199,041 bytes, zero missing paths, 4,938 NUL-free files, 99 files larger than 80 KB, 23 groups of byte-identical files with 42 excess entries. Every one of **1,460 Python sources** was AST-parsed without syntax error. This is **complete mechanical enumeration, not 5,002 manually completed semantic code reviews**, and not evidence that another language or live service passed verification.
+
+`git ls-files -z` and `git rev-parse HEAD` are the file-authoritative per-file readset. Use the existing `tools/repo/owners.toml` for owner projection; a path match is not a proof of live reachability. Do not commit 5,002 duplicated metadata records or build a second source catalog. At the chosen SourceCut, the Owner distribution is:
+
+| Area / natural Owner | Tracked files | Area / natural Owner | Tracked files |
+| --- | ---: | --- | ---: |
+| Harness | 731 | Media | 553 |
+| Runtime | 452 | Repository/shared | 441 |
+| Artifact | 425 | Capital | 399 |
+| Game | 387 | Authority Catalog | 376 |
+| Workstation | 265 | Network | 236 |
+| Security | 162 | Host | 117 |
+| Gateway | 107 | Composition | 86 |
+| Capability Catalog | 77 | Preservation | 46 |
+| Skills | 45 | Web | 35 |
+| Distribution | 30 | Data | 19 |
+| Chaoxing Autosign | 11 | Control Plugin | 2 |
+
+These numbers partition the snapshot by **longest declared `root` prefix**; shared/region-bound files can have different responsibility from their top directory, so inspect the applicable `paths`/`source_regions` selectors before moving or retiring them. The top-level actual tree remains `services/`, `capabilities/`, `domains/`, `platform/`, `catalogs/`, `packages/`, `docs/`, `tools/`, `studies/`, `.agents/`, `extensions/`, `apps/` and the root orchestration files. Python, JSON, Markdown, Rust, TypeScript, Godot, SQL, TLA+/Lean, scripts and binary media all require different observations; do not impose one universal code style or parser.
+
+### 15.2 Adopted thought LEGOs for this audit — real decisions only
+
+| Mature theory / source | Decision this changes | Concrete Ordivon check | Non-claim / misuse to avoid |
+| --- | --- | --- | --- |
+| Parnas, [information hiding in decomposition](https://doi.org/10.1145/361598.361623), 1972 | Split by volatile **design decision**, not directory/line count | Does Runtime own physical effect truth while Harness owns Run? Does Host own Work meaning, not PG execution? | Owner map or short files alone do not establish modularity. |
+| Ousterhout / Matt `codebase-design`, deep modules and narrow seams | Is interface knowledge small relative to meaningful behavior behind it? | `services/harness/src/ordivon_harness/ordivon/loop.py` `_run` ~2,121 lines; `run_continuity.py` 3,186 lines; `services/runtime/scripts/mcp_e2e.py` `run_journey` ~1,615 lines: investigate responsibilities/branch reasons, not automatic splitting | Large file != defect; extracted shallow wrappers can make design worse. |
+| Design Structure Matrix / graph SCCs | Where do change coupling, cycles and authority leakage create repeated work? | Actual import/call/CLI/SQL/deployment/readback edges, not static import-only or module names | Static `git grep` absence != no dynamic or production consumer. |
+| R2.1 typed A/G, Hoare/wp, Liskov/Wing, CEGAR | Will a deletion/replacement weaken an existing responsibility? | Under equal behavior domain, accepted inputs `A_old ⊆ A_new`; guarantees of new implementation must refine old consumer expectations; prove named owner side conditions and frame effects | Formula alone is not code proof; `UNKNOWN` is not absent. |
+| Lamport safety + conditional liveness | Does cleanup preserve active use, and also terminate genuinely idle garbage? | Existing Runtime Workspace closure, Host snapshots, Postgres foreign keys and recovery, not a second coordinator | Unqualified eventual completion or age-only retirement is unsound. |
+| Toyota [Jidoka / remove waste](https://global.toyota/en/company/vision-and-philosophy/production-system/) | Block observed *bad effects at natural seam*, delete redundant planning and checks | Correct historical registration guard exists; wrong current-looking spec and unconsumed wrappers should leave current tree | Do not convert Jidoka into global human approval. |
+| Goldratt [Theory of Constraints](https://www.lean.org/lexicon-terms/theory-of-constraints/) + feedback control | Improve real constraint rather than maximize local cleanup counts | Runtime/Host installed currentness, Agent-to-domain acceptance and missing truthful receipts; observe after each changed owner | File reduction or PR count != user value or proven system throughput. |
+| Matt `to-spec` / `to-tickets` / two-axis review; ECC scoped hooks and on-demand Skills; Superpowers isolated worktrees / debugging / verification | One current Spec, smallest independently owned **maintenance** slice, existing native CI, review Standards and Spec | This document and current Owner `mise`; Git Merge Queue and Host Space for cross-audit | Never vendor the three whole skill trees, create new tests/tickets per file, install a hook engine or require independent approval for routine deletion. |
+
+A **thinking LEGO** is a method responsibility with an independently useful contract, not an obligation to create a file, owner or proof for each theory. An independent newly admitted LEGO still needs the full canonical eleven-coordinate R2.1 declaration; no new LEGO is admitted by this table. Select the *smallest* lens that changes the file decision.
+
+### 15.3 Per-file disposition procedure — a readset, not a governance platform
+
+For each **existing** path in the exact snapshot, first inspect bytes and file type (not just name), locate its natural Owner, read closest `AGENTS.md` / Owner README, and inspect actual imports, entrypoints, command names, `mise` tasks, GitHub workflow references, manifest/resource loading, exact refs, and dynamic/service consumers where material. Assign a local review standing: `MECHANICALLY_ENUMERATED`, `SOURCE_INSPECTED`, `EXTERNAL_CONSUMER_UNKNOWN`, or `OWNER_NATIVE_VERIFIED` — these are review-note words, **not** a new persisted enum, workflow or compliance checker. Never describe mechanically enumerated files as semantically certified.
+
+Use the first decisive disposition:
+
+1. **RETIRE:** wrong/stale authority, duplicate plan or implementation with no distinct present consumer; Git retains exact historical bytes. Strip the affected live links that would otherwise dangle.
+2. **REUSE:** an existing deep native Owner or qualified mature upstream service already owns the responsibility; remove wrappers and alternate truth paths instead of implementing parallel code.
+3. **MERGE/COMPOSE:** two responsibilities share a justified stable contract; collapse duplicated logic while preserving distinct effect domains, migrations, lockfiles and independently meaningful evidence.
+4. **REPAIR:** real defect in *existing* behavior or contract, with a concrete observed failure and an available existing native check; no new features/tests/consumer wiring this pass.
+5. **KEEP:** an independently useful responsibility, license/source material, historical witness, distinct provenance, or live/dynamic consumer cannot be safely replaced by one exact blob or deletion.
+6. **SCOPED UNKNOWN:** unresolved execution/consumer readset is meaningful and cannot be derived from static graph. State the exact missing readback and continue other eligible files. Avoid blanket HOLD for unrelated garbage.
+
+Review test source, JSON/profile/evidence and production source separately: an exact SHA duplicate is only a **candidate** for collapsing **storage responsibility**, not grounds to erase independent run provenance, repeated QC claims, legal licenses, reproducible fixture identity, project media, or a shared lockfile. Git's own object deduplication already means duplicate contents need not consume duplicate unique Git blobs.
+
+### 15.4 Owner file fronts and known, non-speculative source hotspots
+
+| Auditable existing files (exact paths) | Decision/frontier | Required existing check / do not touch other Owner |
+| --- | --- | --- |
+| `docs/architecture/AGENT_OUTCOME_CONSTRAINT_EXECUTION_SPEC_R1.md` | **RETIRE via existing peer PR #2010 (not duplicated here)**: 220-line source-current-looking duplicate, no current tracked named consumer; its `SUBSTITUTE` accepted-input inclusion is backwards relative to canonical Lean `narrowed_assumptions_cannot_substitute`. Unique historic CE01–CE12 remain exactly addressable by this Git SourceCut. | Existing root architecture check, `repo:ci`, Skills verification; no new test. |
+| `docs/architecture/AGENT_CONTRACT_EXECUTION_SPEC_R1.md`; `.agents/skills/method-router/` | **KEEP/CONSOLIDATE** only canonical existing Spec/Skill; existing PR #1993 and #2003 merged source navigation. This section is a stock-audit mode, not a second Spec. | Existing Skills search/resolve/read and root checks. |
+| `docs/architecture/AGENT_OUTCOME_REALIZATION_R21_SPEC_20261109.md` | **KEEP AS HISTORICAL PROOF/RESEARCH**: #1985 supplied unique math and Host readset context, not a second current execution entry. | Git history/source identity; no automatic deletion from missing static imports. |
+| `services/harness/planning/HARNESS_AGENT_TASK_REFINEMENT_SPEC_R1.md` | Weak-model T6 falsely blocks T7 in baseline; **REUSE PR #1991** (open) which already removes ablation and changes T6 to independent refinement. Do not duplicate edit. | Harness Owner existing native verify when #1991 integrates; until then source state distinct from installed. |
+| `services/harness/src/ordivon_harness/ordivon/{loop,run_continuity}.py`; `services/harness/src/ordivon_harness/sqlite_store.py` | **SOURCE INSPECT NEXT:** large decision core, continuity semantics, legacy writer presence; PG cutover PRs #1859 merged / #1875/#1867 open. Establish exact dynamic/direct imports before deleting old code or splitting methods. | Existing `harness:verify`; no guessed SQLite retirement based only on filename. |
+| `services/runtime/scripts/mcp_e2e.py`; `services/runtime/crates/ordivon-runtime-core/src/runtime/tests.rs`; lifecycle/cache modules | **SOURCE INSPECT NEXT:** long `run_journey`, large test source, workspace/PG/cache semantics; #1998 and #1999 independently own runtime and Repo sourceCut corrections. | Existing `runtime:verify`; do not rewrite in another Owner PR. |
+| `services/host/src/ordivon_host_v2/`; PG schema13 Doctor | **KEEP current terminal Work identity**, whose real references were found by Host peer; separate incomplete history from stored snapshot integrity. No production SQL writes in this stock pass. | Existing `host:verify` and actual `host.status(detail=history)` if needed. |
+| `capabilities/artifact/artifact_verification/claim_coverage.py`; `capabilities/media/productions/` | Artifact claim/witness misbinding peer #1974 is a genuine separate defect, assigned to Artifact Owner; Media binaries over 40 MB are authored product evidence, not automatic junk. | `artifact:verify`, `media:verify` only when changed; no automatic image/video dedup. |
+| `tools/repo/{affected_owners,check_architecture_docs,exhaustive_coverage}.py`; `packages/composition/` | **SOURCE INSPECT NEXT:** large source/graph validators, actual code/line obligations; Repo #1999 ongoing, independent Git source identity already implemented. | Existing `repo:ci`; do not create a second architecture-graph service. |
+| `domains/game/`, `domains/capital/`, `packages/data/`, `platform/{network,security,workstation}/`, catalog and distribution/preservation/apps | **Owner-local** verification of source responsibility and whether upstream mechanisms (Godot, PostgreSQL, systemd/Ansible, provider CLIs, native formal tools) already replace custom scripts; do not reorder or unify owner environments. | Only the affected Owner's documented existing checks, one PR per independent coherent change. |
+
+### 15.5 Complete implementation sequence and stop conditions (no additions)
+
+- **S0 — freeze source and overlap (DONE for this SourceCut):** `git rev-parse`, `git ls-files -z`, owner roots, exact open PR changed paths, actual Space read; partition all files by natural Owner. This audit did not inspect every code body manually.
+- **S1 — mechanical file inventory (DONE for this SourceCut):** per-file byte/read/hash/extension, 1,460 Python AST parses and exact duplicate group census. Do not equate this with tests for Rust/TypeScript/Godot or with semantics.
+- **S2 — semantic responsibility audit (ONGOING):** first inspect changed/critical public implementation per Owner; for each compare current interface with Parnas volatility, DSM edge, deep-module responsibility, historical/installed/effect consumers; leave a *decision-backed* note in the existing PR/Owner document, not a new database. Positive absence of static imports alone is insufficient for live deletion.
+- **S3 — subtraction (FIRST SLICE):** the peer-owned PR #2010 retires the wrong duplicate Spec; integrate that native subtraction rather than submit a competing deletion. Apply other owner-local reductions only after S2 for their current paths. For other refactors, choose the natural Owner's smallest coherent patch only after S2 for those files.
+- **S4 — existing verification and independent two-axis audit:** run only unchanged Owner/root native tasks after each affected patch; review **(a) did it satisfy this stock-only Spec and original external contract?** and **(b) did it simplify source while respecting Owner boundaries and maintenance standards?** Reject test/CI skips as PASS; but do not mandate proof projects for a simple obsolete document deletion.
+- **S5 — integrate and verify source identity:** inspect current main again, rebase if needed, PR and Merge Queue. Report exactly source-submitted, CI, merged and installed independently. If docs/source only, explicitly avoid claiming physical installed effect or achieved domain performance. Delete redundant alternative planning carriers when their unique evidence remains in Git/history, not because an Agent has simply classified them.
+- **S6 — next Owner file batch:** repeat S2–S5 for all remaining existing files with significant maintenance/consumer value; close an Owner batch when every targeted file has a concrete KEEP/REUSE/MERGE/REPAIR/RETIRE or a bounded, evidenced UNKNOWN, existing native checks pass, and duplication/complexity did not shift into a newly invented framework. Across the repo, **semantic file-by-file audit completion is still OPEN**.
+
+**Explicit zero-growth constraint:** no new test cases, formal model fixtures, consumer wiring, product behavior, Agent roles, service processes, code-generation harnesses, package managers, Skills or capability catalogs this pass. Existing checks are verification instruments, not new work. Engineering debt is discharged by fewer truthful responsibilities and current useful source, not by a larger audit bureaucracy.
