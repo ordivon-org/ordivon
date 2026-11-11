@@ -24,6 +24,7 @@ from typing import Any
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
+from mcp_probe import McpClient
 
 _RELEASE_SCRIPT = Path(__file__).with_name("ordivon-runtime-deploy")
 # This is the same import strategy used by Runtime's existing deployment
@@ -636,6 +637,80 @@ def finalize_receipted_release(
     return {**result,"replayed":True,"pgTerminal":terminal,"resultDigest":result_digest}
 
 
+def verified_release_consumer(
+    args: argparse.Namespace, result: dict[str, Any],
+) -> None:
+    """Reuse the existing authenticated Rust release.get standing for a terminal effect.
+
+    The Operator owns physical installation and PostgreSQL commit; it does not
+    own another independent terminal-event verifier. Only the current native
+    MCP projection has already checked the lifecycle, terminal event digests,
+    immutable receipt, and owner-bound Attempt in one qualified PG readback.
+    A lost reply or corrupted PG event must be inconclusive, not an optimistic
+    report of a previously committed systemd effect.
+    """
+    terminal = result.get("pgTerminal")
+    status = result.get("status")
+    expected = {
+        "deployed": ("succeeded", "deployed"),
+        "not_committed": ("failed", "not_committed"),
+        "rolled_back": ("failed", "rolled_back"),
+    }.get(status)
+    if expected is None or terminal != expected[0]:
+        raise RuntimeError("RECONCILIATION_REQUIRED: unqualified release terminal standing")
+    environment = DEPLOY["load_environment_file"](args.env_file)
+    bind = environment.get("ORDIVON_PG_BIND")
+    token = environment.get("ORDIVON_PG_TOKEN")
+    if not bind or not token or len(token) < 32:
+        raise RuntimeError("RECONCILIATION_REQUIRED: native PG MCP credential missing")
+    try:
+        client = McpClient(
+            f"http://{bind}/mcp", token, "ordivon-runtime-pg-operator-standing",
+            timeout=min(15.0, max(1.0, args.wait_seconds)),
+        )
+        projection = client.call_tool(
+            "release.get", {"clientRequestId": args.client_request_id},
+        )
+    except Exception as error:
+        # Do not return a false successful replay if Rust's verified PG
+        # terminal journal readback or the actual consumer endpoint is down.
+        raise RuntimeError(
+            "RECONCILIATION_REQUIRED: canonical release.get did not verify the effect"
+        ) from error
+    receipt = args.receipt_root / f"effect-{args.effect_id}" / "result.json"
+    try:
+        receipt_digest = digest(receipt.read_bytes())
+    except OSError as error:
+        raise RuntimeError(
+            "RECONCILIATION_REQUIRED: operator receipt changed during readback"
+        ) from error
+    required = {
+        "effectId": args.effect_id,
+        "clientRequestId": args.client_request_id,
+        "commit": args.commit,
+        "candidateManifestDigest": args.candidate_manifest_digest,
+        "expectedToolCount": args.expected_tool_count,
+        "effectDisposition": expected[1],
+        "executionDisposition": terminal,
+        "receiptDigest": receipt_digest,
+        "effectTerminal": True,
+        "executionTerminal": True,
+        "receiptAvailable": True,
+        "recoveryRequired": False,
+        "semanticCompletionEvaluated": False,
+    }
+    if any(projection.get(name) != value for name, value in required.items()):
+        raise RuntimeError(
+            "RECONCILIATION_REQUIRED: canonical release.get disagrees with operator receipt"
+        )
+    if status == "deployed" and (
+        projection.get("deployedToolCount") != args.expected_tool_count
+    ):
+        raise RuntimeError(
+            "RECONCILIATION_REQUIRED: verified release Tool count mismatch"
+        )
+
+
 def operator_approved_systemd_services() -> frozenset[str]:
     """Host-operator-owned authority, never a caller-supplied CLI allowlist."""
     raw = os.environ.get("ORDIVON_PG_RELEASE_ALLOWED_SERVICES_JSON")
@@ -683,10 +758,12 @@ def apply_release(args: argparse.Namespace) -> dict[str, Any]:
             request = effect_request(args,bound)
             receipt = args.receipt_root / f"effect-{args.effect_id}"
             if receipt.exists():
-                # A verified full terminal result can finalize PostgreSQL
-                # metadata after a lost prior response. It cannot dispatch
-                # again. A partial/inconsistent result is reconciliation-only.
-                return finalize_receipted_release(conn,args,request)
+                # Reconcile durable PG metadata once, then require the SAME
+                # authenticated terminal standing read by release.get.
+                # No binary restart or new effect is performed on this path.
+                final = finalize_receipted_release(conn,args,request)
+                verified_release_consumer(args, final)
+                return final
             qualified_operator(conn,args.source_sha256,lock=False)
             physical_preflight(args,bound)
             dispatch_claim(conn,args)
@@ -704,9 +781,12 @@ def apply_release(args: argparse.Namespace) -> dict[str, Any]:
                         # and its receipt for an explicit reconcile attempt.
                         pass
                 raise
-            # Physical systemd receipt is durable before PG terminal commit.
+            # Physical systemd receipt precedes PG terminal commit, and only
+            # the canonical native release.get consumer can certify Standing.
             final = finalize_receipted_release(conn,args,request)
-            return {**result,"pgTerminal":final["pgTerminal"]}
+            delivered = {**result,"pgTerminal":final["pgTerminal"]}
+            verified_release_consumer(args, delivered)
+            return delivered
 
 
 def arguments() -> argparse.Namespace:
