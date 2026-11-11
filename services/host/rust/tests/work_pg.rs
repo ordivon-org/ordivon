@@ -2,7 +2,8 @@
 //! intended to run only with a disposable isolated database.
 //! Invoke with HOST_RUST_TEST_DSN=... cargo test --test work_pg -- --ignored.
 use ordivon_host_rust::work::{
-    canonical_digest, commit_snapshot, get_work, CommitSnapshot, WorkError, WorkSnapshot, WorkState,
+    canonical_digest, commit_snapshot, declare_actor, get_work, ActorDeclare, ActorKind,
+    CommitSnapshot, WorkError, WorkSnapshot, WorkState,
 };
 use serde_json::{json, Value};
 use tokio_postgres::{types::Json, Client, NoTls};
@@ -69,6 +70,139 @@ fn command(work_ref: &str, frontier: &str, request_id: &str, state: WorkState) -
         actor_ref: "actor:test:rust-migration".into(),
         state,
         client_request_id: request_id.into(),
+    }
+}
+
+fn declaration(actor_ref: &str, actor_kind: ActorKind, request_id: &str) -> ActorDeclare {
+    ActorDeclare {
+        actor_ref: actor_ref.into(),
+        actor_kind,
+        client_request_id: request_id.into(),
+    }
+}
+
+#[tokio::test]
+#[ignore = "requires HOST_RUST_TEST_DSN pointing to disposable full schema13 PG18"]
+async fn declare_actor_receipt_replay_matches_python_contract() {
+    let mut first = connect().await;
+    let mut second = connect().await;
+    let actor = "actor:test:rust:actor-declare";
+    let command = declaration(actor, ActorKind::Agent, "request:test:actor:declare-v1");
+    let committed = declare_actor(&mut first, &command).await.unwrap();
+    assert_eq!(committed["admission"], "committed");
+    assert_eq!(committed["schemaVersion"], 1);
+    assert_eq!(committed["kind"], "ordivon.host-actor-ref");
+    assert_eq!(committed["actorRef"], actor);
+    assert_eq!(committed["actorKind"], "agent");
+    assert_eq!(
+        committed["truthBoundary"],
+        "Host-stored stable actor reference only; not authenticated identity or authorization"
+    );
+    assert!(committed["createdAt"].as_str().unwrap().ends_with("+00:00"));
+
+    // Simulate lost response and reconnect: durable receipt, not a second actor.
+    let replay = declare_actor(&mut second, &command).await.unwrap();
+    assert_eq!(replay["admission"], "existing");
+    assert_eq!(replay["createdAt"], committed["createdAt"]);
+    let mut normalized = replay.clone();
+    normalized["admission"] = json!("committed");
+    assert_eq!(normalized, committed);
+
+    let second_id = declaration(actor, ActorKind::Agent, "request:test:actor:declare-v2");
+    let existing = declare_actor(&mut second, &second_id).await.unwrap();
+    assert_eq!(existing["admission"], "existing");
+    assert_eq!(existing["createdAt"], committed["createdAt"]);
+
+    // Same request id + changed semantic payload cannot hijack a receipt.
+    let changed = declaration(actor, ActorKind::Human, &command.client_request_id);
+    assert!(matches!(
+        declare_actor(&mut second, &changed).await,
+        Err(WorkError::Conflict(_))
+    ));
+    let changed_id = declaration(actor, ActorKind::Human, "request:test:actor:kind-change");
+    assert!(matches!(
+        declare_actor(&mut second, &changed_id).await,
+        Err(WorkError::Conflict(_))
+    ));
+    let rows: i64 = first
+        .query_one(
+            "SELECT count(*) FROM actor_refs WHERE actor_ref=$1",
+            &[&actor],
+        )
+        .await
+        .unwrap()
+        .get(0);
+    assert_eq!(rows, 1);
+    let receipts: i64 = first
+        .query_one(
+            "SELECT count(*) FROM command_receipts WHERE client_request_id IN ($1,$2,$3)",
+            &[
+                &command.client_request_id,
+                &second_id.client_request_id,
+                &changed_id.client_request_id,
+            ],
+        )
+        .await
+        .unwrap()
+        .get(0);
+    assert_eq!(receipts, 2);
+}
+
+#[tokio::test]
+#[ignore = "requires HOST_RUST_TEST_DSN pointing to disposable full schema13 PG18"]
+async fn declare_actor_concurrent_insert_has_one_winner() {
+    let mut left_client = connect().await;
+    let mut right_client = connect().await;
+    let actor = "actor:test:rust:actor-race";
+    let left = declaration(
+        actor,
+        ActorKind::Organization,
+        "request:test:actor:race-left",
+    );
+    let right = declaration(
+        actor,
+        ActorKind::Organization,
+        "request:test:actor:race-right",
+    );
+    let (first, second) = tokio::join!(
+        declare_actor(&mut left_client, &left),
+        declare_actor(&mut right_client, &right)
+    );
+    let first = first.unwrap();
+    let second = second.unwrap();
+    assert_ne!(first["admission"], second["admission"]);
+    assert_eq!(first["createdAt"], second["createdAt"]);
+    let count: i64 = left_client
+        .query_one(
+            "SELECT count(*) FROM actor_refs WHERE actor_ref=$1",
+            &[&actor],
+        )
+        .await
+        .unwrap()
+        .get(0);
+    assert_eq!(count, 1);
+}
+
+#[tokio::test]
+#[ignore = "requires HOST_RUST_TEST_DSN pointing to disposable full schema13 PG18"]
+async fn actor_declare_rejects_non_namespaced_or_control_identifiers() {
+    let mut client = connect().await;
+    let cases = [
+        ("human", ActorKind::Human),
+        (" actor:whitespace", ActorKind::Agent),
+        ("actor:control\u{001d}", ActorKind::Agent),
+        ("actor:bad\n", ActorKind::Agent),
+        ("actor:wide\u{00a0}", ActorKind::Agent),
+    ];
+    for (actor, kind) in cases {
+        let candidate = declaration(actor, kind, "request:invalid");
+        assert!(
+            matches!(
+                declare_actor(&mut client, &candidate).await,
+                Err(WorkError::Invalid(_))
+            ),
+            "{actor:?} must fail before PostgreSQL effect"
+        );
     }
 }
 
