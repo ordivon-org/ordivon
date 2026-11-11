@@ -12,7 +12,8 @@ from ordivon_harness.ordivon.model import AgentToolCall, AgentToolDefinition
 from ordivon_harness.domain_tools import DomainToolCatalog, _GrantedDomainToolBridge
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
 
-D = lambda c: "sha256:" + c * 64
+def D(c):
+    return "sha256:" + c * 64
 catalog = DomainToolCatalog(
     domain_id="domain:model-proposal-lab",
     revision="v7_proposal",

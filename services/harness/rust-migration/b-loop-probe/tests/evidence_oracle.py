@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import random
-from anc_canonical import canonical_digest
 from ordivon_harness.ordivon.model import AgentToolCall
 from ordivon_harness.ordivon.run_contract import RunBudget
 from ordivon_harness.agent_tool_observation import HarnessToolObservation

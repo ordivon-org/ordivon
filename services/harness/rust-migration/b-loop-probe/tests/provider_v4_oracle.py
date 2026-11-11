@@ -12,7 +12,8 @@ from ordivon_harness.protocol import (
     HarnessProviderCallStatus, HarnessProviderCallSource
 )
 rng = random.Random(20261110)
-d = lambda x: "sha256:" + x * 64
+def d(x):
+    return "sha256:" + x * 64
 
 def emit(value):
     try:
@@ -93,7 +94,9 @@ for i in range(8):
         changed = dict(source)
         del changed[key]
         emit(changed)
-    changed = dict(source); changed["nonexistent"] = "extra"; emit(changed)
+    changed = dict(source)
+    changed["nonexistent"] = "extra"
+    emit(changed)
 
 
 # Python's V4 validator permits integers beyond Rust u64. These are
