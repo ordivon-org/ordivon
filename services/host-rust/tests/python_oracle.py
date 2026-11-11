@@ -10,6 +10,9 @@ Then from the repository root:
     HOST_RUST_TEST_DSN=... HOST_RUST_PYTHON_ORACLE_PATH=/tmp/host-work-oracle.json \
       cargo test --manifest-path services/host-rust/Cargo.toml \
       --test work_pg -- --ignored --test-threads=1
+    HOST_RUST_TEST_DSN=... HOST_RUST_PYTHON_ORACLE_PATH=/tmp/host-work-oracle.json \
+      cargo test --manifest-path services/host-rust/Cargo.toml \
+      --test work_python_parity -- --ignored
 Finally run this script with 'verify' against the same disposable DB.
 
 The script is explicitly a temporary *old implementation oracle*, not a new
