@@ -6,6 +6,7 @@ This does NOT import or modify Agent B's live/dirty working tree.
 """
 from __future__ import annotations
 from datetime import date, datetime, time
+from dataclasses import replace
 from decimal import Decimal
 from hashlib import sha256
 import json
@@ -23,7 +24,7 @@ CAP_SRC = CAPITAL / "src"
 assert (CAP_SRC / "ordivon_capital/accounting/paper_close.py").is_file()
 sys.path.insert(0, str(CAP_SRC))
 
-PEER_COMMIT = "c2e770f488ca1288c8a0a19530ecefd4ee3d45fa"
+PEER_COMMIT = "9f7f948af44233c862b10e34741859bc3cf2c122"
 PEER_PATH = "domains/capital/src/ordivon_capital/trading/nautilus_paper_bridge.py"
 payload = subprocess.check_output(
     ["git", "-C", str(REPO), "show", f"{PEER_COMMIT}:{PEER_PATH}"]
@@ -57,7 +58,7 @@ session = native_bridge.next_open_native_paper_session(
     node=node, run_config_id=config.id,
     session=t, previous_session=p, expected_account_id="SIM-001",
     opens_at=next_open, previous_close_at=prior_close,
-    settlement_date=date(2026,11,2),
+    settlement_date=date(2026,10,30),
     decisions_by_order={str(o.client_order_id):prior_decision for o in orders},
     instrument_symbols={run["instrument"].id.value:"SPY"},
     marks_minor={"SPY":int(Decimal(run["b"]["close"])*100)},
@@ -69,6 +70,9 @@ assert buy.decided_at == prior_decision
 assert buy.price_minor == int(Decimal(fills[0]["last_px"])*100)
 assert buy.fill_id.startswith("nautilus-paper:SIM-001:")
 assert buy.shares == 1
+# The PG-facing projection must obtain marks from a separate authoritative snapshot.
+pg_paper_candidate=replace(session,marks={})
+assert not pg_paper_candidate.marks
 previous=PaperValuation(
     session=p,cash_minor=1000000,protected_minor=0,
     positions={},pending={},contribution_minor=1000000,
@@ -85,7 +89,7 @@ try:
         node=node,run_config_id=config.id,session=t,previous_session=p,
         expected_account_id="A-NOT-SIM-001",
         opens_at=next_open,previous_close_at=prior_close,
-        settlement_date=date(2026,11,2),
+        settlement_date=date(2026,10,30),
         decisions_by_order={str(o.client_order_id):prior_decision for o in orders},
         instrument_symbols={run["instrument"].id.value:"SPY"},
         marks_minor={"SPY":int(Decimal(run["b"]["close"])*100)},
@@ -99,6 +103,9 @@ assert rejected_mismatched_account
 result={
     "kind":"ordivon.finance.r3.next-open-native-bridge-read-only",
     "peer_bridge_committed_source":PEER_COMMIT,
+    "provider_capture_sha256":run["capture_sha"],
+    "upstream_portfolio_intent_qualified":False,
+    "admitted_PG_execution":False,
     "native_venue":"SIM",
     "quotes":"SYNTHETIC_FROM_OHLCV_NOT_REAL_L1",
     "native_order_count":len(orders),
@@ -110,6 +117,8 @@ result={
     "fee_minor":buy.fee_minor,
     "nav_minor":valuation.nav_minor,
     "mismatched_account_rejected":rejected_mismatched_account,
+    "pg_mark_snapshot_required":not pg_paper_candidate.marks,
+    "settlement_date":str(session.buys[0].settlement_date),
     "external_PG_account_binding":"UNKNOWN",
     "source_is_historically_PIT":False,
     "PG_effect":"NONE",

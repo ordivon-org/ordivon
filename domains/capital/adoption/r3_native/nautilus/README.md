@@ -59,7 +59,7 @@ From repo, run native cross-agent bridge probe with same environment:
   .venv/Scripts/python.exe ../tests/test_native_next_open_peer_bridge.py
 
 The probe loads Agent B immutable exact Git commit
-c2e770f488ca1288c8a0a19530ecefd4ee3d45fa, NEVER his dirty tree.
+9f7f948af44233c862b10e34741859bc3cf2c122, NEVER his dirty tree.
 It passes the full native BacktestNode to his next_open_native_paper_session
 and value_session pure accounting, rejects wrong account, and yields
 a one-position in-memory Paper NAV of USD10000.55 from USD10000.
@@ -68,3 +68,10 @@ production capital consumer. Provider PIT, external PG account binding,
 real quotes, market fees, corrections, replay and actual PG posting
 remain UNKNOWN or unperformed. The EOD EmaCross sample does not satisfy
 this timing contract and must not be sent to the strict next-open bridge.
+Agent B independently falsified economic extrapolation: with the same sparse
+three-quote synthetic session, native 1-second StaticLatencyModel delayed
+the fill to the next 16:01 quote; the strict next-open bridge correctly
+REJECTED it. This is a granularity counterexample, not a prediction
+of real 1-second market latency. Real tick/quote PIT and execution economics
+remain unqualified. U.S. ETF sample settlement is T+1 (2026-10-30),
+not T+2; see SEC rule effective May 28 2024.

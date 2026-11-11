@@ -162,6 +162,9 @@ out={
   "source_manifest_sha256":sha256(manifest_bytes).hexdigest(),
   "capture_input_consumption":"one_hash_checked_byte_image",
   "real_pit":False,
+  "execution_economics_qualified":False,
+  "intraday_market_data_qualified":False,
+  "latency_scope":"default zero-latency synthetic sample only",
   "PG_effect":"NONE",
 }
 (ROOT/"next_open_result.json").write_text(json.dumps(out,indent=2),encoding="utf-8")
