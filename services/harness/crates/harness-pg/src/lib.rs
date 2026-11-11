@@ -10,6 +10,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
+/// Pure read-only semantic validation; no Provider, Tool or writer authority.
+pub mod contract_semantics;
+
 use ordivon_harness_core::{
     canonical_bytes, digest_bytes, loads_strict, CanonicalDocument, CanonicalError,
 };
@@ -257,10 +260,11 @@ fn validate_chain(
     contract: &CanonicalDocument,
     events: &[RunEvent],
 ) -> Result<(), ReadError> {
-    if contract.object_len().is_none()
-        || require_string(contract, "kind")? != "ordivon.harness-run-contract"
-        || !matches!(require_int(contract, "schemaVersion")?, "1" | "2")
-        || require_string(contract, "harnessRunId")? != projection.harness_run_id
+    // Hash-valid CAS bytes do not prove the recorded RunContract is valid.
+    // Validate exact versioned Python contract semantics before any consumer
+    // is allowed to interpret these events or call the external Provider.
+    contract_semantics::validate_contract(contract)?;
+    if require_string(contract, "harnessRunId")? != projection.harness_run_id
         || require_string(contract, "callerId")? != projection.caller_id
         || require_string(contract, "callerRunRef")? != projection.caller_run_ref
         || projection.contract_digest != projection.contract_object_digest

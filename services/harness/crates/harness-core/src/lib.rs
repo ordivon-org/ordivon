@@ -362,6 +362,11 @@ pub fn canonical_bytes(value: &CanonicalDocument) -> Vec<u8> {
 pub struct CanonicalRef<'a>(&'a CanonicalValue);
 
 impl CanonicalDocument {
+    /// Borrow the sealed canonical root without cloning or lossy JSON conversion.
+    pub fn as_borrowed(&self) -> CanonicalRef<'_> {
+        CanonicalRef(&self.0)
+    }
+
     /// Inspect an object field without re-parsing or lossy i64/f64 conversion.
     pub fn field(&self, key: &str) -> Option<CanonicalRef<'_>> {
         CanonicalRef(&self.0).field(key)
@@ -410,9 +415,34 @@ impl<'a> CanonicalRef<'a> {
             _ => None,
         }
     }
+    pub fn as_bool(self) -> Option<bool> {
+        match self.0 {
+            CanonicalValue::Bool(value) => Some(*value),
+            _ => None,
+        }
+    }
+    pub fn is_null(self) -> bool {
+        matches!(self.0, CanonicalValue::Null)
+    }
+    pub fn canonical_bytes(self) -> Vec<u8> {
+        let mut output = String::new();
+        write_canonical(self.0, &mut output);
+        output.into_bytes()
+    }
     pub fn object_len(self) -> Option<usize> {
         match self.0 {
             CanonicalValue::Object(entries) => Some(entries.len()),
+            _ => None,
+        }
+    }
+    /// Borrow sorted fields without exposing internal mutable representation.
+    pub fn object_entries(self) -> Option<impl Iterator<Item = (&'a str, CanonicalRef<'a>)>> {
+        match self.0 {
+            CanonicalValue::Object(entries) => Some(
+                entries
+                    .iter()
+                    .map(|(key, value)| (key.as_str(), CanonicalRef(value))),
+            ),
             _ => None,
         }
     }

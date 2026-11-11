@@ -10,3 +10,6 @@ description = "Read-only PostgreSQL v1 Journal qualification for the Rust Ordivo
 [dependencies]
 ordivon-harness-core = { path = "../harness-core" }
 postgres = "0.19.14"
+# Mature offline Draft 2020-12 meta-schema validation; no HTTP/file retrievers.
+jsonschema = { version = "0.61.1", default-features = false, features = ["arbitrary-precision"] }
+serde_json = { version = "1", features = ["arbitrary_precision"] }
