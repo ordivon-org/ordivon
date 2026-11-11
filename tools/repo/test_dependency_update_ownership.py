@@ -213,7 +213,7 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
         cargo = by_ecosystem["cargo"]
         self.assertEqual(
             set(cargo["directories"]),
-            {"/domains/game/examples/orbit-collector", "/services/runtime", "/services/host-rust"},
+            {"/domains/game/examples/orbit-collector", "/services/runtime"},
         )
         self.assertEqual(
             cargo["groups"]["same-dependency"], {"group-by": "dependency-name"}

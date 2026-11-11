@@ -13,7 +13,6 @@ config_roots = [
   "catalogs/authorities",
   "services/runtime",
   "services/host",
-  "services/host-rust",
   "services/harness",
   "extensions/chatgpt-skills-mcp",
   "platform/security",
@@ -203,14 +202,6 @@ set -euo pipefail
 cd services/host
 mise install
 mise run queue
-"""
-
-[tasks."host-rust:verify"]
-description = "Rust Host portable verified unit, wire, lint and dependency-lock checks"
-run = """
-set -euo pipefail
-mise -C services/host-rust install
-mise -C services/host-rust run verify
 """
 
 [tasks."harness:verify"]
