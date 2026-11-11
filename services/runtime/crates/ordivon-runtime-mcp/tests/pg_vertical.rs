@@ -1393,6 +1393,199 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
     eprintln!("real PostgreSQL + HTTP MCP verified; native initial launch outcome: {exec}");
 }
 
+/// Cross-owner Harness dispatch fencing carries Runtime-native ForeignReference
+/// correlation, not a capability or a new Runtime-owned authority. The PG Job
+/// must freeze it in the exact request digest + native Runner plan. Repeating
+/// the same request cannot create another Job, while changing the fence
+/// generation/digest under the same idempotency key cannot replay the old Job.
+/// This is true PostgreSQL + authenticated HTTP MCP + native systemd Runner,
+/// not a Python fixture pretending PG accepted metadata.
+#[test]
+#[ignore = "launches disposable PostgreSQL18, native HTTP MCP and systemd Runner"]
+fn native_pg_harness_dispatch_fence_is_frozen_identity_not_authority() {
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let ws = format!("ws-harness-fence-{}", Uuid::now_v7().simple());
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":ws,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let key = format!("harness-fence-{}", Uuid::now_v7().simple());
+    let fence_id = format!("fence-{}", Uuid::now_v7().simple());
+    let refs = json!([
+        {
+            "namespace":"ordivon.host",
+            "type":"harness_run",
+            "id":"run-source-verified-1",
+            "generation":"1",
+            "digest":format!("sha256:{}", "a".repeat(64))
+        },
+        {
+            "namespace":"ordivon.harness",
+            "type":"dispatch_fence",
+            "id":fence_id,
+            "generation":"3",
+            "digest":format!("sha256:{}", "b".repeat(64))
+        }
+    ]);
+    let mut request = json!({
+        "clientRequestId":key,
+        "execution":{
+            "workspaceId":ws,
+            "executable":"/usr/bin/printf",
+            "args":["harness-fence-pg-native"],
+            "cwdRelative":".",
+            "timeoutMs":15000,
+            "foreignReferences":refs
+        },
+        "waitMs":0
+    });
+    let first = call(&endpoint, "workspace.exec", request.clone());
+    assert_ne!(
+        first["isError"], true,
+        "PG Runtime must accept validated identity-only Harness refs, not reject all ForeignReferences: {first}"
+    );
+    let job = first["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert!(!job.is_empty());
+    let persisted = fixture
+        .db
+        .query_one(
+            "SELECT request_digest,execution_plan_json FROM jobs WHERE job_id=$1",
+            &[&job],
+        )
+        .unwrap();
+    let frozen_identity: String = persisted.get(0);
+    assert!(
+        frozen_identity.starts_with("runtime-request-v2:"),
+        "PG must retain the Runtime-owned canonical proposal identity, not a fabricated digest prefix"
+    );
+    let frozen_plan: serde_json::Value =
+        serde_json::from_str(&persisted.get::<_, String>(1)).unwrap();
+    assert_eq!(
+        frozen_plan["foreignReferences"], request["execution"]["foreignReferences"],
+        "cross-owner references must survive durable PG plan without dropping, sorting, or inventing authority"
+    );
+    let repeat = call(&endpoint, "workspace.exec", request.clone());
+    assert_ne!(
+        repeat["isError"], true,
+        "exact replay must resolve committed PG identity: {repeat}"
+    );
+    assert_eq!(repeat["structuredContent"]["jobId"], job);
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+
+    // The same key with a changed foreign Fence represents a distinct intent,
+    // so it cannot quietly borrow or relaunch the original admitted Job.
+    request["execution"]["foreignReferences"][1]["generation"] = json!("4");
+    let wrong_generation = call(&endpoint, "workspace.exec", request.clone());
+    assert_eq!(wrong_generation["isError"], true, "{wrong_generation}");
+    assert_eq!(
+        wrong_generation["structuredContent"]["error"]["code"], "IDEMPOTENCY_CONFLICT",
+        "{wrong_generation}"
+    );
+    request["execution"]["foreignReferences"][1]["generation"] = json!("3");
+    request["execution"]["foreignReferences"][1]["digest"] =
+        json!(format!("sha256:{}", "c".repeat(64)));
+    let wrong_digest = call(&endpoint, "workspace.exec", request.clone());
+    assert_eq!(wrong_digest["isError"], true, "{wrong_digest}");
+    assert_eq!(
+        wrong_digest["structuredContent"]["error"]["code"], "IDEMPOTENCY_CONFLICT",
+        "{wrong_digest}"
+    );
+    request["execution"]["foreignReferences"][1]["digest"] =
+        json!(format!("sha256:{}", "b".repeat(64)));
+    let original = request["execution"]["foreignReferences"][1].clone();
+    request["clientRequestId"] = json!(format!("harness-invalid-{}", Uuid::now_v7()));
+    request["execution"]["foreignReferences"]
+        .as_array_mut()
+        .unwrap()
+        .push(original);
+    let duplicate = call(&endpoint, "workspace.exec", request);
+    assert_eq!(duplicate["isError"], true, "{duplicate}");
+    assert_eq!(
+        duplicate["structuredContent"]["error"]["code"], "INVALID_REQUEST",
+        "{duplicate}"
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT count(*) FROM jobs", &[])
+            .unwrap()
+            .get::<_, i64>(0),
+        1
+    );
+
+    let deadline = Instant::now() + Duration::from_secs(70);
+    loop {
+        let observed = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":job,"waitMs":7000,"waitUntil":"terminal",
+                "stdoutTailBytes":256,"stderrTailBytes":256}),
+        );
+        assert_ne!(observed["isError"], true, "{observed}");
+        if observed["structuredContent"]["executionTerminal"] == true {
+            assert_eq!(
+                observed["structuredContent"]["status"], "succeeded",
+                "{observed}"
+            );
+            assert_eq!(
+                observed["structuredContent"]["stdoutTail"],
+                "harness-fence-pg-native"
+            );
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "native fenced Job did not converge"
+        );
+    }
+    assert_eq!(
+        fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+                &[&job],
+            )
+            .unwrap()
+            .get::<_, i64>(0),
+        1,
+        "replay/tamper must not launch a second native effect"
+    );
+    let retained: String = fixture
+        .db
+        .query_one(
+            "SELECT execution_plan_json FROM jobs WHERE job_id=$1",
+            &[&job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&retained).unwrap()["foreignReferences"],
+        frozen_plan["foreignReferences"]
+    );
+    assert_eq!(
+        fixture
+            .db
+            .query_one("SELECT request_digest FROM jobs WHERE job_id=$1", &[&job])
+            .unwrap()
+            .get::<_, String>(0),
+        frozen_identity
+    );
+}
+
 /// A real native MCP process can snapshot a Git Workspace before entering PG
 /// admission, while another MCP process closes the Workspace in between.
 /// The Git wrapper pauses AFTER the last source-state Git ls-files --others
