@@ -16,6 +16,7 @@ import os
 import re
 import runpy
 import stat
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -218,6 +219,146 @@ def inspect_effect(
     return row, bound
 
 
+def systemd_property(args: argparse.Namespace, name: str) -> str:
+    """Read the effective systemd Unit, including its *last* drop-in override."""
+    if name not in {"ExecStart", "MainPID", "EnvironmentFiles"}:
+        raise RuntimeError("unsupported systemd process witness")
+    try:
+        command = subprocess.run(
+            [str(args.systemctl), "show", "--no-pager", "--value",
+             f"--property={name}", args.service],
+            capture_output=True, text=True, check=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        raise RuntimeError(
+            f"RECONCILIATION_REQUIRED: systemd {name} is not observable"
+        ) from error
+    value = command.stdout.strip()
+    if not value or len(value) > 4096:
+        raise RuntimeError(f"RECONCILIATION_REQUIRED: invalid systemd {name} witness")
+    return value
+
+
+def qualified_service_executable_path(args: argparse.Namespace) -> Path:
+    """The actual systemd ExecStart MUST name the same installed native PG binary.
+
+    Installing bytes at installDir without checking effective ExecStart can
+    'succeed' while a later systemd drop-in still boots a different immutable
+    candidate. Tool catalog equality is not process image identity.
+    """
+    effective = systemd_property(args, "ExecStart")
+    paths = re.findall(r"(?:^|\{)\s*path=([^;{}\n]+?)\s*;", effective)
+    if len(paths) != 1:
+        raise RuntimeError(
+            "PG release preflight rejected: systemd ExecStart is not one native executable"
+        )
+    path = Path(paths[0].strip())
+    expected = args.install_dir / "ordivon-runtime-pg"
+    if not path.is_absolute() or path != expected:
+        raise RuntimeError(
+            "PG release preflight rejected: effective systemd ExecStart "
+            "does not consume the Operator's installed PG binary"
+        )
+    return expected
+
+
+def expected_runner_path(args: argparse.Namespace) -> Path | None:
+    # The Runtime daemon is not the only published native consumer. The real
+    # Runner path comes from its *effective* environment, not from a manifest.
+    if "ordivon-runtime-runner" in args.binaries:
+        return args.install_dir / "ordivon-runtime-runner"
+    return None
+
+
+def effective_systemd_runner_binding(args: argparse.Namespace) -> str | None:
+    """Get the final Runner assignment from systemd's effective EnvironmentFiles.
+
+    EnvironmentFiles are loaded in Unit precedence order, including late
+    drop-ins that silently supersede the base envFile. Reuse the mature
+    environment parser and refuse ambiguous/non-regular source files.
+    """
+    files = systemd_property(args, "EnvironmentFiles").splitlines()
+    if not files or len(files) > 32:
+        raise RuntimeError("unqualified effective systemd EnvironmentFiles")
+    paths: list[Path] = []
+    runner = None
+    for entry in files:
+        match = re.fullmatch(
+            r"(/[^()\r\n]{1,2048}) \(ignore_errors=(yes|no)\)", entry.strip(),
+        )
+        if match is None:
+            raise RuntimeError("unsupported effective systemd EnvironmentFile")
+        path = Path(match[1])
+        paths.append(path)
+        if not path.exists() and match[2] == "yes":
+            continue
+        if path.is_symlink() or not path.is_file():
+            raise RuntimeError("non-regular effective systemd EnvironmentFile")
+        values = DEPLOY["load_environment_file"](path)
+        if "ORDIVON_PG_RUNNER" in values:
+            runner = values["ORDIVON_PG_RUNNER"]
+    if args.env_file not in paths:
+        raise RuntimeError("operator EnvironmentFile is not consumed by systemd")
+    return runner
+
+
+def qualified_runner_binding(args: argparse.Namespace) -> None:
+    expected = expected_runner_path(args)
+    if expected is None:
+        return
+    # The declared base file is not authority: a later systemd drop-in can
+    # override this value. Compare the effective ordered Unit environment.
+    try:
+        if (
+            DEPLOY["load_environment_file"](args.env_file).get("ORDIVON_PG_RUNNER")
+            != str(expected)
+            or effective_systemd_runner_binding(args) != str(expected)
+        ):
+            raise RuntimeError("configured/effective Runner mismatch")
+    except (OSError, UnicodeError, RuntimeError, ValueError) as error:
+        raise RuntimeError(
+            "PG release preflight rejected: effective systemd Runner "
+            "does not consume the installed native Runner"
+        ) from error
+
+
+def verified_live_service_executable(args: argparse.Namespace) -> dict[str, Any]:
+    """Bind the running systemd MainPID's executable inode+bytes to installDir.
+
+    This is independent of a working network MCP catalog. Reading the live
+    /proc/<MainPID>/exe descriptor detects an old deleted inode retained after
+    replacement, as well as a different active path or digest.
+    """
+    try:
+        expected = qualified_service_executable_path(args)
+        text_pid = systemd_property(args, "MainPID")
+        if not re.fullmatch(r"[1-9][0-9]{0,9}", text_pid):
+            raise RuntimeError("invalid service MainPID")
+        pid = int(text_pid)
+        proc = Path(f"/proc/{pid}/exe")
+        live_path = os.readlink(proc)
+        if live_path != str(expected):
+            raise RuntimeError("active process image path differs from installed artifact")
+        with proc.open("rb") as active:
+            live_hash = hashlib.file_digest(active, "sha256").hexdigest()
+        candidate_hash = DEPLOY["sha256"](expected)
+        if candidate_hash != f"sha256:{live_hash}":
+            raise RuntimeError("active executable bytes differ from installed candidate")
+        if systemd_property(args, "MainPID") != text_pid:
+            raise RuntimeError("systemd MainPID changed during active image attestation")
+    except (OSError, ValueError, UnicodeError, RuntimeError) as error:
+        raise RuntimeError(
+            "RECONCILIATION_REQUIRED: live systemd process does not consume installed Runtime"
+        ) from error
+    image = {
+        "path": live_path,
+        "digest": candidate_hash,
+        "mainPid": pid,
+        "witness": "systemd_MainPID_proc_exe",
+    }
+    return image
+
+
 def physical_preflight(args: argparse.Namespace, effect: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     # Full candidate manifest/ref/installed binary checks are the SAME
     # release primitives that the existing Runtime installer uses.
@@ -235,6 +376,11 @@ def physical_preflight(args: argparse.Namespace, effect: dict[str, Any]) -> tupl
         blockers.append("operator expectedToolCount differs from committed release")
     if args.confirm_commit != args.commit:
         blockers.append("operator confirm-commit does not match committed source")
+    # A configured Unit can be healthy and expose the same MCP catalog while
+    # executing a *different* binary from a last-wins systemd drop-in.
+    # Fail BEFORE committing the one-use dispatch identity or touching systemd.
+    qualified_service_executable_path(args)
+    qualified_runner_binding(args)
     for spec in specs:
         name = str(spec["name"])
         path = args.install_dir / name
@@ -340,7 +486,7 @@ def pg_mcp_readiness(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("native PG MCP bind/token missing from operator service")
     if not DEPLOY["service_active"](args.systemctl,args.service):
         raise RuntimeError("qualified PG Runtime service is not active")
-    return DEPLOY["probe_catalog"](
+    probe = DEPLOY["probe_catalog"](
         f"http://{bind}/mcp",
         token,
         client_name="ordivon-runtime-pg-operator",
@@ -350,6 +496,36 @@ def pg_mcp_readiness(args: argparse.Namespace) -> dict[str, Any]:
         require_modern=True,
         allow_legacy_fallback=False,
     )
+    # Catalog/HTTP readiness proves a service responds, not which image or
+    # actual Runner its execution provider consumes. Use existing OS and
+    # authenticated native Runtime consumers, not a second config parser.
+    image = verified_live_service_executable(args)
+    runner = expected_runner_path(args)
+    if runner is not None:
+        try:
+            described = McpClient(
+                f"http://{bind}/mcp", token,
+                "ordivon-runtime-pg-operator-runner-witness",
+                timeout=min(15.0, max(1.0, args.wait_seconds)),
+            ).call_tool("runtime.describe", {"schemaVersion": 1})
+            targets = described.get("targets")
+            if not isinstance(targets, list) or len(targets) != 1:
+                raise RuntimeError("native Runner target projection is incomplete")
+            provider = targets[0].get("executionProvider")
+            if (
+                targets[0].get("target") != "local_linux"
+                or not isinstance(provider, dict)
+                or provider.get("contract") != "local_linux_runner_v1"
+                or provider.get("executableDigest") != DEPLOY["sha256"](runner)
+            ):
+                raise RuntimeError("native Runner provider digest differs from installed Runner")
+            image["runnerDigest"] = provider["executableDigest"]
+            image["runnerWitness"] = "authenticated_runtime_describe"
+        except (OSError, RuntimeError, ValueError, TypeError) as error:
+            raise RuntimeError(
+                "RECONCILIATION_REQUIRED: actual Runtime Runner does not match installed candidate"
+            ) from error
+    return {**probe, "activeRuntimeImage": image}
 
 
 def operator_fenced_install(

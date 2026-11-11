@@ -175,6 +175,15 @@ class NativePgReleaseOperator(unittest.TestCase):
             systemctl=Path("/usr/bin/systemctl"),git=Path(binary("git")),
         )
         self.args.receipt_root.mkdir()
+        if self._testMethodName != (
+            "test_actual_systemd_pg_binary_replacement_and_http_mcp_readback"
+        ):
+            # Most unit tests substitute systemd mutations; only the dedicated
+            # native acceptance test exercises the *real* effective ExecStart.
+            service=patch.object(op,"qualified_service_executable_path",
+                                 return_value=self.install/"ordivon-runtime-pg")
+            service.start()
+            self.addCleanup(service.stop)
         # Production approval comes from privileged operator environment, not
         # caller-controlled CLI arguments. Test-scoped patch is fully restored.
         approved=patch.dict(os.environ, {
@@ -469,11 +478,19 @@ class NativePgReleaseOperator(unittest.TestCase):
         original.chmod(0o755)
         copy2(pg_binary,self.candidate/"ordivon-runtime-pg")
         (self.candidate/"ordivon-runtime-pg").chmod(0o755)
+        copy2(runner,self.candidate/"ordivon-runtime-runner")
+        copy2(runner,self.install/"ordivon-runtime-runner")
+        for path in (self.candidate/"ordivon-runtime-runner",
+                     self.install/"ordivon-runtime-runner"):
+            path.chmod(0o755)
+        self.args.binaries=["ordivon-runtime-pg","ordivon-runtime-runner"]
         obj=json.loads(self.manifest.read_text())
-        obj["artifacts"]=[op.DEPLOY["artifact_description"](
-            self.candidate/"ordivon-runtime-pg",
-            {"name":"ordivon-runtime-pg","kind":"binary","mode":0o755},
-        )]
+        obj["artifacts"]=[
+            op.DEPLOY["artifact_description"](
+                self.candidate/name,
+                {"name":name,"kind":"binary","mode":0o755},
+            ) for name in self.args.binaries
+        ]
         obj["binaries"]=obj["artifacts"]
         self.manifest.write_text(json.dumps(obj),encoding="utf-8")
         fresh_manifest=op.DEPLOY["sha256"](self.manifest)
@@ -527,7 +544,7 @@ class NativePgReleaseOperator(unittest.TestCase):
             "ORDIVON_PG_SCHEMA=fresh\n"
             f"ORDIVON_PG_SOURCE_SHA256={self.source_sha}\n"
             f"ORDIVON_PG_STORE_ROOT={self.work/'pg-store'}\n"
-            f"ORDIVON_PG_RUNNER={runner}\n"
+            f"ORDIVON_PG_RUNNER={self.install/'ordivon-runtime-runner'}\n"
             'ORDIVON_PG_EXECUTABLE_ROOTS_JSON=["/usr/bin","/bin"]\n'
             f"ORDIVON_PG_BIND={bind}\n"
             f"ORDIVON_PG_TOKEN={'p'*32}\n"
@@ -546,11 +563,88 @@ class NativePgReleaseOperator(unittest.TestCase):
         try:
             subprocess.run([systemctl,"daemon-reload"],check=True,capture_output=True)
             subprocess.run([systemctl,"start",service],check=True,capture_output=True)
+            # Real consumer misbinding: the unit can execute a totally
+            # different ELF while the operator installs a candidate into
+            # installDir, and the MCP tool catalog remains identical.
+            shadow=self.work/"shadow-active-ordivon-runtime-pg"
+            copy2(pg_binary,shadow)
+            with shadow.open("ab") as stream:
+                stream.write(b"\nshadow-distinct-active-binary-20261111\n")
+            shadow.chmod(0o755)
+            self.assertNotEqual(op.DEPLOY["sha256"](shadow),
+                                op.DEPLOY["sha256"](self.candidate/"ordivon-runtime-pg"))
+            def switch_unit(path, runner_override=None):
+                subprocess.run([systemctl,"stop",service],check=True,capture_output=True)
+                extra=(f"EnvironmentFile={runner_override}\n"
+                       if runner_override is not None else "")
+                unit.write_text(
+                    "[Unit]\nDescription=Ordivon temporary PG Release acceptance\n"
+                    "[Service]\nType=simple\n"
+                    f"EnvironmentFile={self.env_file}\n"
+                    + extra
+                    + f"ExecStart={path}\n"
+                    "Restart=no\nKillMode=control-group\n",encoding="utf-8",
+                )
+                subprocess.run([systemctl,"daemon-reload"],check=True,capture_output=True)
+                subprocess.run([systemctl,"start",service],check=True,capture_output=True)
+            switch_unit(shadow)
+            shadow_catalog=op.DEPLOY["probe_catalog"](
+                f"http://{bind}/mcp","p"*32,
+                client_name="independent-shadow-process-probe",
+                expected_tool_count=20,
+                required_tools=("runtime.describe","release.get"),
+                wait_seconds=10.,require_modern=True,allow_legacy_fallback=False,
+            )
+            self.assertEqual(shadow_catalog["toolCount"],20,
+                             "unrelated executable also offers a healthy MCP catalog")
+            with self.assertRaisesRegex(RuntimeError,"PG release preflight rejected"):
+                op.apply_release(self.args)
+            count=self.db.execute(
+                "SELECT count(*) AS n FROM job_events WHERE job_id=%s "
+                "AND event_type=%s",(self.job_id,op.DISPATCH_EVENT),
+            ).fetchone()["n"]
+            self.assertEqual(count,0,"mismatched systemd binary cannot dispatch a ReleaseEffect")
+            self.assertEqual(original.read_bytes()[:2],b"#!",
+                             "mismatched unit must not install candidate")
+            # The operator's base envFile says the correct installed Runner,
+            # but a *later* systemd EnvironmentFile can silently override it.
+            # This is the second production-relevant consumer binding.
+            runner_shadow=self.work/"shadow-runner-binary"
+            copy2(runner,runner_shadow)
+            with runner_shadow.open("ab") as stream:
+                stream.write(b"\nshadow-distinct-runner-digest-20261111\n")
+            runner_shadow.chmod(0o755)
+            self.assertNotEqual(op.DEPLOY["sha256"](runner_shadow),
+                                op.DEPLOY["sha256"](self.candidate/"ordivon-runtime-runner"))
+            runner_override=self.work/"shadow-runner.env"
+            runner_override.write_text(
+                f"ORDIVON_PG_RUNNER={runner_shadow}\n",encoding="utf-8",
+            )
+            switch_unit(original,runner_override=runner_override)
+            self.assertEqual(
+                op.effective_systemd_runner_binding(self.args),str(runner_shadow),
+                "late systemd EnvironmentFile must supersede base Runner path",
+            )
+            with self.assertRaisesRegex(RuntimeError,"PG release preflight rejected"):
+                op.apply_release(self.args)
+            count=self.db.execute(
+                "SELECT count(*) AS n FROM job_events WHERE job_id=%s "
+                "AND event_type=%s",(self.job_id,op.DISPATCH_EVENT),
+            ).fetchone()["n"]
+            self.assertEqual(count,0,"effective Runner mismatch cannot dispatch")
+            switch_unit(original)
             observed=op.apply_release(self.args)
             self.assertEqual(observed["status"],"deployed")
             self.assertEqual(observed["pgTerminal"],"succeeded")
             self.assertEqual(original.read_bytes(),pg_binary.read_bytes())
             self.assertEqual(observed["probe"]["toolCount"],20)
+            active=observed["probe"]["activeRuntimeImage"]
+            self.assertEqual(active["path"],str(original))
+            self.assertEqual(active["digest"],op.DEPLOY["sha256"](original))
+            self.assertGreater(active["mainPid"],1)
+            self.assertEqual(active["runnerWitness"],"authenticated_runtime_describe")
+            self.assertEqual(active["runnerDigest"],
+                             op.DEPLOY["sha256"](self.install/"ordivon-runtime-runner"))
             replay=op.apply_release(self.args)
             self.assertTrue(replay["replayed"])
             self.assertEqual(replay["pgTerminal"],"succeeded")
@@ -570,6 +664,46 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.assertEqual(observed_release["deployedToolCount"],20)
             self.assertEqual(observed_release["semanticCompletionEvaluated"],False)
             self.assertEqual(observed_release["commit"],self.args.commit)
+            # After a valid deployment, drift only the effective systemd
+            # ExecStart. A release replay MUST NOT turn a matching MCP catalog
+            # and disk copy into proof that a different process was installed.
+            switch_unit(shadow)
+            shadow_catalog=op.DEPLOY["probe_catalog"](
+                f"http://{bind}/mcp","p"*32,
+                client_name="replay-shadow-process-probe",
+                expected_tool_count=20,
+                required_tools=("runtime.describe","release.get"),
+                wait_seconds=10.,require_modern=True,allow_legacy_fallback=False,
+            )
+            self.assertEqual(shadow_catalog["toolCount"],20)
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.apply_release(self.args)
+            # MainPID now executes the *correct* installed ELF but a fresh
+            # systemd restart points only the Runner at an external binary.
+            switch_unit(original,runner_override=runner_override)
+            self.assertEqual(
+                op.effective_systemd_runner_binding(self.args),str(runner_shadow),
+            )
+            # The systemd start command is a submission, not an HTTP-ready
+            # witness. Wait for the independent modern MCP catalog before
+            # reading the restarted native Rust execution provider.
+            runner_catalog=op.DEPLOY["probe_catalog"](
+                f"http://{bind}/mcp","p"*32,
+                client_name="independent-runner-drift-process-probe",
+                expected_tool_count=20,
+                required_tools=("runtime.describe","release.get"),
+                wait_seconds=10.,require_modern=True,allow_legacy_fallback=False,
+            )
+            self.assertEqual(runner_catalog["toolCount"],20)
+            # Read the *actual* Runner provider, not a manifest declaration.
+            live_provider=client.call_tool("runtime.describe",{"schemaVersion":1})
+            self.assertEqual(
+                live_provider["targets"][0]["executionProvider"]["executableDigest"],
+                op.DEPLOY["sha256"](runner_shadow),
+            )
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.apply_release(self.args)
+            switch_unit(original)
             # Physical release is immutable, but terminal event standing is
             # independently qualified by the canonical Rust release.get.
             # Tamper ONLY with this disposable PG test schema.
