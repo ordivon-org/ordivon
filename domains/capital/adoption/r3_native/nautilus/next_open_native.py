@@ -1,46 +1,29 @@
-"""Strictly simulated Cboe OHLCV 鈫?native Nautilus T-1-after-close MOO probe.
+"""Native Git-bound retrospective simulation-only instruction -> Nautilus Limit IOC.
 
-This is the minimal native Strategy callback to submit ONE AT_THE_OPEN market
-order; native BacktestNode owns venue, order, fill and account mechanics.
-Quotes and timestamps are SYNTHETIC and do not prove historical execution.
+This is not historical PIT, authorized PortfolioIntent, PG posting or live trading.
 """
 from __future__ import annotations
-
-import csv
-import json
-import os
-from datetime import UTC, datetime, time
+from datetime import datetime, time, timezone
 from decimal import Decimal
 from hashlib import sha256
-from io import StringIO
 from pathlib import Path
 from zoneinfo import ZoneInfo
+import csv
+from io import StringIO
+import json
+import os
+import subprocess
 
 from nautilus_trader.backtest import BacktestNode
 from nautilus_trader.common import LogLevel
 from nautilus_trader.config import (
-    BacktestDataConfig,
-    BacktestEngineConfig,
-    BacktestRunConfig,
-    BacktestVenueConfig,
-    DataCatalogConfig,
-    LoggerConfig,
+    BacktestDataConfig, BacktestEngineConfig, BacktestRunConfig,
+    BacktestVenueConfig, DataCatalogConfig, LoggerConfig
 )
 from nautilus_trader.execution import DefaultFillModel, MakerTakerFeeModel
 from nautilus_trader.model import (
-    AccountType,
-    BookType,
-    Currency,
-    Equity,
-    InstrumentId,
-    NautilusDataType,
-    OmsType,
-    OrderSide,
-    Price,
-    Quantity,
-    QuoteTick,
-    Symbol,
-    TimeInForce,
+    AccountType, BookType, Currency, Equity, InstrumentId, NautilusDataType,
+    OmsType, Price, Quantity, QuoteTick, Symbol, OrderSide, TimeInForce
 )
 from nautilus_trader.persistence import ParquetDataCatalog
 from nautilus_trader.trading import Strategy, StrategyConfig
@@ -60,20 +43,109 @@ manifest=json.loads(manifest_bytes)
 receipts=[r for r in manifest["provider_receipts"] if r.get("symbol")=="SPY"]
 if len(receipts)!=1 or receipts[0]["normalized_sha256"]!=capture_sha:
     raise ValueError("Native opening capture and research receipt hash disagree")
+
+# This is a Git-committed test fixture, NOT a Finance governance authority.
+# Git cat-file obtains one immutable Git content-addressed blob. A mutable working-copy JSON is never
+# read as a source of economic intent.
+INTENT_BLOB = "bea945d370123b4b0f42e3a8e4bc5e60faeda120"
+INTENT_PATH = "domains/capital/adoption/r3_native/nautilus/simulation_instruction.fixture.json"
+repo = ROOT.parents[4]
+source_cut = subprocess.check_output([
+    "git", "-C", str(repo), "rev-parse", "HEAD"
+]).decode("ascii").strip()
+tree_blob = subprocess.check_output([
+    "git", "-C", str(repo), "rev-parse", f"{source_cut}:{INTENT_PATH}"
+]).decode("ascii").strip()
+if tree_blob != INTENT_BLOB:
+    raise ValueError("current source cut does not contain the pinned instruction Git blob")
+instruction_bytes = subprocess.check_output([
+    "git", "-C", str(repo), "cat-file", "blob", INTENT_BLOB
+])
+instruction_sha256 = sha256(instruction_bytes).hexdigest()
+def reject_duplicate_fields(pairs):
+    record = {}
+    for key, value in pairs:
+        if key in record:
+            raise ValueError("duplicate simulation instruction field")
+        record[key] = value
+    return record
+
+instruction = json.loads(instruction_bytes, object_pairs_hook=reject_duplicate_fields)
+required_instruction = {
+    "schemaVersion", "kind", "standing", "intentId", "accountId",
+    "instrumentId", "symbol", "side", "quantity", "limitPrice",
+    "maxCommitmentMinor", "feeReserveMinor", "currency", "previousSession",
+    "tradeSession", "simulatedDecisionAt", "sourceCaptureSha256",
+    "researchDatasetSha256", "investmentPolicyAdmitted",
+    "historicalPointInTimeAdmitted", "externalFinancialWriteAllowed",
+}
+if type(instruction) is not dict or set(instruction) != required_instruction:
+    raise ValueError("simulation instruction shape is not the frozen contract")
+if (type(instruction["schemaVersion"]) is not int or instruction["schemaVersion"] != 1
+        or instruction["kind"] != "ordivon.finance.r3.simulation-frozen-instruction"
+        or instruction["standing"] != "SIMULATION_FIXTURE_ONLY"
+        or instruction["investmentPolicyAdmitted"] is not False
+        or instruction["historicalPointInTimeAdmitted"] is not False
+        or instruction["externalFinancialWriteAllowed"] is not False):
+    raise ValueError("simulation fixture may not claim live, risk or PIT authority")
+if (instruction["sourceCaptureSha256"] != capture_sha
+        or instruction["researchDatasetSha256"] != manifest.get("qlib_dataset_sha256")):
+    raise ValueError("simulation intent and native research source digests disagree")
+if (instruction["accountId"] != "SIM-001"
+        or instruction["currency"] != "USD"
+        or instruction["instrumentId"] != "SPY.SIM"
+        or instruction["symbol"] != "SPY"
+        or instruction["side"] != "BUY"):
+    raise ValueError("simulation instruction does not bind the native account/instrument")
+if (type(instruction["intentId"]) is not str or not instruction["intentId"]
+        or len(instruction["intentId"]) > 128):
+    raise ValueError("simulation instruction has no stable intent identity")
+if type(instruction["limitPrice"]) is not str:
+    raise ValueError("simulation limit must be an exact decimal string")
+if type(instruction["quantity"]) is not int or instruction["quantity"] < 1:
+    raise ValueError("simulation quantity must be a positive integer")
+if (type(instruction["maxCommitmentMinor"]) is not int
+        or type(instruction["feeReserveMinor"]) is not int):
+    raise ValueError("simulation budget must be exact integer minor units")
+limit_price = Decimal(instruction["limitPrice"])
+if (not limit_price.is_finite() or limit_price <= 0
+        or limit_price.as_tuple().exponent < -2
+        or instruction["feeReserveMinor"] < 0
+        or limit_price * 100 * instruction["quantity"] +
+        instruction["feeReserveMinor"] > instruction["maxCommitmentMinor"]):
+    raise ValueError("simulation native limit exceeds exact budget incl fee reserve")
+
 records=list(csv.DictReader(StringIO(payload.decode("utf-8"))))
 today={r["session_date"]:r for r in records}
-prev_date="2026-10-28"
-next_date="2026-10-29"
+prev_date = instruction["previousSession"]
+next_date = instruction["tradeSession"]
 a=today[prev_date]; b=today[next_date]
+# Counterfactual inputs change only simulated future quotes. They MUST NOT
+# pretend that the committed upstream Cboe capture or intent was altered.
+shock=os.environ.get("ORDIVON_FINANCE_R3_TEST_OPEN_SHOCK_USD")
+if shock is not None:
+    if os.environ.get("ORDIVON_FINANCE_R3_SIMULATION_SCENARIO") != "COUNTERFACTUAL_ONLY":
+        raise ValueError("future-price perturbation is not an admitted source")
+    delta=Decimal(shock)
+    if not delta.is_finite() or not Decimal("-1000") <= delta <= Decimal("1000"):
+        raise ValueError("counterfactual shock must be finite and bounded")
+    b=dict(b)
+    b["open"]=str(Decimal(b["open"])+delta)
 ny=ZoneInfo("America/New_York")
 def nanos(date, hour,minute,second=0):
     return int(datetime.combine(
         datetime.fromisoformat(date).date(),time(hour,minute,second),ny
-    ).astimezone(UTC).timestamp()*1_000_000_000)
+    ).astimezone(timezone.utc).timestamp()*1_000_000_000)
 
 prev_decision_ns=nanos(prev_date,16,1)
 next_open_ns=nanos(next_date,9,30)
 next_close_ns=nanos(next_date,16,1)
+declared_simulated_at = datetime.fromisoformat(instruction["simulatedDecisionAt"])
+if (declared_simulated_at.tzinfo is None
+        or int(declared_simulated_at.timestamp()*1_000_000_000) != prev_decision_ns):
+    raise ValueError("simulation instruction decision time does not match prior close")
+if prev_decision_ns >= next_open_ns:
+    raise ValueError("simulation intent is not prior-session economic intent")
 
 instrument=Equity(
     instrument_id=InstrumentId.from_str("SPY.SIM"),
@@ -113,12 +185,15 @@ class NativeNextOpenOrder(Strategy):
         # An ordinary native Market order is released only on the
         # next-session open callback. BacktestNode owns the fill semantics.
         # The simulator DOES NOT support TimeInForce.AT_THE_OPEN.
-        order=self.order_factory.market(
+        order=self.order_factory.limit(
             instrument_id=instrument.id,
-            order_side=OrderSide.BUY,
-            quantity=Quantity.from_int(1),
+            order_side=OrderSide.BUY if instruction["side"] == "BUY" else OrderSide.SELL,
+            quantity=Quantity.from_int(instruction["quantity"]),
+            price=Price.from_str(str(limit_price)),
             time_in_force=TimeInForce.IOC,
         )
+        self.submitted_instruction_sha256=instruction_sha256
+        self.submitted_client_order_id=str(order.client_order_id)
         self.submit_order(order)
         self.done=True
 
@@ -152,10 +227,18 @@ config=BacktestRunConfig(
 )
 node=BacktestNode(configs=[config])
 node.build()
-node.add_strategy(config.id, NativeNextOpenOrder(StrategyConfig()))
+native_strategy=NativeNextOpenOrder(StrategyConfig())
+node.add_strategy(config.id,native_strategy)
 results=node.run()
 cache=node.get_engine_cache(config.id)
 orders=cache.orders()
+native_order_report=node.generate_orders_report(config.id).reset_index().to_dict("records")
+if (len(orders) != 1 or len(native_order_report) != 1
+        or native_strategy.submitted_instruction_sha256 != instruction_sha256
+        or native_strategy.submitted_client_order_id != str(orders[0].client_order_id)
+        or native_order_report[0]["client_order_id"] != str(orders[0].client_order_id)
+        or native_order_report[0]["account_id"] != instruction["accountId"]):
+    raise RuntimeError("native order/report/immutable simulation intent identity diverged")
 fills=node.generate_fills_report(config.id).reset_index().to_dict("records")
 events=[e.to_dict() for o in orders for e in o.events() if type(e).__name__.startswith("OrderFill")]
 all_order_events=[(str(o.client_order_id),[type(e).__name__ for e in o.events()]) for o in orders]
@@ -172,6 +255,21 @@ out={
   "native_fill_ts_events":[str(r["ts_event"]) for r in fills],
   "native_fill_px":[str(r["last_px"]) for r in fills],
   "native_order_ts_init":[str(r["ts_init"]) for r in node.generate_orders_report(config.id).reset_index().to_dict("records")],
+  "simulated_instruction_sha256":instruction_sha256,
+  "consumer_source_cut":source_cut,
+  "current_tree_instruction_blob":tree_blob,
+  "simulated_intent_id":instruction["intentId"],
+  "native_order_matches_committed_intent":True,
+  "native_account_id":native_order_report[0]["account_id"],
+  "simulated_instruction_git_blob_sha1":INTENT_BLOB,
+  "simulated_instruction_standing":instruction["standing"],
+  "simulated_investment_policy_admitted":False,
+  "simulated_source_was_known_at_historical_decision":False,
+  "simulated_account_id":instruction["accountId"],
+  "simulated_order_limit":str(limit_price),
+  "simulated_quantity":instruction["quantity"],
+  "simulated_client_order_id":str(orders[0].client_order_id) if len(orders)==1 else None,
+  "counterfactual_open_shock_usd":str(shock) if shock is not None else None,
   "next_open_price":b["open"],
   "input_kind":"OHLCV derived SYNTHETIC +/- 0.01 USD, not real quotes",
   "source_capture_sha256":capture_sha,
