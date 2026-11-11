@@ -71,7 +71,7 @@ return, portfolio target, actual order or PG cash/position posting.
 
 From here (isolated Windows Python3.11, private capture in environment):
   set ORDIVON_FINANCE_R3_TEST_CAPTURE_DIR=<private-capture-folder>
-  .venv/Scripts/python.exe tests/test_native_capture_admission.py
+  .venv/Scripts/python.exe tests/probe_native_capture_admission.py
 
 The source test runs actual Qlib LGBModel.fit and native Recorder;
 it is not a replacement engine or test framework.

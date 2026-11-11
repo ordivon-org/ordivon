@@ -56,9 +56,10 @@ A counterfactual +USD10 next-open price changes the native fill by
 Reproduce on Windows Python3.15 after running sibling OpenBB capture:
   .venv/Scripts/python.exe next_open_native.py
 From repo, run native cross-agent bridge probe with same environment:
-  .venv/Scripts/python.exe ../tests/test_native_next_open_peer_bridge.py
+  .venv/Scripts/python.exe ../tests/probe_native_next_open_consumer.py
 
-The probe loads Agent B immutable exact Git commit
+The probe normally loads the current integrated Capital bridge. Optional
+peer mode loads Agent B's immutable exact Git commit
 9f7f948af44233c862b10e34741859bc3cf2c122, NEVER his dirty tree.
 It passes the full native BacktestNode to his next_open_native_paper_session
 and value_session pure accounting, rejects wrong account, and yields
@@ -75,3 +76,7 @@ REJECTED it. This is a granularity counterexample, not a prediction
 of real 1-second market latency. Real tick/quote PIT and execution economics
 remain unqualified. U.S. ETF sample settlement is T+1 (2026-10-30),
 not T+2; see SEC rule effective May 28 2024.
+
+## Integrated source path
+
+The native next-open consumer probe now defaults to importing the current `ordivon_capital.trading.nautilus_paper_bridge` from the integrated Capital source (`PYTHONPATH=domains/capital/src`). Optional `ORDIVON_FINANCE_R3_BRIDGE_MODE=peer` replays Agent B's exact historical committed bridge, requiring the original Git repository. The probe emits a SHA-256 of the bridge source actually executed. Modelled bid/ask remains synthetic; no PostgreSQL ledger or live venue effect is claimed.

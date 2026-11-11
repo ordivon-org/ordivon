@@ -5,10 +5,10 @@ Data is captured NOW; a retrospective backfill does not prove what was known THE
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from hashlib import sha256
 import json
 import os
+from datetime import UTC, datetime
+from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
 
@@ -54,11 +54,11 @@ prices: dict[str, pd.Series] = {}
 provider_receipts: list[dict] = []
 for symbol in SYMBOLS:
     if capture_dir is None:
-        requested = datetime.now(timezone.utc).isoformat()
+        requested = datetime.now(UTC).isoformat()
         response = obb.cboe.equity.historical(
             symbol=symbol, start_date=START, end_date=END, provider="cboe"
         )
-        received = datetime.now(timezone.utc).isoformat()
+        received = datetime.now(UTC).isoformat()
         provider_name = str(response.provider)
         raw_normalized = response.to_dataframe().sort_index()
     else:
@@ -209,7 +209,7 @@ if abs(sum(weights.values()) - 1.0) > 1e-6:
 result = {
     "kind": "ordivon.finance.r3.native-etf-research-only",
     "audited_capital_source_cut": "c883db3bbe211b8a963a3236599e1dc3cfe362ac",
-    "captured_at": datetime.now(timezone.utc).isoformat(),
+    "captured_at": datetime.now(UTC).isoformat(),
     "data_input_mode": "hash_verified_local_replay" if capture_dir is not None else "OpenBB_native_provider_capture",
     "replay_is_historical_pit": False,
     "provider_receipts": provider_receipts,

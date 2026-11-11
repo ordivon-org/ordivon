@@ -6,6 +6,7 @@ from copy import deepcopy
 from decimal import Decimal
 
 from test_nautilus_paper_bridge import episode
+
 from ordivon_capital.trading.nautilus_paper_bridge import (
     NautilusPaperBridgeError,
     next_open_paper_session,

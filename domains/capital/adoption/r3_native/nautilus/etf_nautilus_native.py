@@ -4,25 +4,39 @@ This is NOT historical exchange quote data, not execution economics, not PG
 accounting, and not a valid prior-close -> next-open paper-session source.
 """
 from __future__ import annotations
+
 import csv
-from io import StringIO
-import os
 import json
-from datetime import datetime, time, timezone
+import os
+from datetime import UTC, datetime, time
 from decimal import Decimal
 from hashlib import sha256
+from io import StringIO
 from pathlib import Path
 
 from nautilus_trader.backtest import BacktestNode
 from nautilus_trader.common import LogLevel
 from nautilus_trader.config import (
-    BacktestDataConfig, BacktestEngineConfig, BacktestRunConfig,
-    BacktestVenueConfig, DataCatalogConfig, LoggerConfig,
+    BacktestDataConfig,
+    BacktestEngineConfig,
+    BacktestRunConfig,
+    BacktestVenueConfig,
+    DataCatalogConfig,
+    LoggerConfig,
 )
 from nautilus_trader.execution import DefaultFillModel, MakerTakerFeeModel
 from nautilus_trader.model import (
-    AccountType, BookType, Currency, Equity, InstrumentId,
-    NautilusDataType, OmsType, Price, Quantity, QuoteTick, Symbol,
+    AccountType,
+    BookType,
+    Currency,
+    Equity,
+    InstrumentId,
+    NautilusDataType,
+    OmsType,
+    Price,
+    Quantity,
+    QuoteTick,
+    Symbol,
 )
 from nautilus_trader.persistence import ParquetDataCatalog
 from nautilus_trader.trading import EmaCrossConfig
@@ -63,7 +77,7 @@ for row in rows:
     session=datetime.fromisoformat(row["session_date"]).date()
     # A SYNTHETIC quote timestamp for an EOD-close-price test; not the
     # actual Cboe quote time, ask, bid or historical market microstructure.
-    when=datetime.combine(session, time(21, 0), tzinfo=timezone.utc)
+    when=datetime.combine(session, time(21, 0), tzinfo=UTC)
     ns=int(when.timestamp()*1_000_000_000)
     mark=Decimal(row["close"])
     # Manufactures a one-cent spread around the observed EOD mark.
@@ -131,8 +145,9 @@ native_cache=node.get_engine_cache(config.id)
 native_orders=native_cache.orders()
 # API-specific, same-engine audit: reports and event history must refine
 # the same native order identities and economics. Not external venue proof.
-import pandas as pd
 from collections import Counter
+
+import pandas as pd
 
 if fills_report.index.name != "client_order_id":
     raise AssertionError("Nautilus v2 fill report client order index changed")

@@ -23,3 +23,16 @@ broker orders, live economics, risk mandate, or PG posting is inferred.
 Output evidence contains native weights and captured source SHA only.
 Do not treat this as a replacement for multi-stage CRRA/liability
 planning, exact integer lots, or margin/multi-period constraints.
+
+## Captured byte identity (Finance R3 integrated consumer)
+
+Riskfolio uses the SAME hash-bound SPY/QQQ/IWM Cboe receipt as Qlib, reads each CSV **once** and parses the admitted byte image via BytesIO. Hash mismatches reject before optimization; source-path mutation after reading cannot change the consumed data. This is cross-engine reproducibility, not historical PIT or asset-adjustment proof. Output is math-only (`portfolio_target=null`, `optimizer_policy_eligible=false`).
+
+Run the real Riskfolio tamper/TOCTOU probe with the private capture path:
+
+```powershell
+$env:ORDIVON_FINANCE_R3_TEST_CAPTURE_DIR = '<private capture directory>'
+.venv/Scripts/python.exe ../tests/probe_riskfolio_capture_admission.py
+```
+
+The `probe_*.py` programs are explicit native integration experiments and not pytest-collected hermetic unit tests. No provider data is committed or redistributed.

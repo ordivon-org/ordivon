@@ -1,19 +1,21 @@
-"""Cross-agent native-run integration probe (READ ONLY, no PG writes).
+"""Integrated native-run next-open consumer (READ ONLY, no PG writes).
 
-Consumes one Nautilus 2.0rc9 *native BacktestNode* run, then calls the
-published, immutable Agent B bridge source by exact Git revision.
-This does NOT import or modify Agent B's live/dirty working tree.
+Consumes one Nautilus 2.0rc9 *native BacktestNode* run and invokes
+Capital's current integrated bridge by default. Optional peer mode replays
+Agent B's exact committed source. No PostgreSQL or real-market effects.
 """
 from __future__ import annotations
-from datetime import date, datetime, time
-from dataclasses import replace
-from decimal import Decimal
-from hashlib import sha256
+
 import json
-from pathlib import Path
+import os
 import runpy
 import subprocess
 import sys
+from dataclasses import replace
+from datetime import date, datetime, time
+from decimal import Decimal
+from hashlib import sha256
+from pathlib import Path
 from types import ModuleType
 from zoneinfo import ZoneInfo
 
@@ -26,14 +28,20 @@ sys.path.insert(0, str(CAP_SRC))
 
 PEER_COMMIT = "9f7f948af44233c862b10e34741859bc3cf2c122"
 PEER_PATH = "domains/capital/src/ordivon_capital/trading/nautilus_paper_bridge.py"
-payload = subprocess.check_output(
-    ["git", "-C", str(REPO), "show", f"{PEER_COMMIT}:{PEER_PATH}"]
-)
-import ordivon_capital.trading
-native_bridge = ModuleType("ordivon_capital.trading.nautilus_paper_bridge")
-native_bridge.__package__ = "ordivon_capital.trading"
-native_bridge.__file__ = f"git:{PEER_COMMIT}:{PEER_PATH}"
-exec(compile(payload, native_bridge.__file__, "exec"), native_bridge.__dict__)
+# Test the integrated Capital native bridge by default.
+bridge_mode = os.environ.get("ORDIVON_FINANCE_R3_BRIDGE_MODE", "integrated")
+if bridge_mode == "integrated":
+    from ordivon_capital.trading import nautilus_paper_bridge as native_bridge
+elif bridge_mode == "peer":
+    payload = subprocess.check_output(
+        ["git", "-C", str(REPO), "show", f"{PEER_COMMIT}:{PEER_PATH}"]
+    )
+    native_bridge = ModuleType("ordivon_capital.trading.nautilus_paper_bridge")
+    native_bridge.__package__ = "ordivon_capital.trading"
+    native_bridge.__file__ = f"git:{PEER_COMMIT}:{PEER_PATH}"
+    exec(compile(payload, native_bridge.__file__, "exec"), native_bridge.__dict__)
+else:
+    raise ValueError("unsupported bridge source mode")
 from ordivon_capital.accounting.paper_close import PaperValuation, value_session
 
 run = runpy.run_path(str(ROOT / "nautilus/next_open_native.py"), run_name="__main__")
@@ -102,7 +110,11 @@ assert rejected_mismatched_account
 
 result={
     "kind":"ordivon.finance.r3.next-open-native-bridge-read-only",
-    "peer_bridge_committed_source":PEER_COMMIT,
+    "bridge_source_mode": bridge_mode,
+    "bridge_source_sha256": sha256(
+        Path(native_bridge.__file__).read_bytes() if bridge_mode == "integrated" else payload
+    ).hexdigest(),
+    "peer_bridge_committed_source": PEER_COMMIT if bridge_mode == "peer" else None,
     "provider_capture_sha256":run["capture_sha"],
     "upstream_portfolio_intent_qualified":False,
     "admitted_PG_execution":False,
@@ -126,10 +138,11 @@ result={
 
 # Economic intent is frozen at T close; perturbing the T+1 opening mark
 # must change the native execution price, NEVER side/size or decision time.
-from tempfile import TemporaryDirectory
 import csv
 import io
 import os
+from tempfile import TemporaryDirectory
+
 with TemporaryDirectory(prefix="finance-r3-next-open-ablation-") as temp_dir:
     original_csv = ROOT / "output/openbb_cboe_SPY_normalized.csv"
     raw_csv = original_csv.read_text(encoding="utf-8")

@@ -4,16 +4,17 @@ Executes the *real* installed OpenBB/Qlib native consumer in a private
 race-mutated capture directory. No broker, paper or PG effect.
 """
 from __future__ import annotations
+
 import csv
-from hashlib import sha256
 import io
 import json
 import os
-from pathlib import Path
 import runpy
 import shutil
 import subprocess
 import sys
+from hashlib import sha256
+from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pandas as pd
