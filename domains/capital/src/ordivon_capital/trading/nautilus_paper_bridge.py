@@ -98,10 +98,27 @@ def _fee_cents(value: Any) -> int:
     return _cents(parts[0], "commission")
 
 
+def _report_rows(rows: Any, label: str) -> Sequence[Mapping[str, Any]]:
+    """Retain the actual native ReportProvider client_order_id DataFrame index.
+
+    This converts shape, not provider provenance, event-history completeness or fills.
+    """
+    if hasattr(rows, "reset_index") and hasattr(rows, "index"):
+        if getattr(rows.index, "name", None) != "client_order_id":
+            raise NautilusPaperBridgeError(f"{label}: native client_order_id index required")
+        rows = rows.reset_index().to_dict(orient="records")
+    if isinstance(rows, (str, bytes, Mapping)) or not isinstance(rows, Sequence):
+        raise NautilusPaperBridgeError(f"{label}: sequence of report mappings required")
+    if any(not isinstance(row, Mapping) for row in rows):
+        raise NautilusPaperBridgeError(f"{label}: nonmapping native report row")
+    return rows
+
+
 def next_open_paper_session(
     *,
     session: date,
     previous_session: date,
+    expected_account_id: str,
     opens_at: datetime,
     previous_close_at: datetime,
     settlement_date: date,
@@ -123,6 +140,8 @@ def next_open_paper_session(
     NEVER inferred from the Nautilus order initialization. Event rows are
     OrderFilled.to_dict-style values with type,
     event_id, trade_id and client_order_id; all corrections are rejected.
+    expected_account_id binds all native rows to one account; PG account_key
+    authorization and the event-history source remain external consumer contracts.
     The supplied event history is NOT an independently verified complete trace.
     """
     if type(session) is not date or type(previous_session) is not date or session <= previous_session:
@@ -137,10 +156,15 @@ def next_open_paper_session(
         raise NautilusPaperBridgeError("open instant must belong to trade session")
     if order_events is None:
         raise NautilusPaperBridgeError("native order event history required to detect corrections")
+    account_scope = _required({"account_id": expected_account_id}, "account_id")
+    orders = _report_rows(orders, "orders")
+    fills = _report_rows(fills, "fills")
 
     report_orders: dict[str, Mapping[str, Any]] = {}
     for order in orders:
         client_id = _required(order, "client_order_id")
+        if _required(order, "account_id") != account_scope:
+            raise NautilusPaperBridgeError("order outside bound paper account")
         if client_id in report_orders:
             raise NautilusPaperBridgeError("duplicate client order identity")
         report_orders[client_id] = order
@@ -182,6 +206,8 @@ def next_open_paper_session(
             raise NautilusPaperBridgeError("fill has no native order")
         account_id = _required(row, "account_id")
         instrument_id = _required(row, "instrument_id")
+        if account_id != account_scope:
+            raise NautilusPaperBridgeError("fill account mismatch: outside bound paper account")
         account_trade = (account_id, trade_id)
         if account_trade in seen_account_trades:
             raise NautilusPaperBridgeError("duplicate trade identity within paper account")
@@ -209,6 +235,8 @@ def next_open_paper_session(
         price_minor = _cents(row.get("last_px"), "last_px")
         fee_minor = _fee_cents(row.get("commission"))
         event = fill_events[identity]
+        if _required(row, "event_id") != _required(event, "event_id"):
+            raise NautilusPaperBridgeError("native event and fills report event identity disagree")
         if any(key not in event for key in ("last_qty", "last_px", "commission", "ts_event")):
             raise NautilusPaperBridgeError("native event lacks economic fill witness")
         if (_positive_integer(event["last_qty"], "event.last_qty") != quantity
@@ -216,6 +244,13 @@ def next_open_paper_session(
             or _fee_cents(event["commission"]) != fee_minor
             or _instant(event["ts_event"], "event.ts_event") != fill_time):
             raise NautilusPaperBridgeError("native event and fills report economics disagree")
+        if any(_required(event, field) != expected for field, expected in (
+            ("account_id", account_id), ("instrument_id", instrument_id),
+            ("order_side", side), ("currency", "USD"),
+        )):
+            raise NautilusPaperBridgeError("native event and fills report identity disagree")
+        if "side" in order and _required(order, "side") != side:
+            raise NautilusPaperBridgeError("native order and fill execution sides disagree")
         if price_minor == 0:
             raise NautilusPaperBridgeError("zero execution price")
         fill_id = f"nautilus-paper:{account_id}:{trade_id}"

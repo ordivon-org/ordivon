@@ -21,6 +21,7 @@ def episode():
     return {
         "session": SESSION,
         "previous_session": PREV,
+        "expected_account_id": "A-001",
         "opens_at": OPEN,
         "previous_close_at": datetime(2026, 11, 9, 21, 0, tzinfo=UTC),
         "settlement_date": date(2026, 11, 12),
@@ -30,7 +31,7 @@ def episode():
         }],
         "decisions_by_order": {"C-1": ORDER_AT},
         "fills": [{
-            "client_order_id": "C-1", "trade_id": "T-1",
+            "client_order_id": "C-1", "trade_id": "T-1", "event_id": "E-1",
             "account_id": "A-001", "instrument_id": "SPY.XNAS",
             "order_side": "BUY", "last_qty": "2", "last_px": "500.01",
             "currency": "USD", "commission": "0.10 USD", "ts_event": OPEN,
@@ -38,6 +39,8 @@ def episode():
         "order_events": [{
             "type": "OrderFilled", "event_id": "E-1",
             "client_order_id": "C-1", "trade_id": "T-1",
+            "account_id": "A-001", "instrument_id": "SPY.XNAS",
+            "order_side": "BUY", "currency": "USD",
             "last_qty": "2", "last_px": "500.01",
             "commission": "0.10 USD", "ts_event": OPEN,
         }],
@@ -66,12 +69,14 @@ class NautilusPaperBridgeTests(unittest.TestCase):
     def test_two_partial_fills_are_distinct_trades_not_orders(self):
         e = episode()
         second = deepcopy(e["fills"][0])
-        second.update(trade_id="T-2", last_qty="1", last_px="499.99",
+        second.update(trade_id="T-2", event_id="E-2", last_qty="1", last_px="499.99",
                       commission="0.05 USD")
         e["fills"].append(second)
         e["order_events"].append({
             "type": "OrderFilled", "event_id": "E-2",
             "client_order_id": "C-1", "trade_id": "T-2",
+            "account_id": "A-001", "instrument_id": "SPY.XNAS",
+            "order_side": "BUY", "currency": "USD",
             "last_qty": "1", "last_px": "499.99",
             "commission": "0.05 USD", "ts_event": OPEN,
         })
