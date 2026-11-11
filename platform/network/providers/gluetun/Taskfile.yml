@@ -6,6 +6,7 @@ tasks:
     cmds:
       - bash -n providers/gluetun/identity-exclusive.sh
       - python3 -c 'import ast; ast.parse(open("providers/gluetun/native_profile.py").read())'
+      - python3 -c 'import importlib.util; s=importlib.util.spec_from_file_location("native", "providers/gluetun/native_profile.py"); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); m.read_selector_policy()'
       - grep -q '^Environment=WIREGUARD_PRIVATE_KEY_SECRETFILE=/run/secrets/surfshark-wgkey$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
       - sing-box check -c providers/gluetun/config/carrier-adapter.json
       - systemd-analyze verify providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.service providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer
@@ -54,21 +55,34 @@ tasks:
 
 
   provider:gluetun:eligible-exits:
-    desc: Enumerate Surfshark WireGuard exits excluding Japan/Korea from the live Gluetun catalog; observation only
+    desc: Read native Surfshark WireGuard catalog, source-selected countries and excluded inventory without claiming live health
     cmds:
       - |
         set -euo pipefail
         /usr/bin/podman exec network-v2-gluetun-owned-r1 cat /gluetun/servers.json |
-          /usr/bin/jq -er '
-            .surfshark as $provider
-            | ($provider.servers | map(select(.vpn=="wireguard" and .country!="Japan" and .country!="South Korea"))) as $eligible
-            | if ($provider.timestamp|type)!="number" or ($eligible|length)==0
-              then error("no qualified Surfshark WireGuard catalog")
+          /usr/bin/jq --slurpfile policy providers/gluetun/config/exit-selector.json -er '
+            $policy[0] as $selection
+            | .surfshark as $provider
+            | ($provider.servers
+               | map(select(.vpn == "wireguard" and
+                   (.country as $c | $selection.excludedCountries | index($c) | not)))) as $candidates
+            | ($candidates
+               | map(select(
+                   (.country as $c | $selection.selectedCountries | index($c) != null) and
+                   (.region as $r | $selection.regions | index($r) != null)))) as $selected
+            | if ($provider.timestamp | type) != "number"
+                  or ($candidates | length) == 0
+                  or ([$selected[].country] | unique | length) != ($selection.selectedCountries | length)
+              then error("invalid catalog or selected Surfshark country has no eligible WireGuard record")
               else
-                "catalog_timestamp_utc=\($provider.timestamp|todateiso8601)",
+                "standing=CATALOG_ONLY_NOT_HEALTH",
+                "catalog_timestamp_utc=\($provider.timestamp | todateiso8601)",
                 "catalog_age_days=\(((now-$provider.timestamp)/86400)|floor)",
-                "wireguard_candidate_records=\($eligible|length)",
-                "eligible_countries=\([$eligible[].country]|unique|length)",
-                ($eligible|group_by(.country)[]|"\(.[0].country)\t\(length)")
+                "wireguard_candidate_records=\($candidates|length)",
+                "wireguard_candidate_ips=\([$candidates[].ips[]]|unique|length)",
+                "selected_records=\($selected|length)",
+                "selected_ips=\([$selected[].ips[]]|unique|length)",
+                "candidate_countries=\([$candidates[].country]|unique|length)",
+                ($candidates|group_by(.country)[]|"\(.[0].country)\t\(length)")
               end
           '

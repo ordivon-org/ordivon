@@ -13,6 +13,23 @@ use super::*;
 const WORKSPACE_EFFECT_ISOLATION: postgres::IsolationLevel =
     postgres::IsolationLevel::ReadCommitted;
 
+// The same PG consumer definition must govern Workspace mutation/close
+// admission AND workspace.get/list projections. A resolved Job can still own
+// an active or held_orphaned Attempt reservation: projecting only unresolved
+// Jobs would incorrectly report activeJobIds=[] while close remains blocked.
+// Build only trusted static query fragments; values remain PostgreSQL bind args.
+const WORKSPACE_ACTIVE_OR_HELD: &str = "(
+    j.resolution IS NULL OR j.job_id IN (
+        SELECT a.job_id FROM attempts a
+        JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id
+        WHERE r.state IN ('active','held_orphaned')
+    )
+)";
+
+fn workspace_consumer_sql(select: &str, scope: &str, order_by: &str) -> String {
+    format!("SELECT {select} FROM jobs j WHERE {scope} AND {WORKSPACE_ACTIVE_OR_HELD}{order_by}")
+}
+
 impl PgRuntime {
     /// Common qualified, lock-ordered transaction for every Workspace write.
     /// Do not take a SERIALIZABLE/REPEATABLE READ snapshot while *waiting* on
@@ -40,10 +57,13 @@ impl PgRuntime {
     ) -> RuntimeResult<WorkspaceCloseResult> {
         let mut db = self.store()?;
         let mut tx = self.begin_workspace_effect_tx(&mut db)?;
-        let active:i64=tx.query_one(
-            "SELECT count(*) FROM jobs j WHERE j.workspace_id=$1 AND (j.resolution IS NULL OR              EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations r              ON r.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND r.state IN ('active','held_orphaned')))",
-            &[&request.workspace_id]
-        ).map_err(io)?.get(0);
+        let active: i64 = tx
+            .query_one(
+                &workspace_consumer_sql("count(*)", "j.workspace_id=$1", ""),
+                &[&request.workspace_id],
+            )
+            .map_err(io)?
+            .get(0);
         if active != 0 {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::ConcurrencyLimit,
@@ -89,7 +109,12 @@ impl PgRuntime {
             read_paths: paths.clone(),
             write_paths: paths,
         };
-        let consumers=tx.query("SELECT execution_plan_json FROM jobs j WHERE j.workspace_id=$1 AND (j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND r.state IN ('active','held_orphaned')))",&[&request.workspace_id]).map_err(io)?;
+        let consumers = tx
+            .query(
+                &workspace_consumer_sql("j.execution_plan_json", "j.workspace_id=$1", ""),
+                &[&request.workspace_id],
+            )
+            .map_err(io)?;
         for row in consumers {
             let plan: RuntimeExecutionPlan = decode(&row.get::<_, String>(0))?;
             if self
@@ -139,7 +164,11 @@ impl PgRuntime {
             let mut db = self.store()?;
             db.client
                 .query(
-                    "SELECT job_id FROM jobs WHERE workspace_id=$1 AND resolution IS NULL ORDER BY created_at_ms DESC",
+                    &workspace_consumer_sql(
+                        "j.job_id",
+                        "j.workspace_id=$1",
+                        " ORDER BY j.created_at_ms DESC",
+                    ),
                     &[&record.workspace_id],
                 )
                 .map_err(io)?
@@ -167,7 +196,8 @@ impl PgRuntime {
         Ok(result)
     }
 
-    /// Precise get retains the complete source digest and exact Job readback.
+    /// Precise get retains the complete source digest and the exact PG
+    /// unresolved-or-held consumer readback used to protect close/mutate.
     pub fn get_workspace(
         &self,
         request: &RuntimeWorkspaceGetRequest,
@@ -253,7 +283,11 @@ impl PgRuntime {
             for row in db
                 .client
                 .query(
-                    "SELECT workspace_id,job_id FROM jobs WHERE resolution IS NULL AND workspace_id = ANY($1::TEXT[]) ORDER BY created_at_ms DESC",
+                    &workspace_consumer_sql(
+                        "j.workspace_id,j.job_id",
+                        "j.workspace_id = ANY($1::TEXT[])",
+                        " ORDER BY j.created_at_ms DESC",
+                    ),
                     &[&ids],
                 )
                 .map_err(io)?
@@ -309,6 +343,114 @@ impl PgRuntime {
                 .to_string(),
         );
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod workspace_active_consumer_tests {
+    use super::*;
+
+    /// Check actual PostgreSQL joins, not a mock predicate. A terminal Job
+    /// with an orphaned/held reservation must appear in both consumer read
+    /// projections because Workspace.close and mutate still own that lease.
+    /// No production tables are touched; all fixture tables are TEMP.
+    #[test]
+    #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN"]
+    fn native_pg_held_terminal_job_is_visible_to_workspace_reads_and_guards() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("dedicated disposable PostgreSQL cluster required");
+        let mut pg = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        pg.batch_execute(
+            "CREATE TEMP TABLE jobs (
+                job_id TEXT PRIMARY KEY, workspace_id TEXT, resolution TEXT,
+                execution_plan_json TEXT, created_at_ms BIGINT
+            );
+            CREATE TEMP TABLE attempts (attempt_id TEXT PRIMARY KEY, job_id TEXT);
+            CREATE TEMP TABLE concurrency_reservations (attempt_id TEXT, state TEXT);
+            INSERT INTO jobs VALUES
+                ('pending','ws-contract',NULL,'pending-plan',30),
+                ('held-terminal','ws-contract','succeeded','held-plan',20),
+                ('released-terminal','ws-contract','succeeded','released-plan',10);
+            INSERT INTO attempts VALUES ('a-held','held-terminal'),('a-released','released-terminal');
+            INSERT INTO concurrency_reservations VALUES
+                ('a-held','held_orphaned'),('a-released','released');",
+        )
+        .unwrap();
+
+        let exact = pg
+            .query(
+                &workspace_consumer_sql(
+                    "j.job_id",
+                    "j.workspace_id=$1",
+                    " ORDER BY j.created_at_ms DESC",
+                ),
+                &[&"ws-contract"],
+            )
+            .unwrap()
+            .iter()
+            .map(|row| row.get::<_, String>(0))
+            .collect::<Vec<_>>();
+        let ids = vec!["ws-contract".to_string()];
+        let list = pg
+            .query(
+                &workspace_consumer_sql(
+                    "j.workspace_id,j.job_id",
+                    "j.workspace_id = ANY($1::TEXT[])",
+                    " ORDER BY j.created_at_ms DESC",
+                ),
+                &[&ids],
+            )
+            .unwrap()
+            .iter()
+            .map(|row| row.get::<_, String>(1))
+            .collect::<Vec<_>>();
+        let close_count: i64 = pg
+            .query_one(
+                &workspace_consumer_sql("count(*)", "j.workspace_id=$1", ""),
+                &[&"ws-contract"],
+            )
+            .unwrap()
+            .get(0);
+        let plans = pg
+            .query(
+                &workspace_consumer_sql("j.execution_plan_json", "j.workspace_id=$1", ""),
+                &[&"ws-contract"],
+            )
+            .unwrap()
+            .iter()
+            .map(|row| row.get::<_, String>(0))
+            .collect::<Vec<_>>();
+        assert_eq!(exact, vec!["pending", "held-terminal"]);
+        assert_eq!(list, exact, "get/list must not hide PG-held consumers");
+        assert_eq!(
+            close_count, 2,
+            "close must protect every projected consumer"
+        );
+        assert_eq!(plans.len(), 2, "mutate must see the same PG consumers");
+        assert!(plans.contains(&"held-plan".to_string()));
+        assert!(!plans.contains(&"released-plan".to_string()));
+    }
+
+    #[test]
+    fn workspace_consumer_sql_reuses_one_pg_ownership_predicate() {
+        for query in [
+            workspace_consumer_sql("count(*)", "j.workspace_id=$1", ""),
+            workspace_consumer_sql("j.execution_plan_json", "j.workspace_id=$1", ""),
+            workspace_consumer_sql("j.job_id", "j.workspace_id=$1", ""),
+            workspace_consumer_sql(
+                "j.workspace_id,j.job_id",
+                "j.workspace_id = ANY($1::TEXT[])",
+                "",
+            ),
+        ] {
+            assert!(query.contains(WORKSPACE_ACTIVE_OR_HELD));
+            assert!(query.contains("r.state IN ('active','held_orphaned')"));
+            assert!(query.contains("j.resolution IS NULL"));
+            // PostgreSQL can hash this ownership set once for the bounded
+            // Workspace page; a correlated EXISTS can degenerate into one
+            // nested-loop probe per historical Job under a large ledger.
+            assert!(query.contains("j.job_id IN ("));
+        }
     }
 }
 

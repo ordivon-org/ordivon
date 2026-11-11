@@ -46,11 +46,24 @@ background poller and preserves Gluetun-native health recovery.
 
 The production Quadlet now uses Gluetun native `VPN_SERVICE_PROVIDER=surfshark`
 with WireGuard, rather than a pinned Custom WireGuard peer endpoint. Its
-server selector is constrained to `SERVER_REGIONS=Asia Pacific` and
-`SERVER_COUNTRIES=Singapore`. This matches the currently selected installed
-profile and excludes previously disallowed Japan/Korea egress. The server catalog
-contains other destinations, but they are not automatically approved for every
-consumer. A reachable VPN endpoint alone is insufficient.
+server selector is constrained by the source-owned declarative
+`providers/gluetun/config/exit-selector.json`. The current selection is
+`SERVER_REGIONS=Asia Pacific` and `SERVER_COUNTRIES=Singapore`, matching the
+installed SourceCut. The policy also declares excluded Japan/South Korea
+locations, which the existing `provider:gluetun:eligible-exits` Task consumes
+instead of maintaining a second exclusion list. The latter reads the native
+Gluetun catalog and now distinguishes all nonexcluded candidate records/IPs
+from the smaller selected country set; its result is `CATALOG_ONLY_NOT_HEALTH`,
+not proof that any IP can carry actual consumer traffic.
+
+To widen the pool, update only that source selector and use Gluetun's native
+`SERVER_COUNTRIES`/`SERVER_REGIONS` filtering; do not introduce a custom
+endpoint scheduler. Before a live cutover, establish every shared consumer's
+allowed exit country and prove the selected countries have usable DNS, HTTPS,
+provider identity and consumer effects. Run the existing native provider
+SourceCut verification and controlled physical rollout separately. Changing the
+policy file alone must make --verify fail against a still-running old profile.
+A reachable candidate does not prove a consumer permits that exit country.
 
 Native Gluetun owns its own healthchecks, VPN reconnect and server selection.
 The official server catalog updates at `UPDATER_PERIOD=480h`; the systemd
