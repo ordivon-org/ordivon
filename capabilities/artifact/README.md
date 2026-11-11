@@ -42,6 +42,11 @@ Build providers, verifier plugins, trust overlays, OCI package assembly and dura
 
 Reference: `docs/ARTIFACT_VERIFICATION_SERVICE_R1.md` and `planning/lego-plan-r2.json`, checked against their current source files.
 
+Current convergence contract: `docs/ARTIFACT_STANDING_CONVERGENCE_SPEC_R21.md` and
+`docs/ARTIFACT_STANDING_CONVERGENCE_PLAN_R21.md`. These guide the
+shared v1/v2 Standing implementation; a plan is not deployed capability or
+consumer acceptance.
+
 **Profile authority and refinement:** `artifact_core/profiles.py` now
 binds parsed JSON and SHA-256 to the same indexed source bytes, reuses
 Draft 2020-12 Schema validation, and rejects malformed, ambiguous or

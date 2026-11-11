@@ -11,6 +11,7 @@ from typing import Any
 from artifact_core.contracts import file_fact
 from artifact_trust.vsa import LOCAL_VSA_VERIFIER_ID
 
+from .claim_coverage import assess_required_statuses
 from .evidence import write_gate_receipt
 
 ProfileValidator = Callable[[Path], dict[str, Any]]
@@ -87,6 +88,13 @@ def execute_verify_stage(
             "profileId": profile.get("id"),
             "failures": failures,
             "receipts": receipts,
+            "standingCoverage": assess_required_statuses(
+                {
+                    name for name, value in profile.get("gates", {}).items()
+                    if value is True
+                },
+                {}, issues=failures,
+            ),
         }
 
     profile_raw = {
@@ -352,6 +360,20 @@ def execute_verify_stage(
     }
     generated = set(receipts)
     pending = sorted(required_gates - generated)
+    # Executed required FAIL receipts are valid falsification observations,
+    # not evidence-integrity issues. Preserve diagnostics for the legacy stage
+    # status, but do not collapse their scoped Standing into UNKNOWN.
+    evidence_issues = list(failures)
+    failed_nonrequired = sorted(set(executed_failures) - required_gates)
+    if failed_nonrequired:
+        evidence_issues.append(
+            "non-required executed gate(s) failed: " + ", ".join(failed_nonrequired)
+        )
+    coverage = assess_required_statuses(
+        required_gates,
+        {name: item.get("status", "NOT_EVALUATED") for name, item in receipts.items()},
+        issues=evidence_issues,
+    )
     if executed_failures:
         failures.append(
             "executed verifier gate(s) failed: "
@@ -366,7 +388,8 @@ def execute_verify_stage(
         "receipts": receipts,
         "profileRequiredGates": sorted(required_gates),
         "pendingRequiredGates": pending,
-        "profileVerificationComplete": not failures and not pending,
+        "profileVerificationComplete": coverage["complete"],
+        "standingCoverage": coverage,
         "failures": failures,
         "boundary": (
             "Verify-stage status covers only adapters executed here. "

@@ -168,6 +168,37 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(observed_digest, hashlib.sha256(original).hexdigest())
             self.assertNotEqual(observed_digest, hashlib.sha256(replacement).hexdigest())
 
+    def test_generic_aggregate_pointer_cannot_qualify_unrelated_profile_claims(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            profile = json.loads(Path(request["profile"]["path"]).read_text())
+            generic = {
+                "status": "PASS",
+                "failures": [],
+                "profileId": request["profile"]["id"],
+                "artifact": {"sha256": sha(subject), "size": subject.stat().st_size},
+                "verification": {"status": "PASS"},
+                "claimResults": {
+                    name: {
+                        "status": "PASS",
+                        "nativePointers": ["/verification"],
+                    }
+                    for name, row in profile["requiredEvidence"].items()
+                    if row["required"]
+                },
+            }
+            with mock.patch.object(M, "load_function", return_value=(
+                lambda *_args: generic, "f" * 64
+            )):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertFalse(result["requiredEvidenceAssessment"]["complete"])
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertEqual(result["standingCoverage"]["verificationStatus"], "UNKNOWN")
+
     def test_native_pass_with_explicit_failures_is_not_promoted(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -194,6 +225,10 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(result["status"], "FAIL", result)
             self.assertFalse(result["profileVerificationComplete"])
             self.assertIn("native decoder contradiction", result["failures"])
+            self.assertFalse(result["standingCoverage"]["complete"])
+            self.assertEqual(
+                result["standingCoverage"]["verificationStatus"], "UNKNOWN"
+            )
             self.assertEqual(
                 result["verifier"]["sourceIdentityScope"],
                 "EXACT_PYTHON_MODULE_BYTES_EXECUTED",
@@ -201,6 +236,68 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(
                 result["verifier"]["nativeToolchainIdentity"],
                 "NOT_ATTESTED_BY_SERVICE",
+            )
+
+    def test_native_supported_required_failure_is_falsified_not_just_unknown(self):
+        """An independently witnessed required FAIL is different from missing evidence."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            profile = json.loads(Path(request["profile"]["path"]).read_text())
+            statuses = {
+                name: ("FAIL" if name == "decoderMatrix" else "PASS")
+                for name, declaration in profile["requiredEvidence"].items()
+                if declaration["required"] is True
+            }
+            native = {
+                "status": "FAIL",
+                "failures": ["native decoder explicitly rejected this datastream"],
+                "profileId": request["profile"]["id"],
+                "artifact": {
+                    "sha256": sha(subject), "size": subject.stat().st_size,
+                },
+                "nativeFacts": {
+                    name: {"status": status} for name, status in statuses.items()
+                },
+                "claimResults": {
+                    name: {
+                        "status": status, "nativePointers": [f"/nativeFacts/{name}"],
+                    }
+                    for name, status in statuses.items()
+                },
+            }
+            with mock.patch.object(
+                M, "load_function",
+                return_value=(lambda *_args: native, "f" * 64),
+            ):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL")
+            self.assertEqual(
+                result["requiredEvidenceAssessment"]["claimStatuses"]["decoderMatrix"],
+                "FAIL",
+            )
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertTrue(result["nativeIdentityAssessment"]["complete"])
+            self.assertEqual(
+                result["standingCoverage"]["verificationStatus"], "FAIL",
+            )
+            self.assertEqual(result["standingCoverage"]["failed"], ["decoderMatrix"])
+
+            # The same required FAIL contradicts a native aggregate PASS:
+            # preserve UNKNOWN instead of laundering either verdict.
+            native["status"] = "PASS"
+            native["failures"] = []
+            with mock.patch.object(
+                M, "load_function",
+                return_value=(lambda *_args: native, "f" * 64),
+            ):
+                contradiction = M.verify_request(request_path)
+            self.assertEqual(contradiction["status"], "FAIL")
+            self.assertFalse(contradiction["profileVerificationComplete"])
+            self.assertEqual(
+                contradiction["standingCoverage"]["verificationStatus"], "UNKNOWN",
             )
 
     def test_profile_snapshot_must_match_indexed_authority(self):
