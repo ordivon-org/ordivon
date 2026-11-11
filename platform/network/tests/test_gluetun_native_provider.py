@@ -112,3 +112,33 @@ def test_running_gluetun_loaded_settings_match_selected_native_sourcecut():
         native.verify_loaded_env(expected, loaded + ["SERVER_COUNTRIES=Singapore"])
     with pytest.raises(ValueError, match="VPN_SERVICE_PROVIDER"):
         native.verify_loaded_env(expected, [line for line in loaded if not line.startswith("VPN_SERVICE_PROVIDER=")])
+
+
+
+def test_country_selector_policy_is_one_authority_for_selected_and_excluded():
+    policy = native.read_selector_policy()
+    assert policy == {
+        "regions": ["Asia Pacific"],
+        "selectedCountries": ["Singapore"],
+        "excludedCountries": ["Japan", "South Korea"],
+    }
+    inherited = native.parse_env("VPN_SERVICE_PROVIDER=custom\nVPN_TYPE=wireguard\n")
+    expanded = {
+        **policy,
+        "selectedCountries": ["Singapore", "Hong Kong", "Malaysia"],
+    }
+    rendered = native.generate_env(inherited, "10.64.200.9/16", expanded)
+    assert 'SERVER_REGIONS="Asia Pacific"' in rendered
+    assert 'SERVER_COUNTRIES="Singapore,Hong Kong,Malaysia"' in rendered
+    assert "WIREGUARD_ENDPOINT_IP" not in rendered
+
+    for invalid in [
+        {**expanded, "selectedCountries": []},
+        {**expanded, "selectedCountries": ["Japan"]},
+        {**expanded, "selectedCountries": ["Singapore", "Singapore"]},
+        {**expanded, "selectedCountries": ["Singapore\nHEALTH_RESTART_VPN=off"]},
+        {**expanded, "selectedCountries": ["Singapore"], "regions": []},
+        {**expanded, "selectedCountries": ["Singapore"], "unknownField": True},
+    ]:
+        with pytest.raises(ValueError):
+            native.parse_selector_policy(__import__("json").dumps(invalid))

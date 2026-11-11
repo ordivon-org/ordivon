@@ -21,8 +21,7 @@ BASE_ENV = Path("/etc/network-v2/gluetun/serialized-candidate.env")
 NATIVE_ENV = Path("/etc/network-v2/gluetun/serialized-native.env")
 SECRET = "network-v2-gluetun-surfshark-wgkey"
 CONTAINER = "network-v2-gluetun-owned-r1"
-REGION = "Asia Pacific"
-COUNTRIES = "Singapore"
+SELECTOR_POLICY = Path(__file__).resolve().parent / "config/exit-selector.json"
 
 PRESERVED = (
     "HTTPPROXY",
@@ -72,13 +71,60 @@ def parse_env(content: str) -> dict[str, str]:
     return values
 
 
-def generate_env(inherited: dict[str, str], interface_address: str) -> str:
+def parse_selector_policy(raw: str) -> dict[str, list[str]]:
+    """One source-owned selector; Gluetun owns the actual server choice.
+
+    Selected countries are transport candidates, never proof that an upstream
+    application accepts that public egress or that a catalog IP is healthy.
+    """
+    value = json.loads(raw)
+    fields = {"regions", "selectedCountries", "excludedCountries"}
+    if not isinstance(value, dict) or set(value) != fields:
+        raise ValueError("Gluetun selector policy fields differ")
+    for field in fields:
+        entries = value[field]
+        if not isinstance(entries, list) or (field != "excludedCountries" and not entries):
+            raise ValueError(f"Invalid {field} selector list")
+        if not all(
+            isinstance(x, str)
+            and x == x.strip()
+            and x
+            and all(c.isalnum() or c in " -.'()&" for c in x)
+            for x in entries
+        ):
+            raise ValueError(f"Unsafe {field} selector item")
+        if len(entries) != len(set(entries)):
+            raise ValueError(f"Duplicate {field} selector")
+    if set(value["selectedCountries"]) & set(value["excludedCountries"]):
+        raise ValueError("Selected Gluetun country is excluded")
+    return value
+
+
+def read_selector_policy(path: Path = SELECTOR_POLICY) -> dict[str, list[str]]:
+    return parse_selector_policy(path.read_text(encoding="utf-8"))
+
+
+def render_native_selector(values: list[str]) -> str:
+    # The installed Podman env-file expects existing simple values unquoted;
+    # quote only lists containing spaces to avoid changing the SG SourceCut.
+    combined = ",".join(values)
+    return f'"{combined}"' if " " in combined else combined
+
+
+def generate_env(
+    inherited: dict[str, str], interface_address: str,
+    selector: dict[str, list[str]] | None = None,
+) -> str:
+    if selector is None:
+        selector = read_selector_policy()
+    else:
+        selector = parse_selector_policy(json.dumps(selector))
     config = [
         "VPN_SERVICE_PROVIDER=surfshark",
         "VPN_TYPE=wireguard",
         f"WIREGUARD_ADDRESSES={interface_address}",
-        'SERVER_REGIONS="Asia Pacific"',
-        f"SERVER_COUNTRIES={COUNTRIES}",
+        f'SERVER_REGIONS={render_native_selector(selector["regions"])}',
+        f'SERVER_COUNTRIES={render_native_selector(selector["selectedCountries"])}',
         "UPDATER_PERIOD=480h",
         # Pinned Gluetun 3.41.3 compares 185 unique Surfshark hostname fetches
         # against 363 transport-expanded stored records. int(0.51*363)=185,
@@ -105,9 +151,11 @@ def generate_env(inherited: dict[str, str], interface_address: str) -> str:
     return "\n".join(config) + "\n"
 
 
-def stage(config_path: Path, base_path: Path) -> tuple[str, str]:
+def stage(
+    config_path: Path, base_path: Path, selector_path: Path = SELECTOR_POLICY,
+) -> tuple[str, str]:
     private_key, address = parse_wireguard(config_path.read_text())
-    env = generate_env(parse_env(base_path.read_text()), address)
+    env = generate_env(parse_env(base_path.read_text()), address, read_selector_policy(selector_path))
     return private_key, env
 
 
@@ -195,8 +243,9 @@ def main() -> None:
     arg.add_argument("--wireguard", type=Path, default=WG_CONFIG)
     arg.add_argument("--base-env", type=Path, default=BASE_ENV)
     arg.add_argument("--native-env", type=Path, default=NATIVE_ENV)
+    arg.add_argument("--selector-policy", type=Path, default=SELECTOR_POLICY)
     args = arg.parse_args()
-    private_key, env = stage(args.wireguard, args.base_env)
+    private_key, env = stage(args.wireguard, args.base_env, args.selector_policy)
     if args.apply:
         materialize(private_key, env, args.native_env)
     if args.verify:
@@ -209,9 +258,15 @@ def main() -> None:
             check=True, capture_output=True,
         )
         verify_running_container(env)
+    # Report the exact bytes staged for admission, never a second read of the
+    # selector file which could change between generation and observation.
+    emitted = dict(line.split("=", 1) for line in env.splitlines())
+    regions = emitted["SERVER_REGIONS"].strip('"')
+    countries = emitted["SERVER_COUNTRIES"].strip('"')
     print(
         "native_profile=" + ("APPLIED" if args.apply else "VERIFIED" if args.verify else "VALID")
-        + f" provider=surfshark wireguard=eligible region=Asia_Pacific countries={COUNTRIES} key=REDACTED"
+        + " provider=surfshark wireguard=eligible"
+        + f" regions={regions} countries={countries} key=REDACTED"
     )
 
 
