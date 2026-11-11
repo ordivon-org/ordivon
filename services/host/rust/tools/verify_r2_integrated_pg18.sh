@@ -74,7 +74,7 @@ export HOST_RUST_ENGAGEMENT_OBSERVED_PATH="$engagement_oracle"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/mcp_http_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
 # Gateway's real MCP SDK transport + actual Rust HTTP owner + real disposable PG,
 # after Rust's own MCP integration has seeded and checked all direct results.
-(cd "$root/services/gateway" && uv sync --locked --offline --quiet && uv run --offline python "$root/services/host/rust/tools/gateway_rust_owner_consumer_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
+bash "$root/tools/repo/run_host_gateway_rust_consumer.sh"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_mcp_engagement_oracle.py")
 echo "R7_NATIVE_MCP_STDIO_HTTP_ENGAGEMENT_PYTHON_CONSUMER_PASS"
 echo "R2_MCP_STDIO_HTTP_PASS"

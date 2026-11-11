@@ -45,7 +45,7 @@ actual connected-client use. Passing this test does not claim any of those.
 
 From services/host/rust/tools/verify_r2_integrated_pg18.sh, after the
 ordinary Rust stdio/HTTP and original Python oracle tests, the wrapper invokes
-gateway_rust_owner_consumer_smoke.py with the Gateway's own locked uv
+services/gateway/tests/native_rust_host_consumer_smoke.py with the Gateway's own locked uv
 environment. The script rejects inherited Host URL and non-loopback/non-shared
 test DSNs and terminates its temporary Rust HTTP child. The parent's Docker
 trap deletes the disposable PostgreSQL18 server even on failure.
@@ -53,3 +53,8 @@ trap deletes the disposable PostgreSQL18 server even on failure.
 GATEWAY_REAL_RUST_OWNER_CONSUMER_PASS represents four verified
 success payloads plus one typed missing-resource rejection — not 29-tool
 installed live parity.
+
+The root tools/repo/run_host_gateway_rust_consumer.sh owns orchestration
+of this cross-owner acceptance. The Host verifier invokes only that root
+runner. Gateway's test imports only its own SDK/package. No Host→Gateway
+runtime dependency or test-only dependency-policy escape is introduced.
