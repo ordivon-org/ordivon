@@ -1,5 +1,12 @@
 //! PostgreSQL Attempt readback, native reconciliation, and Job result projection.
 use super::*;
+
+/// Retain PostgreSQL's SQLSTATE across direct Client reads. The shared
+/// PgAdmissionError adapter owns transaction-abort vs unavailable taxonomy;
+/// generic io(Display) would erase SQLSTATE 40001/40P01 first.
+fn pg_read_error(error: postgres::Error) -> RuntimeError {
+    pg(PgAdmissionError::Database(error))
+}
 use crate::PgJobSnapshot;
 
 // Keep the exact recovery current-Attempt selectors shared with native PG
@@ -233,7 +240,9 @@ impl PgRuntime {
         // arrive continuously; stale concurrent scans cannot rewrite it.
         let upper_fence = match previous.upper_fence.clone() {
             Some(key) => Some(key),
-            None => latest_reconciliation_key(&mut db.client, cancelled_only).map_err(io)?,
+            None => {
+                latest_reconciliation_key(&mut db.client, cancelled_only).map_err(pg_read_error)?
+            }
         };
         let pending = match upper_fence.as_ref() {
             Some(upper) => scan_reconciliation_page(
@@ -243,7 +252,7 @@ impl PgRuntime {
                 previous.key.as_ref(),
                 upper,
             )
-            .map_err(io)?,
+            .map_err(pg_read_error)?,
             None => Vec::new(),
         };
         let (next_key, next_upper_fence) = match upper_fence.as_ref() {
@@ -303,7 +312,7 @@ impl PgRuntime {
         let r = require_recovery_current_attempt(
             db.client
                 .query_opt(RECOVERY_CURRENT_ATTEMPT_SQL, &[&job])
-                .map_err(io)?,
+                .map_err(pg_read_error)?,
             job,
         )?;
         self.decode_attempt_record(&r, job)
@@ -331,7 +340,7 @@ impl PgRuntime {
                     &snapshot.resolution,
                 ],
             )
-            .map_err(io)?;
+            .map_err(pg_read_error)?;
         let row = row.ok_or_else(|| {
             RuntimeError::new(
                 RuntimeErrorCode::ReconciliationRequired,
@@ -379,7 +388,7 @@ impl PgRuntime {
         let stage = db
             .client
             .query_one(RECONCILIATION_STAGE_SQL, &[&job])
-            .map_err(io)?;
+            .map_err(pg_read_error)?;
         if stage.get::<_, Option<String>>(0).is_some() {
             return Ok(());
         }
@@ -391,7 +400,7 @@ impl PgRuntime {
             let row = db
                 .client
                 .query_opt(RELEASE_CURRENT_ATTEMPT_STATE_SQL, &[&job])
-                .map_err(io)?;
+                .map_err(pg_read_error)?;
             return match row.map(|value| value.get::<_, String>(0)).as_deref() {
                 Some("accepted") => Ok(()),
                 _ => Err(RuntimeError::new(
@@ -410,7 +419,7 @@ impl PgRuntime {
                     "SELECT workspace_snapshot_json FROM jobs WHERE job_id=$1",
                     &[&job],
                 )
-                .map_err(io)?
+                .map_err(pg_read_error)?
                 .get::<_, String>(0),
         )?;
         if a.state == AttemptState::Accepted
@@ -576,7 +585,7 @@ impl PgRuntime {
             let cancelled_at: i64 = db.client.query_one(
                 "SELECT min(observed_at_ms) FROM job_events WHERE attempt_id=$1 AND event_type='STOP_REQUESTED'",
                 &[&a.attempt_id],
-            ).map_err(io)?.get::<_,Option<i64>>(0)
+            ).map_err(pg_read_error)?.get::<_,Option<i64>>(0)
                 .ok_or_else(|| error("cancelled admission omitted stop event"))?;
             let bytes = serde_json::to_vec(&json!({"schemaVersion":1,
                 "jobId":job,"attemptId":a.attempt_id,"dispatchIssued":false,
@@ -890,7 +899,7 @@ impl PgRuntime {
         };
         let (a, p, operation) = self.readback_attempt(db, &snapshot)?;
         let terminal = snapshot.resolution.is_some();
-        let rows=db.client.query("SELECT artifact_id,kind,digest,byte_length,truncated,relative_path FROM artifacts WHERE job_id=$1 ORDER BY artifact_id", &[&request.job_id]).map_err(io)?;
+        let rows=db.client.query("SELECT artifact_id,kind,digest,byte_length,truncated,relative_path FROM artifacts WHERE job_id=$1 ORDER BY artifact_id", &[&request.job_id]).map_err(pg_read_error)?;
         let artifacts=rows.iter().map(|r|json!({"artifactId":r.get::<_,String>(0),"attemptId":a.attempt_id,"kind":r.get::<_,String>(1),"digest":r.get::<_,String>(2),"retainedBytes":r.get::<_,i64>(3),"truncated":r.get::<_,bool>(4)})).collect::<Vec<_>>();
         let exit: Option<i32> = db
             .client
@@ -898,7 +907,7 @@ impl PgRuntime {
                 "SELECT exit_code FROM attempts WHERE attempt_id=$1",
                 &[&a.attempt_id],
             )
-            .map_err(io)?
+            .map_err(pg_read_error)?
             .get(0);
         // Preserve the existing projection for historical terminal variants.
         // An OS-only LOST reconciliation is the new explicit exception:
@@ -1588,6 +1597,41 @@ mod recovery_projection_contract_tests {
             AttemptState::Orphaned,
         ] {
             assert!(!needs_recovery_observation(state, false));
+        }
+    }
+}
+
+#[cfg(test)]
+mod pg_reconciliation_direct_error_tests {
+    use super::*;
+
+    /// Exercise actual PostgreSQL, not a fabricated SQLSTATE.
+    #[test]
+    #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN and #2123 typed mapper"]
+    fn native_postgres_recovery_keeps_server_transaction_abort_sqlstate() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("dedicated disposable PostgreSQL cluster is required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        for (state, busy) in [("40001", true), ("40P01", true), ("23505", false)] {
+            let source_error = db
+                .batch_execute(&format!(
+                    "DO $$ BEGIN RAISE EXCEPTION SQLSTATE '{state}'; END $$;"
+                ))
+                .unwrap_err();
+            let projected = pg_read_error(source_error);
+            assert_eq!(
+                projected.code,
+                if busy {
+                    RuntimeErrorCode::RegistryBusy
+                } else {
+                    RuntimeErrorCode::RegistryUnavailable
+                },
+                "SQLSTATE {state} must retain typed classification"
+            );
+            assert_eq!(projected.retryable, busy);
+            if busy {
+                assert_eq!(projected.retry_after_ms, Some(250));
+            }
         }
     }
 }
