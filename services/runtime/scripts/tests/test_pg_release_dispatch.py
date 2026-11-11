@@ -84,6 +84,46 @@ class PgReleaseDispatchTests(unittest.TestCase):
             self.config[name]=("ordivon-runtime.service" if name=="service"
                                else ["ordivon-runtime-pg","ordivon-runtime-runner"])
 
+    def test_incomplete_or_duplicate_native_release_set_is_rejected(self) -> None:
+        # A complete Runtime release includes BOTH native executable images.
+        # The originally permitted PG-only subset must not bypass Runner
+        # attestation, even with an otherwise root-qualified config file.
+        invalid = (
+            ["ordivon-runtime-pg"],
+            ["ordivon-runtime-runner"],
+            ["ordivon-runtime-pg", "ordivon-runtime-pg"],
+            ["ordivon-runtime-pg", "ordivon-runtime-runner", "ordivon-runtime-runner"],
+            ["ordivon-runtime-pg", "ordivon-runtime-runner", "/usr/bin/sh"],
+            [],
+            "ordivon-runtime-pg",
+        )
+        for binaries in invalid:
+            with self.subTest(binaries=binaries):
+                self.config["binaries"] = binaries
+                self.path.write_text(json.dumps(self.config), encoding="utf-8")
+                self.path.chmod(0o600)
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    self.owner_config()
+        # Ordering of exactly the two required names is not security relevant.
+        self.config["binaries"] = ["ordivon-runtime-runner", "ordivon-runtime-pg"]
+        self.path.write_text(json.dumps(self.config), encoding="utf-8")
+        self.path.chmod(0o600)
+        self.assertEqual(
+            self.owner_config()["binaries"],
+            ["ordivon-runtime-runner", "ordivon-runtime-pg"],
+        )
+
+    def test_programmatic_sweep_cannot_bypass_full_native_binary_set(self) -> None:
+        # The native timer calls main(), but sweep() is also an importable
+        # entry point. It must fail before even opening the PG connection.
+        qualified = self.owner_config()
+        qualified["binaries"] = ["ordivon-runtime-pg"]
+        with patch.dict(os.environ, {"ORDIVON_PG_RELEASE_OPERATOR_DSN": "operator-only"}), \
+             patch.object(dispatcher.operator, "pg_connection") as connect:
+            with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                dispatcher.sweep(qualified)
+            connect.assert_not_called()
+
     def test_committed_row_uses_only_operator_configured_paths(self) -> None:
         config=self.owner_config()
         row={
