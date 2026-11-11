@@ -89,6 +89,63 @@ def admit_implementation() -> dict:
         assert materialize.index("task --silent " + owner + ":classify") < materialize.index("install -")
         for no_network in ("curl ", "dig ", "systemctl restart ", "systemctl start "):
             assert no_network not in state, (owner, no_network)
+    # R11 source-bound composition: six more natural owners retain their
+    # previous consumer tasks; every materializer must reclassify before its
+    # FIRST effect, including when Task --force bypasses status/preconditions.
+    r11_owners = (
+        ("claude", "consumer:claude"),
+        ("finance", "consumer:finance"),
+        ("supply-chain", "consumer:supply-chain"),
+        ("x-reality", "consumer:x-reality"),
+        ("chat-ingress", "consumer:chat-ingress"),
+        ("browserless", "consumer:browserless:provider-carrier"),
+    )
+    common = (ROOT / "scripts/native-sourcecut.py").read_text()
+    assert "def accessible_parent(" in common and "def file_digest(" in common
+    assert "def classify(" in common and "UNKNOWN:" in common
+    assert "installed_identity[1] != installed_modes.get(installed, 0o644)" in common
+    for subdir, owner in r11_owners:
+        other = (ROOT / "consumers" / subdir / "Taskfile.yml").read_text()
+        status = section(other, owner + ":sourcecut")
+        materialize = section(other, owner + ":materialize")
+        state = section(other, owner + ":classify")
+        consumer_converge = section(other, owner + ":converge")
+        assert "scripts/native-sourcecut.py" in state, owner
+        assert "--file " in state and "--unit-loaded " in state, owner
+        assert "status:\n      - task " + owner + ":sourcecut" in materialize, owner
+        assert "task --silent " + owner + ":classify" in status, owner
+        assert 'test "$verdict" = MATCH' in status, owner
+        assert "task --silent " + owner + ":classify" in materialize, owner
+        assert 'test "$verdict" = DRIFT' in materialize, owner
+        # A dependency runs before Task's command guard. It cannot be another
+        # owner's install/materialize, even when this owner returns UNKNOWN.
+        before_cmds = materialize.split("    cmds:\n", 1)[0]
+        assert ":materialize" not in before_cmds, owner
+        if "install -" in materialize:
+            assert materialize.index("task --silent " + owner + ":classify") < materialize.index("install -"), owner
+        assert "case \"$verdict\" in" in consumer_converge, owner
+        assert "MATCH)" in consumer_converge and "DRIFT)" in consumer_converge, owner
+        match_branch = consumer_converge.split("MATCH)", 1)[1].split("DRIFT)", 1)[0]
+        assert "systemctl restart " not in match_branch and "install -" not in match_branch, owner
+        assert "task --silent " + owner + ":sourcecut" in consumer_converge, owner
+        assert "task --silent " + owner + ":materialize" in consumer_converge, owner
+        if subdir == "browserless":
+            assert "substrate:shared-egress:classify" in state
+            assert 'case "$local_verdict/$shared_verdict" in' in state
+            assert "MATCH/MATCH) echo MATCH" in state
+            assert "MATCH/DRIFT|DRIFT/MATCH|DRIFT/DRIFT) echo DRIFT" in state
+            assert "UNKNOWN:" in state
+        else:
+            assert "--mode /usr/local/libexec/network-v2/" + subdir + "-ready 0755" in state
+    for subdir, preserved in (
+        ("claude", ("verify", "stop")),
+        ("finance", ("verify", "stop")),
+        ("supply-chain", ("docker-rebind", "verify", "stop")),
+        ("x-reality", ("verify", "stop")),
+    ):
+        original = (ROOT / "consumers" / subdir / "Taskfile.yml").read_text()
+        for label in preserved:
+            assert "  consumer:" + subdir + ":" + label + ":\n" in original
     assert "systemctl restart network-v2-r0.target" in install  # only on actual drift
     assert "task: core:install" in activation
     assert "systemctl start network-v2-r0.target" in activation
@@ -98,7 +155,8 @@ def admit_implementation() -> dict:
     assert has_exact_https_origin_probe(check)
     steps = ("task: core:validate", "task: core:install", "systemctl start network-v2-r0.target", "task: core:verify")
     assert [converge.index(step) for step in steps] == sorted(converge.index(step) for step in steps)
-    return {"localCompareCalls": classifier.count("compare "), "consumerCount": 3,
+    return {"localCompareCalls": classifier.count("compare "), "consumerCount": 3 + len(r11_owners),
+             "r11ConsumerOwners": [owner for _, owner in r11_owners],
             "convergeSteps": list(steps)}
 
 
@@ -133,6 +191,40 @@ def prove() -> dict:
         solver.add(valid, z3.Not(claim))
         assert solver.check() == z3.unsat, "proof failed: " + label
 
+    # Composition of two owners is not ordinary Boolean OR:
+    # UNKNOWN on either side blocks deployment even when the other drifts.
+    local, shared = z3.Ints("browserless_local shared_carrier")
+    admissible = z3.And(
+        z3.Or(local == MATCH, local == DRIFT, local == UNKNOWN),
+        z3.Or(shared == MATCH, shared == DRIFT, shared == UNKNOWN),
+    )
+    composed = z3.If(
+        z3.Or(local == UNKNOWN, shared == UNKNOWN), UNKNOWN,
+        z3.If(z3.Or(local == DRIFT, shared == DRIFT), DRIFT, MATCH),
+    )
+    composition_claims = {
+        "both_owners_match": z3.Implies(
+            z3.And(local == MATCH, shared == MATCH), composed == MATCH),
+        "local_unknown_overrides_shared_drift": z3.Implies(
+            z3.And(local == UNKNOWN, shared == DRIFT), composed == UNKNOWN),
+        "shared_unknown_overrides_local_drift": z3.Implies(
+            z3.And(local == DRIFT, shared == UNKNOWN), composed == UNKNOWN),
+        "either_witnessed_drift_admits_update": z3.Implies(
+            z3.And(local != UNKNOWN, shared != UNKNOWN,
+                   z3.Or(local == DRIFT, shared == DRIFT)), composed == DRIFT),
+        "unknown_in_either_owner_never_installs": z3.Implies(
+            z3.Or(local == UNKNOWN, shared == UNKNOWN), composed != DRIFT),
+    }
+    for label, claim in composition_claims.items():
+        check = z3.Solver()
+        check.add(admissible, z3.Not(claim))
+        assert check.check() == z3.unsat, "composed sourcecut proof failed: " + label
+    # Negative control: a simple OR conflates a witnessed DRIFT with UNKNOWN.
+    bad_composition = z3.Or(local != MATCH, shared != MATCH)
+    bad = z3.Solver()
+    bad.add(admissible, local == MATCH, shared == UNKNOWN, bad_composition)
+    assert bad.check() == z3.sat
+
     # Actual historical bug: Boolean Task status conflated any nonzero
     # observation (including UNKNOWN) with DRIFT and admitted writes.
     legacy_install = sourcecut != MATCH
@@ -149,10 +241,11 @@ def prove() -> dict:
         "kind": "ordivon.network.core-sourcecut-convergence-proof",
         "standing": "SOURCE_BOUND_SYMBOLIC_SELECTION_PROVED",
         "z3Version": z3.get_version_string(),
-        "provedProperties": list(statements),
+        "provedProperties": list(statements) + list(composition_claims),
         "negativeControls": [
             "Boolean SourceCut fail means install even when observation UNKNOWN",
             "external endpoint failure triggers legacy installer with matching SourceCut",
+            "Boolean composition permits installation when shared SourceCut is UNKNOWN",
         ],
         "sourceAdmission": admission,
         "sourcecutStates": ["MATCH", "DRIFT", "UNKNOWN"],
