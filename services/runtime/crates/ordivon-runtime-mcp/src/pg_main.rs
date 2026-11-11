@@ -72,7 +72,7 @@ fn finish_pg_control_plane(
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use ordivon_runtime_core::{PgRuntime, PgRuntimeConfig, UniversalExecutorConfig};
-    use ordivon_runtime_mcp::server::{ExecutionContext, PgRuntimeServer};
+    use ordivon_runtime_mcp::server::{ExecutionContext, PgReleaseOperatorConfig, PgRuntimeServer};
     use rmcp::transport::streamable_http_server::{
         session::local::LocalSessionManager, StreamableHttpServerConfig, StreamableHttpService,
     };
@@ -124,12 +124,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let scheduler = runtime.clone();
     let scheduler_task =
         tokio::task::spawn_blocking(move || scheduler.serve_scheduler(worker_shutdown));
-    let server = PgRuntimeServer::new(
+    // The release interface remains absent unless the separate native
+    // operator is explicitly installed/configured. PgRuntimeServer also
+    // verifies actual live timer and independently qualified PG release stage.
+    let release = std::env::var("ORDIVON_PG_RELEASE_SOURCE_REPO")
+        .ok()
+        .map(|source_repo| {
+            Ok::<_, std::io::Error>(PgReleaseOperatorConfig {
+                source_repo: PathBuf::from(source_repo),
+                operator_executable: PathBuf::from(required("ORDIVON_PG_RELEASE_OPERATOR_BIN")?),
+                receipt_root: PathBuf::from(required("ORDIVON_PG_RELEASE_RECEIPT_ROOT")?),
+                dispatcher_timer: required("ORDIVON_PG_RELEASE_DISPATCH_TIMER")?,
+            })
+        })
+        .transpose()?;
+    let server = PgRuntimeServer::with_release(
         runtime,
         ExecutionContext {
             principal: required("ORDIVON_PG_PRINCIPAL")?,
             global_limit: 0,
         },
+        release,
     );
     let mut transport = StreamableHttpServerConfig::default();
     if let Some(hosts) = pg_auth::optional_env("ORDIVON_PG_ALLOWED_HOSTS_JSON")? {
@@ -137,6 +152,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .allowed_hosts
             .extend(serde_json::from_str::<Vec<String>>(&hosts)?);
     }
+    let configured_tool_count = server.configured_tool_count();
     let service: StreamableHttpService<PgRuntimeServer, LocalSessionManager> =
         StreamableHttpService::new(move || Ok(server.clone()), Default::default(), transport);
     let app = axum::Router::new()
@@ -161,7 +177,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!(
         "fresh PG Runtime MCP: http://{}/mcp ({} tools)",
         listener.local_addr()?,
-        PgRuntimeServer::catalog().len()
+        configured_tool_count
     );
     // Do not detach the scheduler: a panic/early exit must terminate this
     // apparently healthy MCP process, allowing systemd to restart it.

@@ -48,6 +48,17 @@ At the beginning of an operation, call `runtime.describe` on the **specific node
 - Prefer focused, evidence-bearing verification of changed contracts. Rust unit/property tests and TLA+ exploration are different evidence classes; passing one does not prove the other.
 - Run cleanup only against explicitly owned roots and use Runtime Workspace lifecycle APIs rather than raw directory deletion. Protect dirty workspaces, running/held Jobs, linked worktrees, deployment assets, and system paths.
 
+## PG ReleaseEffect as an autonomous outcome
+
+The Linux PG release.apply interface is only catalogued after exact
+out-of-band Operator qualification, its systemd timer and live PostgreSQL
+release stage are all present. It atomically admits an immutable effect,
+not a claim that an installation has finished. The independent host
+Operator performs the replacement and verifies the restarted MCP catalog.
+After any lost release.apply response, reuse release.get with the ORIGINAL
+clientRequestId. Never create a second release request due to transport
+uncertainty.
+
 ## Native PG operator vs Agent authority
 
 The PG ReleaseEffect is admitted under the source/epoch writer and a
