@@ -10,7 +10,11 @@ root="$(git rev-parse --show-toplevel)"
 name="host-r10-actor-$(date +%s)-$RANDOM"
 password="$(openssl rand -hex 24)"
 container=""
-cleanup() { if [[ -n "$container" ]]; then docker rm -f "$container" >/dev/null 2>&1 || true; fi; }
+owner_token_file=""
+cleanup() {
+  if [[ -n "$owner_token_file" ]]; then rm -f "$owner_token_file"; fi
+  if [[ -n "$container" ]]; then docker rm -f "$container" >/dev/null 2>&1 || true; fi
+}
 trap cleanup EXIT
 container="$(docker run -d --rm --name "$name" \
  -e POSTGRES_USER=actor_probe -e POSTGRES_DB=actor_probe \
@@ -27,6 +31,10 @@ done
 test "$(psql -X -Atq "$ORDIVON_HOST_V2_DSN" -c 'SHOW server_version_num')" -ge 180000
 (cd "$root/services/host" && uv sync --locked --offline --quiet && uv run --offline alembic upgrade head >/dev/null)
 test "$(psql -X -Atq "$ORDIVON_HOST_V2_DSN" -c 'SELECT schema_version FROM host_v2_schema WHERE singleton')" = 13
+owner_token_file="$(mktemp "${TMPDIR:-/tmp}/ordivon-host-b-r11-owner-XXXXXXXX")"
+chmod 600 "$owner_token_file"
+openssl rand -hex 48 > "$owner_token_file"
+export ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE="$owner_token_file"
 cargo build --manifest-path "$root/services/host/rust/Cargo.toml" --locked --offline --quiet
 echo R10_DISPOSABLE_PG18_ACTORREF_PROBE_READY
 (cd "$root/services/host" && uv run --offline python \

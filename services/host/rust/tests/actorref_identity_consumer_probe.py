@@ -1,7 +1,9 @@
-"""Test-only: unauthenticated MCP client can claim consumer ActorRef in PG18.
+"""Test-only: service credential cannot attest the final Work consumer.
 
-Use the production Rust rmcp StreamableHTTP implementation and official Python
-MCP SDK across three separate clients. This is not a production probe.
+Official native Rust rmcp over HTTP and official MCP ClientSession on a
+disposable PG18. Prove direct HTTP requests without OwnerBearer fail closed;
+then a service-authenticated MCP session can still claim any end-Agent ActorRef
+without Security principal/delegation proof. Production Gateway is not tested.
 """
 
 from __future__ import annotations
@@ -12,9 +14,15 @@ import os
 import socket
 import subprocess
 import sys
+import urllib.error
+import urllib.request
+from contextlib import asynccontextmanager
+from pathlib import Path
 
+import httpx2
 import psycopg
-from mcp import Client
+from mcp.client.session import ClientSession
+from mcp.client.streamable_http import streamable_http_client
 
 from ordivon_host_v2.canonical_json import canonical_digest
 from ordivon_host_v2.work_store import WorkStore
@@ -43,6 +51,9 @@ def disposable_pg18() -> None:
         or os.getenv("ORDIVON_GATEWAY_HOST_URL")
     ):
         raise RuntimeError("REFUSE_PRODUCTION_DATABASE_OR_INSTALLED_GATEWAY")
+    secret_file = os.environ.get("ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE", "")
+    if not secret_file or not Path(secret_file).is_file():
+        raise RuntimeError("REFUSE_WITHOUT_TEST_OWNER_BEARER_FILE")
     with psycopg.connect(dsn) as conn:
         version = int(conn.execute("SHOW server_version_num").fetchone()[0])
         schema = int(
@@ -51,7 +62,43 @@ def disposable_pg18() -> None:
     assert version // 10000 == 18 and schema == 13
 
 
-async def call(client: Client, name: str, args: dict) -> dict:
+@asynccontextmanager
+async def owner_session(url: str, bearer: str):
+    # Official MCP SDK transport. OwnerBearer is *service* identity only.
+    # A loopback fixture must bypass ambient VPN proxy settings.
+    async with httpx2.AsyncClient(
+        headers={"Authorization": f"Bearer {bearer}"},
+        timeout=httpx2.Timeout(30, read=300),
+        trust_env=False,
+    ) as http:
+        async with streamable_http_client(url, http_client=http) as streams:
+            async with ClientSession(streams[0], streams[1]) as session:
+                await session.initialize()
+                yield session
+
+
+def assert_untrusted_http_denied(url: str, bearer: str | None) -> None:
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream",
+        "Mcp-Protocol-Version": "2025-06-18",
+    }
+    if bearer is not None:
+        headers["Authorization"] = f"Bearer {bearer}"
+    request = urllib.request.Request(
+        url,
+        method="POST",
+        headers=headers,
+        data=b'{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}',
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=4):
+            raise AssertionError("OwnerHTTP accepted missing/wrong service bearer")
+    except urllib.error.HTTPError as error:
+        assert error.code == 401, f"expected HTTP401, got {error.code}"
+
+
+async def call(client: ClientSession, name: str, args: dict) -> dict:
     response = await client.call_tool(name, args)
     if response.is_error or not isinstance(response.structured_content, dict):
         raise RuntimeError(f"{name} did not succeed: {response}")
@@ -68,21 +115,23 @@ def advance(revision: int, actor: str, action: dict, request_id: str) -> dict:
     }
 
 
-async def run_clients(url: str, child: subprocess.Popen) -> bool:
+async def run_clients(url: str, child: subprocess.Popen, bearer: str) -> bool:
+    # Probe listener readiness with a *denied* unauthenticated MCP request.
+    # MCP ClientSession wraps connect failures in an ExceptionGroup; opening
+    # the session in the readiness retry loop would falsely report failure.
     for retry in range(80):
         if child.poll() is not None:
             raise RuntimeError("Rust Host terminated during official SDK connection")
         try:
-            async with Client(url) as ready:
-                names = {tool.name for tool in (await ready.list_tools()).tools}
-                assert {"work.engagement.advance", "work.engagement.list"} <= names
+            assert_untrusted_http_denied(url, None)
             break
-        except OSError, ConnectionError, TimeoutError:
+        except urllib.error.URLError, ConnectionError, TimeoutError:
             if retry == 79:
                 raise
             await asyncio.sleep(0.15)
+    assert_untrusted_http_denied(url, bearer + "-wrong")
 
-    async with Client(url) as requester:
+    async with owner_session(url, bearer) as requester:
         for actor in (CREATOR, WORKER, CONSUMER):
             result = await call(
                 requester,
@@ -123,7 +172,7 @@ async def run_clients(url: str, child: subprocess.Popen) -> bool:
         )
         assert offered["revision"] == 2
 
-    async with Client(url) as worker:
+    async with owner_session(url, bearer) as worker:
         claim = await call(
             worker,
             "work.engagement.advance",
@@ -154,9 +203,10 @@ async def run_clients(url: str, child: subprocess.Popen) -> bool:
         )
         assert submitted["state"] == "open" and submitted["revision"] == 4
 
-    # Third independent client has NO credentials, delegated identity or
-    # subscription: the only claim to reviewer identity is an ordinary string.
-    async with Client(url) as anonymous_client:
+    # Third owner-service-authenticated session has no end-Agent Principal or
+    # consumer delegation proof. This owner credential must not be confused
+    # with actor authority or acceptance legitimacy.
+    async with owner_session(url, bearer) as anonymous_client:
         found = await call(
             anonymous_client,
             "work.engagement.list",
@@ -231,13 +281,18 @@ def main() -> int:
         stderr=subprocess.DEVNULL,
     )
     try:
-        accepted = asyncio.run(run_clients(f"http://127.0.0.1:{port}/mcp", host))
+        bearer = (
+            Path(os.environ["ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE"])
+            .read_text(encoding="utf-8")
+            .strip()
+        )
+        accepted = asyncio.run(run_clients(f"http://127.0.0.1:{port}/mcp", host, bearer))
         verify_python_authority(accepted)
         print(
-            "R10_ACTORREF_BOUNDARY_PROBE "
-            f"anonymous_client_review={'COMMITTED' if accepted else 'DENIED'} "
-            "official_sdk=true distinct_sessions=3 original_pg18_receipt=CHECKED "
-            "installed_gateway=UNTESTED production=UNTOUCHED",
+            "R11_ACTORREF_BOUNDARY_PROBE "
+            f"service_authenticated_but_unverified_actor_review={'COMMITTED' if accepted else 'DENIED'} "
+            "direct_untrusted_http=DENIED official_sdk=true distinct_sessions=3 "
+            "original_pg18_receipt=CHECKED installed_gateway=UNTESTED production=UNTOUCHED",
             flush=True,
         )
         if args.require_verified_principal:
