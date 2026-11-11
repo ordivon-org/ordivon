@@ -104,11 +104,16 @@ def read_selector_policy(path: Path = SELECTOR_POLICY) -> dict[str, list[str]]:
     return parse_selector_policy(path.read_text(encoding="utf-8"))
 
 
-def render_native_selector(values: list[str]) -> str:
-    # The installed Podman env-file expects existing simple values unquoted;
-    # quote only lists containing spaces to avoid changing the SG SourceCut.
+def render_native_selector(
+    values: list[str], *, preserve_legacy_region: bool = False,
+) -> str:
+    # Podman --env-file preserves quote bytes in OCI .Config.Env; it accepts
+    # unquoted spaces inside the value. Preserve the already-loaded single
+    # Asia Pacific region spelling to avoid an accidental production SourceCut.
     combined = ",".join(values)
-    return f'"{combined}"' if " " in combined else combined
+    if preserve_legacy_region and combined == "Asia Pacific":
+        return '"Asia Pacific"'
+    return combined
 
 
 def generate_env(
@@ -123,7 +128,7 @@ def generate_env(
         "VPN_SERVICE_PROVIDER=surfshark",
         "VPN_TYPE=wireguard",
         f"WIREGUARD_ADDRESSES={interface_address}",
-        f'SERVER_REGIONS={render_native_selector(selector["regions"])}',
+        f'SERVER_REGIONS={render_native_selector(selector["regions"], preserve_legacy_region=True)}',
         f'SERVER_COUNTRIES={render_native_selector(selector["selectedCountries"])}',
         "UPDATER_PERIOD=480h",
         # Pinned Gluetun 3.41.3 compares 185 unique Surfshark hostname fetches

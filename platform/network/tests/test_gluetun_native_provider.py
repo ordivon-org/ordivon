@@ -129,7 +129,7 @@ def test_country_selector_policy_is_one_authority_for_selected_and_excluded():
     }
     rendered = native.generate_env(inherited, "10.64.200.9/16", expanded)
     assert 'SERVER_REGIONS="Asia Pacific"' in rendered
-    assert 'SERVER_COUNTRIES="Singapore,Hong Kong,Malaysia"' in rendered
+    assert "SERVER_COUNTRIES=Singapore,Hong Kong,Malaysia" in rendered
     assert "WIREGUARD_ENDPOINT_IP" not in rendered
 
     for invalid in [
