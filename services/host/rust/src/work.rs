@@ -351,6 +351,137 @@ async fn record_receipt(
     Ok(())
 }
 
+/// Host actor references are stable labels, not authentication principals.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ActorKind {
+    Unknown,
+    Human,
+    Agent,
+    Service,
+    Organization,
+}
+
+impl ActorKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Unknown => "unknown",
+            Self::Human => "human",
+            Self::Agent => "agent",
+            Self::Service => "service",
+            Self::Organization => "organization",
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ActorDeclare {
+    pub actor_ref: String,
+    pub actor_kind: ActorKind,
+    pub client_request_id: String,
+}
+
+impl ActorDeclare {
+    fn validate(&self) -> Result<(), WorkError> {
+        // Pydantic ActorRefInput: 3..512 codepoints, printable, namespace,
+        // Python str.strip and no U+0000..U+001F control characters.
+        validate_identifier(&self.actor_ref, 3, 512)?;
+        if !self.actor_ref.contains(':') {
+            return Err(WorkError::Invalid(
+                "actor_ref must contain a namespace separator".into(),
+            ));
+        }
+        if self.client_request_id.is_empty() {
+            return Err(WorkError::Invalid(
+                "client_request_id cannot be empty".into(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// One PG transaction and one receipt authority for actor.declare.
+///
+/// ON CONFLICT is the insert linearization point. A concurrent identical
+/// declaration becomes existing, but an altered actor kind is a conflict.
+/// Neither ActorKind nor an actor reference proves identity/permission.
+pub async fn declare_actor(
+    client: &mut Client,
+    command: &ActorDeclare,
+) -> Result<Value, WorkError> {
+    command.validate()?;
+    const OPERATION: &str = "actor.declare";
+    // The Python request digest uses *snake_case* Pydantic field names, NOT
+    // the camelCase MCP argument names or the output response shape.
+    let request = json!({
+        "operation": OPERATION,
+        "actor_ref": command.actor_ref,
+        "actor_kind": command.actor_kind.as_str(),
+    });
+    let request_digest = canonical_digest(&request)?;
+    let tx = client.transaction().await?;
+    if let Some(previous) =
+        claim_receipt(&tx, &command.client_request_id, OPERATION, &request_digest).await?
+    {
+        tx.commit().await?;
+        return Ok(previous);
+    }
+    let inserted = tx
+        .query_opt(
+            "INSERT INTO actor_refs(actor_ref,actor_kind) VALUES ($1,$2) \
+         ON CONFLICT (actor_ref) DO NOTHING \
+         RETURNING actor_ref,actor_kind,created_at, \
+         EXTRACT(TIMEZONE FROM created_at)::integer AS created_tz",
+            &[&command.actor_ref, &command.actor_kind.as_str()],
+        )
+        .await?;
+    let (row, admission) = if let Some(row) = inserted {
+        (row, "committed")
+    } else {
+        // READ COMMITTED: after ON CONFLICT waited for the winning insert,
+        // this fresh statement can read the committed row.
+        let row = tx
+            .query_opt(
+                "SELECT actor_ref,actor_kind,created_at, \
+             EXTRACT(TIMEZONE FROM created_at)::integer AS created_tz \
+             FROM actor_refs WHERE actor_ref=$1",
+                &[&command.actor_ref],
+            )
+            .await?
+            .ok_or_else(|| {
+                WorkError::Integrity("actor declaration disappeared after conflict".into())
+            })?;
+        let previous_kind: String = row.try_get("actor_kind")?;
+        if previous_kind != command.actor_kind.as_str() {
+            return Err(WorkError::Conflict(
+                "actor_ref already exists with a different actor_kind".into(),
+            ));
+        }
+        (row, "existing")
+    };
+    let created_at: DateTime<Utc> = row.try_get("created_at")?;
+    let created_tz: i32 = row.try_get("created_tz")?;
+    let response = json!({
+        "schemaVersion": 1,
+        "kind": "ordivon.host-actor-ref",
+        "admission": admission,
+        "actorRef": row.try_get::<_, String>("actor_ref")?,
+        "actorKind": row.try_get::<_, String>("actor_kind")?,
+        "createdAt": postgres_timestamp(created_at, created_tz)?,
+        "truthBoundary": "Host-stored stable actor reference only; not authenticated identity or authorization",
+    });
+    record_receipt(
+        &tx,
+        &command.client_request_id,
+        OPERATION,
+        &request_digest,
+        &response,
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(response)
+}
+
 /// One Work identity and its immutable initial semantic payload.
 #[derive(Clone, Debug)]
 pub struct CreateWork {
