@@ -61,4 +61,8 @@ if [[ "${HARNESS_B_BOUND_PG_DOMAIN:-}" == 1 ]]; then
     services/harness/rust-migration/b-loop-probe/tests/pg_domain_python_store.py
   cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
     -p ordivon-harness-loop-b-probe --test pg_domain_readback -- --ignored --nocapture
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
+    services/harness/rust-migration/b-loop-probe/tests/pg_provider_v4_python_store.py
+  cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
+    -p ordivon-harness-loop-b-probe --test pg_provider_head -- --ignored --nocapture
 fi

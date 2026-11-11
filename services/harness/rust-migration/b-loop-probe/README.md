@@ -30,6 +30,28 @@ Production Python sources used as oracles:
   `claimed` is not a dispatch grant; `dispatching` and `unknown`
   require authoritative reconciliation, never automatic resend. Result
   digest remains even when result content is privacy-redacted.
+- `pg_domain_read.rs::inspect_pg_provider_head`: a real **PG-backed Provider
+  record head observation**, strictly through A's existing
+  `read_run_readonly` and the new A-owner-reviewed-candidate
+  `VerifiedProviderReference` / `VerifiedReferenceLink` read-only getters.
+  The same A transaction authenticates CAS bytes, immutable Event/Reference
+  edges and the v1/v2 semantic Run Contract. B applies its existing Python
+  V4 exact 28-field parser and compares the current Provider Event's record
+  digest/status, Run/Adapter/Model identity, timestamp and the exact State,
+  Request, Result, Failure CAS edge set. Follows the Python source's
+  `_heads` clearing semantics. A syntactically valid v3 record returns
+  `UnsupportedV3ProviderRecord`, not a fabricated V4 or corruption.
+  `dispatching` and `unknown` retain Provider-owner reconciliation,
+  `completed` retains a result SHA even if content is privacy-redacted.
+  No Provider FailureReceipt body, AgentTurnResult body, or RunState is yet
+  semantically rehydrated; do not claim this is full Provider recovery.
+  A test-only Python Store constructs **11** genuine CAS-linked Provider
+  Event scenario records in the existing ephemeral PG18 database (no real
+  model request): claimed/unknown/redacted completed/cleared and deliberate
+  invalid digest/kind/record-vs-event refs/extra edges/status/CAS tampering.
+  The Rust readonly consumer must accept the appropriate bounded heads,
+  reject bad references and preserve unsupported historical V3 distinct from
+  corruption. No second database/PG Writer/Execution Fence.
 - Provider v4 numeric identities and timestamps retain Python-valid
   arbitrary-precision canonical decimal text. Numeric comparison is exact,
   not `u64`-bounded. `python_text.rs` captures Python `str.strip()`

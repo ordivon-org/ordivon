@@ -230,3 +230,188 @@ pub fn inspect_pg_no_tool_run(
     }
     Ok(ObservedNoToolRun { model })
 }
+
+/// Authentication here is from A's single PG snapshot, not an arbitrary
+/// caller-supplied Provider JSON. This has no execution or retry permission.
+#[derive(Debug)]
+pub enum PgProviderRecoveryError {
+    Run(PgDomainInspectionError),
+    MissingOrAmbiguousEventReference,
+    EventRecordMismatch(&'static str),
+    UnsupportedV3ProviderRecord,
+    InvalidProviderV4,
+}
+impl From<PgDomainInspectionError> for PgProviderRecoveryError {
+    fn from(value: PgDomainInspectionError) -> Self {
+        Self::Run(value)
+    }
+}
+
+#[derive(Debug)]
+pub struct ObservedProviderHead {
+    model: ObservedModelIdentity,
+    event_id: String,
+    record: crate::provider_head::ProviderRecordHead,
+}
+impl ObservedProviderHead {
+    pub fn event_id(&self) -> &str {
+        &self.event_id
+    }
+    pub fn run_id(&self) -> &str {
+        &self.model.run_id
+    }
+    pub fn run_revision(&self) -> i64 {
+        self.model.revision
+    }
+    pub fn status(&self) -> crate::provider_head::ProviderStatus {
+        self.record.status
+    }
+    pub fn recovery_posture(&self) -> crate::provider_head::RecoveryPosture {
+        self.record.status.recovery_posture()
+    }
+    pub fn record_digest(&self) -> &str {
+        &self.record.canonical_digest
+    }
+    pub fn result_digest(&self) -> Option<&str> {
+        self.record.result_digest.as_deref()
+    }
+}
+
+fn provider_event_status(event_kind: &str) -> Option<crate::provider_head::ProviderStatus> {
+    use crate::provider_head::ProviderStatus;
+    match event_kind {
+        "harness.provider-call-claimed" | "harness.provider-call-superseded" => {
+            Some(ProviderStatus::Claimed)
+        }
+        "harness.provider-call-dispatching" => Some(ProviderStatus::Dispatching),
+        "harness.provider-call-completed" => Some(ProviderStatus::Completed),
+        "harness.provider-call-failed" => Some(ProviderStatus::Failed),
+        "harness.provider-call-unknown" => Some(ProviderStatus::Unknown),
+        _ => None,
+    }
+}
+fn provider_event_clears_head(event_kind: &str) -> bool {
+    matches!(
+        event_kind,
+        "harness.snapshot-recorded"
+            | "harness.working-set-recorded"
+            | "harness.run-paused"
+            | "harness.tool-step-prepared"
+            | "harness.run-stopped"
+            | "harness.run-completed"
+            | "harness.run-failed"
+    )
+}
+fn event_text<'a>(
+    doc: &'a CanonicalDocument,
+    key: &str,
+) -> Result<&'a str, PgProviderRecoveryError> {
+    doc.field(key)
+        .and_then(|v| v.as_str())
+        .ok_or(PgProviderRecoveryError::EventRecordMismatch(
+            "missing Provider event field",
+        ))
+}
+
+/// The Python source EventSourcedRunContinuity._heads() clears Provider heads
+/// on snapshot/tool/terminal events. Otherwise the final Provider Event is
+/// authoritative for a bounded current-head observation. Never redispatch:
+/// dispatching and unknown call for authoritative Provider reconciliation.
+pub fn inspect_pg_provider_head(
+    connection: &mut Client,
+    schema: &str,
+    run_id: &str,
+    expected: ExpectedModel<'_>,
+) -> Result<Option<ObservedProviderHead>, PgProviderRecoveryError> {
+    let (snapshot, model) = read_bound_model(connection, schema, run_id, expected)?;
+    let mut head = None;
+    for event in &snapshot.events {
+        if provider_event_clears_head(&event.event_kind) {
+            head = None;
+        }
+        if provider_event_status(&event.event_kind).is_some() {
+            head = Some(event);
+        }
+    }
+    let Some(event) = head else { return Ok(None) };
+    let expected_status = provider_event_status(&event.event_kind).ok_or(
+        PgProviderRecoveryError::EventRecordMismatch("unrecognized Provider status"),
+    )?;
+    let data = event
+        .payload
+        .get("data")
+        .ok_or(PgProviderRecoveryError::EventRecordMismatch(
+            "missing Event data",
+        ))?;
+    let object_digest = event_text(&data, "providerCallRecordObjectDigest")?;
+    let record_digest = event_text(&data, "providerCallRecordDigest")?;
+    let related: Vec<_> = snapshot
+        .provider_record_references
+        .iter()
+        .filter(|r| r.event_id() == event.event_id)
+        .collect();
+    if related.len() != 1 || related[0].digest() != object_digest {
+        return Err(PgProviderRecoveryError::MissingOrAmbiguousEventReference);
+    }
+    let record = related[0].value();
+    match record.field("schemaVersion").and_then(|v| v.integer_text()) {
+        Some("3") => return Err(PgProviderRecoveryError::UnsupportedV3ProviderRecord),
+        Some("4") => {}
+        _ => return Err(PgProviderRecoveryError::InvalidProviderV4),
+    };
+    let parsed = crate::provider_head::inspect_v4(record)
+        .map_err(|_| PgProviderRecoveryError::InvalidProviderV4)?;
+    let recorded_ms = event.recorded_at_ms.to_string();
+    if parsed.status != expected_status
+        || parsed.canonical_digest != record_digest
+        || record.field("harnessRunId").and_then(|v| v.as_str()) != Some(run_id)
+        || record.field("adapterId").and_then(|v| v.as_str()) != Some(expected.adapter_id)
+        || record.field("requestedModelId").and_then(|v| v.as_str())
+            != Some(expected.requested_model_id)
+        || record.field("recordedAtMs").and_then(|v| v.integer_text()) != Some(recorded_ms.as_str())
+    {
+        return Err(PgProviderRecoveryError::EventRecordMismatch(
+            "Provider event/status/model/digest/time mismatch",
+        ));
+    }
+
+    // Python _append_provider_event links precisely record, state and optional
+    // request/result/failure content to this same event, with source-defined
+    // CAS kinds. Validate the *set*, not just one matching record digest.
+    let mut expected_edges = std::collections::BTreeSet::new();
+    expected_edges.insert(("harness-provider-call-record", object_digest.to_owned()));
+    for (field, kind) in [
+        ("stateObjectDigest", "harness-run-state"),
+        ("requestObjectDigest", "agent-turn-request"),
+        ("resultObjectDigest", "agent-turn-result"),
+        ("failureObjectDigest", "harness-provider-call-failure"),
+    ] {
+        let observed = record
+            .get(field)
+            .ok_or(PgProviderRecoveryError::InvalidProviderV4)?;
+        if data.get(field) != Some(observed.clone()) {
+            return Err(PgProviderRecoveryError::EventRecordMismatch(
+                "Provider event vs record ref mismatch",
+            ));
+        }
+        if let Some(digest) = observed.as_string() {
+            expected_edges.insert((kind, digest.to_owned()));
+        }
+    }
+    let real_edges: std::collections::BTreeSet<_> = snapshot
+        .verified_reference_links
+        .iter()
+        .filter(|r| r.event_id() == event.event_id)
+        .map(|r| (r.kind(), r.digest().to_owned()))
+        .collect();
+    if real_edges != expected_edges {
+        return Err(PgProviderRecoveryError::EventRecordMismatch(
+            "Provider referenced CAS edge set mismatch",
+        ));
+    }
+    Ok(Some(ObservedProviderHead {
+        model,
+        event_id: event.event_id.clone(),
+        record: parsed,
+    }))
+}
