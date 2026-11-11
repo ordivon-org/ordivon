@@ -60,3 +60,43 @@ def test_python315_rc9_native_nonlive_reconciliation() -> None:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@pytest.mark.provider_qualification
+def test_rc9_synthetic_equity_paper_consumer(monkeypatch):
+    monkeypatch.syspath_prepend(str(ROOT / "tools/nautilus_rc4"))
+    import equity_paper_qualification as eq
+    from nautilus_trader.model import ClientOrderId, OrderFilled
+
+    for fee, nav in (("0.00", 100396), ("1.23", 100273)):
+        result = eq.run_episode(fee)
+        assert result["nativeNavMinor"] == result["paper"]["nav_minor"] == nav
+        assert result["paper"]["cash_minor"] == 100000
+        assert result["paper"]["payable_minor"] == 100000 - result["nativeCashMinor"]
+        assert result["holidayPayableMinor"] == result["paper"]["payable_minor"]
+        assert result["settlementCashMinor"] == result["nativeCashMinor"]
+        assert result["settlementDate"] == eq.SETTLEMENT.isoformat()
+        fill, event = result["fills"][0], result["events"][0]
+        assert (fill["shares"], fill["price_minor"], fill["fee_minor"]) == (2, 11002, eq.minor(fee))
+        assert fill["fill_id"] == event["trade_id"]
+        assert fill["filled_at"] == eq.OPEN
+        assert event["ts_event"] == eq.ns(eq.OPEN)
+    # Same frozen target under a different opening price: no future-price sizing.
+    assert eq.run_episode(ask="111.00")["fills"][0]["shares"] == 2
+    for kwargs in ({"opening": False}, {"cash": "100.00"}):
+        with pytest.raises(ValueError):
+            eq.run_episode(**kwargs)
+    for amount in ("1.001", "-1", "NaN", "Infinity"):
+        with pytest.raises(ValueError):
+            eq.minor(amount)
+    intent = eq.Intent(eq.InstrumentId.from_str(event["instrument_id"]))
+    order_id = ClientOrderId(event["client_order_id"])
+    real = OrderFilled.from_dict(event)
+    with pytest.raises(ValueError, match="duplicate"):
+        eq.project([real, real], intent, order_id)
+    # Explicitly corrupted copies of observed native events test admission only.
+    for change in ({"commission": "1.23 EUR"}, {"last_qty": "0.5"},
+                   {"last_qty": "3"}, {"last_px": "110.021"},
+                   {"ts_event": eq.ns(eq.OPEN) + 1}, {"client_order_id": "wrong"}):
+        with pytest.raises(ValueError):
+            eq.project([OrderFilled.from_dict(event | change)], intent, order_id)
