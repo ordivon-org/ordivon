@@ -42,6 +42,19 @@ Production Python sources used as oracles:
   mismatch fail closed. 224 native Python DomainToolCatalog/Grant source
   examples (128 accepted, 96 rejected) pass. This does not create a global
   Tool registry or authorize tool execution.
+- `tool_call.rs`: Model-produced Tool Calls are decoded using the current
+  Python `AgentToolCall.from_dict` source grammar, not a new Tool protocol.
+  Exact ID/name UTF-8 bounds, arguments object, optional Provider parse
+  diagnostics, and Python-normalized Call digest (including all-null
+  `providerArguments` omission) are retained. The pure preflight checks
+  the frozen Catalog/Grant identity, duplicate ToolCall identity, locally
+  rejected malformed Provider arguments, and visibility of the proposed
+  Tool; the only positive standing is
+  `NeedsAuthenticatedContractAndDurableAdmission` **NOT** dispatch.
+  Source oracle invokes Python `AgentToolCall.from_dict` and the actual
+  `_GrantedDomainToolBridge` name gate with a no-effect fake executor.
+  1,152 source vectors (336 Python-valid, 816 invalid) pass; the four
+  distinct standing outcomes all appear.
 - Whole-root Cargo fmt/test/clippy -D warnings pass. The A PG Reader's
   separate disposable PostgreSQL 18.6 integration verifies Python-writer
   → Rust SELECT-only readback and five real normal/corruption/legacy cases.
@@ -53,8 +66,8 @@ Run from `services/harness`:
 
 ```sh
 cargo fmt --all --check
-cargo test --offline --workspace --all-targets
-cargo clippy --offline --workspace --all-targets -- -D warnings
+cargo test --locked --offline --workspace --all-targets
+cargo clippy --locked --offline --workspace --all-targets -- -D warnings
 bash crates/harness-pg/tests/run_isolated_pg18.sh
 ```
 
@@ -65,7 +78,7 @@ this Harness tree. Do not replace them with hand-copied expected behavior.
 
 - This is **not** an installed Rust Agent Run, PG writer, Provider transport,
   Runtime Tool executor, or independently accepted production cutover.
-- Actual Context→Model, Model→Tool Intent→Runtime and Receipt/UNKNOWN→
+- Actual Context→Model, persistent Model→Tool Intent→Runtime and Receipt/UNKNOWN→
   WorkingView consumers, cancellation, recovery of old Run v3, authorized
   privacy handling and live Writer/Lease/Fence are separate gates.
 - The B pure progress-gate `u64` representation still rejects overflow
@@ -75,6 +88,16 @@ this Harness tree. Do not replace them with hand-copied expected behavior.
 - A's legacy PG Reader may classify hash-verified, Python-legal deep CAS as
   UnsupportedLegacyRepresentation; this must never be treated as proven
   corruption, false effect or a safe replay.
+- **P0 independent semantic counterexample**: the current Rust
+  `harness-pg.read_run_readonly` can accept a digest-consistent Run with a
+  Python-invalid `HarnessRunContract` (e.g. empty `providerId`).
+  A complete versioned Contract validator, including Python-valid historical
+  cases, must pass before any of B's digest/Tool/Provider projections become
+  consumer authority. Independent reviewer supplied 24 invalid / 10 valid
+  scratch-PG tests; normal PG and CI green do not waive this block.
+- The model preflight returns only `NeedsAuthenticatedContractAndDurableAdmission`.
+  It cannot create a durable ToolStepIntent, validate a complete Run Contract,
+  send a Runtime tool, or reconcile an uncertain physical effect.
 - The Python DomainToolCatalog is for **custom domain bridges** only;
   no-Tool and built-in Runtime-search surfaces retain their separate Python
   Run Contract composition rules and are not implicitly granted here.
