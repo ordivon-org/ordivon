@@ -172,6 +172,8 @@ try:
         "topic.resume",
         "topic.state.set",
         "work.create",
+        "work.engagement.advance",
+        "work.engagement.list",
         "work.get",
         "work.list",
         "work.snapshot.commit",
@@ -273,6 +275,46 @@ try:
     assert diagnostics["work.current_snapshot"]["status"] == "ok", diagnostics
     assert diagnostics["work.snapshot_history_contiguous"]["detail"] == "invalidWorks=1", diagnostics
     assert diagnostics["work.snapshot_history_digest"]["detail"] == "invalid=1", diagnostics
+    # A separate HTTP MCP session performs a new durable Work intake and
+    # claim. Its full typed reply is validated by post() against the official
+    # advertised output schema; old Python WorkStore rereads this same PG row.
+    http_work_ref="work:test:r7-mcp-http"
+    _, created_http, _=post("tools/call",{"name":"work.create","arguments":{
+        "workRef":http_work_ref,"workKind":"research-deliverable",
+        "actorRef":"actor:test:r7-mcp-requester",
+        "initialSnapshot":{"objective":"HTTP Agent Work 协作","frontier":"awaiting claim"},
+    }},100,session)
+    assert created_http["result"]["structuredContent"]["revision"]==1,created_http
+    _, offered_http, _=post("tools/call",{
+        "name":"work.engagement.advance","arguments":{
+            "workRef":http_work_ref,"expectedRevision":1,
+            "actorRef":"actor:test:r7-mcp-requester",
+            "clientRequestId":"request:r7:mcp:http-offer",
+            "action":{"type":"offer",
+                "consumerActorRef":"actor:test:r7-mcp-reviewer",
+                "acceptanceCriteria":["指定消费方核对工件及验收证据"]},
+        }
+    },101,session)
+    assert offered_http["result"]["structuredContent"]["snapshot"]["engagement"]["phase"]=="offered",offered_http
+    _, inbox_http, _=post("tools/call",{
+        "name":"work.engagement.list","arguments":{
+            "phase":"offered","consumerActorRef":"actor:test:r7-mcp-reviewer"
+        }
+    },102,session)
+    assert http_work_ref in {
+        x["workRef"] for x in inbox_http["result"]["structuredContent"]["engagements"]
+    },inbox_http
+    _, claimed_http, _=post("tools/call",{
+        "name":"work.engagement.advance","arguments":{
+            "workRef":http_work_ref,"expectedRevision":2,
+            "actorRef":"actor:test:r7-mcp-worker-a",
+            "clientRequestId":"request:r7:mcp:http-claim",
+            "action":{"type":"claim"},
+        }
+    },103,session)
+    assert claimed_http["result"]["structuredContent"]["revision"]==3,claimed_http
+    assert claimed_http["result"]["structuredContent"]["snapshot"]["engagement"]["claimEpoch"]==1,claimed_http
+    print("R7_HTTP_NATIVE_WORK_ENGAGEMENT_PASS offer=1 claim=1 consumer_inbox=1 schema=ACTUAL")
     print(f"MCP_HTTP_OUTPUT_SCHEMA_VALIDATED_PASS published={len(_http_output_schemas)} exercised={len(_http_validation_hits)}")
     print(f"MCP_STREAMABLE_HTTP_PASS loopback=127.0.0.1 tools={len(names)} work_revision=2")
 finally:

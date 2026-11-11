@@ -12,8 +12,9 @@ container=""
 oracle="$root/services/host/rust/tests/.r2_python_oracle_runtime.json"
 doctor_oracle="$root/services/host/rust/tests/.r5_doctor_oracle_runtime.json"
 read_search_oracle="$root/services/host/rust/tests/.r5_mcp_message_observed_runtime.json"
+engagement_oracle="$root/services/host/rust/tests/.r7_mcp_engagement_observed_runtime.json"
 cleanup() {
-  rm -f "$oracle" "$doctor_oracle" "$read_search_oracle"
+  rm -f "$oracle" "$doctor_oracle" "$read_search_oracle" "$engagement_oracle"
   if [[ -n "$container" ]]; then docker rm -f "$container" >/dev/null 2>&1 || true; fi
 }
 trap cleanup EXIT
@@ -41,6 +42,9 @@ cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --tes
 cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --test social_attention_pg -- --ignored --test-threads=1
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/social_native_python_replay.py")
 echo "R2_WORK_SOCIAL_ATTENTION_PG18_PASS"
+cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --locked --offline --test work_engagement_pg -- --ignored --test-threads=1
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/work_engagement_python_readback.py")
+echo "R7_WORK_ENGAGEMENT_DOMAIN_AND_ORIGINAL_PYTHON_PASS"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/python_oracle.py" seed "$oracle")
 export HOST_RUST_PYTHON_ORACLE_PATH="$oracle"
 cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --test work_python_parity -- --ignored --test-threads=1
@@ -52,18 +56,23 @@ cargo build --manifest-path "$root/services/host/rust/Cargo.toml" --offline --qu
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/audit_mcp_surface.py" \
   --rust-bin "$root/services/host/rust/target/debug/ordivon-host-rust" \
   --source-manifest "$root/services/host/mcp-surface.json" \
-  --report "$root/services/host/rust/planning/mcp_source_rust_r6.json")
-echo "R6_MCP_SOURCE_RUST_SCHEMA_DIFFERENTIAL_PASS"
+  --extension work.engagement.advance --extension work.engagement.list \
+  --report "$root/services/host/rust/planning/mcp_source_rust_r7.json")
+echo "R7_MCP_SOURCE_VS_NATIVE_EXTENSIONS_TYPED_PARITY_PASS"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_work_oracle.py" seed)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_social_oracle.py" seed)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_status_doctor_oracle.py" seed "$doctor_oracle")
 export HOST_RUST_DOCTOR_ORACLE_PATH="$doctor_oracle"
 export HOST_RUST_READ_SEARCH_ORACLE_PATH="$read_search_oracle"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/mcp_stdio_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
+export HOST_RUST_ENGAGEMENT_OBSERVED_PATH="$engagement_oracle"
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/mcp_engagement_stdio_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_native_collaboration_oracle.py")
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_social_oracle.py" verify)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_work_oracle.py" verify)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_status_doctor_oracle.py" verify)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/mcp_http_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_mcp_engagement_oracle.py")
+echo "R7_NATIVE_MCP_STDIO_HTTP_ENGAGEMENT_PYTHON_CONSUMER_PASS"
 echo "R2_MCP_STDIO_HTTP_PASS"
 echo "R2_DISPOSABLE_INTEGRATION_ALL_PASS"

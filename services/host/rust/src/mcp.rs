@@ -14,6 +14,11 @@ use crate::pg::{HostDbError, HostPg};
 use crate::social::{self, AddMessageRelation, CreateSpace, CreateTopic, PostMessage};
 use crate::work::{self, ActorDeclare, WorkSnapshot, WorkState};
 
+mod engagement_wire;
+use engagement_wire::{
+    AdvanceRequest as EngagementAdvanceRequest, ListRequest as EngagementListRequest,
+};
+
 // Original Python MCP SDK outputSchema, source-generated and verified in CI.
 // Once frozen in the Rust binary, no Python process or Pydantic is needed.
 fn legacy_output_schema(name: &str) -> Arc<rmcp::model::JsonObject> {
@@ -1603,6 +1608,52 @@ impl HostMcp {
     }
 
     #[tool(
+        name = "work.engagement.advance",
+        output_schema = engagement_wire::advance_output_schema(),
+        description = "Versioned Host Work accountability: offer, CAS claim, release, submit evidence references, consumer review/return/accept, or cancel. NOT Runtime dispatch or authentication."
+    )]
+    async fn work_engagement_advance(
+        &self,
+        Parameters(request): Parameters<EngagementAdvanceRequest>,
+    ) -> CallToolResult {
+        let command = work::engagement::AdvanceEngagement {
+            work_ref: request.work_ref,
+            expected_revision: request.expected_revision,
+            actor_ref: request.actor_ref,
+            action: request.action,
+            client_request_id: request.client_request_id,
+        };
+        match self.pg.work_engagement_advance(&command).await {
+            Ok(value) => structured(value),
+            Err(error) => db_tool_error("work.engagement.advance", error),
+        }
+    }
+
+    #[tool(
+        name = "work.engagement.list",
+        output_schema = engagement_wire::list_output_schema(),
+        description = "Read current Work responsibility by phase/assignee/consumer, stable keyset cursor and bounded RR PG snapshot; this is NOT a task queue or automatic follow."
+    )]
+    async fn work_engagement_list(
+        &self,
+        Parameters(request): Parameters<EngagementListRequest>,
+    ) -> CallToolResult {
+        let query = work::engagement::ListEngagements {
+            phase: request.phase,
+            assignee_actor_ref: request.assignee_actor_ref,
+            consumer_actor_ref: request.consumer_actor_ref,
+            limit: request.limit,
+            max_bytes: request.max_bytes,
+            before_updated_at: request.before_updated_at,
+            before_work_ref: request.before_work_ref,
+        };
+        match self.pg.work_engagement_list(&query).await {
+            Ok(value) => structured(value),
+            Err(error) => db_tool_error("work.engagement.list", error),
+        }
+    }
+
+    #[tool(
         name = "work.snapshot.commit",
         output_schema = legacy_output_schema("work.snapshot.commit"),
         description = "Atomic Work compare-and-swap, immutable snapshot and idempotent receipt on PostgreSQL schema13."
@@ -1713,9 +1764,13 @@ mod tests {
     #[test]
     fn output_schemas_and_input_defaults_match_original_python_sdk_contract() {
         let tools = HostMcp::tool_router().list_all();
-        assert_eq!(tools.len(), 30);
+        assert_eq!(tools.len(), 32);
         for item in &tools {
-            let expected = legacy_output_schema(item.name.as_ref());
+            let expected = match item.name.as_ref() {
+                "work.engagement.advance" => engagement_wire::advance_output_schema(),
+                "work.engagement.list" => engagement_wire::list_output_schema(),
+                _ => legacy_output_schema(item.name.as_ref()),
+            };
             assert_eq!(
                 item.output_schema.as_deref(),
                 Some(expected.as_ref()),
@@ -1777,6 +1832,8 @@ mod tests {
                 "topic.resume",
                 "topic.state.set",
                 "work.create",
+                "work.engagement.advance",
+                "work.engagement.list",
                 "work.get",
                 "work.list",
                 "work.snapshot.commit"

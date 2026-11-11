@@ -101,6 +101,8 @@ try:
         "topic.resume",
         "topic.state.set",
         "work.create",
+        "work.engagement.advance",
+        "work.engagement.list",
         "work.get",
         "work.list",
         "work.snapshot.commit",

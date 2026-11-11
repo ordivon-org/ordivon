@@ -378,6 +378,25 @@ impl HostPg {
         Ok(work::list_works(&mut client, input).await?)
     }
 
+    /// A's existing Work PG13 CAS owns all accountability transitions.
+    /// This MCP transport seam only borrows a bounded pool connection.
+    pub async fn work_engagement_advance(
+        &self,
+        cmd: &work::engagement::AdvanceEngagement,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(work::engagement::advance_engagement(&mut client, cmd).await?)
+    }
+
+    /// One Work-owned read-only RR snapshot; never an executable task queue.
+    pub async fn work_engagement_list(
+        &self,
+        query: &work::engagement::ListEngagements,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(work::engagement::list_engagements(&mut client, query).await?)
+    }
+
     pub async fn work_snapshot_commit(&self, cmd: &CommitSnapshot) -> Result<Value, HostDbError> {
         let mut client = self.connect().await?;
         Ok(work::commit_snapshot(&mut client, cmd).await?)

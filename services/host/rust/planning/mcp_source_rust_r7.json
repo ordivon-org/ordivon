@@ -1,0 +1,29 @@
+{
+  "comparableSourceTools": 30,
+  "kind": "ordivon.host-mcp-source-rust-differential",
+  "metadataBytes": {
+    "python": 45453,
+    "rust": 53901
+  },
+  "missingRustTools": [
+    "host.pool.stats"
+  ],
+  "pythonTools": 31,
+  "rustOnlyTools": [
+    "work.engagement.advance",
+    "work.engagement.list"
+  ],
+  "rustTools": 32,
+  "schemaDifferences": {},
+  "schemaVersion": 1,
+  "sourceEpoch": 6,
+  "toolsWithDescriptions": {
+    "python": 2,
+    "rust": 32
+  },
+  "toolsWithOutputSchema": {
+    "python": 31,
+    "rust": 32
+  },
+  "truthBoundary": "Compares real source Python SDK registry to isolated Rust tools/list; additional Rust-only tools are explicit unmerged source extensions, not an installed-connector or end-to-end output/effect parity proof"
+}
