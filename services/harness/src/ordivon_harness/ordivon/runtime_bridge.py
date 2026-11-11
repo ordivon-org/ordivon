@@ -96,13 +96,9 @@ _RUNTIME_DELIVERY_DISPOSITIONS = frozenset(
 # Exact Runtime JobResolution states: four conclusive outcomes plus two
 # uncertain outcomes form a disjoint sum at the Runtime/Harness boundary.
 # These names are the Runtime-owned public JobResolution wire contract.
-_RUNTIME_COMMITTED_RESOLUTIONS = frozenset(
-    {"succeeded", "failed", "timed_out", "cancelled"}
-)
+_RUNTIME_COMMITTED_RESOLUTIONS = frozenset({"succeeded", "failed", "timed_out", "cancelled"})
 _RUNTIME_UNCERTAIN_RESOLUTIONS = frozenset({"lost", "orphaned"})
-_RUNTIME_JOB_RESOLUTIONS = (
-    _RUNTIME_COMMITTED_RESOLUTIONS | _RUNTIME_UNCERTAIN_RESOLUTIONS
-)
+_RUNTIME_JOB_RESOLUTIONS = _RUNTIME_COMMITTED_RESOLUTIONS | _RUNTIME_UNCERTAIN_RESOLUTIONS
 
 
 def _find_runtime_jobs_by_client_request(
@@ -174,6 +170,89 @@ def _find_runtime_jobs_by_client_request(
         seen_cursors.add(digest)
         cursor = typed
     raise HarnessRuntimeClientError("task.list pagination exceeded the Harness bound")
+
+
+def _require_exact_owner_effect_handoff(
+    intent: HarnessToolStepIntent,
+    fence,
+    original_request: dict[str, JsonValue],
+    owner_request: dict[str, JsonValue],
+) -> None:
+    """Qualify actual physical send bytes against the committed Tool Intent.
+
+    The sole allowed post-Journal transformation for workspace.exec is
+    appending precisely ONE source-authenticated DispatchFence reference.
+    This does NOT create Runtime admission or prove that an external effect
+    happened; the Owner remains the physical idempotency/receipt authority.
+    """
+
+    def reject() -> None:
+        # Do not leak private executable arguments or identity evidence.
+        raise ToolBridgeError(
+            "Runtime Owner handoff differs from persisted Tool Intent/Fence",
+            kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+        )
+
+    try:
+        validate_json_value(original_request)
+        validate_json_value(owner_request)
+        if (
+            intent.runtime_operation != fence.runtime_operation
+            or intent.harness_run_id != fence.harness_run_id
+            or intent.digest != fence.intent_digest
+            or intent.client_request_id != fence.client_request_id
+            or (
+                intent.runtime_operation in {"workspace.exec", "workspace.patch"}
+                and (
+                    original_request.get("clientRequestId") != intent.client_request_id
+                    or owner_request.get("clientRequestId") != intent.client_request_id
+                )
+            )
+            or canonical_digest(original_request) != intent.runtime_arguments_digest
+        ):
+            reject()
+
+        if intent.runtime_operation != "workspace.exec":
+            if canonical_digest(owner_request) != intent.runtime_arguments_digest:
+                reject()
+            return
+
+        original_execution = original_request.get("execution")
+        actual_execution = owner_request.get("execution")
+        if not isinstance(original_execution, dict) or not isinstance(actual_execution, dict):
+            reject()
+        previous_refs = original_execution.get("foreignReferences")
+        owner_refs = actual_execution.get("foreignReferences")
+        if (
+            not isinstance(previous_refs, list)
+            or not isinstance(owner_refs, list)
+            or any(not isinstance(item, dict) for item in previous_refs)
+            or any(item.get("type") == "dispatch_fence" for item in previous_refs)
+            or len(owner_refs) != len(previous_refs) + 1
+            or owner_refs[:-1] != previous_refs
+        ):
+            reject()
+        expected_fence_ref = {
+            "namespace": fence.authority_namespace,
+            "type": fence.authority_type,
+            "id": fence.fence_id,
+            "generation": str(fence.authority_generation),
+            "digest": fence.digest,
+        }
+        if owner_refs[-1] != expected_fence_ref:
+            reject()
+        without_fence = dict(owner_request)
+        without_fence["execution"] = {
+            **actual_execution,
+            "foreignReferences": previous_refs,
+        }
+        if canonical_digest(without_fence) != intent.runtime_arguments_digest:
+            reject()
+    except (TypeError, ValueError, KeyError) as error:
+        raise ToolBridgeError(
+            "Runtime Owner handoff has invalid canonical JSON or missing identity",
+            kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+        ) from error
 
 
 def _runtime_error_value(error: BaseException) -> dict[str, JsonValue]:
@@ -647,6 +726,12 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
             self._with_dispatch_fence(request, current.fence)
             if operation == "workspace.exec"
             else request
+        )
+        # The Run revision/Fence alone is NOT a proof that the exact frozen
+        # physical request survived lowering and adapter composition.
+        # Compare the real Owner-bound bytes before any possible effect.
+        _require_exact_owner_effect_handoff(
+            current.intent, current.fence, request, dispatch_request
         )
         query = call.arguments.get("query") if call.name == "search_workspace" else None
         raw_queries = call.arguments.get("queries") if call.name == "search_workspace" else None

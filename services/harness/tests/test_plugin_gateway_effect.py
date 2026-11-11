@@ -253,7 +253,8 @@ def test_omitted_timeout_is_bounded_by_actual_harness_grant(pg_schema) -> None:
         factory = _factory(client)  # exact caller grant: 10,000ms
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             _contract(factory),
             lambda _contract: _adapter(timeout_ms=None),
             tool_bridge_factory=factory,
@@ -292,7 +293,8 @@ def test_gateway_effect_bridge_commits_intent_and_fence_before_physical_dispatch
         contract = _contract(factory)
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             contract,
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
@@ -332,7 +334,8 @@ def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str, 
         factory = _factory(client)
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             _contract(factory),
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
@@ -345,6 +348,75 @@ def test_gateway_resolution_mismatched_identity_never_attaches_job(tamper: str, 
         assert names == ["execution.submit", "execution.resolve"]
 
 
+@pytest.mark.parametrize(
+    "tamper",
+    (
+        "executable",
+        "arguments",
+        "client_request_id",
+        "omit_run_contract_grant",
+        "wrong_fence_digest",
+        "duplicate_fence",
+    ),
+)
+def test_durable_effect_handoff_rejects_post_intent_mutation_before_owner_call(
+    tamper: str, pg_schema, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Real PG18 Intent/Fence must bind exact physical request, not merely its ID.
+
+    This is a malicious/buggy gateway adapter's handoff mutation, not a model
+    permission test: the frozen physical request has already been journaled.
+    No execution.submit may occur if its bytes or the bound fence drift.
+    """
+    from ordivon_harness.plugin_gateway_effect import PluginGatewayExecutionBridge
+    from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+    original = PluginGatewayExecutionBridge._with_dispatch_fence
+
+    def mutate_after_preparation(request, fence):
+        result = original(request, fence)
+        execution = dict(result["execution"])
+        refs = [dict(value) for value in execution["foreignReferences"]]
+        if tamper == "executable":
+            execution["executable"] = "/usr/bin/false"
+        elif tamper == "arguments":
+            execution["args"] = ["forged", "."]
+        elif tamper == "client_request_id":
+            result["clientRequestId"] = "request:forged-after-prepare"
+        elif tamper == "omit_run_contract_grant":
+            refs = [value for value in refs if value.get("type") != "tool_grant"]
+        elif tamper == "wrong_fence_digest":
+            refs[-1]["digest"] = canonical_digest({"forged": "fence"})
+        elif tamper == "duplicate_fence":
+            refs.append(dict(refs[-1]))
+        execution["foreignReferences"] = refs
+        result["execution"] = execution
+        return result
+
+    monkeypatch.setattr(
+        PluginGatewayExecutionBridge, "_with_dispatch_fence", staticmethod(mutate_after_preparation)
+    )
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    clock = FixedClock()
+    run = HarnessAgentRun.create(
+        pg_schema[0],
+        pg_schema[1],
+        _contract(factory),
+        lambda _contract: _adapter(),
+        tool_bridge_factory=factory,
+        clock_ms=clock,
+        monotonic_ms=clock,
+    )
+    try:
+        run.run(())
+    except ToolBridgeError:
+        pass
+    assert not [name for name, _ in client.calls if name == "execution.submit"], (
+        f"{tamper}: a request different from committed Tool Intent reached its Owner"
+    )
+
+
 def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch(pg_schema) -> None:
     with tempfile.TemporaryDirectory():
         client = GatewayExecutionFixture(response_loss=True)
@@ -353,7 +425,8 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch(pg_sc
         clock = FixedClock()
         adapter = _adapter()
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             contract,
             lambda _contract: adapter,
             tool_bridge_factory=factory,
@@ -403,7 +476,8 @@ def test_gateway_recovery_requires_owner_observed_workspace(mutation: str, pg_sc
         client.call_tool = forged_resolution  # type: ignore[method-assign]
         factory = _factory(client)
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             _contract(factory),
             lambda _contract: _adapter(),
             tool_bridge_factory=factory,
@@ -478,12 +552,17 @@ def test_gateway_operation_ref_cannot_attach_to_a_different_job() -> None:
     client = GatewayExecutionFixture()
     factory = _factory(client)
     adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+
     def submit(request_id: str) -> dict:
         return {
             "clientRequestId": request_id,
-            "execution": {"workspaceId": "ws-plugin-h2", "foreignReferences": [],
-                          "executable": "/usr/bin/rg"},
+            "execution": {
+                "workspaceId": "ws-plugin-h2",
+                "foreignReferences": [],
+                "executable": "/usr/bin/rg",
+            },
         }
+
     original_job = client.native_id
     adapter.call_tool("workspace.exec", submit("request:one"))
     client.native_id = "job-alias"
@@ -497,6 +576,7 @@ def test_gateway_operation_ref_cannot_attach_to_a_different_job() -> None:
 def test_gateway_rejected_submit_receipt_does_not_poison_operation_map(invalid: str) -> None:
     client = GatewayExecutionFixture()
     original = client.call_tool
+
     def forged(name, arguments):
         is_error, receipt = original(name, arguments)
         if name == "execution.submit":
@@ -506,15 +586,22 @@ def test_gateway_rejected_submit_receipt_does_not_poison_operation_map(invalid: 
             else:
                 receipt.pop("state")
         return is_error, receipt
+
     client.call_tool = forged
     factory = _factory(client)
     adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
     with pytest.raises(HarnessRuntimeClientError):
-        adapter.call_tool("workspace.exec", {
-            "clientRequestId": "request:untrusted",
-            "execution": {"workspaceId": "ws-plugin-h2", "foreignReferences": [],
-                          "executable": "/usr/bin/rg"},
-        })
+        adapter.call_tool(
+            "workspace.exec",
+            {
+                "clientRequestId": "request:untrusted",
+                "execution": {
+                    "workspaceId": "ws-plugin-h2",
+                    "foreignReferences": [],
+                    "executable": "/usr/bin/rg",
+                },
+            },
+        )
     assert adapter._operation_refs == {}
     assert adapter._operation_requests == {}
 
@@ -528,7 +615,8 @@ def test_gateway_effect_bridge_propagates_cooperative_control_cancellation(pg_sc
         contract = _contract(factory)
         adapter = _adapter()
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             contract,
             lambda _contract: adapter,
             tool_bridge_factory=factory,
@@ -670,7 +758,8 @@ def test_schema_invalid_timeout_is_rejected_on_real_agent_run(invalid: object, p
     with tempfile.TemporaryDirectory():
         clock = FixedClock()
         run = HarnessAgentRun.create(
-            pg_schema[0], pg_schema[1],
+            pg_schema[0],
+            pg_schema[1],
             _contract(factory),
             lambda _contract: adapter,
             tool_bridge_factory=factory,
