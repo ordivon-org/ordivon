@@ -1,0 +1,76 @@
+{
+  "accounting_effect": "NONE",
+  "captured_at": "2026-11-11T14:27:47.127484+00:00",
+  "dataset_is_historically_point_in_time": false,
+  "economic_performance_verified": false,
+  "kind": "ordivon.finance.r3.native-etf-research-only",
+  "optim_date": "2026-10-29",
+  "order_effect": "NONE",
+  "prediction_values_annualized": {
+    "IWM": 0.15295537909721313,
+    "QQQ": 0.13567709944594594,
+    "SPY": 0.2533135138135055
+  },
+  "provider_receipts": [
+    {
+      "adjustment_provenance": "UNKNOWN",
+      "corporate_actions_completeness": "UNKNOWN",
+      "first_session": "2023-01-03",
+      "historical_available_at": "UNKNOWN",
+      "last_session": "2026-10-30",
+      "normalized_sha256": "bce793b53f97c5081e7a9b4b9d4a8b03a574977f25054eac42a55dcda9907a30",
+      "provider": "cboe",
+      "received_at": "2026-11-11T14:27:37.101264+00:00",
+      "requested_at": "2026-11-11T14:27:31.222859+00:00",
+      "rights_for_redistribution": "UNKNOWN",
+      "rows": 962,
+      "source_raw_wire_captured": false,
+      "symbol": "SPY"
+    },
+    {
+      "adjustment_provenance": "UNKNOWN",
+      "corporate_actions_completeness": "UNKNOWN",
+      "first_session": "2023-01-03",
+      "historical_available_at": "UNKNOWN",
+      "last_session": "2026-10-30",
+      "normalized_sha256": "c5eb35110544fb0e8d815eedd7ba6231da05ed70c3ee4811f005f57dbb4737ea",
+      "provider": "cboe",
+      "received_at": "2026-11-11T14:27:41.681075+00:00",
+      "requested_at": "2026-11-11T14:27:37.119840+00:00",
+      "rights_for_redistribution": "UNKNOWN",
+      "rows": 962,
+      "source_raw_wire_captured": false,
+      "symbol": "QQQ"
+    },
+    {
+      "adjustment_provenance": "UNKNOWN",
+      "corporate_actions_completeness": "UNKNOWN",
+      "first_session": "2023-01-03",
+      "historical_available_at": "UNKNOWN",
+      "last_session": "2026-10-30",
+      "normalized_sha256": "9f8c78b9d860c8f6c123df68dc3c9d5b16540426d27905cadc7c6b0258f05f4d",
+      "provider": "cboe",
+      "received_at": "2026-11-11T14:27:45.028902+00:00",
+      "requested_at": "2026-11-11T14:27:41.700160+00:00",
+      "rights_for_redistribution": "UNKNOWN",
+      "rows": 962,
+      "source_raw_wire_captured": false,
+      "symbol": "IWM"
+    }
+  ],
+  "pypfopt_native_weights": {
+    "IWM": 0.0,
+    "QQQ": 0.0,
+    "SPY": 1.0
+  },
+  "qlib_dataset_sha256": "7a65f850ce2d2fc30dab7400be25a32b1b25a7eccf889195d4705a337754b883",
+  "qlib_prediction_rows": 816,
+  "qlib_recorder_id": "b09ba8ca97664b7e83ba61eb825b171f",
+  "qlib_split_rows": {
+    "test": 816,
+    "train": 1443,
+    "valid": 558
+  },
+  "qlib_version": "0.9.7",
+  "source_cut": "c883db3bbe211b8a963a3236599e1dc3cfe362ac"
+}
