@@ -522,8 +522,7 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         {"operationRef": north_ref, "waitMs": 1500},
                     )
                     assert not got.is_error, (
-                        "Owner job.observe refused current native Job: "
-                        f"{got.structured_content}"
+                        f"Owner job.observe refused current native Job: {got.structured_content}"
                     )
                     if got.structured_content["terminal"]:
                         break
@@ -667,6 +666,95 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                     assert settled["dispatchCount"] == 1
                     assert settled["semanticCompletionEvaluated"] is False
                     print("R22_TRUE_PG_OWNER_JOB_HARNESS_UNKNOWN_RECONCILED_NO_REDISPATCH")
+
+                if (
+                    source_manifest is not None
+                    and os.getenv("ORDIVON_GATEWAY_PG_E2E_POST_REVOKE_REPLAY") == "1"
+                ):
+                    # Three temporally distinct facts:
+                    # 1) this exact native Owner Job *was* admitted and run,
+                    # 2) issuer's current Run revision has since superseded
+                    #    the original Fence, so NEW work needs fresh authority,
+                    # 3) an exact replay of the already committed request must
+                    #    resolve historical Job identity without redispatch.
+                    superseded_history = verified_harness_source(
+                        "supersede",
+                        ORDIVON_R24_POST_RECEIPT_REVOKE="1",
+                        ORDIVON_R22_EXPECT_RUN=source_manifest["runId"],
+                        ORDIVON_R22_EXPECT_REQUEST=agent_request,
+                        ORDIVON_R22_EXPECT_REFS_JSON=json.dumps(harness_refs),
+                    )
+                    assert superseded_history["standing"] == (
+                        "FENCE_SUPERSEDED_BY_DURABLE_RUN_REVISION"
+                    )
+                    assert (
+                        superseded_history["currentRevision"]
+                        > (superseded_history["preparedRevision"])
+                    )
+                    assert (
+                        superseded_history["historicalReceiptDigest"] == (settled["receiptDigest"])
+                    )
+                    reissued = await agent.call_tool(
+                        "execution.submit",
+                        {
+                            "capability": "execution.linux",
+                            "requestId": agent_request,
+                            "workspaceId": "ws-gateway-native",
+                            "executable": "/usr/bin/printf",
+                            "args": [agent_output],
+                            "authorityReferences": harness_refs,
+                            **source_owner_params,
+                        },
+                    )
+                    assert not reissued.is_error, reissued.structured_content
+                    assert reissued.structured_content["operation_ref"] == north_ref
+                    # After revocation, a changed physical intent under the
+                    # original RequestId must NOT fall back to a fresh Job or
+                    # silently rewrite immutable historical effect identity.
+                    with pytest.raises(OwnerCallError) as changed_after_revoke:
+                        await gateway.execution_submit(
+                            capability="execution.linux",
+                            request_id=agent_request,
+                            workspace_id="ws-gateway-native",
+                            executable="/usr/bin/printf",
+                            args=[agent_output],
+                            cwd_relative=source_owner_params["cwdRelative"],
+                            env=source_owner_params["env"],
+                            timeout_ms=source_owner_params["timeoutMs"],
+                            stdout_limit_bytes=source_owner_params["stdoutLimitBytes"] + 1,
+                            stderr_limit_bytes=source_owner_params["stderrLimitBytes"],
+                            authority_references=harness_refs,
+                        )
+                    assert changed_after_revoke.value.error is not None
+                    assert changed_after_revoke.value.error["code"] == "IDEMPOTENCY_CONFLICT"
+                    # Verify through native Owner state, not just SDK reply.
+                    existing_owner_history = psql(
+                        "SELECT COUNT(*) FROM fresh.jobs "
+                        f"WHERE principal='pg-consumer' AND client_request_id='{agent_request}'"
+                    ).strip()
+                    assert existing_owner_history == "1"
+                    dispatches_after_revoke = psql(
+                        "SELECT count(*) FROM fresh.job_events e JOIN fresh.jobs j "
+                        "ON e.job_id=j.job_id WHERE e.event_type='DISPATCH_ISSUED' "
+                        f"AND j.principal='pg-consumer' AND j.client_request_id='{agent_request}'"
+                    ).strip()
+                    assert dispatches_after_revoke == "1"
+                    # Full immutable request identity remains bound to the
+                    # original frozen Owner Plan even though issuer now rejects
+                    # that Fence for any future fresh admission.
+                    assert (
+                        json.loads(
+                            psql(
+                                "SELECT execution_plan_json FROM fresh.jobs "
+                                f"WHERE principal='pg-consumer' AND client_request_id='{agent_request}'"
+                            ).strip()
+                        )
+                        == committed_after_terminal
+                    )
+                    print(
+                        "R24_POST_ISSUER_REVOCATION_EXACT_REPLAY_SAME_"
+                        "PG_JOB_NO_NEW_DISPATCH_HISTORICAL_RECEIPT_STABLE"
+                    )
 
                 if (
                     harness_source

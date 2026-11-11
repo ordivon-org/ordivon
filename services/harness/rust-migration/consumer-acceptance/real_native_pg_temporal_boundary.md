@@ -52,6 +52,52 @@ reference without minting a new capability. This unclosed behavior therefore
 requires a separate **issuer-backed Owner admission/fencing contract**, not
 reverting metadata preservation or adding another static SHA test.
 
+## R24: historic exact replay after Issuer Run revision changes
+
+Opt-in ORDIVON_GATEWAY_PG_E2E_POST_REVOKE_REPLAY=1 extends the
+**same genuine** Harness Issuer PG18 -> northbound Gateway MCP ->
+Runtime PG native Runner acceptance instead of creating a second
+simulation framework.
+
+1. Harness physically executes harmless printf exactly once through the
+   original Owner Job, then records UNKNOWN -> OBSERVED with its immutable
+   previous Receipt digest and native execution_result.
+2. The Harness Run advances to the settled Receipt's later revision, and
+   a separate legal PG writer appends another Run event. The issuer's
+   assert_dispatch_fence_current now raises **HarnessSuperseded** for the
+   original Fence *even with expiry excluded*. The original historical
+   UNKNOWN/OBSERVED Receipt chain stays immutable and independently
+   readable; the original Fence's generation is intentionally not confused
+   with the Run's later current revision.
+3. Call execution.submit again over the **real** Agent SDK -> Gateway
+   -> Runtime Owner HTTP MCP, with exact original principal,
+   clientRequestId, command, environment, timeout, output byte ceilings
+   and all unmodified source references. Native PG returns the **existing**
+   operation ref, jobs still has exactly one row and the original Job
+   still has exactly one DISPATCH_ISSUED. Frozen original physical
+   execution plan and Harness Receipt digest remain unchanged.
+4. Submitting the same clientRequestId with changed stdout byte
+   allowance instead returns the original Owner's structured
+   IDEMPOTENCY_CONFLICT, not a newly authorized Job or ambiguous success.
+
+Real isolated native PostgreSQL18 + HTTP MCP + systemd Runner witness:
+Job job-01a1cb9e-4853-7318-bc02-2fe5f9fc9566 **SUCCEEDED**.
+This positive history replay **does not** mean the stale Fence is
+authorized for any *new* physical execution. The immediately adjacent
+test continues reproducing the still-open P0: a brand-new Job carrying a
+genuinely superseded Harness Fence **is** physically admitted by the
+existing metadata-only Runtime credential path.
+
+**Therefore authority currentness and historical truth must be separate
+LEGO contracts**: new-effect admission must check the relevant trusted
+issuer and physical receiver at the chosen linearization cut; existing
+exact RequestID/Digest replay must expose the original immutable
+Owner Job/Receipt without a second physical effect. Requiring a fresh
+Issuer-current Permit for every replay would erase recoverability after
+legitimate revocation and turn UNKNOWN into an unsafe retry problem.
+Do not conflate the two requests merely because their caller-supplied
+foreignReferences look alike.
+
 ## Independent second source-to-physical-request contract gap
 
 The exact original Harness workspace.exec Intent commits both
