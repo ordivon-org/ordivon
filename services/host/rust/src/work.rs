@@ -10,6 +10,8 @@ use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio_postgres::{types::Json, Client, IsolationLevel, Transaction};
 
+pub mod engagement;
+
 #[derive(Debug, Error)]
 pub enum WorkError {
     #[error("INVALID_ARGUMENT: {0}")]
@@ -842,6 +844,22 @@ pub async fn commit_snapshot(
         ));
     }
 
+    // Once an engagement has been offered, only the typed accountable
+    // transition may advance its immutable snapshot; ordinary Work CAS must
+    // not silently strip the engagement from the JSONB payload.
+    let old_row = tx
+        .query_opt(
+            "SELECT payload FROM work_snapshots WHERE work_ref=$1 AND revision=$2",
+            &[&command.work_ref, &current_revision],
+        )
+        .await?
+        .ok_or_else(|| WorkError::Integrity("current Work snapshot missing".into()))?;
+    let Json(old_payload): Json<Value> = old_row.try_get("payload")?;
+    if old_payload.get("engagement").is_some() {
+        return Err(WorkError::Conflict(
+            "engaged Work requires typed work.engagement.advance; generic CAS cannot discard accountability".into()
+        ));
+    }
     let updated = tx
         .query_opt(
             "UPDATE works SET state=$1,current_revision=$2,current_snapshot_digest=$3,updated_at=clock_timestamp() \
