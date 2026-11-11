@@ -46,8 +46,8 @@ echo 'PG18_PYTHON_WRITE_RUST_READ_ALL_FAIL_CLOSED_PASS'
 if [[ "${HARNESS_CONSUMER_FALSIFY_CONTRACT:-}" == 1 ]]; then
   HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
     services/harness/rust-migration/consumer-acceptance/make_invalid_contract_fixture.py
-  export HARNESS_RUST_TEST_INVALID_CONTRACT_RUN_ID="$(python3 -c \
-    'import json,sys;print(json.load(open(sys.argv[1]))["invalid_contract"])' "$ROOT/fixture.json")"
+  export HARNESS_RUST_TEST_INVALID_CONTRACT_CASES="$(python3 -c \
+    'import json,sys;cases=json.load(open(sys.argv[1]))["invalid_contract_cases"];print(chr(10).join(k+"|"+v for k,v in sorted(cases.items())))' "$ROOT/fixture.json")"
   cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
     -p ordivon-harness-pg --test contract_semantic_falsifier -- --ignored --nocapture
 fi
