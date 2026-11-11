@@ -374,7 +374,50 @@ including a foreign-job succeeded result. All are synthetic Owner
 wire payloads, NOT real Runtime calls or physical effects; this test
 qualifies exact boundary semantics only.
 
-Physical EffectIntent/current Owner Fence, real Runtime admission,
-durable request commitment, ambiguous-response reconciler and valid
-UNKNOWN→authenticated final Receipt transitions remain separate Owner
-work. Do not confuse the new observation decoder with a Dispatch Permit.
+Physical EffectIntent/current Owner Fence and real Runtime admission
+remain separate Owner work. The adjacent R20 Python Continuity bridge now
+allows only same-Owner-Job authenticated evidence to settle an UNKNOWN
+receipt, but this read-only Rust decoder itself still cannot dispatch.
+Do not confuse Job delivery status with a Dispatch Permit.
+
+## R21 — ONE joined source/consumer chain (isolated, not deployed)
+
+The R20 owner_effect_handoff frozen request/Fence SourceCut, B R19
+runtime_delivery Owner Job identity/source projection, and the independent
+R20 UNKNOWN->confirmed Receipt recovery now live in ONE Harness source
+tree rather than separate mutually untested branches. The Python
+runtime_bridge._runtime_delivery_state malformed-type guard and Owner-only
+UNKNOWN reconciliation coexist without a replacement Runtime client.
+The Python Store source, A single verified PG18 Reader/Writer and B Tool
+semantic consumer remain the same durable source of truth.
+
+Sequence: original Tool Call and immutable Run Contract -> Python source
+Tool Intent and DispatchFenceV2 with original Runtime request SHA in existing
+PG CAS+Journal -> pre-call exact Owner-request commitment validation ->
+Gateway forwards references unchanged -> Runtime Owner native durable Job
+admission and principal-scoped clientRequestId idempotency -> exact
+workspaceId/jobId readback and delivery classification -> only Owner-confirmed
+reconciled Tool Receipt with predecessor digest -> independent domain
+completion acceptance. The pre-call predicate and read-only Head/Owner job
+projection establish necessary integrity/identity, NOT the Runtime Owner
+physical dispatch authority.
+
+One genuine disposable PostgreSQL 18 fixture with the R21 union enabled
+exercises fourteen Python Tool cases including an original executable
+request, request/Fence cross-check, exact Runtime job identity, durable
+UNKNOWN->reconciled OBSERVED, forged un-reconciled receipt, foreign Job,
+stale Fence, invalid Contract, and B Provider FailureReceipt. It also
+replays native A Lease/Writer and the same Python contract corpus.
+Rust full Cargo tests/strict Clippy and the original Python Harness full
+suite are qualified separately. The original C seat and A sole PG Owner
+have not accepted this candidate.
+
+Blocking owner-side P0 remains: the currently installed PG Runtime
+pg_runtime/job.rs rejects all nonempty foreignReferences, whereas
+Harness/Gateway preserve mandatory Run/Grant/Fence references. Removing
+them in Gateway to obtain a successful Job is explicitly not a fix.
+Runtime Owner must preserve and qualify the referenced commitment at its
+actual durable Job admission without treating caller-supplied metadata as
+unverified authority. A concurrent independent Runtime-owner review owns
+that separate core change; this source-only Harness integration does not
+supply it, perform physical effects or prove external exactly-once delivery.
