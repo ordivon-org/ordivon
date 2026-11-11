@@ -4,6 +4,7 @@ This uses the production Gateway MCP client transport and Gateway server SDK.
 Only the Rust Host endpoint is redirected to a loopback, disposable test owner.
 No production Gateway config, broker, extra protocol, or database is created.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -72,18 +73,21 @@ async def consume_owner(url: str, child: subprocess.Popen) -> None:
                         key: val for key, val in expected.items() if key != "observedAtMs"
                     }
                     assert actual == expected_stable, (
-                        name, "Gateway changed stable Host status/Doctor semantics",
+                        name,
+                        "Gateway changed stable Host status/Doctor semantics",
                     )
                 else:
                     assert actual == expected, (name, "Gateway changed Host payload")
                 return expected
 
             current = await roundtrip(
-                "work.get", {"workRef": "work:test:rust-mcp-stdio", "revision": 2},
+                "work.get",
+                {"workRef": "work:test:rust-mcp-stdio", "revision": 2},
             )
             assert current["revision"] == 2
             listing = await roundtrip(
-                "space.list", {"limit": 2, "maxBytes": 262144},
+                "space.list",
+                {"limit": 2, "maxBytes": 262144},
             )
             assert isinstance(listing["spaces"], list)
             status = await roundtrip("host.status", {"detail": "integrity"})
@@ -96,7 +100,8 @@ async def consume_owner(url: str, child: subprocess.Popen) -> None:
             assert len(topic["messages"]) >= 2
 
             missing = await agent.call_tool(
-                "work.get", {"workRef": "work:r9:missing:never-created"},
+                "work.get",
+                {"workRef": "work:r9:missing:never-created"},
             )
             assert missing.is_error, missing
             envelope = missing.structured_content
