@@ -51,7 +51,7 @@ try:
     assert initialized["serverInfo"]["name"]
     request("notifications/initialized")
     names = [tool["name"] for tool in request("tools/list", {}, 2)["tools"]]
-    assert names == ["host.status", "work.get", "work.snapshot.commit"], names
+    assert names == ["host.status", "work.create", "work.get", "work.list", "work.snapshot.commit"], names
     ok = request("tools/call", {"name": "host.status", "arguments": {"detail": "summary"}}, 3)
     data = ok.get("structuredContent")
     assert data is not None, ok
@@ -94,6 +94,31 @@ try:
         "tools/call", {"name": "work.get", "arguments": {"workRef": args["workRef"], "revision": 1}}, 9
     )
     assert historical["structuredContent"]["state"] == "historical_state_unknown", historical
+    # Create and list through the actual MCP transport; not a domain-only test.
+    new_ref = "work:test:rust-mcp-created"
+    create_args = {
+        "workRef": new_ref,
+        "workKind": "migration-smoke",
+        "actorRef": "actor:test:rust-mcp",
+        "initialSnapshot": {
+            "objective": "Rust MCP Work.create 🌍",
+            "frontier": "created-with-rust",
+            "nextActions": ["verify Python receipt"],
+        },
+    }
+    created = request("tools/call", {"name": "work.create", "arguments": create_args}, 10)
+    assert created["structuredContent"]["admission"] == "committed", created
+    assert created["structuredContent"]["revision"] == 1, created
+    duplicated = request("tools/call", {"name": "work.create", "arguments": create_args}, 11)
+    assert duplicated["structuredContent"]["admission"] == "existing", duplicated
+    listing = request(
+        "tools/call",
+        {"name": "work.list", "arguments": {"state": "open", "limit": 200}},
+        12,
+    )
+    assert new_ref in {
+        item["workRef"] for item in listing["structuredContent"]["works"]
+    }, listing
     print(
         "MCP_STDIO_PASS"
         f" version={initialized['protocolVersion']} tools={names}"

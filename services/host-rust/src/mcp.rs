@@ -76,6 +76,86 @@ pub struct WorkCommitRequest {
     pub continuity_disposition: ContinuityDisposition,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WorkCreateRequest {
+    pub work_ref: String,
+    pub work_kind: String,
+    pub actor_ref: String,
+    pub initial_snapshot: WorkSnapshotWire,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum WorkListState {
+    Open,
+    Completed,
+    Abandoned,
+}
+
+impl From<WorkListState> for WorkState {
+    fn from(value: WorkListState) -> Self {
+        match value {
+            WorkListState::Open => WorkState::Open,
+            WorkListState::Completed => WorkState::Completed,
+            WorkListState::Abandoned => WorkState::Abandoned,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WorkListRequest {
+    #[serde(default)]
+    pub state: Option<WorkListState>,
+    #[serde(default = "work_list_limit")]
+    pub limit: usize,
+    #[serde(default)]
+    pub before_updated_at: Option<String>,
+    #[serde(default)]
+    pub before_work_ref: Option<String>,
+    #[serde(default = "work_list_max_bytes")]
+    pub max_bytes: usize,
+}
+
+const fn work_list_limit() -> usize {
+    50
+}
+const fn work_list_max_bytes() -> usize {
+    262_144
+}
+
+/// Preserve Python mcp_work_tools.work_create's exact model_dump(mode="json")
+/// request identity, including the snake_case nested Pydantic field names.
+fn create_work_client_request_id(
+    work_ref: &str,
+    kind: &str,
+    actor_ref: &str,
+    snapshot: &WorkSnapshot,
+) -> Result<String, work::WorkError> {
+    snapshot.validate()?;
+    let python_model_dump = json!({
+        "work_ref": work_ref,
+        "kind": kind,
+        "actor_ref": actor_ref,
+        "initial_snapshot": {
+            "objective": snapshot.objective,
+            "frontier": snapshot.frontier,
+            "established": snapshot.established,
+            "unresolved": snapshot.unresolved,
+            "rejected": snapshot.rejected,
+            "constraints": snapshot.constraints,
+            "next_actions": snapshot.next_actions,
+            "reference_refs": snapshot.reference_refs,
+        }
+    });
+    let digest = work::canonical_digest(&python_model_dump)?;
+    Ok(format!(
+        "work-create:{}",
+        digest.trim_start_matches("sha256:")
+    ))
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ContinuityDisposition {
@@ -155,6 +235,55 @@ impl HostMcp {
     }
 
     #[tool(
+        name = "work.create",
+        description = "Create one durable Work and immutable revision-one snapshot in PostgreSQL schema13."
+    )]
+    async fn work_create(
+        &self,
+        Parameters(request): Parameters<WorkCreateRequest>,
+    ) -> CallToolResult {
+        let snapshot: WorkSnapshot = request.initial_snapshot.into();
+        let client_request_id = match create_work_client_request_id(
+            &request.work_ref,
+            &request.work_kind,
+            &request.actor_ref,
+            &snapshot,
+        ) {
+            Ok(identity) => identity,
+            Err(error) => return tool_error(error),
+        };
+        let command = work::CreateWork {
+            work_ref: request.work_ref,
+            kind: request.work_kind,
+            actor_ref: request.actor_ref,
+            initial_snapshot: snapshot,
+            client_request_id,
+        };
+        match self.pg.work_create(&command).await {
+            Ok(value) => structured(value),
+            Err(error) => tool_error(error),
+        }
+    }
+
+    #[tool(
+        name = "work.list",
+        description = "Read bounded PostgreSQL Work inventory with stable state and cursor filtering."
+    )]
+    async fn work_list(&self, Parameters(request): Parameters<WorkListRequest>) -> CallToolResult {
+        let input = work::ListWorks {
+            state: request.state.map(WorkState::from),
+            limit: request.limit,
+            before_updated_at: request.before_updated_at,
+            before_work_ref: request.before_work_ref,
+            max_bytes: request.max_bytes,
+        };
+        match self.pg.work_list(&input).await {
+            Ok(value) => structured(value),
+            Err(error) => tool_error(error),
+        }
+    }
+
+    #[tool(
         name = "work.snapshot.commit",
         description = "Atomic Work compare-and-swap, immutable snapshot and idempotent receipt on PostgreSQL schema13."
     )]
@@ -203,7 +332,7 @@ impl ServerHandler for HostMcp {
     fn get_info(&self) -> ServerConfig {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_instructions(
-                "STAGING ONLY: Rust Host migration; schema13, Work read/CAS, status summary.                 Not yet a production 31-tool parity replacement."
+                "STAGING ONLY: Rust Host migration; schema13, Work create/get/list/CAS, status summary.                 Not yet a production 31-tool parity replacement."
             )
     }
 }
@@ -221,7 +350,32 @@ mod tests {
             .collect();
         assert_eq!(
             names,
-            vec!["host.status", "work.get", "work.snapshot.commit"]
+            vec![
+                "host.status",
+                "work.create",
+                "work.get",
+                "work.list",
+                "work.snapshot.commit"
+            ]
+        );
+    }
+
+    #[test]
+    fn work_create_request_identity_matches_original_python_mcp() {
+        let snapshot: WorkSnapshot = serde_json::from_value(json!({
+            "objective": "中文 🌍",
+            "frontier": "review",
+        }))
+        .unwrap();
+        assert_eq!(
+            create_work_client_request_id(
+                "work:test:rust-wire-create",
+                "demo",
+                "actor:test:rust-wire",
+                &snapshot
+            )
+            .unwrap(),
+            "work-create:b53c3e1e3fb341efee31eb82e915ea45424cc76b9729e374939782ab97bc47b7"
         );
     }
 

@@ -1,13 +1,18 @@
 """Python legacy Host seed/readback on a disposable PostgreSQL 18 test database."""
+
 import os
 import sys
 
+import psycopg
+
+from ordivon_host_v2.canonical_json import canonical_digest
 from ordivon_host_v2.work_inputs import (
-    ActorKind, ActorRefInput, WorkCreateInput, WorkSnapshotInput,
+    ActorKind,
+    ActorRefInput,
+    WorkCreateInput,
+    WorkSnapshotInput,
 )
 from ordivon_host_v2.work_store import WorkStore
-from ordivon_host_v2.canonical_json import canonical_digest
-import psycopg
 
 if len(sys.argv) != 2 or sys.argv[1] not in {"seed", "verify"}:
     raise SystemExit("mode must be seed or verify")
@@ -64,4 +69,31 @@ else:
         ).fetchone()
         assert row is not None, "Rust receipt identity differs from Python MCP"
         assert row[0] == "work.snapshot.commit" and row[1]["revision"] == 2, row
+    # Python's original Pydantic model_dump request id must retrieve the exact
+    # Rust Work.create receipt (snake_case aliases and default Snapshot lists).
+    from ordivon_host_v2.mcp_tool_registration import _request_id
+
+    new_ref = "work:test:rust-mcp-created"
+    created_snapshot = WorkSnapshotInput(
+        objective="Rust MCP Work.create 🌍",
+        frontier="created-with-rust",
+        nextActions=["verify Python receipt"],
+    )
+    new_work = WorkCreateInput(
+        work_ref=new_ref,
+        kind="migration-smoke",
+        actor_ref="actor:test:rust-mcp",
+        initial_snapshot=created_snapshot,
+    )
+    created_from_python = store.get_work(new_ref)
+    assert created_from_python["state"] == "open", created_from_python
+    assert created_from_python["revision"] == 1, created_from_python
+    create_req = _request_id("work-create", new_work.model_dump(mode="json"))
+    with psycopg.connect(dsn) as conn:
+        row = conn.execute(
+            "SELECT operation,response FROM command_receipts WHERE client_request_id=%s",
+            (create_req,),
+        ).fetchone()
+        assert row is not None, "Rust Work.create identity differs from original Python MCP"
+        assert row[0] == "work.create" and row[1]["workRef"] == new_ref, row
     print("PYTHON_HOST_READBACK_PASS work_revision=2 terminal=completed receipt_identity=EXACT")

@@ -1,7 +1,7 @@
 //! PostgreSQL schema gate and a read-only Host summary projection.
 //! This first slice intentionally uses one connection per diagnostic request;
 //! a mature bounded connection pool is a cutover prerequisite, not implied here.
-use crate::work::{self, CommitSnapshot};
+use crate::work::{self, CommitSnapshot, CreateWork, ListWorks};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -55,6 +55,16 @@ impl HostPg {
     ) -> Result<Value, HostDbError> {
         let mut client = self.connect().await?;
         Ok(work::get_work(&mut client, work_ref, revision).await?)
+    }
+
+    pub async fn work_create(&self, cmd: &CreateWork) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(work::create_work(&mut client, cmd).await?)
+    }
+
+    pub async fn work_list(&self, input: &ListWorks) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(work::list_works(&mut client, input).await?)
     }
 
     pub async fn work_snapshot_commit(&self, cmd: &CommitSnapshot) -> Result<Value, HostDbError> {

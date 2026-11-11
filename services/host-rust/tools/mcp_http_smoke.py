@@ -122,7 +122,7 @@ try:
     assert notify_status == 202, notify_status
     _, listed, _ = post("tools/list", {}, 2, session)
     names = [t["name"] for t in listed["result"]["tools"]]
-    assert names == ["host.status", "work.get", "work.snapshot.commit"], names
+    assert names == ["host.status", "work.create", "work.get", "work.list", "work.snapshot.commit"], names
     _, work, _ = post(
         "tools/call",
         {"name": "work.get", "arguments": {"workRef": "work:test:rust-mcp-stdio"}},
@@ -137,6 +137,15 @@ try:
         session,
     )
     assert status["result"]["structuredContent"]["authority"]["journalSchema"] == 13, status
+    _, listing, _ = post(
+        "tools/call",
+        {"name": "work.list", "arguments": {"state": "open", "limit": 200}},
+        5,
+        session,
+    )
+    assert "work:test:rust-mcp-created" in {
+        item["workRef"] for item in listing["result"]["structuredContent"]["works"]
+    }, listing
     print(f"MCP_STREAMABLE_HTTP_PASS loopback=127.0.0.1 tools={len(names)} work_revision=2")
 finally:
     server.terminate()
