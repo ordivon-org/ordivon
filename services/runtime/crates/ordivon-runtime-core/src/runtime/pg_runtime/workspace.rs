@@ -19,10 +19,10 @@ const WORKSPACE_EFFECT_ISOLATION: postgres::IsolationLevel =
 // Jobs would incorrectly report activeJobIds=[] while close remains blocked.
 // Build only trusted static query fragments; values remain PostgreSQL bind args.
 const WORKSPACE_ACTIVE_OR_HELD: &str = "(
-    j.resolution IS NULL OR EXISTS(
-        SELECT 1 FROM attempts a
+    j.resolution IS NULL OR j.job_id IN (
+        SELECT a.job_id FROM attempts a
         JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id
-        WHERE a.job_id=j.job_id AND r.state IN ('active','held_orphaned')
+        WHERE r.state IN ('active','held_orphaned')
     )
 )";
 
@@ -446,6 +446,10 @@ mod workspace_active_consumer_tests {
             assert!(query.contains(WORKSPACE_ACTIVE_OR_HELD));
             assert!(query.contains("r.state IN ('active','held_orphaned')"));
             assert!(query.contains("j.resolution IS NULL"));
+            // PostgreSQL can hash this ownership set once for the bounded
+            // Workspace page; a correlated EXISTS can degenerate into one
+            // nested-loop probe per historical Job under a large ledger.
+            assert!(query.contains("j.job_id IN ("));
         }
     }
 }
