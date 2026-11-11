@@ -3,6 +3,7 @@
 //! This is not a PG writer, Agent loop, Provider or Runtime dispatcher.
 
 pub mod evidence;
+pub mod provider_head;
 
 use std::collections::HashSet;
 use std::fmt;
