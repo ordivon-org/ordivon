@@ -42,11 +42,10 @@ background poller and preserves Gluetun-native health recovery.
 The production Quadlet now uses Gluetun native `VPN_SERVICE_PROVIDER=surfshark`
 with WireGuard, rather than a pinned Custom WireGuard peer endpoint. Its
 server selector is constrained to `SERVER_REGIONS=Asia Pacific` and
-`SERVER_COUNTRIES=Singapore,Japan`. The installed Gluetun image exposes 20
-WireGuard location records in those two countries; this bounded set meets
-the current shared-consumer network acceptance, including Claude. The entire
-Asia Pacific region contains 50 records but includes outlets which did not
-pass every consumer acceptance. A reachable VPN endpoint alone is insufficient.
+`SERVER_COUNTRIES=Singapore`. This matches the currently selected installed
+profile and excludes previously disallowed Japan/Korea egress. The server catalog
+contains other destinations, but they are not automatically approved for every
+consumer. A reachable VPN endpoint alone is insufficient.
 
 Native Gluetun owns its own healthchecks, VPN reconnect and server selection.
 The official server catalog updates at `UPDATER_PERIOD=480h`; the systemd
