@@ -60,6 +60,62 @@ types/exit nodes (tailscale.com), Gluetun native firewall/DNS/health options
 A documentation or model PASS is not evidence that a physical iOS request
 used the intended tunnel.
 
+## Namespace ownership before VPN establishment (R8 physical counterexample)
+
+**Hard requirement:** If an approved Tailscale Exit Node forwards a client
+request, the Linux kernel must enforce VPN egress or denial, even during
+container replacement, early boot, and failed VPN establishment. Provider
+service state, a present default route, or an online Tailnet daemon do not
+independently prove the requirement.
+
+On 2026-11-11 isolated, credential-free Podman 6.1.1 native experiments
+established the useful mechanism and an equally important negative example:
+
+- Podman Pod with --infra=true --share=net --network=none kept the **same
+  kernel network namespace inode** while two disposable member containers
+  were created and removed in sequence. The Pod infra container, not its
+  members, owns the stable namespace. This can reduce future reconnects.
+- A separate credential-free Pod with --network=bridge had a normal kernel
+  default route **before any Gluetun/WireGuard process existed**, and a
+  direct HTTP request from that namespace reached the Internet by the
+  host's CN egress. No TUN device, VPN secret or second provider session
+  was used. A stable namespace alone therefore does not entail a
+  fail-closed Exit Node.
+
+These shadow experiments do **not** imply the existing production Gluetun
+kill switch is defective. The current source is deliberately bound to
+Network=network-v2-gluetun-owned.network (without Pod=), with Tailnet joined
+to the provider-owned disposable namespace. This has a bounded reconnect
+window rather than a persistent potentially unsafe pre-WG path. The
+consumer:mobile-tailnet-exit:ready owner task composes the existing readiness
+checker with GNU timeout to observe native systemd/Tailscale rejoin for up to
+120 seconds. It does not change the provider or prove iOS device egress.
+
+Before replacing this topology with a stable Pod, Network's natural Owner
+must independently demonstrate all of:
+
+1. Pod-infrastructure-owned **pre-VPN default-deny** kernel egress which
+   survives fresh Pod creation and Gluetun member removal/restart; no
+   unauthorized direct IPv4/IPv6 TCP, UDP/QUIC or DNS/DoH escape.
+2. Bounded provider handshake and control-plane traffic, separated from
+   client data-plane forwarding; no host default route accepted as fallback.
+3. Source to installed to native Podman/systemd loaded to kernel routing/
+   filtering to actual consumer VPN or explicitly denied effects. Exercise
+   boot, container replacement, VPN outage, recovery, rollback.
+4. Real device-origin iPad/iPhone Exit Node choice, public IP and DNS
+   evidence; server READY and aggregate DNS counters are insufficient.
+
+Under Recursive LEGO R2.1, inv means remote-client public traffic never
+falls back to direct host egress, while post means a consumer-bound VPN
+effect or a witnessed denial, not merely systemctl active. A stable Pod is
+**QUALIFIED AS A POSSIBILITY, NOT ADMITTED**; do not mutate the one live
+physical VPN because a disposable Pod survived member replacement.
+
+Mature native mechanisms: Podman Pod shared netns/infra
+(https://docs.podman.io/en/stable/markdown/podman-pod-create.1.html);
+systemd NetworkNamespacePath/JoinsNamespaceOf
+(https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html).
+
 ## Classification rules
 
 ```text

@@ -10,6 +10,11 @@ tasks:
       - sing-box check -c providers/gluetun/config/carrier-adapter.json
       - systemd-analyze verify providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.service providers/gluetun/systemd/network-v2-gluetun-owned-reconcile.timer
       - grep -q '^EnvironmentFile=/etc/network-v2/gluetun/serialized-native.env$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
+      # Current provider-owned disposable netns is safer than an unqualified
+      # persistent Pod with public default route before native VPN kill switch.
+      # A stable Pod requires a separately proved pre-WG fail-closed path.
+      - grep -qx '^Network=network-v2-gluetun-owned.network$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
+      - '! grep -Eq "^[[:space:]]*Pod=" providers/gluetun/quadlet/network-v2-gluetun-owned.container'
       - grep -q '^Secret=network-v2-gluetun-surfshark-wgkey,type=mount,target=surfshark-wgkey$' providers/gluetun/quadlet/network-v2-gluetun-owned.container
 
   provider:gluetun:native:prepare:
