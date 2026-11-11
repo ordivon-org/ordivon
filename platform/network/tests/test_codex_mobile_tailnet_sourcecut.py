@@ -48,7 +48,11 @@ def test_mobile_tracks_provider_network_identity_and_exit_advertisement():
     assert 'nsenter -t "$provider_pid" -n' in runner
     assert "--tun=userspace-networking" in runner
     assert "set --advertise-exit-node" in runner
-    assert 'current_provider_pid" != "$provider_pid"' in runner
+    assert '"/proc/$provider_pid/ns/net" -ef "/proc/$child/ns/net"' in runner
+    # Physical namespace identity must not require a Podman inspect every second.
+    while_body = runner.split('while kill -0 "$child" 2>/dev/null; do', 1)[1]
+    assert "provider_pid)" not in while_body
+    assert "podman inspect" not in while_body
     assert "trap cleanup EXIT INT TERM" in runner
 
 
