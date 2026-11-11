@@ -5,13 +5,13 @@ original Host Alembic 0001..0013 migrations.
 
 From services/host:
     HOST_RUST_TEST_DSN=postgresql://... uv run --locked python \
-      ../host-rust/tests/python_oracle.py seed /tmp/host-work-oracle.json
+      rust/tests/python_oracle.py seed /tmp/host-work-oracle.json
 Then from the repository root:
     HOST_RUST_TEST_DSN=... HOST_RUST_PYTHON_ORACLE_PATH=/tmp/host-work-oracle.json \
-      cargo test --manifest-path services/host-rust/Cargo.toml \
+      cargo test --manifest-path services/host/rust/Cargo.toml \
       --test work_pg -- --ignored --test-threads=1
     HOST_RUST_TEST_DSN=... HOST_RUST_PYTHON_ORACLE_PATH=/tmp/host-work-oracle.json \
-      cargo test --manifest-path services/host-rust/Cargo.toml \
+      cargo test --manifest-path services/host/rust/Cargo.toml \
       --test work_python_parity -- --ignored
 Finally run this script with 'verify' against the same disposable DB.
 

@@ -54,12 +54,12 @@ echo "PG18_READY isolated_dynamic_port"
 version="$(psql -X -Atq "$ORDIVON_HOST_V2_DSN" -c 'SELECT schema_version FROM host_v2_schema WHERE singleton')"
 [[ "$version" == 13 ]] || { echo "SCHEMA_NOT_13:$version" >&2;exit 5; }
 echo "ALEMBIC_0001_TO_0013_PASS"
-cargo build --manifest-path "$root/services/host-rust/Cargo.toml" --offline --quiet
-cargo test --manifest-path "$root/services/host-rust/Cargo.toml" --offline --test status_pg -- --ignored
-cargo test --manifest-path "$root/services/host-rust/Cargo.toml" --offline --test work_pg -- --ignored
-(cd "$root/services/host" && uv run --offline python "$root/services/host-rust/tools/python_work_oracle.py" seed)
-python3 "$root/services/host-rust/tools/mcp_stdio_smoke.py" \
-    "$root/services/host-rust/target/debug/ordivon-host-rust"
-(cd "$root/services/host" && uv run --offline python "$root/services/host-rust/tools/python_work_oracle.py" verify)
-python3 "$root/services/host-rust/tools/mcp_http_smoke.py"     "$root/services/host-rust/target/debug/ordivon-host-rust"
+cargo build --manifest-path "$root/services/host/rust/Cargo.toml" --offline --quiet
+cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --test status_pg -- --ignored
+cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --test work_pg -- --ignored
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_work_oracle.py" seed)
+python3 "$root/services/host/rust/tools/mcp_stdio_smoke.py" \
+    "$root/services/host/rust/target/debug/ordivon-host-rust"
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_work_oracle.py" verify)
+python3 "$root/services/host/rust/tools/mcp_http_smoke.py"     "$root/services/host/rust/target/debug/ordivon-host-rust"
 echo "PG18_RUST_MCP_VERIFIED"

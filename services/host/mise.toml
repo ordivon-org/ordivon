@@ -1,6 +1,7 @@
 [tools]
 python = "3.15.1"
 uv = "0.13.5"
+rust = { version = "1.99.1", components = "clippy,rustfmt" }
 
 [tasks.verify]
 run = """
@@ -13,6 +14,7 @@ mise run formal:work-graph
 mise run formal:dag-theorem
 mise run formal:unicode-search
 uv run python -m pytest
+(cd rust && cargo fmt --all --check && cargo test --locked --all-targets && cargo clippy --locked --all-targets -- -D warnings)
 """
 
 [tasks."test:focused"]
@@ -37,6 +39,8 @@ ORDIVON_HOST_QUEUE_LOCAL_DISPOSABLE=1 bash tools/host_queue_verify.sh
 run = """
 set -euo pipefail
 bash tools/host_queue_verify.sh
+(cd rust && cargo fmt --all --check && cargo test --locked --all-targets && cargo clippy --locked --all-targets -- -D warnings)
+bash rust/tools/verify_r2_integrated_pg18.sh
 """
 
 

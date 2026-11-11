@@ -1,5 +1,5 @@
 //! A separate opt-in real Python↔Rust Work compatibility test.
-//! Run only after services/host-rust/tests/python_oracle.py seeds its
+//! Run only after services/host/rust/tests/python_oracle.py seeds its
 //! expected JSON in an isolated PostgreSQL 18 database.
 use ordivon_host_rust::work::{commit_snapshot, get_work, CommitSnapshot, WorkSnapshot, WorkState};
 use serde_json::{json, Value};

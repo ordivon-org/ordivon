@@ -5,7 +5,7 @@ use ordivon_host_rust::work::{canonical_digest, WorkSnapshot};
 use serde_json::{json, Value};
 
 fn source_oracle() -> Value {
-    serde_json::from_str(include_str!("../../host/tests/rust_work_parity_r1.json"))
+    serde_json::from_str(include_str!("../../tests/rust_work_parity_r1.json"))
         .expect("valid frozen Python oracle")
 }
 
