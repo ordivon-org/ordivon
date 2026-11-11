@@ -38,6 +38,54 @@ def unprivileged():
         os.setuid(65534)
 
 
+class OperatorBinaryProfileGuards(unittest.TestCase):
+    def test_direct_entrypoints_reject_incomplete_native_profile_before_pg(self) -> None:
+        invalid = (
+            ["ordivon-runtime-pg"],
+            ["ordivon-runtime-runner"],
+            ["ordivon-runtime-pg", "ordivon-runtime-pg"],
+            ["ordivon-runtime-pg", "ordivon-runtime-runner", "ordivon-runtime-runner"],
+            ["ordivon-runtime-pg", "ordivon-runtime-runner", "/usr/bin/sh"],
+            [],
+            None,
+            "ordivon-runtime-pg",
+        )
+        for binaries in invalid:
+            with self.subTest(binaries=binaries):
+                args = Namespace(
+                    binaries=binaries,
+                    install_dir=Path("/var/tmp/no-real-release"),
+                    action="inspect",
+                )
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.expected_runner_path(args)
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.apply_release(args)
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.physical_preflight(args, {})
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.pg_mcp_readiness(args)
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.finalize_receipted_release(None, args, {})
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.verified_release_consumer(args, {})
+                with patch.object(op, "arguments", return_value=args), \
+                     patch.object(op, "pg_connection") as pg_connection:
+                    with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                        op.main()
+                    pg_connection.assert_not_called()
+
+    def test_direct_profile_accepts_both_required_native_consumers(self) -> None:
+        args = Namespace(
+            binaries=["ordivon-runtime-runner", "ordivon-runtime-pg"],
+            install_dir=Path("/var/tmp/no-real-release"),
+        )
+        self.assertEqual(
+            op.expected_runner_path(args),
+            args.install_dir / "ordivon-runtime-runner",
+        )
+
+
 class NativePgReleaseOperator(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -127,15 +175,21 @@ class NativePgReleaseOperator(unittest.TestCase):
         self.install.mkdir()
         (self.candidate/"ordivon-runtime-pg").write_bytes(b"new-pg-runtime")
         (self.install/"ordivon-runtime-pg").write_bytes(b"old-pg-runtime")
-        (self.candidate/"ordivon-runtime-pg").chmod(0o755)
-        (self.install/"ordivon-runtime-pg").chmod(0o755)
+        (self.candidate/"ordivon-runtime-runner").write_bytes(b"new-runner")
+        (self.install/"ordivon-runtime-runner").write_bytes(b"old-runner")
+        for name in ("ordivon-runtime-pg", "ordivon-runtime-runner"):
+            (self.candidate/name).chmod(0o755)
+            (self.install/name).chmod(0o755)
         self.manifest=self.work/"candidate.json"
         self.env_file=self.work/"runtime.env"
         self.env_file.write_text("ORDIVON_PG_BIND=127.0.0.1:65500\n")
-        artifact=op.DEPLOY["artifact_description"](
-            self.candidate/"ordivon-runtime-pg",
-            {"name":"ordivon-runtime-pg","kind":"binary","mode":0o755}
-        )
+        artifacts=[
+            op.DEPLOY["artifact_description"](
+                self.candidate/name,
+                {"name":name,"kind":"binary","mode":0o755},
+            )
+            for name in ("ordivon-runtime-pg", "ordivon-runtime-runner")
+        ]
         tool={"version":"test","resolvedPath":"/usr/bin/true",
               "digest":"sha256:"+"b"*64}
         candidate_json={
@@ -147,8 +201,8 @@ class NativePgReleaseOperator(unittest.TestCase):
             "candidateDir":str(self.candidate.resolve()),
             "builtAtMs":1234,
             "toolchain":{"cargo":tool,"rustc":tool,"host":"x86_64-unknown-linux-gnu"},
-            "artifacts":[artifact],
-            "binaries":[artifact],
+            "artifacts":artifacts,
+            "binaries":artifacts,
         }
         self.manifest.write_text(json.dumps(candidate_json),encoding="utf-8")
         request_id="native-operator-"+uuid.uuid4().hex[:20]
@@ -169,7 +223,8 @@ class NativePgReleaseOperator(unittest.TestCase):
             service="ordivon-test-runtime.service",
             allowed_services=["ordivon-test-runtime.service"],
             required_tools=["runtime.describe","release.get"],
-            binaries=["ordivon-runtime-pg"],require_ref="HEAD",
+            binaries=["ordivon-runtime-pg","ordivon-runtime-runner"],
+            require_ref="HEAD",
             drain_seconds=3.,wait_seconds=2.,
             lock_file=self.work/"operator.lock",
             systemctl=Path("/usr/bin/systemctl"),git=Path(binary("git")),
@@ -184,6 +239,9 @@ class NativePgReleaseOperator(unittest.TestCase):
                                  return_value=self.install/"ordivon-runtime-pg")
             service.start()
             self.addCleanup(service.stop)
+            runner_binding=patch.object(op,"qualified_runner_binding")
+            runner_binding.start()
+            self.addCleanup(runner_binding.stop)
         # Production approval comes from privileged operator environment, not
         # caller-controlled CLI arguments. Test-scoped patch is fully restored.
         approved=patch.dict(os.environ, {
@@ -319,6 +377,15 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.assertEqual(replay["pgTerminal"],"succeeded")
             self.assertEqual(len(self.calls),2,
                              "exact release replay cannot invoke systemd again")
+            # Even after a real terminal PG receipt, a forged partial native
+            # profile must not bypass Runner qualification on replay.
+            partial = Namespace(**vars(self.args))
+            partial.binaries = ["ordivon-runtime-pg"]
+            with patch.object(op, "pg_connection") as connect:
+                with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
+                    op.apply_release(partial)
+                connect.assert_not_called()
+            self.assertEqual(len(self.calls),2, "rejected replay must not touch systemd")
             # Do not requalify the physical effect just to replay its exact
             # previously terminal admission after operator revocation.
             self.db.execute(
@@ -648,6 +715,16 @@ class NativePgReleaseOperator(unittest.TestCase):
             replay=op.apply_release(self.args)
             self.assertTrue(replay["replayed"])
             self.assertEqual(replay["pgTerminal"],"succeeded")
+            # A historical positive receipt cannot legitimize a new caller
+            # bypassing the complete two-binary profile. Fail before PG/OS.
+            partial=Namespace(**vars(self.args))
+            partial.binaries=["ordivon-runtime-pg"]
+            current_pid=op.systemd_property(self.args,"MainPID")
+            with patch.object(op,"pg_connection") as connect:
+                with self.assertRaisesRegex(RuntimeError,"complete native PG and Runner"):
+                    op.apply_release(partial)
+                connect.assert_not_called()
+            self.assertEqual(op.systemd_property(self.args,"MainPID"),current_pid)
             # The PG binary remains the live MCP client target, unlike mocked
             # readiness. Query from a fresh independent transport session.
             from mcp_probe import McpClient

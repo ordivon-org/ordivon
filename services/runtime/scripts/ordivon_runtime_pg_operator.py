@@ -55,6 +55,23 @@ def digest(value: bytes) -> str:
     return "sha256:" + hashlib.sha256(value).hexdigest()
 
 
+_REQUIRED_NATIVE_RELEASE_BINARIES = frozenset({
+    "ordivon-runtime-pg", "ordivon-runtime-runner",
+})
+
+
+def require_complete_native_release(args: argparse.Namespace) -> None:
+    """One native PG release owns both executable consumers at every entry."""
+    binaries = getattr(args, "binaries", None)
+    if (
+        not isinstance(binaries, list)
+        or len(binaries) != len(_REQUIRED_NATIVE_RELEASE_BINARIES)
+        or not all(isinstance(name, str) for name in binaries)
+        or set(binaries) != _REQUIRED_NATIVE_RELEASE_BINARIES
+    ):
+        raise RuntimeError("complete native PG and Runner release binaries required")
+
+
 def qualify(value: str, expression: re.Pattern[str], name: str) -> str:
     if not expression.fullmatch(value):
         raise RuntimeError(f"invalid {name}")
@@ -262,12 +279,12 @@ def qualified_service_executable_path(args: argparse.Namespace) -> Path:
     return expected
 
 
-def expected_runner_path(args: argparse.Namespace) -> Path | None:
-    # The Runtime daemon is not the only published native consumer. The real
-    # Runner path comes from its *effective* environment, not from a manifest.
-    if "ordivon-runtime-runner" in args.binaries:
-        return args.install_dir / "ordivon-runtime-runner"
-    return None
+def expected_runner_path(args: argparse.Namespace) -> Path:
+    # A PG release never has a valid MainPID without its native Runner.
+    # The actual Runner binding still comes from effective systemd, not a
+    # caller-authored manifest or an optional binary list.
+    require_complete_native_release(args)
+    return args.install_dir / "ordivon-runtime-runner"
 
 
 def effective_systemd_runner_binding(args: argparse.Namespace) -> str | None:
@@ -304,8 +321,6 @@ def effective_systemd_runner_binding(args: argparse.Namespace) -> str | None:
 
 def qualified_runner_binding(args: argparse.Namespace) -> None:
     expected = expected_runner_path(args)
-    if expected is None:
-        return
     # The declared base file is not authority: a later systemd drop-in can
     # override this value. Compare the effective ordered Unit environment.
     try:
@@ -360,6 +375,7 @@ def verified_live_service_executable(args: argparse.Namespace) -> dict[str, Any]
 
 
 def physical_preflight(args: argparse.Namespace, effect: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    require_complete_native_release(args)
     # Full candidate manifest/ref/installed binary checks are the SAME
     # release primitives that the existing Runtime installer uses.
     specs = list(DEPLOY["release_artifact_specs"](args))
@@ -479,6 +495,7 @@ def active_executions(conn: psycopg.Connection, release_job_id: str) -> list[str
 
 def pg_mcp_readiness(args: argparse.Namespace) -> dict[str, Any]:
     """Reuse the mature MCP catalog probe with native PG configuration."""
+    require_complete_native_release(args)
     environment = DEPLOY["load_environment_file"](args.env_file)
     bind = environment.get("ORDIVON_PG_BIND")
     token = environment.get("ORDIVON_PG_TOKEN")
@@ -501,30 +518,29 @@ def pg_mcp_readiness(args: argparse.Namespace) -> dict[str, Any]:
     # authenticated native Runtime consumers, not a second config parser.
     image = verified_live_service_executable(args)
     runner = expected_runner_path(args)
-    if runner is not None:
-        try:
-            described = McpClient(
-                f"http://{bind}/mcp", token,
-                "ordivon-runtime-pg-operator-runner-witness",
-                timeout=min(15.0, max(1.0, args.wait_seconds)),
-            ).call_tool("runtime.describe", {"schemaVersion": 1})
-            targets = described.get("targets")
-            if not isinstance(targets, list) or len(targets) != 1:
-                raise RuntimeError("native Runner target projection is incomplete")
-            provider = targets[0].get("executionProvider")
-            if (
-                targets[0].get("target") != "local_linux"
-                or not isinstance(provider, dict)
-                or provider.get("contract") != "local_linux_runner_v1"
-                or provider.get("executableDigest") != DEPLOY["sha256"](runner)
-            ):
-                raise RuntimeError("native Runner provider digest differs from installed Runner")
-            image["runnerDigest"] = provider["executableDigest"]
-            image["runnerWitness"] = "authenticated_runtime_describe"
-        except (OSError, RuntimeError, ValueError, TypeError) as error:
-            raise RuntimeError(
-                "RECONCILIATION_REQUIRED: actual Runtime Runner does not match installed candidate"
-            ) from error
+    try:
+        described = McpClient(
+            f"http://{bind}/mcp", token,
+            "ordivon-runtime-pg-operator-runner-witness",
+            timeout=min(15.0, max(1.0, args.wait_seconds)),
+        ).call_tool("runtime.describe", {"schemaVersion": 1})
+        targets = described.get("targets")
+        if not isinstance(targets, list) or len(targets) != 1:
+            raise RuntimeError("native Runner target projection is incomplete")
+        provider = targets[0].get("executionProvider")
+        if (
+            targets[0].get("target") != "local_linux"
+            or not isinstance(provider, dict)
+            or provider.get("contract") != "local_linux_runner_v1"
+            or provider.get("executableDigest") != DEPLOY["sha256"](runner)
+        ):
+            raise RuntimeError("native Runner provider digest differs from installed Runner")
+        image["runnerDigest"] = provider["executableDigest"]
+        image["runnerWitness"] = "authenticated_runtime_describe"
+    except (OSError, RuntimeError, ValueError, TypeError) as error:
+        raise RuntimeError(
+            "RECONCILIATION_REQUIRED: actual Runtime Runner does not match installed candidate"
+        ) from error
     return {**probe, "activeRuntimeImage": image}
 
 
@@ -680,6 +696,7 @@ def finalize_receipted_release(
     request: dict[str, Any],
 ) -> dict[str, Any]:
     """Reconcile an existing terminal installer receipt, never rerun an install."""
+    require_complete_native_release(args)
     receipt_dir = args.receipt_root / f"effect-{args.effect_id}"
     result = DEPLOY["existing_structured_release_result"](receipt_dir, request)
     if result is None:
@@ -825,6 +842,7 @@ def verified_release_consumer(
     A lost reply or corrupted PG event must be inconclusive, not an optimistic
     report of a previously committed systemd effect.
     """
+    require_complete_native_release(args)
     terminal = result.get("pgTerminal")
     status = result.get("status")
     expected = {
@@ -910,6 +928,7 @@ def operator_approved_systemd_services() -> frozenset[str]:
 
 
 def apply_release(args: argparse.Namespace) -> dict[str, Any]:
+    require_complete_native_release(args)
     qualify(args.effect_id,EFFECT,"effectId")
     qualify(args.commit,COMMIT,"commit")
     qualify(args.candidate_manifest_digest,DIGEST,"candidateManifestDigest")
@@ -1013,6 +1032,7 @@ def arguments() -> argparse.Namespace:
 
 def main() -> int:
     args = arguments()
+    require_complete_native_release(args)
     if args.action=="inspect":
         with pg_connection(args.pg_dsn,args.pg_schema) as conn:
             qualified_operator(conn,args.source_sha256,lock=False)
