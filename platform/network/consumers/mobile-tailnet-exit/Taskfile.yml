@@ -8,6 +8,59 @@ tasks:
       - python3 -c 'import ast; ast.parse(open("consumers/mobile-tailnet-exit/ready.py").read())'
       - systemd-analyze verify consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service
 
+  consumer:mobile-tailnet-exit:sourcecut:
+    desc: Verify actual installed Mobile source and loaded systemd unit without depending on DNS, VPN, or iOS readiness
+    cmds:
+      - cmp -s consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run
+      - cmp -s consumers/mobile-tailnet-exit/ready.py /usr/local/libexec/network-v2/mobile-tailnet-exit-ready
+      - cmp -s consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service /etc/systemd/system/network-v2-mobile-tailnet-exit.service
+      - test "$(systemctl show network-v2-mobile-tailnet-exit.service --property=NeedDaemonReload --value)" = no
+
+  consumer:mobile-tailnet-exit:materialize:
+    desc: Atomically install Mobile source only on SourceCut drift; no physical provider or consumer restart
+    deps: [consumer:mobile-tailnet-exit:validate]
+    status:
+      - task consumer:mobile-tailnet-exit:sourcecut
+    cmds:
+      - |
+        set -eu
+        install -d -m 0755 /usr/local/libexec/network-v2
+        atomic_install() {
+          source="$1"
+          destination="$2"
+          mode="$3"
+          stage="$(mktemp "$destination.sourcecut.XXXXXX")"
+          if install -m "$mode" "$source" "$stage"; then
+            mv -f "$stage" "$destination"
+          else
+            rm -f "$stage"
+            return 1
+          fi
+        }
+        atomic_install consumers/mobile-tailnet-exit/run.sh /usr/local/libexec/network-v2/mobile-tailnet-exit-run 0755
+        atomic_install consumers/mobile-tailnet-exit/ready.py /usr/local/libexec/network-v2/mobile-tailnet-exit-ready 0755
+        atomic_install consumers/mobile-tailnet-exit/systemd/network-v2-mobile-tailnet-exit.service /etc/systemd/system/network-v2-mobile-tailnet-exit.service 0644
+      - systemctl daemon-reload
+      - task: consumer:mobile-tailnet-exit:sourcecut
+
+  consumer:mobile-tailnet-exit:converge:
+    desc: Reconcile Mobile source before bounded real readiness; opt-in restart only on true SourceCut drift, never provider restart
+    cmds:
+      - task: consumer:mobile-tailnet-exit:validate
+      - |
+        set -eu
+        if task --silent consumer:mobile-tailnet-exit:sourcecut; then
+          # An already active service is not restarted for transient VPN/DNS loss.
+          systemctl start network-v2-mobile-tailnet-exit.service
+        else
+          # Explicit opt-in consumer-only activation; source mismatch is not
+          # inferred from temporary external unavailability.
+          task --silent consumer:mobile-tailnet-exit:materialize
+          task --silent consumer:mobile-tailnet-exit:sourcecut
+          systemctl restart network-v2-mobile-tailnet-exit.service
+        fi
+      - task: consumer:mobile-tailnet-exit:verify
+
   consumer:mobile-tailnet-exit:ready:
     desc: Admit the real Tailscale server after bounded native reconnect; not iOS client exit proof
     cmds:
