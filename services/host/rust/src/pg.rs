@@ -3,12 +3,12 @@
 use crate::attention::{self, TargetKind};
 use crate::social::{
     self, AddMessageRelation, CreateSpace, CreateTopic, ParticipationStanding, PostMessage,
-    TopicState,
+    SearchMessages, TopicState,
 };
 use crate::work::{self, ActorDeclare, CommitSnapshot, CreateWork, ListWorks};
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use thiserror::Error;
@@ -257,6 +257,25 @@ impl HostPg {
         .await?)
     }
 
+    /// B-owned immutable read and ranked=false indexed search, preserving
+    /// its transaction, verified message digest and byte-budget semantics.
+    pub async fn social_message_get(
+        &self,
+        message_ref: &str,
+        expected_digest: Option<&str>,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::get_message(&mut client, message_ref, expected_digest).await?)
+    }
+
+    pub async fn social_message_search(
+        &self,
+        input: &SearchMessages,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::search_messages(&mut client, input).await?)
+    }
+
     pub async fn social_message_post(&self, value: &PostMessage) -> Result<Value, HostDbError> {
         let mut client = self.connect().await?;
         Ok(social::post_message(&mut client, value).await?)
@@ -319,6 +338,20 @@ impl HostPg {
     }
 
     pub async fn summary(&self) -> Result<HostSummary, HostDbError> {
+        self.status("summary").await
+    }
+
+    /// One PostgreSQL MVCC snapshot for both the authority projection and all
+    /// Doctor checks. The original Python Host remains the differential oracle.
+    /// No alternate truth store or repaired synthetic history is permitted.
+    pub async fn status(&self, detail: &'static str) -> Result<HostSummary, HostDbError> {
+        if !matches!(detail, "summary" | "integrity" | "history") {
+            return Err(HostDbError::Pool("invalid status detail".into()));
+        }
+        let observed_at_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|_| HostDbError::Clock)?
+            .as_millis() as u64;
         let mut client = self.connect().await?;
         let tx = client
             .build_transaction()
@@ -356,16 +389,121 @@ impl HostPg {
             works_by_state.insert(state, count);
         }
         let works = works_by_state.values().copied().sum();
+        let doctor = if detail == "summary" {
+            None
+        } else {
+            // Exact legacy HostV2.status check order and labels. A clean
+            // current pointer does NOT imply contiguous historical revisions.
+            let mut checks: Vec<Value> = Vec::with_capacity(8);
+            let mut add_check = |name: &'static str, ok: bool, description: String| {
+                checks.push(json!({
+                    "name": name, "status": if ok {"ok"} else {"error"},
+                    "detail": description
+                }));
+            };
+            add_check(
+                "postgres.schema",
+                schema == REQUIRED_SCHEMA,
+                schema.to_string(),
+            );
+            let current_bad = count(
+                &tx,
+                "SELECT count(*) FROM works w LEFT JOIN work_snapshots s                  ON s.work_ref=w.work_ref AND s.revision=w.current_revision                  WHERE s.work_ref IS NULL OR s.snapshot_digest<>w.current_snapshot_digest"
+            ).await?;
+            add_check(
+                "work.current_snapshot",
+                current_bad == 0,
+                format!("invalid={current_bad}"),
+            );
+            let topic_bad = count(
+                &tx,
+                "SELECT count(*) FROM messages m JOIN topics t USING(topic_ref)                  WHERE m.space_ref<>t.space_ref"
+            ).await?;
+            add_check(
+                "social.message_topic_space",
+                topic_bad == 0,
+                format!("invalid={topic_bad}"),
+            );
+            let reply_bad = count(
+                &tx,
+                "SELECT count(*) FROM message_relations r                  JOIN messages s ON s.message_ref=r.source_message_ref                  LEFT JOIN messages t ON t.message_ref=r.target_ref                  WHERE r.relation='reply_to' AND                  (t.message_ref IS NULL OR s.space_ref<>t.space_ref OR s.topic_ref<>t.topic_ref)"
+            ).await?;
+            add_check(
+                "social.reply_integrity",
+                reply_bad == 0,
+                format!("invalid={reply_bad}"),
+            );
+            let cursor_bad: i64 = tx
+                .query_one(
+                    "SELECT count(*) FROM attention_cursors WHERE cursor>$1",
+                    &[&change_high_sequence],
+                )
+                .await?
+                .get(0);
+            add_check(
+                "attention.cursor_bounds",
+                cursor_bad == 0,
+                format!("invalid={cursor_bad};high={change_high_sequence}"),
+            );
+            let receipt_bad = count(
+                &tx,
+                "SELECT count(*) FROM command_receipts WHERE response IS NULL",
+            )
+            .await?;
+            add_check(
+                "command_receipts.complete",
+                receipt_bad == 0,
+                format!("incomplete={receipt_bad}"),
+            );
+            let history_bad = count(
+                &tx,
+                "SELECT count(*) FROM (                 SELECT w.work_ref,w.current_revision,count(s.revision) AS snapshots,                 min(s.revision) AS rmin,max(s.revision) AS rmax                  FROM works w LEFT JOIN work_snapshots s USING(work_ref)                  GROUP BY w.work_ref,w.current_revision                 ) x WHERE snapshots<>current_revision OR rmin<>1 OR rmax<>current_revision"
+            ).await?;
+            add_check(
+                "work.snapshot_history_contiguous",
+                history_bad == 0,
+                format!("invalidWorks={history_bad}"),
+            );
+            if detail == "history" {
+                // Use a PostgreSQL server-side Portal instead of query() or
+                // fetchall(): at most 128 JSONB rows are resident per batch.
+                // The transaction remains REPEATABLE READ READ ONLY.
+                let portal = tx
+                    .bind("SELECT snapshot_digest,payload FROM work_snapshots", &[])
+                    .await?;
+                let mut digest_bad: i64 = 0;
+                loop {
+                    let batch = tx.query_portal(&portal, 128).await?;
+                    if batch.is_empty() {
+                        break;
+                    }
+                    for row in batch {
+                        let expected: String = row.get("snapshot_digest");
+                        let payload: Value = row.get("payload");
+                        let valid = payload.is_object()
+                            && work::canonical_digest(&payload).ok().as_deref() == Some(&expected);
+                        if !valid {
+                            digest_bad += 1;
+                        }
+                    }
+                }
+                add_check(
+                    "work.snapshot_history_digest",
+                    digest_bad == 0,
+                    format!("invalid={digest_bad}"),
+                );
+            }
+            Some(json!({
+                "healthy": checks.iter().all(|check| check["status"] == "ok"),
+                "checks": checks,
+            }))
+        };
         tx.commit().await?;
-        let observed_at_ms = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_err(|_| HostDbError::Clock)?
-            .as_millis() as u64;
         Ok(HostSummary {
             schema_version: 3,
             kind: "ordivon.host-status",
             observed_at_ms,
-            detail: "summary",
+            detail,
             authority: HostAuthority {
                 journal_backend: "postgresql",
                 journal_schema: schema,
@@ -379,7 +517,7 @@ impl HostPg {
                 subscriptions,
                 change_high_sequence,
             },
-            doctor: None,
+            doctor,
             truth_boundary: BTreeMap::from([(
                 "host",
                 "authoritative only for Host Social Work Fabric semantic continuity and collaboration records; Runtime, Git, Identity/Security, effect, and domain truth are not checked"
@@ -400,7 +538,7 @@ pub struct HostSummary {
     pub observed_at_ms: u64,
     pub detail: &'static str,
     pub authority: HostAuthority,
-    pub doctor: Option<()>,
+    pub doctor: Option<Value>,
     pub truth_boundary: BTreeMap<&'static str, &'static str>,
 }
 

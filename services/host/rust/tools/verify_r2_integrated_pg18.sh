@@ -10,8 +10,10 @@ root="$(git rev-parse --show-toplevel)"
 name="host-rust-r2-$(date +%s)-$RANDOM"
 container=""
 oracle="$root/services/host/rust/tests/.r2_python_oracle_runtime.json"
+doctor_oracle="$root/services/host/rust/tests/.r5_doctor_oracle_runtime.json"
+read_search_oracle="$root/services/host/rust/tests/.r5_mcp_message_observed_runtime.json"
 cleanup() {
-  rm -f "$oracle"
+  rm -f "$oracle" "$doctor_oracle" "$read_search_oracle"
   if [[ -n "$container" ]]; then docker rm -f "$container" >/dev/null 2>&1 || true; fi
 }
 trap cleanup EXIT
@@ -53,10 +55,14 @@ cargo build --manifest-path "$root/services/host/rust/Cargo.toml" --offline --qu
 echo "R5_MCP_SOURCE_RUST_SCHEMA_DIFFERENTIAL_PASS"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_work_oracle.py" seed)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_social_oracle.py" seed)
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_status_doctor_oracle.py" seed "$doctor_oracle")
+export HOST_RUST_DOCTOR_ORACLE_PATH="$doctor_oracle"
+export HOST_RUST_READ_SEARCH_ORACLE_PATH="$read_search_oracle"
 python3 "$root/services/host/rust/tools/mcp_stdio_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_native_collaboration_oracle.py")
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_social_oracle.py" verify)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_work_oracle.py" verify)
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_status_doctor_oracle.py" verify)
 python3 "$root/services/host/rust/tools/mcp_http_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust"
 echo "R2_MCP_STDIO_HTTP_PASS"
 echo "R2_DISPOSABLE_INTEGRATION_ALL_PASS"

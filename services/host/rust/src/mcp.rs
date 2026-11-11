@@ -138,6 +138,15 @@ pub struct HostStatusRequest {
 const fn summary_detail() -> HostStatusDetail {
     HostStatusDetail::Summary
 }
+impl HostStatusDetail {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Summary => "summary",
+            Self::Integrity => "integrity",
+            Self::History => "history",
+        }
+    }
+}
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -389,10 +398,11 @@ fn attention_domain_tool_error(name: &str, error: attention::AttentionError) -> 
             name, "CONFLICT", Some(&detail), None, false,
             "reread-current-state-and-reconcile",
         ),
-        // The B-owned error currently lacks a typed resourceKind field.
-        // Do not fabricate a specific resource kind from human-readable text.
+        // B's MissingResource carries exact kind/ref. Never reverse-engineer
+        // these typed fields from a human-readable Display string.
         attention::AttentionError::NotFound(detail) => public_domain_error(
-            name, "NOT_FOUND", Some(&detail), None, false,
+            name, "NOT_FOUND", Some(&detail),
+            Some((detail.kind(), detail.reference())), false,
             "inspect-owner-inventory",
         ),
         attention::AttentionError::Integrity(_) | attention::AttentionError::Database(_) =>
@@ -653,6 +663,36 @@ pub struct TopicStateSetRequest {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct MessageGetRequest {
+    pub message_ref: String,
+    #[serde(default)]
+    pub expected_digest: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MessageSearchRequest {
+    pub query: String,
+    #[serde(default)]
+    pub space_ref: Option<String>,
+    #[serde(default)]
+    pub topic_ref: Option<String>,
+    #[serde(default)]
+    pub before_sequence: Option<i64>,
+    #[serde(default = "message_search_limit")]
+    pub limit: i64,
+    #[serde(default = "message_search_max_bytes")]
+    pub max_bytes: usize,
+}
+const fn message_search_limit() -> i64 {
+    50
+}
+const fn message_search_max_bytes() -> usize {
+    524_288
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct MessagePostRequest {
     pub message_ref: String,
     pub space_ref: String,
@@ -828,18 +868,13 @@ impl HostMcp {
 
     #[tool(
         name = "host.status",
-        description = "Read actual PostgreSQL-backed Host status; staging Rust currently supports detail=summary only."
+        description = "Read a coherent Host PostgreSQL authority snapshot, including native integrity/history Doctor diagnostics."
     )]
     async fn host_status(
         &self,
         Parameters(request): Parameters<HostStatusRequest>,
     ) -> CallToolResult {
-        if request.detail != HostStatusDetail::Summary {
-            return tool_error(
-                "Rust candidate supports detail=summary only; history/integrity still Python-owned",
-            );
-        }
-        match self.pg.summary().await {
+        match self.pg.status(request.detail.as_str()).await {
             Ok(summary) => match serde_json::to_value(summary) {
                 Ok(value) => structured(value),
                 Err(error) => tool_error(error),
@@ -1131,6 +1166,46 @@ impl HostMcp {
     }
 
     #[tool(
+        name = "message.get",
+        description = "Read and digest-check one exact durable Host Message, optionally enforcing an expected immutable digest."
+    )]
+    async fn message_get(
+        &self,
+        Parameters(request): Parameters<MessageGetRequest>,
+    ) -> CallToolResult {
+        match self
+            .pg
+            .social_message_get(&request.message_ref, request.expected_digest.as_deref())
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(error) => db_tool_error("message.get", error),
+        }
+    }
+
+    #[tool(
+        name = "message.search",
+        description = "Search integrity-checked Message rows with original PG CJK/full-text routes, bounded pagination, and no relevance ranking."
+    )]
+    async fn message_search(
+        &self,
+        Parameters(request): Parameters<MessageSearchRequest>,
+    ) -> CallToolResult {
+        let input = social::SearchMessages {
+            query: request.query,
+            space_ref: request.space_ref,
+            topic_ref: request.topic_ref,
+            before_sequence: request.before_sequence,
+            limit: request.limit,
+            max_bytes: request.max_bytes,
+        };
+        match self.pg.social_message_search(&input).await {
+            Ok(value) => structured(value),
+            Err(error) => db_tool_error("message.search", error),
+        }
+    }
+
+    #[tool(
         name = "message.post",
         description = "Commit a durable Host collaboration Message with exact JCS request identity and receipt."
     )]
@@ -1304,7 +1379,7 @@ impl ServerHandler for HostMcp {
     fn get_info(&self) -> ServerConfig {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_instructions(
-                "STAGING ONLY: Rust Host migration; schema13, Work create/get/list/CAS, status summary.                 Not yet a production 31-tool parity replacement."
+                "STAGING ONLY: Rust Host migration; schema13, Work/Social/Attention and full integrity/history Doctor. Not yet a production 31-tool parity replacement."
             )
     }
 }
@@ -1378,8 +1453,10 @@ mod tests {
                 "attention.get",
                 "attention.reentry",
                 "host.status",
+                "message.get",
                 "message.post",
                 "message.relation.add",
+                "message.search",
                 "space.create",
                 "space.get",
                 "space.participation.set",

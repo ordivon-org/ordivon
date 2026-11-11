@@ -58,8 +58,10 @@ try:
         "attention.get",
         "attention.reentry",
         "host.status",
+        "message.get",
         "message.post",
         "message.relation.add",
+        "message.search",
         "space.create",
         "space.get",
         "space.participation.set",
@@ -83,8 +85,30 @@ try:
     assert data["authority"]["journalSchema"] == 13, data
     assert data["authority"]["journalBackend"] == "postgresql", data
     assert data["doctor"] is None
-    denied = request("tools/call", {"name": "host.status", "arguments": {"detail": "history"}}, 4)
-    assert denied.get("isError") is True, denied
+    doctor_path = os.environ.get("HOST_RUST_DOCTOR_ORACLE_PATH")
+    assert doctor_path, "original Python Host Doctor oracle missing"
+    with open(doctor_path, encoding="utf-8") as file:
+        python_doctor = json.load(file)
+    def comparable(value):
+        return {key: item for key, item in value.items() if key != "observedAtMs"}
+    assert comparable(data) == python_doctor["summary"], (data, python_doctor)
+    integrity = request(
+        "tools/call", {"name":"host.status","arguments":{"detail":"integrity"}}, 4
+    )
+    assert integrity.get("isError") is not True, integrity
+    assert comparable(integrity["structuredContent"]) == python_doctor["integrity"], integrity
+    history = request(
+        "tools/call", {"name":"host.status","arguments":{"detail":"history"}}, 57
+    )
+    assert history.get("isError") is not True, history
+    assert comparable(history["structuredContent"]) == python_doctor["history"], history
+    assert history["structuredContent"]["doctor"]["healthy"] is False, history
+    doctor_checks = {check["name"]:check for check in history["structuredContent"]["doctor"]["checks"]}
+    assert doctor_checks["work.current_snapshot"]["status"] == "ok", doctor_checks
+    assert doctor_checks["work.snapshot_history_contiguous"]["detail"] == "invalidWorks=1"
+    assert doctor_checks["work.snapshot_history_digest"]["detail"] == "invalid=1"
+    print("MCP_DOCTOR_R5_PYTHON_RUST_PARITY_PASS summary+integrity+history MVCC=ONE_HISTORY_SNAPSHOT gap=1 digest=1")
+
     initial = request(
         "tools/call",
         {"name": "work.get", "arguments": {"workRef": "work:test:rust-mcp-stdio"}},
@@ -359,6 +383,51 @@ try:
     }
     posted=request("tools/call",{"name":"message.post","arguments":new_message_args},50)
     assert posted["structuredContent"]["admission"]=="committed",posted
+    # R5 B-owned immutable Message read and indexed CJK search:
+    # real rmcp transport, exact original-Python recovery through the same PG.
+    read_response=request("tools/call",{"name":"message.get","arguments":{
+        "messageRef":r5_message,"expectedDigest":posted["structuredContent"]["messageDigest"]
+    }},60)
+    read_data=read_response["structuredContent"]
+    assert read_data["kind"]=="ordivon.host-message-read",read_response
+    assert read_data["body"]==new_message_args["body"],read_response
+    assert read_data["messageRef"]==r5_message,read_response
+    search_args={"query":"协作世界","spaceRef":r5_space,"topicRef":r5_topic}
+    searched=request("tools/call",{"name":"message.search","arguments":search_args},61)
+    searched_data=searched["structuredContent"]
+    assert searched_data["kind"]=="ordivon.host-message-search",searched
+    assert searched_data["ordering"]=="sequence_desc",searched
+    assert searched_data["rankingApplied"] is False,searched
+    assert [m["messageRef"] for m in searched_data["messages"]]==[r5_message],searched
+    observed_path=os.environ.get("HOST_RUST_READ_SEARCH_ORACLE_PATH")
+    assert observed_path, "missing original Python message-read parity output path"
+    with open(observed_path,"w",encoding="utf-8") as file:
+        json.dump({"read":read_data,"search":searched_data},file,ensure_ascii=False,sort_keys=True)
+        file.write("\n")
+    before=request("tools/call",{"name":"message.search","arguments":{
+        **search_args,"beforeSequence":posted["structuredContent"]["sequence"],
+    }},62)
+    assert before["structuredContent"]["messages"]==[],before
+    mismatch=request("tools/call",{"name":"message.get","arguments":{
+        "messageRef":r5_message,"expectedDigest":"sha256:"+"0"*64,
+    }},63)
+    assert mismatch["structuredContent"]["error"]["code"]=="CONFLICT",mismatch
+    missing=request("tools/call",{"name":"message.get","arguments":{
+        "messageRef":"message:test:r5-not-found",
+    }},64)
+    assert missing["structuredContent"]["error"]["code"]=="NOT_FOUND",missing
+    assert missing["structuredContent"]["error"]["resourceKind"]=="message",missing
+    assert missing["structuredContent"]["error"]["resourceRef"]=="message:test:r5-not-found",missing
+    blank=request("tools/call",{"name":"message.search","arguments":{
+        **search_args,"query":"   ",
+    }},65)
+    assert blank["structuredContent"]["error"]["code"]=="INVALID_ARGUMENT",blank
+    missing_topic=request("tools/call",{"name":"message.search","arguments":{
+        **search_args,"topicRef":"topic:test:r5-not-found",
+    }},66)
+    assert missing_topic["structuredContent"]["error"]["code"]=="NOT_FOUND",missing_topic
+    assert missing_topic["structuredContent"]["error"]["resourceKind"]=="topic",missing_topic
+    print("MCP_B_MESSAGE_GET_SEARCH_R5_PASS read=EXACT indexed_CJK=YES descending=true cursor=bounded integrity=guarded typed_errors=4")
     discovered=request("tools/call",{"name":"topic.resume","arguments":{
         "topicRef":r5_topic,"afterSequence":0
     }},51)
@@ -385,6 +454,9 @@ try:
         "actorRef":"actor:test:not-declared"
     }},56)
     assert missing_actor.get("structuredContent",{}).get("error",{}).get("code")=="NOT_FOUND",missing_actor
+    missing_resource = missing_actor["structuredContent"]["error"]
+    assert missing_resource["resourceKind"] == "actor", missing_resource
+    assert missing_resource["resourceRef"] == "actor:test:not-declared", missing_resource
     print("MCP_NATIVE_COLLAB_R5_PASS actor=1 space=1 topic=1 participation=joined-left-joined message=1 resume=1 exact_replay=2 invalid=2 conflict=2 missing=1")
     print(
         "MCP_STDIO_PASS"

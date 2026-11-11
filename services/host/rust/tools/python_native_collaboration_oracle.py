@@ -5,6 +5,7 @@ This is a recovery/parity oracle, not a second production owner.
 """
 from __future__ import annotations
 
+import json
 import os
 from urllib.parse import urlsplit
 
@@ -126,6 +127,21 @@ def verify() -> None:
     assert repeated_message["messageRef"] == MESSAGE
     assert social.get_message(MESSAGE)["body"] == BODY
 
+    # The precise Rust rmcp structured output is persisted only in this
+    # disposable test environment, then checked against original Python Host.
+    observed_path = os.environ.get("HOST_RUST_READ_SEARCH_ORACLE_PATH")
+    assert observed_path, "no R5 message MCP observation"
+    with open(observed_path, encoding="utf-8") as reader:
+        rust_observed = json.load(reader)
+    python_read = social.get_message(MESSAGE, expected_digest=rust_observed["read"]["messageDigest"])
+    python_search = social.search_messages(
+        "协作世界", space_ref=SPACE, topic_ref=TOPIC,
+        limit=50, max_bytes=524288,
+    )
+    assert rust_observed["read"] == python_read, ("message.get", rust_observed["read"], python_read)
+    assert rust_observed["search"] == python_search, (
+        "message.search", rust_observed["search"], python_search
+    )
     page = social.resume_topic(TOPIC, after_sequence=0, limit=100, max_bytes=524288)
     assert [entry["messageRef"] for entry in page["messages"]] == [MESSAGE], page
 

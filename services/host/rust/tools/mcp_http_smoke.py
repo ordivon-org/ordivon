@@ -129,8 +129,10 @@ try:
         "attention.get",
         "attention.reentry",
         "host.status",
+        "message.get",
         "message.post",
         "message.relation.add",
+        "message.search",
         "space.create",
         "space.get",
         "space.participation.set",
@@ -186,6 +188,27 @@ try:
     restored=r5_space_http["result"]["structuredContent"]
     assert restored["subjectRefs"]==["subject:alpha","subject:zeta"],restored
     assert restored["participantCount"]==1 and restored["topicCount"]==1,restored
+    _, r5_search_http, _ = post(
+        "tools/call",
+        {"name":"message.search","arguments":{
+            "query":"协作世界","spaceRef":"space:test:rust-mcp-r5-first",
+            "topicRef":"topic:test:rust-mcp-r5-first",
+        }},
+        9, session,
+    )
+    searched=r5_search_http["result"]["structuredContent"]
+    assert [m["messageRef"] for m in searched["messages"]]==[
+        "message:test:rust-mcp-r5-first"
+    ],searched
+    _, historical, _ = post(
+        "tools/call", {"name":"host.status","arguments":{"detail":"history"}}, 8, session,
+    )
+    doctor = historical["result"]["structuredContent"]["doctor"]
+    assert doctor["healthy"] is False, historical
+    diagnostics = {check["name"]: check for check in doctor["checks"]}
+    assert diagnostics["work.current_snapshot"]["status"] == "ok", diagnostics
+    assert diagnostics["work.snapshot_history_contiguous"]["detail"] == "invalidWorks=1", diagnostics
+    assert diagnostics["work.snapshot_history_digest"]["detail"] == "invalid=1", diagnostics
     print(f"MCP_STREAMABLE_HTTP_PASS loopback=127.0.0.1 tools={len(names)} work_revision=2")
 finally:
     server.terminate()
