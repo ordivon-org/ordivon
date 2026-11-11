@@ -5,6 +5,13 @@
   "upstream_portfolio_intent_qualified": false,
   "admitted_PG_execution": false,
   "native_venue": "SIM",
+  "simulation_instruction_sha256": "732bea4b2a158372f23303224c0b3c95eec69de6c41557e2dde656d4b83c8ef8",
+  "simulation_instruction_git_blob_sha1": "bea945d370123b4b0f42e3a8e4bc5e60faeda120",
+  "instruction_standing": "SIMULATION_FIXTURE_ONLY",
+  "allocation_owner": "ordivon_capital.portfolio.strategic_contribution",
+  "allocation_standing": "READ_ONLY_PROJECTION",
+  "simulation_budget_minor": 100000,
+  "investment_policy_admitted": false,
   "quotes": "SYNTHETIC_FROM_OHLCV_NOT_REAL_L1",
   "native_order_count": 1,
   "native_fill_count": 1,
@@ -20,5 +27,6 @@
   "external_PG_account_binding": "UNKNOWN",
   "source_is_historically_PIT": false,
   "PG_effect": "NONE",
+  "gap_above_limit_refused_by_native_venue": true,
   "next_open_price_shock_plus_10_unchanged_order_side_qty": true
 }
