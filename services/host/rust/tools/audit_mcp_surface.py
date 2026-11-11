@@ -140,6 +140,12 @@ def details(value: dict) -> dict:
 def compare(expected: dict, actual: dict) -> dict:
     e, a = details(expected), details(actual)
     differences = {}
+    if "outputSchema" in expected and "outputSchema" in actual:
+        if expected["outputSchema"] != actual["outputSchema"]:
+            differences["outputSchemaContent"] = {
+                "python": expected["outputSchema"],
+                "rust": actual["outputSchema"],
+            }
     for name in ("required", "properties", "defaults", "enums", "additionalProperties", "hasOutputSchema"):
         if e[name] != a[name]:
             differences[name] = {"python": e[name], "rust": a[name]}
@@ -201,6 +207,28 @@ def main() -> int:
     }
     if unsafe:
         raise RuntimeError(f"Rust MCP tool input shape differs from Python: {unsafe}")
+    # A declared success output schema must be exactly original Python SDK's
+    # concrete TypedDict schema, never an invented permissive object marker.
+    output_violations = {
+        name: sorted(k for k in mismatches.get(name, {})
+                     if k in {"hasOutputSchema", "outputSchemaContent"})
+        for name in intersection
+        if any(k in mismatches.get(name, {}) for k in
+               ("hasOutputSchema", "outputSchemaContent"))
+    }
+    if output_violations:
+        raise RuntimeError(
+            f"Rust published output schemas diverge from original Python: {output_violations}"
+        )
+    # Once a tool is published, exact Python input defaults/enum/shape parity
+    # is a precondition for substituting the native Rust endpoint. Missing
+    # tools are listed separately and can be integrated in a later slice.
+    if mismatches:
+        raise RuntimeError(
+            f"Rust MCP published tool metadata differs from Python source: {mismatches}"
+        )
+    print("MCP_PYTHON_RUST_OUTPUT_SCHEMA_EXACT",
+          len(intersection), "of", len(source), "registered tools")
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(
         json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n",

@@ -1,6 +1,6 @@
 //! Real but incomplete Rust MCP migration staging surface.
 //! Exposes only proved tools; never invents success for the 31-tool Python surface.
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock, ServerCapabilities, ServerConfig};
@@ -13,6 +13,22 @@ use crate::attention::{self, TargetKind};
 use crate::pg::{HostDbError, HostPg};
 use crate::social::{self, AddMessageRelation, CreateSpace, CreateTopic, PostMessage};
 use crate::work::{self, ActorDeclare, WorkSnapshot, WorkState};
+
+// Original Python MCP SDK outputSchema, source-generated and verified in CI.
+// Once frozen in the Rust binary, no Python process or Pydantic is needed.
+fn legacy_output_schema(name: &str) -> Arc<rmcp::model::JsonObject> {
+    static CONTRACTS: OnceLock<serde_json::Map<String, Value>> = OnceLock::new();
+    let contracts = CONTRACTS.get_or_init(|| {
+        serde_json::from_str(include_str!(
+            "../contracts/python_host_mcp_output_schemas.json"
+        ))
+        .expect("source-generated original Host output schemas must parse")
+    });
+    let Some(Value::Object(schema)) = contracts.get(name) else {
+        panic!("missing original Python Host MCP success output schema for {name}");
+    };
+    Arc::new(schema.clone())
+}
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -132,6 +148,7 @@ pub enum HostStatusDetail {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct HostStatusRequest {
     #[serde(default = "summary_detail")]
+    #[schemars(extend("default" = "summary"))]
     pub detail: HostStatusDetail,
 }
 
@@ -233,6 +250,7 @@ impl From<WorkListState> for WorkState {
 pub struct WorkListRequest {
     #[serde(default)]
     #[schemars(default)]
+    #[schemars(extend("default" = serde_json::Value::Null))]
     pub state: Option<WorkListState>,
     #[serde(default = "work_list_limit")]
     pub limit: usize,
@@ -460,6 +478,7 @@ pub struct SubscriptionListRequest {
     pub actor_ref: String,
     #[serde(default)]
     #[schemars(default)]
+    #[schemars(extend("default" = serde_json::Value::Null))]
     pub target_kind: Option<TargetKindWire>,
     #[serde(default)]
     pub after_target_kind: Option<String>,
@@ -684,8 +703,10 @@ impl RelationDirectionWire {
 pub struct MessageRelationListRequest {
     pub message_ref: String,
     #[serde(default)]
+    #[schemars(extend("default" = "both"))]
     pub direction: RelationDirectionWire,
     #[serde(default)]
+    #[schemars(extend("default" = serde_json::Value::Null))]
     pub relation: Option<MessageRelationWire>,
     #[serde(default)]
     pub after_change_sequence: i64,
@@ -759,6 +780,7 @@ pub struct MessagePostRequest {
     pub body: String,
     pub recorded_at_ms: i64,
     #[serde(default = "default_message_kind_wire")]
+    #[schemars(extend("default" = "note"))]
     pub message_kind: MessageKindWire,
 }
 
@@ -784,6 +806,7 @@ impl HostMcp {
 
     #[tool(
         name = "space.create",
+        output_schema = legacy_output_schema("space.create"),
         description = "Create one Social Space with immutable subjects, first-writer identity, and exact PostgreSQL receipt replay."
     )]
     async fn space_create(
@@ -816,6 +839,7 @@ impl HostMcp {
 
     #[tool(
         name = "space.get",
+        output_schema = legacy_output_schema("space.get"),
         description = "Read a bounded Space and embedded Topics/participants in one repeatable-read PostgreSQL snapshot."
     )]
     async fn space_get(&self, Parameters(request): Parameters<SpaceGetRequest>) -> CallToolResult {
@@ -836,6 +860,7 @@ impl HostMcp {
 
     #[tool(
         name = "topic.create",
+        output_schema = legacy_output_schema("topic.create"),
         description = "Create an asynchronous Topic under an existing Space with immutable first declaration and canonical command receipt."
     )]
     async fn topic_create(
@@ -865,6 +890,7 @@ impl HostMcp {
 
     #[tool(
         name = "space.participation.set",
+        output_schema = legacy_output_schema("space.participation.set"),
         description = "Set desired-state Social membership for an existing Space/Actor; not authentication or work assignment."
     )]
     async fn space_participation_set(
@@ -899,6 +925,7 @@ impl HostMcp {
 
     #[tool(
         name = "actor.declare",
+        output_schema = legacy_output_schema("actor.declare"),
         description = "Declare a stable Host ActorRef with immutable kind and an idempotent PG receipt; not authorization."
     )]
     async fn actor_declare(
@@ -926,6 +953,7 @@ impl HostMcp {
 
     #[tool(
         name = "host.status",
+        output_schema = legacy_output_schema("host.status"),
         description = "Read a coherent Host PostgreSQL authority snapshot, including native integrity/history Doctor diagnostics."
     )]
     async fn host_status(
@@ -943,6 +971,7 @@ impl HostMcp {
 
     #[tool(
         name = "subscription.follow",
+        output_schema = legacy_output_schema("subscription.follow"),
         description = "Follow a Host Work, Space, or Topic as current desired state."
     )]
     async fn subscription_follow(
@@ -971,6 +1000,7 @@ impl HostMcp {
 
     #[tool(
         name = "subscription.unfollow",
+        output_schema = legacy_output_schema("subscription.unfollow"),
         description = "Remove a current Host subscription without replaying an old desired state."
     )]
     async fn subscription_unfollow(
@@ -999,6 +1029,7 @@ impl HostMcp {
 
     #[tool(
         name = "subscription.list",
+        output_schema = legacy_output_schema("subscription.list"),
         description = "Bounded read-only subscriptions with stable cursor pagination."
     )]
     async fn subscription_list(
@@ -1040,6 +1071,7 @@ impl HostMcp {
 
     #[tool(
         name = "attention.get",
+        output_schema = legacy_output_schema("attention.get"),
         description = "Read a bounded current-state Attention delta from this actor's acknowledged cursor."
     )]
     async fn attention_get(
@@ -1058,6 +1090,7 @@ impl HostMcp {
 
     #[tool(
         name = "attention.delta",
+        output_schema = legacy_output_schema("attention.delta"),
         description = "Read an ordered bounded Attention delta from one snapshot."
     )]
     async fn attention_delta(
@@ -1081,6 +1114,7 @@ impl HostMcp {
 
     #[tool(
         name = "attention.reentry",
+        output_schema = legacy_output_schema("attention.reentry"),
         description = "Read grouped navigation from a bounded Attention snapshot."
     )]
     async fn attention_reentry(
@@ -1104,6 +1138,7 @@ impl HostMcp {
 
     #[tool(
         name = "attention.ack",
+        output_schema = legacy_output_schema("attention.ack"),
         description = "Acknowledge a monotone Attention cursor after the consumer has processed its page."
     )]
     async fn attention_ack(
@@ -1127,6 +1162,7 @@ impl HostMcp {
 
     #[tool(
         name = "topic.resume",
+        output_schema = legacy_output_schema("topic.resume"),
         description = "Resume an integrity-checked Topic page with a bounded cursor and byte budget."
     )]
     async fn topic_resume(
@@ -1150,6 +1186,7 @@ impl HostMcp {
 
     #[tool(
         name = "topic.cursor.get",
+        output_schema = legacy_output_schema("topic.cursor.get"),
         description = "Read one actor's durable Topic-consumption cursor, distinct from Attention."
     )]
     async fn topic_cursor_get(
@@ -1168,6 +1205,7 @@ impl HostMcp {
 
     #[tool(
         name = "topic.cursor.ack",
+        output_schema = legacy_output_schema("topic.cursor.ack"),
         description = "Acknowledge a monotone Topic-consumption cursor after reading the page."
     )]
     async fn topic_cursor_ack(
@@ -1191,6 +1229,7 @@ impl HostMcp {
 
     #[tool(
         name = "topic.state.set",
+        output_schema = legacy_output_schema("topic.state.set"),
         description = "Change Topic openness with expected state and message-high-sequence CAS."
     )]
     async fn topic_state_set(
@@ -1225,6 +1264,7 @@ impl HostMcp {
 
     #[tool(
         name = "message.get",
+        output_schema = legacy_output_schema("message.get"),
         description = "Read and digest-check one exact durable Host Message, optionally enforcing an expected immutable digest."
     )]
     async fn message_get(
@@ -1243,6 +1283,7 @@ impl HostMcp {
 
     #[tool(
         name = "message.search",
+        output_schema = legacy_output_schema("message.search"),
         description = "Search integrity-checked Message rows with original PG CJK/full-text routes, bounded pagination, and no relevance ranking."
     )]
     async fn message_search(
@@ -1265,6 +1306,7 @@ impl HostMcp {
 
     #[tool(
         name = "message.relation.list",
+        output_schema = legacy_output_schema("message.relation.list"),
         description = "Read bounded immutable Message relations with direction, type and stable change-sequence cursor; no authority inference."
     )]
     async fn message_relation_list(
@@ -1287,6 +1329,7 @@ impl HostMcp {
 
     #[tool(
         name = "topic.list",
+        output_schema = legacy_output_schema("topic.list"),
         description = "Read lexically ordered Topics of one Space in a bounded, read-only PostgreSQL snapshot."
     )]
     async fn topic_list(
@@ -1310,6 +1353,7 @@ impl HostMcp {
 
     #[tool(
         name = "message.post",
+        output_schema = legacy_output_schema("message.post"),
         description = "Commit a durable Host collaboration Message with exact JCS request identity and receipt."
     )]
     async fn message_post(
@@ -1344,6 +1388,7 @@ impl HostMcp {
 
     #[tool(
         name = "message.relation.add",
+        output_schema = legacy_output_schema("message.relation.add"),
         description = "Add a durable Message relation via the existing single-transaction Social domain."
     )]
     async fn message_relation_add(
@@ -1375,6 +1420,7 @@ impl HostMcp {
 
     #[tool(
         name = "work.get",
+        output_schema = legacy_output_schema("work.get"),
         description = "Read exact Work snapshot and revision from existing PostgreSQL schema13."
     )]
     async fn work_get(&self, Parameters(request): Parameters<WorkGetRequest>) -> CallToolResult {
@@ -1386,6 +1432,7 @@ impl HostMcp {
 
     #[tool(
         name = "work.create",
+        output_schema = legacy_output_schema("work.create"),
         description = "Create one durable Work and immutable revision-one snapshot in PostgreSQL schema13."
     )]
     async fn work_create(
@@ -1417,6 +1464,7 @@ impl HostMcp {
 
     #[tool(
         name = "work.list",
+        output_schema = legacy_output_schema("work.list"),
         description = "Read bounded PostgreSQL Work inventory with stable state and cursor filtering."
     )]
     async fn work_list(&self, Parameters(request): Parameters<WorkListRequest>) -> CallToolResult {
@@ -1435,6 +1483,7 @@ impl HostMcp {
 
     #[tool(
         name = "work.snapshot.commit",
+        output_schema = legacy_output_schema("work.snapshot.commit"),
         description = "Atomic Work compare-and-swap, immutable snapshot and idempotent receipt on PostgreSQL schema13."
     )]
     async fn work_snapshot_commit(
@@ -1538,6 +1587,36 @@ mod tests {
         );
         assert_eq!(internal.is_error, Some(true));
         assert!(internal.structured_content.is_none());
+    }
+
+    #[test]
+    fn output_schemas_and_input_defaults_match_original_python_sdk_contract() {
+        let tools = HostMcp::tool_router().list_all();
+        assert_eq!(tools.len(), 27);
+        for item in &tools {
+            let expected = legacy_output_schema(item.name.as_ref());
+            assert_eq!(
+                item.output_schema.as_deref(),
+                Some(expected.as_ref()),
+                "{}",
+                item.name
+            );
+        }
+        // Defining defaults is runtime behavior AND metadata behavior. The
+        // JSON Schema is what external agents actually receive, not Rust
+        // serde(default) documentation.
+        for (name, field, expected) in [
+            ("host.status", "detail", json!("summary")),
+            ("message.post", "messageKind", json!("note")),
+            ("message.relation.list", "direction", json!("both")),
+            ("message.relation.list", "relation", Value::Null),
+            ("subscription.list", "targetKind", Value::Null),
+            ("work.list", "state", Value::Null),
+        ] {
+            let tool = tools.iter().find(|x| x.name == name).expect(name);
+            let property = &tool.input_schema["properties"][field];
+            assert_eq!(property["default"], expected, "{name}.{field}: {property}");
+        }
     }
 
     #[test]

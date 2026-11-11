@@ -48,6 +48,7 @@ cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --tes
 echo "R2_PYTHON_RUST_BIDIRECTIONAL_PASS"
 cargo build --manifest-path "$root/services/host/rust/Cargo.toml" --offline --quiet
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/attention_mcp_cross_language.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/sync_python_output_contracts.py" --check)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/audit_mcp_surface.py" \
   --rust-bin "$root/services/host/rust/target/debug/ordivon-host-rust" \
   --source-manifest "$root/services/host/mcp-surface.json" \
@@ -58,11 +59,11 @@ echo "R5_MCP_SOURCE_RUST_SCHEMA_DIFFERENTIAL_PASS"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_status_doctor_oracle.py" seed "$doctor_oracle")
 export HOST_RUST_DOCTOR_ORACLE_PATH="$doctor_oracle"
 export HOST_RUST_READ_SEARCH_ORACLE_PATH="$read_search_oracle"
-python3 "$root/services/host/rust/tools/mcp_stdio_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust"
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/mcp_stdio_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_native_collaboration_oracle.py")
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_social_oracle.py" verify)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_work_oracle.py" verify)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_status_doctor_oracle.py" verify)
-python3 "$root/services/host/rust/tools/mcp_http_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust"
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/mcp_http_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
 echo "R2_MCP_STDIO_HTTP_PASS"
 echo "R2_DISPOSABLE_INTEGRATION_ALL_PASS"

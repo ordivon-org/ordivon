@@ -4,10 +4,16 @@ import os
 import subprocess
 import sys
 
+from jsonschema import Draft202012Validator
+
 if len(sys.argv) != 2 or not os.environ.get("HOST_RUST_TEST_DSN"):
     raise SystemExit("requires executable and isolated HOST_RUST_TEST_DSN")
 if os.environ["ORDIVON_HOST_V2_DSN"] != os.environ["HOST_RUST_TEST_DSN"]:
     raise SystemExit("refusing mismatched target DSN")
+
+# The metadata is a claim: validate each actual successful structuredContent.
+_published_schemas = {}
+_schema_validation_hits = set()
 
 p = subprocess.Popen(
     [sys.argv[1]],
@@ -35,7 +41,16 @@ def request(method, params=None, request_id=None):
         response = json.loads(line)
         assert response.get("id") == request_id, response
         assert "error" not in response, response
-        return response["result"]
+        result = response["result"]
+        if method == "tools/call" and not result.get("isError"):
+            name = params["name"]
+            schema = _published_schemas.get(name)
+            assert schema is not None, ("unregistered output schema", name)
+            payload = result.get("structuredContent")
+            assert isinstance(payload, dict), (name, result)
+            Draft202012Validator(schema).validate(payload)
+            _schema_validation_hits.add(name)
+        return result
 
 
 try:
@@ -50,7 +65,14 @@ try:
     )
     assert initialized["serverInfo"]["name"]
     request("notifications/initialized")
-    names = [tool["name"] for tool in request("tools/list", {}, 2)["tools"]]
+    registry = request("tools/list", {}, 2)["tools"]
+    names = [tool["name"] for tool in registry]
+    for item in registry:
+        assert "outputSchema" in item, item["name"]
+        schema = item["outputSchema"]
+        Draft202012Validator.check_schema(schema)
+        _published_schemas[item["name"]] = schema
+
     assert names == [
         "actor.declare",
         "attention.ack",
@@ -531,6 +553,7 @@ try:
         file.write("\n")
     print("MCP_NATIVE_SOCIAL_READ_R5_PASS relations=2 self_reference_BOTH_once=true cursor_no_skip=true topic_list=1 typed_errors=4 python_oracle=ATTACHED")
     print("MCP_NATIVE_COLLAB_R5_PASS actor=1 space=1 topic=1 participation=joined-left-joined message=1 resume=1 exact_replay=2 invalid=2 conflict=2 missing=1")
+    print(f"MCP_NATIVE_OUTPUT_SCHEMA_VALIDATED_PASS published={len(_published_schemas)} exercised={len(_schema_validation_hits)} tools={sorted(_schema_validation_hits)}")
     print(
         "MCP_STDIO_PASS"
         f" version={initialized['protocolVersion']} tools={names}"

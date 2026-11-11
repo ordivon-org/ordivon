@@ -8,6 +8,8 @@ import time
 import urllib.error
 import urllib.request
 
+from jsonschema import Draft202012Validator
+
 if len(sys.argv) != 2:
     raise SystemExit("expected Rust Host executable")
 dsn = os.environ.get("HOST_RUST_TEST_DSN", "")
@@ -29,6 +31,10 @@ server = subprocess.Popen(
     [sys.argv[1]], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, env=env
 )
 url = f"http://127.0.0.1:{port}/mcp"
+
+_http_output_schemas = {}
+_http_validation_hits = set()
+
 
 
 def post(method, params, request_id, session=None):
@@ -70,6 +76,16 @@ def post(method, params, request_id, session=None):
                 if not valid:
                     raise RuntimeError("MCP HTTP returned unrecognized payload: " + decoded[:800])
                 body = valid[-1]
+        if method == "tools/call" and "result" in body:
+            result = body["result"]
+            if not result.get("isError"):
+                name = params["name"]
+                schema = _http_output_schemas.get(name)
+                assert schema is not None, ("missing HTTP output schema", name)
+                structured = result.get("structuredContent")
+                assert isinstance(structured, dict), (name, result)
+                Draft202012Validator(schema).validate(structured)
+                _http_validation_hits.add(name)
         return response.status, body, response.headers
 
 
@@ -121,7 +137,13 @@ try:
     notify_status, _, _ = post("notifications/initialized", None, None, session)
     assert notify_status == 202, notify_status
     _, listed, _ = post("tools/list", {}, 2, session)
-    names = [t["name"] for t in listed["result"]["tools"]]
+    registry = listed["result"]["tools"]
+    names = [t["name"] for t in registry]
+    for item in registry:
+        assert "outputSchema" in item, item["name"]
+        Draft202012Validator.check_schema(item["outputSchema"])
+        _http_output_schemas[item["name"]] = item["outputSchema"]
+
     assert names == [
         "actor.declare",
         "attention.ack",
@@ -225,6 +247,7 @@ try:
     assert diagnostics["work.current_snapshot"]["status"] == "ok", diagnostics
     assert diagnostics["work.snapshot_history_contiguous"]["detail"] == "invalidWorks=1", diagnostics
     assert diagnostics["work.snapshot_history_digest"]["detail"] == "invalid=1", diagnostics
+    print(f"MCP_HTTP_OUTPUT_SCHEMA_VALIDATED_PASS published={len(_http_output_schemas)} exercised={len(_http_validation_hits)}")
     print(f"MCP_STREAMABLE_HTTP_PASS loopback=127.0.0.1 tools={len(names)} work_revision=2")
 finally:
     server.terminate()
