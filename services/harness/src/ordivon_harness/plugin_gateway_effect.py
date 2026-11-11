@@ -147,6 +147,30 @@ def _gateway_field(payload: dict[str, JsonValue], snake: str, camel: str) -> Jso
     return payload.get(camel)
 
 
+_GATEWAY_DELIVERY_DISPOSITIONS = frozenset(
+    {"committed", "reconciliation_required", "unknown", "in_progress"}
+)
+
+
+def _gateway_delivery_disposition(
+    payload: dict[str, JsonValue], *, allow_missing: bool = False
+) -> str:
+    """Read a source-owned delivery enum without a raw TypeError or fallback.
+
+    Gateway's nonterminal submit receipt has an optional disposition, for
+    which the established source default is in_progress. Terminal observation
+    requires a real Owner delivery value; malformed presence is never absence.
+    """
+    value = _gateway_field(payload, "delivery_disposition", "deliveryDisposition")
+    if value is None and allow_missing:
+        return "in_progress"
+    if not isinstance(value, str) or value not in _GATEWAY_DELIVERY_DISPOSITIONS:
+        raise HarnessRuntimeClientError(
+            "Gateway deliveryDisposition is missing or invalid"
+        )
+    return value
+
+
 class GatewayMcpRuntimeAdapter:
     """Translate the Gateway public execution projection into the existing Runtime port.
 
@@ -166,6 +190,31 @@ class GatewayMcpRuntimeAdapter:
         self.grant = grant
         self._operation_refs: dict[str, str] = {}
         self._operation_requests: dict[str, str] = {}
+
+    def _verify_owner_job_identity(
+        self,
+        payload: dict[str, JsonValue],
+        native_id: str,
+        operation_ref: str,
+    ) -> None:
+        """One exact wire Job identity before ANY consumer binding or effect standing.
+
+        The Gateway protocol owns the execution-ref representation. The
+        Harness is its consumer: a valid-looking operationRef cannot claim
+        another Runtime Job, execution capability or physical Owner. This
+        proves source consistency, not authenticated Owner delivery.
+        """
+        owner = "runtime." + self.grant.capability.removeprefix("execution.")
+        expected = f"ordivon-exec:v1:{owner}:{native_id}"
+        if (
+            payload.get("capability") != self.grant.capability
+            or payload.get("owner_id", payload.get("ownerId")) != owner
+            or _gateway_field(payload, "operation_ref", "operationRef") != operation_ref
+            or operation_ref != expected
+        ):
+            raise HarnessRuntimeClientError(
+                "Gateway operation identity binding conflicts with capability, Owner, or Job reference"
+            )
 
     def _retain_operation_binding(
         self, native_id: str, operation_ref: str, request_id: str
@@ -280,9 +329,11 @@ class GatewayMcpRuntimeAdapter:
         terminal = _gateway_field(receipt, "terminal", "terminal")
         if not isinstance(terminal, bool):
             raise HarnessRuntimeClientError("Gateway execution receipt omitted terminal")
-        # Validate the complete nonterminal receipt before retaining its
-        # identities: an invalid owner observation must not poison recovery.
+        # Validate all source-owned fields before retaining a Job identity;
+        # a forged Owner or malformed delivery must not poison recovery.
+        self._verify_owner_job_identity(receipt, native_id, operation_ref)
         state = _required_text(receipt.get("state"), "state")
+        delivery = _gateway_delivery_disposition(receipt, allow_missing=True)
         self._retain_operation_binding(native_id, operation_ref, request_id)
         if terminal:
             return self._observe_operation(operation_ref, native_id, wait_ms=0)
@@ -291,10 +342,7 @@ class GatewayMcpRuntimeAdapter:
             "status": state,
             "executionTerminal": False,
             "executionDisposition": None,
-            "deliveryDisposition": (
-                _gateway_field(receipt, "delivery_disposition", "deliveryDisposition")
-                or "in_progress"
-            ),
+            "deliveryDisposition": delivery,
             "recoveryRequired": False,
             "resultAvailable": False,
             "semanticCompletionEvaluated": False,
@@ -336,6 +384,7 @@ class GatewayMcpRuntimeAdapter:
             raise HarnessRuntimeClientError(
                 "Gateway recovery returned a Job in a different workspace"
             )
+        self._verify_owner_job_identity(resolution, native_id, operation_ref)
         self._retain_operation_binding(native_id, operation_ref, request_id)
         return {
             "jobs": [
@@ -372,6 +421,10 @@ class GatewayMcpRuntimeAdapter:
             raise HarnessRuntimeClientError(
                 "Gateway cancellation changed native execution identity"
             )
+        self._verify_owner_job_identity(receipt, native_id, operation_ref)
+        # Source Gateway ExecutionReceipt.delivery_disposition is optional
+        # for a cancellation acknowledgement; malformed presence is not.
+        _gateway_delivery_disposition(receipt, allow_missing=True)
         terminal = _gateway_field(receipt, "terminal", "terminal")
         if not isinstance(terminal, bool):
             raise HarnessRuntimeClientError("Gateway cancellation receipt omitted terminal")
@@ -428,12 +481,11 @@ class GatewayMcpRuntimeAdapter:
             != native_id
         ):
             raise HarnessRuntimeClientError("Gateway observation changed native execution identity")
+        self._verify_owner_job_identity(observed, native_id, operation_ref)
         terminal = _gateway_field(observed, "terminal", "terminal")
         if not isinstance(terminal, bool):
             raise HarnessRuntimeClientError("Gateway observation omitted terminal")
-        delivery = _gateway_field(observed, "delivery_disposition", "deliveryDisposition")
-        if delivery not in {"committed", "reconciliation_required", "unknown", "in_progress"}:
-            raise HarnessRuntimeClientError("Gateway deliveryDisposition is missing or invalid")
+        delivery = _gateway_delivery_disposition(observed)
         disposition = _gateway_field(observed, "execution_disposition", "executionDisposition")
         if disposition is not None and not isinstance(disposition, str):
             raise HarnessRuntimeClientError("Gateway executionDisposition is invalid")
