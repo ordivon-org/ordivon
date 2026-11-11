@@ -124,8 +124,8 @@ description = "Run node-local external-provider and credential-bound qualificati
 run = """
 set -euo pipefail
 uv lock --check
-uv sync --locked --group test
-uv run --group test python -m pytest -m provider_qualification
+uv sync --locked --group test --group nonlive
+uv run --locked --group test --group nonlive python -m pytest -m provider_qualification
 """
 
 [tasks."verify:formal:risk-exposure"]
