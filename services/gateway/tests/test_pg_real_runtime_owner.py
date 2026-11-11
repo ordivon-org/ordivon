@@ -144,8 +144,14 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
         ).strip()
         system_id, timeline = physical.split("|", 1)
         writer_epoch = hashlib.sha256(
-            ("ordivon-pg-writer-epoch-v1\0" + "a" * 64 + "\0"
-             + system_id + "\0" + str(int(timeline))).encode("utf-8")
+            (
+                "ordivon-pg-writer-epoch-v1\0"
+                + "a" * 64
+                + "\0"
+                + system_id
+                + "\0"
+                + str(int(timeline))
+            ).encode("utf-8")
         ).hexdigest()
         psql(
             "INSERT INTO fresh._stage_control "
@@ -376,10 +382,13 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                     ).strip()
                 )
                 assert committed_plan["foreignReferences"] == [harness_fence]
-                assert psql(
-                    "SELECT count(*) FROM fresh.jobs "
-                    f"WHERE principal='pg-consumer' AND client_request_id='{agent_request}'"
-                ).strip() == "1"
+                assert (
+                    psql(
+                        "SELECT count(*) FROM fresh.jobs "
+                        f"WHERE principal='pg-consumer' AND client_request_id='{agent_request}'"
+                    ).strip()
+                    == "1"
+                )
                 found = await agent.call_tool(
                     "execution.resolve",
                     {"capability": "execution.linux", "requestId": agent_request},
@@ -397,63 +406,103 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                 assert got.structured_content["terminal"]
                 assert got.structured_content["exit_code"] == 0
                 assert got.structured_content["artifact_projection_complete"]
+                # PostgreSQL's native evidence model is a frozen Job plan
+                # plus exact Attempt-bound execution_result/stdio artifacts.
+                # The separate SQLite legacy terminal_evidence artifact is
+                # not produced by the PG Runner; do not invent that surface.
+                native_job_id = psql(
+                    "SELECT job_id FROM fresh.jobs "
+                    f"WHERE principal='pg-consumer' AND client_request_id='{agent_request}'"
+                ).strip()
+                native_results = psql(
+                    "SELECT count(*) FROM fresh.artifacts r JOIN fresh.jobs j "
+                    "ON j.job_id=r.job_id "
+                    f"WHERE j.client_request_id='{agent_request}' AND r.kind='execution_result'"
+                ).strip()
+                assert native_results == "1", "terminal result must be committed as a PG Artifact"
                 found_bytes = False
-                terminal_fence_seen = False
+                terminal_result_seen = False
                 for artifact_id in got.structured_content["artifact_ids"]:
                     chunk = await agent.call_tool(
                         "artifact.read",
-                        {"operationRef": north_ref, "artifactId": artifact_id, "maxBytes": 1024},
+                        # A validated RunnerResult can exceed 1 KiB; a partial
+                        # JSON prefix is not a missing terminal artifact.
+                        {"operationRef": north_ref, "artifactId": artifact_id, "maxBytes": 65536},
                     )
                     assert not chunk.is_error
                     data = chunk.structured_content["content"]
                     found_bytes |= agent_output in data
                     try:
                         artifact_json = json.loads(data)
-                    except (TypeError, ValueError):
+                    except TypeError, ValueError:
                         continue
-                    if isinstance(artifact_json, dict) and "foreignReferences" in artifact_json:
-                        assert artifact_json["foreignReferences"] == [harness_fence]
-                        terminal_fence_seen = True
+                    if (
+                        isinstance(artifact_json, dict)
+                        and artifact_json.get("jobId")
+                        and "finishedUnixMs" in artifact_json
+                        and "status" in artifact_json
+                    ):
+                        # PG registers different JSON evidence artifacts;
+                        # RunnerResult is precisely the finished, status-bearing
+                        # result, not the source-observation or start record.
+                        assert artifact_json["jobId"] == native_job_id
+                        assert artifact_json.get("attemptId", "").startswith("attempt-")
+                        assert artifact_json.get("exitCode") == 0
+                        terminal_result_seen = True
                 assert found_bytes, "northbound MCP must retain actual Runner stdout"
-                assert terminal_fence_seen, (
-                    "native Runner terminal evidence must preserve the Harness fence"
+                assert terminal_result_seen, (
+                    "Gateway artifact.read must retain PG's validated native Runner "
+                    "terminal result, bound to the same durably committed Job identity"
                 )
+                committed_after_terminal = json.loads(
+                    psql(
+                        "SELECT execution_plan_json FROM fresh.jobs "
+                        f"WHERE principal='pg-consumer' AND client_request_id='{agent_request}'"
+                    ).strip()
+                )
+                assert committed_after_terminal["foreignReferences"] == [harness_fence]
 
-            # Exercise the actual Gateway cancellation route as a distinct Job.
-            cancel_receipt = await gateway.execution_submit(
-                capability="execution.linux",
-                request_id=request_id + "-cancel",
-                workspace_id="ws-gateway-native",
-                executable="/usr/bin/sleep",
-                args=["30"],
-                timeout_ms=40_000,
-            )
-            cancellation = await gateway.execution_cancel(cancel_receipt.operation_ref)
-            assert cancellation.native_id == cancel_receipt.native_id
-            assert not cancellation.terminal or cancellation.state in (
-                "cancelled",
-                "canceled",
-                "terminated",
-                "failed",
-            )
-            cancelled = await gateway.execution_get(cancel_receipt.operation_ref, wait_ms=1500)
-            assert cancelled.native_id == cancel_receipt.native_id
-            owner_intent = await caller.call_tool(
-                "runtime.linux",
-                "job.observe",
-                {
-                    "schemaVersion": 1,
-                    "jobId": cancel_receipt.native_id,
-                    "waitMs": 0,
-                    "waitUntil": "change_or_terminal",
-                    "stdoutTailBytes": 0,
-                    "stderrTailBytes": 0,
-                },
-            )
-            assert owner_intent["terminationIntent"] == "stop_requested"
-            if not cancelled.terminal:
-                assert owner_intent["attemptState"] == "stopping"
-                assert owner_intent["resultAvailable"] is False
+                # Exercise the actual Gateway cancellation route as a distinct Job.
+                cancel_receipt = await gateway.execution_submit(
+                    capability="execution.linux",
+                    request_id=request_id + "-cancel",
+                    workspace_id="ws-gateway-native",
+                    executable="/usr/bin/sleep",
+                    args=["30"],
+                    timeout_ms=40_000,
+                )
+                cancellation = await gateway.execution_cancel(cancel_receipt.operation_ref)
+                assert cancellation.native_id == cancel_receipt.native_id
+                assert not cancellation.terminal or cancellation.state in (
+                    "cancelled",
+                    "canceled",
+                    "terminated",
+                    "failed",
+                    # A vanished native unit after stop intent is mechanical
+                    # LOST, not proved CANCELLED. Do not manufacture success.
+                    "lost",
+                )
+                cancelled = await gateway.execution_get(cancel_receipt.operation_ref, wait_ms=1500)
+                assert cancelled.native_id == cancel_receipt.native_id
+                owner_intent = await caller.call_tool(
+                    "runtime.linux",
+                    "job.observe",
+                    {
+                        "schemaVersion": 1,
+                        "jobId": cancel_receipt.native_id,
+                        "waitMs": 0,
+                        "waitUntil": "change_or_terminal",
+                        "stdoutTailBytes": 0,
+                        "stderrTailBytes": 0,
+                    },
+                )
+                assert owner_intent["terminationIntent"] == "stop_requested"
+                if cancellation.state == "lost":
+                    assert owner_intent["attemptState"] == "lost"
+                    assert owner_intent["executionTerminal"] is True
+                if not cancelled.terminal:
+                    assert owner_intent["attemptState"] == "stopping"
+                    assert owner_intent["resultAvailable"] is False
 
         asyncio.run(scenario())
     finally:
