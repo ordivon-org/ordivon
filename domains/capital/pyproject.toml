@@ -9,6 +9,11 @@ dependencies = [
 ]
 
 [dependency-groups]
+nonlive = [
+    # Pinned upstream 2.x event-driven engine; never a broker or live-capital binding.
+    "nautilus-trader==2.0.0rc9",
+    "pandas==3.1.1",
+]
 research = [
     "numpy==2.5.3",
     "scipy==1.18.1",
