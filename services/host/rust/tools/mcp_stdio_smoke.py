@@ -52,10 +52,24 @@ try:
     request("notifications/initialized")
     names = [tool["name"] for tool in request("tools/list", {}, 2)["tools"]]
     assert names == [
-        "attention.ack", "attention.delta", "attention.get", "attention.reentry",
-        "host.status", "subscription.follow", "subscription.list",
-        "subscription.unfollow", "work.create", "work.get", "work.list",
-        "work.snapshot.commit"
+        "attention.ack",
+        "attention.delta",
+        "attention.get",
+        "attention.reentry",
+        "host.status",
+        "message.post",
+        "message.relation.add",
+        "subscription.follow",
+        "subscription.list",
+        "subscription.unfollow",
+        "topic.cursor.ack",
+        "topic.cursor.get",
+        "topic.resume",
+        "topic.state.set",
+        "work.create",
+        "work.get",
+        "work.list",
+        "work.snapshot.commit",
     ], names
     ok = request("tools/call", {"name": "host.status", "arguments": {"detail": "summary"}}, 3)
     data = ok.get("structuredContent")
@@ -198,6 +212,78 @@ try:
     )
     assert bad_cursor.get("structuredContent", {}).get("error", {}).get("code") == "INVALID_ARGUMENT"
     print("MCP_DOMAIN_ERROR_ENVELOPE_PASS conflicts=typed not_found=typed invalid_argument=typed")
+    # Actual cross-language Social continuity: Python created this Topic and
+    # its first message. Rust reads, writes, links and acknowledges the exact
+    # same PG authority, then Python checks receipts and persisted state.
+    social_topic = "topic:test:rust-mcp-social"
+    social_space = "space:test:rust-mcp-social"
+    actor = "actor:test:rust-mcp"
+    original_message = "message:test:rust-mcp-python-seed"
+    new_message = "message:test:rust-mcp-social-rust"
+    first_page = request(
+        "tools/call",
+        {"name": "topic.resume", "arguments": {"topicRef":social_topic,"afterSequence":0}},
+        23,
+    )
+    first_data = first_page["structuredContent"]
+    assert [m["messageRef"] for m in first_data["messages"]] == [original_message], first_data
+    cursor_before = request(
+        "tools/call",
+        {"name":"topic.cursor.get","arguments":{"actorRef":actor,"topicRef":social_topic}},
+        24,
+    )
+    assert cursor_before["structuredContent"]["cursor"] == 0, cursor_before
+    post_args = {
+        "messageRef":new_message,"spaceRef":social_space,"topicRef":social_topic,
+        "authorActorRef":actor,"body":"Rust 续读后提交，原始 Python Host 可恢复 🌍",
+        "recordedAtMs":1700000000111,"messageKind":"finding",
+    }
+    posted = request("tools/call",{"name":"message.post","arguments":post_args},25)
+    posted_data=posted["structuredContent"]
+    assert posted_data["admission"]=="committed",posted
+    posted_again = request("tools/call",{"name":"message.post","arguments":post_args},26)
+    assert posted_again["structuredContent"]["admission"]=="existing",posted_again
+    relation_args = {"sourceMessageRef":new_message,"relation":"reply_to",
+                     "targetRef":original_message,"actorRef":actor}
+    linked = request("tools/call",{"name":"message.relation.add","arguments":relation_args},27)
+    assert linked["structuredContent"]["admission"]=="committed",linked
+    linked_again = request("tools/call",{"name":"message.relation.add","arguments":relation_args},28)
+    assert linked_again["structuredContent"]["sourceMessageRef"]==new_message,linked_again
+    second_page=request("tools/call",{"name":"topic.resume","arguments":{
+        "topicRef":social_topic,"afterSequence":first_data["messages"][0]["sequence"],
+    }},29)
+    assert [m["messageRef"] for m in second_page["structuredContent"]["messages"]]==[new_message],second_page
+    high=posted_data["sequence"]
+    ack_args={"actorRef":actor,"topicRef":social_topic,"cursor":high}
+    acknowledged=request("tools/call",{"name":"topic.cursor.ack","arguments":ack_args},30)
+    assert acknowledged["structuredContent"]["cursor"]==high,acknowledged
+    read_cursor=request("tools/call",{"name":"topic.cursor.get","arguments":{
+        "actorRef":actor,"topicRef":social_topic,
+    }},31)
+    assert read_cursor["structuredContent"]["cursor"]==high,read_cursor
+    beyond=request("tools/call",{"name":"topic.cursor.ack","arguments":{
+        "actorRef":actor,"topicRef":social_topic,"cursor":high+1
+    }},32)
+    assert beyond["structuredContent"]["error"]["code"]=="CONFLICT",beyond
+    close_args={"topicRef":social_topic,"actorRef":actor,"state":"closed",
+                "expectedState":"open","expectedHighSequence":high}
+    closed=request("tools/call",{"name":"topic.state.set","arguments":close_args},33)
+    assert closed["structuredContent"]["state"]=="closed",closed
+    post_closed=request("tools/call",{"name":"message.post","arguments":{
+        **post_args,"messageRef":"message:test:rust-mcp-closed-rejected"
+    }},34)
+    assert post_closed["structuredContent"]["error"]["code"]=="CONFLICT",post_closed
+    stale=request("tools/call",{"name":"topic.state.set","arguments":{
+        **close_args,"expectedHighSequence":0,
+    }},35)
+    assert stale["structuredContent"]["error"]["code"]=="CONFLICT",stale
+    retained=request("tools/call",{"name":"topic.resume","arguments":{
+        "topicRef":social_topic,"afterSequence":0,
+    }},36)
+    assert [m["messageRef"] for m in retained["structuredContent"]["messages"]]==[
+        original_message,new_message,
+    ],retained
+    print("MCP_SOCIAL_CONTINUITY_PASS python_seed=1 rust_message=1 relation=1 cursor_ack=1 cas_close=1 negative_conflict=3")
     print(
         "MCP_STDIO_PASS"
         f" version={initialized['protocolVersion']} tools={names}"

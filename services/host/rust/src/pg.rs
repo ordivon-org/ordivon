@@ -1,6 +1,7 @@
 //! PostgreSQL schema gate and a read-only Host summary projection.
 //! Bounded pooled PostgreSQL connections are used for each transaction.
 use crate::attention::{self, TargetKind};
+use crate::social::{self, AddMessageRelation, PostMessage, TopicState};
 use crate::work::{self, CommitSnapshot, CreateWork, ListWorks};
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use serde::Serialize;
@@ -152,6 +153,75 @@ impl HostPg {
     ) -> Result<Value, HostDbError> {
         let mut client = self.connect().await?;
         Ok(attention::ack(&mut client, actor, cursor, request_id).await?)
+    }
+
+    // Social operations delegate to B's existing single-transaction domain
+    // layer. The adapter only borrows a bounded pool connection per call.
+    pub async fn social_topic_resume(
+        &self,
+        topic: &str,
+        after: i64,
+        limit: i64,
+        max_bytes: usize,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::resume_topic(&mut client, topic, after, limit, max_bytes).await?)
+    }
+
+    pub async fn social_topic_cursor_get(
+        &self,
+        actor: &str,
+        topic: &str,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::get_topic_cursor(&mut client, actor, topic).await?)
+    }
+
+    pub async fn social_topic_cursor_ack(
+        &self,
+        actor: &str,
+        topic: &str,
+        cursor: i64,
+        request_id: &str,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::ack_topic_cursor(&mut client, actor, topic, cursor, request_id).await?)
+    }
+
+    pub async fn social_topic_state_set(
+        &self,
+        topic: &str,
+        actor: &str,
+        state: TopicState,
+        expected_state: TopicState,
+        expected_high: i64,
+        request_id: &str,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::set_topic_state(
+            &mut client,
+            topic,
+            actor,
+            state,
+            expected_state,
+            expected_high,
+            request_id,
+        )
+        .await?)
+    }
+
+    pub async fn social_message_post(&self, value: &PostMessage) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::post_message(&mut client, value).await?)
+    }
+
+    pub async fn social_message_relation_add(
+        &self,
+        value: &AddMessageRelation,
+        request_id: &str,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::add_message_relation(&mut client, value, request_id).await?)
     }
 
     pub async fn work_get(

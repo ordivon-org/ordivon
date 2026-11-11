@@ -1,0 +1,187 @@
+{
+  "kind": "ordivon.host-mcp-source-rust-differential",
+  "metadataBytes": {
+    "python": 45453,
+    "rust": 9850
+  },
+  "missingRustTools": [
+    "actor.declare",
+    "host.pool.stats",
+    "message.get",
+    "message.relation.list",
+    "message.search",
+    "space.create",
+    "space.get",
+    "space.list",
+    "space.participation.list",
+    "space.participation.set",
+    "space.subject.list",
+    "topic.create",
+    "topic.list"
+  ],
+  "pythonTools": 31,
+  "rustTools": 18,
+  "schemaDifferences": {
+    "attention.ack": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "attention.delta": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "attention.get": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "attention.reentry": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "host.status": {
+      "defaults": {
+        "python": {
+          "detail": "summary"
+        },
+        "rust": {}
+      },
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "message.post": {
+      "defaults": {
+        "python": {
+          "messageKind": "note"
+        },
+        "rust": {}
+      },
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "message.relation.add": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "subscription.follow": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "subscription.list": {
+      "defaults": {
+        "python": {
+          "afterTargetKind": null,
+          "afterTargetRef": null,
+          "limit": 200,
+          "maxBytes": 262144,
+          "targetKind": null
+        },
+        "rust": {
+          "afterTargetKind": null,
+          "afterTargetRef": null,
+          "limit": 200,
+          "maxBytes": 262144
+        }
+      },
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "subscription.unfollow": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "topic.cursor.ack": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "topic.cursor.get": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "topic.resume": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "topic.state.set": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "work.create": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "work.get": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "work.list": {
+      "defaults": {
+        "python": {
+          "beforeUpdatedAt": null,
+          "beforeWorkRef": null,
+          "limit": 50,
+          "maxBytes": 262144,
+          "state": null
+        },
+        "rust": {
+          "beforeUpdatedAt": null,
+          "beforeWorkRef": null,
+          "limit": 50,
+          "maxBytes": 262144
+        }
+      },
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    },
+    "work.snapshot.commit": {
+      "hasOutputSchema": {
+        "python": true,
+        "rust": false
+      }
+    }
+  },
+  "schemaVersion": 1,
+  "sourceEpoch": 6,
+  "toolsWithDescriptions": {
+    "python": 2,
+    "rust": 18
+  },
+  "toolsWithOutputSchema": {
+    "python": 31,
+    "rust": 0
+  },
+  "truthBoundary": "Compares real source Python SDK registry to isolated Rust tools/list; not an installed-connector or end-to-end output/effect parity proof"
+}

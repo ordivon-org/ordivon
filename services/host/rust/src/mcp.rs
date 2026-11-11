@@ -11,6 +11,7 @@ use serde_json::{json, Value};
 
 use crate::attention::{self, TargetKind};
 use crate::pg::{HostDbError, HostPg};
+use crate::social::{self, AddMessageRelation, PostMessage};
 use crate::work::{self, WorkSnapshot, WorkState};
 
 #[derive(Clone, Copy, Debug, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -408,6 +409,163 @@ fn attention_request_id(prefix: &str, payload: &Value) -> Result<String, work::W
     Ok(format!("{prefix}:{}", digest.trim_start_matches("sha256:")))
 }
 
+// Native MCP inputs: retain the Python tool-level camelCase surface, while
+// forwarding all state changes to B's domain implementation unchanged.
+#[derive(Clone, Copy, Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum TopicStateWire {
+    Open,
+    Closed,
+}
+impl TopicStateWire {
+    fn domain(self) -> social::TopicState {
+        match self {
+            Self::Open => social::TopicState::Open,
+            Self::Closed => social::TopicState::Closed,
+        }
+    }
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Open => "open",
+            Self::Closed => "closed",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum MessageKindWire {
+    Note,
+    Question,
+    Proposal,
+    Warning,
+    Finding,
+    Handoff,
+}
+impl MessageKindWire {
+    fn domain(self) -> social::MessageKind {
+        match self {
+            Self::Note => social::MessageKind::Note,
+            Self::Question => social::MessageKind::Question,
+            Self::Proposal => social::MessageKind::Proposal,
+            Self::Warning => social::MessageKind::Warning,
+            Self::Finding => social::MessageKind::Finding,
+            Self::Handoff => social::MessageKind::Handoff,
+        }
+    }
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Note => "note",
+            Self::Question => "question",
+            Self::Proposal => "proposal",
+            Self::Warning => "warning",
+            Self::Finding => "finding",
+            Self::Handoff => "handoff",
+        }
+    }
+}
+const fn default_message_kind_wire() -> MessageKindWire {
+    MessageKindWire::Note
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum MessageRelationWire {
+    ReplyTo,
+    Mentions,
+    References,
+    Acknowledges,
+    Supersedes,
+    About,
+}
+impl MessageRelationWire {
+    fn domain(self) -> social::MessageRelationKind {
+        match self {
+            Self::ReplyTo => social::MessageRelationKind::ReplyTo,
+            Self::Mentions => social::MessageRelationKind::Mentions,
+            Self::References => social::MessageRelationKind::References,
+            Self::Acknowledges => social::MessageRelationKind::Acknowledges,
+            Self::Supersedes => social::MessageRelationKind::Supersedes,
+            Self::About => social::MessageRelationKind::About,
+        }
+    }
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::ReplyTo => "reply_to",
+            Self::Mentions => "mentions",
+            Self::References => "references",
+            Self::Acknowledges => "acknowledges",
+            Self::Supersedes => "supersedes",
+            Self::About => "about",
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TopicResumeRequest {
+    pub topic_ref: String,
+    #[serde(default)]
+    pub after_sequence: i64,
+    #[serde(default = "topic_resume_limit")]
+    pub limit: i64,
+    #[serde(default = "topic_resume_max_bytes")]
+    pub max_bytes: usize,
+}
+const fn topic_resume_limit() -> i64 {
+    50
+}
+const fn topic_resume_max_bytes() -> usize {
+    524_288
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TopicCursorGetRequest {
+    pub actor_ref: String,
+    pub topic_ref: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TopicCursorAckRequest {
+    pub actor_ref: String,
+    pub topic_ref: String,
+    pub cursor: i64,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TopicStateSetRequest {
+    pub topic_ref: String,
+    pub actor_ref: String,
+    pub state: TopicStateWire,
+    pub expected_state: TopicStateWire,
+    pub expected_high_sequence: i64,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MessagePostRequest {
+    pub message_ref: String,
+    pub space_ref: String,
+    pub topic_ref: String,
+    pub author_actor_ref: String,
+    pub body: String,
+    pub recorded_at_ms: i64,
+    #[serde(default = "default_message_kind_wire")]
+    pub message_kind: MessageKindWire,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MessageRelationAddRequest {
+    pub source_message_ref: String,
+    pub relation: MessageRelationWire,
+    pub target_ref: String,
+    pub actor_ref: String,
+}
+
 #[derive(Clone)]
 pub struct HostMcp {
     pg: Arc<HostPg>,
@@ -626,6 +784,169 @@ impl HostMcp {
     }
 
     #[tool(
+        name = "topic.resume",
+        description = "Resume an integrity-checked Topic page with a bounded cursor and byte budget."
+    )]
+    async fn topic_resume(
+        &self,
+        Parameters(request): Parameters<TopicResumeRequest>,
+    ) -> CallToolResult {
+        match self
+            .pg
+            .social_topic_resume(
+                &request.topic_ref,
+                request.after_sequence,
+                request.limit,
+                request.max_bytes,
+            )
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => db_tool_error("topic.resume", e),
+        }
+    }
+
+    #[tool(
+        name = "topic.cursor.get",
+        description = "Read one actor's durable Topic-consumption cursor, distinct from Attention."
+    )]
+    async fn topic_cursor_get(
+        &self,
+        Parameters(request): Parameters<TopicCursorGetRequest>,
+    ) -> CallToolResult {
+        match self
+            .pg
+            .social_topic_cursor_get(&request.actor_ref, &request.topic_ref)
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => db_tool_error("topic.cursor.get", e),
+        }
+    }
+
+    #[tool(
+        name = "topic.cursor.ack",
+        description = "Acknowledge a monotone Topic-consumption cursor after reading the page."
+    )]
+    async fn topic_cursor_ack(
+        &self,
+        Parameters(request): Parameters<TopicCursorAckRequest>,
+    ) -> CallToolResult {
+        let payload = json!({"actorRef":request.actor_ref,"topicRef":request.topic_ref,"cursor":request.cursor});
+        let id = match attention_request_id("topic-cursor-ack", &payload) {
+            Ok(v) => v,
+            Err(e) => return work_domain_tool_error("topic.cursor.ack", e),
+        };
+        match self
+            .pg
+            .social_topic_cursor_ack(&request.actor_ref, &request.topic_ref, request.cursor, &id)
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => db_tool_error("topic.cursor.ack", e),
+        }
+    }
+
+    #[tool(
+        name = "topic.state.set",
+        description = "Change Topic openness with expected state and message-high-sequence CAS."
+    )]
+    async fn topic_state_set(
+        &self,
+        Parameters(request): Parameters<TopicStateSetRequest>,
+    ) -> CallToolResult {
+        let payload = json!({
+            "topicRef":request.topic_ref,"actorRef":request.actor_ref,
+            "state":request.state.as_str(),"expectedState":request.expected_state.as_str(),
+            "expectedHighSequence":request.expected_high_sequence
+        });
+        let id = match attention_request_id("topic-state-set", &payload) {
+            Ok(v) => v,
+            Err(e) => return work_domain_tool_error("topic.state.set", e),
+        };
+        match self
+            .pg
+            .social_topic_state_set(
+                &request.topic_ref,
+                &request.actor_ref,
+                request.state.domain(),
+                request.expected_state.domain(),
+                request.expected_high_sequence,
+                &id,
+            )
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(e) => db_tool_error("topic.state.set", e),
+        }
+    }
+
+    #[tool(
+        name = "message.post",
+        description = "Commit a durable Host collaboration Message with exact JCS request identity and receipt."
+    )]
+    async fn message_post(
+        &self,
+        Parameters(request): Parameters<MessagePostRequest>,
+    ) -> CallToolResult {
+        let payload = json!({
+            "messageRef":request.message_ref,"spaceRef":request.space_ref,
+            "topicRef":request.topic_ref,"authorActorRef":request.author_actor_ref,
+            "body":request.body,"recordedAtMs":request.recorded_at_ms,
+            "messageKind":request.message_kind.as_str()
+        });
+        let id = match attention_request_id("message-post", &payload) {
+            Ok(v) => v,
+            Err(e) => return work_domain_tool_error("message.post", e),
+        };
+        let value = PostMessage {
+            message_ref: request.message_ref,
+            client_request_id: id,
+            space_ref: request.space_ref,
+            topic_ref: request.topic_ref,
+            author_actor_ref: request.author_actor_ref,
+            body: request.body,
+            recorded_at_ms: request.recorded_at_ms,
+            message_kind: request.message_kind.domain(),
+        };
+        match self.pg.social_message_post(&value).await {
+            Ok(value) => structured(value),
+            Err(e) => db_tool_error("message.post", e),
+        }
+    }
+
+    #[tool(
+        name = "message.relation.add",
+        description = "Add a durable Message relation via the existing single-transaction Social domain."
+    )]
+    async fn message_relation_add(
+        &self,
+        Parameters(request): Parameters<MessageRelationAddRequest>,
+    ) -> CallToolResult {
+        // The original Python Pydantic MessageRelationInput.model_dump() uses
+        // snake_case property names for the request identity.
+        let payload = json!({
+            "source_message_ref":request.source_message_ref,
+            "relation":request.relation.as_str(),
+            "target_ref":request.target_ref,"actor_ref":request.actor_ref
+        });
+        let id = match attention_request_id("message-relation-add", &payload) {
+            Ok(v) => v,
+            Err(e) => return work_domain_tool_error("message.relation.add", e),
+        };
+        let value = AddMessageRelation {
+            source_message_ref: request.source_message_ref,
+            relation: request.relation.domain(),
+            target_ref: request.target_ref,
+            actor_ref: request.actor_ref,
+        };
+        match self.pg.social_message_relation_add(&value, &id).await {
+            Ok(value) => structured(value),
+            Err(e) => db_tool_error("message.relation.add", e),
+        }
+    }
+
+    #[tool(
         name = "work.get",
         description = "Read exact Work snapshot and revision from existing PostgreSQL schema13."
     )]
@@ -807,9 +1128,15 @@ mod tests {
                 "attention.get",
                 "attention.reentry",
                 "host.status",
+                "message.post",
+                "message.relation.add",
                 "subscription.follow",
                 "subscription.list",
                 "subscription.unfollow",
+                "topic.cursor.ack",
+                "topic.cursor.get",
+                "topic.resume",
+                "topic.state.set",
                 "work.create",
                 "work.get",
                 "work.list",

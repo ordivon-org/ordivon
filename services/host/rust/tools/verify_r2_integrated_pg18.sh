@@ -46,10 +46,12 @@ cargo build --manifest-path "$root/services/host/rust/Cargo.toml" --offline --qu
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/audit_mcp_surface.py" \
   --rust-bin "$root/services/host/rust/target/debug/ordivon-host-rust" \
   --source-manifest "$root/services/host/mcp-surface.json" \
-  --report "$root/services/host/rust/planning/mcp_source_rust_r3.json")
+  --report "$root/services/host/rust/planning/mcp_source_rust_r4.json")
 echo "R3_MCP_SOURCE_RUST_SCHEMA_DIFFERENTIAL_PASS"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_work_oracle.py" seed)
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_social_oracle.py" seed)
 python3 "$root/services/host/rust/tools/mcp_stdio_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust"
+(cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_social_oracle.py" verify)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/python_work_oracle.py" verify)
 python3 "$root/services/host/rust/tools/mcp_http_smoke.py" "$root/services/host/rust/target/debug/ordivon-host-rust"
 echo "R2_MCP_STDIO_HTTP_PASS"
