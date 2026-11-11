@@ -658,6 +658,10 @@ pub fn read_run_readonly(
                     } else if tool_events.contains(event_id.as_str())
                         && kind == "harness-run-snapshot"
                     {
+                        // CAS integrity does not establish the full official
+                        // HarnessRunSnapshot v1 protocol. Verify SOURCE
+                        // semantics before discarding private Snapshot fields.
+                        contract_semantics::validate_run_snapshot(&decoded)?;
                         // The full Snapshot may include arbitrary JSON budget
                         // metadata. Return only these source identity fields.
                         const FIELDS: &[&str] = &[

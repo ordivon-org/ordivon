@@ -106,3 +106,20 @@ CAS codec, PostgreSQL table or writer is introduced.
 These are verified observations, not Runtime authority. The B consumer checks
 Event/reference bindings and returns only a bounded recovery posture;
 current fenced physical dispatch and real Owner receipts remain distinct.
+
+### Full v1 Snapshot protocol before privacy-limited Tool metadata
+
+A checksum-correct, exact-kind CAS Snapshot may still fail the official
+Python HarnessRunSnapshot.from_dict contract in fields we deliberately do
+not expose to B. The A Reader now reuses its own contract_semantics helpers
+to validate the entire v1 Snapshot, including strict field set, identities,
+digests and unique lists, positive counters, pause reason and the shape of
+remainingBudget, BEFORE it generates the whitelisted Snapshot identity
+projection. The remainingBudget content is NEVER returned to Tool consumers.
+
+An independent disposable-PG18 RED case changed remainingBudget from
+object to array, regenerated exact CAS/Journal SHA and retained all identity
+and active Intent refs. Previously the Tool Head was accepted; after full
+source protocol validation the sole Reader rejects it. No second SQL,
+Store, decoder or Tool ownership port was added. Source validation is not
+a physical Dispatch Permit.

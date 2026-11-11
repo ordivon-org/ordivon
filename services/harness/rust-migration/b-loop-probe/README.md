@@ -256,7 +256,7 @@ B typed Tool Head, same existing A/B test runner:
     HARNESS_B_TYPED_TOOL_HEAD=1 \
     bash services/harness/crates/harness-pg/tests/run_isolated_pg18.sh
 
-Nine source cases: prepared; privacy-redacted UNKNOWN; stale Run revision;
+Ten source cases: prepared; privacy-redacted UNKNOWN; stale Run revision;
 generic Event with no Intent; stolen cross-Run CAS; forged Fence digest;
 extra CAS edge; UNKNOWN Receipt disguised as recorded Event; and a
 digest-valid but semantically invalid Snapshot that lacks the active Intent.

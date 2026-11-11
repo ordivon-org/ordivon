@@ -380,3 +380,112 @@ pub fn validate_contract(doc: &CanonicalDocument) -> Result<(), ReadError> {
     }
     Ok(())
 }
+
+/// Python HarnessRunSnapshot.from_dict + __post_init__ v1 source semantics.
+/// A CAS SHA-valid object is NOT automatically a valid protocol Snapshot.
+/// Validate all fields BEFORE a privacy-limited metadata projection is made.
+/// Reuse the same canonical typed reference and text/digest helpers as the
+/// authoritative RunContract validator. No second parser or SQL traversal.
+pub(crate) fn validate_run_snapshot(snapshot: &CanonicalDocument) -> Result<(), ReadError> {
+    let v = snapshot.as_borrowed();
+    exact_object(
+        v,
+        &[
+            "schemaVersion",
+            "kind",
+            "snapshotId",
+            "harnessRunId",
+            "assignmentId",
+            "assignmentGeneration",
+            "assignmentDigest",
+            "sequence",
+            "toolCatalogDigest",
+            "requestedModelId",
+            "effectiveModelId",
+            "messagesDigest",
+            "observationDigests",
+            "activeToolStepIntentDigests",
+            "remainingBudget",
+            "pauseReason",
+            "createdAtMs",
+        ],
+        "Run Snapshot complete v1 source fields",
+    )?;
+    if required(v, "schemaVersion")?.integer_text() != Some("1")
+        || string(required(v, "kind")?, "Snapshot kind")? != "ordivon.harness-run-snapshot"
+    {
+        return Err(invalid("Run Snapshot version/kind"));
+    }
+    fn source_id(value: CanonicalRef<'_>, prefix: &str, label: &str) -> Result<(), ReadError> {
+        let value = trimmed(value, 512, label)?;
+        if !value.starts_with(prefix) || value.as_bytes().get(prefix.len()) != Some(&b':') {
+            return Err(invalid(label));
+        }
+        Ok(())
+    }
+    source_id(
+        required(v, "snapshotId")?,
+        "harness-run-snapshot",
+        "Snapshot ID",
+    )?;
+    source_id(
+        required(v, "harnessRunId")?,
+        "harness-run",
+        "Snapshot Run ID",
+    )?;
+    source_id(
+        required(v, "assignmentId")?,
+        "assignment",
+        "Snapshot assignment ID",
+    )?;
+    let generation = nonnegative_int(required(v, "assignmentGeneration")?, "Snapshot generation")?;
+    let sequence = nonnegative_int(required(v, "sequence")?, "Snapshot sequence")?;
+    if generation == "0" || sequence == "0" {
+        return Err(invalid("Snapshot generation and sequence must be positive"));
+    }
+    digest(required(v, "assignmentDigest")?, "Snapshot assignment SHA")?;
+    digest(
+        required(v, "toolCatalogDigest")?,
+        "Snapshot Tool catalog SHA",
+    )?;
+    trimmed(
+        required(v, "requestedModelId")?,
+        300,
+        "Snapshot requested model ID",
+    )?;
+    let effective = required(v, "effectiveModelId")?;
+    if !effective.is_null() {
+        trimmed(effective, 300, "Snapshot effective model ID")?;
+    }
+    digest(required(v, "messagesDigest")?, "Snapshot messages SHA")?;
+    fn source_digests(value: CanonicalRef<'_>, label: &str) -> Result<usize, ReadError> {
+        let len = value.array_len().ok_or_else(|| invalid(label))?;
+        let mut unique = BTreeSet::new();
+        for i in 0..len {
+            let element = value.index(i).ok_or_else(|| invalid(label))?;
+            digest(element, label)?;
+            let raw = element.as_str().ok_or_else(|| invalid(label))?;
+            if !unique.insert(raw) {
+                return Err(invalid("duplicate Snapshot digest"));
+            }
+        }
+        Ok(len)
+    }
+    source_digests(required(v, "observationDigests")?, "Snapshot observations")?;
+    let active = source_digests(
+        required(v, "activeToolStepIntentDigests")?,
+        "Snapshot active Tool Intents",
+    )?;
+    if required(v, "remainingBudget")?.object_len().is_none() {
+        return Err(invalid("Snapshot remainingBudget must be object"));
+    }
+    let pause = string(required(v, "pauseReason")?, "Snapshot pause reason")?;
+    if !matches!(pause, "needs-input" | "effect-dispatch-pending") {
+        return Err(invalid("Snapshot unknown pause reason"));
+    }
+    if pause == "effect-dispatch-pending" && active == 0 {
+        return Err(invalid("effect-dispatch-pending needs active Tool Intent"));
+    }
+    nonnegative_int(required(v, "createdAtMs")?, "Snapshot time")?;
+    Ok(())
+}

@@ -56,6 +56,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         "extra_reference",
         "receipt_event_mismatch",
         "bad_snapshot_binding",
+        "bad_snapshot_budget",
         "generic_no_intent",
         "cross_run",
     ):
@@ -107,6 +108,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             "extra_reference",
             "receipt_event_mismatch",
             "bad_snapshot_binding",
+            "bad_snapshot_budget",
         }:
             continuity.prepare_tool_step(intent)
             current = continuity.load_current_tool_step()
@@ -172,8 +174,9 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                     pass
                 else:
                     raise AssertionError("Any new Run revision must invalidate old dispatch fence")
-            if label == "bad_snapshot_binding":
-                # Canonical PG Event whose Snapshot drops the active Intent.
+            if label in {"bad_snapshot_binding", "bad_snapshot_budget"}:
+                # A complete, digest-valid generic Journal may still link
+                # Python-invalid Snapshot data, including hidden fields.
                 # CAS SHA, typed Fence and Run revision remain consistent;
                 # recovering this as a ready Tool is not source-qualified.
                 original = store.list_run_events(run_id)[-1]
@@ -181,7 +184,18 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                 raw_snapshot = store.get_object(old_snapshot, expected_kind="harness-run-snapshot")
                 assert raw_snapshot["activeToolStepIntentDigests"] == [intent.digest]
                 forged_snapshot = dict(raw_snapshot)
-                forged_snapshot["activeToolStepIntentDigests"] = []
+                if label == "bad_snapshot_binding":
+                    forged_snapshot["activeToolStepIntentDigests"] = []
+                else:
+                    from ordivon_harness.protocol import HarnessRunSnapshot
+
+                    forged_snapshot["remainingBudget"] = []
+                    try:
+                        HarnessRunSnapshot.from_dict(forged_snapshot)
+                    except TypeError, ValueError:
+                        pass
+                    else:
+                        raise AssertionError("Python accepts non-object Snapshot budget")
                 snapshot_ref = store.put_object(forged_snapshot, kind="harness-run-snapshot")
                 forged_data = dict(original.data)
                 forged_data["snapshotDigest"] = snapshot_ref.digest
@@ -293,6 +307,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
                 "extra_reference",
                 "receipt_event_mismatch",
                 "bad_snapshot_binding",
+                "bad_snapshot_budget",
             }:
                 cases[label] = {
                     "runId": run_id,
