@@ -268,7 +268,7 @@ def test_canonical_docs_do_not_claim_nautilus_is_currently_admitted_owner():
     architecture = (ROOT / "docs/ARCHITECTURE.md").read_text()
     composition = (ROOT / "docs/COMPOSITION_FIRST_2026-09-14.md").read_text()
     assert "NautilusTrader" in architecture
-    assert "challenger rather than a canonical core owner" in architecture
+    assert "NautilusTrader remains a non-live challenger, not a canonical live or broker engine." in architecture
     assert "| Trading OMS/Risk mechanics | NautilusTrader candidate |" in composition
     assert "NautilusTrader owns" not in architecture
 
