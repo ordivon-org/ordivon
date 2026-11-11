@@ -1,0 +1,19 @@
+{
+  "kind": "ordivon.finance.r3.nautilus-rc9-synthetic-oms-qualification",
+  "source_file_sha256": "bce793b53f97c5081e7a9b4b9d4a8b03a574977f25054eac42a55dcda9907a30",
+  "source_kind": "OpenBB Cboe historical normalized EOD closing marks",
+  "quote_origin": "SYNTHETIC from EOD close +/- 0.01 USD",
+  "timestamp_origin": "SYNTHETIC each session 21:00 UTC; not verified venue session clock",
+  "native_catalog_rows": 170,
+  "backtest_result_count": 1,
+  "native_orders": 18,
+  "native_fill_events": 18,
+  "native_positions": 9,
+  "native_result_repr": [
+    "BacktestResult(trader_id='TRADER-001', elapsed=20908800.00s, iterations=170, orders=18, positions=9)"
+  ],
+  "capital_effect": "NONE",
+  "pg_effect": "NONE",
+  "effect_semantics": "SIMULATION_ONLY_NOT_BROKER_NOT_PIT_NOT_REAL_SPREAD",
+  "native_fill_model": "DefaultFillModel(limit=1,slippage=0,seed=42)"
+}
