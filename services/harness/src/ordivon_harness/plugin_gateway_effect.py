@@ -228,6 +228,21 @@ class GatewayMcpRuntimeAdapter:
             raise HarnessRuntimeClientError(
                 "Gateway execution lowering changed workspace authority"
             )
+        # The immutable Harness source Intent cannot be physically lowered
+        # through a Gateway API that omits any of its materialized fields.
+        # Reject unmatched future Runtime capabilities BEFORE owner dispatch
+        # instead of silently weakening budget, prerequisites, context, steps.
+        allowed_execution = {
+            "workspaceId", "executable", "args", "cwdRelative",
+            "foreignReferences", "env", "timeoutMs",
+            "stdoutLimitBytes", "stderrLimitBytes",
+        }
+        unsupported = set(execution) - allowed_execution
+        if unsupported:
+            raise HarnessRuntimeClientError(
+                "Gateway cannot faithfully lower frozen Runtime execution fields: "
+                f"{sorted(unsupported)}"
+            )
         foreign = execution.get("foreignReferences")
         if not isinstance(foreign, list) or any(not isinstance(item, dict) for item in foreign):
             raise HarnessRuntimeClientError(
@@ -251,9 +266,9 @@ class GatewayMcpRuntimeAdapter:
         for field in ("stdoutLimitBytes", "stderrLimitBytes"):
             if field in execution:
                 value = execution[field]
-                if type(value) is not int or value <= 0:
+                if type(value) is not int or not 1 <= value <= 2**64 - 1:
                     raise HarnessRuntimeClientError(
-                        f"Gateway execution lowering has invalid {field}"
+                        f"Gateway execution lowering has invalid {field} u64 bound"
                     )
                 gateway_args[field] = value
 

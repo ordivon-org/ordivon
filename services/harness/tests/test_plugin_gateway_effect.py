@@ -517,6 +517,61 @@ def test_gateway_adapter_refuses_non_integer_native_output_caps_before_owner_cal
     assert client.calls == []
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("budget", {"memoryBytes": 500_000_000}),
+        ("hostDependencies", []),
+        ("steps", [{"id": "first"}]),
+        ("executionTarget", "windows_native"),
+        ("executionProfile", "contained_local"),
+        ("windowsAuthority", "active_user"),
+        ("stdin", "uncommitted"),
+    ),
+)
+def test_gateway_refuses_frozen_physical_fields_it_cannot_represent(
+    field: str, value: object
+) -> None:
+    """Fail before Owner call; no silent request corruption at the adapter."""
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    with pytest.raises(HarnessRuntimeClientError, match="cannot faithfully lower"):
+        adapter.call_tool(
+            "workspace.exec",
+            {
+                "clientRequestId": "request:physical-unsupported",
+                "execution": {
+                    "workspaceId": "ws-plugin-h2",
+                    "executable": "/usr/bin/rg",
+                    "foreignReferences": [],
+                    field: value,
+                },
+            },
+        )
+    assert client.calls == []
+
+
+def test_gateway_refuses_frozen_native_output_bound_outside_u64() -> None:
+    client = GatewayExecutionFixture()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(factory.component, client, factory.execution_grant)
+    with pytest.raises(HarnessRuntimeClientError, match="invalid stdoutLimitBytes"):
+        adapter.call_tool(
+            "workspace.exec",
+            {
+                "clientRequestId": "request:physical-overflow",
+                "execution": {
+                    "workspaceId": "ws-plugin-h2",
+                    "executable": "/usr/bin/rg",
+                    "foreignReferences": [],
+                    "stdoutLimitBytes": 2**65,
+                },
+            },
+        )
+    assert client.calls == []
+
+
 def test_gateway_native_job_identity_cannot_rebind_to_another_request() -> None:
     # The same native job must not be attached to a different durable request
     # after a late submit receipt or a recovered resolution.
