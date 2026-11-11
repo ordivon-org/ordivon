@@ -139,12 +139,19 @@ mod tests {
 
     #[test]
     fn bearer_authenticates_owner_not_work_actor_and_denies_public_secret() {
+        // A generated fixture must exercise the *real* credential reader.
+        // Never embed a reusable cryptographic secret in tracked test source.
+        let mut secret_bytes = [0u8; 32];
+        getrandom::fill(&mut secret_bytes).expect("OS random source for test credentials");
+        let token = hex::encode(secret_bytes);
+        let mut path_nonce = [0u8; 16];
+        getrandom::fill(&mut path_nonce).expect("OS random source for test path");
         let path = std::env::temp_dir().join(format!(
-            "host-r10-owner-token-{}-{:?}",
+            "host-owner-test-{}-{:?}-{}",
             std::process::id(),
-            std::thread::current().id()
+            std::thread::current().id(),
+            hex::encode(path_nonce),
         ));
-        let _ = fs::remove_file(&path);
         let mut f = fs::OpenOptions::new()
             .write(true)
             .create_new(true)
@@ -152,14 +159,17 @@ mod tests {
             .unwrap();
         f.set_permissions(fs::Permissions::from_mode(0o600))
             .unwrap();
-        f.write_all(b"private-host-owner-transport-token-0123456789abcdef\n")
-            .unwrap();
+        f.write_all(token.as_bytes()).unwrap();
+        f.write_all(b"\n").unwrap();
         f.sync_all().unwrap();
         drop(f);
         let auth = OwnerBearer::read_file(&path).unwrap();
-        assert!(auth.matches(Some("private-host-owner-transport-token-0123456789abcdef")));
+        assert!(auth.matches(Some(&token)));
         assert!(!auth.matches(None));
-        assert!(!auth.matches(Some("private-host-owner-transport-token-0123456789abcdee")));
+        let mut wrong_bytes = token.as_bytes().to_vec();
+        wrong_bytes[0] = if wrong_bytes[0] == b'0' { b'1' } else { b'0' };
+        let wrong_token = String::from_utf8(wrong_bytes).unwrap();
+        assert!(!auth.matches(Some(&wrong_token)));
         fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
         assert!(OwnerBearer::read_file(&path).is_err());
         fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();

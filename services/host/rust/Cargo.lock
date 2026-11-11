@@ -719,6 +719,7 @@ dependencies = [
  "axum",
  "chrono",
  "deadpool-postgres",
+ "getrandom",
  "hex",
  "hmac",
  "rmcp",
