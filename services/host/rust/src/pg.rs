@@ -28,6 +28,8 @@ pub enum HostDbError {
     Clock,
     #[error("PostgreSQL connection pool: {0}")]
     Pool(String),
+    #[error("PostgreSQL pool checkout: {0}")]
+    PoolCheckout(#[from] deadpool_postgres::PoolError),
 }
 
 #[derive(Clone)]
@@ -70,10 +72,7 @@ impl HostPg {
     }
 
     async fn connect(&self) -> Result<deadpool_postgres::Object, HostDbError> {
-        self.pool
-            .get()
-            .await
-            .map_err(|error| HostDbError::Pool(error.to_string()))
+        Ok(self.pool.get().await?)
     }
 
     pub async fn subscription_follow(

@@ -10,22 +10,29 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::attention::{self, TargetKind};
-use crate::pg::HostPg;
+use crate::pg::{HostDbError, HostPg};
 use crate::work::{self, WorkSnapshot, WorkState};
 
+#[derive(Clone, Copy, Debug, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum HostStatusDetail {
+    Summary,
+    Integrity,
+    History,
+}
+
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct HostStatusRequest {
     #[serde(default = "summary_detail")]
-    pub detail: String,
+    pub detail: HostStatusDetail,
 }
 
-fn summary_detail() -> String {
-    "summary".to_string()
+const fn summary_detail() -> HostStatusDetail {
+    HostStatusDetail::Summary
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkGetRequest {
     pub work_ref: String,
     #[serde(default)]
@@ -67,7 +74,7 @@ impl From<WorkSnapshotWire> for WorkSnapshot {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkCommitRequest {
     pub work_ref: String,
     pub expected_revision: i64,
@@ -78,7 +85,7 @@ pub struct WorkCommitRequest {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkCreateRequest {
     pub work_ref: String,
     pub work_kind: String,
@@ -105,9 +112,10 @@ impl From<WorkListState> for WorkState {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkListRequest {
     #[serde(default)]
+    #[schemars(default)]
     pub state: Option<WorkListState>,
     #[serde(default = "work_list_limit")]
     pub limit: usize,
@@ -190,6 +198,117 @@ fn tool_error(error: impl std::fmt::Display) -> CallToolResult {
 fn structured(value: Value) -> CallToolResult {
     CallToolResult::structured(value)
 }
+/// Only expected Host domain failures receive typed failure semantics.
+/// Ambiguous PG/integrity errors never become business conflicts.
+fn public_domain_error(
+    name: &str,
+    code: &str,
+    detail: Option<&str>,
+    resource: Option<(&str, &str)>,
+    retryable: bool,
+    suggested_action: &str,
+) -> CallToolResult {
+    let mut payload = json!({
+        "schemaVersion": 1,
+        "kind": "ordivon.host-domain-error",
+        "code": code,
+        "retryable": retryable,
+        "suggestedAction": suggested_action
+    });
+    if let Some(detail) = detail {
+        payload["detail"] = json!(detail);
+    }
+    if let Some((kind, reference)) = resource {
+        payload["resourceKind"] = json!(kind);
+        payload["resourceRef"] = json!(reference);
+    }
+    // The Gateway reads structuredContent.error. Preserve the legacy textual
+    // error prefix for consumers that still recognize the Python envelope.
+    let mut result = CallToolResult::structured_error(json!({"error": payload}));
+    result.content = vec![ContentBlock::text(format!(
+        "Error executing tool {name}: {}",
+        payload
+    ))];
+    result
+}
+
+fn work_domain_tool_error(name: &str, error: work::WorkError) -> CallToolResult {
+    match error {
+        work::WorkError::Invalid(detail) => public_domain_error(
+            name,
+            "INVALID_ARGUMENT",
+            Some(&detail),
+            None,
+            false,
+            "correct-request",
+        ),
+        work::WorkError::Conflict(detail) => public_domain_error(
+            name,
+            "CONFLICT",
+            Some(&detail),
+            None,
+            false,
+            "reread-current-state-and-reconcile",
+        ),
+        work::WorkError::NotFound(reference) => public_domain_error(
+            name,
+            "NOT_FOUND",
+            None,
+            Some(("work", &reference)),
+            false,
+            "discover-before-create",
+        ),
+        work::WorkError::ActorNotFound(reference) => public_domain_error(
+            name,
+            "NOT_FOUND",
+            None,
+            Some(("actor", &reference)),
+            false,
+            "inspect-owner-inventory",
+        ),
+        work::WorkError::Integrity(_) | work::WorkError::Database(_) => tool_error(
+            "Host integrity/availability failure; effect outcome UNKNOWN; reconcile before retry",
+        ),
+    }
+}
+
+fn attention_domain_tool_error(name: &str, error: attention::AttentionError) -> CallToolResult {
+    match error {
+        attention::AttentionError::Invalid(detail) => public_domain_error(
+            name, "INVALID_ARGUMENT", Some(&detail), None, false, "correct-request",
+        ),
+        attention::AttentionError::Conflict(detail) => public_domain_error(
+            name, "CONFLICT", Some(&detail), None, false,
+            "reread-current-state-and-reconcile",
+        ),
+        // The B-owned error currently lacks a typed resourceKind field.
+        // Do not fabricate a specific resource kind from human-readable text.
+        attention::AttentionError::NotFound(detail) => public_domain_error(
+            name, "NOT_FOUND", Some(&detail), None, false,
+            "inspect-owner-inventory",
+        ),
+        attention::AttentionError::Integrity(_) | attention::AttentionError::Database(_) =>
+            tool_error("Host integrity/availability failure; effect outcome UNKNOWN; reconcile before retry"),
+    }
+}
+
+fn db_tool_error(name: &str, error: HostDbError) -> CallToolResult {
+    match error {
+        HostDbError::Work(error) => work_domain_tool_error(name, error),
+        HostDbError::Attention(error) => attention_domain_tool_error(name, error),
+        // Checkout timeout happens before a command acquires a database session.
+        HostDbError::PoolCheckout(deadpool_postgres::PoolError::Timeout(_)) => public_domain_error(
+            name,
+            "DEADLINE_EXCEEDED",
+            None,
+            None,
+            true,
+            "retry-with-bounded-backoff",
+        ),
+        // Driver failures after a write could mean effect committed, response lost.
+        _ => tool_error("Host PostgreSQL failure; effect outcome UNKNOWN; reconcile before retry"),
+    }
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -210,7 +329,7 @@ impl From<TargetKindWire> for TargetKind {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct SubscriptionChangeRequest {
     pub actor_ref: String,
     pub target_kind: TargetKindWire,
@@ -218,10 +337,11 @@ pub struct SubscriptionChangeRequest {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct SubscriptionListRequest {
     pub actor_ref: String,
     #[serde(default)]
+    #[schemars(default)]
     pub target_kind: Option<TargetKindWire>,
     #[serde(default)]
     pub after_target_kind: Option<String>,
@@ -244,7 +364,7 @@ const fn attention_max_bytes() -> usize {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct AttentionGetRequest {
     pub actor_ref: String,
     #[serde(default = "attention_limit")]
@@ -254,7 +374,7 @@ pub struct AttentionGetRequest {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct AttentionDeltaRequest {
     pub actor_ref: String,
     pub after_sequence: i64,
@@ -265,7 +385,7 @@ pub struct AttentionDeltaRequest {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct AttentionReentryRequest {
     pub actor_ref: String,
     #[serde(default)]
@@ -277,7 +397,7 @@ pub struct AttentionReentryRequest {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct AttentionAckRequest {
     pub actor_ref: String,
     pub cursor: i64,
@@ -307,7 +427,7 @@ impl HostMcp {
         &self,
         Parameters(request): Parameters<HostStatusRequest>,
     ) -> CallToolResult {
-        if request.detail != "summary" {
+        if request.detail != HostStatusDetail::Summary {
             return tool_error(
                 "Rust candidate supports detail=summary only; history/integrity still Python-owned",
             );
@@ -317,7 +437,7 @@ impl HostMcp {
                 Ok(value) => structured(value),
                 Err(error) => tool_error(error),
             },
-            Err(error) => tool_error(error),
+            Err(error) => db_tool_error("host.status", error),
         }
     }
 
@@ -332,7 +452,7 @@ impl HostMcp {
         let payload = json!({"actorRef":request.actor_ref,"targetKind":attention::TargetKind::from(request.target_kind).as_str(),"targetRef":request.target_ref});
         let id = match attention_request_id("subscription-follow", &payload) {
             Ok(id) => id,
-            Err(e) => return tool_error(e),
+            Err(e) => return work_domain_tool_error("subscription.follow", e),
         };
         match self
             .pg
@@ -345,7 +465,7 @@ impl HostMcp {
             .await
         {
             Ok(value) => structured(value),
-            Err(e) => tool_error(e),
+            Err(e) => db_tool_error("subscription.follow", e),
         }
     }
 
@@ -360,7 +480,7 @@ impl HostMcp {
         let payload = json!({"actorRef":request.actor_ref,"targetKind":TargetKind::from(request.target_kind).as_str(),"targetRef":request.target_ref});
         let id = match attention_request_id("subscription-unfollow", &payload) {
             Ok(id) => id,
-            Err(e) => return tool_error(e),
+            Err(e) => return work_domain_tool_error("subscription.unfollow", e),
         };
         match self
             .pg
@@ -373,7 +493,7 @@ impl HostMcp {
             .await
         {
             Ok(value) => structured(value),
-            Err(e) => tool_error(e),
+            Err(e) => db_tool_error("subscription.unfollow", e),
         }
     }
 
@@ -391,7 +511,16 @@ impl HostMcp {
         ) {
             (None, None) => None,
             (Some(k), Some(r)) => Some((k, r)),
-            _ => return tool_error("afterTargetKind and afterTargetRef must be supplied together"),
+            _ => {
+                return public_domain_error(
+                    "subscription.list",
+                    "INVALID_ARGUMENT",
+                    Some("afterTargetKind and afterTargetRef must be supplied together"),
+                    None,
+                    false,
+                    "correct-request",
+                )
+            }
         };
         match self
             .pg
@@ -405,7 +534,7 @@ impl HostMcp {
             .await
         {
             Ok(value) => structured(value),
-            Err(e) => tool_error(e),
+            Err(e) => db_tool_error("subscription.list", e),
         }
     }
 
@@ -423,7 +552,7 @@ impl HostMcp {
             .await
         {
             Ok(value) => structured(value),
-            Err(e) => tool_error(e),
+            Err(e) => db_tool_error("attention.get", e),
         }
     }
 
@@ -446,7 +575,7 @@ impl HostMcp {
             .await
         {
             Ok(value) => structured(value),
-            Err(e) => tool_error(e),
+            Err(e) => db_tool_error("attention.delta", e),
         }
     }
 
@@ -469,7 +598,7 @@ impl HostMcp {
             .await
         {
             Ok(value) => structured(value),
-            Err(e) => tool_error(e),
+            Err(e) => db_tool_error("attention.reentry", e),
         }
     }
 
@@ -484,7 +613,7 @@ impl HostMcp {
         let payload = json!({"actorRef":request.actor_ref,"cursor":request.cursor});
         let id = match attention_request_id("attention-ack", &payload) {
             Ok(id) => id,
-            Err(e) => return tool_error(e),
+            Err(e) => return work_domain_tool_error("attention.ack", e),
         };
         match self
             .pg
@@ -492,7 +621,7 @@ impl HostMcp {
             .await
         {
             Ok(value) => structured(value),
-            Err(e) => tool_error(e),
+            Err(e) => db_tool_error("attention.ack", e),
         }
     }
 
@@ -503,7 +632,7 @@ impl HostMcp {
     async fn work_get(&self, Parameters(request): Parameters<WorkGetRequest>) -> CallToolResult {
         match self.pg.work_get(&request.work_ref, request.revision).await {
             Ok(value) => structured(value),
-            Err(error) => tool_error(error),
+            Err(error) => db_tool_error("work.get", error),
         }
     }
 
@@ -523,7 +652,7 @@ impl HostMcp {
             &snapshot,
         ) {
             Ok(identity) => identity,
-            Err(error) => return tool_error(error),
+            Err(error) => return work_domain_tool_error("work.create", error),
         };
         let command = work::CreateWork {
             work_ref: request.work_ref,
@@ -534,7 +663,7 @@ impl HostMcp {
         };
         match self.pg.work_create(&command).await {
             Ok(value) => structured(value),
-            Err(error) => tool_error(error),
+            Err(error) => db_tool_error("work.create", error),
         }
     }
 
@@ -552,7 +681,7 @@ impl HostMcp {
         };
         match self.pg.work_list(&input).await {
             Ok(value) => structured(value),
-            Err(error) => tool_error(error),
+            Err(error) => db_tool_error("work.list", error),
         }
     }
 
@@ -580,7 +709,7 @@ impl HostMcp {
         });
         let digest = match work::canonical_digest(&identity) {
             Ok(value) => value,
-            Err(error) => return tool_error(error),
+            Err(error) => return work_domain_tool_error("work.snapshot.commit", error),
         };
         let command = work::CommitSnapshot {
             work_ref: request.work_ref,
@@ -595,7 +724,7 @@ impl HostMcp {
         };
         match self.pg.work_snapshot_commit(&command).await {
             Ok(value) => structured(value),
-            Err(error) => tool_error(error),
+            Err(error) => db_tool_error("work.snapshot.commit", error),
         }
     }
 }
@@ -613,6 +742,55 @@ impl ServerHandler for HostMcp {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn python_outer_extra_ignore_but_nested_snapshot_is_strict() {
+        let host: HostStatusRequest =
+            serde_json::from_value(json!({"detail":"summary","unknownExtra":"ignored"}))
+                .expect("Python MCP tool parameters ignore extra top-level fields");
+        assert_eq!(host.detail, HostStatusDetail::Summary);
+        let get: WorkGetRequest =
+            serde_json::from_value(json!({"workRef":"work:test:extra","unknownExtra":1}))
+                .expect("tool-level extra parameters ignored");
+        assert_eq!(get.work_ref, "work:test:extra");
+        assert!(serde_json::from_value::<WorkSnapshotWire>(json!({
+            "objective":"x","frontier":"y","unknownExtra":1
+        }))
+        .is_err());
+    }
+
+    #[test]
+    fn structured_domain_errors_preserve_gateway_recovery_contract() {
+        let result = attention_domain_tool_error(
+            "attention.delta",
+            attention::AttentionError::Conflict(
+                "after_sequence cannot exceed current change horizon".into(),
+            ),
+        );
+        assert_eq!(result.is_error, Some(true));
+        let value = result.structured_content.expect("structured error");
+        assert_eq!(value["error"]["kind"], "ordivon.host-domain-error");
+        assert_eq!(value["error"]["code"], "CONFLICT");
+        assert_eq!(value["error"]["retryable"], false);
+        assert_eq!(
+            value["error"]["suggestedAction"],
+            "reread-current-state-and-reconcile"
+        );
+        let result = work_domain_tool_error(
+            "work.get",
+            work::WorkError::NotFound("work:test:missing".into()),
+        );
+        let value = result.structured_content.unwrap();
+        assert_eq!(value["error"]["code"], "NOT_FOUND");
+        assert_eq!(value["error"]["resourceKind"], "work");
+        assert_eq!(value["error"]["resourceRef"], "work:test:missing");
+        let internal = db_tool_error(
+            "work.snapshot.commit",
+            HostDbError::Pool("invalid config".into()),
+        );
+        assert_eq!(internal.is_error, Some(true));
+        assert!(internal.structured_content.is_none());
+    }
 
     #[test]
     fn incomplete_surface_is_explicit() {

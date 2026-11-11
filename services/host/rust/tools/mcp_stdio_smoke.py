@@ -162,6 +162,42 @@ try:
         19,
     )
     assert unfollow["structuredContent"]["admission"] in {"committed", "existing"}, unfollow
+    # Negative wire parity: expected domain rejections are typed and recoverable
+    # by the Gateway rather than opaque, unclassified text failures.
+    future = request(
+        "tools/call",
+        {"name": "attention.delta", "arguments": {
+            "actorRef": "actor:test:rust-mcp", "afterSequence": 1000000000
+        }},
+        20,
+    )
+    assert future.get("isError") is True, future
+    error = future.get("structuredContent", {}).get("error")
+    assert error and error["code"] == "CONFLICT", future
+    assert error["kind"] == "ordivon.host-domain-error", future
+    assert error["retryable"] is False, future
+    assert error["suggestedAction"] == "reread-current-state-and-reconcile", future
+    assert future["content"][0]["text"].startswith(
+        "Error executing tool attention.delta: {"
+    ), future
+    absent = request(
+        "tools/call",
+        {"name": "work.get", "arguments": {"workRef": "work:test:never-existed"}},
+        21,
+    )
+    assert absent.get("isError") is True, absent
+    missing = absent.get("structuredContent", {}).get("error")
+    assert missing and missing["code"] == "NOT_FOUND", absent
+    assert missing["resourceKind"] == "work", absent
+    bad_cursor = request(
+        "tools/call",
+        {"name": "subscription.list", "arguments": {
+            "actorRef": "actor:test:rust-mcp", "afterTargetKind": "work"
+        }},
+        22,
+    )
+    assert bad_cursor.get("structuredContent", {}).get("error", {}).get("code") == "INVALID_ARGUMENT"
+    print("MCP_DOMAIN_ERROR_ENVELOPE_PASS conflicts=typed not_found=typed invalid_argument=typed")
     print(
         "MCP_STDIO_PASS"
         f" version={initialized['protocolVersion']} tools={names}"
