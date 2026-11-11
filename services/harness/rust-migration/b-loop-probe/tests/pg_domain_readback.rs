@@ -2,7 +2,7 @@
 //! No Tool execution and no production PG credentials are used.
 use ordivon_harness_core::{canonical_bytes, loads_strict, CanonicalDocument, CanonicalRef};
 use ordivon_harness_loop_b_probe::pg_domain_read::{
-    inspect_pg_domain_run, ExpectedModel, PgDomainInspectionError,
+    inspect_pg_domain_run, inspect_pg_no_tool_run, ExpectedModel, PgDomainInspectionError,
 };
 use ordivon_harness_loop_b_probe::tool_call::{inspect_model_tool_call, ModelToolCallStanding};
 use ordivon_harness_loop_b_probe::tool_surface::ToolSurfaceError;
@@ -196,4 +196,103 @@ fn python_pg_run_v2_contract_binds_exact_custom_tool_surface_without_dispatch() 
         println!("PG18_B_CONSUMER_CONTRACT_REJECTED={count}");
     }
     println!("PG18_PYTHON_CONTRACT_DOMAIN_GRANT_AND_MODEL_BOUND_READONLY_PASS");
+}
+
+/// Python HarnessAgentBridge is a real zero-Tool Provider-only Run contract,
+/// distinct from custom DomainToolCatalog and independently bound Runtime
+/// Search. No effectful tool can be constructed from ObservedNoToolRun.
+#[test]
+#[ignore = "requires A-owned disposable PostgreSQL18 fixture; no production connection"]
+fn python_pg_no_tool_run_refuses_custom_mixed_and_runtime_search_surfaces() {
+    let dsn = std::env::var("HARNESS_RUST_TEST_PG_DSN").expect("PG DSN");
+    let schema = std::env::var("HARNESS_RUST_TEST_SCHEMA").expect("scratch schema");
+    let fixture = std::env::var("HARNESS_RUST_TEST_FIXTURE_PATH").expect("fixture path");
+    let all = loads_strict(&fs::read_to_string(fixture).unwrap()).unwrap();
+    let no_tool = all.get("no_tool").expect("real Python no-Tool fixture");
+    let expected = ExpectedModel {
+        provider_id: text(&no_tool, "providerId"),
+        adapter_id: text(&no_tool, "adapterId"),
+        requested_model_id: text(&no_tool, "requestedModelId"),
+    };
+    let run_id = text(&no_tool, "runId");
+    let mut client = Client::connect(&dsn, NoTls).unwrap();
+    let observed = inspect_pg_no_tool_run(&mut client, &schema, run_id, expected)
+        .expect("Python no-Tool Contract via A real PG Reader must be accepted");
+    assert_eq!(observed.run_id(), run_id);
+    assert_eq!(observed.contract_digest(), text(&no_tool, "contractDigest"));
+    assert_eq!(observed.revision(), 1);
+    assert_eq!(observed.status(), "created");
+    assert_eq!(observed.model_visible_tool_count(), 0);
+    assert_eq!(observed.provider_id(), expected.provider_id);
+    assert_eq!(observed.adapter_id(), expected.adapter_id);
+    assert_eq!(observed.model_id(), expected.requested_model_id);
+
+    for (field, incorrect) in [
+        (
+            "providerId",
+            ExpectedModel {
+                provider_id: "provider:other",
+                ..expected
+            },
+        ),
+        (
+            "adapterId",
+            ExpectedModel {
+                adapter_id: "adapter:other",
+                ..expected
+            },
+        ),
+        (
+            "requestedModelId",
+            ExpectedModel {
+                requested_model_id: "model:other",
+                ..expected
+            },
+        ),
+    ] {
+        assert!(matches!(
+            inspect_pg_no_tool_run(&mut client, &schema, run_id, incorrect),
+            Err(PgDomainInspectionError::ProviderSelectionMismatch(name)) if name == field
+        ));
+    }
+    // A's PG Contract schema intentionally permits these different valid
+    // digest-bearing compositions. The no-Tool consumer must not confuse them.
+    for disallowed in [
+        text(&no_tool, "mixedRunId"),
+        text(&no_tool, "runtimeSearchRunId"),
+        text(&all.get("domain_bridge").unwrap(), "runId"),
+    ] {
+        assert!(
+            matches!(
+                inspect_pg_no_tool_run(&mut client, &schema, disallowed, expected),
+                Err(PgDomainInspectionError::NotNoToolRunSurface)
+            ),
+            "non-no-Tool Run was admitted as Provider-only: {disallowed}"
+        );
+    }
+    assert!(matches!(
+        inspect_pg_no_tool_run(&mut client, &schema, "harness-run:unknown", expected),
+        Err(PgDomainInspectionError::Store(ReadError::MissingRun(_)))
+    ));
+    // Verify source Python digests are actually the very two frozen IDs
+    // recognized by this Rust path. If they diverged, the legitimate test
+    // above would fail rather than silently allowing any no-Tool-sounding Run.
+    assert_ne!(
+        text(&no_tool, "catalogDigest"),
+        text(&no_tool, "grantDigest")
+    );
+
+    if let Ok(bad_cases) = std::env::var("HARNESS_RUST_TEST_INVALID_CONTRACT_CASES") {
+        let mut count = 0;
+        for line in bad_cases.lines() {
+            let (_, bad_id) = line.split_once('|').unwrap();
+            assert!(matches!(
+                inspect_pg_no_tool_run(&mut client, &schema, bad_id, expected),
+                Err(PgDomainInspectionError::Store(ReadError::Corruption(_)))
+            ));
+            count += 1;
+        }
+        assert_eq!(count, 24);
+    }
+    println!("PG18_PYTHON_NO_TOOL_PROVIDER_ONLY_CONSUMER_PASS");
 }

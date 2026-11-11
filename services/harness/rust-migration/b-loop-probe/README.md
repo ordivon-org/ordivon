@@ -64,14 +64,32 @@ Production Python sources used as oracles:
   privately constructed `ObservedDomainRun` with a source-bound **observation**
   and pure ToolCall preflight; NOT a fresh Lease, Writer Fence, Effect Intent,
   Tool execution grant, Provider availability result, or capability token.
-  This also does not qualify the separate no-Tool or Runtime Search Run modes.
+  This custom mode **does not** qualify the separate no-Tool or Runtime
+  Search Run modes.
+- The same `pg_domain_read.rs` also supports a distinct **Provider-only,
+  zero-Tool Run** via `inspect_pg_no_tool_run`. It reuses exactly the same
+  A-owned PG reader, v1/v2 Contract gate and Provider/Adapter/Model identity
+  checker. It recreates the fixed Python `NO_TOOL_AGENT_SURFACE` and
+  `NO_TOOL_AGENT_GRANT` hashes using A's sealed Canonical builder; no opaque
+  hardcoded digest and no new registry. The returned private
+  `ObservedNoToolRun` has zero model-visible Tool entries and **no Tool
+  preflight or execution method**. A mixed no-Tool/Domain Grant, custom Run
+  or built-in Runtime Search Run fails closed. This is still only a
+  snapshot observation, not an authorized Provider request.
 - An opt-in extension to A's existing disposable PG18 runner reuses the same
   private database and Python `PostgresHarnessStore` to create a true
   Contract-bound Domain Tool Run, then invokes Rust `pg_domain_readback`
   through the read-only role. Tests fail closed for mismatched Provider,
   Adapter, Model, tool Catalog/Grant, mutated Catalog, missing Run,
-  rejected/duplicate/unavailable model Tool Calls. No second PG bootstrap
-  script, no raw database writer in B, and no physical Tool effects.
+  rejected/duplicate/unavailable model Tool Calls. The source-authoritative
+  Python `AgentToolCall.to_dict()/digest` in this same actual PG fixture
+  replaces hand-authored Rust Tool Call JSON (independent reviewer patch
+  `0bb43f` reused by cherry-pick). Three additional real Python Contracts
+  exercise no-Tool, mixed Grant and built-in Runtime Search surfaces;
+  Rust accepts only the exact no-Tool pair and still rejects all 24
+  independent CAS-consistent but semantically invalid Run Contracts in
+  both custom and no-Tool consumer paths. No second PG bootstrap script,
+  no raw database writer in B, and no physical Tool effects.
 - Whole-root Cargo fmt/test/clippy -D warnings pass. The A PG Reader's
   separate disposable PostgreSQL 18.6 integration verifies Python-writer
   → Rust SELECT-only readback and five real normal/corruption/legacy cases.
@@ -112,19 +130,21 @@ this Harness tree. Do not replace them with hand-copied expected behavior.
 - A's legacy PG Reader may classify hash-verified, Python-legal deep CAS as
   UnsupportedLegacyRepresentation; this must never be treated as proven
   corruption, false effect or a safe replay.
-- **P0 independent semantic counterexample**: the current Rust
-  `harness-pg.read_run_readonly` can accept a digest-consistent Run with a
-  Python-invalid `HarnessRunContract` (e.g. empty `providerId`).
-  A complete versioned Contract validator, including Python-valid historical
-  cases, must pass before any of B's digest/Tool/Provider projections become
-  consumer authority. Independent reviewer supplied 24 invalid / 10 valid
-  scratch-PG tests; normal PG and CI green do not waive this block.
+- **Historical P0 Contract semantic counterexample is now regression-guarded**:
+  on the older Rust Reader a CAS-consistent, Python-invalid Contract was
+  incorrectly accepted. A's newer full versioned v1/v2 Contract semantic
+  validator now rejects all 24 independent negative PG cases and accepts
+  10 true Python-valid Run Contracts, including from both B custom/no-Tool
+  consumers in this opt-in scratch-PG test. This bounded corpus is **not**
+  proof of all historical domain representations or executable standing.
 - The model preflight returns only `NeedsAuthenticatedContractAndDurableAdmission`.
   It cannot create a durable ToolStepIntent, validate a complete Run Contract,
   send a Runtime tool, or reconcile an uncertain physical effect.
 - The Python DomainToolCatalog is for **custom domain bridges** only;
-  no-Tool and built-in Runtime-search surfaces retain their separate Python
-  Run Contract composition rules and are not implicitly granted here.
+  Provider-only no-Tool is separately qualified for read-only observation;
+  built-in Runtime Search remains a distinct composition requiring the
+  real HarnessExecutionBinding and Runtime Client. Neither path gains
+  physical Provider/Tool admission from these read-only consumers.
 
 Independent C consumer adversarial review is still required before PR/main
 promotion. Keep the one Host Space/Topic/Work and one A PG authority.
