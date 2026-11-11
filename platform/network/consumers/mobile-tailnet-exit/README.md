@@ -8,8 +8,16 @@ and no Windows or WSL host default-route takeover.
 The Tailscale daemon advertises Exit Node routes. Tailnet administrative
 approval and device-level selection are separate requirements. ready.py verifies
 service, namespace, Tailscale online state, advertised routes, admin approval
-and Gluetun's **native healthcheck** by executing `/gluetun-entrypoint healthcheck` inside the exact provider container. It does not require unrelated OKX, OpenAI, Anthropic or Docker Registry responses to report the mobile Exit Node as healthy. `clientPublicExit=NOT_EVALUATED` makes explicit that this is **not** iOS client public-exit verification. If the provider PID changes, the child daemon
-is terminated and the service loops into a fresh provider namespace.
+and Gluetun's **native healthcheck** by executing `/gluetun-entrypoint healthcheck` inside the exact provider container. It does not require unrelated OKX, OpenAI, Anthropic or Docker Registry responses to report the mobile Exit Node as healthy. `clientPublicExit=NOT_EVALUATED` makes explicit that this is **not** iOS client public-exit verification. If the physical provider disappears or its network namespace identity
+changes, the child daemon is terminated and the native systemd backoff starts a
+new Tailscale session in the newly selected provider namespace.
+
+The loop uses Bash's -ef test on /proc/PID/ns/net (same kernel namespace
+inode) rather than asking Podman to inspect its container every second.
+This maintains the existing fail-closed namespace identity predicate while
+removing repeated Podman CLI launches. Process existence alone is insufficient;
+the inode comparison also rejects a live process in a different namespace.
+It does not prove the upstream VPN is healthy or an iOS client selected it.
 
 The deployment initially used constant 3-second systemd service restarts while
 the provider was unavailable, causing more than 11,000 retries in one outage.
