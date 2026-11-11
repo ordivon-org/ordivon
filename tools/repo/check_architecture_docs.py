@@ -6,12 +6,11 @@ import hashlib
 import json
 import math
 import re
+import tomllib
 from decimal import Decimal
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
@@ -1623,6 +1622,101 @@ def gateway_tools(source: str) -> set[str]:
     return set(re.findall(r'@server\.tool\(name="([^"]+)"\)', source))
 
 
+def gateway_conditional_host_tools(gateway_source: str, work_source: str) -> set[str]:
+    """Refine optional tool definitions against the actual trusted HTTP/PDP gate.
+
+    The Gateway's mcp-surface.json is its default registered profile, not all
+    source decorators in opt-in branches. Count every decorator as default only
+    when it is not behind the verified-Principal and Security-PDP conjunction.
+    The Python AST avoids treating a harmless multiline registration as drift.
+    """
+    try:
+        gateway_tree = ast.parse(gateway_source)
+        work_tree = ast.parse(work_source)
+    except SyntaxError as exc:
+        raise ArchitectureDocsError("Gateway Host tool source cannot be parsed") from exc
+
+    builders = [
+        node for node in gateway_tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == "build_server"
+    ]
+    if len(builders) != 1:
+        raise ArchitectureDocsError("Gateway Host tool registry is not composed by build_server")
+    registrations = [
+        node for node in ast.walk(builders[0])
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "register_host_tools"
+    ]
+    if len(registrations) != 1:
+        raise ArchitectureDocsError("Gateway Host tool registry is not composed by build_server")
+    call = registrations[0]
+    if [ast.unparse(arg) for arg in call.args] != ["server", "gateway", "_owner_boundary"]:
+        raise ArchitectureDocsError("Gateway Host tool registry lost its owner adapter")
+    parameters = {keyword.arg: keyword.value for keyword in call.keywords}
+    required_guard = ast.parse(
+        "require_http_execution_identity and capability_authorizer is not None",
+        mode="eval",
+    ).body
+    actual_guard = parameters.get("register_engagement")
+    if (
+        len(parameters) != len(call.keywords)
+        or set(parameters) != {"register_engagement"}
+        or actual_guard is None
+        or ast.dump(actual_guard, include_attributes=False)
+        != ast.dump(required_guard, include_attributes=False)
+    ):
+        raise ArchitectureDocsError(
+            "Gateway Work engagement registration must require verified HTTP and Security PDP"
+        )
+
+    owners = [
+        node for node in work_tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == "register_host_work_tools"
+    ]
+    if len(owners) != 1:
+        raise ArchitectureDocsError("Gateway Host Work tool owner registration missing")
+    guards = [
+        node for node in ast.walk(owners[0])
+        if isinstance(node, ast.If)
+        and isinstance(node.test, ast.Name)
+        and node.test.id == "register_engagement"
+    ]
+    if len(guards) != 1:
+        raise ArchitectureDocsError("Gateway Work engagement tools lost conditional registration")
+
+    def registered_name(function: ast.FunctionDef | ast.AsyncFunctionDef) -> str | None:
+        for decorator in function.decorator_list:
+            if (
+                isinstance(decorator, ast.Call)
+                and isinstance(decorator.func, ast.Attribute)
+                and isinstance(decorator.func.value, ast.Name)
+                and decorator.func.value.id == "server"
+                and decorator.func.attr == "tool"
+            ):
+                for keyword in decorator.keywords:
+                    if keyword.arg == "name" and isinstance(keyword.value, ast.Constant):
+                        return keyword.value.value if isinstance(keyword.value.value, str) else None
+        return None
+
+    guarded = [
+        registered_name(node) for node in ast.walk(guards[0])
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+    expected = {"work.engagement.advance", "work.engagement.list"}
+    if len(guarded) != len(expected) or set(guarded) != expected:
+        raise ArchitectureDocsError("Gateway conditional Work tools drifted from approved profile")
+    all_names = [
+        registered_name(node) for node in ast.walk(owners[0])
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+    if any(all_names.count(name) != 1 for name in expected):
+        raise ArchitectureDocsError("Gateway Work tools escape or duplicate their guarded profile")
+    return expected
+
+
 def validate_source_tool_surface(
     observed_tools: set[str], manifest: dict[str, Any], *, service: str
 ) -> set[str]:
@@ -2326,13 +2420,15 @@ def validate_repository(root: Path = ROOT) -> None:
         )
 
     gateway_source = gateway_mcp.read_text(encoding="utf-8")
-    if "register_host_tools(server, gateway, _owner_boundary)" not in gateway_source:
-        raise ArchitectureDocsError("Gateway Host tool registry is not composed by build_server")
-    observed_tools = gateway_tools(
-        gateway_source + "\n" + "\n".join(path.read_text(encoding="utf-8") for path in gateway_host_tool_sources)
-    )
+    host_tool_sources = [path.read_text(encoding="utf-8") for path in gateway_host_tool_sources]
+    conditional_tools = gateway_conditional_host_tools(gateway_source, host_tool_sources[0])
+    observed_tools = gateway_tools(gateway_source + "\n" + "\n".join(host_tool_sources))
+    if not conditional_tools <= observed_tools:
+        raise ArchitectureDocsError("Gateway conditional Work tools lack actual source decorators")
+    # Manifest tools describe the default Tool profile. Opt-in HTTP+PDP tools
+    # are defined by source but must not appear unconditionally in its digest.
     source_tools = validate_source_tool_surface(
-        observed_tools,
+        observed_tools - conditional_tools,
         _load_json(root / GATEWAY_SURFACE_MANIFEST.relative_to(ROOT)),
         service="ordivon-gateway",
     )

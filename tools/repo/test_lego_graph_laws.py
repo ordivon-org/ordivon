@@ -2469,11 +2469,13 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     actual_gateway = _mcp_decorated_route_functions(
         ROOT / "services/gateway/src/ordivon_gateway/host_tools.py", "server",
         source_override=gateway_text)
-    # Bind real registrar composition to the northbound entry point, not
-    # detached source declarations that happen to mention tool names.
-    assert "register_host_tools(server, gateway, _owner_boundary)" in (
-        ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py"
-    ).read_text()
+    # Reuse the same source AST refinement gate as the architecture checker:
+    # a correct multiline call must count, but an unguarded Work acceptance
+    # exposure must NOT. Do not maintain a second brittle string predicate.
+    assert module.gateway_conditional_host_tools(
+        (ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py").read_text(),
+        (ROOT / "services/gateway/src/ordivon_gateway/host_work_tools.py").read_text(),
+    ) == {"work.engagement.advance", "work.engagement.list"}
     dispatches = {
         "work.create": ("work", "create_work"),
         "work.get": ("work", "get_work"),

@@ -64,6 +64,64 @@ def test_gateway_source_surface_is_owned_by_source_manifest() -> None:
         module.validate_source_tool_surface(observed, mutated, service="ordivon-gateway")
 
 
+def test_gateway_conditional_work_tools_have_exact_verified_http_pdp_composition() -> None:
+    gateway = (ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py").read_text()
+    work = (ROOT / "services/gateway/src/ordivon_gateway/host_work_tools.py").read_text()
+    assert module.gateway_conditional_host_tools(gateway, work) == {
+        "work.engagement.advance", "work.engagement.list"
+    }
+    registered = module.gateway_tools(gateway + "\n" + work)
+    manifest = json.loads(GATEWAY_SURFACE.read_text())
+    # Source-defined gated tools are not the default installed Tool profile.
+    assert registered - module.gateway_conditional_host_tools(gateway, work) <= set(manifest["tools"])
+
+
+@pytest.mark.parametrize(
+    ("gateway_old", "gateway_new", "work_old", "work_new", "error"),
+    [
+        (
+            "register_engagement=require_http_execution_identity and capability_authorizer is not None",
+            "register_engagement=require_http_execution_identity or capability_authorizer is not None",
+            None, None, "must require verified HTTP and Security PDP",
+        ),
+        (
+            "register_host_tools(",
+            "register_unverified_host_tools(",
+            None, None, "not composed by build_server",
+        ),
+        (
+            None, None,
+            "if register_engagement:",
+            "if True:",
+            "lost conditional registration",
+        ),
+        (
+            None, None,
+            '@server.tool(name="work.engagement.list")',
+            '@server.tool(name="work.engagement.unrestricted")',
+            "drifted from approved profile",
+        ),
+    ],
+)
+def test_gateway_architecture_rejects_weakened_host_tool_authorization(
+    gateway_old: str | None,
+    gateway_new: str | None,
+    work_old: str | None,
+    work_new: str | None,
+    error: str,
+) -> None:
+    gateway = (ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py").read_text()
+    work = (ROOT / "services/gateway/src/ordivon_gateway/host_work_tools.py").read_text()
+    if gateway_old:
+        assert gateway.count(gateway_old) == 1
+        gateway = gateway.replace(gateway_old, gateway_new or "", 1)
+    if work_old:
+        assert work.count(work_old) == 1
+        work = work.replace(work_old, work_new or "", 1)
+    with pytest.raises(module.ArchitectureDocsError, match=error):
+        module.gateway_conditional_host_tools(gateway, work)
+
+
 def test_gateway_cannot_become_authoritative() -> None:
     value = graph()
     value["defaultNorthbound"]["authoritative"] = True
