@@ -110,6 +110,15 @@ fi
 printf '%s\\n' "$observed"
 """
 
+[tasks."verify:nonlive:nautilus"]
+description = "Run pinned upstream NautilusTrader rc9 through existing Finance nonlive reconciliation"
+run = """
+set -euo pipefail
+uv lock --check
+uv run --locked --group nonlive python -c 'import nautilus_trader; assert nautilus_trader.__version__ == "2.0.0rc9"'
+PYTHONPATH=src uv run --locked --group nonlive python tools/nautilus_rc4/nonlive_effect_matrix.py
+"""
+
 [tasks."verify:provider"]
 description = "Run node-local external-provider and credential-bound qualification tests"
 run = """
