@@ -491,3 +491,205 @@ async fn topic_resume_detects_corruption_in_fetched_but_byte_trimmed_message() {
     let result = social::resume_topic(&mut db, &topic, 0, 2, 131_072).await;
     assert!(matches!(result, Err(social::SocialError::Integrity(_))));
 }
+
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18, full Host Alembic schema13, HOST_RUST_TEST_DSN"]
+async fn topic_create_receipts_and_participation_desired_state() {
+    let mut client = connect().await;
+    client
+        .batch_execute("SET TIME ZONE 'Asia/Shanghai'")
+        .await
+        .unwrap();
+    let (actor, space, _) = seed(&client, "native-topic-create-r3").await;
+    let input = social::CreateTopic {
+        topic_ref: "topic:host-rust-b:native-r3-new".into(),
+        space_ref: space.clone(),
+        title: "Native Rust discussion 🧩".into(),
+        actor_ref: actor.clone(),
+        client_request_id: "request:host-rust-b:r3-topic-create".into(),
+    };
+    let created = social::create_topic(&mut client, &input).await.unwrap();
+    assert_eq!(created["admission"], "committed");
+    assert_eq!(created["state"], "open");
+    assert!(created["createdAt"].as_str().unwrap().ends_with("+08:00"));
+    let replay = social::create_topic(&mut client, &input).await.unwrap();
+    assert_eq!(replay["admission"], "existing");
+    assert_eq!(replay["createdAt"], created["createdAt"]);
+    let mut changed = input.clone();
+    changed.title = "Different initial semantics".into();
+    assert!(social::create_topic(&mut client, &changed).await.is_err());
+    let mut second_request = changed.clone();
+    second_request.client_request_id = "request:host-rust-b:r3-topic-create-changed".into();
+    assert!(social::create_topic(&mut client, &second_request)
+        .await
+        .is_err());
+
+    let joined = social::set_participation(
+        &mut client,
+        &space,
+        &actor,
+        social::ParticipationStanding::Joined,
+        "same-identity",
+    )
+    .await
+    .unwrap();
+    assert_eq!(joined["standing"], "joined");
+    assert!(joined["updatedAt"].as_str().unwrap().ends_with("+08:00"));
+    let again = social::set_participation(
+        &mut client,
+        &space,
+        &actor,
+        social::ParticipationStanding::Joined,
+        "same-identity",
+    )
+    .await
+    .unwrap();
+    assert_eq!(again, joined);
+    let left = social::set_participation(
+        &mut client,
+        &space,
+        &actor,
+        social::ParticipationStanding::Left,
+        "same-identity",
+    )
+    .await
+    .unwrap();
+    assert_eq!(left["standing"], "left");
+    let rejoined = social::set_participation(
+        &mut client,
+        &space,
+        &actor,
+        social::ParticipationStanding::Joined,
+        "same-identity",
+    )
+    .await
+    .unwrap();
+    assert_eq!(rejoined["standing"], "joined");
+
+    let count: i64 = client
+        .query_one(
+            "SELECT count(*) FROM topics WHERE topic_ref=$1",
+            &[&input.topic_ref],
+        )
+        .await
+        .unwrap()
+        .get(0);
+    assert_eq!(count, 1);
+}
+
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18, full Host Alembic schema13, HOST_RUST_TEST_DSN"]
+async fn space_create_get_and_reply_loss_replay_are_exact() {
+    let mut client = connect().await;
+    client
+        .batch_execute("SET TIME ZONE 'Asia/Shanghai'")
+        .await
+        .unwrap();
+    let actor = "actor:host-rust-b:space-create-r3";
+    client
+        .execute(
+            "INSERT INTO actor_refs(actor_ref,actor_kind) VALUES($1,'agent')",
+            &[&actor],
+        )
+        .await
+        .unwrap();
+    let input = social::CreateSpace {
+        space_ref: "space:host-rust-b:space-create-r3".into(),
+        purpose: "Rust 领域创建 Space 🧩".into(),
+        actor_ref: actor.into(),
+        subject_refs: vec!["topic:引用".into(), "work:backlink".into()],
+        client_request_id: "request:host-rust-b:space-create-r3".into(),
+    };
+    let created = social::create_space(&mut client, &input).await.unwrap();
+    assert_eq!(created["admission"], "committed");
+    assert_eq!(created["subjectCount"], 2);
+    assert_eq!(
+        created["subjectRefs"],
+        json!(["topic:引用", "work:backlink"])
+    );
+    assert_eq!(created["participantCount"], 0);
+    assert_eq!(created["topicCount"], 0);
+    assert!(created["createdAt"].as_str().unwrap().ends_with("+08:00"));
+    // Simulate response-loss, then reconnect and re-submit same immutable receipt.
+    drop(client);
+    let mut client = connect().await;
+    let replay = social::create_space(&mut client, &input).await.unwrap();
+    assert_eq!(replay["admission"], "existing");
+    assert_eq!(replay["subjectRefs"], created["subjectRefs"]);
+    assert_eq!(replay["createdAt"], created["createdAt"]);
+    let mut conflict = input.clone();
+    conflict.subject_refs = vec!["different".into()];
+    assert!(social::create_space(&mut client, &conflict).await.is_err());
+    conflict.client_request_id = "request:host-rust-b:space-create-r3-changed".into();
+    assert!(social::create_space(&mut client, &conflict).await.is_err());
+    // Connection reopen resets the PostgreSQL session timezone. The Python
+    // Host's datetime.isoformat is also session-local; a new read in UTC may
+    // legitimately format the same instant differently from the receipt's +08.
+    let utc_read = social::get_space(&mut client, &input.space_ref, 200, 200, 2_097_152)
+        .await
+        .unwrap();
+    assert!(utc_read["createdAt"].as_str().unwrap().ends_with("+00:00"));
+    client
+        .batch_execute("SET TIME ZONE 'Asia/Shanghai'")
+        .await
+        .unwrap();
+    let got = social::get_space(&mut client, &input.space_ref, 200, 200, 2_097_152)
+        .await
+        .unwrap();
+    let mut expected = created.clone();
+    expected.as_object_mut().unwrap().remove("admission");
+    assert_eq!(got, expected);
+    // Python SpaceInput strips U+001C at boundaries: Rust must not weaken it.
+    let mut invalid = input.clone();
+    invalid.space_ref = "space:host-rust-b:bad\u{001c}".into();
+    invalid.client_request_id = "request:host-rust-b:space-create-r3-bad".into();
+    assert!(social::create_space(&mut client, &invalid).await.is_err());
+}
+
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18, full Host Alembic schema13, HOST_RUST_TEST_DSN"]
+async fn concurrent_space_creation_has_one_authoritative_subject_set() {
+    let a = connect().await;
+    let (actor, _, _) = seed(&a, "space-concurrent-r3").await;
+    drop(a);
+    let mut a = connect().await;
+    let mut b = connect().await;
+    let left = social::CreateSpace {
+        space_ref: "space:host-rust-b:race-r3".into(),
+        purpose: "same purpose".into(),
+        actor_ref: actor.clone(),
+        subject_refs: vec!["subject:left".into()],
+        client_request_id: "request:host-rust-b:race-left".into(),
+    };
+    let mut right = left.clone();
+    right.subject_refs = vec!["subject:right".into()];
+    right.client_request_id = "request:host-rust-b:race-right".into();
+    let (left_result, right_result) = tokio::join!(
+        social::create_space(&mut a, &left),
+        social::create_space(&mut b, &right)
+    );
+    assert_eq!(
+        u8::from(left_result.is_ok()) + u8::from(right_result.is_ok()),
+        1,
+        "one unique space cannot commit two different authoritative subjects"
+    );
+    let chosen = left_result.ok().or(right_result.ok()).unwrap();
+    let subject: String = b
+        .query_one(
+            "SELECT subject_ref FROM space_subjects WHERE space_ref=$1",
+            &[&left.space_ref],
+        )
+        .await
+        .unwrap()
+        .get(0);
+    assert_eq!(chosen["subjectRefs"], json!([subject]));
+    let count: i64 = b
+        .query_one(
+            "SELECT count(*) FROM space_subjects WHERE space_ref=$1",
+            &[&left.space_ref],
+        )
+        .await
+        .unwrap()
+        .get(0);
+    assert_eq!(count, 1);
+}

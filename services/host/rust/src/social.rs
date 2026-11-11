@@ -786,6 +786,503 @@ pub async fn get_topic_cursor(
     }))
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CreateTopic {
+    pub topic_ref: String,
+    pub space_ref: String,
+    pub title: String,
+    pub actor_ref: String,
+    pub client_request_id: String,
+}
+
+impl CreateTopic {
+    fn validate(&self) -> Result<()> {
+        validate_ref(&self.topic_ref, 3, 1024, "topic_ref")?;
+        validate_ref(&self.space_ref, 3, 1024, "space_ref")?;
+        validate_ref(&self.title, 1, 512, "title")?;
+        validate_ref(&self.actor_ref, 3, 512, "actor_ref")?;
+        validate_ref(&self.client_request_id, 1, 1024, "client_request_id")
+    }
+}
+
+const TOPIC_FIELDS: &str = "topic_ref,space_ref,title,state,created_by_actor_ref,\
+created_at,updated_at,EXTRACT(TIMEZONE FROM created_at)::integer AS created_tz,\
+EXTRACT(TIMEZONE FROM updated_at)::integer AS updated_tz";
+
+fn topic_created_response(row: &Row, admission: &str) -> Result<Value> {
+    Ok(json!({
+        "schemaVersion":1, "kind":"ordivon.host-topic", "admission":admission,
+        "topicRef":row.get::<_,String>("topic_ref"),
+        "spaceRef":row.get::<_,String>("space_ref"),
+        "title":row.get::<_,String>("title"),
+        "state":row.get::<_,String>("state"),
+        "createdByActorRef":row.get::<_,String>("created_by_actor_ref"),
+        "createdAt":exact_time(row.get("created_at"),row.get("created_tz"))?,
+        "updatedAt":exact_time(row.get("updated_at"),row.get("updated_tz"))?,
+        "truthBoundary":"named asynchronous conversation axis only; not Work lifecycle or authority",
+    }))
+}
+
+/// PostgreSQL unique topic_ref linearizes first creators; a replayed command
+/// receipt is immutable even if the Topic has since changed state.
+pub async fn create_topic(client: &mut Client, command: &CreateTopic) -> Result<Value> {
+    command.validate()?;
+    // Python TopicInput.model_dump(mode="json"): snake_case domain field names.
+    let request_digest = digest(&json!({
+        "operation":"topic.create",
+        "topic_ref":command.topic_ref,
+        "space_ref":command.space_ref,
+        "title":command.title,
+        "actor_ref":command.actor_ref,
+    }))?;
+    let tx = client.transaction().await?;
+    if let Some(existing) = claim_receipt(
+        &tx,
+        &command.client_request_id,
+        "topic.create",
+        &request_digest,
+    )
+    .await?
+    {
+        tx.commit().await?;
+        return Ok(existing);
+    }
+    if tx
+        .query_opt(
+            "SELECT 1 FROM spaces WHERE space_ref=$1",
+            &[&command.space_ref],
+        )
+        .await?
+        .is_none()
+    {
+        return Err(SocialError::NotFound(format!(
+            "space {}",
+            command.space_ref
+        )));
+    }
+    require_actor(&tx, &command.actor_ref).await?;
+    let inserted = tx
+        .query_opt(
+            &format!(
+                "INSERT INTO topics(topic_ref,space_ref,title,state,created_by_actor_ref) \
+             VALUES($1,$2,$3,'open',$4) ON CONFLICT (topic_ref) DO NOTHING \
+             RETURNING {TOPIC_FIELDS}"
+            ),
+            &[
+                &command.topic_ref,
+                &command.space_ref,
+                &command.title,
+                &command.actor_ref,
+            ],
+        )
+        .await?;
+    let (row, admission) = if let Some(row) = inserted {
+        (row, "committed")
+    } else {
+        let row = tx
+            .query_opt(
+                &format!("SELECT {TOPIC_FIELDS} FROM topics WHERE topic_ref=$1"),
+                &[&command.topic_ref],
+            )
+            .await?
+            .ok_or_else(|| SocialError::Integrity("topic declaration disappeared".into()))?;
+        if row.get::<_, String>("space_ref") != command.space_ref
+            || row.get::<_, String>("title") != command.title
+            || row.get::<_, String>("created_by_actor_ref") != command.actor_ref
+        {
+            return Err(SocialError::Conflict(
+                "topic_ref already exists with different initial semantics".into(),
+            ));
+        }
+        (row, "existing")
+    };
+    let result = topic_created_response(&row, admission)?;
+    record_receipt(
+        &tx,
+        &command.client_request_id,
+        "topic.create",
+        &request_digest,
+        &result,
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(result)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ParticipationStanding {
+    Joined,
+    Left,
+    Observer,
+}
+impl ParticipationStanding {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Joined => "joined",
+            Self::Left => "left",
+            Self::Observer => "observer",
+        }
+    }
+}
+
+/// Current desired-state participation; no command receipt. A historical
+/// joined request must not prevent a later left -> joined transition.
+pub async fn set_participation(
+    client: &mut Client,
+    space_ref: &str,
+    actor_ref: &str,
+    standing: ParticipationStanding,
+    _client_request_id: &str,
+) -> Result<Value> {
+    let tx = client.transaction().await?;
+    if tx
+        .query_opt("SELECT 1 FROM spaces WHERE space_ref=$1", &[&space_ref])
+        .await?
+        .is_none()
+    {
+        return Err(SocialError::NotFound(format!("space {space_ref}")));
+    }
+    require_actor(&tx, actor_ref).await?;
+    let inserted = tx
+        .query_opt(
+            "INSERT INTO participations(space_ref,actor_ref,standing) VALUES($1,$2,$3) \
+         ON CONFLICT (space_ref,actor_ref) DO UPDATE \
+         SET standing=EXCLUDED.standing,updated_at=clock_timestamp(),\
+             change_sequence=swf_next_change_sequence() \
+         WHERE participations.standing IS DISTINCT FROM EXCLUDED.standing \
+         RETURNING space_ref,actor_ref,standing,updated_at,\
+                   EXTRACT(TIMEZONE FROM updated_at)::integer AS updated_tz",
+            &[&space_ref, &actor_ref, &standing.as_str()],
+        )
+        .await?;
+    let row = if let Some(row) = inserted {
+        row
+    } else {
+        tx.query_opt(
+            "SELECT space_ref,actor_ref,standing,updated_at,\
+                    EXTRACT(TIMEZONE FROM updated_at)::integer AS updated_tz \
+             FROM participations WHERE space_ref=$1 AND actor_ref=$2",
+            &[&space_ref, &actor_ref],
+        )
+        .await?
+        .ok_or_else(|| SocialError::Integrity("participation update disappeared".into()))?
+    };
+    let result = json!({
+        "schemaVersion":1,"kind":"ordivon.host-participation",
+        "spaceRef":row.get::<_,String>("space_ref"),
+        "actorRef":row.get::<_,String>("actor_ref"),
+        "standing":row.get::<_,String>("standing"),
+        "updatedAt":exact_time(row.get("updated_at"),row.get("updated_tz"))?,
+        "truthBoundary":"social participation only; not ownership, authentication, authorization, assignment, or EffectAuthority",
+    });
+    tx.commit().await?;
+    Ok(result)
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CreateSpace {
+    pub space_ref: String,
+    pub purpose: String,
+    pub actor_ref: String,
+    #[serde(default)]
+    pub subject_refs: Vec<String>,
+    pub client_request_id: String,
+}
+
+fn python_whitespace(ch: char) -> bool {
+    ch.is_whitespace() || ('\u{001c}'..='\u{001f}').contains(&ch)
+}
+fn validate_printable_space_text(value: &str, min: usize, max: usize, field: &str) -> Result<()> {
+    validate_ref(value, min, max, field)?;
+    if value.trim_matches(python_whitespace) != value || value.chars().any(|ch| (ch as u32) < 0x20)
+    {
+        return Err(SocialError::Invalid(
+            "space fields must be trimmed printable text".into(),
+        ));
+    }
+    Ok(())
+}
+impl CreateSpace {
+    fn validate(&self) -> Result<()> {
+        validate_printable_space_text(&self.space_ref, 3, 1024, "space_ref")?;
+        validate_printable_space_text(&self.purpose, 1, 4096, "purpose")?;
+        validate_printable_space_text(&self.actor_ref, 3, 512, "actor_ref")?;
+        validate_ref(&self.client_request_id, 1, 1024, "client_request_id")?;
+        if self.subject_refs.len() > 256 {
+            return Err(SocialError::Invalid(
+                "subject_refs must contain at most 256 entries".into(),
+            ));
+        }
+        let mut seen = std::collections::BTreeSet::new();
+        for reference in &self.subject_refs {
+            if !seen.insert(reference) {
+                return Err(SocialError::Invalid("subject_refs must be unique".into()));
+            }
+            if reference.is_empty() || reference.trim_matches(python_whitespace) != reference {
+                return Err(SocialError::Invalid(
+                    "subject refs must be non-empty trimmed text".into(),
+                ));
+            }
+            if reference.chars().count() > 2048 {
+                return Err(SocialError::Invalid(
+                    "subject refs must be at most 2048 characters".into(),
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+fn space_projection_row_time(row: &Row, field: &str, tz: &str) -> Result<String> {
+    exact_time(row.get(field), row.get(tz))
+}
+
+/// Same bounded embedded projection as Python's _get_space_in_tx. The row
+/// counts and returned prefix are from a SINGLE caller-owned PG transaction.
+/// Social participation does not prove IAM, Work ownership or delegation.
+async fn space_projection_in_tx(
+    tx: &tokio_postgres::Transaction<'_>,
+    space_ref: &str,
+    participant_limit: i64,
+    topic_limit: i64,
+    max_bytes: usize,
+) -> Result<Value> {
+    if !(1..=200).contains(&participant_limit) || !(1..=200).contains(&topic_limit) {
+        return Err(SocialError::Invalid(
+            "embedded participant/topic limits must be in [1,200]".into(),
+        ));
+    }
+    if !(1_048_576..=4_194_304).contains(&max_bytes) {
+        return Err(SocialError::Invalid(
+            "max_bytes must be in [1048576,4194304]".into(),
+        ));
+    }
+    let space = tx
+        .query_opt(
+            "SELECT space_ref,purpose,created_by_actor_ref,created_at,\
+                EXTRACT(TIMEZONE FROM created_at)::integer AS created_tz \
+         FROM spaces WHERE space_ref=$1",
+            &[&space_ref],
+        )
+        .await?
+        .ok_or_else(|| SocialError::NotFound(format!("space {space_ref}")))?;
+    let subject_count: i64 = tx
+        .query_one(
+            "SELECT count(*) FROM space_subjects WHERE space_ref=$1",
+            &[&space_ref],
+        )
+        .await?
+        .get(0);
+    let participant_count: i64 = tx
+        .query_one(
+            "SELECT count(*) FROM participations WHERE space_ref=$1",
+            &[&space_ref],
+        )
+        .await?
+        .get(0);
+    let topic_count: i64 = tx
+        .query_one(
+            "SELECT count(*) FROM topics WHERE space_ref=$1",
+            &[&space_ref],
+        )
+        .await?
+        .get(0);
+    let subject_rows = tx
+        .query(
+            "SELECT subject_ref FROM space_subjects WHERE space_ref=$1 \
+         ORDER BY subject_ref LIMIT 129",
+            &[&space_ref],
+        )
+        .await?;
+    let participant_rows = tx
+        .query(
+            "SELECT actor_ref,standing,updated_at,\
+         EXTRACT(TIMEZONE FROM updated_at)::integer AS updated_tz \
+         FROM participations WHERE space_ref=$1 ORDER BY actor_ref LIMIT $2",
+            &[&space_ref, &(participant_limit + 1)],
+        )
+        .await?;
+    let topic_rows = tx
+        .query(
+            "SELECT topic_ref,title,state,created_by_actor_ref,created_at,updated_at,\
+         EXTRACT(TIMEZONE FROM created_at)::integer AS created_tz,\
+         EXTRACT(TIMEZONE FROM updated_at)::integer AS updated_tz \
+         FROM topics WHERE space_ref=$1 ORDER BY topic_ref LIMIT $2",
+            &[&space_ref, &(topic_limit + 1)],
+        )
+        .await?;
+    let mut subjects = subject_rows
+        .iter()
+        .take(128)
+        .map(|r| r.get::<_, String>("subject_ref"))
+        .collect::<Vec<_>>();
+    let mut participants = participant_rows
+        .iter()
+        .take(participant_limit as usize)
+        .map(|r| -> Result<Value> {
+            Ok(json!({
+                "actorRef":r.get::<_,String>("actor_ref"),
+                "standing":r.get::<_,String>("standing"),
+                "updatedAt":space_projection_row_time(r,"updated_at","updated_tz")?,
+            }))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let mut topics = topic_rows
+        .iter()
+        .take(topic_limit as usize)
+        .map(|r| -> Result<Value> {
+            Ok(json!({
+                "topicRef":r.get::<_,String>("topic_ref"),
+                "title":r.get::<_,String>("title"),
+                "state":r.get::<_,String>("state"),
+                "createdByActorRef":r.get::<_,String>("created_by_actor_ref"),
+                "createdAt":space_projection_row_time(r,"created_at","created_tz")?,
+                "updatedAt":space_projection_row_time(r,"updated_at","updated_tz")?,
+            }))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let space_ref = space.get::<_, String>("space_ref");
+    let purpose = space.get::<_, String>("purpose");
+    let actor_ref = space.get::<_, String>("created_by_actor_ref");
+    let created_at = space_projection_row_time(&space, "created_at", "created_tz")?;
+    loop {
+        let result = json!({
+            "schemaVersion":1,"kind":"ordivon.host-space",
+            "spaceRef":space_ref,"purpose":purpose,
+            "createdByActorRef":actor_ref,"createdAt":created_at,
+            "subjectRefs":subjects,"subjectCount":subject_count,
+            "subjectHasMore":subjects.len() < subject_count as usize,
+            "participants":participants,"participantCount":participant_count,
+            "participantHasMore":participants.len() < participant_count as usize,
+            "topics":topics,"topicCount":topic_count,
+            "topicHasMore":topics.len() < topic_count as usize,
+            "truthBoundary":"social organization record only; participation does not imply identity, authority, ownership, or assignment",
+        });
+        if crate::attention::canonical(&result)?.len() <= max_bytes {
+            return Ok(result);
+        }
+        // Python trims topics first, then participation, then subject refs.
+        if !topics.is_empty() {
+            topics.pop();
+        } else if !participants.is_empty() {
+            participants.pop();
+        } else if !subjects.is_empty() {
+            subjects.pop();
+        } else {
+            return Err(SocialError::Invalid(
+                "max_bytes cannot fit the Space response envelope".into(),
+            ));
+        }
+    }
+}
+
+/// The unique space_ref plus transactionally bound Subjects and Receipt
+/// preserve Python Host's create semantics and response-loss idempotency.
+pub async fn create_space(client: &mut Client, command: &CreateSpace) -> Result<Value> {
+    command.validate()?;
+    let request_digest = digest(&json!({
+        "operation":"space.create","space_ref":command.space_ref,
+        "purpose":command.purpose,"actor_ref":command.actor_ref,
+        "subject_refs":command.subject_refs,
+    }))?;
+    let tx = client.transaction().await?;
+    if let Some(existing) = claim_receipt(
+        &tx,
+        &command.client_request_id,
+        "space.create",
+        &request_digest,
+    )
+    .await?
+    {
+        tx.commit().await?;
+        return Ok(existing);
+    }
+    require_actor(&tx, &command.actor_ref).await?;
+    let inserted = tx
+        .query_opt(
+            "INSERT INTO spaces(space_ref,purpose,created_by_actor_ref) VALUES($1,$2,$3) \
+         ON CONFLICT (space_ref) DO NOTHING RETURNING space_ref",
+            &[&command.space_ref, &command.purpose, &command.actor_ref],
+        )
+        .await?;
+    let admission =
+        if inserted.is_some() {
+            let mut subjects = command.subject_refs.clone();
+            subjects.sort();
+            for subject in &subjects {
+                tx.execute(
+                    "INSERT INTO space_subjects(space_ref,subject_ref) VALUES($1,$2)",
+                    &[&command.space_ref, subject],
+                )
+                .await?;
+            }
+            "committed"
+        } else {
+            let row = tx
+                .query_opt(
+                    "SELECT space_ref,purpose,created_by_actor_ref FROM spaces \
+             WHERE space_ref=$1 FOR UPDATE",
+                    &[&command.space_ref],
+                )
+                .await?
+                .ok_or_else(|| {
+                    SocialError::Integrity("space_ref disappeared after insert conflict".into())
+                })?;
+            let subjects = tx.query(
+            "SELECT subject_ref FROM space_subjects WHERE space_ref=$1 ORDER BY subject_ref",
+            &[&command.space_ref]
+        ).await?.into_iter().map(
+            |r| r.get::<_,String>("subject_ref")
+        ).collect::<Vec<_>>();
+            let mut requested = command.subject_refs.clone();
+            requested.sort();
+            if row.get::<_, String>("purpose") != command.purpose
+                || row.get::<_, String>("created_by_actor_ref") != command.actor_ref
+                || subjects != requested
+            {
+                return Err(SocialError::Conflict(
+                    "space_ref already exists with different initial semantics".into(),
+                ));
+            }
+            "existing"
+        };
+    let mut result = space_projection_in_tx(&tx, &command.space_ref, 200, 200, 2_097_152).await?;
+    result["admission"] = json!(admission);
+    record_receipt(
+        &tx,
+        &command.client_request_id,
+        "space.create",
+        &request_digest,
+        &result,
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(result)
+}
+
+/// Read-only Space projection via one repeatable-read database snapshot.
+pub async fn get_space(
+    client: &mut Client,
+    space_ref: &str,
+    participant_limit: i64,
+    topic_limit: i64,
+    max_bytes: usize,
+) -> Result<Value> {
+    let tx = client
+        .build_transaction()
+        .isolation_level(tokio_postgres::IsolationLevel::RepeatableRead)
+        .read_only(true)
+        .start()
+        .await?;
+    let result =
+        space_projection_in_tx(&tx, space_ref, participant_limit, topic_limit, max_bytes).await?;
+    tx.commit().await?;
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
