@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 import json
 import os
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -33,17 +34,42 @@ os.environ["MLFLOW_TRACKING_URI"] = (OUT / "mlruns").resolve().as_uri()
 SYMBOLS = ("SPY", "QQQ", "IWM")
 START = "2023-01-01"
 END = "2026-10-31"
+# A pinned normalized capture is an offline reproducibility input only; it
+# never retroactively proves historical PIT availability or adjustment basis.
+capture_path = os.environ.get("ORDIVON_FINANCE_R3_CAPTURE_DIR")
+capture_dir = Path(capture_path).resolve() if capture_path else None
+if capture_dir is not None:
+    prior_result = json.loads((capture_dir / "native_study_result.json").read_text(encoding="utf-8"))
+    if prior_result.get("kind") != "ordivon.finance.r3.native-etf-research-only":
+        raise ValueError("Capture manifest kind does not match this consumer")
+    expected_sources = {r["symbol"]: r for r in prior_result["provider_receipts"]}
+    if set(expected_sources) != set(SYMBOLS):
+        raise ValueError("Pinned capture must cover the entire declared ETF universe")
 
 frames: list[pd.DataFrame] = []
 prices: dict[str, pd.Series] = {}
 provider_receipts: list[dict] = []
 for symbol in SYMBOLS:
-    requested = datetime.now(timezone.utc).isoformat()
-    response = obb.cboe.equity.historical(
-        symbol=symbol, start_date=START, end_date=END, provider="cboe"
-    )
-    received = datetime.now(timezone.utc).isoformat()
-    raw_normalized = response.to_dataframe().sort_index()
+    if capture_dir is None:
+        requested = datetime.now(timezone.utc).isoformat()
+        response = obb.cboe.equity.historical(
+            symbol=symbol, start_date=START, end_date=END, provider="cboe"
+        )
+        received = datetime.now(timezone.utc).isoformat()
+        provider_name = str(response.provider)
+        raw_normalized = response.to_dataframe().sort_index()
+    else:
+        origin = expected_sources[symbol]
+        pinned_file = capture_dir / f"openbb_cboe_{symbol}_normalized.csv"
+        pinned_bytes = pinned_file.read_bytes()
+        if sha256(pinned_bytes).hexdigest() != origin["normalized_sha256"]:
+            raise ValueError(f"Capture hash mismatch: {symbol}")
+        requested = origin["requested_at"]
+        received = origin["received_at"]
+        provider_name = str(origin["provider"])
+        if provider_name != "cboe":
+            raise ValueError(f"Unexpected pinned provider: {provider_name}")
+        raw_normalized = pd.read_csv(pinned_file, index_col="session_date").sort_index()
     required = {"open", "high", "low", "close", "volume"}
     if not required.issubset(raw_normalized.columns):
         raise ValueError(f"Provider {symbol} missing columns {required - set(raw_normalized.columns)}")
@@ -60,10 +86,16 @@ for symbol in SYMBOLS:
     if len(raw_normalized) < 400 or raw_normalized.index.has_duplicates:
         raise ValueError(f"Provider {symbol} insufficient/duplicate rows: {len(raw_normalized)}")
     snapshot = OUT / f"openbb_cboe_{symbol}_normalized.csv"
-    raw_normalized.to_csv(snapshot, index_label="session_date")
+    if capture_dir is None:
+        raw_normalized.to_csv(snapshot, index_label="session_date")
+    elif snapshot.resolve() != pinned_file.resolve():
+        shutil.copyfile(pinned_file, snapshot)
+    if capture_dir is not None and sha256(snapshot.read_bytes()).hexdigest() != origin["normalized_sha256"]:
+        raise ValueError(f"Immutable capture was altered during replay: {symbol}")
     provider_receipts.append({
+        "input_mode": "hash_verified_local_replay" if capture_dir is not None else "OpenBB_native_provider_capture",
         "symbol": symbol,
-        "provider": str(response.provider),
+        "provider": provider_name,
         "requested_at": requested,
         "received_at": received,
         "first_session": str(raw_normalized.index.min()),
@@ -77,7 +109,7 @@ for symbol in SYMBOLS:
         "rights_for_redistribution": "UNKNOWN"
     })
     x = raw_normalized
-    dates = pd.to_datetime(x.index)
+    dates = pd.DatetimeIndex(pd.to_datetime(x.index)).as_unit("ns")
     index = pd.MultiIndex.from_arrays(
         [dates, [symbol] * len(x)], names=["datetime", "instrument"]
     )
@@ -157,24 +189,41 @@ prior_returns = history.loc[:decision_at].pct_change(fill_method=None).tail(120)
 if len(prior_returns) < 90:
     raise ValueError("Insufficient trailing return observations for covariance")
 cov_annual = prior_returns.cov() * 252.0
-mu_annual = expected_daily * 252.0
-optimizer = EfficientFrontier(mu_annual, cov_annual, weight_bounds=(0, 1))
-weights = optimizer.max_quadratic_utility(risk_aversion=10.0)
+# Semantic gate: a retrospective, uncalibrated Qlib regression score is
+# NOT an admitted expected-return vector. Demonstrate the optimizer only on
+# independent historical covariance; no executable portfolio target emerges.
+assert all(receipt["historical_available_at"] == "UNKNOWN" for receipt in provider_receipts)
+optimizer = EfficientFrontier(None, cov_annual, weight_bounds=(0, 1))
+weights = optimizer.min_volatility()
 if abs(sum(weights.values()) - 1.0) > 1e-6:
-    raise AssertionError("Native optimizer weights do not sum to one")
+    raise AssertionError("Native min-variance demonstration weights do not sum to one")
 result = {
     "kind": "ordivon.finance.r3.native-etf-research-only",
-    "source_cut": "c883db3bbe211b8a963a3236599e1dc3cfe362ac",
+    "audited_capital_source_cut": "c883db3bbe211b8a963a3236599e1dc3cfe362ac",
     "captured_at": datetime.now(timezone.utc).isoformat(),
+    "data_input_mode": "hash_verified_local_replay" if capture_dir is not None else "OpenBB_native_provider_capture",
+    "replay_is_historical_pit": False,
     "provider_receipts": provider_receipts,
     "qlib_version": qlib.__version__,
+    "session_index_unit": "datetime64[ns] canonical date label",
     "qlib_dataset_sha256": dataset_digest,
     "qlib_split_rows": {"train": len(train), "valid": len(valid), "test": len(test)},
     "qlib_recorder_id": str(recorder_id),
     "qlib_prediction_rows": len(predictions),
     "optim_date": str(decision_at.date()),
-    "pypfopt_native_weights": {k: float(v) for k, v in weights.items()},
-    "prediction_values_annualized": {k: float(v) for k, v in mu_annual.items()},
+    "native_math_only_min_variance_weights": {k: float(v) for k, v in weights.items()},
+    "optimizer_input_kind": "trailing_120_session_sample_covariance",
+    "optimizer_policy_eligible": False,
+    "forecast": {
+        "kind": "uncalibrated_next_session_fractional_close_to_close_regression",
+        "predicted_next_session_fractional_returns": {k: float(v) for k, v in expected_daily.items()},
+        "target_horizon": "next_trading_session_close",
+        "signal_first_available": "UNKNOWN (source backfilled, EOD fields required)",
+        "point_in_time_eligible": False,
+        "calibrated_conditional_distribution": False,
+        "usable_as_optimizer_expected_return": False,
+    },
+    "portfolio_target": None,
     "dataset_is_historically_point_in_time": False,
     "order_effect": "NONE",
     "accounting_effect": "NONE",

@@ -117,6 +117,59 @@ if fills_report["trade_id"].isna().any():
 print("NATIVE_FILL_EXAMPLE", fills_report.head(2).to_json(date_format="iso"))
 native_cache=node.get_engine_cache(config.id)
 native_orders=native_cache.orders()
+# API-specific, same-engine audit: reports and event history must refine
+# the same native order identities and economics. Not external venue proof.
+import pandas as pd
+from collections import Counter
+
+if fills_report.index.name != "client_order_id":
+    raise AssertionError("Nautilus v2 fill report client order index changed")
+if orders_report.index.name != "client_order_id":
+    raise AssertionError("Nautilus v2 orders report client order index changed")
+native_fill_rows = fills_report.reset_index().to_dict("records")
+native_order_ids = {str(o.client_order_id) for o in native_orders}
+native_event_rows = []
+for order in native_orders:
+    for evt in order.events():
+        event_kind = type(evt).__name__
+        if event_kind.startswith("OrderFill") and event_kind != "OrderFilled":
+            raise AssertionError("Native fill correction not supported by this bounded simulation")
+        if event_kind == "OrderFilled":
+            native_event_rows.append(evt.to_dict())
+
+keys = lambda seq: Counter((str(row["client_order_id"]), str(row["trade_id"])) for row in seq)
+if keys(native_fill_rows) != keys(native_event_rows):
+    raise AssertionError("Native fill report and native cached order events do not reconcile")
+if len(native_fill_rows) != len(native_event_rows) or not native_fill_rows:
+    raise AssertionError("Native report vs events row counts mismatch or absent")
+events_by_key = {}
+event_ids = [str(e["event_id"]) for e in native_event_rows]
+if len(set(event_ids)) != len(event_ids):
+    raise AssertionError("Repeated event UUID inside the same native run")
+for event in native_event_rows:
+    key = (str(event["client_order_id"]), str(event["trade_id"]))
+    if key in events_by_key:
+        raise AssertionError("Same trade identity appears twice: restatement/replay not qualified")
+    events_by_key[key] = event
+for fill in native_fill_rows:
+    key = (str(fill["client_order_id"]), str(fill["trade_id"]))
+    event = events_by_key[key]
+    if key[0] not in native_order_ids:
+        raise AssertionError("A native fill lacks a cached native order")
+    for field in ("event_id", "account_id", "instrument_id", "order_side",
+                  "last_qty", "last_px", "commission", "currency"):
+        if str(event[field]) != str(fill[field]):
+            raise AssertionError(f"Native event/report disagree on {field}")
+    if int(event["ts_event"]) != int(pd.Timestamp(fill["ts_event"]).value):
+        raise AssertionError("Native event/report nanosecond timestamp mismatch")
+all_accounts = sorted({str(r["account_id"]) for r in native_fill_rows})
+native_order_accounts = {str(row["account_id"]) for row in orders_report.reset_index().to_dict("records")}
+if len(all_accounts) != 1 or native_order_accounts != set(all_accounts):
+    raise AssertionError("Single-paper-account qualification cannot merge accounts")
+print("NATIVE_REPORT_EVENT_WITNESS", len(native_fill_rows),
+      "account", all_accounts[0],
+      "key=client_order_id+trade_id",
+      "event/report economics identical", True)
 print("NATIVE_ORDER_CACHE", len(native_orders))
 if native_orders:
     sample_order=native_orders[0]
@@ -147,6 +200,11 @@ summary={
     "native_orders":len(orders_report),
     "native_fill_events":len(fills_report),
     "native_positions":len(positions_report),
+    "native_report_event_reconciled":True,
+    "native_single_account":all_accounts[0],
+    "native_report_client_id_is_index":True,
+    "event_corrections_present":False,
+    "external_venue_history_complete":"UNKNOWN",
     "native_result_repr":[repr(x)[:1500] for x in results],
     "capital_effect":"NONE",
     "pg_effect":"NONE",

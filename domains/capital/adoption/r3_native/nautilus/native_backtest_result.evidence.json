@@ -9,6 +9,11 @@
   "native_orders": 18,
   "native_fill_events": 18,
   "native_positions": 9,
+  "native_report_event_reconciled": true,
+  "native_single_account": "SIM-001",
+  "native_report_client_id_is_index": true,
+  "event_corrections_present": false,
+  "external_venue_history_complete": "UNKNOWN",
   "native_result_repr": [
     "BacktestResult(trader_id='TRADER-001', elapsed=20908800.00s, iterations=170, orders=18, positions=9)"
   ],

@@ -1,38 +1,33 @@
-# Finance R3 鈥?NautilusTrader 2.0rc9 native simulation qualification
+# Finance R3 - NautilusTrader 2.0.0rc9 native simulation qualification
 
-Thin independent native BacktestNode/OMS consumer of provider-derived data.
-Run the sibling etf_qlib_consumer.py FIRST to create output/
-openbb_cboe_SPY_normalized.csv (local only, not committed because provider
-redistribution rights are UNKNOWN).
+Native Windows Python3.15 BacktestNode/OMS from SPY close-derived SYNTHETIC
+bid=close-0.01, ask=close+0.01, artificial 21:00 UTC quote timestamps.
+These are NOT real historical market microstructure, PIT observations,
+or the previous-close decision -> next-open fills expected by PG PaperClose.
 
-Run on Windows x64 Python 3.15 (SEPARATE FROM QLIB PYTHON 3.11):
+Run the sibling OpenBB/Qlib capture first, then in this separate env:
   uv venv .venv --python 3.15
   uv pip sync --python .venv/Scripts/python.exe requirements.lock
   .venv/Scripts/python.exe etf_nautilus_native.py
+Optionally set ORDIVON_FINANCE_R3_SPY_CSV to the local capture CSV.
+Price/size from Cboe EOD, but spread, timestamp and liquidity synthetic.
 
-Override source with ORDIVON_FINANCE_R3_SPY_CSV when necessary.
+Nautilus native Equity/QuoteTick/ParquetDataCatalog, VenueConfig,
+DefaultFillModel, MakerTakerFeeModel, EmaCross, BacktestNode
+and generate_fills_report all execute. Setting
+BacktestRunConfig.dispose_on_completion=False retains cache/report access.
+Order.events() includes OrderInitialized, OrderSubmitted, OrderFilled.
 
-Source: Cboe historical EOD close. Derived synthetic QuoteTicks use
-bid = close - $0.01, ask = close + $0.01, 21:00 UTC for each session.
-These ARE NOT real historical quotes or DST-aware exact venue timestamps.
-Native ParquetDataCatalog -> Equity + QuoteTick -> BacktestNode
--> built-in EmaCross strategy -> native OrderFilled/Orders/Positions
-reports. Model is native DefaultFillModel(slippage 0, seed 42) with
-MakerTakerFeeModel; output native_backtest_result.json is ignored by Git.
+IMPORTANT native v2 reports: client_order_id is Pandas INDEX. Reset index
+before converting records; plain to_dict(orient=records) loses identity.
+The script now reconciles every cached native OrderFilled against its
+native report on (client_order_id,trade_id), exact event/account/instrument,
+quantity, price, commission and nanosecond ts_event. All 18 sample records
+refine correctly; one simulated account only. This validates the local
+BacktestNode cache identity and economics, NOT a complete or authenticated
+external venue event history. A correction/void causes this bounded
+consumer to fail closed. event_id may differ across separate replays.
 
-Set BacktestRunConfig.dispose_on_completion=False to keep cache and
-generated reports; the default True drops engine state.
-Native cache.orders() exposes order.events() method, including
-OrderInitialized, OrderSubmitted, OrderFilled. Simulated trade_id is
-repeatable; event_id UUID changes between replays. A fill report's
-client_order_id is its DataFrame index. Report alone does not certify
-complete correction/void/replay history.
-
-No broker, real exchange quotes, real economic validation, PG writes
-or point-in-time authority. Does not conform to Capital's T-1
-decision/T-open fill eligibility and MUST NOT be automatically
-promoted to PG PaperClose or live execution.
-
-Scope: validate mature BacktestNode, venue config, native instrument,
-catalog, fill/commission model, OMS and report/event API semantics.
-Production requires independent native-event-replay equivalence checks.
+Native backtest does not make broker orders, PG postings or capital effects.
+Do NOT send these synthetic fills to Coordinator's strict next-open bridge.
+Source quote authority, correction/restart replay and real economics UNKNOWN.
