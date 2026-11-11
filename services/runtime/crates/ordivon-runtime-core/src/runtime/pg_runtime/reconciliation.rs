@@ -25,58 +25,99 @@ fn runner_result_still_absent(path: &Path) -> RuntimeResult<bool> {
     }
 }
 
-/// Read at most one physical page. A cursor beyond the last unresolved row
-/// wraps to the oldest candidate, so one permanently blocked head cannot
-/// prevent future records from receiving an observation.
+/// One reconciliation epoch has a fixed upper sort key. Fresh jobs beyond
+/// this bound wait for the next epoch instead of continually extending the
+/// current scan and starving an older unresolved job.
+/// PostgreSQL state, not this in-memory cursor, remains the authority.
+fn latest_reconciliation_key(
+    client: &mut postgres::Client,
+    cancelled_only: bool,
+) -> Result<Option<(i64, String)>, postgres::Error> {
+    const SQL: &str = r#"
+        SELECT j.created_at_ms, j.job_id
+        FROM jobs j
+        JOIN attempts a ON a.attempt_id = j.current_attempt_id
+          AND a.job_id = j.job_id
+        WHERE j.resolution IS NULL
+          AND (j.desired_state = 'cancelled'
+               OR (NOT $1 AND a.state IN ('starting','running','stopping','recovering')))
+        ORDER BY j.created_at_ms DESC, j.job_id DESC
+        LIMIT 1
+    "#;
+    Ok(client
+        .query_opt(SQL, &[&cancelled_only])?
+        .map(|row| (row.get::<_, i64>(0), row.get::<_, String>(1))))
+}
+
+/// A bounded keyset page never crosses the epoch fence. A newly inserted
+/// backdated row can be observed during a later epoch; an epoch is not a
+/// repeatable-read snapshot, and the key is not a PostgreSQL commit sequence.
 fn scan_reconciliation_page(
     client: &mut postgres::Client,
     limit: u32,
     cancelled_only: bool,
     cursor: Option<&(i64, String)>,
+    upper_fence: &(i64, String),
 ) -> Result<Vec<postgres::Row>, postgres::Error> {
     const SQL: &str = r#"
         SELECT j.job_id, j.principal, j.desired_state, j.created_at_ms
         FROM jobs j
         JOIN attempts a ON a.attempt_id = j.current_attempt_id
+          AND a.job_id = j.job_id
         WHERE j.resolution IS NULL
           AND (j.desired_state = 'cancelled'
                OR (NOT $2 AND a.state IN ('starting','running','stopping','recovering')))
           AND ($3::BIGINT IS NULL
                OR (j.created_at_ms, j.job_id) > ($3::BIGINT, $4::TEXT))
+          AND (j.created_at_ms, j.job_id) <= ($5::BIGINT, $6::TEXT)
         ORDER BY j.created_at_ms, j.job_id
         LIMIT $1
     "#;
     let (at, id) = cursor
         .map(|(at, id)| (Some(*at), Some(id.as_str())))
         .unwrap_or((None, None));
-    let mut rows = client.query(SQL, &[&i64::from(limit), &cancelled_only, &at, &id])?;
-    if rows.is_empty() && cursor.is_some() {
-        let no_at: Option<i64> = None;
-        let no_id: Option<&str> = None;
-        rows = client.query(SQL, &[&i64::from(limit), &cancelled_only, &no_at, &no_id])?;
-    }
-    Ok(rows)
+    client.query(
+        SQL,
+        &[
+            &i64::from(limit),
+            &cancelled_only,
+            &at,
+            &id,
+            &upper_fence.0,
+            &upper_fence.1,
+        ],
+    )
 }
 
-/// A short page has reached the eligible queue's observed tail. Restart at
-/// the oldest unresolved Job on the next tick; otherwise a trickle of newer
-/// Jobs can keep the cursor moving forever and starve delayed native evidence.
-fn next_reconciliation_cursor(pending: &[postgres::Row], limit: u32) -> Option<(i64, String)> {
-    if pending.len() < limit as usize {
-        return None;
+/// A partial page or reaching the exact epoch upper fence completes a sweep.
+/// Reset both fields together so a new epoch can include freshly arrived jobs.
+type ReconciliationNextPage = (Option<(i64, String)>, Option<(i64, String)>);
+
+fn next_reconciliation_cursor(
+    pending: &[postgres::Row],
+    limit: u32,
+    upper_fence: &(i64, String),
+) -> ReconciliationNextPage {
+    let Some(last) = pending.last() else {
+        return (None, None);
+    };
+    let key = (last.get::<_, i64>(3), last.get::<_, String>(0));
+    // Use equality, not Rust's lexical >=: a PostgreSQL text collation can
+    // order job_id strings differently from Rust's bytewise String order.
+    if pending.len() < limit as usize || key == *upper_fence {
+        (None, None)
+    } else {
+        (Some(key), Some(upper_fence.clone()))
     }
-    pending
-        .last()
-        .map(|last| (last.get::<_, i64>(3), last.get::<_, String>(0)))
 }
 
-/// Commit cursor progress only if no other scan advanced this lane while SQL
-/// ran. Key equality alone is insufficient: wraparound can revisit the same
-/// key or None (ABA) while an older scanner is still outstanding.
+/// Version-stamped cursor/fence progress guards against concurrent scans and
+/// ABA even when an epoch wraps to an earlier row or to None.
 fn advance_reconciliation_cursor(
     slot: &mut ReconciliationCursor,
     observed_generation: u64,
-    next: Option<(i64, String)>,
+    next_key: Option<(i64, String)>,
+    next_upper_fence: Option<(i64, String)>,
 ) -> bool {
     if slot.generation != observed_generation {
         return false;
@@ -84,7 +125,8 @@ fn advance_reconciliation_cursor(
     let Some(generation) = slot.generation.checked_add(1) else {
         return false;
     };
-    slot.key = next;
+    slot.key = next_key;
+    slot.upper_fence = next_upper_fence;
     slot.generation = generation;
     true
 }
@@ -137,9 +179,9 @@ impl PgRuntime {
         let mut db = self.store()?;
         // The oldest unresolved jobs can stay blocked on uncertain native
         // evidence indefinitely. A fixed LIMIT on the oldest rows prevents
-        // later jobs from ever being reconciled. Use a bounded, wraparound
-        // keyset scan, with independent cursors for the cancellation and
-        // general recovery consumers. Never hold a cursor mutex across DB or
+        // later jobs from ever being reconciled. Use finite upper-fenced
+        // keyset epochs, with independent cursors for cancellation and
+        // general recovery; never let newly arriving Jobs extend an epoch. Never hold a cursor mutex across DB or
         // native OS calls.
         let previous = {
             let cursors = self
@@ -152,10 +194,28 @@ impl PgRuntime {
                 cursors.issued.clone()
             }
         };
-        let pending =
-            scan_reconciliation_page(&mut db.client, limit, cancelled_only, previous.key.as_ref())
-                .map_err(io)?;
-        let next = next_reconciliation_cursor(&pending, limit);
+        // Only the first page of each epoch takes a new upper bound. The
+        // subsequent bounded pages use that same fence even if new Jobs
+        // arrive continuously; stale concurrent scans cannot rewrite it.
+        let upper_fence = match previous.upper_fence.clone() {
+            Some(key) => Some(key),
+            None => latest_reconciliation_key(&mut db.client, cancelled_only).map_err(io)?,
+        };
+        let pending = match upper_fence.as_ref() {
+            Some(upper) => scan_reconciliation_page(
+                &mut db.client,
+                limit,
+                cancelled_only,
+                previous.key.as_ref(),
+                upper,
+            )
+            .map_err(io)?,
+            None => Vec::new(),
+        };
+        let (next_key, next_upper_fence) = match upper_fence.as_ref() {
+            Some(upper) => next_reconciliation_cursor(&pending, limit, upper),
+            None => (None, None),
+        };
         let mut cursors = self
             .reconciliation_cursors
             .lock()
@@ -165,7 +225,8 @@ impl PgRuntime {
         } else {
             &mut cursors.issued
         };
-        let _ = advance_reconciliation_cursor(slot, previous.generation, next);
+        let _ =
+            advance_reconciliation_cursor(slot, previous.generation, next_key, next_upper_fence);
         drop(cursors);
         drop(db);
         let mut terminal = 0_u32;
@@ -880,60 +941,97 @@ mod scan_fairness_tests {
     use super::*;
 
     #[test]
-    fn stale_scan_cannot_regress_cursor_after_concurrent_advance_and_aba() {
+    fn stale_scan_cannot_regress_fence_after_concurrent_advance_and_aba() {
         let x = (10, "job-010".to_string());
         let y = (110, "job-110".to_string());
         let z = (210, "job-210".to_string());
         let mut cursor = ReconciliationCursor {
             key: Some(x.clone()),
+            upper_fence: Some(z.clone()),
             generation: 0,
         };
-        let stale_a = cursor.clone();
+        let stale = cursor.clone();
         assert!(advance_reconciliation_cursor(
             &mut cursor,
             0,
-            Some(y.clone())
+            Some(y.clone()),
+            Some(z.clone())
         ));
         assert!(advance_reconciliation_cursor(
             &mut cursor,
             1,
+            Some(z.clone()),
             Some(z.clone())
         ));
         assert!(!advance_reconciliation_cursor(
             &mut cursor,
-            stale_a.generation,
-            Some(y)
+            stale.generation,
+            None,
+            None
         ));
         assert_eq!(cursor.key, Some(z.clone()));
+        assert_eq!(cursor.upper_fence, Some(z.clone()));
 
-        // Valid wrap to x cannot authorize stale work that also saw x.
-        assert!(advance_reconciliation_cursor(
-            &mut cursor,
-            2,
-            Some(x.clone())
-        ));
-        assert!(!advance_reconciliation_cursor(
-            &mut cursor,
-            stale_a.generation,
-            Some(z)
-        ));
-        assert_eq!(cursor.key, Some(x));
-
-        // A short-page reset may also revisit exactly None.
-        assert!(advance_reconciliation_cursor(&mut cursor, 3, None));
+        // Exact fence reached: the next epoch starts at the oldest row.
+        assert!(advance_reconciliation_cursor(&mut cursor, 2, None, None));
         let old_reset = cursor.clone();
         assert!(advance_reconciliation_cursor(
             &mut cursor,
-            4,
-            Some((1, "a".into()))
+            3,
+            Some(x.clone()),
+            Some(z.clone())
         ));
-        assert!(advance_reconciliation_cursor(&mut cursor, 5, None));
+        assert!(advance_reconciliation_cursor(&mut cursor, 4, None, None));
         assert!(!advance_reconciliation_cursor(
             &mut cursor,
             old_reset.generation,
-            Some((2, "b".into()))
+            Some(y),
+            Some(z)
         ));
         assert!(cursor.key.is_none());
+        assert!(cursor.upper_fence.is_none());
+    }
+
+    /// PostgreSQL allows current_attempt_id to refer to an Attempt belonging
+    /// to another Job; a foreign key on attempts.job_id does not close this
+    /// inverse identity edge. Recovery must not borrow another Job's state.
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+    fn native_postgres_recovery_rejects_cross_job_attempt_binding() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("use a dedicated disposable PostgreSQL cluster");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        db.batch_execute(
+            "CREATE TEMP TABLE jobs (
+                job_id text PRIMARY KEY, principal text, desired_state text,
+                resolution text, current_attempt_id text, created_at_ms bigint
+             );
+             CREATE TEMP TABLE attempts (
+                attempt_id text PRIMARY KEY, job_id text NOT NULL, state text
+             );
+             INSERT INTO jobs VALUES
+               ('job-a','owner','run',NULL,'attempt-a',1),
+               ('job-b','owner','run',NULL,'attempt-a',2);
+             INSERT INTO attempts VALUES ('attempt-a','job-a','running');",
+        )
+        .unwrap();
+        // The adversarial job-b references a real Attempt, but it belongs to
+        // job-a; both the epoch fence and the page selector must reject it.
+        let newest = latest_reconciliation_key(&mut db, false).unwrap().unwrap();
+        assert_eq!(newest.1, "job-a");
+        let page = scan_reconciliation_page(&mut db, 100, false, None, &newest).unwrap();
+        assert_eq!(page.len(), 1);
+        assert_eq!(page[0].get::<_, String>(0), "job-a");
+        db.execute(
+            "UPDATE jobs SET desired_state='cancelled' WHERE job_id='job-b'",
+            &[],
+        )
+        .unwrap();
+        let cancelled = latest_reconciliation_key(&mut db, true).unwrap();
+        assert!(
+            cancelled.is_none(),
+            "cancelled lane also requires attempt ownership"
+        );
     }
 
     /// Real SQL and >100 unresolved Jobs in an explicitly disposable PG.
@@ -946,56 +1044,123 @@ mod scan_fairness_tests {
         db.batch_execute(
             "CREATE TEMP TABLE jobs (job_id text, principal text, desired_state text, \
                 resolution text, current_attempt_id text, created_at_ms bigint); \
-             CREATE TEMP TABLE attempts (attempt_id text, state text); \
+             CREATE TEMP TABLE attempts (attempt_id text, job_id text, state text); \
              INSERT INTO jobs \
                 SELECT 'job-' || lpad(n::text,3,'0'), 'owner', 'run', NULL, \
                        'attempt-' || n, n::bigint \
                 FROM generate_series(1,101) n; \
              INSERT INTO attempts \
-                SELECT 'attempt-' || n, 'running' \
+                SELECT 'attempt-' || n, 'job-' || lpad(n::text,3,'0'), 'running' \
                 FROM generate_series(1,101) n;",
         )
         .unwrap();
-        let first = scan_reconciliation_page(&mut db, 100, false, None).unwrap();
+        let upper = latest_reconciliation_key(&mut db, false).unwrap().unwrap();
+        assert_eq!(upper.1, "job-101");
+        let first = scan_reconciliation_page(&mut db, 100, false, None, &upper).unwrap();
         assert_eq!(first.len(), 100);
         assert_eq!(first.last().unwrap().get::<_, String>(0), "job-100");
-        let cursor = (
-            first.last().unwrap().get::<_, i64>(3),
-            first.last().unwrap().get::<_, String>(0),
-        );
-        let second = scan_reconciliation_page(&mut db, 100, false, Some(&cursor)).unwrap();
+        let (next, same_fence) = next_reconciliation_cursor(&first, 100, &upper);
+        assert_eq!(same_fence.as_ref(), Some(&upper));
+        let second = scan_reconciliation_page(&mut db, 100, false, next.as_ref(), &upper).unwrap();
         assert_eq!(second.len(), 1);
         assert_eq!(second[0].get::<_, String>(0), "job-101");
-        let cursor = (second[0].get::<_, i64>(3), second[0].get::<_, String>(0));
-        let wrapped = scan_reconciliation_page(&mut db, 100, false, Some(&cursor)).unwrap();
-        assert_eq!(wrapped.len(), 100);
-        assert_eq!(wrapped[0].get::<_, String>(0), "job-001");
+        assert_eq!(
+            next_reconciliation_cursor(&second, 100, &upper),
+            (None, None)
+        );
 
-        // A single new Job can arrive after every scan. The old last-row
-        // cursor would follow only those new Jobs forever, never revisiting
-        // an older unresolved Job after its native terminal evidence arrives.
         db.batch_execute(
             "INSERT INTO jobs VALUES ('job-102','owner','run',NULL,'attempt-102',102);
-             INSERT INTO attempts VALUES ('attempt-102','running');",
+             INSERT INTO attempts VALUES ('attempt-102','job-102','running');",
         )
         .unwrap();
-        let after_partial = next_reconciliation_cursor(&second, 100);
-        let revisited =
-            scan_reconciliation_page(&mut db, 100, false, after_partial.as_ref()).unwrap();
-        assert_eq!(
-            revisited[0].get::<_, String>(0),
-            "job-001",
-            "a partial page must let older unresolved Jobs be revisited"
-        );
+        let fresh_upper = latest_reconciliation_key(&mut db, false).unwrap().unwrap();
+        let revisited = scan_reconciliation_page(&mut db, 100, false, None, &fresh_upper).unwrap();
+        assert_eq!(revisited[0].get::<_, String>(0), "job-001");
+
         db.execute(
             "UPDATE jobs SET desired_state='cancelled' WHERE job_id IN ('job-004','job-101')",
             &[],
         )
         .unwrap();
-        let cancelled = scan_reconciliation_page(&mut db, 100, true, None).unwrap();
+        let cancelled_upper = latest_reconciliation_key(&mut db, true).unwrap().unwrap();
+        let cancelled =
+            scan_reconciliation_page(&mut db, 100, true, None, &cancelled_upper).unwrap();
         assert_eq!(cancelled.len(), 2);
         assert_eq!(cancelled[0].get::<_, String>(0), "job-004");
         assert_eq!(cancelled[1].get::<_, String>(0), "job-101");
+    }
+
+    /// Every tick admits MORE than a full page of newer eligible Jobs.
+    /// The previous short-page solution never wraps in this workload.
+    #[test]
+    #[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+    fn native_postgres_sustained_full_pages_cannot_starve_oldest_epoch() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("use a dedicated disposable PostgreSQL cluster");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        db.batch_execute(
+            "CREATE TEMP TABLE jobs (job_id text, principal text, desired_state text, \
+                resolution text, current_attempt_id text, created_at_ms bigint); \
+             CREATE TEMP TABLE attempts (attempt_id text, job_id text, state text); \
+             INSERT INTO jobs \
+                SELECT 'job-' || lpad(n::text,4,'0'), 'owner', 'run', NULL, \
+                       'attempt-' || n, n::bigint \
+                FROM generate_series(1,300) n; \
+             INSERT INTO attempts \
+                SELECT 'attempt-' || n, 'job-' || lpad(n::text,4,'0'), 'running' \
+                FROM generate_series(1,300) n;",
+        )
+        .unwrap();
+        let original_fence = latest_reconciliation_key(&mut db, false).unwrap().unwrap();
+        assert_eq!(original_fence.1, "job-0300");
+        let mut cursor: Option<(i64, String)> = None;
+        for page in 0..3 {
+            let rows =
+                scan_reconciliation_page(&mut db, 100, false, cursor.as_ref(), &original_fence)
+                    .unwrap();
+            assert_eq!(rows.len(), 100, "all three original epoch pages are full");
+            assert_eq!(
+                rows[0].get::<_, String>(0),
+                format!("job-{:04}", 1 + page * 100)
+            );
+            let (next, fence) = next_reconciliation_cursor(&rows, 100, &original_fence);
+            assert_eq!(fence.is_some(), page != 2);
+            cursor = next;
+            // A fresh 150 eligible Jobs after EVERY full page. Their sort
+            // keys exceed original_fence and cannot prolong this epoch.
+            let start = 301 + page * 150;
+            let end = start + 149;
+            db.batch_execute(&format!(
+                "INSERT INTO jobs SELECT 'job-' || lpad(n::text,4,'0'), \
+                    'owner','run',NULL,'attempt-' || n,n::bigint \
+                   FROM generate_series({start},{end}) n; \
+                 INSERT INTO attempts SELECT 'attempt-' || n, \
+                      'job-' || lpad(n::text,4,'0'),'running' \
+                   FROM generate_series({start},{end}) n;"
+            ))
+            .unwrap();
+        }
+        assert!(cursor.is_none(), "the full last page closes the epoch");
+        // Directly falsify the old unbounded keyset behaviour in this same
+        // real PostgreSQL: its next page would follow freshly admitted Jobs,
+        // instead of revisiting the unresolved oldest row.
+        let old_next: String = db
+            .query_one(
+                "SELECT j.job_id FROM jobs j JOIN attempts a                  ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id                  WHERE j.resolution IS NULL AND a.state='running'                  AND (j.created_at_ms,j.job_id) > (300,'job-0300')                  ORDER BY j.created_at_ms,j.job_id LIMIT 1",
+                &[],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(old_next, "job-0301");
+        let fresh_fence = latest_reconciliation_key(&mut db, false).unwrap().unwrap();
+        assert_eq!(fresh_fence.1, "job-0750");
+        let revisited = scan_reconciliation_page(&mut db, 100, false, None, &fresh_fence).unwrap();
+        assert_eq!(
+            revisited[0].get::<_, String>(0),
+            "job-0001",
+            "continuous >=limit arrivals cannot prevent the oldest retry"
+        );
     }
 }
 
