@@ -172,8 +172,14 @@ class AgentPluginCompositionTests(unittest.TestCase):
             plugin = AgentPluginComposition.load(root)
             client = FakeMcpClient()
             client.omit.update(
-                name for name in ("system.describe", "capability.describe", "continuity.get",
-                                  "continuity.list") if name not in current_names
+                name
+                for name in (
+                    "system.describe",
+                    "capability.describe",
+                    "continuity.get",
+                    "continuity.list",
+                )
+                if name not in current_names
             )
             bridge = PluginMcpObservationBridge(plugin.mcp("ordivon-gateway"), client)
             self.assertEqual(
@@ -280,6 +286,63 @@ class AgentPluginCompositionTests(unittest.TestCase):
             self.assertEqual(restored[0]["role"], "tool")
             self.assertEqual(restored[0]["name"], "system.describe")
             self.assertEqual(restored[0]["observation"]["content"], {"ok": True})
+
+    def test_observation_bridge_execute_refuses_revoked_tool_before_call(self) -> None:
+        from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_plugin(root)
+            plugin = AgentPluginComposition.load(root)
+            client = FakeMcpClient()
+            bridge = PluginMcpObservationBridge(
+                plugin.mcp("ordivon-gateway"), client, allowed_tools=("system.describe",)
+            )
+            client.omit.add("system.describe")
+            with self.assertRaisesRegex(ToolBridgeError, "catalog drifted"):
+                bridge.execute(
+                    AgentToolCall(
+                        tool_call_id="tool-call:revoked:1",
+                        name="system.describe",
+                        arguments={},
+                    ),
+                    step_id="tool-step:revoked:1",
+                )
+            self.assertEqual(client.calls, [])
+
+    def test_observation_bridge_execute_refuses_changed_schema_before_call(self) -> None:
+        from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+
+        class ChangedSchemaClient(FakeMcpClient):
+            changed = False
+
+            def list_tools(self):
+                tools = list(super().list_tools())
+                if self.changed:
+                    for raw in tools:
+                        if raw["name"] == "system.describe":
+                            raw["inputSchema"] = {"type": "object", "maxProperties": 0}
+                return tuple(tools)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_plugin(root)
+            plugin = AgentPluginComposition.load(root)
+            client = ChangedSchemaClient()
+            bridge = PluginMcpObservationBridge(
+                plugin.mcp("ordivon-gateway"), client, allowed_tools=("system.describe",)
+            )
+            client.changed = True
+            with self.assertRaisesRegex(ToolBridgeError, "catalog drifted"):
+                bridge.execute(
+                    AgentToolCall(
+                        tool_call_id="tool-call:schema-drift:1",
+                        name="system.describe",
+                        arguments={},
+                    ),
+                    step_id="tool-step:schema-drift:1",
+                )
+            self.assertEqual(client.calls, [])
 
     def test_observation_bridge_calls_only_granted_tool(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

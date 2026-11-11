@@ -16,7 +16,6 @@ OBSERVATION_ONLY_GATEWAY_TOOLS = frozenset(
 )
 
 
-
 class PluginMcpObservationBridge:
     """Observation-only ToolBridge projected from one Agent Plugin MCP component.
 
@@ -144,6 +143,10 @@ class PluginMcpObservationBridge:
                 f"Agent Plugin MCP Tool arguments are invalid: {call.argument_error}",
                 kind=ToolBridgeErrorKind.MODEL_CORRECTABLE,
             )
+        # Admission's model-visible ToolSpec is only a snapshot. Recheck the
+        # originally granted catalog *before* any owner request, including
+        # observation-only calls; the loop does not invoke this method itself.
+        self.validate_runtime_catalog()
         try:
             is_error, content = self.client.call_tool(call.name, call.arguments)
         except ToolBridgeError:
