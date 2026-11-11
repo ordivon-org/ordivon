@@ -589,6 +589,27 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
         with self.assertRaisesRegex(HarnessRuntimeClientError, "executionTerminal"):
             _runtime_delivery_state({"status": "succeeded"})
 
+    def test_runtime_delivery_non_text_owner_response_fails_as_protocol_error(self) -> None:
+        # A malformed Runtime Owner response must remain a typed recovery
+        # error. Set membership on an unhashable list/dict was raising a
+        # raw TypeError, bypassing HarnessRuntimeClientError handling.
+        baseline = {
+            "executionTerminal": True,
+            "executionDisposition": "succeeded",
+            "deliveryDisposition": "committed",
+            "recoveryRequired": False,
+            "resultAvailable": True,
+            "semanticCompletionEvaluated": False,
+        }
+        for invalid in ([], {}, ["committed"], {"disposition": "committed"}, 0, False, None):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(
+                    HarnessRuntimeClientError, "deliveryDisposition"
+                ):
+                    _runtime_delivery_state({
+                        **baseline, "deliveryDisposition": invalid
+                    })
+
     def test_runtime_terminal_disposition_requires_exact_native_job_resolution(self) -> None:
         # The Runtime JobResolution enum is a closed six-state set. A foreign
         # terminal label must never become a Harness-observed committed result.

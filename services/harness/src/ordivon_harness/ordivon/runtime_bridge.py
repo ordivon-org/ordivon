@@ -292,7 +292,10 @@ def _runtime_delivery_state(payload: dict[str, JsonValue]) -> str:
         or execution_disposition not in _RUNTIME_JOB_RESOLUTIONS
     ):
         raise HarnessRuntimeClientError("Runtime executionDisposition is invalid")
-    if delivery_disposition not in _RUNTIME_DELIVERY_DISPOSITIONS:
+    if (
+        not isinstance(delivery_disposition, str)
+        or delivery_disposition not in _RUNTIME_DELIVERY_DISPOSITIONS
+    ):
         raise HarnessRuntimeClientError("Runtime deliveryDisposition is invalid")
     if (
         delivery_disposition == "committed"
