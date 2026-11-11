@@ -42,17 +42,36 @@ class PgReleaseDispatchTests(unittest.TestCase):
         self.path.write_text(json.dumps(self.config),encoding="utf-8")
         self.path.chmod(0o600)
 
+    def owner_config(self, uid: int = 0) -> dict[str, object]:
+        # CI normally runs unprivileged; production MUST still reject it.
+        # Change only this fixture's observed UID, preserving the real mode,
+        # regular-file and symlink checks inside load_owner_config().
+        native_stat = Path.stat
+
+        def fixture_stat(path: Path, *args: object, **kwargs: object):
+            metadata = native_stat(path, *args, **kwargs)
+            if path != self.path:
+                return metadata
+            fields = list(metadata)
+            fields[4] = uid  # POSIX stat_result.st_uid
+            return os.stat_result(fields)
+
+        with patch.object(Path, "stat", fixture_stat):
+            return dispatcher.load_owner_config(self.path)
+
     def test_only_root_owned_nonwritable_config_is_accepted(self) -> None:
-        qualified=dispatcher.load_owner_config(self.path)
+        with self.assertRaisesRegex(RuntimeError, "root-owned"):
+            self.owner_config(uid=65534)
+        qualified=self.owner_config()
         self.assertEqual(qualified["service"],"ordivon-runtime.service")
         self.assertIsInstance(qualified["sourceRepo"],Path)
         self.path.chmod(0o666)
         with self.assertRaisesRegex(RuntimeError,"root-owned"):
-            dispatcher.load_owner_config(self.path)
+            self.owner_config()
         self.path.unlink()
         self.path.symlink_to(self.root/"other")
         with self.assertRaisesRegex(RuntimeError,"absolute regular"):
-            dispatcher.load_owner_config(self.path)
+            self.owner_config()
 
     def test_no_agent_chosen_service_or_unsafe_binary(self) -> None:
         for name,value in (("service","arbitrary.service"),("binaries",["/usr/bin/sh"])):
@@ -61,12 +80,12 @@ class PgReleaseDispatchTests(unittest.TestCase):
             self.path.write_text(json.dumps(self.config),encoding="utf-8")
             self.path.chmod(0o600)
             with self.assertRaises(RuntimeError):
-                dispatcher.load_owner_config(self.path)
+                self.owner_config()
             self.config[name]=("ordivon-runtime.service" if name=="service"
                                else ["ordivon-runtime-pg","ordivon-runtime-runner"])
 
     def test_committed_row_uses_only_operator_configured_paths(self) -> None:
-        config=dispatcher.load_owner_config(self.path)
+        config=self.owner_config()
         row={
             "principal":"pg-consumer","client_request_id":"exact-consumer",
             "effect_id":"b"*64,"commit_revision":"c"*40,
@@ -84,7 +103,7 @@ class PgReleaseDispatchTests(unittest.TestCase):
             dispatcher.release_effect_to_args(config,row)
 
     def test_sweep_empty_does_not_touch_systemd(self) -> None:
-        config=dispatcher.load_owner_config(self.path)
+        config=self.owner_config()
         conn=MagicMock()
         conn.execute.return_value.fetchall.return_value=[]
         context=MagicMock()
@@ -98,7 +117,7 @@ class PgReleaseDispatchTests(unittest.TestCase):
         apply.assert_not_called()
 
     def test_one_pending_effect_invokes_exact_qualified_operator(self) -> None:
-        config=dispatcher.load_owner_config(self.path)
+        config=self.owner_config()
         row={
             "principal":"pg-consumer","client_request_id":"exact-001",
             "effect_id":"b"*64,"commit_revision":"c"*40,
@@ -124,7 +143,7 @@ class PgReleaseDispatchTests(unittest.TestCase):
         self.assertEqual(exact.service,"ordivon-runtime.service")
 
     def test_sweep_ambiguous_multiple_effects_fails_without_dispatch(self) -> None:
-        config=dispatcher.load_owner_config(self.path)
+        config=self.owner_config()
         conn=MagicMock()
         conn.execute.return_value.fetchall.return_value=[{"id":1},{"id":2}]
         context=MagicMock()
