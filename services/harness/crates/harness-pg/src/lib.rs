@@ -132,6 +132,14 @@ pub fn decode_cas(
             "CAS length differs for {expected_digest}"
         )));
     }
+    // Verify the byte identity before trying a bounded parser. A corrupted
+    // digest is proof of CAS inconsistency even if the payload would otherwise
+    // exceed this Rust reader's current legacy representation limits.
+    if digest_bytes(raw) != expected_digest {
+        return Err(corrupted(format!(
+            "CAS digest differs for {expected_digest}"
+        )));
+    }
     let text = std::str::from_utf8(raw)
         .map_err(|_| corrupted(format!("CAS invalid UTF-8: {expected_digest}")))?;
     let value = loads_strict(text).map_err(|e| match e {
@@ -140,9 +148,9 @@ pub fn decode_cas(
         }
         _ => corrupted(format!("CAS invalid strict JSON: {expected_digest}: {e}")),
     })?;
-    if digest_bytes(raw) != expected_digest || canonical_bytes(&value) != raw {
+    if canonical_bytes(&value) != raw {
         return Err(corrupted(format!(
-            "CAS digest/canonical bytes differ for {expected_digest}"
+            "CAS canonical bytes differ for {expected_digest}"
         )));
     }
     Ok(value)
@@ -425,6 +433,34 @@ pub fn read_run_readonly(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unqualified_legacy_requires_verified_cas_digest_first() {
+        // A historical Python interpreter configured with a larger recursion
+        // limit can persist these bytes, but Rust currently bounds nesting.
+        let raw = format!("{}0{}", "[".repeat(996), "]".repeat(996)).into_bytes();
+        let digest = digest_bytes(&raw);
+        assert!(matches!(
+            decode_cas(&digest, "legacy", "legacy", raw.len() as i64, &raw),
+            Err(ReadError::UnsupportedLegacyRepresentation(_))
+        ));
+        // The same unparseable bytes under a false digest are objectively
+        // corrupt and must NOT hide behind UNKNOWN parser qualification.
+        assert!(matches!(
+            decode_cas(
+                "sha256:tampered",
+                "legacy",
+                "legacy",
+                raw.len() as i64,
+                &raw
+            ),
+            Err(ReadError::Corruption(_))
+        ));
+        assert!(matches!(
+            decode_cas(&digest, "legacy", "wrong", raw.len() as i64, &raw),
+            Err(ReadError::Corruption(_))
+        ));
+    }
 
     #[test]
     fn rejects_sql_schema_names_and_malformed_objects() {

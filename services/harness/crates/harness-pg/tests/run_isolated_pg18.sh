@@ -31,7 +31,7 @@ export HARNESS_RUST_TEST_SCHEMA="hpg_rust_isolated_a_$(date +%s)"
 export HARNESS_RUST_TEST_FIXTURE_PATH="$ROOT/fixture.json"
 uv run --project services/harness --offline --locked python services/harness/crates/harness-pg/tests/fixture_python_store.py
 psql "$writer_dsn" -v ON_ERROR_STOP=1 -c "GRANT USAGE ON SCHEMA $HARNESS_RUST_TEST_SCHEMA TO rust_readonly; GRANT SELECT ON ALL TABLES IN SCHEMA $HARNESS_RUST_TEST_SCHEMA TO rust_readonly;"
-for item in 'valid:HARNESS_RUST_TEST_RUN_ID' 'corrupt:HARNESS_RUST_TEST_CORRUPT_RUN_ID' 'bad_revision:HARNESS_RUST_TEST_BAD_REVISION_RUN_ID' 'bad_edge:HARNESS_RUST_TEST_BAD_EDGE_RUN_ID'; do
+for item in 'valid:HARNESS_RUST_TEST_RUN_ID' 'corrupt:HARNESS_RUST_TEST_CORRUPT_RUN_ID' 'bad_revision:HARNESS_RUST_TEST_BAD_REVISION_RUN_ID' 'bad_edge:HARNESS_RUST_TEST_BAD_EDGE_RUN_ID' 'deep:HARNESS_RUST_TEST_DEEP_RUN_ID'; do
   IFS=: read -r key variable <<< "$item"
   value="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$ROOT/fixture.json" "$key")"
   printf -v "$variable" '%s' "$value"

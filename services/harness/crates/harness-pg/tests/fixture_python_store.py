@@ -1,4 +1,4 @@
-"""Create exactly two Python Harness Runs in an isolated PG test schema.
+"""Create real Python Harness Runs in an isolated PG test schema.
 
 Invoked only with HARNESS_RUST_TEST_PG_DSN pointing to an isolated PG18 instance;
 it never selects a production DSN and never drops any schema.
@@ -46,10 +46,10 @@ def new_contract(suffix: str) -> HarnessRunContract:
 dsn = os.environ["HARNESS_RUST_TEST_PG_DSN"]
 schema = os.environ.get("HARNESS_RUST_TEST_SCHEMA", "hpg_rust_" + uuid.uuid4().hex[:16])
 assert schema.startswith("hpg_rust_")
-valid, corrupt, bad_revision, bad_edge = (new_contract(suffix) for suffix in ("valid", "corrupt", "badrev", "badedge"))
+valid, corrupt, bad_revision, bad_edge, deep = (new_contract(suffix) for suffix in ("valid", "corrupt", "badrev", "badedge", "deep996"))
 
 with PostgresHarnessStore(dsn, schema=schema, initialize=True) as store:
-    for contract in [valid, corrupt, bad_revision, bad_edge]:
+    for contract in [valid, corrupt, bad_revision, bad_edge, deep]:
         assert store.create_run(contract).value == "created"
     # Exercise real Python PG append_events and its exact lease/revision path.
     lease = store.acquire_run_lease(
@@ -73,6 +73,32 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=True) as store:
     store.validate_run_history(corrupt.harness_run_id)
     store.validate_run_history(bad_revision.harness_run_id)
     store.validate_run_history(bad_edge.harness_run_id)
+
+    # An explicitly configured legacy Python runtime can accept this depth.
+    # Default CPython recursion_limit=1000 fails inside nested Store calls;
+    # this fixture is a *cross-configuration* compatibility counterexample,
+    # not evidence that today's default production Run contains such content.
+    sys.setrecursionlimit(2000)
+    nested = 0
+    for _ in range(996):
+        nested = [nested]
+    deep_object = store.put_object(nested, kind="legacy-python-depth-996")
+    assert store.get_object(deep_object.digest, expected_kind="legacy-python-depth-996") == nested
+    deep_lease = store.acquire_run_lease(
+        deep.harness_run_id, owner_id="test-rust-legacy-depth",
+        ttl_ms=100000, now_ms=1100, expected_run_revision=1,
+    )
+    assert store.append_events(
+        harness_run_id=deep.harness_run_id,
+        expected_revision=1,
+        events=(HarnessEventWrite(
+            "event:rust-test-legit-legacy-depth", "harness.trace-recorded",
+            {"source": "python-valid-depth996"}, 1200,
+            referenced_objects=(deep_object,),
+        ),),
+        lease=deep_lease, lease_checked_at_ms=1200,
+    ).value == "created"
+    store.validate_run_history(deep.harness_run_id)
 
 # Deliberately corrupt only the second run's object within the isolated schema.
 with psycopg.connect(dsn, autocommit=True) as conn:
@@ -98,5 +124,6 @@ out.write_text(json.dumps({
     "corrupt": corrupt.harness_run_id,
     "bad_revision": bad_revision.harness_run_id,
     "bad_edge": bad_edge.harness_run_id,
+    "deep": deep.harness_run_id,
 }), encoding="utf-8")
 print("PYTHON_PG_FIXTURE_READY schema=" + schema, "valid_revision=3", "corrupt_object=1 bad_projection=1 bad_edge=1")
