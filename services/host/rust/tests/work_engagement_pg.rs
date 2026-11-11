@@ -622,3 +622,104 @@ async fn offer_inventory_is_bounded_filtered_and_paginated_without_skips() {
     ));
     println!("R7_WORK_INTAKE_DISCOVERY_RR_CURSOR_BUDGET_NO_SKIP_PASS pages={pages}");
 }
+
+/// A mature reusable consumer: Work revisions already feed the native
+/// Social/Attention change projection. Do not build another task inbox.
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL18/schema13 HOST_RUST_TEST_DSN"]
+async fn consumer_attention_receives_work_claim_delivery_and_review_without_new_bus() {
+    use ordivon_host_rust::attention::{self, TargetKind, DEFAULT_COLLECTION_BYTES};
+    let mut db = connect().await;
+    let work = "work:test:engagement:attention-r7";
+    new_work(&mut db, work).await;
+    let consumer = "actor:test:engagement-consumer";
+    let follow = attention::follow(
+        &mut db,
+        consumer,
+        TargetKind::Work,
+        work,
+        "request:test:follow-engagement",
+    )
+    .await
+    .unwrap();
+    assert_eq!(follow["admission"], "committed");
+    let horizon = follow["changeSequence"].as_i64().unwrap();
+
+    let events = [
+        (
+            1,
+            "actor:test:engagement-requester",
+            "event-offer",
+            offered(),
+        ),
+        (
+            2,
+            "actor:test:engagement-agent-a",
+            "event-claim",
+            EngagementAction::Claim,
+        ),
+        (
+            3,
+            "actor:test:engagement-agent-a",
+            "event-submit",
+            submit(1, "delivery:test:attention"),
+        ),
+        (
+            4,
+            consumer,
+            "event-review",
+            review(1, ReviewDecision::Accepted),
+        ),
+    ];
+    for (rev, who, request, engagement_action) in events {
+        advance_engagement(&mut db, &action(work, rev, who, request, engagement_action))
+            .await
+            .unwrap();
+    }
+    let changes = attention::delta(&mut db, consumer, horizon, 50, DEFAULT_COLLECTION_BYTES)
+        .await
+        .unwrap();
+    let rows = changes["events"].as_array().unwrap();
+    let actual: Vec<_> = rows
+        .iter()
+        .filter(|row| row["eventKind"] == "work_snapshot")
+        .collect();
+    assert_eq!(actual.len(), 4);
+    let mut last = horizon;
+    for (index, event) in actual.iter().enumerate() {
+        assert_eq!(event["sourceRef"], work);
+        assert_eq!(event["contextRef"], format!("{}", index + 2));
+        assert_eq!(event["navigationKind"], "work");
+        assert_eq!(event["navigationRef"], work);
+        assert!(event["reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|x| x == "followed_work"));
+        let cursor = event["changeSequence"].as_i64().unwrap();
+        assert!(cursor > last);
+        last = cursor;
+    }
+    let ack = attention::ack(
+        &mut db,
+        consumer,
+        changes["snapshotHighSequence"].as_i64().unwrap(),
+        "request:test:attention-claim-delivery-ack",
+    )
+    .await
+    .unwrap();
+    assert_eq!(ack["previousCursor"], 0);
+    let empty = attention::delta(
+        &mut db,
+        consumer,
+        ack["cursor"].as_i64().unwrap(),
+        50,
+        DEFAULT_COLLECTION_BYTES,
+    )
+    .await
+    .unwrap();
+    assert!(empty["events"].as_array().unwrap().is_empty());
+    let saved = get_work(&mut db, work, None).await.unwrap();
+    assert_eq!(saved["state"], "completed");
+    println!("R7_EXISTING_ATTENTION_WORK_DELIVERY_CONSUMER_REENTRY_PASS");
+}
