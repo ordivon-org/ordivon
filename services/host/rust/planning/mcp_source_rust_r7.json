@@ -3,7 +3,7 @@
   "kind": "ordivon.host-mcp-source-rust-differential",
   "metadataBytes": {
     "python": 45453,
-    "rust": 53901
+    "rust": 54419
   },
   "missingRustTools": [
     "host.pool.stats"

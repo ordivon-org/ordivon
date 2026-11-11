@@ -3,6 +3,7 @@
 This is a consumer protocol test. Work and review refs below are declarations,
 not verified Runtime/Artifact external effects or authenticated actor identities.
 """
+
 from __future__ import annotations
 
 import json
@@ -11,6 +12,7 @@ import subprocess
 import sys
 
 from jsonschema import Draft202012Validator
+from jsonschema.exceptions import ValidationError as JsonSchemaValidationError
 
 if len(sys.argv) != 2:
     raise SystemExit("usage: mcp_engagement_stdio_smoke.py RUST_BINARY")
@@ -32,8 +34,13 @@ counter = 0
 registrations: dict[str, dict] = {}
 observed: dict = {"workRef": work_ref, "revisions": {}, "receipts": {}}
 proc = subprocess.Popen(
-    [sys.argv[1]], env=os.environ.copy(), text=True, bufsize=1,
-    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    [sys.argv[1]],
+    env=os.environ.copy(),
+    text=True,
+    bufsize=1,
+    stdin=subprocess.PIPE,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
 )
 
 
@@ -62,6 +69,10 @@ def request(method: str, params: dict | None = None, *, notify: bool = False) ->
 
 
 def call_tool(name: str, args: dict) -> dict:
+    # The exact published native inputSchema must accept every actual command.
+    # This checks actual rmcp domain Serde wiring, not a hand-maintained DTO.
+    if name in native_names:
+        Draft202012Validator(registrations[name]["inputSchema"]).validate(args)
     result = request("tools/call", {"name": name, "arguments": args})
     if result.get("isError") is not True:
         schema = registrations[name]["outputSchema"]
@@ -86,10 +97,15 @@ def rejected(name: str, args: dict, expected: str) -> dict:
     return error
 
 
-def advance(rev: int, actor: str, action: dict, request_id: str, *, expected: str = "committed") -> dict:
+def advance(
+    rev: int, actor: str, action: dict, request_id: str, *, expected: str = "committed"
+) -> dict:
     args = {
-        "workRef": work_ref, "expectedRevision": rev, "actorRef": actor,
-        "clientRequestId": request_id, "action": action,
+        "workRef": work_ref,
+        "expectedRevision": rev,
+        "actorRef": actor,
+        "clientRequestId": request_id,
+        "action": action,
     }
     result = ok("work.engagement.advance", args)
     assert result["admission"] == expected, result
@@ -105,10 +121,14 @@ def phase(output: dict, expected: str, rev: int, state: str = "open") -> None:
 
 
 try:
-    init = request("initialize", {
-        "protocolVersion": "2025-06-18", "capabilities": {},
-        "clientInfo": {"name": "host-r7-mcp-engagement", "version": "1.0.0"},
-    })
+    init = request(
+        "initialize",
+        {
+            "protocolVersion": "2025-06-18",
+            "capabilities": {},
+            "clientInfo": {"name": "host-r7-mcp-engagement", "version": "1.0.0"},
+        },
+    )
     assert init["serverInfo"]["name"], init
     request("notifications/initialized", notify=True)
     listed = request("tools/list", {})["tools"]
@@ -118,36 +138,133 @@ try:
         schema = registrations[name]["outputSchema"]
         assert schema["type"] == "object" and schema["properties"]
         Draft202012Validator.check_schema(schema)
+    # Schema authority is now A's actual domain Serde type via JsonSchema.
+    # Match both positive variants and negative shape/enum counterexamples.
+    advance_schema = Draft202012Validator(registrations["work.engagement.advance"]["inputSchema"])
+    list_schema = Draft202012Validator(registrations["work.engagement.list"]["inputSchema"])
+    base = {
+        "workRef": work_ref,
+        "expectedRevision": 1,
+        "actorRef": requester,
+        "clientRequestId": "request:test:schema-only",
+    }
+    valid_actions = [
+        {"type": "offer", "consumerActorRef": reviewer, "acceptanceCriteria": ["verify"]},
+        {"type": "claim"},
+        {"type": "release", "reason": "returned"},
+        {
+            "type": "submit",
+            "claimEpoch": 1,
+            "deliveryRef": "delivery:test",
+            "summary": "done",
+            "outputRefs": ["artifact:test"],
+            "evidenceRefs": ["receipt:test"],
+        },
+        {
+            "type": "review",
+            "claimEpoch": 1,
+            "decision": "accepted",
+            "rationale": "verified",
+            "verificationRefs": ["proof:test"],
+        },
+        {"type": "cancel", "reason": "no longer requested"},
+    ]
+    for action in valid_actions:
+        advance_schema.validate({**base, "action": action})
+    for invalid_action in [
+        {"type": "offer", "consumerActorRef": reviewer},  # missing acceptance criteria
+        {
+            "type": "submit",
+            "claimEpoch": 1,
+            "summary": "done",
+            "outputRefs": ["artifact:test"],
+            "evidenceRefs": ["receipt:test"],
+        },
+        {
+            "type": "review",
+            "claimEpoch": 1,
+            "decision": "approved",
+            "rationale": "verified",
+            "verificationRefs": ["proof:test"],
+        },
+        {"type": "execute"},  # Runtime dispatch is NOT Host accountability
+    ]:
+        try:
+            advance_schema.validate({**base, "action": invalid_action})
+        except JsonSchemaValidationError:
+            pass
+        else:
+            raise AssertionError(
+                f"Domain-generated MCP input schema accepted invalid action: {invalid_action}"
+            )
+    for phase_label in (
+        "offered",
+        "claimed",
+        "submitted",
+        "returned",
+        "accepted",
+        "cancelled",
+    ):
+        list_schema.validate({"phase": phase_label})
+    try:
+        list_schema.validate({"phase": "executed"})
+    except JsonSchemaValidationError:
+        pass
+    else:
+        raise AssertionError("invalid phase cannot be an MCP ListEngagements filter")
+    print("R10_DOMAIN_SERDE_GENERATED_MCP_INPUT_SCHEMA_PASS variants=6 invalid_actions=4 phases=6")
     print("R7_NATIVE_MCP_TYPED_EXTENSIONS_ADVERTISED_PASS count=2 source_python31=NOT_CLAIMED")
 
     for actor in (requester, reviewer, agent_a, agent_b):
         created = ok("actor.declare", {"actorRef": actor, "actorKind": "agent"})
         assert created["actorRef"] == actor
+
     def new_work(ref: str) -> dict:
-        return ok("work.create", {
-            "workRef": ref, "workKind": "research-deliverable",
-            "actorRef": requester,
-            "initialSnapshot": {"objective": "可消费科研成果 🌍", "frontier": "公开接取与验收"},
-        })
+        return ok(
+            "work.create",
+            {
+                "workRef": ref,
+                "workKind": "research-deliverable",
+                "actorRef": requester,
+                "initialSnapshot": {"objective": "可消费科研成果 🌍", "frontier": "公开接取与验收"},
+            },
+        )
+
     assert new_work(work_ref)["revision"] == 1
 
-    offer = {"type": "offer", "consumerActorRef": reviewer,
-             "acceptanceCriteria": ["由指定消费者独立核对工件与回执"]}
+    offer = {
+        "type": "offer",
+        "consumerActorRef": reviewer,
+        "acceptanceCriteria": ["由指定消费者独立核对工件与回执"],
+    }
     offered = advance(1, requester, offer, "request:r7:mcp:offer")
     phase(offered, "offered", 2)
     again = advance(1, requester, offer, "request:r7:mcp:offer", expected="existing")
     phase(again, "offered", 2)
     # One identity with a different request digest MUST never overwrite receipt.
-    rejected("work.engagement.advance", {
-        "workRef": work_ref, "expectedRevision": 2, "actorRef": agent_a,
-        "clientRequestId": "request:r7:mcp:offer", "action": {"type": "claim"},
-    }, "CONFLICT")
+    rejected(
+        "work.engagement.advance",
+        {
+            "workRef": work_ref,
+            "expectedRevision": 2,
+            "actorRef": agent_a,
+            "clientRequestId": "request:r7:mcp:offer",
+            "action": {"type": "claim"},
+        },
+        "CONFLICT",
+    )
     # Existing generic WorkSnapshot cannot erase the upgraded accountability field.
-    rejected("work.snapshot.commit", {
-        "workRef": work_ref, "expectedRevision": 2,
-        "snapshot": {"objective": "old", "frontier": "erase attempted"},
-        "actorRef": requester, "continuityDisposition": "continue",
-    }, "CONFLICT")
+    rejected(
+        "work.snapshot.commit",
+        {
+            "workRef": work_ref,
+            "expectedRevision": 2,
+            "snapshot": {"objective": "old", "frontier": "erase attempted"},
+            "actorRef": requester,
+            "continuityDisposition": "continue",
+        },
+        "CONFLICT",
+    )
 
     # Unsubscribed reviewer sees an offered Work from current Work authority,
     # with no fabricated personal subscription or event delivery.
@@ -159,80 +276,152 @@ try:
     first = advance(2, agent_a, {"type": "claim"}, "request:r7:mcp:claim-a")
     phase(first, "claimed", 3)
     assert first["snapshot"]["engagement"]["claimEpoch"] == 1
-    rejected("work.engagement.advance", {
-        "workRef": work_ref, "expectedRevision": 2, "actorRef": agent_b,
-        "clientRequestId": "request:r7:mcp:claim-b-stale", "action": {"type": "claim"},
-    }, "CONFLICT")
+    rejected(
+        "work.engagement.advance",
+        {
+            "workRef": work_ref,
+            "expectedRevision": 2,
+            "actorRef": agent_b,
+            "clientRequestId": "request:r7:mcp:claim-b-stale",
+            "action": {"type": "claim"},
+        },
+        "CONFLICT",
+    )
 
     submit_one = {
-        "type": "submit", "claimEpoch": 1, "deliveryRef": "delivery:test:r7-1",
+        "type": "submit",
+        "claimEpoch": 1,
+        "deliveryRef": "delivery:test:r7-1",
         "summary": "科研成果与运行证据仅作为引用声明",
         "outputRefs": ["artifact:test:r7-output-1"],
         "evidenceRefs": ["receipt:test:r7-effect-1"],
     }
     for who, epoch in ((agent_a, 0), (agent_b, 1)):
-        rejected("work.engagement.advance", {
-            "workRef": work_ref, "expectedRevision": 3, "actorRef": who,
-            "clientRequestId": f"request:r7:mcp:wrong-submit-{who}-{epoch}",
-            "action": {**submit_one, "claimEpoch": epoch},
-        }, "CONFLICT")
+        rejected(
+            "work.engagement.advance",
+            {
+                "workRef": work_ref,
+                "expectedRevision": 3,
+                "actorRef": who,
+                "clientRequestId": f"request:r7:mcp:wrong-submit-{who}-{epoch}",
+                "action": {**submit_one, "claimEpoch": epoch},
+            },
+            "CONFLICT",
+        )
     submitted = advance(3, agent_a, submit_one, "request:r7:mcp:submit-1")
     phase(submitted, "submitted", 4)
-    in_review = ok("work.engagement.list", {
-        "phase": "submitted", "consumerActorRef": reviewer,
-    })
-    assert [x["workRef"] for x in in_review["engagements"] if x["workRef"] == work_ref] == [work_ref]
-    assert in_review["engagements"][0]["engagement"]["delivery"]["deliveryRef"] == "delivery:test:r7-1"
+    in_review = ok(
+        "work.engagement.list",
+        {
+            "phase": "submitted",
+            "consumerActorRef": reviewer,
+        },
+    )
+    assert [x["workRef"] for x in in_review["engagements"] if x["workRef"] == work_ref] == [
+        work_ref
+    ]
+    assert (
+        in_review["engagements"][0]["engagement"]["delivery"]["deliveryRef"] == "delivery:test:r7-1"
+    )
     assert ok("subscription.list", {"actorRef": reviewer})["subscriptions"] == []
 
-    rejected("work.engagement.advance", {
-        "workRef": work_ref, "expectedRevision": 4, "actorRef": agent_b,
-        "clientRequestId": "request:r7:mcp:bad-consumer",
-        "action": {"type": "review", "claimEpoch": 1, "decision": "accepted",
-                   "rationale": "cannot impersonate reviewer",
-                   "verificationRefs": ["evidence:test:r7-bad"]},
-    }, "CONFLICT")
-    returned = advance(4, reviewer, {
-        "type": "review", "claimEpoch": 1, "decision": "returned",
-        "rationale": "结果不符合先前验收条件",
-        "verificationRefs": ["evidence:test:r7-rejected"],
-    }, "request:r7:mcp:return")
+    rejected(
+        "work.engagement.advance",
+        {
+            "workRef": work_ref,
+            "expectedRevision": 4,
+            "actorRef": agent_b,
+            "clientRequestId": "request:r7:mcp:bad-consumer",
+            "action": {
+                "type": "review",
+                "claimEpoch": 1,
+                "decision": "accepted",
+                "rationale": "cannot impersonate reviewer",
+                "verificationRefs": ["evidence:test:r7-bad"],
+            },
+        },
+        "CONFLICT",
+    )
+    returned = advance(
+        4,
+        reviewer,
+        {
+            "type": "review",
+            "claimEpoch": 1,
+            "decision": "returned",
+            "rationale": "结果不符合先前验收条件",
+            "verificationRefs": ["evidence:test:r7-rejected"],
+        },
+        "request:r7:mcp:return",
+    )
     phase(returned, "returned", 5)
     again_claimed = advance(5, agent_b, {"type": "claim"}, "request:r7:mcp:reclaim-b")
     phase(again_claimed, "claimed", 6)
     assert again_claimed["snapshot"]["engagement"]["claimEpoch"] == 2
 
-    rejected("work.engagement.advance", {
-        "workRef": work_ref, "expectedRevision": 6, "actorRef": agent_a,
-        "clientRequestId": "request:r7:mcp:stale-agent",
-        "action": submit_one,
-    }, "CONFLICT")
-    rejected("work.engagement.advance", {
-        "workRef": work_ref, "expectedRevision": 6, "actorRef": agent_b,
-        "clientRequestId": "request:r7:mcp:duplicate-delivery",
-        "action": {**submit_one, "claimEpoch": 2},
-    }, "CONFLICT")
+    rejected(
+        "work.engagement.advance",
+        {
+            "workRef": work_ref,
+            "expectedRevision": 6,
+            "actorRef": agent_a,
+            "clientRequestId": "request:r7:mcp:stale-agent",
+            "action": submit_one,
+        },
+        "CONFLICT",
+    )
+    rejected(
+        "work.engagement.advance",
+        {
+            "workRef": work_ref,
+            "expectedRevision": 6,
+            "actorRef": agent_b,
+            "clientRequestId": "request:r7:mcp:duplicate-delivery",
+            "action": {**submit_one, "claimEpoch": 2},
+        },
+        "CONFLICT",
+    )
     submit_two = {
-        **submit_one, "claimEpoch": 2, "deliveryRef": "delivery:test:r7-2",
+        **submit_one,
+        "claimEpoch": 2,
+        "deliveryRef": "delivery:test:r7-2",
         "outputRefs": ["artifact:test:r7-output-2"],
         "evidenceRefs": ["receipt:test:r7-effect-2"],
     }
     submitted_again = advance(6, agent_b, submit_two, "request:r7:mcp:submit-2")
     phase(submitted_again, "submitted", 7)
-    final = advance(7, reviewer, {
-        "type": "review", "claimEpoch": 2, "decision": "accepted",
-        "rationale": "消费方确认第二版满足验收条件",
-        "verificationRefs": ["evidence:test:r7-consumer-accepted"],
-    }, "request:r7:mcp:accept")
+    final = advance(
+        7,
+        reviewer,
+        {
+            "type": "review",
+            "claimEpoch": 2,
+            "decision": "accepted",
+            "rationale": "消费方确认第二版满足验收条件",
+            "verificationRefs": ["evidence:test:r7-consumer-accepted"],
+        },
+        "request:r7:mcp:accept",
+    )
     phase(final, "accepted", 8, "completed")
     assert final["snapshot"]["engagement"]["assigneeActorRef"] == agent_b
     assert final["snapshot"]["engagement"]["delivery"]["deliveryRef"] == "delivery:test:r7-2"
-    assert ok("work.engagement.list", {
-        "phase": "submitted", "consumerActorRef": reviewer,
-    })["engagements"] == []
-    accepted = ok("work.engagement.list", {
-        "phase": "accepted", "consumerActorRef": reviewer,
-    })
+    assert (
+        ok(
+            "work.engagement.list",
+            {
+                "phase": "submitted",
+                "consumerActorRef": reviewer,
+            },
+        )["engagements"]
+        == []
+    )
+    accepted = ok(
+        "work.engagement.list",
+        {
+            "phase": "accepted",
+            "consumerActorRef": reviewer,
+        },
+    )
     assert work_ref in [x["workRef"] for x in accepted["engagements"]]
 
     for revision in range(1, 9):
@@ -244,19 +433,44 @@ try:
 
     # An independent engagement can be released and cancelled through MCP.
     assert new_work(cancel_ref)["revision"] == 1
+
     def cancel_step(revision: int, actor: str, action: dict, request_id: str) -> dict:
-        return ok("work.engagement.advance", {
-            "workRef": cancel_ref, "expectedRevision": revision,
-            "actorRef": actor, "clientRequestId": request_id, "action": action,
-        })
+        return ok(
+            "work.engagement.advance",
+            {
+                "workRef": cancel_ref,
+                "expectedRevision": revision,
+                "actorRef": actor,
+                "clientRequestId": request_id,
+                "action": action,
+            },
+        )
+
     assert cancel_step(1, requester, offer, "request:r7:mcp:cancel-offer")["revision"] == 2
-    assert cancel_step(2, agent_a, {"type": "claim"}, "request:r7:mcp:cancel-claim")["revision"] == 3
-    assert cancel_step(3, agent_a, {
-        "type": "release", "reason": "任务已交还给发布者",
-    }, "request:r7:mcp:cancel-release")["snapshot"]["engagement"]["phase"] == "offered"
-    cancelled = cancel_step(4, requester, {
-        "type": "cancel", "reason": "需求撤销但不撤销任何真实外部副作用",
-    }, "request:r7:mcp:cancel-final")
+    assert (
+        cancel_step(2, agent_a, {"type": "claim"}, "request:r7:mcp:cancel-claim")["revision"] == 3
+    )
+    assert (
+        cancel_step(
+            3,
+            agent_a,
+            {
+                "type": "release",
+                "reason": "任务已交还给发布者",
+            },
+            "request:r7:mcp:cancel-release",
+        )["snapshot"]["engagement"]["phase"]
+        == "offered"
+    )
+    cancelled = cancel_step(
+        4,
+        requester,
+        {
+            "type": "cancel",
+            "reason": "需求撤销但不撤销任何真实外部副作用",
+        },
+        "request:r7:mcp:cancel-final",
+    )
     assert cancelled["state"] == "abandoned"
     rejected("work.engagement.list", {"limit": 0}, "INVALID_ARGUMENT")
     rejected("work.engagement.list", {"beforeWorkRef": work_ref}, "INVALID_ARGUMENT")
@@ -265,7 +479,9 @@ try:
     with open(observed_path, "w", encoding="utf-8") as stream:
         json.dump(observed, stream, ensure_ascii=False, sort_keys=True)
         stream.write("\n")
-    print("R7_MCP_ENGAGEMENT_STDIO_REAL_PG18_PASS offers=2 claims=3 submitted=2 returned=1 accepted=1 canceled=1 stale_and_wrong_rejected=true replay=existing=exact inbox_without_follow=true typed_success_schema=PASS")
+    print(
+        "R7_MCP_ENGAGEMENT_STDIO_REAL_PG18_PASS offers=2 claims=3 submitted=2 returned=1 accepted=1 canceled=1 stale_and_wrong_rejected=true replay=existing=exact inbox_without_follow=true typed_success_schema=PASS"
+    )
 finally:
     proc.terminate()
     try:
