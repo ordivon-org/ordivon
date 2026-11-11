@@ -8,7 +8,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -24,7 +24,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -120,7 +120,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -128,7 +128,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -152,7 +152,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -184,7 +184,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -200,7 +200,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -216,7 +216,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -232,7 +232,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -240,7 +240,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -272,7 +272,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -280,7 +280,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     },
     {
@@ -304,7 +304,7 @@
       "routeOwner": "host",
       "operation": "write",
       "httpIngress": "verified-principal",
-      "gatewayObjectPep": "none",
+      "gatewayObjectPep": "host-legacy-write-authzen",
       "downstreamAuthorization": "UNKNOWN"
     }
   ]

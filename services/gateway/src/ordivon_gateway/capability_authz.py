@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import base64
+import hashlib
+import json
 import unicodedata
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -10,6 +12,7 @@ from mcp.server.context import CallNext, HandlerResult, ServerRequestContext
 from mcp_types import CallToolResult, TextContent
 
 from .execution_refs import GatewayError, parse_execution_ref
+from .service import _SOCIAL_WORK_HOST_TOOLS
 
 
 class CapabilityAuthorizer(Protocol):
@@ -86,7 +89,9 @@ class HostAccountabilityAuthorizationTarget:
 _ACCOUNTABILITY_ACTIONS = frozenset({"offer", "claim", "release", "submit", "review", "cancel"})
 
 
-def _qualified_host_reference(value: object, field: str) -> str:
+def _qualified_host_reference(
+    value: object, field: str, *, capability: str = "host.work.engagement"
+) -> str:
     if (
         not isinstance(value, str)
         or not 3 <= len(value.encode("utf-8")) <= 512
@@ -97,7 +102,7 @@ def _qualified_host_reference(value: object, field: str) -> str:
         raise CapabilityAuthorizationTargetError(
             "CAPABILITY_AUTHZ_TARGET_INVALID",
             f"Work accountability requires a qualified {field}.",
-            capability="host.work.engagement",
+            capability=capability,
         )
     return value
 
@@ -200,6 +205,103 @@ def _resolve_work_engagement_target(
     return None
 
 
+# These original Host projections only read state. Every other Host operation
+# in the single Gateway route registry is a write and REQUIRES Security PEP.
+# New Owner tools therefore fail closed by default instead of inheriting an
+# accidentally public state-changing route.
+_HOST_READ_ONLY_TOOLS = frozenset(
+    {
+        "host.status",
+        "work.get",
+        "work.list",
+        "space.get",
+        "space.list",
+        "space.participation.list",
+        "space.subject.list",
+        "topic.cursor.get",
+        "topic.list",
+        "topic.resume",
+        "message.search",
+        "message.relation.list",
+        "subscription.list",
+        "attention.get",
+        "attention.delta",
+        "attention.reentry",
+    }
+)
+
+
+def _legacy_host_mutation_target(
+    tool_name: str, arguments: Mapping[str, Any]
+) -> HostAccountabilityAuthorizationTarget | None:
+    """Single PEP for Host writes lacking versioned Engagement's typed target.
+
+    The whole canonical request is digested, not just the untrusted actorRef:
+    a PDP ALLOW for a different Work, role, tool or action cannot be replayed
+    by modifying Tool arguments. No Domain validation or authorization is
+    reimplemented here. Missing Security remains DENY, not service-bearer ALLOW.
+    """
+    if tool_name not in _SOCIAL_WORK_HOST_TOOLS or tool_name in _HOST_READ_ONLY_TOOLS:
+        return None
+    # Message author identity has a different wire field from other Host writers.
+    # Never let a supplied ignored actorRef shadow the persisted authorActorRef.
+    claimed_actor = (
+        arguments.get("authorActorRef")
+        if tool_name == "message.post"
+        else arguments.get("actorRef")
+    )
+    _qualified_host_reference(
+        claimed_actor,
+        "authorActorRef" if tool_name == "message.post" else "actorRef",
+        capability="host.legacy-write",
+    )
+    try:
+        canonical = json.dumps(
+            arguments,
+            ensure_ascii=False,
+            sort_keys=True,
+            allow_nan=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            "Host mutation requires a JSON-compatible request.",
+            capability="host.legacy-write",
+        ) from exc
+    if len(canonical) > 4_194_304:
+        raise CapabilityAuthorizationTargetError(
+            "CAPABILITY_AUTHZ_TARGET_INVALID",
+            "Host mutation request exceeds maximum authorization budget.",
+            capability="host.legacy-write",
+        )
+    digest = hashlib.sha256(canonical).hexdigest()
+    return HostAccountabilityAuthorizationTarget(
+        capability="host.legacy-write",
+        resource_type="ordivon.host.legacy-write-request",
+        resource_id="host-legacy-write:v1:" + _base64url_text(tool_name) + "." + digest,
+        attributes={
+            "identityContract": "ordivon.host-legacy-write-resource.v1",
+            "toolName": tool_name,
+            "requestSha256": digest,
+            "claimedActorRef": claimed_actor,
+            "workRef": arguments.get("workRef"),
+            "spaceRef": arguments.get("spaceRef"),
+            "topicRef": arguments.get("topicRef"),
+            "messageRef": arguments.get("messageRef"),
+            # Requested coordinates are not authorization evidence. The full
+            # request digest binds any omitted fields too.
+            "sourceMessageRef": arguments.get("sourceMessageRef"),
+            "targetRef": arguments.get("targetRef"),
+            "targetKind": arguments.get("targetKind"),
+            "expectedRevision": arguments.get("expectedRevision"),
+            "expectedState": arguments.get("expectedState"),
+            "requestedState": arguments.get("state"),
+            "requestedStanding": arguments.get("standing"),
+        },
+    )
+
+
 class CapabilityAuthorizationTargetError(ValueError):
     def __init__(self, code: str, message: str, *, capability: str | None = None) -> None:
         super().__init__(message)
@@ -267,6 +369,9 @@ def resolve_authorization_target(
     engagement = _resolve_work_engagement_target(tool_name, arguments)
     if engagement is not None:
         return engagement
+    legacy_mutation = _legacy_host_mutation_target(tool_name, arguments)
+    if legacy_mutation is not None:
+        return legacy_mutation
     if tool_name != "artifact.read":
         return None
 

@@ -351,3 +351,81 @@ def test_actual_gateway_http_ingress_authzen_pep_and_owner_route_are_composed(
         assert policy.requests == policy_calls
 
     asyncio.run(exercise())
+
+
+def test_real_gateway_http_authenticated_legacy_writer_denied_without_security(
+    tmp_path,
+) -> None:
+    """Production ingress + real MCP sessions, but no PDP: old Writer cannot escape."""
+    import httpx2
+    from mcp.client.session import ClientSession
+    from mcp.client.streamable_http import streamable_http_client
+
+    from ordivon_gateway.mcp_server import build_http_app
+
+    bearer = "c" * 64
+    token_path = tmp_path / "legacy-writer-private-bearer"
+    token_path.write_text(bearer, encoding="utf-8")
+    token_path.chmod(0o600)
+
+    async def scenario() -> None:
+        owner = RecordingOwner()
+        gateway = GatewayService(owner)
+        server = build_server(
+            gateway,
+            capability_authorizer=None,
+            require_http_execution_identity=True,
+            # A caller of build_server must not need this unrelated switch
+            # to protect legacy Host state-changing tools.
+            protect_artifact_reads=False,
+        )
+        assert any(
+            type(m).__name__ == "GatewayCapabilityAuthorizationMiddleware"
+            for m in server.middleware
+        )
+        app = build_http_app(
+            server,
+            host="127.0.0.1",
+            path="/mcp",
+            public_origin=None,
+            access_verifier=None,
+            local_bearer_token_file=str(token_path),
+        )
+        inner = app._app
+        async with inner.router.lifespan_context(inner):
+            async with httpx2.AsyncClient(
+                transport=httpx2.ASGITransport(
+                    app=app,
+                    client=("127.0.0.1", 50275),
+                ),
+                base_url="http://127.0.0.1:19077",
+                headers={"Authorization": f"Bearer {bearer}"},
+                trust_env=False,
+                timeout=httpx2.Timeout(15, read=45),
+            ) as http:
+                async with streamable_http_client(
+                    "http://127.0.0.1:19077/mcp", http_client=http
+                ) as streams:
+                    async with ClientSession(streams[0], streams[1]) as session:
+                        await session.initialize()
+                        names = {t.name for t in (await session.list_tools()).tools}
+                        assert "work.snapshot.commit" in names
+                        result = await session.call_tool(
+                            "work.snapshot.commit",
+                            {
+                                "workRef": "work:test:old",
+                                "expectedRevision": 2,
+                                "snapshot": {
+                                    "objective": "no unauthorized CAS",
+                                    "frontier": "Owner must not be invoked",
+                                },
+                                "actorRef": "actor:impersonated",
+                            },
+                        )
+                        assert result.is_error is True
+                        assert result.structured_content["error"]["code"] == (
+                            "CAPABILITY_AUTHZ_UNAVAILABLE"
+                        )
+        assert owner.calls == [], "valid machine bearer != authorization to write Work"
+
+    asyncio.run(scenario())

@@ -179,7 +179,14 @@ def build_server(
     server.middleware.append(GatewayAuditMiddleware())
     if require_http_execution_identity:
         server.middleware.append(GatewayHTTPIngressGuard())
-    if capability_authorizer is not None or protect_artifact_reads:
+    # In verified HTTP mode every Host mutation also needs a Security PEP,
+    # including the original tools that predate versioned Work Engagement.
+    # The absence of a configured PDP is a DENY, never a service-bearer grant.
+    if (
+        capability_authorizer is not None
+        or protect_artifact_reads
+        or require_http_execution_identity
+    ):
         server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
 
     @server.tool(name="system.describe")
