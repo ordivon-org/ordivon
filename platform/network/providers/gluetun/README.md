@@ -28,6 +28,11 @@ identity-exclusive.sh and the systemd recovery units live under systemd/.
 Credentials stay outside Git. The native Gluetun healthchecker handles
 in-tunnel reconnects; Network systemd reconciliation handles cold-start units.
 Use task provider:gluetun:verify to inspect installed source and consumer result.
+The same verification now checks the running Podman container's selected loaded
+non-secret environment against the source-generated profile; an edited env file
+without a provider restart is **not** a successful deployment. Unexpected
+hostname/city/category filters also fail closed, without printing credentials.
+
 
 ## Optional IPinfo witness
 

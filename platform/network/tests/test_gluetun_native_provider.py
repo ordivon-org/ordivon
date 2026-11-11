@@ -74,3 +74,38 @@ def test_quadlet_uses_podman_secret_and_no_pinned_endpoint():
     assert "WIREGUARD_PRIVATE_KEY_SECRETFILE=/run/secrets/surfshark-wgkey" in source
     assert "EnvironmentFile=/etc/network-v2/gluetun/serialized-native.env" in source
     assert "/gluetun/wireguard/wg0.conf" not in source
+
+
+def test_running_gluetun_loaded_settings_match_selected_native_sourcecut():
+    """File parity is insufficient if Podman has not reloaded changed env."""
+    expected = native.generate_env(
+        native.parse_env(
+            "VPN_SERVICE_PROVIDER=custom\nVPN_TYPE=wireguard\n"
+            "HTTPPROXY=on\nHTTPPROXY_LISTENING_ADDRESS=:8888\n"
+        ),
+        "10.64.200.9/16",
+    )
+    # Gluetun includes empty default filters in the running OCI environment.
+    loaded = expected.splitlines() + [
+        "SERVER_CITIES=", "SERVER_HOSTNAMES=", "SERVER_NAMES=",
+        "SERVER_CATEGORIES=",
+    ]
+    native.verify_loaded_env(expected, loaded)
+    for before, after, affected_key in [
+        ("SERVER_COUNTRIES=Singapore", "SERVER_COUNTRIES=Japan", "SERVER_COUNTRIES"),
+        ('SERVER_REGIONS="Asia Pacific"', 'SERVER_REGIONS="Europe"', "SERVER_REGIONS"),
+        ("DNS_UPSTREAM_RESOLVER_TYPE=dot", "DNS_UPSTREAM_RESOLVER_TYPE=doh", "DNS_UPSTREAM_RESOLVER_TYPE"),
+    ]:
+        mutated = [line.replace(before, after) for line in loaded]
+        with pytest.raises(ValueError, match=affected_key):
+            native.verify_loaded_env(expected, mutated)
+    with pytest.raises(ValueError, match="SERVER_HOSTNAMES"):
+        native.verify_loaded_env(
+            expected,
+            [line for line in loaded if not line.startswith("SERVER_HOSTNAMES=")]
+            + ["SERVER_HOSTNAMES=one.prod.surfshark.com"],
+        )
+    with pytest.raises(ValueError, match="SERVER_COUNTRIES"):
+        native.verify_loaded_env(expected, loaded + ["SERVER_COUNTRIES=Singapore"])
+    with pytest.raises(ValueError, match="VPN_SERVICE_PROVIDER"):
+        native.verify_loaded_env(expected, [line for line in loaded if not line.startswith("VPN_SERVICE_PROVIDER=")])
