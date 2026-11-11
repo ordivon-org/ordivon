@@ -11,7 +11,7 @@ from pathlib import Path
 from anc_canonical import digest_bytes
 from ordivon_harness.core_contracts import HarnessBoundReference, HarnessRunContract
 from ordivon_harness.domain_tools import DomainToolCatalog
-from ordivon_harness.ordivon.model import AgentToolDefinition
+from ordivon_harness.ordivon.model import AgentToolDefinition, AgentToolCall
 from ordivon_harness.postgres_store import PostgresHarnessStore
 
 dsn = os.environ["HARNESS_RUST_TEST_PG_DSN"]
@@ -59,7 +59,14 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
     assert store.create_run(contract).value == "created"
     store.validate_run_history(contract.harness_run_id)
 original = json.loads(path.read_text(encoding="utf-8"))
+source_call = AgentToolCall(
+    tool_call_id="call:pg1",
+    name="read",
+    arguments={"text": "hello"},
+)
 original["domain_bridge"] = {
+    "modelToolCall": source_call.to_dict(),
+    "modelToolCallDigest": source_call.digest,
     "runId": contract.harness_run_id,
     "providerId": contract.provider_id,
     "adapterId": contract.adapter_id,

@@ -50,11 +50,13 @@ fn python_pg_run_v2_contract_binds_exact_custom_tool_surface_without_dispatch() 
     assert_eq!(qualified.model_id(), identity.requested_model_id);
     assert_eq!(qualified.ordered_tool_names(), &["read", "edit"]);
 
-    let call = inspect_model_tool_call(
-        &loads_strict(r#"{"toolCallId":"call:pg1","name":"read","arguments":{"text":"hello"}}"#)
-            .unwrap(),
-    )
-    .unwrap();
+    // This Tool Call is actually authored by the Python AgentToolCall model,
+    // not a Rust-authored JSON imitation with the same apparent fields.
+    let python_call = binding
+        .get("modelToolCall")
+        .expect("source model Tool Call");
+    let call = inspect_model_tool_call(&python_call).expect("Python-compatible Tool Call");
+    assert_eq!(call.digest(), text(&binding, "modelToolCallDigest"));
     assert_eq!(
         qualified
             .preflight(&catalog, &call, &HashSet::new())
