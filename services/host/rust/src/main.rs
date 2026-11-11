@@ -1,3 +1,5 @@
+mod http_owner_auth;
+
 use axum::Router;
 use ordivon_host_rust::{mcp::HostMcp, pg::HostPg};
 use rmcp::transport::streamable_http_server::{
@@ -33,6 +35,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .unwrap_or_else(|_| "8898".into())
                 .parse::<u16>()?;
             let bind = loopback_bind(&host, port)?;
+            // Loopback and Origin checks cannot authenticate a local MCP
+            // caller. Reuse the Gateway owner's existing private bearer-file
+            // credential protocol, with no public unauthenticated fallback.
+            let secret_path = std::env::var("ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE")
+                .map_err(|_| "Rust Host HTTP requires ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE")?;
+            let owner_bearer = std::sync::Arc::new(http_owner_auth::OwnerBearer::read_file(
+                std::path::Path::new(&secret_path),
+            )?);
             let path = std::env::var("ORDIVON_HOST_V2_PATH").unwrap_or_else(|_| "/mcp".into());
             if !path.starts_with('/') || path.contains("//") || path.contains("..") {
                 return Err("ORDIVON_HOST_V2_PATH must be an absolute simple HTTP path".into());
@@ -52,7 +62,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         ]),
                 );
             let listener = tokio::net::TcpListener::bind(bind).await?;
-            let app = Router::new().nest_service(&path, service);
+            let app = Router::new().nest_service(&path, service).layer(
+                axum::middleware::from_fn_with_state(
+                    owner_bearer,
+                    http_owner_auth::require_owner_bearer,
+                ),
+            );
             axum::serve(listener, app)
                 .with_graceful_shutdown(async {
                     let _ = tokio::signal::ctrl_c().await;

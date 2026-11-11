@@ -33,7 +33,16 @@ def require_disposable_pg18() -> None:
 async def consume_owner(url: str, child: subprocess.Popen) -> None:
     # This is exactly the existing Gateway's production upstream implementation,
     # not an ad hoc requests/httpx proxy and not a stub Owner caller.
-    owner = McpOwnerCaller({"host": OwnerEndpoint(url=url)})
+    # An authenticated Host service caller is required by Rust HTTP.
+    # This is NOT end-user Principal to ActorRef delegation.
+    owner = McpOwnerCaller(
+        {
+            "host": OwnerEndpoint(
+                url=url,
+                bearer_token_file=os.environ["ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE"],
+            )
+        }
+    )
     gateway = GatewayService(owner)
     try:
         for attempt in range(90):

@@ -12,9 +12,11 @@ container=""
 oracle="$root/services/host/rust/tests/.r2_python_oracle_runtime.json"
 doctor_oracle="$root/services/host/rust/tests/.r5_doctor_oracle_runtime.json"
 read_search_oracle="$root/services/host/rust/tests/.r5_mcp_message_observed_runtime.json"
+owner_token_file=""
 engagement_oracle="$root/services/host/rust/tests/.r7_mcp_engagement_observed_runtime.json"
 cleanup() {
   rm -f "$oracle" "$doctor_oracle" "$read_search_oracle" "$engagement_oracle"
+  if [[ -n "$owner_token_file" ]]; then rm -f "$owner_token_file"; fi
   if [[ -n "$container" ]]; then docker rm -f "$container" >/dev/null 2>&1 || true; fi
 }
 trap cleanup EXIT
@@ -36,6 +38,13 @@ echo "PG18_DISPOSABLE_CONNECTION_PASS"
 (cd "$root/services/host" && uv sync --locked --offline --quiet && uv run --offline alembic upgrade head >/dev/null)
 [[ "$(psql -X -Atq "$ORDIVON_HOST_V2_DSN" -c 'SELECT schema_version FROM host_v2_schema WHERE singleton')" == 13 ]] || exit 8
 echo "ALEMBIC_SCHEMA13_PASS"
+# The fixture/Orchestrator, not the Host domain, owns this private credential.
+# Gateway's existing OwnerEndpoint.bearer_token_file consumes the same file.
+owner_token_file="$(mktemp "${TMPDIR:-/tmp}/ordivon-host-r10-owner-XXXXXXXX")"
+chmod 600 "$owner_token_file"
+openssl rand -hex 48 > "$owner_token_file"
+export ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE="$owner_token_file"
+
 cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --test status_pg -- --ignored --test-threads=1
 cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --test work_pg -- --ignored --test-threads=1
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/actor_python_parity.py")
@@ -51,6 +60,19 @@ cargo test --manifest-path "$root/services/host/rust/Cargo.toml" --offline --tes
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/python_oracle.py" verify)
 echo "R2_PYTHON_RUST_BIDIRECTIONAL_PASS"
 cargo build --manifest-path "$root/services/host/rust/Cargo.toml" --offline --quiet
+# A missing credential must never start an unrestricted HTTP listener.
+set +e
+env -u ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE \
+  ORDIVON_HOST_V2_TRANSPORT=streamable-http ORDIVON_HOST_V2_HOST=127.0.0.1 \
+  ORDIVON_HOST_V2_PORT=0 \
+  timeout 5s "$root/services/host/rust/target/debug/ordivon-host-rust" >/dev/null 2>&1
+missing_owner_rc=$?
+set -e
+if [[ $missing_owner_rc == 0 || $missing_owner_rc == 124 ]]; then
+  echo "R10_HTTP_MISSING_OWNER_CREDENTIAL_NOT_DENIED" >&2
+  exit 8
+fi
+echo "R10_HOST_HTTP_MISSING_OWNER_CREDENTIAL_FAIL_CLOSED_PASS"
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tests/attention_mcp_cross_language.py" "$root/services/host/rust/target/debug/ordivon-host-rust")
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/sync_python_output_contracts.py" --check)
 (cd "$root/services/host" && uv run --offline python "$root/services/host/rust/tools/audit_mcp_surface.py" \

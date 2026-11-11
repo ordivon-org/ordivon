@@ -720,6 +720,7 @@ dependencies = [
  "chrono",
  "deadpool-postgres",
  "hex",
+ "hmac",
  "rmcp",
  "schemars",
  "serde",

@@ -1,4 +1,5 @@
 """Local-only streamable-HTTP MCP smoke against one disposable PG18 schema13."""
+
 import json
 import os
 import socket
@@ -7,6 +8,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
@@ -27,14 +29,17 @@ env.update(
     ORDIVON_HOST_V2_PORT=str(port),
     ORDIVON_HOST_V2_PATH="/mcp",
 )
-server = subprocess.Popen(
-    [sys.argv[1]], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, env=env
+owner_token_path = os.environ.get("ORDIVON_HOST_V2_OWNER_BEARER_TOKEN_FILE")
+assert owner_token_path and Path(owner_token_path).is_file(), (
+    "Host HTTP test requires a fixture-owned private service bearer"
 )
+owner_bearer = Path(owner_token_path).read_text(encoding="utf-8").strip()
+
+server = subprocess.Popen([sys.argv[1]], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, env=env)
 url = f"http://127.0.0.1:{port}/mcp"
 
 _http_output_schemas = {}
 _http_validation_hits = set()
-
 
 
 def post(method, params, request_id, session=None):
@@ -47,6 +52,7 @@ def post(method, params, request_id, session=None):
         "Content-Type": "application/json",
         "Accept": "application/json, text/event-stream",
         "Mcp-Protocol-Version": "2025-06-18",
+        "Authorization": f"Bearer {owner_bearer}",
     }
     if session:
         headers["Mcp-Session-Id"] = session
@@ -68,11 +74,14 @@ def post(method, params, request_id, session=None):
                 for line in decoded.splitlines():
                     if line.startswith("data:"):
                         try:
-                            records.append(json.loads(line[len("data:"):].strip()))
+                            records.append(json.loads(line[len("data:") :].strip()))
                         except json.JSONDecodeError:
                             continue
-                valid = [item for item in records if isinstance(item, dict) and
-                         item.get("jsonrpc") == "2.0"]
+                valid = [
+                    item
+                    for item in records
+                    if isinstance(item, dict) and item.get("jsonrpc") == "2.0"
+                ]
                 if not valid:
                     raise RuntimeError("MCP HTTP returned unrecognized payload: " + decoded[:800])
                 body = valid[-1]
@@ -105,7 +114,7 @@ try:
                 1,
             )
             break
-        except (urllib.error.URLError, TimeoutError, ConnectionError):
+        except urllib.error.URLError, TimeoutError, ConnectionError:
             time.sleep(0.1)
     assert initialized is not None, "Rust HTTP Host didn't accept initialization"
     status, body, headers = initialized
@@ -116,15 +125,16 @@ try:
     # cannot protect against a browser resolving an attacker hostname to loopback.
     bad_origin = urllib.request.Request(
         url,
-        data=json.dumps({
-            "jsonrpc": "2.0", "id": 99, "method": "tools/list", "params": {}
-        }).encode("utf-8"),
+        data=json.dumps({"jsonrpc": "2.0", "id": 99, "method": "tools/list", "params": {}}).encode(
+            "utf-8"
+        ),
         headers={
             "Content-Type": "application/json",
             "Accept": "application/json, text/event-stream",
             "Mcp-Protocol-Version": "2025-06-18",
             "Mcp-Session-Id": session,
             "Origin": "https://untrusted.example",
+            "Authorization": f"Bearer {owner_bearer}",
         },
         method="POST",
     )
@@ -133,6 +143,55 @@ try:
         raise AssertionError("Host accepted untrusted Origin header")
     except urllib.error.HTTPError as exc:
         assert exc.code in {400, 403}, f"unexpected Origin rejection: {exc.code}"
+
+    # Attackers who reach localhost still cannot bypass the Gateway's
+    # private Owner transport. Test both tools/call and initialization paths.
+    def deny_raw(token: str | None, method: str, request_id: int) -> None:
+        args = {
+            "workRef": "work:test:rust-mcp-stdio",
+            "expectedRevision": 2,
+            "actorRef": "actor:test:rust-mcp",
+            "clientRequestId": "request:r10:direct-bypass",
+            "action": {"type": "claim"},
+        }
+        payload = {"jsonrpc": "2.0", "id": request_id, "method": method}
+        if method == "tools/call":
+            payload["params"] = {
+                "name": "work.engagement.advance",
+                "arguments": args,
+            }
+        else:
+            payload["params"] = {
+                "protocolVersion": "2025-06-18",
+                "capabilities": {},
+                "clientInfo": {"name": "untrusted-local-client", "version": "1"},
+            }
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+            "Mcp-Protocol-Version": "2025-06-18",
+            "Mcp-Session-Id": session,
+        }
+        if token is not None:
+            headers["Authorization"] = f"Bearer {token}"
+        raw = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(raw, timeout=7)
+        except urllib.error.HTTPError as error:
+            assert error.code == 401, (method, token is not None, error.code)
+            assert error.headers.get("WWW-Authenticate") == "Bearer"
+        else:
+            raise AssertionError("unauthenticated direct Owner bypass was accepted")
+
+    deny_raw(None, "initialize", 91)
+    deny_raw(None, "tools/call", 92)
+    deny_raw("wrong-owner-service-token", "tools/call", 93)
+    print("R10_HTTP_DIRECT_LOCAL_BYPASS_REJECTED_PASS no_bearer=401 wrong_bearer=401")
 
     notify_status, _, _ = post("notifications/initialized", None, None, session)
     assert notify_status == 202, notify_status
@@ -203,119 +262,188 @@ try:
     }, listing
     _, resumed, _ = post(
         "tools/call",
-        {"name":"topic.resume","arguments":{"topicRef":"topic:test:rust-mcp-social","afterSequence":0}},
-        6, session,
+        {
+            "name": "topic.resume",
+            "arguments": {"topicRef": "topic:test:rust-mcp-social", "afterSequence": 0},
+        },
+        6,
+        session,
     )
-    assert [m["messageRef"] for m in resumed["result"]["structuredContent"]["messages"]]==[
-        "message:test:rust-mcp-python-seed","message:test:rust-mcp-social-rust"
-    ],resumed
+    assert [m["messageRef"] for m in resumed["result"]["structuredContent"]["messages"]] == [
+        "message:test:rust-mcp-python-seed",
+        "message:test:rust-mcp-social-rust",
+    ], resumed
     _, r5_space_http, _ = post(
         "tools/call",
-        {"name":"space.get","arguments":{"spaceRef":"space:test:rust-mcp-r5-first"}},
-        7, session,
+        {"name": "space.get", "arguments": {"spaceRef": "space:test:rust-mcp-r5-first"}},
+        7,
+        session,
     )
-    restored=r5_space_http["result"]["structuredContent"]
-    assert restored["subjectRefs"]==["subject:alpha","subject:zeta"],restored
-    assert restored["participantCount"]==1 and restored["topicCount"]==1,restored
+    restored = r5_space_http["result"]["structuredContent"]
+    assert restored["subjectRefs"] == ["subject:alpha", "subject:zeta"], restored
+    assert restored["participantCount"] == 1 and restored["topicCount"] == 1, restored
     _, r5_search_http, _ = post(
         "tools/call",
-        {"name":"message.search","arguments":{
-            "query":"协作世界","spaceRef":"space:test:rust-mcp-r5-first",
-            "topicRef":"topic:test:rust-mcp-r5-first",
-        }},
-        9, session,
+        {
+            "name": "message.search",
+            "arguments": {
+                "query": "协作世界",
+                "spaceRef": "space:test:rust-mcp-r5-first",
+                "topicRef": "topic:test:rust-mcp-r5-first",
+            },
+        },
+        9,
+        session,
     )
-    searched=r5_search_http["result"]["structuredContent"]
-    assert [m["messageRef"] for m in searched["messages"]]==[
-        "message:test:rust-mcp-r5-first"
-    ],searched
-    _, r5_relations_http, _=post(
+    searched = r5_search_http["result"]["structuredContent"]
+    assert [m["messageRef"] for m in searched["messages"]] == ["message:test:rust-mcp-r5-first"], (
+        searched
+    )
+    _, r5_relations_http, _ = post(
         "tools/call",
-        {"name":"message.relation.list","arguments":{
-            "messageRef":"message:test:rust-mcp-r5-first","direction":"both"
-        }},10,session,
+        {
+            "name": "message.relation.list",
+            "arguments": {"messageRef": "message:test:rust-mcp-r5-first", "direction": "both"},
+        },
+        10,
+        session,
     )
-    relation_page=r5_relations_http["result"]["structuredContent"]
-    assert len(relation_page["relations"])==2,relation_page
-    _, r5_topics_http, _=post(
-        "tools/call",{"name":"topic.list","arguments":{
-            "spaceRef":"space:test:rust-mcp-r5-first"
-        }},11,session,
+    relation_page = r5_relations_http["result"]["structuredContent"]
+    assert len(relation_page["relations"]) == 2, relation_page
+    _, r5_topics_http, _ = post(
+        "tools/call",
+        {"name": "topic.list", "arguments": {"spaceRef": "space:test:rust-mcp-r5-first"}},
+        11,
+        session,
     )
-    assert len(r5_topics_http["result"]["structuredContent"]["topics"])==1,r5_topics_http
-    _, r6_spaces_http, _=post(
-        "tools/call",{"name":"space.list","arguments":{
-            "actorRef":"actor:test:rust-mcp-r5-first","subjectRef":"subject:alpha"
-        }},12,session,
+    assert len(r5_topics_http["result"]["structuredContent"]["topics"]) == 1, r5_topics_http
+    _, r6_spaces_http, _ = post(
+        "tools/call",
+        {
+            "name": "space.list",
+            "arguments": {
+                "actorRef": "actor:test:rust-mcp-r5-first",
+                "subjectRef": "subject:alpha",
+            },
+        },
+        12,
+        session,
     )
-    spaces=r6_spaces_http["result"]["structuredContent"]
-    assert [s["spaceRef"] for s in spaces["spaces"]]==[
-        "space:test:rust-mcp-r5-first"
-    ],spaces
-    _, r6_subjects_http, _=post(
-        "tools/call",{"name":"space.subject.list","arguments":{
-            "spaceRef":"space:test:rust-mcp-r5-first"
-        }},13,session,
+    spaces = r6_spaces_http["result"]["structuredContent"]
+    assert [s["spaceRef"] for s in spaces["spaces"]] == ["space:test:rust-mcp-r5-first"], spaces
+    _, r6_subjects_http, _ = post(
+        "tools/call",
+        {"name": "space.subject.list", "arguments": {"spaceRef": "space:test:rust-mcp-r5-first"}},
+        13,
+        session,
     )
-    assert r6_subjects_http["result"]["structuredContent"]["subjectRefs"]==[
-        "subject:alpha","subject:zeta"
-    ],r6_subjects_http
-    _, r6_members_http, _=post(
-        "tools/call",{"name":"space.participation.list","arguments":{
-            "spaceRef":"space:test:rust-mcp-r5-first"
-        }},14,session,
+    assert r6_subjects_http["result"]["structuredContent"]["subjectRefs"] == [
+        "subject:alpha",
+        "subject:zeta",
+    ], r6_subjects_http
+    _, r6_members_http, _ = post(
+        "tools/call",
+        {
+            "name": "space.participation.list",
+            "arguments": {"spaceRef": "space:test:rust-mcp-r5-first"},
+        },
+        14,
+        session,
     )
-    assert len(r6_members_http["result"]["structuredContent"]["participants"])==1,r6_members_http
+    assert len(r6_members_http["result"]["structuredContent"]["participants"]) == 1, r6_members_http
     _, historical, _ = post(
-        "tools/call", {"name":"host.status","arguments":{"detail":"history"}}, 8, session,
+        "tools/call",
+        {"name": "host.status", "arguments": {"detail": "history"}},
+        8,
+        session,
     )
     doctor = historical["result"]["structuredContent"]["doctor"]
     assert doctor["healthy"] is False, historical
     diagnostics = {check["name"]: check for check in doctor["checks"]}
     assert diagnostics["work.current_snapshot"]["status"] == "ok", diagnostics
-    assert diagnostics["work.snapshot_history_contiguous"]["detail"] == "invalidWorks=1", diagnostics
+    assert diagnostics["work.snapshot_history_contiguous"]["detail"] == "invalidWorks=1", (
+        diagnostics
+    )
     assert diagnostics["work.snapshot_history_digest"]["detail"] == "invalid=1", diagnostics
     # A separate HTTP MCP session performs a new durable Work intake and
     # claim. Its full typed reply is validated by post() against the official
     # advertised output schema; old Python WorkStore rereads this same PG row.
-    http_work_ref="work:test:r7-mcp-http"
-    _, created_http, _=post("tools/call",{"name":"work.create","arguments":{
-        "workRef":http_work_ref,"workKind":"research-deliverable",
-        "actorRef":"actor:test:r7-mcp-requester",
-        "initialSnapshot":{"objective":"HTTP Agent Work 协作","frontier":"awaiting claim"},
-    }},100,session)
-    assert created_http["result"]["structuredContent"]["revision"]==1,created_http
-    _, offered_http, _=post("tools/call",{
-        "name":"work.engagement.advance","arguments":{
-            "workRef":http_work_ref,"expectedRevision":1,
-            "actorRef":"actor:test:r7-mcp-requester",
-            "clientRequestId":"request:r7:mcp:http-offer",
-            "action":{"type":"offer",
-                "consumerActorRef":"actor:test:r7-mcp-reviewer",
-                "acceptanceCriteria":["指定消费方核对工件及验收证据"]},
-        }
-    },101,session)
-    assert offered_http["result"]["structuredContent"]["snapshot"]["engagement"]["phase"]=="offered",offered_http
-    _, inbox_http, _=post("tools/call",{
-        "name":"work.engagement.list","arguments":{
-            "phase":"offered","consumerActorRef":"actor:test:r7-mcp-reviewer"
-        }
-    },102,session)
+    http_work_ref = "work:test:r7-mcp-http"
+    _, created_http, _ = post(
+        "tools/call",
+        {
+            "name": "work.create",
+            "arguments": {
+                "workRef": http_work_ref,
+                "workKind": "research-deliverable",
+                "actorRef": "actor:test:r7-mcp-requester",
+                "initialSnapshot": {
+                    "objective": "HTTP Agent Work 协作",
+                    "frontier": "awaiting claim",
+                },
+            },
+        },
+        100,
+        session,
+    )
+    assert created_http["result"]["structuredContent"]["revision"] == 1, created_http
+    _, offered_http, _ = post(
+        "tools/call",
+        {
+            "name": "work.engagement.advance",
+            "arguments": {
+                "workRef": http_work_ref,
+                "expectedRevision": 1,
+                "actorRef": "actor:test:r7-mcp-requester",
+                "clientRequestId": "request:r7:mcp:http-offer",
+                "action": {
+                    "type": "offer",
+                    "consumerActorRef": "actor:test:r7-mcp-reviewer",
+                    "acceptanceCriteria": ["指定消费方核对工件及验收证据"],
+                },
+            },
+        },
+        101,
+        session,
+    )
+    assert (
+        offered_http["result"]["structuredContent"]["snapshot"]["engagement"]["phase"] == "offered"
+    ), offered_http
+    _, inbox_http, _ = post(
+        "tools/call",
+        {
+            "name": "work.engagement.list",
+            "arguments": {"phase": "offered", "consumerActorRef": "actor:test:r7-mcp-reviewer"},
+        },
+        102,
+        session,
+    )
     assert http_work_ref in {
         x["workRef"] for x in inbox_http["result"]["structuredContent"]["engagements"]
-    },inbox_http
-    _, claimed_http, _=post("tools/call",{
-        "name":"work.engagement.advance","arguments":{
-            "workRef":http_work_ref,"expectedRevision":2,
-            "actorRef":"actor:test:r7-mcp-worker-a",
-            "clientRequestId":"request:r7:mcp:http-claim",
-            "action":{"type":"claim"},
-        }
-    },103,session)
-    assert claimed_http["result"]["structuredContent"]["revision"]==3,claimed_http
-    assert claimed_http["result"]["structuredContent"]["snapshot"]["engagement"]["claimEpoch"]==1,claimed_http
+    }, inbox_http
+    _, claimed_http, _ = post(
+        "tools/call",
+        {
+            "name": "work.engagement.advance",
+            "arguments": {
+                "workRef": http_work_ref,
+                "expectedRevision": 2,
+                "actorRef": "actor:test:r7-mcp-worker-a",
+                "clientRequestId": "request:r7:mcp:http-claim",
+                "action": {"type": "claim"},
+            },
+        },
+        103,
+        session,
+    )
+    assert claimed_http["result"]["structuredContent"]["revision"] == 3, claimed_http
+    assert (
+        claimed_http["result"]["structuredContent"]["snapshot"]["engagement"]["claimEpoch"] == 1
+    ), claimed_http
     print("R7_HTTP_NATIVE_WORK_ENGAGEMENT_PASS offer=1 claim=1 consumer_inbox=1 schema=ACTUAL")
-    print(f"MCP_HTTP_OUTPUT_SCHEMA_VALIDATED_PASS published={len(_http_output_schemas)} exercised={len(_http_validation_hits)}")
+    print(
+        f"MCP_HTTP_OUTPUT_SCHEMA_VALIDATED_PASS published={len(_http_output_schemas)} exercised={len(_http_validation_hits)}"
+    )
     print(f"MCP_STREAMABLE_HTTP_PASS loopback=127.0.0.1 tools={len(names)} work_revision=2")
 finally:
     server.terminate()
