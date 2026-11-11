@@ -132,6 +132,7 @@ try:
         "message.get",
         "message.post",
         "message.relation.add",
+        "message.relation.list",
         "message.search",
         "space.create",
         "space.get",
@@ -142,6 +143,7 @@ try:
         "topic.create",
         "topic.cursor.ack",
         "topic.cursor.get",
+        "topic.list",
         "topic.resume",
         "topic.state.set",
         "work.create",
@@ -200,6 +202,20 @@ try:
     assert [m["messageRef"] for m in searched["messages"]]==[
         "message:test:rust-mcp-r5-first"
     ],searched
+    _, r5_relations_http, _=post(
+        "tools/call",
+        {"name":"message.relation.list","arguments":{
+            "messageRef":"message:test:rust-mcp-r5-first","direction":"both"
+        }},10,session,
+    )
+    relation_page=r5_relations_http["result"]["structuredContent"]
+    assert len(relation_page["relations"])==2,relation_page
+    _, r5_topics_http, _=post(
+        "tools/call",{"name":"topic.list","arguments":{
+            "spaceRef":"space:test:rust-mcp-r5-first"
+        }},11,session,
+    )
+    assert len(r5_topics_http["result"]["structuredContent"]["topics"])==1,r5_topics_http
     _, historical, _ = post(
         "tools/call", {"name":"host.status","arguments":{"detail":"history"}}, 8, session,
     )

@@ -61,6 +61,7 @@ try:
         "message.get",
         "message.post",
         "message.relation.add",
+        "message.relation.list",
         "message.search",
         "space.create",
         "space.get",
@@ -71,6 +72,7 @@ try:
         "topic.create",
         "topic.cursor.ack",
         "topic.cursor.get",
+        "topic.list",
         "topic.resume",
         "topic.state.set",
         "work.create",
@@ -457,6 +459,77 @@ try:
     missing_resource = missing_actor["structuredContent"]["error"]
     assert missing_resource["resourceKind"] == "actor", missing_resource
     assert missing_resource["resourceRef"] == "actor:test:not-declared", missing_resource
+    # B's native RR/byte-budget relations and Topic inventories now go
+    # through official rmcp, and Python re-reads the identical PG response.
+    references_args={"sourceMessageRef":r5_message,"relation":"references",
+                     "targetRef":r5_message,"actorRef":r5_actor}
+    self_ref=request("tools/call",{"name":"message.relation.add","arguments":references_args},67)
+    assert self_ref["structuredContent"]["admission"]=="committed",self_ref
+    opaque_args={"sourceMessageRef":r5_message,"relation":"about",
+                 "targetRef":"subject:test:r5-opaque","actorRef":r5_actor}
+    opaque=request("tools/call",{"name":"message.relation.add","arguments":opaque_args},68)
+    assert opaque["structuredContent"]["admission"]=="committed",opaque
+    both_args={"messageRef":r5_message,"direction":"both"}
+    both=request("tools/call",{"name":"message.relation.list","arguments":both_args},69)
+    both_data=both["structuredContent"]
+    assert len(both_data["relations"])==2,both
+    assert {v["relation"] for v in both_data["relations"]}=={"references","about"},both
+    outgoing=request("tools/call",{"name":"message.relation.list","arguments":{
+        **both_args,"direction":"outgoing"
+    }},70)
+    assert len(outgoing["structuredContent"]["relations"])==2,outgoing
+    incoming=request("tools/call",{"name":"message.relation.list","arguments":{
+        **both_args,"direction":"incoming"
+    }},71)
+    assert len(incoming["structuredContent"]["relations"])==1,incoming
+    assert incoming["structuredContent"]["relations"][0]["relation"]=="references",incoming
+    first=request("tools/call",{"name":"message.relation.list","arguments":{
+        **both_args,"limit":1
+    }},72)
+    first_data=first["structuredContent"]
+    assert len(first_data["relations"])==1 and first_data["hasMore"] is True,first
+    second=request("tools/call",{"name":"message.relation.list","arguments":{
+        **both_args,"afterChangeSequence":first_data["nextAfterChangeSequence"],"limit":1
+    }},73)
+    assert len(second["structuredContent"]["relations"])==1,second
+    assert [m["targetRef"] for m in first_data["relations"]+second["structuredContent"]["relations"]]==[
+        m["targetRef"] for m in both_data["relations"]
+    ],(first,second,both)
+    topic_inventory=request("tools/call",{"name":"topic.list","arguments":{
+        "spaceRef":r5_space
+    }},74)
+    topics_data=topic_inventory["structuredContent"]
+    assert [t["topicRef"] for t in topics_data["topics"]]==[r5_topic],topic_inventory
+    after_topic=request("tools/call",{"name":"topic.list","arguments":{
+        "spaceRef":r5_space,"afterTopicRef":r5_topic
+    }},75)
+    assert after_topic["structuredContent"]["topics"]==[],after_topic
+    rel_missing=request("tools/call",{"name":"message.relation.list","arguments":{
+        "messageRef":"message:test:r5-absent-for-relations"
+    }},76)
+    assert rel_missing["structuredContent"]["error"]["resourceKind"]=="message",rel_missing
+    assert rel_missing["structuredContent"]["error"]["code"]=="NOT_FOUND",rel_missing
+    topics_missing=request("tools/call",{"name":"topic.list","arguments":{
+        "spaceRef":"space:test:r5-absent-for-topics"
+    }},77)
+    assert topics_missing["structuredContent"]["error"]["resourceKind"]=="space",topics_missing
+    assert topics_missing["structuredContent"]["error"]["code"]=="NOT_FOUND",topics_missing
+    invalid_cursor=request("tools/call",{"name":"message.relation.list","arguments":{
+        **both_args,"afterChangeSequence":-1
+    }},78)
+    assert invalid_cursor["structuredContent"]["error"]["code"]=="INVALID_ARGUMENT",invalid_cursor
+    invalid_topic_limit=request("tools/call",{"name":"topic.list","arguments":{
+        "spaceRef":r5_space,"limit":0
+    }},79)
+    assert invalid_topic_limit["structuredContent"]["error"]["code"]=="INVALID_ARGUMENT",invalid_topic_limit
+    with open(observed_path,encoding="utf-8") as file:
+        observed=json.load(file)
+    observed["relationBoth"]=both_data
+    observed["topicList"]=topics_data
+    with open(observed_path,"w",encoding="utf-8") as file:
+        json.dump(observed,file,sort_keys=True,ensure_ascii=False)
+        file.write("\n")
+    print("MCP_NATIVE_SOCIAL_READ_R5_PASS relations=2 self_reference_BOTH_once=true cursor_no_skip=true topic_list=1 typed_errors=4 python_oracle=ATTACHED")
     print("MCP_NATIVE_COLLAB_R5_PASS actor=1 space=1 topic=1 participation=joined-left-joined message=1 resume=1 exact_replay=2 invalid=2 conflict=2 missing=1")
     print(
         "MCP_STDIO_PASS"

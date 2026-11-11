@@ -2,8 +2,8 @@
 //! Bounded pooled PostgreSQL connections are used for each transaction.
 use crate::attention::{self, TargetKind};
 use crate::social::{
-    self, AddMessageRelation, CreateSpace, CreateTopic, ParticipationStanding, PostMessage,
-    SearchMessages, TopicState,
+    self, AddMessageRelation, CreateSpace, CreateTopic, ListMessageRelations,
+    ParticipationStanding, PostMessage, SearchMessages, TopicState,
 };
 use crate::work::{self, ActorDeclare, CommitSnapshot, CreateWork, ListWorks};
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
@@ -266,6 +266,27 @@ impl HostPg {
     ) -> Result<Value, HostDbError> {
         let mut client = self.connect().await?;
         Ok(social::get_message(&mut client, message_ref, expected_digest).await?)
+    }
+
+    /// B's native relation and Topic inventory queries already implement
+    /// repeatable-read snapshot/pagination; this is solely the MCP pool seam.
+    pub async fn social_message_relation_list(
+        &self,
+        input: &ListMessageRelations,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::list_message_relations(&mut client, input).await?)
+    }
+
+    pub async fn social_topic_list(
+        &self,
+        space_ref: &str,
+        after_topic_ref: Option<&str>,
+        limit: i64,
+        max_bytes: usize,
+    ) -> Result<Value, HostDbError> {
+        let mut client = self.connect().await?;
+        Ok(social::list_topics(&mut client, space_ref, after_topic_ref, limit, max_bytes).await?)
     }
 
     pub async fn social_message_search(

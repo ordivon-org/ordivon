@@ -142,6 +142,14 @@ def verify() -> None:
     assert rust_observed["search"] == python_search, (
         "message.search", rust_observed["search"], python_search
     )
+    python_relations = social.list_message_relations(MESSAGE, direction="both")
+    python_topics = social.list_topics(SPACE)
+    assert rust_observed["relationBoth"] == python_relations, (
+        "message.relation.list", rust_observed["relationBoth"], python_relations
+    )
+    assert rust_observed["topicList"] == python_topics, (
+        "topic.list", rust_observed["topicList"], python_topics
+    )
     page = social.resume_topic(TOPIC, after_sequence=0, limit=100, max_bytes=524288)
     assert [entry["messageRef"] for entry in page["messages"]] == [MESSAGE], page
 

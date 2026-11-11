@@ -661,6 +661,64 @@ pub struct TopicStateSetRequest {
     pub expected_high_sequence: i64,
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum RelationDirectionWire {
+    Outgoing,
+    Incoming,
+    #[default]
+    Both,
+}
+impl RelationDirectionWire {
+    fn domain(self) -> social::RelationDirection {
+        match self {
+            Self::Outgoing => social::RelationDirection::Outgoing,
+            Self::Incoming => social::RelationDirection::Incoming,
+            Self::Both => social::RelationDirection::Both,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MessageRelationListRequest {
+    pub message_ref: String,
+    #[serde(default)]
+    pub direction: RelationDirectionWire,
+    #[serde(default)]
+    pub relation: Option<MessageRelationWire>,
+    #[serde(default)]
+    pub after_change_sequence: i64,
+    #[serde(default = "relation_list_limit")]
+    pub limit: i64,
+    #[serde(default = "relation_list_max_bytes")]
+    pub max_bytes: usize,
+}
+const fn relation_list_limit() -> i64 {
+    100
+}
+const fn relation_list_max_bytes() -> usize {
+    262_144
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TopicListRequest {
+    pub space_ref: String,
+    #[serde(default)]
+    pub after_topic_ref: Option<String>,
+    #[serde(default = "topic_list_limit")]
+    pub limit: i64,
+    #[serde(default = "topic_list_max_bytes")]
+    pub max_bytes: usize,
+}
+const fn topic_list_limit() -> i64 {
+    100
+}
+const fn topic_list_max_bytes() -> usize {
+    262_144
+}
+
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct MessageGetRequest {
@@ -1206,6 +1264,51 @@ impl HostMcp {
     }
 
     #[tool(
+        name = "message.relation.list",
+        description = "Read bounded immutable Message relations with direction, type and stable change-sequence cursor; no authority inference."
+    )]
+    async fn message_relation_list(
+        &self,
+        Parameters(request): Parameters<MessageRelationListRequest>,
+    ) -> CallToolResult {
+        let input = social::ListMessageRelations {
+            message_ref: request.message_ref,
+            direction: request.direction.domain(),
+            relation: request.relation.map(MessageRelationWire::domain),
+            after_change_sequence: request.after_change_sequence,
+            limit: request.limit,
+            max_bytes: request.max_bytes,
+        };
+        match self.pg.social_message_relation_list(&input).await {
+            Ok(value) => structured(value),
+            Err(error) => db_tool_error("message.relation.list", error),
+        }
+    }
+
+    #[tool(
+        name = "topic.list",
+        description = "Read lexically ordered Topics of one Space in a bounded, read-only PostgreSQL snapshot."
+    )]
+    async fn topic_list(
+        &self,
+        Parameters(request): Parameters<TopicListRequest>,
+    ) -> CallToolResult {
+        match self
+            .pg
+            .social_topic_list(
+                &request.space_ref,
+                request.after_topic_ref.as_deref(),
+                request.limit,
+                request.max_bytes,
+            )
+            .await
+        {
+            Ok(value) => structured(value),
+            Err(error) => db_tool_error("topic.list", error),
+        }
+    }
+
+    #[tool(
         name = "message.post",
         description = "Commit a durable Host collaboration Message with exact JCS request identity and receipt."
     )]
@@ -1456,6 +1559,7 @@ mod tests {
                 "message.get",
                 "message.post",
                 "message.relation.add",
+                "message.relation.list",
                 "message.search",
                 "space.create",
                 "space.get",
@@ -1466,6 +1570,7 @@ mod tests {
                 "topic.create",
                 "topic.cursor.ack",
                 "topic.cursor.get",
+                "topic.list",
                 "topic.resume",
                 "topic.state.set",
                 "work.create",
