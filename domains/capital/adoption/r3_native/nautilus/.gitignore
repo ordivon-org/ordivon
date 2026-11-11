@@ -2,3 +2,6 @@ catalog/
 .venv/
 __pycache__/
 native_backtest_result.json
+next_open_catalog/
+next_open_result.json
+next_open_peer_bridge_result.json

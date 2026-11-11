@@ -1,6 +1,8 @@
 {
   "kind": "ordivon.finance.r3.nautilus-rc9-synthetic-oms-qualification",
   "source_file_sha256": "bce793b53f97c5081e7a9b4b9d4a8b03a574977f25054eac42a55dcda9907a30",
+  "upstream_capture_hash_agrees": true,
+  "source_consumption": "single_verified_byte_image",
   "source_kind": "OpenBB Cboe historical normalized EOD closing marks",
   "quote_origin": "SYNTHETIC from EOD close +/- 0.01 USD",
   "timestamp_origin": "SYNTHETIC each session 21:00 UTC; not verified venue session clock",

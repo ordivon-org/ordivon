@@ -13,7 +13,7 @@ First invocation captures normalized provider CSVs under output/ and
 a capture receipt in output/native_study_result.json. This data is not
 committed: provider redistribution rights remain UNKNOWN.
 To reproducibly replay without network, copy the three CSVs and JSON
-into a separate immutable local directory and set environment variable
+into a separate private local directory and set environment variable
 ORDIVON_FINANCE_R3_CAPTURE_DIR to that directory. The consumer verifies
 each normalized CSV SHA-256 from the receipt BEFORE computing features.
 Tampered or incomplete captures must fail closed.
@@ -28,7 +28,7 @@ though DataFrames had equal values. This is a representation proof,
 not provider accuracy or retrospective PIT proof.
 
 Features RET1/MOM5/HILO/VOL5 are EOD-close-derived; LABEL0 is next
-TRADING SESSION close-to-close fractional return. These predictions are
+TRADING SESSION open-to-close fractional return (for new entries). These predictions are
 UNCALIBRATED research scores, NOT a conditional return distribution or
 an admitted expected-return vector. The independent covariance-only
 PyPortfolioOpt min-volatility calculation is MATH ONLY; the machine
@@ -46,3 +46,32 @@ hypothesis engine, optimizer, or platform abstraction is introduced.
 The JSON audited_capital_source_cut names the original baseline audit, NOT
 the current consumer Git commit; obtain current HEAD from Runtime workspace.get
 or git rev-parse at execution. Recorder ID is an MLflow run identity.
+
+
+## R3 native consumer proof — 2026-11-11 round 3
+
+The P0 source hash/parse/copy TOCTOU is fixed in the consumer. Pinned CSV
+is read ONCE as immutable pinned_bytes, both pandas BytesIO parsing and
+emitted CSV snapshot derive from the admitted bytes. A concurrent source
+path replacement after the initial read cannot alter consumed model rows.
+
+The focused real-Qlib probe mutates a private SPY source immediately
+after the committed source byte read, verifies Qlib Recorder succeeds
+and snapshot SHA still equals originally checked bytes; a pre-admission
+mutation is rejected with Capture hash mismatch.
+
+Qlib LABEL0[t] = close[t+1]/open[t+1]-1, the new-position next-session
+OPEN-to-CLOSE fractional return, not previous CLOSE-to-next CLOSE.
+The latter includes an overnight gap that a next-open new entry cannot
+capture. For QQQ 2024-08-05, captured priorclose-to-close -2.981616%,
+new-entry open-to-close +2.517189%; Qlib label equals the latter.
+These inputs are backfilled and have UNKNOWN historical availableAt,
+corporate actions and adjusted total return. No calibrated expected
+return, portfolio target, actual order or PG cash/position posting.
+
+From here (isolated Windows Python3.11, private capture in environment):
+  set ORDIVON_FINANCE_R3_TEST_CAPTURE_DIR=<private-capture-folder>
+  .venv/Scripts/python.exe tests/test_native_capture_admission.py
+
+The source test runs actual Qlib LGBModel.fit and native Recorder;
+it is not a replacement engine or test framework.

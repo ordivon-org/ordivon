@@ -5,6 +5,7 @@ accounting, and not a valid prior-close -> next-open paper-session source.
 """
 from __future__ import annotations
 import csv
+from io import StringIO
 import os
 import json
 from datetime import datetime, time, timezone
@@ -30,9 +31,20 @@ ROOT=Path(__file__).resolve().parent
 SOURCE=Path(os.environ.get("ORDIVON_FINANCE_R3_SPY_CSV",str(ROOT.parent/"output"/"openbb_cboe_SPY_normalized.csv"))).resolve()
 if not SOURCE.is_file():
     raise FileNotFoundError(f"Requires the pinned upstream read-only provider capture: {SOURCE}")
-source_sha=sha256(SOURCE.read_bytes()).hexdigest()
-with SOURCE.open(encoding="utf-8", newline="") as f:
-    rows=list(csv.DictReader(f))
+# One immutable byte image for source checking AND native consumption.
+source_bytes=SOURCE.read_bytes()
+source_sha=sha256(source_bytes).hexdigest()
+# Reject an input capture that disagrees with the upstream research receipt.
+manifest_path=Path(os.environ.get(
+    "ORDIVON_FINANCE_R3_SOURCE_MANIFEST",
+    str(ROOT.parent/"output"/"native_study_result.json")
+)).resolve()
+manifest_bytes=manifest_path.read_bytes()
+manifest=json.loads(manifest_bytes)
+receipts=[r for r in manifest["provider_receipts"] if r.get("symbol")=="SPY"]
+if len(receipts)!=1 or receipts[0]["normalized_sha256"]!=source_sha:
+    raise ValueError("Native EmaCross data hash differs from upstream provider capture")
+rows=list(csv.DictReader(StringIO(source_bytes.decode("utf-8"))))
 rows=rows[-170:]
 if len(rows)<100:
     raise AssertionError("Insufficient real ETF daily mark rows for simulator")
@@ -192,6 +204,8 @@ if native_orders:
 summary={
     "kind":"ordivon.finance.r3.nautilus-rc9-synthetic-oms-qualification",
     "source_file_sha256":source_sha,
+    "upstream_capture_hash_agrees":True,
+    "source_consumption":"single_verified_byte_image",
     "source_kind":"OpenBB Cboe historical normalized EOD closing marks",
     "quote_origin":"SYNTHETIC from EOD close +/- 0.01 USD",
     "timestamp_origin":"SYNTHETIC each session 21:00 UTC; not verified venue session clock",

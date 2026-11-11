@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 import json
 import os
-import shutil
+from io import BytesIO
 from pathlib import Path
 
 import numpy as np
@@ -69,7 +69,7 @@ for symbol in SYMBOLS:
         provider_name = str(origin["provider"])
         if provider_name != "cboe":
             raise ValueError(f"Unexpected pinned provider: {provider_name}")
-        raw_normalized = pd.read_csv(pinned_file, index_col="session_date").sort_index()
+        raw_normalized = pd.read_csv(BytesIO(pinned_bytes), index_col="session_date").sort_index()
     required = {"open", "high", "low", "close", "volume"}
     if not required.issubset(raw_normalized.columns):
         raise ValueError(f"Provider {symbol} missing columns {required - set(raw_normalized.columns)}")
@@ -89,7 +89,9 @@ for symbol in SYMBOLS:
     if capture_dir is None:
         raw_normalized.to_csv(snapshot, index_label="session_date")
     elif snapshot.resolve() != pinned_file.resolve():
-        shutil.copyfile(pinned_file, snapshot)
+        # Parse and persist exactly the SAME hash-admitted immutable bytes.
+        # Re-opening the source path would reintroduce check/use TOCTOU.
+        snapshot.write_bytes(pinned_bytes)
     if capture_dir is not None and sha256(snapshot.read_bytes()).hexdigest() != origin["normalized_sha256"]:
         raise ValueError(f"Immutable capture was altered during replay: {symbol}")
     provider_receipts.append({
@@ -121,8 +123,12 @@ for symbol in SYMBOLS:
         "HILO": ((x["high"] - x["low"]) / close).to_numpy(),
         "VOL5": (vol / vol.rolling(5).mean() - 1.0).to_numpy(),
     }, index=index)
+    # A post-T-close decision filled at next-session OPEN is exposed to
+    # next-session OPEN -> CLOSE price change, not T close -> T+1 close.
+    # This is a *research label* only, not proof of opening fill quality.
+    next_open = x["open"].astype(float).shift(-1)
     label = pd.DataFrame({
-        "LABEL0": (close.shift(-1) / close - 1.0).to_numpy()
+        "LABEL0": (close.shift(-1) / next_open - 1.0).to_numpy()
     }, index=index)
     frames.append(pd.concat({"feature": feature, "label": label}, axis=1))
     prices[symbol] = pd.Series(close.to_numpy(), index=dates, name=symbol)
@@ -180,7 +186,7 @@ with R.start(experiment_name="ordivon_finance_r3_openbb_qlib_native_etf"):
 if isinstance(predictions, pd.DataFrame):
     predictions = predictions.iloc[:, 0]
 prediction_snapshot = OUT / "qlib_test_predictions.csv"
-predictions.to_csv(prediction_snapshot, header=["predicted_next_close_return"])
+predictions.to_csv(prediction_snapshot, header=["predicted_next_open_to_close_fractional_return"])
 pred_table = predictions.unstack("instrument").dropna()
 decision_at = pd.Timestamp(pred_table.index.max())
 expected_daily = pred_table.loc[decision_at].reindex(SYMBOLS).astype(float)
@@ -215,9 +221,9 @@ result = {
     "optimizer_input_kind": "trailing_120_session_sample_covariance",
     "optimizer_policy_eligible": False,
     "forecast": {
-        "kind": "uncalibrated_next_session_fractional_close_to_close_regression",
-        "predicted_next_session_fractional_returns": {k: float(v) for k, v in expected_daily.items()},
-        "target_horizon": "next_trading_session_close",
+        "kind": "uncalibrated_next_session_open_to_close_fractional_regression",
+        "predicted_next_open_to_close_fractional_returns": {k: float(v) for k, v in expected_daily.items()},
+        "target_horizon": "new_entry_next_session_open_to_close",
         "signal_first_available": "UNKNOWN (source backfilled, EOD fields required)",
         "point_in_time_eligible": False,
         "calibrated_conditional_distribution": False,
