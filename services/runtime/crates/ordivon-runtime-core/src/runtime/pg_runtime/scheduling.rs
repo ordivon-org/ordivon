@@ -71,6 +71,17 @@ impl SchedulerPreflight {
             })
     }
 
+    /// One-pass filter of candidates already known to be infeasible in the
+    /// current immutable native/PG snapshot. Subsequent allocations can only
+    /// tighten this preflight; final authority remains the PG claim.
+    fn retain_initially_feasible(
+        &self,
+        candidates: &mut Vec<PendingCandidate>,
+        node: &NodeResources,
+    ) {
+        candidates.retain(|candidate| self.allows(candidate, node));
+    }
+
     fn record_allocation(&mut self, candidate: &PendingCandidate) -> bool {
         if !self.active_attempts.insert(candidate.attempt_id.clone()) {
             return false;
@@ -292,6 +303,10 @@ impl PgRuntime {
                 spec,
             });
         }
+        // Drop candidates that cannot fit this snapshot before repeated
+        // priority/DRF rescoring. A new committed Allocation only tightens
+        // the preflight; the inner loop must still recheck after each grant.
+        preflight.retain_initially_feasible(&mut ranked, &node);
         let mut dispatched = 0_u32;
         while dispatched < 32 && !ranked.is_empty() {
             let Some(index) = next_candidate(&ranked, &usage, &node) else {
@@ -561,5 +576,56 @@ mod scheduler_candidate_tests {
         assert!(preflight.allows(&first, &node));
         assert!(!preflight.record_allocation(&first));
         assert_eq!(preflight.newly_reserved_pids, 6_000);
+    }
+
+    #[test]
+    fn initial_preflight_keeps_late_eligible_and_existing_idempotent_attempts() {
+        let node = realistic_node();
+        let mut preflight = SchedulerPreflight::default();
+        preflight
+            .leases
+            .insert("busy".into(), vec![WorkspaceAccess::default()]);
+        let mut ranked = (0..3_000)
+            .map(|order| {
+                let mut candidate = candidate("blocked", 0, order);
+                candidate.workspace_id = "busy".into();
+                candidate
+            })
+            .collect::<Vec<_>>();
+        // Existing Allocation must be revisited even when a Workspace lease
+        // would otherwise reject a second new claim.
+        preflight
+            .active_attempts
+            .insert(ranked[0].attempt_id.clone());
+        let mut tail = candidate("eligible", 10, 3_000);
+        tail.workspace_id = "independent".into();
+        ranked.push(tail);
+
+        preflight.retain_initially_feasible(&mut ranked, &node);
+        assert_eq!(ranked.len(), 2);
+        assert_eq!(ranked[0].order, 0);
+        assert_eq!(ranked[1].order, 3_000);
+        assert_eq!(next_candidate(&ranked, &BTreeMap::new(), &node), Some(1));
+    }
+
+    #[test]
+    fn initial_preflight_does_not_skip_candidates_later_blocked_by_new_claims() {
+        let node = realistic_node();
+        let mut preflight = SchedulerPreflight::default();
+        let mut first = candidate("a", 1, 0);
+        first.workspace_id = "workspace-1".into();
+        first.spec.resources.memory_bytes = 600 * 1024 * 1024;
+        let mut second = candidate("b", 0, 1);
+        second.workspace_id = "workspace-2".into();
+        second.spec.resources.memory_bytes = 600 * 1024 * 1024;
+        let mut ranked = vec![first, second];
+
+        // Both fit the initial OS snapshot. Removing either would violate
+        // Priority/DRF/FIFO eligibility, even if only one can later commit.
+        preflight.retain_initially_feasible(&mut ranked, &node);
+        assert_eq!(ranked.len(), 2);
+        assert_eq!(next_candidate(&ranked, &BTreeMap::new(), &node), Some(0));
+        assert!(preflight.record_allocation(&ranked.remove(0)));
+        assert!(!preflight.allows(&ranked[0], &node));
     }
 }
