@@ -69,9 +69,11 @@ The read-only observe_exact_batch operation is specifically for reconnecting
 after an uncertain Journal commit. It reuses read_run_readonly and its
 REPEATABLE READ snapshot, including versioned Contract and CAS verification;
 it compares exact Event ID, revision, payload digest, causation, time, and
-referenced CAS digest/kind/length. The same readback projects the verified
-referenced CAS content once for downstream B consumers; do not add another
-reference parser or store. NotObserved means only that the Event batch was
+referenced CAS digest/kind/length. The same readback projects verified reference metadata once using the
+single B-proposed VerifiedReferenceLink API and exposes content only for
+Provider Record references, never other potentially private CAS. This is a
+review candidate for the sole A Owner; do not add another reference parser
+or Store. NotObserved means only that the Event batch was
 not observed in the queried Journal snapshot; it says NOTHING about whether
 a Provider/Runtime/Tool physical effect happened. A commit socket error is
 UNKNOWN until reconciled; no automatic duplicate dispatch.

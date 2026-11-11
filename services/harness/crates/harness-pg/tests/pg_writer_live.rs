@@ -149,24 +149,19 @@ fn native_writer_exact_batch_replay_and_cas() {
         Admission::Existing
     );
     assert_eq!(revision(&mut again, &schema, id), 3);
-    // Reference identity includes verified CAS kind/length and immutable
-    // contents, not only the digest. This is the same typed reference value
-    // later consumed by B's Provider/Tool readback and never an effect grant.
+    // Reuse B's CAS reference-edge projection, adding only byte length
+    // to the verified metadata. Non-Provider content stays private.
     let written_refs: Vec<_> = read
-        .references
+        .verified_reference_links
         .iter()
-        .filter(|reference| reference.event_id == "event:rust-native-writer-trace")
+        .filter(|reference| reference.event_id() == "event:rust-native-writer-trace")
         .collect();
     assert_eq!(written_refs.len(), 1);
-    assert_eq!(written_refs[0].kind, "test-source-artifact");
-    assert_eq!(written_refs[0].digest, ref_object(&data).digest);
-    assert_eq!(
-        written_refs[0]
-            .content
-            .field("artifact")
-            .and_then(|x| x.as_str()),
-        Some("source-owned")
-    );
+    assert_eq!(written_refs[0].kind(), "test-source-artifact");
+    assert_eq!(written_refs[0].digest(), ref_object(&data).digest);
+    assert_eq!(written_refs[0].byte_length(), ref_object(&data).byte_length);
+    // Private non-Provider objects must not be projected as public content.
+    assert!(read.provider_record_references.is_empty());
     let mut wrong_kind = batch.clone();
     wrong_kind[1].referenced_objects[0].kind = "pretend-kind".to_owned();
     assert!(matches!(

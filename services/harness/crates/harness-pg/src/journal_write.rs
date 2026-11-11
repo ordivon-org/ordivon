@@ -487,14 +487,14 @@ pub fn observe_exact_batch(
             })
             .collect();
         let stored_refs: BTreeSet<_> = read
-            .references
+            .verified_reference_links
             .iter()
-            .filter(|reference| reference.event_id == event.event_id)
+            .filter(|reference| reference.event_id() == event.event_id)
             .map(|reference| {
                 (
-                    reference.digest.clone(),
-                    reference.kind.clone(),
-                    reference.byte_length,
+                    reference.digest().to_owned(),
+                    reference.kind().to_owned(),
+                    reference.byte_length(),
                 )
             })
             .collect();
