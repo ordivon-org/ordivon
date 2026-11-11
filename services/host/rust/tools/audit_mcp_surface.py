@@ -152,11 +152,38 @@ def compare(expected: dict, actual: dict) -> dict:
     return differences
 
 
+def require_explicit_native_extensions(
+    rust_only: list[str], approved: list[str], rust: dict[str, dict]
+) -> None:
+    """Prevent Rust-only additions from being counted as original Python parity."""
+    if len(set(approved)) != len(approved) or rust_only != sorted(approved):
+        raise RuntimeError(
+            f"Rust-only tool set differs from explicitly reviewed extensions:"
+            f" actual={rust_only}, allowed={sorted(approved)}"
+        )
+    for name in rust_only:
+        tool = rust[name]
+        for field in ("inputSchema", "outputSchema"):
+            schema = tool.get(field)
+            if not isinstance(schema, dict) or schema.get("type") != "object":
+                raise RuntimeError(
+                    f"Rust-only tool {name} must publish a concrete object {field}"
+                )
+            if not isinstance(schema.get("properties"), dict) or not schema["properties"]:
+                raise RuntimeError(
+                    f"Rust-only tool {name} cannot publish an empty {field} placeholder"
+                )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--rust-bin", required=True, type=Path)
     parser.add_argument("--source-manifest", required=True, type=Path)
     parser.add_argument("--report", required=True, type=Path)
+    parser.add_argument(
+        "--extension", action="append", default=[],
+        help="Explicit new Rust-only tool; must be backed by typed input/output schemas"
+    )
     args = parser.parse_args()
     reference = json.loads(args.source_manifest.read_text(encoding="utf-8"))
     source = inventory(python_tools(), name="Python")
@@ -166,8 +193,10 @@ def main() -> int:
         raise RuntimeError("Original Python Host source manifest differs from actual registry")
     source_names = set(source)
     rust_names = set(rust)
-    if not rust_names.issubset(source_names):
-        raise RuntimeError("Rust exposed an unreviewed non-Python MCP tool")
+    # A new native capability MUST NOT disguise an absent old Python tool.
+    # Extensions are a separate additive source epoch, not Python parity.
+    rust_only = sorted(rust_names - source_names)
+    require_explicit_native_extensions(rust_only, args.extension, rust)
     if list(rust) != sorted(rust):
         raise RuntimeError("Rust tools/list order is not deterministic lexical ordering")
 
@@ -180,6 +209,8 @@ def main() -> int:
         "pythonTools": len(source),
         "rustTools": len(rust),
         "missingRustTools": sorted(source_names - rust_names),
+        "rustOnlyTools": rust_only,
+        "comparableSourceTools": len(intersection),
         "metadataBytes": {
             "python": sum(wire_bytes(v) for v in source.values()),
             "rust": sum(wire_bytes(v) for v in rust.values()),
@@ -195,6 +226,7 @@ def main() -> int:
         "schemaDifferences": mismatches,
         "truthBoundary": (
             "Compares real source Python SDK registry to isolated Rust tools/list; "
+            "additional Rust-only tools are explicit unmerged source extensions, "
             "not an installed-connector or end-to-end output/effect parity proof"
         ),
     }
@@ -237,6 +269,7 @@ def main() -> int:
     print(
         "HOST_MCP_CONTRACT_AUDIT"
         f" source={len(source)} rust={len(rust)} missing={len(source_names - rust_names)}"
+        f" rust_only={rust_only}"
         f" schema_diffs={len(mismatches)}"
         f" metadata_bytes={report['metadataBytes']}"
         f" described={report['toolsWithDescriptions']}"
