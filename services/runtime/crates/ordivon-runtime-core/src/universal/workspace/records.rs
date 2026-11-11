@@ -94,18 +94,23 @@ fn load_workspace_record_metadata(
 ) -> Result<WorkspaceRecord, UniversalExecError> {
     super::validate_id(workspace_id, "workspaceId")?;
     let path = config.workspace_record_path(workspace_id);
-    // An existing physical Workspace without a committed identity is not
-    // "not found". Surface the same fail-closed condition for get and list
-    // that workspace.close already reports.
-    if !path.exists() && config.workspace_path(workspace_id).exists() {
-        return Err(UniversalExecError::new(
-            UniversalExecErrorCode::MetadataCorrupt,
-            "workspace directory exists without an identity record",
-            Some("workspaceId"),
-            false,
-        ));
-    }
-    let bytes = read_workspace_record_bytes(&path)?;
+    // Keep the healthy list/get path to one record read: consult the physical
+    // Workspace directory only after a missing identity record, not on every
+    // item in a potentially large Workspace inventory.
+    let bytes = read_workspace_record_bytes(&path).map_err(|error| {
+        if error.code == UniversalExecErrorCode::WorkspaceNotFound
+            && !path.exists()
+            && config.workspace_path(workspace_id).exists()
+        {
+            return UniversalExecError::new(
+                UniversalExecErrorCode::MetadataCorrupt,
+                "workspace directory exists without an identity record",
+                Some("workspaceId"),
+                false,
+            );
+        }
+        error
+    })?;
     if let Some(closed) = decode_closed_workspace_record(&bytes)? {
         validate_closed_identity(&closed, workspace_id)?;
         return Err(UniversalExecError::new(
