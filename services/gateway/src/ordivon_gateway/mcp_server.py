@@ -313,7 +313,15 @@ def build_server(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
         )
 
-    register_host_tools(server, gateway, _owner_boundary)
+    # Both conditions are required. STDIO does not carry a verified HTTP
+    # Principal. A configured capability authorizer without HTTP ingress is
+    # also insufficient; a bearer-authenticated service is not an Actor.
+    register_host_tools(
+        server,
+        gateway,
+        _owner_boundary,
+        register_engagement=require_http_execution_identity and capability_authorizer is not None,
+    )
 
     return server
 

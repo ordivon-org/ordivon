@@ -28,6 +28,10 @@ _SOCIAL_WORK_HOST_TOOLS = frozenset(
         "work.get",
         "work.list",
         "work.snapshot.commit",
+        # Conditional Gateway exposure is owned by build_server, never by this
+        # underlying route set. Direct owner calls still require verified PEP.
+        "work.engagement.advance",
+        "work.engagement.list",
         "space.create",
         "space.get",
         "space.list",
