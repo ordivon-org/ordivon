@@ -238,6 +238,62 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
         else:
             pytest.fail("fresh PG MCP endpoint did not start")
 
+        # Opt-in cross-owner qualification. It exercises the ACTUAL Harness
+        # PG Run/Intent/Fence producer against this SAME disposable PG18
+        # cluster and native Gateway->Runtime->Runner; ordinary Gateway
+        # tests do not depend on Harness' Python environment or package.
+        harness_source = os.getenv("ORDIVON_GATEWAY_PG_E2E_REAL_HARNESS_SOURCE") == "1"
+
+        def verified_harness_source(
+            stage: str, *, expect_rejection: bool = False, **settings: str
+        ) -> dict:
+            interpreter = os.environ.get("ORDIVON_GATEWAY_PG_E2E_HARNESS_PYTHON")
+            assert interpreter and Path(interpreter).is_file(), (
+                "opt-in source test requires an existing qualified Harness Python interpreter"
+            )
+            script = (
+                source_root
+                / "harness/rust-migration/consumer-acceptance"
+                / {
+                    "prepare": "real_pg_fenced_gateway_source.py",
+                    "supersede": "real_pg_fenced_gateway_supersede.py",
+                    "unknown": "real_pg_fenced_gateway_receipt.py",
+                    "reconcile": "real_pg_fenced_gateway_receipt.py",
+                }[stage]
+            )
+            assert script.is_file(), "real Harness source and receipt must exist"
+            source_env = {
+                **os.environ,
+                "PYTHONPATH": str(source_root / "harness/src"),
+                "ORDIVON_R22_HARNESS_PG_DSN": (
+                    f"host={root} port=5432 dbname=postgres user=postgres"
+                ),
+                "ORDIVON_R22_RUNTIME_WORKSPACE": "ws-gateway-native",
+                "ORDIVON_R22_RECEIPT_STAGE": stage,
+                **settings,
+            }
+            verified = subprocess.run(
+                [interpreter, str(script)],
+                env=source_env,
+                text=True,
+                capture_output=True,
+                timeout=35,
+                check=False,
+            )
+            if expect_rejection:
+                assert verified.returncode != 0, (
+                    "wrong native Owner Job must not settle another Harness Tool Intent"
+                )
+                assert "OWNER_SOURCE_IDENTITY_MISMATCH" in verified.stderr, (
+                    "unrelated source/PG failure cannot masquerade as Owner identity rejection: "
+                    f"{verified.stderr[-800:]}"
+                )
+                return {"rejected": True}
+            assert verified.returncode == 0, (
+                f"Harness source {stage} failed: {verified.stderr[-1200:]}"
+            )
+            return json.loads(verified.stdout.strip().splitlines()[-1])
+
         async def scenario() -> None:
             caller = McpOwnerCaller(
                 {
@@ -327,8 +383,9 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                 } <= tool_names
                 agent_request = request_id + "-agent"
                 agent_output = "AGENT_VIA_GATEWAY_PG_" + agent_request
-                # A Harness dispatch fence is already authorized by Harness;
-                # Gateway merely forwards caller-declared reference bytes.
+                # These are caller-declared reference bytes only. Native PG
+                # preserves their identity; it cannot prove Harness issuer
+                # currentness or grant Runtime physical execution rights.
                 harness_fence = {
                     "namespace": "ordivon.harness",
                     "type": "dispatch_fence",
@@ -336,6 +393,32 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                     "generation": "7",
                     "digest": "sha256:" + secrets.token_hex(32),
                 }
+                harness_refs = [harness_fence]
+                source_manifest = None
+                source_owner_params: dict[str, object] = {}
+                if harness_source:
+                    source_manifest = verified_harness_source(
+                        "prepare", ORDIVON_R22_EXEC_OUTPUT=agent_output
+                    )
+                    agent_request = source_manifest["clientRequestId"]
+                    harness_refs = source_manifest["foreignReferences"]
+                    assert len(harness_refs) == 4
+                    assert harness_refs[-1]["type"] == "dispatch_fence"
+                    assert source_manifest["fenceDigest"] == harness_refs[-1]["digest"]
+                    harness_fence = harness_refs[-1]
+                    original_execution = source_manifest["execution"]
+                    source_owner_params = {
+                        field: original_execution[field]
+                        for field in (
+                            "cwdRelative",
+                            "env",
+                            "timeoutMs",
+                            "stdoutLimitBytes",
+                            "stderrLimitBytes",
+                        )
+                    }
+                    assert source_manifest["preparedRevision"] == int(harness_fence["generation"])
+                    print("R22_TRUE_HARNESS_PG_CAS_INTENT_FENCE_PREPARED")
                 submitted = await agent.call_tool(
                     "execution.submit",
                     {
@@ -344,13 +427,23 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         "workspaceId": "ws-gateway-native",
                         "executable": "/usr/bin/printf",
                         "args": [agent_output],
-                        "authorityReferences": [harness_fence],
+                        "authorityReferences": harness_refs,
+                        **source_owner_params,
                     },
                 )
                 assert not submitted.is_error, submitted.structured_content
                 north = submitted.structured_content
                 assert isinstance(north, dict), submitted
                 north_ref = north["operation_ref"]
+                if source_manifest is not None:
+                    lost = verified_harness_source(
+                        "unknown",
+                        ORDIVON_R22_EXPECT_RUN=source_manifest["runId"],
+                        ORDIVON_R22_EXPECT_REQUEST=agent_request,
+                        ORDIVON_R22_EXPECT_REFS_JSON=json.dumps(harness_refs),
+                    )
+                    assert lost["standing"] == "UNKNOWN"
+                    print("R22_TRUE_HARNESS_PG_UNKNOWN_AFTER_OWNER_SUBMIT")
                 replay = await agent.call_tool(
                     "execution.submit",
                     {
@@ -359,11 +452,31 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         "workspaceId": "ws-gateway-native",
                         "executable": "/usr/bin/printf",
                         "args": [agent_output],
-                        "authorityReferences": [harness_fence],
+                        "authorityReferences": harness_refs,
+                        **source_owner_params,
                     },
                 )
                 assert not replay.is_error, replay.structured_content
                 assert replay.structured_content["operation_ref"] == north_ref
+                if source_manifest is not None:
+                    # Exact original request identity includes the enforceable
+                    # stdout/stderr byte ceilings. No new Job may appear if
+                    # the same key now requests a larger output allowance.
+                    with pytest.raises(OwnerCallError):
+                        await gateway.execution_submit(
+                            capability="execution.linux",
+                            request_id=agent_request,
+                            workspace_id="ws-gateway-native",
+                            executable="/usr/bin/printf",
+                            args=[agent_output],
+                            cwd_relative=source_owner_params["cwdRelative"],
+                            env=source_owner_params["env"],
+                            timeout_ms=source_owner_params["timeoutMs"],
+                            stdout_limit_bytes=source_owner_params["stdoutLimitBytes"] + 1,
+                            stderr_limit_bytes=source_owner_params["stderrLimitBytes"],
+                            authority_references=harness_refs,
+                        )
+                    print("R22_CHANGED_OUTPUT_LIMIT_SAME_REQUEST_ID_CONFLICTS_NO_REDISPATCH")
                 # A different fence generation cannot reuse one committed
                 # Job's idempotent clientRequestId.
                 with pytest.raises(OwnerCallError):
@@ -373,7 +486,15 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         workspace_id="ws-gateway-native",
                         executable="/usr/bin/printf",
                         args=[agent_output],
-                        authority_references=[{**harness_fence, "generation": "8"}],
+                        authority_references=[
+                            *harness_refs[:-1],
+                            {**harness_fence, "generation": "99"},
+                        ],
+                        cwd_relative=source_owner_params.get("cwdRelative", "."),
+                        env=source_owner_params.get("env"),
+                        timeout_ms=source_owner_params.get("timeoutMs"),
+                        stdout_limit_bytes=source_owner_params.get("stdoutLimitBytes"),
+                        stderr_limit_bytes=source_owner_params.get("stderrLimitBytes"),
                     )
                 committed_plan = json.loads(
                     psql(
@@ -381,7 +502,7 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         f"WHERE principal='pg-consumer' AND client_request_id='{agent_request}'"
                     ).strip()
                 )
-                assert committed_plan["foreignReferences"] == [harness_fence]
+                assert committed_plan["foreignReferences"] == harness_refs
                 assert (
                     psql(
                         "SELECT count(*) FROM fresh.jobs "
@@ -460,7 +581,162 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                         f"WHERE principal='pg-consumer' AND client_request_id='{agent_request}'"
                     ).strip()
                 )
-                assert committed_after_terminal["foreignReferences"] == [harness_fence]
+                assert committed_after_terminal["foreignReferences"] == harness_refs
+                if source_manifest is not None:
+                    source_execution = source_manifest["execution"]
+                    # Source's original full workspace.exec request is
+                    # SHA-bound by its ToolIntent. Gateway's public
+                    # execution.submit does not expose stdout/stderr output
+                    # ceilings, so the real Runtime Plan may silently use
+                    # wider default values. A Job/ForeignReference match
+                    # proves provenance, NOT exact original physical plan.
+                    assert (
+                        committed_after_terminal["workspaceId"] == (source_execution["workspaceId"])
+                    )
+                    assert Path(committed_after_terminal["executable"]) == Path(
+                        source_execution["executable"]
+                    ).resolve(strict=True)
+                    assert committed_after_terminal["args"] == source_execution["args"]
+                    assert committed_after_terminal["timeoutMs"] == source_execution["timeoutMs"]
+                    assert committed_after_terminal["env"] == source_execution["env"]
+                    # Runtime's source-faithful normalized Plan stores the
+                    # *resolved* absolute workspace cwd, not the caller's
+                    # literal cwdRelative input.
+                    assert Path(committed_after_terminal["cwd"]) == (
+                        Path(committed_after_terminal["workspacePath"])
+                        / source_execution["cwdRelative"]
+                    ).resolve(strict=True)
+                    source_stdout = source_execution["stdoutLimitBytes"]
+                    source_stderr = source_execution["stderrLimitBytes"]
+                    runtime_stdout = committed_after_terminal["stdoutLimitBytes"]
+                    runtime_stderr = committed_after_terminal["stderrLimitBytes"]
+                    assert source_stdout == source_stderr == 262144
+                    assert runtime_stdout > 0 and runtime_stderr > 0
+                    assert (runtime_stdout, runtime_stderr) == (
+                        source_stdout,
+                        source_stderr,
+                    ), (
+                        "R22_RED: actual native Runtime Plan output limits differ from "
+                        "durably committed Harness original Tool Intent; "
+                        f"source={(source_stdout, source_stderr)}, "
+                        f"owner={(runtime_stdout, runtime_stderr)}"
+                    )
+                    # Deliberately discard the original submit response as the
+                    # Harness observation. Source already wrote UNKNOWN; the
+                    # ONLY recovery input is the true Owner's resolved Job,
+                    # terminal receipt and same native PG frozen Plan.
+                    owner_obs = {
+                        "jobId": native_job_id,
+                        "clientRequestId": agent_request,
+                        "executionTerminal": got.structured_content["terminal"],
+                        "deliveryDisposition": got.structured_content["delivery_disposition"],
+                        "exitCode": got.structured_content["exit_code"],
+                    }
+                    # A different genuine PG Job in the same principal and
+                    # Workspace is STILL not the Owner receipt for this Intent.
+                    # No receipt is written for a forged clientRequestId/Job.
+                    wrong_job = verified_harness_source(
+                        "reconcile",
+                        expect_rejection=True,
+                        ORDIVON_R22_EXPECT_RUN=source_manifest["runId"],
+                        ORDIVON_R22_EXPECT_REQUEST=agent_request,
+                        ORDIVON_R22_EXPECT_REFS_JSON=json.dumps(harness_refs),
+                        ORDIVON_R22_OWNER_JOB=receipt.native_id,
+                        ORDIVON_R22_OWNER_OBSERVATION=json.dumps(
+                            {
+                                **owner_obs,
+                                "jobId": receipt.native_id,
+                            }
+                        ),
+                    )
+                    assert wrong_job["rejected"] is True
+                    print("R22_WRONG_REAL_OWNER_JOB_FAIL_CLOSED_BEFORE_RECEIPT")
+                    settled = verified_harness_source(
+                        "reconcile",
+                        ORDIVON_R22_EXPECT_RUN=source_manifest["runId"],
+                        ORDIVON_R22_EXPECT_REQUEST=agent_request,
+                        ORDIVON_R22_EXPECT_REFS_JSON=json.dumps(harness_refs),
+                        ORDIVON_R22_OWNER_JOB=native_job_id,
+                        ORDIVON_R22_OWNER_OBSERVATION=json.dumps(owner_obs),
+                    )
+                    assert settled["standing"] == "OWNER_CONFIRMED_RECEIPT"
+                    assert settled["jobId"] == native_job_id
+                    assert settled["dispatchCount"] == 1
+                    assert settled["semanticCompletionEvaluated"] is False
+                    print("R22_TRUE_PG_OWNER_JOB_HARNESS_UNKNOWN_RECONCILED_NO_REDISPATCH")
+
+                if (
+                    harness_source
+                    and os.getenv("ORDIVON_GATEWAY_PG_E2E_STALE_FENCE_FALSIFY") == "1"
+                ):
+                    # Negative control: source qualifies a real Fence, then
+                    # a new durable Run revision supersedes it BEFORE sending.
+                    # The PG Owner preserves the stale reference only as
+                    # metadata; it does not yet consult the Harness issuer.
+                    stale_output = "R22_STALE_FENCE_PHYSICAL_COUNTEREXAMPLE"
+                    stale_source = verified_harness_source(
+                        "prepare", ORDIVON_R22_EXEC_OUTPUT=stale_output
+                    )
+                    stale_refs = stale_source["foreignReferences"]
+                    superseded = verified_harness_source(
+                        "supersede",
+                        ORDIVON_R22_EXPECT_RUN=stale_source["runId"],
+                        ORDIVON_R22_EXPECT_REQUEST=stale_source["clientRequestId"],
+                        ORDIVON_R22_EXPECT_REFS_JSON=json.dumps(stale_refs),
+                    )
+                    assert superseded["standing"] == ("FENCE_SUPERSEDED_BY_DURABLE_RUN_REVISION")
+                    assert superseded["currentRevision"] > superseded["preparedRevision"]
+                    stale_result = await agent.call_tool(
+                        "execution.submit",
+                        {
+                            "capability": "execution.linux",
+                            "requestId": stale_source["clientRequestId"],
+                            "workspaceId": "ws-gateway-native",
+                            "executable": "/usr/bin/printf",
+                            "args": [stale_output],
+                            "authorityReferences": stale_refs,
+                            **{
+                                field: stale_source["execution"][field]
+                                for field in (
+                                    "cwdRelative",
+                                    "env",
+                                    "timeoutMs",
+                                    "stdoutLimitBytes",
+                                    "stderrLimitBytes",
+                                )
+                            },
+                        },
+                    )
+                    # This is an EXISTING SECURITY/CONSISTENCY GAP, not
+                    # an expected authorization contract or a passing Fence.
+                    assert not stale_result.is_error, (
+                        "Runtime unexpectedly acquired live Harness issuer"
+                        " validation without an issuer admission channel"
+                    )
+                    stale_ref = stale_result.structured_content["operation_ref"]
+                    for _ in range(20):
+                        stale_observed = await agent.call_tool(
+                            "execution.get",
+                            {"operationRef": stale_ref, "waitMs": 1500},
+                        )
+                        assert not stale_observed.is_error
+                        if stale_observed.structured_content["terminal"]:
+                            break
+                    assert stale_observed.structured_content["terminal"]
+                    assert stale_observed.structured_content["exit_code"] == 0
+                    stale_plan = json.loads(
+                        psql(
+                            "SELECT execution_plan_json FROM fresh.jobs "
+                            "WHERE principal='pg-consumer' "
+                            f"AND client_request_id='{stale_source['clientRequestId']}'"
+                        ).strip()
+                    )
+                    assert stale_plan["foreignReferences"] == stale_refs
+                    assert stale_plan["args"] == [stale_output]
+                    print(
+                        "R22_P0_STALE_HARNESS_FENCE_ADMITTED_AND_PHYSICALLY_EXECUTED"
+                        "_BY_METADATA_ONLY_NATIVE_OWNER"
+                    )
 
                 # Exercise the actual Gateway cancellation route as a distinct Job.
                 cancel_receipt = await gateway.execution_submit(
