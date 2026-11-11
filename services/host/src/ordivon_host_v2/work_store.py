@@ -147,10 +147,7 @@ class WorkStore(WorkRelationCommands, WorkReadQueries, HostPostgresConnections):
     ) -> dict[str, Any]:
         # Revision is a typed CAS identity, not Python numeric equality:
         # bool is an int subclass, and 1.0 compares equal to 1.
-        if (
-            type(expected_revision) is not int
-            or not 1 <= expected_revision < POSTGRES_BIGINT_MAX
-        ):
+        if type(expected_revision) is not int or not 1 <= expected_revision < POSTGRES_BIGINT_MAX:
             raise ValueError("expected_revision must be a positive PostgreSQL BIGINT predecessor")
         payload = snapshot.canonical_payload()
         snapshot_digest = canonical_digest(payload)
@@ -178,6 +175,21 @@ class WorkStore(WorkRelationCommands, WorkReadQueries, HostPostgresConnections):
                 raise WorkNotFound(work_ref)
             current_revision = int(current["current_revision"])
             next_revision = _next_work_revision(expected_revision)
+            # The strict old input DTO alone cannot protect a newer Rust
+            # engagement already stored as the current immutable Work snapshot.
+            # The works FOR UPDATE lock precedes this read, so old Python CAS
+            # cannot silently downgrade an active versioned accountability.
+            current_snapshot = conn.execute(
+                "SELECT payload ? 'engagement' AS has_engagement "
+                "FROM work_snapshots WHERE work_ref=%s AND revision=%s",
+                (work_ref, current_revision),
+            ).fetchone()
+            if current_snapshot is None:
+                raise ConflictError("current Work snapshot is missing")
+            if current_snapshot["has_engagement"]:
+                raise ConflictError(
+                    "versioned Work accountability requires work.engagement.advance"
+                )
             if current_revision == next_revision:
                 prior = conn.execute(
                     "SELECT snapshot_digest,writer_actor_ref FROM work_snapshots "

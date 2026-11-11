@@ -12,7 +12,8 @@ import psycopg
 from pydantic import ValidationError
 
 from ordivon_host_v2.canonical_json import canonical_digest
-from ordivon_host_v2.work_inputs import WorkSnapshotInput
+from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.work_inputs import WorkSnapshotInput, WorkState
 from ordivon_host_v2.work_store import WorkStore
 
 dsn = os.getenv("HOST_RUST_TEST_DSN")
@@ -79,5 +80,42 @@ with psycopg.connect(dsn) as conn:
     }
     assert digest == canonical_digest(offer_request), (digest, offer_request)
     assert response["snapshot"]["engagement"]["phase"] == "offered"
+
+# DTO strictness alone is not enough: the old Python writer must not erase
+# current Rust-owned engagement from an already-open, versioned Work.
+legacy_ref = "work:test:engagement:inventory-00"
+before_legacy_attempt = store.get_work(legacy_ref)
+assert before_legacy_attempt["state"] == "open"
+assert before_legacy_attempt["revision"] == 2
+assert before_legacy_attempt["snapshot"]["engagement"]["phase"] == "offered"
+legacy_request_id = "request:test:python-generic-erases-rust-engagement-r11"
+try:
+    store.commit_snapshot(
+        legacy_ref,
+        expected_revision=2,
+        snapshot=WorkSnapshotInput(
+            objective="Legacy API must preserve versioned Work engagement",
+            frontier="Old writer attempt to downgrade accountable Work",
+        ),
+        actor_ref="actor:test:engagement-requester",
+        state=WorkState.OPEN,
+        client_request_id=legacy_request_id,
+    )
+except ConflictError:
+    pass
+else:
+    raise AssertionError("legacy Python erased active Rust Work engagement")
+after_legacy_attempt = store.get_work(legacy_ref)
+assert after_legacy_attempt == before_legacy_attempt
+with psycopg.connect(dsn) as conn:
+    assert (
+        conn.execute(
+            "SELECT 1 FROM command_receipts WHERE client_request_id=%s",
+            (legacy_request_id,),
+        ).fetchone()
+        is None
+    )
+
+print("R11_LEGACY_WRITER_CAS_PRESERVES_RUST_ENGAGEMENT_PASS unchanged=true receipt=absent")
 
 print("R7_ORIGINAL_PYTHON_READS_RUST_CLAIM_DELIVERY_REVIEW_EXACT_PASS")
